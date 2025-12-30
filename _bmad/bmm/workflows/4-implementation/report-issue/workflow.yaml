@@ -1,0 +1,53 @@
+name: report-issue
+description: "Capture, document, and route QA issues found during manual testing with structured tracking and automatic story generation"
+author: "Ivo"
+web_bundle: false
+
+# Critical variables from config
+config_source: "{project-root}/.bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+sprint_artifacts: "{config_source}:sprint_artifacts"
+date: system-generated
+
+# Workflow components
+installed_path: "{project-root}/.bmad/bmm/workflows/4-implementation/report-issue"
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.xml"
+validation: "{installed_path}/checklist.md"
+
+# Variables and inputs
+variables:
+  sprint_status: "{sprint_artifacts}/sprint-status.yaml"
+  issues_dir: "{sprint_artifacts}/issues"
+  assets_dir: "{sprint_artifacts}/issues/assets"
+  # Issue details (collected during workflow)
+  issue_title: ""
+  issue_severity: "" # Critical | Major | Minor
+  issue_type: "" # Bug | UX Issue | Regression
+  issue_component: ""
+  issue_description: ""
+  repro_steps: ""
+  expected_behavior: ""
+  actual_behavior: ""
+  impact: ""
+  workaround: ""
+  screenshot_paths: [] # User-provided paths to copy
+  log_paths: [] # User-provided paths to copy
+  related_epic: ""
+  related_story: ""
+
+# Project context
+project_context: "**/project-context.md"
+
+# Output file pattern
+default_output_file: "{issues_dir}/ISS-{{issue_number}}-{{issue_slug}}.md"
+
+# Environment defaults (pre-filled)
+environment_defaults:
+  os: "Windows 10/11"
+  app_name: "text-extractor"
+  dpi_scaling: "100%"
+
+standalone: true

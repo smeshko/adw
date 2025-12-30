@@ -1,0 +1,304 @@
+<workflow>
+  <!-- BMAD COMPLIANCE: XML-based action workflow (approved alternative to step-file architecture) -->
+
+  <critical>The workflow execution engine is governed by: {project-root}/{bmad_folder}/core/tasks/workflow.xml</critical>
+  <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
+  <critical>Communicate all responses in {communication_language}</critical>
+
+  <critical>PURPOSE: Capture QA issues efficiently with structured data, route based on severity, and integrate with sprint tracking</critical>
+  <critical>ROLE: QA Issue Reporter - Efficient, professional, prescriptive prompts for consistent issue capture</critical>
+
+  <!-- EXECUTION RULES (NO EXCEPTIONS)
+    - NEVER skip steps or optimize the sequence
+    - ALWAYS follow the exact instructions in each step
+    - ALWAYS validate user input before proceeding
+    - NEVER proceed without required data (severity, type, description)
+  -->
+
+  <!-- SUCCESS CRITERIA
+    - Issue file created with all required fields populated
+    - Sprint-status.yaml updated with issue entry and counter
+    - For Critical/Major: bugfix/ux-fix entry added to development_status
+    - User provided clear next steps based on severity
+  -->
+
+  <!-- FAILURE CONDITIONS
+    - Proceeding without sprint-status.yaml existing
+    - Creating issue file with missing required fields
+    - Not incrementing issue counter
+    - Not routing Critical/Major issues to story creation
+  -->
+
+  <step n="1" goal="Initialize and load configuration">
+    <action>Load {{sprint_status}} file</action>
+
+    <check if="sprint_status file does NOT exist">
+      <output>No sprint-status.yaml found. Please run sprint-planning first to initialize tracking.</output>
+      <action>HALT</action>
+    </check>
+
+    <action>Read issue_counter from sprint_status (default to 0 if not present)</action>
+    <action>Increment issue_counter to get next issue number</action>
+    <action>Format issue_number as 3-digit padded string (e.g., 001, 002)</action>
+
+    <action>Check if {{issues_dir}} exists, create if not</action>
+    <action>Check if {{assets_dir}} exists, create if not</action>
+
+    <output>**QA Issue Reporter**
+
+Ready to document issue ISS-{{issue_number}}.
+
+Let's capture the details.</output>
+
+    <action>GOTO step 2</action>
+  </step>
+
+  <step n="2" goal="Capture issue details through prescriptive prompts">
+    <output>**Issue Classification**</output>
+
+    <ask>**Severity:** Select one:
+- **Critical** - App crash, data loss, complete feature failure
+- **Major** - Significant UX problems, hard to use
+- **Minor** - Polish, minor annoyances
+
+Enter severity (Critical/Major/Minor):</ask>
+    <action>Store response as {{issue_severity}}</action>
+
+    <ask>**Type:** Select one:
+- **Bug** - Functional defect
+- **UX Issue** - Usability/design problem
+- **Regression** - Previously working feature now broken
+
+Enter type (Bug/UX Issue/Regression):</ask>
+    <action>Store response as {{issue_type}}</action>
+
+    <ask>**Component:** Which area of the app is affected?
+Examples: Parameter Input, Extraction Engine, Document Panel, Profile Management, Results Display, Export
+
+Enter component:</ask>
+    <action>Store response as {{issue_component}}</action>
+
+    <output>**Issue Details**</output>
+
+    <ask>**Title:** Provide a brief, descriptive title for this issue:</ask>
+    <action>Store response as {{issue_title}}</action>
+    <action>Generate {{issue_slug}} from title (kebab-case, max 50 chars)</action>
+
+    <ask>**Description:** Describe the issue clearly:</ask>
+    <action>Store response as {{issue_description}}</action>
+
+    <ask>**Reproduction Steps:** How do you reproduce this issue?
+Enter each step on a new line (or paste numbered list):</ask>
+    <action>Store response as {{repro_steps}}</action>
+
+    <ask>**Expected Behavior:** What should happen?</ask>
+    <action>Store response as {{expected_behavior}}</action>
+
+    <ask>**Actual Behavior:** What actually happens?</ask>
+    <action>Store response as {{actual_behavior}}</action>
+
+    <ask>**Impact:** How does this affect the user? (blocks functionality, data issues, etc.)</ask>
+    <action>Store response as {{impact}}</action>
+
+    <output>**Optional Details**</output>
+
+    <ask>**Workaround:** Is there a temporary way around this issue? (Enter "None" if not):</ask>
+    <action>Store response as {{workaround}}</action>
+
+    <ask>**Screenshots:** Provide path(s) to screenshot files, separated by commas (or "None"):
+Example: /tmp/screenshot1.png, /tmp/screenshot2.png</ask>
+    <action>Store response as {{screenshot_paths}}</action>
+
+    <ask>**Log files:** Provide path(s) to relevant log files, separated by commas (or "None"):</ask>
+    <action>Store response as {{log_paths}}</action>
+
+    <ask>**Related Epic/Story:** If this issue relates to a specific epic or story, enter it (or "N/A"):
+Example: 3-4 or Epic 3</ask>
+    <action>Parse and store as {{related_epic}} and {{related_story}}</action>
+
+    <output>**Issue Summary**
+
+**ISS-{{issue_number}}: {{issue_title}}**
+- Severity: {{issue_severity}}
+- Type: {{issue_type}}
+- Component: {{issue_component}}
+
+Ready to create issue file and update tracking?</output>
+
+    <ask>Confirm to proceed (Y to continue, or provide corrections):</ask>
+
+    <check if="user confirms">
+      <action>GOTO step 3</action>
+    </check>
+    <check if="user provides corrections">
+      <action>Update relevant fields based on corrections</action>
+      <action>Re-display summary and ask for confirmation again</action>
+    </check>
+  </step>
+
+  <step n="3" goal="Create issue file and copy evidence">
+    <action>Set {{output_file}} = {{issues_dir}}/ISS-{{issue_number}}-{{issue_slug}}.md</action>
+
+    <!-- Copy screenshots if provided -->
+    <check if="screenshot_paths is not 'None' and not empty">
+      <action>For each path in {{screenshot_paths}}:</action>
+      <action>  - Validate file exists</action>
+      <action>  - Extract filename from path</action>
+      <action>  - Copy to {{assets_dir}}/ISS-{{issue_number}}-{filename}</action>
+      <action>  - Build markdown image reference: ![Screenshot](./assets/ISS-{{issue_number}}-{filename})</action>
+      <action>  - Store references in {{screenshot_refs}}</action>
+    </check>
+    <check if="screenshot_paths is 'None' or empty">
+      <action>Set {{screenshot_refs}} = "N/A"</action>
+    </check>
+
+    <!-- Copy log files if provided -->
+    <check if="log_paths is not 'None' and not empty">
+      <action>For each path in {{log_paths}}:</action>
+      <action>  - Validate file exists</action>
+      <action>  - Extract filename from path</action>
+      <action>  - Copy to {{assets_dir}}/ISS-{{issue_number}}-{filename}</action>
+      <action>  - Build markdown link: [Log file](./assets/ISS-{{issue_number}}-{filename})</action>
+      <action>  - Store references in {{log_refs}}</action>
+    </check>
+    <check if="log_paths is 'None' or empty">
+      <action>Set {{log_refs}} = "N/A"</action>
+    </check>
+
+    <!-- Create issue file from template -->
+    <action>Load {{template}} file</action>
+    <action>Replace all placeholders with collected values:
+      - {Title} → {{issue_title}}
+      - {number} → {{issue_number}}
+      - {severity} → {{issue_severity}}
+      - {type} → {{issue_type}}
+      - {date} → {{date}}
+      - {reporter} → {{user_name}}
+      - {epic} → {{related_epic}} or "N/A"
+      - {story} → {{related_story}} or "N/A"
+      - {component} → {{issue_component}}
+      - {description} → {{issue_description}}
+      - {repro_steps} → {{repro_steps}}
+      - {expected} → {{expected_behavior}}
+      - {actual} → {{actual_behavior}}
+      - {impact} → {{impact}}
+      - {workaround} → {{workaround}}
+      - {screenshots} → {{screenshot_refs}}
+      - {logs} → {{log_refs}}
+    </action>
+    <action>Write issue file to {{output_file}}</action>
+
+    <output>Issue file created: {{output_file}}</output>
+
+    <action>GOTO step 4</action>
+  </step>
+
+  <step n="4" goal="Update sprint-status.yaml and route based on severity">
+    <!-- Update sprint-status.yaml -->
+    <action>Load {{sprint_status}} file</action>
+
+    <!-- Add issue_counter if not present -->
+    <check if="issue_counter field not in sprint_status">
+      <action>Add issue_counter field after story_location</action>
+    </check>
+    <action>Update issue_counter to {{issue_number}}</action>
+
+    <!-- Add issues section if not present -->
+    <check if="issues section not in sprint_status">
+      <action>Add issues: section before development_status</action>
+    </check>
+
+    <!-- Add issue entry -->
+    <action>Add entry: ISS-{{issue_number}}-{{issue_slug}}: reported</action>
+
+    <!-- For Critical/Major: add bugfix/ux-fix entry -->
+    <check if="issue_severity is 'Critical'">
+      <action>Set {{fix_story_key}} = bugfix-ISS-{{issue_number}}-{{issue_slug}}</action>
+      <action>Add to development_status: {{fix_story_key}}: backlog</action>
+      <action>Update issue file Resolution section: Fix Story → {{fix_story_key}}.md</action>
+    </check>
+    <check if="issue_severity is 'Major'">
+      <action>Set {{fix_story_key}} = ux-fix-ISS-{{issue_number}}-{{issue_slug}}</action>
+      <action>Add to development_status: {{fix_story_key}}: backlog</action>
+      <action>Update issue file Resolution section: Fix Story → {{fix_story_key}}.md</action>
+    </check>
+    <check if="issue_severity is 'Minor'">
+      <action>Set {{fix_story_key}} = "N/A - Minor issue for backlog"</action>
+    </check>
+
+    <action>Save {{sprint_status}} file preserving all comments and structure</action>
+
+    <!-- Final output based on severity -->
+    <output>**Issue Documented Successfully**
+
+**ISS-{{issue_number}}: {{issue_title}}**
+- File: {{output_file}}
+- Severity: {{issue_severity}}
+- Status: reported
+- Tracking: Added to sprint-status.yaml</output>
+
+    <check if="issue_severity is 'Critical'">
+      <output>
+**CRITICAL ISSUE - Immediate Action Required**
+
+A bugfix story entry has been added to sprint-status.yaml:
+  `{{fix_story_key}}: backlog`
+
+**Next Steps:**
+1. Run `/bmad:bmm:workflows:create-story {{fix_story_key}}` to create the bugfix story
+2. Developer implements fix using `dev-story` workflow
+3. Run `/codex-review` for code review
+4. QA verifies fix and updates issue status to `verified`
+
+Would you like to create the bugfix story now? (Y/N)</output>
+    </check>
+
+    <check if="issue_severity is 'Major'">
+      <output>
+**Major UX Issue - Prioritize for Current Sprint**
+
+A ux-fix story entry has been added to sprint-status.yaml:
+  `{{fix_story_key}}: backlog`
+
+**Next Steps:**
+1. Run `/bmad:bmm:workflows:create-story {{fix_story_key}}` to create the fix story
+2. Developer implements fix using `dev-story` workflow
+3. Run `/codex-review` for code review
+4. QA verifies fix and updates issue status to `verified`
+
+Would you like to create the fix story now? (Y/N)</output>
+    </check>
+
+    <check if="issue_severity is 'Minor'">
+      <output>
+**Minor Issue - Added to Backlog**
+
+This issue has been logged for future attention (Epic 7 or polish sprint).
+
+**Resolution Path:**
+- Issue will be addressed during appropriate epic or polish sprint
+- No immediate bugfix story needed
+
+**To revisit later:**
+- Update issue status in sprint-status.yaml when work begins
+- Mark as `verified` after fix is confirmed</output>
+    </check>
+
+    <!-- Handle user response for Critical/Major -->
+    <check if="issue_severity is 'Critical' or issue_severity is 'Major'">
+      <ask>Create fix story now? (Y/N):</ask>
+      <check if="user says Y">
+        <output>Run: `/bmad:bmm:workflows:create-story {{fix_story_key}}`</output>
+      </check>
+      <check if="user says N">
+        <output>You can create the story later with:
+`/bmad:bmm:workflows:create-story {{fix_story_key}}`</output>
+      </check>
+    </check>
+
+    <output>
+---
+Issue reporting complete. Run `/report-issue` to document another issue.</output>
+  </step>
+
+</workflow>
