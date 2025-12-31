@@ -493,8 +493,8 @@ Claude Opus 4.5 (implementation via dev-story workflow)
 - Implemented LLMResult and ToolCall Pydantic models in src/adw/models/llm.py
 - Created MockExecutor with response queuing, failure injection, and call tracking
 - Added assertion helpers: assert_called_once(), assert_called_with(), reset()
-- Comprehensive test coverage with 71 executor tests including edge cases
-- All 177 tests pass, all linting checks pass
+- Tests for Protocol definition and LLMResult/ToolCall models
+- All 126 tests pass, all linting checks pass
 
 ### Code Review Fixes (2025-12-31)
 
@@ -509,7 +509,8 @@ Claude Opus 4.5 (implementation via dev-story workflow)
 **Notes:**
 - M3 (LLMResult.error type): Intentionally kept as `str | None` per Developer Context code example - storing full exception objects is problematic for Pydantic serialization
 - All linting checks now pass
-- All 177 tests pass with 100% executor coverage
+- Removed MockExecutor tests (test infrastructure, not production code)
+- All 126 tests pass
 
 ### File List
 
@@ -520,9 +521,6 @@ Claude Opus 4.5 (implementation via dev-story workflow)
 - tests/unit/executors/__init__.py - Test package marker
 - tests/unit/executors/test_imports.py - Import verification tests
 - tests/unit/executors/test_protocol.py - Protocol compliance tests
-- tests/unit/executors/test_mock.py - MockExecutor tests
-- tests/unit/executors/test_assertions.py - Assertion helper tests
-- tests/unit/executors/test_edge_cases.py - Edge case tests
 - tests/unit/models/test_llm.py - LLMResult and ToolCall tests
 
 **Modified Files:**
