@@ -1,6 +1,6 @@
 # Story 2.1: Implement Three-Tier Command Resolution
 
-Status: Ready for Review
+Status: Done
 Linear Issue: not-configured
 Epic: 2 - Command Resolution & Templates
 Created: 2025-12-31
@@ -381,4 +381,21 @@ Key patterns and rules from project context:
 - `src/adw/models/__init__.py` - Added export for ResolvedCommand
 - `pyproject.toml` - Added hatch build configuration for package data
 - `.gitignore` - Added exception for bundled build command directory
+
+### Senior Developer Review (AI)
+
+**Review Date:** 2025-12-31
+**Reviewer:** Claude Opus 4.5
+**Outcome:** Approved with fixes applied
+
+**Issues Found & Resolved:**
+1. **[CRITICAL] Build command not tracked in git** - The `.gitignore` rule `build/` was matching `src/adw/defaults/commands/build/`. Fixed by adding negation rule `!src/adw/defaults/commands/build/`.
+2. **[MEDIUM] Private attribute access in resolver** - Removed fragile `._path` attribute access in `_get_bundled_command_path()`, simplified to use standard `str()` conversion.
+3. **[MEDIUM] Story File List incomplete** - Updated to document `.gitignore` modification.
+
+**Verification:**
+- All 178 tests pass
+- mypy strict mode: clean
+- ruff linting: clean
+- Bundled build command now properly tracked in git
 
