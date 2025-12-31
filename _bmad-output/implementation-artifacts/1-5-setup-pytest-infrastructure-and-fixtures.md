@@ -67,10 +67,10 @@ so that I can write and run tests following the 60/30/10 pyramid.
 - [x] Create tests/fixtures/runs/completed_run/ sample
 
 ### Task 5: Verify Test Infrastructure
-- [ ] Run `uv run pytest --collect-only` to verify collection
-- [ ] Run `uv run pytest tests/unit/` to verify execution
-- [ ] Verify coverage report is generated
-- [ ] Verify 80% coverage threshold is enforced
+- [x] Run `uv run pytest --collect-only` to verify collection
+- [x] Run `uv run pytest tests/unit/` to verify execution
+- [x] Verify coverage report is generated
+- [x] Verify 80% coverage threshold is enforced
 
 ### Task 6: Add CI Configuration
 - [ ] Update .github/workflows/ci.yml with test step
