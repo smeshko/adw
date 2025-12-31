@@ -52,10 +52,10 @@ so that I can monitor costs and understand what actions the LLM took.
 - [x] Handle malformed output gracefully (log warning, continue)
 
 ### Task 4: Implement Token Aggregation
-- [ ] Track token usage per phase in RunContext
-- [ ] Add `phase_tokens: dict[str, int]` field to RunContext or PhaseResult
-- [ ] Calculate total tokens from sum of all phases
-- [ ] Add `total_tokens` property or method
+- [x] Track token usage per phase in RunContext
+- [x] Add `phase_tokens: dict[str, int]` field to RunContext or PhaseResult
+- [x] Calculate total tokens from sum of all phases
+- [x] Add `total_tokens` property or method
 
 ### Task 5: Implement Structured Logging for Tokens
 - [ ] Log token usage after each LLM call
