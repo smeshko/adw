@@ -1,6 +1,6 @@
 # Story 1.5: Set Up pytest Infrastructure and Fixtures
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 1 - Project Scaffolding & Test Infrastructure
 Created: 2025-12-31
@@ -440,11 +440,31 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
-(To be filled by dev agent after implementation)
+- Configured pytest in pyproject.toml with coverage settings, markers, and patterns
+- Added conftest.py with 6 fixtures: tmp_adw_dir, mock_executor, sample_run_context, sample_project_config, fixtures_path, sample_config_yaml
+- Created test data directory structure: tests/fixtures/{runs,configs,llm}/
+- Added sample data files: minimal.yaml, full.yaml, completed_run/context.json, LLM response fixtures
+- Created test_fixtures.py to validate all fixtures work correctly
+- Updated CI workflow with separate lint, typecheck, and test jobs running in parallel
+- All 132 tests pass with 82% coverage (above 80% threshold)
+- Note: Pre-existing mypy errors from Story 1.2 (types-PyYAML stub missing) are not addressed in this story
 
 ### File List
 
-(To be filled by dev agent after implementation)
+**New Files:**
+- tests/conftest.py
+- tests/unit/test_fixtures.py
+- tests/fixtures/configs/minimal.yaml
+- tests/fixtures/configs/full.yaml
+- tests/fixtures/runs/completed_run/context.json
+- tests/fixtures/runs/completed_run/artifacts/.gitkeep
+- tests/fixtures/llm/success_response.json
+- tests/fixtures/llm/tool_calls_response.json
+
+**Modified Files:**
+- pyproject.toml (added pytest and coverage configuration)
+- .github/workflows/ci.yml (updated with lint, typecheck, test jobs)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (status update)
 
 ---
 
