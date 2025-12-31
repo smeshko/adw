@@ -45,10 +45,10 @@ so that users see LLM responses as they're generated.
 - [x] Implement `execute(prompt: str, *, timeout: int | None = None) -> LLMResult`
 
 ### Task 2: Implement Subprocess Execution
-- [ ] Use `asyncio.create_subprocess_exec()` for subprocess spawning
-- [ ] Pass `--print` flag to Claude Code for machine-readable output
-- [ ] Set up stdout and stderr pipes for capture
-- [ ] Handle process execution with `asyncio.run()` wrapper
+- [x] Use `asyncio.create_subprocess_exec()` for subprocess spawning
+- [x] Pass `--print` flag to Claude Code for machine-readable output
+- [x] Set up stdout and stderr pipes for capture
+- [x] Handle process execution with `asyncio.run()` wrapper
 
 ### Task 3: Implement Real-Time Streaming
 - [ ] Read stdout line-by-line as it becomes available
@@ -385,6 +385,7 @@ claude-opus-4-5-20251101
 ### Completion Notes List
 
 - Task 1: Created ClaudeCodeExecutor class implementing LLMExecutor Protocol. Class accepts LLMConfig, has execute() method returning LLMResult. Uses asyncio.run() wrapper with async _stream_subprocess() internally.
+- Task 2: Subprocess execution already implemented in Task 1. Added tests verifying create_subprocess_exec(), --print flag, stdout/stderr pipes, and asyncio.run() wrapper.
 
 ### File List
 

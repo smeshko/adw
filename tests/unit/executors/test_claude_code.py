@@ -155,3 +155,136 @@ class TestClaudeCodeExecutorExecute:
             result = executor.execute("Test prompt")
 
         assert result.duration_ms >= 0
+
+
+class TestSubprocessExecution:
+    """Tests for subprocess execution (Task 2)."""
+
+    @pytest.fixture
+    def executor(self) -> ClaudeCodeExecutor:
+        """Create executor with default config."""
+        config = LLMConfig(path="claude")
+        return ClaudeCodeExecutor(config)
+
+    def test_uses_create_subprocess_exec(self, executor: ClaudeCodeExecutor) -> None:
+        """Should use asyncio.create_subprocess_exec for spawning."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            # Create mock process
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"", ])
+            process.stderr.read = AsyncMock(return_value=b"")
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = asyncio.run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt")
+
+            # Verify create_subprocess_exec was called
+            mock_asyncio.create_subprocess_exec.assert_called_once()
+
+    def test_passes_print_flag(self, executor: ClaudeCodeExecutor) -> None:
+        """Should pass --print flag for machine-readable output."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            # Create mock process
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"", ])
+            process.stderr.read = AsyncMock(return_value=b"")
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = asyncio.run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt")
+
+            # Verify --print flag was passed
+            call_args = mock_asyncio.create_subprocess_exec.call_args
+            args = call_args[0]  # positional args
+            assert "--print" in args
+
+    def test_sets_up_stdout_pipe(self, executor: ClaudeCodeExecutor) -> None:
+        """Should set up stdout pipe for capture."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            # Create mock process
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"", ])
+            process.stderr.read = AsyncMock(return_value=b"")
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = asyncio.run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt")
+
+            # Verify stdout pipe was set up
+            call_kwargs = mock_asyncio.create_subprocess_exec.call_args[1]
+            assert call_kwargs.get("stdout") == asyncio.subprocess.PIPE
+
+    def test_sets_up_stderr_pipe(self, executor: ClaudeCodeExecutor) -> None:
+        """Should set up stderr pipe for capture."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            # Create mock process
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"", ])
+            process.stderr.read = AsyncMock(return_value=b"")
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = asyncio.run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt")
+
+            # Verify stderr pipe was set up
+            call_kwargs = mock_asyncio.create_subprocess_exec.call_args[1]
+            assert call_kwargs.get("stderr") == asyncio.subprocess.PIPE
+
+    def test_uses_asyncio_run_wrapper(self, executor: ClaudeCodeExecutor) -> None:
+        """execute() should use asyncio.run() to wrap async execution."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            # Create mock process
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"", ])
+            process.stderr.read = AsyncMock(return_value=b"")
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+
+            # Track if asyncio.run was called
+            run_called = False
+            original_run = asyncio.run
+
+            def track_run(coro):
+                nonlocal run_called
+                run_called = True
+                return original_run(coro)
+
+            mock_asyncio.run = track_run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt")
+
+            assert run_called, "asyncio.run() was not called"
