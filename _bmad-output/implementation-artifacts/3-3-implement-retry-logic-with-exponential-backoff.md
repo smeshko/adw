@@ -55,11 +55,11 @@ so that temporary issues don't fail the entire run.
 - [x] Use `asyncio.sleep()` for non-blocking delay
 
 ### Task 4: Implement Error Classification
-- [ ] Create `is_retryable(error: ADWError) -> bool` function
-- [ ] `LLMTimeoutError` → retryable
-- [ ] `LLMRateLimitError` → retryable (use `retry_after` if available)
-- [ ] Other `LLMError` → not retryable by default
-- [ ] `HookError`, `ConfigError` → not retryable
+- [x] Create `is_retryable(error: ADWError) -> bool` function
+- [x] `LLMTimeoutError` → retryable
+- [x] `LLMRateLimitError` → retryable (use `retry_after` if available)
+- [x] Other `LLMError` → not retryable by default
+- [x] `HookError`, `ConfigError` → not retryable
 
 ### Task 5: Handle Rate Limit Headers
 - [ ] Check `LLMRateLimitError.retry_after` for server-suggested delay
@@ -364,6 +364,7 @@ claude-opus-4-5-20251101
 - Task 1: Created RetryConfig Pydantic model with max_retries, base_delay_seconds, max_delay_seconds, multiplier fields. Added validation for positive values and max_delay >= base_delay constraint.
 - Task 2: Created RetryExecutor class that wraps any LLMExecutor and implements retry logic with exponential backoff and jitter.
 - Task 3: Verified exponential backoff implementation with tests: delay = base * (multiplier ^ attempt) with ±25% jitter, capped at max_delay.
+- Task 4: Verified error classification using recoverable field: LLMTimeoutError/LLMRateLimitError are retryable, other LLMErrors depend on recoverable flag.
 
 ### File List
 

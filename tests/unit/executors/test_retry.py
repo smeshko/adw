@@ -165,3 +165,60 @@ class TestExponentialBackoff:
 
         # Should have some variation due to jitter
         assert len(set(delays)) > 1, "Jitter should produce different values"
+
+
+class TestErrorClassification:
+    """Tests for error classification (is_retryable)."""
+
+    def test_llm_timeout_error_is_retryable(self) -> None:
+        """Test that LLMTimeoutError is retryable."""
+        mock = MockExecutor()
+        retry = RetryExecutor(executor=mock)
+
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Timeout",
+            timeout_seconds=300,
+            elapsed_seconds=300,
+        )
+
+        assert retry._is_retryable(error) is True
+
+    def test_llm_rate_limit_error_is_retryable(self) -> None:
+        """Test that LLMRateLimitError is retryable."""
+        mock = MockExecutor()
+        retry = RetryExecutor(executor=mock)
+
+        error = LLMRateLimitError(
+            code="LLM_RATE_LIMIT",
+            message="Rate limited",
+            retry_after=60,
+        )
+
+        assert retry._is_retryable(error) is True
+
+    def test_llm_error_with_recoverable_false_not_retryable(self) -> None:
+        """Test that LLMError with recoverable=False is not retryable."""
+        mock = MockExecutor()
+        retry = RetryExecutor(executor=mock)
+
+        error = LLMError(
+            code="LLM_ERROR",
+            message="Some error",
+            recoverable=False,
+        )
+
+        assert retry._is_retryable(error) is False
+
+    def test_llm_error_with_recoverable_true_is_retryable(self) -> None:
+        """Test that LLMError with recoverable=True is retryable."""
+        mock = MockExecutor()
+        retry = RetryExecutor(executor=mock)
+
+        error = LLMError(
+            code="LLM_ERROR",
+            message="Some error",
+            recoverable=True,
+        )
+
+        assert retry._is_retryable(error) is True
