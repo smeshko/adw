@@ -326,3 +326,108 @@ class TestSingleLevelSubstitution:
         template = "{{name}} says: {{file:data.txt}}"
         result = engine.render(template, {"name": "Alice"})
         assert result == "Alice says: file data"
+
+
+class TestContextObjectRendering:
+    """Tests for Task 6: Context Object Rendering."""
+
+    def test_pydantic_model_as_context(self) -> None:
+        """Engine should accept Pydantic models as context."""
+        from datetime import datetime
+        from adw.models import RunContext
+
+        engine = TemplateEngine()
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Add login",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+
+        template = "Feature: {{feature_description}}"
+        result = engine.render(template, context)
+        assert result == "Feature: Add login"
+
+    def test_pydantic_model_nested_access(self) -> None:
+        """Engine should access nested fields in Pydantic models."""
+        from pydantic import BaseModel
+
+        class Inner(BaseModel):
+            value: str = "nested_value"
+
+        class Outer(BaseModel):
+            inner: Inner = Inner()
+
+        engine = TemplateEngine()
+        context = Outer()
+        template = "Value: {{inner.value}}"
+        result = engine.render(template, context)
+        assert result == "Value: nested_value"
+
+    def test_model_dump_is_used(self) -> None:
+        """Engine should use model_dump() for Pydantic models."""
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            name: str = "test_name"
+            count: int = 42
+
+        engine = TemplateEngine()
+        model = TestModel()
+        template = "{{name}} - {{count}}"
+        result = engine.render(template, model)
+        assert result == "test_name - 42"
+
+    def test_run_context_multiple_fields(self) -> None:
+        """Engine should render multiple RunContext fields."""
+        from datetime import datetime
+        from adw.models import RunContext
+
+        engine = TemplateEngine()
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="User auth",
+            current_phase="build",
+            started_at=datetime.now(),
+            status="running",
+        )
+
+        template = "Run {{run_id}} in {{current_phase}} phase: {{feature_description}}"
+        result = engine.render(template, context)
+        assert "01KDSG2VDHNK0W4HSCZWJZXWSQ" in result
+        assert "build" in result
+        assert "User auth" in result
+
+    def test_session_context_as_context(self) -> None:
+        """Engine should accept SessionContext as context."""
+        from adw.models.context import SessionContext
+
+        engine = TemplateEngine()
+        context = SessionContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            current_phase="verify",
+            is_resuming=True,
+        )
+
+        template = "Phase: {{current_phase}}, Resuming: {{is_resuming}}"
+        result = engine.render(template, context)
+        assert result == "Phase: verify, Resuming: True"
+
+    def test_dict_and_model_produce_same_result(self) -> None:
+        """Dict and Pydantic model should render identically."""
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            name: str
+            value: int
+
+        engine = TemplateEngine()
+        template = "{{name}}: {{value}}"
+
+        model = TestModel(name="test", value=123)
+        dict_context = {"name": "test", "value": 123}
+
+        result_model = engine.render(template, model)
+        result_dict = engine.render(template, dict_context)
+
+        assert result_model == result_dict == "test: 123"
