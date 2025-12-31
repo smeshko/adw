@@ -13,3 +13,11 @@
 | 9 | Git Integration & Documentation | Support git workflows and generate PR-ready documentation | P4 | Integration |
 
 ---
+
+## Post-MVP Epics
+
+| Epic | Title | Goal | Priority | Test Priority |
+|------|-------|------|----------|---------------|
+| 10 | Cross-Project Dashboard | Aggregate runs across projects with analytics, token tracking, and dashboard views | Post-MVP | Integration |
+
+---

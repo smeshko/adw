@@ -1182,6 +1182,7 @@ All blocking decisions have been made. Implementation can proceed.
 | OpenTelemetry integration | Distributed tracing support |
 | Plugin system architecture | Extensibility for custom phases |
 | Alternative executor support | OpenAI, local models |
+| Cross-project dashboard | Aggregate runs across all projects, token/cost tracking, analytics |
 
 ### Architecture Completeness Checklist
 
@@ -1227,6 +1228,7 @@ All blocking decisions have been made. Implementation can proceed.
 2. Webhook entry points for Linear/GitHub (post-MVP)
 3. Web/mobile evidence gathering (post-MVP)
 4. Plugin system for custom phases (post-MVP)
+5. Cross-project run visibility and dashboard (post-MVP) - See Epic 10
 
 ### Implementation Handoff
 
@@ -1265,6 +1267,82 @@ uv add --dev pytest pytest-asyncio pytest-cov ruff mypy
 # 8. core/ (depends on all above)
 # 9. cli/ (depends on core)
 ```
+
+## Future Enhancement: Cross-Project Run Visibility & Dashboard
+
+### Overview
+
+Post-MVP enhancement to provide visibility into all ADW runs across multiple projects from a single view. Enables dashboards, analytics, and cross-project run management.
+
+### Current Architecture Support
+
+The existing architecture already captures rich data per run:
+
+| Data | Location | Dashboard Use |
+|------|----------|---------------|
+| Run metadata | `context.json` | Run list, status, duration |
+| Phase results | `artifacts/<phase>/` | Phase performance, failure analysis |
+| Token usage | `llm/*_response.json` | Cost tracking, usage trends |
+| Structured logs | `logs/logs.jsonl` | Error patterns, debugging |
+| Timestamps | ULID run_id | Timeline views, sorting |
+
+### Architectural Additions Required
+
+**1. Project Registry** (`~/.config/adw/projects.yaml`)
+```yaml
+projects:
+  - path: /Users/dev/my-api
+    name: my-api
+    registered_at: 2025-01-15T10:00:00Z
+  - path: /Users/dev/frontend
+    name: frontend-app
+    registered_at: 2025-01-16T14:30:00Z
+```
+
+**2. Optional Central Index** (`~/.config/adw/run-index.sqlite` or `.jsonl`)
+- Mirrors run metadata for fast cross-project queries
+- Updated on run state changes (dual-write pattern)
+- Enables filtering, aggregation without filesystem scanning
+
+**3. Model Enhancements**
+
+```python
+# Add to RunContext
+class RunContext(BaseModel):
+    # ... existing fields ...
+    project_name: str | None = None    # Human-readable project name
+    tags: list[str] = []               # User-defined labels
+    initiated_by: str | None = None    # Username/identifier
+```
+
+### Dashboard Capabilities
+
+| View | Description | Data Source |
+|------|-------------|-------------|
+| Run Overview | All runs across projects with status, duration | `context.json` aggregation |
+| Project Summary | Per-project metrics, success rates | Grouped by project_name |
+| Timeline | Runs over time, patterns, trends | ULID timestamps |
+| Token/Cost Analytics | Usage tracking, cost estimates | `llm/*_response.json` |
+| Failure Analysis | Common errors, failure phases | PhaseResult + logs |
+| Active Runs | Currently running executions | `status == "running"` |
+
+### CLI Commands (Proposed)
+
+```bash
+adw register                    # Register current project
+adw global list                 # List runs across all projects
+adw global stats                # Show aggregate statistics
+adw global dashboard            # TUI dashboard (Rich-based)
+```
+
+### Implementation Notes
+
+- **File-based aggregation** works for <1000 runs, simple to implement
+- **SQLite index** recommended for larger scale, enables rich queries
+- **Web dashboard** could consume the index via simple HTTP server
+- No changes to core run execution - purely additive
+
+See **Epic 10** for detailed implementation stories.
 
 ## Architecture Completion Summary
 
