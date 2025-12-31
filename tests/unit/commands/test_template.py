@@ -193,3 +193,77 @@ class TestFileInclusion:
         template = "{{file: data.txt }}"
         result = engine.render(template, {})
         assert result == "content"
+
+
+class TestStrictVsLenientMode:
+    """Tests for Task 4: Strict vs Lenient Mode."""
+
+    def test_strict_mode_is_default(self) -> None:
+        """strict=True should be the default."""
+        engine = TemplateEngine()
+        template = "{{unknown_var}}"
+        with pytest.raises(ConfigError):
+            engine.render(template, {})
+
+    def test_strict_mode_raises_for_unknown_variable(self) -> None:
+        """strict=True should raise ConfigError for unknown variables."""
+        engine = TemplateEngine()
+        template = "Hello, {{unknown_var}}!"
+
+        with pytest.raises(ConfigError) as exc:
+            engine.render(template, {}, strict=True)
+
+        assert exc.value.code == "UNKNOWN_VARIABLE"
+        assert "unknown_var" in exc.value.message
+
+    def test_strict_mode_reports_all_unknown_variables(self) -> None:
+        """strict=True should report all unknown variables in error."""
+        engine = TemplateEngine()
+        template = "{{var1}} and {{var2}} and {{var3}}"
+
+        with pytest.raises(ConfigError) as exc:
+            engine.render(template, {}, strict=True)
+
+        assert exc.value.code == "UNKNOWN_VARIABLE"
+        assert "var1" in exc.value.message
+        assert "var2" in exc.value.message
+        assert "var3" in exc.value.message
+
+    def test_lenient_mode_preserves_unknown_variable(self) -> None:
+        """strict=False should leave unknown variables as-is."""
+        engine = TemplateEngine()
+        template = "Hello, {{unknown_var}}!"
+        result = engine.render(template, {}, strict=False)
+        assert result == "Hello, {{unknown_var}}!"
+
+    def test_lenient_mode_substitutes_known_variables(self) -> None:
+        """strict=False should still substitute known variables."""
+        engine = TemplateEngine()
+        template = "{{known}} and {{unknown}}"
+        result = engine.render(template, {"known": "value"}, strict=False)
+        assert result == "value and {{unknown}}"
+
+    def test_lenient_mode_logs_warning(self, caplog: pytest.LogCaptureFixture) -> None:
+        """strict=False should log a warning for unknown variables."""
+        import logging
+
+        engine = TemplateEngine()
+        template = "{{missing}}"
+
+        with caplog.at_level(logging.WARNING):
+            engine.render(template, {}, strict=False)
+
+        assert "missing" in caplog.text or any(
+            "missing" in record.getMessage() or record.__dict__.get("variable") == "missing"
+            for record in caplog.records
+        )
+
+    def test_strict_mode_with_nested_unknown(self) -> None:
+        """strict=True should report unknown nested paths."""
+        engine = TemplateEngine()
+        template = "{{context.missing.field}}"
+
+        with pytest.raises(ConfigError) as exc:
+            engine.render(template, {"context": {}}, strict=True)
+
+        assert exc.value.code == "UNKNOWN_VARIABLE"
