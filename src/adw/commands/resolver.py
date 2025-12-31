@@ -136,9 +136,9 @@ class CommandResolver:
         """
         has_schema = (path / "schema.json").is_file()
         has_pre_hook = (path / "pre.sh").is_file() or (path / "pre-hook.sh").is_file()
-        has_post_hook = (
-            (path / "post.sh").is_file() or (path / "post-hook.sh").is_file()
-        )
+        has_post_hook = (path / "post.sh").is_file() or (
+            path / "post-hook.sh"
+        ).is_file()
 
         return ResolvedCommand(
             name=name,
