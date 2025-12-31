@@ -1,6 +1,6 @@
 # Story 3.3: Implement Retry Logic with Exponential Backoff
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2025-12-31
