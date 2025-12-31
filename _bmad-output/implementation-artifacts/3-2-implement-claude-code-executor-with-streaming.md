@@ -1,6 +1,6 @@
 # Story 3.2: Implement Claude Code Executor with Streaming
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2025-12-31
@@ -39,10 +39,10 @@ so that users see LLM responses as they're generated.
 ## Tasks / Subtasks
 
 ### Task 1: Create ClaudeCodeExecutor Class
-- [ ] Create `src/adw/executors/claude_code.py`
-- [ ] Implement `ClaudeCodeExecutor` class implementing `LLMExecutor` Protocol
-- [ ] Constructor takes `LLMConfig` for configuration (path, timeout, etc.)
-- [ ] Implement `execute(prompt: str, *, timeout: int | None = None) -> LLMResult`
+- [x] Create `src/adw/executors/claude_code.py`
+- [x] Implement `ClaudeCodeExecutor` class implementing `LLMExecutor` Protocol
+- [x] Constructor takes `LLMConfig` for configuration (path, timeout, etc.)
+- [x] Implement `execute(prompt: str, *, timeout: int | None = None) -> LLMResult`
 
 ### Task 2: Implement Subprocess Execution
 - [ ] Use `asyncio.create_subprocess_exec()` for subprocess spawning
@@ -384,7 +384,13 @@ claude-opus-4-5-20251101
 
 ### Completion Notes List
 
+- Task 1: Created ClaudeCodeExecutor class implementing LLMExecutor Protocol. Class accepts LLMConfig, has execute() method returning LLMResult. Uses asyncio.run() wrapper with async _stream_subprocess() internally.
+
 ### File List
+
+- src/adw/executors/claude_code.py (NEW)
+- src/adw/executors/__init__.py (MODIFIED)
+- tests/unit/executors/test_claude_code.py (NEW)
 
 ---
 
