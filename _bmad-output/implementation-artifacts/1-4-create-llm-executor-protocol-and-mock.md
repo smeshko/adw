@@ -49,9 +49,9 @@ so that I can write deterministic tests without calling Claude Code.
 - [x] Add type hints for all parameters and return type
 
 ### Task 3: Create LLMResult Model
-- [ ] Add LLMResult to `src/adw/models/` (or executors/result.py)
-- [ ] Define all required fields with types
-- [ ] Add ToolCall model for tool call tracking
+- [x] Add LLMResult to `src/adw/models/` (or executors/result.py)
+- [x] Define all required fields with types
+- [x] Add ToolCall model for tool call tracking
 
 ### Task 4: Implement MockExecutor
 - [ ] Create MockExecutor class implementing LLMExecutor
