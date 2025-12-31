@@ -54,24 +54,24 @@ so that I can run custom logic before and after LLM execution.
 - [x] Merge with current process environment (`os.environ`)
 
 ### Task 3: Implement HookRunner Class
-- [ ] Create `src/adw/hooks/runner.py`
-- [ ] Implement `HookRunner` class with `__init__(config: HookConfig)`
-- [ ] Implement `run_hook(hook_path: Path, context: RunContext, phase: str, timeout: int | None = None) -> HookResult`
-- [ ] Use `asyncio.create_subprocess_exec()` for subprocess execution with timeout
-- [ ] Capture stdout and stderr separately
-- [ ] Return `HookResult` on success
+- [x] Create `src/adw/hooks/runner.py`
+- [x] Implement `HookRunner` class with `__init__(config: HookConfig)`
+- [x] Implement `run_hook(hook_path: Path, context: RunContext, phase: str, timeout: int | None = None) -> HookResult`
+- [x] Use `asyncio.create_subprocess_exec()` for subprocess execution with timeout
+- [x] Capture stdout and stderr separately
+- [x] Return `HookResult` on success
 
 ### Task 4: Implement Error Handling
-- [ ] Raise `HookError` with code `HOOK_FAILED` on non-zero exit
-- [ ] Raise `HookError` with code `HOOK_TIMEOUT` when timeout exceeded
-- [ ] Include stdout, stderr, exit_code in error for debugging
-- [ ] Use existing `HookError` from `adw.exceptions`
+- [x] Raise `HookError` with code `HOOK_FAILED` on non-zero exit
+- [x] Raise `HookError` with code `HOOK_TIMEOUT` when timeout exceeded
+- [x] Include stdout, stderr, exit_code in error for debugging
+- [x] Use existing `HookError` from `adw.exceptions`
 
 ### Task 5: Implement Hook Discovery
-- [ ] Implement `find_hook(command_dir: Path, hook_type: str) -> Path | None`
-- [ ] Look for `pre-hook.sh` or `post-hook.sh` in command directory
-- [ ] Return `None` if not found (not an error)
-- [ ] Support both `.sh` extension and extensionless scripts
+- [x] Implement `find_hook(command_dir: Path, hook_type: str) -> Path | None`
+- [x] Look for `pre-hook.sh` or `post-hook.sh` in command directory
+- [x] Return `None` if not found (not an error)
+- [x] Support both `.sh` extension and extensionless scripts
 
 ### Task 6: Write Unit Tests
 - [ ] Create `tests/unit/hooks/test_runner.py`
@@ -345,15 +345,18 @@ claude-opus-4-5-20251101
 
 - Task 1: Created HookResult model with stdout, stderr, exit_code, duration_ms, hook_type fields. Added is_success computed property. Model validates hook_type as Literal["pre", "post"] and enforces non-negative duration. Tests cover all validation rules.
 - Task 2: Created build_hook_environment() function. Merges os.environ with ADW-specific variables (ADW_RUN_ID, ADW_PHASE, ADW_FEATURE, ADW_ARTIFACTS_DIR, ADW_CONTEXT_FILE). All values are strings for subprocess compatibility.
+- Task 3-5: Implemented HookRunner class with asyncio subprocess execution. Uses asyncio.create_subprocess_exec() with wait_for() for timeout. Captures stdout/stderr separately. Raises HookError with HOOK_FAILED or HOOK_TIMEOUT codes. Also implemented find_hook() for hook discovery with .sh and extensionless support.
 
 ### File List
 
 - src/adw/models/hook.py (NEW)
 - src/adw/models/__init__.py (MODIFIED)
 - src/adw/hooks/environment.py (NEW)
+- src/adw/hooks/runner.py (NEW)
 - tests/unit/hooks/__init__.py (NEW)
 - tests/unit/hooks/test_hook_result.py (NEW)
 - tests/unit/hooks/test_environment.py (NEW)
+- tests/unit/hooks/test_runner.py (NEW)
 
 ---
 
