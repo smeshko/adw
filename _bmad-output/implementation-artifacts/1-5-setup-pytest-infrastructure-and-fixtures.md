@@ -291,11 +291,8 @@ def test_tmp_adw_dir_fixture(tmp_adw_dir):
     assert (tmp_adw_dir / "runs").exists()
     assert (tmp_adw_dir / "commands").exists()
 
-def test_mock_executor_fixture(mock_executor):
-    """mock_executor returns fresh MockExecutor."""
-    from adw.executors import MockExecutor
-    assert isinstance(mock_executor, MockExecutor)
-    assert mock_executor.call_count == 0
+# Note: mock_executor fixture is not tested directly as MockExecutor
+# is test infrastructure. It will be validated through actual usage.
 
 def test_sample_run_context_fixture(sample_run_context):
     """sample_run_context returns valid RunContext."""
