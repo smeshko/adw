@@ -6,10 +6,7 @@ Verifies the three-tier command resolution logic: project > user > bundled.
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from adw.commands import CommandResolver
-from adw.models import ResolvedCommand
 
 
 class TestCommandResolverThreeTierResolution:

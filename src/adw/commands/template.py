@@ -215,7 +215,7 @@ class TemplateEngine:
                     raise ConfigError(
                         code="TEMPLATE_PATH_TRAVERSAL",
                         message=f"Path traversal not allowed: {file_path}",
-                        suggestion="Use paths relative to the project root without '..'",
+                        suggestion="Use paths relative to project root, not '..'",
                     )
             except ValueError:
                 # is_relative_to raises ValueError on Python < 3.9 or invalid paths
@@ -223,7 +223,7 @@ class TemplateEngine:
                     code="TEMPLATE_PATH_TRAVERSAL",
                     message=f"Invalid file path: {file_path}",
                     suggestion="Use valid paths relative to the project root",
-                )
+                ) from None
 
             if not resolved_path.exists():
                 raise ConfigError(
@@ -234,23 +234,23 @@ class TemplateEngine:
 
             try:
                 return resolved_path.read_text(encoding="utf-8")
-            except PermissionError:
+            except PermissionError as err:
                 raise ConfigError(
                     code="TEMPLATE_FILE_PERMISSION",
                     message=f"Permission denied reading file: {file_path}",
                     suggestion="Check file permissions and ownership",
-                )
-            except IsADirectoryError:
+                ) from err
+            except IsADirectoryError as err:
                 raise ConfigError(
                     code="TEMPLATE_FILE_IS_DIRECTORY",
                     message=f"Path is a directory, not a file: {file_path}",
                     suggestion="Provide a path to a file, not a directory",
-                )
-            except UnicodeDecodeError:
+                ) from err
+            except UnicodeDecodeError as err:
                 raise ConfigError(
                     code="TEMPLATE_FILE_ENCODING",
                     message=f"File is not valid UTF-8: {file_path}",
                     suggestion="Ensure the file is saved with UTF-8 encoding",
-                )
+                ) from err
 
         return FILE_PATTERN.sub(replace_file, template)

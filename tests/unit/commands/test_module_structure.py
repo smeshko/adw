@@ -3,7 +3,6 @@
 Verifies that the commands module exports the correct classes.
 """
 
-import pytest
 
 
 class TestCommandModuleStructure:

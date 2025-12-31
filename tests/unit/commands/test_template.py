@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from adw.commands import TemplateEngine
-from adw.commands.template import VARIABLE_PATTERN, FILE_PATTERN
+from adw.commands.template import FILE_PATTERN, VARIABLE_PATTERN
 from adw.exceptions import ConfigError
 
 
@@ -292,7 +292,8 @@ class TestStrictVsLenientMode:
             engine.render(template, {}, strict=False)
 
         assert "missing" in caplog.text or any(
-            "missing" in record.getMessage() or record.__dict__.get("variable") == "missing"
+            "missing" in record.getMessage()
+            or record.__dict__.get("variable") == "missing"
             for record in caplog.records
         )
 
@@ -372,6 +373,7 @@ class TestContextObjectRendering:
     def test_pydantic_model_as_context(self) -> None:
         """Engine should accept Pydantic models as context."""
         from datetime import datetime
+
         from adw.models import RunContext
 
         engine = TemplateEngine()
@@ -419,6 +421,7 @@ class TestContextObjectRendering:
     def test_run_context_multiple_fields(self) -> None:
         """Engine should render multiple RunContext fields."""
         from datetime import datetime
+
         from adw.models import RunContext
 
         engine = TemplateEngine()

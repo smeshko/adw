@@ -4,7 +4,6 @@ Verifies the ResolvedCommand Pydantic model with correct fields and validation.
 """
 
 from pathlib import Path
-from typing import Literal
 
 import pytest
 from pydantic import ValidationError
