@@ -35,27 +35,27 @@ so that each phase has its complete, rendered prompt ready for LLM execution.
 ## Tasks / Subtasks
 
 ### Task 1: Create Command Loader Module
-- [ ] Create `src/adw/commands/loader.py` with `CommandLoader` class
-- [ ] Export `CommandLoader` from `src/adw/commands/__init__.py`
-- [ ] Integrate with `CommandResolver` from Story 2.1
+- [x] Create `src/adw/commands/loader.py` with `CommandLoader` class
+- [x] Export `CommandLoader` from `src/adw/commands/__init__.py`
+- [x] Integrate with `CommandResolver` from Story 2.1
 
 ### Task 2: Implement Prompt Loading
-- [ ] Implement `load_prompt(phase: str, context: RunContext) -> str`
-- [ ] Resolve command using `CommandResolver`
-- [ ] Read `prompt.md` from resolved directory
-- [ ] Handle file encoding (UTF-8)
+- [x] Implement `load_prompt(phase: str, context: RunContext) -> str`
+- [x] Resolve command using `CommandResolver`
+- [x] Read `prompt.md` from resolved directory
+- [x] Handle file encoding (UTF-8)
 
 ### Task 3: Implement Context Building
-- [ ] Build template context dict from `RunContext`
-- [ ] Include `run_id`, `feature_request`, `current_phase`
-- [ ] Include previous phase artifacts via `artifacts.{phase}.{name}` namespace
-- [ ] Include `pre_hook_output` if available
+- [x] Build template context dict from `RunContext`
+- [x] Include `run_id`, `feature_request`, `current_phase`
+- [x] Include previous phase artifacts via `artifacts.{phase}.{name}` namespace
+- [x] Include `pre_hook_output` if available
 
 ### Task 4: Implement Prompt Rendering
-- [ ] Use `TemplateEngine` from Story 2.2 to render prompt
-- [ ] Pass built context to template engine
-- [ ] Use strict mode by default (error on unknown variables)
-- [ ] Return fully rendered prompt string
+- [x] Use `TemplateEngine` from Story 2.2 to render prompt
+- [x] Pass built context to template engine
+- [x] Use strict mode by default (error on unknown variables)
+- [x] Return fully rendered prompt string
 
 ### Task 5: Implement LoadedCommand Model
 - [ ] Add `LoadedCommand` model to `src/adw/models/command.py`
