@@ -81,7 +81,9 @@ class SchemaValidator:
         """
         # No-schema passthrough
         if schema is None:
-            logger.debug("No schema provided, returning content as-is (passthrough mode)")
+            logger.debug(
+                "No schema provided, returning content as-is (passthrough mode)"
+            )
             return content
 
         # Collect all JSON candidates

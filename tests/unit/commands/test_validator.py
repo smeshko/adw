@@ -47,9 +47,7 @@ class TestValidJSONValidation:
         result = validator.validate(content, schema)
         assert result == {"name": "Alice", "age": 30, "active": True}
 
-    def test_valid_json_with_required_fields(
-        self, validator: SchemaValidator
-    ) -> None:
+    def test_valid_json_with_required_fields(self, validator: SchemaValidator) -> None:
         """Valid JSON with required fields should validate correctly."""
         schema = {
             "type": "object",
@@ -93,7 +91,10 @@ class TestInvalidJSONValidation:
         with pytest.raises(ValidationError) as exc:
             validator.validate(content, schema)
         assert exc.value.code == "SCHEMA_VALIDATION_FAILED"
-        assert "name" in exc.value.message.lower() or "required" in exc.value.message.lower()
+        assert (
+            "name" in exc.value.message.lower()
+            or "required" in exc.value.message.lower()
+        )
 
     def test_wrong_type_shows_expected_vs_actual(
         self, validator: SchemaValidator
@@ -117,12 +118,12 @@ class TestMarkdownExtraction:
         self, validator: SchemaValidator
     ) -> None:
         """JSON in markdown code block should be extracted and validated."""
-        content = '''
+        content = """
 Here is the result:
 ```json
 {"result": "value"}
 ```
-        '''
+        """
         result = validator.validate(content, {"type": "object"})
         assert result == {"result": "value"}
 
@@ -130,11 +131,11 @@ Here is the result:
         self, validator: SchemaValidator
     ) -> None:
         """JSON in untagged code block should be extracted."""
-        content = '''
+        content = """
 ```
 {"result": "value"}
 ```
-        '''
+        """
         result = validator.validate(content, {"type": "object"})
         assert result == {"result": "value"}
 
@@ -142,7 +143,7 @@ Here is the result:
         self, validator: SchemaValidator
     ) -> None:
         """JSON should be extracted even with surrounding markdown text."""
-        content = '''
+        content = """
 # Response
 
 Here is my analysis:
@@ -152,7 +153,7 @@ Here is my analysis:
 ```
 
 Thank you for your patience.
-        '''
+        """
         schema = {
             "type": "object",
             "properties": {
@@ -167,7 +168,7 @@ Thank you for your patience.
         self, validator: SchemaValidator
     ) -> None:
         """extract_json_from_markdown should return list of code blocks."""
-        content = '''
+        content = """
 ```json
 {"first": 1}
 ```
@@ -175,7 +176,7 @@ Some text
 ```
 {"second": 2}
 ```
-        '''
+        """
         blocks = validator.extract_json_from_markdown(content)
         assert len(blocks) == 2
         assert '{"first": 1}' in blocks
@@ -187,7 +188,7 @@ class TestMultipleBlocks:
 
     def test_first_valid_json_block_used(self, validator: SchemaValidator) -> None:
         """First JSON block matching schema should be used."""
-        content = '''
+        content = """
 First attempt:
 ```json
 {"wrong": "format"}
@@ -196,7 +197,7 @@ Second attempt:
 ```json
 {"name": "correct", "count": 5}
 ```
-        '''
+        """
         schema = {
             "type": "object",
             "required": ["name", "count"],
@@ -205,34 +206,30 @@ Second attempt:
         result = validator.validate(content, schema)
         assert result == {"name": "correct", "count": 5}
 
-    def test_skips_invalid_blocks_uses_valid(
-        self, validator: SchemaValidator
-    ) -> None:
+    def test_skips_invalid_blocks_uses_valid(self, validator: SchemaValidator) -> None:
         """Invalid blocks should be skipped, valid one used."""
-        content = '''
+        content = """
 ```json
 not valid json at all
 ```
 ```json
 {"valid": true}
 ```
-        '''
+        """
         schema = {"type": "object", "properties": {"valid": {"type": "boolean"}}}
         result = validator.validate(content, schema)
         assert result == {"valid": True}
 
-    def test_all_blocks_invalid_raises_error(
-        self, validator: SchemaValidator
-    ) -> None:
+    def test_all_blocks_invalid_raises_error(self, validator: SchemaValidator) -> None:
         """If no block matches schema, should raise ValidationError."""
-        content = '''
+        content = """
 ```json
 {"wrong": "type"}
 ```
 ```json
 {"also": "wrong"}
 ```
-        '''
+        """
         schema = {
             "type": "object",
             "required": ["required_field"],
@@ -245,9 +242,7 @@ not valid json at all
 class TestNoSchemaPassthrough:
     """Tests for no-schema passthrough mode."""
 
-    def test_no_schema_returns_raw_content(
-        self, validator: SchemaValidator
-    ) -> None:
+    def test_no_schema_returns_raw_content(self, validator: SchemaValidator) -> None:
         """When schema is None, raw content should be returned."""
         content = "This is just text, not JSON"
         result = validator.validate(content, schema=None)
@@ -266,12 +261,12 @@ class TestNoSchemaPassthrough:
         self, validator: SchemaValidator
     ) -> None:
         """Markdown content should be returned unchanged when no schema."""
-        content = '''
+        content = """
 # Title
 ```json
 {"data": 123}
 ```
-        '''
+        """
         result = validator.validate(content, schema=None)
         assert result == content
 
@@ -287,7 +282,9 @@ class TestMalformedJSON:
         schema = {"type": "object"}
         with pytest.raises(ValidationError) as exc:
             validator.validate(content, schema)
-        assert "parse" in exc.value.message.lower() or "json" in exc.value.message.lower()
+        assert (
+            "parse" in exc.value.message.lower() or "json" in exc.value.message.lower()
+        )
 
     def test_empty_content_raises_no_json_found(
         self, validator: SchemaValidator
@@ -315,11 +312,11 @@ class TestMalformedJSON:
         self, validator: SchemaValidator
     ) -> None:
         """Partial JSON in code block should raise ValidationError."""
-        content = '''
+        content = """
 ```json
 {"incomplete":
 ```
-        '''
+        """
         schema = {"type": "object"}
         with pytest.raises(ValidationError):
             validator.validate(content, schema)
@@ -335,9 +332,7 @@ class TestRawContentFirst:
         result = validator.validate(content, schema)
         assert result == {"direct": "json"}
 
-    def test_raw_json_preferred_over_markdown(
-        self, validator: SchemaValidator
-    ) -> None:
+    def test_raw_json_preferred_over_markdown(self, validator: SchemaValidator) -> None:
         """Raw JSON matching schema should be preferred even if content has markdown."""
         # This is a special case where the entire content is valid JSON
         content = '{"valid": true}'
@@ -349,9 +344,7 @@ class TestRawContentFirst:
 class TestErrorDetails:
     """Tests for error message details."""
 
-    def test_validation_error_has_suggestion(
-        self, validator: SchemaValidator
-    ) -> None:
+    def test_validation_error_has_suggestion(self, validator: SchemaValidator) -> None:
         """ValidationError should include helpful suggestion."""
         schema = {"type": "object", "required": ["name"]}
         content = '{"other": "field"}'
@@ -364,7 +357,12 @@ class TestErrorDetails:
         """Field errors should include the field path."""
         schema = {
             "type": "object",
-            "properties": {"nested": {"type": "object", "properties": {"value": {"type": "integer"}}}},
+            "properties": {
+                "nested": {
+                    "type": "object",
+                    "properties": {"value": {"type": "integer"}},
+                }
+            },
         }
         content = '{"nested": {"value": "not an int"}}'
         with pytest.raises(ValidationError) as exc:

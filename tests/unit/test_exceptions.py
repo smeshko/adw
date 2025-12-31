@@ -615,14 +615,18 @@ class TestExceptionHierarchy:
             ConfigError(code="TEST", message="test"),
             HookError(code="TEST", message="test", phase="test"),
             LLMError(code="TEST", message="test"),
-            LLMTimeoutError(code="TEST", message="test", timeout_seconds=1, elapsed_seconds=1),
+            LLMTimeoutError(
+                code="TEST", message="test", timeout_seconds=1, elapsed_seconds=1
+            ),
             LLMRateLimitError(code="TEST", message="test"),
             PhaseError(code="TEST", message="test", phase="test"),
             StateError(code="TEST", message="test"),
             ValidationError(code="TEST", message="test"),
         ]
         for exc in exceptions:
-            assert isinstance(exc, ADWError), f"{type(exc).__name__} should inherit from ADWError"
+            assert isinstance(exc, ADWError), (
+                f"{type(exc).__name__} should inherit from ADWError"
+            )
 
     def test_llm_subclasses_inherit_from_llm_error(self) -> None:
         """LLMTimeoutError and LLMRateLimitError should inherit from LLMError."""
@@ -668,12 +672,18 @@ class TestExceptionHierarchy:
             ValidationError(code="TEST", message="test"),
         ]
         recoverable = [
-            LLMTimeoutError(code="TEST", message="test", timeout_seconds=1, elapsed_seconds=1),
+            LLMTimeoutError(
+                code="TEST", message="test", timeout_seconds=1, elapsed_seconds=1
+            ),
             LLMRateLimitError(code="TEST", message="test"),
         ]
 
         for exc in non_recoverable:
-            assert exc.recoverable is False, f"{type(exc).__name__} should be non-recoverable by default"
+            assert exc.recoverable is False, (
+                f"{type(exc).__name__} should be non-recoverable by default"
+            )
 
         for exc in recoverable:
-            assert exc.recoverable is True, f"{type(exc).__name__} should be recoverable by default"
+            assert exc.recoverable is True, (
+                f"{type(exc).__name__} should be recoverable by default"
+            )

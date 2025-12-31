@@ -324,10 +324,7 @@ class TestSingleLevelSubstitution:
     def test_no_recursive_expansion_with_nested_variables(self) -> None:
         """Nested template syntax in values should remain literal."""
         engine = TemplateEngine()
-        context = {
-            "outer": "{{inner}}",
-            "inner": "should not appear"
-        }
+        context = {"outer": "{{inner}}", "inner": "should not appear"}
         template = "{{outer}}"
         result = engine.render(template, context, strict=False)
         assert result == "{{inner}}"

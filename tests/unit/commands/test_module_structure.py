@@ -4,7 +4,6 @@ Verifies that the commands module exports the correct classes.
 """
 
 
-
 class TestCommandModuleStructure:
     """Test the commands module structure and exports."""
 
