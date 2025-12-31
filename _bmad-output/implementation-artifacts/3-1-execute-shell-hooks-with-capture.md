@@ -1,6 +1,6 @@
 # Story 3.1: Execute Shell Hooks with Capture
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2025-12-31
@@ -84,10 +84,10 @@ so that I can run custom logic before and after LLM execution.
 - [x] Target: >90% coverage for hooks module (achieved 100%)
 
 ### Task 7: Integration Tests
-- [ ] Create `tests/integration/test_hooks.py`
-- [ ] Test hook execution with real shell scripts
-- [ ] Test environment variable propagation
-- [ ] Test timeout behavior with slow scripts
+- [x] Create `tests/integration/test_hooks.py`
+- [x] Test hook execution with real shell scripts
+- [x] Test environment variable propagation
+- [x] Test timeout behavior with slow scripts
 
 ---
 
@@ -347,6 +347,7 @@ claude-opus-4-5-20251101
 - Task 2: Created build_hook_environment() function. Merges os.environ with ADW-specific variables (ADW_RUN_ID, ADW_PHASE, ADW_FEATURE, ADW_ARTIFACTS_DIR, ADW_CONTEXT_FILE). All values are strings for subprocess compatibility.
 - Task 3-5: Implemented HookRunner class with asyncio subprocess execution. Uses asyncio.create_subprocess_exec() with wait_for() for timeout. Captures stdout/stderr separately. Raises HookError with HOOK_FAILED or HOOK_TIMEOUT codes. Also implemented find_hook() for hook discovery with .sh and extensionless support.
 - Task 6: Unit tests complete with 31 tests, 100% coverage on hooks module. Added test fixtures at tests/fixtures/hooks/.
+- Task 7: Integration tests complete with 8 tests covering real script execution, env vars, timeout behavior. Total 327 tests passing with 89.91% overall coverage.
 
 ### File List
 
@@ -362,6 +363,7 @@ claude-opus-4-5-20251101
 - tests/fixtures/hooks/failure.sh (NEW)
 - tests/fixtures/hooks/slow.sh (NEW)
 - tests/fixtures/hooks/env_check.sh (NEW)
+- tests/integration/test_hooks.py (NEW)
 
 ---
 
