@@ -17,7 +17,7 @@ class TestLLMConfig:
     def test_defaults(self) -> None:
         """LLMConfig has sensible defaults."""
         config = LLMConfig()
-        assert config.path == "/usr/bin/claude"
+        assert config.path == "claude"
         assert config.timeout_seconds == 300
         assert config.max_retries == 3
         assert config.model is None
@@ -171,7 +171,7 @@ language: python
         assert config.framework is None
 
         # Check nested defaults
-        assert config.llm.path == "/usr/bin/claude"
+        assert config.llm.path == "claude"
         assert config.llm.timeout_seconds == 300
         assert config.hooks.shell == "/bin/bash"
 

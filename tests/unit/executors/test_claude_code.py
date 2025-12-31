@@ -710,3 +710,96 @@ class TestErrorHandling:
 
             assert result.success is False
             assert "42" in result.error  # Exit code in fallback message
+
+
+class TestPathConfiguration:
+    """Tests for path configuration (Task 6)."""
+
+    def test_uses_llm_config_path(self) -> None:
+        """Should use LLMConfig.path for Claude executable."""
+        config = LLMConfig(path="/custom/path/to/claude")
+        executor = ClaudeCodeExecutor(config)
+
+        assert executor.config.path == "/custom/path/to/claude"
+
+    def test_default_path_is_claude(self) -> None:
+        """Default path should be 'claude' (assumes in PATH)."""
+        config = LLMConfig()
+
+        assert config.path == "claude"
+
+    def test_uses_shutil_which_for_path_lookup(self) -> None:
+        """Should use shutil.which() to find executable in PATH."""
+        config = LLMConfig(path="claude")
+        executor = ClaudeCodeExecutor(config)
+
+        with patch("shutil.which") as mock_which:
+            mock_which.return_value = "/usr/local/bin/claude"
+
+            with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+                process = AsyncMock()
+                process.stdout = AsyncMock()
+                process.stderr = AsyncMock()
+                process.stdout.readline = AsyncMock(side_effect=[b"", ])
+                process.stderr.read = AsyncMock(return_value=b"")
+                process.wait = AsyncMock(return_value=None)
+                process.returncode = 0
+
+                mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+                mock_asyncio.subprocess = asyncio.subprocess
+                mock_asyncio.run = asyncio.run
+
+                executor.execute("Test prompt")
+
+            # Verify shutil.which was called with the path
+            mock_which.assert_called_once_with("claude")
+
+    def test_supports_absolute_paths(self) -> None:
+        """Should support absolute paths from config."""
+        from pathlib import Path as PathlibPath
+        import tempfile
+        import os
+
+        # Create a temporary file to act as the executable
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            temp_path = f.name
+
+        try:
+            config = LLMConfig(path=temp_path)
+            executor = ClaudeCodeExecutor(config)
+
+            # The path should be checked directly (file exists)
+            path = executor._verify_claude_path()
+            assert path == PathlibPath(temp_path)
+        finally:
+            os.unlink(temp_path)
+
+    def test_absolute_path_bypasses_which(self) -> None:
+        """Absolute paths should not call shutil.which()."""
+        import tempfile
+        import os
+
+        # Create a temporary file to act as the executable
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            temp_path = f.name
+
+        try:
+            config = LLMConfig(path=temp_path)
+            executor = ClaudeCodeExecutor(config)
+
+            with patch("shutil.which") as mock_which:
+                executor._verify_claude_path()
+                # shutil.which should NOT be called for absolute paths
+                mock_which.assert_not_called()
+        finally:
+            os.unlink(temp_path)
+
+    def test_relative_path_uses_which(self) -> None:
+        """Relative paths (like 'claude') should use shutil.which()."""
+        config = LLMConfig(path="claude")
+        executor = ClaudeCodeExecutor(config)
+
+        with patch("shutil.which", return_value="/found/path/claude"):
+            path = executor._verify_claude_path()
+
+            assert str(path) == "/found/path/claude"

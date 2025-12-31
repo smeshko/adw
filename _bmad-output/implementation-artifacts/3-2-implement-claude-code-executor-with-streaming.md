@@ -70,10 +70,10 @@ so that users see LLM responses as they're generated.
 - [x] Include helpful suggestions in error messages
 
 ### Task 6: Implement Path Configuration
-- [ ] Use `LLMConfig.path` for Claude executable path
-- [ ] Default to "claude" (assumes in PATH)
-- [ ] Support absolute paths from config
-- [ ] Use `shutil.which()` to verify executable exists
+- [x] Use `LLMConfig.path` for Claude executable path
+- [x] Default to "claude" (assumes in PATH)
+- [x] Support absolute paths from config
+- [x] Use `shutil.which()` to verify executable exists
 
 ### Task 7: Write Unit Tests
 - [ ] Create `tests/unit/executors/test_claude_code.py`
@@ -389,12 +389,15 @@ claude-opus-4-5-20251101
 - Task 3: Real-time streaming already implemented in Task 1 with readline() loop and console.print(). Added tests for line-by-line reading, console forwarding, and custom console support.
 - Task 4: Implemented _parse_output() method to parse JSONL format from --print flag. Extracts text content, tool calls, and token usage from various message types (assistant, result, content_block_delta, message_delta).
 - Task 5: Error handling already implemented in _verify_claude_path(). Added tests for CLAUDE_NOT_FOUND error, suggestions, recoverability, absolute path handling, and subprocess error results.
+- Task 6: Updated LLMConfig.path default from "/usr/bin/claude" to "claude" (assumes in PATH). Added tests for path configuration, shutil.which usage, and absolute path handling.
 
 ### File List
 
 - src/adw/executors/claude_code.py (NEW)
 - src/adw/executors/__init__.py (MODIFIED)
+- src/adw/models/config.py (MODIFIED - updated LLMConfig.path default)
 - tests/unit/executors/test_claude_code.py (NEW)
+- tests/unit/models/test_config.py (MODIFIED - updated default path expectations)
 
 ---
 
