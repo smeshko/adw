@@ -1,6 +1,6 @@
 # Story 1.1: Initialize Project Structure with uv and Typer
 
-Status: ready-for-dev
+Status: Done
 Linear Issue: not-configured
 Epic: 1 - Project Scaffolding & Test Infrastructure
 Created: 2025-12-31
@@ -35,45 +35,45 @@ so that I have a working development environment with the correct tooling from d
 ## Tasks / Subtasks
 
 ### Task 1: Initialize uv Project
-- [ ] Run `uv init adw --app --python 3.13` to create project skeleton
-- [ ] Verify `pyproject.toml` is created with correct Python version constraint
+- [x] Run `uv init adw --app --python 3.13` to create project skeleton
+- [x] Verify `pyproject.toml` is created with correct Python version constraint
 
 ### Task 2: Add Core Dependencies
-- [ ] Run `uv add typer[all] rich pydantic pyyaml filelock python-ulid`
-- [ ] Verify all dependencies are added to pyproject.toml
-- [ ] Run `uv add --dev pytest pytest-asyncio pytest-cov ruff mypy`
-- [ ] Verify dev dependencies are in dev dependency group
+- [x] Run `uv add typer[all] rich pydantic pyyaml filelock python-ulid`
+- [x] Verify all dependencies are added to pyproject.toml
+- [x] Run `uv add --dev pytest pytest-asyncio pytest-cov ruff mypy`
+- [x] Verify dev dependencies are in dev dependency group
 
 ### Task 3: Create Directory Structure
-- [ ] Create `src/adw/` package directory with `__init__.py`
-- [ ] Create `src/adw/__main__.py` for `python -m adw` support
-- [ ] Create subdirectories: cli/, core/, models/, commands/, executors/, hooks/, logging/, utils/
-- [ ] Create `src/adw/exceptions.py` placeholder
-- [ ] Create `tests/` directory with `__init__.py` and `conftest.py`
-- [ ] Create `tests/unit/` and `tests/integration/` subdirectories
-- [ ] Create `tests/fixtures/` directory for test data
-- [ ] Create `defaults/commands/` directory for bundled command templates
+- [x] Create `src/adw/` package directory with `__init__.py`
+- [x] Create `src/adw/__main__.py` for `python -m adw` support
+- [x] Create subdirectories: cli/, core/, models/, commands/, executors/, hooks/, logging/, utils/
+- [x] Create `src/adw/exceptions.py` placeholder
+- [x] Create `tests/` directory with `__init__.py` and `conftest.py`
+- [x] Create `tests/unit/` and `tests/integration/` subdirectories
+- [x] Create `tests/fixtures/` directory for test data
+- [x] Create `defaults/commands/` directory for bundled command templates
 
 ### Task 4: Configure pyproject.toml Entry Point
-- [ ] Add `[project.scripts]` section with `adw = "adw.cli:app"`
-- [ ] Verify entry point configuration is correct
+- [x] Add `[project.scripts]` section with `adw = "adw.cli:app"`
+- [x] Verify entry point configuration is correct
 
 ### Task 5: Create Minimal CLI App
-- [ ] Create `src/adw/cli/__init__.py` with Typer app export
-- [ ] Create `src/adw/cli/app.py` with main Typer app
-- [ ] Add a simple `--version` command using Rich console
-- [ ] Add placeholder `run` command that prints "Not implemented yet"
+- [x] Create `src/adw/cli/__init__.py` with Typer app export
+- [x] Create `src/adw/cli/app.py` with main Typer app
+- [x] Add a simple `--version` command using Rich console
+- [x] Add placeholder `run` command that prints "Not implemented yet"
 
 ### Task 6: Verify Installation
-- [ ] Run `uv sync` to install the package
-- [ ] Run `adw --help` and verify output
-- [ ] Run `adw --version` and verify output
-- [ ] Measure startup time (should be <2 seconds)
+- [x] Run `uv sync` to install the package
+- [x] Run `adw --help` and verify output
+- [x] Run `adw --version` and verify output
+- [x] Measure startup time (should be <2 seconds)
 
 ### Task 7: Add Configuration Files
-- [ ] Create `.gitignore` with Python/uv patterns
-- [ ] Create basic `README.md` with installation instructions
-- [ ] Create `.github/workflows/ci.yml` placeholder for CI
+- [x] Create `.gitignore` with Python/uv patterns
+- [x] Create basic `README.md` with installation instructions
+- [x] Create `.github/workflows/ci.yml` placeholder for CI
 
 ---
 
@@ -309,11 +309,89 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
-(To be filled by dev agent after implementation)
+- Initialized uv project with Python 3.13+ requirement
+- Added all core dependencies: typer, rich, pydantic, pyyaml, filelock, python-ulid
+- Added dev dependencies: pytest, pytest-asyncio, pytest-cov, ruff, mypy
+- Created full project structure matching architecture spec
+- Implemented minimal CLI with Typer and Rich integration
+- CLI startup time verified at 0.1s (well under 2s requirement)
+- All acceptance criteria met and verified
+- 7 individual commits created (commit contract honored)
 
 ### File List
 
-(To be filled by dev agent after implementation)
+**Created:**
+- .gitignore
+- .github/workflows/ci.yml
+- .python-version
+- README.md
+- pyproject.toml
+- uv.lock
+- src/adw/__init__.py
+- src/adw/__main__.py
+- src/adw/exceptions.py
+- src/adw/cli/__init__.py
+- src/adw/cli/app.py
+- src/adw/commands/__init__.py
+- src/adw/core/__init__.py
+- src/adw/executors/__init__.py
+- src/adw/hooks/__init__.py
+- src/adw/logging/__init__.py
+- src/adw/models/__init__.py
+- src/adw/utils/__init__.py
+- tests/__init__.py
+- tests/conftest.py
+- tests/integration/__init__.py
+- tests/unit/__init__.py
+- defaults/commands/ (directory)
+- tests/fixtures/ (directory)
+- tests/fixtures/.gitkeep
+
+**Modified (Code Review):**
+- .gitignore (removed uv.lock from ignore list)
+- README.md (fixed CLI command reference)
+- pyproject.toml (renamed entry point to `adw`, added tool configs)
+- src/adw/__init__.py (use importlib.metadata for version)
+- src/adw/cli/app.py (renamed app to `adw`)
+- src/adw/commands/__init__.py (added docstring)
+- src/adw/core/__init__.py (added docstring)
+- src/adw/executors/__init__.py (added docstring)
+- src/adw/hooks/__init__.py (added docstring)
+- src/adw/logging/__init__.py (added docstring)
+- src/adw/models/__init__.py (added docstring)
+- src/adw/utils/__init__.py (added docstring)
+- tests/conftest.py (removed unused import)
+
+---
+
+## Senior Developer Review (AI)
+
+**Reviewer:** Ivo (via Claude Opus 4.5)
+**Date:** 2025-12-31
+**Outcome:** ✅ Approved (after fixes)
+
+### Issues Found & Fixed
+
+| # | Severity | Issue | Resolution |
+|---|----------|-------|------------|
+| 1 | HIGH | Entry point was `adw-final` instead of `adw` | Fixed in pyproject.toml |
+| 2 | HIGH | Typer app name mismatch | Fixed in cli/app.py |
+| 3 | HIGH | Unused pytest import in conftest.py | Removed import |
+| 4 | HIGH | uv.lock incorrectly in .gitignore | Removed from .gitignore |
+| 5 | MEDIUM | Empty __init__.py files (7 files) | Added docstrings |
+| 6 | MEDIUM | No pytest configuration | Added [tool.pytest.ini_options] |
+| 7 | MEDIUM | No mypy strict configuration | Added [tool.mypy] with strict=true |
+| 8 | MEDIUM | tests/fixtures/ not tracked | Added .gitkeep |
+| 9 | MEDIUM | No ruff configuration | Added [tool.ruff] and [tool.ruff.lint] |
+| 11 | LOW | Version defined in two places | Using importlib.metadata |
+
+### Verification
+
+- `uv sync` ✓
+- `adw --version` ✓
+- `adw --help` ✓
+- `ruff check src/adw/` ✓
+- `mypy src/adw/` ✓ (strict mode)
 
 ---
 
