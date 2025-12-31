@@ -65,10 +65,10 @@ so that I have a working development environment with the correct tooling from d
 - [x] Add placeholder `run` command that prints "Not implemented yet"
 
 ### Task 6: Verify Installation
-- [ ] Run `uv sync` to install the package
-- [ ] Run `adw --help` and verify output
-- [ ] Run `adw --version` and verify output
-- [ ] Measure startup time (should be <2 seconds)
+- [x] Run `uv sync` to install the package
+- [x] Run `adw --help` and verify output
+- [x] Run `adw --version` and verify output
+- [x] Measure startup time (should be <2 seconds)
 
 ### Task 7: Add Configuration Files
 - [ ] Create `.gitignore` with Python/uv patterns
