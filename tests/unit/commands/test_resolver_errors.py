@@ -88,10 +88,10 @@ class TestCommandResolverErrorHandling:
 
     def test_file_instead_of_directory_not_valid(self, tmp_path: Path) -> None:
         """A file instead of directory should not be valid."""
-        # Create file instead of directory
+        # Create file instead of directory - use non-bundled command name
         commands_dir = tmp_path / ".adw" / "commands"
         commands_dir.mkdir(parents=True)
-        (commands_dir / "plan").write_text("I'm a file, not a directory")
+        (commands_dir / "custom_command").write_text("I'm a file, not a directory")
 
         mock_home = tmp_path / "mock_home"
         mock_home.mkdir()
@@ -100,6 +100,6 @@ class TestCommandResolverErrorHandling:
             resolver = CommandResolver(project_root=tmp_path)
 
             with pytest.raises(ConfigError) as exc_info:
-                resolver.resolve("plan")
+                resolver.resolve("custom_command")
 
         assert exc_info.value.code == "COMMAND_NOT_FOUND"

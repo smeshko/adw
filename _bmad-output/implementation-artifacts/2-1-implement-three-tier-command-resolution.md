@@ -70,12 +70,12 @@ so that users can override any command at the appropriate level.
 - [x] Raise `ConfigError(code="INVALID_COMMAND")` if prompt.md missing
 
 ### Task 6: Create Default Command Scaffolding
-- [ ] Create `defaults/commands/plan/` directory structure
-- [ ] Create `defaults/commands/build/` directory structure
-- [ ] Create `defaults/commands/verify/` directory structure
-- [ ] Create `defaults/commands/validate/` directory structure
-- [ ] Create `defaults/commands/document/` directory structure
-- [ ] Add minimal `prompt.md` placeholders to each
+- [x] Create `defaults/commands/plan/` directory structure
+- [x] Create `defaults/commands/build/` directory structure
+- [x] Create `defaults/commands/verify/` directory structure
+- [x] Create `defaults/commands/validate/` directory structure
+- [x] Create `defaults/commands/document/` directory structure
+- [x] Add minimal `prompt.md` placeholders to each
 
 ### Task 7: Write Unit Tests
 - [ ] Test three-tier resolution priority (project > user > bundled)

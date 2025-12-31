@@ -68,9 +68,9 @@ so that prompts can include dynamic content from the run context.
 - [x] Document limitation clearly in docstring
 
 ### Task 6: Support Context Object Rendering
-- [ ] Accept Pydantic models (RunContext, etc.) as context
-- [ ] Use `model_dump()` to convert to dict for variable lookup
-- [ ] Support nested attribute access via dot notation
+- [x] Accept Pydantic models (RunContext, etc.) as context
+- [x] Use `model_dump()` to convert to dict for variable lookup
+- [x] Support nested attribute access via dot notation
 
 ### Task 7: Write Unit Tests
 - [ ] Test basic variable substitution

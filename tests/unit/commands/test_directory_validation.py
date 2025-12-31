@@ -29,7 +29,8 @@ class TestCommandDirectoryValidation:
 
     def test_directory_without_prompt_md_invalid(self, tmp_path: Path) -> None:
         """Directory without prompt.md is not valid and should not be resolved."""
-        project_cmd = tmp_path / ".adw" / "commands" / "plan"
+        # Use a non-bundled command name to avoid fallback to bundled
+        project_cmd = tmp_path / ".adw" / "commands" / "custom_cmd"
         project_cmd.mkdir(parents=True)
         # No prompt.md
 
@@ -40,7 +41,7 @@ class TestCommandDirectoryValidation:
             resolver = CommandResolver(project_root=tmp_path)
 
             with pytest.raises(ConfigError) as exc_info:
-                resolver.resolve("plan")
+                resolver.resolve("custom_cmd")
 
         # Should raise COMMAND_NOT_FOUND since the directory isn't valid
         assert exc_info.value.code == "COMMAND_NOT_FOUND"
