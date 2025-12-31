@@ -56,10 +56,10 @@ so that I can write and run tests following the 60/30/10 pyramid.
 - [x] Add sample_project_config fixture
 
 ### Task 3: Create Test Data Fixtures Directory
-- [ ] Create tests/fixtures/ directory
-- [ ] Create tests/fixtures/runs/ for sample run data
-- [ ] Create tests/fixtures/configs/ for sample configs
-- [ ] Create tests/fixtures/llm/ for sample LLM responses
+- [x] Create tests/fixtures/ directory
+- [x] Create tests/fixtures/runs/ for sample run data
+- [x] Create tests/fixtures/configs/ for sample configs
+- [x] Create tests/fixtures/llm/ for sample LLM responses
 
 ### Task 4: Add Sample Test Data Files
 - [ ] Create tests/fixtures/configs/minimal.yaml
