@@ -67,16 +67,18 @@ workflow_status:
     name: "Solutioning"
     workflows:
       - id: "create-architecture"
-        status: "required"
+        status: "_bmad-output/architecture.md"
         agent: "architect"
         command: "/bmad:bmm:workflows:create-architecture"
         output: "System architecture document"
+        completed: "2025-12-31"
 
       - id: "create-epics-and-stories"
-        status: "required"
+        status: "_bmad-output/epics.md"
         agent: "pm"
         command: "/bmad:bmm:workflows:create-epics-and-stories"
         note: "Break down PRD into implementable epics and stories"
+        completed: "2025-12-31"
 
       - id: "test-design"
         status: "_bmad-output/test-design-system.md"
@@ -91,10 +93,11 @@ workflow_status:
         command: "/bmad:bmm:workflows:validate-architecture"
 
       - id: "implementation-readiness"
-        status: "required"
+        status: "_bmad-output/implementation-readiness-report.md"
         agent: "architect"
         command: "/bmad:bmm:workflows:check-implementation-readiness"
         note: "Validates PRD + Architecture + Epics + UX (optional)"
+        completed: "2025-12-31"
 
   # Phase 3: Implementation
   - phase: 3
