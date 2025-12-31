@@ -45,14 +45,14 @@ so that I have a working development environment with the correct tooling from d
 - [x] Verify dev dependencies are in dev dependency group
 
 ### Task 3: Create Directory Structure
-- [ ] Create `src/adw/` package directory with `__init__.py`
-- [ ] Create `src/adw/__main__.py` for `python -m adw` support
-- [ ] Create subdirectories: cli/, core/, models/, commands/, executors/, hooks/, logging/, utils/
-- [ ] Create `src/adw/exceptions.py` placeholder
-- [ ] Create `tests/` directory with `__init__.py` and `conftest.py`
-- [ ] Create `tests/unit/` and `tests/integration/` subdirectories
-- [ ] Create `tests/fixtures/` directory for test data
-- [ ] Create `defaults/commands/` directory for bundled command templates
+- [x] Create `src/adw/` package directory with `__init__.py`
+- [x] Create `src/adw/__main__.py` for `python -m adw` support
+- [x] Create subdirectories: cli/, core/, models/, commands/, executors/, hooks/, logging/, utils/
+- [x] Create `src/adw/exceptions.py` placeholder
+- [x] Create `tests/` directory with `__init__.py` and `conftest.py`
+- [x] Create `tests/unit/` and `tests/integration/` subdirectories
+- [x] Create `tests/fixtures/` directory for test data
+- [x] Create `defaults/commands/` directory for bundled command templates
 
 ### Task 4: Configure pyproject.toml Entry Point
 - [ ] Add `[project.scripts]` section with `adw = "adw.cli:app"`
