@@ -6,15 +6,17 @@ streaming output.
 """
 
 import asyncio
+import json
 import shutil
 import time
 from pathlib import Path
+from typing import Any
 
 from rich.console import Console
 
 from adw.exceptions import LLMError
 from adw.models.config import LLMConfig
-from adw.models.llm import LLMResult
+from adw.models.llm import LLMResult, ToolCall
 
 
 class ClaudeCodeExecutor:
@@ -127,26 +129,111 @@ class ClaudeCodeExecutor:
         stderr = stderr_bytes.decode() if stderr_bytes else ""
 
         duration_ms = int((time.monotonic() - start_time) * 1000)
-        content = "".join(content_lines)
+        raw_output = "".join(content_lines)
+
+        # Parse the output to extract content, tool calls, and tokens
+        parsed = self._parse_output(raw_output)
 
         # Build result
         if process.returncode == 0:
             return LLMResult(
                 success=True,
-                content=content,
-                tool_calls=[],
-                tokens_used=0,  # Will be parsed from output in Task 4
+                content=parsed["content"],
+                tool_calls=parsed["tool_calls"],
+                tokens_used=parsed["tokens_used"],
                 duration_ms=duration_ms,
             )
         else:
             return LLMResult(
                 success=False,
-                content=content,
-                tool_calls=[],
-                tokens_used=0,
+                content=parsed["content"],
+                tool_calls=parsed["tool_calls"],
+                tokens_used=parsed["tokens_used"],
                 duration_ms=duration_ms,
                 error=stderr or f"Claude Code exited with code {process.returncode}",
             )
+
+    def _parse_output(
+        self, raw_output: str
+    ) -> dict[str, Any]:
+        """Parse Claude Code --print output format.
+
+        Claude Code with --print outputs JSONL (JSON Lines) format where
+        each line contains a message object. This method extracts:
+        - Text content from assistant messages
+        - Tool calls from tool_use messages
+        - Token usage from result message
+
+        Args:
+            raw_output: The raw output from Claude Code subprocess.
+
+        Returns:
+            Dictionary containing:
+            - content: str - extracted text content
+            - tool_calls: list[ToolCall] - extracted tool calls
+            - tokens_used: int - token count if available
+        """
+        content_parts: list[str] = []
+        tool_calls: list[ToolCall] = []
+        tokens_used = 0
+
+        for line in raw_output.strip().split("\n"):
+            if not line.strip():
+                continue
+
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError:
+                # Not JSON, treat as plain text content
+                content_parts.append(line)
+                continue
+
+            # Handle different message types from Claude Code output
+            msg_type = data.get("type", "")
+
+            if msg_type == "assistant":
+                # Assistant message contains content blocks
+                for block in data.get("message", {}).get("content", []):
+                    if block.get("type") == "text":
+                        content_parts.append(block.get("text", ""))
+                    elif block.get("type") == "tool_use":
+                        tool_calls.append(
+                            ToolCall(
+                                tool_name=block.get("name", "unknown"),
+                                arguments=block.get("input", {}),
+                                result_summary=None,
+                            )
+                        )
+
+            elif msg_type == "result":
+                # Result message may contain token usage
+                usage = data.get("usage", {})
+                tokens_used = usage.get("input_tokens", 0) + usage.get(
+                    "output_tokens", 0
+                )
+                # Also extract final text if present
+                if "text" in data:
+                    content_parts.append(data["text"])
+
+            elif msg_type == "content_block_delta":
+                # Streaming content delta
+                delta = data.get("delta", {})
+                if delta.get("type") == "text_delta":
+                    content_parts.append(delta.get("text", ""))
+
+            elif msg_type == "message_delta":
+                # Message delta with usage
+                usage = data.get("usage", {})
+                if usage:
+                    tokens_used = usage.get("input_tokens", 0) + usage.get(
+                        "output_tokens", 0
+                    )
+
+        return {
+            "content": "".join(content_parts),
+            "tool_calls": tool_calls,
+            "tokens_used": tokens_used,
+        }
 
     def _verify_claude_path(self) -> Path:
         """Verify Claude Code executable exists.

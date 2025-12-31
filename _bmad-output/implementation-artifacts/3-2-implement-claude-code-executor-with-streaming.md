@@ -57,11 +57,11 @@ so that users see LLM responses as they're generated.
 - [x] Ensure artifact writes don't block stream (NFR3)
 
 ### Task 4: Parse Claude Code Output
-- [ ] Parse `--print` flag JSON output format
-- [ ] Extract text content from output
-- [ ] Extract tool calls from output
-- [ ] Extract token usage if available
-- [ ] Build `LLMResult` from parsed output
+- [x] Parse `--print` flag JSON output format
+- [x] Extract text content from output
+- [x] Extract tool calls from output
+- [x] Extract token usage if available
+- [x] Build `LLMResult` from parsed output
 
 ### Task 5: Implement Error Handling
 - [ ] Check if Claude path exists before execution
@@ -387,6 +387,7 @@ claude-opus-4-5-20251101
 - Task 1: Created ClaudeCodeExecutor class implementing LLMExecutor Protocol. Class accepts LLMConfig, has execute() method returning LLMResult. Uses asyncio.run() wrapper with async _stream_subprocess() internally.
 - Task 2: Subprocess execution already implemented in Task 1. Added tests verifying create_subprocess_exec(), --print flag, stdout/stderr pipes, and asyncio.run() wrapper.
 - Task 3: Real-time streaming already implemented in Task 1 with readline() loop and console.print(). Added tests for line-by-line reading, console forwarding, and custom console support.
+- Task 4: Implemented _parse_output() method to parse JSONL format from --print flag. Extracts text content, tool calls, and token usage from various message types (assistant, result, content_block_delta, message_delta).
 
 ### File List
 

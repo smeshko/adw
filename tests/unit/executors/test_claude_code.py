@@ -408,3 +408,173 @@ class TestRealTimeStreaming:
         executor = ClaudeCodeExecutor(config, console=custom_console)
 
         assert executor.console is custom_console
+
+
+class TestOutputParsing:
+    """Tests for Claude Code output parsing (Task 4)."""
+
+    @pytest.fixture
+    def executor(self) -> ClaudeCodeExecutor:
+        """Create executor with default config."""
+        config = LLMConfig(path="claude")
+        return ClaudeCodeExecutor(config)
+
+    def test_parses_plain_text_content(self, executor: ClaudeCodeExecutor) -> None:
+        """Should handle plain text that isn't JSON."""
+        raw_output = "Hello, World!\nThis is plain text."
+        parsed = executor._parse_output(raw_output)
+
+        assert "Hello, World!" in parsed["content"]
+        assert "This is plain text." in parsed["content"]
+        assert parsed["tool_calls"] == []
+        assert parsed["tokens_used"] == 0
+
+    def test_parses_assistant_message_text(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Should extract text from assistant message."""
+        import json
+
+        raw_output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [{"type": "text", "text": "Hello from Claude!"}]
+                },
+            }
+        )
+        parsed = executor._parse_output(raw_output)
+
+        assert parsed["content"] == "Hello from Claude!"
+
+    def test_parses_tool_calls(self, executor: ClaudeCodeExecutor) -> None:
+        """Should extract tool calls from assistant message."""
+        import json
+
+        raw_output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "name": "read_file",
+                            "input": {"path": "/src/main.py"},
+                        }
+                    ]
+                },
+            }
+        )
+        parsed = executor._parse_output(raw_output)
+
+        assert len(parsed["tool_calls"]) == 1
+        assert parsed["tool_calls"][0].tool_name == "read_file"
+        assert parsed["tool_calls"][0].arguments == {"path": "/src/main.py"}
+
+    def test_parses_multiple_tool_calls(self, executor: ClaudeCodeExecutor) -> None:
+        """Should extract multiple tool calls."""
+        import json
+
+        raw_output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "name": "read_file",
+                            "input": {"path": "/src/a.py"},
+                        },
+                        {"type": "text", "text": "Reading files..."},
+                        {
+                            "type": "tool_use",
+                            "name": "write_file",
+                            "input": {"path": "/src/b.py", "content": "..."},
+                        },
+                    ]
+                },
+            }
+        )
+        parsed = executor._parse_output(raw_output)
+
+        assert len(parsed["tool_calls"]) == 2
+        assert parsed["tool_calls"][0].tool_name == "read_file"
+        assert parsed["tool_calls"][1].tool_name == "write_file"
+        assert "Reading files..." in parsed["content"]
+
+    def test_parses_token_usage_from_result(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Should extract token usage from result message."""
+        import json
+
+        raw_output = json.dumps(
+            {
+                "type": "result",
+                "usage": {"input_tokens": 100, "output_tokens": 200},
+            }
+        )
+        parsed = executor._parse_output(raw_output)
+
+        assert parsed["tokens_used"] == 300
+
+    def test_parses_content_block_delta(self, executor: ClaudeCodeExecutor) -> None:
+        """Should extract text from streaming content_block_delta."""
+        import json
+
+        lines = [
+            json.dumps(
+                {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "Hello "}}
+            ),
+            json.dumps(
+                {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "World!"}}
+            ),
+        ]
+        raw_output = "\n".join(lines)
+        parsed = executor._parse_output(raw_output)
+
+        assert parsed["content"] == "Hello World!"
+
+    def test_parses_message_delta_usage(self, executor: ClaudeCodeExecutor) -> None:
+        """Should extract usage from message_delta."""
+        import json
+
+        raw_output = json.dumps(
+            {
+                "type": "message_delta",
+                "usage": {"input_tokens": 50, "output_tokens": 150},
+            }
+        )
+        parsed = executor._parse_output(raw_output)
+
+        assert parsed["tokens_used"] == 200
+
+    def test_handles_empty_output(self, executor: ClaudeCodeExecutor) -> None:
+        """Should handle empty output gracefully."""
+        parsed = executor._parse_output("")
+
+        assert parsed["content"] == ""
+        assert parsed["tool_calls"] == []
+        assert parsed["tokens_used"] == 0
+
+    def test_handles_mixed_json_and_text(self, executor: ClaudeCodeExecutor) -> None:
+        """Should handle output with both JSON and plain text lines."""
+        import json
+
+        lines = [
+            "Some debug output",
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": [{"type": "text", "text": "Response"}]},
+                }
+            ),
+            "More debug info",
+        ]
+        raw_output = "\n".join(lines)
+        parsed = executor._parse_output(raw_output)
+
+        # All content should be captured
+        assert "Some debug output" in parsed["content"]
+        assert "Response" in parsed["content"]
+        assert "More debug info" in parsed["content"]
