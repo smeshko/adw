@@ -58,10 +58,10 @@ development_status:
   #       template variable substitution
   # ═══════════════════════════════════════════════════════════════════════════
   epic-2: in-progress
-  2-1-implement-three-tier-command-resolution: done
-  2-2-create-template-engine-with-variable-substitution: done
+  2-1-implement-three-tier-command-resolution: review
+  2-2-create-template-engine-with-variable-substitution: review
   2-3-load-and-render-phase-prompts: ready-for-dev
-  2-4-validate-llm-output-against-schema: review
+  2-4-validate-llm-output-against-schema: done
   epic-2-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

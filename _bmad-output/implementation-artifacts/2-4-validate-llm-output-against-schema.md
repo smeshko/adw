@@ -1,6 +1,6 @@
 # Story 2.4: Validate LLM Output Against Schema
 
-Status: review
+Status: done
 Linear Issue: not-configured
 Epic: 2 - Command Resolution & Templates
 Created: 2025-12-31
@@ -386,12 +386,37 @@ Key patterns and rules from project context:
 ## Dev Agent Record
 
 ### Context Reference
+- Architecture: JSON Schema (draft-07) validation requirement
+- Exception hierarchy: ValidationError with field_errors support
+- Project context: Structured logging for validation failures
 
 ### Agent Model Used
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
+- Code review performed: 2025-12-31
+- All 24 unit tests passing
+- Module coverage: 97%
 
 ### Completion Notes List
+- SchemaValidator class implements all validation logic
+- Uses jsonschema library with Draft7Validator for explicit compliance
+- Smart extraction tries raw JSON first, then markdown code blocks
+- ValidationError includes field-level error details with path and type info
+- Passthrough mode returns content unchanged when no schema provided
+- Structured logging added for validation events
 
 ### File List
+| File | Action | Description |
+|------|--------|-------------|
+| `src/adw/commands/validator.py` | Created | SchemaValidator class with validation logic |
+| `src/adw/commands/__init__.py` | Modified | Export SchemaValidator |
+| `tests/unit/commands/test_validator.py` | Created | 24 unit tests for all ACs |
+| `pyproject.toml` | Modified | Added jsonschema>=4.20.0 dependency |
+
+### Change Log
+| Date | Change | Reason |
+|------|--------|--------|
+| 2025-12-31 | Initial implementation | Story development |
+| 2025-12-31 | Code review fixes | Address unreachable code, add logging, use Draft7Validator |
 
