@@ -39,10 +39,10 @@ so that I have a working development environment with the correct tooling from d
 - [x] Verify `pyproject.toml` is created with correct Python version constraint
 
 ### Task 2: Add Core Dependencies
-- [ ] Run `uv add typer[all] rich pydantic pyyaml filelock python-ulid`
-- [ ] Verify all dependencies are added to pyproject.toml
-- [ ] Run `uv add --dev pytest pytest-asyncio pytest-cov ruff mypy`
-- [ ] Verify dev dependencies are in dev dependency group
+- [x] Run `uv add typer[all] rich pydantic pyyaml filelock python-ulid`
+- [x] Verify all dependencies are added to pyproject.toml
+- [x] Run `uv add --dev pytest pytest-asyncio pytest-cov ruff mypy`
+- [x] Verify dev dependencies are in dev dependency group
 
 ### Task 3: Create Directory Structure
 - [ ] Create `src/adw/` package directory with `__init__.py`
