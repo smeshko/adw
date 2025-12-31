@@ -38,9 +38,9 @@ so that temporary issues don't fail the entire run.
 ## Tasks / Subtasks
 
 ### Task 1: Create RetryConfig Model
-- [ ] Add retry configuration to `src/adw/models/config.py` or create new model
-- [ ] Fields: `max_retries: int = 3`, `base_delay_seconds: float = 1.0`, `max_delay_seconds: float = 60.0`
-- [ ] Add `multiplier: float = 2.0` for exponential backoff
+- [x] Add retry configuration to `src/adw/models/config.py` or create new model
+- [x] Fields: `max_retries: int = 3`, `base_delay_seconds: float = 1.0`, `max_delay_seconds: float = 60.0`
+- [x] Add `multiplier: float = 2.0` for exponential backoff
 
 ### Task 2: Create RetryExecutor Wrapper
 - [ ] Create `src/adw/executors/retry.py`
@@ -361,7 +361,14 @@ claude-opus-4-5-20251101
 
 ### Completion Notes List
 
+- Task 1: Created RetryConfig Pydantic model with max_retries, base_delay_seconds, max_delay_seconds, multiplier fields. Added validation for positive values and max_delay >= base_delay constraint.
+
 ### File List
+
+- src/adw/models/config.py (modified) - Added RetryConfig model
+- src/adw/models/__init__.py (modified) - Export RetryConfig
+- tests/unit/models/__init__.py (created) - Test package init
+- tests/unit/models/test_retry_config.py (created) - RetryConfig unit tests
 
 ---
 

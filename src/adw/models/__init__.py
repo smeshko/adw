@@ -15,6 +15,7 @@ from adw.models.config import (
     LLMConfig,
     PhaseConfig,
     ProjectConfig,
+    RetryConfig,
 )
 from adw.models.context import (
     ProjectContext,
@@ -43,6 +44,7 @@ __all__: list[str] = [
     "LLMConfig",
     "PhaseConfig",
     "ProjectConfig",
+    "RetryConfig",
     # Context models
     "ProjectContext",
     "RunContext",
