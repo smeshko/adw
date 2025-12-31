@@ -42,11 +42,11 @@ so that I can write and run tests following the 60/30/10 pyramid.
 ## Tasks / Subtasks
 
 ### Task 1: Configure pytest in pyproject.toml
-- [ ] Add [tool.pytest.ini_options] section
-- [ ] Set testpaths = ["tests"]
-- [ ] Set asyncio_mode = "auto"
-- [ ] Add addopts with coverage configuration
-- [ ] Set python_files, python_classes, python_functions patterns
+- [x] Add [tool.pytest.ini_options] section
+- [x] Set testpaths = ["tests"]
+- [x] Set asyncio_mode = "auto"
+- [x] Add addopts with coverage configuration
+- [x] Set python_files, python_classes, python_functions patterns
 
 ### Task 2: Create conftest.py with Core Fixtures
 - [ ] Create tests/conftest.py
