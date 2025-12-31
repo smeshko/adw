@@ -58,10 +58,10 @@ so that I can monitor costs and understand what actions the LLM took.
 - [x] Add `total_tokens` property or method
 
 ### Task 5: Implement Structured Logging for Tokens
-- [ ] Log token usage after each LLM call
-- [ ] Use structured format: `logger.info("LLM completed", tokens_used=500, phase="plan")`
-- [ ] Log tool calls made during execution
-- [ ] Enable aggregation through log analysis
+- [x] Log token usage after each LLM call
+- [x] Use structured format: `logger.info("LLM completed", tokens_used=500, phase="plan")`
+- [x] Log tool calls made during execution
+- [x] Enable aggregation through log analysis
 
 ### Task 6: Update PhaseResult for Token Tracking
 - [ ] Add `tokens_used: int` field to PhaseResult

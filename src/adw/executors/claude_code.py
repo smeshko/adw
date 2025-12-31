@@ -272,6 +272,27 @@ class ClaudeCodeExecutor:
             },
         )
 
+        # Structured logging for token tracking (INFO level for aggregation)
+        logger.info(
+            "LLM execution completed",
+            extra={
+                "tokens_used": parsed["tokens_used"],
+                "tool_count": len(parsed["tool_calls"]),
+                "duration_ms": duration_ms,
+                "success": returncode == 0,
+            },
+        )
+
+        # Log individual tool calls for debugging and analysis
+        for tool_call in parsed["tool_calls"]:
+            logger.debug(
+                "Tool call executed",
+                extra={
+                    "tool_name": tool_call.tool_name,
+                    "arguments": tool_call.arguments,
+                },
+            )
+
         # Build result
         if returncode == 0:
             return LLMResult(
