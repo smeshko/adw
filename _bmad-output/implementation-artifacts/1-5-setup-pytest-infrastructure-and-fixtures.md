@@ -62,9 +62,9 @@ so that I can write and run tests following the 60/30/10 pyramid.
 - [x] Create tests/fixtures/llm/ for sample LLM responses
 
 ### Task 4: Add Sample Test Data Files
-- [ ] Create tests/fixtures/configs/minimal.yaml
-- [ ] Create tests/fixtures/configs/full.yaml
-- [ ] Create tests/fixtures/runs/completed_run/ sample
+- [x] Create tests/fixtures/configs/minimal.yaml
+- [x] Create tests/fixtures/configs/full.yaml
+- [x] Create tests/fixtures/runs/completed_run/ sample
 
 ### Task 5: Verify Test Infrastructure
 - [ ] Run `uv run pytest --collect-only` to verify collection
