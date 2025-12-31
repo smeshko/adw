@@ -6,5 +6,8 @@ This package contains all Pydantic models used throughout ADW:
 - config: ProjectConfig, LLMConfig, PhaseConfig, HookConfig
 """
 
-# Exports will be added as models are implemented in subsequent tasks
-__all__: list[str] = []
+from adw.models.context import RunContext
+
+__all__: list[str] = [
+    "RunContext",
+]
