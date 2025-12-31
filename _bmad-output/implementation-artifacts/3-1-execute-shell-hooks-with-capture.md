@@ -48,10 +48,10 @@ so that I can run custom logic before and after LLM execution.
 - [x] Add to `src/adw/models/__init__.py` exports
 
 ### Task 2: Create HookEnvironment Helper
-- [ ] Create `src/adw/hooks/environment.py`
-- [ ] Implement `build_hook_environment(context: RunContext, phase: str) -> dict[str, str]`
-- [ ] Include: `ADW_RUN_ID`, `ADW_PHASE`, `ADW_ARTIFACTS_DIR`, `ADW_CONTEXT_FILE`, `ADW_FEATURE`
-- [ ] Merge with current process environment (`os.environ`)
+- [x] Create `src/adw/hooks/environment.py`
+- [x] Implement `build_hook_environment(context: RunContext, phase: str) -> dict[str, str]`
+- [x] Include: `ADW_RUN_ID`, `ADW_PHASE`, `ADW_ARTIFACTS_DIR`, `ADW_CONTEXT_FILE`, `ADW_FEATURE`
+- [x] Merge with current process environment (`os.environ`)
 
 ### Task 3: Implement HookRunner Class
 - [ ] Create `src/adw/hooks/runner.py`
@@ -344,13 +344,16 @@ claude-opus-4-5-20251101
 ### Completion Notes List
 
 - Task 1: Created HookResult model with stdout, stderr, exit_code, duration_ms, hook_type fields. Added is_success computed property. Model validates hook_type as Literal["pre", "post"] and enforces non-negative duration. Tests cover all validation rules.
+- Task 2: Created build_hook_environment() function. Merges os.environ with ADW-specific variables (ADW_RUN_ID, ADW_PHASE, ADW_FEATURE, ADW_ARTIFACTS_DIR, ADW_CONTEXT_FILE). All values are strings for subprocess compatibility.
 
 ### File List
 
 - src/adw/models/hook.py (NEW)
 - src/adw/models/__init__.py (MODIFIED)
+- src/adw/hooks/environment.py (NEW)
 - tests/unit/hooks/__init__.py (NEW)
 - tests/unit/hooks/test_hook_result.py (NEW)
+- tests/unit/hooks/test_environment.py (NEW)
 
 ---
 
