@@ -914,3 +914,23 @@ class TestAdditionalParsingCoverage:
 
         # Tokens should remain 0
         assert parsed["tokens_used"] == 0
+
+    def test_handles_non_dict_json(self, executor: ClaudeCodeExecutor) -> None:
+        """Should handle valid JSON that is not a dict (e.g., number)."""
+        raw_output = "4"  # Valid JSON, but just a number
+        parsed = executor._parse_output(raw_output)
+
+        # Should be treated as content
+        assert "4" in parsed["content"]
+        assert parsed["tool_calls"] == []
+        assert parsed["tokens_used"] == 0
+
+    def test_handles_json_array(self, executor: ClaudeCodeExecutor) -> None:
+        """Should handle JSON arrays as content."""
+        import json
+
+        raw_output = json.dumps([1, 2, 3])
+        parsed = executor._parse_output(raw_output)
+
+        # Array should be converted to string content
+        assert parsed["content"] != ""

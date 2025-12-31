@@ -188,6 +188,11 @@ class ClaudeCodeExecutor:
                 content_parts.append(line)
                 continue
 
+            # If not a dict (e.g., plain number/string JSON), treat as content
+            if not isinstance(data, dict):
+                content_parts.append(str(data))
+                continue
+
             # Handle different message types from Claude Code output
             msg_type = data.get("type", "")
 

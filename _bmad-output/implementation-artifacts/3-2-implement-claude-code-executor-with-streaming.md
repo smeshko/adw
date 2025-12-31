@@ -1,6 +1,6 @@
 # Story 3.2: Implement Claude Code Executor with Streaming
 
-Status: in-progress
+Status: completed
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2025-12-31
@@ -85,9 +85,9 @@ so that users see LLM responses as they're generated.
 - [x] Target: >90% coverage for claude_code module (achieved: 98%)
 
 ### Task 8: Integration Tests
-- [ ] Create `tests/integration/test_claude_code_executor.py`
-- [ ] Test with real Claude Code CLI (if available)
-- [ ] Skip if Claude not installed
+- [x] Create `tests/integration/test_claude_code_executor.py`
+- [x] Test with real Claude Code CLI (if available)
+- [x] Skip if Claude not installed
 
 ---
 
@@ -391,6 +391,7 @@ claude-opus-4-5-20251101
 - Task 5: Error handling already implemented in _verify_claude_path(). Added tests for CLAUDE_NOT_FOUND error, suggestions, recoverability, absolute path handling, and subprocess error results.
 - Task 6: Updated LLMConfig.path default from "/usr/bin/claude" to "claude" (assumes in PATH). Added tests for path configuration, shutil.which usage, and absolute path handling.
 - Task 7: Unit tests complete with 46 tests and 98% coverage. Added model configuration tests, additional parsing coverage for result message text, non-text deltas, and message_delta without usage.
+- Task 8: Created integration tests that test with real Claude Code CLI. Tests skip if Claude not installed. Fixed parser bug with non-dict JSON (numbers, arrays). Added 4 integration tests, 2 additional unit tests for edge cases.
 
 ### File List
 
@@ -399,6 +400,7 @@ claude-opus-4-5-20251101
 - src/adw/models/config.py (MODIFIED - updated LLMConfig.path default)
 - tests/unit/executors/test_claude_code.py (NEW)
 - tests/unit/models/test_config.py (MODIFIED - updated default path expectations)
+- tests/integration/test_claude_code_executor.py (NEW)
 
 ---
 
