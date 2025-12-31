@@ -59,10 +59,10 @@ so that I have a working development environment with the correct tooling from d
 - [x] Verify entry point configuration is correct
 
 ### Task 5: Create Minimal CLI App
-- [ ] Create `src/adw/cli/__init__.py` with Typer app export
-- [ ] Create `src/adw/cli/app.py` with main Typer app
-- [ ] Add a simple `--version` command using Rich console
-- [ ] Add placeholder `run` command that prints "Not implemented yet"
+- [x] Create `src/adw/cli/__init__.py` with Typer app export
+- [x] Create `src/adw/cli/app.py` with main Typer app
+- [x] Add a simple `--version` command using Rich console
+- [x] Add placeholder `run` command that prints "Not implemented yet"
 
 ### Task 6: Verify Installation
 - [ ] Run `uv sync` to install the package
