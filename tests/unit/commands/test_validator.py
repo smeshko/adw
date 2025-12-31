@@ -289,25 +289,27 @@ class TestMalformedJSON:
             validator.validate(content, schema)
         assert "parse" in exc.value.message.lower() or "json" in exc.value.message.lower()
 
-    def test_empty_content_raises_validation_error(
+    def test_empty_content_raises_no_json_found(
         self, validator: SchemaValidator
     ) -> None:
-        """Empty content should raise ValidationError."""
+        """Empty content should raise NO_JSON_FOUND ValidationError."""
         content = ""
         schema = {"type": "object"}
         with pytest.raises(ValidationError) as exc:
             validator.validate(content, schema)
-        assert exc.value.code in ["JSON_PARSE_ERROR", "NO_JSON_FOUND"]
+        assert exc.value.code == "NO_JSON_FOUND"
+        assert "No JSON content found" in exc.value.message
 
-    def test_whitespace_only_raises_validation_error(
+    def test_whitespace_only_raises_no_json_found(
         self, validator: SchemaValidator
     ) -> None:
-        """Whitespace-only content should raise ValidationError."""
+        """Whitespace-only content should raise NO_JSON_FOUND ValidationError."""
         content = "   \n\t  "
         schema = {"type": "object"}
         with pytest.raises(ValidationError) as exc:
             validator.validate(content, schema)
-        assert exc.value.code in ["JSON_PARSE_ERROR", "NO_JSON_FOUND"]
+        assert exc.value.code == "NO_JSON_FOUND"
+        assert "No JSON content found" in exc.value.message
 
     def test_partial_json_in_markdown_raises_error(
         self, validator: SchemaValidator

@@ -5,12 +5,15 @@ extraction of JSON from markdown code blocks.
 """
 
 import json
+import logging
 import re
 
-import jsonschema
+from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError as JsonSchemaValidationError
 
 from adw.exceptions import ValidationError
+
+logger = logging.getLogger(__name__)
 
 # Regex to match JSON code blocks (```json ... ``` or ``` ... ```)
 CODE_BLOCK_RE = re.compile(
@@ -78,68 +81,95 @@ class SchemaValidator:
         """
         # No-schema passthrough
         if schema is None:
+            logger.debug("No schema provided, returning content as-is (passthrough mode)")
             return content
 
         # Collect all JSON candidates
         candidates = self._extract_json_candidates(content)
+        logger.debug("Found %d JSON candidates to validate", len(candidates))
 
-        # Try each candidate against the schema
-        last_json_error: str | None = None
-        last_schema_error: str | None = None
-        last_field_errors: list[dict[str, str]] = []
-
-        for candidate in candidates:
-            try:
-                data: dict[str, object] = json.loads(candidate)
-                # Validate against schema
-                jsonschema.validate(instance=data, schema=schema)
-                return data  # First valid match wins
-            except json.JSONDecodeError as e:
-                last_json_error = str(e)
-                continue
-            except JsonSchemaValidationError as e:
-                last_schema_error = e.message
-                last_field_errors = self._extract_field_errors(e)
-                continue
-
-        # None matched - raise with details about the failure
-        if last_schema_error:
-            raise ValidationError(
-                code="SCHEMA_VALIDATION_FAILED",
-                message=f"Schema validation failed: {last_schema_error}",
-                field_errors=last_field_errors,
-                suggestion="Check LLM output format matches schema requirements",
-            )
-        elif last_json_error:
-            raise ValidationError(
-                code="JSON_PARSE_ERROR",
-                message=f"Failed to parse JSON: {last_json_error}",
-                suggestion="Ensure output contains valid JSON",
-            )
-        else:
+        if not candidates:
+            logger.warning("No JSON candidates found in content")
             raise ValidationError(
                 code="NO_JSON_FOUND",
                 message="No JSON content found in output",
                 suggestion="Ensure LLM output contains JSON or a markdown code block",
             )
 
+        # Try each candidate against the schema
+        last_json_error: str | None = None
+        last_schema_error: str | None = None
+        last_field_errors: list[dict[str, str]] = []
+
+        # Create Draft 7 validator for explicit compliance
+        validator = Draft7Validator(schema)
+
+        for candidate in candidates:
+            try:
+                data: dict[str, object] = json.loads(candidate)
+                # Validate against schema using Draft 7
+                errors = list(validator.iter_errors(data))
+                if errors:
+                    # Use the first error for reporting
+                    error = errors[0]
+                    last_schema_error = error.message
+                    last_field_errors = self._extract_field_errors(error)
+                    logger.debug(
+                        "Candidate failed schema validation: %s", last_schema_error
+                    )
+                    continue
+                logger.debug("Successfully validated JSON against schema")
+                return data  # First valid match wins
+            except json.JSONDecodeError as e:
+                last_json_error = str(e)
+                logger.debug("Candidate failed JSON parsing: %s", last_json_error)
+                continue
+
+        # None matched - raise with details about the failure
+        if last_schema_error:
+            logger.warning(
+                "Schema validation failed after trying all candidates: %s",
+                last_schema_error,
+            )
+            raise ValidationError(
+                code="SCHEMA_VALIDATION_FAILED",
+                message=f"Schema validation failed: {last_schema_error}",
+                field_errors=last_field_errors,
+                suggestion="Check LLM output format matches schema requirements",
+            )
+        else:
+            logger.warning("Failed to parse any JSON from content")
+            raise ValidationError(
+                code="JSON_PARSE_ERROR",
+                message=f"Failed to parse JSON: {last_json_error}",
+                suggestion="Ensure output contains valid JSON",
+            )
+
     def _extract_json_candidates(self, content: str) -> list[str]:
         """Extract all potential JSON strings from content.
 
         Tries the raw content first, then extracts from markdown code blocks.
+        Filters out empty strings to avoid false candidates.
 
         Args:
             content: The content to extract JSON from.
 
         Returns:
-            List of potential JSON strings to try.
+            List of non-empty potential JSON strings to try.
         """
+        candidates: list[str] = []
+
         # Try raw content first (for pure JSON responses)
-        candidates = [content.strip()]
+        stripped_content = content.strip()
+        if stripped_content:
+            candidates.append(stripped_content)
 
         # Then try markdown extraction
         markdown_blocks = self.extract_json_from_markdown(content)
-        candidates.extend(block.strip() for block in markdown_blocks)
+        for block in markdown_blocks:
+            stripped_block = block.strip()
+            if stripped_block:
+                candidates.append(stripped_block)
 
         return candidates
 
