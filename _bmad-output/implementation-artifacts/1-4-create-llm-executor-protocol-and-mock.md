@@ -39,9 +39,9 @@ so that I can write deterministic tests without calling Claude Code.
 ## Tasks / Subtasks
 
 ### Task 1: Create Executors Package Structure
-- [ ] Create `src/adw/executors/__init__.py` with exports
-- [ ] Create `src/adw/executors/base.py` for Protocol and models
-- [ ] Create `src/adw/executors/mock.py` for MockExecutor
+- [x] Create `src/adw/executors/__init__.py` with exports
+- [x] Create `src/adw/executors/base.py` for Protocol and models
+- [x] Create `src/adw/executors/mock.py` for MockExecutor
 
 ### Task 2: Define LLMExecutor Protocol
 - [ ] Define LLMExecutor as typing.Protocol
