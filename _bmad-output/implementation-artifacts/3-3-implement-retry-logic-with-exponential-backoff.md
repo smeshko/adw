@@ -49,10 +49,10 @@ so that temporary issues don't fail the entire run.
 - [x] Implement `execute()` that handles retry logic
 
 ### Task 3: Implement Exponential Backoff
-- [ ] Calculate delay as `base_delay * (multiplier ^ attempt)`
-- [ ] Cap delay at `max_delay_seconds`
-- [ ] Add jitter (randomness) to prevent thundering herd
-- [ ] Use `asyncio.sleep()` for non-blocking delay
+- [x] Calculate delay as `base_delay * (multiplier ^ attempt)`
+- [x] Cap delay at `max_delay_seconds`
+- [x] Add jitter (randomness) to prevent thundering herd
+- [x] Use `asyncio.sleep()` for non-blocking delay
 
 ### Task 4: Implement Error Classification
 - [ ] Create `is_retryable(error: ADWError) -> bool` function
@@ -363,6 +363,7 @@ claude-opus-4-5-20251101
 
 - Task 1: Created RetryConfig Pydantic model with max_retries, base_delay_seconds, max_delay_seconds, multiplier fields. Added validation for positive values and max_delay >= base_delay constraint.
 - Task 2: Created RetryExecutor class that wraps any LLMExecutor and implements retry logic with exponential backoff and jitter.
+- Task 3: Verified exponential backoff implementation with tests: delay = base * (multiplier ^ attempt) with ±25% jitter, capped at max_delay.
 
 ### File List
 

@@ -1,7 +1,10 @@
 """Tests for RetryExecutor wrapper."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
+from adw.exceptions import LLMError, LLMRateLimitError, LLMTimeoutError
 from adw.executors.mock import MockExecutor
 from adw.executors.retry import RetryExecutor
 from adw.models.config import RetryConfig
@@ -59,3 +62,106 @@ class TestRetryExecutorWrapper:
 
         # Should be recognized as LLMExecutor (structural subtyping)
         assert isinstance(retry, LLMExecutor)
+
+
+class TestExponentialBackoff:
+    """Tests for exponential backoff delay calculation."""
+
+    def test_calculate_delay_first_attempt(self) -> None:
+        """Test delay calculation for first retry attempt."""
+        mock = MockExecutor()
+        config = RetryConfig(base_delay_seconds=1.0, multiplier=2.0)
+        retry = RetryExecutor(executor=mock, config=config)
+
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Timeout",
+            timeout_seconds=300,
+            elapsed_seconds=300,
+        )
+
+        # First retry: base_delay * (multiplier ^ 0) = 1.0
+        delay = retry._calculate_delay(1, error)
+
+        # With ±25% jitter, delay should be between 0.75 and 1.25
+        assert 0.75 <= delay <= 1.25
+
+    def test_calculate_delay_second_attempt(self) -> None:
+        """Test delay calculation for second retry attempt."""
+        mock = MockExecutor()
+        config = RetryConfig(base_delay_seconds=1.0, multiplier=2.0)
+        retry = RetryExecutor(executor=mock, config=config)
+
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Timeout",
+            timeout_seconds=300,
+            elapsed_seconds=300,
+        )
+
+        # Second retry: base_delay * (multiplier ^ 1) = 2.0
+        delay = retry._calculate_delay(2, error)
+
+        # With ±25% jitter, delay should be between 1.5 and 2.5
+        assert 1.5 <= delay <= 2.5
+
+    def test_calculate_delay_third_attempt(self) -> None:
+        """Test delay calculation for third retry attempt."""
+        mock = MockExecutor()
+        config = RetryConfig(base_delay_seconds=1.0, multiplier=2.0)
+        retry = RetryExecutor(executor=mock, config=config)
+
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Timeout",
+            timeout_seconds=300,
+            elapsed_seconds=300,
+        )
+
+        # Third retry: base_delay * (multiplier ^ 2) = 4.0
+        delay = retry._calculate_delay(3, error)
+
+        # With ±25% jitter, delay should be between 3.0 and 5.0
+        assert 3.0 <= delay <= 5.0
+
+    def test_calculate_delay_caps_at_max_delay(self) -> None:
+        """Test that delay is capped at max_delay_seconds."""
+        mock = MockExecutor()
+        config = RetryConfig(
+            base_delay_seconds=10.0,
+            multiplier=10.0,
+            max_delay_seconds=30.0,
+        )
+        retry = RetryExecutor(executor=mock, config=config)
+
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Timeout",
+            timeout_seconds=300,
+            elapsed_seconds=300,
+        )
+
+        # 5th attempt would be 10 * (10^4) = 100000, but capped at 30
+        delay = retry._calculate_delay(5, error)
+
+        # Should be capped at max_delay (30), possibly with small jitter
+        assert delay <= 30.0
+
+    def test_calculate_delay_uses_jitter(self) -> None:
+        """Test that delay has jitter (not always the same)."""
+        mock = MockExecutor()
+        config = RetryConfig(base_delay_seconds=1.0, multiplier=2.0)
+        retry = RetryExecutor(executor=mock, config=config)
+
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Timeout",
+            timeout_seconds=300,
+            elapsed_seconds=300,
+        )
+
+        # Calculate delay multiple times
+        delays = [retry._calculate_delay(1, error) for _ in range(20)]
+
+        # Should have some variation due to jitter
+        assert len(set(delays)) > 1, "Jitter should produce different values"
