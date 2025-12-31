@@ -45,9 +45,9 @@ so that error handling is consistent and errors are actionable.
 - [x] Add type hints for all attributes
 
 ### Task 2: Implement ConfigError
-- [ ] Create ConfigError subclass for configuration issues
-- [ ] Set default recoverable=False
-- [ ] Add common error codes: CONFIG_NOT_FOUND, INVALID_CONFIG, COMMAND_NOT_FOUND
+- [x] Create ConfigError subclass for configuration issues
+- [x] Set default recoverable=False
+- [x] Add common error codes: CONFIG_NOT_FOUND, INVALID_CONFIG, COMMAND_NOT_FOUND
 
 ### Task 3: Implement HookError
 - [ ] Create HookError subclass with phase field

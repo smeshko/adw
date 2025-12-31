@@ -70,3 +70,46 @@ class ADWError(Exception):
             "suggestion": self.suggestion,
             "recoverable": self.recoverable,
         }
+
+
+class ConfigError(ADWError):
+    """Exception for configuration-related errors.
+
+    Used for issues with configuration files, missing settings,
+    or invalid configuration values.
+
+    Common error codes:
+    - CONFIG_NOT_FOUND: Configuration file doesn't exist
+    - INVALID_CONFIG: Configuration file has invalid content
+    - COMMAND_NOT_FOUND: Requested command not found in config
+
+    Example:
+        >>> raise ConfigError(
+        ...     code="CONFIG_NOT_FOUND",
+        ...     message="Configuration file not found at ./adw.yaml",
+        ...     suggestion="Create an adw.yaml file in the project root",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        suggestion: str | None = None,
+        recoverable: bool = False,
+    ) -> None:
+        """Initialize a ConfigError.
+
+        Args:
+            code: Unique error code (e.g., "CONFIG_NOT_FOUND").
+            message: Human-readable error message.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default False).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )

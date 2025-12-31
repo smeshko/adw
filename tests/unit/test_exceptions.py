@@ -2,7 +2,7 @@
 
 import pytest
 
-from adw.exceptions import ADWError
+from adw.exceptions import ADWError, ConfigError
 
 
 class TestADWErrorBase:
@@ -94,3 +94,52 @@ class TestADWErrorBase:
             )
         assert exc_info.value.code == "RAISED_ERROR"
         assert exc_info.value.message == "This was raised"
+
+
+class TestConfigError:
+    """Tests for ConfigError exception."""
+
+    def test_config_error_is_adw_error(self) -> None:
+        """ConfigError inherits from ADWError."""
+        error = ConfigError(
+            code="CONFIG_NOT_FOUND",
+            message="Config file not found",
+        )
+        assert isinstance(error, ADWError)
+        assert isinstance(error, Exception)
+
+    def test_config_error_not_recoverable_by_default(self) -> None:
+        """ConfigError is not recoverable by default."""
+        error = ConfigError(
+            code="CONFIG_NOT_FOUND",
+            message="Config file not found",
+        )
+        assert error.recoverable is False
+
+    def test_config_error_with_suggestion(self) -> None:
+        """ConfigError accepts suggestion."""
+        error = ConfigError(
+            code="CONFIG_NOT_FOUND",
+            message="Config file not found",
+            suggestion="Create an adw.yaml file",
+        )
+        assert error.suggestion == "Create an adw.yaml file"
+        assert "Suggestion:" in str(error)
+
+    def test_config_error_common_codes(self) -> None:
+        """ConfigError works with common error codes."""
+        codes = ["CONFIG_NOT_FOUND", "INVALID_CONFIG", "COMMAND_NOT_FOUND"]
+        for code in codes:
+            error = ConfigError(code=code, message=f"Error with {code}")
+            assert error.code == code
+
+    def test_config_error_to_dict(self) -> None:
+        """ConfigError serializes properly."""
+        error = ConfigError(
+            code="INVALID_CONFIG",
+            message="Invalid configuration",
+            suggestion="Check your adw.yaml",
+        )
+        d = error.to_dict()
+        assert d["code"] == "INVALID_CONFIG"
+        assert d["recoverable"] is False
