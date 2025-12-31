@@ -378,3 +378,65 @@ class StateError(ADWError):
             suggestion=suggestion,
             recoverable=recoverable,
         )
+
+
+class ValidationError(ADWError):
+    """Exception for schema validation failures.
+
+    Used when LLM output or configuration fails to match expected schema.
+    Includes detailed field-level error information.
+
+    Example:
+        >>> raise ValidationError(
+        ...     code="VALIDATION_FAILED",
+        ...     message="LLM output failed schema validation",
+        ...     field_errors=[
+        ...         {"field": "name", "error": "required field missing"},
+        ...         {"field": "age", "error": "must be a positive integer"},
+        ...     ],
+        ...     schema_path="schemas/output.json",
+        ...     suggestion="Check the prompt or adjust the schema",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        field_errors: list[dict[str, str]] | None = None,
+        schema_path: str | None = None,
+        suggestion: str | None = None,
+        recoverable: bool = False,
+    ) -> None:
+        """Initialize a ValidationError.
+
+        Args:
+            code: Unique error code (e.g., "VALIDATION_FAILED").
+            message: Human-readable error message.
+            field_errors: List of field-level validation errors.
+            schema_path: Path to the schema that failed validation.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default False).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
+        self.field_errors = field_errors if field_errors is not None else []
+        self.schema_path = schema_path
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize error to dictionary for structured logging.
+
+        Returns:
+            Dictionary containing all error attributes including validation fields.
+        """
+        d = super().to_dict()
+        d.update({
+            "field_errors": self.field_errors,
+            "schema_path": self.schema_path,
+        })
+        return d

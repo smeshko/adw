@@ -66,9 +66,9 @@ so that error handling is consistent and errors are actionable.
 - [x] Add common error codes: CONTEXT_CORRUPTED, SNAPSHOT_FAILED, RUN_NOT_FOUND
 
 ### Task 6: Implement ValidationError
-- [ ] Create ValidationError for schema validation failures
-- [ ] Add field_errors list for field-level messages
-- [ ] Add schema_path for reference to failed schema
+- [x] Create ValidationError for schema validation failures
+- [x] Add field_errors list for field-level messages
+- [x] Add schema_path for reference to failed schema
 
 ### Task 7: Write Unit Tests
 - [ ] Test ADWError formatting

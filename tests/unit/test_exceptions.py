@@ -10,6 +10,7 @@ from adw.exceptions import (
     LLMRateLimitError,
     LLMTimeoutError,
     StateError,
+    ValidationError,
 )
 
 
@@ -414,4 +415,78 @@ class TestStateError:
         )
         d = error.to_dict()
         assert d["code"] == "CONTEXT_CORRUPTED"
+        assert d["recoverable"] is False
+
+
+class TestValidationError:
+    """Tests for ValidationError exception."""
+
+    def test_validation_error_is_adw_error(self) -> None:
+        """ValidationError inherits from ADWError."""
+        error = ValidationError(
+            code="VALIDATION_FAILED",
+            message="Schema validation failed",
+        )
+        assert isinstance(error, ADWError)
+        assert isinstance(error, Exception)
+
+    def test_validation_error_not_recoverable_by_default(self) -> None:
+        """ValidationError is not recoverable by default."""
+        error = ValidationError(
+            code="VALIDATION_FAILED",
+            message="Schema validation failed",
+        )
+        assert error.recoverable is False
+
+    def test_validation_error_has_field_errors(self) -> None:
+        """ValidationError includes field_errors list."""
+        field_errors = [
+            {"field": "name", "error": "required field missing"},
+            {"field": "age", "error": "must be an integer"},
+        ]
+        error = ValidationError(
+            code="VALIDATION_FAILED",
+            message="Schema validation failed",
+            field_errors=field_errors,
+        )
+        assert error.field_errors == field_errors
+        assert len(error.field_errors) == 2
+
+    def test_validation_error_field_errors_default_empty(self) -> None:
+        """ValidationError field_errors defaults to empty list."""
+        error = ValidationError(
+            code="VALIDATION_FAILED",
+            message="Schema validation failed",
+        )
+        assert error.field_errors == []
+
+    def test_validation_error_has_schema_path(self) -> None:
+        """ValidationError includes schema_path field."""
+        error = ValidationError(
+            code="VALIDATION_FAILED",
+            message="Schema validation failed",
+            schema_path="schemas/output.json",
+        )
+        assert error.schema_path == "schemas/output.json"
+
+    def test_validation_error_schema_path_default_none(self) -> None:
+        """ValidationError schema_path defaults to None."""
+        error = ValidationError(
+            code="VALIDATION_FAILED",
+            message="Schema validation failed",
+        )
+        assert error.schema_path is None
+
+    def test_validation_error_to_dict_includes_extra_fields(self) -> None:
+        """ValidationError to_dict includes field_errors and schema_path."""
+        field_errors = [{"field": "name", "error": "required"}]
+        error = ValidationError(
+            code="VALIDATION_FAILED",
+            message="Schema validation failed",
+            field_errors=field_errors,
+            schema_path="schemas/output.json",
+        )
+        d = error.to_dict()
+        assert d["field_errors"] == field_errors
+        assert d["schema_path"] == "schemas/output.json"
         assert d["recoverable"] is False
