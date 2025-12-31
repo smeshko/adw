@@ -267,3 +267,62 @@ class TestStrictVsLenientMode:
             engine.render(template, {"context": {}}, strict=True)
 
         assert exc.value.code == "UNKNOWN_VARIABLE"
+
+
+class TestSingleLevelSubstitution:
+    """Tests for Task 5: Single-Level Substitution Guard."""
+
+    def test_no_recursive_expansion(self) -> None:
+        """Engine should NOT recursively expand variables in values."""
+        engine = TemplateEngine()
+        # Context value contains template syntax
+        context = {"value": "{{nested}}"}
+        template = "{{value}}"
+        result = engine.render(template, context, strict=False)
+        # Should output the literal string, not try to expand {{nested}}
+        assert result == "{{nested}}"
+
+    def test_no_recursive_expansion_with_nested_variables(self) -> None:
+        """Nested template syntax in values should remain literal."""
+        engine = TemplateEngine()
+        context = {
+            "outer": "{{inner}}",
+            "inner": "should not appear"
+        }
+        template = "{{outer}}"
+        result = engine.render(template, context, strict=False)
+        assert result == "{{inner}}"
+        assert "should not appear" not in result
+
+    def test_single_pass_processing(self) -> None:
+        """Variables should be processed in a single pass."""
+        engine = TemplateEngine()
+        # If recursive, this would fail or loop
+        context = {"a": "{{b}}", "b": "{{a}}"}
+        template = "{{a}} and {{b}}"
+        result = engine.render(template, context, strict=False)
+        assert result == "{{b}} and {{a}}"
+
+    def test_file_content_not_expanded(self, tmp_path: Path) -> None:
+        """File content containing template syntax should remain literal."""
+        # Create file with template syntax
+        test_file = tmp_path / "config.txt"
+        test_file.write_text("Value is {{some_var}}")
+
+        engine = TemplateEngine(project_root=tmp_path)
+        template = "{{file:config.txt}}"
+        result = engine.render(template, {"some_var": "REPLACED"}, strict=False)
+        # File content should NOT have its variables expanded
+        assert result == "Value is {{some_var}}"
+        assert "REPLACED" not in result
+
+    def test_variables_processed_before_files(self, tmp_path: Path) -> None:
+        """Variables are substituted before file inclusions."""
+        test_file = tmp_path / "data.txt"
+        test_file.write_text("file data")
+
+        engine = TemplateEngine(project_root=tmp_path)
+        # Variable substitution happens first, file inclusion second
+        template = "{{name}} says: {{file:data.txt}}"
+        result = engine.render(template, {"name": "Alice"})
+        assert result == "Alice says: file data"
