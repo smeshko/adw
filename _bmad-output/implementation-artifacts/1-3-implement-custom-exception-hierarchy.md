@@ -62,8 +62,8 @@ so that error handling is consistent and errors are actionable.
 - [x] Add retry_after field for rate limit errors
 
 ### Task 5: Implement StateError
-- [ ] Create StateError for state persistence issues
-- [ ] Add common error codes: CONTEXT_CORRUPTED, SNAPSHOT_FAILED, RUN_NOT_FOUND
+- [x] Create StateError for state persistence issues
+- [x] Add common error codes: CONTEXT_CORRUPTED, SNAPSHOT_FAILED, RUN_NOT_FOUND
 
 ### Task 6: Implement ValidationError
 - [ ] Create ValidationError for schema validation failures

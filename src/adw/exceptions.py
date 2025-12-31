@@ -336,3 +336,45 @@ class LLMRateLimitError(LLMError):
             "retry_after": self.retry_after,
         })
         return d
+
+
+class StateError(ADWError):
+    """Exception for state persistence and loading errors.
+
+    Used for issues with run state, context files, and snapshots.
+
+    Common error codes:
+    - CONTEXT_CORRUPTED: State file is corrupted or invalid
+    - SNAPSHOT_FAILED: Failed to create or load state snapshot
+    - RUN_NOT_FOUND: Specified run ID doesn't exist
+
+    Example:
+        >>> raise StateError(
+        ...     code="RUN_NOT_FOUND",
+        ...     message="Run 'abc123' not found",
+        ...     suggestion="Use 'adw list' to see available runs",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        suggestion: str | None = None,
+        recoverable: bool = False,
+    ) -> None:
+        """Initialize a StateError.
+
+        Args:
+            code: Unique error code (e.g., "RUN_NOT_FOUND").
+            message: Human-readable error message.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default False).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )

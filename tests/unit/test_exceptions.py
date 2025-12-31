@@ -9,6 +9,7 @@ from adw.exceptions import (
     LLMError,
     LLMRateLimitError,
     LLMTimeoutError,
+    StateError,
 )
 
 
@@ -365,3 +366,52 @@ class TestLLMRateLimitError:
         )
         d = error.to_dict()
         assert d["retry_after"] == 60
+
+
+class TestStateError:
+    """Tests for StateError exception."""
+
+    def test_state_error_is_adw_error(self) -> None:
+        """StateError inherits from ADWError."""
+        error = StateError(
+            code="CONTEXT_CORRUPTED",
+            message="State file corrupted",
+        )
+        assert isinstance(error, ADWError)
+        assert isinstance(error, Exception)
+
+    def test_state_error_not_recoverable_by_default(self) -> None:
+        """StateError is not recoverable by default."""
+        error = StateError(
+            code="CONTEXT_CORRUPTED",
+            message="State file corrupted",
+        )
+        assert error.recoverable is False
+
+    def test_state_error_with_suggestion(self) -> None:
+        """StateError accepts suggestion."""
+        error = StateError(
+            code="RUN_NOT_FOUND",
+            message="Run ID not found",
+            suggestion="Use 'adw list' to see available runs",
+        )
+        assert error.suggestion == "Use 'adw list' to see available runs"
+        assert "Suggestion:" in str(error)
+
+    def test_state_error_common_codes(self) -> None:
+        """StateError works with common error codes."""
+        codes = ["CONTEXT_CORRUPTED", "SNAPSHOT_FAILED", "RUN_NOT_FOUND"]
+        for code in codes:
+            error = StateError(code=code, message=f"Error with {code}")
+            assert error.code == code
+
+    def test_state_error_to_dict(self) -> None:
+        """StateError serializes properly."""
+        error = StateError(
+            code="CONTEXT_CORRUPTED",
+            message="Context corrupted",
+            suggestion="Restart the run",
+        )
+        d = error.to_dict()
+        assert d["code"] == "CONTEXT_CORRUPTED"
+        assert d["recoverable"] is False
