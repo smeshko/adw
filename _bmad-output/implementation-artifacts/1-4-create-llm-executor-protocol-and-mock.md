@@ -61,9 +61,9 @@ so that I can write deterministic tests without calling Claude Code.
 - [x] Track call_count, last_prompt, all_prompts
 
 ### Task 5: Add Assertion Helpers
-- [ ] Add assert_called_once() method
-- [ ] Add assert_called_with(prompt) method
-- [ ] Add reset() method to clear state
+- [x] Add assert_called_once() method
+- [x] Add assert_called_with(prompt) method
+- [x] Add reset() method to clear state
 
 ### Task 6: Write Unit Tests
 - [ ] Test MockExecutor response queuing
