@@ -38,8 +38,8 @@ so that I can ensure structured output meets expectations.
 ## Tasks / Subtasks
 
 ### Task 1: Create Schema Validator Module
-- [ ] Create `src/adw/commands/validator.py` with `SchemaValidator` class
-- [ ] Export `SchemaValidator` from `src/adw/commands/__init__.py`
+- [x] Create `src/adw/commands/validator.py` with `SchemaValidator` class
+- [x] Export `SchemaValidator` from `src/adw/commands/__init__.py`
 
 ### Task 2: Implement JSON Extraction from Markdown
 - [ ] Implement `extract_json_from_markdown(content: str) -> list[str]`
