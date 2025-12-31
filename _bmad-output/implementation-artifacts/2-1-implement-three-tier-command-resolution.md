@@ -1,6 +1,6 @@
 # Story 2.1: Implement Three-Tier Command Resolution
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 2 - Command Resolution & Templates
 Created: 2025-12-31
@@ -340,12 +340,44 @@ Key patterns and rules from project context:
 ## Dev Agent Record
 
 ### Context Reference
+- Project context: `_bmad-output/project-context.md`
+- Architecture patterns and coding standards followed
 
 ### Agent Model Used
+- Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
+- No issues encountered during implementation
 
 ### Completion Notes List
+- Task 1: Created CommandResolver and CommandLoader class stubs with __init__.py exports
+- Task 2: Implemented ResolvedCommand Pydantic model with tier validation
+- Task 3: Implemented three-tier resolution logic (project → user → bundled)
+- Task 4: Added COMMAND_NOT_FOUND error handling with suggestions
+- Task 5: Implemented command directory validation (prompt.md required, optional file detection)
+- Task 6: Created bundled default commands (plan, build, verify, validate, document)
+- Task 7: Verified all 46 unit tests pass with comprehensive coverage
 
 ### File List
+**New Files:**
+- `src/adw/commands/resolver.py` - CommandResolver class with three-tier resolution
+- `src/adw/commands/loader.py` - CommandLoader stub (for Story 2.3)
+- `src/adw/models/command.py` - ResolvedCommand Pydantic model
+- `src/adw/defaults/commands/plan/prompt.md` - Bundled plan command prompt
+- `src/adw/defaults/commands/build/prompt.md` - Bundled build command prompt
+- `src/adw/defaults/commands/verify/prompt.md` - Bundled verify command prompt
+- `src/adw/defaults/commands/validate/prompt.md` - Bundled validate command prompt
+- `src/adw/defaults/commands/document/prompt.md` - Bundled document command prompt
+- `tests/unit/commands/__init__.py` - Test package init
+- `tests/unit/commands/test_module_structure.py` - Module structure tests
+- `tests/unit/commands/test_resolved_command.py` - ResolvedCommand model tests
+- `tests/unit/commands/test_resolver.py` - Three-tier resolution tests
+- `tests/unit/commands/test_resolver_errors.py` - Error handling tests
+- `tests/unit/commands/test_directory_validation.py` - Directory validation tests
+- `tests/unit/commands/test_bundled_commands.py` - Bundled commands tests
+
+**Modified Files:**
+- `src/adw/commands/__init__.py` - Added exports for CommandResolver, CommandLoader
+- `src/adw/models/__init__.py` - Added export for ResolvedCommand
+- `pyproject.toml` - Added hatch build configuration for package data
 
