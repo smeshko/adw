@@ -42,13 +42,13 @@ so that prompts can include dynamic content from the run context.
 ## Tasks / Subtasks
 
 ### Task 1: Create Template Engine Module Structure
-- [ ] Create `src/adw/commands/template.py` with `TemplateEngine` class
-- [ ] Export `TemplateEngine` from `src/adw/commands/__init__.py`
+- [x] Create `src/adw/commands/template.py` with `TemplateEngine` class
+- [x] Export `TemplateEngine` from `src/adw/commands/__init__.py`
 
 ### Task 2: Implement Variable Substitution Pattern
-- [ ] Define regex pattern for `{{variable.path}}` syntax
-- [ ] Support dot notation for nested access (e.g., `{{context.run_id}}`)
-- [ ] Implement `render(template: str, context: dict) -> str`
+- [x] Define regex pattern for `{{variable.path}}` syntax
+- [x] Support dot notation for nested access (e.g., `{{context.run_id}}`)
+- [x] Implement `render(template: str, context: dict) -> str`
 
 ### Task 3: Implement File Inclusion Pattern
 - [ ] Define regex pattern for `{{file:relative/path}}` syntax

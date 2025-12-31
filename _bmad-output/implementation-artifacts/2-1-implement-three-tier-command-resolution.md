@@ -51,11 +51,11 @@ so that users can override any command at the appropriate level.
 - [x] Implement `model_validator` to verify directory structure
 
 ### Task 3: Implement Three-Tier Resolution Logic
-- [ ] Implement `resolve(command_name: str) -> ResolvedCommand`
-- [ ] Check project tier: `{project_root}/.adw/commands/{name}/`
-- [ ] Check user tier: `~/.adw/commands/{name}/` (expand `~`)
-- [ ] Check bundled tier: `adw/defaults/commands/{name}/` (package resources)
-- [ ] Return `ResolvedCommand` with `tier` indicating which level matched
+- [x] Implement `resolve(command_name: str) -> ResolvedCommand`
+- [x] Check project tier: `{project_root}/.adw/commands/{name}/`
+- [x] Check user tier: `~/.adw/commands/{name}/` (expand `~`)
+- [x] Check bundled tier: `adw/defaults/commands/{name}/` (package resources)
+- [x] Return `ResolvedCommand` with `tier` indicating which level matched
 
 ### Task 4: Implement Error Handling
 - [ ] Raise `ConfigError(code="COMMAND_NOT_FOUND")` when command not found at any tier
