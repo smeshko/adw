@@ -1,6 +1,6 @@
 # Story 2.3: Load and Render Phase Prompts
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 2 - Command Resolution & Templates
 Created: 2025-12-31
@@ -46,35 +46,35 @@ so that each phase has its complete, rendered prompt ready for LLM execution.
 - [x] Handle file encoding (UTF-8)
 
 ### Task 3: Implement Context Building
-- [ ] Build template context dict from `RunContext`
-- [ ] Include `run_id`, `feature_request`, `current_phase`
-- [ ] Include previous phase artifacts via `artifacts.{phase}.{name}` namespace
-- [ ] Include `pre_hook_output` if available
+- [x] Build template context dict from `RunContext`
+- [x] Include `run_id`, `feature_request`, `current_phase`
+- [x] Include previous phase artifacts via `artifacts.{phase}.{name}` namespace
+- [x] Include `pre_hook_output` if available
 
 ### Task 4: Implement Prompt Rendering
-- [ ] Use `TemplateEngine` from Story 2.2 to render prompt
-- [ ] Pass built context to template engine
-- [ ] Use strict mode by default (error on unknown variables)
-- [ ] Return fully rendered prompt string
+- [x] Use `TemplateEngine` from Story 2.2 to render prompt
+- [x] Pass built context to template engine
+- [x] Use strict mode by default (error on unknown variables)
+- [x] Return fully rendered prompt string
 
 ### Task 5: Implement LoadedCommand Model
-- [ ] Add `LoadedCommand` model to `src/adw/models/command.py`
-- [ ] Fields: `name`, `resolved`, `prompt_content`, `schema`, `has_pre_hook`, `has_post_hook`
-- [ ] Include rendered prompt content
+- [x] Add `LoadedCommand` model to `src/adw/models/command.py`
+- [x] Fields: `name`, `resolved`, `prompt_content`, `output_schema`, `has_pre_hook`, `has_post_hook`
+- [x] Include rendered prompt content
 
 ### Task 6: Implement Optional Schema Loading
-- [ ] Load `schema.json` if present in command directory
-- [ ] Parse and validate as valid JSON Schema
-- [ ] Store in `LoadedCommand.schema` field
-- [ ] Return `None` if no schema file
+- [x] Load `schema.json` if present in command directory
+- [x] Parse and validate as valid JSON Schema
+- [x] Store in `LoadedCommand.output_schema` field
+- [x] Return `None` if no schema file
 
 ### Task 7: Write Unit Tests
-- [ ] Test basic prompt loading from resolved directory
-- [ ] Test template variable substitution in prompt
-- [ ] Test artifact inclusion via context
-- [ ] Test pre-hook output inclusion
-- [ ] Test strict mode error for unknown variables
-- [ ] Test schema loading (present and absent)
+- [x] Test basic prompt loading from resolved directory
+- [x] Test template variable substitution in prompt
+- [x] Test artifact inclusion via context
+- [x] Test pre-hook output inclusion
+- [x] Test strict mode error for unknown variables
+- [x] Test schema loading (present and absent)
 
 ---
 
@@ -334,10 +334,23 @@ Key patterns and rules from project context:
 ### Context Reference
 
 ### Agent Model Used
+- claude-opus-4-5-20251101
 
 ### Debug Log References
 
 ### Completion Notes List
+- Implemented `CommandLoader` class with `load_prompt()` method
+- Added `LoadedCommand` model to `src/adw/models/command.py`
+- Implemented `load_command()` method returning full `LoadedCommand` instance
+- Added `_load_schema()` for optional JSON schema loading
+- All 35 unit tests passing with 100% coverage on loader.py
 
 ### File List
+| File | Action | Description |
+|------|--------|-------------|
+| `src/adw/commands/loader.py` | Created | CommandLoader class with load_prompt() and load_command() methods |
+| `src/adw/commands/__init__.py` | Modified | Added CommandLoader to exports |
+| `src/adw/models/command.py` | Modified | Added LoadedCommand Pydantic model |
+| `src/adw/models/__init__.py` | Modified | Added LoadedCommand to exports |
+| `tests/unit/commands/test_loader.py` | Created | 35 unit tests for CommandLoader |
 

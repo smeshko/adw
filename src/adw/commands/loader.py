@@ -8,14 +8,17 @@ The loader integrates:
 - TemplateEngine (from Story 2.2) for variable substitution and file inclusion
 """
 
+import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
+from adw.exceptions import ConfigError
+from adw.models.command import LoadedCommand
 
 if TYPE_CHECKING:
-    from adw.models import RunContext
+    from adw.models import ResolvedCommand, RunContext
 
 
 class CommandLoader:
@@ -56,21 +59,31 @@ class CommandLoader:
             project_root=self.project_root
         )
 
-    def load_prompt(self, phase: str, context: "RunContext") -> str:
+    def load_prompt(
+        self,
+        phase: str,
+        context: "RunContext",
+        *,
+        pre_hook_output: str = "",
+        strict: bool = True,
+    ) -> str:
         """Load and render a prompt for the given phase.
 
         Resolves the command using the three-tier hierarchy, reads the prompt.md
-        file, and returns the prompt content (rendering will be added in Task 4).
+        file, builds context from RunContext, and renders using TemplateEngine.
 
         Args:
             phase: The phase name (e.g., "plan", "build").
             context: The current run context containing variables for rendering.
+            pre_hook_output: Optional output from pre-hook execution.
+            strict: If True (default), raise error for unknown variables.
 
         Returns:
-            The prompt content (currently unrendered, rendering added in Task 4).
+            The fully rendered prompt string.
 
         Raises:
-            ConfigError: If the command cannot be resolved (COMMAND_NOT_FOUND).
+            ConfigError: If the command cannot be resolved (COMMAND_NOT_FOUND)
+                        or if strict=True and unknown variables are found.
         """
         # Resolve command using three-tier hierarchy
         resolved = self.resolver.resolve(phase)
@@ -79,7 +92,63 @@ class CommandLoader:
         prompt_path = resolved.path / "prompt.md"
         prompt_content = prompt_path.read_text(encoding="utf-8")
 
-        return prompt_content
+        # Build template context from RunContext
+        template_context = self._build_context(context, pre_hook_output=pre_hook_output)
+
+        # Render the prompt using TemplateEngine
+        rendered = self.template_engine.render(
+            prompt_content, template_context, strict=strict
+        )
+
+        return rendered
+
+    def load_command(
+        self,
+        phase: str,
+        context: "RunContext",
+        *,
+        pre_hook_output: str = "",
+        strict: bool = True,
+    ) -> LoadedCommand:
+        """Load a complete command with rendered prompt and optional schema.
+
+        This is the primary method for loading commands. It resolves the command,
+        loads and renders the prompt, loads the optional schema, and returns a
+        fully populated LoadedCommand instance.
+
+        Args:
+            phase: The phase name (e.g., "plan", "build").
+            context: The current run context containing variables for rendering.
+            pre_hook_output: Optional output from pre-hook execution.
+            strict: If True (default), raise error for unknown variables.
+
+        Returns:
+            A LoadedCommand with rendered prompt and optional schema.
+
+        Raises:
+            ConfigError: If the command cannot be resolved (COMMAND_NOT_FOUND),
+                        if strict=True and unknown variables are found,
+                        or if schema.json contains invalid JSON.
+        """
+        # Resolve command using three-tier hierarchy
+        resolved = self.resolver.resolve(phase)
+
+        # Load and render the prompt
+        rendered_prompt = self.load_prompt(
+            phase, context, pre_hook_output=pre_hook_output, strict=strict
+        )
+
+        # Load optional schema
+        schema = self._load_schema(resolved)
+
+        return LoadedCommand(
+            name=phase,
+            resolved=resolved,
+            prompt_content=rendered_prompt,
+            output_schema=schema,
+            has_pre_hook=resolved.has_pre_hook,
+            has_post_hook=resolved.has_post_hook,
+        )
 
     def _build_context(
         self,
@@ -110,3 +179,29 @@ class CommandLoader:
             "artifacts": context.artifacts,
             "pre_hook_output": pre_hook_output,
         }
+
+    def _load_schema(self, resolved: "ResolvedCommand") -> dict[str, Any] | None:
+        """Load optional schema.json from command directory.
+
+        Args:
+            resolved: The resolved command with path information.
+
+        Returns:
+            Parsed JSON Schema dict if schema.json exists, None otherwise.
+
+        Raises:
+            ConfigError: If schema.json exists but contains invalid JSON.
+        """
+        schema_path = resolved.path / "schema.json"
+
+        if not schema_path.exists():
+            return None
+
+        try:
+            schema_content = schema_path.read_text(encoding="utf-8")
+            return cast(dict[str, Any], json.loads(schema_content))
+        except json.JSONDecodeError as e:
+            raise ConfigError(
+                code="INVALID_SCHEMA",
+                message=f"Invalid JSON in schema.json at {schema_path}: {e}",
+            ) from e
