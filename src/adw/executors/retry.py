@@ -93,9 +93,10 @@ class RetryExecutor:
 
                 # Check if retryable and not on last attempt
                 if not self._is_retryable(e) or attempt == self.config.max_retries:
+                    suffix = "attempts" if attempt > 1 else "attempt"
                     raise LLMError(
                         code=e.code,
-                        message=f"{e.message} (after {attempt} attempt{'s' if attempt > 1 else ''})",
+                        message=f"{e.message} (after {attempt} {suffix})",
                         suggestion=e.suggestion,
                         recoverable=False,
                     ) from e
