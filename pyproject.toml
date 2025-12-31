@@ -1,7 +1,7 @@
 [project]
 name = "adw"
 version = "0.1.0"
-description = "Add your description here"
+description = "Agentic Development Workflow SDK"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -12,6 +12,9 @@ dependencies = [
     "rich>=14.2.0",
     "typer[all]>=0.21.0",
 ]
+
+[project.scripts]
+adw = "adw.cli:app"
 
 [dependency-groups]
 dev = [

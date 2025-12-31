@@ -55,8 +55,8 @@ so that I have a working development environment with the correct tooling from d
 - [x] Create `defaults/commands/` directory for bundled command templates
 
 ### Task 4: Configure pyproject.toml Entry Point
-- [ ] Add `[project.scripts]` section with `adw = "adw.cli:app"`
-- [ ] Verify entry point configuration is correct
+- [x] Add `[project.scripts]` section with `adw = "adw.cli:app"`
+- [x] Verify entry point configuration is correct
 
 ### Task 5: Create Minimal CLI App
 - [ ] Create `src/adw/cli/__init__.py` with Typer app export
