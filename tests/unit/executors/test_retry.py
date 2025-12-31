@@ -300,3 +300,56 @@ class TestRateLimitHandling:
 
         # Should be capped at max_delay of 10.0
         assert delay <= 10.0
+
+
+class TestAttemptTracking:
+    """Tests for attempt_count tracking in LLMResult."""
+
+    def test_successful_first_attempt_has_attempt_count_1(self) -> None:
+        """Test that successful first attempt returns attempt_count=1."""
+        mock = MockExecutor()
+        mock.configure_responses([{"content": "Success!"}])
+        retry = RetryExecutor(executor=mock)
+
+        result = retry.execute("test prompt")
+
+        assert result.success
+        assert result.attempt_count == 1
+
+    def test_attempt_count_increments_on_retry(self) -> None:
+        """Test that attempt_count reflects number of attempts made."""
+        mock = MockExecutor()
+        # Configure mock to fail twice, then succeed on third attempt
+        mock.configure_failures(
+            [
+                LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="Timeout",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                ),
+                LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="Timeout",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                ),
+            ]
+        )
+        mock.configure_responses([{"content": "Success after retries!"}])
+
+        config = RetryConfig(base_delay_seconds=0.001)  # Fast for tests
+        retry = RetryExecutor(executor=mock, config=config)
+
+        result = retry.execute("test prompt")
+
+        assert result.success
+        assert result.attempt_count == 3
+        assert mock.call_count == 3
+
+    def test_llm_result_has_default_attempt_count_1(self) -> None:
+        """Test that LLMResult defaults to attempt_count=1."""
+        from adw.models.llm import LLMResult
+
+        result = LLMResult(success=True, content="test")
+        assert result.attempt_count == 1

@@ -67,9 +67,9 @@ so that temporary issues don't fail the entire run.
 - [x] Log when using rate limit delay
 
 ### Task 6: Update LLMResult for Attempt Tracking
-- [ ] Add `attempt_count: int = 1` field to `LLMResult`
-- [ ] Set to number of attempts made (including final successful one)
-- [ ] Log each retry attempt with attempt number
+- [x] Add `attempt_count: int = 1` field to `LLMResult`
+- [x] Set to number of attempts made (including final successful one)
+- [x] Log each retry attempt with attempt number
 
 ### Task 7: Enhance Error Messages
 - [ ] On final failure, include attempt count in error message
@@ -366,6 +366,7 @@ claude-opus-4-5-20251101
 - Task 3: Verified exponential backoff implementation with tests: delay = base * (multiplier ^ attempt) with ±25% jitter, capped at max_delay.
 - Task 4: Verified error classification using recoverable field: LLMTimeoutError/LLMRateLimitError are retryable, other LLMErrors depend on recoverable flag.
 - Task 5: Verified rate limit retry_after handling: uses max(calculated_backoff, retry_after), still capped at max_delay, logs when using rate limit delay.
+- Task 6: Verified attempt_count tracking: LLMResult.attempt_count defaults to 1, increments on each retry, and logs each retry attempt with attempt number.
 
 ### File List
 
