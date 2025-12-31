@@ -1,6 +1,6 @@
 # Story 3.4: Implement Timeout Configuration and Enforcement
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2025-12-31

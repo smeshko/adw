@@ -34,16 +34,16 @@ so that I can monitor costs and understand what actions the LLM took.
 ## Tasks / Subtasks
 
 ### Task 1: Parse Claude Code Token Output
-- [ ] Research Claude Code `--print` output format for token usage
-- [ ] Extract token count from Claude Code response
-- [ ] Handle cases where token info is not available
-- [ ] Default to 0 if not parseable
+- [x] Research Claude Code `--print` output format for token usage
+- [x] Extract token count from Claude Code response
+- [x] Handle cases where token info is not available
+- [x] Default to 0 if not parseable
 
 ### Task 2: Parse Tool Call Output
-- [ ] Research Claude Code output format for tool calls
-- [ ] Extract tool_name from tool call data
-- [ ] Extract arguments from tool call data
-- [ ] Generate result_summary from tool output (truncate if long)
+- [x] Research Claude Code output format for tool calls
+- [x] Extract tool_name from tool call data
+- [x] Extract arguments from tool call data
+- [x] Generate result_summary from tool output (truncate if long)
 
 ### Task 3: Update Output Parsing in ClaudeCodeExecutor
 - [ ] Enhance `_parse_output()` to extract tokens_used
