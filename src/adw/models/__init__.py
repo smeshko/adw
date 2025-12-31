@@ -1,14 +1,14 @@
 """ADW data models - Pydantic models for validation and serialization.
 
 This package contains all Pydantic models used throughout ADW:
-- command: ResolvedCommand
+- command: ResolvedCommand, LoadedCommand
 - context: RunContext, SessionContext, ProjectContext, StateSnapshot
 - phase: PhaseStatus, PhaseResult, Artifact, ArtifactType
 - config: ProjectConfig, LLMConfig, PhaseConfig, HookConfig
 - llm: LLMResult, ToolCall
 """
 
-from adw.models.command import ResolvedCommand
+from adw.models.command import LoadedCommand, ResolvedCommand
 from adw.models.config import (
     HookConfig,
     LLMConfig,
@@ -34,6 +34,7 @@ from adw.models.phase import (
 
 __all__: list[str] = [
     # Command models
+    "LoadedCommand",
     "ResolvedCommand",
     # Config models
     "HookConfig",
