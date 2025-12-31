@@ -11,6 +11,7 @@ from adw.models import (
     PhaseResult,
     PhaseStatus,
 )
+from adw.models.llm import ToolCall
 
 
 class TestPhaseStatus:
@@ -125,6 +126,106 @@ class TestPhaseResult:
                 status="invalid_status",  # type: ignore
                 started_at=datetime.now(),
             )
+
+
+class TestPhaseResultTokenTracking:
+    """Tests for token tracking in PhaseResult."""
+
+    def test_tokens_used_defaults_to_zero(self) -> None:
+        """tokens_used defaults to 0."""
+        result = PhaseResult(
+            phase="plan",
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(),
+        )
+        assert result.tokens_used == 0
+
+    def test_tokens_used_can_be_set(self) -> None:
+        """tokens_used can be set during creation."""
+        result = PhaseResult(
+            phase="plan",
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(),
+            tokens_used=500,
+        )
+        assert result.tokens_used == 500
+
+    def test_tool_calls_defaults_to_empty_list(self) -> None:
+        """tool_calls defaults to empty list."""
+        result = PhaseResult(
+            phase="plan",
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(),
+        )
+        assert result.tool_calls == []
+
+    def test_tool_calls_can_be_set(self) -> None:
+        """tool_calls can be set during creation."""
+        tool_calls = [
+            ToolCall(tool_name="read_file", arguments={"path": "/src/main.py"}),
+            ToolCall(tool_name="write_file", arguments={"path": "/src/new.py"}),
+        ]
+        result = PhaseResult(
+            phase="code",
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(),
+            tool_calls=tool_calls,
+        )
+        assert len(result.tool_calls) == 2
+        assert result.tool_calls[0].tool_name == "read_file"
+        assert result.tool_calls[1].tool_name == "write_file"
+
+    def test_complete_phase_with_token_data(self) -> None:
+        """PhaseResult tracks all token-related data."""
+        start = datetime.now()
+        end = start + timedelta(seconds=30)
+        tool_calls = [
+            ToolCall(
+                tool_name="read_file",
+                arguments={"path": "/src/main.py"},
+                result_summary="File read successfully",
+            ),
+        ]
+
+        result = PhaseResult(
+            phase="plan",
+            status=PhaseStatus.COMPLETED,
+            started_at=start,
+            completed_at=end,
+            artifacts=["plan.md"],
+            tokens_used=500,
+            tool_calls=tool_calls,
+        )
+
+        assert result.phase == "plan"
+        assert result.status == PhaseStatus.COMPLETED
+        assert result.artifacts == ["plan.md"]
+        assert result.tokens_used == 500
+        assert len(result.tool_calls) == 1
+        assert result.tool_calls[0].result_summary == "File read successfully"
+        assert result.duration_ms == 30000
+
+    def test_tokens_and_tools_in_serialization(self) -> None:
+        """tokens_used and tool_calls are included in JSON serialization."""
+        import json
+
+        result = PhaseResult(
+            phase="plan",
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(),
+            tokens_used=500,
+            tool_calls=[
+                ToolCall(tool_name="read_file", arguments={"path": "/test.py"})
+            ],
+        )
+        json_str = result.model_dump_json()
+        data = json.loads(json_str)
+
+        assert "tokens_used" in data
+        assert data["tokens_used"] == 500
+        assert "tool_calls" in data
+        assert len(data["tool_calls"]) == 1
+        assert data["tool_calls"][0]["tool_name"] == "read_file"
 
 
 class TestArtifactType:

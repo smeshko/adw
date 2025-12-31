@@ -64,9 +64,9 @@ so that I can monitor costs and understand what actions the LLM took.
 - [x] Enable aggregation through log analysis
 
 ### Task 6: Update PhaseResult for Token Tracking
-- [ ] Add `tokens_used: int` field to PhaseResult
-- [ ] Add `tool_calls: list[ToolCall]` field to PhaseResult
-- [ ] Populate from LLMResult when phase completes
+- [x] Add `tokens_used: int` field to PhaseResult
+- [x] Add `tool_calls: list[ToolCall]` field to PhaseResult
+- [x] Populate from LLMResult when phase completes
 
 ### Task 7: Write Unit Tests
 - [ ] Create/update `tests/unit/executors/test_claude_code.py`

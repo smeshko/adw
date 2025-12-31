@@ -9,6 +9,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, computed_field
 
+from adw.models.llm import ToolCall
+
 
 class PhaseStatus(str, Enum):
     """Status of a phase in the ADW workflow.
@@ -92,6 +94,8 @@ class PhaseResult(BaseModel):
         completed_at: When the phase finished (None if still running)
         artifacts: List of artifact paths produced by this phase
         error: Error message if the phase failed
+        tokens_used: Total tokens consumed during this phase
+        tool_calls: Tool calls made during this phase
 
     Example:
         >>> result = PhaseResult(
@@ -114,6 +118,12 @@ class PhaseResult(BaseModel):
         default_factory=list, description="Artifact paths produced"
     )
     error: str | None = Field(default=None, description="Error message if phase failed")
+    tokens_used: int = Field(
+        default=0, description="Total tokens consumed during this phase"
+    )
+    tool_calls: list[ToolCall] = Field(
+        default_factory=list, description="Tool calls made during this phase"
+    )
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -139,6 +149,10 @@ class PhaseResult(BaseModel):
                 "completed_at": "2024-01-15T10:31:00",
                 "artifacts": ["plan.md"],
                 "error": None,
+                "tokens_used": 500,
+                "tool_calls": [
+                    {"tool_name": "read_file", "arguments": {"path": "/src/main.py"}}
+                ],
             }
         },
     }
