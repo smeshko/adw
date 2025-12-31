@@ -1,6 +1,6 @@
 # Story 2.4: Validate LLM Output Against Schema
 
-Status: ready-for-dev
+Status: review
 Linear Issue: not-configured
 Epic: 2 - Command Resolution & Templates
 Created: 2025-12-31
@@ -42,42 +42,42 @@ so that I can ensure structured output meets expectations.
 - [x] Export `SchemaValidator` from `src/adw/commands/__init__.py`
 
 ### Task 2: Implement JSON Extraction from Markdown
-- [ ] Implement `extract_json_from_markdown(content: str) -> list[str]`
-- [ ] Detect JSON code blocks (```json ... ```)
-- [ ] Detect untagged code blocks that contain JSON
-- [ ] Return list of potential JSON strings
+- [x] Implement `extract_json_from_markdown(content: str) -> list[str]`
+- [x] Detect JSON code blocks (```json ... ```)
+- [x] Detect untagged code blocks that contain JSON
+- [x] Return list of potential JSON strings
 
 ### Task 3: Implement JSON Schema Validation
-- [ ] Implement `validate(content: str, schema: dict) -> dict`
-- [ ] Parse JSON from content
-- [ ] Validate against schema using jsonschema library
-- [ ] Return parsed dict on success
+- [x] Implement `validate(content: str, schema: dict) -> dict`
+- [x] Parse JSON from content
+- [x] Validate against schema using jsonschema library
+- [x] Return parsed dict on success
 
 ### Task 4: Implement ValidationError with Field Details
-- [ ] Use existing `ValidationError` from exception hierarchy
-- [ ] Include specific field paths that failed validation
-- [ ] Include expected type vs actual type
-- [ ] Include helpful suggestion for fixing
+- [x] Use existing `ValidationError` from exception hierarchy
+- [x] Include specific field paths that failed validation
+- [x] Include expected type vs actual type
+- [x] Include helpful suggestion for fixing
 
 ### Task 5: Implement Smart JSON Extraction
-- [ ] Try raw content as JSON first (for pure JSON responses)
-- [ ] Fall back to markdown extraction if raw fails
-- [ ] For multiple JSON blocks, try each against schema
-- [ ] Return first valid match
-- [ ] Raise ValidationError if none match
+- [x] Try raw content as JSON first (for pure JSON responses)
+- [x] Fall back to markdown extraction if raw fails
+- [x] For multiple JSON blocks, try each against schema
+- [x] Return first valid match
+- [x] Raise ValidationError if none match
 
 ### Task 6: Implement No-Schema Passthrough
-- [ ] When schema is None, return content as-is (string)
-- [ ] No parsing or validation attempted
-- [ ] Log that validation was skipped
+- [x] When schema is None, return content as-is (string)
+- [x] No parsing or validation attempted
+- [x] Log that validation was skipped
 
 ### Task 7: Write Unit Tests
-- [ ] Test valid JSON against matching schema
-- [ ] Test invalid JSON against schema (field errors)
-- [ ] Test JSON extraction from markdown code block
-- [ ] Test multiple JSON blocks (first valid wins)
-- [ ] Test no-schema passthrough
-- [ ] Test malformed JSON handling
+- [x] Test valid JSON against matching schema
+- [x] Test invalid JSON against schema (field errors)
+- [x] Test JSON extraction from markdown code block
+- [x] Test multiple JSON blocks (first valid wins)
+- [x] Test no-schema passthrough
+- [x] Test malformed JSON handling
 
 ---
 

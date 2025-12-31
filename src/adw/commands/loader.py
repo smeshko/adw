@@ -9,7 +9,7 @@ The loader integrates:
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
@@ -80,3 +80,33 @@ class CommandLoader:
         prompt_content = prompt_path.read_text(encoding="utf-8")
 
         return prompt_content
+
+    def _build_context(
+        self,
+        context: "RunContext",
+        *,
+        pre_hook_output: str = "",
+    ) -> dict[str, Any]:
+        """Build template context dictionary from RunContext.
+
+        Creates a flat dictionary with all variables needed for template rendering.
+
+        Args:
+            context: The current run context.
+            pre_hook_output: Optional output from pre-hook execution.
+
+        Returns:
+            Dictionary with template variables:
+            - run_id: The ULID run identifier
+            - feature_request: The feature description
+            - current_phase: Name of the currently active phase
+            - artifacts: Dict of phase -> list of artifact paths
+            - pre_hook_output: Output from pre-hook (empty string if none)
+        """
+        return {
+            "run_id": context.run_id,
+            "feature_request": context.feature_description,
+            "current_phase": context.current_phase,
+            "artifacts": context.artifacts,
+            "pre_hook_output": pre_hook_output,
+        }

@@ -127,3 +127,59 @@ class TestPromptLoading:
         with pytest.raises(ConfigError) as exc_info:
             loader.load_prompt("nonexistent", run_context)
         assert exc_info.value.code == "COMMAND_NOT_FOUND"
+
+
+class TestContextBuilding:
+    """Tests for building template context from RunContext."""
+
+    def test_build_context_includes_run_id(self, run_context: RunContext) -> None:
+        """_build_context includes run_id from RunContext."""
+        loader = CommandLoader()
+        context = loader._build_context(run_context)
+        assert context["run_id"] == "01KDSG2VDHNK0W4HSCZWJZXWSQ"
+
+    def test_build_context_includes_feature_description(
+        self, run_context: RunContext
+    ) -> None:
+        """_build_context includes feature_description as feature_request."""
+        loader = CommandLoader()
+        context = loader._build_context(run_context)
+        assert context["feature_request"] == "Add user authentication"
+
+    def test_build_context_includes_current_phase(
+        self, run_context: RunContext
+    ) -> None:
+        """_build_context includes current_phase."""
+        loader = CommandLoader()
+        context = loader._build_context(run_context)
+        assert context["current_phase"] == "plan"
+
+    def test_build_context_includes_artifacts_namespace(self) -> None:
+        """_build_context includes artifacts namespace for previous phases."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test feature",
+            current_phase="build",
+            started_at=datetime.now(),
+            artifacts={"plan": ["plan.md", "requirements.txt"]},
+        )
+        loader = CommandLoader()
+        built = loader._build_context(context)
+        assert "artifacts" in built
+        assert built["artifacts"]["plan"] == ["plan.md", "requirements.txt"]
+
+    def test_build_context_includes_empty_pre_hook_output_by_default(
+        self, run_context: RunContext
+    ) -> None:
+        """_build_context includes empty pre_hook_output when not available."""
+        loader = CommandLoader()
+        context = loader._build_context(run_context)
+        assert context["pre_hook_output"] == ""
+
+    def test_build_context_includes_pre_hook_output_when_provided(
+        self, run_context: RunContext
+    ) -> None:
+        """_build_context includes pre_hook_output when provided."""
+        loader = CommandLoader()
+        context = loader._build_context(run_context, pre_hook_output="hook result")
+        assert context["pre_hook_output"] == "hook result"
