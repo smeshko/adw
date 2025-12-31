@@ -113,9 +113,11 @@ class TestReset:
     def test_reset_clears_configured_responses(self) -> None:
         """reset() clears configured responses."""
         executor = MockExecutor()
-        executor.configure_responses([
-            {"content": "configured"},
-        ])
+        executor.configure_responses(
+            [
+                {"content": "configured"},
+            ]
+        )
 
         executor.reset()
 
@@ -128,14 +130,16 @@ class TestReset:
         from adw.exceptions import LLMTimeoutError
 
         executor = MockExecutor()
-        executor.configure_failures([
-            LLMTimeoutError(
-                code="LLM_TIMEOUT",
-                message="Timeout",
-                timeout_seconds=300,
-                elapsed_seconds=300,
-            ),
-        ])
+        executor.configure_failures(
+            [
+                LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="Timeout",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                ),
+            ]
+        )
 
         executor.reset()
 

@@ -2,7 +2,7 @@
 
 import pytest
 
-from adw.exceptions import LLMError, LLMTimeoutError
+from adw.exceptions import LLMTimeoutError
 from adw.executors import MockExecutor
 from adw.models.llm import ToolCall
 
@@ -40,14 +40,16 @@ class TestEmptyQueueEdgeCases:
     def test_exhausted_failure_queue_means_success(self) -> None:
         """Exhausted failure queue doesn't raise."""
         executor = MockExecutor()
-        executor.configure_failures([
-            LLMTimeoutError(
-                code="LLM_TIMEOUT",
-                message="Timeout",
-                timeout_seconds=300,
-                elapsed_seconds=300,
-            ),
-        ])
+        executor.configure_failures(
+            [
+                LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="Timeout",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                ),
+            ]
+        )
 
         # First call fails
         with pytest.raises(LLMTimeoutError):
@@ -64,20 +66,24 @@ class TestMixedSuccessFailure:
     def test_alternating_success_failure(self) -> None:
         """Alternating success and failure calls work correctly."""
         executor = MockExecutor()
-        executor.configure_failures([
-            None,  # 1st: success
-            LLMTimeoutError(
-                code="LLM_TIMEOUT",
-                message="fail",
-                timeout_seconds=300,
-                elapsed_seconds=300,
-            ),  # 2nd: fail
-            None,  # 3rd: success
-        ])
-        executor.configure_responses([
-            {"content": "first success"},
-            {"content": "second success"},
-        ])
+        executor.configure_failures(
+            [
+                None,  # 1st: success
+                LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="fail",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                ),  # 2nd: fail
+                None,  # 3rd: success
+            ]
+        )
+        executor.configure_responses(
+            [
+                {"content": "first success"},
+                {"content": "second success"},
+            ]
+        )
 
         # 1st call: success
         r1 = executor.execute("p1")
@@ -97,17 +103,21 @@ class TestMixedSuccessFailure:
     def test_failure_before_response_queue(self) -> None:
         """Failure checked before response queue."""
         executor = MockExecutor()
-        executor.configure_failures([
-            LLMTimeoutError(
-                code="LLM_TIMEOUT",
-                message="fail",
-                timeout_seconds=300,
-                elapsed_seconds=300,
-            ),
-        ])
-        executor.configure_responses([
-            {"content": "never reached"},
-        ])
+        executor.configure_failures(
+            [
+                LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="fail",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                ),
+            ]
+        )
+        executor.configure_responses(
+            [
+                {"content": "never reached"},
+            ]
+        )
 
         with pytest.raises(LLMTimeoutError):
             executor.execute("prompt")
@@ -132,14 +142,16 @@ class TestConfigureReplacesQueue:
     def test_configure_failures_replaces_queue(self) -> None:
         """configure_failures() clears and replaces queue."""
         executor = MockExecutor()
-        executor.configure_failures([
-            LLMTimeoutError(
-                code="LLM_TIMEOUT",
-                message="first",
-                timeout_seconds=300,
-                elapsed_seconds=300,
-            ),
-        ])
+        executor.configure_failures(
+            [
+                LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="first",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                ),
+            ]
+        )
         executor.configure_failures([None])  # Replace with success
 
         result = executor.execute("prompt")
@@ -152,9 +164,11 @@ class TestToolCallHandling:
     def test_empty_tool_calls_list(self) -> None:
         """Empty tool_calls list handled correctly."""
         executor = MockExecutor()
-        executor.configure_responses([
-            {"content": "test", "tool_calls": []},
-        ])
+        executor.configure_responses(
+            [
+                {"content": "test", "tool_calls": []},
+            ]
+        )
 
         result = executor.execute("prompt")
         assert result.tool_calls == []
@@ -162,14 +176,16 @@ class TestToolCallHandling:
     def test_tool_call_from_dict(self) -> None:
         """Tool calls can be configured as dicts."""
         executor = MockExecutor()
-        executor.configure_responses([
-            {
-                "content": "test",
-                "tool_calls": [
-                    {"tool_name": "read", "arguments": {"path": "/test"}},
-                ],
-            },
-        ])
+        executor.configure_responses(
+            [
+                {
+                    "content": "test",
+                    "tool_calls": [
+                        {"tool_name": "read", "arguments": {"path": "/test"}},
+                    ],
+                },
+            ]
+        )
 
         result = executor.execute("prompt")
         assert len(result.tool_calls) == 1
@@ -179,9 +195,11 @@ class TestToolCallHandling:
         """Tool calls can be configured as ToolCall models."""
         executor = MockExecutor()
         tc = ToolCall(tool_name="write", arguments={"content": "data"})
-        executor.configure_responses([
-            {"content": "test", "tool_calls": [tc]},
-        ])
+        executor.configure_responses(
+            [
+                {"content": "test", "tool_calls": [tc]},
+            ]
+        )
 
         result = executor.execute("prompt")
         assert len(result.tool_calls) == 1

@@ -2,8 +2,6 @@
 
 from typing import Protocol, get_type_hints
 
-import pytest
-
 from adw.executors import LLMExecutor
 from adw.models.llm import LLMResult
 
@@ -15,6 +13,7 @@ def test_llm_executor_is_protocol() -> None:
 
 def test_llm_executor_is_runtime_checkable() -> None:
     """LLMExecutor can be used with isinstance()."""
+
     # Create a minimal class that implements the protocol
     class MinimalExecutor:
         def execute(
@@ -52,7 +51,7 @@ def test_llm_executor_execute_has_correct_signature() -> None:
     assert hints.get("return") == LLMResult
 
     # Check prompt is str
-    assert hints.get("prompt") == str
+    assert hints.get("prompt") is str
 
     # Check timeout is int | None
-    assert hints.get("timeout") == int | None
+    assert hints.get("timeout") == (int | None)

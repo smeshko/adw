@@ -1,8 +1,10 @@
 """Tests for MockExecutor implementation."""
 
+import contextlib
+
 import pytest
 
-from adw.exceptions import LLMError, LLMRateLimitError, LLMTimeoutError
+from adw.exceptions import LLMRateLimitError, LLMTimeoutError
 from adw.executors import LLMExecutor, MockExecutor
 from adw.models import LLMResult
 
@@ -50,11 +52,13 @@ class TestMockExecutorConfiguredResponses:
     def test_configured_responses_returned_in_order(self) -> None:
         """MockExecutor returns configured responses in FIFO order."""
         executor = MockExecutor()
-        executor.configure_responses([
-            {"content": "first"},
-            {"content": "second"},
-            {"content": "third"},
-        ])
+        executor.configure_responses(
+            [
+                {"content": "first"},
+                {"content": "second"},
+                {"content": "third"},
+            ]
+        )
 
         r1 = executor.execute("prompt 1")
         r2 = executor.execute("prompt 2")
@@ -67,9 +71,11 @@ class TestMockExecutorConfiguredResponses:
     def test_configured_response_with_tokens(self) -> None:
         """MockExecutor respects tokens_used in response config."""
         executor = MockExecutor()
-        executor.configure_responses([
-            {"content": "test", "tokens_used": 500},
-        ])
+        executor.configure_responses(
+            [
+                {"content": "test", "tokens_used": 500},
+            ]
+        )
 
         result = executor.execute("prompt")
         assert result.tokens_used == 500
@@ -77,9 +83,11 @@ class TestMockExecutorConfiguredResponses:
     def test_configured_response_with_duration(self) -> None:
         """MockExecutor respects duration_ms in response config."""
         executor = MockExecutor()
-        executor.configure_responses([
-            {"content": "test", "duration_ms": 2500},
-        ])
+        executor.configure_responses(
+            [
+                {"content": "test", "duration_ms": 2500},
+            ]
+        )
 
         result = executor.execute("prompt")
         assert result.duration_ms == 2500
@@ -87,14 +95,16 @@ class TestMockExecutorConfiguredResponses:
     def test_configured_response_with_tool_calls(self) -> None:
         """MockExecutor respects tool_calls in response config."""
         executor = MockExecutor()
-        executor.configure_responses([
-            {
-                "content": "test",
-                "tool_calls": [
-                    {"tool_name": "read_file", "arguments": {"path": "/tmp/test"}},
-                ],
-            },
-        ])
+        executor.configure_responses(
+            [
+                {
+                    "content": "test",
+                    "tool_calls": [
+                        {"tool_name": "read_file", "arguments": {"path": "/tmp/test"}},
+                    ],
+                },
+            ]
+        )
 
         result = executor.execute("prompt")
         assert len(result.tool_calls) == 1
@@ -117,14 +127,16 @@ class TestMockExecutorConfiguredFailures:
     def test_configured_failure_raises(self) -> None:
         """MockExecutor raises configured LLMError."""
         executor = MockExecutor()
-        executor.configure_failures([
-            LLMTimeoutError(
-                code="LLM_TIMEOUT",
-                message="Timeout",
-                timeout_seconds=300,
-                elapsed_seconds=300,
-            ),
-        ])
+        executor.configure_failures(
+            [
+                LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="Timeout",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                ),
+            ]
+        )
 
         with pytest.raises(LLMTimeoutError):
             executor.execute("prompt")
@@ -140,15 +152,17 @@ class TestMockExecutorConfiguredFailures:
     def test_mixed_failures_and_successes(self) -> None:
         """MockExecutor handles mixed failure/success sequence."""
         executor = MockExecutor()
-        executor.configure_failures([
-            LLMTimeoutError(
-                code="LLM_TIMEOUT",
-                message="First fails",
-                timeout_seconds=300,
-                elapsed_seconds=300,
-            ),
-            None,  # Second succeeds
-        ])
+        executor.configure_failures(
+            [
+                LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="First fails",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                ),
+                None,  # Second succeeds
+            ]
+        )
         executor.configure_responses([{"content": "success after retry"}])
 
         # First call should raise
@@ -163,13 +177,15 @@ class TestMockExecutorConfiguredFailures:
     def test_rate_limit_error(self) -> None:
         """MockExecutor can raise LLMRateLimitError."""
         executor = MockExecutor()
-        executor.configure_failures([
-            LLMRateLimitError(
-                code="LLM_RATE_LIMIT",
-                message="Rate limited",
-                retry_after=60,
-            ),
-        ])
+        executor.configure_failures(
+            [
+                LLMRateLimitError(
+                    code="LLM_RATE_LIMIT",
+                    message="Rate limited",
+                    retry_after=60,
+                ),
+            ]
+        )
 
         with pytest.raises(LLMRateLimitError) as exc_info:
             executor.execute("prompt")
@@ -201,19 +217,19 @@ class TestMockExecutorCallTracking:
     def test_call_count_increments_on_failure(self) -> None:
         """call_count increments even when execute() raises."""
         executor = MockExecutor()
-        executor.configure_failures([
-            LLMTimeoutError(
-                code="LLM_TIMEOUT",
-                message="Timeout",
-                timeout_seconds=300,
-                elapsed_seconds=300,
-            ),
-        ])
+        executor.configure_failures(
+            [
+                LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="Timeout",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                ),
+            ]
+        )
 
-        try:
+        with contextlib.suppress(LLMTimeoutError):
             executor.execute("prompt")
-        except LLMTimeoutError:
-            pass
 
         assert executor.call_count == 1
 

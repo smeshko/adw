@@ -1,6 +1,7 @@
 """Tests for LLM-related Pydantic models."""
 
 import pytest
+from pydantic import ValidationError
 
 from adw.models import LLMResult, ToolCall
 
@@ -121,7 +122,7 @@ class TestLLMResult:
 
     def test_result_required_fields(self) -> None:
         """LLMResult requires success and content fields."""
-        with pytest.raises(Exception):  # Pydantic validation error
+        with pytest.raises(ValidationError):
             LLMResult()  # type: ignore[call-arg]
 
     def test_acceptance_criteria_fields(self) -> None:
