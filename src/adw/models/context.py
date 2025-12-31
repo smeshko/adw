@@ -5,6 +5,7 @@ and project context throughout the ADW workflow execution.
 """
 
 from datetime import datetime
+from pathlib import Path
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -109,5 +110,86 @@ class RunContext(BaseModel):
     }
 
 
-# Placeholder for SessionContext - will be implemented in Task 5
-# Placeholder for ProjectContext - will be implemented in Task 5
+class SessionContext(BaseModel):
+    """Current session state derived from RunContext.
+
+    This model represents the active session state, providing a view
+    into the current run context with session-specific information.
+
+    Attributes:
+        run_id: ULID of the current run
+        current_phase: Currently active phase name
+        is_resuming: Whether this session is resuming a previous run
+        last_checkpoint: Path to the last saved state checkpoint
+    """
+
+    run_id: str = Field(..., description="ULID of the current run")
+    current_phase: str = Field(..., description="Currently active phase name")
+    is_resuming: bool = Field(
+        default=False, description="Whether resuming a previous run"
+    )
+    last_checkpoint: str | None = Field(
+        default=None, description="Path to last saved state checkpoint"
+    )
+
+    model_config = {
+        "frozen": False,
+        "validate_assignment": True,
+    }
+
+
+class ProjectContext(BaseModel):
+    """Resolved project configuration and paths.
+
+    This model contains the resolved project information including
+    paths, configuration, and environment details.
+
+    Attributes:
+        project_root: Absolute path to the project root directory
+        config_path: Path to the adw.yaml configuration file
+        runs_dir: Directory for storing run data
+        language: Programming language of the project
+        framework: Framework being used (if any)
+        platform: Target platform
+    """
+
+    project_root: Path = Field(..., description="Absolute path to project root")
+    config_path: Path = Field(..., description="Path to adw.yaml configuration")
+    runs_dir: Path = Field(..., description="Directory for storing run data")
+    language: str = Field(..., description="Programming language")
+    framework: str | None = Field(default=None, description="Framework being used")
+    platform: str = Field(default="cli", description="Target platform")
+
+    model_config = {
+        "frozen": False,
+        "validate_assignment": True,
+        "arbitrary_types_allowed": True,  # Allow Path type
+    }
+
+
+class StateSnapshot(BaseModel):
+    """Point-in-time snapshot of run state for debugging.
+
+    This model captures a complete snapshot of the run state at a
+    specific point in time, useful for debugging and recovery.
+
+    Attributes:
+        snapshot_id: Unique identifier for this snapshot
+        run_id: ULID of the run this snapshot belongs to
+        phase: Phase name at time of snapshot
+        timestamp: When this snapshot was taken
+        context_json: Serialized RunContext as JSON string
+        notes: Optional notes about why snapshot was taken
+    """
+
+    snapshot_id: str = Field(..., description="Unique identifier for snapshot")
+    run_id: str = Field(..., description="ULID of the run")
+    phase: str = Field(..., description="Phase at time of snapshot")
+    timestamp: datetime = Field(..., description="When snapshot was taken")
+    context_json: str = Field(..., description="Serialized RunContext")
+    notes: str | None = Field(default=None, description="Optional notes")
+
+    model_config = {
+        "frozen": False,
+        "validate_assignment": True,
+    }
