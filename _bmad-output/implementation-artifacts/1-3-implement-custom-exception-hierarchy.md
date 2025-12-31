@@ -71,11 +71,11 @@ so that error handling is consistent and errors are actionable.
 - [x] Add schema_path for reference to failed schema
 
 ### Task 7: Write Unit Tests
-- [ ] Test ADWError formatting
-- [ ] Test all subclass creation with required fields
-- [ ] Test error code uniqueness
-- [ ] Test recoverable flag inheritance
-- [ ] Test phase field on HookError
+- [x] Test ADWError formatting
+- [x] Test all subclass creation with required fields
+- [x] Test error code uniqueness
+- [x] Test recoverable flag inheritance
+- [x] Test phase field on HookError
 
 ---
 

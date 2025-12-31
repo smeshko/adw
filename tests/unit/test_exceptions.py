@@ -490,3 +490,70 @@ class TestValidationError:
         assert d["field_errors"] == field_errors
         assert d["schema_path"] == "schemas/output.json"
         assert d["recoverable"] is False
+
+
+class TestExceptionHierarchy:
+    """Tests for the overall exception hierarchy structure."""
+
+    def test_all_exceptions_inherit_from_adw_error(self) -> None:
+        """All custom exceptions should inherit from ADWError."""
+        exceptions = [
+            ConfigError(code="TEST", message="test"),
+            HookError(code="TEST", message="test", phase="test"),
+            LLMError(code="TEST", message="test"),
+            LLMTimeoutError(code="TEST", message="test", timeout_seconds=1, elapsed_seconds=1),
+            LLMRateLimitError(code="TEST", message="test"),
+            StateError(code="TEST", message="test"),
+            ValidationError(code="TEST", message="test"),
+        ]
+        for exc in exceptions:
+            assert isinstance(exc, ADWError), f"{type(exc).__name__} should inherit from ADWError"
+
+    def test_llm_subclasses_inherit_from_llm_error(self) -> None:
+        """LLMTimeoutError and LLMRateLimitError should inherit from LLMError."""
+        timeout_error = LLMTimeoutError(
+            code="TEST", message="test", timeout_seconds=1, elapsed_seconds=1
+        )
+        rate_limit_error = LLMRateLimitError(code="TEST", message="test")
+
+        assert isinstance(timeout_error, LLMError)
+        assert isinstance(rate_limit_error, LLMError)
+
+    def test_error_code_format_convention(self) -> None:
+        """Error codes should follow CATEGORY_SPECIFIC format convention."""
+        common_codes = [
+            "CONFIG_NOT_FOUND",
+            "INVALID_CONFIG",
+            "COMMAND_NOT_FOUND",
+            "HOOK_FAILED",
+            "HOOK_TIMEOUT",
+            "LLM_TIMEOUT",
+            "LLM_RATE_LIMIT",
+            "CONTEXT_CORRUPTED",
+            "SNAPSHOT_FAILED",
+            "RUN_NOT_FOUND",
+            "VALIDATION_FAILED",
+        ]
+        for code in common_codes:
+            assert "_" in code, f"Error code {code} should contain underscore"
+            assert code == code.upper(), f"Error code {code} should be uppercase"
+
+    def test_recoverable_defaults(self) -> None:
+        """Verify recoverable defaults for each exception type."""
+        non_recoverable = [
+            ConfigError(code="TEST", message="test"),
+            HookError(code="TEST", message="test", phase="test"),
+            LLMError(code="TEST", message="test"),
+            StateError(code="TEST", message="test"),
+            ValidationError(code="TEST", message="test"),
+        ]
+        recoverable = [
+            LLMTimeoutError(code="TEST", message="test", timeout_seconds=1, elapsed_seconds=1),
+            LLMRateLimitError(code="TEST", message="test"),
+        ]
+
+        for exc in non_recoverable:
+            assert exc.recoverable is False, f"{type(exc).__name__} should be non-recoverable by default"
+
+        for exc in recoverable:
+            assert exc.recoverable is True, f"{type(exc).__name__} should be recoverable by default"
