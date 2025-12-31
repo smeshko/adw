@@ -1,6 +1,6 @@
 # Story 3.1: Execute Shell Hooks with Capture
 
-Status: ready-for-dev
+Status: Done
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2025-12-31
@@ -43,51 +43,51 @@ so that I can run custom logic before and after LLM execution.
 ## Tasks / Subtasks
 
 ### Task 1: Create HookResult Model
-- [ ] Create `src/adw/models/hook.py` with `HookResult` Pydantic model
-- [ ] Fields: `stdout: str`, `stderr: str`, `exit_code: int`, `duration_ms: int`, `hook_type: str` (pre/post)
-- [ ] Add to `src/adw/models/__init__.py` exports
+- [x] Create `src/adw/models/hook.py` with `HookResult` Pydantic model
+- [x] Fields: `stdout: str`, `stderr: str`, `exit_code: int`, `duration_ms: int`, `hook_type: str` (pre/post)
+- [x] Add to `src/adw/models/__init__.py` exports
 
 ### Task 2: Create HookEnvironment Helper
-- [ ] Create `src/adw/hooks/environment.py`
-- [ ] Implement `build_hook_environment(context: RunContext, phase: str) -> dict[str, str]`
-- [ ] Include: `ADW_RUN_ID`, `ADW_PHASE`, `ADW_ARTIFACTS_DIR`, `ADW_CONTEXT_FILE`, `ADW_FEATURE`
-- [ ] Merge with current process environment (`os.environ`)
+- [x] Create `src/adw/hooks/environment.py`
+- [x] Implement `build_hook_environment(context: RunContext, phase: str) -> dict[str, str]`
+- [x] Include: `ADW_RUN_ID`, `ADW_PHASE`, `ADW_ARTIFACTS_DIR`, `ADW_CONTEXT_FILE`, `ADW_FEATURE`
+- [x] Merge with current process environment (`os.environ`)
 
 ### Task 3: Implement HookRunner Class
-- [ ] Create `src/adw/hooks/runner.py`
-- [ ] Implement `HookRunner` class with `__init__(config: HookConfig)`
-- [ ] Implement `run_hook(hook_path: Path, context: RunContext, phase: str, timeout: int | None = None) -> HookResult`
-- [ ] Use `asyncio.create_subprocess_exec()` for subprocess execution with timeout
-- [ ] Capture stdout and stderr separately
-- [ ] Return `HookResult` on success
+- [x] Create `src/adw/hooks/runner.py`
+- [x] Implement `HookRunner` class with `__init__(config: HookConfig)`
+- [x] Implement `run_hook(hook_path: Path, context: RunContext, phase: str, timeout: int | None = None) -> HookResult`
+- [x] Use `asyncio.create_subprocess_exec()` for subprocess execution with timeout
+- [x] Capture stdout and stderr separately
+- [x] Return `HookResult` on success
 
 ### Task 4: Implement Error Handling
-- [ ] Raise `HookError` with code `HOOK_FAILED` on non-zero exit
-- [ ] Raise `HookError` with code `HOOK_TIMEOUT` when timeout exceeded
-- [ ] Include stdout, stderr, exit_code in error for debugging
-- [ ] Use existing `HookError` from `adw.exceptions`
+- [x] Raise `HookError` with code `HOOK_FAILED` on non-zero exit
+- [x] Raise `HookError` with code `HOOK_TIMEOUT` when timeout exceeded
+- [x] Include stdout, stderr, exit_code in error for debugging
+- [x] Use existing `HookError` from `adw.exceptions`
 
 ### Task 5: Implement Hook Discovery
-- [ ] Implement `find_hook(command_dir: Path, hook_type: str) -> Path | None`
-- [ ] Look for `pre-hook.sh` or `post-hook.sh` in command directory
-- [ ] Return `None` if not found (not an error)
-- [ ] Support both `.sh` extension and extensionless scripts
+- [x] Implement `find_hook(command_dir: Path, hook_type: str) -> Path | None`
+- [x] Look for `pre-hook.sh` or `post-hook.sh` in command directory
+- [x] Return `None` if not found (not an error)
+- [x] Support both `.sh` extension and extensionless scripts
 
 ### Task 6: Write Unit Tests
-- [ ] Create `tests/unit/hooks/test_runner.py`
-- [ ] Test successful hook execution with stdout capture
-- [ ] Test failed hook (non-zero exit) raises `HookError`
-- [ ] Test timeout handling raises `HookError` with `HOOK_TIMEOUT`
-- [ ] Test environment variables passed correctly
-- [ ] Test missing hook returns `None` (no error)
-- [ ] Create test fixtures at `tests/fixtures/hooks/` with sample scripts
-- [ ] Target: >90% coverage for hooks module
+- [x] Create `tests/unit/hooks/test_runner.py`
+- [x] Test successful hook execution with stdout capture
+- [x] Test failed hook (non-zero exit) raises `HookError`
+- [x] Test timeout handling raises `HookError` with `HOOK_TIMEOUT`
+- [x] Test environment variables passed correctly
+- [x] Test missing hook returns `None` (no error)
+- [x] Create test fixtures at `tests/fixtures/hooks/` with sample scripts
+- [x] Target: >90% coverage for hooks module (achieved 100%)
 
 ### Task 7: Integration Tests
-- [ ] Create `tests/integration/test_hooks.py`
-- [ ] Test hook execution with real shell scripts
-- [ ] Test environment variable propagation
-- [ ] Test timeout behavior with slow scripts
+- [x] Create `tests/integration/test_hooks.py`
+- [x] Test hook execution with real shell scripts
+- [x] Test environment variable propagation
+- [x] Test timeout behavior with slow scripts
 
 ---
 
@@ -343,7 +343,46 @@ claude-opus-4-5-20251101
 
 ### Completion Notes List
 
+- Task 1: Created HookResult model with stdout, stderr, exit_code, duration_ms, hook_type fields. Added is_success computed property. Model validates hook_type as Literal["pre", "post"] and enforces non-negative duration. Tests cover all validation rules.
+- Task 2: Created build_hook_environment() function. Merges os.environ with ADW-specific variables (ADW_RUN_ID, ADW_PHASE, ADW_FEATURE, ADW_ARTIFACTS_DIR, ADW_CONTEXT_FILE). All values are strings for subprocess compatibility.
+- Task 3-5: Implemented HookRunner class with asyncio subprocess execution. Uses asyncio.create_subprocess_exec() with wait_for() for timeout. Captures stdout/stderr separately. Raises HookError with HOOK_FAILED or HOOK_TIMEOUT codes. Also implemented find_hook() for hook discovery with .sh and extensionless support.
+- Task 6: Unit tests complete with 31 tests, 100% coverage on hooks module. Added test fixtures at tests/fixtures/hooks/.
+- Task 7: Integration tests complete with 8 tests covering real script execution, env vars, timeout behavior. Total 327 tests passing with 89.91% overall coverage.
+
 ### File List
+
+- src/adw/models/hook.py (NEW)
+- src/adw/models/__init__.py (MODIFIED)
+- src/adw/hooks/__init__.py (MODIFIED)
+- src/adw/hooks/environment.py (NEW)
+- src/adw/hooks/runner.py (NEW)
+- tests/unit/hooks/__init__.py (NEW)
+- tests/unit/hooks/test_hook_result.py (NEW)
+- tests/unit/hooks/test_environment.py (NEW)
+- tests/unit/hooks/test_runner.py (NEW)
+- tests/fixtures/hooks/success.sh (NEW)
+- tests/fixtures/hooks/failure.sh (NEW)
+- tests/fixtures/hooks/slow.sh (NEW)
+- tests/fixtures/hooks/env_check.sh (NEW)
+- tests/integration/test_hooks.py (NEW)
+
+### Senior Developer Review (AI)
+
+**Review Date:** 2025-12-31
+**Reviewer:** Claude Opus 4.5
+**Outcome:** Approved with fixes applied
+
+**Issues Found & Resolved:**
+1. **[HIGH] Working directory mismatch** - Architecture spec required project root but code used hook parent. Fixed by adding `working_dir` parameter that defaults to `Path.cwd()` and can be overridden.
+2. **[MEDIUM] Ruff linting errors** - 4 violations (E501 line length, UP041 use builtin TimeoutError, B904 exception chaining). All fixed.
+3. **[MEDIUM] Missing exports in hooks/__init__.py** - Added exports for HookRunner, find_hook, build_hook_environment.
+4. **[LOW] Redundant validator** - Removed duplicate `@field_validator` for duration_ms since `ge=0` constraint handles it.
+
+**Verification:**
+- All 40 tests pass (added test_working_directory_override)
+- mypy strict mode: clean
+- ruff linting: clean
+- Hooks module coverage: 100%
 
 ---
 
