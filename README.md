@@ -11,6 +11,6 @@ uv sync
 ## Usage
 
 ```bash
-adw --help
-adw --version
+adw-final --help
+adw-final --version
 ```

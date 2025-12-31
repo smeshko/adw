@@ -5,7 +5,7 @@ from rich.console import Console
 
 console = Console()
 app = typer.Typer(
-    name="adw",
+    name="adw-final",
     help="Agentic Development Workflow SDK",
     add_completion=True,
 )
