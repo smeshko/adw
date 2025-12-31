@@ -288,3 +288,123 @@ class TestSubprocessExecution:
                 executor.execute("Test prompt")
 
             assert run_called, "asyncio.run() was not called"
+
+
+class TestRealTimeStreaming:
+    """Tests for real-time streaming output (Task 3)."""
+
+    @pytest.fixture
+    def executor(self) -> ClaudeCodeExecutor:
+        """Create executor with default config."""
+        config = LLMConfig(path="claude")
+        return ClaudeCodeExecutor(config)
+
+    def test_reads_stdout_line_by_line(self, executor: ClaudeCodeExecutor) -> None:
+        """Should read stdout line by line as it becomes available."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            # Simulate multiple lines being read
+            process.stdout.readline = AsyncMock(
+                side_effect=[
+                    b"First line\n",
+                    b"Second line\n",
+                    b"Third line\n",
+                    b"",  # EOF
+                ]
+            )
+            process.stderr.read = AsyncMock(return_value=b"")
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = asyncio.run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                result = executor.execute("Test prompt")
+
+            # Verify readline was called multiple times
+            assert process.stdout.readline.call_count >= 4
+            # Verify content includes all lines
+            assert "First line" in result.content
+            assert "Second line" in result.content
+            assert "Third line" in result.content
+
+    def test_forwards_output_to_rich_console(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Should forward output to Rich console in real-time."""
+        from rich.console import Console
+        from unittest.mock import MagicMock
+
+        mock_console = MagicMock(spec=Console)
+        executor.console = mock_console
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(
+                side_effect=[
+                    b"Output line\n",
+                    b"",  # EOF
+                ]
+            )
+            process.stderr.read = AsyncMock(return_value=b"")
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = asyncio.run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt")
+
+            # Verify console.print was called with output
+            mock_console.print.assert_called()
+
+    def test_streaming_does_not_block_on_empty_lines(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Streaming should handle empty lines without blocking."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            # Include empty lines in output
+            process.stdout.readline = AsyncMock(
+                side_effect=[
+                    b"Line 1\n",
+                    b"\n",  # Empty line
+                    b"Line 2\n",
+                    b"",  # EOF
+                ]
+            )
+            process.stderr.read = AsyncMock(return_value=b"")
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = asyncio.run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                result = executor.execute("Test prompt")
+
+            # Should complete without blocking
+            assert result.success is True
+            assert "Line 1" in result.content
+            assert "Line 2" in result.content
+
+    def test_accepts_custom_console(self) -> None:
+        """Executor should accept custom Rich console."""
+        from rich.console import Console
+
+        custom_console = Console(force_terminal=True)
+        config = LLMConfig(path="claude")
+        executor = ClaudeCodeExecutor(config, console=custom_console)
+
+        assert executor.console is custom_console

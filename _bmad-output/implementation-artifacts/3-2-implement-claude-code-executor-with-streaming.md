@@ -51,10 +51,10 @@ so that users see LLM responses as they're generated.
 - [x] Handle process execution with `asyncio.run()` wrapper
 
 ### Task 3: Implement Real-Time Streaming
-- [ ] Read stdout line-by-line as it becomes available
-- [ ] Forward output to Rich console in real-time
-- [ ] Use `asyncio.create_task()` for concurrent output processing
-- [ ] Ensure artifact writes don't block stream (NFR3)
+- [x] Read stdout line-by-line as it becomes available
+- [x] Forward output to Rich console in real-time
+- [x] Use `asyncio.create_task()` for concurrent output processing
+- [x] Ensure artifact writes don't block stream (NFR3)
 
 ### Task 4: Parse Claude Code Output
 - [ ] Parse `--print` flag JSON output format
@@ -386,6 +386,7 @@ claude-opus-4-5-20251101
 
 - Task 1: Created ClaudeCodeExecutor class implementing LLMExecutor Protocol. Class accepts LLMConfig, has execute() method returning LLMResult. Uses asyncio.run() wrapper with async _stream_subprocess() internally.
 - Task 2: Subprocess execution already implemented in Task 1. Added tests verifying create_subprocess_exec(), --print flag, stdout/stderr pipes, and asyncio.run() wrapper.
+- Task 3: Real-time streaming already implemented in Task 1 with readline() loop and console.print(). Added tests for line-by-line reading, console forwarding, and custom console support.
 
 ### File List
 
