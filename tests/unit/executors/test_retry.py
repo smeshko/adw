@@ -353,3 +353,94 @@ class TestAttemptTracking:
 
         result = LLMResult(success=True, content="test")
         assert result.attempt_count == 1
+
+
+class TestErrorMessages:
+    """Tests for enhanced error messages."""
+
+    def test_error_message_includes_attempt_count_plural(self) -> None:
+        """Test that error message includes attempt count (plural)."""
+        mock = MockExecutor()
+        # Configure to fail all 3 attempts
+        mock.configure_failures(
+            [
+                LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="Timeout occurred",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                ),
+            ]
+            * 3
+        )
+
+        config = RetryConfig(max_retries=3, base_delay_seconds=0.001)
+        retry = RetryExecutor(executor=mock, config=config)
+
+        with pytest.raises(LLMError) as exc_info:
+            retry.execute("test prompt")
+
+        assert "after 3 attempts" in str(exc_info.value.message)
+
+    def test_error_message_includes_attempt_count_singular(self) -> None:
+        """Test that error message uses singular 'attempt' for 1."""
+        mock = MockExecutor()
+        # Configure to fail with non-retryable error on first attempt
+        mock.configure_failures(
+            [
+                LLMError(
+                    code="LLM_ERROR",
+                    message="Non-retryable error",
+                    recoverable=False,
+                ),
+            ]
+        )
+
+        retry = RetryExecutor(executor=mock)
+
+        with pytest.raises(LLMError) as exc_info:
+            retry.execute("test prompt")
+
+        assert "after 1 attempt" in str(exc_info.value.message)
+
+    def test_original_error_preserved_as_cause(self) -> None:
+        """Test that original error is preserved as __cause__."""
+        mock = MockExecutor()
+        original_error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Original timeout",
+            timeout_seconds=300,
+            elapsed_seconds=300,
+        )
+        mock.configure_failures([original_error] * 3)
+
+        config = RetryConfig(max_retries=3, base_delay_seconds=0.001)
+        retry = RetryExecutor(executor=mock, config=config)
+
+        with pytest.raises(LLMError) as exc_info:
+            retry.execute("test prompt")
+
+        assert exc_info.value.__cause__ is not None
+        assert exc_info.value.__cause__.code == "LLM_TIMEOUT"
+
+    def test_non_retryable_error_fails_immediately(self) -> None:
+        """Test that non-retryable errors fail on first attempt."""
+        mock = MockExecutor()
+        mock.configure_failures(
+            [
+                LLMError(
+                    code="INVALID_PROMPT",
+                    message="Invalid prompt format",
+                    recoverable=False,
+                ),
+            ]
+        )
+
+        retry = RetryExecutor(executor=mock)
+
+        with pytest.raises(LLMError) as exc_info:
+            retry.execute("test prompt")
+
+        # Should fail after just 1 attempt
+        assert "after 1 attempt" in str(exc_info.value.message)
+        assert mock.call_count == 1
