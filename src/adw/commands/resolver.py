@@ -106,18 +106,13 @@ class CommandResolver:
         """
         try:
             # Use importlib.resources.files for Python 3.9+
-            defaults_path = files("adw") / "defaults" / "commands" / command_name
-            # Convert Traversable to Path
-            # The as_file context manager isn't needed for directory checks
-            if hasattr(defaults_path, "_path"):
-                # For installed packages
-                path = Path(str(defaults_path._path))
-            else:
-                # For editable installs and traversable objects
-                path = Path(str(defaults_path))
+            defaults_traversable = files("adw") / "defaults" / "commands" / command_name
+            # Convert Traversable to Path using str() - works for both
+            # installed packages and editable installs
+            path = Path(str(defaults_traversable))
             if path.is_dir():
                 return path
-        except (TypeError, AttributeError, FileNotFoundError):
+        except (TypeError, FileNotFoundError):
             pass
         return None
 

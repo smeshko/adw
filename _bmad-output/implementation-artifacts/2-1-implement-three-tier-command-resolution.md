@@ -380,4 +380,5 @@ Key patterns and rules from project context:
 - `src/adw/commands/__init__.py` - Added exports for CommandResolver, CommandLoader
 - `src/adw/models/__init__.py` - Added export for ResolvedCommand
 - `pyproject.toml` - Added hatch build configuration for package data
+- `.gitignore` - Added exception for bundled build command directory
 
