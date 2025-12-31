@@ -1182,6 +1182,7 @@ All blocking decisions have been made. Implementation can proceed.
 | OpenTelemetry integration | Distributed tracing support |
 | Plugin system architecture | Extensibility for custom phases |
 | Alternative executor support | OpenAI, local models |
+| Cross-project dashboard | Aggregate runs across all projects, token/cost tracking, analytics |
 
 ### Architecture Completeness Checklist
 
@@ -1227,6 +1228,7 @@ All blocking decisions have been made. Implementation can proceed.
 2. Webhook entry points for Linear/GitHub (post-MVP)
 3. Web/mobile evidence gathering (post-MVP)
 4. Plugin system for custom phases (post-MVP)
+5. Cross-project run visibility and dashboard (post-MVP) - See Epic 10
 
 ### Implementation Handoff
 
