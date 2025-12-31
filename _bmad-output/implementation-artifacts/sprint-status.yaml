@@ -70,7 +70,7 @@ development_status:
   #       retry, and timeout support
   # ═══════════════════════════════════════════════════════════════════════════
   epic-3: in-progress
-  3-1-execute-shell-hooks-with-capture: ready-for-dev
+  3-1-execute-shell-hooks-with-capture: review
   3-2-implement-claude-code-executor-with-streaming: ready-for-dev
   3-3-implement-retry-logic-with-exponential-backoff: ready-for-dev
   3-4-implement-timeout-configuration-and-enforcement: ready-for-dev
