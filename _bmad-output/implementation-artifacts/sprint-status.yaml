@@ -69,12 +69,12 @@ development_status:
   # Goal: Execute shell hooks and LLM calls within phases with streaming,
   #       retry, and timeout support
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-3: backlog
-  3-1-execute-shell-hooks-with-capture: backlog
-  3-2-implement-claude-code-executor-with-streaming: backlog
-  3-3-implement-retry-logic-with-exponential-backoff: backlog
-  3-4-implement-timeout-configuration-and-enforcement: backlog
-  3-5-track-token-usage-and-tool-calls: backlog
+  epic-3: in-progress
+  3-1-execute-shell-hooks-with-capture: ready-for-dev
+  3-2-implement-claude-code-executor-with-streaming: ready-for-dev
+  3-3-implement-retry-logic-with-exponential-backoff: ready-for-dev
+  3-4-implement-timeout-configuration-and-enforcement: ready-for-dev
+  3-5-track-token-usage-and-tool-calls: ready-for-dev
   epic-3-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

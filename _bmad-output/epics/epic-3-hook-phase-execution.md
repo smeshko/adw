@@ -149,3 +149,42 @@ So that I can monitor costs and understand what actions the LLM took.
 **Then** it's the sum of all phase executions
 
 ---
+
+## Epic 3: Dependency Flowchart
+
+```
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 1: Start Immediately (PARALLEL)                                        ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [3-1] Execute Shell Hooks     ║     [3-2] Claude Code Executor              ║
+║        with Capture            ║           with Streaming                    ║
+║                                ║                                             ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+                                 │
+                                 ▼
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 2: After 3-2 (PARALLEL x3)                                              ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [3-3] Retry Logic     ║  [3-4] Timeout Config    ║  [3-5] Token & Tool      ║
+║  w/ Exp. Backoff       ║  and Enforcement         ║  Call Tracking           ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+```
+
+### Wave Summary
+
+| Wave | Stories | Dependencies | Notes |
+|------|---------|--------------|-------|
+| **Wave 1** | 3.1, 3.2 | None | Can start immediately, run in parallel |
+| **Wave 2** | 3.3, 3.4, 3.5 | All depend on 3.2 | Can run in parallel after 3.2 completes |
+
+### Critical Path
+
+3.2 → (3.3, 3.4, 3.5)
+
+Story 3.2 (Claude Code Executor) is the critical path blocker for Wave 2.
+Story 3.1 (Shell Hooks) is independent and does not block other stories.
+
+---
