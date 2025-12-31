@@ -63,10 +63,10 @@ so that each phase has its complete, rendered prompt ready for LLM execution.
 - [x] Include rendered prompt content
 
 ### Task 6: Implement Optional Schema Loading
-- [ ] Load `schema.json` if present in command directory
-- [ ] Parse and validate as valid JSON Schema
-- [ ] Store in `LoadedCommand.schema` field
-- [ ] Return `None` if no schema file
+- [x] Load `schema.json` if present in command directory
+- [x] Parse and validate as valid JSON Schema
+- [x] Store in `LoadedCommand.output_schema` field
+- [x] Return `None` if no schema file
 
 ### Task 7: Write Unit Tests
 - [ ] Test basic prompt loading from resolved directory

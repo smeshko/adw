@@ -325,3 +325,51 @@ class TestLoadedCommandModel:
         )
         assert loaded.has_pre_hook is False
         assert loaded.has_post_hook is False
+
+
+class TestSchemaLoading:
+    """Tests for optional schema.json loading."""
+
+    def test_load_schema_returns_parsed_json(self, tmp_path: Path) -> None:
+        """_load_schema returns parsed JSON when schema.json exists."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+        (cmd_dir / "schema.json").write_text(
+            '{"type": "object", "properties": {"result": {"type": "string"}}}',
+            encoding="utf-8",
+        )
+
+        loader = CommandLoader(project_root=tmp_path)
+        resolved = loader.resolver.resolve("plan")
+        schema = loader._load_schema(resolved)
+
+        assert schema is not None
+        assert schema["type"] == "object"
+        assert "properties" in schema
+
+    def test_load_schema_returns_none_when_missing(self, tmp_path: Path) -> None:
+        """_load_schema returns None when schema.json doesn't exist."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+
+        loader = CommandLoader(project_root=tmp_path)
+        resolved = loader.resolver.resolve("plan")
+        schema = loader._load_schema(resolved)
+
+        assert schema is None
+
+    def test_load_schema_raises_on_invalid_json(self, tmp_path: Path) -> None:
+        """_load_schema raises ConfigError for invalid JSON."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+        (cmd_dir / "schema.json").write_text("not valid json {", encoding="utf-8")
+
+        loader = CommandLoader(project_root=tmp_path)
+        resolved = loader.resolver.resolve("plan")
+
+        with pytest.raises(ConfigError) as exc_info:
+            loader._load_schema(resolved)
+        assert exc_info.value.code == "INVALID_SCHEMA"

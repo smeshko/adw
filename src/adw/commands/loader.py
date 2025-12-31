@@ -8,14 +8,16 @@ The loader integrates:
 - TemplateEngine (from Story 2.2) for variable substitution and file inclusion
 """
 
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
+from adw.exceptions import ConfigError
 
 if TYPE_CHECKING:
-    from adw.models import RunContext
+    from adw.models import ResolvedCommand, RunContext
 
 
 class CommandLoader:
@@ -128,3 +130,29 @@ class CommandLoader:
             "artifacts": context.artifacts,
             "pre_hook_output": pre_hook_output,
         }
+
+    def _load_schema(self, resolved: "ResolvedCommand") -> dict[str, Any] | None:
+        """Load optional schema.json from command directory.
+
+        Args:
+            resolved: The resolved command with path information.
+
+        Returns:
+            Parsed JSON Schema dict if schema.json exists, None otherwise.
+
+        Raises:
+            ConfigError: If schema.json exists but contains invalid JSON.
+        """
+        schema_path = resolved.path / "schema.json"
+
+        if not schema_path.exists():
+            return None
+
+        try:
+            schema_content = schema_path.read_text(encoding="utf-8")
+            return json.loads(schema_content)
+        except json.JSONDecodeError as e:
+            raise ConfigError(
+                code="INVALID_SCHEMA",
+                message=f"Invalid JSON in schema.json at {schema_path}: {e}",
+            ) from e
