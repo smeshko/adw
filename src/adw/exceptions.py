@@ -113,3 +113,75 @@ class ConfigError(ADWError):
             suggestion=suggestion,
             recoverable=recoverable,
         )
+
+
+class HookError(ADWError):
+    """Exception for hook script execution failures.
+
+    Used when pre-hooks or post-hooks fail during phase execution.
+    Includes additional context about the hook execution.
+
+    Common error codes:
+    - HOOK_FAILED: Hook script exited with non-zero status
+    - HOOK_TIMEOUT: Hook script exceeded timeout
+
+    Example:
+        >>> raise HookError(
+        ...     code="HOOK_FAILED",
+        ...     message="Pre-hook exited with code 1",
+        ...     suggestion="Check hook script for errors",
+        ...     phase="build",
+        ...     exit_code=1,
+        ...     stderr="Permission denied",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        phase: str,
+        exit_code: int | None = None,
+        stdout: str = "",
+        stderr: str = "",
+        suggestion: str | None = None,
+        recoverable: bool = False,
+    ) -> None:
+        """Initialize a HookError.
+
+        Args:
+            code: Unique error code (e.g., "HOOK_FAILED").
+            message: Human-readable error message.
+            phase: The phase where the hook failed (e.g., "build").
+            exit_code: The exit code of the hook script, if available.
+            stdout: Captured stdout from the hook execution.
+            stderr: Captured stderr from the hook execution.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default False).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
+        self.phase = phase
+        self.exit_code = exit_code
+        self.stdout = stdout
+        self.stderr = stderr
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize error to dictionary for structured logging.
+
+        Returns:
+            Dictionary containing all error attributes including hook-specific fields.
+        """
+        d = super().to_dict()
+        d.update({
+            "phase": self.phase,
+            "exit_code": self.exit_code,
+            "stdout": self.stdout,
+            "stderr": self.stderr,
+        })
+        return d

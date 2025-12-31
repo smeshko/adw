@@ -2,7 +2,7 @@
 
 import pytest
 
-from adw.exceptions import ADWError, ConfigError
+from adw.exceptions import ADWError, ConfigError, HookError
 
 
 class TestADWErrorBase:
@@ -143,3 +143,99 @@ class TestConfigError:
         d = error.to_dict()
         assert d["code"] == "INVALID_CONFIG"
         assert d["recoverable"] is False
+
+
+class TestHookError:
+    """Tests for HookError exception."""
+
+    def test_hook_error_is_adw_error(self) -> None:
+        """HookError inherits from ADWError."""
+        error = HookError(
+            code="HOOK_FAILED",
+            message="Pre-hook failed",
+            phase="build",
+        )
+        assert isinstance(error, ADWError)
+        assert isinstance(error, Exception)
+
+    def test_hook_error_has_phase_field(self) -> None:
+        """HookError includes phase field."""
+        error = HookError(
+            code="HOOK_FAILED",
+            message="Pre-hook failed",
+            phase="build",
+        )
+        assert error.phase == "build"
+
+    def test_hook_error_has_exit_code(self) -> None:
+        """HookError includes exit_code field."""
+        error = HookError(
+            code="HOOK_FAILED",
+            message="Pre-hook failed",
+            phase="build",
+            exit_code=1,
+        )
+        assert error.exit_code == 1
+
+    def test_hook_error_exit_code_default_none(self) -> None:
+        """HookError exit_code defaults to None."""
+        error = HookError(
+            code="HOOK_FAILED",
+            message="Pre-hook failed",
+            phase="build",
+        )
+        assert error.exit_code is None
+
+    def test_hook_error_has_stdout_stderr(self) -> None:
+        """HookError includes stdout and stderr fields."""
+        error = HookError(
+            code="HOOK_FAILED",
+            message="Pre-hook failed",
+            phase="build",
+            stdout="output text",
+            stderr="error text",
+        )
+        assert error.stdout == "output text"
+        assert error.stderr == "error text"
+
+    def test_hook_error_stdout_stderr_defaults(self) -> None:
+        """HookError stdout and stderr default to empty string."""
+        error = HookError(
+            code="HOOK_FAILED",
+            message="Pre-hook failed",
+            phase="build",
+        )
+        assert error.stdout == ""
+        assert error.stderr == ""
+
+    def test_hook_error_not_recoverable_by_default(self) -> None:
+        """HookError is not recoverable by default."""
+        error = HookError(
+            code="HOOK_FAILED",
+            message="Pre-hook failed",
+            phase="build",
+        )
+        assert error.recoverable is False
+
+    def test_hook_error_common_codes(self) -> None:
+        """HookError works with common error codes."""
+        codes = ["HOOK_FAILED", "HOOK_TIMEOUT"]
+        for code in codes:
+            error = HookError(code=code, message=f"Error with {code}", phase="test")
+            assert error.code == code
+
+    def test_hook_error_to_dict_includes_extra_fields(self) -> None:
+        """HookError to_dict includes phase, exit_code, stdout, stderr."""
+        error = HookError(
+            code="HOOK_FAILED",
+            message="Failed",
+            phase="build",
+            exit_code=1,
+            stdout="out",
+            stderr="err",
+        )
+        d = error.to_dict()
+        assert d["phase"] == "build"
+        assert d["exit_code"] == 1
+        assert d["stdout"] == "out"
+        assert d["stderr"] == "err"

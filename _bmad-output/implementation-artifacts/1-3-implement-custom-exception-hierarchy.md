@@ -50,10 +50,10 @@ so that error handling is consistent and errors are actionable.
 - [x] Add common error codes: CONFIG_NOT_FOUND, INVALID_CONFIG, COMMAND_NOT_FOUND
 
 ### Task 3: Implement HookError
-- [ ] Create HookError subclass with phase field
-- [ ] Add exit_code field for hook exit status
-- [ ] Add stdout/stderr fields for debugging
-- [ ] Add common error codes: HOOK_FAILED, HOOK_TIMEOUT
+- [x] Create HookError subclass with phase field
+- [x] Add exit_code field for hook exit status
+- [x] Add stdout/stderr fields for debugging
+- [x] Add common error codes: HOOK_FAILED, HOOK_TIMEOUT
 
 ### Task 4: Implement LLMError Hierarchy
 - [ ] Create LLMError base class for Claude Code issues
