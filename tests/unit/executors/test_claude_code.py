@@ -23,30 +23,38 @@ def executor() -> ClaudeCodeExecutor:
 class TestTokenExtraction:
     """Tests for extracting token usage from Claude Code output."""
 
-    def test_extracts_tokens_from_result_message(self, executor: ClaudeCodeExecutor) -> None:
+    def test_extracts_tokens_from_result_message(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """Tokens are extracted from result message with usage field."""
-        output = json.dumps({
-            "type": "result",
-            "text": "Hello, World!",
-            "usage": {
-                "input_tokens": 100,
-                "output_tokens": 50,
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "result",
+                "text": "Hello, World!",
+                "usage": {
+                    "input_tokens": 100,
+                    "output_tokens": 50,
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
         assert parsed["tokens_used"] == 150  # 100 + 50
 
-    def test_extracts_tokens_from_message_delta(self, executor: ClaudeCodeExecutor) -> None:
+    def test_extracts_tokens_from_message_delta(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """Tokens are extracted from message_delta with usage field."""
-        output = json.dumps({
-            "type": "message_delta",
-            "usage": {
-                "input_tokens": 200,
-                "output_tokens": 300,
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "message_delta",
+                "usage": {
+                    "input_tokens": 200,
+                    "output_tokens": 300,
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
@@ -54,16 +62,20 @@ class TestTokenExtraction:
 
     def test_defaults_to_zero_when_no_usage(self, executor: ClaudeCodeExecutor) -> None:
         """Tokens default to 0 when no usage field present."""
-        output = json.dumps({
-            "type": "result",
-            "text": "Response without usage",
-        })
+        output = json.dumps(
+            {
+                "type": "result",
+                "text": "Response without usage",
+            }
+        )
 
         parsed = executor._parse_output(output)
 
         assert parsed["tokens_used"] == 0
 
-    def test_defaults_to_zero_for_plain_text(self, executor: ClaudeCodeExecutor) -> None:
+    def test_defaults_to_zero_for_plain_text(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """Tokens default to 0 for non-JSON plain text output."""
         output = "This is plain text output without JSON"
 
@@ -79,48 +91,64 @@ class TestTokenExtraction:
 
         assert parsed["tokens_used"] == 0
 
-    def test_handles_partial_usage_only_input(self, executor: ClaudeCodeExecutor) -> None:
+    def test_handles_partial_usage_only_input(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """Handles usage with only input_tokens."""
-        output = json.dumps({
-            "type": "result",
-            "usage": {
-                "input_tokens": 100,
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "result",
+                "usage": {
+                    "input_tokens": 100,
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
         assert parsed["tokens_used"] == 100
 
-    def test_handles_partial_usage_only_output(self, executor: ClaudeCodeExecutor) -> None:
+    def test_handles_partial_usage_only_output(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """Handles usage with only output_tokens."""
-        output = json.dumps({
-            "type": "result",
-            "usage": {
-                "output_tokens": 200,
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "result",
+                "usage": {
+                    "output_tokens": 200,
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
         assert parsed["tokens_used"] == 200
 
-    def test_multiline_jsonl_takes_last_usage(self, executor: ClaudeCodeExecutor) -> None:
+    def test_multiline_jsonl_takes_last_usage(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """With multiple messages, the last usage value is used."""
         lines = [
-            json.dumps({
-                "type": "assistant",
-                "message": {"content": [{"type": "text", "text": "First"}]},
-            }),
-            json.dumps({
-                "type": "message_delta",
-                "usage": {"input_tokens": 50, "output_tokens": 50},
-            }),
-            json.dumps({
-                "type": "result",
-                "text": "Final",
-                "usage": {"input_tokens": 100, "output_tokens": 200},
-            }),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": [{"type": "text", "text": "First"}]},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "message_delta",
+                    "usage": {"input_tokens": 50, "output_tokens": 50},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "result",
+                    "text": "Final",
+                    "usage": {"input_tokens": 100, "output_tokens": 200},
+                }
+            ),
         ]
         output = "\n".join(lines)
 
@@ -133,20 +161,24 @@ class TestTokenExtraction:
 class TestToolCallExtraction:
     """Tests for extracting tool calls from Claude Code output."""
 
-    def test_extracts_tool_calls_from_assistant_message(self, executor: ClaudeCodeExecutor) -> None:
+    def test_extracts_tool_calls_from_assistant_message(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """Tool calls are extracted from assistant message content blocks."""
-        output = json.dumps({
-            "type": "assistant",
-            "message": {
-                "content": [
-                    {
-                        "type": "tool_use",
-                        "name": "read_file",
-                        "input": {"path": "/src/main.py"},
-                    },
-                ],
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "name": "read_file",
+                            "input": {"path": "/src/main.py"},
+                        },
+                    ],
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
@@ -156,23 +188,25 @@ class TestToolCallExtraction:
 
     def test_extracts_multiple_tool_calls(self, executor: ClaudeCodeExecutor) -> None:
         """Multiple tool calls in one message are all extracted."""
-        output = json.dumps({
-            "type": "assistant",
-            "message": {
-                "content": [
-                    {
-                        "type": "tool_use",
-                        "name": "read_file",
-                        "input": {"path": "/src/main.py"},
-                    },
-                    {
-                        "type": "tool_use",
-                        "name": "write_file",
-                        "input": {"path": "/src/new.py", "content": "code"},
-                    },
-                ],
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "name": "read_file",
+                            "input": {"path": "/src/main.py"},
+                        },
+                        {
+                            "type": "tool_use",
+                            "name": "write_file",
+                            "input": {"path": "/src/new.py", "content": "code"},
+                        },
+                    ],
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
@@ -180,20 +214,24 @@ class TestToolCallExtraction:
         assert parsed["tool_calls"][0].tool_name == "read_file"
         assert parsed["tool_calls"][1].tool_name == "write_file"
 
-    def test_tool_call_result_summary_is_none(self, executor: ClaudeCodeExecutor) -> None:
+    def test_tool_call_result_summary_is_none(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """Tool calls from output don't have result summary initially."""
-        output = json.dumps({
-            "type": "assistant",
-            "message": {
-                "content": [
-                    {
-                        "type": "tool_use",
-                        "name": "bash",
-                        "input": {"command": "ls -la"},
-                    },
-                ],
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "name": "bash",
+                            "input": {"command": "ls -la"},
+                        },
+                    ],
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
@@ -201,32 +239,38 @@ class TestToolCallExtraction:
 
     def test_handles_empty_tool_arguments(self, executor: ClaudeCodeExecutor) -> None:
         """Tool calls with no arguments have empty dict."""
-        output = json.dumps({
-            "type": "assistant",
-            "message": {
-                "content": [
-                    {
-                        "type": "tool_use",
-                        "name": "get_cwd",
-                    },
-                ],
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "name": "get_cwd",
+                        },
+                    ],
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
         assert parsed["tool_calls"][0].arguments == {}
 
-    def test_no_tool_calls_returns_empty_list(self, executor: ClaudeCodeExecutor) -> None:
+    def test_no_tool_calls_returns_empty_list(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """No tool_use blocks returns empty tool_calls list."""
-        output = json.dumps({
-            "type": "assistant",
-            "message": {
-                "content": [
-                    {"type": "text", "text": "Just a text response"},
-                ],
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "Just a text response"},
+                    ],
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
@@ -237,22 +281,34 @@ class TestToolCallExtraction:
     ) -> None:
         """Tool calls from multiple assistant messages are accumulated."""
         lines = [
-            json.dumps({
-                "type": "assistant",
-                "message": {
-                    "content": [
-                        {"type": "tool_use", "name": "read_file", "input": {"path": "a.py"}},
-                    ],
-                },
-            }),
-            json.dumps({
-                "type": "assistant",
-                "message": {
-                    "content": [
-                        {"type": "tool_use", "name": "write_file", "input": {"path": "b.py"}},
-                    ],
-                },
-            }),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "tool_use",
+                                "name": "read_file",
+                                "input": {"path": "a.py"},
+                            },
+                        ],
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "tool_use",
+                                "name": "write_file",
+                                "input": {"path": "b.py"},
+                            },
+                        ],
+                    },
+                }
+            ),
         ]
         output = "\n".join(lines)
 
@@ -262,17 +318,19 @@ class TestToolCallExtraction:
 
     def test_handles_unknown_tool_name(self, executor: ClaudeCodeExecutor) -> None:
         """Tool calls with missing name default to 'unknown'."""
-        output = json.dumps({
-            "type": "assistant",
-            "message": {
-                "content": [
-                    {
-                        "type": "tool_use",
-                        "input": {"arg": "value"},
-                    },
-                ],
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "input": {"arg": "value"},
+                        },
+                    ],
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
@@ -282,41 +340,53 @@ class TestToolCallExtraction:
 class TestContentExtraction:
     """Tests for extracting text content from Claude Code output."""
 
-    def test_extracts_text_from_assistant_message(self, executor: ClaudeCodeExecutor) -> None:
+    def test_extracts_text_from_assistant_message(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """Text content is extracted from assistant message blocks."""
-        output = json.dumps({
-            "type": "assistant",
-            "message": {
-                "content": [
-                    {"type": "text", "text": "Hello, World!"},
-                ],
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "Hello, World!"},
+                    ],
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
         assert parsed["content"] == "Hello, World!"
 
-    def test_extracts_text_from_result_message(self, executor: ClaudeCodeExecutor) -> None:
+    def test_extracts_text_from_result_message(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """Text content is extracted from result message."""
-        output = json.dumps({
-            "type": "result",
-            "text": "Final result text",
-        })
+        output = json.dumps(
+            {
+                "type": "result",
+                "text": "Final result text",
+            }
+        )
 
         parsed = executor._parse_output(output)
 
         assert parsed["content"] == "Final result text"
 
-    def test_extracts_text_from_content_block_delta(self, executor: ClaudeCodeExecutor) -> None:
+    def test_extracts_text_from_content_block_delta(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """Text content is extracted from streaming deltas."""
-        output = json.dumps({
-            "type": "content_block_delta",
-            "delta": {
-                "type": "text_delta",
-                "text": "Streaming text",
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "content_block_delta",
+                "delta": {
+                    "type": "text_delta",
+                    "text": "Streaming text",
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
@@ -325,15 +395,17 @@ class TestContentExtraction:
     def test_combines_multiple_text_blocks(self, executor: ClaudeCodeExecutor) -> None:
         """Multiple text blocks are combined."""
         lines = [
-            json.dumps({
-                "type": "assistant",
-                "message": {
-                    "content": [
-                        {"type": "text", "text": "Part 1"},
-                        {"type": "text", "text": " Part 2"},
-                    ],
-                },
-            }),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {"type": "text", "text": "Part 1"},
+                            {"type": "text", "text": " Part 2"},
+                        ],
+                    },
+                }
+            ),
         ]
         output = "\n".join(lines)
 
@@ -349,7 +421,9 @@ class TestContentExtraction:
 
         assert parsed["content"] == "This is plain text"
 
-    def test_handles_mixed_json_and_plain_text(self, executor: ClaudeCodeExecutor) -> None:
+    def test_handles_mixed_json_and_plain_text(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """Mix of JSON and plain text lines."""
         lines = [
             "Plain text line",
@@ -395,10 +469,12 @@ class TestMalformedOutput:
 
     def test_handles_missing_message_field(self, executor: ClaudeCodeExecutor) -> None:
         """Assistant message without 'message' field is handled gracefully."""
-        output = json.dumps({
-            "type": "assistant",
-            # Missing "message" field
-        })
+        output = json.dumps(
+            {
+                "type": "assistant",
+                # Missing "message" field
+            }
+        )
 
         parsed = executor._parse_output(output)
 
@@ -407,12 +483,14 @@ class TestMalformedOutput:
 
     def test_handles_empty_content_array(self, executor: ClaudeCodeExecutor) -> None:
         """Empty content array in assistant message."""
-        output = json.dumps({
-            "type": "assistant",
-            "message": {
-                "content": [],
-            },
-        })
+        output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [],
+                },
+            }
+        )
 
         parsed = executor._parse_output(output)
 
@@ -421,10 +499,12 @@ class TestMalformedOutput:
 
     def test_handles_unknown_message_type(self, executor: ClaudeCodeExecutor) -> None:
         """Unknown message type is ignored without error."""
-        output = json.dumps({
-            "type": "unknown_type",
-            "data": "some data",
-        })
+        output = json.dumps(
+            {
+                "type": "unknown_type",
+                "data": "some data",
+            }
+        )
 
         parsed = executor._parse_output(output)
 

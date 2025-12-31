@@ -91,7 +91,9 @@ class TestTokenTrackingIntegration:
             assert parsed["tokens_used"] >= 0, f"Negative tokens in {fixture_file.name}"
 
             # Tokens should be within reasonable range (< 100k for typical requests)
-            assert parsed["tokens_used"] < 100000, f"Unreasonable token count in {fixture_file.name}"
+            assert parsed["tokens_used"] < 100000, (
+                f"Unreasonable token count in {fixture_file.name}"
+            )
 
     def test_phase_result_with_real_data(
         self, executor: ClaudeCodeExecutor, fixtures_path: Path
