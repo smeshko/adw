@@ -39,10 +39,10 @@ so that error handling is consistent and errors are actionable.
 ## Tasks / Subtasks
 
 ### Task 1: Create ADWError Base Class
-- [ ] Define ADWError with code, message, suggestion, recoverable attributes
-- [ ] Implement __str__ for user-friendly formatting
-- [ ] Implement to_dict() for structured logging
-- [ ] Add type hints for all attributes
+- [x] Define ADWError with code, message, suggestion, recoverable attributes
+- [x] Implement __str__ for user-friendly formatting
+- [x] Implement to_dict() for structured logging
+- [x] Add type hints for all attributes
 
 ### Task 2: Implement ConfigError
 - [ ] Create ConfigError subclass for configuration issues
