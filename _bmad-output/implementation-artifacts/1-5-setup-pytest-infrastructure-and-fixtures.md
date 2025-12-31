@@ -49,11 +49,11 @@ so that I can write and run tests following the 60/30/10 pyramid.
 - [x] Set python_files, python_classes, python_functions patterns
 
 ### Task 2: Create conftest.py with Core Fixtures
-- [ ] Create tests/conftest.py
-- [ ] Add tmp_adw_dir fixture using tmp_path
-- [ ] Add mock_executor fixture returning MockExecutor
-- [ ] Add sample_run_context fixture with valid test data
-- [ ] Add sample_project_config fixture
+- [x] Create tests/conftest.py
+- [x] Add tmp_adw_dir fixture using tmp_path
+- [x] Add mock_executor fixture returning MockExecutor
+- [x] Add sample_run_context fixture with valid test data
+- [x] Add sample_project_config fixture
 
 ### Task 3: Create Test Data Fixtures Directory
 - [ ] Create tests/fixtures/ directory
