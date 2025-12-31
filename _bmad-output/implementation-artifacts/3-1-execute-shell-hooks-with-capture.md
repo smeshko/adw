@@ -1,6 +1,6 @@
 # Story 3.1: Execute Shell Hooks with Capture
 
-Status: Ready for Review
+Status: Done
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2025-12-31
@@ -353,6 +353,7 @@ claude-opus-4-5-20251101
 
 - src/adw/models/hook.py (NEW)
 - src/adw/models/__init__.py (MODIFIED)
+- src/adw/hooks/__init__.py (MODIFIED)
 - src/adw/hooks/environment.py (NEW)
 - src/adw/hooks/runner.py (NEW)
 - tests/unit/hooks/__init__.py (NEW)
@@ -364,6 +365,24 @@ claude-opus-4-5-20251101
 - tests/fixtures/hooks/slow.sh (NEW)
 - tests/fixtures/hooks/env_check.sh (NEW)
 - tests/integration/test_hooks.py (NEW)
+
+### Senior Developer Review (AI)
+
+**Review Date:** 2025-12-31
+**Reviewer:** Claude Opus 4.5
+**Outcome:** Approved with fixes applied
+
+**Issues Found & Resolved:**
+1. **[HIGH] Working directory mismatch** - Architecture spec required project root but code used hook parent. Fixed by adding `working_dir` parameter that defaults to `Path.cwd()` and can be overridden.
+2. **[MEDIUM] Ruff linting errors** - 4 violations (E501 line length, UP041 use builtin TimeoutError, B904 exception chaining). All fixed.
+3. **[MEDIUM] Missing exports in hooks/__init__.py** - Added exports for HookRunner, find_hook, build_hook_environment.
+4. **[LOW] Redundant validator** - Removed duplicate `@field_validator` for duration_ms since `ge=0` constraint handles it.
+
+**Verification:**
+- All 40 tests pass (added test_working_directory_override)
+- mypy strict mode: clean
+- ruff linting: clean
+- Hooks module coverage: 100%
 
 ---
 

@@ -53,6 +53,7 @@ class HookRunner:
         timeout: int | None = None,
         artifacts_dir: Path | None = None,
         context_file: Path | None = None,
+        working_dir: Path | None = None,
     ) -> HookResult:
         """Execute a hook script and capture its output.
 
@@ -67,6 +68,7 @@ class HookRunner:
             timeout: Optional timeout override in seconds (uses config default if None)
             artifacts_dir: Optional path to artifacts directory for ADW_ARTIFACTS_DIR
             context_file: Optional path to context file for ADW_CONTEXT_FILE
+            working_dir: Working directory for hook execution (defaults to project root)
 
         Returns:
             HookResult with captured stdout, stderr, exit code, and timing
@@ -83,6 +85,7 @@ class HookRunner:
                 timeout=timeout,
                 artifacts_dir=artifacts_dir,
                 context_file=context_file,
+                working_dir=working_dir,
             )
         )
 
@@ -95,6 +98,7 @@ class HookRunner:
         timeout: int | None,
         artifacts_dir: Path | None,
         context_file: Path | None,
+        working_dir: Path | None,
     ) -> HookResult:
         """Internal async implementation of hook execution.
 
@@ -106,6 +110,7 @@ class HookRunner:
             timeout: Timeout in seconds (None uses config default)
             artifacts_dir: Optional artifacts directory path
             context_file: Optional context file path
+            working_dir: Working directory (defaults to current directory)
 
         Returns:
             HookResult on successful execution
@@ -114,7 +119,9 @@ class HookRunner:
             HookError: On execution failure or timeout
         """
         # Use timeout from parameter or fall back to config
-        effective_timeout = timeout if timeout is not None else self.config.timeout_seconds
+        effective_timeout = (
+            timeout if timeout is not None else self.config.timeout_seconds
+        )
 
         # Build environment variables
         env = build_hook_environment(
@@ -124,8 +131,8 @@ class HookRunner:
             context_file=context_file,
         )
 
-        # Get working directory (parent of hook script)
-        cwd = hook_path.parent
+        # Use provided working directory or default to current directory
+        cwd = working_dir if working_dir is not None else Path.cwd()
 
         start_time = time.perf_counter()
 
@@ -145,7 +152,7 @@ class HookRunner:
                 process.communicate(),
                 timeout=effective_timeout,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             # Kill the process on timeout
             process.kill()
             await process.wait()
@@ -154,14 +161,14 @@ class HookRunner:
 
             raise HookError(
                 code="HOOK_TIMEOUT",
-                message=f"Hook script timed out after {effective_timeout} seconds",
+                message=f"Hook timed out after {effective_timeout}s",
                 phase=phase,
                 exit_code=None,
                 stdout="",
                 stderr="",
-                suggestion=f"Increase timeout or optimize the {hook_type}-hook script",
+                suggestion=f"Increase timeout or optimize {hook_type}-hook script",
                 recoverable=False,
-            )
+            ) from None
 
         duration_ms = int((time.perf_counter() - start_time) * 1000)
         stdout = stdout_bytes.decode("utf-8", errors="replace")
@@ -177,7 +184,7 @@ class HookRunner:
                 exit_code=exit_code,
                 stdout=stdout,
                 stderr=stderr,
-                suggestion=f"Check the {hook_type}-hook script at {hook_path} for errors",
+                suggestion=f"Check {hook_type}-hook script at {hook_path}",
                 recoverable=False,
             )
 

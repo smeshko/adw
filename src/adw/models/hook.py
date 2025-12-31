@@ -6,7 +6,7 @@ used when running pre-hook and post-hook shell scripts.
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class HookResult(BaseModel):
@@ -55,24 +55,6 @@ class HookResult(BaseModel):
         ...,
         description="Type of hook ('pre' or 'post')",
     )
-
-    @field_validator("duration_ms")
-    @classmethod
-    def validate_duration(cls, v: int) -> int:
-        """Validate that duration is non-negative.
-
-        Args:
-            v: Duration value to validate
-
-        Returns:
-            Validated duration value
-
-        Raises:
-            ValueError: If duration is negative
-        """
-        if v < 0:
-            raise ValueError("duration_ms must be non-negative")
-        return v
 
     @property
     def is_success(self) -> bool:

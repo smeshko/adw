@@ -187,13 +187,13 @@ class TestHookIntegration:
         # HOME should also be inherited
         assert f"HOME={os.environ.get('HOME', '')}" in result.stdout
 
-    def test_working_directory_is_hook_parent(
+    def test_working_directory_default_is_cwd(
         self,
         hook_config: HookConfig,
         run_context: RunContext,
         tmp_path: Path,
     ) -> None:
-        """Test that hook's working directory is its parent directory."""
+        """Test that hook's working directory defaults to current directory."""
         hook_dir = tmp_path / "hooks"
         hook_dir.mkdir()
         hook_path = hook_dir / "check_cwd.sh"
@@ -204,4 +204,29 @@ class TestHookIntegration:
         result = runner.run_hook(hook_path, run_context, "test")
 
         assert result.is_success
-        assert str(hook_dir) in result.stdout
+        # Default working directory is cwd
+        assert str(Path.cwd()) in result.stdout
+
+    def test_working_directory_override(
+        self,
+        hook_config: HookConfig,
+        run_context: RunContext,
+        tmp_path: Path,
+    ) -> None:
+        """Test that working_dir parameter overrides default."""
+        hook_dir = tmp_path / "hooks"
+        hook_dir.mkdir()
+        hook_path = hook_dir / "check_cwd.sh"
+        hook_path.write_text("#!/bin/bash\npwd\n")
+        hook_path.chmod(hook_path.stat().st_mode | stat.S_IEXEC)
+
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+
+        runner = HookRunner(hook_config)
+        result = runner.run_hook(
+            hook_path, run_context, "test", working_dir=project_root
+        )
+
+        assert result.is_success
+        assert str(project_root) in result.stdout
