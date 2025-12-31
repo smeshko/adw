@@ -35,15 +35,15 @@ so that each phase has its complete, rendered prompt ready for LLM execution.
 ## Tasks / Subtasks
 
 ### Task 1: Create Command Loader Module
-- [ ] Create `src/adw/commands/loader.py` with `CommandLoader` class
-- [ ] Export `CommandLoader` from `src/adw/commands/__init__.py`
-- [ ] Integrate with `CommandResolver` from Story 2.1
+- [x] Create `src/adw/commands/loader.py` with `CommandLoader` class
+- [x] Export `CommandLoader` from `src/adw/commands/__init__.py`
+- [x] Integrate with `CommandResolver` from Story 2.1
 
 ### Task 2: Implement Prompt Loading
-- [ ] Implement `load_prompt(phase: str, context: RunContext) -> str`
-- [ ] Resolve command using `CommandResolver`
-- [ ] Read `prompt.md` from resolved directory
-- [ ] Handle file encoding (UTF-8)
+- [x] Implement `load_prompt(phase: str, context: RunContext) -> str`
+- [x] Resolve command using `CommandResolver`
+- [x] Read `prompt.md` from resolved directory
+- [x] Handle file encoding (UTF-8)
 
 ### Task 3: Implement Context Building
 - [ ] Build template context dict from `RunContext`
