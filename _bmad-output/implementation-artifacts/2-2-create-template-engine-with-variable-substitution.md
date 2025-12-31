@@ -51,10 +51,10 @@ so that prompts can include dynamic content from the run context.
 - [x] Implement `render(template: str, context: dict) -> str`
 
 ### Task 3: Implement File Inclusion Pattern
-- [ ] Define regex pattern for `{{file:relative/path}}` syntax
-- [ ] Resolve paths relative to project root
-- [ ] Read and include file content
-- [ ] Raise `ConfigError(code="TEMPLATE_FILE_NOT_FOUND")` for missing files
+- [x] Define regex pattern for `{{file:relative/path}}` syntax
+- [x] Resolve paths relative to project root
+- [x] Read and include file content
+- [x] Raise `ConfigError(code="TEMPLATE_FILE_NOT_FOUND")` for missing files
 
 ### Task 4: Implement Strict vs Lenient Mode
 - [ ] Add `strict: bool = True` parameter to render method

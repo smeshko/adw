@@ -58,9 +58,9 @@ so that users can override any command at the appropriate level.
 - [x] Return `ResolvedCommand` with `tier` indicating which level matched
 
 ### Task 4: Implement Error Handling
-- [ ] Raise `ConfigError(code="COMMAND_NOT_FOUND")` when command not found at any tier
-- [ ] Include `suggestion` field with available commands
-- [ ] Include command name in error message
+- [x] Raise `ConfigError(code="COMMAND_NOT_FOUND")` when command not found at any tier
+- [x] Include `suggestion` field with available commands
+- [x] Include command name in error message
 
 ### Task 5: Implement Command Directory Validation
 - [ ] Verify `prompt.md` exists in resolved directory (required)
