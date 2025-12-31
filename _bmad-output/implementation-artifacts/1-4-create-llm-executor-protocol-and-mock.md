@@ -54,11 +54,11 @@ so that I can write deterministic tests without calling Claude Code.
 - [x] Add ToolCall model for tool call tracking
 
 ### Task 4: Implement MockExecutor
-- [ ] Create MockExecutor class implementing LLMExecutor
-- [ ] Implement configure_responses() method
-- [ ] Implement configure_failures() method
-- [ ] Implement execute() method with queue handling
-- [ ] Track call_count, last_prompt, all_prompts
+- [x] Create MockExecutor class implementing LLMExecutor
+- [x] Implement configure_responses() method
+- [x] Implement configure_failures() method
+- [x] Implement execute() method with queue handling
+- [x] Track call_count, last_prompt, all_prompts
 
 ### Task 5: Add Assertion Helpers
 - [ ] Add assert_called_once() method
