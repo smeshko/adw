@@ -43,10 +43,10 @@ so that temporary issues don't fail the entire run.
 - [x] Add `multiplier: float = 2.0` for exponential backoff
 
 ### Task 2: Create RetryExecutor Wrapper
-- [ ] Create `src/adw/executors/retry.py`
-- [ ] Implement `RetryExecutor` class that wraps any `LLMExecutor`
-- [ ] Constructor takes `executor: LLMExecutor` and `config: RetryConfig`
-- [ ] Implement `execute()` that handles retry logic
+- [x] Create `src/adw/executors/retry.py`
+- [x] Implement `RetryExecutor` class that wraps any `LLMExecutor`
+- [x] Constructor takes `executor: LLMExecutor` and `config: RetryConfig`
+- [x] Implement `execute()` that handles retry logic
 
 ### Task 3: Implement Exponential Backoff
 - [ ] Calculate delay as `base_delay * (multiplier ^ attempt)`
@@ -362,13 +362,18 @@ claude-opus-4-5-20251101
 ### Completion Notes List
 
 - Task 1: Created RetryConfig Pydantic model with max_retries, base_delay_seconds, max_delay_seconds, multiplier fields. Added validation for positive values and max_delay >= base_delay constraint.
+- Task 2: Created RetryExecutor class that wraps any LLMExecutor and implements retry logic with exponential backoff and jitter.
 
 ### File List
 
 - src/adw/models/config.py (modified) - Added RetryConfig model
 - src/adw/models/__init__.py (modified) - Export RetryConfig
+- src/adw/models/llm.py (modified) - Added attempt_count field to LLMResult
+- src/adw/executors/retry.py (created) - RetryExecutor wrapper
+- src/adw/executors/__init__.py (modified) - Export RetryExecutor
 - tests/unit/models/__init__.py (created) - Test package init
 - tests/unit/models/test_retry_config.py (created) - RetryConfig unit tests
+- tests/unit/executors/test_retry.py (created) - RetryExecutor unit tests
 
 ---
 
