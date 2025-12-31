@@ -15,8 +15,8 @@ If `$ARGUMENTS` is provided, use it as the initial issue description to speed up
 
 Load and execute the report-issue workflow:
 
-1. Load workflow configuration: `.bmad/bmm/workflows/4-implementation/report-issue/workflow.yaml`
-2. Load workflow instructions: `.bmad/bmm/workflows/4-implementation/report-issue/instructions.xml`
+1. Load workflow configuration: `_bmad/bmm/workflows/4-implementation/report-issue/workflow.yaml`
+2. Load workflow instructions: `_bmad/bmm/workflows/4-implementation/report-issue/instructions.xml`
 3. Execute the workflow steps
 
 ### What This Workflow Does

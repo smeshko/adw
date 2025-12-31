@@ -8,7 +8,7 @@ status: complete
 ## Initial Project Context
 
 - **Module:** bmm (BMAD Method)
-- **Target Location:** `{project-root}/.bmad/bmm/workflows/4-implementation/report-issue/`
+- **Target Location:** `{project-root}/_bmad/bmm/workflows/4-implementation/report-issue/`
 - **Slash Command:** `/report-issue` (to be created in `.claude/commands/`)
 - **Created:** 2025-12-10
 - **Requested By:** Ivo
@@ -321,7 +321,7 @@ For Critical/Major issues, after creating the issue file:
 ### File Structure
 
 ```
-.bmad/bmm/workflows/4-implementation/report-issue/
+_bmad/bmm/workflows/4-implementation/report-issue/
 ├── workflow.yaml          # Workflow configuration
 ├── instructions.xml       # Main workflow instructions
 ├── template.md            # Issue file template
@@ -386,10 +386,10 @@ Create `/report-issue` command in `.claude/commands/report-issue.md` that invoke
 
 | File | Path | Purpose |
 |------|------|---------|
-| workflow.yaml | `.bmad/bmm/workflows/4-implementation/report-issue/workflow.yaml` | Workflow configuration |
-| instructions.xml | `.bmad/bmm/workflows/4-implementation/report-issue/instructions.xml` | Main workflow instructions (4 steps) |
-| template.md | `.bmad/bmm/workflows/4-implementation/report-issue/template.md` | Issue file template |
-| checklist.md | `.bmad/bmm/workflows/4-implementation/report-issue/checklist.md` | Validation checklist |
+| workflow.yaml | `_bmad/bmm/workflows/4-implementation/report-issue/workflow.yaml` | Workflow configuration |
+| instructions.xml | `_bmad/bmm/workflows/4-implementation/report-issue/instructions.xml` | Main workflow instructions (4 steps) |
+| template.md | `_bmad/bmm/workflows/4-implementation/report-issue/template.md` | Issue file template |
+| checklist.md | `_bmad/bmm/workflows/4-implementation/report-issue/checklist.md` | Validation checklist |
 | report-issue.md | `.claude/commands/report-issue.md` | Slash command |
 
 ### Build Date

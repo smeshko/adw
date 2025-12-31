@@ -8,7 +8,7 @@ status: complete
 ## Initial Project Context
 
 - **Module:** bmm (4-implementation)
-- **Target Location:** .bmad/bmm/workflows/4-implementation/dev-begin/
+- **Target Location:** _bmad/bmm/workflows/4-implementation/dev-begin/
 - **Created:** 2025-12-09
 
 ---
@@ -267,7 +267,7 @@ After dev-begin is created, dev-story Step 1 and Step 2 git/branch logic should 
 ### File Structure
 
 ```
-.bmad/bmm/workflows/4-implementation/dev-begin/
+_bmad/bmm/workflows/4-implementation/dev-begin/
 ├── workflow.yaml          # Configuration and variables
 ├── instructions.xml       # Main workflow logic (all steps)
 └── workflow-plan.md       # This planning document (dev artifact)
@@ -334,9 +334,9 @@ OUTPUT TO DEV-STORY:
 
 | File | Path | Purpose |
 |------|------|---------|
-| workflow.yaml | `.bmad/bmm/workflows/4-implementation/dev-begin/workflow.yaml` | Configuration and variables |
-| instructions.xml | `.bmad/bmm/workflows/4-implementation/dev-begin/instructions.xml` | Main workflow logic (7 steps) |
-| workflow-plan.md | `.bmad/bmm/workflows/4-implementation/dev-begin/workflow-plan.md` | Planning document (this file) |
+| workflow.yaml | `_bmad/bmm/workflows/4-implementation/dev-begin/workflow.yaml` | Configuration and variables |
+| instructions.xml | `_bmad/bmm/workflows/4-implementation/dev-begin/instructions.xml` | Main workflow logic (7 steps) |
+| workflow-plan.md | `_bmad/bmm/workflows/4-implementation/dev-begin/workflow-plan.md` | Planning document (this file) |
 
 ### Implementation Notes
 
@@ -372,7 +372,7 @@ OUTPUT TO DEV-STORY:
 
 ### Workflow Status: COMPLETE
 
-**Location:** `.bmad/bmm/workflows/4-implementation/dev-begin/`
+**Location:** `_bmad/bmm/workflows/4-implementation/dev-begin/`
 
 **Invocation:** `/bmad:bmm:workflows:dev-begin`
 

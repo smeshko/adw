@@ -51,7 +51,7 @@ This uses **step-file architecture** for disciplined execution:
 
 ### 1. Configuration Loading
 
-Load and read full config from {project-root}/.bmad/bmm/config.yaml and resolve:
+Load and read full config from {project-root}/_bmad/bmm/config.yaml and resolve:
 
 - `project_name` - Name of the project
 - `output_folder` - Where documents are stored (e.g., `{project-root}/docs`)
