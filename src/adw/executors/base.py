@@ -22,8 +22,9 @@ class LLMExecutor(Protocol):
 
     Example:
         >>> class MyExecutor:
-        ...     def execute(self, prompt: str, *, timeout: int | None = None) -> LLMResult:
-        ...         # Implementation here
+        ...     def execute(
+        ...         self, prompt: str, *, timeout: int | None = None
+        ...     ) -> LLMResult:
         ...         ...
         >>>
         >>> executor: LLMExecutor = MyExecutor()  # Type checks!
