@@ -5,7 +5,7 @@ the LLMExecutor Protocol, using mocked subprocess execution.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -13,6 +13,15 @@ from adw.executors.base import LLMExecutor
 from adw.executors.claude_code import ClaudeCodeExecutor
 from adw.models.config import LLMConfig
 from adw.models.llm import LLMResult
+
+
+def _run_async(coro):
+    """Helper to run async code without deprecation warnings."""
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
 
 
 class TestClaudeCodeExecutorClass:
@@ -70,7 +79,7 @@ class TestClaudeCodeExecutorExecute:
                     b"",  # EOF
                 ]
             )
-            process.stderr.read = AsyncMock(return_value=b"")
+            process.stderr.readline = AsyncMock(side_effect=[b""])  # EOF for stderr
             process.wait = AsyncMock(return_value=None)
             process.returncode = 0
 
@@ -78,10 +87,14 @@ class TestClaudeCodeExecutorExecute:
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
 
-            # Make asyncio.run actually run the coroutine
-            mock_asyncio.run = lambda coro: asyncio.get_event_loop().run_until_complete(
-                coro
-            )
+            # Make asyncio.run use our helper to avoid deprecation
+            mock_asyncio.run = _run_async
+
+            # Passthrough for create_task, gather, wait_for
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+            mock_asyncio.TimeoutError = asyncio.TimeoutError
 
             yield mock_asyncio, process
 
@@ -137,7 +150,9 @@ class TestClaudeCodeExecutorExecute:
         """execute() should return success=False when process exits non-zero."""
         mock_asyncio, process = mock_subprocess
         process.returncode = 1
-        process.stderr.read = AsyncMock(return_value=b"Error occurred")
+        process.stderr.readline = AsyncMock(
+            side_effect=[b"Error occurred\n", b""]
+        )
 
         with patch("shutil.which", return_value="/usr/bin/claude"):
             result = executor.execute("Test prompt")
@@ -173,14 +188,17 @@ class TestSubprocessExecution:
             process = AsyncMock()
             process.stdout = AsyncMock()
             process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b"", ])
-            process.stderr.read = AsyncMock(return_value=b"")
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
             process.wait = AsyncMock(return_value=None)
             process.returncode = 0
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = asyncio.run
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 executor.execute("Test prompt")
@@ -195,14 +213,17 @@ class TestSubprocessExecution:
             process = AsyncMock()
             process.stdout = AsyncMock()
             process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b"", ])
-            process.stderr.read = AsyncMock(return_value=b"")
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
             process.wait = AsyncMock(return_value=None)
             process.returncode = 0
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = asyncio.run
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 executor.execute("Test prompt")
@@ -219,14 +240,17 @@ class TestSubprocessExecution:
             process = AsyncMock()
             process.stdout = AsyncMock()
             process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b"", ])
-            process.stderr.read = AsyncMock(return_value=b"")
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
             process.wait = AsyncMock(return_value=None)
             process.returncode = 0
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = asyncio.run
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 executor.execute("Test prompt")
@@ -242,14 +266,17 @@ class TestSubprocessExecution:
             process = AsyncMock()
             process.stdout = AsyncMock()
             process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b"", ])
-            process.stderr.read = AsyncMock(return_value=b"")
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
             process.wait = AsyncMock(return_value=None)
             process.returncode = 0
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = asyncio.run
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 executor.execute("Test prompt")
@@ -265,22 +292,24 @@ class TestSubprocessExecution:
             process = AsyncMock()
             process.stdout = AsyncMock()
             process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b"", ])
-            process.stderr.read = AsyncMock(return_value=b"")
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
             process.wait = AsyncMock(return_value=None)
             process.returncode = 0
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             # Track if asyncio.run was called
             run_called = False
-            original_run = asyncio.run
 
             def track_run(coro):
                 nonlocal run_called
                 run_called = True
-                return original_run(coro)
+                return _run_async(coro)
 
             mock_asyncio.run = track_run
 
@@ -314,13 +343,16 @@ class TestRealTimeStreaming:
                     b"",  # EOF
                 ]
             )
-            process.stderr.read = AsyncMock(return_value=b"")
+            process.stderr.readline = AsyncMock(side_effect=[b""])
             process.wait = AsyncMock(return_value=None)
             process.returncode = 0
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = asyncio.run
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 result = executor.execute("Test prompt")
@@ -337,7 +369,6 @@ class TestRealTimeStreaming:
     ) -> None:
         """Should forward output to Rich console in real-time."""
         from rich.console import Console
-        from unittest.mock import MagicMock
 
         mock_console = MagicMock(spec=Console)
         executor.console = mock_console
@@ -352,13 +383,16 @@ class TestRealTimeStreaming:
                     b"",  # EOF
                 ]
             )
-            process.stderr.read = AsyncMock(return_value=b"")
+            process.stderr.readline = AsyncMock(side_effect=[b""])
             process.wait = AsyncMock(return_value=None)
             process.returncode = 0
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = asyncio.run
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 executor.execute("Test prompt")
@@ -383,13 +417,16 @@ class TestRealTimeStreaming:
                     b"",  # EOF
                 ]
             )
-            process.stderr.read = AsyncMock(return_value=b"")
+            process.stderr.readline = AsyncMock(side_effect=[b""])
             process.wait = AsyncMock(return_value=None)
             process.returncode = 0
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = asyncio.run
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 result = executor.execute("Test prompt")
@@ -408,6 +445,126 @@ class TestRealTimeStreaming:
         executor = ClaudeCodeExecutor(config, console=custom_console)
 
         assert executor.console is custom_console
+
+    def test_uses_create_task_for_concurrent_processing(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Should use asyncio.create_task() for concurrent stdout/stderr processing."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"Output\n", b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            # Track create_task calls
+            create_task_calls = []
+            real_create_task = asyncio.create_task
+
+            def track_create_task(coro):
+                create_task_calls.append(coro)
+                return real_create_task(coro)
+
+            mock_asyncio.create_task = track_create_task
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt")
+
+            # Should have created 2 tasks (stdout and stderr)
+            assert len(create_task_calls) == 2
+
+
+class TestTimeoutEnforcement:
+    """Tests for timeout enforcement."""
+
+    @pytest.fixture
+    def executor(self) -> ClaudeCodeExecutor:
+        """Create executor with short timeout."""
+        config = LLMConfig(path="claude", timeout_seconds=1)
+        return ClaudeCodeExecutor(config)
+
+    def test_timeout_raises_llm_error(self, executor: ClaudeCodeExecutor) -> None:
+        """Should raise LLMError with TIMEOUT code when execution times out."""
+        from adw.exceptions import LLMError
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.returncode = None  # Not completed
+            process.terminate = MagicMock()
+            process.kill = MagicMock()
+
+            # Simulate slow readline that will timeout
+            async def slow_readline():
+                await asyncio.sleep(10)  # Much longer than timeout
+                return b""
+
+            process.stdout.readline = slow_readline
+            process.stderr.readline = slow_readline
+            process.wait = AsyncMock(return_value=None)
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.TimeoutError = asyncio.TimeoutError
+
+            # Use real wait_for to trigger actual timeout
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                with pytest.raises(LLMError) as exc_info:
+                    executor.execute("Test prompt", timeout=1)
+
+            assert exc_info.value.code == "TIMEOUT"
+            assert "timed out" in exc_info.value.message
+            assert exc_info.value.recoverable is True
+
+    def test_timeout_terminates_process(self, executor: ClaudeCodeExecutor) -> None:
+        """Should terminate process on timeout."""
+        from adw.exceptions import LLMError
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.returncode = None
+            process.terminate = MagicMock()
+            process.kill = MagicMock()
+
+            # Simulate slow readline
+            async def slow_readline():
+                await asyncio.sleep(10)
+                return b""
+
+            process.stdout.readline = slow_readline
+            process.stderr.readline = slow_readline
+            process.wait = AsyncMock(return_value=None)
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+            mock_asyncio.TimeoutError = asyncio.TimeoutError
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                with pytest.raises(LLMError):
+                    executor.execute("Test prompt", timeout=1)
+
+            # Verify process was terminated
+            process.terminate.assert_called_once()
 
 
 class TestOutputParsing:
@@ -651,14 +808,19 @@ class TestErrorHandling:
             process = AsyncMock()
             process.stdout = AsyncMock()
             process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b"", ])
-            process.stderr.read = AsyncMock(return_value=b"Process crashed")
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(
+                side_effect=[b"Process crashed\n", b""]
+            )
             process.wait = AsyncMock(return_value=None)
             process.returncode = 1  # Non-zero exit
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = asyncio.run
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 result = executor.execute("Test prompt")
@@ -674,14 +836,19 @@ class TestErrorHandling:
             process = AsyncMock()
             process.stdout = AsyncMock()
             process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b"", ])
-            process.stderr.read = AsyncMock(return_value=b"Error: Rate limit exceeded")
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(
+                side_effect=[b"Error: Rate limit exceeded\n", b""]
+            )
             process.wait = AsyncMock(return_value=None)
             process.returncode = 1
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = asyncio.run
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 result = executor.execute("Test prompt")
@@ -696,14 +863,17 @@ class TestErrorHandling:
             process = AsyncMock()
             process.stdout = AsyncMock()
             process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b"", ])
-            process.stderr.read = AsyncMock(return_value=b"")  # Empty stderr
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])  # Empty stderr
             process.wait = AsyncMock(return_value=None)
             process.returncode = 42
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = asyncio.run
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 result = executor.execute("Test prompt")
@@ -740,14 +910,17 @@ class TestPathConfiguration:
                 process = AsyncMock()
                 process.stdout = AsyncMock()
                 process.stderr = AsyncMock()
-                process.stdout.readline = AsyncMock(side_effect=[b"", ])
-                process.stderr.read = AsyncMock(return_value=b"")
+                process.stdout.readline = AsyncMock(side_effect=[b""])
+                process.stderr.readline = AsyncMock(side_effect=[b""])
                 process.wait = AsyncMock(return_value=None)
                 process.returncode = 0
 
                 mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
                 mock_asyncio.subprocess = asyncio.subprocess
-                mock_asyncio.run = asyncio.run
+                mock_asyncio.run = _run_async
+                mock_asyncio.create_task = asyncio.create_task
+                mock_asyncio.gather = asyncio.gather
+                mock_asyncio.wait_for = asyncio.wait_for
 
                 executor.execute("Test prompt")
 
@@ -817,14 +990,17 @@ class TestModelConfiguration:
             process = AsyncMock()
             process.stdout = AsyncMock()
             process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b"", ])
-            process.stderr.read = AsyncMock(return_value=b"")
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
             process.wait = AsyncMock(return_value=None)
             process.returncode = 0
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = asyncio.run
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 executor.execute("Test prompt")
@@ -844,14 +1020,17 @@ class TestModelConfiguration:
             process = AsyncMock()
             process.stdout = AsyncMock()
             process.stderr = AsyncMock()
-            process.stdout.readline = AsyncMock(side_effect=[b"", ])
-            process.stderr.read = AsyncMock(return_value=b"")
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
             process.wait = AsyncMock(return_value=None)
             process.returncode = 0
 
             mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
             mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = asyncio.run
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 executor.execute("Test prompt")

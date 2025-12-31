@@ -7,6 +7,7 @@ streaming output.
 
 import asyncio
 import json
+import logging
 import shutil
 import time
 from pathlib import Path
@@ -17,6 +18,8 @@ from rich.console import Console
 from adw.exceptions import LLMError
 from adw.models.config import LLMConfig
 from adw.models.llm import LLMResult, ToolCall
+
+logger = logging.getLogger(__name__)
 
 
 class ClaudeCodeExecutor:
@@ -70,7 +73,7 @@ class ClaudeCodeExecutor:
             LLMResult with success status, content, tool calls, and metrics.
 
         Raises:
-            LLMError: If Claude Code is not found or execution fails.
+            LLMError: If Claude Code is not found, execution fails, or timeout.
         """
         effective_timeout = (
             timeout if timeout is not None else self.config.timeout_seconds
@@ -84,12 +87,18 @@ class ClaudeCodeExecutor:
     ) -> LLMResult:
         """Execute Claude Code subprocess with streaming output.
 
+        Uses concurrent tasks for stdout/stderr to prevent deadlocks,
+        and enforces timeout on the entire operation.
+
         Args:
             prompt: The prompt to send to Claude Code.
             timeout: Timeout in seconds.
 
         Returns:
             LLMResult with execution results.
+
+        Raises:
+            LLMError: If timeout is exceeded.
         """
         start_time = time.monotonic()
 
@@ -103,6 +112,16 @@ class ClaudeCodeExecutor:
         if self.config.model:
             args.extend(["--model", self.config.model])
 
+        logger.debug(
+            "Executing Claude Code",
+            extra={
+                "path": str(claude_path),
+                "model": self.config.model,
+                "timeout": timeout,
+                "prompt_length": len(prompt),
+            },
+        )
+
         # Create subprocess
         process = await asyncio.create_subprocess_exec(
             *args,
@@ -110,32 +129,145 @@ class ClaudeCodeExecutor:
             stderr=asyncio.subprocess.PIPE,
         )
 
-        # Stream stdout in real-time
+        try:
+            # Use concurrent tasks to read stdout and stderr to prevent deadlocks
+            result = await asyncio.wait_for(
+                self._read_process_output(process),
+                timeout=timeout,
+            )
+            return self._build_result(result, start_time)
+
+        except asyncio.TimeoutError:
+            # Timeout - terminate the process
+            logger.warning(
+                "Claude Code execution timed out",
+                extra={"timeout": timeout, "prompt_length": len(prompt)},
+            )
+            process.terminate()
+            try:
+                await asyncio.wait_for(process.wait(), timeout=5.0)
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+
+            raise LLMError(
+                code="TIMEOUT",
+                message=f"Claude Code execution timed out after {timeout} seconds",
+                suggestion="Increase timeout or simplify the prompt",
+                recoverable=True,
+            )
+
+        except Exception as e:
+            # Cleanup process on any error
+            logger.error(
+                "Claude Code execution failed",
+                extra={"error": str(e), "prompt_length": len(prompt)},
+            )
+            if process.returncode is None:
+                process.terminate()
+                try:
+                    await asyncio.wait_for(process.wait(), timeout=5.0)
+                except asyncio.TimeoutError:
+                    process.kill()
+                    await process.wait()
+            raise
+
+    async def _read_process_output(
+        self,
+        process: asyncio.subprocess.Process,
+    ) -> dict[str, Any]:
+        """Read stdout and stderr concurrently to prevent deadlocks.
+
+        Uses asyncio.create_task() for concurrent processing as required
+        by NFR3 (artifact writes don't block stream).
+
+        Args:
+            process: The subprocess to read from.
+
+        Returns:
+            Dictionary with stdout_lines, stderr, and returncode.
+        """
         content_lines: list[str] = []
-        while True:
-            line = await process.stdout.readline()
-            if not line:
-                break
-            decoded = line.decode()
-            content_lines.append(decoded)
-            # Stream to console in real-time
-            self.console.print(decoded, end="")
+        stderr_lines: list[str] = []
+
+        async def read_stdout() -> None:
+            """Read stdout line-by-line and stream to console."""
+            while True:
+                line = await process.stdout.readline()
+                if not line:
+                    break
+                decoded = line.decode()
+                content_lines.append(decoded)
+                # Stream to console in real-time
+                self.console.print(decoded, end="")
+
+        async def read_stderr() -> None:
+            """Read stderr line-by-line."""
+            while True:
+                line = await process.stderr.readline()
+                if not line:
+                    break
+                stderr_lines.append(line.decode())
+
+        # Create concurrent tasks for stdout and stderr
+        stdout_task = asyncio.create_task(read_stdout())
+        stderr_task = asyncio.create_task(read_stderr())
+
+        # Wait for both to complete
+        await asyncio.gather(stdout_task, stderr_task)
 
         # Wait for process to complete
         await process.wait()
 
-        # Read any stderr
-        stderr_bytes = await process.stderr.read()
-        stderr = stderr_bytes.decode() if stderr_bytes else ""
+        logger.debug(
+            "Claude Code process completed",
+            extra={
+                "returncode": process.returncode,
+                "stdout_lines": len(content_lines),
+                "stderr_lines": len(stderr_lines),
+            },
+        )
 
+        return {
+            "stdout": "".join(content_lines),
+            "stderr": "".join(stderr_lines),
+            "returncode": process.returncode,
+        }
+
+    def _build_result(
+        self,
+        process_output: dict[str, Any],
+        start_time: float,
+    ) -> LLMResult:
+        """Build LLMResult from process output.
+
+        Args:
+            process_output: Dictionary with stdout, stderr, returncode.
+            start_time: Time when execution started.
+
+        Returns:
+            LLMResult instance.
+        """
         duration_ms = int((time.monotonic() - start_time) * 1000)
-        raw_output = "".join(content_lines)
+        raw_output = process_output["stdout"]
+        stderr = process_output["stderr"]
+        returncode = process_output["returncode"]
 
         # Parse the output to extract content, tool calls, and tokens
         parsed = self._parse_output(raw_output)
 
+        logger.debug(
+            "Parsed Claude Code output",
+            extra={
+                "content_length": len(parsed["content"]),
+                "tool_calls": len(parsed["tool_calls"]),
+                "tokens_used": parsed["tokens_used"],
+                "duration_ms": duration_ms,
+            },
+        )
+
         # Build result
-        if process.returncode == 0:
+        if returncode == 0:
             return LLMResult(
                 success=True,
                 content=parsed["content"],
@@ -150,7 +282,7 @@ class ClaudeCodeExecutor:
                 tool_calls=parsed["tool_calls"],
                 tokens_used=parsed["tokens_used"],
                 duration_ms=duration_ms,
-                error=stderr or f"Claude Code exited with code {process.returncode}",
+                error=stderr or f"Claude Code exited with code {returncode}",
             )
 
     def _parse_output(
@@ -254,6 +386,7 @@ class ClaudeCodeExecutor:
         # Check if it's an absolute path
         if Path(path).is_absolute():
             if Path(path).exists():
+                logger.debug("Using absolute Claude path", extra={"path": path})
                 return Path(path)
             raise LLMError(
                 code="CLAUDE_NOT_FOUND",
@@ -267,6 +400,10 @@ class ClaudeCodeExecutor:
         # Check if it's in PATH
         which_result = shutil.which(path)
         if which_result:
+            logger.debug(
+                "Found Claude in PATH",
+                extra={"requested": path, "resolved": which_result},
+            )
             return Path(which_result)
 
         raise LLMError(
