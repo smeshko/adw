@@ -58,9 +58,9 @@ so that each phase has its complete, rendered prompt ready for LLM execution.
 - [x] Return fully rendered prompt string
 
 ### Task 5: Implement LoadedCommand Model
-- [ ] Add `LoadedCommand` model to `src/adw/models/command.py`
-- [ ] Fields: `name`, `resolved`, `prompt_content`, `schema`, `has_pre_hook`, `has_post_hook`
-- [ ] Include rendered prompt content
+- [x] Add `LoadedCommand` model to `src/adw/models/command.py`
+- [x] Fields: `name`, `resolved`, `prompt_content`, `output_schema`, `has_pre_hook`, `has_post_hook`
+- [x] Include rendered prompt content
 
 ### Task 6: Implement Optional Schema Loading
 - [ ] Load `schema.json` if present in command directory

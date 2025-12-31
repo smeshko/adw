@@ -18,7 +18,8 @@ import pytest
 
 from adw.commands import CommandLoader, CommandResolver
 from adw.exceptions import ConfigError
-from adw.models import RunContext
+from adw.models import ResolvedCommand, RunContext
+from adw.models.command import LoadedCommand
 
 
 @pytest.fixture
@@ -266,3 +267,61 @@ class TestPromptRendering:
         loader = CommandLoader(project_root=tmp_path)
         result = loader.load_prompt("build", context)
         assert "plan.md" in result
+
+
+class TestLoadedCommandModel:
+    """Tests for LoadedCommand Pydantic model."""
+
+    def test_loaded_command_has_required_fields(self, tmp_path: Path) -> None:
+        """LoadedCommand model has all required fields."""
+        resolved = ResolvedCommand(
+            name="plan",
+            path=tmp_path,
+            tier="project",
+            has_schema=True,
+            has_pre_hook=True,
+            has_post_hook=False,
+        )
+        loaded = LoadedCommand(
+            name="plan",
+            resolved=resolved,
+            prompt_content="This is the prompt",
+            output_schema={"type": "object"},
+            has_pre_hook=True,
+            has_post_hook=False,
+        )
+        assert loaded.name == "plan"
+        assert loaded.resolved == resolved
+        assert loaded.prompt_content == "This is the prompt"
+        assert loaded.output_schema == {"type": "object"}
+        assert loaded.has_pre_hook is True
+        assert loaded.has_post_hook is False
+
+    def test_loaded_command_schema_is_optional(self, tmp_path: Path) -> None:
+        """LoadedCommand output_schema field defaults to None."""
+        resolved = ResolvedCommand(
+            name="plan",
+            path=tmp_path,
+            tier="bundled",
+        )
+        loaded = LoadedCommand(
+            name="plan",
+            resolved=resolved,
+            prompt_content="Prompt",
+        )
+        assert loaded.output_schema is None
+
+    def test_loaded_command_hooks_default_to_false(self, tmp_path: Path) -> None:
+        """LoadedCommand hook fields default to False."""
+        resolved = ResolvedCommand(
+            name="plan",
+            path=tmp_path,
+            tier="bundled",
+        )
+        loaded = LoadedCommand(
+            name="plan",
+            resolved=resolved,
+            prompt_content="Prompt",
+        )
+        assert loaded.has_pre_hook is False
+        assert loaded.has_post_hook is False
