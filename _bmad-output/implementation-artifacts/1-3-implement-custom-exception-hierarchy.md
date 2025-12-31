@@ -1,6 +1,6 @@
 # Story 1.3: Implement Custom Exception Hierarchy
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 1 - Project Scaffolding & Test Infrastructure
 Created: 2025-12-31
@@ -418,11 +418,20 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
-(To be filled by dev agent after implementation)
+- Implemented ADWError base class with code, message, suggestion, and recoverable attributes
+- All exception classes support __str__ for user-friendly formatting and to_dict() for structured logging
+- ConfigError: Configuration issues (non-recoverable by default)
+- HookError: Hook failures with phase, exit_code, stdout, stderr fields (non-recoverable by default)
+- LLMError: Base for LLM issues with LLMTimeoutError and LLMRateLimitError subclasses
+- LLMTimeoutError and LLMRateLimitError are recoverable by default (transient errors)
+- StateError: State persistence issues (non-recoverable by default)
+- ValidationError: Schema validation with field_errors list and schema_path (non-recoverable by default)
+- 49 comprehensive unit tests covering all exception types and hierarchy
 
 ### File List
 
-(To be filled by dev agent after implementation)
+- src/adw/exceptions.py - Exception hierarchy implementation (442 lines)
+- tests/unit/test_exceptions.py - Unit tests (560 lines)
 
 ---
 
