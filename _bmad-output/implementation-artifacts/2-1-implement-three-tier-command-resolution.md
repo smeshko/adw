@@ -46,9 +46,9 @@ so that users can override any command at the appropriate level.
 - [x] Create `src/adw/commands/loader.py` with `CommandLoader` class
 
 ### Task 2: Implement ResolvedCommand Model
-- [ ] Add `ResolvedCommand` model to `src/adw/models/command.py`
-- [ ] Define fields: `name`, `path`, `tier`, `has_schema`, `has_pre_hook`, `has_post_hook`
-- [ ] Implement `model_validator` to verify directory structure
+- [x] Add `ResolvedCommand` model to `src/adw/models/command.py`
+- [x] Define fields: `name`, `path`, `tier`, `has_schema`, `has_pre_hook`, `has_post_hook`
+- [x] Implement `model_validator` to verify directory structure
 
 ### Task 3: Implement Three-Tier Resolution Logic
 - [ ] Implement `resolve(command_name: str) -> ResolvedCommand`
