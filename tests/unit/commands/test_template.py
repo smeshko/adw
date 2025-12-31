@@ -431,3 +431,29 @@ class TestContextObjectRendering:
         result_dict = engine.render(template, dict_context)
 
         assert result_model == result_dict == "test: 123"
+
+    def test_object_attribute_access_in_nested_dict(self) -> None:
+        """Engine should access object attributes for nested non-dict values."""
+
+        class CustomObject:
+            def __init__(self) -> None:
+                self.inner_value = "accessed"
+
+        engine = TemplateEngine()
+        context = {"outer": CustomObject()}
+        template = "{{outer.inner_value}}"
+        result = engine.render(template, context)
+        assert result == "accessed"
+
+    def test_object_attribute_access_missing_raises(self) -> None:
+        """Missing attribute on object should raise ConfigError."""
+
+        class CustomObject:
+            pass
+
+        engine = TemplateEngine()
+        context = {"outer": CustomObject()}
+        template = "{{outer.nonexistent}}"
+        with pytest.raises(ConfigError) as exc:
+            engine.render(template, context, strict=True)
+        assert exc.value.code == "UNKNOWN_VARIABLE"
