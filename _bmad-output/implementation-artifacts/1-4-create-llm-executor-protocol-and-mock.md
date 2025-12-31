@@ -44,9 +44,9 @@ so that I can write deterministic tests without calling Claude Code.
 - [x] Create `src/adw/executors/mock.py` for MockExecutor
 
 ### Task 2: Define LLMExecutor Protocol
-- [ ] Define LLMExecutor as typing.Protocol
-- [ ] Define execute() method signature
-- [ ] Add type hints for all parameters and return type
+- [x] Define LLMExecutor as typing.Protocol
+- [x] Define execute() method signature
+- [x] Add type hints for all parameters and return type
 
 ### Task 3: Create LLMResult Model
 - [ ] Add LLMResult to `src/adw/models/` (or executors/result.py)

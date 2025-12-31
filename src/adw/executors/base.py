@@ -5,10 +5,9 @@ a consistent interface for different LLM implementations (Claude Code,
 MockExecutor for testing, etc.).
 """
 
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
-if TYPE_CHECKING:
-    from adw.models.llm import LLMResult
+from adw.models.llm import LLMResult
 
 
 @runtime_checkable
@@ -35,7 +34,7 @@ class LLMExecutor(Protocol):
         prompt: str,
         *,
         timeout: int | None = None,
-    ) -> "LLMResult":
+    ) -> LLMResult:
         """Execute a prompt and return the result.
 
         Args:
