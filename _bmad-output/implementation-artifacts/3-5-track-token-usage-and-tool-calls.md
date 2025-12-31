@@ -69,13 +69,13 @@ so that I can monitor costs and understand what actions the LLM took.
 - [x] Populate from LLMResult when phase completes
 
 ### Task 7: Write Unit Tests
-- [ ] Create/update `tests/unit/executors/test_claude_code.py`
-- [ ] Test token extraction from mock Claude output
-- [ ] Test tool call extraction from mock output
-- [ ] Test handling of missing token data
-- [ ] Test ToolCall model creation
-- [ ] Test aggregation across phases
-- [ ] Target: >90% coverage for token tracking code
+- [x] Create/update `tests/unit/executors/test_claude_code.py`
+- [x] Test token extraction from mock Claude output
+- [x] Test tool call extraction from mock output
+- [x] Test handling of missing token data
+- [x] Test ToolCall model creation
+- [x] Test aggregation across phases
+- [x] Target: >90% coverage for token tracking code
 
 ### Task 8: Write Integration Tests
 - [ ] Test with actual Claude Code output (if available)
