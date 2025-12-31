@@ -35,8 +35,8 @@ so that I have a working development environment with the correct tooling from d
 ## Tasks / Subtasks
 
 ### Task 1: Initialize uv Project
-- [ ] Run `uv init adw --app --python 3.13` to create project skeleton
-- [ ] Verify `pyproject.toml` is created with correct Python version constraint
+- [x] Run `uv init adw --app --python 3.13` to create project skeleton
+- [x] Verify `pyproject.toml` is created with correct Python version constraint
 
 ### Task 2: Add Core Dependencies
 - [ ] Run `uv add typer[all] rich pydantic pyyaml filelock python-ulid`
