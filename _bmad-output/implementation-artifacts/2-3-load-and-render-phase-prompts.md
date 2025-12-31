@@ -69,12 +69,12 @@ so that each phase has its complete, rendered prompt ready for LLM execution.
 - [x] Return `None` if no schema file
 
 ### Task 7: Write Unit Tests
-- [ ] Test basic prompt loading from resolved directory
-- [ ] Test template variable substitution in prompt
-- [ ] Test artifact inclusion via context
-- [ ] Test pre-hook output inclusion
-- [ ] Test strict mode error for unknown variables
-- [ ] Test schema loading (present and absent)
+- [x] Test basic prompt loading from resolved directory
+- [x] Test template variable substitution in prompt
+- [x] Test artifact inclusion via context
+- [x] Test pre-hook output inclusion
+- [x] Test strict mode error for unknown variables
+- [x] Test schema loading (present and absent)
 
 ---
 
