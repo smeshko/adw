@@ -43,9 +43,9 @@ so that I can run custom logic before and after LLM execution.
 ## Tasks / Subtasks
 
 ### Task 1: Create HookResult Model
-- [ ] Create `src/adw/models/hook.py` with `HookResult` Pydantic model
-- [ ] Fields: `stdout: str`, `stderr: str`, `exit_code: int`, `duration_ms: int`, `hook_type: str` (pre/post)
-- [ ] Add to `src/adw/models/__init__.py` exports
+- [x] Create `src/adw/models/hook.py` with `HookResult` Pydantic model
+- [x] Fields: `stdout: str`, `stderr: str`, `exit_code: int`, `duration_ms: int`, `hook_type: str` (pre/post)
+- [x] Add to `src/adw/models/__init__.py` exports
 
 ### Task 2: Create HookEnvironment Helper
 - [ ] Create `src/adw/hooks/environment.py`
@@ -343,7 +343,14 @@ claude-opus-4-5-20251101
 
 ### Completion Notes List
 
+- Task 1: Created HookResult model with stdout, stderr, exit_code, duration_ms, hook_type fields. Added is_success computed property. Model validates hook_type as Literal["pre", "post"] and enforces non-negative duration. Tests cover all validation rules.
+
 ### File List
+
+- src/adw/models/hook.py (NEW)
+- src/adw/models/__init__.py (MODIFIED)
+- tests/unit/hooks/__init__.py (NEW)
+- tests/unit/hooks/test_hook_result.py (NEW)
 
 ---
 
