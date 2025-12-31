@@ -803,3 +803,114 @@ class TestPathConfiguration:
             path = executor._verify_claude_path()
 
             assert str(path) == "/found/path/claude"
+
+
+class TestModelConfiguration:
+    """Tests for model configuration."""
+
+    def test_passes_model_flag_when_configured(self) -> None:
+        """Should pass --model flag when model is configured."""
+        config = LLMConfig(path="claude", model="claude-3-opus")
+        executor = ClaudeCodeExecutor(config)
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"", ])
+            process.stderr.read = AsyncMock(return_value=b"")
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = asyncio.run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt")
+
+            # Verify --model flag was passed
+            call_args = mock_asyncio.create_subprocess_exec.call_args
+            args = call_args[0]  # positional args
+            assert "--model" in args
+            assert "claude-3-opus" in args
+
+    def test_no_model_flag_when_not_configured(self) -> None:
+        """Should not pass --model flag when model is not configured."""
+        config = LLMConfig(path="claude")  # No model specified
+        executor = ClaudeCodeExecutor(config)
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"", ])
+            process.stderr.read = AsyncMock(return_value=b"")
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = asyncio.run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt")
+
+            # Verify --model flag was NOT passed
+            call_args = mock_asyncio.create_subprocess_exec.call_args
+            args = call_args[0]  # positional args
+            assert "--model" not in args
+
+
+class TestAdditionalParsingCoverage:
+    """Additional parsing tests for full coverage."""
+
+    @pytest.fixture
+    def executor(self) -> ClaudeCodeExecutor:
+        """Create executor with default config."""
+        config = LLMConfig(path="claude")
+        return ClaudeCodeExecutor(config)
+
+    def test_result_message_with_text(self, executor: ClaudeCodeExecutor) -> None:
+        """Should extract text from result message."""
+        import json
+
+        raw_output = json.dumps({
+            "type": "result",
+            "text": "Final result text",
+            "usage": {"input_tokens": 10, "output_tokens": 20},
+        })
+        parsed = executor._parse_output(raw_output)
+
+        assert "Final result text" in parsed["content"]
+        assert parsed["tokens_used"] == 30
+
+    def test_content_block_delta_non_text_delta(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Should handle content_block_delta with non-text delta type."""
+        import json
+
+        raw_output = json.dumps({
+            "type": "content_block_delta",
+            "delta": {"type": "tool_use_delta", "data": "something"},
+        })
+        parsed = executor._parse_output(raw_output)
+
+        # No text should be extracted
+        assert parsed["content"] == ""
+
+    def test_message_delta_without_usage(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Should handle message_delta without usage field."""
+        import json
+
+        raw_output = json.dumps({
+            "type": "message_delta",
+            # No usage field
+        })
+        parsed = executor._parse_output(raw_output)
+
+        # Tokens should remain 0
+        assert parsed["tokens_used"] == 0

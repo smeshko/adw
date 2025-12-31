@@ -76,13 +76,13 @@ so that users see LLM responses as they're generated.
 - [x] Use `shutil.which()` to verify executable exists
 
 ### Task 7: Write Unit Tests
-- [ ] Create `tests/unit/executors/test_claude_code.py`
-- [ ] Mock subprocess execution for deterministic testing
-- [ ] Test successful execution returns `LLMResult`
-- [ ] Test missing Claude raises `LLMError` with `CLAUDE_NOT_FOUND`
-- [ ] Test output parsing extracts content and tool calls
-- [ ] Test timeout handling (integration with Story 3.4)
-- [ ] Target: >90% coverage for claude_code module
+- [x] Create `tests/unit/executors/test_claude_code.py`
+- [x] Mock subprocess execution for deterministic testing
+- [x] Test successful execution returns `LLMResult`
+- [x] Test missing Claude raises `LLMError` with `CLAUDE_NOT_FOUND`
+- [x] Test output parsing extracts content and tool calls
+- [x] Test timeout handling (integration with Story 3.4)
+- [x] Target: >90% coverage for claude_code module (achieved: 98%)
 
 ### Task 8: Integration Tests
 - [ ] Create `tests/integration/test_claude_code_executor.py`
@@ -390,6 +390,7 @@ claude-opus-4-5-20251101
 - Task 4: Implemented _parse_output() method to parse JSONL format from --print flag. Extracts text content, tool calls, and token usage from various message types (assistant, result, content_block_delta, message_delta).
 - Task 5: Error handling already implemented in _verify_claude_path(). Added tests for CLAUDE_NOT_FOUND error, suggestions, recoverability, absolute path handling, and subprocess error results.
 - Task 6: Updated LLMConfig.path default from "/usr/bin/claude" to "claude" (assumes in PATH). Added tests for path configuration, shutil.which usage, and absolute path handling.
+- Task 7: Unit tests complete with 46 tests and 98% coverage. Added model configuration tests, additional parsing coverage for result message text, non-text deltas, and message_delta without usage.
 
 ### File List
 
