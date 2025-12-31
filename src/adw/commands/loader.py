@@ -10,11 +10,12 @@ The loader integrates:
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
 from adw.exceptions import ConfigError
+from adw.models.command import LoadedCommand
 
 if TYPE_CHECKING:
     from adw.models import ResolvedCommand, RunContext
@@ -101,6 +102,54 @@ class CommandLoader:
 
         return rendered
 
+    def load_command(
+        self,
+        phase: str,
+        context: "RunContext",
+        *,
+        pre_hook_output: str = "",
+        strict: bool = True,
+    ) -> LoadedCommand:
+        """Load a complete command with rendered prompt and optional schema.
+
+        This is the primary method for loading commands. It resolves the command,
+        loads and renders the prompt, loads the optional schema, and returns a
+        fully populated LoadedCommand instance.
+
+        Args:
+            phase: The phase name (e.g., "plan", "build").
+            context: The current run context containing variables for rendering.
+            pre_hook_output: Optional output from pre-hook execution.
+            strict: If True (default), raise error for unknown variables.
+
+        Returns:
+            A LoadedCommand with rendered prompt and optional schema.
+
+        Raises:
+            ConfigError: If the command cannot be resolved (COMMAND_NOT_FOUND),
+                        if strict=True and unknown variables are found,
+                        or if schema.json contains invalid JSON.
+        """
+        # Resolve command using three-tier hierarchy
+        resolved = self.resolver.resolve(phase)
+
+        # Load and render the prompt
+        rendered_prompt = self.load_prompt(
+            phase, context, pre_hook_output=pre_hook_output, strict=strict
+        )
+
+        # Load optional schema
+        schema = self._load_schema(resolved)
+
+        return LoadedCommand(
+            name=phase,
+            resolved=resolved,
+            prompt_content=rendered_prompt,
+            output_schema=schema,
+            has_pre_hook=resolved.has_pre_hook,
+            has_post_hook=resolved.has_post_hook,
+        )
+
     def _build_context(
         self,
         context: "RunContext",
@@ -150,7 +199,7 @@ class CommandLoader:
 
         try:
             schema_content = schema_path.read_text(encoding="utf-8")
-            return json.loads(schema_content)
+            return cast(dict[str, Any], json.loads(schema_content))
         except json.JSONDecodeError as e:
             raise ConfigError(
                 code="INVALID_SCHEMA",

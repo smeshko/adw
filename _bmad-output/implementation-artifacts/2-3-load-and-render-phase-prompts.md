@@ -1,6 +1,6 @@
 # Story 2.3: Load and Render Phase Prompts
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 2 - Command Resolution & Templates
 Created: 2025-12-31
@@ -334,10 +334,23 @@ Key patterns and rules from project context:
 ### Context Reference
 
 ### Agent Model Used
+- claude-opus-4-5-20251101
 
 ### Debug Log References
 
 ### Completion Notes List
+- Implemented `CommandLoader` class with `load_prompt()` method
+- Added `LoadedCommand` model to `src/adw/models/command.py`
+- Implemented `load_command()` method returning full `LoadedCommand` instance
+- Added `_load_schema()` for optional JSON schema loading
+- All 35 unit tests passing with 100% coverage on loader.py
 
 ### File List
+| File | Action | Description |
+|------|--------|-------------|
+| `src/adw/commands/loader.py` | Created | CommandLoader class with load_prompt() and load_command() methods |
+| `src/adw/commands/__init__.py` | Modified | Added CommandLoader to exports |
+| `src/adw/models/command.py` | Modified | Added LoadedCommand Pydantic model |
+| `src/adw/models/__init__.py` | Modified | Added LoadedCommand to exports |
+| `tests/unit/commands/test_loader.py` | Created | 35 unit tests for CommandLoader |
 

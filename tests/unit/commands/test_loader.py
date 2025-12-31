@@ -327,6 +327,135 @@ class TestLoadedCommandModel:
         assert loaded.has_post_hook is False
 
 
+class TestLoadCommand:
+    """Tests for load_command method returning LoadedCommand."""
+
+    def test_load_command_returns_loaded_command_instance(
+        self, tmp_path: Path, run_context: RunContext
+    ) -> None:
+        """load_command returns a LoadedCommand instance."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Plan prompt content", encoding="utf-8")
+
+        loader = CommandLoader(project_root=tmp_path)
+        result = loader.load_command("plan", run_context)
+
+        assert isinstance(result, LoadedCommand)
+
+    def test_load_command_includes_rendered_prompt(
+        self, tmp_path: Path, run_context: RunContext
+    ) -> None:
+        """load_command includes rendered prompt content."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text(
+            "Feature: {{feature_request}}", encoding="utf-8"
+        )
+
+        loader = CommandLoader(project_root=tmp_path)
+        result = loader.load_command("plan", run_context)
+
+        assert "Feature: Add user authentication" in result.prompt_content
+
+    def test_load_command_includes_resolved_command(
+        self, tmp_path: Path, run_context: RunContext
+    ) -> None:
+        """load_command includes the resolved command information."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+
+        loader = CommandLoader(project_root=tmp_path)
+        result = loader.load_command("plan", run_context)
+
+        assert result.resolved is not None
+        assert result.resolved.name == "plan"
+        assert result.resolved.tier == "project"
+
+    def test_load_command_loads_schema_when_present(
+        self, tmp_path: Path, run_context: RunContext
+    ) -> None:
+        """load_command loads schema.json when it exists."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+        (cmd_dir / "schema.json").write_text(
+            '{"type": "object", "properties": {"result": {"type": "string"}}}',
+            encoding="utf-8",
+        )
+
+        loader = CommandLoader(project_root=tmp_path)
+        result = loader.load_command("plan", run_context)
+
+        assert result.output_schema is not None
+        assert result.output_schema["type"] == "object"
+
+    def test_load_command_schema_none_when_absent(
+        self, tmp_path: Path, run_context: RunContext
+    ) -> None:
+        """load_command sets schema to None when schema.json doesn't exist."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+
+        loader = CommandLoader(project_root=tmp_path)
+        result = loader.load_command("plan", run_context)
+
+        assert result.output_schema is None
+
+    def test_load_command_passes_hook_flags(
+        self, tmp_path: Path, run_context: RunContext
+    ) -> None:
+        """load_command passes hook flags from resolved command."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+        (cmd_dir / "pre.sh").write_text("#!/bin/bash\necho 'pre'", encoding="utf-8")
+
+        loader = CommandLoader(project_root=tmp_path)
+        result = loader.load_command("plan", run_context)
+
+        assert result.has_pre_hook is True
+        assert result.has_post_hook is False
+
+    def test_load_command_accepts_pre_hook_output(
+        self, tmp_path: Path, run_context: RunContext
+    ) -> None:
+        """load_command passes pre_hook_output to template rendering."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text(
+            "Hook output: {{pre_hook_output}}", encoding="utf-8"
+        )
+
+        loader = CommandLoader(project_root=tmp_path)
+        result = loader.load_command("plan", run_context, pre_hook_output="hook data")
+
+        assert "Hook output: hook data" in result.prompt_content
+
+    def test_load_command_name_matches_phase(
+        self, tmp_path: Path, run_context: RunContext
+    ) -> None:
+        """load_command sets name to the phase name."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "build"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Build prompt", encoding="utf-8")
+
+        # Update context for build phase
+        context = RunContext(
+            run_id=run_context.run_id,
+            feature_description=run_context.feature_description,
+            current_phase="build",
+            started_at=run_context.started_at,
+        )
+
+        loader = CommandLoader(project_root=tmp_path)
+        result = loader.load_command("build", context)
+
+        assert result.name == "build"
+
+
 class TestSchemaLoading:
     """Tests for optional schema.json loading."""
 
