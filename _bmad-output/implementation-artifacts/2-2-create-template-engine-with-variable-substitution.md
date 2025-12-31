@@ -359,14 +359,21 @@ Key patterns and rules from project context:
 - Added strict/lenient mode for unknown variable handling
 - Single-pass processing prevents recursive expansion (security)
 - Full Pydantic model support via model_dump()
-- 100% code coverage on template module with 42 tests
+- 96% code coverage on template module with 51 tests
+
+### Code Review Fixes Applied
+- Added path traversal protection (TEMPLATE_PATH_TRAVERSAL error code)
+- Added explicit UTF-8 encoding for file reading
+- Added error handling for PermissionError, IsADirectoryError, UnicodeDecodeError
+- Added edge case tests (empty template, path traversal, directory paths, etc.)
+- Preserved docstring format for `__init__.py` (awaiting merge with story-2-1)
 
 ### File List
 **Created:**
 - `src/adw/commands/template.py` - TemplateEngine class implementation
 - `tests/unit/commands/__init__.py` - Test package marker
-- `tests/unit/commands/test_template.py` - Comprehensive test suite
+- `tests/unit/commands/test_template.py` - Comprehensive test suite (51 tests)
 
 **Modified:**
-- `src/adw/commands/__init__.py` - Export TemplateEngine
+- `src/adw/commands/__init__.py` - Export TemplateEngine (will merge with story-2-1 exports)
 

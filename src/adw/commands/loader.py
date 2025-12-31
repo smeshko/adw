@@ -4,6 +4,7 @@ This module implements the CommandLoader class that loads command content
 (prompts, schemas, hooks) from a resolved command directory.
 """
 
+
 class CommandLoader:
     """Loads command content from a resolved command directory.
 

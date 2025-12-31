@@ -16,7 +16,7 @@ class TestCommandResolverErrorHandling:
     """Test error handling in CommandResolver."""
 
     def test_command_not_found_raises_config_error(self, tmp_path: Path) -> None:
-        """Should raise ConfigError with COMMAND_NOT_FOUND when command doesn't exist."""
+        """Should raise ConfigError when command doesn't exist."""
         mock_home = tmp_path / "mock_home"
         mock_home.mkdir()
 
