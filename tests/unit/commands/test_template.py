@@ -194,6 +194,44 @@ class TestFileInclusion:
         result = engine.render(template, {})
         assert result == "content"
 
+    def test_path_traversal_blocked(self, tmp_path: Path) -> None:
+        """Engine should block path traversal attempts."""
+        # Create a file outside the project root
+        parent_file = tmp_path.parent / "secret.txt"
+        parent_file.write_text("secret data")
+
+        engine = TemplateEngine(project_root=tmp_path)
+        template = "{{file:../secret.txt}}"
+
+        with pytest.raises(ConfigError) as exc:
+            engine.render(template, {})
+
+        assert exc.value.code == "TEMPLATE_PATH_TRAVERSAL"
+
+    def test_path_traversal_absolute_blocked(self, tmp_path: Path) -> None:
+        """Engine should block absolute path attempts."""
+        engine = TemplateEngine(project_root=tmp_path)
+        template = "{{file:/etc/passwd}}"
+
+        with pytest.raises(ConfigError) as exc:
+            engine.render(template, {})
+
+        # Could be NOT_FOUND or PATH_TRAVERSAL depending on resolution
+        assert exc.value.code in ("TEMPLATE_PATH_TRAVERSAL", "TEMPLATE_FILE_NOT_FOUND")
+
+    def test_directory_path_raises_error(self, tmp_path: Path) -> None:
+        """Engine should raise ConfigError for directory paths."""
+        subdir = tmp_path / "subdir"
+        subdir.mkdir()
+
+        engine = TemplateEngine(project_root=tmp_path)
+        template = "{{file:subdir}}"
+
+        with pytest.raises(ConfigError) as exc:
+            engine.render(template, {})
+
+        assert exc.value.code == "TEMPLATE_FILE_IS_DIRECTORY"
+
 
 class TestStrictVsLenientMode:
     """Tests for Task 4: Strict vs Lenient Mode."""
@@ -457,3 +495,49 @@ class TestContextObjectRendering:
         with pytest.raises(ConfigError) as exc:
             engine.render(template, context, strict=True)
         assert exc.value.code == "UNKNOWN_VARIABLE"
+
+
+class TestEdgeCases:
+    """Tests for edge cases and boundary conditions."""
+
+    def test_empty_template(self) -> None:
+        """Engine should handle empty template string."""
+        engine = TemplateEngine()
+        result = engine.render("", {})
+        assert result == ""
+
+    def test_whitespace_only_template(self) -> None:
+        """Engine should preserve whitespace-only templates."""
+        engine = TemplateEngine()
+        result = engine.render("   \n\t  ", {})
+        assert result == "   \n\t  "
+
+    def test_no_variables_in_template(self) -> None:
+        """Engine should return template unchanged if no variables."""
+        engine = TemplateEngine()
+        template = "Plain text without any variables"
+        result = engine.render(template, {})
+        assert result == template
+
+    def test_empty_context(self) -> None:
+        """Engine should work with empty context for templates without variables."""
+        engine = TemplateEngine()
+        template = "Static content"
+        result = engine.render(template, {})
+        assert result == "Static content"
+
+    def test_boolean_value_conversion(self) -> None:
+        """Engine should convert boolean values to string."""
+        engine = TemplateEngine()
+        template = "Active: {{active}}, Enabled: {{enabled}}"
+        context = {"active": True, "enabled": False}
+        result = engine.render(template, context)
+        assert result == "Active: True, Enabled: False"
+
+    def test_list_value_conversion(self) -> None:
+        """Engine should convert list values to string."""
+        engine = TemplateEngine()
+        template = "Items: {{items}}"
+        context = {"items": [1, 2, 3]}
+        result = engine.render(template, context)
+        assert result == "Items: [1, 2, 3]"

@@ -207,13 +207,50 @@ class TemplateEngine:
             file_path = match.group(1).strip()
             full_path = self.project_root / file_path
 
-            if not full_path.exists():
+            # Security: Prevent path traversal attacks
+            try:
+                resolved_path = full_path.resolve()
+                project_resolved = self.project_root.resolve()
+                if not resolved_path.is_relative_to(project_resolved):
+                    raise ConfigError(
+                        code="TEMPLATE_PATH_TRAVERSAL",
+                        message=f"Path traversal not allowed: {file_path}",
+                        suggestion="Use paths relative to the project root without '..'",
+                    )
+            except ValueError:
+                # is_relative_to raises ValueError on Python < 3.9 or invalid paths
+                raise ConfigError(
+                    code="TEMPLATE_PATH_TRAVERSAL",
+                    message=f"Invalid file path: {file_path}",
+                    suggestion="Use valid paths relative to the project root",
+                )
+
+            if not resolved_path.exists():
                 raise ConfigError(
                     code="TEMPLATE_FILE_NOT_FOUND",
                     message=f"Template file not found: {file_path}",
                     suggestion=f"Create the file at {full_path} or fix the path",
                 )
 
-            return full_path.read_text()
+            try:
+                return resolved_path.read_text(encoding="utf-8")
+            except PermissionError:
+                raise ConfigError(
+                    code="TEMPLATE_FILE_PERMISSION",
+                    message=f"Permission denied reading file: {file_path}",
+                    suggestion="Check file permissions and ownership",
+                )
+            except IsADirectoryError:
+                raise ConfigError(
+                    code="TEMPLATE_FILE_IS_DIRECTORY",
+                    message=f"Path is a directory, not a file: {file_path}",
+                    suggestion="Provide a path to a file, not a directory",
+                )
+            except UnicodeDecodeError:
+                raise ConfigError(
+                    code="TEMPLATE_FILE_ENCODING",
+                    message=f"File is not valid UTF-8: {file_path}",
+                    suggestion="Ensure the file is saved with UTF-8 encoding",
+                )
 
         return FILE_PATTERN.sub(replace_file, template)
