@@ -63,11 +63,11 @@ so that users can override any command at the appropriate level.
 - [x] Include command name in error message
 
 ### Task 5: Implement Command Directory Validation
-- [ ] Verify `prompt.md` exists in resolved directory (required)
-- [ ] Detect presence of `schema.json` (optional)
-- [ ] Detect presence of `pre-hook.sh` / `pre.sh` (optional)
-- [ ] Detect presence of `post-hook.sh` / `post.sh` (optional)
-- [ ] Raise `ConfigError(code="INVALID_COMMAND")` if prompt.md missing
+- [x] Verify `prompt.md` exists in resolved directory (required)
+- [x] Detect presence of `schema.json` (optional)
+- [x] Detect presence of `pre-hook.sh` / `pre.sh` (optional)
+- [x] Detect presence of `post-hook.sh` / `post.sh` (optional)
+- [x] Raise `ConfigError(code="INVALID_COMMAND")` if prompt.md missing
 
 ### Task 6: Create Default Command Scaffolding
 - [ ] Create `defaults/commands/plan/` directory structure

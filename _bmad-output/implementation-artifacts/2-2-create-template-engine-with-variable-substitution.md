@@ -57,15 +57,15 @@ so that prompts can include dynamic content from the run context.
 - [x] Raise `ConfigError(code="TEMPLATE_FILE_NOT_FOUND")` for missing files
 
 ### Task 4: Implement Strict vs Lenient Mode
-- [ ] Add `strict: bool = True` parameter to render method
-- [ ] In strict mode: raise `ConfigError(code="UNKNOWN_VARIABLE")` for unmatched variables
-- [ ] In lenient mode: leave `{{unknown}}` as-is in output
-- [ ] Log warning in lenient mode for unmatched variables
+- [x] Add `strict: bool = True` parameter to render method
+- [x] In strict mode: raise `ConfigError(code="UNKNOWN_VARIABLE")` for unmatched variables
+- [x] In lenient mode: leave `{{unknown}}` as-is in output
+- [x] Log warning in lenient mode for unmatched variables
 
 ### Task 5: Implement Single-Level Substitution Guard
-- [ ] Ensure no recursive expansion of variables
-- [ ] Process template in single pass
-- [ ] Document limitation clearly in docstring
+- [x] Ensure no recursive expansion of variables
+- [x] Process template in single pass
+- [x] Document limitation clearly in docstring
 
 ### Task 6: Support Context Object Rendering
 - [ ] Accept Pydantic models (RunContext, etc.) as context
