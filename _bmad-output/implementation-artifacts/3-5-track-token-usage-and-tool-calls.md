@@ -1,6 +1,6 @@
 # Story 3.5: Track Token Usage and Tool Calls
 
-Status: ready-for-dev
+Status: ready-for-review
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2025-12-31
@@ -78,9 +78,9 @@ so that I can monitor costs and understand what actions the LLM took.
 - [x] Target: >90% coverage for token tracking code
 
 ### Task 8: Write Integration Tests
-- [ ] Test with actual Claude Code output (if available)
-- [ ] Verify token counts are reasonable
-- [ ] Verify tool calls are captured correctly
+- [x] Test with actual Claude Code output (if available)
+- [x] Verify token counts are reasonable
+- [x] Verify tool calls are captured correctly
 
 ---
 
