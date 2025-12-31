@@ -7,7 +7,10 @@ This package contains all Pydantic models used throughout ADW:
 """
 
 from adw.models.context import RunContext
+from adw.models.phase import PhaseResult, PhaseStatus
 
 __all__: list[str] = [
     "RunContext",
+    "PhaseResult",
+    "PhaseStatus",
 ]
