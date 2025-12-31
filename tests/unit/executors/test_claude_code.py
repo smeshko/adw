@@ -522,9 +522,11 @@ class TestTimeoutEnforcement:
             # Use real wait_for to trigger actual timeout
             mock_asyncio.wait_for = asyncio.wait_for
 
-            with patch("shutil.which", return_value="/usr/bin/claude"):
-                with pytest.raises(LLMError) as exc_info:
-                    executor.execute("Test prompt", timeout=1)
+            with (
+                patch("shutil.which", return_value="/usr/bin/claude"),
+                pytest.raises(LLMError) as exc_info,
+            ):
+                executor.execute("Test prompt", timeout=1)
 
             assert exc_info.value.code == "TIMEOUT"
             assert "timed out" in exc_info.value.message
@@ -559,9 +561,11 @@ class TestTimeoutEnforcement:
             mock_asyncio.wait_for = asyncio.wait_for
             mock_asyncio.TimeoutError = asyncio.TimeoutError
 
-            with patch("shutil.which", return_value="/usr/bin/claude"):
-                with pytest.raises(LLMError):
-                    executor.execute("Test prompt", timeout=1)
+            with (
+                patch("shutil.which", return_value="/usr/bin/claude"),
+                pytest.raises(LLMError),
+            ):
+                executor.execute("Test prompt", timeout=1)
 
             # Verify process was terminated
             process.terminate.assert_called_once()
@@ -680,12 +684,14 @@ class TestOutputParsing:
         import json
 
         lines = [
-            json.dumps(
-                {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "Hello "}}
-            ),
-            json.dumps(
-                {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "World!"}}
-            ),
+            json.dumps({
+                "type": "content_block_delta",
+                "delta": {"type": "text_delta", "text": "Hello "},
+            }),
+            json.dumps({
+                "type": "content_block_delta",
+                "delta": {"type": "text_delta", "text": "World!"},
+            }),
         ]
         raw_output = "\n".join(lines)
         parsed = executor._parse_output(raw_output)
@@ -929,9 +935,9 @@ class TestPathConfiguration:
 
     def test_supports_absolute_paths(self) -> None:
         """Should support absolute paths from config."""
-        from pathlib import Path as PathlibPath
-        import tempfile
         import os
+        import tempfile
+        from pathlib import Path as PathlibPath
 
         # Create a temporary file to act as the executable
         with tempfile.NamedTemporaryFile(delete=False) as f:
@@ -949,8 +955,8 @@ class TestPathConfiguration:
 
     def test_absolute_path_bypasses_which(self) -> None:
         """Absolute paths should not call shutil.which()."""
-        import tempfile
         import os
+        import tempfile
 
         # Create a temporary file to act as the executable
         with tempfile.NamedTemporaryFile(delete=False) as f:

@@ -137,7 +137,7 @@ class ClaudeCodeExecutor:
             )
             return self._build_result(result, start_time)
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             # Timeout - terminate the process
             logger.warning(
                 "Claude Code execution timed out",
@@ -146,7 +146,7 @@ class ClaudeCodeExecutor:
             process.terminate()
             try:
                 await asyncio.wait_for(process.wait(), timeout=5.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 process.kill()
                 await process.wait()
 
@@ -155,7 +155,7 @@ class ClaudeCodeExecutor:
                 message=f"Claude Code execution timed out after {timeout} seconds",
                 suggestion="Increase timeout or simplify the prompt",
                 recoverable=True,
-            )
+            ) from None
 
         except Exception as e:
             # Cleanup process on any error
@@ -167,7 +167,7 @@ class ClaudeCodeExecutor:
                 process.terminate()
                 try:
                     await asyncio.wait_for(process.wait(), timeout=5.0)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     process.kill()
                     await process.wait()
             raise
@@ -190,10 +190,16 @@ class ClaudeCodeExecutor:
         content_lines: list[str] = []
         stderr_lines: list[str] = []
 
+        # These are guaranteed to be set since we passed stdout=PIPE and stderr=PIPE
+        assert process.stdout is not None
+        assert process.stderr is not None
+        stdout = process.stdout
+        stderr = process.stderr
+
         async def read_stdout() -> None:
             """Read stdout line-by-line and stream to console."""
             while True:
-                line = await process.stdout.readline()
+                line = await stdout.readline()
                 if not line:
                     break
                 decoded = line.decode()
@@ -204,7 +210,7 @@ class ClaudeCodeExecutor:
         async def read_stderr() -> None:
             """Read stderr line-by-line."""
             while True:
-                line = await process.stderr.readline()
+                line = await stderr.readline()
                 if not line:
                     break
                 stderr_lines.append(line.decode())
