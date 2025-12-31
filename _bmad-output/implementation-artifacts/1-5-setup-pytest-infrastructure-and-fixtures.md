@@ -73,10 +73,10 @@ so that I can write and run tests following the 60/30/10 pyramid.
 - [x] Verify 80% coverage threshold is enforced
 
 ### Task 6: Add CI Configuration
-- [ ] Update .github/workflows/ci.yml with test step
-- [ ] Add ruff check step
-- [ ] Add mypy check step
-- [ ] Add pytest with coverage step
+- [x] Update .github/workflows/ci.yml with test step
+- [x] Add ruff check step
+- [x] Add mypy check step
+- [x] Add pytest with coverage step
 
 ---
 
