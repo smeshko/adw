@@ -71,9 +71,9 @@ so that I have a working development environment with the correct tooling from d
 - [x] Measure startup time (should be <2 seconds)
 
 ### Task 7: Add Configuration Files
-- [ ] Create `.gitignore` with Python/uv patterns
-- [ ] Create basic `README.md` with installation instructions
-- [ ] Create `.github/workflows/ci.yml` placeholder for CI
+- [x] Create `.gitignore` with Python/uv patterns
+- [x] Create basic `README.md` with installation instructions
+- [x] Create `.github/workflows/ci.yml` placeholder for CI
 
 ---
 
