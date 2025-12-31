@@ -62,9 +62,9 @@ so that temporary issues don't fail the entire run.
 - [x] `HookError`, `ConfigError` → not retryable
 
 ### Task 5: Handle Rate Limit Headers
-- [ ] Check `LLMRateLimitError.retry_after` for server-suggested delay
-- [ ] Use larger of: calculated backoff OR `retry_after`
-- [ ] Log when using rate limit delay
+- [x] Check `LLMRateLimitError.retry_after` for server-suggested delay
+- [x] Use larger of: calculated backoff OR `retry_after`
+- [x] Log when using rate limit delay
 
 ### Task 6: Update LLMResult for Attempt Tracking
 - [ ] Add `attempt_count: int = 1` field to `LLMResult`
@@ -365,6 +365,7 @@ claude-opus-4-5-20251101
 - Task 2: Created RetryExecutor class that wraps any LLMExecutor and implements retry logic with exponential backoff and jitter.
 - Task 3: Verified exponential backoff implementation with tests: delay = base * (multiplier ^ attempt) with ±25% jitter, capped at max_delay.
 - Task 4: Verified error classification using recoverable field: LLMTimeoutError/LLMRateLimitError are retryable, other LLMErrors depend on recoverable flag.
+- Task 5: Verified rate limit retry_after handling: uses max(calculated_backoff, retry_after), still capped at max_delay, logs when using rate limit delay.
 
 ### File List
 

@@ -222,3 +222,81 @@ class TestErrorClassification:
         )
 
         assert retry._is_retryable(error) is True
+
+
+class TestRateLimitHandling:
+    """Tests for rate limit retry_after handling."""
+
+    def test_rate_limit_retry_after_is_respected(self) -> None:
+        """Test that retry_after from rate limit error is used when larger than backoff."""
+        mock = MockExecutor()
+        config = RetryConfig(base_delay_seconds=1.0, multiplier=2.0)
+        retry = RetryExecutor(executor=mock, config=config)
+
+        # retry_after=30 is much larger than calculated backoff of 1.0
+        error = LLMRateLimitError(
+            code="LLM_RATE_LIMIT",
+            message="Rate limited",
+            retry_after=30,
+        )
+
+        delay = retry._calculate_delay(1, error)
+
+        # With ±25% jitter on 30, delay should be between 22.5 and 37.5
+        assert 22.5 <= delay <= 37.5
+
+    def test_rate_limit_uses_backoff_when_larger_than_retry_after(self) -> None:
+        """Test that backoff is used when larger than retry_after."""
+        mock = MockExecutor()
+        config = RetryConfig(base_delay_seconds=10.0, multiplier=2.0)
+        retry = RetryExecutor(executor=mock, config=config)
+
+        # retry_after=5 is smaller than calculated backoff of 10.0
+        error = LLMRateLimitError(
+            code="LLM_RATE_LIMIT",
+            message="Rate limited",
+            retry_after=5,
+        )
+
+        delay = retry._calculate_delay(1, error)
+
+        # Backoff of 10.0 with ±25% jitter: between 7.5 and 12.5
+        assert 7.5 <= delay <= 12.5
+
+    def test_rate_limit_without_retry_after_uses_backoff(self) -> None:
+        """Test that backoff is used when retry_after is None."""
+        mock = MockExecutor()
+        config = RetryConfig(base_delay_seconds=2.0, multiplier=2.0)
+        retry = RetryExecutor(executor=mock, config=config)
+
+        error = LLMRateLimitError(
+            code="LLM_RATE_LIMIT",
+            message="Rate limited",
+            retry_after=None,
+        )
+
+        delay = retry._calculate_delay(1, error)
+
+        # Backoff of 2.0 with ±25% jitter: between 1.5 and 2.5
+        assert 1.5 <= delay <= 2.5
+
+    def test_rate_limit_retry_after_still_capped_at_max_delay(self) -> None:
+        """Test that retry_after is still capped at max_delay_seconds."""
+        mock = MockExecutor()
+        config = RetryConfig(
+            base_delay_seconds=1.0,
+            max_delay_seconds=10.0,
+        )
+        retry = RetryExecutor(executor=mock, config=config)
+
+        # retry_after=60 is larger than max_delay=10
+        error = LLMRateLimitError(
+            code="LLM_RATE_LIMIT",
+            message="Rate limited",
+            retry_after=60,
+        )
+
+        delay = retry._calculate_delay(1, error)
+
+        # Should be capped at max_delay of 10.0
+        assert delay <= 10.0
