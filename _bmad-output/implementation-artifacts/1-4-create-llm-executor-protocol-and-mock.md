@@ -1,6 +1,6 @@
 # Story 1.4: Create LLM Executor Protocol and MockExecutor
 
-Status: ready-for-review
+Status: done
 Linear Issue: not-configured
 Epic: 1 - Project Scaffolding & Test Infrastructure
 Created: 2025-12-31
@@ -493,8 +493,23 @@ Claude Opus 4.5 (implementation via dev-story workflow)
 - Implemented LLMResult and ToolCall Pydantic models in src/adw/models/llm.py
 - Created MockExecutor with response queuing, failure injection, and call tracking
 - Added assertion helpers: assert_called_once(), assert_called_with(), reset()
-- Comprehensive test coverage with 60+ executor tests including edge cases
+- Comprehensive test coverage with 71 executor tests including edge cases
 - All 177 tests pass, all linting checks pass
+
+### Code Review Fixes (2025-12-31)
+
+**Issues Fixed:**
+- H1: Removed unused `LLMError` imports from test_mock.py and test_edge_cases.py
+- H1: Removed unused `pytest` import from test_protocol.py
+- H2: Changed blind `Exception` to specific `pydantic.ValidationError` in test_llm.py
+- H3: Fixed type comparison using `is` instead of `==` in test_protocol.py
+- M1: Applied ruff formatting to 4 test files
+- M2: Replaced try/except/pass with `contextlib.suppress()` in test_mock.py
+
+**Notes:**
+- M3 (LLMResult.error type): Intentionally kept as `str | None` per Developer Context code example - storing full exception objects is problematic for Pydantic serialization
+- All linting checks now pass
+- All 177 tests pass with 100% executor coverage
 
 ### File List
 
