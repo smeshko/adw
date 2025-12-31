@@ -4,11 +4,13 @@ import pytest
 
 from adw.exceptions import (
     ADWError,
+    CommandError,
     ConfigError,
     HookError,
     LLMError,
     LLMRateLimitError,
     LLMTimeoutError,
+    PhaseError,
     StateError,
     ValidationError,
 )
@@ -151,6 +153,55 @@ class TestConfigError:
         )
         d = error.to_dict()
         assert d["code"] == "INVALID_CONFIG"
+        assert d["recoverable"] is False
+
+
+class TestCommandError:
+    """Tests for CommandError exception."""
+
+    def test_command_error_is_adw_error(self) -> None:
+        """CommandError inherits from ADWError."""
+        error = CommandError(
+            code="COMMAND_NOT_FOUND",
+            message="Command not found",
+        )
+        assert isinstance(error, ADWError)
+        assert isinstance(error, Exception)
+
+    def test_command_error_not_recoverable_by_default(self) -> None:
+        """CommandError is not recoverable by default."""
+        error = CommandError(
+            code="COMMAND_NOT_FOUND",
+            message="Command not found",
+        )
+        assert error.recoverable is False
+
+    def test_command_error_with_suggestion(self) -> None:
+        """CommandError accepts suggestion."""
+        error = CommandError(
+            code="COMMAND_NOT_FOUND",
+            message="Command 'deploy' not found",
+            suggestion="Check available commands with 'adw list-commands'",
+        )
+        assert error.suggestion == "Check available commands with 'adw list-commands'"
+        assert "Suggestion:" in str(error)
+
+    def test_command_error_common_codes(self) -> None:
+        """CommandError works with common error codes."""
+        codes = ["COMMAND_NOT_FOUND", "COMMAND_INVALID", "COMMAND_LOAD_FAILED"]
+        for code in codes:
+            error = CommandError(code=code, message=f"Error with {code}")
+            assert error.code == code
+
+    def test_command_error_to_dict(self) -> None:
+        """CommandError serializes properly."""
+        error = CommandError(
+            code="COMMAND_NOT_FOUND",
+            message="Command not found",
+            suggestion="Check your commands",
+        )
+        d = error.to_dict()
+        assert d["code"] == "COMMAND_NOT_FOUND"
         assert d["recoverable"] is False
 
 
@@ -369,6 +420,68 @@ class TestLLMRateLimitError:
         assert d["retry_after"] == 60
 
 
+class TestPhaseError:
+    """Tests for PhaseError exception."""
+
+    def test_phase_error_is_adw_error(self) -> None:
+        """PhaseError inherits from ADWError."""
+        error = PhaseError(
+            code="PHASE_FAILED",
+            message="Phase failed",
+            phase="build",
+        )
+        assert isinstance(error, ADWError)
+        assert isinstance(error, Exception)
+
+    def test_phase_error_has_phase_field(self) -> None:
+        """PhaseError includes phase field."""
+        error = PhaseError(
+            code="PHASE_FAILED",
+            message="Phase failed",
+            phase="build",
+        )
+        assert error.phase == "build"
+
+    def test_phase_error_not_recoverable_by_default(self) -> None:
+        """PhaseError is not recoverable by default."""
+        error = PhaseError(
+            code="PHASE_FAILED",
+            message="Phase failed",
+            phase="build",
+        )
+        assert error.recoverable is False
+
+    def test_phase_error_with_suggestion(self) -> None:
+        """PhaseError accepts suggestion."""
+        error = PhaseError(
+            code="PHASE_FAILED",
+            message="Phase 'build' failed",
+            phase="build",
+            suggestion="Check the phase logs for details",
+        )
+        assert error.suggestion == "Check the phase logs for details"
+        assert "Suggestion:" in str(error)
+
+    def test_phase_error_common_codes(self) -> None:
+        """PhaseError works with common error codes."""
+        codes = ["PHASE_FAILED", "PHASE_TIMEOUT", "PHASE_SKIPPED", "PHASE_INVALID"]
+        for code in codes:
+            error = PhaseError(code=code, message=f"Error with {code}", phase="test")
+            assert error.code == code
+
+    def test_phase_error_to_dict_includes_phase(self) -> None:
+        """PhaseError to_dict includes phase field."""
+        error = PhaseError(
+            code="PHASE_FAILED",
+            message="Phase failed",
+            phase="build",
+        )
+        d = error.to_dict()
+        assert d["phase"] == "build"
+        assert d["code"] == "PHASE_FAILED"
+        assert d["recoverable"] is False
+
+
 class TestStateError:
     """Tests for StateError exception."""
 
@@ -498,11 +611,13 @@ class TestExceptionHierarchy:
     def test_all_exceptions_inherit_from_adw_error(self) -> None:
         """All custom exceptions should inherit from ADWError."""
         exceptions = [
+            CommandError(code="TEST", message="test"),
             ConfigError(code="TEST", message="test"),
             HookError(code="TEST", message="test", phase="test"),
             LLMError(code="TEST", message="test"),
             LLMTimeoutError(code="TEST", message="test", timeout_seconds=1, elapsed_seconds=1),
             LLMRateLimitError(code="TEST", message="test"),
+            PhaseError(code="TEST", message="test", phase="test"),
             StateError(code="TEST", message="test"),
             ValidationError(code="TEST", message="test"),
         ]
@@ -525,10 +640,13 @@ class TestExceptionHierarchy:
             "CONFIG_NOT_FOUND",
             "INVALID_CONFIG",
             "COMMAND_NOT_FOUND",
+            "COMMAND_INVALID",
             "HOOK_FAILED",
             "HOOK_TIMEOUT",
             "LLM_TIMEOUT",
             "LLM_RATE_LIMIT",
+            "PHASE_FAILED",
+            "PHASE_TIMEOUT",
             "CONTEXT_CORRUPTED",
             "SNAPSHOT_FAILED",
             "RUN_NOT_FOUND",
@@ -541,9 +659,11 @@ class TestExceptionHierarchy:
     def test_recoverable_defaults(self) -> None:
         """Verify recoverable defaults for each exception type."""
         non_recoverable = [
+            CommandError(code="TEST", message="test"),
             ConfigError(code="TEST", message="test"),
             HookError(code="TEST", message="test", phase="test"),
             LLMError(code="TEST", message="test"),
+            PhaseError(code="TEST", message="test", phase="test"),
             StateError(code="TEST", message="test"),
             ValidationError(code="TEST", message="test"),
         ]
