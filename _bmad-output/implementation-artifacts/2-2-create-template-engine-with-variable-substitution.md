@@ -73,14 +73,14 @@ so that prompts can include dynamic content from the run context.
 - [x] Support nested attribute access via dot notation
 
 ### Task 7: Write Unit Tests
-- [ ] Test basic variable substitution
-- [ ] Test dot notation for nested access
-- [ ] Test file inclusion with existing file
-- [ ] Test file inclusion with missing file (ConfigError)
-- [ ] Test strict mode with unknown variable (ConfigError)
-- [ ] Test lenient mode with unknown variable (left as-is)
-- [ ] Test no recursive expansion
-- [ ] Test with Pydantic model context
+- [x] Test basic variable substitution
+- [x] Test dot notation for nested access
+- [x] Test file inclusion with existing file
+- [x] Test file inclusion with missing file (ConfigError)
+- [x] Test strict mode with unknown variable (ConfigError)
+- [x] Test lenient mode with unknown variable (left as-is)
+- [x] Test no recursive expansion
+- [x] Test with Pydantic model context
 
 ---
 

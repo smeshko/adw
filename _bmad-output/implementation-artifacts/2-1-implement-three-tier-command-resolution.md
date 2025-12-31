@@ -78,11 +78,11 @@ so that users can override any command at the appropriate level.
 - [x] Add minimal `prompt.md` placeholders to each
 
 ### Task 7: Write Unit Tests
-- [ ] Test three-tier resolution priority (project > user > bundled)
-- [ ] Test fallback behavior when tiers are empty
-- [ ] Test `COMMAND_NOT_FOUND` error with helpful message
-- [ ] Test `INVALID_COMMAND` error when prompt.md missing
-- [ ] Test detection of optional files (schema, hooks)
+- [x] Test three-tier resolution priority (project > user > bundled)
+- [x] Test fallback behavior when tiers are empty
+- [x] Test `COMMAND_NOT_FOUND` error with helpful message
+- [x] Test `INVALID_COMMAND` error when prompt.md missing
+- [x] Test detection of optional files (schema, hooks)
 
 ---
 
