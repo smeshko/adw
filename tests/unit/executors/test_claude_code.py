@@ -578,3 +578,135 @@ class TestOutputParsing:
         assert "Some debug output" in parsed["content"]
         assert "Response" in parsed["content"]
         assert "More debug info" in parsed["content"]
+
+
+class TestErrorHandling:
+    """Tests for error handling (Task 5)."""
+
+    @pytest.fixture
+    def executor(self) -> ClaudeCodeExecutor:
+        """Create executor with default config."""
+        config = LLMConfig(path="claude")
+        return ClaudeCodeExecutor(config)
+
+    def test_raises_llm_error_when_path_not_found(self) -> None:
+        """Should raise LLMError with CLAUDE_NOT_FOUND when path doesn't exist."""
+        from adw.exceptions import LLMError
+
+        config = LLMConfig(path="nonexistent-claude-binary")
+        executor = ClaudeCodeExecutor(config)
+
+        with patch("shutil.which", return_value=None):
+            with pytest.raises(LLMError) as exc_info:
+                executor.execute("Test prompt")
+
+            assert exc_info.value.code == "CLAUDE_NOT_FOUND"
+            assert "nonexistent-claude-binary" in exc_info.value.message
+
+    def test_error_includes_suggestion(self) -> None:
+        """Error should include helpful suggestion."""
+        from adw.exceptions import LLMError
+
+        config = LLMConfig(path="claude")
+        executor = ClaudeCodeExecutor(config)
+
+        with patch("shutil.which", return_value=None):
+            with pytest.raises(LLMError) as exc_info:
+                executor.execute("Test prompt")
+
+            assert exc_info.value.suggestion is not None
+            assert "adw.yaml" in exc_info.value.suggestion
+
+    def test_error_is_not_recoverable(self) -> None:
+        """CLAUDE_NOT_FOUND error should not be recoverable."""
+        from adw.exceptions import LLMError
+
+        config = LLMConfig(path="claude")
+        executor = ClaudeCodeExecutor(config)
+
+        with patch("shutil.which", return_value=None):
+            with pytest.raises(LLMError) as exc_info:
+                executor.execute("Test prompt")
+
+            assert exc_info.value.recoverable is False
+
+    def test_handles_absolute_path_not_found(self) -> None:
+        """Should handle absolute paths that don't exist."""
+        from adw.exceptions import LLMError
+
+        config = LLMConfig(path="/nonexistent/path/to/claude")
+        executor = ClaudeCodeExecutor(config)
+
+        with pytest.raises(LLMError) as exc_info:
+            executor.execute("Test prompt")
+
+        assert exc_info.value.code == "CLAUDE_NOT_FOUND"
+        assert "/nonexistent/path/to/claude" in exc_info.value.message
+
+    def test_subprocess_error_returns_failure_result(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Subprocess errors should return LLMResult with success=False."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"", ])
+            process.stderr.read = AsyncMock(return_value=b"Process crashed")
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 1  # Non-zero exit
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = asyncio.run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                result = executor.execute("Test prompt")
+
+            assert result.success is False
+            assert result.error is not None
+
+    def test_stderr_included_in_error_message(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """stderr content should be included in error message."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"", ])
+            process.stderr.read = AsyncMock(return_value=b"Error: Rate limit exceeded")
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 1
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = asyncio.run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                result = executor.execute("Test prompt")
+
+            assert "Rate limit exceeded" in result.error
+
+    def test_fallback_error_message_when_no_stderr(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Should provide fallback error message when stderr is empty."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"", ])
+            process.stderr.read = AsyncMock(return_value=b"")  # Empty stderr
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 42
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = asyncio.run
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                result = executor.execute("Test prompt")
+
+            assert result.success is False
+            assert "42" in result.error  # Exit code in fallback message

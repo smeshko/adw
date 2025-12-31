@@ -64,10 +64,10 @@ so that users see LLM responses as they're generated.
 - [x] Build `LLMResult` from parsed output
 
 ### Task 5: Implement Error Handling
-- [ ] Check if Claude path exists before execution
-- [ ] Raise `LLMError` with code `CLAUDE_NOT_FOUND` if not found
-- [ ] Handle subprocess errors and convert to `LLMError`
-- [ ] Include helpful suggestions in error messages
+- [x] Check if Claude path exists before execution
+- [x] Raise `LLMError` with code `CLAUDE_NOT_FOUND` if not found
+- [x] Handle subprocess errors and convert to `LLMError`
+- [x] Include helpful suggestions in error messages
 
 ### Task 6: Implement Path Configuration
 - [ ] Use `LLMConfig.path` for Claude executable path
@@ -388,6 +388,7 @@ claude-opus-4-5-20251101
 - Task 2: Subprocess execution already implemented in Task 1. Added tests verifying create_subprocess_exec(), --print flag, stdout/stderr pipes, and asyncio.run() wrapper.
 - Task 3: Real-time streaming already implemented in Task 1 with readline() loop and console.print(). Added tests for line-by-line reading, console forwarding, and custom console support.
 - Task 4: Implemented _parse_output() method to parse JSONL format from --print flag. Extracts text content, tool calls, and token usage from various message types (assistant, result, content_block_delta, message_delta).
+- Task 5: Error handling already implemented in _verify_claude_path(). Added tests for CLAUDE_NOT_FOUND error, suggestions, recoverability, absolute path handling, and subprocess error results.
 
 ### File List
 
