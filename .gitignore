@@ -56,3 +56,6 @@ Thumbs.db
 # Project specific
 .runs/
 *.log
+
+# git
+.worktrees/

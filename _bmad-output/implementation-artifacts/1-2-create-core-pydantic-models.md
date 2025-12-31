@@ -1,6 +1,6 @@
 # Story 1.2: Create Core Pydantic Models
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 1 - Project Scaffolding & Test Infrastructure
 Created: 2025-12-31
@@ -40,39 +40,39 @@ so that all state management uses validated, type-safe data structures.
 ## Tasks / Subtasks
 
 ### Task 1: Create Models Package Structure
-- [ ] Create `src/adw/models/__init__.py` with exports
-- [ ] Create `src/adw/models/context.py` for context models
-- [ ] Create `src/adw/models/phase.py` for phase-related models
-- [ ] Create `src/adw/models/config.py` for configuration models
+- [x] Create `src/adw/models/__init__.py` with exports
+- [x] Create `src/adw/models/context.py` for context models
+- [x] Create `src/adw/models/phase.py` for phase-related models
+- [x] Create `src/adw/models/config.py` for configuration models
 
 ### Task 2: Implement RunContext Model
-- [ ] Define RunContext with all required fields
-- [ ] Add ULID validation for run_id field
-- [ ] Add datetime handling for started_at
-- [ ] Implement proper JSON serialization with snake_case
+- [x] Define RunContext with all required fields
+- [x] Add ULID validation for run_id field
+- [x] Add datetime handling for started_at
+- [x] Implement proper JSON serialization with snake_case
 
 ### Task 3: Implement PhaseResult Model
-- [ ] Define PhaseStatus enum (pending, running, completed, failed)
-- [ ] Define PhaseResult with status, timing, and artifacts
-- [ ] Add optional error field for failure cases
+- [x] Define PhaseStatus enum (pending, running, completed, failed)
+- [x] Define PhaseResult with status, timing, and artifacts
+- [x] Add optional error field for failure cases
 
 ### Task 4: Implement ProjectConfig Model
-- [ ] Define LLMConfig nested model
-- [ ] Define ProjectConfig with project metadata
-- [ ] Add YAML loading classmethod
-- [ ] Add validation for required fields
+- [x] Define LLMConfig nested model
+- [x] Define ProjectConfig with project metadata
+- [x] Add YAML loading classmethod
+- [x] Add validation for required fields
 
 ### Task 5: Add Additional Context Models
-- [ ] Define SessionContext for current session state
-- [ ] Define ProjectContext for resolved project info
-- [ ] Define Artifact model for artifact metadata
+- [x] Define SessionContext for current session state
+- [x] Define ProjectContext for resolved project info
+- [x] Define Artifact model for artifact metadata
 
 ### Task 6: Write Unit Tests
-- [ ] Test RunContext creation and serialization
-- [ ] Test PhaseResult with all status values
-- [ ] Test ProjectConfig YAML loading
-- [ ] Test model_copy immutability
-- [ ] Test validation error messages
+- [x] Test RunContext creation and serialization
+- [x] Test PhaseResult with all status values
+- [x] Test ProjectConfig YAML loading
+- [x] Test model_copy immutability
+- [x] Test validation error messages
 
 ---
 
@@ -369,11 +369,27 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
-(To be filled by dev agent after implementation)
+- Implemented all core Pydantic models for ADW state management
+- RunContext: Full run state with ULID validation, snake_case JSON serialization
+- PhaseResult: Phase execution tracking with computed duration_ms
+- ProjectConfig: YAML-loadable configuration with nested LLMConfig, PhaseConfig, HookConfig
+- Additional context models: SessionContext, ProjectContext, StateSnapshot, Artifact
+- 46 unit tests covering creation, serialization, immutability, and validation
+- All tests pass, all linting clean
 
 ### File List
 
-(To be filled by dev agent after implementation)
+**New Files:**
+- src/adw/models/context.py (RunContext, SessionContext, ProjectContext, StateSnapshot)
+- src/adw/models/phase.py (PhaseStatus, PhaseResult, ArtifactType, Artifact)
+- src/adw/models/config.py (LLMConfig, PhaseConfig, HookConfig, ProjectConfig)
+- tests/unit/models/__init__.py
+- tests/unit/models/test_context.py (14 tests)
+- tests/unit/models/test_phase.py (17 tests)
+- tests/unit/models/test_config.py (15 tests)
+
+**Modified Files:**
+- src/adw/models/__init__.py (updated exports)
 
 ---
 
