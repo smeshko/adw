@@ -46,10 +46,10 @@ so that I can monitor costs and understand what actions the LLM took.
 - [x] Generate result_summary from tool output (truncate if long)
 
 ### Task 3: Update Output Parsing in ClaudeCodeExecutor
-- [ ] Enhance `_parse_output()` to extract tokens_used
-- [ ] Enhance `_parse_output()` to extract tool_calls
-- [ ] Build list of `ToolCall` objects from parsed data
-- [ ] Handle malformed output gracefully (log warning, continue)
+- [x] Enhance `_parse_output()` to extract tokens_used
+- [x] Enhance `_parse_output()` to extract tool_calls
+- [x] Build list of `ToolCall` objects from parsed data
+- [x] Handle malformed output gracefully (log warning, continue)
 
 ### Task 4: Implement Token Aggregation
 - [ ] Track token usage per phase in RunContext
