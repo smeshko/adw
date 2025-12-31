@@ -2,7 +2,14 @@
 
 import pytest
 
-from adw.exceptions import ADWError, ConfigError, HookError
+from adw.exceptions import (
+    ADWError,
+    ConfigError,
+    HookError,
+    LLMError,
+    LLMRateLimitError,
+    LLMTimeoutError,
+)
 
 
 class TestADWErrorBase:
@@ -239,3 +246,122 @@ class TestHookError:
         assert d["exit_code"] == 1
         assert d["stdout"] == "out"
         assert d["stderr"] == "err"
+
+
+class TestLLMError:
+    """Tests for LLMError exception hierarchy."""
+
+    def test_llm_error_is_adw_error(self) -> None:
+        """LLMError inherits from ADWError."""
+        error = LLMError(
+            code="LLM_ERROR",
+            message="LLM call failed",
+        )
+        assert isinstance(error, ADWError)
+        assert isinstance(error, Exception)
+
+    def test_llm_error_not_recoverable_by_default(self) -> None:
+        """LLMError is not recoverable by default."""
+        error = LLMError(
+            code="LLM_ERROR",
+            message="LLM call failed",
+        )
+        assert error.recoverable is False
+
+
+class TestLLMTimeoutError:
+    """Tests for LLMTimeoutError exception."""
+
+    def test_llm_timeout_error_is_llm_error(self) -> None:
+        """LLMTimeoutError inherits from LLMError."""
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Timeout after 300s",
+            timeout_seconds=300,
+            elapsed_seconds=300,
+        )
+        assert isinstance(error, LLMError)
+        assert isinstance(error, ADWError)
+        assert isinstance(error, Exception)
+
+    def test_llm_timeout_error_is_recoverable_by_default(self) -> None:
+        """LLMTimeoutError is recoverable by default."""
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Timeout after 300s",
+            timeout_seconds=300,
+            elapsed_seconds=300,
+        )
+        assert error.recoverable is True
+
+    def test_llm_timeout_error_has_timeout_fields(self) -> None:
+        """LLMTimeoutError includes timeout_seconds and elapsed_seconds."""
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Timeout",
+            timeout_seconds=300,
+            elapsed_seconds=299,
+        )
+        assert error.timeout_seconds == 300
+        assert error.elapsed_seconds == 299
+
+    def test_llm_timeout_error_to_dict_includes_extra_fields(self) -> None:
+        """LLMTimeoutError to_dict includes timeout fields."""
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Timeout",
+            timeout_seconds=300,
+            elapsed_seconds=299,
+        )
+        d = error.to_dict()
+        assert d["timeout_seconds"] == 300
+        assert d["elapsed_seconds"] == 299
+
+
+class TestLLMRateLimitError:
+    """Tests for LLMRateLimitError exception."""
+
+    def test_llm_rate_limit_error_is_llm_error(self) -> None:
+        """LLMRateLimitError inherits from LLMError."""
+        error = LLMRateLimitError(
+            code="LLM_RATE_LIMIT",
+            message="Rate limited",
+        )
+        assert isinstance(error, LLMError)
+        assert isinstance(error, ADWError)
+        assert isinstance(error, Exception)
+
+    def test_llm_rate_limit_error_is_recoverable_by_default(self) -> None:
+        """LLMRateLimitError is recoverable by default."""
+        error = LLMRateLimitError(
+            code="LLM_RATE_LIMIT",
+            message="Rate limited",
+        )
+        assert error.recoverable is True
+
+    def test_llm_rate_limit_error_has_retry_after(self) -> None:
+        """LLMRateLimitError includes retry_after field."""
+        error = LLMRateLimitError(
+            code="LLM_RATE_LIMIT",
+            message="Rate limited",
+            retry_after=60,
+        )
+        assert error.retry_after == 60
+
+    def test_llm_rate_limit_error_retry_after_default_none(self) -> None:
+        """LLMRateLimitError retry_after defaults to None."""
+        error = LLMRateLimitError(
+            code="LLM_RATE_LIMIT",
+            message="Rate limited",
+        )
+        assert error.retry_after is None
+
+    def test_llm_rate_limit_error_to_dict_includes_retry_after(self) -> None:
+        """LLMRateLimitError to_dict includes retry_after."""
+        error = LLMRateLimitError(
+            code="LLM_RATE_LIMIT",
+            message="Rate limited",
+            retry_after=60,
+        )
+        d = error.to_dict()
+        assert d["retry_after"] == 60

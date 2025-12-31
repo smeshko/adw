@@ -185,3 +185,154 @@ class HookError(ADWError):
             "stderr": self.stderr,
         })
         return d
+
+
+class LLMError(ADWError):
+    """Base exception for LLM-related errors.
+
+    Used for issues with Claude Code or other LLM interactions.
+    Subclasses handle specific failure modes like timeouts and rate limits.
+
+    Example:
+        >>> raise LLMError(
+        ...     code="LLM_ERROR",
+        ...     message="LLM call failed unexpectedly",
+        ...     suggestion="Check Claude Code configuration",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        suggestion: str | None = None,
+        recoverable: bool = False,
+    ) -> None:
+        """Initialize an LLMError.
+
+        Args:
+            code: Unique error code (e.g., "LLM_ERROR").
+            message: Human-readable error message.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default False).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
+
+
+class LLMTimeoutError(LLMError):
+    """Exception for LLM call timeouts.
+
+    Used when an LLM call exceeds the configured timeout.
+    This error is recoverable by default since retrying may succeed.
+
+    Example:
+        >>> raise LLMTimeoutError(
+        ...     code="LLM_TIMEOUT",
+        ...     message="LLM call timed out after 300 seconds",
+        ...     timeout_seconds=300,
+        ...     elapsed_seconds=300,
+        ...     suggestion="Consider increasing the timeout or simplifying the prompt",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        timeout_seconds: int,
+        elapsed_seconds: int,
+        suggestion: str | None = None,
+        recoverable: bool = True,
+    ) -> None:
+        """Initialize an LLMTimeoutError.
+
+        Args:
+            code: Unique error code (e.g., "LLM_TIMEOUT").
+            message: Human-readable error message.
+            timeout_seconds: The configured timeout in seconds.
+            elapsed_seconds: How long the call ran before timing out.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default True).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
+        self.timeout_seconds = timeout_seconds
+        self.elapsed_seconds = elapsed_seconds
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize error to dictionary for structured logging.
+
+        Returns:
+            Dictionary containing all error attributes including timeout fields.
+        """
+        d = super().to_dict()
+        d.update({
+            "timeout_seconds": self.timeout_seconds,
+            "elapsed_seconds": self.elapsed_seconds,
+        })
+        return d
+
+
+class LLMRateLimitError(LLMError):
+    """Exception for LLM API rate limiting.
+
+    Used when the LLM API returns a rate limit error.
+    This error is recoverable by default since waiting and retrying may succeed.
+
+    Example:
+        >>> raise LLMRateLimitError(
+        ...     code="LLM_RATE_LIMIT",
+        ...     message="Rate limited by Claude API",
+        ...     retry_after=60,
+        ...     suggestion="Wait before retrying",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        retry_after: int | None = None,
+        suggestion: str | None = None,
+        recoverable: bool = True,
+    ) -> None:
+        """Initialize an LLMRateLimitError.
+
+        Args:
+            code: Unique error code (e.g., "LLM_RATE_LIMIT").
+            message: Human-readable error message.
+            retry_after: Seconds to wait before retrying, if provided by API.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default True).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
+        self.retry_after = retry_after
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize error to dictionary for structured logging.
+
+        Returns:
+            Dictionary containing all error attributes including retry_after.
+        """
+        d = super().to_dict()
+        d.update({
+            "retry_after": self.retry_after,
+        })
+        return d

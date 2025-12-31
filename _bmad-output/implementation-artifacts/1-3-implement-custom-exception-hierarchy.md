@@ -56,10 +56,10 @@ so that error handling is consistent and errors are actionable.
 - [x] Add common error codes: HOOK_FAILED, HOOK_TIMEOUT
 
 ### Task 4: Implement LLMError Hierarchy
-- [ ] Create LLMError base class for Claude Code issues
-- [ ] Create LLMTimeoutError subclass (recoverable=True)
-- [ ] Create LLMRateLimitError subclass (recoverable=True)
-- [ ] Add retry_after field for rate limit errors
+- [x] Create LLMError base class for Claude Code issues
+- [x] Create LLMTimeoutError subclass (recoverable=True)
+- [x] Create LLMRateLimitError subclass (recoverable=True)
+- [x] Add retry_after field for rate limit errors
 
 ### Task 5: Implement StateError
 - [ ] Create StateError for state persistence issues
