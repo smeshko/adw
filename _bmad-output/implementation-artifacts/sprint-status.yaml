@@ -44,12 +44,12 @@ development_status:
   # Goal: Establish project foundation with Pydantic models, exception hierarchy,
   #       and MockExecutor for test enablement
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-1: in-progress
+  epic-1: done
   1-1-initialize-project-structure-with-uv-and-typer: done
   1-2-create-core-pydantic-models: done
   1-3-implement-custom-exception-hierarchy: done
   1-4-create-llm-executor-protocol-and-mock-executor: done
-  1-5-set-up-pytest-infrastructure-and-fixtures: ready-for-dev
+  1-5-set-up-pytest-infrastructure-and-fixtures: done
   epic-1-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -57,11 +57,11 @@ development_status:
   # Goal: Enable command/prompt resolution with three-tier hierarchy and
   #       template variable substitution
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-2: backlog
-  2-1-implement-three-tier-command-resolution: backlog
-  2-2-create-template-engine-with-variable-substitution: backlog
-  2-3-load-and-render-phase-prompts: backlog
-  2-4-validate-llm-output-against-schema: backlog
+  epic-2: in-progress
+  2-1-implement-three-tier-command-resolution: ready-for-dev
+  2-2-create-template-engine-with-variable-substitution: ready-for-dev
+  2-3-load-and-render-phase-prompts: ready-for-dev
+  2-4-validate-llm-output-against-schema: ready-for-dev
   epic-2-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

@@ -69,12 +69,8 @@ class Artifact(BaseModel):
     )
     phase: str = Field(..., description="Phase that produced this artifact")
     created_at: datetime = Field(..., description="When the artifact was created")
-    size_bytes: int | None = Field(
-        default=None, description="Size in bytes (if known)"
-    )
-    description: str | None = Field(
-        default=None, description="Optional description"
-    )
+    size_bytes: int | None = Field(default=None, description="Size in bytes (if known)")
+    description: str | None = Field(default=None, description="Optional description")
 
     model_config = {
         "frozen": False,
@@ -117,11 +113,9 @@ class PhaseResult(BaseModel):
     artifacts: list[str] = Field(
         default_factory=list, description="Artifact paths produced"
     )
-    error: str | None = Field(
-        default=None, description="Error message if phase failed"
-    )
+    error: str | None = Field(default=None, description="Error message if phase failed")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def duration_ms(self) -> int | None:
         """Calculate the duration of the phase in milliseconds.
