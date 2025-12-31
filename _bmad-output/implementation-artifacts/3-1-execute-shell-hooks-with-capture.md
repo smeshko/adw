@@ -74,14 +74,14 @@ so that I can run custom logic before and after LLM execution.
 - [x] Support both `.sh` extension and extensionless scripts
 
 ### Task 6: Write Unit Tests
-- [ ] Create `tests/unit/hooks/test_runner.py`
-- [ ] Test successful hook execution with stdout capture
-- [ ] Test failed hook (non-zero exit) raises `HookError`
-- [ ] Test timeout handling raises `HookError` with `HOOK_TIMEOUT`
-- [ ] Test environment variables passed correctly
-- [ ] Test missing hook returns `None` (no error)
-- [ ] Create test fixtures at `tests/fixtures/hooks/` with sample scripts
-- [ ] Target: >90% coverage for hooks module
+- [x] Create `tests/unit/hooks/test_runner.py`
+- [x] Test successful hook execution with stdout capture
+- [x] Test failed hook (non-zero exit) raises `HookError`
+- [x] Test timeout handling raises `HookError` with `HOOK_TIMEOUT`
+- [x] Test environment variables passed correctly
+- [x] Test missing hook returns `None` (no error)
+- [x] Create test fixtures at `tests/fixtures/hooks/` with sample scripts
+- [x] Target: >90% coverage for hooks module (achieved 100%)
 
 ### Task 7: Integration Tests
 - [ ] Create `tests/integration/test_hooks.py`
@@ -346,6 +346,7 @@ claude-opus-4-5-20251101
 - Task 1: Created HookResult model with stdout, stderr, exit_code, duration_ms, hook_type fields. Added is_success computed property. Model validates hook_type as Literal["pre", "post"] and enforces non-negative duration. Tests cover all validation rules.
 - Task 2: Created build_hook_environment() function. Merges os.environ with ADW-specific variables (ADW_RUN_ID, ADW_PHASE, ADW_FEATURE, ADW_ARTIFACTS_DIR, ADW_CONTEXT_FILE). All values are strings for subprocess compatibility.
 - Task 3-5: Implemented HookRunner class with asyncio subprocess execution. Uses asyncio.create_subprocess_exec() with wait_for() for timeout. Captures stdout/stderr separately. Raises HookError with HOOK_FAILED or HOOK_TIMEOUT codes. Also implemented find_hook() for hook discovery with .sh and extensionless support.
+- Task 6: Unit tests complete with 31 tests, 100% coverage on hooks module. Added test fixtures at tests/fixtures/hooks/.
 
 ### File List
 
@@ -357,6 +358,10 @@ claude-opus-4-5-20251101
 - tests/unit/hooks/test_hook_result.py (NEW)
 - tests/unit/hooks/test_environment.py (NEW)
 - tests/unit/hooks/test_runner.py (NEW)
+- tests/fixtures/hooks/success.sh (NEW)
+- tests/fixtures/hooks/failure.sh (NEW)
+- tests/fixtures/hooks/slow.sh (NEW)
+- tests/fixtures/hooks/env_check.sh (NEW)
 
 ---
 
