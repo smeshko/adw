@@ -43,9 +43,7 @@ class RunContext(BaseModel):
     feature_description: str = Field(
         ..., description="Description of the feature being developed"
     )
-    current_phase: str = Field(
-        ..., description="Name of the currently active phase"
-    )
+    current_phase: str = Field(..., description="Name of the currently active phase")
     phase_history: list[str] = Field(
         default_factory=list, description="List of phases executed"
     )

@@ -1,6 +1,6 @@
 # Story 1.5: Set Up pytest Infrastructure and Fixtures
 
-Status: Ready for Review
+Status: Done
 Linear Issue: not-configured
 Epic: 1 - Project Scaffolding & Test Infrastructure
 Created: 2025-12-31
@@ -447,7 +447,13 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 - Created test_fixtures.py to validate all fixtures work correctly
 - Updated CI workflow with separate lint, typecheck, and test jobs running in parallel
 - All 132 tests pass with 82% coverage (above 80% threshold)
-- Note: Pre-existing mypy errors from Story 1.2 (types-PyYAML stub missing) are not addressed in this story
+
+### Code Review Fixes Applied
+
+- Fixed ruff format issues in 4 files (exceptions.py, config.py, context.py, phase.py)
+- Added types-pyyaml>=6.0.12 to dev dependencies for mypy stub support
+- Fixed mypy prop-decorator error in phase.py with type: ignore comment
+- All CI checks now pass: ruff check, ruff format, mypy, pytest
 
 ### File List
 
@@ -462,9 +468,13 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 - tests/fixtures/llm/tool_calls_response.json
 
 **Modified Files:**
-- pyproject.toml (added pytest and coverage configuration)
+- pyproject.toml (added pytest/coverage configuration, added types-pyyaml dev dependency)
 - .github/workflows/ci.yml (updated with lint, typecheck, test jobs)
 - _bmad-output/implementation-artifacts/sprint-status.yaml (status update)
+- src/adw/exceptions.py (ruff format)
+- src/adw/models/config.py (ruff format)
+- src/adw/models/context.py (ruff format)
+- src/adw/models/phase.py (ruff format, mypy ignore comment)
 
 ---
 

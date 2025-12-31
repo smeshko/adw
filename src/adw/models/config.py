@@ -105,19 +105,13 @@ class ProjectConfig(BaseModel):
 
     name: str = Field(..., description="Project name")
     language: str = Field(..., description="Programming language")
-    framework: str | None = Field(
-        default=None, description="Framework being used"
-    )
+    framework: str | None = Field(default=None, description="Framework being used")
     platform: str = Field(default="cli", description="Target platform")
-    test_command: str | None = Field(
-        default=None, description="Command to run tests"
-    )
+    test_command: str | None = Field(default=None, description="Command to run tests")
     build_command: str | None = Field(
         default=None, description="Command to build the project"
     )
-    llm: LLMConfig = Field(
-        default_factory=LLMConfig, description="LLM configuration"
-    )
+    llm: LLMConfig = Field(default_factory=LLMConfig, description="LLM configuration")
     phases: dict[str, PhaseConfig] = Field(
         default_factory=dict, description="Phase-specific configuration"
     )

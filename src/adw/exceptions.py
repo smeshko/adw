@@ -220,12 +220,14 @@ class HookError(ADWError):
             Dictionary containing all error attributes including hook-specific fields.
         """
         d = super().to_dict()
-        d.update({
-            "phase": self.phase,
-            "exit_code": self.exit_code,
-            "stdout": self.stdout,
-            "stderr": self.stderr,
-        })
+        d.update(
+            {
+                "phase": self.phase,
+                "exit_code": self.exit_code,
+                "stdout": self.stdout,
+                "stderr": self.stderr,
+            }
+        )
         return d
 
 
@@ -319,10 +321,12 @@ class LLMTimeoutError(LLMError):
             Dictionary containing all error attributes including timeout fields.
         """
         d = super().to_dict()
-        d.update({
-            "timeout_seconds": self.timeout_seconds,
-            "elapsed_seconds": self.elapsed_seconds,
-        })
+        d.update(
+            {
+                "timeout_seconds": self.timeout_seconds,
+                "elapsed_seconds": self.elapsed_seconds,
+            }
+        )
         return d
 
 
@@ -374,9 +378,11 @@ class LLMRateLimitError(LLMError):
             Dictionary containing all error attributes including retry_after.
         """
         d = super().to_dict()
-        d.update({
-            "retry_after": self.retry_after,
-        })
+        d.update(
+            {
+                "retry_after": self.retry_after,
+            }
+        )
         return d
 
 
@@ -434,9 +440,11 @@ class PhaseError(ADWError):
             Dictionary containing all error attributes including phase.
         """
         d = super().to_dict()
-        d.update({
-            "phase": self.phase,
-        })
+        d.update(
+            {
+                "phase": self.phase,
+            }
+        )
         return d
 
 
@@ -537,8 +545,10 @@ class ValidationError(ADWError):
             Dictionary containing all error attributes including validation fields.
         """
         d = super().to_dict()
-        d.update({
-            "field_errors": self.field_errors,
-            "schema_path": self.schema_path,
-        })
+        d.update(
+            {
+                "field_errors": self.field_errors,
+                "schema_path": self.schema_path,
+            }
+        )
         return d
