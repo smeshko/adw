@@ -1,6 +1,6 @@
 # Story 1.2: Create Core Pydantic Models
 
-Status: Ready for Review
+Status: done
 Linear Issue: not-configured
 Epic: 1 - Project Scaffolding & Test Infrastructure
 Created: 2025-12-31
@@ -369,27 +369,26 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
-- Implemented all core Pydantic models for ADW state management
-- RunContext: Full run state with ULID validation, snake_case JSON serialization
-- PhaseResult: Phase execution tracking with computed duration_ms
-- ProjectConfig: YAML-loadable configuration with nested LLMConfig, PhaseConfig, HookConfig
-- Additional context models: SessionContext, ProjectContext, StateSnapshot, Artifact
-- 46 unit tests covering creation, serialization, immutability, and validation
-- All tests pass, all linting clean
+- All 12 Pydantic models implemented per architecture spec
+- ULID validation uses Crockford Base32 character set validation
+- All models use `frozen=False` with `validate_assignment=True` for flexibility with validation
+- `computed_field` decorator used for PhaseResult.duration_ms
+- 46 unit tests passing with comprehensive coverage
+- All acceptance criteria verified through tests
 
 ### File List
 
-**New Files:**
-- src/adw/models/context.py (RunContext, SessionContext, ProjectContext, StateSnapshot)
-- src/adw/models/phase.py (PhaseStatus, PhaseResult, ArtifactType, Artifact)
-- src/adw/models/config.py (LLMConfig, PhaseConfig, HookConfig, ProjectConfig)
-- tests/unit/models/__init__.py
-- tests/unit/models/test_context.py (14 tests)
-- tests/unit/models/test_phase.py (17 tests)
-- tests/unit/models/test_config.py (15 tests)
+**Source Files:**
+- `src/adw/models/__init__.py` - Package exports for all 12 models
+- `src/adw/models/context.py` - RunContext, SessionContext, ProjectContext, StateSnapshot
+- `src/adw/models/phase.py` - PhaseStatus, PhaseResult, ArtifactType, Artifact
+- `src/adw/models/config.py` - ProjectConfig, LLMConfig, PhaseConfig, HookConfig
 
-**Modified Files:**
-- src/adw/models/__init__.py (updated exports)
+**Test Files:**
+- `tests/unit/models/__init__.py` - Test package init
+- `tests/unit/models/test_context.py` - 13 tests for context models
+- `tests/unit/models/test_phase.py` - 17 tests for phase models
+- `tests/unit/models/test_config.py` - 16 tests for config models
 
 ---
 
