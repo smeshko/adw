@@ -41,9 +41,9 @@ so that users can override any command at the appropriate level.
 ## Tasks / Subtasks
 
 ### Task 1: Create Command Resolution Module Structure
-- [ ] Create `src/adw/commands/__init__.py` with exports
-- [ ] Create `src/adw/commands/resolver.py` with `CommandResolver` class
-- [ ] Create `src/adw/commands/loader.py` with `CommandLoader` class
+- [x] Create `src/adw/commands/__init__.py` with exports
+- [x] Create `src/adw/commands/resolver.py` with `CommandResolver` class
+- [x] Create `src/adw/commands/loader.py` with `CommandLoader` class
 
 ### Task 2: Implement ResolvedCommand Model
 - [ ] Add `ResolvedCommand` model to `src/adw/models/command.py`
