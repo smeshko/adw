@@ -66,11 +66,11 @@ so that I can write deterministic tests without calling Claude Code.
 - [x] Add reset() method to clear state
 
 ### Task 6: Write Unit Tests
-- [ ] Test MockExecutor response queuing
-- [ ] Test MockExecutor failure injection
-- [ ] Test call tracking (count, prompts)
-- [ ] Test Protocol compliance
-- [ ] Test edge cases (empty queue, mixed success/failure)
+- [x] Test MockExecutor response queuing
+- [x] Test MockExecutor failure injection
+- [x] Test call tracking (count, prompts)
+- [x] Test Protocol compliance
+- [x] Test edge cases (empty queue, mixed success/failure)
 
 ---
 
