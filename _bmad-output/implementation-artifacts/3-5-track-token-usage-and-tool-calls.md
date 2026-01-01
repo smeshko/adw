@@ -1,6 +1,6 @@
 # Story 3.5: Track Token Usage and Tool Calls
 
-Status: ready-for-dev
+Status: ready-for-review
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2025-12-31
@@ -34,53 +34,53 @@ so that I can monitor costs and understand what actions the LLM took.
 ## Tasks / Subtasks
 
 ### Task 1: Parse Claude Code Token Output
-- [ ] Research Claude Code `--print` output format for token usage
-- [ ] Extract token count from Claude Code response
-- [ ] Handle cases where token info is not available
-- [ ] Default to 0 if not parseable
+- [x] Research Claude Code `--print` output format for token usage
+- [x] Extract token count from Claude Code response
+- [x] Handle cases where token info is not available
+- [x] Default to 0 if not parseable
 
 ### Task 2: Parse Tool Call Output
-- [ ] Research Claude Code output format for tool calls
-- [ ] Extract tool_name from tool call data
-- [ ] Extract arguments from tool call data
-- [ ] Generate result_summary from tool output (truncate if long)
+- [x] Research Claude Code output format for tool calls
+- [x] Extract tool_name from tool call data
+- [x] Extract arguments from tool call data
+- [x] Generate result_summary from tool output (truncate if long)
 
 ### Task 3: Update Output Parsing in ClaudeCodeExecutor
-- [ ] Enhance `_parse_output()` to extract tokens_used
-- [ ] Enhance `_parse_output()` to extract tool_calls
-- [ ] Build list of `ToolCall` objects from parsed data
-- [ ] Handle malformed output gracefully (log warning, continue)
+- [x] Enhance `_parse_output()` to extract tokens_used
+- [x] Enhance `_parse_output()` to extract tool_calls
+- [x] Build list of `ToolCall` objects from parsed data
+- [x] Handle malformed output gracefully (log warning, continue)
 
 ### Task 4: Implement Token Aggregation
-- [ ] Track token usage per phase in RunContext
-- [ ] Add `phase_tokens: dict[str, int]` field to RunContext or PhaseResult
-- [ ] Calculate total tokens from sum of all phases
-- [ ] Add `total_tokens` property or method
+- [x] Track token usage per phase in RunContext
+- [x] Add `phase_tokens: dict[str, int]` field to RunContext or PhaseResult
+- [x] Calculate total tokens from sum of all phases
+- [x] Add `total_tokens` property or method
 
 ### Task 5: Implement Structured Logging for Tokens
-- [ ] Log token usage after each LLM call
-- [ ] Use structured format: `logger.info("LLM completed", tokens_used=500, phase="plan")`
-- [ ] Log tool calls made during execution
-- [ ] Enable aggregation through log analysis
+- [x] Log token usage after each LLM call
+- [x] Use structured format: `logger.info("LLM completed", tokens_used=500, phase="plan")`
+- [x] Log tool calls made during execution
+- [x] Enable aggregation through log analysis
 
 ### Task 6: Update PhaseResult for Token Tracking
-- [ ] Add `tokens_used: int` field to PhaseResult
-- [ ] Add `tool_calls: list[ToolCall]` field to PhaseResult
-- [ ] Populate from LLMResult when phase completes
+- [x] Add `tokens_used: int` field to PhaseResult
+- [x] Add `tool_calls: list[ToolCall]` field to PhaseResult
+- [x] Populate from LLMResult when phase completes
 
 ### Task 7: Write Unit Tests
-- [ ] Create/update `tests/unit/executors/test_claude_code.py`
-- [ ] Test token extraction from mock Claude output
-- [ ] Test tool call extraction from mock output
-- [ ] Test handling of missing token data
-- [ ] Test ToolCall model creation
-- [ ] Test aggregation across phases
-- [ ] Target: >90% coverage for token tracking code
+- [x] Create/update `tests/unit/executors/test_claude_code.py`
+- [x] Test token extraction from mock Claude output
+- [x] Test tool call extraction from mock output
+- [x] Test handling of missing token data
+- [x] Test ToolCall model creation
+- [x] Test aggregation across phases
+- [x] Target: >90% coverage for token tracking code
 
 ### Task 8: Write Integration Tests
-- [ ] Test with actual Claude Code output (if available)
-- [ ] Verify token counts are reasonable
-- [ ] Verify tool calls are captured correctly
+- [x] Test with actual Claude Code output (if available)
+- [x] Verify token counts are reasonable
+- [x] Verify tool calls are captured correctly
 
 ---
 

@@ -41,7 +41,9 @@ class TestHookRunner:
     def stderr_hook(self, tmp_path: Path) -> Path:
         """Create a hook script that writes to stderr."""
         script = tmp_path / "pre-hook.sh"
-        script.write_text("#!/bin/bash\necho 'stdout message'\necho 'stderr message' >&2\n")
+        script.write_text(
+            "#!/bin/bash\necho 'stdout message'\necho 'stderr message' >&2\n"
+        )
         script.chmod(script.stat().st_mode | stat.S_IEXEC)
         return script
 
@@ -67,9 +69,9 @@ class TestHookRunner:
         script = tmp_path / "pre-hook.sh"
         script.write_text(
             "#!/bin/bash\n"
-            "echo \"RUN_ID=$ADW_RUN_ID\"\n"
-            "echo \"PHASE=$ADW_PHASE\"\n"
-            "echo \"FEATURE=$ADW_FEATURE\"\n"
+            'echo "RUN_ID=$ADW_RUN_ID"\n'
+            'echo "PHASE=$ADW_PHASE"\n'
+            'echo "FEATURE=$ADW_FEATURE"\n'
         )
         script.chmod(script.stat().st_mode | stat.S_IEXEC)
         return script
@@ -147,9 +149,7 @@ class TestHookRunner:
     ) -> None:
         """Test hook_type is correctly set for post hooks."""
         runner = HookRunner(hook_config)
-        result = runner.run_hook(
-            success_hook, run_context, "plan", hook_type="post"
-        )
+        result = runner.run_hook(success_hook, run_context, "plan", hook_type="post")
 
         assert result.hook_type == "post"
 

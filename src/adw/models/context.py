@@ -7,7 +7,7 @@ and project context throughout the ADW workflow execution.
 from datetime import datetime
 from pathlib import Path
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator
 
 
 class RunContext(BaseModel):
@@ -56,6 +56,20 @@ class RunContext(BaseModel):
         default_factory=dict,
         description="Mapping of phase names to artifact paths",
     )
+    phase_tokens: dict[str, int] = Field(
+        default_factory=dict,
+        description="Token usage per phase (phase name -> token count)",
+    )
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def total_tokens(self) -> int:
+        """Calculate total tokens used across all phases.
+
+        Returns:
+            Sum of all phase token counts.
+        """
+        return sum(self.phase_tokens.values())
 
     @field_validator("run_id")
     @classmethod
@@ -103,6 +117,7 @@ class RunContext(BaseModel):
                 "completed_at": None,
                 "status": "running",
                 "artifacts": {"plan": ["plan.md"]},
+                "phase_tokens": {"plan": 500, "code": 1200},
             }
         },
     }

@@ -247,9 +247,7 @@ class TestPromptRendering:
         result = loader.load_prompt("plan", run_context, pre_hook_output="hook data")
         assert "Hook output: hook data" in result
 
-    def test_load_prompt_renders_artifacts_namespace(
-        self, tmp_path: Path
-    ) -> None:
+    def test_load_prompt_renders_artifacts_namespace(self, tmp_path: Path) -> None:
         """load_prompt can access artifacts via artifacts.phase namespace."""
         context = RunContext(
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
