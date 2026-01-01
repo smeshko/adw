@@ -95,6 +95,10 @@ class RunDirectoryManager:
             lock_path = run_dir / ".lock"
             lock_path.touch()
 
+            # Serialize and write context.json
+            context_path = run_dir / "context.json"
+            context_path.write_text(context.model_dump_json(indent=2))
+
             return run_dir
 
         except FileExistsError as e:

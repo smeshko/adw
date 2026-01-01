@@ -64,10 +64,10 @@ so that all run data is organized and discoverable.
 - [x] Prevent concurrent access corruption
 
 ### Task 5: Implement Context Serialization
-- [ ] Create `context.json` with serialized RunContext
-- [ ] Use Pydantic's `model_dump_json()` for serialization
-- [ ] Include all required RunContext fields
-- [ ] Handle serialization errors
+- [x] Create `context.json` with serialized RunContext
+- [x] Use Pydantic's `model_dump_json()` for serialization
+- [x] Include all required RunContext fields
+- [x] Handle serialization errors
 
 ### Task 6: Implement Run Listing
 - [ ] Add `list_runs()` method to RunDirectoryManager
@@ -568,6 +568,7 @@ claude-opus-4-5-20251101
 - Task 2: Created `src/adw/utils/ulid.py` with `generate_run_id()` function. Wrapped python-ulid library. Added comprehensive tests for uniqueness, character validation, sortability, and RunContext validation compatibility.
 - Task 3: Implemented full `create()` method in `RunDirectoryManager`. Creates `.adw/runs/<run_id>/` with all subdirectories (artifacts, logs, llm, snapshots). Raises `StateError` with code `RUN_ALREADY_EXISTS` for duplicate runs. Added comprehensive tests for directory creation.
 - Task 4: Implemented file locking using filelock library. Creates `.lock` file during directory creation. Added `acquire_lock()` method that returns FileLock context manager. Raises `StateError` with code `RUN_NOT_FOUND` for nonexistent runs.
+- Task 5: Implemented context serialization. Creates `context.json` with serialized RunContext using Pydantic's `model_dump_json(indent=2)` for human-readable output. Added tests for JSON creation, validation, and deserialization.
 
 ### File List
 

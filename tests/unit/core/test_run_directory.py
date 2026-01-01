@@ -164,3 +164,55 @@ class TestFileLocking:
             run_manager.acquire_lock("nonexistent_run_id")
 
         assert exc_info.value.code == "RUN_NOT_FOUND"
+
+
+class TestContextSerialization:
+    """Test context serialization functionality."""
+
+    def test_context_json_created_after_create(
+        self, run_manager: RunDirectoryManager, sample_context: RunContext
+    ) -> None:
+        """Test that context.json is created when run directory is created."""
+        run_dir = run_manager.create(sample_context)
+        assert (run_dir / "context.json").exists()
+
+    def test_context_json_contains_valid_content(
+        self, run_manager: RunDirectoryManager, sample_context: RunContext
+    ) -> None:
+        """Test that context.json contains valid JSON that can be loaded."""
+        import json
+
+        run_dir = run_manager.create(sample_context)
+        context_path = run_dir / "context.json"
+
+        content = context_path.read_text()
+        data = json.loads(content)
+
+        assert data["run_id"] == sample_context.run_id
+        assert data["feature_description"] == sample_context.feature_description
+        assert data["current_phase"] == sample_context.current_phase
+
+    def test_context_json_can_be_deserialized(
+        self, run_manager: RunDirectoryManager, sample_context: RunContext
+    ) -> None:
+        """Test that context.json can be deserialized back to RunContext."""
+        run_dir = run_manager.create(sample_context)
+        context_path = run_dir / "context.json"
+
+        loaded = RunContext.model_validate_json(context_path.read_text())
+
+        assert loaded.run_id == sample_context.run_id
+        assert loaded.feature_description == sample_context.feature_description
+        assert loaded.current_phase == sample_context.current_phase
+        assert loaded.status == sample_context.status
+
+    def test_context_json_is_formatted(
+        self, run_manager: RunDirectoryManager, sample_context: RunContext
+    ) -> None:
+        """Test that context.json is human-readable (indented)."""
+        run_dir = run_manager.create(sample_context)
+        context_path = run_dir / "context.json"
+
+        content = context_path.read_text()
+        # Indented JSON should have newlines
+        assert "\n" in content
