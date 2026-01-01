@@ -58,10 +58,10 @@ so that all run data is organized and discoverable.
 - [x] Handle existing directory errors gracefully
 
 ### Task 4: Implement File Locking
-- [ ] Add `filelock` dependency (already in project)
-- [ ] Create `.lock` file in run directory
-- [ ] Implement context manager for acquiring lock
-- [ ] Prevent concurrent access corruption
+- [x] Add `filelock` dependency (already in project)
+- [x] Create `.lock` file in run directory
+- [x] Implement context manager for acquiring lock
+- [x] Prevent concurrent access corruption
 
 ### Task 5: Implement Context Serialization
 - [ ] Create `context.json` with serialized RunContext
@@ -567,6 +567,7 @@ claude-opus-4-5-20251101
 - Task 1: Created `src/adw/core/run_directory.py` with `RunDirectoryManager` class. Implemented class structure with `project_root` and `runs_dir` attributes. Added `create()` method placeholder (to be completed in Task 3). Added unit tests for module existence and basic instantiation.
 - Task 2: Created `src/adw/utils/ulid.py` with `generate_run_id()` function. Wrapped python-ulid library. Added comprehensive tests for uniqueness, character validation, sortability, and RunContext validation compatibility.
 - Task 3: Implemented full `create()` method in `RunDirectoryManager`. Creates `.adw/runs/<run_id>/` with all subdirectories (artifacts, logs, llm, snapshots). Raises `StateError` with code `RUN_ALREADY_EXISTS` for duplicate runs. Added comprehensive tests for directory creation.
+- Task 4: Implemented file locking using filelock library. Creates `.lock` file during directory creation. Added `acquire_lock()` method that returns FileLock context manager. Raises `StateError` with code `RUN_NOT_FOUND` for nonexistent runs.
 
 ### File List
 

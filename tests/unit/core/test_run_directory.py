@@ -112,3 +112,55 @@ class TestDirectoryStructureCreation:
         assert len(set(run_dirs)) == 3
         for run_dir in run_dirs:
             assert run_dir.exists()
+
+
+class TestFileLocking:
+    """Test file locking functionality."""
+
+    def test_lock_file_created_after_create(
+        self, run_manager: RunDirectoryManager, sample_context: RunContext
+    ) -> None:
+        """Test that .lock file is created when run directory is created."""
+        run_dir = run_manager.create(sample_context)
+        assert (run_dir / ".lock").exists()
+
+    def test_acquire_lock_returns_context_manager(
+        self, run_manager: RunDirectoryManager, sample_context: RunContext
+    ) -> None:
+        """Test that acquire_lock returns a context manager."""
+        run_dir = run_manager.create(sample_context)
+        lock = run_manager.acquire_lock(sample_context.run_id)
+
+        # Should be usable as context manager
+        with lock:
+            # Should not raise
+            pass
+
+    def test_acquire_lock_is_exclusive(
+        self, run_manager: RunDirectoryManager, sample_context: RunContext
+    ) -> None:
+        """Test that only one process can hold the lock at a time."""
+        import filelock
+
+        run_dir = run_manager.create(sample_context)
+
+        # First lock should succeed
+        lock1 = run_manager.acquire_lock(sample_context.run_id, timeout=1)
+        lock1.acquire()
+
+        try:
+            # Second lock with short timeout should fail
+            lock2 = run_manager.acquire_lock(sample_context.run_id, timeout=0.1)
+            with pytest.raises(filelock.Timeout):
+                lock2.acquire()
+        finally:
+            lock1.release()
+
+    def test_acquire_lock_for_nonexistent_run_raises_error(
+        self, run_manager: RunDirectoryManager
+    ) -> None:
+        """Test that acquiring lock for nonexistent run raises StateError."""
+        with pytest.raises(StateError) as exc_info:
+            run_manager.acquire_lock("nonexistent_run_id")
+
+        assert exc_info.value.code == "RUN_NOT_FOUND"
