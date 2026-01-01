@@ -11,6 +11,7 @@ This package provides the LLM execution abstraction:
 from adw.executors.base import LLMExecutor
 from adw.executors.claude_code import ClaudeCodeExecutor
 from adw.executors.mock import MockExecutor
+from adw.executors.retry import RetryExecutor
 from adw.models.llm import LLMResult, ToolCall
 
 __all__: list[str] = [
@@ -18,5 +19,6 @@ __all__: list[str] = [
     "LLMExecutor",
     "LLMResult",
     "MockExecutor",
+    "RetryExecutor",
     "ToolCall",
 ]

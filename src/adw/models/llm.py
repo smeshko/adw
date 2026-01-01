@@ -64,3 +64,6 @@ class LLMResult(BaseModel):
 
     error: str | None = None
     """Error message if success is False."""
+
+    attempt_count: int = 1
+    """Number of attempts made (including final successful one)."""

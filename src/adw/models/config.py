@@ -11,6 +11,63 @@ import yaml
 from pydantic import BaseModel, Field, model_validator
 
 
+class RetryConfig(BaseModel):
+    """Configuration for retry logic with exponential backoff.
+
+    Controls how transient LLM errors (timeouts, rate limits) are handled
+    through automatic retries with increasing delays.
+
+    Attributes:
+        max_retries: Maximum number of retry attempts.
+        base_delay_seconds: Initial delay before first retry.
+        max_delay_seconds: Maximum delay cap.
+        multiplier: Factor to multiply delay by after each attempt.
+
+    Example:
+        >>> config = RetryConfig(max_retries=5, base_delay_seconds=0.5)
+        >>> config.multiplier
+        2.0
+    """
+
+    max_retries: int = Field(
+        default=3,
+        gt=0,
+        description="Maximum number of retry attempts",
+    )
+    base_delay_seconds: float = Field(
+        default=1.0,
+        gt=0,
+        description="Initial delay before first retry in seconds",
+    )
+    max_delay_seconds: float = Field(
+        default=60.0,
+        gt=0,
+        description="Maximum delay cap in seconds",
+    )
+    multiplier: float = Field(
+        default=2.0,
+        gt=1.0,
+        description="Factor to multiply delay by after each attempt",
+    )
+
+    @model_validator(mode="after")
+    def validate_max_delay_gte_base_delay(self) -> Self:
+        """Validate that max_delay_seconds >= base_delay_seconds.
+
+        Returns:
+            Self with validated configuration.
+
+        Raises:
+            ValueError: If max_delay_seconds < base_delay_seconds.
+        """
+        if self.max_delay_seconds < self.base_delay_seconds:
+            raise ValueError(
+                f"max_delay_seconds ({self.max_delay_seconds}) must be >= "
+                f"base_delay_seconds ({self.base_delay_seconds})"
+            )
+        return self
+
+
 class LLMConfig(BaseModel):
     """Configuration for LLM (Claude Code) settings.
 
