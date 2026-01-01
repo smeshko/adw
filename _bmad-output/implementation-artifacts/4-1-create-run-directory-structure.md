@@ -1,6 +1,6 @@
 # Story 4.1: Create Run Directory Structure
 
-Status: ready-for-dev
+Status: completed
 Linear Issue: not-configured
 Epic: 4 - State Persistence & Context Management
 Created: 2026-01-01
