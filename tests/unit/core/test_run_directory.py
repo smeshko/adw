@@ -216,3 +216,74 @@ class TestContextSerialization:
         content = context_path.read_text()
         # Indented JSON should have newlines
         assert "\n" in content
+
+
+class TestRunListing:
+    """Test run listing functionality."""
+
+    def test_list_runs_empty(self, run_manager: RunDirectoryManager) -> None:
+        """Test listing runs when none exist."""
+        runs = run_manager.list_runs()
+        assert runs == []
+
+    def test_list_runs_returns_run_info(
+        self, run_manager: RunDirectoryManager, sample_context: RunContext
+    ) -> None:
+        """Test that list_runs returns RunInfo objects."""
+        from adw.core.run_directory import RunInfo
+
+        run_manager.create(sample_context)
+        runs = run_manager.list_runs()
+
+        assert len(runs) == 1
+        assert isinstance(runs[0], RunInfo)
+        assert runs[0].run_id == sample_context.run_id
+
+    def test_list_runs_sorted_by_ulid(
+        self, run_manager: RunDirectoryManager
+    ) -> None:
+        """Test that runs are sorted chronologically by ULID."""
+        import time
+
+        contexts = []
+        for i in range(3):
+            ctx = RunContext(
+                run_id=generate_run_id(),
+                feature_description=f"Feature {i}",
+                current_phase="plan",
+                started_at=datetime.now(),
+            )
+            contexts.append(ctx)
+            run_manager.create(ctx)
+            time.sleep(0.01)  # Small delay for unique ULIDs
+
+        runs = run_manager.list_runs()
+
+        # Should be sorted chronologically (ULID sorting)
+        assert [r.run_id for r in runs] == [c.run_id for c in contexts]
+
+    def test_list_runs_includes_path(
+        self, run_manager: RunDirectoryManager, sample_context: RunContext
+    ) -> None:
+        """Test that RunInfo includes correct path."""
+        run_dir = run_manager.create(sample_context)
+        runs = run_manager.list_runs()
+
+        assert len(runs) == 1
+        assert runs[0].path == run_dir
+
+    def test_list_runs_ignores_hidden_directories(
+        self, run_manager: RunDirectoryManager, sample_context: RunContext
+    ) -> None:
+        """Test that hidden directories are not included in listing."""
+        run_manager.create(sample_context)
+
+        # Create a hidden directory
+        hidden_dir = run_manager.runs_dir / ".hidden"
+        hidden_dir.mkdir(parents=True)
+
+        runs = run_manager.list_runs()
+
+        # Should only include the actual run
+        assert len(runs) == 1
+        assert runs[0].run_id == sample_context.run_id

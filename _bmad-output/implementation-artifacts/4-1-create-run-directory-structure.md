@@ -70,10 +70,10 @@ so that all run data is organized and discoverable.
 - [x] Handle serialization errors
 
 ### Task 6: Implement Run Listing
-- [ ] Add `list_runs()` method to RunDirectoryManager
-- [ ] Return runs sorted by ULID (chronological)
-- [ ] Handle empty `.adw/runs/` directory
-- [ ] Return list of `RunInfo` with id, path, created_at
+- [x] Add `list_runs()` method to RunDirectoryManager
+- [x] Return runs sorted by ULID (chronological)
+- [x] Handle empty `.adw/runs/` directory
+- [x] Return list of `RunInfo` with id, path, created_at
 
 ### Task 7: Write Unit Tests
 - [ ] Create `tests/unit/core/test_run_directory.py`
@@ -569,6 +569,7 @@ claude-opus-4-5-20251101
 - Task 3: Implemented full `create()` method in `RunDirectoryManager`. Creates `.adw/runs/<run_id>/` with all subdirectories (artifacts, logs, llm, snapshots). Raises `StateError` with code `RUN_ALREADY_EXISTS` for duplicate runs. Added comprehensive tests for directory creation.
 - Task 4: Implemented file locking using filelock library. Creates `.lock` file during directory creation. Added `acquire_lock()` method that returns FileLock context manager. Raises `StateError` with code `RUN_NOT_FOUND` for nonexistent runs.
 - Task 5: Implemented context serialization. Creates `context.json` with serialized RunContext using Pydantic's `model_dump_json(indent=2)` for human-readable output. Added tests for JSON creation, validation, and deserialization.
+- Task 6: Implemented `list_runs()` method that returns list of `RunInfo` objects sorted by ULID (chronological order). Added `RunInfo` dataclass. Handles empty directory and ignores hidden directories.
 
 ### File List
 

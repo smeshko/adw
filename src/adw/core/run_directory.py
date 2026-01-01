@@ -12,6 +12,7 @@ structure for ADW runs:
 └── snapshots/            # State snapshots at key moments
 """
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -21,6 +22,19 @@ from adw.exceptions import StateError
 
 if TYPE_CHECKING:
     from adw.models import RunContext
+
+
+@dataclass
+class RunInfo:
+    """Information about a run directory.
+
+    Attributes:
+        run_id: The ULID run identifier.
+        path: Path to the run directory.
+    """
+
+    run_id: str
+    path: Path
 
 # Subdirectories to create in each run directory
 _SUBDIRECTORIES = ("artifacts", "logs", "llm", "snapshots")
@@ -151,3 +165,35 @@ class RunDirectoryManager:
             )
 
         return filelock.FileLock(lock_path, timeout=timeout)
+
+    def list_runs(self) -> list[RunInfo]:
+        """List all runs sorted by ULID (chronological order).
+
+        Returns a list of RunInfo objects for all runs in the runs directory.
+        Runs are sorted by ULID, which is chronological order since ULIDs
+        encode creation time.
+
+        Returns:
+            List of RunInfo objects sorted by creation time.
+
+        Example:
+            >>> runs = manager.list_runs()
+            >>> for run in runs:
+            ...     print(f"{run.run_id}: {run.path}")
+        """
+        if not self.runs_dir.exists():
+            return []
+
+        runs = []
+        for run_path in self.runs_dir.iterdir():
+            # Skip hidden directories and non-directories
+            if run_path.is_dir() and not run_path.name.startswith("."):
+                runs.append(
+                    RunInfo(
+                        run_id=run_path.name,
+                        path=run_path,
+                    )
+                )
+
+        # ULID sorting is lexicographic = chronological
+        return sorted(runs, key=lambda r: r.run_id)
