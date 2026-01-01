@@ -44,10 +44,10 @@ so that all run data is organized and discoverable.
 - [ ] Create subdirectory structure atomically
 
 ### Task 2: Implement ULID Generation
-- [ ] Add `src/adw/utils/ulid.py` for ULID generation
-- [ ] Wrap `python-ulid` library
-- [ ] Ensure run IDs are lexicographically sortable
-- [ ] Add helper function `generate_run_id() -> str`
+- [x] Add `src/adw/utils/ulid.py` for ULID generation
+- [x] Wrap `python-ulid` library
+- [x] Ensure run IDs are lexicographically sortable
+- [x] Add helper function `generate_run_id() -> str`
 
 ### Task 3: Implement Directory Structure Creation
 - [ ] Create `.adw/runs/<run_id>/` directory
@@ -565,12 +565,16 @@ claude-opus-4-5-20251101
 ### Completion Notes List
 
 - Task 1: Created `src/adw/core/run_directory.py` with `RunDirectoryManager` class. Implemented class structure with `project_root` and `runs_dir` attributes. Added `create()` method placeholder (to be completed in Task 3). Added unit tests for module existence and basic instantiation.
+- Task 2: Created `src/adw/utils/ulid.py` with `generate_run_id()` function. Wrapped python-ulid library. Added comprehensive tests for uniqueness, character validation, sortability, and RunContext validation compatibility.
 
 ### File List
 
 - `src/adw/core/run_directory.py` - NEW: Run directory management module
+- `src/adw/utils/ulid.py` - NEW: ULID generation utility
 - `tests/unit/core/__init__.py` - NEW: Test package init
 - `tests/unit/core/test_run_directory.py` - NEW: Unit tests for run directory
+- `tests/unit/utils/__init__.py` - NEW: Utils test package init
+- `tests/unit/utils/test_ulid.py` - NEW: Unit tests for ULID generation
 
 ---
 
