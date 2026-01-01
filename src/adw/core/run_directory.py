@@ -15,8 +15,13 @@ structure for ADW runs:
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from adw.exceptions import StateError
+
 if TYPE_CHECKING:
     from adw.models import RunContext
+
+# Subdirectories to create in each run directory
+_SUBDIRECTORIES = ("artifacts", "logs", "llm", "snapshots")
 
 
 class RunDirectoryManager:
@@ -53,6 +58,13 @@ class RunDirectoryManager:
     def create(self, context: "RunContext") -> Path:
         """Create run directory structure and save initial context.
 
+        Creates the directory structure:
+        .adw/runs/<run_id>/
+        ├── artifacts/
+        ├── logs/
+        ├── llm/
+        └── snapshots/
+
         Args:
             context: Initial RunContext to serialize.
 
@@ -60,7 +72,33 @@ class RunDirectoryManager:
             Path to created run directory.
 
         Raises:
-            StateError: If directory creation fails.
+            StateError: If directory creation fails (e.g., already exists).
         """
-        # Placeholder - will be implemented in Task 3
-        raise NotImplementedError("create() will be implemented in Task 3")
+        run_id = context.run_id
+        run_dir = self.runs_dir / run_id
+
+        try:
+            # Create parent directories and run directory atomically
+            # exist_ok=False ensures we fail if the directory already exists
+            run_dir.mkdir(parents=True, exist_ok=False)
+
+            # Create all subdirectories
+            for subdir in _SUBDIRECTORIES:
+                (run_dir / subdir).mkdir()
+
+            return run_dir
+
+        except FileExistsError as e:
+            raise StateError(
+                code="RUN_ALREADY_EXISTS",
+                message=f"Run directory already exists: {run_id}",
+                suggestion="Use a different run ID or delete existing run",
+                recoverable=False,
+            ) from e
+        except OSError as e:
+            raise StateError(
+                code="DIR_CREATION_FAILED",
+                message=f"Failed to create run directory: {e}",
+                suggestion="Check filesystem permissions",
+                recoverable=False,
+            ) from e

@@ -40,8 +40,8 @@ so that all run data is organized and discoverable.
 ### Task 1: Create Run Directory Module
 - [x] Create `src/adw/core/run_directory.py` module
 - [x] Implement `RunDirectoryManager` class with `create()` method
-- [ ] Use ULID for run ID generation via `python-ulid`
-- [ ] Create subdirectory structure atomically
+- [x] Use ULID for run ID generation via `python-ulid`
+- [x] Create subdirectory structure atomically
 
 ### Task 2: Implement ULID Generation
 - [x] Add `src/adw/utils/ulid.py` for ULID generation
@@ -50,12 +50,12 @@ so that all run data is organized and discoverable.
 - [x] Add helper function `generate_run_id() -> str`
 
 ### Task 3: Implement Directory Structure Creation
-- [ ] Create `.adw/runs/<run_id>/` directory
-- [ ] Create `artifacts/` subdirectory
-- [ ] Create `logs/` subdirectory
-- [ ] Create `llm/` subdirectory
-- [ ] Create `snapshots/` subdirectory
-- [ ] Handle existing directory errors gracefully
+- [x] Create `.adw/runs/<run_id>/` directory
+- [x] Create `artifacts/` subdirectory
+- [x] Create `logs/` subdirectory
+- [x] Create `llm/` subdirectory
+- [x] Create `snapshots/` subdirectory
+- [x] Handle existing directory errors gracefully
 
 ### Task 4: Implement File Locking
 - [ ] Add `filelock` dependency (already in project)
@@ -566,6 +566,7 @@ claude-opus-4-5-20251101
 
 - Task 1: Created `src/adw/core/run_directory.py` with `RunDirectoryManager` class. Implemented class structure with `project_root` and `runs_dir` attributes. Added `create()` method placeholder (to be completed in Task 3). Added unit tests for module existence and basic instantiation.
 - Task 2: Created `src/adw/utils/ulid.py` with `generate_run_id()` function. Wrapped python-ulid library. Added comprehensive tests for uniqueness, character validation, sortability, and RunContext validation compatibility.
+- Task 3: Implemented full `create()` method in `RunDirectoryManager`. Creates `.adw/runs/<run_id>/` with all subdirectories (artifacts, logs, llm, snapshots). Raises `StateError` with code `RUN_ALREADY_EXISTS` for duplicate runs. Added comprehensive tests for directory creation.
 
 ### File List
 
