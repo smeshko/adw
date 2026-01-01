@@ -38,8 +38,8 @@ so that all run data is organized and discoverable.
 ## Tasks / Subtasks
 
 ### Task 1: Create Run Directory Module
-- [ ] Create `src/adw/core/run_directory.py` module
-- [ ] Implement `RunDirectoryManager` class with `create()` method
+- [x] Create `src/adw/core/run_directory.py` module
+- [x] Implement `RunDirectoryManager` class with `create()` method
 - [ ] Use ULID for run ID generation via `python-ulid`
 - [ ] Create subdirectory structure atomically
 
@@ -558,13 +558,19 @@ Story 4.1 establishes the foundational run directory structure for all state per
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created `src/adw/core/run_directory.py` with `RunDirectoryManager` class. Implemented class structure with `project_root` and `runs_dir` attributes. Added `create()` method placeholder (to be completed in Task 3). Added unit tests for module existence and basic instantiation.
+
 ### File List
+
+- `src/adw/core/run_directory.py` - NEW: Run directory management module
+- `tests/unit/core/__init__.py` - NEW: Test package init
+- `tests/unit/core/test_run_directory.py` - NEW: Unit tests for run directory
 
 ---
 
