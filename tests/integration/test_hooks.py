@@ -170,11 +170,7 @@ class TestHookIntegration:
     ) -> None:
         """Test that hooks inherit the system PATH and other env vars."""
         hook_path = tmp_path / "check_path.sh"
-        hook_path.write_text(
-            "#!/bin/bash\n"
-            "echo \"PATH=$PATH\"\n"
-            "echo \"HOME=$HOME\"\n"
-        )
+        hook_path.write_text('#!/bin/bash\necho "PATH=$PATH"\necho "HOME=$HOME"\n')
         hook_path.chmod(hook_path.stat().st_mode | stat.S_IEXEC)
 
         runner = HookRunner(hook_config)

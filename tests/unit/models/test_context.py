@@ -134,6 +134,113 @@ class TestRunContext:
         assert "started_at" in missing_fields
 
 
+class TestTokenAggregation:
+    """Tests for token tracking and aggregation in RunContext."""
+
+    def test_phase_tokens_defaults_to_empty(self) -> None:
+        """phase_tokens defaults to empty dict."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+        assert context.phase_tokens == {}
+
+    def test_phase_tokens_can_be_set(self) -> None:
+        """phase_tokens can be set during creation."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            phase_tokens={"plan": 500, "code": 1200},
+        )
+        assert context.phase_tokens == {"plan": 500, "code": 1200}
+
+    def test_total_tokens_empty(self) -> None:
+        """total_tokens is 0 when no phases have tokens."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+        assert context.total_tokens == 0
+
+    def test_total_tokens_single_phase(self) -> None:
+        """total_tokens equals single phase tokens."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            phase_tokens={"plan": 500},
+        )
+        assert context.total_tokens == 500
+
+    def test_total_tokens_multiple_phases(self) -> None:
+        """total_tokens sums all phase tokens."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="verify",
+            started_at=datetime.now(),
+            phase_tokens={"plan": 500, "code": 1200, "test": 800, "verify": 300},
+        )
+        assert context.total_tokens == 2800  # 500 + 1200 + 800 + 300
+
+    def test_total_tokens_after_model_copy(self) -> None:
+        """total_tokens recalculates after model_copy update."""
+        original = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            phase_tokens={"plan": 500},
+        )
+        assert original.total_tokens == 500
+
+        # Add more tokens via model_copy
+        updated = original.model_copy(
+            update={"phase_tokens": {"plan": 500, "code": 1000}}
+        )
+        assert updated.total_tokens == 1500
+
+        # Original unchanged
+        assert original.total_tokens == 500
+
+    def test_phase_tokens_in_serialization(self) -> None:
+        """phase_tokens is included in JSON serialization."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            phase_tokens={"plan": 500},
+        )
+        json_str = context.model_dump_json()
+        data = json.loads(json_str)
+
+        assert "phase_tokens" in data
+        assert data["phase_tokens"] == {"plan": 500}
+
+    def test_total_tokens_in_serialization(self) -> None:
+        """total_tokens computed field is included in JSON serialization."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            phase_tokens={"plan": 500, "code": 300},
+        )
+        json_str = context.model_dump_json()
+        data = json.loads(json_str)
+
+        assert "total_tokens" in data
+        assert data["total_tokens"] == 800
+
+
 class TestSessionContext:
     """Tests for SessionContext model."""
 

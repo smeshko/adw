@@ -1,0 +1,3 @@
+{"type":"assistant","message":{"content":[{"type":"text","text":"Let me read the file first."},{"type":"tool_use","name":"read_file","input":{"path":"/src/main.py"}}]}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Now I'll analyze the code and write an improved version."},{"type":"tool_use","name":"write_file","input":{"path":"/src/improved.py","content":"def improved():\n    pass"}}]}}
+{"type":"result","text":"Done!","usage":{"input_tokens":500,"output_tokens":350}}
