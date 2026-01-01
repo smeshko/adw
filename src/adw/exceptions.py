@@ -187,6 +187,7 @@ class HookError(ADWError):
         exit_code: int | None = None,
         stdout: str = "",
         stderr: str = "",
+        duration_ms: int | None = None,
         suggestion: str | None = None,
         recoverable: bool = False,
     ) -> None:
@@ -199,6 +200,7 @@ class HookError(ADWError):
             exit_code: The exit code of the hook script, if available.
             stdout: Captured stdout from the hook execution.
             stderr: Captured stderr from the hook execution.
+            duration_ms: Execution duration in milliseconds (for debugging).
             suggestion: Optional actionable next step.
             recoverable: Whether the operation can be retried (default False).
         """
@@ -212,6 +214,7 @@ class HookError(ADWError):
         self.exit_code = exit_code
         self.stdout = stdout
         self.stderr = stderr
+        self.duration_ms = duration_ms
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize error to dictionary for structured logging.
@@ -226,6 +229,7 @@ class HookError(ADWError):
                 "exit_code": self.exit_code,
                 "stdout": self.stdout,
                 "stderr": self.stderr,
+                "duration_ms": self.duration_ms,
             }
         )
         return d

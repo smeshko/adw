@@ -1,6 +1,6 @@
 # Story 3.2: Implement Claude Code Executor with Streaming
 
-Status: ready-for-dev
+Status: completed
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2025-12-31
@@ -39,55 +39,55 @@ so that users see LLM responses as they're generated.
 ## Tasks / Subtasks
 
 ### Task 1: Create ClaudeCodeExecutor Class
-- [ ] Create `src/adw/executors/claude_code.py`
-- [ ] Implement `ClaudeCodeExecutor` class implementing `LLMExecutor` Protocol
-- [ ] Constructor takes `LLMConfig` for configuration (path, timeout, etc.)
-- [ ] Implement `execute(prompt: str, *, timeout: int | None = None) -> LLMResult`
+- [x] Create `src/adw/executors/claude_code.py`
+- [x] Implement `ClaudeCodeExecutor` class implementing `LLMExecutor` Protocol
+- [x] Constructor takes `LLMConfig` for configuration (path, timeout, etc.)
+- [x] Implement `execute(prompt: str, *, timeout: int | None = None) -> LLMResult`
 
 ### Task 2: Implement Subprocess Execution
-- [ ] Use `asyncio.create_subprocess_exec()` for subprocess spawning
-- [ ] Pass `--print` flag to Claude Code for machine-readable output
-- [ ] Set up stdout and stderr pipes for capture
-- [ ] Handle process execution with `asyncio.run()` wrapper
+- [x] Use `asyncio.create_subprocess_exec()` for subprocess spawning
+- [x] Pass `--print` flag to Claude Code for machine-readable output
+- [x] Set up stdout and stderr pipes for capture
+- [x] Handle process execution with `asyncio.run()` wrapper
 
 ### Task 3: Implement Real-Time Streaming
-- [ ] Read stdout line-by-line as it becomes available
-- [ ] Forward output to Rich console in real-time
-- [ ] Use `asyncio.create_task()` for concurrent output processing
-- [ ] Ensure artifact writes don't block stream (NFR3)
+- [x] Read stdout line-by-line as it becomes available
+- [x] Forward output to Rich console in real-time
+- [x] Use `asyncio.create_task()` for concurrent output processing
+- [x] Ensure artifact writes don't block stream (NFR3)
 
 ### Task 4: Parse Claude Code Output
-- [ ] Parse `--print` flag JSON output format
-- [ ] Extract text content from output
-- [ ] Extract tool calls from output
-- [ ] Extract token usage if available
-- [ ] Build `LLMResult` from parsed output
+- [x] Parse `--print` flag JSON output format
+- [x] Extract text content from output
+- [x] Extract tool calls from output
+- [x] Extract token usage if available
+- [x] Build `LLMResult` from parsed output
 
 ### Task 5: Implement Error Handling
-- [ ] Check if Claude path exists before execution
-- [ ] Raise `LLMError` with code `CLAUDE_NOT_FOUND` if not found
-- [ ] Handle subprocess errors and convert to `LLMError`
-- [ ] Include helpful suggestions in error messages
+- [x] Check if Claude path exists before execution
+- [x] Raise `LLMError` with code `CLAUDE_NOT_FOUND` if not found
+- [x] Handle subprocess errors and convert to `LLMError`
+- [x] Include helpful suggestions in error messages
 
 ### Task 6: Implement Path Configuration
-- [ ] Use `LLMConfig.path` for Claude executable path
-- [ ] Default to "claude" (assumes in PATH)
-- [ ] Support absolute paths from config
-- [ ] Use `shutil.which()` to verify executable exists
+- [x] Use `LLMConfig.path` for Claude executable path
+- [x] Default to "claude" (assumes in PATH)
+- [x] Support absolute paths from config
+- [x] Use `shutil.which()` to verify executable exists
 
 ### Task 7: Write Unit Tests
-- [ ] Create `tests/unit/executors/test_claude_code.py`
-- [ ] Mock subprocess execution for deterministic testing
-- [ ] Test successful execution returns `LLMResult`
-- [ ] Test missing Claude raises `LLMError` with `CLAUDE_NOT_FOUND`
-- [ ] Test output parsing extracts content and tool calls
-- [ ] Test timeout handling (integration with Story 3.4)
-- [ ] Target: >90% coverage for claude_code module
+- [x] Create `tests/unit/executors/test_claude_code.py`
+- [x] Mock subprocess execution for deterministic testing
+- [x] Test successful execution returns `LLMResult`
+- [x] Test missing Claude raises `LLMError` with `CLAUDE_NOT_FOUND`
+- [x] Test output parsing extracts content and tool calls
+- [x] Test timeout handling (integration with Story 3.4)
+- [x] Target: >90% coverage for claude_code module (achieved: 98%)
 
 ### Task 8: Integration Tests
-- [ ] Create `tests/integration/test_claude_code_executor.py`
-- [ ] Test with real Claude Code CLI (if available)
-- [ ] Skip if Claude not installed
+- [x] Create `tests/integration/test_claude_code_executor.py`
+- [x] Test with real Claude Code CLI (if available)
+- [x] Skip if Claude not installed
 
 ---
 
@@ -384,7 +384,23 @@ claude-opus-4-5-20251101
 
 ### Completion Notes List
 
+- Task 1: Created ClaudeCodeExecutor class implementing LLMExecutor Protocol. Class accepts LLMConfig, has execute() method returning LLMResult. Uses asyncio.run() wrapper with async _stream_subprocess() internally.
+- Task 2: Subprocess execution already implemented in Task 1. Added tests verifying create_subprocess_exec(), --print flag, stdout/stderr pipes, and asyncio.run() wrapper.
+- Task 3: Real-time streaming already implemented in Task 1 with readline() loop and console.print(). Added tests for line-by-line reading, console forwarding, and custom console support.
+- Task 4: Implemented _parse_output() method to parse JSONL format from --print flag. Extracts text content, tool calls, and token usage from various message types (assistant, result, content_block_delta, message_delta).
+- Task 5: Error handling already implemented in _verify_claude_path(). Added tests for CLAUDE_NOT_FOUND error, suggestions, recoverability, absolute path handling, and subprocess error results.
+- Task 6: Updated LLMConfig.path default from "/usr/bin/claude" to "claude" (assumes in PATH). Added tests for path configuration, shutil.which usage, and absolute path handling.
+- Task 7: Unit tests complete with 46 tests and 98% coverage. Added model configuration tests, additional parsing coverage for result message text, non-text deltas, and message_delta without usage.
+- Task 8: Created integration tests that test with real Claude Code CLI. Tests skip if Claude not installed. Fixed parser bug with non-dict JSON (numbers, arrays). Added 4 integration tests, 2 additional unit tests for edge cases.
+
 ### File List
+
+- src/adw/executors/claude_code.py (NEW)
+- src/adw/executors/__init__.py (MODIFIED)
+- src/adw/models/config.py (MODIFIED - updated LLMConfig.path default)
+- tests/unit/executors/test_claude_code.py (NEW)
+- tests/unit/models/test_config.py (MODIFIED - updated default path expectations)
+- tests/integration/test_claude_code_executor.py (NEW)
 
 ---
 

@@ -71,9 +71,9 @@ development_status:
   # ═══════════════════════════════════════════════════════════════════════════
   epic-3: in-progress
   3-1-execute-shell-hooks-with-capture: done
-  3-2-implement-claude-code-executor-with-streaming: ready-for-dev
+  3-2-implement-claude-code-executor-with-streaming: done
   3-3-implement-retry-logic-with-exponential-backoff: done
-  3-4-implement-timeout-configuration-and-enforcement: in-progress
+  3-4-implement-timeout-configuration-and-enforcement: done
   3-5-track-token-usage-and-tool-calls: done
   epic-3-retrospective: optional
 

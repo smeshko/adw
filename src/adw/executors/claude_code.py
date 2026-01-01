@@ -3,6 +3,11 @@
 This module provides the ClaudeCodeExecutor that implements the LLMExecutor
 protocol by invoking the Claude Code CLI as a subprocess with real-time
 streaming output.
+
+Timeout Hierarchy:
+    1. timeout parameter passed to execute() - highest priority
+    2. config.timeout_seconds from LLMConfig
+    3. DEFAULT_LLM_TIMEOUT constant - fallback default
 """
 
 import asyncio
@@ -15,11 +20,14 @@ from typing import Any
 
 from rich.console import Console
 
-from adw.exceptions import LLMError
+from adw.exceptions import LLMError, LLMTimeoutError
 from adw.models.config import LLMConfig
 from adw.models.llm import LLMResult, ToolCall
 
 logger = logging.getLogger(__name__)
+
+# Default timeout for LLM execution in seconds (10 minutes)
+DEFAULT_LLM_TIMEOUT = 600
 
 
 class ClaudeCodeExecutor:
@@ -54,6 +62,26 @@ class ClaudeCodeExecutor:
         self.config = config
         self.console = console or Console()
 
+    def _resolve_timeout(self, timeout: int | None) -> int:
+        """Resolve timeout using 3-tier hierarchy.
+
+        Resolution order:
+            1. Explicit timeout parameter - highest priority
+            2. config.timeout_seconds from LLMConfig
+            3. DEFAULT_LLM_TIMEOUT constant - fallback default
+
+        Args:
+            timeout: Optional timeout override in seconds.
+
+        Returns:
+            Resolved timeout in seconds.
+        """
+        if timeout is not None:
+            return timeout
+        if self.config.timeout_seconds:
+            return self.config.timeout_seconds
+        return DEFAULT_LLM_TIMEOUT
+
     def execute(
         self,
         prompt: str,
@@ -75,9 +103,7 @@ class ClaudeCodeExecutor:
         Raises:
             LLMError: If Claude Code is not found, execution fails, or timeout.
         """
-        effective_timeout = (
-            timeout if timeout is not None else self.config.timeout_seconds
-        )
+        effective_timeout = self._resolve_timeout(timeout)
         return asyncio.run(self._stream_subprocess(prompt, effective_timeout))
 
     async def _stream_subprocess(
@@ -138,23 +164,36 @@ class ClaudeCodeExecutor:
             return self._build_result(result, start_time)
 
         except TimeoutError:
-            # Timeout - terminate the process
+            # Calculate elapsed time before cleanup
+            elapsed_seconds = int(time.monotonic() - start_time)
+
+            # Capture partial output before killing process
+            partial_output = await self._capture_partial_output(process)
+
+            # Terminate the process gracefully first
+            process.kill()
+            await process.wait()
+
+            # Log timeout event with context including partial output
             logger.warning(
                 "Claude Code execution timed out",
-                extra={"timeout": timeout, "prompt_length": len(prompt)},
+                extra={
+                    "timeout": timeout,
+                    "elapsed_seconds": elapsed_seconds,
+                    "prompt_length": len(prompt),
+                    "partial_output_length": len(partial_output),
+                },
             )
-            process.terminate()
-            try:
-                await asyncio.wait_for(process.wait(), timeout=5.0)
-            except TimeoutError:
-                process.kill()
-                await process.wait()
 
-            raise LLMError(
-                code="TIMEOUT",
-                message=f"Claude Code execution timed out after {timeout} seconds",
-                suggestion="Increase timeout or simplify the prompt",
-                recoverable=True,
+            raise LLMTimeoutError(
+                code="LLM_TIMEOUT",
+                message=(
+                    f"LLM execution timed out after {elapsed_seconds}s "
+                    f"(limit: {timeout}s)"
+                ),
+                timeout_seconds=timeout,
+                elapsed_seconds=elapsed_seconds,
+                suggestion="Consider increasing timeout or simplifying prompt",
             ) from None
 
         except Exception as e:
@@ -164,13 +203,51 @@ class ClaudeCodeExecutor:
                 extra={"error": str(e), "prompt_length": len(prompt)},
             )
             if process.returncode is None:
-                process.terminate()
-                try:
-                    await asyncio.wait_for(process.wait(), timeout=5.0)
-                except TimeoutError:
-                    process.kill()
-                    await process.wait()
+                # Kill the process immediately for error cleanup
+                process.kill()
+                await process.wait()
             raise
+
+    async def _capture_partial_output(
+        self,
+        process: asyncio.subprocess.Process,
+    ) -> str:
+        """Capture any buffered output from process before killing.
+
+        Attempts to read any remaining data from stdout that was buffered
+        but not yet consumed before the timeout. This helps with debugging
+        by preserving partial progress.
+
+        Args:
+            process: The subprocess to read from.
+
+        Returns:
+            String containing any partial output captured, empty if none.
+        """
+        partial_content: list[str] = []
+
+        if process.stdout is None:
+            return ""
+
+        try:
+            # Try to read any buffered data with a very short timeout
+            while True:
+                try:
+                    line = await asyncio.wait_for(
+                        process.stdout.readline(),
+                        timeout=0.1,  # Very short timeout to drain buffer
+                    )
+                    if not line:
+                        break
+                    partial_content.append(line.decode("utf-8", errors="replace"))
+                except TimeoutError:
+                    # No more data available in buffer
+                    break
+        except Exception:
+            # Ignore errors during partial capture - this is best-effort
+            pass
+
+        return "".join(partial_content)
 
     async def _read_process_output(
         self,
@@ -272,27 +349,6 @@ class ClaudeCodeExecutor:
             },
         )
 
-        # Structured logging for token tracking (INFO level for aggregation)
-        logger.info(
-            "LLM execution completed",
-            extra={
-                "tokens_used": parsed["tokens_used"],
-                "tool_count": len(parsed["tool_calls"]),
-                "duration_ms": duration_ms,
-                "success": returncode == 0,
-            },
-        )
-
-        # Log individual tool calls for debugging and analysis
-        for tool_call in parsed["tool_calls"]:
-            logger.debug(
-                "Tool call executed",
-                extra={
-                    "tool_name": tool_call.tool_name,
-                    "arguments": tool_call.arguments,
-                },
-            )
-
         # Build result
         if returncode == 0:
             return LLMResult(
@@ -312,7 +368,9 @@ class ClaudeCodeExecutor:
                 error=stderr or f"Claude Code exited with code {returncode}",
             )
 
-    def _parse_output(self, raw_output: str) -> dict[str, Any]:
+    def _parse_output(
+        self, raw_output: str
+    ) -> dict[str, Any]:
         """Parse Claude Code --print output format.
 
         Claude Code with --print outputs JSONL (JSON Lines) format where

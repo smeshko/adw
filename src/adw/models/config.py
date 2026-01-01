@@ -79,7 +79,7 @@ class LLMConfig(BaseModel):
     """
 
     path: str = Field(
-        default="/usr/bin/claude",
+        default="claude",
         description="Path to the Claude Code executable",
     )
     timeout_seconds: int = Field(

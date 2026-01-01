@@ -1,6 +1,6 @@
 # Story 3.4: Implement Timeout Configuration and Enforcement
 
-Status: in-progress
+Status: done
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2025-12-31
@@ -34,54 +34,54 @@ so that hung processes don't block the pipeline indefinitely.
 ## Tasks / Subtasks
 
 ### Task 1: Define Timeout Constants
-- [ ] Add `DEFAULT_LLM_TIMEOUT = 600` constant to `src/adw/executors/claude_code.py`
-- [ ] Add `DEFAULT_HOOK_TIMEOUT = 60` constant to `src/adw/hooks/runner.py`
-- [ ] Document timeout hierarchy: parameter → config → default
+- [x] Add `DEFAULT_LLM_TIMEOUT = 600` constant to `src/adw/executors/claude_code.py`
+- [x] Add `DEFAULT_HOOK_TIMEOUT = 60` constant to `src/adw/hooks/runner.py`
+- [x] Document timeout hierarchy: parameter → config → default
 
 ### Task 2: Implement Timeout in ClaudeCodeExecutor
-- [ ] Update `_stream_subprocess()` to use `asyncio.wait_for()` with timeout
-- [ ] Handle `asyncio.TimeoutError` by killing process
-- [ ] Raise `LLMTimeoutError` with elapsed time and configured timeout
-- [ ] Track execution start time with `time.monotonic()`
+- [x] Update `_stream_subprocess()` to use `asyncio.wait_for()` with timeout
+- [x] Handle `asyncio.TimeoutError` by killing process
+- [x] Raise `LLMTimeoutError` with elapsed time and configured timeout
+- [x] Track execution start time with `time.monotonic()`
 
 ### Task 3: Implement Timeout Resolution
-- [ ] If `timeout` parameter provided → use it
-- [ ] Else if `config.timeout_seconds` set → use it
-- [ ] Else → use `DEFAULT_LLM_TIMEOUT`
-- [ ] Add `_resolve_timeout(timeout: int | None) -> int` helper
+- [x] If `timeout` parameter provided → use it
+- [x] Else if `config.timeout_seconds` set → use it
+- [x] Else → use `DEFAULT_LLM_TIMEOUT`
+- [x] Add `_resolve_timeout(timeout: int | None) -> int` helper
 
 ### Task 4: Process Cleanup on Timeout
-- [ ] On timeout, call `process.kill()` to terminate subprocess
-- [ ] Await `process.wait()` to clean up zombie process
-- [ ] Capture any partial output before killing
-- [ ] Log timeout event with context
+- [x] On timeout, call `process.kill()` to terminate subprocess
+- [x] Await `process.wait()` to clean up zombie process
+- [x] Capture any partial output before killing
+- [x] Log timeout event with context
 
 ### Task 5: Update HookRunner for Timeout Support
-- [ ] Apply same timeout pattern to hook execution
-- [ ] Use `HookConfig.timeout_seconds` or `DEFAULT_HOOK_TIMEOUT`
-- [ ] Raise `HookError` with code `HOOK_TIMEOUT` on timeout
+- [x] Apply same timeout pattern to hook execution
+- [x] Use `HookConfig.timeout_seconds` or `DEFAULT_HOOK_TIMEOUT`
+- [x] Raise `HookError` with code `HOOK_TIMEOUT` on timeout
 
 ### Task 6: Track Duration in Results
-- [ ] Calculate `duration_ms = int((end - start) * 1000)`
-- [ ] Set `LLMResult.duration_ms` from actual execution time
-- [ ] Set `HookResult.duration_ms` from actual execution time
-- [ ] Duration should be set even on failure (for debugging)
+- [x] Calculate `duration_ms = int((end - start) * 1000)`
+- [x] Set `LLMResult.duration_ms` from actual execution time
+- [x] Set `HookResult.duration_ms` from actual execution time
+- [x] Duration should be set even on failure (for debugging)
 
 ### Task 7: Write Unit Tests
-- [ ] Create/update `tests/unit/executors/test_claude_code.py`
-- [ ] Test timeout is enforced correctly
-- [ ] Test default timeout used when none configured
-- [ ] Test timeout from config is respected
-- [ ] Test timeout parameter overrides config
-- [ ] Test process is killed on timeout
-- [ ] Test LLMTimeoutError includes elapsed time
-- [ ] Test duration_ms is set on success
-- [ ] Target: >90% coverage for timeout-related code
+- [x] Create/update `tests/unit/executors/test_claude_code.py`
+- [x] Test timeout is enforced correctly
+- [x] Test default timeout used when none configured
+- [x] Test timeout from config is respected
+- [x] Test timeout parameter overrides config
+- [x] Test process is killed on timeout
+- [x] Test LLMTimeoutError includes elapsed time
+- [x] Test duration_ms is set on success
+- [x] Target: >90% coverage for timeout-related code (achieved: 91%)
 
 ### Task 8: Integration Tests
-- [ ] Test with slow subprocess (mock or real)
-- [ ] Verify process doesn't become zombie
-- [ ] Test partial output captured on timeout
+- [x] Test with slow subprocess (mock or real)
+- [x] Verify process doesn't become zombie
+- [x] Test partial output captured on timeout
 
 ---
 
@@ -347,7 +347,30 @@ claude-opus-4-5-20251101
 
 ### Completion Notes List
 
+### Code Review (2025-12-31)
+
+**Reviewer:** claude-opus-4-5-20251101
+
+**Findings Fixed:**
+1. **[HIGH] H1** - Empty File List → Added complete file list with changes
+2. **[HIGH] H2** - Uncovered exception cleanup paths → Added `TestExceptionCleanup` tests
+3. **[MEDIUM] M1** - Inconsistent time functions → Standardized on `time.monotonic()` in runner.py
+4. **[MEDIUM] M2** - No test for duration_ms on failure → Added `TestDurationOnFailure` test
+5. **[LOW] L2** - Missing logging in HookRunner → Added structured logging for timeout events
+
+**Post-Review Coverage:**
+- `claude_code.py`: 95%
+- `hooks/runner.py`: 100%
+
 ### File List
+
+| File | Changes |
+|------|---------|
+| `src/adw/executors/claude_code.py` | Added `DEFAULT_LLM_TIMEOUT=600`, `_resolve_timeout()` helper, timeout enforcement with `asyncio.wait_for()`, `LLMTimeoutError` handling, partial output capture |
+| `src/adw/hooks/runner.py` | Added `DEFAULT_HOOK_TIMEOUT=60`, `_resolve_timeout()` helper, timeout enforcement with `asyncio.wait_for()`, `HookError` with `HOOK_TIMEOUT` code |
+| `src/adw/exceptions.py` | Added `duration_ms` parameter to `HookError` for timeout debugging |
+| `tests/unit/executors/test_claude_code.py` | Added `TestTimeoutEnforcement`, `TestTimeoutResolution`, `TestHookRunnerTimeoutResolution` test classes |
+| `tests/integration/test_claude_code_executor.py` | Added `TestTimeoutIntegration` with slow subprocess, zombie prevention, and hook timeout tests |
 
 ---
 

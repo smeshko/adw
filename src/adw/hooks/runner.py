@@ -2,9 +2,15 @@
 
 This module provides the HookRunner class for executing pre-hook and
 post-hook shell scripts with timeout support and output capture.
+
+Timeout Hierarchy:
+    1. timeout parameter passed to run_hook() - highest priority
+    2. config.timeout_seconds from HookConfig
+    3. DEFAULT_HOOK_TIMEOUT constant - fallback default
 """
 
 import asyncio
+import logging
 import time
 from pathlib import Path
 from typing import Literal
@@ -12,6 +18,11 @@ from typing import Literal
 from adw.exceptions import HookError
 from adw.hooks.environment import build_hook_environment
 from adw.models import HookConfig, HookResult, RunContext
+
+logger = logging.getLogger(__name__)
+
+# Default timeout for hook execution in seconds (1 minute)
+DEFAULT_HOOK_TIMEOUT = 60
 
 
 class HookRunner:
@@ -42,6 +53,26 @@ class HookRunner:
             config: Hook configuration containing shell and timeout settings
         """
         self.config = config
+
+    def _resolve_timeout(self, timeout: int | None) -> int:
+        """Resolve timeout using 3-tier hierarchy.
+
+        Resolution order:
+            1. Explicit timeout parameter - highest priority
+            2. config.timeout_seconds from HookConfig
+            3. DEFAULT_HOOK_TIMEOUT constant - fallback default
+
+        Args:
+            timeout: Optional timeout override in seconds.
+
+        Returns:
+            Resolved timeout in seconds.
+        """
+        if timeout is not None:
+            return timeout
+        if self.config.timeout_seconds:
+            return self.config.timeout_seconds
+        return DEFAULT_HOOK_TIMEOUT
 
     def run_hook(
         self,
@@ -118,10 +149,8 @@ class HookRunner:
         Raises:
             HookError: On execution failure or timeout
         """
-        # Use timeout from parameter or fall back to config
-        effective_timeout = (
-            timeout if timeout is not None else self.config.timeout_seconds
-        )
+        # Resolve timeout using 3-tier hierarchy
+        effective_timeout = self._resolve_timeout(timeout)
 
         # Build environment variables
         env = build_hook_environment(
@@ -134,7 +163,7 @@ class HookRunner:
         # Use provided working directory or default to current directory
         cwd = working_dir if working_dir is not None else Path.cwd()
 
-        start_time = time.perf_counter()
+        start_time = time.monotonic()
 
         # Create subprocess
         process = await asyncio.create_subprocess_exec(
@@ -157,7 +186,18 @@ class HookRunner:
             process.kill()
             await process.wait()
 
-            duration_ms = int((time.perf_counter() - start_time) * 1000)
+            duration_ms = int((time.monotonic() - start_time) * 1000)
+
+            logger.warning(
+                "Hook execution timed out",
+                extra={
+                    "hook_path": str(hook_path),
+                    "hook_type": hook_type,
+                    "phase": phase,
+                    "timeout": effective_timeout,
+                    "duration_ms": duration_ms,
+                },
+            )
 
             raise HookError(
                 code="HOOK_TIMEOUT",
@@ -166,11 +206,12 @@ class HookRunner:
                 exit_code=None,
                 stdout="",
                 stderr="",
+                duration_ms=duration_ms,
                 suggestion=f"Increase timeout or optimize {hook_type}-hook script",
                 recoverable=False,
             ) from None
 
-        duration_ms = int((time.perf_counter() - start_time) * 1000)
+        duration_ms = int((time.monotonic() - start_time) * 1000)
         stdout = stdout_bytes.decode("utf-8", errors="replace")
         stderr = stderr_bytes.decode("utf-8", errors="replace")
         exit_code = process.returncode or 0
@@ -184,6 +225,7 @@ class HookRunner:
                 exit_code=exit_code,
                 stdout=stdout,
                 stderr=stderr,
+                duration_ms=duration_ms,
                 suggestion=f"Check {hook_type}-hook script at {hook_path}",
                 recoverable=False,
             )
