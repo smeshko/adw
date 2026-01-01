@@ -128,7 +128,7 @@ class TestFileLocking:
         self, run_manager: RunDirectoryManager, sample_context: RunContext
     ) -> None:
         """Test that acquire_lock returns a context manager."""
-        run_dir = run_manager.create(sample_context)
+        run_manager.create(sample_context)
         lock = run_manager.acquire_lock(sample_context.run_id)
 
         # Should be usable as context manager
@@ -142,7 +142,7 @@ class TestFileLocking:
         """Test that only one process can hold the lock at a time."""
         import filelock
 
-        run_dir = run_manager.create(sample_context)
+        run_manager.create(sample_context)
 
         # First lock should succeed
         lock1 = run_manager.acquire_lock(sample_context.run_id, timeout=1)
@@ -238,6 +238,7 @@ class TestRunListing:
         assert len(runs) == 1
         assert isinstance(runs[0], RunInfo)
         assert runs[0].run_id == sample_context.run_id
+        assert runs[0].created_at is not None
 
     def test_list_runs_sorted_by_ulid(
         self, run_manager: RunDirectoryManager
@@ -287,3 +288,20 @@ class TestRunListing:
         # Should only include the actual run
         assert len(runs) == 1
         assert runs[0].run_id == sample_context.run_id
+
+    def test_list_runs_includes_created_at_from_ulid(
+        self, run_manager: RunDirectoryManager, sample_context: RunContext
+    ) -> None:
+        """Test that created_at is extracted from ULID timestamp."""
+        from datetime import UTC
+
+        run_manager.create(sample_context)
+        runs = run_manager.list_runs()
+
+        assert len(runs) == 1
+        # created_at should be a timezone-aware datetime
+        assert runs[0].created_at.tzinfo is not None
+        # The timestamp should be reasonable (within last minute)
+        now = datetime.now(UTC)
+        delta = (now - runs[0].created_at).total_seconds()
+        assert 0 <= delta < 60  # Created within last minute

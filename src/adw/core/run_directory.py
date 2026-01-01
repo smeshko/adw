@@ -12,11 +12,13 @@ structure for ADW runs:
 └── snapshots/            # State snapshots at key moments
 """
 
-from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import filelock
+from pydantic import BaseModel, ConfigDict
+from ulid import ULID
 
 from adw.exceptions import StateError
 
@@ -24,17 +26,20 @@ if TYPE_CHECKING:
     from adw.models import RunContext
 
 
-@dataclass
-class RunInfo:
+class RunInfo(BaseModel):
     """Information about a run directory.
 
     Attributes:
         run_id: The ULID run identifier.
         path: Path to the run directory.
+        created_at: When the run was created (extracted from ULID timestamp).
     """
 
     run_id: str
     path: Path
+    created_at: datetime
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 # Subdirectories to create in each run directory
 _SUBDIRECTORIES = ("artifacts", "logs", "llm", "snapshots")
@@ -105,13 +110,11 @@ class RunDirectoryManager:
             for subdir in _SUBDIRECTORIES:
                 (run_dir / subdir).mkdir()
 
-            # Create the lock file
+            # Acquire lock and write context.json atomically
             lock_path = run_dir / ".lock"
-            lock_path.touch()
-
-            # Serialize and write context.json
-            context_path = run_dir / "context.json"
-            context_path.write_text(context.model_dump_json(indent=2))
+            with filelock.FileLock(lock_path, timeout=_DEFAULT_LOCK_TIMEOUT):
+                context_path = run_dir / "context.json"
+                context_path.write_text(context.model_dump_json(indent=2))
 
             return run_dir
 
@@ -179,7 +182,7 @@ class RunDirectoryManager:
         Example:
             >>> runs = manager.list_runs()
             >>> for run in runs:
-            ...     print(f"{run.run_id}: {run.path}")
+            ...     print(f"{run.run_id}: {run.path} ({run.created_at})")
         """
         if not self.runs_dir.exists():
             return []
@@ -188,10 +191,19 @@ class RunDirectoryManager:
         for run_path in self.runs_dir.iterdir():
             # Skip hidden directories and non-directories
             if run_path.is_dir() and not run_path.name.startswith("."):
+                # Extract timestamp from ULID
+                try:
+                    ulid = ULID.from_str(run_path.name)
+                    created_at = ulid.datetime
+                except (ValueError, AttributeError):
+                    # Fallback for invalid ULIDs - use current time
+                    created_at = datetime.now(UTC)
+
                 runs.append(
                     RunInfo(
                         run_id=run_path.name,
                         path=run_path,
+                        created_at=created_at,
                     )
                 )
 
