@@ -76,13 +76,13 @@ so that all run data is organized and discoverable.
 - [x] Return list of `RunInfo` with id, path, created_at
 
 ### Task 7: Write Unit Tests
-- [ ] Create `tests/unit/core/test_run_directory.py`
-- [ ] Test directory creation with all subdirectories
-- [ ] Test ULID generation and sorting
-- [ ] Test file locking behavior
-- [ ] Test context.json creation and validation
-- [ ] Test run listing and sorting
-- [ ] Target: >90% coverage for new code
+- [x] Create `tests/unit/core/test_run_directory.py`
+- [x] Test directory creation with all subdirectories
+- [x] Test ULID generation and sorting
+- [x] Test file locking behavior
+- [x] Test context.json creation and validation
+- [x] Test run listing and sorting
+- [x] Target: >90% coverage for new code (achieved: run_directory.py 96%, ulid.py 100%)
 
 ### Task 8: Write Integration Tests
 - [ ] Test full directory creation workflow
@@ -570,6 +570,7 @@ claude-opus-4-5-20251101
 - Task 4: Implemented file locking using filelock library. Creates `.lock` file during directory creation. Added `acquire_lock()` method that returns FileLock context manager. Raises `StateError` with code `RUN_NOT_FOUND` for nonexistent runs.
 - Task 5: Implemented context serialization. Creates `context.json` with serialized RunContext using Pydantic's `model_dump_json(indent=2)` for human-readable output. Added tests for JSON creation, validation, and deserialization.
 - Task 6: Implemented `list_runs()` method that returns list of `RunInfo` objects sorted by ULID (chronological order). Added `RunInfo` dataclass. Handles empty directory and ignores hidden directories.
+- Task 7: Unit tests already written as part of TDD process during Tasks 1-6. Coverage: run_directory.py 96%, ulid.py 100%. 27 unit tests total covering all functionality.
 
 ### File List
 
