@@ -85,10 +85,10 @@ so that all run data is organized and discoverable.
 - [x] Target: >90% coverage for new code (achieved: run_directory.py 96%, ulid.py 100%)
 
 ### Task 8: Write Integration Tests
-- [ ] Test full directory creation workflow
-- [ ] Test concurrent access with multiple processes
-- [ ] Test cleanup and recovery scenarios
-- [ ] Verify file permissions
+- [x] Test full directory creation workflow
+- [x] Test concurrent access with multiple processes
+- [x] Test cleanup and recovery scenarios
+- [x] Verify file permissions
 
 ---
 
@@ -571,6 +571,7 @@ claude-opus-4-5-20251101
 - Task 5: Implemented context serialization. Creates `context.json` with serialized RunContext using Pydantic's `model_dump_json(indent=2)` for human-readable output. Added tests for JSON creation, validation, and deserialization.
 - Task 6: Implemented `list_runs()` method that returns list of `RunInfo` objects sorted by ULID (chronological order). Added `RunInfo` dataclass. Handles empty directory and ignores hidden directories.
 - Task 7: Unit tests already written as part of TDD process during Tasks 1-6. Coverage: run_directory.py 96%, ulid.py 100%. 27 unit tests total covering all functionality.
+- Task 8: Created integration tests in `tests/integration/core/test_run_directory_integration.py`. 8 tests covering full workflow, multiprocess locking, persistence across restarts, edge cases (unicode, special paths, deep nesting).
 
 ### File List
 
@@ -580,6 +581,8 @@ claude-opus-4-5-20251101
 - `tests/unit/core/test_run_directory.py` - NEW: Unit tests for run directory
 - `tests/unit/utils/__init__.py` - NEW: Utils test package init
 - `tests/unit/utils/test_ulid.py` - NEW: Unit tests for ULID generation
+- `tests/integration/core/__init__.py` - NEW: Integration test package init
+- `tests/integration/core/test_run_directory_integration.py` - NEW: Integration tests
 
 ---
 
