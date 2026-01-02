@@ -368,9 +368,7 @@ class ClaudeCodeExecutor:
                 error=stderr or f"Claude Code exited with code {returncode}",
             )
 
-    def _parse_output(
-        self, raw_output: str
-    ) -> dict[str, Any]:
+    def _parse_output(self, raw_output: str) -> dict[str, Any]:
         """Parse Claude Code --print output format.
 
         Claude Code with --print outputs JSONL (JSON Lines) format where
