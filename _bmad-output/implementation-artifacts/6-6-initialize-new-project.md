@@ -38,11 +38,11 @@ So that I can start using adw in my repository.
 ## Tasks / Subtasks
 
 ### Task 1: Implement CLI Init Command
-- [ ] Create `src/adw/cli/init.py` with init command
-- [ ] Add `--force/-f` flag to overwrite existing config
-- [ ] Add `--language` option to override detection
-- [ ] Add `--template` option for future template support
-- [ ] Register command in main app
+- [x] Create `src/adw/cli/init.py` with init command
+- [x] Add `--force/-f` flag to overwrite existing config
+- [x] Add `--language` option to override detection
+- [x] Add `--template` option for future template support
+- [x] Register command in main app
 
 ### Task 2: Create Project Initialization Logic
 - [ ] Create `src/adw/config/initializer.py` with `ProjectInitializer` class

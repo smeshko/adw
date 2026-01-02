@@ -9,6 +9,7 @@ from rich.panel import Panel
 from ulid import ULID
 
 from adw.cli.bootstrap import create_orchestrator
+from adw.cli.init import init as init_impl
 from adw.cli.run_display import RunDisplay
 from adw.commands.template import escape_feature_description
 from adw.core.constants import PHASE_SEQUENCE
@@ -20,6 +21,40 @@ app = typer.Typer(
     help="Agentic Development Workflow SDK",
     add_completion=True,
 )
+
+
+@app.command(name="init")
+def init(
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite existing configuration",
+    ),
+    language: str | None = typer.Option(
+        None,
+        "--language",
+        "-l",
+        help="Override detected language (python, javascript, go, rust, java, ruby, php)",
+    ),
+) -> None:
+    """Initialize ADW in the current directory.
+
+    Creates .adw/ directory with project configuration.
+    Auto-detects project type and sets appropriate defaults.
+
+    Examples:
+        adw init                    # Auto-detect and initialize
+        adw init --force            # Reinitialize existing project
+        adw init --language python  # Override detection
+    """
+    try:
+        init_impl(force=force, language=language)
+    except ConfigError as e:
+        console.print(f"[red]Error:[/] {e.message}")
+        if e.suggestion:
+            console.print(f"[dim]Suggestion:[/] {e.suggestion}")
+        raise typer.Exit(1)
 
 
 @app.callback(invoke_without_command=True)

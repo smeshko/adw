@@ -1,79 +1,111 @@
 """Project type detection for ADW.
 
-This module provides the ProjectTypeDetector class that detects
-project type from filesystem markers and provides sensible defaults.
+This module provides auto-detection of project types based on marker files
+(e.g., pyproject.toml for Python, package.json for Node.js).
 """
 
-from __future__ import annotations
-
 from pathlib import Path
-from typing import Literal
-
-__all__ = ["ProjectTypeDetector", "ProjectType"]
-
-ProjectType = Literal["python", "nodejs", "go", "generic"]
 
 
 class ProjectTypeDetector:
-    """Detect project type from filesystem markers.
+    """Detect project type from file markers.
 
-    Examines the project directory for common files that indicate
-    the project type (e.g., pyproject.toml for Python, package.json
-    for Node.js).
-
-    Attributes:
-        MARKERS: Mapping of project types to their marker files.
-        DEFAULTS: Default configuration values for each project type.
+    Examines the project directory for known marker files and returns
+    the detected project type with appropriate defaults.
 
     Example:
-        >>> from pathlib import Path
         >>> detector = ProjectTypeDetector()
-        >>> project_type = detector.detect(Path("/my/python/project"))
-        >>> print(project_type)
-        'python'
+        >>> project_type = detector.detect(Path("/path/to/project"))
         >>> defaults = detector.get_defaults(project_type)
-        >>> print(defaults)
-        {'language': 'python', 'test_command': 'pytest'}
     """
 
-    MARKERS: dict[str, list[str]] = {
-        "python": ["pyproject.toml", "setup.py", "requirements.txt"],
-        "nodejs": ["package.json"],
-        "go": ["go.mod"],
-    }
+    # Marker files mapped to project types
+    # Order matters - first match wins
+    MARKERS: list[tuple[str, str]] = [
+        ("pyproject.toml", "python"),
+        ("setup.py", "python"),
+        ("requirements.txt", "python"),
+        ("package.json", "javascript"),
+        ("go.mod", "go"),
+        ("Cargo.toml", "rust"),
+        ("build.gradle", "java"),
+        ("pom.xml", "java"),
+        ("Gemfile", "ruby"),
+        ("composer.json", "php"),
+    ]
 
+    # Default configurations for each project type
     DEFAULTS: dict[str, dict[str, str | None]] = {
-        "python": {"language": "python", "test_command": "pytest"},
-        "nodejs": {"language": "javascript", "test_command": "npm test"},
-        "go": {"language": "go", "test_command": "go test ./..."},
-        "generic": {"language": "unknown", "test_command": None},
+        "python": {
+            "language": "python",
+            "test_command": "pytest",
+            "build_command": None,
+        },
+        "javascript": {
+            "language": "javascript",
+            "test_command": "npm test",
+            "build_command": "npm run build",
+        },
+        "go": {
+            "language": "go",
+            "test_command": "go test ./...",
+            "build_command": "go build",
+        },
+        "rust": {
+            "language": "rust",
+            "test_command": "cargo test",
+            "build_command": "cargo build",
+        },
+        "java": {
+            "language": "java",
+            "test_command": "gradle test",
+            "build_command": "gradle build",
+        },
+        "ruby": {
+            "language": "ruby",
+            "test_command": "bundle exec rspec",
+            "build_command": None,
+        },
+        "php": {
+            "language": "php",
+            "test_command": "vendor/bin/phpunit",
+            "build_command": None,
+        },
+        "unknown": {
+            "language": "unknown",
+            "test_command": None,
+            "build_command": None,
+        },
+        # Alias for backward compatibility with ConfigLoader
+        "generic": {
+            "language": "unknown",
+            "test_command": None,
+            "build_command": None,
+        },
     }
 
-    def detect(self, project_root: Path) -> ProjectType:
-        """Detect project type from directory.
-
-        Checks for marker files in order of MARKERS dict.
-        Returns "generic" if no known project type detected.
+    def detect(self, project_root: Path) -> str:
+        """Detect project type from marker files.
 
         Args:
-            project_root: Path to project root directory.
+            project_root: Path to the project root directory.
 
         Returns:
-            Detected project type.
+            Detected project type (e.g., "python", "javascript").
+            Returns "unknown" if no markers are found.
         """
-        for project_type, markers in self.MARKERS.items():
-            for marker in markers:
-                if (project_root / marker).exists():
-                    return project_type  # type: ignore[return-value]
-        return "generic"
+        for marker, project_type in self.MARKERS:
+            if (project_root / marker).exists():
+                return project_type
+        return "unknown"
 
-    def get_defaults(self, project_type: ProjectType) -> dict[str, str | None]:
-        """Get default config values for project type.
+    def get_defaults(self, project_type: str) -> dict[str, str | None]:
+        """Get default configuration for a project type.
 
         Args:
-            project_type: The detected project type.
+            project_type: The project type (e.g., "python", "go").
 
         Returns:
-            Dictionary of default configuration values.
+            Dictionary with language, test_command, and build_command defaults.
         """
-        return self.DEFAULTS.get(project_type, self.DEFAULTS["generic"])
+        return self.DEFAULTS.get(project_type, self.DEFAULTS["unknown"]).copy()
