@@ -84,10 +84,10 @@ so that subsequent phases can access outputs from previous phases.
 - [x] Target: >90% coverage
 
 ### Task 8: Write Integration Tests
-- [ ] Test full phase lifecycle with artifacts
-- [ ] Test artifact access from subsequent phase
-- [ ] Test artifact persistence across runs
-- [ ] Verify artifact content integrity
+- [x] Test full phase lifecycle with artifacts
+- [x] Test artifact access from subsequent phase
+- [x] Test artifact persistence across runs
+- [x] Verify artifact content integrity
 
 ---
 
@@ -557,12 +557,14 @@ Story 4.4 implements artifact storage and retrieval for passing data between pha
 - Task 5: RunContext already has `artifacts` field (same as `artifact_paths`). get_artifact_paths() method provides the data. Added 2 integration tests verifying RunContext compatibility and JSON serialization. 22 tests now pass.
 - Task 6: Added store_text() convenience method and get_auto() for auto-detection of content type based on file extension. 4 new tests added. 26 tests now pass.
 - Task 7: Unit tests already written in Tasks 1-6. Current coverage for artifact_manager.py is 90% (target met). 26 tests covering storage, retrieval, listing, JSON, text, auto-detect, and RunContext integration.
+- Task 8: Created 10 integration tests covering full phase lifecycle, cross-phase access, persistence across runs/sessions, and content integrity (binary, unicode, large files, JSON roundtrip).
 
 ### File List
 
 - `src/adw/core/artifact_manager.py` - NEW
 - `src/adw/core/__init__.py` - MODIFIED (exports ArtifactManager)
 - `tests/unit/core/test_artifact_manager.py` - NEW
+- `tests/integration/core/test_artifact_manager_integration.py` - NEW
 
 ---
 
