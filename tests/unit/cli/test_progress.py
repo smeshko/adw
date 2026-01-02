@@ -307,3 +307,108 @@ class TestPhaseComplete:
         output_text = output.getvalue()
         # Duration should be formatted (e.g., "0.0s")
         assert "VALIDATE" in output_text
+
+
+class TestPipelineSummary:
+    """Tests for pipeline summary display."""
+
+    def test_show_pipeline_summary_with_completed_phases(self) -> None:
+        """Test that pipeline summary shows completed phases with checkmarks."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.show_pipeline_summary(
+            completed_phases=["plan", "build"],
+            status="running",
+            total_duration_ms=5000,
+            total_tokens=1000,
+        )
+
+        output_text = output.getvalue()
+        assert "✓" in output_text  # Checkmarks for completed
+        assert "plan" in output_text
+        assert "build" in output_text
+
+    def test_show_pipeline_summary_shows_status(self) -> None:
+        """Test that pipeline summary shows final status."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.show_pipeline_summary(
+            completed_phases=["plan", "build", "verify", "validate", "document"],
+            status="completed",
+            total_duration_ms=10000,
+            total_tokens=5000,
+        )
+
+        output_text = output.getvalue()
+        assert "completed" in output_text
+
+    def test_show_pipeline_summary_shows_duration(self) -> None:
+        """Test that pipeline summary shows total duration."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.show_pipeline_summary(
+            completed_phases=["plan"],
+            status="completed",
+            total_duration_ms=10500,  # 10.5 seconds
+            total_tokens=500,
+        )
+
+        output_text = output.getvalue()
+        assert "10.5s" in output_text
+
+    def test_show_pipeline_summary_shows_token_count(self) -> None:
+        """Test that pipeline summary shows total tokens."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.show_pipeline_summary(
+            completed_phases=["plan"],
+            status="completed",
+            total_duration_ms=1000,
+            total_tokens=12345,
+        )
+
+        output_text = output.getvalue()
+        assert "12,345" in output_text  # Formatted with commas
+
+    def test_show_pipeline_summary_shows_pending_phases(self) -> None:
+        """Test that pipeline summary shows pending phases with dots."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.show_pipeline_summary(
+            completed_phases=["plan"],
+            status="failed",
+            total_duration_ms=2000,
+            total_tokens=100,
+        )
+
+        output_text = output.getvalue()
+        # Should have pending indicator for uncompleted phases
+        assert "verify" in output_text
+        assert "validate" in output_text
+        assert "document" in output_text
+
+    def test_show_pipeline_summary_failed_status(self) -> None:
+        """Test that pipeline summary with failed status uses red color."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.show_pipeline_summary(
+            completed_phases=["plan", "build"],
+            status="failed",
+            total_duration_ms=3000,
+            total_tokens=800,
+        )
+
+        output_text = output.getvalue()
+        assert "failed" in output_text

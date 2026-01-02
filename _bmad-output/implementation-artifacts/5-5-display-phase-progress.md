@@ -60,10 +60,10 @@ so that users understand what's happening.
 - [x] Update overall progress bar
 
 ### Task 5: Implement Overall Progress Bar
-- [ ] Create Rich Progress bar for pipeline
-- [ ] Show: `[Plan] ✓ [Build] ► [Verify] · [Validate] · [Document]`
-- [ ] Update as phases complete
-- [ ] Show percentage complete
+- [x] Create Rich Progress bar for pipeline
+- [x] Show: `[Plan] ✓ [Build] ► [Verify] · [Validate] · [Document]`
+- [x] Update as phases complete
+- [x] Show percentage complete
 
 ### Task 6: Implement Error Display
 - [ ] Add `on_phase_error(phase: str, error: ADWError)` method
