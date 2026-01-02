@@ -87,7 +87,7 @@ development_status:
   4-2-persist-run-context-with-atomic-writes: done
   4-3-create-state-snapshots-at-phase-boundaries: done
   4-4-store-and-retrieve-phase-artifacts: done
-  4-5-handle-interruption-and-recovery: ready-for-dev
+  4-5-handle-interruption-and-recovery: in-progress
   epic-4-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

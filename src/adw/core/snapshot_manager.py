@@ -89,14 +89,14 @@ class SnapshotManager:
         self,
         context: "RunContext",
         phase: str,
-        phase_result: "PhaseResult",
+        phase_result: "PhaseResult | None",
     ) -> Path:
         """Create snapshot after phase completes.
 
         Args:
             context: Current run context.
             phase: Phase that just completed.
-            phase_result: Result of the phase.
+            phase_result: Result of the phase, or None if interrupted.
 
         Returns:
             Path to created snapshot file.

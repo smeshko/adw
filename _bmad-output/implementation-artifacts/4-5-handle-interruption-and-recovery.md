@@ -35,10 +35,10 @@ so that the run can be resumed without data loss (NFR7).
 ## Tasks / Subtasks
 
 ### Task 1: Implement Signal Handling
-- [ ] Register SIGINT handler at run start
-- [ ] Register SIGTERM handler for graceful termination
-- [ ] Capture current run context in handler
-- [ ] Set flag for graceful shutdown
+- [x] Register SIGINT handler at run start
+- [x] Register SIGTERM handler for graceful termination
+- [x] Capture current run context in handler
+- [x] Set flag for graceful shutdown
 
 ### Task 2: Implement Graceful Shutdown
 - [ ] Check shutdown flag in main loop
@@ -568,7 +568,14 @@ Story 4.5 implements graceful interruption handling and resume capability, ensur
 
 ### Completion Notes List
 
+- Task 1: Created `InterruptionHandler` class in `src/adw/core/interruption.py` with signal registration, context preservation, and graceful shutdown flag
+
 ### File List
+
+- `src/adw/core/interruption.py` (NEW) - Signal handling for SIGINT/SIGTERM
+- `src/adw/models/context.py` (MODIFIED) - Added `interrupted_phase`, `interrupted_at` fields, typed `status` field
+- `src/adw/core/snapshot_manager.py` (MODIFIED) - Updated `create_post_phase_snapshot` to accept optional phase_result
+- `tests/unit/core/test_interruption.py` (NEW) - 18 unit tests for interruption handling
 
 ---
 

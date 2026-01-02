@@ -6,7 +6,7 @@ and project context throughout the ADW workflow execution.
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field, computed_field, field_validator
 
@@ -55,7 +55,17 @@ class RunContext(BaseModel):
     completed_at: datetime | None = Field(
         default=None, description="When this run completed"
     )
-    status: str = Field(default="running", description="Current run status")
+    status: Literal["running", "completed", "interrupted", "failed"] = Field(
+        default="running", description="Current run status"
+    )
+    interrupted_phase: str | None = Field(
+        default=None,
+        description="Phase where interruption occurred (only set when status='interrupted')",
+    )
+    interrupted_at: datetime | None = Field(
+        default=None,
+        description="Timestamp when run was interrupted",
+    )
     artifacts: dict[str, list[str]] = Field(
         default_factory=dict,
         description="Mapping of phase names to artifact paths",
@@ -120,6 +130,8 @@ class RunContext(BaseModel):
                 "started_at": "2024-01-15T10:30:00",
                 "completed_at": None,
                 "status": "running",
+                "interrupted_phase": None,
+                "interrupted_at": None,
                 "artifacts": {"plan": ["plan.md"]},
                 "phase_tokens": {"plan": 500, "code": 1200},
             }
