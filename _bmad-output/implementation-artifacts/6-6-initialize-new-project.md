@@ -79,10 +79,10 @@ So that I can start using adw in my repository.
 - [x] Display warning when overwriting
 
 ### Task 7: Display Initialization Summary
-- [ ] Show detected project type
-- [ ] Show generated configuration summary
-- [ ] Show next steps (how to run first workflow)
-- [ ] Use Rich Panel for formatted output
+- [x] Show detected project type
+- [x] Show generated configuration summary
+- [x] Show next steps (how to run first workflow)
+- [x] Use Rich Panel for formatted output
 
 ### Task 8: Write Unit Tests
 - [ ] Create `tests/unit/cli/test_init.py`
