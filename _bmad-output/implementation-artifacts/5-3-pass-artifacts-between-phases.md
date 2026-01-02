@@ -46,10 +46,10 @@ so that the pipeline builds on previous outputs.
 - [x] Strip file extensions from artifact names for template access
 
 ### Task 3: Implement Full Artifacts Map
-- [ ] Add `_build_artifacts_map(run_id)` method
-- [ ] Iterate all previous phases in PHASE_SEQUENCE
-- [ ] Load artifacts for each phase
-- [ ] Build nested structure: `{phase: {artifact: content}}`
+- [x] Add `_build_artifacts_map(run_id)` method
+- [x] Iterate all previous phases in PHASE_SEQUENCE
+- [x] Load artifacts for each phase
+- [x] Build nested structure: `{phase: {artifact: content}}`
 
 ### Task 4: Update Template Engine for Artifacts
 - [ ] Ensure template engine handles nested dict access: `{{artifacts.plan.plan}}`
@@ -471,6 +471,7 @@ Story 5.3 implements artifact passing between phases, enabling later phases to a
 
 - Task 1: Extended `_load_and_render_prompt()` to include artifact content from previous phases. Added `_build_artifacts_map()` method that loads artifacts by phase, strips file extensions for clean template access (`plan.md` → `artifacts.plan.plan`).
 - Task 2: Extracted `_load_phase_artifacts()` helper method for loading all artifacts from a single phase with extension stripping. Refactored `_build_artifacts_map()` to use this helper.
+- Task 3: Verified `_build_artifacts_map()` correctly iterates PHASE_SEQUENCE and builds nested `{phase: {artifact: content}}` structure. Already implemented in Task 1.
 
 ### File List
 
