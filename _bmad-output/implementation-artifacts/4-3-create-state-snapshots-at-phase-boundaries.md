@@ -78,13 +78,13 @@ so that I can debug failures and resume from known-good states.
 - [x] Log duration for monitoring
 
 ### Task 7: Write Unit Tests
-- [ ] Create `tests/unit/core/test_snapshot_manager.py`
-- [ ] Test pre-phase snapshot creation
-- [ ] Test post-phase snapshot creation
-- [ ] Test sequential numbering
-- [ ] Test snapshot loading
-- [ ] Test performance requirement
-- [ ] Target: >90% coverage
+- [x] Create `tests/unit/core/test_snapshot_manager.py`
+- [x] Test pre-phase snapshot creation
+- [x] Test post-phase snapshot creation
+- [x] Test sequential numbering
+- [x] Test snapshot loading
+- [x] Test performance requirement
+- [x] Target: >90% coverage
 
 ### Task 8: Write Integration Tests
 - [ ] Test full phase lifecycle with snapshots
@@ -623,6 +623,7 @@ Story 4.3 implements state snapshots at phase boundaries for debugging and recov
 - `tests/unit/models/test_context.py` - Updated tests for new StateSnapshot schema
 - `src/adw/core/snapshot_manager.py` - New SnapshotManager class
 - `src/adw/core/__init__.py` - Added SnapshotManager export
+- `tests/unit/core/test_snapshot_manager.py` - Unit tests for SnapshotManager
 
 ---
 
