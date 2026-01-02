@@ -79,9 +79,9 @@ so that users understand what's happening.
 - [x] Call `on_phase_error()` on failures
 
 ### Task 8: Integrate with PhaseRunner
-- [ ] Pass progress callback to LLM executor
-- [ ] Update token count during streaming
-- [ ] Update elapsed time during execution
+- [x] Pass progress callback to LLM executor
+- [x] Update token count during streaming
+- [x] Update elapsed time during execution
 
 ### Task 9: Write Unit Tests
 - [ ] Create `tests/unit/cli/test_progress.py`
