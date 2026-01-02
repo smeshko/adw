@@ -60,11 +60,11 @@ So that I can start using adw in my repository.
 - [x] Set appropriate defaults for each type
 
 ### Task 4: Generate Project Configuration
-- [ ] Create `project.yaml` with detected settings
-- [ ] Include: language, test_command, build_command
-- [ ] Include: default phases configuration
-- [ ] Include: LLM configuration (claude_code path)
-- [ ] Add helpful comments explaining each setting
+- [x] Create `project.yaml` with detected settings
+- [x] Include: language, test_command, build_command
+- [x] Include: default phases configuration
+- [x] Include: LLM configuration (claude_code path)
+- [x] Add helpful comments explaining each setting
 
 ### Task 5: Create Directory Structure
 - [ ] Create `.adw/` directory
