@@ -134,6 +134,132 @@ class TestRunContext:
         assert "started_at" in missing_fields
 
 
+class TestRunContextStatus:
+    """Tests for status-related fields in RunContext."""
+
+    def test_status_defaults_to_running(self) -> None:
+        """status field defaults to 'running'."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+        assert context.status == "running"
+
+    def test_status_accepts_valid_values(self) -> None:
+        """status accepts all valid literal values."""
+        for status in ["running", "completed", "interrupted", "failed"]:
+            context = RunContext(
+                run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+                feature_description="Test",
+                current_phase="plan",
+                started_at=datetime.now(),
+                status=status,  # type: ignore[arg-type]
+            )
+            assert context.status == status
+
+    def test_status_rejects_invalid_value(self) -> None:
+        """status rejects invalid values."""
+        with pytest.raises(ValidationError):
+            RunContext(
+                run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+                feature_description="Test",
+                current_phase="plan",
+                started_at=datetime.now(),
+                status="invalid_status",  # type: ignore[arg-type]
+            )
+
+    def test_interrupted_phase_default_none(self) -> None:
+        """interrupted_phase defaults to None."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+        assert context.interrupted_phase is None
+
+    def test_interrupted_phase_can_be_set(self) -> None:
+        """interrupted_phase can be set to a phase name."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            status="interrupted",
+            interrupted_phase="build",
+        )
+        assert context.interrupted_phase == "build"
+
+    def test_interrupted_at_default_none(self) -> None:
+        """interrupted_at defaults to None."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+        assert context.interrupted_at is None
+
+    def test_interrupted_at_can_be_set(self) -> None:
+        """interrupted_at can be set to a timestamp."""
+        now = datetime.now()
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=now,
+            status="interrupted",
+            interrupted_at=now,
+        )
+        assert context.interrupted_at == now
+
+    def test_interrupted_fields_via_model_copy(self) -> None:
+        """interrupted fields can be updated via model_copy."""
+        now = datetime.now()
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="build",
+            started_at=now,
+        )
+
+        updated = context.model_copy(
+            update={
+                "status": "interrupted",
+                "interrupted_phase": "build",
+                "interrupted_at": now,
+            }
+        )
+
+        assert updated.status == "interrupted"
+        assert updated.interrupted_phase == "build"
+        assert updated.interrupted_at == now
+        # Original unchanged
+        assert context.status == "running"
+        assert context.interrupted_phase is None
+
+    def test_interrupted_fields_in_serialization(self) -> None:
+        """interrupted fields are included in JSON serialization."""
+        now = datetime.now()
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=now,
+            status="interrupted",
+            interrupted_phase="plan",
+            interrupted_at=now,
+        )
+        json_str = context.model_dump_json()
+        data = json.loads(json_str)
+
+        assert data["status"] == "interrupted"
+        assert data["interrupted_phase"] == "plan"
+        assert data["interrupted_at"] is not None
+
+
 class TestTokenAggregation:
     """Tests for token tracking and aggregation in RunContext."""
 

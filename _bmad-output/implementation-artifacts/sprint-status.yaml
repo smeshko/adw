@@ -82,12 +82,12 @@ development_status:
   # Goal: Persist run state with atomic writes, snapshots, and artifact storage
   #       for resumability (ASR-5 highest risk)
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-4: in-progress
+  epic-4: done
   4-1-create-run-directory-structure: done
   4-2-persist-run-context-with-atomic-writes: done
   4-3-create-state-snapshots-at-phase-boundaries: done
   4-4-store-and-retrieve-phase-artifacts: done
-  4-5-handle-interruption-and-recovery: ready-for-dev
+  4-5-handle-interruption-and-recovery: done
   epic-4-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
