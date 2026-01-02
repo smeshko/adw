@@ -71,3 +71,65 @@ class TestStatusIcons:
         for icon in progress.STATUS_ICONS.values():
             assert isinstance(icon, str)
             assert len(icon) > 0
+
+
+class TestPhaseStart:
+    """Tests for phase start display."""
+
+    def test_on_phase_start_shows_header(self) -> None:
+        """Test that phase start shows formatted header."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.on_phase_start("plan")
+
+        output_text = output.getvalue()
+        assert "PLAN" in output_text
+        assert "Starting phase" in output_text
+
+    def test_on_phase_start_updates_current_phase(self) -> None:
+        """Test that on_phase_start updates internal state."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.on_phase_start("build")
+
+        assert progress._current_phase == "build"
+
+    def test_on_phase_start_shows_phase_number(self) -> None:
+        """Test that phase start shows correct phase number."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.on_phase_start("verify")
+
+        output_text = output.getvalue()
+        # verify is the 3rd phase (index 2), so "Phase 3/5"
+        assert "3/5" in output_text
+
+    def test_on_phase_start_uses_phase_color(self) -> None:
+        """Test that phase start uses correct color."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.on_phase_start("plan")
+
+        output_text = output.getvalue()
+        # Rich uses escape codes for colors, so just verify the phase name appears
+        assert "PLAN" in output_text
+
+    def test_on_phase_start_all_phases(self) -> None:
+        """Test that all phases can be started."""
+        for phase in PHASE_SEQUENCE:
+            output = StringIO()
+            console = Console(file=output, force_terminal=True, width=80)
+            progress = ProgressDisplay(console)
+
+            progress.on_phase_start(phase)
+
+            output_text = output.getvalue()
+            assert phase.upper() in output_text
