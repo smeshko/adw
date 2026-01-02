@@ -297,6 +297,46 @@ class TestArtifactManagerList:
         assert "modified" in artifacts[0]
         assert artifacts[0]["size"] == len("content")
 
+    def test_list_artifacts_nonexistent_phase_returns_empty(
+        self,
+        artifact_manager: ArtifactManager,
+        runs_dir: Path,
+        run_id: str,
+    ) -> None:
+        """Test listing a specific phase that doesn't exist returns empty list."""
+        # Arrange - create artifacts dir but not the specific phase
+        artifacts_dir = runs_dir / run_id / "artifacts"
+        artifacts_dir.mkdir(parents=True)
+
+        # Act - request a phase that doesn't exist
+        result = artifact_manager.list_artifacts(run_id, phase="nonexistent")
+
+        # Assert
+        assert result == []
+
+    def test_list_artifacts_ignores_subdirectories(
+        self,
+        artifact_manager: ArtifactManager,
+        runs_dir: Path,
+        run_id: str,
+    ) -> None:
+        """Test that list_artifacts only returns files, not subdirectories."""
+        # Arrange
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+        artifact_manager.store(run_id, "build", "diff.txt", "content")
+
+        # Create a subdirectory inside the phase dir (edge case)
+        subdir = runs_dir / run_id / "artifacts" / "build" / "nested_dir"
+        subdir.mkdir()
+
+        # Act
+        artifacts = artifact_manager.list_artifacts(run_id, phase="build")
+
+        # Assert - should only have the file, not the directory
+        assert len(artifacts) == 1
+        assert artifacts[0]["name"] == "diff.txt"
+
 
 class TestArtifactManagerJSON:
     """Tests for JSON convenience methods."""
@@ -418,6 +458,69 @@ class TestArtifactManagerAutoDetect:
     ) -> None:
         """Test that get_auto returns None for missing artifacts."""
         result = artifact_manager.get_auto(run_id, "build", "missing.json")
+        assert result is None
+
+
+class TestArtifactManagerErrorHandling:
+    """Tests for error handling paths."""
+
+    def test_store_raises_state_error_on_write_failure(
+        self,
+        artifact_manager: ArtifactManager,
+        runs_dir: Path,
+        run_id: str,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Test that store raises StateError when write fails."""
+        from unittest.mock import mock_open, patch
+
+        from adw.exceptions import StateError
+
+        # Arrange - create run directory
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+
+        # Mock open to raise OSError
+        def mock_open_error(*args, **kwargs):
+            raise OSError("Disk full")
+
+        monkeypatch.setattr("builtins.open", mock_open_error)
+
+        # Act & Assert
+        with pytest.raises(StateError) as exc_info:
+            artifact_manager.store(run_id, "build", "test.txt", "content")
+
+        assert exc_info.value.code == "ARTIFACT_WRITE_FAILED"
+        assert "build/test.txt" in exc_info.value.message
+
+    def test_get_returns_none_on_read_error(
+        self,
+        artifact_manager: ArtifactManager,
+        runs_dir: Path,
+        run_id: str,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Test that get returns None when read fails due to OSError."""
+        # Arrange - create artifact file
+        artifacts_dir = runs_dir / run_id / "artifacts" / "build"
+        artifacts_dir.mkdir(parents=True)
+        artifact_path = artifacts_dir / "secret.txt"
+        artifact_path.write_text("content")
+
+        # Mock read_text to raise OSError after exists check passes
+        original_read_text = Path.read_text
+
+        def mock_read_text(self, *args, **kwargs):
+            if self.name == "secret.txt":
+                raise OSError("Permission denied")
+            return original_read_text(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "read_text", mock_read_text)
+
+        # Act
+        result = artifact_manager.get(run_id, "build", "secret.txt")
+
+        # Assert - should return None, not raise
         assert result is None
 
 

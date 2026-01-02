@@ -63,7 +63,7 @@ so that subsequent phases can access outputs from previous phases.
 - [x] Return sorted list
 
 ### Task 5: Track Artifact Paths in Context
-- [x] Add `artifact_paths: dict[str, list[str]]` to RunContext
+- [x] Add `artifacts: dict[str, list[str]]` to RunContext (field named `artifacts` in implementation)
 - [x] Update after each artifact stored
 - [x] Serialize paths (not content) in context.json
 - [x] Enable cross-phase artifact discovery
@@ -123,7 +123,7 @@ FR11: System makes previous phase artifacts available to subsequent phases
 ```python
 class RunContext(BaseModel):
     # ... other fields ...
-    artifact_paths: dict[str, list[str]] = Field(default_factory=dict)
+    artifacts: dict[str, list[str]] = Field(default_factory=dict)
     """Map of phase -> list of artifact paths."""
 ```
 
@@ -518,7 +518,7 @@ Key patterns and rules:
 4. **Path Tracking**:
    ```python
    # In RunContext
-   artifact_paths: dict[str, list[str]] = Field(default_factory=dict)
+   artifacts: dict[str, list[str]] = Field(default_factory=dict)
    # {"build": ["diff.txt"], "verify": ["evidence.json"]}
    ```
 
@@ -544,7 +544,7 @@ Story 4.4 implements artifact storage and retrieval for passing data between pha
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
