@@ -1,6 +1,6 @@
 # Story 4.2: Persist Run Context with Atomic Writes
 
-Status: in-progress
+Status: done
 Linear Issue: not-configured
 Epic: 4 - State Persistence & Context Management
 Created: 2026-01-01
