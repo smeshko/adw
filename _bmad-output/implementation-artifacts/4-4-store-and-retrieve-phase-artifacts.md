@@ -1,6 +1,6 @@
 # Story 4.4: Store and Retrieve Phase Artifacts
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 4 - State Persistence & Context Management
 Created: 2026-01-01

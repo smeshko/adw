@@ -86,7 +86,7 @@ development_status:
   4-1-create-run-directory-structure: done
   4-2-persist-run-context-with-atomic-writes: ready-for-dev
   4-3-create-state-snapshots-at-phase-boundaries: ready-for-dev
-  4-4-store-and-retrieve-phase-artifacts: ready-for-dev
+  4-4-store-and-retrieve-phase-artifacts: done
   4-5-handle-interruption-and-recovery: ready-for-dev
   epic-4-retrospective: optional
 
