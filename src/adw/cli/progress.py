@@ -20,6 +20,7 @@ from rich.panel import Panel
 from rich.progress import (
     Progress,
     SpinnerColumn,
+    TaskID,
     TextColumn,
     TimeElapsedColumn,
 )
@@ -79,7 +80,7 @@ class ProgressDisplay:
         self._current_phase: str | None = None
         self._live: Live | None = None
         self._progress: Progress | None = None
-        self._task_id: int | None = None
+        self._task_id: TaskID | None = None
         self._completed_phases: list[str] = []
         self._total_tokens: int = 0
         self._start_time_ms: int = 0

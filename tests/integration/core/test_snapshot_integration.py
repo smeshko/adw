@@ -182,10 +182,14 @@ class TestSnapshotListingAcrossPhases:
 
         # Verify phases are in order
         expected_labels = [
-            "pre_plan", "post_plan",
-            "pre_build", "post_build",
-            "pre_test", "post_test",
-            "pre_verify", "post_verify",
+            "pre_plan",
+            "post_plan",
+            "pre_build",
+            "post_build",
+            "pre_test",
+            "post_test",
+            "pre_verify",
+            "post_verify",
         ]
         actual_labels = [f"{s['timing']}_{s['phase']}" for s in snapshots]
         assert actual_labels == expected_labels
@@ -256,13 +260,14 @@ class TestSnapshotRecovery:
         )
 
         # Later: recover from snapshot
-        recovered_snapshot = snapshot_manager.load_snapshot(
-            initial_context.run_id, 1
-        )
+        recovered_snapshot = snapshot_manager.load_snapshot(initial_context.run_id, 1)
 
         # Verify recovered context matches original
         assert recovered_snapshot.context.run_id == initial_context.run_id
-        assert recovered_snapshot.context.feature_description == initial_context.feature_description
+        assert (
+            recovered_snapshot.context.feature_description
+            == initial_context.feature_description
+        )
         assert recovered_snapshot.context.current_phase == initial_context.current_phase
         assert recovered_snapshot.context.phase_history == initial_context.phase_history
         assert recovered_snapshot.context.phase_tokens == initial_context.phase_tokens

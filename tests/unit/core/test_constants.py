@@ -5,7 +5,6 @@ order of phase execution in the ADW pipeline.
 """
 
 
-
 class TestPhaseSequence:
     """Tests for PHASE_SEQUENCE constant."""
 

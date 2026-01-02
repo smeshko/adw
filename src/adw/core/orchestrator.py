@@ -232,10 +232,12 @@ class Orchestrator:
                 # Show pipeline summary (Story 5.5)
                 if self.progress_display:
                     total_tokens = sum(context.phase_tokens.values())
-                    duration_ms = int(
-                        (context.completed_at - context.started_at).total_seconds()
-                        * 1000
-                    )
+                    duration_ms = 0
+                    if context.completed_at and context.started_at:
+                        duration_ms = int(
+                            (context.completed_at - context.started_at).total_seconds()
+                            * 1000
+                        )
                     self.progress_display.show_pipeline_summary(
                         completed_phases=context.phase_history,
                         status="completed",
@@ -266,9 +268,12 @@ class Orchestrator:
             # Show pipeline summary on failure (Story 5.5)
             if self.progress_display:
                 total_tokens = sum(context.phase_tokens.values())
-                duration_ms = int(
-                    (context.completed_at - context.started_at).total_seconds() * 1000
-                )
+                duration_ms = 0
+                if context.completed_at and context.started_at:
+                    duration_ms = int(
+                        (context.completed_at - context.started_at).total_seconds()
+                        * 1000
+                    )
                 self.progress_display.show_pipeline_summary(
                     completed_phases=context.phase_history,
                     status="failed",

@@ -60,7 +60,7 @@ class RunContext(BaseModel):
     )
     interrupted_phase: str | None = Field(
         default=None,
-        description="Phase where interruption occurred (only set when status='interrupted')",
+        description="Phase where interruption occurred (status='interrupted')",
     )
     interrupted_at: datetime | None = Field(
         default=None,
@@ -224,7 +224,9 @@ class StateSnapshot(BaseModel):
         description="When snapshot was created",
     )
     label: str = Field(..., description="Human-readable label (e.g., 'pre_plan')")
-    sequence: int = Field(..., gt=0, description="Sequential snapshot number (1, 2, ...)")
+    sequence: int = Field(
+        ..., gt=0, description="Sequential snapshot number (1, 2, ...)"
+    )
 
     model_config = {
         "frozen": False,

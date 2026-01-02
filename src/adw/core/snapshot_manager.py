@@ -280,9 +280,8 @@ class SnapshotManager:
                 recoverable=False,
             )
 
-        path = matching[0]["path"]
-        if not isinstance(path, Path):
-            path = Path(path)
+        path_value = matching[0]["path"]
+        path = path_value if isinstance(path_value, Path) else Path(str(path_value))
 
         try:
             content = path.read_text()

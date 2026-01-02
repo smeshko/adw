@@ -199,7 +199,9 @@ class TestFullPipelineArtifactContinuity:
         )
 
         # Validate phase should see all previous phases
-        artifacts_map = integration_phase_runner._build_artifacts_map(run_id, "validate")
+        artifacts_map = integration_phase_runner._build_artifacts_map(
+            run_id, "validate"
+        )
 
         assert "plan" in artifacts_map
         assert "build" in artifacts_map
@@ -262,7 +264,9 @@ class TestArtifactContentIntegrity:
             run_id, "verify", "evidence.json", json_content
         )
 
-        artifacts_map = integration_phase_runner._build_artifacts_map(run_id, "validate")
+        artifacts_map = integration_phase_runner._build_artifacts_map(
+            run_id, "validate"
+        )
 
         # Should be raw string, not parsed JSON
         assert artifacts_map["verify"]["evidence"] == json_content
@@ -278,9 +282,7 @@ class TestArtifactContentIntegrity:
 
         # Note: \r\n is normalized to \n by Python's read_text()
         multiline_content = "Line 1\nLine 2\nLine 3\n\nLine 5"
-        integration_artifact_manager.store(
-            run_id, "plan", "plan.md", multiline_content
-        )
+        integration_artifact_manager.store(run_id, "plan", "plan.md", multiline_content)
 
         artifacts_map = integration_phase_runner._build_artifacts_map(run_id, "build")
 
@@ -295,9 +297,7 @@ class TestArtifactContentIntegrity:
         run_id = make_run_id()
 
         unicode_content = "Hello 世界! Привет мир! مرحبا بالعالم"
-        integration_artifact_manager.store(
-            run_id, "plan", "plan.md", unicode_content
-        )
+        integration_artifact_manager.store(run_id, "plan", "plan.md", unicode_content)
 
         artifacts_map = integration_phase_runner._build_artifacts_map(run_id, "build")
 

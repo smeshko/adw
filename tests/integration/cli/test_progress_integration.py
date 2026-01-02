@@ -122,9 +122,7 @@ class TestOrchestratorProgressIntegration:
         # Should have 5 checkmarks for 5 completed phases
         assert output_text.count("✓") >= 5
 
-    def test_orchestrator_calls_progress_display_on_error(
-        self, tmp_path: Path
-    ) -> None:
+    def test_orchestrator_calls_progress_display_on_error(self, tmp_path: Path) -> None:
         """Test that Orchestrator calls on_phase_error when phase fails."""
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=80)

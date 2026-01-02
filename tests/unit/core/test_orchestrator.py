@@ -878,7 +878,8 @@ class TestTransitionPerformance:
 
             # Should have logged phase completed with duration
             completed_calls = [
-                call for call in mock_logger.info.call_args_list
+                call
+                for call in mock_logger.info.call_args_list
                 if "Phase completed" in str(call)
             ]
             assert len(completed_calls) == 5  # One per phase

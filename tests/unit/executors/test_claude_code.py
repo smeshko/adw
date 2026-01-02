@@ -150,9 +150,7 @@ class TestClaudeCodeExecutorExecute:
         """execute() should return success=False when process exits non-zero."""
         mock_asyncio, process = mock_subprocess
         process.returncode = 1
-        process.stderr.readline = AsyncMock(
-            side_effect=[b"Error occurred\n", b""]
-        )
+        process.stderr.readline = AsyncMock(side_effect=[b"Error occurred\n", b""])
 
         with patch("shutil.which", return_value="/usr/bin/claude"):
             result = executor.execute("Test prompt")
@@ -596,9 +594,7 @@ class TestOutputParsing:
         assert parsed["tool_calls"] == []
         assert parsed["tokens_used"] == 0
 
-    def test_parses_assistant_message_text(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
+    def test_parses_assistant_message_text(self, executor: ClaudeCodeExecutor) -> None:
         """Should extract text from assistant message."""
         import json
 
@@ -669,9 +665,7 @@ class TestOutputParsing:
         assert parsed["tool_calls"][1].tool_name == "write_file"
         assert "Reading files..." in parsed["content"]
 
-    def test_parses_token_usage_from_result(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
+    def test_parses_token_usage_from_result(self, executor: ClaudeCodeExecutor) -> None:
         """Should extract token usage from result message."""
         import json
 
@@ -690,14 +684,18 @@ class TestOutputParsing:
         import json
 
         lines = [
-            json.dumps({
-                "type": "content_block_delta",
-                "delta": {"type": "text_delta", "text": "Hello "},
-            }),
-            json.dumps({
-                "type": "content_block_delta",
-                "delta": {"type": "text_delta", "text": "World!"},
-            }),
+            json.dumps(
+                {
+                    "type": "content_block_delta",
+                    "delta": {"type": "text_delta", "text": "Hello "},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "content_block_delta",
+                    "delta": {"type": "text_delta", "text": "World!"},
+                }
+            ),
         ]
         raw_output = "\n".join(lines)
         parsed = executor._parse_output(raw_output)
@@ -821,9 +819,7 @@ class TestErrorHandling:
             process.stdout = AsyncMock()
             process.stderr = AsyncMock()
             process.stdout.readline = AsyncMock(side_effect=[b""])
-            process.stderr.readline = AsyncMock(
-                side_effect=[b"Process crashed\n", b""]
-            )
+            process.stderr.readline = AsyncMock(side_effect=[b"Process crashed\n", b""])
             process.wait = AsyncMock(return_value=None)
             process.returncode = 1  # Non-zero exit
 
@@ -1066,11 +1062,13 @@ class TestAdditionalParsingCoverage:
         """Should extract text from result message."""
         import json
 
-        raw_output = json.dumps({
-            "type": "result",
-            "text": "Final result text",
-            "usage": {"input_tokens": 10, "output_tokens": 20},
-        })
+        raw_output = json.dumps(
+            {
+                "type": "result",
+                "text": "Final result text",
+                "usage": {"input_tokens": 10, "output_tokens": 20},
+            }
+        )
         parsed = executor._parse_output(raw_output)
 
         assert "Final result text" in parsed["content"]
@@ -1082,25 +1080,27 @@ class TestAdditionalParsingCoverage:
         """Should handle content_block_delta with non-text delta type."""
         import json
 
-        raw_output = json.dumps({
-            "type": "content_block_delta",
-            "delta": {"type": "tool_use_delta", "data": "something"},
-        })
+        raw_output = json.dumps(
+            {
+                "type": "content_block_delta",
+                "delta": {"type": "tool_use_delta", "data": "something"},
+            }
+        )
         parsed = executor._parse_output(raw_output)
 
         # No text should be extracted
         assert parsed["content"] == ""
 
-    def test_message_delta_without_usage(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
+    def test_message_delta_without_usage(self, executor: ClaudeCodeExecutor) -> None:
         """Should handle message_delta without usage field."""
         import json
 
-        raw_output = json.dumps({
-            "type": "message_delta",
-            # No usage field
-        })
+        raw_output = json.dumps(
+            {
+                "type": "message_delta",
+                # No usage field
+            }
+        )
         parsed = executor._parse_output(raw_output)
 
         # Tokens should remain 0

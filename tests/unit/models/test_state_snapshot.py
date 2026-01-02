@@ -205,6 +205,7 @@ class TestStateSnapshotSerialization:
 
         # Should be valid JSON
         import json
+
         data = json.loads(json_str)
 
         # Check top-level fields
@@ -260,9 +261,7 @@ class TestStateSnapshotSerialization:
         # Should NOT contain camelCase
         assert "phaseResult" not in json_str
 
-    def test_roundtrip_with_none_phase_result(
-        self, sample_context: RunContext
-    ) -> None:
+    def test_roundtrip_with_none_phase_result(self, sample_context: RunContext) -> None:
         """Pre-phase snapshot (no phase_result) round-trips correctly."""
         snapshot = StateSnapshot(
             context=sample_context,

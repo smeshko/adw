@@ -83,9 +83,8 @@ class TestInterruptionHandlerIntegration:
         context_manager.save(sample_context)
 
         # Simulate running in protected mode and raising an exception
-        with pytest.raises(ValueError):
-            with handler.protected_execution(sample_context):
-                raise ValueError("simulated error")
+        with pytest.raises(ValueError), handler.protected_execution(sample_context):
+            raise ValueError("simulated error")
 
         # The handler should have restored signal handlers
         # (verified by the test not hanging or crashing)
@@ -98,7 +97,7 @@ class TestInterruptionHandlerIntegration:
         snapshot_manager: SnapshotManager,
     ) -> None:
         """Test complete interrupt-and-resume workflow."""
-        handler = InterruptionHandler(
+        InterruptionHandler(
             context_manager=context_manager,
             snapshot_manager=snapshot_manager,
         )
@@ -147,7 +146,7 @@ class TestInterruptionHandlerIntegration:
         snapshot_manager: SnapshotManager,
     ) -> None:
         """Test that snapshots can be created during interrupt handling."""
-        handler = InterruptionHandler(
+        InterruptionHandler(
             context_manager=context_manager,
             snapshot_manager=snapshot_manager,
         )
@@ -209,7 +208,7 @@ from pathlib import Path
 from datetime import datetime, UTC
 
 # Add src to path
-sys.path.insert(0, "{Path(__file__).parent.parent.parent.parent / 'src'}")
+sys.path.insert(0, "{Path(__file__).parent.parent.parent.parent / "src"}")
 
 from adw.core.interruption import InterruptionHandler
 from adw.core.context_manager import ContextManager
@@ -288,7 +287,9 @@ print("DONE", flush=True)
         if not ready:
             proc.kill()
             stdout, stderr = proc.communicate(timeout=5)
-            pytest.fail(f"Script did not become ready in time. stdout={stdout}, stderr={stderr}")
+            pytest.fail(
+                f"Script did not become ready in time. stdout={stdout}, stderr={stderr}"
+            )
 
         # Give it a moment to enter protected execution
         time.sleep(0.2)
@@ -359,7 +360,7 @@ class TestResumeFromSnapshot:
         assert loaded.status == "interrupted"
 
         # Get last good snapshot (before interrupt)
-        snapshots = snapshot_manager.list_snapshots(sample_context.run_id)
+        snapshot_manager.list_snapshots(sample_context.run_id)
         last_snapshot = snapshot_manager.load_snapshot(
             sample_context.run_id,
             sequence=1,  # First snapshot after plan

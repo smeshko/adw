@@ -204,9 +204,7 @@ class TestPersistenceAcrossRestarts:
         assert runs[0].path == run_dir
 
         # Context should still be loadable
-        loaded = RunContext.model_validate_json(
-            (run_dir / "context.json").read_text()
-        )
+        loaded = RunContext.model_validate_json((run_dir / "context.json").read_text())
         assert loaded.run_id == original_run_id
 
 
@@ -249,9 +247,7 @@ class TestEdgeCases:
         assert run_dir.exists()
 
         # Verify unicode persisted correctly
-        loaded = RunContext.model_validate_json(
-            (run_dir / "context.json").read_text()
-        )
+        loaded = RunContext.model_validate_json((run_dir / "context.json").read_text())
         assert loaded.feature_description == context.feature_description
 
     def test_deeply_nested_project_path(self, tmp_path: Path) -> None:

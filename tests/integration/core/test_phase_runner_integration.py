@@ -118,7 +118,9 @@ class TestPhaseRunnerIntegration:
         assert "plan_output.md" in result.artifacts
 
         # Verify artifact content exists
-        artifact_path = runs_dir / sample_context.run_id / "artifacts" / "plan" / "plan_output.md"
+        artifact_path = (
+            runs_dir / sample_context.run_id / "artifacts" / "plan" / "plan_output.md"
+        )
         assert artifact_path.exists()
         assert len(artifact_path.read_text()) > 0
 
@@ -137,10 +139,12 @@ class TestPhaseRunnerIntegration:
         self, phase_runner: PhaseRunner, sample_context: RunContext, runs_dir: Path
     ) -> None:
         """Test that artifacts are properly stored after phase execution."""
-        result = phase_runner.run("plan", sample_context)
+        phase_runner.run("plan", sample_context)
 
         # Check main output artifact
-        artifact_path = runs_dir / sample_context.run_id / "artifacts" / "plan" / "plan_output.md"
+        artifact_path = (
+            runs_dir / sample_context.run_id / "artifacts" / "plan" / "plan_output.md"
+        )
         assert artifact_path.exists()
 
         content = artifact_path.read_text()
@@ -168,7 +172,9 @@ echo "Line 2 of pre-hook"
         runner = PhaseRunner(
             command_resolver=CommandResolver(project_root=project_root),
             template_engine=TemplateEngine(project_root=project_root),
-            hook_runner=HookRunner(config=HookConfig(shell="/bin/bash", timeout_seconds=30)),
+            hook_runner=HookRunner(
+                config=HookConfig(shell="/bin/bash", timeout_seconds=30)
+            ),
             executor=MockExecutor(),
             artifact_manager=ArtifactManager(runs_dir=runs_dir),
         )
@@ -198,7 +204,9 @@ echo "ADW_RUN_ID=$ADW_RUN_ID" >> {env_capture_file}
         runner = PhaseRunner(
             command_resolver=CommandResolver(project_root=project_root),
             template_engine=TemplateEngine(project_root=project_root),
-            hook_runner=HookRunner(config=HookConfig(shell="/bin/bash", timeout_seconds=30)),
+            hook_runner=HookRunner(
+                config=HookConfig(shell="/bin/bash", timeout_seconds=30)
+            ),
             executor=MockExecutor(),
             artifact_manager=ArtifactManager(runs_dir=runs_dir),
         )
@@ -244,7 +252,9 @@ echo "Phase: $ADW_PHASE" >> {post_output_file}
         runner = PhaseRunner(
             command_resolver=CommandResolver(project_root=project_root),
             template_engine=TemplateEngine(project_root=project_root),
-            hook_runner=HookRunner(config=HookConfig(shell="/bin/bash", timeout_seconds=30)),
+            hook_runner=HookRunner(
+                config=HookConfig(shell="/bin/bash", timeout_seconds=30)
+            ),
             executor=MockExecutor(),
             artifact_manager=ArtifactManager(runs_dir=runs_dir),
         )
@@ -284,7 +294,9 @@ exit 1
         runner = PhaseRunner(
             command_resolver=CommandResolver(project_root=project_root),
             template_engine=TemplateEngine(project_root=project_root),
-            hook_runner=HookRunner(config=HookConfig(shell="/bin/bash", timeout_seconds=30)),
+            hook_runner=HookRunner(
+                config=HookConfig(shell="/bin/bash", timeout_seconds=30)
+            ),
             executor=MockExecutor(),
             artifact_manager=ArtifactManager(runs_dir=runs_dir),
         )

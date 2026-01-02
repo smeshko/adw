@@ -127,13 +127,14 @@ class TestPostPhaseSnapshot:
         return runs_dir
 
     def test_post_phase_snapshot_includes_result(
-        self, setup_run_dir: Path, sample_context: RunContext, sample_result: PhaseResult
+        self,
+        setup_run_dir: Path,
+        sample_context: RunContext,
+        sample_result: PhaseResult,
     ) -> None:
         """Post-phase snapshot includes phase result."""
         manager = SnapshotManager(setup_run_dir)
-        path = manager.create_post_phase_snapshot(
-            sample_context, "plan", sample_result
-        )
+        path = manager.create_post_phase_snapshot(sample_context, "plan", sample_result)
 
         snapshot = StateSnapshot.model_validate_json(path.read_text())
         assert snapshot.phase_result is not None
@@ -175,7 +176,10 @@ class TestSequentialNumbering:
         return runs_dir
 
     def test_snapshots_numbered_sequentially(
-        self, setup_run_dir: Path, sample_context: RunContext, sample_result: PhaseResult
+        self,
+        setup_run_dir: Path,
+        sample_context: RunContext,
+        sample_result: PhaseResult,
     ) -> None:
         """Snapshots are numbered 001, 002, etc."""
         manager = SnapshotManager(setup_run_dir)
@@ -248,7 +252,10 @@ class TestSnapshotListing:
         assert snapshots == []
 
     def test_list_returns_metadata(
-        self, setup_run_dir: Path, sample_context: RunContext, sample_result: PhaseResult
+        self,
+        setup_run_dir: Path,
+        sample_context: RunContext,
+        sample_result: PhaseResult,
     ) -> None:
         """Listing returns metadata for each snapshot."""
         manager = SnapshotManager(setup_run_dir)
@@ -313,7 +320,10 @@ class TestSnapshotLoading:
         assert snapshot.context.run_id == sample_context.run_id
 
     def test_load_post_phase_snapshot(
-        self, setup_run_dir: Path, sample_context: RunContext, sample_result: PhaseResult
+        self,
+        setup_run_dir: Path,
+        sample_context: RunContext,
+        sample_result: PhaseResult,
     ) -> None:
         """Loading post-phase snapshot includes phase result."""
         manager = SnapshotManager(setup_run_dir)

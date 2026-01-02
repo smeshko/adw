@@ -1,6 +1,5 @@
 """Unit tests for ULID generation utilities."""
 
-
 from adw.utils.ulid import generate_run_id
 
 

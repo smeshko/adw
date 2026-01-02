@@ -369,11 +369,7 @@ class TestWildcardPattern:
     ) -> None:
         """Test that normal nested access {{artifacts.plan.plan}} still works."""
         template = "{{artifacts.plan.plan}}"
-        context = {
-            "artifacts": {
-                "plan": {"plan": "# My Implementation Plan"}
-            }
-        }
+        context = {"artifacts": {"plan": {"plan": "# My Implementation Plan"}}}
 
         result = template_engine.render(template, context)
 
