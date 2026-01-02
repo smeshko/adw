@@ -508,3 +508,57 @@ class TestNamedArtifactConventions:
 
         assert "evidence" in result["verify"]  # evidence.json -> evidence
         assert result["verify"]["evidence"] == '{"passed": true}'
+
+
+class TestArtifactDiscoveryInTemplate:
+    """Tests for artifact discovery patterns (Task 7)."""
+
+    def test_artifacts_plan_wildcard_lists_all_plan_artifacts(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test {{artifacts.plan.*}} lists all plan artifacts."""
+        template = "Plan artifacts:\n{{artifacts.plan.*}}"
+        context = {
+            "artifacts": {
+                "plan": {
+                    "plan": "Implementation plan",
+                    "notes": "Additional notes",
+                }
+            }
+        }
+
+        result = template_engine.render(template, context)
+
+        assert "plan:" in result
+        assert "notes:" in result
+
+    def test_artifacts_wildcard_lists_all_phases(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test {{artifacts.*}} lists all phases with artifacts."""
+        template = "All artifacts:\n{{artifacts.*}}"
+        context = {
+            "artifacts": {
+                "plan": {"plan": "Plan content"},
+                "build": {"diff": "Diff content"},
+            }
+        }
+
+        result = template_engine.render(template, context)
+
+        assert "plan:" in result
+        assert "build:" in result
+
+    def test_empty_artifacts_wildcard_returns_empty(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test {{artifacts.*}} with empty artifacts returns empty."""
+        template = "Artifacts: {{artifacts.*}}"
+        context = {"artifacts": {}}
+
+        result = template_engine.render(template, context)
+
+        assert result == "Artifacts: "

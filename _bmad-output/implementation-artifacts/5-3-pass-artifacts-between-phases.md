@@ -69,9 +69,9 @@ so that the pipeline builds on previous outputs.
 - [x] Document naming conventions
 
 ### Task 7: Implement Artifact Discovery in Template
-- [ ] Add `{{artifacts.plan}}` to list all plan artifacts
-- [ ] Add `{{artifacts.*}}` to list all artifacts across phases
-- [ ] Return formatted list or JSON for templates
+- [x] Add `{{artifacts.plan}}` to list all plan artifacts
+- [x] Add `{{artifacts.*}}` to list all artifacts across phases
+- [x] Return formatted list or JSON for templates
 
 ### Task 8: Write Unit Tests
 - [ ] Create `tests/unit/core/test_artifact_passing.py`
@@ -475,6 +475,7 @@ Story 5.3 implements artifact passing between phases, enabling later phases to a
 - Task 4: Added wildcard pattern support (`{{artifacts.build.*}}`) to template engine via `_resolve_wildcard()` method. Lists all artifacts in a phase with content previews.
 - Task 5: Verified strict mode already works via template engine's `strict` parameter. Added comprehensive tests for strict/lenient behavior with missing artifacts.
 - Task 6: Verified naming conventions already implemented (extension stripping). Added tests confirming `plan.md` → `artifacts.plan.plan` and similar patterns.
+- Task 7: Verified wildcard patterns from Task 4 already support discovery: `{{artifacts.plan.*}}` lists plan artifacts, `{{artifacts.*}}` lists all phases.
 
 ### File List
 
