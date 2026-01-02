@@ -1,6 +1,6 @@
 # Story 4.1: Create Run Directory Structure
 
-Status: ready-for-dev
+Status: completed
 Linear Issue: not-configured
 Epic: 4 - State Persistence & Context Management
 Created: 2026-01-01
@@ -38,57 +38,57 @@ so that all run data is organized and discoverable.
 ## Tasks / Subtasks
 
 ### Task 1: Create Run Directory Module
-- [ ] Create `src/adw/core/run_directory.py` module
-- [ ] Implement `RunDirectoryManager` class with `create()` method
-- [ ] Use ULID for run ID generation via `python-ulid`
-- [ ] Create subdirectory structure atomically
+- [x] Create `src/adw/core/run_directory.py` module
+- [x] Implement `RunDirectoryManager` class with `create()` method
+- [x] Use ULID for run ID generation via `python-ulid`
+- [x] Create subdirectory structure atomically
 
 ### Task 2: Implement ULID Generation
-- [ ] Add `src/adw/utils/ulid.py` for ULID generation
-- [ ] Wrap `python-ulid` library
-- [ ] Ensure run IDs are lexicographically sortable
-- [ ] Add helper function `generate_run_id() -> str`
+- [x] Add `src/adw/utils/ulid.py` for ULID generation
+- [x] Wrap `python-ulid` library
+- [x] Ensure run IDs are lexicographically sortable
+- [x] Add helper function `generate_run_id() -> str`
 
 ### Task 3: Implement Directory Structure Creation
-- [ ] Create `.adw/runs/<run_id>/` directory
-- [ ] Create `artifacts/` subdirectory
-- [ ] Create `logs/` subdirectory
-- [ ] Create `llm/` subdirectory
-- [ ] Create `snapshots/` subdirectory
-- [ ] Handle existing directory errors gracefully
+- [x] Create `.adw/runs/<run_id>/` directory
+- [x] Create `artifacts/` subdirectory
+- [x] Create `logs/` subdirectory
+- [x] Create `llm/` subdirectory
+- [x] Create `snapshots/` subdirectory
+- [x] Handle existing directory errors gracefully
 
 ### Task 4: Implement File Locking
-- [ ] Add `filelock` dependency (already in project)
-- [ ] Create `.lock` file in run directory
-- [ ] Implement context manager for acquiring lock
-- [ ] Prevent concurrent access corruption
+- [x] Add `filelock` dependency (already in project)
+- [x] Create `.lock` file in run directory
+- [x] Implement context manager for acquiring lock
+- [x] Prevent concurrent access corruption
 
 ### Task 5: Implement Context Serialization
-- [ ] Create `context.json` with serialized RunContext
-- [ ] Use Pydantic's `model_dump_json()` for serialization
-- [ ] Include all required RunContext fields
-- [ ] Handle serialization errors
+- [x] Create `context.json` with serialized RunContext
+- [x] Use Pydantic's `model_dump_json()` for serialization
+- [x] Include all required RunContext fields
+- [x] Handle serialization errors
 
 ### Task 6: Implement Run Listing
-- [ ] Add `list_runs()` method to RunDirectoryManager
-- [ ] Return runs sorted by ULID (chronological)
-- [ ] Handle empty `.adw/runs/` directory
-- [ ] Return list of `RunInfo` with id, path, created_at
+- [x] Add `list_runs()` method to RunDirectoryManager
+- [x] Return runs sorted by ULID (chronological)
+- [x] Handle empty `.adw/runs/` directory
+- [x] Return list of `RunInfo` with id, path, created_at
 
 ### Task 7: Write Unit Tests
-- [ ] Create `tests/unit/core/test_run_directory.py`
-- [ ] Test directory creation with all subdirectories
-- [ ] Test ULID generation and sorting
-- [ ] Test file locking behavior
-- [ ] Test context.json creation and validation
-- [ ] Test run listing and sorting
-- [ ] Target: >90% coverage for new code
+- [x] Create `tests/unit/core/test_run_directory.py`
+- [x] Test directory creation with all subdirectories
+- [x] Test ULID generation and sorting
+- [x] Test file locking behavior
+- [x] Test context.json creation and validation
+- [x] Test run listing and sorting
+- [x] Target: >90% coverage for new code (achieved: run_directory.py 96%, ulid.py 100%)
 
 ### Task 8: Write Integration Tests
-- [ ] Test full directory creation workflow
-- [ ] Test concurrent access with multiple processes
-- [ ] Test cleanup and recovery scenarios
-- [ ] Verify file permissions
+- [x] Test full directory creation workflow
+- [x] Test concurrent access with multiple processes
+- [x] Test cleanup and recovery scenarios
+- [x] Verify file permissions
 
 ---
 
@@ -558,13 +558,31 @@ Story 4.1 establishes the foundational run directory structure for all state per
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created `src/adw/core/run_directory.py` with `RunDirectoryManager` class. Implemented class structure with `project_root` and `runs_dir` attributes. Added `create()` method placeholder (to be completed in Task 3). Added unit tests for module existence and basic instantiation.
+- Task 2: Created `src/adw/utils/ulid.py` with `generate_run_id()` function. Wrapped python-ulid library. Added comprehensive tests for uniqueness, character validation, sortability, and RunContext validation compatibility.
+- Task 3: Implemented full `create()` method in `RunDirectoryManager`. Creates `.adw/runs/<run_id>/` with all subdirectories (artifacts, logs, llm, snapshots). Raises `StateError` with code `RUN_ALREADY_EXISTS` for duplicate runs. Added comprehensive tests for directory creation.
+- Task 4: Implemented file locking using filelock library. Creates `.lock` file during directory creation. Added `acquire_lock()` method that returns FileLock context manager. Raises `StateError` with code `RUN_NOT_FOUND` for nonexistent runs.
+- Task 5: Implemented context serialization. Creates `context.json` with serialized RunContext using Pydantic's `model_dump_json(indent=2)` for human-readable output. Added tests for JSON creation, validation, and deserialization.
+- Task 6: Implemented `list_runs()` method that returns list of `RunInfo` objects sorted by ULID (chronological order). Added `RunInfo` dataclass. Handles empty directory and ignores hidden directories.
+- Task 7: Unit tests already written as part of TDD process during Tasks 1-6. Coverage: run_directory.py 96%, ulid.py 100%. 27 unit tests total covering all functionality.
+- Task 8: Created integration tests in `tests/integration/core/test_run_directory_integration.py`. 8 tests covering full workflow, multiprocess locking, persistence across restarts, edge cases (unicode, special paths, deep nesting).
+
 ### File List
+
+- `src/adw/core/run_directory.py` - NEW: Run directory management module
+- `src/adw/utils/ulid.py` - NEW: ULID generation utility
+- `tests/unit/core/__init__.py` - NEW: Test package init
+- `tests/unit/core/test_run_directory.py` - NEW: Unit tests for run directory
+- `tests/unit/utils/__init__.py` - NEW: Utils test package init
+- `tests/unit/utils/test_ulid.py` - NEW: Unit tests for ULID generation
+- `tests/integration/core/__init__.py` - NEW: Integration test package init
+- `tests/integration/core/test_run_directory_integration.py` - NEW: Integration tests
 
 ---
 
