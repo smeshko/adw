@@ -10,6 +10,8 @@ Key features:
 - Graceful shutdown flag for main loop checking
 """
 
+from __future__ import annotations
+
 import signal
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -21,7 +23,27 @@ if TYPE_CHECKING:
     from adw.core.snapshot_manager import SnapshotManager
     from adw.models import RunContext
 
-__all__ = ["InterruptionHandler"]
+__all__ = ["InterruptionHandler", "ShutdownRequested"]
+
+
+class ShutdownRequested(BaseException):
+    """Exception raised when graceful shutdown is requested.
+
+    Inherits from BaseException (not Exception) to ensure it's not
+    accidentally caught by generic except clauses.
+
+    Attributes:
+        phase: The phase that was running when shutdown was requested.
+    """
+
+    def __init__(self, phase: str) -> None:
+        """Initialize ShutdownRequested.
+
+        Args:
+            phase: The phase where shutdown was requested.
+        """
+        self.phase = phase
+        super().__init__(f"Shutdown requested during phase: {phase}")
 
 
 class InterruptionHandler:
@@ -45,8 +67,8 @@ class InterruptionHandler:
 
     def __init__(
         self,
-        context_manager: "ContextManager",
-        snapshot_manager: "SnapshotManager",
+        context_manager: ContextManager,
+        snapshot_manager: SnapshotManager,
     ) -> None:
         """Initialize the InterruptionHandler.
 
@@ -58,7 +80,7 @@ class InterruptionHandler:
         self.snapshot_manager = snapshot_manager
         self._shutdown_requested: bool = False
         self._original_handlers: dict[signal.Signals, Any] = {}
-        self._current_context: "RunContext | None" = None
+        self._current_context: RunContext | None = None
 
     @property
     def shutdown_requested(self) -> bool:
@@ -69,13 +91,50 @@ class InterruptionHandler:
         """
         return self._shutdown_requested
 
-    def set_context(self, context: "RunContext") -> None:
+    def set_context(self, context: RunContext) -> None:
         """Set the current context to save on interrupt.
 
         Args:
             context: RunContext to save if interrupted.
         """
         self._current_context = context
+
+    def check_shutdown(self) -> None:
+        """Check if shutdown was requested and handle gracefully.
+
+        Should be called at safe points in the main loop (e.g., between phases).
+        If shutdown was requested, saves context and raises ShutdownRequested.
+
+        Raises:
+            ShutdownRequested: If shutdown was requested via signal.
+        """
+        if not self._shutdown_requested:
+            return
+
+        if self._current_context:
+            # Update context with interruption info
+            self._current_context = self._current_context.model_copy(
+                update={
+                    "status": "interrupted",
+                    "interrupted_phase": self._current_context.current_phase,
+                    "interrupted_at": datetime.now(UTC),
+                }
+            )
+
+            # Save context and snapshot
+            try:
+                self.context_manager.save(self._current_context)
+                self.snapshot_manager.create_post_phase_snapshot(
+                    context=self._current_context,
+                    phase=self._current_context.current_phase,
+                    phase_result=None,
+                )
+            except Exception:
+                pass  # Best effort
+
+            raise ShutdownRequested(phase=self._current_context.current_phase)
+
+        raise ShutdownRequested(phase="unknown")
 
     def install_handlers(self) -> None:
         """Install signal handlers for interruption.
@@ -140,8 +199,8 @@ class InterruptionHandler:
     @contextmanager
     def protected_execution(
         self,
-        context: "RunContext",
-    ) -> "Generator[RunContext]":
+        context: RunContext,
+    ) -> Generator[RunContext]:
         """Context manager for protected execution.
 
         Installs signal handlers and ensures state is saved on interrupt.

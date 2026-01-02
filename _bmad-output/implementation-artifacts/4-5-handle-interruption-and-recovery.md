@@ -41,11 +41,11 @@ so that the run can be resumed without data loss (NFR7).
 - [x] Set flag for graceful shutdown
 
 ### Task 2: Implement Graceful Shutdown
-- [ ] Check shutdown flag in main loop
-- [ ] Save current context before exit
-- [ ] Set run status to "interrupted"
-- [ ] Save final snapshot
-- [ ] Clean up resources
+- [x] Check shutdown flag in main loop
+- [x] Save current context before exit
+- [x] Set run status to "interrupted"
+- [x] Save final snapshot
+- [x] Clean up resources
 
 ### Task 3: Update RunContext for Status
 - [ ] Add `status` field to RunContext (running, completed, interrupted, failed)
@@ -569,6 +569,7 @@ Story 4.5 implements graceful interruption handling and resume capability, ensur
 ### Completion Notes List
 
 - Task 1: Created `InterruptionHandler` class in `src/adw/core/interruption.py` with signal registration, context preservation, and graceful shutdown flag
+- Task 2: Added `check_shutdown()` method and `ShutdownRequested` exception for graceful main loop checking
 
 ### File List
 

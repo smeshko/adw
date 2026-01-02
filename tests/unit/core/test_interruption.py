@@ -315,3 +315,89 @@ class TestShutdownRequested:
             interruption_handler._handle_signal(signal.SIGINT, None)
 
         assert interruption_handler.shutdown_requested is True
+
+
+class TestCheckShutdown:
+    """Tests for check_shutdown method."""
+
+    def test_check_shutdown_does_nothing_when_not_requested(
+        self,
+        interruption_handler: InterruptionHandler,
+        sample_context: RunContext,
+    ) -> None:
+        """Test check_shutdown returns normally when no shutdown requested."""
+        interruption_handler.set_context(sample_context)
+        # Should not raise
+        interruption_handler.check_shutdown()
+
+    def test_check_shutdown_raises_when_requested(
+        self,
+        interruption_handler: InterruptionHandler,
+        sample_context: RunContext,
+    ) -> None:
+        """Test check_shutdown raises ShutdownRequested when flag is set."""
+        from adw.core.interruption import ShutdownRequested
+
+        interruption_handler.set_context(sample_context)
+        interruption_handler._shutdown_requested = True
+
+        with pytest.raises(ShutdownRequested):
+            interruption_handler.check_shutdown()
+
+    def test_check_shutdown_saves_context(
+        self,
+        interruption_handler: InterruptionHandler,
+        sample_context: RunContext,
+        context_manager_mock: MagicMock,
+    ) -> None:
+        """Test check_shutdown saves context when shutdown requested."""
+        from adw.core.interruption import ShutdownRequested
+
+        interruption_handler.set_context(sample_context)
+        interruption_handler._shutdown_requested = True
+
+        with pytest.raises(ShutdownRequested):
+            interruption_handler.check_shutdown()
+
+        context_manager_mock.save.assert_called_once()
+
+    def test_check_shutdown_updates_status(
+        self,
+        interruption_handler: InterruptionHandler,
+        sample_context: RunContext,
+        context_manager_mock: MagicMock,
+    ) -> None:
+        """Test check_shutdown updates status to interrupted."""
+        from adw.core.interruption import ShutdownRequested
+
+        interruption_handler.set_context(sample_context)
+        interruption_handler._shutdown_requested = True
+
+        with pytest.raises(ShutdownRequested):
+            interruption_handler.check_shutdown()
+
+        saved_context = context_manager_mock.save.call_args[0][0]
+        assert saved_context.status == "interrupted"
+
+
+class TestShutdownRequestedException:
+    """Tests for ShutdownRequested exception."""
+
+    def test_shutdown_requested_exception_message(
+        self,
+    ) -> None:
+        """Test ShutdownRequested has correct message."""
+        from adw.core.interruption import ShutdownRequested
+
+        exc = ShutdownRequested(phase="build")
+        assert exc.phase == "build"
+        assert "build" in str(exc)
+
+    def test_shutdown_requested_exception_is_base_exception(
+        self,
+    ) -> None:
+        """Test ShutdownRequested inherits from BaseException."""
+        from adw.core.interruption import ShutdownRequested
+
+        exc = ShutdownRequested(phase="plan")
+        assert isinstance(exc, BaseException)
