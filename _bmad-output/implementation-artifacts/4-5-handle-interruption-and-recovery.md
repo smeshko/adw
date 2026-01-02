@@ -80,10 +80,10 @@ so that the run can be resumed without data loss (NFR7).
 - [x] Target: >90% coverage
 
 ### Task 8: Write Integration Tests
-- [ ] Test actual SIGINT handling (subprocess)
-- [ ] Test resume after real interruption
-- [ ] Test status display after interrupt
-- [ ] Verify no data loss
+- [x] Test actual SIGINT handling (subprocess)
+- [x] Test resume after real interruption
+- [x] Test status display after interrupt
+- [x] Verify no data loss
 
 ---
 
@@ -575,6 +575,7 @@ Story 4.5 implements graceful interruption handling and resume capability, ensur
 - Task 5: Added `prepare_resume()` function to update status and clear interrupted state
 - Task 6: Added `get_run_status()` function for status display with run metadata
 - Task 7: 49 unit tests written as part of Tasks 1-6 implementation (TDD approach)
+- Task 8: 5 integration tests for subprocess SIGINT, full interrupt/resume cycle, and snapshot recovery
 
 ### File List
 
@@ -583,6 +584,7 @@ Story 4.5 implements graceful interruption handling and resume capability, ensur
 - `src/adw/core/snapshot_manager.py` (MODIFIED) - Updated `create_post_phase_snapshot` to accept optional phase_result
 - `tests/unit/core/test_interruption.py` (NEW) - 24 unit tests for interruption handling
 - `tests/unit/models/test_context.py` (MODIFIED) - Added 9 tests for status-related fields
+- `tests/integration/core/test_interruption_integration.py` (NEW) - 5 integration tests for signal handling
 
 ---
 
