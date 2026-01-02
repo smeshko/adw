@@ -46,11 +46,11 @@ so that I can debug failures and resume from known-good states.
 - [x] Include `sequence: int` field
 
 ### Task 2: Create SnapshotManager Class
-- [ ] Create `src/adw/core/snapshot_manager.py`
-- [ ] Implement `create_pre_phase_snapshot()`
-- [ ] Implement `create_post_phase_snapshot()`
-- [ ] Use atomic write pattern from Story 4.2
-- [ ] Track sequence number across snapshots
+- [x] Create `src/adw/core/snapshot_manager.py`
+- [x] Implement `create_pre_phase_snapshot()`
+- [x] Implement `create_post_phase_snapshot()`
+- [x] Use atomic write pattern from Story 4.2
+- [x] Track sequence number across snapshots
 
 ### Task 3: Implement Snapshot Naming
 - [ ] Format: `<seq>_<timing>_<phase>.json`
@@ -621,6 +621,8 @@ Story 4.3 implements state snapshots at phase boundaries for debugging and recov
 - `src/adw/models/__init__.py` - Added model_rebuild() for forward ref resolution
 - `tests/unit/models/test_state_snapshot.py` - New tests for StateSnapshot
 - `tests/unit/models/test_context.py` - Updated tests for new StateSnapshot schema
+- `src/adw/core/snapshot_manager.py` - New SnapshotManager class
+- `src/adw/core/__init__.py` - Added SnapshotManager export
 
 ---
 
