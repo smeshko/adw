@@ -376,3 +376,73 @@ class TestWildcardPattern:
         result = template_engine.render(template, context)
 
         assert result == "# My Implementation Plan"
+
+
+class TestStrictModeForMissingArtifacts:
+    """Tests for strict mode behavior with missing artifacts."""
+
+    def test_strict_mode_raises_for_missing_artifact(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that strict=True raises ConfigError for missing artifact."""
+        from adw.exceptions import ConfigError
+
+        template = "{{artifacts.plan.missing}}"
+        context = {"artifacts": {"plan": {"plan": "content"}}}
+
+        with pytest.raises(ConfigError) as exc_info:
+            template_engine.render(template, context, strict=True)
+
+        assert exc_info.value.code == "UNKNOWN_VARIABLE"
+
+    def test_lenient_mode_returns_placeholder_for_missing(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that strict=False leaves missing artifact references as-is."""
+        template = "Content: {{artifacts.plan.missing}}"
+        context = {"artifacts": {"plan": {"plan": "content"}}}
+
+        result = template_engine.render(template, context, strict=False)
+
+        assert "{{artifacts.plan.missing}}" in result
+
+    def test_empty_artifacts_map_handled_gracefully(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that empty artifacts map works in lenient mode."""
+        template = "Plan: {{artifacts.plan.plan}}"
+        context = {"artifacts": {}}
+
+        result = template_engine.render(template, context, strict=False)
+
+        assert "{{artifacts.plan.plan}}" in result
+
+    def test_strict_mode_with_existing_artifact_succeeds(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that strict mode works fine when artifact exists."""
+        template = "Plan: {{artifacts.plan.plan}}"
+        context = {"artifacts": {"plan": {"plan": "# My Plan"}}}
+
+        result = template_engine.render(template, context, strict=True)
+
+        assert result == "Plan: # My Plan"
+
+    def test_missing_phase_in_strict_mode(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that referencing missing phase raises in strict mode."""
+        from adw.exceptions import ConfigError
+
+        template = "{{artifacts.build.output}}"
+        context = {"artifacts": {"plan": {"plan": "content"}}}
+
+        with pytest.raises(ConfigError) as exc_info:
+            template_engine.render(template, context, strict=True)
+
+        assert exc_info.value.code == "UNKNOWN_VARIABLE"

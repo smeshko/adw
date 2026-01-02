@@ -57,10 +57,10 @@ so that the pipeline builds on previous outputs.
 - [x] Test template variable resolution
 
 ### Task 5: Implement Strict Mode for Missing Artifacts
-- [ ] Add `strict_artifacts` config option (default: False)
-- [ ] When True and artifact referenced but missing: raise ConfigError
-- [ ] When False: use empty string for missing artifacts
-- [ ] Log warning for missing artifacts regardless of mode
+- [x] Add `strict_artifacts` config option (default: False)
+- [x] When True and artifact referenced but missing: raise ConfigError
+- [x] When False: use empty string for missing artifacts
+- [x] Log warning for missing artifacts regardless of mode
 
 ### Task 6: Add Named Artifact Support
 - [ ] Extend artifact storage to support named artifacts
@@ -473,6 +473,7 @@ Story 5.3 implements artifact passing between phases, enabling later phases to a
 - Task 2: Extracted `_load_phase_artifacts()` helper method for loading all artifacts from a single phase with extension stripping. Refactored `_build_artifacts_map()` to use this helper.
 - Task 3: Verified `_build_artifacts_map()` correctly iterates PHASE_SEQUENCE and builds nested `{phase: {artifact: content}}` structure. Already implemented in Task 1.
 - Task 4: Added wildcard pattern support (`{{artifacts.build.*}}`) to template engine via `_resolve_wildcard()` method. Lists all artifacts in a phase with content previews.
+- Task 5: Verified strict mode already works via template engine's `strict` parameter. Added comprehensive tests for strict/lenient behavior with missing artifacts.
 
 ### File List
 
