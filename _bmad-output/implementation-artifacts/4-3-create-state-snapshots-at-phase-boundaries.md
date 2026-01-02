@@ -53,11 +53,11 @@ so that I can debug failures and resume from known-good states.
 - [x] Track sequence number across snapshots
 
 ### Task 3: Implement Snapshot Naming
-- [ ] Format: `<seq>_<timing>_<phase>.json`
-- [ ] Sequence: zero-padded 3 digits (001, 002, etc.)
-- [ ] Timing: "pre" or "post"
-- [ ] Phase: phase name (plan, build, verify, etc.)
-- [ ] Example: `001_pre_plan.json`, `002_post_plan.json`
+- [x] Format: `<seq>_<timing>_<phase>.json`
+- [x] Sequence: zero-padded 3 digits (001, 002, etc.)
+- [x] Timing: "pre" or "post"
+- [x] Phase: phase name (plan, build, verify, etc.)
+- [x] Example: `001_pre_plan.json`, `002_post_plan.json`
 
 ### Task 4: Implement Snapshot Listing
 - [ ] Add `list_snapshots(run_id)` method
