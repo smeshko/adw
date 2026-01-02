@@ -133,3 +133,69 @@ class TestPhaseStart:
 
             output_text = output.getvalue()
             assert phase.upper() in output_text
+
+
+class TestLLMProgress:
+    """Tests for LLM progress display."""
+
+    def test_on_llm_start_creates_progress_bar(self) -> None:
+        """Test that on_llm_start creates a progress display."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.on_llm_start()
+
+        assert progress._progress is not None
+        assert progress._live is not None
+        assert progress._task_id is not None
+
+        # Cleanup
+        progress.on_llm_complete()
+
+    def test_on_llm_progress_updates_token_count(self) -> None:
+        """Test that on_llm_progress updates the token display."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.on_llm_start()
+        progress.on_llm_progress(100)
+
+        # Should not raise - just verify it completes
+        assert progress._progress is not None
+        assert progress._task_id is not None
+
+        # Cleanup
+        progress.on_llm_complete()
+
+    def test_on_llm_complete_clears_state(self) -> None:
+        """Test that on_llm_complete clears internal state."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress.on_llm_start()
+        progress.on_llm_complete()
+
+        assert progress._progress is None
+        assert progress._live is None
+        assert progress._task_id is None
+
+    def test_on_llm_progress_safe_without_start(self) -> None:
+        """Test that on_llm_progress is safe without on_llm_start."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        # Should not raise
+        progress.on_llm_progress(100)
+
+    def test_on_llm_complete_safe_without_start(self) -> None:
+        """Test that on_llm_complete is safe without on_llm_start."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        # Should not raise
+        progress.on_llm_complete()

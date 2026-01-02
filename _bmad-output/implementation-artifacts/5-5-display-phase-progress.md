@@ -46,11 +46,11 @@ so that users understand what's happening.
 - [x] Use Rich Panel for phase header
 
 ### Task 3: Implement LLM Progress Display
-- [ ] Add `on_llm_streaming(tokens: int, elapsed: float)` method
-- [ ] Show spinner while LLM is working
-- [ ] Display token count (updating)
-- [ ] Display elapsed time (updating)
-- [ ] Use Rich Live for real-time updates
+- [x] Add `on_llm_streaming(tokens: int, elapsed: float)` method
+- [x] Show spinner while LLM is working
+- [x] Display token count (updating)
+- [x] Display elapsed time (updating)
+- [x] Use Rich Live for real-time updates
 
 ### Task 4: Implement Phase Completion Display
 - [ ] Add `on_phase_complete(phase: str, result: PhaseResult)` method
