@@ -68,12 +68,12 @@ so that the pipeline follows the defined workflow.
 - [x] Set final status to "completed" or "failed"
 
 ### Task 5: Implement Error Handling
-- [ ] Catch exceptions during phase execution
-- [ ] Check `recoverable` flag on `ADWError` subclasses
-- [ ] For non-recoverable: set `status="failed"`, persist, and stop
-- [ ] For recoverable: implement retry based on config (default: 3 attempts)
-- [ ] Log error with structured fields: `phase`, `error_code`, `attempt`
-- [ ] Ensure partial state is always persisted on failure
+- [x] Catch exceptions during phase execution
+- [x] Check `recoverable` flag on `ADWError` subclasses
+- [x] For non-recoverable: set `status="failed"`, persist, and stop
+- [x] For recoverable: implement retry based on config (default: 3 attempts)
+- [x] Log error with structured fields: `phase`, `error_code`, `attempt`
+- [x] Ensure partial state is always persisted on failure
 
 ### Task 6: Implement Retry Logic
 - [ ] Add `_retry_phase(context, phase, max_attempts)` method
@@ -732,6 +732,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Added 6 comprehensive tests for phase transition behavior
 - Task 4: Implemented run() method with ULID generation, directory creation, phase iteration, and status management
 - Added 9 comprehensive tests for run() method behavior
+- Task 5: Implemented error handling with recoverable flag checking, status persistence, and structured logging
+- Added 5 comprehensive tests for error handling scenarios (non-recoverable errors, state persistence, first/middle phase errors)
 
 ### File List
 

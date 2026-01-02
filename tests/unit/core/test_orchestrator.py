@@ -481,3 +481,138 @@ class TestRun:
         for phase in PHASE_SEQUENCE:
             assert phase in context.phase_tokens
             assert context.phase_tokens[phase] == 100  # from mock
+
+
+class TestErrorHandling:
+    """Tests for error handling behavior."""
+
+    def test_non_recoverable_error_stops_pipeline(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that non-recoverable errors stop the pipeline."""
+        error = HookError(
+            code="HOOK_FAILED",
+            message="Pre-hook exited with code 1",
+            suggestion="Check hook script for errors",
+            recoverable=False,
+            phase="build",
+        )
+        mock_phase_runner.run.side_effect = error
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        with pytest.raises(HookError) as exc_info:
+            orchestrator.run("Test feature")
+
+        assert exc_info.value.code == "HOOK_FAILED"
+        # Should only attempt once for non-recoverable
+        assert mock_phase_runner.run.call_count == 1
+
+    def test_non_recoverable_error_sets_failed_status(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_context_manager: MagicMock,
+    ) -> None:
+        """Test that non-recoverable error sets status to failed."""
+        error = PhaseError(
+            code="PHASE_FAILED",
+            message="Phase failed",
+            suggestion="Check logs",
+            recoverable=False,
+            phase="plan",
+        )
+        mock_phase_runner.run.side_effect = error
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        with pytest.raises(PhaseError):
+            orchestrator.run("Test feature")
+
+        # Last save should have status = "failed"
+        last_call = mock_context_manager.save.call_args_list[-1]
+        saved_context = last_call[0][0]
+        assert saved_context.status == "failed"
+
+    def test_non_recoverable_error_persists_state(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_context_manager: MagicMock,
+    ) -> None:
+        """Test that state is persisted before raising non-recoverable error."""
+        error = HookError(
+            code="HOOK_FAILED",
+            message="Pre-hook failed",
+            suggestion="Check hook",
+            recoverable=False,
+            phase="build",
+        )
+        mock_phase_runner.run.side_effect = error
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        with pytest.raises(HookError):
+            orchestrator.run("Test feature")
+
+        # Context should have been saved with failed status
+        saved_contexts = [call[0][0] for call in mock_context_manager.save.call_args_list]
+        failed_saves = [c for c in saved_contexts if c.status == "failed"]
+        assert len(failed_saves) >= 1
+
+    def test_error_on_first_phase(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test handling of error on first phase."""
+        error = HookError(
+            code="HOOK_FAILED",
+            message="Plan phase failed",
+            suggestion="Check hook",
+            recoverable=False,
+            phase="plan",
+        )
+        mock_phase_runner.run.side_effect = error
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        with pytest.raises(HookError):
+            orchestrator.run("Test feature")
+
+        # Only the first phase should have been attempted
+        assert mock_phase_runner.run.call_count == 1
+
+    def test_error_on_middle_phase(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test handling of error on middle phase (build)."""
+        call_count = 0
+
+        def side_effect(phase: str, context: RunContext) -> PhaseResult:
+            nonlocal call_count
+            call_count += 1
+            if phase == "build":
+                raise HookError(
+                    code="HOOK_FAILED",
+                    message="Build phase failed",
+                    suggestion="Check hook",
+                    recoverable=False,
+                    phase="build",
+                )
+            return PhaseResult(
+                phase=phase,
+                status=PhaseStatus.COMPLETED,
+                started_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(timezone.utc),
+                tokens_used=100,
+            )
+
+        mock_phase_runner.run.side_effect = side_effect
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        with pytest.raises(HookError):
+            orchestrator.run("Test feature")
+
+        # Plan succeeded, build failed
+        assert call_count == 2
