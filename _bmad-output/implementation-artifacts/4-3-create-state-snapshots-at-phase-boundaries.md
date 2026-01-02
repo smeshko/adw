@@ -72,10 +72,10 @@ so that I can debug failures and resume from known-good states.
 - [x] Raise StateError with appropriate codes
 
 ### Task 6: Ensure Performance (NFR4)
-- [ ] Benchmark snapshot creation
-- [ ] Optimize if exceeds 500ms
-- [ ] Consider async write if needed
-- [ ] Log duration for monitoring
+- [x] Benchmark snapshot creation
+- [x] Optimize if exceeds 500ms
+- [x] Consider async write if needed
+- [x] Log duration for monitoring
 
 ### Task 7: Write Unit Tests
 - [ ] Create `tests/unit/core/test_snapshot_manager.py`
