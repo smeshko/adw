@@ -475,6 +475,7 @@ claude-opus-4-5-20251101
 
 - `src/adw/core/context_manager.py` (created)
 - `tests/unit/core/test_context_manager.py` (created)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified)
 
 ---
 

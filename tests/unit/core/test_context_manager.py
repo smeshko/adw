@@ -8,7 +8,7 @@ import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import filelock
 import pytest
@@ -141,6 +141,17 @@ class TestContextManagerSave:
         # Temp file should be cleaned up
         temp_path = run_dir / ".context.json.tmp"
         assert not temp_path.exists()
+
+    def test_save_missing_run_dir_raises_error(
+        self, context_manager: ContextManager, sample_context: RunContext
+    ) -> None:
+        """Test that saving to non-existent run directory raises RUN_DIR_NOT_FOUND."""
+        # Don't create the run directory
+        with pytest.raises(StateError) as exc_info:
+            context_manager.save(sample_context)
+
+        assert exc_info.value.code == "RUN_DIR_NOT_FOUND"
+        assert "run directory" in exc_info.value.suggestion.lower()
 
 
 class TestContextManagerLoad:

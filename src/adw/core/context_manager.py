@@ -10,7 +10,6 @@ Key features:
 - Proper validation and error handling on load
 """
 
-import json
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -23,8 +22,10 @@ from adw.exceptions import StateError
 if TYPE_CHECKING:
     from adw.models import RunContext
 
+__all__ = ["ContextManager"]
+
 # Default lock timeout in seconds
-_DEFAULT_LOCK_TIMEOUT = 10
+_DEFAULT_LOCK_TIMEOUT: int = 10
 
 
 class ContextManager:
@@ -63,13 +64,22 @@ class ContextManager:
             context: RunContext to persist.
 
         Raises:
-            StateError: If write fails (CONTEXT_WRITE_FAILED) or
+            StateError: If run directory doesn't exist (RUN_DIR_NOT_FOUND),
+                       write fails (CONTEXT_WRITE_FAILED), or
                        lock cannot be acquired (LOCK_TIMEOUT).
         """
         run_dir = self.runs_dir / context.run_id
         context_path = run_dir / "context.json"
         temp_path = run_dir / ".context.json.tmp"
         lock_path = run_dir / ".lock"
+
+        if not run_dir.exists():
+            raise StateError(
+                code="RUN_DIR_NOT_FOUND",
+                message=f"Run directory not found: {run_dir}",
+                suggestion="Ensure run directory is created before saving context",
+                recoverable=False,
+            )
 
         try:
             with filelock.FileLock(lock_path, timeout=_DEFAULT_LOCK_TIMEOUT):
@@ -136,17 +146,10 @@ class ContextManager:
                 content = context_path.read_text()
                 return RunContext.model_validate_json(content)
 
-        except json.JSONDecodeError as e:
-            raise StateError(
-                code="CONTEXT_CORRUPTED",
-                message=f"Invalid JSON in context.json: {e}",
-                suggestion="Check snapshots directory for recoverable state",
-                recoverable=True,
-            ) from e
         except ValidationError as e:
             raise StateError(
                 code="CONTEXT_CORRUPTED",
-                message=f"Context validation failed: {e}",
+                message=f"Context file is corrupted or invalid: {e}",
                 suggestion="Check snapshots directory for recoverable state",
                 recoverable=True,
             ) from e
