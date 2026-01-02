@@ -269,6 +269,53 @@ class PhaseRunner:
         )
         return rendered
 
+    def _load_phase_artifacts(
+        self,
+        run_id: str,
+        phase: str,
+    ) -> dict[str, str]:
+        """Load all artifacts for a given phase.
+
+        Retrieves all artifacts stored for the specified phase and returns
+        their content. File extensions are stripped from artifact names for
+        cleaner template access (e.g., plan.md -> plan).
+
+        Args:
+            run_id: The run ID.
+            phase: Phase name to load artifacts from.
+
+        Returns:
+            Dict mapping artifact names (without extension) to content.
+            Empty dict if no artifacts exist for the phase.
+
+        Example:
+            >>> artifacts = runner._load_phase_artifacts("run1", "plan")
+            >>> plan_content = artifacts["plan"]  # Content of plan.md
+        """
+        phase_artifacts = self.artifact_manager.list_artifacts(run_id, phase)
+        if not phase_artifacts:
+            return {}
+
+        phase_map: dict[str, str] = {}
+        for artifact in phase_artifacts:
+            # Strip extension: plan.md -> plan
+            name = Path(artifact["name"]).stem
+            content = self.artifact_manager.get(run_id, phase, artifact["name"])
+            if content:
+                phase_map[name] = content
+
+        logger.debug(
+            "Loaded phase artifacts",
+            extra={
+                "run_id": run_id,
+                "phase": phase,
+                "artifact_count": len(phase_map),
+                "artifact_names": list(phase_map.keys()),
+            },
+        )
+
+        return phase_map
+
     def _build_artifacts_map(
         self,
         run_id: str,
@@ -307,18 +354,7 @@ class PhaseRunner:
         previous_phases = PHASE_SEQUENCE[:current_idx]
 
         for phase in previous_phases:
-            phase_artifacts = self.artifact_manager.list_artifacts(run_id, phase)
-            if not phase_artifacts:
-                continue
-
-            phase_map: dict[str, str] = {}
-            for artifact in phase_artifacts:
-                # Strip extension: plan.md -> plan
-                name = Path(artifact["name"]).stem
-                content = self.artifact_manager.get(run_id, phase, artifact["name"])
-                if content:
-                    phase_map[name] = content
-
+            phase_map = self._load_phase_artifacts(run_id, phase)
             if phase_map:
                 artifacts_map[phase] = phase_map
 

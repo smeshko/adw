@@ -40,10 +40,10 @@ so that the pipeline builds on previous outputs.
 - [x] Handle missing artifacts gracefully (empty string or error based on mode)
 
 ### Task 2: Implement Artifact Content Loading
-- [ ] Add `_load_phase_artifacts(run_id, phase)` method to PhaseRunner
-- [ ] Load all artifact files for a given phase
-- [ ] Return dict: `{artifact_name: content}`
-- [ ] Strip file extensions from artifact names for template access
+- [x] Add `_load_phase_artifacts(run_id, phase)` method to PhaseRunner
+- [x] Load all artifact files for a given phase
+- [x] Return dict: `{artifact_name: content}`
+- [x] Strip file extensions from artifact names for template access
 
 ### Task 3: Implement Full Artifacts Map
 - [ ] Add `_build_artifacts_map(run_id)` method
@@ -470,6 +470,7 @@ Story 5.3 implements artifact passing between phases, enabling later phases to a
 ### Completion Notes List
 
 - Task 1: Extended `_load_and_render_prompt()` to include artifact content from previous phases. Added `_build_artifacts_map()` method that loads artifacts by phase, strips file extensions for clean template access (`plan.md` → `artifacts.plan.plan`).
+- Task 2: Extracted `_load_phase_artifacts()` helper method for loading all artifacts from a single phase with extension stripping. Refactored `_build_artifacts_map()` to use this helper.
 
 ### File List
 

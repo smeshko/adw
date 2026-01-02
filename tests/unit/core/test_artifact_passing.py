@@ -61,6 +61,72 @@ def phase_runner(
     )
 
 
+class TestLoadPhaseArtifacts:
+    """Tests for PhaseRunner._load_phase_artifacts method."""
+
+    def test_returns_empty_dict_when_no_artifacts(
+        self,
+        phase_runner: PhaseRunner,
+    ) -> None:
+        """Test that empty dict is returned when phase has no artifacts."""
+        run_id = make_run_id()
+
+        result = phase_runner._load_phase_artifacts(run_id, "plan")
+
+        assert result == {}
+
+    def test_loads_single_artifact(
+        self,
+        phase_runner: PhaseRunner,
+        artifact_manager: ArtifactManager,
+    ) -> None:
+        """Test loading a single artifact from a phase."""
+        run_id = make_run_id()
+        artifact_manager.store(run_id, "plan", "plan.md", "# My Plan")
+
+        result = phase_runner._load_phase_artifacts(run_id, "plan")
+
+        assert "plan" in result
+        assert result["plan"] == "# My Plan"
+
+    def test_loads_multiple_artifacts(
+        self,
+        phase_runner: PhaseRunner,
+        artifact_manager: ArtifactManager,
+    ) -> None:
+        """Test loading multiple artifacts from a single phase."""
+        run_id = make_run_id()
+        artifact_manager.store(run_id, "build", "diff.txt", "git diff output")
+        artifact_manager.store(run_id, "build", "output.md", "Build summary")
+
+        result = phase_runner._load_phase_artifacts(run_id, "build")
+
+        assert len(result) == 2
+        assert "diff" in result
+        assert "output" in result
+
+    def test_strips_file_extensions(
+        self,
+        phase_runner: PhaseRunner,
+        artifact_manager: ArtifactManager,
+    ) -> None:
+        """Test that file extensions are stripped from artifact names."""
+        run_id = make_run_id()
+        artifact_manager.store(run_id, "plan", "plan.md", "Plan")
+        artifact_manager.store(run_id, "plan", "notes.txt", "Notes")
+        artifact_manager.store(run_id, "plan", "config.json", '{"key": "value"}')
+
+        result = phase_runner._load_phase_artifacts(run_id, "plan")
+
+        assert "plan" in result
+        assert "notes" in result
+        assert "config" in result
+        # Extensions should NOT be in keys
+        assert "plan.md" not in result
+        assert "notes.txt" not in result
+        assert "config.json" not in result
+
+
 class TestBuildArtifactsMap:
     """Tests for PhaseRunner._build_artifacts_map method."""
 
