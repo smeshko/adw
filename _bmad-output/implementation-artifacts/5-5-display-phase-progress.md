@@ -1,6 +1,6 @@
 # Story 5.5: Display Phase Progress
 
-Status: ready-for-dev
+Status: ready-for-review
 Linear Issue: not-configured
 Epic: 5 - Pipeline Orchestration
 Created: 2026-01-02
@@ -92,10 +92,10 @@ so that users understand what's happening.
 - [x] Target: >80% coverage
 
 ### Task 10: Write Integration Tests
-- [ ] Test full pipeline progress display
-- [ ] Test single phase progress display
-- [ ] Test error scenarios
-- [ ] Verify Rich output formatting
+- [x] Test full pipeline progress display
+- [x] Test single phase progress display
+- [x] Test error scenarios
+- [x] Verify Rich output formatting
 
 ---
 
