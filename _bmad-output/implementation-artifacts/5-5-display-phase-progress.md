@@ -66,11 +66,11 @@ so that users understand what's happening.
 - [x] Show percentage complete
 
 ### Task 6: Implement Error Display
-- [ ] Add `on_phase_error(phase: str, error: ADWError)` method
-- [ ] Show ✗ with red color
-- [ ] Display error message
-- [ ] Display suggestion
-- [ ] Format with Rich Panel
+- [x] Add `on_phase_error(phase: str, error: ADWError)` method
+- [x] Show ✗ with red color
+- [x] Display error message
+- [x] Display suggestion
+- [x] Format with Rich Panel
 
 ### Task 7: Integrate with Orchestrator
 - [ ] Add `progress_display` to Orchestrator

@@ -412,3 +412,93 @@ class TestPipelineSummary:
 
         output_text = output.getvalue()
         assert "failed" in output_text
+
+
+class TestErrorDisplay:
+    """Tests for error display."""
+
+    def test_on_phase_error_shows_error_message(self) -> None:
+        """Test that error display includes error message."""
+        from adw.exceptions import HookError
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        error = HookError(
+            code="HOOK_FAILED",
+            message="Pre-hook exited with code 1",
+            suggestion="Check hook script for errors",
+            recoverable=False,
+            phase="build",
+        )
+
+        progress.on_phase_error("build", error)
+
+        output_text = output.getvalue()
+        assert "Pre-hook exited with code 1" in output_text
+
+    def test_on_phase_error_shows_suggestion(self) -> None:
+        """Test that error display includes suggestion."""
+        from adw.exceptions import LLMError
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        error = LLMError(
+            code="LLM_TIMEOUT",
+            message="Request timed out",
+            suggestion="Increase timeout or try again",
+            recoverable=True,
+        )
+
+        progress.on_phase_error("plan", error)
+
+        output_text = output.getvalue()
+        assert "Increase timeout or try again" in output_text
+
+    def test_on_phase_error_shows_phase_name(self) -> None:
+        """Test that error display includes phase name."""
+        from adw.exceptions import CommandError
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        error = CommandError(
+            code="COMMAND_NOT_FOUND",
+            message="Command not found",
+            suggestion="Check command configuration",
+            recoverable=False,
+        )
+
+        progress.on_phase_error("verify", error)
+
+        output_text = output.getvalue()
+        assert "VERIFY" in output_text
+
+    def test_on_phase_error_stops_live_display(self) -> None:
+        """Test that error display stops any active live display."""
+        from adw.exceptions import LLMError
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        # Start LLM progress
+        progress.on_llm_start()
+        assert progress._live is not None
+
+        error = LLMError(
+            code="LLM_ERROR",
+            message="Execution failed",
+            suggestion="Try again",
+            recoverable=True,
+        )
+
+        progress.on_phase_error("plan", error)
+
+        # Live display should be stopped
+        assert progress._live is None
+        assert progress._progress is None
