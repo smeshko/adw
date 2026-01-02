@@ -98,6 +98,8 @@ class ArtifactManager:
         name: str,
         *,
         binary: bool = False,
+        head: int | None = None,
+        tail: int | None = None,
     ) -> str | bytes | None:
         """Retrieve an artifact.
 
@@ -106,9 +108,15 @@ class ArtifactManager:
             phase: Phase that produced the artifact.
             name: Artifact filename.
             binary: If True, read as binary content.
+            head: If set, return only the first N lines (text only).
+            tail: If set, return only the last N lines (text only).
 
         Returns:
             Artifact content, or None if not found.
+
+        Note:
+            head and tail are mutually exclusive and only work for text content.
+            If both are set, head takes precedence.
         """
         artifact_path = self.runs_dir / run_id / "artifacts" / phase / name
 
@@ -118,7 +126,18 @@ class ArtifactManager:
         try:
             if binary:
                 return artifact_path.read_bytes()
-            return artifact_path.read_text()
+
+            content = artifact_path.read_text()
+
+            # Handle partial content for text files
+            if head is not None:
+                lines = content.splitlines(keepends=True)
+                return "".join(lines[:head])
+            if tail is not None:
+                lines = content.splitlines(keepends=True)
+                return "".join(lines[-tail:])
+
+            return content
         except OSError:
             return None
 

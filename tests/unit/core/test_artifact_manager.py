@@ -164,6 +164,63 @@ class TestArtifactManagerGet:
         # Assert
         assert content == binary_data
 
+    def test_get_head_returns_first_n_lines(
+        self,
+        artifact_manager: ArtifactManager,
+        runs_dir: Path,
+        run_id: str,
+    ) -> None:
+        """Test that get with head returns first N lines."""
+        # Arrange
+        artifacts_dir = runs_dir / run_id / "artifacts" / "build"
+        artifacts_dir.mkdir(parents=True)
+        content = "line1\nline2\nline3\nline4\nline5"
+        (artifacts_dir / "log.txt").write_text(content)
+
+        # Act
+        result = artifact_manager.get(run_id, "build", "log.txt", head=2)
+
+        # Assert
+        assert result == "line1\nline2\n"
+
+    def test_get_tail_returns_last_n_lines(
+        self,
+        artifact_manager: ArtifactManager,
+        runs_dir: Path,
+        run_id: str,
+    ) -> None:
+        """Test that get with tail returns last N lines."""
+        # Arrange
+        artifacts_dir = runs_dir / run_id / "artifacts" / "build"
+        artifacts_dir.mkdir(parents=True)
+        content = "line1\nline2\nline3\nline4\nline5"
+        (artifacts_dir / "log.txt").write_text(content)
+
+        # Act
+        result = artifact_manager.get(run_id, "build", "log.txt", tail=2)
+
+        # Assert
+        assert result == "line4\nline5"
+
+    def test_get_head_takes_precedence_over_tail(
+        self,
+        artifact_manager: ArtifactManager,
+        runs_dir: Path,
+        run_id: str,
+    ) -> None:
+        """Test that head takes precedence when both head and tail are set."""
+        # Arrange
+        artifacts_dir = runs_dir / run_id / "artifacts" / "build"
+        artifacts_dir.mkdir(parents=True)
+        content = "line1\nline2\nline3\nline4\nline5"
+        (artifacts_dir / "log.txt").write_text(content)
+
+        # Act - both head and tail set, head should win
+        result = artifact_manager.get(run_id, "build", "log.txt", head=1, tail=1)
+
+        # Assert
+        assert result == "line1\n"
+
 
 class TestArtifactManagerList:
     """Tests for artifact listing."""

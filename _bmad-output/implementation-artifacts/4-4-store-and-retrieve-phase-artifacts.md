@@ -51,10 +51,10 @@ so that subsequent phases can access outputs from previous phases.
 - [x] Use atomic write for text files
 
 ### Task 3: Implement Artifact Retrieval
-- [ ] Load artifact by phase and name
-- [ ] Return content or None if not exists
-- [ ] Handle text vs binary appropriately
-- [ ] Support reading partial content (head/tail)
+- [x] Load artifact by phase and name
+- [x] Return content or None if not exists
+- [x] Handle text vs binary appropriately
+- [x] Support reading partial content (head/tail)
 
 ### Task 4: Implement Artifact Listing
 - [ ] List all artifacts for a phase
@@ -552,6 +552,7 @@ Story 4.4 implements artifact storage and retrieval for passing data between pha
 
 - Task 1: Created ArtifactManager class with store, get, list_artifacts, store_json, get_json, and get_artifact_paths methods. Used atomic write pattern (temp + fsync + rename). 17 unit tests added and passing.
 - Task 2: Artifact storage already implemented in Task 1. store() method creates phase directories, writes text/binary content, uses atomic writes. 4 dedicated tests pass.
+- Task 3: Added head/tail support to get() method for partial content retrieval. 3 new tests added (head, tail, precedence). 20 tests now pass.
 
 ### File List
 
