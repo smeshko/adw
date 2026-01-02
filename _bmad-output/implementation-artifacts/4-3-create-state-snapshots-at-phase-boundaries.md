@@ -66,10 +66,10 @@ so that I can debug failures and resume from known-good states.
 - [x] Handle empty snapshots directory
 
 ### Task 5: Implement Snapshot Loading
-- [ ] Add `load_snapshot(run_id, snapshot_id)` method
-- [ ] Validate against StateSnapshot model
-- [ ] Handle missing or corrupted snapshots
-- [ ] Raise StateError with appropriate codes
+- [x] Add `load_snapshot(run_id, snapshot_id)` method
+- [x] Validate against StateSnapshot model
+- [x] Handle missing or corrupted snapshots
+- [x] Raise StateError with appropriate codes
 
 ### Task 6: Ensure Performance (NFR4)
 - [ ] Benchmark snapshot creation
