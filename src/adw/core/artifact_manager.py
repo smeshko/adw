@@ -187,6 +187,52 @@ class ArtifactManager:
         except json.JSONDecodeError:
             return None
 
+    def store_text(
+        self,
+        run_id: str,
+        phase: str,
+        name: str,
+        text: str,
+    ) -> Path:
+        """Store plain text artifact.
+
+        Convenience method that is equivalent to store() with string content,
+        but makes the intent explicit in code.
+
+        Args:
+            run_id: The run ID.
+            phase: Phase that produced the artifact.
+            name: Artifact filename (should end in .txt).
+            text: Plain text content.
+
+        Returns:
+            Path to the stored artifact.
+        """
+        return self.store(run_id, phase, name, text)
+
+    def get_auto(
+        self,
+        run_id: str,
+        phase: str,
+        name: str,
+    ) -> Any | None:
+        """Retrieve artifact with automatic content type detection.
+
+        Automatically parses JSON files (*.json) and returns raw content
+        for other file types.
+
+        Args:
+            run_id: The run ID.
+            phase: Phase that produced the artifact.
+            name: Artifact filename.
+
+        Returns:
+            Parsed JSON for .json files, raw text for others, or None if not found.
+        """
+        if name.endswith(".json"):
+            return self.get_json(run_id, phase, name)
+        return self.get(run_id, phase, name)
+
     def list_artifacts(
         self,
         run_id: str,

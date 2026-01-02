@@ -348,6 +348,79 @@ class TestArtifactManagerJSON:
         assert result is None
 
 
+class TestArtifactManagerText:
+    """Tests for text convenience methods."""
+
+    def test_store_text_creates_artifact(
+        self,
+        artifact_manager: ArtifactManager,
+        runs_dir: Path,
+        run_id: str,
+    ) -> None:
+        """Test that store_text creates text file."""
+        # Arrange
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+
+        # Act
+        path = artifact_manager.store_text(
+            run_id, "build", "output.txt", "Hello world!"
+        )
+
+        # Assert
+        assert path.exists()
+        assert path.read_text() == "Hello world!"
+
+
+class TestArtifactManagerAutoDetect:
+    """Tests for auto-detection content type."""
+
+    def test_get_auto_parses_json_files(
+        self,
+        artifact_manager: ArtifactManager,
+        runs_dir: Path,
+        run_id: str,
+    ) -> None:
+        """Test that get_auto parses JSON files."""
+        # Arrange
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+        artifact_manager.store_json(run_id, "verify", "result.json", {"key": "value"})
+
+        # Act
+        result = artifact_manager.get_auto(run_id, "verify", "result.json")
+
+        # Assert
+        assert result == {"key": "value"}
+
+    def test_get_auto_returns_raw_text_for_non_json(
+        self,
+        artifact_manager: ArtifactManager,
+        runs_dir: Path,
+        run_id: str,
+    ) -> None:
+        """Test that get_auto returns raw text for non-JSON files."""
+        # Arrange
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+        artifact_manager.store_text(run_id, "build", "log.txt", "Log content")
+
+        # Act
+        result = artifact_manager.get_auto(run_id, "build", "log.txt")
+
+        # Assert
+        assert result == "Log content"
+
+    def test_get_auto_returns_none_for_missing(
+        self,
+        artifact_manager: ArtifactManager,
+        run_id: str,
+    ) -> None:
+        """Test that get_auto returns None for missing artifacts."""
+        result = artifact_manager.get_auto(run_id, "build", "missing.json")
+        assert result is None
+
+
 class TestArtifactPaths:
     """Tests for artifact path tracking."""
 
@@ -393,7 +466,7 @@ class TestArtifactPathsRunContextIntegration:
         runs_dir: Path,
         run_id: str,
     ) -> None:
-        """Test that get_artifact_paths returns type compatible with RunContext.artifacts."""
+        """Test get_artifact_paths returns type compatible with RunContext."""
         from datetime import datetime
 
         from adw.models import RunContext

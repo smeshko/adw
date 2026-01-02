@@ -69,10 +69,10 @@ so that subsequent phases can access outputs from previous phases.
 - [x] Enable cross-phase artifact discovery
 
 ### Task 6: Implement Common Artifact Types
-- [ ] `store_json(phase, name, data)` - JSON serialized
-- [ ] `store_text(phase, name, text)` - Plain text
-- [ ] `get_json(phase, name)` - Parse JSON
-- [ ] Auto-detect content type on retrieval
+- [x] `store_json(phase, name, data)` - JSON serialized
+- [x] `store_text(phase, name, text)` - Plain text
+- [x] `get_json(phase, name)` - Parse JSON
+- [x] Auto-detect content type on retrieval
 
 ### Task 7: Write Unit Tests
 - [ ] Create `tests/unit/core/test_artifact_manager.py`
@@ -555,6 +555,7 @@ Story 4.4 implements artifact storage and retrieval for passing data between pha
 - Task 3: Added head/tail support to get() method for partial content retrieval. 3 new tests added (head, tail, precedence). 20 tests now pass.
 - Task 4: Artifact listing already implemented in Task 1. list_artifacts() supports phase filter, includes metadata (size, modified), returns sorted. 4 tests pass.
 - Task 5: RunContext already has `artifacts` field (same as `artifact_paths`). get_artifact_paths() method provides the data. Added 2 integration tests verifying RunContext compatibility and JSON serialization. 22 tests now pass.
+- Task 6: Added store_text() convenience method and get_auto() for auto-detection of content type based on file extension. 4 new tests added. 26 tests now pass.
 
 ### File List
 
