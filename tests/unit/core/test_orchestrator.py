@@ -61,7 +61,12 @@ def mock_phase_runner() -> MagicMock:
     """Create a mock PhaseRunner."""
     runner = MagicMock()
 
-    def run_side_effect(phase: str, context: RunContext) -> PhaseResult:
+    def run_side_effect(
+        phase: str,
+        context: RunContext,
+        *,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
+    ) -> PhaseResult:
         return PhaseResult(
             phase=phase,
             status=PhaseStatus.COMPLETED,
@@ -641,7 +646,12 @@ class TestErrorHandling:
         """Test handling of error on middle phase (build)."""
         call_count = 0
 
-        def side_effect(phase: str, context: RunContext) -> PhaseResult:
+        def side_effect(
+            phase: str,
+            context: RunContext,
+            *,
+            artifacts_override: dict[str, dict[str, str]] | None = None,
+        ) -> PhaseResult:
             nonlocal call_count
             call_count += 1
             if phase == "build":
@@ -681,7 +691,12 @@ class TestRetryLogic:
         """Test that recoverable errors trigger retries."""
         call_count = 0
 
-        def side_effect(phase: str, context: RunContext) -> PhaseResult:
+        def side_effect(
+            phase: str,
+            context: RunContext,
+            *,
+            artifacts_override: dict[str, dict[str, str]] | None = None,
+        ) -> PhaseResult:
             nonlocal call_count
             call_count += 1
             if phase == "plan" and call_count < 3:
@@ -813,7 +828,12 @@ class TestRetryLogic:
         """Test successful completion after recoverable failures."""
         call_count = 0
 
-        def side_effect(phase: str, context: RunContext) -> PhaseResult:
+        def side_effect(
+            phase: str,
+            context: RunContext,
+            *,
+            artifacts_override: dict[str, dict[str, str]] | None = None,
+        ) -> PhaseResult:
             nonlocal call_count
             call_count += 1
             if phase == "plan" and call_count == 1:
@@ -894,7 +914,12 @@ class TestTransitionPerformance:
         # Create a slow phase runner
         slow_runner = MagicMock()
 
-        def slow_run(phase: str, context: RunContext) -> PhaseResult:
+        def slow_run(
+            phase: str,
+            context: RunContext,
+            *,
+            artifacts_override: dict[str, dict[str, str]] | None = None,
+        ) -> PhaseResult:
             time.sleep(1.1)  # Exceed 1 second threshold
             return PhaseResult(
                 phase=phase,
@@ -1098,3 +1123,71 @@ class TestRunSinglePhase:
         )
 
         assert context.status == "completed"
+
+
+class TestLoadArtifactsFromSource:
+    """Tests for loading artifacts from source run in single-phase execution."""
+
+    def test_load_artifacts_from_source_run(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that artifacts are loaded from source run when from_run_id is set."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Set up artifact manager to return artifacts for source run
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Test Plan Content"
+
+        orchestrator.run_single_phase(
+            "build", "Test feature", from_run_id="01HQSOURCE123"
+        )
+
+        # Verify artifacts were loaded from source run
+        mock_artifact_manager.list_artifacts.assert_called()
+        # The call should include the source run ID
+        call_args = mock_artifact_manager.list_artifacts.call_args_list
+        assert any("01HQSOURCE123" in str(c) for c in call_args)
+
+    def test_source_run_artifacts_not_modified(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that source run artifacts are not modified."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Set up artifact manager
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Test Plan Content"
+
+        orchestrator.run_single_phase(
+            "build", "Test feature", from_run_id="01HQSOURCE123"
+        )
+
+        # Verify store was NOT called with source run ID
+        for call in mock_artifact_manager.store.call_args_list:
+            assert "01HQSOURCE123" not in str(call)
+
+    def test_artifacts_stored_in_new_run(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that new artifacts are stored in new run, not source run."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Set up mock to capture store calls
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Test Plan Content"
+
+        context = orchestrator.run_single_phase(
+            "build", "Test feature", from_run_id="01HQSOURCE123"
+        )
+
+        # New run ID should be different from source run
+        assert context.run_id != "01HQSOURCE123"

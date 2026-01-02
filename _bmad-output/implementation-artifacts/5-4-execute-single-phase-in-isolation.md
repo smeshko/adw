@@ -50,10 +50,10 @@ so that I can test or re-run specific phases.
 - [x] Execute only the specified phase
 
 ### Task 4: Load Artifacts from Source Run
-- [ ] When `--from-run` is specified, load artifacts from source run
-- [ ] Copy artifact paths to new run's context
-- [ ] Do NOT modify source run's artifacts directory
-- [ ] Build artifacts map from source run for template access
+- [x] When `--from-run` is specified, load artifacts from source run
+- [x] Copy artifact paths to new run's context
+- [x] Do NOT modify source run's artifacts directory
+- [x] Build artifacts map from source run for template access
 
 ### Task 5: Validate Phase Requirements
 - [ ] If phase > "plan" and no `--from-run`, check for needed artifacts
@@ -613,13 +613,15 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - **Task 1**: Added `--phase` and `-p` flags to CLI run command in `app.py`. Implemented `_validate_phase()` callback that validates phase against `PHASE_SEQUENCE`. Tests added in `test_run.py` covering flag acceptance, validation, and all valid phases. Implementation uses Typer callbacks for validation.
 - **Task 2**: Added `--from-run` and `-f` flags to CLI. Implemented validation that non-plan phases require `--from-run` with helpful error messages. Added 6 tests in `TestFromRunFlag` class covering flag acceptance, requirement enforcement, and plan phase exemption.
 - **Task 3**: Implemented `run_single_phase()` method in Orchestrator. Method generates new ULID, creates RunContext, executes only the specified phase using existing `_execute_phase_with_transitions()`, and handles completion/failure states. Added 8 tests in `TestRunSinglePhase` class.
+- **Task 4**: Implemented `_load_artifacts_from_source()` method in Orchestrator to load artifacts from source run. Modified PhaseRunner.run() to accept `artifacts_override` parameter for pre-loaded artifacts. Updated PhaseRunnerProtocol and all execution methods to propagate artifacts_override. Added 3 tests in `TestLoadArtifactsFromSource` class.
 
 ### File List
 
 - `src/adw/cli/app.py` - Modified: Added --phase and --from-run flags with validation
-- `src/adw/core/orchestrator.py` - Modified: Added run_single_phase() method
+- `src/adw/core/orchestrator.py` - Modified: Added run_single_phase(), _load_artifacts_from_source(), artifacts_override support
+- `src/adw/core/phase_runner.py` - Modified: Added artifacts_override parameter to run() and _load_and_render_prompt()
 - `tests/unit/cli/test_run.py` - Modified: Added TestFromRunFlag test class
-- `tests/unit/core/test_orchestrator.py` - Modified: Added TestRunSinglePhase test class
+- `tests/unit/core/test_orchestrator.py` - Modified: Added TestRunSinglePhase, TestLoadArtifactsFromSource test classes
 
 ---
 

@@ -39,12 +39,20 @@ class PhaseRunnerProtocol(Protocol):
     the run() method, without requiring a specific PhaseRunner class.
     """
 
-    def run(self, phase: str, context: RunContext) -> PhaseResult:
+    def run(
+        self,
+        phase: str,
+        context: RunContext,
+        *,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
+    ) -> PhaseResult:
         """Execute a single phase.
 
         Args:
             phase: Phase name to execute.
             context: Current run context.
+            artifacts_override: Pre-loaded artifacts to use instead of loading
+                from the current run.
 
         Returns:
             PhaseResult from the execution.
@@ -349,9 +357,16 @@ class Orchestrator:
             },
         )
 
+        # Load artifacts from source run if specified
+        source_artifacts: dict[str, dict[str, str]] | None = None
+        if from_run_id:
+            source_artifacts = self._load_artifacts_from_source(from_run_id, phase)
+
         try:
-            # Execute only the specified phase
-            context = self._execute_phase_with_transitions(context, phase)
+            # Execute only the specified phase with source artifacts
+            context = self._execute_phase_with_transitions(
+                context, phase, artifacts_override=source_artifacts
+            )
 
             # Mark as completed
             context = context.model_copy(
@@ -389,10 +404,79 @@ class Orchestrator:
 
         return context
 
+    def _load_artifacts_from_source(
+        self,
+        source_run_id: str,
+        target_phase: str,
+    ) -> dict[str, dict[str, str]]:
+        """Load artifacts from a source run for single-phase execution.
+
+        Loads all artifacts from phases that would have executed before the
+        target phase. These artifacts are used for template rendering in
+        single-phase execution mode.
+
+        Args:
+            source_run_id: Run ID to load artifacts from.
+            target_phase: Phase about to execute (artifacts from earlier phases).
+
+        Returns:
+            Nested dict: {phase: {artifact_name: content}}
+
+        Example:
+            >>> artifacts = orch._load_artifacts_from_source("01HQ...", "build")
+            >>> plan_content = artifacts["plan"]["plan"]
+        """
+        artifacts_map: dict[str, dict[str, str]] = {}
+
+        # Only load artifacts from phases before target
+        try:
+            target_idx = PHASE_SEQUENCE.index(target_phase)
+        except ValueError:
+            logger.warning(
+                "Unknown phase for artifact loading",
+                extra={"phase": target_phase, "source_run": source_run_id},
+            )
+            return artifacts_map
+
+        previous_phases = PHASE_SEQUENCE[:target_idx]
+
+        for phase in previous_phases:
+            # List artifacts for this phase from source run
+            phase_artifacts = self.artifact_manager.list_artifacts(source_run_id, phase)
+
+            if phase_artifacts:
+                phase_map: dict[str, str] = {}
+                for artifact_info in phase_artifacts:
+                    artifact_name = artifact_info.get("name", "")
+                    if artifact_name:
+                        # Strip extension for template access
+                        name_without_ext = artifact_name.rsplit(".", 1)[0]
+                        content = self.artifact_manager.get(
+                            source_run_id, phase, artifact_name
+                        )
+                        if content:
+                            phase_map[name_without_ext] = content
+
+                if phase_map:
+                    artifacts_map[phase] = phase_map
+
+        logger.info(
+            "Loaded artifacts from source run",
+            extra={
+                "source_run": source_run_id,
+                "target_phase": target_phase,
+                "phases_loaded": list(artifacts_map.keys()),
+            },
+        )
+
+        return artifacts_map
+
     def _execute_phase_with_transitions(
         self,
         context: RunContext,
         phase: str,
+        *,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
     ) -> RunContext:
         """Execute a single phase with proper transitions.
 
@@ -410,6 +494,8 @@ class Orchestrator:
         Args:
             context: Current run context.
             phase: Phase to execute.
+            artifacts_override: Pre-loaded artifacts to use instead of loading
+                from the current run. Used for single-phase execution.
 
         Returns:
             Updated context after phase completion.
@@ -438,7 +524,9 @@ class Orchestrator:
 
         try:
             # Execute phase with retry for recoverable errors
-            result = self._execute_phase_with_retry(context, phase)
+            result = self._execute_phase_with_retry(
+                context, phase, artifacts_override=artifacts_override
+            )
 
             # Post-phase snapshot
             self.snapshot_manager.create_post_phase_snapshot(context, phase, result)
@@ -480,6 +568,8 @@ class Orchestrator:
         self,
         context: RunContext,
         phase: str,
+        *,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
     ) -> PhaseResult:
         """Execute a phase with retry logic for recoverable errors.
 
@@ -488,6 +578,8 @@ class Orchestrator:
         Args:
             context: Current run context.
             phase: Phase to execute.
+            artifacts_override: Pre-loaded artifacts to use instead of loading
+                from the current run. Used for single-phase execution.
 
         Returns:
             PhaseResult from successful execution.
@@ -504,8 +596,9 @@ class Orchestrator:
         for attempt in range(self.max_retries):
             try:
                 # Delegate to PhaseRunner (Story 5.2)
-                # Using getattr to call run method since we don't have the type yet
-                return self._phase_runner.run(phase, context)
+                return self._phase_runner.run(
+                    phase, context, artifacts_override=artifacts_override
+                )
 
             except ADWError as e:
                 # Note: Only ADWError subclasses are retried. Other exceptions

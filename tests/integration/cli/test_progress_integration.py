@@ -32,7 +32,13 @@ class MockPhaseRunner:
         self.results = results
         self.phases_run: list[str] = []
 
-    def run(self, phase: str, context: RunContext) -> PhaseResult:
+    def run(
+        self,
+        phase: str,
+        context: RunContext,
+        *,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
+    ) -> PhaseResult:
         """Return configured result for phase."""
         self.phases_run.append(phase)
         if phase in self.results:
@@ -144,7 +150,13 @@ class TestOrchestratorProgressIntegration:
 
         # Create runner that fails on build phase
         class FailingPhaseRunner:
-            def run(self, phase: str, context: RunContext) -> PhaseResult:
+            def run(
+                self,
+                phase: str,
+                context: RunContext,
+                *,
+                artifacts_override: dict[str, dict[str, str]] | None = None,
+            ) -> PhaseResult:
                 if phase == "build":
                     raise LLMError(
                         code="LLM_ERROR",
@@ -227,7 +239,13 @@ class TestOrchestratorProgressIntegration:
 
         # Create runner that fails on verify phase
         class FailingPhaseRunner:
-            def run(self, phase: str, context: RunContext) -> PhaseResult:
+            def run(
+                self,
+                phase: str,
+                context: RunContext,
+                *,
+                artifacts_override: dict[str, dict[str, str]] | None = None,
+            ) -> PhaseResult:
                 if phase == "verify":
                     raise LLMError(
                         code="LLM_ERROR",
