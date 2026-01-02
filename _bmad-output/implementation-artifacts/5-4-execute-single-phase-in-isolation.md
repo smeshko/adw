@@ -34,9 +34,9 @@ so that I can test or re-run specific phases.
 ## Tasks / Subtasks
 
 ### Task 1: Add --phase Flag to CLI
-- [ ] Update `src/adw/cli/run.py` to accept `--phase` option
-- [ ] Validate phase is one of PHASE_SEQUENCE
-- [ ] Pass phase to orchestrator
+- [x] Update `src/adw/cli/run.py` to accept `--phase` option
+- [x] Validate phase is one of PHASE_SEQUENCE
+- [x] Pass phase to orchestrator
 
 ### Task 2: Add --from-run Flag to CLI
 - [ ] Add `--from-run` option for specifying source run ID
@@ -604,13 +604,18 @@ Story 5.4 implements single-phase execution mode, allowing developers to run ind
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- **Task 1**: Added `--phase` and `-p` flags to CLI run command in `app.py`. Implemented `_validate_phase()` callback that validates phase against `PHASE_SEQUENCE`. Tests added in `test_run.py` covering flag acceptance, validation, and all valid phases. Implementation uses Typer callbacks for validation.
+
 ### File List
+
+- `src/adw/cli/app.py` - Modified: Added --phase flag with validation
+- `tests/unit/cli/test_run.py` - New: Tests for --phase flag
 
 ---
 
