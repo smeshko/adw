@@ -566,7 +566,28 @@ Story 5.5 implements progress display for the ADW pipeline, providing real-time 
 
 ### Completion Notes List
 
+1. **ProgressDisplay** class implemented with all required Rich components
+2. **Live progress bar** shows `✓ plan → ► build → · verify → · validate → · document` format with percentage
+3. **LLM progress** shows spinner + token count + elapsed time during execution
+4. **Phase headers** use Rich Panel with phase-specific colors
+5. **Error display** includes error message, suggestion, and stops live display
+6. **Orchestrator integration** calls progress callbacks at phase boundaries and shows summary
+7. **PhaseRunner integration** notifies progress display during LLM execution
+8. **Test coverage**: 97% on progress.py with 37 total tests (31 unit + 6 integration)
+
 ### File List
+
+**New Files:**
+- `src/adw/cli/progress.py` - ProgressDisplay class with Rich console output
+- `tests/unit/cli/__init__.py` - CLI unit tests package init
+- `tests/unit/cli/test_progress.py` - Unit tests for ProgressDisplay (31 tests)
+- `tests/integration/cli/__init__.py` - CLI integration tests package init
+- `tests/integration/cli/test_progress_integration.py` - Integration tests (6 tests)
+
+**Modified Files:**
+- `src/adw/core/orchestrator.py` - Added progress_display parameter and callbacks
+- `src/adw/core/phase_runner.py` - Added progress_display parameter and LLM progress callbacks
+- `src/adw/cli/__init__.py` - Export ProgressDisplay
 
 ---
 

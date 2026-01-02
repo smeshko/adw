@@ -229,6 +229,20 @@ class Orchestrator:
                 )
                 self.context_manager.save(context)
 
+                # Show pipeline summary (Story 5.5)
+                if self.progress_display:
+                    total_tokens = sum(context.phase_tokens.values())
+                    duration_ms = int(
+                        (context.completed_at - context.started_at).total_seconds()
+                        * 1000
+                    )
+                    self.progress_display.show_pipeline_summary(
+                        completed_phases=context.phase_history,
+                        status="completed",
+                        total_duration_ms=duration_ms,
+                        total_tokens=total_tokens,
+                    )
+
                 logger.info("Run completed", extra={"run_id": run_id})
 
         except ShutdownRequested as e:
@@ -248,6 +262,19 @@ class Orchestrator:
                 }
             )
             self.context_manager.save(context)
+
+            # Show pipeline summary on failure (Story 5.5)
+            if self.progress_display:
+                total_tokens = sum(context.phase_tokens.values())
+                duration_ms = int(
+                    (context.completed_at - context.started_at).total_seconds() * 1000
+                )
+                self.progress_display.show_pipeline_summary(
+                    completed_phases=context.phase_history,
+                    status="failed",
+                    total_duration_ms=duration_ms,
+                    total_tokens=total_tokens,
+                )
 
             logger.error(
                 "Run failed",

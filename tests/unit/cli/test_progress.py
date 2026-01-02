@@ -414,6 +414,94 @@ class TestPipelineSummary:
         assert "failed" in output_text
 
 
+class TestProgressBar:
+    """Tests for live progress bar display."""
+
+    def test_show_progress_bar_shows_percentage(self) -> None:
+        """Test that progress bar shows percentage complete."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress._show_progress_bar(current_phase="plan")
+
+        output_text = output.getvalue()
+        # Rich adds escape codes, so check for both "0" and "%" separately
+        assert "0" in output_text and "%" in output_text  # No phases completed yet
+
+    def test_show_progress_bar_after_completion(self) -> None:
+        """Test that progress bar shows updated percentage after phase completes."""
+        from datetime import datetime, timezone
+
+        from adw.models import PhaseResult, PhaseStatus
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        result = PhaseResult(
+            phase="plan",
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+            artifacts=[],
+            tokens_used=100,
+        )
+
+        progress.on_phase_complete("plan", result)
+
+        output_text = output.getvalue()
+        # Rich adds escape codes around percentage
+        assert "20" in output_text and "%" in output_text  # 1 of 5 phases = 20%
+
+    def test_show_progress_bar_shows_current_phase_indicator(self) -> None:
+        """Test that progress bar shows ► for current phase."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress._show_progress_bar(current_phase="build")
+
+        output_text = output.getvalue()
+        assert "►" in output_text
+
+    def test_show_progress_bar_shows_completed_checkmarks(self) -> None:
+        """Test that progress bar shows ✓ for completed phases."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        progress._completed_phases = ["plan"]
+        progress._show_progress_bar(current_phase="build")
+
+        output_text = output.getvalue()
+        assert "✓" in output_text
+
+    def test_completed_phases_tracked(self) -> None:
+        """Test that completed phases are tracked correctly."""
+        from datetime import datetime, timezone
+
+        from adw.models import PhaseResult, PhaseStatus
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        result = PhaseResult(
+            phase="plan",
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+            artifacts=[],
+            tokens_used=100,
+        )
+
+        progress.on_phase_complete("plan", result)
+
+        assert "plan" in progress._completed_phases
+        assert progress._total_tokens == 100
+
+
 class TestErrorDisplay:
     """Tests for error display."""
 

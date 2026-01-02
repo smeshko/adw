@@ -175,6 +175,89 @@ class TestOrchestratorProgressIntegration:
         assert "BUILD" in output_text
         assert "Test error" in output_text
 
+    def test_orchestrator_calls_pipeline_summary_on_completion(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that Orchestrator calls show_pipeline_summary after successful run."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        context_manager = Mock(spec=ContextManager)
+        snapshot_manager = Mock(spec=SnapshotManager)
+        artifact_manager = Mock(spec=ArtifactManager)
+        run_directory_manager = Mock(spec=RunDirectoryManager)
+
+        orchestrator = Orchestrator(
+            runs_dir=tmp_path,
+            context_manager=context_manager,
+            snapshot_manager=snapshot_manager,
+            artifact_manager=artifact_manager,
+            run_directory_manager=run_directory_manager,
+            progress_display=progress,
+        )
+
+        mock_runner = MockPhaseRunner({})
+        orchestrator.set_phase_runner(mock_runner)
+
+        orchestrator.run("Test feature")
+
+        # Verify pipeline summary is shown
+        output_text = output.getvalue()
+        assert "Pipeline Summary" in output_text
+        assert "completed" in output_text
+
+    def test_orchestrator_calls_pipeline_summary_on_failure(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that Orchestrator calls show_pipeline_summary after failed run."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        context_manager = Mock(spec=ContextManager)
+        snapshot_manager = Mock(spec=SnapshotManager)
+        artifact_manager = Mock(spec=ArtifactManager)
+        run_directory_manager = Mock(spec=RunDirectoryManager)
+
+        orchestrator = Orchestrator(
+            runs_dir=tmp_path,
+            context_manager=context_manager,
+            snapshot_manager=snapshot_manager,
+            artifact_manager=artifact_manager,
+            run_directory_manager=run_directory_manager,
+            progress_display=progress,
+        )
+
+        # Create runner that fails on verify phase
+        class FailingPhaseRunner:
+            def run(self, phase: str, context: RunContext) -> PhaseResult:
+                if phase == "verify":
+                    raise LLMError(
+                        code="LLM_ERROR",
+                        message="Verification failed",
+                        suggestion="Check tests",
+                        recoverable=False,
+                    )
+                return PhaseResult(
+                    phase=phase,
+                    status=PhaseStatus.COMPLETED,
+                    started_at=datetime.now(timezone.utc),
+                    completed_at=datetime.now(timezone.utc),
+                    artifacts=[],
+                    tokens_used=100,
+                )
+
+        orchestrator.set_phase_runner(FailingPhaseRunner())
+
+        with pytest.raises(LLMError):
+            orchestrator.run("Test feature")
+
+        # Verify pipeline summary is shown with failed status
+        output_text = output.getvalue()
+        assert "Pipeline Summary" in output_text
+        assert "failed" in output_text
+
 
 class TestPhaseRunnerProgressIntegration:
     """Integration tests for PhaseRunner with ProgressDisplay."""
