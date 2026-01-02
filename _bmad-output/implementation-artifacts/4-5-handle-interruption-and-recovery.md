@@ -60,10 +60,10 @@ so that the run can be resumed without data loss (NFR7).
 - [x] Load context from snapshot if needed
 
 ### Task 5: Implement Resume Logic
-- [ ] Start from phase after last completed
-- [ ] Re-execute interrupted phase from beginning
-- [ ] Update status to "running" on resume
-- [ ] Clear interrupted state
+- [x] Start from phase after last completed
+- [x] Re-execute interrupted phase from beginning
+- [x] Update status to "running" on resume
+- [x] Clear interrupted state
 
 ### Task 6: Implement Status Command
 - [ ] Add `get_run_status(run_id)` method
@@ -572,6 +572,7 @@ Story 4.5 implements graceful interruption handling and resume capability, ensur
 - Task 2: Added `check_shutdown()` method and `ShutdownRequested` exception for graceful main loop checking
 - Task 3: Status fields already added in Task 1; added comprehensive tests for status validation
 - Task 4: Added `get_resume_phase()` and `can_resume()` functions for resume detection
+- Task 5: Added `prepare_resume()` function to update status and clear interrupted state
 
 ### File List
 

@@ -28,6 +28,7 @@ __all__ = [
     "ShutdownRequested",
     "can_resume",
     "get_resume_phase",
+    "prepare_resume",
 ]
 
 # Default phase order for ADW workflow
@@ -272,3 +273,39 @@ def can_resume(context: RunContext) -> bool:
         True if the run can be resumed, False otherwise.
     """
     return context.status != "completed"
+
+
+def prepare_resume(context: RunContext) -> RunContext:
+    """Prepare a context for resumption.
+
+    Updates the context to be ready for continued execution:
+    - Sets status to "running"
+    - Clears interrupted_phase and interrupted_at
+    - Preserves phase_history and other state
+
+    Args:
+        context: The run context to prepare for resume.
+
+    Returns:
+        New RunContext instance ready for execution.
+
+    Raises:
+        StateError: If run is already completed and cannot be resumed.
+    """
+    from adw.exceptions import StateError
+
+    if context.status == "completed":
+        raise StateError(
+            code="RUN_ALREADY_COMPLETE",
+            message=f"Run {context.run_id} is already completed",
+            suggestion="Start a new run instead",
+            recoverable=False,
+        )
+
+    return context.model_copy(
+        update={
+            "status": "running",
+            "interrupted_phase": None,
+            "interrupted_at": None,
+        }
+    )

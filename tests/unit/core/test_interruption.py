@@ -556,3 +556,120 @@ class TestCanResume:
         )
 
         assert can_resume(context) is True
+
+
+class TestPrepareResume:
+    """Tests for prepare_resume function."""
+
+    def test_prepare_resume_updates_status_to_running(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that prepare_resume updates status to running."""
+        from adw.core.interruption import prepare_resume
+
+        context = sample_context.model_copy(
+            update={
+                "status": "interrupted",
+                "interrupted_phase": "build",
+            }
+        )
+
+        resumed = prepare_resume(context)
+        assert resumed.status == "running"
+
+    def test_prepare_resume_clears_interrupted_phase(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that prepare_resume clears interrupted_phase."""
+        from adw.core.interruption import prepare_resume
+
+        context = sample_context.model_copy(
+            update={
+                "status": "interrupted",
+                "interrupted_phase": "build",
+            }
+        )
+
+        resumed = prepare_resume(context)
+        assert resumed.interrupted_phase is None
+
+    def test_prepare_resume_clears_interrupted_at(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that prepare_resume clears interrupted_at."""
+        from datetime import UTC, datetime
+
+        from adw.core.interruption import prepare_resume
+
+        context = sample_context.model_copy(
+            update={
+                "status": "interrupted",
+                "interrupted_phase": "build",
+                "interrupted_at": datetime.now(UTC),
+            }
+        )
+
+        resumed = prepare_resume(context)
+        assert resumed.interrupted_at is None
+
+    def test_prepare_resume_preserves_phase_history(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that prepare_resume preserves phase_history."""
+        from adw.core.interruption import prepare_resume
+
+        context = sample_context.model_copy(
+            update={
+                "status": "interrupted",
+                "interrupted_phase": "build",
+                "phase_history": ["plan"],
+            }
+        )
+
+        resumed = prepare_resume(context)
+        assert resumed.phase_history == ["plan"]
+
+    def test_prepare_resume_returns_new_instance(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that prepare_resume returns a new instance."""
+        from adw.core.interruption import prepare_resume
+
+        context = sample_context.model_copy(
+            update={"status": "interrupted", "interrupted_phase": "build"}
+        )
+
+        resumed = prepare_resume(context)
+        assert resumed is not context
+
+    def test_prepare_resume_works_on_failed(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that prepare_resume works on failed runs."""
+        from adw.core.interruption import prepare_resume
+
+        context = sample_context.model_copy(update={"status": "failed"})
+
+        resumed = prepare_resume(context)
+        assert resumed.status == "running"
+
+    def test_prepare_resume_raises_on_completed(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that prepare_resume raises on completed runs."""
+        from adw.core.interruption import prepare_resume
+        from adw.exceptions import StateError
+
+        context = sample_context.model_copy(update={"status": "completed"})
+
+        with pytest.raises(StateError) as exc_info:
+            prepare_resume(context)
+
+        assert exc_info.value.code == "RUN_ALREADY_COMPLETE"
