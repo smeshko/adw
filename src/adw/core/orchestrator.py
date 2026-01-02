@@ -126,7 +126,6 @@ class Orchestrator:
         self.runs_dir = runs_dir
         self.context_manager = context_manager
         self.snapshot_manager = snapshot_manager
-        # TODO(Story 5.3): ArtifactManager used for artifact passing
         self.artifact_manager = artifact_manager
         self.run_directory_manager = run_directory_manager
         self.interruption_handler = interruption_handler or InterruptionHandler(

@@ -3,7 +3,9 @@
 import typer
 from rich.console import Console
 
+from adw.cli.bootstrap import create_orchestrator
 from adw.core.constants import PHASE_SEQUENCE
+from adw.exceptions import ADWError, ConfigError
 
 console = Console()
 app = typer.Typer(
@@ -79,24 +81,42 @@ def run(
         # Single phase with artifacts from previous run
         adw run --phase build --from-run 01HQXK5P3Z7V "Add login"
     """
-    if phase:
-        # Validate --from-run requirement for non-plan phases
-        if phase != "plan" and from_run is None:
-            console.print(
-                f"[red]Error:[/] Phase '{phase}' requires artifacts from previous phases"
-            )
-            console.print(
-                "[dim]Suggestion:[/] Use --from-run <run_id> to specify source run"
-            )
-            raise typer.Exit(1)
+    try:
+        orchestrator = create_orchestrator(console)
 
-        # Single phase execution (to be implemented in Story 5.4)
-        console.print(f"[bold blue]Single phase mode:[/] {phase}")
-        console.print(f"[dim]Feature:[/] {feature}")
-        if from_run:
-            console.print(f"[dim]From run:[/] {from_run}")
-        console.print("[yellow]Single phase execution not yet implemented[/yellow]")
-    else:
-        # Full pipeline execution (to be implemented)
-        console.print(f"[dim]Feature:[/] {feature}")
-        console.print("[yellow]Full pipeline not yet implemented[/yellow]")
+        if phase:
+            # Validate --from-run requirement for non-plan phases
+            if phase != "plan" and from_run is None:
+                console.print(
+                    f"[red]Error:[/] Phase '{phase}' requires artifacts from previous phases"
+                )
+                console.print(
+                    "[dim]Suggestion:[/] Use --from-run <run_id> to specify source run"
+                )
+                raise typer.Exit(1)
+
+            # Single phase execution
+            context = orchestrator.run_single_phase(phase, feature, from_run)
+            console.print(f"[green]✓[/] Single phase '{phase}' completed: {context.run_id}")
+        else:
+            # Full pipeline execution
+            context = orchestrator.run(feature)
+            console.print(f"[green]✓[/] Run completed: {context.run_id}")
+
+    except ConfigError as e:
+        console.print(f"[red]Error:[/] {e.message}")
+        if e.suggestion:
+            console.print(f"[dim]Suggestion:[/] {e.suggestion}")
+        raise typer.Exit(1)
+    except ADWError as e:
+        console.print(f"[red]Error:[/] {e.message}")
+        if e.suggestion:
+            console.print(f"[dim]Suggestion:[/] {e.suggestion}")
+        raise typer.Exit(1)
+    except RuntimeError as e:
+        # PhaseRunner not set - infrastructure not ready
+        console.print(f"[red]Error:[/] {e}")
+        console.print(
+            "[dim]Suggestion:[/] Ensure phase commands are configured in .adw/commands/"
+        )
+        raise typer.Exit(1)
