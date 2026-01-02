@@ -4,10 +4,14 @@ This module contains models for tracking run context, session context,
 and project context throughout the ADW workflow execution.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field, computed_field, field_validator
+
+if TYPE_CHECKING:
+    from adw.models.phase import PhaseResult
 
 
 class RunContext(BaseModel):
@@ -181,26 +185,34 @@ class ProjectContext(BaseModel):
 
 
 class StateSnapshot(BaseModel):
-    """Point-in-time snapshot of run state for debugging.
+    """State captured at phase boundaries for debugging and recovery.
 
-    This model captures a complete snapshot of the run state at a
-    specific point in time, useful for debugging and recovery.
+    Snapshots are created before and after each phase to enable:
+    - Debugging failures by examining pre-failure state
+    - Resuming from known-good states
+    - Time-travel debugging (NFR13)
+
+    Snapshots are named: <seq>_<timing>_<phase>.json
+    Example: 001_pre_plan.json, 002_post_plan.json
 
     Attributes:
-        snapshot_id: Unique identifier for this snapshot
-        run_id: ULID of the run this snapshot belongs to
-        phase: Phase name at time of snapshot
-        timestamp: When this snapshot was taken
-        context_json: Serialized RunContext as JSON string
-        notes: Optional notes about why snapshot was taken
+        context: Full run context at snapshot time
+        phase_result: Phase result (only for post-phase snapshots)
+        timestamp: When snapshot was created (auto-generated if not provided)
+        label: Human-readable label (e.g., 'pre_plan', 'post_build')
+        sequence: Sequential snapshot number (1, 2, 3, ...)
     """
 
-    snapshot_id: str = Field(..., description="Unique identifier for snapshot")
-    run_id: str = Field(..., description="ULID of the run")
-    phase: str = Field(..., description="Phase at time of snapshot")
-    timestamp: datetime = Field(..., description="When snapshot was taken")
-    context_json: str = Field(..., description="Serialized RunContext")
-    notes: str | None = Field(default=None, description="Optional notes")
+    context: "RunContext" = Field(..., description="Full run context at snapshot time")
+    phase_result: "PhaseResult | None" = Field(
+        default=None, description="Phase result (only for post-phase snapshots)"
+    )
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When snapshot was created",
+    )
+    label: str = Field(..., description="Human-readable label (e.g., 'pre_plan')")
+    sequence: int = Field(..., gt=0, description="Sequential snapshot number (1, 2, ...)")
 
     model_config = {
         "frozen": False,

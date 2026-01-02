@@ -298,29 +298,45 @@ class TestProjectContext:
 
 
 class TestStateSnapshot:
-    """Tests for StateSnapshot model."""
+    """Tests for StateSnapshot model.
+
+    Note: Comprehensive StateSnapshot tests are in test_state_snapshot.py.
+    These tests verify basic backward compatibility with the models package.
+    """
 
     def test_creation(self) -> None:
-        """StateSnapshot creates correctly."""
-        snapshot = StateSnapshot(
-            snapshot_id="snap-001",
+        """StateSnapshot creates correctly with new schema."""
+        context = RunContext(
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            phase="plan",
-            timestamp=datetime.now(),
-            context_json='{"run_id": "01KDSG2VDHNK0W4HSCZWJZXWSQ"}',
+            feature_description="Test feature",
+            current_phase="plan",
+            started_at=datetime.now(),
         )
-        assert snapshot.snapshot_id == "snap-001"
-        assert snapshot.phase == "plan"
-        assert snapshot.notes is None
+        snapshot = StateSnapshot(
+            context=context,
+            phase_result=None,
+            label="pre_plan",
+            sequence=1,
+        )
+        assert snapshot.context.run_id == "01KDSG2VDHNK0W4HSCZWJZXWSQ"
+        assert snapshot.label == "pre_plan"
+        assert snapshot.sequence == 1
+        assert snapshot.phase_result is None
 
-    def test_with_notes(self) -> None:
-        """StateSnapshot with notes."""
-        snapshot = StateSnapshot(
-            snapshot_id="snap-002",
+    def test_serialization(self) -> None:
+        """StateSnapshot serializes correctly."""
+        context = RunContext(
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            phase="code",
-            timestamp=datetime.now(),
-            context_json="{}",
-            notes="Checkpoint before risky operation",
+            feature_description="Test feature",
+            current_phase="plan",
+            started_at=datetime.now(),
         )
-        assert snapshot.notes == "Checkpoint before risky operation"
+        snapshot = StateSnapshot(
+            context=context,
+            phase_result=None,
+            label="post_plan",
+            sequence=2,
+        )
+        json_str = snapshot.model_dump_json()
+        assert "post_plan" in json_str
+        assert "01KDSG2VDHNK0W4HSCZWJZXWSQ" in json_str

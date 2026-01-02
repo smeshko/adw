@@ -38,12 +38,12 @@ so that I can debug failures and resume from known-good states.
 ## Tasks / Subtasks
 
 ### Task 1: Create StateSnapshot Model
-- [ ] Add `StateSnapshot` model to `src/adw/models/`
-- [ ] Include `context: RunContext` field
-- [ ] Include `phase_result: PhaseResult | None` field
-- [ ] Include `timestamp: datetime` field
-- [ ] Include `label: str` field (e.g., "pre_plan", "post_build")
-- [ ] Include `sequence: int` field
+- [x] Add `StateSnapshot` model to `src/adw/models/`
+- [x] Include `context: RunContext` field
+- [x] Include `phase_result: PhaseResult | None` field
+- [x] Include `timestamp: datetime` field
+- [x] Include `label: str` field (e.g., "pre_plan", "post_build")
+- [x] Include `sequence: int` field
 
 ### Task 2: Create SnapshotManager Class
 - [ ] Create `src/adw/core/snapshot_manager.py`
@@ -616,6 +616,11 @@ Story 4.3 implements state snapshots at phase boundaries for debugging and recov
 ### Completion Notes List
 
 ### File List
+
+- `src/adw/models/context.py` - Updated StateSnapshot model
+- `src/adw/models/__init__.py` - Added model_rebuild() for forward ref resolution
+- `tests/unit/models/test_state_snapshot.py` - New tests for StateSnapshot
+- `tests/unit/models/test_context.py` - Updated tests for new StateSnapshot schema
 
 ---
 
