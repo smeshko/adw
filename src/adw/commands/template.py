@@ -21,6 +21,41 @@ from adw.exceptions import ConfigError
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["TemplateEngine", "escape_feature_description"]
+
+
+def escape_feature_description(description: str) -> str:
+    """Escape special characters in feature description for template safety.
+
+    Escapes characters that could cause issues when the feature description
+    is used in templates or shell commands:
+    - Backslashes (doubled)
+    - Double quotes (escaped with backslash)
+    - Dollar signs (escaped with backslash for shell)
+    - Backticks (escaped with backslash for shell)
+
+    Args:
+        description: The raw feature description from user input.
+
+    Returns:
+        The escaped feature description safe for template substitution.
+
+    Example:
+        >>> escape_feature_description('Add "quoted" text')
+        'Add \\"quoted\\" text'
+        >>> escape_feature_description('Use $VAR and `cmd`')
+        'Use \\$VAR and \\`cmd\\`'
+    """
+    # Escape backslashes first (order matters)
+    result = description.replace("\\", "\\\\")
+    # Escape double quotes
+    result = result.replace('"', '\\"')
+    # Escape dollar signs (shell variable expansion)
+    result = result.replace("$", "\\$")
+    # Escape backticks (shell command substitution)
+    result = result.replace("`", "\\`")
+    return result
+
 # Compile patterns once at module level for efficiency
 # Matches {{variable}} or {{variable.nested.path}} or {{variable.*}} for wildcards
 VARIABLE_PATTERN = re.compile(r"\{\{([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
