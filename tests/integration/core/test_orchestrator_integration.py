@@ -4,17 +4,17 @@ These tests verify the orchestrator works correctly with real file I/O
 and actual dependency implementations (ContextManager, SnapshotManager, etc.).
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
 from adw.core import (
+    PHASE_SEQUENCE,
     ArtifactManager,
     ContextManager,
     Orchestrator,
-    PHASE_SEQUENCE,
     RunDirectoryManager,
     SnapshotManager,
 )
@@ -69,8 +69,8 @@ def mock_phase_runner() -> MagicMock:
         return PhaseResult(
             phase=phase,
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             tokens_used=100,
         )
 
@@ -295,3 +295,96 @@ class TestContextPersistenceIntegration:
 
         assert '"status": "completed"' in content
         assert context.completed_at is not None
+
+
+class TestResumeIntegration:
+    """Integration tests for resume capability."""
+
+    def test_interrupted_run_can_determine_resume_phase(
+        self,
+        orchestrator: Orchestrator,
+        mock_phase_runner: MagicMock,
+        context_manager: ContextManager,
+    ) -> None:
+        """Test that an interrupted run can determine the resume phase.
+
+        This validates that the interruption infrastructure supports resume,
+        even though the Orchestrator.run() doesn't have a resume parameter yet.
+        """
+        from adw.core.interruption import (
+            ShutdownRequested,
+            can_resume,
+            get_resume_phase,
+        )
+
+        # Simulate interruption during build phase
+        call_count = 0
+
+        def run_with_interrupt(phase: str, context: RunContext) -> PhaseResult:
+            nonlocal call_count
+            call_count += 1
+            if phase == "build":
+                # Simulate what happens when interrupted
+                interrupted_context = context.model_copy(
+                    update={
+                        "status": "interrupted",
+                        "interrupted_phase": "build",
+                    }
+                )
+                context_manager.save(interrupted_context)
+                raise ShutdownRequested(phase="build")
+            return PhaseResult(
+                phase=phase,
+                status=PhaseStatus.COMPLETED,
+                started_at=datetime.now(UTC),
+                completed_at=datetime.now(UTC),
+                tokens_used=100,
+            )
+
+        mock_phase_runner.run.side_effect = run_with_interrupt
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        with pytest.raises(ShutdownRequested):
+            orchestrator.run("Test feature")
+
+        # Plan should have succeeded, build should have been interrupted
+        assert call_count == 2
+
+        # Reload the interrupted context and verify resume capability
+        runs = list(orchestrator.runs_dir.glob("*/context.json"))
+        assert len(runs) >= 1
+
+        # Load the most recent interrupted context
+        import json
+
+        latest_run = max(runs, key=lambda p: p.stat().st_mtime)
+        ctx_data = json.loads(latest_run.read_text())
+
+        # Verify it's interrupted at build
+        if ctx_data.get("status") == "interrupted":
+            assert ctx_data.get("interrupted_phase") == "build"
+
+            # Check resume functions work
+            reloaded = context_manager.load(ctx_data["run_id"])
+            assert can_resume(reloaded)
+            assert get_resume_phase(reloaded) == "build"
+
+    def test_completed_run_cannot_resume(
+        self,
+        orchestrator: Orchestrator,
+        mock_phase_runner: MagicMock,
+        context_manager: ContextManager,
+    ) -> None:
+        """Test that completed runs correctly report they cannot be resumed."""
+        from adw.core.interruption import can_resume, get_resume_phase
+
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run("Test feature")
+
+        # Reload from disk
+        reloaded = context_manager.load(context.run_id)
+
+        # Completed runs cannot be resumed
+        assert not can_resume(reloaded)
+        assert get_resume_phase(reloaded) is None

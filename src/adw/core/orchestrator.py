@@ -12,14 +12,15 @@ Key responsibilities:
 
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from ulid import ULID
 
 from adw.core.constants import PHASE_SEQUENCE
 from adw.core.context_manager import ContextManager
+from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
 from adw.exceptions import ADWError
@@ -29,7 +30,28 @@ from adw.models.phase import PhaseResult
 if TYPE_CHECKING:
     from adw.core.artifact_manager import ArtifactManager
 
-__all__ = ["Orchestrator"]
+
+class PhaseRunnerProtocol(Protocol):
+    """Protocol defining the interface for phase runners.
+
+    This allows the Orchestrator to work with any class that implements
+    the run() method, without requiring a specific PhaseRunner class.
+    """
+
+    def run(self, phase: str, context: RunContext) -> PhaseResult:
+        """Execute a single phase.
+
+        Args:
+            phase: Phase name to execute.
+            context: Current run context.
+
+        Returns:
+            PhaseResult from the execution.
+        """
+        ...
+
+
+__all__ = ["Orchestrator", "PhaseRunnerProtocol"]
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +74,7 @@ class Orchestrator:
         snapshot_manager: Manager for creating state snapshots.
         artifact_manager: Manager for storing phase artifacts.
         run_directory_manager: Manager for run directory structure.
+        interruption_handler: Handler for graceful shutdown on Ctrl+C/SIGTERM.
         max_retries: Maximum retry attempts for recoverable errors.
 
     Example:
@@ -74,6 +97,7 @@ class Orchestrator:
         snapshot_manager: SnapshotManager,
         artifact_manager: "ArtifactManager",
         run_directory_manager: RunDirectoryManager,
+        interruption_handler: InterruptionHandler | None = None,
         *,
         max_retries: int = 3,
     ) -> None:
@@ -85,17 +109,22 @@ class Orchestrator:
             snapshot_manager: Manager for creating state snapshots.
             artifact_manager: Manager for storing phase artifacts.
             run_directory_manager: Manager for run directory structure.
+            interruption_handler: Handler for graceful shutdown (optional).
             max_retries: Maximum retry attempts for recoverable errors (default: 3).
         """
         self.runs_dir = runs_dir
         self.context_manager = context_manager
         self.snapshot_manager = snapshot_manager
+        # TODO(Story 5.3): ArtifactManager used for artifact passing
         self.artifact_manager = artifact_manager
         self.run_directory_manager = run_directory_manager
+        self.interruption_handler = interruption_handler or InterruptionHandler(
+            context_manager, snapshot_manager
+        )
         self.max_retries = max_retries
-        self._phase_runner: object | None = None
+        self._phase_runner: PhaseRunnerProtocol | None = None
 
-    def set_phase_runner(self, phase_runner: object) -> None:
+    def set_phase_runner(self, phase_runner: PhaseRunnerProtocol) -> None:
         """Set the phase runner for executing individual phases.
 
         This is set separately to avoid circular dependencies, as PhaseRunner
@@ -136,9 +165,9 @@ class Orchestrator:
         This method orchestrates the complete execution flow:
         1. Generate a new run ID (ULID)
         2. Create initial context and run directory
-        3. Execute each phase in sequence
-        4. Handle errors and retries
-        5. Mark run as completed or failed
+        3. Execute each phase in sequence with interruption checking
+        4. Handle errors, retries, and graceful shutdown
+        5. Mark run as completed, failed, or interrupted
 
         Args:
             feature_description: Description of the feature to implement.
@@ -148,6 +177,7 @@ class Orchestrator:
 
         Raises:
             ADWError: If a non-recoverable error occurs.
+            ShutdownRequested: If graceful shutdown is requested (Ctrl+C/SIGTERM).
             RuntimeError: If PhaseRunner is not set.
 
         Example:
@@ -162,12 +192,15 @@ class Orchestrator:
             run_id=run_id,
             feature_description=feature_description,
             current_phase=PHASE_SEQUENCE[0],
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
             status="running",
         )
 
         # Create run directory structure
         self.run_directory_manager.create(context)
+
+        # Persist initial state before any phase execution (NFR6)
+        self.context_manager.save(context)
 
         logger.info(
             "Starting run",
@@ -175,26 +208,39 @@ class Orchestrator:
         )
 
         try:
-            for phase in PHASE_SEQUENCE:
-                context = self._execute_phase_with_transitions(context, phase)
+            with self.interruption_handler.protected_execution(context):
+                for phase in PHASE_SEQUENCE:
+                    # Check for shutdown request between phases (NFR7)
+                    self.interruption_handler.set_context(context)
+                    self.interruption_handler.check_shutdown()
 
-            # All phases complete
-            context = context.model_copy(
-                update={
-                    "status": "completed",
-                    "completed_at": datetime.now(timezone.utc),
-                }
+                    context = self._execute_phase_with_transitions(context, phase)
+
+                # All phases complete
+                context = context.model_copy(
+                    update={
+                        "status": "completed",
+                        "completed_at": datetime.now(UTC),
+                    }
+                )
+                self.context_manager.save(context)
+
+                logger.info("Run completed", extra={"run_id": run_id})
+
+        except ShutdownRequested as e:
+            # Graceful shutdown - state already saved by handler
+            logger.info(
+                "Run interrupted",
+                extra={"run_id": run_id, "phase": e.phase},
             )
-            self.context_manager.save(context)
-
-            logger.info("Run completed", extra={"run_id": run_id})
+            raise
 
         except ADWError as e:
             # Mark as failed and persist
             context = context.model_copy(
                 update={
                     "status": "failed",
-                    "completed_at": datetime.now(timezone.utc),
+                    "completed_at": datetime.now(UTC),
                 }
             )
             self.context_manager.save(context)
@@ -310,9 +356,12 @@ class Orchestrator:
             try:
                 # Delegate to PhaseRunner (Story 5.2)
                 # Using getattr to call run method since we don't have the type yet
-                return getattr(self._phase_runner, "run")(phase, context)
+                return self._phase_runner.run(phase, context)
 
             except ADWError as e:
+                # Note: Only ADWError subclasses are retried. Other exceptions
+                # (IOError, etc.) bubble up immediately as they indicate
+                # infrastructure issues that retrying won't resolve.
                 last_error = e
 
                 if not e.recoverable:

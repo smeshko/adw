@@ -4,7 +4,7 @@ This module tests the main orchestrator for ADW pipeline execution,
 including phase sequencing, transitions, error handling, and retry logic.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from adw.core.constants import PHASE_SEQUENCE
-from adw.exceptions import ADWError, HookError, LLMTimeoutError, PhaseError
+from adw.exceptions import HookError, LLMTimeoutError, PhaseError
 from adw.models import RunContext
 from adw.models.phase import PhaseResult, PhaseStatus
 
@@ -32,8 +32,9 @@ def mock_context_manager() -> MagicMock:
 def mock_snapshot_manager() -> MagicMock:
     """Create a mock SnapshotManager."""
     manager = MagicMock()
-    manager.create_pre_phase_snapshot = MagicMock(return_value=Path("/tmp/snapshot.json"))
-    manager.create_post_phase_snapshot = MagicMock(return_value=Path("/tmp/snapshot.json"))
+    snapshot_path = Path("/tmp/snapshot.json")
+    manager.create_pre_phase_snapshot = MagicMock(return_value=snapshot_path)
+    manager.create_post_phase_snapshot = MagicMock(return_value=snapshot_path)
     return manager
 
 
@@ -64,13 +65,31 @@ def mock_phase_runner() -> MagicMock:
         return PhaseResult(
             phase=phase,
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             tokens_used=100,
         )
 
     runner.run = MagicMock(side_effect=run_side_effect)
     return runner
+
+
+@pytest.fixture
+def mock_interruption_handler() -> MagicMock:
+    """Create a mock InterruptionHandler."""
+    from contextlib import contextmanager
+
+    handler = MagicMock()
+    handler.shutdown_requested = False
+    handler.check_shutdown = MagicMock()
+    handler.set_context = MagicMock()
+
+    @contextmanager
+    def mock_protected_execution(context: RunContext):  # type: ignore[no-untyped-def]
+        yield context
+
+    handler.protected_execution = mock_protected_execution
+    return handler
 
 
 @pytest.fixture
@@ -80,6 +99,7 @@ def orchestrator(
     mock_snapshot_manager: MagicMock,
     mock_artifact_manager: MagicMock,
     mock_run_directory_manager: MagicMock,
+    mock_interruption_handler: MagicMock,
 ) -> "Orchestrator":
     """Create an Orchestrator instance with mocked dependencies."""
     from adw.core.orchestrator import Orchestrator
@@ -93,6 +113,7 @@ def orchestrator(
         snapshot_manager=mock_snapshot_manager,
         artifact_manager=mock_artifact_manager,
         run_directory_manager=mock_run_directory_manager,
+        interruption_handler=mock_interruption_handler,
     )
     return orch
 
@@ -107,6 +128,7 @@ class TestOrchestratorInit:
         mock_snapshot_manager: MagicMock,
         mock_artifact_manager: MagicMock,
         mock_run_directory_manager: MagicMock,
+        mock_interruption_handler: MagicMock,
     ) -> None:
         """Test that __init__ stores all dependencies."""
         from adw.core.orchestrator import Orchestrator
@@ -118,6 +140,7 @@ class TestOrchestratorInit:
             snapshot_manager=mock_snapshot_manager,
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_directory_manager,
+            interruption_handler=mock_interruption_handler,
         )
 
         assert orch.runs_dir == runs_dir
@@ -125,6 +148,29 @@ class TestOrchestratorInit:
         assert orch.snapshot_manager is mock_snapshot_manager
         assert orch.artifact_manager is mock_artifact_manager
         assert orch.run_directory_manager is mock_run_directory_manager
+        assert orch.interruption_handler is mock_interruption_handler
+
+    def test_init_creates_default_interruption_handler(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+    ) -> None:
+        """Test that InterruptionHandler is created by default."""
+        from adw.core.interruption import InterruptionHandler
+        from adw.core.orchestrator import Orchestrator
+
+        orch = Orchestrator(
+            runs_dir=tmp_path,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+        )
+
+        assert isinstance(orch.interruption_handler, InterruptionHandler)
 
     def test_init_default_max_retries(
         self,
@@ -209,11 +255,15 @@ class TestGetNextPhase:
         """Test getting next phase after validate."""
         assert orchestrator.get_next_phase("validate") == "document"
 
-    def test_get_next_phase_document_returns_none(self, orchestrator: "Orchestrator") -> None:
+    def test_get_next_phase_document_returns_none(
+        self, orchestrator: "Orchestrator"
+    ) -> None:
         """Test that document is the last phase."""
         assert orchestrator.get_next_phase("document") is None
 
-    def test_get_next_phase_invalid_returns_none(self, orchestrator: "Orchestrator") -> None:
+    def test_get_next_phase_invalid_returns_none(
+        self, orchestrator: "Orchestrator"
+    ) -> None:
         """Test that invalid phase returns None."""
         assert orchestrator.get_next_phase("invalid") is None
 
@@ -235,12 +285,12 @@ class TestPhaseTransitions:
             run_id="01TEST00000000000000000001",
             feature_description="Test feature",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
             status="running",
         )
 
         # Execute a single phase transition
-        result_context = orchestrator._execute_phase_with_transitions(context, "plan")
+        orchestrator._execute_phase_with_transitions(context, "plan")
 
         # Context should have been saved multiple times
         # At minimum: once for updating current_phase, once after completion
@@ -259,7 +309,7 @@ class TestPhaseTransitions:
             run_id="01TEST00000000000000000001",
             feature_description="Test feature",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
             status="running",
         )
 
@@ -282,7 +332,7 @@ class TestPhaseTransitions:
             run_id="01TEST00000000000000000001",
             feature_description="Test feature",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
             status="running",
         )
 
@@ -305,7 +355,7 @@ class TestPhaseTransitions:
             feature_description="Test feature",
             current_phase="plan",
             phase_history=[],
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
             status="running",
         )
 
@@ -326,7 +376,7 @@ class TestPhaseTransitions:
             feature_description="Test feature",
             current_phase="plan",
             phase_tokens={},
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
             status="running",
         )
 
@@ -347,7 +397,7 @@ class TestPhaseTransitions:
             run_id="01TEST00000000000000000001",
             feature_description="Test feature",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
             status="running",
         )
 
@@ -555,7 +605,9 @@ class TestErrorHandling:
             orchestrator.run("Test feature")
 
         # Context should have been saved with failed status
-        saved_contexts = [call[0][0] for call in mock_context_manager.save.call_args_list]
+        saved_contexts = [
+            call[0][0] for call in mock_context_manager.save.call_args_list
+        ]
         failed_saves = [c for c in saved_contexts if c.status == "failed"]
         assert len(failed_saves) >= 1
 
@@ -603,8 +655,8 @@ class TestErrorHandling:
             return PhaseResult(
                 phase=phase,
                 status=PhaseStatus.COMPLETED,
-                started_at=datetime.now(timezone.utc),
-                completed_at=datetime.now(timezone.utc),
+                started_at=datetime.now(UTC),
+                completed_at=datetime.now(UTC),
                 tokens_used=100,
             )
 
@@ -644,8 +696,8 @@ class TestRetryLogic:
             return PhaseResult(
                 phase=phase,
                 status=PhaseStatus.COMPLETED,
-                started_at=datetime.now(timezone.utc),
-                completed_at=datetime.now(timezone.utc),
+                started_at=datetime.now(UTC),
+                completed_at=datetime.now(UTC),
                 tokens_used=100,
             )
 
@@ -654,7 +706,8 @@ class TestRetryLogic:
 
         context = orchestrator.run("Test feature")
 
-        # Should succeed after retries (2 failures + success on plan = 3, then 4 more phases)
+        # Should succeed after retries
+        # (2 failures + success on plan = 3, then 4 more phases)
         assert context.status == "completed"
         # Plan: 3 attempts (2 failures + 1 success) + 4 other phases = 7 calls
         assert call_count == 7
@@ -775,8 +828,8 @@ class TestRetryLogic:
             return PhaseResult(
                 phase=phase,
                 status=PhaseStatus.COMPLETED,
-                started_at=datetime.now(timezone.utc),
-                completed_at=datetime.now(timezone.utc),
+                started_at=datetime.now(UTC),
+                completed_at=datetime.now(UTC),
                 tokens_used=100,
             )
 
@@ -845,8 +898,8 @@ class TestTransitionPerformance:
             return PhaseResult(
                 phase=phase,
                 status=PhaseStatus.COMPLETED,
-                started_at=datetime.now(timezone.utc),
-                completed_at=datetime.now(timezone.utc),
+                started_at=datetime.now(UTC),
+                completed_at=datetime.now(UTC),
                 tokens_used=100,
             )
 
@@ -859,7 +912,7 @@ class TestTransitionPerformance:
                 run_id="01TEST00000000000000000001",
                 feature_description="Test",
                 current_phase="plan",
-                started_at=datetime.now(timezone.utc),
+                started_at=datetime.now(UTC),
                 status="running",
             )
 
@@ -868,4 +921,68 @@ class TestTransitionPerformance:
             # Should have logged a warning about slow transition
             warning_calls = mock_logger.warning.call_args_list
             assert len(warning_calls) >= 1
-            assert "exceeded 1s" in str(warning_calls[0]).lower() or "1s" in str(warning_calls[0])
+            warning_str = str(warning_calls[0]).lower()
+            assert "exceeded 1s" in warning_str or "1s" in warning_str
+
+
+class TestInterruptionHandling:
+    """Tests for interruption handling and graceful shutdown."""
+
+    def test_run_checks_shutdown_between_phases(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_interruption_handler: MagicMock,
+    ) -> None:
+        """Test that shutdown is checked between phases."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        orchestrator.run("Test feature")
+
+        # check_shutdown should be called before each phase
+        expected_calls = len(PHASE_SEQUENCE)
+        assert mock_interruption_handler.check_shutdown.call_count == expected_calls
+
+    def test_run_raises_shutdown_requested(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_interruption_handler: MagicMock,
+    ) -> None:
+        """Test that ShutdownRequested propagates from handler."""
+        from adw.core.interruption import ShutdownRequested
+
+        # Simulate shutdown on second phase check
+        call_count = 0
+
+        def check_shutdown_side_effect() -> None:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 2:  # Second phase
+                raise ShutdownRequested(phase="build")
+
+        mock_interruption_handler.check_shutdown.side_effect = (
+            check_shutdown_side_effect
+        )
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        with pytest.raises(ShutdownRequested) as exc_info:
+            orchestrator.run("Test feature")
+
+        assert exc_info.value.phase == "build"
+
+    def test_run_persists_initial_state(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_context_manager: MagicMock,
+    ) -> None:
+        """Test that initial state is persisted before phase loop."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        orchestrator.run("Test feature")
+
+        # First save should be with status="running" before any phase
+        first_save = mock_context_manager.save.call_args_list[0][0][0]
+        assert first_save.status == "running"
+        assert first_save.phase_history == []  # No phases completed yet
