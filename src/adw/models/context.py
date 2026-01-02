@@ -4,7 +4,7 @@ This module contains models for tracking run context, session context,
 and project context throughout the ADW workflow execution.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
@@ -60,7 +60,7 @@ class RunContext(BaseModel):
     )
     interrupted_phase: str | None = Field(
         default=None,
-        description="Phase where interruption occurred (only set when status='interrupted')",
+        description="Phase where interruption occurred (status='interrupted')",
     )
     interrupted_at: datetime | None = Field(
         default=None,
@@ -220,11 +220,13 @@ class StateSnapshot(BaseModel):
         default=None, description="Phase result (only for post-phase snapshots)"
     )
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="When snapshot was created",
     )
     label: str = Field(..., description="Human-readable label (e.g., 'pre_plan')")
-    sequence: int = Field(..., gt=0, description="Sequential snapshot number (1, 2, ...)")
+    sequence: int = Field(
+        ..., gt=0, description="Sequential snapshot number (1, 2, ...)"
+    )
 
     model_config = {
         "frozen": False,

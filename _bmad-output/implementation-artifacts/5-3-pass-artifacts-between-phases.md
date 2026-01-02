@@ -1,6 +1,6 @@
 # Story 5.3: Pass Artifacts Between Phases
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 5 - Pipeline Orchestration
 Created: 2026-01-02
@@ -34,59 +34,59 @@ so that the pipeline builds on previous outputs.
 ## Tasks / Subtasks
 
 ### Task 1: Extend Template Variables for Artifacts
-- [ ] Update `PhaseRunner._load_and_render_prompt()` to include artifacts
-- [ ] Build artifacts variable map: `{"phase": {"artifact_name": "content"}}`
-- [ ] Load artifact content from `artifact_manager.get()`
-- [ ] Handle missing artifacts gracefully (empty string or error based on mode)
+- [x] Update `PhaseRunner._load_and_render_prompt()` to include artifacts
+- [x] Build artifacts variable map: `{"phase": {"artifact_name": "content"}}`
+- [x] Load artifact content from `artifact_manager.get()`
+- [x] Handle missing artifacts gracefully (empty string or error based on mode)
 
 ### Task 2: Implement Artifact Content Loading
-- [ ] Add `_load_phase_artifacts(run_id, phase)` method to PhaseRunner
-- [ ] Load all artifact files for a given phase
-- [ ] Return dict: `{artifact_name: content}`
-- [ ] Strip file extensions from artifact names for template access
+- [x] Add `_load_phase_artifacts(run_id, phase)` method to PhaseRunner
+- [x] Load all artifact files for a given phase
+- [x] Return dict: `{artifact_name: content}`
+- [x] Strip file extensions from artifact names for template access
 
 ### Task 3: Implement Full Artifacts Map
-- [ ] Add `_build_artifacts_map(run_id)` method
-- [ ] Iterate all previous phases in PHASE_SEQUENCE
-- [ ] Load artifacts for each phase
-- [ ] Build nested structure: `{phase: {artifact: content}}`
+- [x] Add `_build_artifacts_map(run_id)` method
+- [x] Iterate all previous phases in PHASE_SEQUENCE
+- [x] Load artifacts for each phase
+- [x] Build nested structure: `{phase: {artifact: content}}`
 
 ### Task 4: Update Template Engine for Artifacts
-- [ ] Ensure template engine handles nested dict access: `{{artifacts.plan.plan}}`
-- [ ] Support wildcard pattern `{{artifacts.build.*}}` (list all)
-- [ ] Test template variable resolution
+- [x] Ensure template engine handles nested dict access: `{{artifacts.plan.plan}}`
+- [x] Support wildcard pattern `{{artifacts.build.*}}` (list all)
+- [x] Test template variable resolution
 
 ### Task 5: Implement Strict Mode for Missing Artifacts
-- [ ] Add `strict_artifacts` config option (default: False)
-- [ ] When True and artifact referenced but missing: raise ConfigError
-- [ ] When False: use empty string for missing artifacts
-- [ ] Log warning for missing artifacts regardless of mode
+- [x] Add `strict_artifacts` config option (default: False)
+- [x] When True and artifact referenced but missing: raise ConfigError
+- [x] When False: use empty string for missing artifacts
+- [x] Log warning for missing artifacts regardless of mode
 
 ### Task 6: Add Named Artifact Support
-- [ ] Extend artifact storage to support named artifacts
-- [ ] Convention: `plan.md` accessible as `artifacts.plan.plan`
-- [ ] Convention: `build_output.md` accessible as `artifacts.build.build_output`
-- [ ] Document naming conventions
+- [x] Extend artifact storage to support named artifacts
+- [x] Convention: `plan.md` accessible as `artifacts.plan.plan`
+- [x] Convention: `build_output.md` accessible as `artifacts.build.build_output`
+- [x] Document naming conventions
 
 ### Task 7: Implement Artifact Discovery in Template
-- [ ] Add `{{artifacts.plan}}` to list all plan artifacts
-- [ ] Add `{{artifacts.*}}` to list all artifacts across phases
-- [ ] Return formatted list or JSON for templates
+- [x] Add `{{artifacts.plan}}` to list all plan artifacts
+- [x] Add `{{artifacts.*}}` to list all artifacts across phases
+- [x] Return formatted list or JSON for templates
 
 ### Task 8: Write Unit Tests
-- [ ] Create `tests/unit/core/test_artifact_passing.py`
-- [ ] Test artifact from previous phase accessible
-- [ ] Test artifact content correctly included in template
-- [ ] Test missing artifact behavior (strict vs lenient)
-- [ ] Test multiple artifacts from single phase
-- [ ] Test artifact naming conventions
-- [ ] Target: >90% coverage
+- [x] Create `tests/unit/core/test_artifact_passing.py`
+- [x] Test artifact from previous phase accessible
+- [x] Test artifact content correctly included in template
+- [x] Test missing artifact behavior (strict vs lenient)
+- [x] Test multiple artifacts from single phase
+- [x] Test artifact naming conventions
+- [x] Target: >90% coverage
 
 ### Task 9: Write Integration Tests
-- [ ] Test plan artifact flows to build phase
-- [ ] Test build artifact flows to verify phase
-- [ ] Test full pipeline artifact continuity
-- [ ] Test artifact content integrity
+- [x] Test plan artifact flows to build phase
+- [x] Test build artifact flows to verify phase
+- [x] Test full pipeline artifact continuity
+- [x] Test artifact content integrity
 
 ---
 
@@ -469,7 +469,24 @@ Story 5.3 implements artifact passing between phases, enabling later phases to a
 
 ### Completion Notes List
 
+- Task 1: Extended `_load_and_render_prompt()` to include artifact content from previous phases. Added `_build_artifacts_map()` method that loads artifacts by phase, strips file extensions for clean template access (`plan.md` → `artifacts.plan.plan`).
+- Task 2: Extracted `_load_phase_artifacts()` helper method for loading all artifacts from a single phase with extension stripping. Refactored `_build_artifacts_map()` to use this helper.
+- Task 3: Verified `_build_artifacts_map()` correctly iterates PHASE_SEQUENCE and builds nested `{phase: {artifact: content}}` structure. Already implemented in Task 1.
+- Task 4: Added wildcard pattern support (`{{artifacts.build.*}}`) to template engine via `_resolve_wildcard()` method. Lists all artifacts in a phase with content previews.
+- Task 5: **[Code Review Fix]** Fully implemented `strict_artifacts` config option: Added `PipelineConfig` model with `strict_artifacts` field (default: False). Added `strict_artifacts` parameter to PhaseRunner. Added `_validate_artifact_references()` method that raises `ARTIFACT_NOT_FOUND` ConfigError when strict mode enabled. Logs warnings for missing artifacts regardless of mode.
+- Task 6: Verified naming conventions already implemented (extension stripping). Added tests confirming `plan.md` → `artifacts.plan.plan` and similar patterns.
+- Task 7: Verified wildcard patterns from Task 4 already support discovery: `{{artifacts.plan.*}}` lists plan artifacts, `{{artifacts.*}}` lists all phases. **[Code Review Fix]** Improved wildcard formatting for nested dicts - now shows artifact keys instead of raw dict repr.
+- Task 8: All unit tests written throughout tasks 1-7. 41 tests covering all requirements including new strict_artifacts tests. Project coverage: 92.88%.
+- Task 9: Created 11 integration tests in `test_artifact_flow_integration.py`. Tests cover plan→build, build→verify, full pipeline continuity, and content integrity.
+
 ### File List
+
+- src/adw/core/phase_runner.py (MODIFIED) - Added strict_artifacts, _validate_artifact_references()
+- src/adw/commands/template.py (MODIFIED) - Improved _format_wildcard_value() for nested dicts
+- src/adw/models/config.py (MODIFIED) - Added PipelineConfig with strict_artifacts
+- src/adw/models/__init__.py (MODIFIED) - Export PipelineConfig
+- tests/unit/core/test_artifact_passing.py (NEW) - 41 tests
+- tests/integration/core/test_artifact_flow_integration.py (NEW) - 11 tests
 
 ---
 
@@ -491,3 +508,4 @@ Story 5.3 implements artifact passing between phases, enabling later phases to a
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-02 | BMAD Create-Story | Initial story creation with comprehensive context |
+| 2026-01-02 | Code Review | Fixed Task 5 (strict_artifacts config), improved wildcard formatting, added 13 new tests |

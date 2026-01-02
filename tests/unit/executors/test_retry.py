@@ -1,7 +1,5 @@
 """Tests for RetryExecutor wrapper."""
 
-from unittest.mock import AsyncMock, patch
-
 import pytest
 
 from adw.exceptions import LLMError, LLMRateLimitError, LLMTimeoutError
@@ -228,7 +226,7 @@ class TestRateLimitHandling:
     """Tests for rate limit retry_after handling."""
 
     def test_rate_limit_retry_after_is_respected(self) -> None:
-        """Test that retry_after from rate limit error is used when larger than backoff."""
+        """Test retry_after from rate limit error is used when larger than backoff."""
         mock = MockExecutor()
         config = RetryConfig(base_delay_seconds=1.0, multiplier=2.0)
         retry = RetryExecutor(executor=mock, config=config)

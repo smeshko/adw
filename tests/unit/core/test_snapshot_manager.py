@@ -6,9 +6,8 @@ SnapshotManager creates, lists, and loads state snapshots at phase boundaries fo
 - Time-travel debugging (NFR13)
 """
 
-import json
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -43,7 +42,7 @@ class TestPrePhaseSnapshot:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -103,7 +102,7 @@ class TestPostPhaseSnapshot:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -112,8 +111,8 @@ class TestPostPhaseSnapshot:
         return PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             artifacts=["plan.md"],
             tokens_used=500,
         )
@@ -128,13 +127,14 @@ class TestPostPhaseSnapshot:
         return runs_dir
 
     def test_post_phase_snapshot_includes_result(
-        self, setup_run_dir: Path, sample_context: RunContext, sample_result: PhaseResult
+        self,
+        setup_run_dir: Path,
+        sample_context: RunContext,
+        sample_result: PhaseResult,
     ) -> None:
         """Post-phase snapshot includes phase result."""
         manager = SnapshotManager(setup_run_dir)
-        path = manager.create_post_phase_snapshot(
-            sample_context, "plan", sample_result
-        )
+        path = manager.create_post_phase_snapshot(sample_context, "plan", sample_result)
 
         snapshot = StateSnapshot.model_validate_json(path.read_text())
         assert snapshot.phase_result is not None
@@ -153,7 +153,7 @@ class TestSequentialNumbering:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -162,8 +162,8 @@ class TestSequentialNumbering:
         return PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -176,7 +176,10 @@ class TestSequentialNumbering:
         return runs_dir
 
     def test_snapshots_numbered_sequentially(
-        self, setup_run_dir: Path, sample_context: RunContext, sample_result: PhaseResult
+        self,
+        setup_run_dir: Path,
+        sample_context: RunContext,
+        sample_result: PhaseResult,
     ) -> None:
         """Snapshots are numbered 001, 002, etc."""
         manager = SnapshotManager(setup_run_dir)
@@ -214,7 +217,7 @@ class TestSnapshotListing:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -223,8 +226,8 @@ class TestSnapshotListing:
         return PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -249,7 +252,10 @@ class TestSnapshotListing:
         assert snapshots == []
 
     def test_list_returns_metadata(
-        self, setup_run_dir: Path, sample_context: RunContext, sample_result: PhaseResult
+        self,
+        setup_run_dir: Path,
+        sample_context: RunContext,
+        sample_result: PhaseResult,
     ) -> None:
         """Listing returns metadata for each snapshot."""
         manager = SnapshotManager(setup_run_dir)
@@ -277,7 +283,7 @@ class TestSnapshotLoading:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -286,8 +292,8 @@ class TestSnapshotLoading:
         return PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             tokens_used=500,
         )
 
@@ -314,7 +320,10 @@ class TestSnapshotLoading:
         assert snapshot.context.run_id == sample_context.run_id
 
     def test_load_post_phase_snapshot(
-        self, setup_run_dir: Path, sample_context: RunContext, sample_result: PhaseResult
+        self,
+        setup_run_dir: Path,
+        sample_context: RunContext,
+        sample_result: PhaseResult,
     ) -> None:
         """Loading post-phase snapshot includes phase result."""
         manager = SnapshotManager(setup_run_dir)
@@ -381,7 +390,7 @@ class TestPerformance:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -416,7 +425,7 @@ class TestSequenceCache:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture

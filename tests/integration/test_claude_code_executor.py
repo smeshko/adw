@@ -101,9 +101,7 @@ class TestTimeoutIntegration:
         from adw.exceptions import LLMTimeoutError
 
         # Create a temporary script that runs slowly
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".sh", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as f:
             f.write("#!/bin/bash\nsleep 10\necho 'done'\n")
             script_path = Path(f.name)
 
@@ -140,9 +138,7 @@ class TestTimeoutIntegration:
         from adw.exceptions import LLMTimeoutError
 
         # Create a temporary script that runs slowly
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".sh", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as f:
             # Script that captures its own PID for verification
             f.write("#!/bin/bash\necho $$\nsleep 10\n")
             script_path = Path(f.name)
@@ -158,11 +154,13 @@ class TestTimeoutIntegration:
 
             # After exception, give a moment for cleanup
             import time
+
             time.sleep(0.5)
 
             # Check there are no zombie children
             # This is platform-specific but works on Unix
             import subprocess
+
             result = subprocess.run(
                 ["ps", "-o", "stat=", "-p", str(os.getpid())],
                 capture_output=True,
@@ -186,9 +184,7 @@ class TestTimeoutIntegration:
         from adw.models import HookConfig, RunContext
 
         # Create a slow hook script
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".sh", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as f:
             f.write("#!/bin/bash\nsleep 10\necho 'done'\n")
             script_path = Path(f.name)
 

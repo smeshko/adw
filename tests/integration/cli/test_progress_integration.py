@@ -4,14 +4,14 @@ Tests that ProgressDisplay correctly integrates with the pipeline
 components to display real-time progress during execution.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import StringIO
 from pathlib import Path
-from typing import Any
-from unittest.mock import MagicMock, Mock
+from unittest.mock import Mock
 
 import pytest
 from rich.console import Console
+from ulid import ULID
 
 from adw.cli.progress import ProgressDisplay
 from adw.core.artifact_manager import ArtifactManager
@@ -20,8 +20,6 @@ from adw.core.orchestrator import Orchestrator
 from adw.core.phase_runner import PhaseRunner
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
-from ulid import ULID
-
 from adw.exceptions import LLMError
 from adw.models import LLMResult, PhaseResult, PhaseStatus, ResolvedCommand, RunContext
 
@@ -43,8 +41,8 @@ class MockPhaseRunner:
         return PhaseResult(
             phase=phase,
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             artifacts=[f"{phase}_output.md"],
             tokens_used=100,
         )
@@ -124,9 +122,7 @@ class TestOrchestratorProgressIntegration:
         # Should have 5 checkmarks for 5 completed phases
         assert output_text.count("✓") >= 5
 
-    def test_orchestrator_calls_progress_display_on_error(
-        self, tmp_path: Path
-    ) -> None:
+    def test_orchestrator_calls_progress_display_on_error(self, tmp_path: Path) -> None:
         """Test that Orchestrator calls on_phase_error when phase fails."""
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=80)
@@ -159,8 +155,8 @@ class TestOrchestratorProgressIntegration:
                 return PhaseResult(
                     phase=phase,
                     status=PhaseStatus.COMPLETED,
-                    started_at=datetime.now(timezone.utc),
-                    completed_at=datetime.now(timezone.utc),
+                    started_at=datetime.now(UTC),
+                    completed_at=datetime.now(UTC),
                     artifacts=[],
                     tokens_used=0,
                 )
@@ -242,8 +238,8 @@ class TestOrchestratorProgressIntegration:
                 return PhaseResult(
                     phase=phase,
                     status=PhaseStatus.COMPLETED,
-                    started_at=datetime.now(timezone.utc),
-                    completed_at=datetime.now(timezone.utc),
+                    started_at=datetime.now(UTC),
+                    completed_at=datetime.now(UTC),
                     artifacts=[],
                     tokens_used=100,
                 )
@@ -352,7 +348,7 @@ class TestPhaseRunnerProgressIntegration:
             run_id=str(ULID()),
             feature_description="Test",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
             status="running",
         )
 
@@ -402,7 +398,7 @@ class TestPhaseRunnerProgressIntegration:
             run_id=str(ULID()),
             feature_description="Test",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
             status="running",
         )
 
@@ -436,8 +432,8 @@ class TestProgressDisplayWithRealConsole:
             result = PhaseResult(
                 phase=phase,
                 status=PhaseStatus.COMPLETED,
-                started_at=datetime.now(timezone.utc),
-                completed_at=datetime.now(timezone.utc),
+                started_at=datetime.now(UTC),
+                completed_at=datetime.now(UTC),
                 artifacts=[f"{phase}_output.md"],
                 tokens_used=500,
             )

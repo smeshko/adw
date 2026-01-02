@@ -132,6 +132,21 @@ class HookConfig(BaseModel):
     )
 
 
+class PipelineConfig(BaseModel):
+    """Configuration for pipeline behavior.
+
+    Attributes:
+        strict_artifacts: If True, raise ConfigError when a template references
+            a missing artifact. If False, use empty string for missing artifacts.
+            Default is False for lenient behavior.
+    """
+
+    strict_artifacts: bool = Field(
+        default=False,
+        description="Raise error for missing artifact references in templates",
+    )
+
+
 class ProjectConfig(BaseModel):
     """Main project configuration loaded from adw.yaml.
 
@@ -148,6 +163,7 @@ class ProjectConfig(BaseModel):
         llm: LLM configuration section
         phases: Phase-specific configuration
         hooks: Hook configuration
+        pipeline: Pipeline behavior configuration
 
     Example:
         >>> config = ProjectConfig.from_yaml('''
@@ -174,6 +190,9 @@ class ProjectConfig(BaseModel):
     )
     hooks: HookConfig = Field(
         default_factory=HookConfig, description="Hook configuration"
+    )
+    pipeline: PipelineConfig = Field(
+        default_factory=PipelineConfig, description="Pipeline behavior configuration"
     )
 
     @model_validator(mode="before")

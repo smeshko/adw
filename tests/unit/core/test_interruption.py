@@ -413,9 +413,7 @@ class TestGetResumePhase:
         """Test that completed runs return None."""
         from adw.core.interruption import get_resume_phase
 
-        context = sample_context.model_copy(
-            update={"status": "completed"}
-        )
+        context = sample_context.model_copy(update={"status": "completed"})
 
         assert get_resume_phase(context) is None
 
@@ -513,9 +511,7 @@ class TestCanResume:
         """Test that completed runs cannot be resumed."""
         from adw.core.interruption import can_resume
 
-        context = sample_context.model_copy(
-            update={"status": "completed"}
-        )
+        context = sample_context.model_copy(update={"status": "completed"})
 
         assert can_resume(context) is False
 
@@ -551,9 +547,7 @@ class TestCanResume:
         """Test that failed runs can be resumed."""
         from adw.core.interruption import can_resume
 
-        context = sample_context.model_copy(
-            update={"status": "failed"}
-        )
+        context = sample_context.model_copy(update={"status": "failed"})
 
         assert can_resume(context) is True
 
@@ -748,9 +742,7 @@ class TestGetRunStatus:
         """Test that status includes phase_history."""
         from adw.core.interruption import get_run_status
 
-        context = sample_context.model_copy(
-            update={"phase_history": ["plan", "build"]}
-        )
+        context = sample_context.model_copy(update={"phase_history": ["plan", "build"]})
 
         status = get_run_status(context)
 

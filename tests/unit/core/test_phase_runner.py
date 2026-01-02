@@ -5,23 +5,21 @@ pre-hook → prompt loading → LLM execution → post-hook → artifact capture
 """
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from adw.core.artifact_manager import ArtifactManager
-from adw.core.phase_runner import PhaseRunner
 from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
-from adw.exceptions import ADWError, CommandError, HookError, LLMError
+from adw.core.artifact_manager import ArtifactManager
+from adw.core.phase_runner import PhaseRunner
+from adw.exceptions import CommandError, HookError, LLMError
 from adw.hooks.runner import HookRunner
 from adw.models import (
-    HookConfig,
     HookResult,
     LLMResult,
-    LoadedCommand,
     PhaseResult,
     PhaseStatus,
     ResolvedCommand,
@@ -37,7 +35,7 @@ def sample_context() -> RunContext:
         run_id="01HQXH9Z8G2K4M5N6P7R8S9T0V",
         feature_description="Add user authentication",
         current_phase="plan",
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
     )
 
 
@@ -240,13 +238,16 @@ class TestPhaseRunnerExecutionOrder:
         call_order: list[str] = []
 
         # Store original side_effect/return_value
-        original_hook_calls = []
 
         def hook_side_effect(*args, **kwargs):
             hook_type = kwargs.get("hook_type", "pre")
             call_order.append(f"{hook_type}_hook")
             return HookResult(
-                stdout="output", stderr="", exit_code=0, duration_ms=10, hook_type=hook_type
+                stdout="output",
+                stderr="",
+                exit_code=0,
+                duration_ms=10,
+                hook_type=hook_type,
             )
 
         def render_side_effect(*args, **kwargs):
@@ -411,9 +412,7 @@ class TestPhaseRunnerArtifacts:
             content="Output",
             tokens_used=100,
             duration_ms=1000,
-            tool_calls=[
-                ToolCall(tool_name="read_file", arguments={"path": "/a.py"})
-            ],
+            tool_calls=[ToolCall(tool_name="read_file", arguments={"path": "/a.py"})],
         )
 
         result = phase_runner.run("plan", sample_context)
@@ -448,15 +447,19 @@ class TestPhaseRunnerErrorHandling:
             recoverable=True,
         )
 
-        with caplog.at_level(logging.ERROR, logger="adw.core.phase_runner"):
-            with pytest.raises(LLMError):
-                phase_runner.run("plan", sample_context)
+        with (
+            caplog.at_level(logging.ERROR, logger="adw.core.phase_runner"),
+            pytest.raises(LLMError),
+        ):
+            phase_runner.run("plan", sample_context)
 
-        # Verify error was logged with duration_ms (proves PhaseResult was created and used)
+        # Verify error was logged with duration_ms (proves PhaseResult created)
         assert any("Phase failed" in record.message for record in caplog.records)
         error_record = next(r for r in caplog.records if "Phase failed" in r.message)
         # The extra dict is stored as attributes on the record
-        assert hasattr(error_record, "duration_ms"), "PhaseResult.duration_ms should be logged"
+        assert hasattr(error_record, "duration_ms"), (
+            "PhaseResult.duration_ms should be logged"
+        )
 
     def test_command_error_adds_phase_context(
         self,

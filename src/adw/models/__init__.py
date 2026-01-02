@@ -4,7 +4,7 @@ This package contains all Pydantic models used throughout ADW:
 - command: ResolvedCommand, LoadedCommand
 - context: RunContext, SessionContext, ProjectContext, StateSnapshot
 - phase: PhaseStatus, PhaseResult, Artifact, ArtifactType
-- config: ProjectConfig, LLMConfig, PhaseConfig, HookConfig
+- config: ProjectConfig, LLMConfig, PhaseConfig, HookConfig, PipelineConfig
 - llm: LLMResult, ToolCall
 - hook: HookResult
 """
@@ -14,6 +14,7 @@ from adw.models.config import (
     HookConfig,
     LLMConfig,
     PhaseConfig,
+    PipelineConfig,
     ProjectConfig,
     RetryConfig,
 )
@@ -47,6 +48,7 @@ __all__: list[str] = [
     "HookConfig",
     "LLMConfig",
     "PhaseConfig",
+    "PipelineConfig",
     "ProjectConfig",
     "RetryConfig",
     # Context models

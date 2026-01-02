@@ -39,9 +39,7 @@ class TestRunDirectoryManagerModule:
         """Test that RunDirectoryManager has a create method."""
         assert hasattr(RunDirectoryManager, "create")
 
-    def test_run_directory_manager_accepts_project_root(
-        self, tmp_path: Path
-    ) -> None:
+    def test_run_directory_manager_accepts_project_root(self, tmp_path: Path) -> None:
         """Test that RunDirectoryManager can be instantiated with project_root."""
         manager = RunDirectoryManager(project_root=tmp_path)
         assert manager.project_root == tmp_path
@@ -92,9 +90,7 @@ class TestDirectoryStructureCreation:
         assert exc_info.value.code == "RUN_ALREADY_EXISTS"
         assert not exc_info.value.recoverable
 
-    def test_create_multiple_runs(
-        self, run_manager: RunDirectoryManager
-    ) -> None:
+    def test_create_multiple_runs(self, run_manager: RunDirectoryManager) -> None:
         """Test that multiple runs can be created."""
         contexts = [
             RunContext(
@@ -240,9 +236,7 @@ class TestRunListing:
         assert runs[0].run_id == sample_context.run_id
         assert runs[0].created_at is not None
 
-    def test_list_runs_sorted_by_ulid(
-        self, run_manager: RunDirectoryManager
-    ) -> None:
+    def test_list_runs_sorted_by_ulid(self, run_manager: RunDirectoryManager) -> None:
         """Test that runs are sorted chronologically by ULID."""
         import time
 

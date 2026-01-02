@@ -48,7 +48,10 @@ class TestContextManagerSave:
     """Tests for ContextManager.save() method."""
 
     def test_save_creates_context_file(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that save creates context.json file."""
         run_dir = runs_dir / sample_context.run_id
@@ -62,7 +65,10 @@ class TestContextManagerSave:
         assert context_path.exists()
 
     def test_save_uses_temp_file_pattern(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that save uses temp file + rename pattern for atomicity."""
         run_dir = runs_dir / sample_context.run_id
@@ -86,7 +92,10 @@ class TestContextManagerSave:
         assert rename_calls[0][1].name == "context.json"
 
     def test_save_calls_fsync(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that save calls fsync for durability."""
         run_dir = runs_dir / sample_context.run_id
@@ -106,7 +115,10 @@ class TestContextManagerSave:
         assert len(fsync_calls) == 1
 
     def test_save_content_is_valid_json(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that saved content is valid JSON."""
         run_dir = runs_dir / sample_context.run_id
@@ -122,7 +134,10 @@ class TestContextManagerSave:
         assert data["feature_description"] == sample_context.feature_description
 
     def test_save_cleans_up_temp_on_error(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that temp file is cleaned up on write error."""
         run_dir = runs_dir / sample_context.run_id
@@ -133,9 +148,11 @@ class TestContextManagerSave:
         def failing_fsync(fd: int) -> None:
             raise OSError("Disk full")
 
-        with patch("adw.core.context_manager.os.fsync", failing_fsync):
-            with pytest.raises(StateError) as exc_info:
-                context_manager.save(sample_context)
+        with (
+            patch("adw.core.context_manager.os.fsync", failing_fsync),
+            pytest.raises(StateError) as exc_info,
+        ):
+            context_manager.save(sample_context)
 
         assert exc_info.value.code == "CONTEXT_WRITE_FAILED"
         # Temp file should be cleaned up
@@ -158,7 +175,10 @@ class TestContextManagerLoad:
     """Tests for ContextManager.load() method."""
 
     def test_load_returns_valid_context(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that load returns a valid RunContext."""
         run_dir = runs_dir / sample_context.run_id
@@ -227,7 +247,10 @@ class TestContextManagerLocking:
     """Tests for lock integration in ContextManager."""
 
     def test_save_acquires_lock(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that save acquires lock before writing."""
         run_dir = runs_dir / sample_context.run_id
@@ -248,7 +271,10 @@ class TestContextManagerLocking:
         assert lock_acquired
 
     def test_load_acquires_lock(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that load acquires lock before reading."""
         run_dir = runs_dir / sample_context.run_id
@@ -270,7 +296,10 @@ class TestContextManagerLocking:
         assert lock_acquired
 
     def test_save_lock_timeout_raises_error(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that lock timeout raises LOCK_TIMEOUT."""
         run_dir = runs_dir / sample_context.run_id
@@ -280,15 +309,20 @@ class TestContextManagerLocking:
         def timeout_enter(self: filelock.FileLock) -> filelock.FileLock:
             raise filelock.Timeout(run_dir / ".lock")
 
-        with patch.object(filelock.FileLock, "__enter__", timeout_enter):
-            with pytest.raises(StateError) as exc_info:
-                context_manager.save(sample_context)
+        with (
+            patch.object(filelock.FileLock, "__enter__", timeout_enter),
+            pytest.raises(StateError) as exc_info,
+        ):
+            context_manager.save(sample_context)
 
         assert exc_info.value.code == "LOCK_TIMEOUT"
         assert exc_info.value.recoverable is True
 
     def test_load_lock_timeout_raises_error(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that lock timeout on load raises LOCK_TIMEOUT."""
         run_dir = runs_dir / sample_context.run_id
@@ -299,9 +333,11 @@ class TestContextManagerLocking:
         def timeout_enter(self: filelock.FileLock) -> filelock.FileLock:
             raise filelock.Timeout(run_dir / ".lock")
 
-        with patch.object(filelock.FileLock, "__enter__", timeout_enter):
-            with pytest.raises(StateError) as exc_info:
-                context_manager.load(sample_context.run_id)
+        with (
+            patch.object(filelock.FileLock, "__enter__", timeout_enter),
+            pytest.raises(StateError) as exc_info,
+        ):
+            context_manager.load(sample_context.run_id)
 
         assert exc_info.value.code == "LOCK_TIMEOUT"
 
@@ -310,7 +346,10 @@ class TestContextManagerDurability:
     """Tests for durability and atomic write guarantees."""
 
     def test_interrupted_write_preserves_old_context(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that if write is interrupted, old context is preserved.
 
@@ -331,9 +370,8 @@ class TestContextManagerDurability:
         def failing_rename(self: Path, target: Path) -> None:
             raise OSError("Simulated filesystem error during rename")
 
-        with patch.object(Path, "rename", failing_rename):
-            with pytest.raises(StateError):
-                context_manager.save(modified)
+        with patch.object(Path, "rename", failing_rename), pytest.raises(StateError):
+            context_manager.save(modified)
 
         # Original context should still exist and be valid
         assert (run_dir / "context.json").exists()
@@ -345,7 +383,10 @@ class TestContextManagerDurability:
         assert loaded.current_phase == "plan"  # Original, not modified
 
     def test_temp_file_cleaned_after_successful_save(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that temp file does not exist after successful save."""
         run_dir = runs_dir / sample_context.run_id
@@ -359,7 +400,10 @@ class TestContextManagerDurability:
         assert not temp_path.exists()
 
     def test_temp_file_cleaned_after_failed_save(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that temp file is cleaned up after failed save."""
         run_dir = runs_dir / sample_context.run_id
@@ -369,16 +413,21 @@ class TestContextManagerDurability:
         def failing_fsync(fd: int) -> None:
             raise OSError("Simulated disk error")
 
-        with patch("adw.core.context_manager.os.fsync", failing_fsync):
-            with pytest.raises(StateError):
-                context_manager.save(sample_context)
+        with (
+            patch("adw.core.context_manager.os.fsync", failing_fsync),
+            pytest.raises(StateError),
+        ):
+            context_manager.save(sample_context)
 
         # Temp file should be cleaned up
         temp_path = run_dir / ".context.json.tmp"
         assert not temp_path.exists()
 
     def test_partial_write_never_corrupts_context(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that a partial write never leaves a corrupted context.json.
 
@@ -418,9 +467,8 @@ class TestContextManagerDurability:
 
         modified = sample_context.model_copy(update={"current_phase": "verify"})
 
-        with patch("builtins.open", partial_write_open):
-            with pytest.raises(StateError):
-                context_manager.save(modified)
+        with patch("builtins.open", partial_write_open), pytest.raises(StateError):
+            context_manager.save(modified)
 
         # Original context.json should still be valid and loadable
         loaded = context_manager.load(sample_context.run_id)
@@ -428,7 +476,10 @@ class TestContextManagerDurability:
         assert loaded.current_phase == "plan"  # Original, not modified
 
     def test_context_file_never_partially_overwritten(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that context.json is never in a partial state.
 
@@ -466,7 +517,10 @@ class TestContextManagerDurability:
         assert final_data["current_phase"] == "build"
 
     def test_multiple_rapid_saves_maintain_integrity(
-        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+        self,
+        context_manager: ContextManager,
+        sample_context: RunContext,
+        runs_dir: Path,
     ) -> None:
         """Test that multiple rapid saves maintain data integrity.
 
