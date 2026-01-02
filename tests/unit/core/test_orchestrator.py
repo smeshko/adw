@@ -356,3 +356,128 @@ class TestPhaseTransitions:
         # Context should be immutably updated (different object)
         assert result_context is not context
         assert "plan" in result_context.phase_history
+
+
+class TestRun:
+    """Tests for the run() method."""
+
+    def test_run_generates_ulid(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that run generates a valid ULID."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run("Test feature")
+
+        # ULID should be 26 characters
+        assert len(context.run_id) == 26
+
+    def test_run_creates_run_directory(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_run_directory_manager: MagicMock,
+    ) -> None:
+        """Test that run creates the run directory."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        orchestrator.run("Test feature")
+
+        mock_run_directory_manager.create.assert_called_once()
+
+    def test_run_executes_all_phases(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that run executes all phases in order."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run("Test feature")
+
+        assert context.status == "completed"
+        assert context.phase_history == list(PHASE_SEQUENCE)
+        assert mock_phase_runner.run.call_count == len(PHASE_SEQUENCE)
+
+    def test_run_phases_in_order(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that phases are executed in correct order."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        orchestrator.run("Test feature")
+
+        # Verify phases were called in order
+        calls = mock_phase_runner.run.call_args_list
+        for i, phase in enumerate(PHASE_SEQUENCE):
+            assert calls[i][0][0] == phase
+
+    def test_run_sets_completed_status(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that successful run sets status to completed."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run("Test feature")
+
+        assert context.status == "completed"
+        assert context.completed_at is not None
+
+    def test_run_persists_final_state(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_context_manager: MagicMock,
+    ) -> None:
+        """Test that final state is persisted."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        orchestrator.run("Test feature")
+
+        # Final save should have status = "completed"
+        last_call = mock_context_manager.save.call_args_list[-1]
+        saved_context = last_call[0][0]
+        assert saved_context.status == "completed"
+
+    def test_run_stores_feature_description(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that feature description is stored in context."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run("Add user authentication")
+
+        assert context.feature_description == "Add user authentication"
+
+    def test_run_without_phase_runner_raises_error(
+        self,
+        orchestrator: "Orchestrator",
+    ) -> None:
+        """Test that run without phase runner raises RuntimeError."""
+        # Don't set phase runner
+
+        with pytest.raises(RuntimeError, match="PhaseRunner not set"):
+            orchestrator.run("Test feature")
+
+    def test_run_tracks_tokens_per_phase(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that token usage is tracked per phase."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run("Test feature")
+
+        # Each phase should have tokens recorded
+        for phase in PHASE_SEQUENCE:
+            assert phase in context.phase_tokens
+            assert context.phase_tokens[phase] == 100  # from mock

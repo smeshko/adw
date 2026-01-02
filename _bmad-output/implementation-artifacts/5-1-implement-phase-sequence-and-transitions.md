@@ -58,14 +58,14 @@ so that the pipeline follows the defined workflow.
 - [x] Return updated `RunContext` (immutable update pattern)
 
 ### Task 4: Implement run() Method
-- [ ] Add `run(feature_description: str) -> RunContext` method
-- [ ] Generate ULID for run_id
-- [ ] Create initial `RunContext` with status="running"
-- [ ] Iterate through `PHASE_SEQUENCE`
-- [ ] Create pre-phase snapshot before each phase
-- [ ] Execute phase (placeholder - delegate to PhaseRunner in 5.2)
-- [ ] Handle phase result and transition
-- [ ] Set final status to "completed" or "failed"
+- [x] Add `run(feature_description: str) -> RunContext` method
+- [x] Generate ULID for run_id
+- [x] Create initial `RunContext` with status="running"
+- [x] Iterate through `PHASE_SEQUENCE`
+- [x] Create pre-phase snapshot before each phase
+- [x] Execute phase (placeholder - delegate to PhaseRunner in 5.2)
+- [x] Handle phase result and transition
+- [x] Set final status to "completed" or "failed"
 
 ### Task 5: Implement Error Handling
 - [ ] Catch exceptions during phase execution
@@ -730,6 +730,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Added 11 unit tests for init, set_phase_runner, and get_next_phase
 - Task 3: Implemented _execute_phase_with_transitions with state persistence, snapshots, and immutable context updates
 - Added 6 comprehensive tests for phase transition behavior
+- Task 4: Implemented run() method with ULID generation, directory creation, phase iteration, and status management
+- Added 9 comprehensive tests for run() method behavior
 
 ### File List
 
