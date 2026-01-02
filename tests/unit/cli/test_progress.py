@@ -199,3 +199,111 @@ class TestLLMProgress:
 
         # Should not raise
         progress.on_llm_complete()
+
+
+class TestPhaseComplete:
+    """Tests for phase completion display."""
+
+    def test_on_phase_complete_shows_metrics(self) -> None:
+        """Test that phase completion shows duration and artifacts."""
+        from datetime import datetime, timezone
+
+        from adw.models import PhaseResult, PhaseStatus
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        result = PhaseResult(
+            phase="plan",
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+            artifacts=["plan.md"],
+            tokens_used=500,
+        )
+
+        progress.on_phase_complete("plan", result)
+
+        output_text = output.getvalue()
+        assert "✓" in output_text
+        assert "PLAN" in output_text
+        assert "500" in output_text  # tokens
+
+    def test_on_phase_complete_shows_checkmark(self) -> None:
+        """Test that phase completion shows green checkmark."""
+        from datetime import datetime, timezone
+
+        from adw.models import PhaseResult, PhaseStatus
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        result = PhaseResult(
+            phase="build",
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+            artifacts=[],
+            tokens_used=100,
+        )
+
+        progress.on_phase_complete("build", result)
+
+        output_text = output.getvalue()
+        assert "✓" in output_text
+        assert "BUILD" in output_text
+
+    def test_on_phase_complete_shows_artifact_count(self) -> None:
+        """Test that phase completion shows artifact count."""
+        from datetime import datetime, timezone
+
+        from adw.models import PhaseResult, PhaseStatus
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        result = PhaseResult(
+            phase="verify",
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+            artifacts=["a.md", "b.md", "c.md"],
+            tokens_used=250,
+        )
+
+        progress.on_phase_complete("verify", result)
+
+        output_text = output.getvalue()
+        # Rich adds escape codes; check that '3' and 'artifacts' are present
+        assert "3" in output_text
+        assert "artifacts" in output_text
+
+    def test_on_phase_complete_shows_duration(self) -> None:
+        """Test that phase completion shows duration."""
+        from datetime import datetime, timezone
+
+        from adw.models import PhaseResult, PhaseStatus
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console)
+
+        # Create a result with known duration (duration_ms property calculates it)
+        start = datetime.now(timezone.utc)
+        result = PhaseResult(
+            phase="validate",
+            status=PhaseStatus.COMPLETED,
+            started_at=start,
+            completed_at=start,  # Same time = 0 duration
+            artifacts=[],
+            tokens_used=0,
+        )
+
+        progress.on_phase_complete("validate", result)
+
+        output_text = output.getvalue()
+        # Duration should be formatted (e.g., "0.0s")
+        assert "VALIDATE" in output_text
