@@ -352,6 +352,24 @@ class TestSnapshotLoading:
 
         assert exc_info.value.code == "SNAPSHOT_CORRUPTED"
 
+    def test_load_invalid_schema_snapshot_raises(
+        self, setup_run_dir: Path, sample_context: RunContext
+    ) -> None:
+        """Loading snapshot with valid JSON but invalid schema raises StateError."""
+        manager = SnapshotManager(setup_run_dir)
+        manager.create_pre_phase_snapshot(sample_context, "plan")
+
+        # Write valid JSON but invalid StateSnapshot schema (missing required fields)
+        snapshots_dir = setup_run_dir / sample_context.run_id / "snapshots"
+        snapshot_file = snapshots_dir / "001_pre_plan.json"
+        snapshot_file.write_text('{"valid": "json", "but": "wrong schema"}')
+
+        with pytest.raises(StateError) as exc_info:
+            manager.load_snapshot(sample_context.run_id, 1)
+
+        assert exc_info.value.code == "SNAPSHOT_CORRUPTED"
+        assert exc_info.value.recoverable is True
+
 
 class TestPerformance:
     """Tests for performance requirements (NFR4)."""
@@ -436,3 +454,14 @@ class TestSequenceCache:
 
         manager.create_pre_phase_snapshot(sample_context, "test")
         assert manager._sequence_cache[sample_context.run_id] == 3
+
+    def test_get_next_sequence_nonexistent_dir(self, tmp_path: Path) -> None:
+        """_get_next_sequence returns 1 for nonexistent snapshots dir."""
+        manager = SnapshotManager(tmp_path)
+        nonexistent_dir = tmp_path / "nonexistent" / "snapshots"
+
+        # Directly test the internal method for defensive code path
+        sequence = manager._get_next_sequence("test-run", nonexistent_dir)
+
+        assert sequence == 1
+        assert manager._sequence_cache["test-run"] == 1
