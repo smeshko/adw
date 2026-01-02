@@ -1,6 +1,6 @@
 # Story 5.4: Execute Single Phase in Isolation
 
-Status: ready-for-dev
+Status: review
 Linear Issue: not-configured
 Epic: 5 - Pipeline Orchestration
 Created: 2026-01-02
@@ -34,58 +34,58 @@ so that I can test or re-run specific phases.
 ## Tasks / Subtasks
 
 ### Task 1: Add --phase Flag to CLI
-- [ ] Update `src/adw/cli/run.py` to accept `--phase` option
-- [ ] Validate phase is one of PHASE_SEQUENCE
-- [ ] Pass phase to orchestrator
+- [x] Update `src/adw/cli/app.py` to accept `--phase` option
+- [x] Validate phase is one of PHASE_SEQUENCE
+- [x] Pass phase to orchestrator
 
 ### Task 2: Add --from-run Flag to CLI
-- [ ] Add `--from-run` option for specifying source run ID
-- [ ] Validate run ID exists
-- [ ] Require `--from-run` if phase is not "plan"
+- [x] Add `--from-run` option for specifying source run ID
+- [x] Validate run ID exists (via orchestrator)
+- [x] Require `--from-run` if phase is not "plan"
 
 ### Task 3: Implement run_single_phase() in Orchestrator
-- [ ] Add `run_single_phase(phase, feature, from_run_id=None)` method
-- [ ] Generate new run ID for this execution
-- [ ] Create initial RunContext
-- [ ] Execute only the specified phase
+- [x] Add `run_single_phase(phase, feature, from_run_id=None)` method
+- [x] Generate new run ID for this execution
+- [x] Create initial RunContext
+- [x] Execute only the specified phase
 
 ### Task 4: Load Artifacts from Source Run
-- [ ] When `--from-run` is specified, load artifacts from source run
-- [ ] Copy artifact paths to new run's context
-- [ ] Do NOT modify source run's artifacts directory
-- [ ] Build artifacts map from source run for template access
+- [x] When `--from-run` is specified, load artifacts from source run
+- [x] Copy artifact paths to new run's context
+- [x] Do NOT modify source run's artifacts directory
+- [x] Build artifacts map from source run for template access
 
 ### Task 5: Validate Phase Requirements
-- [ ] If phase > "plan" and no `--from-run`, check for needed artifacts
-- [ ] Raise ConfigError if required artifacts missing
-- [ ] Suggest using `--from-run` in error message
+- [x] If phase > "plan" and no `--from-run`, check for needed artifacts
+- [x] Raise ConfigError if required artifacts missing
+- [x] Suggest using `--from-run` in error message
 
 ### Task 6: Store Artifacts in Current Run
-- [ ] Create artifact directory for new run
-- [ ] Store phase output in new run's artifacts
-- [ ] Update new run's context with artifact paths
-- [ ] Keep source run unchanged
+- [x] Create artifact directory for new run
+- [x] Store phase output in new run's artifacts
+- [x] Update new run's context with artifact paths
+- [x] Keep source run unchanged
 
 ### Task 7: Handle Phase Dependencies
-- [ ] For "verify" phase: ensure build artifacts available
-- [ ] For "validate" phase: ensure verify artifacts available
-- [ ] For "document" phase: ensure all previous artifacts available
-- [ ] Map phase to required previous phases
+- [x] For "verify" phase: ensure build artifacts available
+- [x] For "validate" phase: ensure verify artifacts available
+- [x] For "document" phase: ensure all previous artifacts available
+- [x] Map phase to required previous phases
 
 ### Task 8: Write Unit Tests
-- [ ] Create `tests/unit/cli/test_run_single_phase.py`
-- [ ] Test --phase flag parsing
-- [ ] Test --from-run validation
-- [ ] Test single phase execution
-- [ ] Test artifact loading from source run
-- [ ] Test artifact storage in new run
-- [ ] Target: >90% coverage
+- [x] Create `tests/unit/cli/test_run.py`
+- [x] Test --phase flag parsing
+- [x] Test --from-run validation
+- [x] Test single phase execution
+- [x] Test artifact loading from source run
+- [x] Test artifact storage in new run
+- [x] Target: >90% coverage
 
 ### Task 9: Write Integration Tests
-- [ ] Test `adw run --phase plan --feature "X"`
-- [ ] Test `adw run --phase build --from-run <id>`
-- [ ] Test artifacts not copied to source run
-- [ ] Test complete single-phase workflow
+- [x] Test `adw run --phase plan --feature "X"`
+- [x] Test `adw run --phase build --from-run <id>`
+- [x] Test artifacts not copied to source run
+- [x] Test complete single-phase workflow
 
 ---
 
@@ -611,6 +611,20 @@ Story 5.4 implements single-phase execution mode, allowing developers to run ind
 ### Completion Notes List
 
 ### File List
+
+**Modified:**
+- `src/adw/cli/app.py` - Added --phase and --from-run flags, wired to orchestrator
+- `src/adw/core/orchestrator.py` - Added run_single_phase() method with artifact loading
+- `src/adw/core/phase_runner.py` - Added artifacts_override parameter support
+
+**New:**
+- `src/adw/cli/bootstrap.py` - Factory function for creating orchestrator with dependencies
+
+**Tests:**
+- `tests/unit/cli/test_run.py` - Unit tests for CLI flag parsing and validation
+- `tests/unit/core/test_orchestrator.py` - Unit tests for run_single_phase()
+- `tests/integration/cli/test_progress_integration.py` - Integration tests for progress display
+- `tests/integration/core/test_orchestrator_integration.py` - Integration tests for orchestrator
 
 ---
 
