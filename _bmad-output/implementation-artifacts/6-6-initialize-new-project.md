@@ -52,12 +52,12 @@ So that I can start using adw in my repository.
 - [x] Create `.gitignore` for `.adw/runs/` directory
 
 ### Task 3: Implement Project Type Detection
-- [ ] Use `ProjectTypeDetector` from Story 6.1
-- [ ] Detect Python via `pyproject.toml`, `setup.py`, `requirements.txt`
-- [ ] Detect Node.js via `package.json`
-- [ ] Detect Go via `go.mod`
-- [ ] Detect Rust via `Cargo.toml`
-- [ ] Set appropriate defaults for each type
+- [x] Use `ProjectTypeDetector` from Story 6.1
+- [x] Detect Python via `pyproject.toml`, `setup.py`, `requirements.txt`
+- [x] Detect Node.js via `package.json`
+- [x] Detect Go via `go.mod`
+- [x] Detect Rust via `Cargo.toml`
+- [x] Set appropriate defaults for each type
 
 ### Task 4: Generate Project Configuration
 - [ ] Create `project.yaml` with detected settings
