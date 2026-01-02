@@ -303,3 +303,76 @@ class TestArtifactsInTemplateVariables:
             )
 
         assert "# My Plan" in result
+
+
+class TestWildcardPattern:
+    """Tests for wildcard pattern {{artifacts.build.*}} in templates."""
+
+    def test_wildcard_lists_all_artifacts_in_phase(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that {{artifacts.build.*}} lists all build artifacts."""
+        template = "Build artifacts:\n{{artifacts.build.*}}"
+        context = {
+            "artifacts": {
+                "build": {
+                    "diff": "git diff output",
+                    "output": "build summary",
+                }
+            }
+        }
+
+        result = template_engine.render(template, context)
+
+        assert "diff" in result
+        assert "output" in result
+
+    def test_wildcard_returns_empty_for_missing_phase(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that {{artifacts.missing.*}} returns empty for non-existent phase."""
+        template = "Missing: {{artifacts.missing.*}}"
+        context = {"artifacts": {"plan": {"plan": "content"}}}
+
+        result = template_engine.render(template, context, strict=False)
+
+        assert "Missing:" in result
+
+    def test_wildcard_shows_artifact_content_preview(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that wildcard shows artifact content with truncation for long values."""
+        template = "{{artifacts.plan.*}}"
+        context = {
+            "artifacts": {
+                "plan": {
+                    "plan": "Short content",
+                    "notes": "a" * 300,  # Long content
+                }
+            }
+        }
+
+        result = template_engine.render(template, context)
+
+        assert "plan: Short content" in result
+        assert "notes:" in result
+        assert "..." in result  # Truncated
+
+    def test_nested_dict_access_still_works(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that normal nested access {{artifacts.plan.plan}} still works."""
+        template = "{{artifacts.plan.plan}}"
+        context = {
+            "artifacts": {
+                "plan": {"plan": "# My Implementation Plan"}
+            }
+        }
+
+        result = template_engine.render(template, context)
+
+        assert result == "# My Implementation Plan"

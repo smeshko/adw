@@ -22,8 +22,8 @@ from adw.exceptions import ConfigError
 logger = logging.getLogger(__name__)
 
 # Compile patterns once at module level for efficiency
-# Matches {{variable}} or {{variable.nested.path}}
-VARIABLE_PATTERN = re.compile(r"\{\{([a-z_][a-z0-9_.]*)\}\}")
+# Matches {{variable}} or {{variable.nested.path}} or {{variable.*}} for wildcards
+VARIABLE_PATTERN = re.compile(r"\{\{([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
 # Matches {{file:path/to/file.txt}}
 FILE_PATTERN = re.compile(r"\{\{file:([^}]+)\}\}")
 
@@ -111,16 +111,25 @@ class TemplateEngine:
     ) -> Any:
         """Resolve a dot-notation variable path to its value.
 
+        Supports wildcard patterns like "artifacts.build.*" which expands
+        to list all keys at that level.
+
         Args:
             path: Dot-separated path (e.g., "context.nested.value").
+                  Use ".*" suffix for wildcard expansion.
             context: Dictionary to look up values in.
 
         Returns:
-            The resolved value.
+            The resolved value. For wildcards, returns a formatted string
+            listing all keys/values at that level.
 
         Raises:
             KeyError: If the path cannot be resolved.
         """
+        # Handle wildcard pattern
+        if path.endswith(".*"):
+            return self._resolve_wildcard(path[:-2], context)
+
         parts = path.split(".")
         value: Any = context
 
@@ -136,6 +145,47 @@ class TemplateEngine:
                 value = getattr(value, part)
 
         return value
+
+    def _resolve_wildcard(
+        self,
+        path: str,
+        context: dict[str, Any],
+    ) -> str:
+        """Resolve a wildcard path to list all items at that level.
+
+        For example, "artifacts.build" with wildcard expands to list
+        all artifacts in the build phase.
+
+        Args:
+            path: Dot-separated path without the ".*" suffix.
+            context: Dictionary to look up values in.
+
+        Returns:
+            Formatted string listing all keys at the target level.
+            Returns empty string if path doesn't exist or target is empty.
+        """
+        try:
+            value = self._resolve_variable(path, context) if path else context
+        except KeyError:
+            return ""
+
+        if isinstance(value, dict):
+            if not value:
+                return ""
+            # Format as newline-separated list of key: value
+            lines = []
+            for key, content in value.items():
+                # Truncate long values for display
+                if isinstance(content, str) and len(content) > 200:
+                    preview = content[:200] + "..."
+                else:
+                    preview = str(content)
+                lines.append(f"- {key}: {preview}")
+            return "\n".join(lines)
+        elif isinstance(value, list):
+            return "\n".join(f"- {item}" for item in value)
+        else:
+            return str(value)
 
     def _process_variables(
         self,

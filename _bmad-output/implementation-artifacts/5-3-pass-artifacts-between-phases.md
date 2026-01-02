@@ -52,9 +52,9 @@ so that the pipeline builds on previous outputs.
 - [x] Build nested structure: `{phase: {artifact: content}}`
 
 ### Task 4: Update Template Engine for Artifacts
-- [ ] Ensure template engine handles nested dict access: `{{artifacts.plan.plan}}`
-- [ ] Support wildcard pattern `{{artifacts.build.*}}` (list all)
-- [ ] Test template variable resolution
+- [x] Ensure template engine handles nested dict access: `{{artifacts.plan.plan}}`
+- [x] Support wildcard pattern `{{artifacts.build.*}}` (list all)
+- [x] Test template variable resolution
 
 ### Task 5: Implement Strict Mode for Missing Artifacts
 - [ ] Add `strict_artifacts` config option (default: False)
@@ -472,10 +472,12 @@ Story 5.3 implements artifact passing between phases, enabling later phases to a
 - Task 1: Extended `_load_and_render_prompt()` to include artifact content from previous phases. Added `_build_artifacts_map()` method that loads artifacts by phase, strips file extensions for clean template access (`plan.md` → `artifacts.plan.plan`).
 - Task 2: Extracted `_load_phase_artifacts()` helper method for loading all artifacts from a single phase with extension stripping. Refactored `_build_artifacts_map()` to use this helper.
 - Task 3: Verified `_build_artifacts_map()` correctly iterates PHASE_SEQUENCE and builds nested `{phase: {artifact: content}}` structure. Already implemented in Task 1.
+- Task 4: Added wildcard pattern support (`{{artifacts.build.*}}`) to template engine via `_resolve_wildcard()` method. Lists all artifacts in a phase with content previews.
 
 ### File List
 
 - src/adw/core/phase_runner.py (MODIFIED)
+- src/adw/commands/template.py (MODIFIED)
 - tests/unit/core/test_artifact_passing.py (NEW)
 
 ---
