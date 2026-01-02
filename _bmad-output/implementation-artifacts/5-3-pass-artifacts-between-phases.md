@@ -1,6 +1,6 @@
 # Story 5.3: Pass Artifacts Between Phases
 
-Status: ready-for-dev
+Status: code-review
 Linear Issue: not-configured
 Epic: 5 - Pipeline Orchestration
 Created: 2026-01-02
@@ -83,10 +83,10 @@ so that the pipeline builds on previous outputs.
 - [x] Target: >90% coverage
 
 ### Task 9: Write Integration Tests
-- [ ] Test plan artifact flows to build phase
-- [ ] Test build artifact flows to verify phase
-- [ ] Test full pipeline artifact continuity
-- [ ] Test artifact content integrity
+- [x] Test plan artifact flows to build phase
+- [x] Test build artifact flows to verify phase
+- [x] Test full pipeline artifact continuity
+- [x] Test artifact content integrity
 
 ---
 
@@ -477,12 +477,14 @@ Story 5.3 implements artifact passing between phases, enabling later phases to a
 - Task 6: Verified naming conventions already implemented (extension stripping). Added tests confirming `plan.md` → `artifacts.plan.plan` and similar patterns.
 - Task 7: Verified wildcard patterns from Task 4 already support discovery: `{{artifacts.plan.*}}` lists plan artifacts, `{{artifacts.*}}` lists all phases.
 - Task 8: All unit tests written throughout tasks 1-7. 28 tests covering all requirements. Project coverage: 93.25%.
+- Task 9: Created 11 integration tests in `test_artifact_flow_integration.py`. Tests cover plan→build, build→verify, full pipeline continuity, and content integrity.
 
 ### File List
 
 - src/adw/core/phase_runner.py (MODIFIED)
 - src/adw/commands/template.py (MODIFIED)
 - tests/unit/core/test_artifact_passing.py (NEW)
+- tests/integration/core/test_artifact_flow_integration.py (NEW)
 
 ---
 
