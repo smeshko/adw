@@ -472,8 +472,6 @@ class TestArtifactManagerErrorHandling:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Test that store raises StateError when write fails."""
-        from unittest.mock import mock_open, patch
-
         from adw.exceptions import StateError
 
         # Arrange - create run directory
@@ -481,7 +479,7 @@ class TestArtifactManagerErrorHandling:
         run_dir.mkdir(parents=True)
 
         # Mock open to raise OSError
-        def mock_open_error(*args, **kwargs):
+        def mock_open_error(*args: object, **kwargs: object) -> None:
             raise OSError("Disk full")
 
         monkeypatch.setattr("builtins.open", mock_open_error)
@@ -510,10 +508,10 @@ class TestArtifactManagerErrorHandling:
         # Mock read_text to raise OSError after exists check passes
         original_read_text = Path.read_text
 
-        def mock_read_text(self, *args, **kwargs):
+        def mock_read_text(self: Path, *args: object, **kwargs: object) -> str:
             if self.name == "secret.txt":
                 raise OSError("Permission denied")
-            return original_read_text(self, *args, **kwargs)
+            return original_read_text(self, *args, **kwargs)  # type: ignore[arg-type]
 
         monkeypatch.setattr(Path, "read_text", mock_read_text)
 
