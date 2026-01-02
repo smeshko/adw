@@ -6,7 +6,7 @@ StateSnapshot captures the full run state at phase boundaries for:
 - Time-travel debugging (NFR13)
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -24,7 +24,7 @@ class TestStateSnapshotCreation:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -33,8 +33,8 @@ class TestStateSnapshotCreation:
         return PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             artifacts=["plan.md"],
             tokens_used=500,
         )
@@ -70,20 +70,20 @@ class TestStateSnapshotCreation:
 
     def test_timestamp_auto_generated(self, sample_context: RunContext) -> None:
         """Timestamp is auto-generated if not provided."""
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         snapshot = StateSnapshot(
             context=sample_context,
             phase_result=None,
             label="pre_plan",
             sequence=1,
         )
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
 
         assert before <= snapshot.timestamp <= after
 
     def test_explicit_timestamp(self, sample_context: RunContext) -> None:
         """Explicit timestamp is preserved."""
-        explicit_time = datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+        explicit_time = datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC)
         snapshot = StateSnapshot(
             context=sample_context,
             phase_result=None,
@@ -104,7 +104,7 @@ class TestStateSnapshotValidation:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     def test_context_is_required(self) -> None:
@@ -175,7 +175,7 @@ class TestStateSnapshotSerialization:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
+            started_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC),
         )
 
     @pytest.fixture
@@ -184,8 +184,8 @@ class TestStateSnapshotSerialization:
         return PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
-            completed_at=datetime(2024, 1, 15, 10, 31, 0, tzinfo=timezone.utc),
+            started_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC),
+            completed_at=datetime(2024, 1, 15, 10, 31, 0, tzinfo=UTC),
             artifacts=["plan.md"],
             tokens_used=500,
         )
@@ -197,7 +197,7 @@ class TestStateSnapshotSerialization:
         snapshot = StateSnapshot(
             context=sample_context,
             phase_result=sample_phase_result,
-            timestamp=datetime(2024, 1, 15, 10, 31, 0, tzinfo=timezone.utc),
+            timestamp=datetime(2024, 1, 15, 10, 31, 0, tzinfo=UTC),
             label="post_plan",
             sequence=2,
         )
@@ -228,7 +228,7 @@ class TestStateSnapshotSerialization:
         snapshot = StateSnapshot(
             context=sample_context,
             phase_result=sample_phase_result,
-            timestamp=datetime(2024, 1, 15, 10, 31, 0, tzinfo=timezone.utc),
+            timestamp=datetime(2024, 1, 15, 10, 31, 0, tzinfo=UTC),
             label="post_plan",
             sequence=2,
         )
@@ -287,7 +287,7 @@ class TestStateSnapshotLabels:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Test feature",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     def test_pre_plan_label(self, sample_context: RunContext) -> None:

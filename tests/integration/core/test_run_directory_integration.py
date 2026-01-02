@@ -4,7 +4,6 @@ These tests verify the full workflow of run directory creation and management
 as it would be used in a real project.
 """
 
-import os
 import subprocess
 import sys
 from datetime import datetime
@@ -12,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from adw.core.run_directory import RunDirectoryManager, RunInfo
+from adw.core.run_directory import RunDirectoryManager
 from adw.models import RunContext
 from adw.utils.ulid import generate_run_id
 

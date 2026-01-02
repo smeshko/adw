@@ -4,7 +4,7 @@ This module tests the functionality that makes artifacts from earlier phases
 available to later phases in templates, implementing Story 5.3.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -150,7 +150,9 @@ class TestBuildArtifactsMap:
         run_id = make_run_id()
 
         # Store plan artifact
-        artifact_manager.store(run_id, "plan", "plan.md", "# Implementation Plan\n\nStep 1: Do X")
+        artifact_manager.store(
+            run_id, "plan", "plan.md", "# Implementation Plan\n\nStep 1: Do X"
+        )
 
         result = phase_runner._build_artifacts_map(run_id, "build")
 
@@ -272,7 +274,7 @@ class TestArtifactsInTemplateVariables:
             run_id=run_id,
             feature_description="Test feature",
             current_phase="build",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
         # Create a prompt file

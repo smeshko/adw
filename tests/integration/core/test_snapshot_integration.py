@@ -5,13 +5,13 @@ with the RunDirectoryManager to create, list, and load snapshots
 across a full phase lifecycle.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from adw.core import RunDirectoryManager, SnapshotManager
-from adw.models import PhaseResult, PhaseStatus, RunContext, StateSnapshot
+from adw.models import PhaseResult, PhaseStatus, RunContext
 
 
 class TestPhaseLifecycleWithSnapshots:
@@ -29,7 +29,7 @@ class TestPhaseLifecycleWithSnapshots:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     def test_full_phase_lifecycle(
@@ -52,8 +52,8 @@ class TestPhaseLifecycleWithSnapshots:
         plan_result = PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             artifacts=["plan.md"],
             tokens_used=500,
         )
@@ -73,8 +73,8 @@ class TestPhaseLifecycleWithSnapshots:
         build_result = PhaseResult(
             phase="build",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             artifacts=["src/auth.py"],
             tokens_used=1200,
         )
@@ -106,8 +106,8 @@ class TestPhaseLifecycleWithSnapshots:
         phase_result = PhaseResult(
             phase="verify",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
-            completed_at=datetime(2024, 1, 15, 10, 35, 0, tzinfo=timezone.utc),
+            started_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC),
+            completed_at=datetime(2024, 1, 15, 10, 35, 0, tzinfo=UTC),
             artifacts=["test_results.xml", "coverage.xml"],
             tokens_used=750,
         )
@@ -145,7 +145,7 @@ class TestSnapshotListingAcrossPhases:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Test feature",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     def test_list_snapshots_sorted_by_sequence(
@@ -166,8 +166,8 @@ class TestSnapshotListingAcrossPhases:
             result = PhaseResult(
                 phase=phase,
                 status=PhaseStatus.COMPLETED,
-                started_at=datetime.now(timezone.utc),
-                completed_at=datetime.now(timezone.utc),
+                started_at=datetime.now(UTC),
+                completed_at=datetime.now(UTC),
             )
             snapshot_manager.create_post_phase_snapshot(context, phase, result)
 
@@ -233,7 +233,7 @@ class TestSnapshotRecovery:
             feature_description="Add user authentication",
             current_phase="build",
             phase_history=["plan"],
-            started_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc),
+            started_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
             phase_tokens={"plan": 500},
         )
 
@@ -246,8 +246,8 @@ class TestSnapshotRecovery:
         plan_result = PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc),
-            completed_at=datetime(2024, 1, 15, 10, 5, 0, tzinfo=timezone.utc),
+            started_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
+            completed_at=datetime(2024, 1, 15, 10, 5, 0, tzinfo=UTC),
             artifacts=["plan.md"],
             tokens_used=500,
         )
@@ -280,7 +280,7 @@ class TestSnapshotRecovery:
             feature_description="Test feature",
             current_phase="build",
             phase_history=["plan"],
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
         run_dir_manager = RunDirectoryManager(project_root)
@@ -318,13 +318,13 @@ class TestMultipleRunsIsolation:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Feature 1",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
         context2 = RunContext(
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSR",
             feature_description="Feature 2",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
         run_dir_manager.create(context1)

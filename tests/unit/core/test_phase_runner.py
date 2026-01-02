@@ -5,23 +5,21 @@ pre-hook → prompt loading → LLM execution → post-hook → artifact capture
 """
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from adw.core.artifact_manager import ArtifactManager
-from adw.core.phase_runner import PhaseRunner
 from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
-from adw.exceptions import ADWError, CommandError, HookError, LLMError
+from adw.core.artifact_manager import ArtifactManager
+from adw.core.phase_runner import PhaseRunner
+from adw.exceptions import CommandError, HookError, LLMError
 from adw.hooks.runner import HookRunner
 from adw.models import (
-    HookConfig,
     HookResult,
     LLMResult,
-    LoadedCommand,
     PhaseResult,
     PhaseStatus,
     ResolvedCommand,
@@ -37,7 +35,7 @@ def sample_context() -> RunContext:
         run_id="01HQXH9Z8G2K4M5N6P7R8S9T0V",
         feature_description="Add user authentication",
         current_phase="plan",
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
     )
 
 

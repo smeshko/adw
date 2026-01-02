@@ -14,7 +14,7 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -156,7 +156,7 @@ class SnapshotManager:
         snapshot = StateSnapshot(
             context=context,
             phase_result=phase_result,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             label=label,
             sequence=sequence,
         )

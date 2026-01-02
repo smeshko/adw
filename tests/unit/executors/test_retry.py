@@ -1,6 +1,5 @@
 """Tests for RetryExecutor wrapper."""
 
-from unittest.mock import AsyncMock, patch
 
 import pytest
 

@@ -6,9 +6,8 @@ SnapshotManager creates, lists, and loads state snapshots at phase boundaries fo
 - Time-travel debugging (NFR13)
 """
 
-import json
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -43,7 +42,7 @@ class TestPrePhaseSnapshot:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -103,7 +102,7 @@ class TestPostPhaseSnapshot:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -112,8 +111,8 @@ class TestPostPhaseSnapshot:
         return PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             artifacts=["plan.md"],
             tokens_used=500,
         )
@@ -153,7 +152,7 @@ class TestSequentialNumbering:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -162,8 +161,8 @@ class TestSequentialNumbering:
         return PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -214,7 +213,7 @@ class TestSnapshotListing:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -223,8 +222,8 @@ class TestSnapshotListing:
         return PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -277,7 +276,7 @@ class TestSnapshotLoading:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -286,8 +285,8 @@ class TestSnapshotLoading:
         return PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             tokens_used=500,
         )
 
@@ -381,7 +380,7 @@ class TestPerformance:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture
@@ -416,7 +415,7 @@ class TestSequenceCache:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
             current_phase="plan",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
     @pytest.fixture

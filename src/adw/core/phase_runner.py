@@ -8,16 +8,15 @@ post-hook → artifact capture.
 import logging
 import os
 import re
-from datetime import datetime, timezone
-from pathlib import Path
 from collections.abc import Callable
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from adw.core.constants import PHASE_SEQUENCE
-from adw.exceptions import ADWError, CommandError, ConfigError, HookError, LLMError
+from adw.exceptions import ADWError, ConfigError, HookError, LLMError
 from adw.hooks.runner import find_hook
 from adw.models import (
-    HookResult,
     LLMResult,
     PhaseResult,
     PhaseStatus,
@@ -122,7 +121,7 @@ class PhaseRunner:
             CommandError: If command resolution/template fails.
             LLMError: If LLM execution fails.
         """
-        started_at = datetime.now(timezone.utc)
+        started_at = datetime.now(UTC)
         logger.info("Phase starting", extra={"phase": phase, "run_id": context.run_id})
 
         # Resolve command once for all steps
@@ -147,7 +146,7 @@ class PhaseRunner:
             artifacts = self._capture_artifacts(phase, context, llm_result)
 
             # Build successful result
-            completed_at = datetime.now(timezone.utc)
+            completed_at = datetime.now(UTC)
             result = PhaseResult(
                 phase=phase,
                 status=PhaseStatus.COMPLETED,
@@ -172,7 +171,7 @@ class PhaseRunner:
 
         except ADWError as e:
             # Capture partial state for debugging
-            completed_at = datetime.now(timezone.utc)
+            completed_at = datetime.now(UTC)
             failed_result = PhaseResult(
                 phase=phase,
                 status=PhaseStatus.FAILED,
@@ -339,7 +338,7 @@ class PhaseRunner:
             # Parse the reference path (e.g., "plan.plan" or "build.diff")
             parts = ref_path.split(".")
             if len(parts) < 2:
-                # Single part like "plan" - this accesses the phase dict, not an artifact
+                # Single part like "plan" - accesses phase dict, not artifact
                 continue
 
             phase_name = parts[0]
@@ -412,7 +411,7 @@ class PhaseRunner:
             # Strip extension: plan.md -> plan
             name = Path(artifact["name"]).stem
             content = self.artifact_manager.get(run_id, phase, artifact["name"])
-            if content:
+            if content and isinstance(content, str):
                 phase_map[name] = content
 
         logger.debug(

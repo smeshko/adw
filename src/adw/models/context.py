@@ -4,7 +4,7 @@ This module contains models for tracking run context, session context,
 and project context throughout the ADW workflow execution.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
@@ -220,7 +220,7 @@ class StateSnapshot(BaseModel):
         default=None, description="Phase result (only for post-phase snapshots)"
     )
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="When snapshot was created",
     )
     label: str = Field(..., description="Human-readable label (e.g., 'pre_plan')")

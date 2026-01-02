@@ -5,9 +5,9 @@ including phase start/completion display, LLM progress with spinner,
 and overall progress bar.
 """
 
+from datetime import UTC
 from io import StringIO
 
-import pytest
 from rich.console import Console
 
 from adw.cli.progress import ProgressDisplay
@@ -206,7 +206,7 @@ class TestPhaseComplete:
 
     def test_on_phase_complete_shows_metrics(self) -> None:
         """Test that phase completion shows duration and artifacts."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         from adw.models import PhaseResult, PhaseStatus
 
@@ -217,8 +217,8 @@ class TestPhaseComplete:
         result = PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             artifacts=["plan.md"],
             tokens_used=500,
         )
@@ -232,7 +232,7 @@ class TestPhaseComplete:
 
     def test_on_phase_complete_shows_checkmark(self) -> None:
         """Test that phase completion shows green checkmark."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         from adw.models import PhaseResult, PhaseStatus
 
@@ -243,8 +243,8 @@ class TestPhaseComplete:
         result = PhaseResult(
             phase="build",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             artifacts=[],
             tokens_used=100,
         )
@@ -257,7 +257,7 @@ class TestPhaseComplete:
 
     def test_on_phase_complete_shows_artifact_count(self) -> None:
         """Test that phase completion shows artifact count."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         from adw.models import PhaseResult, PhaseStatus
 
@@ -268,8 +268,8 @@ class TestPhaseComplete:
         result = PhaseResult(
             phase="verify",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             artifacts=["a.md", "b.md", "c.md"],
             tokens_used=250,
         )
@@ -283,7 +283,7 @@ class TestPhaseComplete:
 
     def test_on_phase_complete_shows_duration(self) -> None:
         """Test that phase completion shows duration."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         from adw.models import PhaseResult, PhaseStatus
 
@@ -292,7 +292,7 @@ class TestPhaseComplete:
         progress = ProgressDisplay(console)
 
         # Create a result with known duration (duration_ms property calculates it)
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         result = PhaseResult(
             phase="validate",
             status=PhaseStatus.COMPLETED,
@@ -431,7 +431,7 @@ class TestProgressBar:
 
     def test_show_progress_bar_after_completion(self) -> None:
         """Test that progress bar shows updated percentage after phase completes."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         from adw.models import PhaseResult, PhaseStatus
 
@@ -442,8 +442,8 @@ class TestProgressBar:
         result = PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             artifacts=[],
             tokens_used=100,
         )
@@ -479,7 +479,7 @@ class TestProgressBar:
 
     def test_completed_phases_tracked(self) -> None:
         """Test that completed phases are tracked correctly."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         from adw.models import PhaseResult, PhaseStatus
 
@@ -490,8 +490,8 @@ class TestProgressBar:
         result = PhaseResult(
             phase="plan",
             status=PhaseStatus.COMPLETED,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             artifacts=[],
             tokens_used=100,
         )

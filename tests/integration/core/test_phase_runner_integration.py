@@ -4,8 +4,7 @@ Tests the full phase execution flow with real components (except Claude Code).
 Uses MockExecutor to simulate LLM execution without requiring Claude Code.
 """
 
-import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -18,8 +17,6 @@ from adw.executors.mock import MockExecutor
 from adw.hooks.runner import HookRunner
 from adw.models import (
     HookConfig,
-    HookResult,
-    PhaseResult,
     PhaseStatus,
     RunContext,
 )
@@ -79,7 +76,7 @@ def sample_context() -> RunContext:
         run_id="01HQXH9Z8G2K4M5N6P7R8S9T0V",
         feature_description="Add user authentication with OAuth2",
         current_phase="plan",
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
     )
 
 

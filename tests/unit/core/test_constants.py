@@ -4,7 +4,6 @@ This module tests the PHASE_SEQUENCE constant that defines the fixed
 order of phase execution in the ADW pipeline.
 """
 
-import pytest
 
 
 class TestPhaseSequence:
