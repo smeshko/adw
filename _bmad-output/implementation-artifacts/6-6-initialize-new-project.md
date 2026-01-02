@@ -45,11 +45,11 @@ So that I can start using adw in my repository.
 - [x] Register command in main app
 
 ### Task 2: Create Project Initialization Logic
-- [ ] Create `src/adw/config/initializer.py` with `ProjectInitializer` class
-- [ ] Implement `initialize()` method
-- [ ] Create `.adw/` directory structure
-- [ ] Generate `project.yaml` with detected/default settings
-- [ ] Create `.gitignore` for `.adw/runs/` directory
+- [x] Create `src/adw/config/initializer.py` with `ProjectInitializer` class
+- [x] Implement `initialize()` method
+- [x] Create `.adw/` directory structure
+- [x] Generate `project.yaml` with detected/default settings
+- [x] Create `.gitignore` for `.adw/runs/` directory
 
 ### Task 3: Implement Project Type Detection
 - [ ] Use `ProjectTypeDetector` from Story 6.1
