@@ -34,10 +34,10 @@ so that users understand what's happening.
 ## Tasks / Subtasks
 
 ### Task 1: Create ProgressDisplay Class
-- [ ] Create `src/adw/cli/progress.py`
-- [ ] Implement `ProgressDisplay` class using Rich
-- [ ] Accept `Console` instance for output
-- [ ] Track current phase and overall progress
+- [x] Create `src/adw/cli/progress.py`
+- [x] Implement `ProgressDisplay` class using Rich
+- [x] Accept `Console` instance for output
+- [x] Track current phase and overall progress
 
 ### Task 2: Implement Phase Start Display
 - [ ] Add `on_phase_start(phase: str)` method
