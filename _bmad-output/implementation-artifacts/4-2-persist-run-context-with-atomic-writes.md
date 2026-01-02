@@ -1,6 +1,6 @@
 # Story 4.2: Persist Run Context with Atomic Writes
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 4 - State Persistence & Context Management
 Created: 2026-01-01
@@ -38,48 +38,48 @@ so that power loss or crashes don't corrupt state (ASR-5).
 ## Tasks / Subtasks
 
 ### Task 1: Enhance ContextManager with Atomic Writes
-- [ ] Update `src/adw/core/context_manager.py` with atomic save
-- [ ] Implement write-to-temp-then-rename pattern
-- [ ] Add fsync for data durability guarantee
-- [ ] Handle write errors gracefully
+- [x] Update `src/adw/core/context_manager.py` with atomic save
+- [x] Implement write-to-temp-then-rename pattern
+- [x] Add fsync for data durability guarantee
+- [x] Handle write errors gracefully
 
 ### Task 2: Implement Temp File Pattern
-- [ ] Create temp file in same directory (for atomic rename)
-- [ ] Use `.context.json.tmp` naming pattern
-- [ ] Clean up temp files on error
-- [ ] Ensure rename is atomic on POSIX systems
+- [x] Create temp file in same directory (for atomic rename)
+- [x] Use `.context.json.tmp` naming pattern
+- [x] Clean up temp files on error
+- [x] Ensure rename is atomic on POSIX systems
 
 ### Task 3: Implement fsync for Durability
-- [ ] Call `f.flush()` before close
-- [ ] Call `os.fsync(f.fileno())` for disk sync
-- [ ] Consider platform-specific durability
+- [x] Call `f.flush()` before close
+- [x] Call `os.fsync(f.fileno())` for disk sync
+- [x] Consider platform-specific durability
 
 ### Task 4: Implement Load with Validation
-- [ ] Load JSON from `context.json`
-- [ ] Validate using Pydantic `model_validate_json()`
-- [ ] Handle missing file (return None or raise)
-- [ ] Handle invalid JSON with proper error
+- [x] Load JSON from `context.json`
+- [x] Validate using Pydantic `model_validate_json()`
+- [x] Handle missing file (return None or raise)
+- [x] Handle invalid JSON with proper error
 
 ### Task 5: Implement Corruption Detection
-- [ ] Catch JSON decode errors
-- [ ] Catch Pydantic validation errors
-- [ ] Raise StateError with code "CONTEXT_CORRUPTED"
-- [ ] Include suggestion to check snapshots
+- [x] Catch JSON decode errors
+- [x] Catch Pydantic validation errors
+- [x] Raise StateError with code "CONTEXT_CORRUPTED"
+- [x] Include suggestion to check snapshots
 
 ### Task 6: Add Lock Integration
-- [ ] Acquire run lock before save
-- [ ] Acquire run lock before load
-- [ ] Use context manager pattern
+- [x] Acquire run lock before save
+- [x] Acquire run lock before load
+- [x] Use context manager pattern
 
 ### Task 7: Write Unit Tests
-- [ ] Create/update `tests/unit/core/test_context_manager.py`
-- [ ] Test atomic write (temp file + rename)
-- [ ] Test fsync is called
-- [ ] Test load with valid context
-- [ ] Test load with corrupted file
-- [ ] Test load with missing file
-- [ ] Test lock acquisition
-- [ ] Target: >90% coverage
+- [x] Create/update `tests/unit/core/test_context_manager.py`
+- [x] Test atomic write (temp file + rename)
+- [x] Test fsync is called
+- [x] Test load with valid context
+- [x] Test load with corrupted file
+- [x] Test load with missing file
+- [x] Test lock acquisition
+- [x] Target: >90% coverage
 
 ### Task 8: Write Durability Tests
 - [ ] Test that partial writes don't corrupt
@@ -455,13 +455,24 @@ Story 4.2 implements atomic context persistence to ensure data durability and co
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Created `src/adw/core/context_manager.py` with ContextManager class
+- Implemented atomic save with temp file + rename pattern
+- Implemented fsync for data durability (NFR6 compliance)
+- Implemented load with Pydantic validation
+- Added corruption detection with StateError(code="CONTEXT_CORRUPTED")
+- Added lock integration with filelock.FileLock
+- Created comprehensive unit tests (13 tests, all passing)
+
 ### File List
+
+- `src/adw/core/context_manager.py` (created)
+- `tests/unit/core/test_context_manager.py` (created)
 
 ---
 
@@ -484,3 +495,4 @@ Story 4.2 implements atomic context persistence to ensure data durability and co
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-01 | BMAD Create-Story | Initial story creation with comprehensive context |
+| 2026-01-02 | Dev Agent | Implemented Tasks 1-7: ContextManager with atomic writes, unit tests |
