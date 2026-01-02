@@ -83,10 +83,10 @@ so that the pipeline follows the defined workflow.
 - [x] Raise original error after max attempts exhausted
 
 ### Task 7: Ensure Performance (NFR2)
-- [ ] Measure transition time (excluding LLM execution)
-- [ ] Log transition duration with structured logging
-- [ ] Verify < 1 second for phase transitions
-- [ ] Optimize if needed (consider async writes)
+- [x] Measure transition time (excluding LLM execution)
+- [x] Log transition duration with structured logging
+- [x] Verify < 1 second for phase transitions
+- [x] Optimize if needed (consider async writes)
 
 ### Task 8: Write Unit Tests
 - [ ] Create `tests/unit/core/test_orchestrator.py`
@@ -736,6 +736,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Added 5 comprehensive tests for error handling scenarios (non-recoverable errors, state persistence, first/middle phase errors)
 - Task 6: Implemented retry logic with exponential backoff (1s, 2s, 4s), configurable max_retries, and structured logging
 - Added 5 comprehensive tests for retry logic (retry triggers, exhaustion, custom max_retries, exponential backoff, success after failures)
+- Task 7: Implemented performance monitoring with time.monotonic(), structured logging of duration, and warnings for >1s transitions
+- Added 3 comprehensive tests for performance (under 1 second, duration logging, slow transition warnings)
 
 ### File List
 

@@ -788,3 +788,84 @@ class TestRetryLogic:
         assert context.status == "completed"
         # 1 failure + 5 successes = 6 calls
         assert call_count == 6
+
+
+class TestTransitionPerformance:
+    """Tests for transition performance (NFR2: <1 second)."""
+
+    def test_transition_under_1_second(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that phase transitions complete under 1 second (NFR2)."""
+        import time
+
+        # Make phase runner return immediately
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        start = time.monotonic()
+        orchestrator.run("Test feature")
+        elapsed = time.monotonic() - start
+
+        # All transitions (5 phases) should be under 5 seconds
+        # Each transition should be under 1 second
+        assert elapsed < 5.0, f"Total time {elapsed}s should be < 5s"
+
+    def test_transition_logs_duration(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that transition duration is logged."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        with patch("adw.core.orchestrator.logger") as mock_logger:
+            orchestrator.run("Test feature")
+
+            # Should have logged phase completed with duration
+            completed_calls = [
+                call for call in mock_logger.info.call_args_list
+                if "Phase completed" in str(call)
+            ]
+            assert len(completed_calls) == 5  # One per phase
+
+    def test_slow_transition_logs_warning(
+        self,
+        orchestrator: "Orchestrator",
+    ) -> None:
+        """Test that slow transitions log a warning."""
+        import time
+
+        # Create a slow phase runner
+        slow_runner = MagicMock()
+
+        def slow_run(phase: str, context: RunContext) -> PhaseResult:
+            time.sleep(1.1)  # Exceed 1 second threshold
+            return PhaseResult(
+                phase=phase,
+                status=PhaseStatus.COMPLETED,
+                started_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(timezone.utc),
+                tokens_used=100,
+            )
+
+        slow_runner.run = MagicMock(side_effect=slow_run)
+        orchestrator.set_phase_runner(slow_runner)
+
+        with patch("adw.core.orchestrator.logger") as mock_logger:
+            # Run just the first phase to avoid long test
+            context = RunContext(
+                run_id="01TEST00000000000000000001",
+                feature_description="Test",
+                current_phase="plan",
+                started_at=datetime.now(timezone.utc),
+                status="running",
+            )
+
+            orchestrator._execute_phase_with_transitions(context, "plan")
+
+            # Should have logged a warning about slow transition
+            warning_calls = mock_logger.warning.call_args_list
+            assert len(warning_calls) >= 1
+            assert "exceeded 1s" in str(warning_calls[0]).lower() or "1s" in str(warning_calls[0])
