@@ -616,3 +616,175 @@ class TestErrorHandling:
 
         # Plan succeeded, build failed
         assert call_count == 2
+
+
+class TestRetryLogic:
+    """Tests for retry logic with recoverable errors."""
+
+    def test_recoverable_error_triggers_retry(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that recoverable errors trigger retries."""
+        call_count = 0
+
+        def side_effect(phase: str, context: RunContext) -> PhaseResult:
+            nonlocal call_count
+            call_count += 1
+            if phase == "plan" and call_count < 3:
+                raise LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="Request timed out",
+                    suggestion="Retry",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                    recoverable=True,
+                )
+            return PhaseResult(
+                phase=phase,
+                status=PhaseStatus.COMPLETED,
+                started_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(timezone.utc),
+                tokens_used=100,
+            )
+
+        mock_phase_runner.run.side_effect = side_effect
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run("Test feature")
+
+        # Should succeed after retries (2 failures + success on plan = 3, then 4 more phases)
+        assert context.status == "completed"
+        # Plan: 3 attempts (2 failures + 1 success) + 4 other phases = 7 calls
+        assert call_count == 7
+
+    def test_retry_exhaustion_raises_error(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that retry exhaustion raises the last error."""
+        # All attempts fail with recoverable error
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Request timed out",
+            suggestion="Retry",
+            timeout_seconds=300,
+            elapsed_seconds=300,
+            recoverable=True,
+        )
+        mock_phase_runner.run.side_effect = error
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        with pytest.raises(LLMTimeoutError):
+            orchestrator.run("Test feature")
+
+        # Should have tried max_retries times
+        assert mock_phase_runner.run.call_count == 3  # default max_retries
+
+    def test_retry_with_custom_max_retries(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that max_retries can be customized."""
+        from adw.core.orchestrator import Orchestrator
+
+        runs_dir = tmp_path / "runs"
+        runs_dir.mkdir(parents=True, exist_ok=True)
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            max_retries=5,  # Custom max
+        )
+
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Timeout",
+            suggestion="Retry",
+            timeout_seconds=300,
+            elapsed_seconds=300,
+            recoverable=True,
+        )
+        mock_phase_runner.run.side_effect = error
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        with pytest.raises(LLMTimeoutError):
+            orchestrator.run("Test feature")
+
+        assert mock_phase_runner.run.call_count == 5
+
+    @patch("time.sleep")
+    def test_retry_uses_exponential_backoff(
+        self,
+        mock_sleep: MagicMock,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that retries use exponential backoff (1s, 2s, 4s)."""
+        # All attempts fail
+        error = LLMTimeoutError(
+            code="LLM_TIMEOUT",
+            message="Timeout",
+            suggestion="Retry",
+            timeout_seconds=300,
+            elapsed_seconds=300,
+            recoverable=True,
+        )
+        mock_phase_runner.run.side_effect = error
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        with pytest.raises(LLMTimeoutError):
+            orchestrator.run("Test feature")
+
+        # Should have slept twice (before 2nd and 3rd attempt)
+        assert mock_sleep.call_count == 2
+        # First delay: 2^0 = 1, Second delay: 2^1 = 2
+        mock_sleep.assert_any_call(1)
+        mock_sleep.assert_any_call(2)
+
+    def test_retry_success_after_failures(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test successful completion after recoverable failures."""
+        call_count = 0
+
+        def side_effect(phase: str, context: RunContext) -> PhaseResult:
+            nonlocal call_count
+            call_count += 1
+            if phase == "plan" and call_count == 1:
+                raise LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="Timeout",
+                    suggestion="Retry",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                    recoverable=True,
+                )
+            return PhaseResult(
+                phase=phase,
+                status=PhaseStatus.COMPLETED,
+                started_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(timezone.utc),
+                tokens_used=100,
+            )
+
+        mock_phase_runner.run.side_effect = side_effect
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run("Test feature")
+
+        assert context.status == "completed"
+        # 1 failure + 5 successes = 6 calls
+        assert call_count == 6

@@ -76,11 +76,11 @@ so that the pipeline follows the defined workflow.
 - [x] Ensure partial state is always persisted on failure
 
 ### Task 6: Implement Retry Logic
-- [ ] Add `_retry_phase(context, phase, max_attempts)` method
-- [ ] Track retry count per phase
-- [ ] Use exponential backoff between retries (1s, 2s, 4s)
-- [ ] Log each retry attempt
-- [ ] Raise original error after max attempts exhausted
+- [x] Add `_retry_phase(context, phase, max_attempts)` method
+- [x] Track retry count per phase
+- [x] Use exponential backoff between retries (1s, 2s, 4s)
+- [x] Log each retry attempt
+- [x] Raise original error after max attempts exhausted
 
 ### Task 7: Ensure Performance (NFR2)
 - [ ] Measure transition time (excluding LLM execution)
@@ -734,6 +734,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Added 9 comprehensive tests for run() method behavior
 - Task 5: Implemented error handling with recoverable flag checking, status persistence, and structured logging
 - Added 5 comprehensive tests for error handling scenarios (non-recoverable errors, state persistence, first/middle phase errors)
+- Task 6: Implemented retry logic with exponential backoff (1s, 2s, 4s), configurable max_retries, and structured logging
+- Added 5 comprehensive tests for retry logic (retry triggers, exhaustion, custom max_retries, exponential backoff, success after failures)
 
 ### File List
 
