@@ -177,12 +177,6 @@ Wave 4: [5.4]
 
 ```
                     ┌─────────────────────────────────────┐
-                    │           EPIC 4 COMPLETE           │
-                    │    (State Persistence & Context)    │
-                    └─────────────────┬───────────────────┘
-                                      │
-                                      ▼
-                    ┌─────────────────────────────────────┐
                     │              [5.1]                  │
                     │   Implement Phase Sequence and     │
                     │          Transitions               │
@@ -214,12 +208,6 @@ Wave 4: [5.4]
         │   Execute Single       │
         │  Phase in Isolation    │
         │ (--phase, --from-run)  │
-        └────────────────────────┘
-                    │
-                    ▼
-        ┌────────────────────────┐
-        │     EPIC 5 COMPLETE    │
-        │  Pipeline Orchestration│
         └────────────────────────┘
 ```
 

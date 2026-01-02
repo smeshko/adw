@@ -50,12 +50,12 @@ so that the pipeline follows the defined workflow.
 - [x] Store `runs_dir: Path` for file operations
 
 ### Task 3: Implement Phase Transition Logic
-- [ ] Add `_transition_to_next_phase(context: RunContext, current_phase: str)` method
-- [ ] Calculate next phase from `PHASE_SEQUENCE`
-- [ ] Persist state via `context_manager.save()` before transition
-- [ ] Create post-phase snapshot via `snapshot_manager.create_post_phase_snapshot()`
-- [ ] Update `context.phase_history` with completed phase
-- [ ] Return updated `RunContext` (immutable update pattern)
+- [x] Add `_transition_to_next_phase(context: RunContext, current_phase: str)` method
+- [x] Calculate next phase from `PHASE_SEQUENCE`
+- [x] Persist state via `context_manager.save()` before transition
+- [x] Create post-phase snapshot via `snapshot_manager.create_post_phase_snapshot()`
+- [x] Update `context.phase_history` with completed phase
+- [x] Return updated `RunContext` (immutable update pattern)
 
 ### Task 4: Implement run() Method
 - [ ] Add `run(feature_description: str) -> RunContext` method
@@ -728,6 +728,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Exported PHASE_SEQUENCE from src/adw/core/__init__.py
 - Task 2: Created Orchestrator class with full dependency injection (ContextManager, SnapshotManager, ArtifactManager, RunDirectoryManager)
 - Added 11 unit tests for init, set_phase_runner, and get_next_phase
+- Task 3: Implemented _execute_phase_with_transitions with state persistence, snapshots, and immutable context updates
+- Added 6 comprehensive tests for phase transition behavior
 
 ### File List
 

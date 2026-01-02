@@ -216,3 +216,143 @@ class TestGetNextPhase:
     def test_get_next_phase_invalid_returns_none(self, orchestrator: "Orchestrator") -> None:
         """Test that invalid phase returns None."""
         assert orchestrator.get_next_phase("invalid") is None
+
+
+class TestPhaseTransitions:
+    """Tests for phase transition logic."""
+
+    def test_transition_persists_state_before_phase(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_context_manager: MagicMock,
+    ) -> None:
+        """Test that state is persisted before each phase execution."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Create a mock context
+        context = RunContext(
+            run_id="01TEST00000000000000000001",
+            feature_description="Test feature",
+            current_phase="plan",
+            started_at=datetime.now(timezone.utc),
+            status="running",
+        )
+
+        # Execute a single phase transition
+        result_context = orchestrator._execute_phase_with_transitions(context, "plan")
+
+        # Context should have been saved multiple times
+        # At minimum: once for updating current_phase, once after completion
+        assert mock_context_manager.save.call_count >= 2
+
+    def test_transition_creates_pre_phase_snapshot(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_snapshot_manager: MagicMock,
+    ) -> None:
+        """Test that pre-phase snapshot is created."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = RunContext(
+            run_id="01TEST00000000000000000001",
+            feature_description="Test feature",
+            current_phase="plan",
+            started_at=datetime.now(timezone.utc),
+            status="running",
+        )
+
+        orchestrator._execute_phase_with_transitions(context, "plan")
+
+        mock_snapshot_manager.create_pre_phase_snapshot.assert_called_once()
+        call_args = mock_snapshot_manager.create_pre_phase_snapshot.call_args
+        assert call_args[0][1] == "plan"  # phase argument
+
+    def test_transition_creates_post_phase_snapshot(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_snapshot_manager: MagicMock,
+    ) -> None:
+        """Test that post-phase snapshot is created."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = RunContext(
+            run_id="01TEST00000000000000000001",
+            feature_description="Test feature",
+            current_phase="plan",
+            started_at=datetime.now(timezone.utc),
+            status="running",
+        )
+
+        orchestrator._execute_phase_with_transitions(context, "plan")
+
+        mock_snapshot_manager.create_post_phase_snapshot.assert_called_once()
+        call_args = mock_snapshot_manager.create_post_phase_snapshot.call_args
+        assert call_args[0][1] == "plan"  # phase argument
+
+    def test_transition_updates_phase_history(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that phase_history is updated after transition."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = RunContext(
+            run_id="01TEST00000000000000000001",
+            feature_description="Test feature",
+            current_phase="plan",
+            phase_history=[],
+            started_at=datetime.now(timezone.utc),
+            status="running",
+        )
+
+        result_context = orchestrator._execute_phase_with_transitions(context, "plan")
+
+        assert "plan" in result_context.phase_history
+
+    def test_transition_updates_phase_tokens(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that phase_tokens is updated after transition."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = RunContext(
+            run_id="01TEST00000000000000000001",
+            feature_description="Test feature",
+            current_phase="plan",
+            phase_tokens={},
+            started_at=datetime.now(timezone.utc),
+            status="running",
+        )
+
+        result_context = orchestrator._execute_phase_with_transitions(context, "plan")
+
+        assert "plan" in result_context.phase_tokens
+        assert result_context.phase_tokens["plan"] == 100  # from mock
+
+    def test_transition_returns_updated_context(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that transition returns an updated context."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = RunContext(
+            run_id="01TEST00000000000000000001",
+            feature_description="Test feature",
+            current_phase="plan",
+            started_at=datetime.now(timezone.utc),
+            status="running",
+        )
+
+        result_context = orchestrator._execute_phase_with_transitions(context, "plan")
+
+        # Context should be immutably updated (different object)
+        assert result_context is not context
+        assert "plan" in result_context.phase_history
