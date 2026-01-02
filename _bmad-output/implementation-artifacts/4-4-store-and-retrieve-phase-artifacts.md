@@ -57,10 +57,10 @@ so that subsequent phases can access outputs from previous phases.
 - [x] Support reading partial content (head/tail)
 
 ### Task 4: Implement Artifact Listing
-- [ ] List all artifacts for a phase
-- [ ] List all artifacts across all phases
-- [ ] Include metadata (size, modified time)
-- [ ] Return sorted list
+- [x] List all artifacts for a phase
+- [x] List all artifacts across all phases
+- [x] Include metadata (size, modified time)
+- [x] Return sorted list
 
 ### Task 5: Track Artifact Paths in Context
 - [ ] Add `artifact_paths: dict[str, list[str]]` to RunContext
@@ -553,6 +553,7 @@ Story 4.4 implements artifact storage and retrieval for passing data between pha
 - Task 1: Created ArtifactManager class with store, get, list_artifacts, store_json, get_json, and get_artifact_paths methods. Used atomic write pattern (temp + fsync + rename). 17 unit tests added and passing.
 - Task 2: Artifact storage already implemented in Task 1. store() method creates phase directories, writes text/binary content, uses atomic writes. 4 dedicated tests pass.
 - Task 3: Added head/tail support to get() method for partial content retrieval. 3 new tests added (head, tail, precedence). 20 tests now pass.
+- Task 4: Artifact listing already implemented in Task 1. list_artifacts() supports phase filter, includes metadata (size, modified), returns sorted. 4 tests pass.
 
 ### File List
 
