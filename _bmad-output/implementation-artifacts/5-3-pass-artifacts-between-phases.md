@@ -1,6 +1,6 @@
 # Story 5.3: Pass Artifacts Between Phases
 
-Status: code-review
+Status: done
 Linear Issue: not-configured
 Epic: 5 - Pipeline Orchestration
 Created: 2026-01-02
@@ -473,18 +473,20 @@ Story 5.3 implements artifact passing between phases, enabling later phases to a
 - Task 2: Extracted `_load_phase_artifacts()` helper method for loading all artifacts from a single phase with extension stripping. Refactored `_build_artifacts_map()` to use this helper.
 - Task 3: Verified `_build_artifacts_map()` correctly iterates PHASE_SEQUENCE and builds nested `{phase: {artifact: content}}` structure. Already implemented in Task 1.
 - Task 4: Added wildcard pattern support (`{{artifacts.build.*}}`) to template engine via `_resolve_wildcard()` method. Lists all artifacts in a phase with content previews.
-- Task 5: Verified strict mode already works via template engine's `strict` parameter. Added comprehensive tests for strict/lenient behavior with missing artifacts.
+- Task 5: **[Code Review Fix]** Fully implemented `strict_artifacts` config option: Added `PipelineConfig` model with `strict_artifacts` field (default: False). Added `strict_artifacts` parameter to PhaseRunner. Added `_validate_artifact_references()` method that raises `ARTIFACT_NOT_FOUND` ConfigError when strict mode enabled. Logs warnings for missing artifacts regardless of mode.
 - Task 6: Verified naming conventions already implemented (extension stripping). Added tests confirming `plan.md` → `artifacts.plan.plan` and similar patterns.
-- Task 7: Verified wildcard patterns from Task 4 already support discovery: `{{artifacts.plan.*}}` lists plan artifacts, `{{artifacts.*}}` lists all phases.
-- Task 8: All unit tests written throughout tasks 1-7. 28 tests covering all requirements. Project coverage: 93.25%.
+- Task 7: Verified wildcard patterns from Task 4 already support discovery: `{{artifacts.plan.*}}` lists plan artifacts, `{{artifacts.*}}` lists all phases. **[Code Review Fix]** Improved wildcard formatting for nested dicts - now shows artifact keys instead of raw dict repr.
+- Task 8: All unit tests written throughout tasks 1-7. 41 tests covering all requirements including new strict_artifacts tests. Project coverage: 92.88%.
 - Task 9: Created 11 integration tests in `test_artifact_flow_integration.py`. Tests cover plan→build, build→verify, full pipeline continuity, and content integrity.
 
 ### File List
 
-- src/adw/core/phase_runner.py (MODIFIED)
-- src/adw/commands/template.py (MODIFIED)
-- tests/unit/core/test_artifact_passing.py (NEW)
-- tests/integration/core/test_artifact_flow_integration.py (NEW)
+- src/adw/core/phase_runner.py (MODIFIED) - Added strict_artifacts, _validate_artifact_references()
+- src/adw/commands/template.py (MODIFIED) - Improved _format_wildcard_value() for nested dicts
+- src/adw/models/config.py (MODIFIED) - Added PipelineConfig with strict_artifacts
+- src/adw/models/__init__.py (MODIFIED) - Export PipelineConfig
+- tests/unit/core/test_artifact_passing.py (NEW) - 41 tests
+- tests/integration/core/test_artifact_flow_integration.py (NEW) - 11 tests
 
 ---
 
@@ -506,3 +508,4 @@ Story 5.3 implements artifact passing between phases, enabling later phases to a
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-02 | BMAD Create-Story | Initial story creation with comprehensive context |
+| 2026-01-02 | Code Review | Fixed Task 5 (strict_artifacts config), improved wildcard formatting, added 13 new tests |

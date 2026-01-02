@@ -175,17 +175,45 @@ class TemplateEngine:
             # Format as newline-separated list of key: value
             lines = []
             for key, content in value.items():
-                # Truncate long values for display
-                if isinstance(content, str) and len(content) > 200:
-                    preview = content[:200] + "..."
-                else:
-                    preview = str(content)
+                preview = self._format_wildcard_value(content)
                 lines.append(f"- {key}: {preview}")
             return "\n".join(lines)
         elif isinstance(value, list):
             return "\n".join(f"- {item}" for item in value)
         else:
             return str(value)
+
+    def _format_wildcard_value(self, content: Any, max_length: int = 200) -> str:
+        """Format a value for wildcard expansion display.
+
+        Handles nested dicts (like artifact phase maps) by showing their keys
+        instead of raw dict repr. Truncates long strings.
+
+        Args:
+            content: The value to format.
+            max_length: Maximum length before truncation.
+
+        Returns:
+            Formatted string representation.
+        """
+        if isinstance(content, dict):
+            # For nested dicts (e.g., artifacts.* showing phase maps),
+            # show the available keys instead of raw dict repr
+            if not content:
+                return "(empty)"
+            keys = list(content.keys())
+            if len(keys) <= 3:
+                return f"[{', '.join(keys)}]"
+            return f"[{', '.join(keys[:3])}, ... ({len(keys)} total)]"
+        elif isinstance(content, str):
+            if len(content) > max_length:
+                return content[:max_length] + "..."
+            return content
+        else:
+            result = str(content)
+            if len(result) > max_length:
+                return result[:max_length] + "..."
+            return result
 
     def _process_variables(
         self,

@@ -562,3 +562,208 @@ class TestArtifactDiscoveryInTemplate:
         result = template_engine.render(template, context)
 
         assert result == "Artifacts: "
+
+
+class TestPhaseRunnerStrictArtifacts:
+    """Tests for PhaseRunner strict_artifacts mode (Task 5)."""
+
+    def test_strict_artifacts_default_is_false(
+        self,
+        phase_runner: PhaseRunner,
+    ) -> None:
+        """Test that strict_artifacts defaults to False."""
+        assert phase_runner.strict_artifacts is False
+
+    def test_strict_artifacts_can_be_set_to_true(
+        self,
+        artifact_manager: ArtifactManager,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that strict_artifacts can be set to True."""
+        mock_resolver = MagicMock()
+        mock_hook_runner = MagicMock()
+        mock_executor = MagicMock()
+
+        runner = PhaseRunner(
+            command_resolver=mock_resolver,
+            template_engine=template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=artifact_manager,
+            strict_artifacts=True,
+        )
+
+        assert runner.strict_artifacts is True
+
+    def test_validate_artifact_references_raises_artifact_not_found(
+        self,
+        artifact_manager: ArtifactManager,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that strict mode raises ARTIFACT_NOT_FOUND for missing artifacts."""
+        from adw.exceptions import ConfigError
+
+        mock_resolver = MagicMock()
+        mock_hook_runner = MagicMock()
+        mock_executor = MagicMock()
+
+        runner = PhaseRunner(
+            command_resolver=mock_resolver,
+            template_engine=template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=artifact_manager,
+            strict_artifacts=True,
+        )
+
+        template = "Use plan: {{artifacts.plan.plan}}"
+        artifacts_map: dict[str, dict[str, str]] = {}  # Empty - no artifacts
+
+        with pytest.raises(ConfigError) as exc_info:
+            runner._validate_artifact_references(template, artifacts_map)
+
+        assert exc_info.value.code == "ARTIFACT_NOT_FOUND"
+        assert "plan/plan" in exc_info.value.message
+
+    def test_validate_artifact_references_passes_when_exists(
+        self,
+        phase_runner: PhaseRunner,
+    ) -> None:
+        """Test that validation passes when artifacts exist."""
+        template = "Use plan: {{artifacts.plan.plan}}"
+        artifacts_map = {"plan": {"plan": "# My Plan"}}
+
+        # Should not raise
+        phase_runner._validate_artifact_references(template, artifacts_map)
+
+    def test_validate_artifact_references_skips_wildcards(
+        self,
+        phase_runner: PhaseRunner,
+    ) -> None:
+        """Test that wildcard patterns are not validated as specific artifacts."""
+        template = "List: {{artifacts.plan.*}} and {{artifacts.*}}"
+        artifacts_map: dict[str, dict[str, str]] = {}  # Empty
+
+        # Should not raise - wildcards don't require specific artifacts
+        phase_runner._validate_artifact_references(template, artifacts_map)
+
+    def test_lenient_mode_logs_warning_for_missing(
+        self,
+        phase_runner: PhaseRunner,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Test that lenient mode logs warning for missing artifacts."""
+        import logging
+
+        template = "Use plan: {{artifacts.plan.missing}}"
+        artifacts_map = {"plan": {"plan": "content"}}  # 'missing' doesn't exist
+
+        with caplog.at_level(logging.WARNING):
+            phase_runner._validate_artifact_references(template, artifacts_map)
+
+        # Should log warning even in lenient mode
+        assert "Missing artifact reference" in caplog.text
+
+
+class TestPipelineConfig:
+    """Tests for PipelineConfig model."""
+
+    def test_pipeline_config_defaults_strict_to_false(self) -> None:
+        """Test that PipelineConfig defaults strict_artifacts to False."""
+        from adw.models.config import PipelineConfig
+
+        config = PipelineConfig()
+        assert config.strict_artifacts is False
+
+    def test_pipeline_config_accepts_strict_true(self) -> None:
+        """Test that PipelineConfig can set strict_artifacts to True."""
+        from adw.models.config import PipelineConfig
+
+        config = PipelineConfig(strict_artifacts=True)
+        assert config.strict_artifacts is True
+
+    def test_project_config_has_pipeline_config(self) -> None:
+        """Test that ProjectConfig includes PipelineConfig."""
+        from adw.models.config import ProjectConfig
+
+        config = ProjectConfig(name="test", language="python")
+        assert hasattr(config, "pipeline")
+        assert config.pipeline.strict_artifacts is False
+
+    def test_project_config_pipeline_from_yaml(self) -> None:
+        """Test that pipeline config can be loaded from YAML."""
+        from adw.models.config import ProjectConfig
+
+        yaml_content = """
+name: test-project
+language: python
+pipeline:
+  strict_artifacts: true
+"""
+        config = ProjectConfig.from_yaml(yaml_content)
+        assert config.pipeline.strict_artifacts is True
+
+
+class TestWildcardNestedDictFormatting:
+    """Tests for improved wildcard formatting with nested dicts."""
+
+    def test_wildcard_formats_nested_dict_as_key_list(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that {{artifacts.*}} shows phase names with artifact keys."""
+        template = "Artifacts:\n{{artifacts.*}}"
+        context = {
+            "artifacts": {
+                "plan": {"plan": "content", "notes": "more content"},
+                "build": {"diff": "diff content"},
+            }
+        }
+
+        result = template_engine.render(template, context)
+
+        # Should show phase names with their artifact keys, not raw dict repr
+        assert "plan: [" in result
+        assert "build: [" in result
+        # Should NOT show raw dict format
+        assert "{'plan':" not in result
+
+    def test_wildcard_shows_few_keys_inline(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that phases with few artifacts show all keys."""
+        template = "{{artifacts.*}}"
+        context = {
+            "artifacts": {
+                "plan": {"plan": "p", "notes": "n"},
+            }
+        }
+
+        result = template_engine.render(template, context)
+
+        # Should show both keys
+        assert "plan, notes" in result or "notes, plan" in result
+
+    def test_wildcard_truncates_many_keys(
+        self,
+        template_engine: TemplateEngine,
+    ) -> None:
+        """Test that phases with many artifacts show truncated list."""
+        template = "{{artifacts.*}}"
+        context = {
+            "artifacts": {
+                "build": {
+                    "diff": "d",
+                    "output": "o",
+                    "summary": "s",
+                    "metrics": "m",
+                    "extra": "e",
+                },
+            }
+        }
+
+        result = template_engine.render(template, context)
+
+        # Should show truncated with count
+        assert "... (5 total)" in result

@@ -7,12 +7,13 @@ post-hook → artifact capture.
 
 import logging
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from adw.core.constants import PHASE_SEQUENCE
-from adw.exceptions import ADWError, CommandError, HookError, LLMError
+from adw.exceptions import ADWError, CommandError, ConfigError, HookError, LLMError
 from adw.hooks.runner import find_hook
 from adw.models import (
     HookResult,
@@ -32,6 +33,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Pattern to match artifact references in templates: {{artifacts.phase.name}}
+# Also matches wildcards like {{artifacts.phase.*}} and {{artifacts.*}}
+ARTIFACT_REF_PATTERN = re.compile(r"\{\{artifacts\.([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
+
 
 class PhaseRunner:
     """Executes a single phase of the ADW pipeline.
@@ -49,6 +54,7 @@ class PhaseRunner:
         hook_runner: Executes pre/post hooks
         executor: LLM executor (Claude Code or Mock)
         artifact_manager: Stores phase artifacts
+        strict_artifacts: If True, raise ConfigError for missing artifact refs
 
     Example:
         >>> runner = PhaseRunner(
@@ -57,6 +63,7 @@ class PhaseRunner:
         ...     hook_runner=hook_runner,
         ...     executor=executor,
         ...     artifact_manager=artifact_manager,
+        ...     strict_artifacts=True,
         ... )
         >>> result = runner.run("plan", context)
         >>> print(result.status)
@@ -70,6 +77,8 @@ class PhaseRunner:
         hook_runner: "HookRunner",
         executor: "LLMExecutor",
         artifact_manager: "ArtifactManager",
+        *,
+        strict_artifacts: bool = False,
     ) -> None:
         """Initialize the PhaseRunner.
 
@@ -79,12 +88,16 @@ class PhaseRunner:
             hook_runner: Executes pre/post hooks.
             executor: LLM executor (Claude Code or Mock).
             artifact_manager: Stores phase artifacts.
+            strict_artifacts: If True, raise ConfigError when a template
+                references a missing artifact. If False (default), missing
+                artifacts are replaced with empty strings.
         """
         self.command_resolver = command_resolver
         self.template_engine = template_engine
         self.hook_runner = hook_runner
         self.executor = executor
         self.artifact_manager = artifact_manager
+        self.strict_artifacts = strict_artifacts
 
     def run(self, phase: str, context: RunContext) -> PhaseResult:
         """Execute a single phase.
@@ -229,6 +242,13 @@ class PhaseRunner:
         """Load prompt template and render with variables.
 
         Includes artifact content from previous phases for template access.
+        Validates artifact references before rendering and raises ARTIFACT_NOT_FOUND
+        if strict_artifacts is enabled and an artifact is missing.
+
+        Template Artifact Access:
+            - {{artifacts.phase.name}} - Access specific artifact content
+            - {{artifacts.phase.*}} - List all artifacts in a phase
+            - {{artifacts.*}} - List all phases with artifacts
 
         Args:
             phase: Phase name.
@@ -241,6 +261,7 @@ class PhaseRunner:
 
         Raises:
             CommandError: If resolution or rendering fails.
+            ConfigError: If strict_artifacts=True and artifact not found.
         """
         logger.debug("Loading prompt", extra={"phase": phase})
 
@@ -250,6 +271,10 @@ class PhaseRunner:
 
         # Build artifacts map from previous phases (FR11)
         artifacts_map = self._build_artifacts_map(context.run_id, phase)
+
+        # Validate artifact references in template
+        # Raises ConfigError if strict_artifacts=True and artifact missing
+        self._validate_artifact_references(prompt_template, artifacts_map)
 
         # Build template variables
         variables = {
@@ -261,13 +286,91 @@ class PhaseRunner:
             "feature": context.feature_description,
         }
 
-        # Render template
-        rendered = self.template_engine.render(prompt_template, variables)
+        # Render template with strict matching artifact mode:
+        # - strict_artifacts=True: We validated artifacts, use strict=True for all vars
+        # - strict_artifacts=False: Lenient mode, allow missing refs to pass through
+        rendered = self.template_engine.render(
+            prompt_template, variables, strict=self.strict_artifacts
+        )
 
         logger.debug(
             "Prompt rendered", extra={"phase": phase, "prompt_len": len(rendered)}
         )
         return rendered
+
+    def _validate_artifact_references(
+        self,
+        template: str,
+        artifacts_map: dict[str, dict[str, str]],
+    ) -> None:
+        """Validate that all artifact references in template exist.
+
+        Scans the template for {{artifacts.phase.name}} patterns and validates
+        each reference exists in the artifacts map. Logs warnings for missing
+        artifacts regardless of strict mode.
+
+        Args:
+            template: The prompt template string.
+            artifacts_map: Available artifacts {phase: {name: content}}.
+
+        Raises:
+            ConfigError: If strict_artifacts=True and an artifact is missing.
+        """
+        # Find all artifact references in the template
+        matches = ARTIFACT_REF_PATTERN.findall(template)
+        if not matches:
+            return
+
+        missing_artifacts: list[str] = []
+
+        for ref_path in matches:
+            # Skip wildcard patterns - they don't require specific artifacts
+            if ref_path.endswith(".*") or ref_path == "*":
+                continue
+
+            # Parse the reference path (e.g., "plan.plan" or "build.diff")
+            parts = ref_path.split(".")
+            if len(parts) < 2:
+                # Single part like "plan" - this accesses the phase dict, not an artifact
+                continue
+
+            phase_name = parts[0]
+            artifact_name = parts[1]
+
+            # Check if artifact exists
+            if phase_name not in artifacts_map:
+                missing_artifacts.append(f"{phase_name}/{artifact_name}")
+                logger.warning(
+                    "Missing artifact reference in template",
+                    extra={
+                        "phase": phase_name,
+                        "artifact": artifact_name,
+                        "ref": f"artifacts.{ref_path}",
+                    },
+                )
+            elif artifact_name not in artifacts_map[phase_name]:
+                missing_artifacts.append(f"{phase_name}/{artifact_name}")
+                logger.warning(
+                    "Missing artifact reference in template",
+                    extra={
+                        "phase": phase_name,
+                        "artifact": artifact_name,
+                        "ref": f"artifacts.{ref_path}",
+                        "available": list(artifacts_map[phase_name].keys()),
+                    },
+                )
+
+        # Raise error if strict mode and artifacts missing
+        if self.strict_artifacts and missing_artifacts:
+            raise ConfigError(
+                code="ARTIFACT_NOT_FOUND",
+                message=f"Artifact(s) not found: {', '.join(missing_artifacts)}",
+                suggestion=(
+                    "Ensure the referenced phase(s) completed successfully and "
+                    "produced the expected artifacts. Check artifact naming "
+                    "(e.g., plan.md -> artifacts.plan.plan)."
+                ),
+            )
 
     def _load_phase_artifacts(
         self,
