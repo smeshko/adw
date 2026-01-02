@@ -85,14 +85,14 @@ So that I can start using adw in my repository.
 - [x] Use Rich Panel for formatted output
 
 ### Task 8: Write Unit Tests
-- [ ] Create `tests/unit/cli/test_init.py`
-- [ ] Test init in empty directory
-- [ ] Test init with Python project
-- [ ] Test init with Node.js project
-- [ ] Test init with existing .adw/ fails
-- [ ] Test init --force overwrites
-- [ ] Test generated config is valid YAML
-- [ ] Target: >80% coverage
+- [x] Create `tests/unit/cli/test_init.py`
+- [x] Test init in empty directory
+- [x] Test init with Python project
+- [x] Test init with Node.js project
+- [x] Test init with existing .adw/ fails
+- [x] Test init --force overwrites
+- [x] Test generated config is valid YAML
+- [x] Target: >80% coverage
 
 ### Task 9: Write Integration Tests
 - [ ] Create `tests/integration/cli/test_init_integration.py`
