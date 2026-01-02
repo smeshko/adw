@@ -34,10 +34,10 @@ so that the pipeline builds on previous outputs.
 ## Tasks / Subtasks
 
 ### Task 1: Extend Template Variables for Artifacts
-- [ ] Update `PhaseRunner._load_and_render_prompt()` to include artifacts
-- [ ] Build artifacts variable map: `{"phase": {"artifact_name": "content"}}`
-- [ ] Load artifact content from `artifact_manager.get()`
-- [ ] Handle missing artifacts gracefully (empty string or error based on mode)
+- [x] Update `PhaseRunner._load_and_render_prompt()` to include artifacts
+- [x] Build artifacts variable map: `{"phase": {"artifact_name": "content"}}`
+- [x] Load artifact content from `artifact_manager.get()`
+- [x] Handle missing artifacts gracefully (empty string or error based on mode)
 
 ### Task 2: Implement Artifact Content Loading
 - [ ] Add `_load_phase_artifacts(run_id, phase)` method to PhaseRunner
@@ -469,7 +469,12 @@ Story 5.3 implements artifact passing between phases, enabling later phases to a
 
 ### Completion Notes List
 
+- Task 1: Extended `_load_and_render_prompt()` to include artifact content from previous phases. Added `_build_artifacts_map()` method that loads artifacts by phase, strips file extensions for clean template access (`plan.md` → `artifacts.plan.plan`).
+
 ### File List
+
+- src/adw/core/phase_runner.py (MODIFIED)
+- tests/unit/core/test_artifact_passing.py (NEW)
 
 ---
 
