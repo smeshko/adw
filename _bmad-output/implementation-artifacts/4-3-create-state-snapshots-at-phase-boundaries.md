@@ -60,10 +60,10 @@ so that I can debug failures and resume from known-good states.
 - [x] Example: `001_pre_plan.json`, `002_post_plan.json`
 
 ### Task 4: Implement Snapshot Listing
-- [ ] Add `list_snapshots(run_id)` method
-- [ ] Return snapshots sorted by sequence
-- [ ] Include metadata without loading full content
-- [ ] Handle empty snapshots directory
+- [x] Add `list_snapshots(run_id)` method
+- [x] Return snapshots sorted by sequence
+- [x] Include metadata without loading full content
+- [x] Handle empty snapshots directory
 
 ### Task 5: Implement Snapshot Loading
 - [ ] Add `load_snapshot(run_id, snapshot_id)` method
