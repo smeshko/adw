@@ -1,6 +1,6 @@
 # Story 4.3: Create State Snapshots at Phase Boundaries
 
-Status: ready-for-dev
+Status: completed
 Linear Issue: not-configured
 Epic: 4 - State Persistence & Context Management
 Created: 2026-01-01
@@ -38,59 +38,59 @@ so that I can debug failures and resume from known-good states.
 ## Tasks / Subtasks
 
 ### Task 1: Create StateSnapshot Model
-- [ ] Add `StateSnapshot` model to `src/adw/models/`
-- [ ] Include `context: RunContext` field
-- [ ] Include `phase_result: PhaseResult | None` field
-- [ ] Include `timestamp: datetime` field
-- [ ] Include `label: str` field (e.g., "pre_plan", "post_build")
-- [ ] Include `sequence: int` field
+- [x] Add `StateSnapshot` model to `src/adw/models/`
+- [x] Include `context: RunContext` field
+- [x] Include `phase_result: PhaseResult | None` field
+- [x] Include `timestamp: datetime` field
+- [x] Include `label: str` field (e.g., "pre_plan", "post_build")
+- [x] Include `sequence: int` field
 
 ### Task 2: Create SnapshotManager Class
-- [ ] Create `src/adw/core/snapshot_manager.py`
-- [ ] Implement `create_pre_phase_snapshot()`
-- [ ] Implement `create_post_phase_snapshot()`
-- [ ] Use atomic write pattern from Story 4.2
-- [ ] Track sequence number across snapshots
+- [x] Create `src/adw/core/snapshot_manager.py`
+- [x] Implement `create_pre_phase_snapshot()`
+- [x] Implement `create_post_phase_snapshot()`
+- [x] Use atomic write pattern from Story 4.2
+- [x] Track sequence number across snapshots
 
 ### Task 3: Implement Snapshot Naming
-- [ ] Format: `<seq>_<timing>_<phase>.json`
-- [ ] Sequence: zero-padded 3 digits (001, 002, etc.)
-- [ ] Timing: "pre" or "post"
-- [ ] Phase: phase name (plan, build, verify, etc.)
-- [ ] Example: `001_pre_plan.json`, `002_post_plan.json`
+- [x] Format: `<seq>_<timing>_<phase>.json`
+- [x] Sequence: zero-padded 3 digits (001, 002, etc.)
+- [x] Timing: "pre" or "post"
+- [x] Phase: phase name (plan, build, verify, etc.)
+- [x] Example: `001_pre_plan.json`, `002_post_plan.json`
 
 ### Task 4: Implement Snapshot Listing
-- [ ] Add `list_snapshots(run_id)` method
-- [ ] Return snapshots sorted by sequence
-- [ ] Include metadata without loading full content
-- [ ] Handle empty snapshots directory
+- [x] Add `list_snapshots(run_id)` method
+- [x] Return snapshots sorted by sequence
+- [x] Include metadata without loading full content
+- [x] Handle empty snapshots directory
 
 ### Task 5: Implement Snapshot Loading
-- [ ] Add `load_snapshot(run_id, snapshot_id)` method
-- [ ] Validate against StateSnapshot model
-- [ ] Handle missing or corrupted snapshots
-- [ ] Raise StateError with appropriate codes
+- [x] Add `load_snapshot(run_id, snapshot_id)` method
+- [x] Validate against StateSnapshot model
+- [x] Handle missing or corrupted snapshots
+- [x] Raise StateError with appropriate codes
 
 ### Task 6: Ensure Performance (NFR4)
-- [ ] Benchmark snapshot creation
-- [ ] Optimize if exceeds 500ms
-- [ ] Consider async write if needed
-- [ ] Log duration for monitoring
+- [x] Benchmark snapshot creation
+- [x] Optimize if exceeds 500ms
+- [x] Consider async write if needed
+- [x] Log duration for monitoring
 
 ### Task 7: Write Unit Tests
-- [ ] Create `tests/unit/core/test_snapshot_manager.py`
-- [ ] Test pre-phase snapshot creation
-- [ ] Test post-phase snapshot creation
-- [ ] Test sequential numbering
-- [ ] Test snapshot loading
-- [ ] Test performance requirement
-- [ ] Target: >90% coverage
+- [x] Create `tests/unit/core/test_snapshot_manager.py`
+- [x] Test pre-phase snapshot creation
+- [x] Test post-phase snapshot creation
+- [x] Test sequential numbering
+- [x] Test snapshot loading
+- [x] Test performance requirement
+- [x] Target: >90% coverage
 
 ### Task 8: Write Integration Tests
-- [ ] Test full phase lifecycle with snapshots
-- [ ] Test snapshot listing across phases
-- [ ] Verify snapshot content integrity
-- [ ] Test recovery from snapshots
+- [x] Test full phase lifecycle with snapshots
+- [x] Test snapshot listing across phases
+- [x] Verify snapshot content integrity
+- [x] Test recovery from snapshots
 
 ---
 
@@ -616,6 +616,15 @@ Story 4.3 implements state snapshots at phase boundaries for debugging and recov
 ### Completion Notes List
 
 ### File List
+
+- `src/adw/models/context.py` - Updated StateSnapshot model
+- `src/adw/models/__init__.py` - Added model_rebuild() for forward ref resolution
+- `tests/unit/models/test_state_snapshot.py` - New tests for StateSnapshot
+- `tests/unit/models/test_context.py` - Updated tests for new StateSnapshot schema
+- `src/adw/core/snapshot_manager.py` - New SnapshotManager class
+- `src/adw/core/__init__.py` - Added SnapshotManager export
+- `tests/unit/core/test_snapshot_manager.py` - Unit tests for SnapshotManager
+- `tests/integration/core/test_snapshot_integration.py` - Integration tests
 
 ---
 

@@ -35,6 +35,10 @@ from adw.models.phase import (
     PhaseStatus,
 )
 
+# Rebuild StateSnapshot to resolve forward references to PhaseResult
+# This must happen after all models are imported
+StateSnapshot.model_rebuild()
+
 __all__: list[str] = [
     # Command models
     "LoadedCommand",
