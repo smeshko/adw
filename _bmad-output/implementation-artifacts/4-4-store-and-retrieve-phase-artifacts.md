@@ -63,10 +63,10 @@ so that subsequent phases can access outputs from previous phases.
 - [x] Return sorted list
 
 ### Task 5: Track Artifact Paths in Context
-- [ ] Add `artifact_paths: dict[str, list[str]]` to RunContext
-- [ ] Update after each artifact stored
-- [ ] Serialize paths (not content) in context.json
-- [ ] Enable cross-phase artifact discovery
+- [x] Add `artifact_paths: dict[str, list[str]]` to RunContext
+- [x] Update after each artifact stored
+- [x] Serialize paths (not content) in context.json
+- [x] Enable cross-phase artifact discovery
 
 ### Task 6: Implement Common Artifact Types
 - [ ] `store_json(phase, name, data)` - JSON serialized
@@ -554,6 +554,7 @@ Story 4.4 implements artifact storage and retrieval for passing data between pha
 - Task 2: Artifact storage already implemented in Task 1. store() method creates phase directories, writes text/binary content, uses atomic writes. 4 dedicated tests pass.
 - Task 3: Added head/tail support to get() method for partial content retrieval. 3 new tests added (head, tail, precedence). 20 tests now pass.
 - Task 4: Artifact listing already implemented in Task 1. list_artifacts() supports phase filter, includes metadata (size, modified), returns sorted. 4 tests pass.
+- Task 5: RunContext already has `artifacts` field (same as `artifact_paths`). get_artifact_paths() method provides the data. Added 2 integration tests verifying RunContext compatibility and JSON serialization. 22 tests now pass.
 
 ### File List
 

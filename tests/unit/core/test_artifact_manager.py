@@ -382,3 +382,74 @@ class TestArtifactPaths:
         """Test getting artifact paths for empty run."""
         paths = artifact_manager.get_artifact_paths(run_id)
         assert paths == {}
+
+
+class TestArtifactPathsRunContextIntegration:
+    """Tests for artifact path tracking integration with RunContext."""
+
+    def test_artifact_paths_compatible_with_run_context(
+        self,
+        artifact_manager: ArtifactManager,
+        runs_dir: Path,
+        run_id: str,
+    ) -> None:
+        """Test that get_artifact_paths returns type compatible with RunContext.artifacts."""
+        from datetime import datetime
+
+        from adw.models import RunContext
+
+        # Arrange - store some artifacts
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+        artifact_manager.store(run_id, "build", "diff.txt", "diff")
+        artifact_manager.store(run_id, "verify", "evidence.json", "{}")
+
+        # Act - get paths and use to update RunContext
+        paths = artifact_manager.get_artifact_paths(run_id)
+
+        context = RunContext(
+            run_id="01HQKWZ0VDHNK0W4HSCZWJZXW1",
+            feature_description="Test feature",
+            current_phase="build",
+            started_at=datetime.now(),
+            artifacts=paths,  # This is the key integration test
+        )
+
+        # Assert - paths are correctly stored in context
+        assert context.artifacts == {"build": ["diff.txt"], "verify": ["evidence.json"]}
+
+    def test_artifact_paths_serializable_in_context(
+        self,
+        artifact_manager: ArtifactManager,
+        runs_dir: Path,
+        run_id: str,
+    ) -> None:
+        """Test that artifact paths serialize correctly with RunContext."""
+        import json
+        from datetime import datetime
+
+        from adw.models import RunContext
+
+        # Arrange
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+        artifact_manager.store(run_id, "build", "diff.txt", "diff")
+
+        paths = artifact_manager.get_artifact_paths(run_id)
+        context = RunContext(
+            run_id="01HQKWZ0VDHNK0W4HSCZWJZXW1",
+            feature_description="Test feature",
+            current_phase="build",
+            started_at=datetime.now(),
+            artifacts=paths,
+        )
+
+        # Act - serialize to JSON
+        context_json = context.model_dump_json()
+        parsed = json.loads(context_json)
+
+        # Assert - artifacts key contains paths, not content
+        assert "artifacts" in parsed
+        assert parsed["artifacts"] == {"build": ["diff.txt"]}
+        # Verify it's paths (strings), not content
+        assert parsed["artifacts"]["build"][0] == "diff.txt"
