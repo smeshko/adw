@@ -622,10 +622,11 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### File List
 
-- `src/adw/cli/app.py` - Modified: Added --phase and --from-run flags with validation
-- `src/adw/core/orchestrator.py` - Modified: Added run_single_phase(), _load_artifacts_from_source(), artifacts_override support
+- `src/adw/cli/app.py` - Modified: Wired CLI to orchestrator.run_single_phase() with error handling
+- `src/adw/cli/bootstrap.py` - New: Factory function create_orchestrator() for CLI dependency injection
+- `src/adw/core/orchestrator.py` - Modified: Added run_single_phase(), _load_artifacts_from_source(), removed stale TODO
 - `src/adw/core/phase_runner.py` - Modified: Added artifacts_override parameter to run() and _load_and_render_prompt()
-- `tests/unit/cli/test_run.py` - Modified: Added TestFromRunFlag test class
+- `tests/unit/cli/test_run.py` - Modified: Updated tests for actual orchestrator behavior
 - `tests/unit/core/test_orchestrator.py` - Modified: Added TestRunSinglePhase, TestLoadArtifactsFromSource test classes
 
 ---
