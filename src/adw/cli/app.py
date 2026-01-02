@@ -58,6 +58,12 @@ def run(
         help=f"Execute single phase only ({', '.join(PHASE_SEQUENCE)})",
         callback=_validate_phase,
     ),
+    from_run: str | None = typer.Option(
+        None,
+        "--from-run",
+        "-f",
+        help="Load artifacts from this run ID (required for phases after plan)",
+    ),
 ) -> None:
     """Run the agentic development workflow.
 
@@ -67,13 +73,28 @@ def run(
         # Full pipeline
         adw run "Add user authentication"
 
-        # Single phase
+        # Single phase (plan doesn't need --from-run)
         adw run --phase plan "Add login"
+
+        # Single phase with artifacts from previous run
+        adw run --phase build --from-run 01HQXK5P3Z7V "Add login"
     """
     if phase:
+        # Validate --from-run requirement for non-plan phases
+        if phase != "plan" and from_run is None:
+            console.print(
+                f"[red]Error:[/] Phase '{phase}' requires artifacts from previous phases"
+            )
+            console.print(
+                "[dim]Suggestion:[/] Use --from-run <run_id> to specify source run"
+            )
+            raise typer.Exit(1)
+
         # Single phase execution (to be implemented in Story 5.4)
         console.print(f"[bold blue]Single phase mode:[/] {phase}")
         console.print(f"[dim]Feature:[/] {feature}")
+        if from_run:
+            console.print(f"[dim]From run:[/] {from_run}")
         console.print("[yellow]Single phase execution not yet implemented[/yellow]")
     else:
         # Full pipeline execution (to be implemented)

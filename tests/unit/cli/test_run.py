@@ -1,6 +1,6 @@
 """Tests for CLI run command with single-phase execution support.
 
-Tests the --phase flag for executing individual phases.
+Tests the --phase and --from-run flags for executing individual phases.
 """
 
 import pytest
@@ -63,3 +63,57 @@ class TestPhaseFlag:
         # For now, the stub shows "Not implemented yet"
         # Once implemented, this should succeed
         assert result.exit_code == 0 or "Not implemented" in result.output
+
+
+class TestFromRunFlag:
+    """Tests for --from-run flag parsing and validation."""
+
+    def test_from_run_flag_accepted(self, cli_runner: CliRunner) -> None:
+        """Test that --from-run flag is recognized by the CLI."""
+        result = cli_runner.invoke(
+            app, ["run", "--phase", "build", "--from-run", "01HQTEST123", "Add feature"]
+        )
+
+        # Should not error with "No such option"
+        assert "No such option" not in result.output
+
+    def test_from_run_short_flag_accepted(self, cli_runner: CliRunner) -> None:
+        """Test that -f short flag is recognized."""
+        result = cli_runner.invoke(
+            app, ["run", "-p", "build", "-f", "01HQTEST123", "Add feature"]
+        )
+
+        assert "No such option" not in result.output
+
+    def test_from_run_required_for_build_phase(self, cli_runner: CliRunner) -> None:
+        """Test that --from-run is required for phases after plan."""
+        result = cli_runner.invoke(app, ["run", "--phase", "build", "Add feature"])
+
+        assert result.exit_code != 0
+        assert (
+            "--from-run" in result.output
+            or "requires artifacts" in result.output.lower()
+        )
+
+    def test_from_run_required_for_verify_phase(self, cli_runner: CliRunner) -> None:
+        """Test that --from-run is required for verify phase."""
+        result = cli_runner.invoke(app, ["run", "--phase", "verify", "Add feature"])
+
+        assert result.exit_code != 0
+        assert "--from-run" in result.output
+
+    def test_from_run_not_required_for_plan_phase(self, cli_runner: CliRunner) -> None:
+        """Test that --from-run is NOT required for plan phase."""
+        result = cli_runner.invoke(app, ["run", "--phase", "plan", "Add feature"])
+
+        # Should succeed (or show stub) without --from-run
+        assert "requires" not in result.output.lower() or result.exit_code == 0
+
+    def test_from_run_optional_for_plan_phase(self, cli_runner: CliRunner) -> None:
+        """Test that --from-run can be provided for plan phase but isn't required."""
+        result = cli_runner.invoke(
+            app, ["run", "--phase", "plan", "--from-run", "01HQTEST123", "Add feature"]
+        )
+
+        # Should work without error about --from-run
+        assert "No such option" not in result.output
