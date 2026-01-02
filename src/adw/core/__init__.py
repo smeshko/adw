@@ -2,13 +2,16 @@
 
 from adw.core.artifact_manager import ArtifactManager
 from adw.core.context_manager import ContextManager
+from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager, RunInfo
 from adw.core.snapshot_manager import SnapshotManager
 
 __all__ = [
     "ArtifactManager",
     "ContextManager",
+    "InterruptionHandler",
     "RunDirectoryManager",
     "RunInfo",
+    "ShutdownRequested",
     "SnapshotManager",
 ]

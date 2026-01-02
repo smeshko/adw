@@ -1,6 +1,6 @@
 # Story 4.5: Handle Interruption and Recovery
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 4 - State Persistence & Context Management
 Created: 2026-01-01
@@ -562,7 +562,7 @@ Story 4.5 implements graceful interruption handling and resume capability, ensur
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Sonnet 4 (claude-sonnet-4-20250514)
 
 ### Debug Log References
 
@@ -574,16 +574,16 @@ Story 4.5 implements graceful interruption handling and resume capability, ensur
 - Task 4: Added `get_resume_phase()` and `can_resume()` functions for resume detection
 - Task 5: Added `prepare_resume()` function to update status and clear interrupted state
 - Task 6: Added `get_run_status()` function for status display with run metadata
-- Task 7: 49 unit tests written as part of Tasks 1-6 implementation (TDD approach)
-- Task 8: 5 integration tests for subprocess SIGINT, full interrupt/resume cycle, and snapshot recovery
+- Task 7: 76 unit tests written as part of Tasks 1-6 implementation (TDD approach) - 46 in test_interruption.py, 30 in test_context.py
+- Task 8: 5 integration tests for subprocess SIGINT, full interrupt/resume cycle, and snapshot recovery (81 total tests)
 
 ### File List
 
 - `src/adw/core/interruption.py` (NEW) - Signal handling for SIGINT/SIGTERM
 - `src/adw/models/context.py` (MODIFIED) - Added `interrupted_phase`, `interrupted_at` fields, typed `status` field
 - `src/adw/core/snapshot_manager.py` (MODIFIED) - Updated `create_post_phase_snapshot` to accept optional phase_result
-- `tests/unit/core/test_interruption.py` (NEW) - 24 unit tests for interruption handling
-- `tests/unit/models/test_context.py` (MODIFIED) - Added 9 tests for status-related fields
+- `tests/unit/core/test_interruption.py` (NEW) - 46 unit tests for interruption handling
+- `tests/unit/models/test_context.py` (MODIFIED) - Added 9 tests for status-related fields (30 total in file)
 - `tests/integration/core/test_interruption_integration.py` (NEW) - 5 integration tests for signal handling
 
 ---
