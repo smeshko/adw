@@ -4,8 +4,9 @@ from datetime import UTC, datetime
 
 import typer
 from rich.console import Console
-from rich.panel import Panel
 from ulid import ULID
+
+from adw.cli.run_display import RunDisplay
 
 console = Console()
 app = typer.Typer(
@@ -60,28 +61,13 @@ def run(
     run_id = str(ULID())
     started_at = datetime.now(UTC)
 
-    # Truncate long feature descriptions for display
-    max_len = 60
-    feature_display = (
-        f"{feature_description[:max_len]}..."
-        if len(feature_description) > max_len
-        else feature_description
+    # Show run header using RunDisplay (UX-12)
+    run_display = RunDisplay(console)
+    run_display.show_run_header(
+        run_id=run_id,
+        feature=feature_description,
+        started_at=started_at,
     )
-
-    timestamp = started_at.strftime("%Y-%m-%d %H:%M:%S UTC")
-
-    # Show run header (UX-12)
-    console.print()
-    console.print(
-        Panel(
-            f"[bold cyan]Run ID:[/] {run_id}\n"
-            f"[bold]Feature:[/] {feature_display}\n"
-            f"[dim]Started:[/] {timestamp}",
-            title="[bold blue]ADW Run[/]",
-            border_style="blue",
-        )
-    )
-    console.print()
 
     if dry_run:
         console.print("[yellow]Dry run mode - no execution[/]")
