@@ -41,6 +41,7 @@ class RunInfo(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+
 # Subdirectories to create in each run directory
 _SUBDIRECTORIES = ("artifacts", "logs", "llm", "snapshots")
 
