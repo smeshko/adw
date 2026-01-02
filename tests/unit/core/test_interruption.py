@@ -401,3 +401,158 @@ class TestShutdownRequestedException:
 
         exc = ShutdownRequested(phase="plan")
         assert isinstance(exc, BaseException)
+
+
+class TestGetResumePhase:
+    """Tests for get_resume_phase function."""
+
+    def test_returns_none_for_completed_run(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that completed runs return None."""
+        from adw.core.interruption import get_resume_phase
+
+        context = sample_context.model_copy(
+            update={"status": "completed"}
+        )
+
+        assert get_resume_phase(context) is None
+
+    def test_returns_interrupted_phase_for_interrupted_run(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that interrupted runs return the interrupted phase."""
+        from adw.core.interruption import get_resume_phase
+
+        context = sample_context.model_copy(
+            update={
+                "status": "interrupted",
+                "interrupted_phase": "build",
+                "phase_history": ["plan"],
+            }
+        )
+
+        assert get_resume_phase(context) == "build"
+
+    def test_returns_next_phase_for_running(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that running context returns next uncompleted phase."""
+        from adw.core.interruption import get_resume_phase
+
+        context = sample_context.model_copy(
+            update={
+                "status": "running",
+                "phase_history": ["plan"],
+            }
+        )
+
+        # Next phase after plan is build
+        assert get_resume_phase(context) == "build"
+
+    def test_returns_next_phase_for_failed(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that failed context returns next uncompleted phase."""
+        from adw.core.interruption import get_resume_phase
+
+        context = sample_context.model_copy(
+            update={
+                "status": "failed",
+                "phase_history": ["plan", "build"],
+            }
+        )
+
+        # Next phase after build is verify
+        assert get_resume_phase(context) == "verify"
+
+    def test_returns_first_phase_when_none_completed(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that empty phase_history returns first phase."""
+        from adw.core.interruption import get_resume_phase
+
+        context = sample_context.model_copy(
+            update={
+                "status": "running",
+                "phase_history": [],
+            }
+        )
+
+        assert get_resume_phase(context) == "plan"
+
+    def test_returns_none_when_all_phases_completed(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test returns None when all phases in history."""
+        from adw.core.interruption import get_resume_phase
+
+        context = sample_context.model_copy(
+            update={
+                "status": "running",
+                "phase_history": ["plan", "build", "verify", "validate", "document"],
+            }
+        )
+
+        assert get_resume_phase(context) is None
+
+
+class TestCanResume:
+    """Tests for can_resume function."""
+
+    def test_can_resume_completed_returns_false(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that completed runs cannot be resumed."""
+        from adw.core.interruption import can_resume
+
+        context = sample_context.model_copy(
+            update={"status": "completed"}
+        )
+
+        assert can_resume(context) is False
+
+    def test_can_resume_running_returns_true(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that running runs can be resumed."""
+        from adw.core.interruption import can_resume
+
+        assert can_resume(sample_context) is True
+
+    def test_can_resume_interrupted_returns_true(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that interrupted runs can be resumed."""
+        from adw.core.interruption import can_resume
+
+        context = sample_context.model_copy(
+            update={
+                "status": "interrupted",
+                "interrupted_phase": "build",
+            }
+        )
+
+        assert can_resume(context) is True
+
+    def test_can_resume_failed_returns_true(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that failed runs can be resumed."""
+        from adw.core.interruption import can_resume
+
+        context = sample_context.model_copy(
+            update={"status": "failed"}
+        )
+
+        assert can_resume(context) is True

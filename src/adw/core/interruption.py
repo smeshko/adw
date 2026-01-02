@@ -23,7 +23,15 @@ if TYPE_CHECKING:
     from adw.core.snapshot_manager import SnapshotManager
     from adw.models import RunContext
 
-__all__ = ["InterruptionHandler", "ShutdownRequested"]
+__all__ = [
+    "InterruptionHandler",
+    "ShutdownRequested",
+    "can_resume",
+    "get_resume_phase",
+]
+
+# Default phase order for ADW workflow
+_PHASE_ORDER: list[str] = ["plan", "build", "verify", "validate", "document"]
 
 
 class ShutdownRequested(BaseException):
@@ -221,3 +229,46 @@ class InterruptionHandler:
             yield context
         finally:
             self.restore_handlers()
+
+
+def get_resume_phase(context: RunContext) -> str | None:
+    """Determine which phase to resume from.
+
+    Implements NFR8 resume semantics:
+    - Completed runs cannot be resumed (returns None)
+    - Interrupted runs re-execute from the interrupted phase
+    - Running/failed runs continue from next uncompleted phase
+
+    Args:
+        context: The run context to examine.
+
+    Returns:
+        Phase to start from, or None if run is complete or no phases remain.
+    """
+    if context.status == "completed":
+        return None
+
+    if context.status == "interrupted" and context.interrupted_phase:
+        # Resume from interrupted phase (re-execute from beginning)
+        return context.interrupted_phase
+
+    # For running/failed, find next uncompleted phase
+    completed = set(context.phase_history)
+    for phase in _PHASE_ORDER:
+        if phase not in completed:
+            return phase
+
+    # All phases completed
+    return None
+
+
+def can_resume(context: RunContext) -> bool:
+    """Check if a run can be resumed.
+
+    Args:
+        context: The run context to check.
+
+    Returns:
+        True if the run can be resumed, False otherwise.
+    """
+    return context.status != "completed"

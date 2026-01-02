@@ -54,10 +54,10 @@ so that the run can be resumed without data loss (NFR7).
 - [x] Persist status changes immediately
 
 ### Task 4: Implement Resume Detection
-- [ ] Check run status on resume
-- [ ] Find last completed phase from `completed_phases`
-- [ ] Determine next phase to execute
-- [ ] Load context from snapshot if needed
+- [x] Check run status on resume
+- [x] Find last completed phase from `completed_phases`
+- [x] Determine next phase to execute
+- [x] Load context from snapshot if needed
 
 ### Task 5: Implement Resume Logic
 - [ ] Start from phase after last completed
@@ -571,6 +571,7 @@ Story 4.5 implements graceful interruption handling and resume capability, ensur
 - Task 1: Created `InterruptionHandler` class in `src/adw/core/interruption.py` with signal registration, context preservation, and graceful shutdown flag
 - Task 2: Added `check_shutdown()` method and `ShutdownRequested` exception for graceful main loop checking
 - Task 3: Status fields already added in Task 1; added comprehensive tests for status validation
+- Task 4: Added `get_resume_phase()` and `can_resume()` functions for resume detection
 
 ### File List
 
