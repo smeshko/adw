@@ -28,6 +28,7 @@ __all__ = [
     "ShutdownRequested",
     "can_resume",
     "get_resume_phase",
+    "get_run_status",
     "prepare_resume",
 ]
 
@@ -309,3 +310,33 @@ def prepare_resume(context: RunContext) -> RunContext:
             "interrupted_at": None,
         }
     )
+
+
+def get_run_status(context: RunContext) -> dict[str, object]:
+    """Get a summary of run status for display.
+
+    Returns a dictionary with status information suitable for
+    command-line display or API responses.
+
+    Args:
+        context: The run context to summarize.
+
+    Returns:
+        Dictionary with status fields:
+        - run_id: The run identifier
+        - status: Current status (running, completed, interrupted, failed)
+        - current_phase: Phase currently set
+        - interrupted_phase: Phase where interruption occurred (if any)
+        - completed_phases: List of phases in phase_history
+        - can_resume: Whether the run can be resumed
+        - resume_phase: Phase to resume from (if applicable)
+    """
+    return {
+        "run_id": context.run_id,
+        "status": context.status,
+        "current_phase": context.current_phase,
+        "interrupted_phase": context.interrupted_phase,
+        "completed_phases": context.phase_history,
+        "can_resume": can_resume(context),
+        "resume_phase": get_resume_phase(context),
+    }

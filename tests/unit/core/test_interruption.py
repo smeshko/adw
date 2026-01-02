@@ -673,3 +673,85 @@ class TestPrepareResume:
             prepare_resume(context)
 
         assert exc_info.value.code == "RUN_ALREADY_COMPLETE"
+
+
+class TestGetRunStatus:
+    """Tests for get_run_status function."""
+
+    def test_running_status(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test status for running run."""
+        from adw.core.interruption import get_run_status
+
+        status = get_run_status(sample_context)
+
+        assert status["status"] == "running"
+        assert status["current_phase"] == "plan"
+        assert status["interrupted_phase"] is None
+        assert status["can_resume"] is True
+
+    def test_interrupted_status(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test status for interrupted run."""
+        from adw.core.interruption import get_run_status
+
+        context = sample_context.model_copy(
+            update={
+                "status": "interrupted",
+                "interrupted_phase": "build",
+                "phase_history": ["plan"],
+            }
+        )
+
+        status = get_run_status(context)
+
+        assert status["status"] == "interrupted"
+        assert status["current_phase"] == "plan"
+        assert status["interrupted_phase"] == "build"
+        assert status["can_resume"] is True
+        assert status["resume_phase"] == "build"
+
+    def test_completed_status(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test status for completed run."""
+        from adw.core.interruption import get_run_status
+
+        context = sample_context.model_copy(update={"status": "completed"})
+
+        status = get_run_status(context)
+
+        assert status["status"] == "completed"
+        assert status["can_resume"] is False
+        assert status["resume_phase"] is None
+
+    def test_status_includes_run_id(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that status includes run_id."""
+        from adw.core.interruption import get_run_status
+
+        status = get_run_status(sample_context)
+
+        assert status["run_id"] == sample_context.run_id
+
+    def test_status_includes_phase_history(
+        self,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that status includes phase_history."""
+        from adw.core.interruption import get_run_status
+
+        context = sample_context.model_copy(
+            update={"phase_history": ["plan", "build"]}
+        )
+
+        status = get_run_status(context)
+
+        assert status["completed_phases"] == ["plan", "build"]

@@ -66,10 +66,10 @@ so that the run can be resumed without data loss (NFR7).
 - [x] Clear interrupted state
 
 ### Task 6: Implement Status Command
-- [ ] Add `get_run_status(run_id)` method
-- [ ] Return status, current phase, interrupted phase
-- [ ] Include run metadata
-- [ ] Format for CLI display
+- [x] Add `get_run_status(run_id)` method
+- [x] Return status, current phase, interrupted phase
+- [x] Include run metadata
+- [x] Format for CLI display
 
 ### Task 7: Write Unit Tests
 - [ ] Create `tests/unit/core/test_interruption.py`
@@ -573,6 +573,7 @@ Story 4.5 implements graceful interruption handling and resume capability, ensur
 - Task 3: Status fields already added in Task 1; added comprehensive tests for status validation
 - Task 4: Added `get_resume_phase()` and `can_resume()` functions for resume detection
 - Task 5: Added `prepare_resume()` function to update status and clear interrupted state
+- Task 6: Added `get_run_status()` function for status display with run metadata
 
 ### File List
 
