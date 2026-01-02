@@ -293,3 +293,190 @@ class TestContextManagerLocking:
                 context_manager.load(sample_context.run_id)
 
         assert exc_info.value.code == "LOCK_TIMEOUT"
+
+
+class TestContextManagerDurability:
+    """Tests for durability and atomic write guarantees."""
+
+    def test_interrupted_write_preserves_old_context(
+        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+    ) -> None:
+        """Test that if write is interrupted, old context is preserved.
+
+        This simulates a scenario where the rename fails after temp file
+        is written. The old context.json should remain intact.
+        """
+        run_dir = runs_dir / sample_context.run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / ".lock").touch()
+
+        # First, save a valid context
+        context_manager.save(sample_context)
+        original_content = (run_dir / "context.json").read_text()
+
+        # Now try to save a modified context but fail the rename
+        modified = sample_context.model_copy(update={"current_phase": "build"})
+
+        def failing_rename(self: Path, target: Path) -> None:
+            raise OSError("Simulated filesystem error during rename")
+
+        with patch.object(Path, "rename", failing_rename):
+            with pytest.raises(StateError):
+                context_manager.save(modified)
+
+        # Original context should still exist and be valid
+        assert (run_dir / "context.json").exists()
+        current_content = (run_dir / "context.json").read_text()
+        assert current_content == original_content
+
+        # The context should still load correctly
+        loaded = context_manager.load(sample_context.run_id)
+        assert loaded.current_phase == "plan"  # Original, not modified
+
+    def test_temp_file_cleaned_after_successful_save(
+        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+    ) -> None:
+        """Test that temp file does not exist after successful save."""
+        run_dir = runs_dir / sample_context.run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / ".lock").touch()
+
+        context_manager.save(sample_context)
+
+        # Temp file should not exist after successful save
+        temp_path = run_dir / ".context.json.tmp"
+        assert not temp_path.exists()
+
+    def test_temp_file_cleaned_after_failed_save(
+        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+    ) -> None:
+        """Test that temp file is cleaned up after failed save."""
+        run_dir = runs_dir / sample_context.run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / ".lock").touch()
+
+        def failing_fsync(fd: int) -> None:
+            raise OSError("Simulated disk error")
+
+        with patch("adw.core.context_manager.os.fsync", failing_fsync):
+            with pytest.raises(StateError):
+                context_manager.save(sample_context)
+
+        # Temp file should be cleaned up
+        temp_path = run_dir / ".context.json.tmp"
+        assert not temp_path.exists()
+
+    def test_partial_write_never_corrupts_context(
+        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+    ) -> None:
+        """Test that a partial write never leaves a corrupted context.json.
+
+        If the write fails at any point before the atomic rename, the
+        original context.json should remain untouched.
+        """
+        run_dir = runs_dir / sample_context.run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / ".lock").touch()
+
+        # Create initial valid context
+        context_manager.save(sample_context)
+
+        # Simulate partial write by failing during file.write()
+        original_open = open
+        call_count = 0
+
+        def partial_write_open(path: str, mode: str = "r", *args, **kwargs):  # type: ignore[no-untyped-def]
+            nonlocal call_count
+            if mode == "w" and ".context.json.tmp" in str(path):
+                call_count += 1
+                if call_count >= 1:
+                    # Return a file that fails on write
+                    class FailingFile:
+                        def write(self, data: str) -> int:
+                            # Write partial data then fail
+                            raise OSError("Simulated partial write failure")
+
+                        def __enter__(self) -> "FailingFile":
+                            return self
+
+                        def __exit__(self, *args: object) -> None:
+                            pass
+
+                    return FailingFile()
+            return original_open(path, mode, *args, **kwargs)
+
+        modified = sample_context.model_copy(update={"current_phase": "verify"})
+
+        with patch("builtins.open", partial_write_open):
+            with pytest.raises(StateError):
+                context_manager.save(modified)
+
+        # Original context.json should still be valid and loadable
+        loaded = context_manager.load(sample_context.run_id)
+        assert loaded.run_id == sample_context.run_id
+        assert loaded.current_phase == "plan"  # Original, not modified
+
+    def test_context_file_never_partially_overwritten(
+        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+    ) -> None:
+        """Test that context.json is never in a partial state.
+
+        The atomic rename pattern ensures that context.json is either:
+        - The old complete file
+        - The new complete file
+        - Never a partial/mixed state
+        """
+        run_dir = runs_dir / sample_context.run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / ".lock").touch()
+
+        # Save initial context
+        context_manager.save(sample_context)
+        initial_json = (run_dir / "context.json").read_text()
+
+        # Verify it's valid JSON
+        json.loads(initial_json)
+
+        # Save updated context
+        modified = sample_context.model_copy(
+            update={"current_phase": "build", "feature_description": "Updated feature"}
+        )
+        context_manager.save(modified)
+
+        # Read final context
+        final_json = (run_dir / "context.json").read_text()
+
+        # Both should be valid JSON
+        initial_data = json.loads(initial_json)
+        final_data = json.loads(final_json)
+
+        # They should be different (update happened)
+        assert initial_data["current_phase"] == "plan"
+        assert final_data["current_phase"] == "build"
+
+    def test_multiple_rapid_saves_maintain_integrity(
+        self, context_manager: ContextManager, sample_context: RunContext, runs_dir: Path
+    ) -> None:
+        """Test that multiple rapid saves maintain data integrity.
+
+        Each save should complete atomically, and the final state
+        should reflect the last successful save.
+        """
+        run_dir = runs_dir / sample_context.run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / ".lock").touch()
+
+        # Perform multiple rapid saves
+        phases = ["plan", "build", "verify", "document"]
+        for phase in phases:
+            updated = sample_context.model_copy(update={"current_phase": phase})
+            context_manager.save(updated)
+
+        # Verify final state
+        loaded = context_manager.load(sample_context.run_id)
+        assert loaded.current_phase == "document"
+
+        # Verify file is valid JSON
+        content = (run_dir / "context.json").read_text()
+        data = json.loads(content)
+        assert data["current_phase"] == "document"

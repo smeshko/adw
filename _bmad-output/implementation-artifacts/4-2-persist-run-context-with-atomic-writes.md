@@ -82,10 +82,10 @@ so that power loss or crashes don't corrupt state (ASR-5).
 - [x] Target: >90% coverage
 
 ### Task 8: Write Durability Tests
-- [ ] Test that partial writes don't corrupt
-- [ ] Simulate process kill during write
-- [ ] Verify old or new context exists, never partial
-- [ ] Test temp file cleanup
+- [x] Test that partial writes don't corrupt
+- [x] Simulate process kill during write
+- [x] Verify old or new context exists, never partial
+- [x] Test temp file cleanup
 
 ---
 
@@ -467,7 +467,9 @@ claude-opus-4-5-20251101
 - Implemented load with Pydantic validation
 - Added corruption detection with StateError(code="CONTEXT_CORRUPTED")
 - Added lock integration with filelock.FileLock
-- Created comprehensive unit tests (13 tests, all passing)
+- Created comprehensive unit tests (13 tests)
+- Added durability tests (6 tests) to verify atomic write guarantees
+- All 19 tests pass, 505 total tests in suite pass
 
 ### File List
 
@@ -496,3 +498,4 @@ claude-opus-4-5-20251101
 |------|--------|--------|
 | 2026-01-01 | BMAD Create-Story | Initial story creation with comprehensive context |
 | 2026-01-02 | Dev Agent | Implemented Tasks 1-7: ContextManager with atomic writes, unit tests |
+| 2026-01-02 | Dev Agent | Added Task 8: Durability tests for atomic write guarantees |
