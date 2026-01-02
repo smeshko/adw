@@ -67,10 +67,10 @@ So that I can start using adw in my repository.
 - [x] Add helpful comments explaining each setting
 
 ### Task 5: Create Directory Structure
-- [ ] Create `.adw/` directory
-- [ ] Create `.adw/runs/` for run storage
-- [ ] Create `.adw/commands/` for custom phase commands (empty)
-- [ ] Create `.gitignore` to exclude run data
+- [x] Create `.adw/` directory
+- [x] Create `.adw/runs/` for run storage
+- [x] Create `.adw/commands/` for custom phase commands (empty)
+- [x] Create `.gitignore` to exclude run data
 
 ### Task 6: Handle Existing Configuration
 - [ ] Check if `.adw/` exists before init
