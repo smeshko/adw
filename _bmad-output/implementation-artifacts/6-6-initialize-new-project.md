@@ -1,6 +1,6 @@
 # Story 6.6: Initialize New Project
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -562,13 +562,37 @@ Story 6.6 implements project initialization for new ADW users.
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A - No debug issues encountered
+
 ### Completion Notes List
 
+- Implemented `adw init` CLI command with --force/-f, --language/-l, and --template/-t flags
+- Created ProjectTypeDetector for auto-detecting Python, Node.js, Go, Rust, Java, Ruby, PHP projects
+- Created ProjectInitializer for creating .adw/ directory structure and project.yaml configuration
+- Generates helpful commented project.yaml with language, test_command, LLM config
+- Creates .adw/runs/, .adw/commands/ directories and .gitignore for runs/
+- Handles existing .adw/ with error or --force backup and reinitialize
+- Rich Panel output showing detected project type, config location, and next steps
+- 23 unit tests + 13 integration tests = 36 new tests, all passing
+- Full test suite: 865 tests at 94% coverage
+
 ### File List
+
+**New Files:**
+- src/adw/cli/init.py
+- src/adw/config/__init__.py
+- src/adw/config/detector.py
+- src/adw/config/initializer.py
+- tests/unit/cli/test_init.py
+- tests/integration/cli/test_init_integration.py
+
+**Modified Files:**
+- src/adw/cli/__init__.py
+- src/adw/cli/app.py
 
 ---
 
@@ -589,3 +613,4 @@ Story 6.6 implements project initialization for new ADW users.
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-03 | BMAD Create-Epic | Initial story creation with comprehensive context |
+| 2026-01-03 | Claude Opus 4.5 | Implementation complete - all 9 tasks done, 36 new tests |
