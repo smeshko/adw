@@ -1,6 +1,6 @@
 # Story 5.1: Implement Phase Sequence and Transitions
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 5 - Pipeline Orchestration
 Created: 2026-01-02
@@ -38,9 +38,9 @@ so that the pipeline follows the defined workflow.
 ## Tasks / Subtasks
 
 ### Task 1: Define Phase Sequence Constant
-- [ ] Create `PHASE_SEQUENCE` constant: `["plan", "build", "verify", "validate", "document"]`
-- [ ] Add to `src/adw/core/constants.py` or `orchestrator.py`
-- [ ] Ensure order is immutable (tuple)
+- [x] Create `PHASE_SEQUENCE` constant: `["plan", "build", "verify", "validate", "document"]`
+- [x] Add to `src/adw/core/constants.py` or `orchestrator.py`
+- [x] Ensure order is immutable (tuple)
 
 ### Task 2: Create Orchestrator Class
 - [ ] Create `src/adw/core/orchestrator.py`
@@ -717,13 +717,21 @@ Story 5.1 implements the core orchestrator for phase sequencing and transitions,
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created PHASE_SEQUENCE constant as immutable tuple in src/adw/core/constants.py
+- Added comprehensive unit tests in tests/unit/core/test_constants.py (6 tests)
+- Exported PHASE_SEQUENCE from src/adw/core/__init__.py
+
 ### File List
+
+- src/adw/core/constants.py (NEW)
+- src/adw/core/__init__.py (MODIFIED)
+- tests/unit/core/test_constants.py (NEW)
 
 ---
 

@@ -95,8 +95,8 @@ development_status:
   # Goal: Coordinate phase execution in order, manage transitions, and handle
   #       artifacts
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-5: backlog
-  5-1-implement-phase-sequence-and-transitions: backlog
+  epic-5: in-progress
+  5-1-implement-phase-sequence-and-transitions: in-progress
   5-2-implement-phase-runner-for-single-phase-execution: backlog
   5-3-pass-artifacts-between-phases: backlog
   5-4-execute-single-phase-in-isolation: backlog
