@@ -446,3 +446,65 @@ class TestStrictModeForMissingArtifacts:
             template_engine.render(template, context, strict=True)
 
         assert exc_info.value.code == "UNKNOWN_VARIABLE"
+
+
+class TestNamedArtifactConventions:
+    """Tests for artifact naming conventions (Task 6)."""
+
+    def test_plan_md_accessible_as_artifacts_plan_plan(
+        self,
+        phase_runner: PhaseRunner,
+        artifact_manager: ArtifactManager,
+    ) -> None:
+        """Test that plan.md is accessible as artifacts.plan.plan."""
+        run_id = make_run_id()
+        artifact_manager.store(run_id, "plan", "plan.md", "# Plan content")
+
+        result = phase_runner._build_artifacts_map(run_id, "build")
+
+        assert "plan" in result
+        assert "plan" in result["plan"]  # plan.md -> plan
+        assert result["plan"]["plan"] == "# Plan content"
+
+    def test_build_output_md_accessible_as_artifacts_build_build_output(
+        self,
+        phase_runner: PhaseRunner,
+        artifact_manager: ArtifactManager,
+    ) -> None:
+        """Test that build_output.md is accessible as artifacts.build.build_output."""
+        run_id = make_run_id()
+        artifact_manager.store(run_id, "build", "build_output.md", "Build summary")
+
+        result = phase_runner._build_artifacts_map(run_id, "verify")
+
+        assert "build" in result
+        assert "build_output" in result["build"]  # build_output.md -> build_output
+        assert result["build"]["build_output"] == "Build summary"
+
+    def test_diff_txt_accessible_without_extension(
+        self,
+        phase_runner: PhaseRunner,
+        artifact_manager: ArtifactManager,
+    ) -> None:
+        """Test that diff.txt is accessible as artifacts.build.diff."""
+        run_id = make_run_id()
+        artifact_manager.store(run_id, "build", "diff.txt", "git diff output")
+
+        result = phase_runner._build_artifacts_map(run_id, "verify")
+
+        assert "diff" in result["build"]  # diff.txt -> diff
+        assert result["build"]["diff"] == "git diff output"
+
+    def test_evidence_json_accessible_without_extension(
+        self,
+        phase_runner: PhaseRunner,
+        artifact_manager: ArtifactManager,
+    ) -> None:
+        """Test that evidence.json is accessible as artifacts.verify.evidence."""
+        run_id = make_run_id()
+        artifact_manager.store(run_id, "verify", "evidence.json", '{"passed": true}')
+
+        result = phase_runner._build_artifacts_map(run_id, "validate")
+
+        assert "evidence" in result["verify"]  # evidence.json -> evidence
+        assert result["verify"]["evidence"] == '{"passed": true}'

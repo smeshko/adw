@@ -63,10 +63,10 @@ so that the pipeline builds on previous outputs.
 - [x] Log warning for missing artifacts regardless of mode
 
 ### Task 6: Add Named Artifact Support
-- [ ] Extend artifact storage to support named artifacts
-- [ ] Convention: `plan.md` accessible as `artifacts.plan.plan`
-- [ ] Convention: `build_output.md` accessible as `artifacts.build.build_output`
-- [ ] Document naming conventions
+- [x] Extend artifact storage to support named artifacts
+- [x] Convention: `plan.md` accessible as `artifacts.plan.plan`
+- [x] Convention: `build_output.md` accessible as `artifacts.build.build_output`
+- [x] Document naming conventions
 
 ### Task 7: Implement Artifact Discovery in Template
 - [ ] Add `{{artifacts.plan}}` to list all plan artifacts
@@ -474,6 +474,7 @@ Story 5.3 implements artifact passing between phases, enabling later phases to a
 - Task 3: Verified `_build_artifacts_map()` correctly iterates PHASE_SEQUENCE and builds nested `{phase: {artifact: content}}` structure. Already implemented in Task 1.
 - Task 4: Added wildcard pattern support (`{{artifacts.build.*}}`) to template engine via `_resolve_wildcard()` method. Lists all artifacts in a phase with content previews.
 - Task 5: Verified strict mode already works via template engine's `strict` parameter. Added comprehensive tests for strict/lenient behavior with missing artifacts.
+- Task 6: Verified naming conventions already implemented (extension stripping). Added tests confirming `plan.md` → `artifacts.plan.plan` and similar patterns.
 
 ### File List
 
