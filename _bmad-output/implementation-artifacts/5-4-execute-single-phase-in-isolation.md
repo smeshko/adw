@@ -56,9 +56,9 @@ so that I can test or re-run specific phases.
 - [x] Build artifacts map from source run for template access
 
 ### Task 5: Validate Phase Requirements
-- [ ] If phase > "plan" and no `--from-run`, check for needed artifacts
-- [ ] Raise ConfigError if required artifacts missing
-- [ ] Suggest using `--from-run` in error message
+- [x] If phase > "plan" and no `--from-run`, check for needed artifacts
+- [x] Raise ConfigError if required artifacts missing
+- [x] Suggest using `--from-run` in error message
 
 ### Task 6: Store Artifacts in Current Run
 - [ ] Create artifact directory for new run
@@ -614,6 +614,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - **Task 2**: Added `--from-run` and `-f` flags to CLI. Implemented validation that non-plan phases require `--from-run` with helpful error messages. Added 6 tests in `TestFromRunFlag` class covering flag acceptance, requirement enforcement, and plan phase exemption.
 - **Task 3**: Implemented `run_single_phase()` method in Orchestrator. Method generates new ULID, creates RunContext, executes only the specified phase using existing `_execute_phase_with_transitions()`, and handles completion/failure states. Added 8 tests in `TestRunSinglePhase` class.
 - **Task 4**: Implemented `_load_artifacts_from_source()` method in Orchestrator to load artifacts from source run. Modified PhaseRunner.run() to accept `artifacts_override` parameter for pre-loaded artifacts. Updated PhaseRunnerProtocol and all execution methods to propagate artifacts_override. Added 3 tests in `TestLoadArtifactsFromSource` class.
+- **Task 5**: Added `_validate_required_artifacts()` method in Orchestrator that checks source run has artifacts from all required previous phases. Raises ConfigError with helpful message if missing. Added 3 tests in `TestPhaseRequirementsValidation` class.
 
 ### File List
 

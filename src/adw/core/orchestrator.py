@@ -23,7 +23,7 @@ from adw.core.context_manager import ContextManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
-from adw.exceptions import ADWError
+from adw.exceptions import ADWError, ConfigError
 from adw.models import RunContext
 from adw.models.phase import PhaseResult
 
@@ -362,6 +362,9 @@ class Orchestrator:
         if from_run_id:
             source_artifacts = self._load_artifacts_from_source(from_run_id, phase)
 
+            # Validate required artifacts exist
+            self._validate_required_artifacts(phase, source_artifacts, from_run_id)
+
         try:
             # Execute only the specified phase with source artifacts
             context = self._execute_phase_with_transitions(
@@ -470,6 +473,61 @@ class Orchestrator:
         )
 
         return artifacts_map
+
+    def _validate_required_artifacts(
+        self,
+        phase: str,
+        artifacts: dict[str, dict[str, str]],
+        source_run_id: str,
+    ) -> None:
+        """Validate that required artifacts exist for the phase.
+
+        Each phase after "plan" requires artifacts from all previous phases.
+        Raises ConfigError if any required artifacts are missing.
+
+        Args:
+            phase: Phase about to execute.
+            artifacts: Loaded artifacts from source run.
+            source_run_id: Source run ID (for error messages).
+
+        Raises:
+            ConfigError: If required artifacts are missing.
+        """
+        # Determine required phases (all phases before target)
+        try:
+            target_idx = PHASE_SEQUENCE.index(phase)
+        except ValueError:
+            return  # Unknown phase - skip validation
+
+        required_phases = PHASE_SEQUENCE[:target_idx]
+
+        if not required_phases:
+            return  # plan phase has no requirements
+
+        # Check each required phase has artifacts
+        missing_phases = [p for p in required_phases if p not in artifacts]
+
+        if missing_phases:
+            raise ConfigError(
+                code="MISSING_ARTIFACTS",
+                message=(
+                    f"Phase '{phase}' requires artifacts from: {', '.join(missing_phases)}. "
+                    f"Source run '{source_run_id}' is missing these artifacts."
+                ),
+                suggestion=(
+                    f"Ensure the source run completed the following phases: "
+                    f"{', '.join(missing_phases)}"
+                ),
+            )
+
+        logger.debug(
+            "Validated required artifacts",
+            extra={
+                "phase": phase,
+                "required_phases": required_phases,
+                "found_phases": list(artifacts.keys()),
+            },
+        )
 
     def _execute_phase_with_transitions(
         self,

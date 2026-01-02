@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from adw.core.constants import PHASE_SEQUENCE
-from adw.exceptions import HookError, LLMTimeoutError, PhaseError
+from adw.exceptions import ConfigError, HookError, LLMTimeoutError, PhaseError
 from adw.models import RunContext
 from adw.models.phase import PhaseResult, PhaseStatus
 
@@ -1074,9 +1074,14 @@ class TestRunSinglePhase:
         self,
         orchestrator: "Orchestrator",
         mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
     ) -> None:
         """Test that executed phase is recorded in phase_history."""
         orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Mock artifacts for required phases
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Plan Content"
 
         context = orchestrator.run_single_phase("build", "Test feature", "01HQSOURCE")
 
@@ -1113,11 +1118,16 @@ class TestRunSinglePhase:
         self,
         orchestrator: "Orchestrator",
         mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
     ) -> None:
         """Test that from_run_id is accepted for non-plan phases."""
         orchestrator.set_phase_runner(mock_phase_runner)
 
-        # Should not raise - from_run_id provided for build phase
+        # Mock artifacts for required phases
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Plan Content"
+
+        # Should not raise - from_run_id provided for build phase with artifacts
         context = orchestrator.run_single_phase(
             "build", "Test feature", from_run_id="01HQSOURCE123"
         )
@@ -1191,3 +1201,67 @@ class TestLoadArtifactsFromSource:
 
         # New run ID should be different from source run
         assert context.run_id != "01HQSOURCE123"
+
+
+class TestPhaseRequirementsValidation:
+    """Tests for validating phase requirements before execution."""
+
+    def test_build_phase_requires_plan_artifacts(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that build phase requires plan artifacts from source run."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Source run has no plan artifacts
+        mock_artifact_manager.list_artifacts.return_value = []
+
+        with pytest.raises(ConfigError) as exc_info:
+            orchestrator.run_single_phase(
+                "build", "Test feature", from_run_id="01HQSOURCE123"
+            )
+
+        assert "plan" in str(exc_info.value).lower()
+
+    def test_verify_phase_requires_build_artifacts(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that verify phase requires build artifacts."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Source run has plan but no build artifacts
+        def list_artifacts_side_effect(run_id: str, phase: str):
+            if phase == "plan":
+                return [{"name": "plan.md"}]
+            return []
+
+        mock_artifact_manager.list_artifacts.side_effect = list_artifacts_side_effect
+
+        with pytest.raises(ConfigError) as exc_info:
+            orchestrator.run_single_phase(
+                "verify", "Test feature", from_run_id="01HQSOURCE123"
+            )
+
+        assert "build" in str(exc_info.value).lower()
+
+    def test_plan_phase_does_not_require_artifacts(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that plan phase does not require previous artifacts."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # No artifacts in source run - should not matter for plan
+        mock_artifact_manager.list_artifacts.return_value = []
+
+        # Should succeed for plan phase (no validation needed)
+        context = orchestrator.run_single_phase("plan", "Test feature")
+
+        assert context.status == "completed"
