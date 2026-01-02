@@ -108,13 +108,13 @@ development_status:
   # Goal: Enable users to start, resume, abort, and monitor runs through
   #       CLI commands
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-6: backlog
-  6-1-start-new-run-with-feature-description: backlog
-  6-2-resume-failed-or-interrupted-run: backlog
-  6-3-check-run-status: backlog
-  6-4-list-recent-runs: backlog
-  6-5-abort-running-execution: backlog
-  6-6-initialize-new-project: backlog
+  epic-6: in-progress
+  6-1-start-new-run-with-feature-description: in-progress
+  6-2-resume-failed-or-interrupted-run: ready-for-dev
+  6-3-check-run-status: ready-for-dev
+  6-4-list-recent-runs: ready-for-dev
+  6-5-abort-running-execution: ready-for-dev
+  6-6-initialize-new-project: ready-for-dev
   epic-6-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
