@@ -19,5 +19,6 @@
 | Epic | Title | Goal | Priority | Test Priority |
 |------|-------|------|----------|---------------|
 | 10 | Cross-Project Dashboard | Aggregate runs across projects with analytics, token tracking, and dashboard views | Post-MVP | Integration |
+| 11 | Task Manager Integration | Enable runs from Linear/Jira/GitHub Issues with auto-fetch and status sync | Post-MVP | Integration |
 
 ---

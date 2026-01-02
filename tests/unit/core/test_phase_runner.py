@@ -436,8 +436,11 @@ class TestPhaseRunnerErrorHandling:
         phase_runner: PhaseRunner,
         sample_context: RunContext,
         mock_executor: MagicMock,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """Test that errors capture partial PhaseResult."""
+        """Test that errors capture partial PhaseResult with timing."""
+        import logging
+
         mock_executor.execute.side_effect = LLMError(
             code="LLM_TIMEOUT",
             message="Request timed out",
@@ -445,8 +448,15 @@ class TestPhaseRunnerErrorHandling:
             recoverable=True,
         )
 
-        with pytest.raises(LLMError):
-            phase_runner.run("plan", sample_context)
+        with caplog.at_level(logging.ERROR, logger="adw.core.phase_runner"):
+            with pytest.raises(LLMError):
+                phase_runner.run("plan", sample_context)
+
+        # Verify error was logged with duration_ms (proves PhaseResult was created and used)
+        assert any("Phase failed" in record.message for record in caplog.records)
+        error_record = next(r for r in caplog.records if "Phase failed" in r.message)
+        # The extra dict is stored as attributes on the record
+        assert hasattr(error_record, "duration_ms"), "PhaseResult.duration_ms should be logged"
 
     def test_command_error_adds_phase_context(
         self,

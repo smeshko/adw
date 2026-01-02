@@ -284,6 +284,11 @@ The MVP is successful when:
 
 ### Out of Scope (Post-MVP)
 
+- **Task Manager Integration** (Linear, Jira, GitHub Issues)
+  - `adw run TASK-123` fetches task content as feature description
+  - Configurable state mapping (ADW states → task manager states)
+  - Status updates at phase transitions
+  - Pluggable architecture via TaskManager protocol
 - Webhook entry points (Linear, GitHub)
 - GitHub Action adapter
 - Ship phase (deployment automation)

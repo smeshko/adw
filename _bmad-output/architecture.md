@@ -1344,6 +1344,110 @@ adw global dashboard            # TUI dashboard (Rich-based)
 
 See **Epic 10** for detailed implementation stories.
 
+## Future Enhancement: Task Manager Integration
+
+### Overview
+
+Post-MVP enhancement enabling runs to be initiated from external task managers (Linear, Jira, GitHub Issues). The SDK fetches task content automatically and synchronizes status at phase transitions.
+
+### Architectural Pattern
+
+**Protocol-Based Abstraction:**
+
+```python
+from typing import Protocol
+
+class TaskManager(Protocol):
+    """Protocol for external task manager integration."""
+
+    def fetch_task(self, task_id: str) -> TaskInfo:
+        """Fetch task details from external system."""
+        ...
+
+    def update_status(self, task_id: str, status: str, metadata: dict) -> None:
+        """Update task status in external system."""
+        ...
+
+    def resolve_task_id(self, input_str: str) -> str | None:
+        """Extract task ID from input string if it matches this manager's pattern."""
+        ...
+```
+
+**Configuration:**
+
+```yaml
+# .adw/project.yaml
+task_manager: linear  # or: jira, github_issues, none
+task_manager_config:
+  # Linear-specific
+  api_key_env: LINEAR_API_KEY  # Environment variable name
+  team_key: RULE  # For pattern matching RULE-123
+
+  # State mapping (ADW state → Task Manager state)
+  state_mapping:
+    pending: "Todo"
+    running: "In Progress"
+    completed: "Done"
+    failed: "In Progress"  # Keep open for retry
+```
+
+### Integration Points
+
+| Component | Integration |
+|-----------|-------------|
+| CLI (`cli/run.py`) | Detect task ID pattern, call `task_manager.fetch_task()` |
+| Orchestrator | Call `task_manager.update_status()` at phase transitions |
+| Config | Load task_manager settings, instantiate correct implementation |
+| Models | `TaskInfo` model for fetched task data |
+
+### File Locations
+
+```
+src/adw/
+├── task_managers/           # New package
+│   ├── __init__.py
+│   ├── base.py              # TaskManager Protocol
+│   ├── linear.py            # Linear implementation
+│   ├── jira.py              # Jira implementation (future)
+│   └── github_issues.py     # GitHub Issues (future)
+└── models/
+    └── task.py              # TaskInfo model
+```
+
+### Data Flow
+
+```
+User: adw run RULE-123
+         │
+         ▼
+    CLI detects task ID pattern
+         │
+         ▼
+    TaskManager.fetch_task("RULE-123")
+         │
+         ▼
+    Returns TaskInfo(title, description, labels, ...)
+         │
+         ▼
+    RunContext created with task content as feature_request
+         │
+         ▼
+    Orchestrator runs phases
+         │ (at each transition)
+         ▼
+    TaskManager.update_status("RULE-123", "running", {phase: "build"})
+         │
+         ▼
+    Run completes
+         │
+         ▼
+    TaskManager.update_status("RULE-123", "completed", {run_id: "..."})
+```
+
+See **Epic 11** for implementation stories.
+
+---
+
 ## Architecture Completion Summary
 
 ### Workflow Completion

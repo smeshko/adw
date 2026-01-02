@@ -18,6 +18,7 @@ from adw.models import (
     LLMResult,
     PhaseResult,
     PhaseStatus,
+    ResolvedCommand,
     RunContext,
 )
 
@@ -102,20 +103,23 @@ class PhaseRunner:
         started_at = datetime.now(timezone.utc)
         logger.info("Phase starting", extra={"phase": phase, "run_id": context.run_id})
 
+        # Resolve command once for all steps
+        command = self.command_resolver.resolve(phase)
+
         try:
             # Step 1: Run pre-hook
-            pre_hook_output = self._run_pre_hook(phase, context)
+            pre_hook_output = self._run_pre_hook(phase, context, command)
 
             # Step 2: Load and render prompt
             rendered_prompt = self._load_and_render_prompt(
-                phase, context, pre_hook_output
+                phase, context, pre_hook_output, command
             )
 
             # Step 3: Execute LLM
             llm_result = self._execute_llm(phase, context, rendered_prompt)
 
             # Step 4: Run post-hook
-            self._run_post_hook(phase, context, llm_result.content)
+            self._run_post_hook(phase, context, llm_result.content, command)
 
             # Step 5: Capture artifacts
             artifacts = self._capture_artifacts(phase, context, llm_result)
@@ -147,7 +151,7 @@ class PhaseRunner:
         except ADWError as e:
             # Capture partial state for debugging
             completed_at = datetime.now(timezone.utc)
-            PhaseResult(
+            failed_result = PhaseResult(
                 phase=phase,
                 status=PhaseStatus.FAILED,
                 started_at=started_at,
@@ -162,6 +166,7 @@ class PhaseRunner:
                     "run_id": context.run_id,
                     "error_code": e.code,
                     "error": str(e),
+                    "duration_ms": failed_result.duration_ms,
                 },
             )
 
@@ -170,12 +175,15 @@ class PhaseRunner:
                 e.phase = phase
             raise
 
-    def _run_pre_hook(self, phase: str, context: RunContext) -> str:
+    def _run_pre_hook(
+        self, phase: str, context: RunContext, command: ResolvedCommand
+    ) -> str:
         """Execute pre-hook and capture stdout.
 
         Args:
             phase: Phase name.
             context: Run context.
+            command: Resolved command configuration.
 
         Returns:
             Pre-hook stdout (empty string if no hook).
@@ -184,9 +192,6 @@ class PhaseRunner:
             HookError: If hook execution fails.
         """
         logger.debug("Running pre-hook", extra={"phase": phase})
-
-        # Resolve command to find hook path
-        command = self.command_resolver.resolve(phase)
 
         if not command.has_pre_hook:
             logger.debug("No pre-hook for phase", extra={"phase": phase})
@@ -218,6 +223,7 @@ class PhaseRunner:
         phase: str,
         context: RunContext,
         pre_hook_output: str,
+        command: ResolvedCommand,
     ) -> str:
         """Load prompt template and render with variables.
 
@@ -225,6 +231,7 @@ class PhaseRunner:
             phase: Phase name.
             context: Run context.
             pre_hook_output: Output from pre-hook.
+            command: Resolved command configuration.
 
         Returns:
             Rendered prompt string.
@@ -233,9 +240,6 @@ class PhaseRunner:
             CommandError: If resolution or rendering fails.
         """
         logger.debug("Loading prompt", extra={"phase": phase})
-
-        # Resolve command config
-        command = self.command_resolver.resolve(phase)
 
         # Read the prompt template
         prompt_path = command.path / "prompt.md"
@@ -302,6 +306,7 @@ class PhaseRunner:
         phase: str,
         context: RunContext,
         llm_output: str,
+        command: ResolvedCommand,
     ) -> None:
         """Execute post-hook with LLM output available.
 
@@ -309,14 +314,12 @@ class PhaseRunner:
             phase: Phase name.
             context: Run context.
             llm_output: Output from LLM execution.
+            command: Resolved command configuration.
 
         Raises:
             HookError: If hook execution fails.
         """
         logger.debug("Running post-hook", extra={"phase": phase})
-
-        # Resolve command to find hook path
-        command = self.command_resolver.resolve(phase)
 
         if not command.has_post_hook:
             logger.debug("No post-hook for phase", extra={"phase": phase})
@@ -329,6 +332,10 @@ class PhaseRunner:
 
         # Set LLM output in environment for post-hook
         original_env = os.environ.get("ADW_LLM_OUTPUT")
+        # Get artifacts directory for this run/phase
+        artifacts_dir = (
+            self.artifact_manager.runs_dir / context.run_id / "artifacts" / phase
+        )
         try:
             os.environ["ADW_LLM_OUTPUT"] = llm_output
 
@@ -337,6 +344,7 @@ class PhaseRunner:
                 context=context,
                 phase=phase,
                 hook_type="post",
+                artifacts_dir=artifacts_dir,
             )
             logger.debug(
                 "Post-hook completed",
