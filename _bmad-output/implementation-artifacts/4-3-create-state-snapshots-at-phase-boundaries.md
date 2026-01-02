@@ -87,10 +87,10 @@ so that I can debug failures and resume from known-good states.
 - [x] Target: >90% coverage
 
 ### Task 8: Write Integration Tests
-- [ ] Test full phase lifecycle with snapshots
-- [ ] Test snapshot listing across phases
-- [ ] Verify snapshot content integrity
-- [ ] Test recovery from snapshots
+- [x] Test full phase lifecycle with snapshots
+- [x] Test snapshot listing across phases
+- [x] Verify snapshot content integrity
+- [x] Test recovery from snapshots
 
 ---
 
@@ -624,6 +624,7 @@ Story 4.3 implements state snapshots at phase boundaries for debugging and recov
 - `src/adw/core/snapshot_manager.py` - New SnapshotManager class
 - `src/adw/core/__init__.py` - Added SnapshotManager export
 - `tests/unit/core/test_snapshot_manager.py` - Unit tests for SnapshotManager
+- `tests/integration/core/test_snapshot_integration.py` - Integration tests
 
 ---
 
