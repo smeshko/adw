@@ -95,10 +95,10 @@ So that I can start using adw in my repository.
 - [x] Target: >80% coverage
 
 ### Task 9: Write Integration Tests
-- [ ] Create `tests/integration/cli/test_init_integration.py`
-- [ ] Test full init flow
-- [ ] Test run command works after init
-- [ ] Verify directory structure created
+- [x] Create `tests/integration/cli/test_init_integration.py`
+- [x] Test full init flow
+- [x] Test run command works after init
+- [x] Verify directory structure created
 
 ---
 
