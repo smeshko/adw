@@ -10,6 +10,7 @@ import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from adw.core.constants import PHASE_SEQUENCE
@@ -25,11 +26,15 @@ from adw.models import (
 )
 
 if TYPE_CHECKING:
+    from adw.cli.progress import ProgressDisplay
     from adw.commands.resolver import CommandResolver
     from adw.commands.template import TemplateEngine
     from adw.core.artifact_manager import ArtifactManager
     from adw.executors.base import LLMExecutor
     from adw.hooks.runner import HookRunner
+
+# Type alias for progress callbacks
+ProgressCallback = Callable[[int], None]  # Callback receiving token count
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +84,7 @@ class PhaseRunner:
         artifact_manager: "ArtifactManager",
         *,
         strict_artifacts: bool = False,
+        progress_display: "ProgressDisplay | None" = None,
     ) -> None:
         """Initialize the PhaseRunner.
 
@@ -91,6 +97,7 @@ class PhaseRunner:
             strict_artifacts: If True, raise ConfigError when a template
                 references a missing artifact. If False (default), missing
                 artifacts are replaced with empty strings.
+            progress_display: Display for LLM progress (optional, Story 5.5).
         """
         self.command_resolver = command_resolver
         self.template_engine = template_engine
@@ -98,6 +105,7 @@ class PhaseRunner:
         self.executor = executor
         self.artifact_manager = artifact_manager
         self.strict_artifacts = strict_artifacts
+        self.progress_display = progress_display
 
     def run(self, phase: str, context: RunContext) -> PhaseResult:
         """Execute a single phase.
@@ -493,6 +501,10 @@ class PhaseRunner:
         """
         logger.debug("Executing LLM", extra={"phase": phase})
 
+        # Start LLM progress display (Story 5.5)
+        if self.progress_display:
+            self.progress_display.on_llm_start()
+
         try:
             result = self.executor.execute(prompt)
 
@@ -504,10 +516,19 @@ class PhaseRunner:
                     "tool_calls": len(result.tool_calls),
                 },
             )
+
+            # Update final token count before completing (Story 5.5)
+            if self.progress_display:
+                self.progress_display.on_llm_progress(result.tokens_used)
+                self.progress_display.on_llm_complete()
+
             return result
 
         except LLMError:
             logger.error("LLM execution failed", extra={"phase": phase})
+            # Stop progress display on error (Story 5.5)
+            if self.progress_display:
+                self.progress_display.on_llm_complete()
             raise
 
     def _run_post_hook(

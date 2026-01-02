@@ -28,6 +28,7 @@ from adw.models import RunContext
 from adw.models.phase import PhaseResult
 
 if TYPE_CHECKING:
+    from adw.cli.progress import ProgressDisplay
     from adw.core.artifact_manager import ArtifactManager
 
 
@@ -99,6 +100,7 @@ class Orchestrator:
         run_directory_manager: RunDirectoryManager,
         interruption_handler: InterruptionHandler | None = None,
         *,
+        progress_display: "ProgressDisplay | None" = None,
         max_retries: int = 3,
     ) -> None:
         """Initialize the Orchestrator.
@@ -110,6 +112,7 @@ class Orchestrator:
             artifact_manager: Manager for storing phase artifacts.
             run_directory_manager: Manager for run directory structure.
             interruption_handler: Handler for graceful shutdown (optional).
+            progress_display: Display for phase progress (optional, Story 5.5).
             max_retries: Maximum retry attempts for recoverable errors (default: 3).
         """
         self.runs_dir = runs_dir
@@ -121,6 +124,7 @@ class Orchestrator:
         self.interruption_handler = interruption_handler or InterruptionHandler(
             context_manager, snapshot_manager
         )
+        self.progress_display = progress_display
         self.max_retries = max_retries
         self._phase_runner: PhaseRunnerProtocol | None = None
 
@@ -225,6 +229,20 @@ class Orchestrator:
                 )
                 self.context_manager.save(context)
 
+                # Show pipeline summary (Story 5.5)
+                if self.progress_display:
+                    total_tokens = sum(context.phase_tokens.values())
+                    duration_ms = int(
+                        (context.completed_at - context.started_at).total_seconds()
+                        * 1000
+                    )
+                    self.progress_display.show_pipeline_summary(
+                        completed_phases=context.phase_history,
+                        status="completed",
+                        total_duration_ms=duration_ms,
+                        total_tokens=total_tokens,
+                    )
+
                 logger.info("Run completed", extra={"run_id": run_id})
 
         except ShutdownRequested as e:
@@ -244,6 +262,19 @@ class Orchestrator:
                 }
             )
             self.context_manager.save(context)
+
+            # Show pipeline summary on failure (Story 5.5)
+            if self.progress_display:
+                total_tokens = sum(context.phase_tokens.values())
+                duration_ms = int(
+                    (context.completed_at - context.started_at).total_seconds() * 1000
+                )
+                self.progress_display.show_pipeline_summary(
+                    completed_phases=context.phase_history,
+                    status="failed",
+                    total_duration_ms=duration_ms,
+                    total_tokens=total_tokens,
+                )
 
             logger.error(
                 "Run failed",
@@ -267,9 +298,11 @@ class Orchestrator:
         Flow:
         1. Update current_phase and persist
         2. Create pre-phase snapshot
-        3. Execute phase (with retries if recoverable)
-        4. Create post-phase snapshot
-        5. Update phase_history and persist
+        3. Notify progress display of phase start
+        4. Execute phase (with retries if recoverable)
+        5. Create post-phase snapshot
+        6. Notify progress display of completion/error
+        7. Update phase_history and persist
 
         Must complete transitions within 1 second (NFR2).
 
@@ -293,39 +326,54 @@ class Orchestrator:
         # Pre-phase snapshot
         self.snapshot_manager.create_pre_phase_snapshot(context, phase)
 
+        # Notify progress display of phase start (Story 5.5)
+        if self.progress_display:
+            self.progress_display.on_phase_start(phase)
+
         logger.info(
             "Starting phase",
             extra={"phase": phase, "run_id": context.run_id},
         )
 
-        # Execute phase with retry for recoverable errors
-        result = self._execute_phase_with_retry(context, phase)
+        try:
+            # Execute phase with retry for recoverable errors
+            result = self._execute_phase_with_retry(context, phase)
 
-        # Post-phase snapshot
-        self.snapshot_manager.create_post_phase_snapshot(context, phase, result)
+            # Post-phase snapshot
+            self.snapshot_manager.create_post_phase_snapshot(context, phase, result)
 
-        # Update context with phase completion
-        context = context.model_copy(
-            update={
-                "phase_history": [*context.phase_history, phase],
-                "phase_tokens": {**context.phase_tokens, phase: result.tokens_used},
-            }
-        )
-        self.context_manager.save(context)
+            # Notify progress display of phase completion (Story 5.5)
+            if self.progress_display:
+                self.progress_display.on_phase_complete(phase, result)
 
-        transition_time_ms = (time.monotonic() - transition_start) * 1000
-        logger.info(
-            "Phase completed",
-            extra={"phase": phase, "duration_ms": transition_time_ms},
-        )
+            # Update context with phase completion
+            context = context.model_copy(
+                update={
+                    "phase_history": [*context.phase_history, phase],
+                    "phase_tokens": {**context.phase_tokens, phase: result.tokens_used},
+                }
+            )
+            self.context_manager.save(context)
 
-        if transition_time_ms > 1000:
-            logger.warning(
-                "Transition exceeded 1s",
+            transition_time_ms = (time.monotonic() - transition_start) * 1000
+            logger.info(
+                "Phase completed",
                 extra={"phase": phase, "duration_ms": transition_time_ms},
             )
 
-        return context
+            if transition_time_ms > 1000:
+                logger.warning(
+                    "Transition exceeded 1s",
+                    extra={"phase": phase, "duration_ms": transition_time_ms},
+                )
+
+            return context
+
+        except ADWError as e:
+            # Notify progress display of phase error (Story 5.5)
+            if self.progress_display:
+                self.progress_display.on_phase_error(phase, e)
+            raise
 
     def _execute_phase_with_retry(
         self,
