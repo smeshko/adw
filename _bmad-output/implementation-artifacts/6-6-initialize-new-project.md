@@ -73,10 +73,10 @@ So that I can start using adw in my repository.
 - [x] Create `.gitignore` to exclude run data
 
 ### Task 6: Handle Existing Configuration
-- [ ] Check if `.adw/` exists before init
-- [ ] Raise ConfigError if exists and no --force
-- [ ] With --force: backup existing config, regenerate
-- [ ] Display warning when overwriting
+- [x] Check if `.adw/` exists before init
+- [x] Raise ConfigError if exists and no --force
+- [x] With --force: backup existing config, regenerate
+- [x] Display warning when overwriting
 
 ### Task 7: Display Initialization Summary
 - [ ] Show detected project type
