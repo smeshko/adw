@@ -38,11 +38,11 @@ so that subsequent phases can access outputs from previous phases.
 ## Tasks / Subtasks
 
 ### Task 1: Create ArtifactManager Class
-- [ ] Create `src/adw/core/artifact_manager.py`
-- [ ] Implement `store(phase, name, content)` method
-- [ ] Implement `get(phase, name)` method
-- [ ] Implement `list_artifacts(phase)` method
-- [ ] Use atomic write pattern
+- [x] Create `src/adw/core/artifact_manager.py`
+- [x] Implement `store(phase, name, content)` method
+- [x] Implement `get(phase, name)` method
+- [x] Implement `list_artifacts(phase)` method
+- [x] Use atomic write pattern
 
 ### Task 2: Implement Artifact Storage
 - [ ] Create phase directory if not exists: `artifacts/<phase>/`
@@ -550,7 +550,13 @@ Story 4.4 implements artifact storage and retrieval for passing data between pha
 
 ### Completion Notes List
 
+- Task 1: Created ArtifactManager class with store, get, list_artifacts, store_json, get_json, and get_artifact_paths methods. Used atomic write pattern (temp + fsync + rename). 17 unit tests added and passing.
+
 ### File List
+
+- `src/adw/core/artifact_manager.py` - NEW
+- `src/adw/core/__init__.py` - MODIFIED (exports ArtifactManager)
+- `tests/unit/core/test_artifact_manager.py` - NEW
 
 ---
 
