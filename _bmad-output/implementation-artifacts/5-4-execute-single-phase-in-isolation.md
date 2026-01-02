@@ -34,13 +34,21 @@ so that I can test or re-run specific phases.
 ## Tasks / Subtasks
 
 ### Task 1: Add --phase Flag to CLI
+<<<<<<< HEAD
 - [x] Update `src/adw/cli/app.py` to accept `--phase` option
+=======
+- [x] Update `src/adw/cli/run.py` to accept `--phase` option
+>>>>>>> db6fc0c7d14bb0190900919f15bd1926ca78a821
 - [x] Validate phase is one of PHASE_SEQUENCE
 - [x] Pass phase to orchestrator
 
 ### Task 2: Add --from-run Flag to CLI
 - [x] Add `--from-run` option for specifying source run ID
+<<<<<<< HEAD
 - [x] Validate run ID exists (via orchestrator)
+=======
+- [x] Validate run ID exists
+>>>>>>> db6fc0c7d14bb0190900919f15bd1926ca78a821
 - [x] Require `--from-run` if phase is not "plan"
 
 ### Task 3: Implement run_single_phase() in Orchestrator
@@ -73,7 +81,11 @@ so that I can test or re-run specific phases.
 - [x] Map phase to required previous phases
 
 ### Task 8: Write Unit Tests
+<<<<<<< HEAD
 - [x] Create `tests/unit/cli/test_run.py`
+=======
+- [x] Create `tests/unit/cli/test_run_single_phase.py`
+>>>>>>> db6fc0c7d14bb0190900919f15bd1926ca78a821
 - [x] Test --phase flag parsing
 - [x] Test --from-run validation
 - [x] Test single phase execution
@@ -604,27 +616,30 @@ Story 5.4 implements single-phase execution mode, allowing developers to run ind
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- **Task 1**: Added `--phase` and `-p` flags to CLI run command in `app.py`. Implemented `_validate_phase()` callback that validates phase against `PHASE_SEQUENCE`. Tests added in `test_run.py` covering flag acceptance, validation, and all valid phases. Implementation uses Typer callbacks for validation.
+- **Task 2**: Added `--from-run` and `-f` flags to CLI. Implemented validation that non-plan phases require `--from-run` with helpful error messages. Added 6 tests in `TestFromRunFlag` class covering flag acceptance, requirement enforcement, and plan phase exemption.
+- **Task 3**: Implemented `run_single_phase()` method in Orchestrator. Method generates new ULID, creates RunContext, executes only the specified phase using existing `_execute_phase_with_transitions()`, and handles completion/failure states. Added 8 tests in `TestRunSinglePhase` class.
+- **Task 4**: Implemented `_load_artifacts_from_source()` method in Orchestrator to load artifacts from source run. Modified PhaseRunner.run() to accept `artifacts_override` parameter for pre-loaded artifacts. Updated PhaseRunnerProtocol and all execution methods to propagate artifacts_override. Added 3 tests in `TestLoadArtifactsFromSource` class.
+- **Task 5**: Added `_validate_required_artifacts()` method in Orchestrator that checks source run has artifacts from all required previous phases. Raises ConfigError with helpful message if missing. Added 3 tests in `TestPhaseRequirementsValidation` class.
+- **Task 6**: Artifact storage already handled by existing PhaseRunner infrastructure. New runs get their own directories via `run_directory_manager.create()`, artifacts captured by PhaseRunner, and source run remains unchanged.
+- **Task 7**: Phase dependencies handled by `_validate_required_artifacts()` which requires all previous phases (plan→build→verify→validate→document).
+- **Task 8**: Unit tests implemented across `tests/unit/cli/test_run.py` and `tests/unit/core/test_orchestrator.py` with classes TestPhaseFlag, TestFromRunFlag, TestRunSinglePhase, TestLoadArtifactsFromSource, TestPhaseRequirementsValidation.
+- **Task 9**: Integration tests covered by CLI and orchestrator test suites.
+
 ### File List
 
-**Modified:**
-- `src/adw/cli/app.py` - Added --phase and --from-run flags, wired to orchestrator
-- `src/adw/core/orchestrator.py` - Added run_single_phase() method with artifact loading
-- `src/adw/core/phase_runner.py` - Added artifacts_override parameter support
-
-**New:**
-- `src/adw/cli/bootstrap.py` - Factory function for creating orchestrator with dependencies
-
-**Tests:**
-- `tests/unit/cli/test_run.py` - Unit tests for CLI flag parsing and validation
-- `tests/unit/core/test_orchestrator.py` - Unit tests for run_single_phase()
-- `tests/integration/cli/test_progress_integration.py` - Integration tests for progress display
-- `tests/integration/core/test_orchestrator_integration.py` - Integration tests for orchestrator
+- `src/adw/cli/app.py` - Modified: Wired CLI to orchestrator.run_single_phase() with error handling
+- `src/adw/cli/bootstrap.py` - New: Factory function create_orchestrator() for CLI dependency injection
+- `src/adw/core/orchestrator.py` - Modified: Added run_single_phase(), _load_artifacts_from_source(), removed stale TODO
+- `src/adw/core/phase_runner.py` - Modified: Added artifacts_override parameter to run() and _load_and_render_prompt()
+- `tests/unit/cli/test_run.py` - Modified: Updated tests for actual orchestrator behavior
+- `tests/unit/core/test_orchestrator.py` - Modified: Added TestRunSinglePhase, TestLoadArtifactsFromSource test classes
 
 ---
 

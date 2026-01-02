@@ -65,7 +65,12 @@ def mock_phase_runner() -> MagicMock:
     """Create a mock PhaseRunner that returns successful results."""
     runner = MagicMock()
 
-    def run_side_effect(phase: str, context: RunContext) -> PhaseResult:
+    def run_side_effect(
+        phase: str,
+        context: RunContext,
+        *,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
+    ) -> PhaseResult:
         return PhaseResult(
             phase=phase,
             status=PhaseStatus.COMPLETED,
@@ -262,13 +267,18 @@ class TestContextPersistenceIntegration:
         persist_count = 0
         original_run = mock_phase_runner.run.side_effect
 
-        def tracking_run(phase: str, context: RunContext) -> PhaseResult:
+        def tracking_run(
+            phase: str,
+            context: RunContext,
+            *,
+            artifacts_override: dict[str, dict[str, str]] | None = None,
+        ) -> PhaseResult:
             nonlocal persist_count
             # Check context file exists mid-run
             context_file = runs_dir / context.run_id / "context.json"
             if context_file.exists():
                 persist_count += 1
-            return original_run(phase, context)
+            return original_run(phase, context, artifacts_override=artifacts_override)
 
         mock_phase_runner.run.side_effect = tracking_run
         orchestrator.set_phase_runner(mock_phase_runner)
@@ -320,7 +330,12 @@ class TestResumeIntegration:
         # Simulate interruption during build phase
         call_count = 0
 
-        def run_with_interrupt(phase: str, context: RunContext) -> PhaseResult:
+        def run_with_interrupt(
+            phase: str,
+            context: RunContext,
+            *,
+            artifacts_override: dict[str, dict[str, str]] | None = None,
+        ) -> PhaseResult:
             nonlocal call_count
             call_count += 1
             if phase == "build":

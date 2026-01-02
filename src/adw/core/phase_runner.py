@@ -106,12 +106,21 @@ class PhaseRunner:
         self.strict_artifacts = strict_artifacts
         self.progress_display = progress_display
 
-    def run(self, phase: str, context: RunContext) -> PhaseResult:
+    def run(
+        self,
+        phase: str,
+        context: RunContext,
+        *,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
+    ) -> PhaseResult:
         """Execute a single phase.
 
         Args:
             phase: Phase name (plan, build, verify, validate, document).
             context: Current run context.
+            artifacts_override: Pre-loaded artifacts to use instead of loading
+                from the current run. Used for single-phase execution with
+                --from-run to load artifacts from a source run.
 
         Returns:
             PhaseResult with status, timing, and artifacts.
@@ -133,7 +142,8 @@ class PhaseRunner:
 
             # Step 2: Load and render prompt
             rendered_prompt = self._load_and_render_prompt(
-                phase, context, pre_hook_output, command
+                phase, context, pre_hook_output, command,
+                artifacts_override=artifacts_override,
             )
 
             # Step 3: Execute LLM
@@ -245,6 +255,8 @@ class PhaseRunner:
         context: RunContext,
         pre_hook_output: str,
         command: ResolvedCommand,
+        *,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
     ) -> str:
         """Load prompt template and render with variables.
 
@@ -262,6 +274,8 @@ class PhaseRunner:
             context: Run context.
             pre_hook_output: Output from pre-hook.
             command: Resolved command configuration.
+            artifacts_override: Pre-loaded artifacts to use instead of loading
+                from the current run. Used for single-phase execution.
 
         Returns:
             Rendered prompt string.
@@ -276,8 +290,15 @@ class PhaseRunner:
         prompt_path = command.path / "prompt.md"
         prompt_template = prompt_path.read_text(encoding="utf-8")
 
-        # Build artifacts map from previous phases (FR11)
-        artifacts_map = self._build_artifacts_map(context.run_id, phase)
+        # Use override if provided, otherwise build from current run (FR11)
+        if artifacts_override is not None:
+            artifacts_map = artifacts_override
+            logger.debug(
+                "Using artifacts override",
+                extra={"phase": phase, "phases_available": list(artifacts_map.keys())},
+            )
+        else:
+            artifacts_map = self._build_artifacts_map(context.run_id, phase)
 
         # Validate artifact references in template
         # Raises ConfigError if strict_artifacts=True and artifact missing
