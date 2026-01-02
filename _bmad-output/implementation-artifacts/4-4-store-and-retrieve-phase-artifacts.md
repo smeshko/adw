@@ -45,10 +45,10 @@ so that subsequent phases can access outputs from previous phases.
 - [x] Use atomic write pattern
 
 ### Task 2: Implement Artifact Storage
-- [ ] Create phase directory if not exists: `artifacts/<phase>/`
-- [ ] Write artifact content to file
-- [ ] Support both text and binary content
-- [ ] Use atomic write for text files
+- [x] Create phase directory if not exists: `artifacts/<phase>/`
+- [x] Write artifact content to file
+- [x] Support both text and binary content
+- [x] Use atomic write for text files
 
 ### Task 3: Implement Artifact Retrieval
 - [ ] Load artifact by phase and name
@@ -551,6 +551,7 @@ Story 4.4 implements artifact storage and retrieval for passing data between pha
 ### Completion Notes List
 
 - Task 1: Created ArtifactManager class with store, get, list_artifacts, store_json, get_json, and get_artifact_paths methods. Used atomic write pattern (temp + fsync + rename). 17 unit tests added and passing.
+- Task 2: Artifact storage already implemented in Task 1. store() method creates phase directories, writes text/binary content, uses atomic writes. 4 dedicated tests pass.
 
 ### File List
 
