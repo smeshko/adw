@@ -100,10 +100,10 @@ so that phase logic is encapsulated and testable.
 - [x] Target: >90% coverage
 
 ### Task 10: Write Integration Tests
-- [ ] Test full phase with MockExecutor
-- [ ] Test hook → LLM → hook data flow
-- [ ] Test artifact storage after phase
-- [ ] Test error recovery and state capture
+- [x] Test full phase with MockExecutor
+- [x] Test hook → LLM → hook data flow
+- [x] Test artifact storage after phase
+- [x] Test error recovery and state capture
 
 ---
 
