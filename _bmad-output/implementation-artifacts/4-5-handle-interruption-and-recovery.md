@@ -48,10 +48,10 @@ so that the run can be resumed without data loss (NFR7).
 - [x] Clean up resources
 
 ### Task 3: Update RunContext for Status
-- [ ] Add `status` field to RunContext (running, completed, interrupted, failed)
-- [ ] Add `interrupted_phase` field for tracking where interruption occurred
-- [ ] Add `interrupted_at` timestamp
-- [ ] Persist status changes immediately
+- [x] Add `status` field to RunContext (running, completed, interrupted, failed)
+- [x] Add `interrupted_phase` field for tracking where interruption occurred
+- [x] Add `interrupted_at` timestamp
+- [x] Persist status changes immediately
 
 ### Task 4: Implement Resume Detection
 - [ ] Check run status on resume
@@ -570,13 +570,15 @@ Story 4.5 implements graceful interruption handling and resume capability, ensur
 
 - Task 1: Created `InterruptionHandler` class in `src/adw/core/interruption.py` with signal registration, context preservation, and graceful shutdown flag
 - Task 2: Added `check_shutdown()` method and `ShutdownRequested` exception for graceful main loop checking
+- Task 3: Status fields already added in Task 1; added comprehensive tests for status validation
 
 ### File List
 
 - `src/adw/core/interruption.py` (NEW) - Signal handling for SIGINT/SIGTERM
 - `src/adw/models/context.py` (MODIFIED) - Added `interrupted_phase`, `interrupted_at` fields, typed `status` field
 - `src/adw/core/snapshot_manager.py` (MODIFIED) - Updated `create_post_phase_snapshot` to accept optional phase_result
-- `tests/unit/core/test_interruption.py` (NEW) - 18 unit tests for interruption handling
+- `tests/unit/core/test_interruption.py` (NEW) - 24 unit tests for interruption handling
+- `tests/unit/models/test_context.py` (MODIFIED) - Added 9 tests for status-related fields
 
 ---
 
