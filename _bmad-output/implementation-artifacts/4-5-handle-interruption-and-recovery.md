@@ -72,12 +72,12 @@ so that the run can be resumed without data loss (NFR7).
 - [x] Format for CLI display
 
 ### Task 7: Write Unit Tests
-- [ ] Create `tests/unit/core/test_interruption.py`
-- [ ] Test signal handler registration
-- [ ] Test graceful shutdown saves context
-- [ ] Test status tracking
-- [ ] Test resume from interrupt
-- [ ] Target: >90% coverage
+- [x] Create `tests/unit/core/test_interruption.py`
+- [x] Test signal handler registration
+- [x] Test graceful shutdown saves context
+- [x] Test status tracking
+- [x] Test resume from interrupt
+- [x] Target: >90% coverage
 
 ### Task 8: Write Integration Tests
 - [ ] Test actual SIGINT handling (subprocess)
@@ -574,6 +574,7 @@ Story 4.5 implements graceful interruption handling and resume capability, ensur
 - Task 4: Added `get_resume_phase()` and `can_resume()` functions for resume detection
 - Task 5: Added `prepare_resume()` function to update status and clear interrupted state
 - Task 6: Added `get_run_status()` function for status display with run metadata
+- Task 7: 49 unit tests written as part of Tasks 1-6 implementation (TDD approach)
 
 ### File List
 
