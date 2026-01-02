@@ -73,10 +73,10 @@ so that users understand what's happening.
 - [x] Format with Rich Panel
 
 ### Task 7: Integrate with Orchestrator
-- [ ] Add `progress_display` to Orchestrator
-- [ ] Call `on_phase_start()` before each phase
-- [ ] Call `on_phase_complete()` after each phase
-- [ ] Call `on_phase_error()` on failures
+- [x] Add `progress_display` to Orchestrator
+- [x] Call `on_phase_start()` before each phase
+- [x] Call `on_phase_complete()` after each phase
+- [x] Call `on_phase_error()` on failures
 
 ### Task 8: Integrate with PhaseRunner
 - [ ] Pass progress callback to LLM executor
