@@ -44,10 +44,10 @@ so that I can test or re-run specific phases.
 - [x] Require `--from-run` if phase is not "plan"
 
 ### Task 3: Implement run_single_phase() in Orchestrator
-- [ ] Add `run_single_phase(phase, feature, from_run_id=None)` method
-- [ ] Generate new run ID for this execution
-- [ ] Create initial RunContext
-- [ ] Execute only the specified phase
+- [x] Add `run_single_phase(phase, feature, from_run_id=None)` method
+- [x] Generate new run ID for this execution
+- [x] Create initial RunContext
+- [x] Execute only the specified phase
 
 ### Task 4: Load Artifacts from Source Run
 - [ ] When `--from-run` is specified, load artifacts from source run
@@ -612,11 +612,14 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - **Task 1**: Added `--phase` and `-p` flags to CLI run command in `app.py`. Implemented `_validate_phase()` callback that validates phase against `PHASE_SEQUENCE`. Tests added in `test_run.py` covering flag acceptance, validation, and all valid phases. Implementation uses Typer callbacks for validation.
 - **Task 2**: Added `--from-run` and `-f` flags to CLI. Implemented validation that non-plan phases require `--from-run` with helpful error messages. Added 6 tests in `TestFromRunFlag` class covering flag acceptance, requirement enforcement, and plan phase exemption.
+- **Task 3**: Implemented `run_single_phase()` method in Orchestrator. Method generates new ULID, creates RunContext, executes only the specified phase using existing `_execute_phase_with_transitions()`, and handles completion/failure states. Added 8 tests in `TestRunSinglePhase` class.
 
 ### File List
 
 - `src/adw/cli/app.py` - Modified: Added --phase and --from-run flags with validation
+- `src/adw/core/orchestrator.py` - Modified: Added run_single_phase() method
 - `tests/unit/cli/test_run.py` - Modified: Added TestFromRunFlag test class
+- `tests/unit/core/test_orchestrator.py` - Modified: Added TestRunSinglePhase test class
 
 ---
 

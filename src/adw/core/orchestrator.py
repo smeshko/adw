@@ -293,6 +293,102 @@ class Orchestrator:
 
         return context
 
+    def run_single_phase(
+        self,
+        phase: str,
+        feature_description: str,
+        from_run_id: str | None = None,
+    ) -> RunContext:
+        """Execute a single phase in isolation.
+
+        Creates a new run ID for this execution and executes only the specified
+        phase. For phases after "plan", artifacts from a source run may be needed.
+
+        Args:
+            phase: Phase to execute (must be in PHASE_SEQUENCE).
+            feature_description: Description of the feature to implement.
+            from_run_id: Source run ID for loading artifacts (optional for plan).
+
+        Returns:
+            RunContext for this single-phase execution.
+
+        Raises:
+            ADWError: If phase execution fails.
+            RuntimeError: If PhaseRunner is not set.
+
+        Example:
+            >>> context = orchestrator.run_single_phase("plan", "Add login")
+            >>> context = orchestrator.run_single_phase(
+            ...     "build", "Add login", from_run_id="01HQTEST123"
+            ... )
+        """
+        # Generate new run ID for this single-phase execution
+        run_id = str(ULID())
+
+        # Create initial context
+        context = RunContext(
+            run_id=run_id,
+            feature_description=feature_description,
+            current_phase=phase,
+            started_at=datetime.now(UTC),
+            status="running",
+        )
+
+        # Create run directory structure
+        self.run_directory_manager.create(context)
+
+        # Persist initial state
+        self.context_manager.save(context)
+
+        logger.info(
+            "Starting single-phase run",
+            extra={
+                "run_id": run_id,
+                "phase": phase,
+                "from_run": from_run_id,
+            },
+        )
+
+        try:
+            # Execute only the specified phase
+            context = self._execute_phase_with_transitions(context, phase)
+
+            # Mark as completed
+            context = context.model_copy(
+                update={
+                    "status": "completed",
+                    "completed_at": datetime.now(UTC),
+                }
+            )
+            self.context_manager.save(context)
+
+            logger.info(
+                "Single-phase run completed",
+                extra={"run_id": run_id, "phase": phase},
+            )
+
+        except ADWError as e:
+            # Mark as failed
+            context = context.model_copy(
+                update={
+                    "status": "failed",
+                    "completed_at": datetime.now(UTC),
+                }
+            )
+            self.context_manager.save(context)
+
+            logger.error(
+                "Single-phase run failed",
+                extra={
+                    "run_id": run_id,
+                    "phase": phase,
+                    "error_code": e.code,
+                },
+            )
+            raise
+
+        return context
+
     def _execute_phase_with_transitions(
         self,
         context: RunContext,

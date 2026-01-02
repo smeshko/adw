@@ -987,3 +987,114 @@ class TestInterruptionHandling:
         first_save = mock_context_manager.save.call_args_list[0][0][0]
         assert first_save.status == "running"
         assert first_save.phase_history == []  # No phases completed yet
+
+
+class TestRunSinglePhase:
+    """Tests for run_single_phase() method."""
+
+    def test_run_single_phase_generates_new_run_id(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that run_single_phase generates a unique run ID."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run_single_phase("plan", "Test feature")
+
+        assert context.run_id is not None
+        assert len(context.run_id) == 26  # ULID length
+
+    def test_run_single_phase_creates_context_with_feature(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that run_single_phase creates context with feature description."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run_single_phase("plan", "Add login feature")
+
+        assert context.feature_description == "Add login feature"
+
+    def test_run_single_phase_executes_only_specified_phase(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that only the specified phase is executed."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        orchestrator.run_single_phase("plan", "Test feature")
+
+        # Should only execute "plan", not the full sequence
+        assert mock_phase_runner.run.call_count == 1
+        call_args = mock_phase_runner.run.call_args[0]
+        assert call_args[0] == "plan"
+
+    def test_run_single_phase_returns_completed_context(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that run_single_phase returns context with completed status."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run_single_phase("plan", "Test feature")
+
+        assert context.status == "completed"
+        assert context.completed_at is not None
+
+    def test_run_single_phase_records_phase_in_history(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that executed phase is recorded in phase_history."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run_single_phase("build", "Test feature", "01HQSOURCE")
+
+        assert "build" in context.phase_history
+
+    def test_run_single_phase_persists_state(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_context_manager: MagicMock,
+    ) -> None:
+        """Test that state is persisted during single phase execution."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        orchestrator.run_single_phase("plan", "Test feature")
+
+        # Should save at least once (initial + after phase)
+        assert mock_context_manager.save.call_count >= 1
+
+    def test_run_single_phase_creates_run_directory(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_run_directory_manager: MagicMock,
+    ) -> None:
+        """Test that run directory is created for single phase."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        orchestrator.run_single_phase("plan", "Test feature")
+
+        mock_run_directory_manager.create.assert_called()
+
+    def test_run_single_phase_with_from_run_id(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that from_run_id is accepted for non-plan phases."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Should not raise - from_run_id provided for build phase
+        context = orchestrator.run_single_phase(
+            "build", "Test feature", from_run_id="01HQSOURCE123"
+        )
+
+        assert context.status == "completed"
