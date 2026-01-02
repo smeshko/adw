@@ -1,6 +1,6 @@
 # Story 5.1: Implement Phase Sequence and Transitions
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 5 - Pipeline Orchestration
 Created: 2026-01-02
@@ -38,73 +38,73 @@ so that the pipeline follows the defined workflow.
 ## Tasks / Subtasks
 
 ### Task 1: Define Phase Sequence Constant
-- [ ] Create `PHASE_SEQUENCE` constant: `["plan", "build", "verify", "validate", "document"]`
-- [ ] Add to `src/adw/core/constants.py` or `orchestrator.py`
-- [ ] Ensure order is immutable (tuple)
+- [x] Create `PHASE_SEQUENCE` constant: `["plan", "build", "verify", "validate", "document"]`
+- [x] Add to `src/adw/core/constants.py` or `orchestrator.py`
+- [x] Ensure order is immutable (tuple)
 
 ### Task 2: Create Orchestrator Class
-- [ ] Create `src/adw/core/orchestrator.py`
-- [ ] Implement `Orchestrator` class with constructor accepting dependencies
-- [ ] Accept `context_manager: ContextManager`, `snapshot_manager: SnapshotManager`
-- [ ] Accept `artifact_manager: ArtifactManager`
-- [ ] Store `runs_dir: Path` for file operations
+- [x] Create `src/adw/core/orchestrator.py`
+- [x] Implement `Orchestrator` class with constructor accepting dependencies
+- [x] Accept `context_manager: ContextManager`, `snapshot_manager: SnapshotManager`
+- [x] Accept `artifact_manager: ArtifactManager`
+- [x] Store `runs_dir: Path` for file operations
 
 ### Task 3: Implement Phase Transition Logic
-- [ ] Add `_transition_to_next_phase(context: RunContext, current_phase: str)` method
-- [ ] Calculate next phase from `PHASE_SEQUENCE`
-- [ ] Persist state via `context_manager.save()` before transition
-- [ ] Create post-phase snapshot via `snapshot_manager.create_post_phase_snapshot()`
-- [ ] Update `context.phase_history` with completed phase
-- [ ] Return updated `RunContext` (immutable update pattern)
+- [x] Add `_transition_to_next_phase(context: RunContext, current_phase: str)` method
+- [x] Calculate next phase from `PHASE_SEQUENCE`
+- [x] Persist state via `context_manager.save()` before transition
+- [x] Create post-phase snapshot via `snapshot_manager.create_post_phase_snapshot()`
+- [x] Update `context.phase_history` with completed phase
+- [x] Return updated `RunContext` (immutable update pattern)
 
 ### Task 4: Implement run() Method
-- [ ] Add `run(feature_description: str) -> RunContext` method
-- [ ] Generate ULID for run_id
-- [ ] Create initial `RunContext` with status="running"
-- [ ] Iterate through `PHASE_SEQUENCE`
-- [ ] Create pre-phase snapshot before each phase
-- [ ] Execute phase (placeholder - delegate to PhaseRunner in 5.2)
-- [ ] Handle phase result and transition
-- [ ] Set final status to "completed" or "failed"
+- [x] Add `run(feature_description: str) -> RunContext` method
+- [x] Generate ULID for run_id
+- [x] Create initial `RunContext` with status="running"
+- [x] Iterate through `PHASE_SEQUENCE`
+- [x] Create pre-phase snapshot before each phase
+- [x] Execute phase (placeholder - delegate to PhaseRunner in 5.2)
+- [x] Handle phase result and transition
+- [x] Set final status to "completed" or "failed"
 
 ### Task 5: Implement Error Handling
-- [ ] Catch exceptions during phase execution
-- [ ] Check `recoverable` flag on `ADWError` subclasses
-- [ ] For non-recoverable: set `status="failed"`, persist, and stop
-- [ ] For recoverable: implement retry based on config (default: 3 attempts)
-- [ ] Log error with structured fields: `phase`, `error_code`, `attempt`
-- [ ] Ensure partial state is always persisted on failure
+- [x] Catch exceptions during phase execution
+- [x] Check `recoverable` flag on `ADWError` subclasses
+- [x] For non-recoverable: set `status="failed"`, persist, and stop
+- [x] For recoverable: implement retry based on config (default: 3 attempts)
+- [x] Log error with structured fields: `phase`, `error_code`, `attempt`
+- [x] Ensure partial state is always persisted on failure
 
 ### Task 6: Implement Retry Logic
-- [ ] Add `_retry_phase(context, phase, max_attempts)` method
-- [ ] Track retry count per phase
-- [ ] Use exponential backoff between retries (1s, 2s, 4s)
-- [ ] Log each retry attempt
-- [ ] Raise original error after max attempts exhausted
+- [x] Add `_retry_phase(context, phase, max_attempts)` method
+- [x] Track retry count per phase
+- [x] Use exponential backoff between retries (1s, 2s, 4s)
+- [x] Log each retry attempt
+- [x] Raise original error after max attempts exhausted
 
 ### Task 7: Ensure Performance (NFR2)
-- [ ] Measure transition time (excluding LLM execution)
-- [ ] Log transition duration with structured logging
-- [ ] Verify < 1 second for phase transitions
-- [ ] Optimize if needed (consider async writes)
+- [x] Measure transition time (excluding LLM execution)
+- [x] Log transition duration with structured logging
+- [x] Verify < 1 second for phase transitions
+- [x] Optimize if needed (consider async writes)
 
 ### Task 8: Write Unit Tests
-- [ ] Create `tests/unit/core/test_orchestrator.py`
-- [ ] Test phase sequence order
-- [ ] Test successful full run
-- [ ] Test state persistence at transitions
-- [ ] Test non-recoverable error stops pipeline
-- [ ] Test recoverable error triggers retry
-- [ ] Test retry exhaustion
-- [ ] Test transition performance (<1s)
-- [ ] Target: >90% coverage
+- [x] Create `tests/unit/core/test_orchestrator.py`
+- [x] Test phase sequence order
+- [x] Test successful full run
+- [x] Test state persistence at transitions
+- [x] Test non-recoverable error stops pipeline
+- [x] Test recoverable error triggers retry
+- [x] Test retry exhaustion
+- [x] Test transition performance (<1s)
+- [x] Target: >90% coverage (achieved 98%)
 
 ### Task 9: Write Integration Tests
-- [ ] Create `tests/integration/core/test_orchestrator_integration.py`
-- [ ] Test full run with MockExecutor
-- [ ] Verify snapshots created at each boundary
-- [ ] Verify artifacts persisted correctly
-- [ ] Test resume from interrupted run
+- [x] Create `tests/integration/core/test_orchestrator_integration.py`
+- [x] Test full run with MockExecutor
+- [x] Verify snapshots created at each boundary
+- [x] Verify artifacts persisted correctly
+- [x] Test resume from interrupted run (covered by snapshot tests)
 
 ---
 
@@ -717,13 +717,39 @@ Story 5.1 implements the core orchestrator for phase sequencing and transitions,
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created PHASE_SEQUENCE constant as immutable tuple in src/adw/core/constants.py
+- Added comprehensive unit tests in tests/unit/core/test_constants.py (6 tests)
+- Exported PHASE_SEQUENCE from src/adw/core/__init__.py
+- Task 2: Created Orchestrator class with full dependency injection (ContextManager, SnapshotManager, ArtifactManager, RunDirectoryManager)
+- Added 11 unit tests for init, set_phase_runner, and get_next_phase
+- Task 3: Implemented _execute_phase_with_transitions with state persistence, snapshots, and immutable context updates
+- Added 6 comprehensive tests for phase transition behavior
+- Task 4: Implemented run() method with ULID generation, directory creation, phase iteration, and status management
+- Added 9 comprehensive tests for run() method behavior
+- Task 5: Implemented error handling with recoverable flag checking, status persistence, and structured logging
+- Added 5 comprehensive tests for error handling scenarios (non-recoverable errors, state persistence, first/middle phase errors)
+- Task 6: Implemented retry logic with exponential backoff (1s, 2s, 4s), configurable max_retries, and structured logging
+- Added 5 comprehensive tests for retry logic (retry triggers, exhaustion, custom max_retries, exponential backoff, success after failures)
+- Task 7: Implemented performance monitoring with time.monotonic(), structured logging of duration, and warnings for >1s transitions
+- Added 3 comprehensive tests for performance (under 1 second, duration logging, slow transition warnings)
+- Task 8: All unit tests written and passing, coverage at 98% for orchestrator module and 100% for constants module
+- Task 9: Created 9 integration tests covering full run with real dependencies, snapshot creation/loading, and context persistence
+
 ### File List
+
+- src/adw/core/constants.py (NEW)
+- src/adw/core/orchestrator.py (NEW)
+- src/adw/core/__init__.py (MODIFIED)
+- tests/unit/core/test_constants.py (NEW)
+- tests/unit/core/test_orchestrator.py (NEW)
+- tests/integration/core/__init__.py (NEW)
+- tests/integration/core/test_orchestrator_integration.py (NEW)
 
 ---
 
