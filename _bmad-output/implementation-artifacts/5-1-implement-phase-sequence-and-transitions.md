@@ -43,11 +43,11 @@ so that the pipeline follows the defined workflow.
 - [x] Ensure order is immutable (tuple)
 
 ### Task 2: Create Orchestrator Class
-- [ ] Create `src/adw/core/orchestrator.py`
-- [ ] Implement `Orchestrator` class with constructor accepting dependencies
-- [ ] Accept `context_manager: ContextManager`, `snapshot_manager: SnapshotManager`
-- [ ] Accept `artifact_manager: ArtifactManager`
-- [ ] Store `runs_dir: Path` for file operations
+- [x] Create `src/adw/core/orchestrator.py`
+- [x] Implement `Orchestrator` class with constructor accepting dependencies
+- [x] Accept `context_manager: ContextManager`, `snapshot_manager: SnapshotManager`
+- [x] Accept `artifact_manager: ArtifactManager`
+- [x] Store `runs_dir: Path` for file operations
 
 ### Task 3: Implement Phase Transition Logic
 - [ ] Add `_transition_to_next_phase(context: RunContext, current_phase: str)` method
@@ -726,12 +726,16 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 1: Created PHASE_SEQUENCE constant as immutable tuple in src/adw/core/constants.py
 - Added comprehensive unit tests in tests/unit/core/test_constants.py (6 tests)
 - Exported PHASE_SEQUENCE from src/adw/core/__init__.py
+- Task 2: Created Orchestrator class with full dependency injection (ContextManager, SnapshotManager, ArtifactManager, RunDirectoryManager)
+- Added 11 unit tests for init, set_phase_runner, and get_next_phase
 
 ### File List
 
 - src/adw/core/constants.py (NEW)
+- src/adw/core/orchestrator.py (NEW)
 - src/adw/core/__init__.py (MODIFIED)
 - tests/unit/core/test_constants.py (NEW)
+- tests/unit/core/test_orchestrator.py (NEW)
 
 ---
 
