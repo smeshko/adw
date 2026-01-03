@@ -1,6 +1,6 @@
 # Story 7.1: Implement Multi-Tier Logging System
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-03

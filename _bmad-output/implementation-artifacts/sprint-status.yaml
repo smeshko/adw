@@ -123,7 +123,7 @@ development_status:
   #       capabilities
   # ═══════════════════════════════════════════════════════════════════════════
   epic-7: in-progress
-  7-1-implement-multi-tier-logging-system: in-progress
+  7-1-implement-multi-tier-logging-system: review
   7-2-configure-verbosity-levels: ready-for-dev
   7-3-capture-llm-interactions: ready-for-dev
   7-4-implement-log-viewing-commands: ready-for-dev
