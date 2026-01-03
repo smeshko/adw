@@ -883,3 +883,124 @@ class TestCtrlCConfirmation:
 
         result = handler.handle_interrupt()
         assert result is True  # Should force abort
+
+
+class TestAbortGracefully:
+    """Tests for abort_gracefully method."""
+
+    def test_abort_gracefully_saves_context(
+        self,
+        context_manager_mock: MagicMock,
+        snapshot_manager_mock: MagicMock,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that abort_gracefully saves context."""
+        from adw.core.interruption import InterruptionHandler
+
+        handler = InterruptionHandler(
+            context_manager=context_manager_mock,
+            snapshot_manager=snapshot_manager_mock,
+        )
+
+        handler.abort_gracefully(sample_context)
+
+        context_manager_mock.save.assert_called_once()
+
+    def test_abort_gracefully_sets_status_to_aborted(
+        self,
+        context_manager_mock: MagicMock,
+        snapshot_manager_mock: MagicMock,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that abort_gracefully sets status to aborted."""
+        from adw.core.interruption import InterruptionHandler
+
+        handler = InterruptionHandler(
+            context_manager=context_manager_mock,
+            snapshot_manager=snapshot_manager_mock,
+        )
+
+        handler.abort_gracefully(sample_context)
+
+        saved_context = context_manager_mock.save.call_args[0][0]
+        assert saved_context.status == "aborted"
+
+    def test_abort_gracefully_sets_completed_at(
+        self,
+        context_manager_mock: MagicMock,
+        snapshot_manager_mock: MagicMock,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that abort_gracefully sets completed_at timestamp."""
+        from adw.core.interruption import InterruptionHandler
+
+        before = datetime.now(UTC)
+        handler = InterruptionHandler(
+            context_manager=context_manager_mock,
+            snapshot_manager=snapshot_manager_mock,
+        )
+
+        handler.abort_gracefully(sample_context)
+
+        after = datetime.now(UTC)
+        saved_context = context_manager_mock.save.call_args[0][0]
+        assert saved_context.completed_at is not None
+        assert before <= saved_context.completed_at <= after
+
+    def test_abort_gracefully_creates_snapshot(
+        self,
+        context_manager_mock: MagicMock,
+        snapshot_manager_mock: MagicMock,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that abort_gracefully creates abort snapshot."""
+        from adw.core.interruption import InterruptionHandler
+
+        handler = InterruptionHandler(
+            context_manager=context_manager_mock,
+            snapshot_manager=snapshot_manager_mock,
+        )
+
+        handler.abort_gracefully(sample_context, reason="test_abort")
+
+        snapshot_manager_mock.create_abort_snapshot.assert_called_once()
+        call_kwargs = snapshot_manager_mock.create_abort_snapshot.call_args[1]
+        assert call_kwargs["reason"] == "test_abort"
+
+    def test_abort_gracefully_default_reason(
+        self,
+        context_manager_mock: MagicMock,
+        snapshot_manager_mock: MagicMock,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that abort_gracefully uses default reason."""
+        from adw.core.interruption import InterruptionHandler
+
+        handler = InterruptionHandler(
+            context_manager=context_manager_mock,
+            snapshot_manager=snapshot_manager_mock,
+        )
+
+        handler.abort_gracefully(sample_context)
+
+        call_kwargs = snapshot_manager_mock.create_abort_snapshot.call_args[1]
+        assert call_kwargs["reason"] == "user_abort"
+
+    def test_abort_gracefully_returns_updated_context(
+        self,
+        context_manager_mock: MagicMock,
+        snapshot_manager_mock: MagicMock,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that abort_gracefully returns the updated context."""
+        from adw.core.interruption import InterruptionHandler
+
+        handler = InterruptionHandler(
+            context_manager=context_manager_mock,
+            snapshot_manager=snapshot_manager_mock,
+        )
+
+        result = handler.abort_gracefully(sample_context)
+
+        assert result.status == "aborted"
+        assert result.completed_at is not None

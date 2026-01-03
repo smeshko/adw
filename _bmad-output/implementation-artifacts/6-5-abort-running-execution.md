@@ -45,11 +45,11 @@ So that I can stop a stuck or unwanted run.
 - [x] On second Ctrl+C: force immediate abort
 
 ### Task 2: Implement Graceful Abort
-- [ ] Save current state before aborting
-- [ ] Update run status to "aborted" (distinct from "interrupted")
-- [ ] Create abort snapshot with reason
-- [ ] Stop any running LLM processes
-- [ ] Display abort confirmation message
+- [x] Save current state before aborting
+- [x] Update run status to "aborted" (distinct from "interrupted")
+- [x] Create abort snapshot with reason
+- [x] Stop any running LLM processes
+- [x] Display abort confirmation message
 
 ### Task 3: Implement CLI Abort Command
 - [ ] Create `src/adw/cli/abort.py` with abort command

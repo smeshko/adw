@@ -149,6 +149,48 @@ class InterruptionHandler:
             self.console.print("\n[red]Forcing abort...[/]")
             return True
 
+    def abort_gracefully(
+        self,
+        context: "RunContext",
+        reason: str = "user_abort",
+    ) -> "RunContext":
+        """Abort run gracefully with state preservation.
+
+        Saves current state, updates status to aborted, and creates
+        an abort snapshot with the specified reason.
+
+        Args:
+            context: Current run context.
+            reason: Reason for abort (e.g., "user_abort", "cli_abort").
+
+        Returns:
+            Updated RunContext with aborted status.
+        """
+        # Update status to aborted
+        updated_context = context.model_copy(
+            update={
+                "status": "aborted",
+                "completed_at": datetime.now(UTC),
+            }
+        )
+
+        # Save state
+        self.context_manager.save(updated_context)
+
+        # Create abort snapshot
+        self.snapshot_manager.create_abort_snapshot(
+            context=updated_context,
+            reason=reason,
+        )
+
+        # Display abort confirmation
+        self.console.print(
+            f"[yellow]Run aborted:[/] {updated_context.run_id}\n"
+            f"[dim]Resume with:[/] adw resume {updated_context.run_id}"
+        )
+
+        return updated_context
+
     def set_context(self, context: RunContext) -> None:
         """Set the current context to save on interrupt.
 

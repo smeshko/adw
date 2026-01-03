@@ -55,7 +55,7 @@ class RunContext(BaseModel):
     completed_at: datetime | None = Field(
         default=None, description="When this run completed"
     )
-    status: Literal["running", "completed", "interrupted", "failed"] = Field(
+    status: Literal["running", "completed", "interrupted", "failed", "aborted"] = Field(
         default="running", description="Current run status"
     )
     interrupted_phase: str | None = Field(
