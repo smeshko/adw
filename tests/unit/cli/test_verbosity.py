@@ -7,11 +7,9 @@ Tests for the global verbosity flags:
 - Default verbosity (normal)
 """
 
-import pytest
 from typer.testing import CliRunner
 
 from adw.cli.app import app
-from adw.models.logging import Verbosity
 
 runner = CliRunner()
 
@@ -53,7 +51,8 @@ class TestVerbosityFlags:
         )
         # Should fail with mutual exclusivity error
         assert result.exit_code != 0
-        assert "mutually exclusive" in result.output.lower() or "cannot" in result.output.lower()
+        output_lower = result.output.lower()
+        assert "mutually exclusive" in output_lower or "cannot" in output_lower
 
     def test_quiet_and_trace_mutually_exclusive(self) -> None:
         """Test that --quiet and --trace cannot be used together."""
@@ -117,3 +116,34 @@ class TestVerbosityWithRunCommand:
         result = runner.invoke(app, ["run", "Add feature", "--dry-run"])
         assert result.exit_code == 0
         # Should work normally without any verbosity flag
+
+
+class TestVerbosityWithResumeCommand:
+    """Integration tests for verbosity with resume command."""
+
+    def test_resume_with_quiet_verbosity(self) -> None:
+        """Test resume command works with --quiet flag."""
+        result = runner.invoke(app, ["-q", "resume"])
+        # May fail due to no runs, but should not fail on flag parsing
+        assert "No such option" not in result.output
+
+    def test_resume_with_verbose_verbosity(self) -> None:
+        """Test resume command works with --verbose flag."""
+        result = runner.invoke(app, ["-v", "resume"])
+        # May fail due to no runs, but should not fail on flag parsing
+        assert "No such option" not in result.output
+
+    def test_resume_with_trace_verbosity(self) -> None:
+        """Test resume command works with --trace flag."""
+        result = runner.invoke(app, ["--trace", "resume"])
+        # May fail due to no runs, but should not fail on flag parsing
+        assert "No such option" not in result.output
+
+    def test_resume_accepts_global_verbosity_flags(self) -> None:
+        """Test that resume uses global verbosity flags, not local ones."""
+        # The old local --verbose flag was removed in Story 7.2
+        # Verify it now uses global -v flag
+        result = runner.invoke(app, ["-v", "resume"])
+        # Should not error with unknown option
+        assert "No such option: '-v'" not in result.output
+        assert "No such option: '--verbose'" not in result.output

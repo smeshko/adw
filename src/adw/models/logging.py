@@ -7,7 +7,7 @@ This module contains models for structured logging:
 - LogEvent: A single log entry with all metadata
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -161,7 +161,7 @@ class LogContext(BaseModel):
 
 def _utc_now() -> datetime:
     """Get current UTC timestamp."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class LogEvent(BaseModel):

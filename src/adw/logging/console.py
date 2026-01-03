@@ -10,7 +10,7 @@ from typing import TextIO
 from rich.console import Console
 from rich.text import Text
 
-from adw.models.logging import LogEvent, LogLevel, Verbosity, VERBOSITY_LEVEL_MAP
+from adw.models.logging import VERBOSITY_LEVEL_MAP, LogEvent, LogLevel, Verbosity
 
 # Level styling configuration for Rich console
 LEVEL_STYLES: dict[LogLevel, str] = {

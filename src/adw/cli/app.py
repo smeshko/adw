@@ -10,8 +10,8 @@ from adw.cli.bootstrap import create_log_manager, create_orchestrator
 from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
 from adw.cli.resume import resume as resume_command
-from adw.cli.status import status as status_command
 from adw.cli.run_display import RunDisplay
+from adw.cli.status import status as status_command
 from adw.cli.validators import validate_phase
 from adw.commands.template import escape_feature_description
 from adw.exceptions import ADWError, ConfigError
@@ -174,7 +174,9 @@ def run(
         return
 
     # Get verbosity from context (Story 7.2)
-    verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL) if ctx.obj else Verbosity.NORMAL
+    verbosity = Verbosity.NORMAL
+    if ctx.obj:
+        verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL)
 
     # Create log manager with verbosity (Story 7.2)
     # Note: LogManager will be integrated with orchestrator in future stories
