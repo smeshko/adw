@@ -56,11 +56,11 @@ so that I can debug state-related issues.
 - [x] Format with Rich (JSON syntax highlighting)
 
 ### Task 4: Implement `logs diff` Command
-- [ ] Accept run_id and two phase identifiers
-- [ ] Load snapshots for both phases
-- [ ] Compute JSON diff (additions, removals, changes)
-- [ ] Display diff with color coding
-- [ ] Support `--from-snapshot` and `--to-snapshot` for specific snapshots
+- [x] Accept run_id and two phase identifiers
+- [x] Load snapshots for both phases
+- [x] Compute JSON diff (additions, removals, changes)
+- [x] Display diff with color coding
+- [x] Support `--from-snapshot` and `--to-snapshot` for specific snapshots
 
 ### Task 5: Create Diff Utility (utils/diff.py)
 - [ ] Implement `json_diff(a, b)` function
@@ -314,6 +314,7 @@ Key patterns:
 - Task 1: Created logs CLI subapp with state, diff, snapshots commands. Registered with main app.
 - Task 2: Implemented snapshots command with table display showing sequence, timestamp, label, and trigger.
 - Task 3: Implemented state command with Rich JSON syntax highlighting, supports --snapshot and --phase --at options.
+- Task 4: Implemented diff command with color-coded output for additions (green), removals (red), and changes (yellow).
 
 ### File List
 

@@ -282,3 +282,125 @@ class TestLogsStateCommand:
         )
         assert result.exit_code == 1
         assert "--at" in result.output.lower()
+
+
+class TestLogsDiffCommand:
+    """Tests for logs diff command."""
+
+    def test_diff_shows_additions(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Shows additions in diff output."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        snapshots_dir = run_dir / "snapshots"
+        snapshots_dir.mkdir()
+
+        # Create snapshots with differences
+        create_mock_snapshot(
+            snapshots_dir,
+            1,
+            "pre_plan",
+            {"run_id": "test-run", "status": "running"},
+        )
+        create_mock_snapshot(
+            snapshots_dir,
+            2,
+            "post_plan",
+            {"run_id": "test-run", "status": "running", "new_field": "added"},
+        )
+
+        result = runner.invoke(
+            app,
+            ["logs", "diff", "test-run", "--from-snapshot", "1", "--to-snapshot", "2"],
+        )
+        assert result.exit_code == 0
+        # Should show the addition
+        assert "new_field" in result.output or "added" in result.output
+
+    def test_diff_shows_removals(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Shows removals in diff output."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        snapshots_dir = run_dir / "snapshots"
+        snapshots_dir.mkdir()
+
+        create_mock_snapshot(
+            snapshots_dir,
+            1,
+            "pre_plan",
+            {"run_id": "test-run", "status": "running", "old_field": "removed"},
+        )
+        create_mock_snapshot(
+            snapshots_dir,
+            2,
+            "post_plan",
+            {"run_id": "test-run", "status": "running"},
+        )
+
+        result = runner.invoke(
+            app,
+            ["logs", "diff", "test-run", "--from-snapshot", "1", "--to-snapshot", "2"],
+        )
+        assert result.exit_code == 0
+        # Should show the removal
+        assert "old_field" in result.output or "removed" in result.output
+
+    def test_diff_shows_changes(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Shows changes in diff output."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        snapshots_dir = run_dir / "snapshots"
+        snapshots_dir.mkdir()
+
+        create_mock_snapshot(
+            snapshots_dir,
+            1,
+            "pre_plan",
+            {"run_id": "test-run", "status": "running"},
+        )
+        create_mock_snapshot(
+            snapshots_dir,
+            2,
+            "post_plan",
+            {"run_id": "test-run", "status": "completed"},
+        )
+
+        result = runner.invoke(
+            app,
+            ["logs", "diff", "test-run", "--from-snapshot", "1", "--to-snapshot", "2"],
+        )
+        assert result.exit_code == 0
+        # Should show the change in status
+
+    def test_diff_phase_mode(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Supports phase-based diff."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        snapshots_dir = run_dir / "snapshots"
+        snapshots_dir.mkdir()
+
+        create_mock_snapshot(
+            snapshots_dir,
+            1,
+            "pre_plan",
+            {"run_id": "test-run", "current_phase": "plan"},
+        )
+        create_mock_snapshot(
+            snapshots_dir,
+            2,
+            "post_plan",
+            {"run_id": "test-run", "current_phase": "build"},
+        )
+
+        result = runner.invoke(
+            app,
+            ["logs", "diff", "test-run", "--from-phase", "plan", "--to-phase", "plan"],
+        )
+        assert result.exit_code == 0

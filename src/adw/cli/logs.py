@@ -253,6 +253,69 @@ def _display_state(state: dict[str, Any], title: str) -> None:
     console.print(Panel(syntax, title=title, border_style="blue"))
 
 
+def _compute_diff(
+    old: dict[str, Any], new: dict[str, Any], path: str = ""
+) -> list[tuple[str, str, str]]:
+    """Compute differences between two dicts.
+
+    Args:
+        old: Original dict.
+        new: Modified dict.
+        path: Current path prefix for nested keys.
+
+    Returns:
+        List of (type, path, value) tuples where type is '+', '-', or '~'.
+    """
+    changes: list[tuple[str, str, str]] = []
+    all_keys = set(old.keys()) | set(new.keys())
+
+    for key in sorted(all_keys):
+        current_path = f"{path}.{key}" if path else str(key)
+
+        if key not in old:
+            # Addition
+            changes.append(("+", current_path, repr(new[key])))
+        elif key not in new:
+            # Removal
+            changes.append(("-", current_path, repr(old[key])))
+        elif old[key] != new[key]:
+            # Change
+            if isinstance(old[key], dict) and isinstance(new[key], dict):
+                # Recurse into nested dicts
+                changes.extend(_compute_diff(old[key], new[key], current_path))
+            else:
+                changes.append(("~", current_path, f"{repr(old[key])} → {repr(new[key])}"))
+
+    return changes
+
+
+def _display_diff(
+    changes: list[tuple[str, str, str]], from_label: str, to_label: str
+) -> None:
+    """Display diff with color coding.
+
+    Args:
+        changes: List of (type, path, value) tuples.
+        from_label: Label for source state.
+        to_label: Label for target state.
+    """
+    if not changes:
+        console.print("[green]No differences found[/]")
+        return
+
+    console.print(f"\n[bold]Comparing:[/] {from_label} → {to_label}\n")
+
+    for change_type, path, value in changes:
+        if change_type == "+":
+            console.print(f"[green]+ {path}:[/] {value}")
+        elif change_type == "-":
+            console.print(f"[red]- {path}:[/] {value}")
+        elif change_type == "~":
+            console.print(f"[yellow]~ {path}:[/] {value}")
+
+    console.print(f"\n[dim]Total changes: {len(changes)}[/]")
+
+
 def _format_timestamp(timestamp: str) -> str:
     """Format ISO timestamp for display.
 
@@ -464,6 +527,40 @@ def diff(
         )
         raise typer.Exit(1)
 
-    # Implementation in Task 4
-    console.print(f"[dim]Computing diff for run:[/] {run_id}")
-    console.print("[yellow]Not yet implemented[/]")
+    # Get source and target snapshots
+    if snapshot_mode:
+        # Snapshot-based comparison
+        if from_snapshot is None or to_snapshot is None:
+            console.print(
+                "[red]Error:[/] Both --from-snapshot and --to-snapshot required"
+            )
+            raise typer.Exit(1)
+
+        source_snap = _find_snapshot_by_sequence(run_id, from_snapshot)
+        target_snap = _find_snapshot_by_sequence(run_id, to_snapshot)
+        from_label = f"Snapshot #{from_snapshot} ({source_snap['label']})"
+        to_label = f"Snapshot #{to_snapshot} ({target_snap['label']})"
+
+    else:
+        # Phase-based comparison
+        if from_phase is None or to_phase is None:
+            console.print("[red]Error:[/] Both --from-phase and --to-phase required")
+            raise typer.Exit(1)
+
+        # Use post_<phase> snapshots for phase comparison
+        source_snap = _find_phase_snapshot(run_id, from_phase, "start")
+        target_snap = _find_phase_snapshot(run_id, to_phase, "end")
+        from_label = f"Phase {from_phase} start"
+        to_label = f"Phase {to_phase} end"
+
+    # Load snapshot content
+    source_content = _load_snapshot_content(source_snap["path"])
+    target_content = _load_snapshot_content(target_snap["path"])
+
+    # Extract context from snapshots
+    source_state = source_content.get("context", source_content)
+    target_state = target_content.get("context", target_content)
+
+    # Compute and display diff
+    changes = _compute_diff(source_state, target_state)
+    _display_diff(changes, from_label, to_label)
