@@ -66,10 +66,10 @@ So that I don't lose progress.
 - [x] Check required artifacts exist for resume phase
 
 ### Task 5: Load Artifacts from Previous Phases
-- [ ] Retrieve artifacts from completed phases via ArtifactManager
-- [ ] Make previous phase outputs available to resumed phase
-- [ ] Handle missing artifacts gracefully
-- [ ] Log which artifacts were loaded for debugging
+- [x] Retrieve artifacts from completed phases via ArtifactManager
+- [x] Make previous phase outputs available to resumed phase
+- [x] Handle missing artifacts gracefully
+- [x] Log which artifacts were loaded for debugging
 
 ### Task 6: Display Resume Header
 - [ ] Show "Resuming Run" panel with run_id
