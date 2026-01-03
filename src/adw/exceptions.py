@@ -556,3 +556,70 @@ class ValidationError(ADWError):
             }
         )
         return d
+
+
+class SecurityError(ADWError):
+    """Exception for security-related errors.
+
+    Used when an LLM tool call is blocked by the security interceptor
+    due to matching a dangerous pattern. Includes information about
+    the blocked tool and the pattern that triggered the block.
+
+    Common error codes:
+    - DANGEROUS_COMMAND_BLOCKED: Shell command matches dangerous pattern
+    - SENSITIVE_FILE_BLOCKED: File access to sensitive file blocked
+    - SECURITY_POLICY_VIOLATION: General security policy violation
+
+    Example:
+        >>> raise SecurityError(
+        ...     code="DANGEROUS_COMMAND_BLOCKED",
+        ...     message="Tool call blocked: rm -rf / matches dangerous pattern",
+        ...     pattern_matched=r"rm\\s+-rf",
+        ...     tool_name="Bash",
+        ...     suggestion="Use --allow-dangerous flag to override security checks",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        pattern_matched: str | None = None,
+        tool_name: str | None = None,
+        suggestion: str | None = None,
+        recoverable: bool = False,
+    ) -> None:
+        """Initialize a SecurityError.
+
+        Args:
+            code: Unique error code (e.g., "DANGEROUS_COMMAND_BLOCKED").
+            message: Human-readable error message.
+            pattern_matched: The regex pattern that triggered the block.
+            tool_name: Name of the tool that was blocked (e.g., "Bash").
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default False).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
+        self.pattern_matched = pattern_matched
+        self.tool_name = tool_name
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize error to dictionary for structured logging.
+
+        Returns:
+            Dictionary containing all error attributes including security fields.
+        """
+        d = super().to_dict()
+        d.update(
+            {
+                "pattern_matched": self.pattern_matched,
+                "tool_name": self.tool_name,
+            }
+        )
+        return d

@@ -41,7 +41,7 @@ So that automated code generation cannot accidentally destroy my project.
 - [x] Add SecurityConfig to project configuration loading
 
 ### Task 2: Create SecurityError Exception
-- [ ] Add `SecurityError` to `src/adw/exceptions.py`
+- [x] Add `SecurityError` to `src/adw/exceptions.py`
   - code: e.g., "DANGEROUS_COMMAND_BLOCKED"
   - pattern_matched: The pattern that triggered the block
   - tool_name: The tool that was blocked
@@ -309,16 +309,19 @@ claude-opus-4-5-20251101
 ### Completion Notes List
 
 - Task 1: Created security models (BlockedPattern, SecurityConfig, ToolCallLog) with SecuritySeverity enum. Added SecurityConfig to ProjectConfig. All models exported from adw.models.
+- Task 2: Created SecurityError exception with pattern_matched, tool_name, and suggestion fields. Follows existing exception hierarchy patterns.
 
 ### File List
 
 **New Files:**
 - src/adw/models/security.py
 - tests/unit/models/test_security.py
+- tests/unit/test_exceptions.py
 
 **Modified Files:**
 - src/adw/models/__init__.py
 - src/adw/models/config.py
+- src/adw/exceptions.py
 
 ## Dependencies
 
