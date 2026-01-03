@@ -1,6 +1,6 @@
 # Story 3.6: Security Hook Infrastructure
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2026-01-03
@@ -34,11 +34,11 @@ So that automated code generation cannot accidentally destroy my project.
 ## Tasks / Subtasks
 
 ### Task 1: Create Security Models
-- [ ] Create `src/adw/models/security.py` with:
+- [x] Create `src/adw/models/security.py` with:
   - `BlockedPattern` model (pattern, description, severity)
   - `SecurityConfig` model (blocked_patterns, allow_dangerous, blocked_env_files)
   - `ToolCallLog` model (timestamp, tool_name, arguments, result_summary, duration_ms, blocked, block_reason)
-- [ ] Add SecurityConfig to project configuration loading
+- [x] Add SecurityConfig to project configuration loading
 
 ### Task 2: Create SecurityError Exception
 - [ ] Add `SecurityError` to `src/adw/exceptions.py`
@@ -308,7 +308,17 @@ claude-opus-4-5-20251101
 
 ### Completion Notes List
 
+- Task 1: Created security models (BlockedPattern, SecurityConfig, ToolCallLog) with SecuritySeverity enum. Added SecurityConfig to ProjectConfig. All models exported from adw.models.
+
 ### File List
+
+**New Files:**
+- src/adw/models/security.py
+- tests/unit/models/test_security.py
+
+**Modified Files:**
+- src/adw/models/__init__.py
+- src/adw/models/config.py
 
 ## Dependencies
 
