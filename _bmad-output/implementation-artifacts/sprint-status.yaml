@@ -123,6 +123,7 @@ development_status:
   #       capabilities
   # ═══════════════════════════════════════════════════════════════════════════
   epic-7: in-progress
+  7-0-workflow-execution-index: ready-for-dev
   7-1-implement-multi-tier-logging-system: done
   7-2-configure-verbosity-levels: done
   7-3-capture-llm-interactions: review
