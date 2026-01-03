@@ -9,12 +9,15 @@ Commands:
 - logs diff <run_id>: Show differences between two snapshots/phases
 """
 
+import json
+import re
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.console import Console
-
-from adw.exceptions import StateError
+from rich.table import Table
 
 console = Console()
 
@@ -43,6 +46,134 @@ def _get_runs_dir() -> Path:
     return adw_dir / "runs"
 
 
+def _get_run_dir(run_id: str) -> Path:
+    """Get the run directory path.
+
+    Args:
+        run_id: The run ID.
+
+    Returns:
+        Path to .adw/runs/<run_id> directory.
+
+    Raises:
+        typer.Exit: If run not found.
+    """
+    runs_dir = _get_runs_dir()
+    run_dir = runs_dir / run_id
+    if not run_dir.exists():
+        console.print(f"[red]Error:[/] Run not found: {run_id}")
+        console.print("[dim]Suggestion:[/] Use 'adw list' to see available runs")
+        raise typer.Exit(1)
+    return run_dir
+
+
+def _parse_snapshot_filename(filename: str) -> tuple[int, str] | None:
+    """Parse snapshot filename to extract sequence and label.
+
+    Args:
+        filename: Snapshot filename (e.g., '001_pre_plan.json').
+
+    Returns:
+        Tuple of (sequence, label) or None if invalid format.
+    """
+    match = re.match(r"(\d+)_(.+)\.json", filename)
+    if match:
+        return int(match.group(1)), match.group(2)
+    return None
+
+
+def _load_snapshot_metadata(path: Path) -> dict[str, Any]:
+    """Load snapshot and extract metadata.
+
+    Args:
+        path: Path to snapshot file.
+
+    Returns:
+        Dict with timestamp, label, and sequence.
+    """
+    try:
+        content = json.loads(path.read_text())
+        return {
+            "timestamp": content.get("timestamp", ""),
+            "label": content.get("label", ""),
+            "sequence": content.get("sequence", 0),
+        }
+    except (json.JSONDecodeError, OSError):
+        return {"timestamp": "", "label": "", "sequence": 0}
+
+
+def _list_snapshots(run_id: str) -> list[dict[str, Any]]:
+    """List all snapshots for a run.
+
+    Args:
+        run_id: The run ID.
+
+    Returns:
+        List of snapshot metadata sorted by sequence.
+    """
+    run_dir = _get_run_dir(run_id)
+    snapshots_dir = run_dir / "snapshots"
+
+    if not snapshots_dir.exists():
+        return []
+
+    snapshots: list[dict[str, Any]] = []
+    for path in sorted(snapshots_dir.glob("*.json")):
+        parsed = _parse_snapshot_filename(path.name)
+        if parsed:
+            sequence, label = parsed
+            metadata = _load_snapshot_metadata(path)
+            snapshots.append(
+                {
+                    "sequence": sequence,
+                    "label": label,
+                    "timestamp": metadata.get("timestamp", ""),
+                    "path": path,
+                }
+            )
+
+    return sorted(snapshots, key=lambda s: s["sequence"])
+
+
+def _format_timestamp(timestamp: str) -> str:
+    """Format ISO timestamp for display.
+
+    Args:
+        timestamp: ISO format timestamp string.
+
+    Returns:
+        Formatted timestamp or original if parsing fails.
+    """
+    if not timestamp:
+        return "-"
+    try:
+        # Parse ISO format
+        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return timestamp
+
+
+def _extract_trigger_from_label(label: str) -> str:
+    """Extract trigger type from snapshot label.
+
+    Args:
+        label: Snapshot label (e.g., 'pre_plan', 'post_build').
+
+    Returns:
+        Trigger type ('pre', 'post', or 'error').
+    """
+    if label.startswith("pre_"):
+        return "pre"
+    elif label.startswith("post_"):
+        return "post"
+    elif "error" in label.lower():
+        return "error"
+    elif "abort" in label.lower():
+        return "abort"
+    return "auto"
+
+
 @logs_app.command(name="snapshots")
 def snapshots(
     run_id: str = typer.Argument(
@@ -58,9 +189,29 @@ def snapshots(
     Examples:
         adw logs snapshots 01HQXK5P3Z7V8R2M4N6T9W1Y3C
     """
-    # Implementation in Task 2
-    console.print(f"[dim]Listing snapshots for run:[/] {run_id}")
-    console.print("[yellow]Not yet implemented[/]")
+    snapshot_list = _list_snapshots(run_id)
+
+    if not snapshot_list:
+        console.print(f"[yellow]No snapshots found for run:[/] {run_id}")
+        return
+
+    # Create table
+    table = Table(title=f"Snapshots for {run_id}")
+    table.add_column("#", style="cyan", justify="right")
+    table.add_column("Timestamp", style="dim")
+    table.add_column("Label", style="green")
+    table.add_column("Trigger", style="yellow")
+
+    for snap in snapshot_list:
+        trigger = _extract_trigger_from_label(snap["label"])
+        table.add_row(
+            str(snap["sequence"]),
+            _format_timestamp(snap["timestamp"]),
+            snap["label"],
+            trigger,
+        )
+
+    console.print(table)
 
 
 @logs_app.command(name="state")

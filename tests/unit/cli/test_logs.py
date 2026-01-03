@@ -1,5 +1,10 @@
 """Unit tests for logs CLI commands."""
 
+import json
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
 import pytest
 from typer.testing import CliRunner
 
@@ -10,6 +15,41 @@ from adw.cli.app import app
 def runner() -> CliRunner:
     """Create CLI test runner."""
     return CliRunner()
+
+
+@pytest.fixture
+def mock_adw_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Create a mock .adw directory structure."""
+    adw_dir = tmp_path / ".adw"
+    adw_dir.mkdir()
+    runs_dir = adw_dir / "runs"
+    runs_dir.mkdir()
+    monkeypatch.chdir(tmp_path)
+    return adw_dir
+
+
+def create_mock_snapshot(
+    snapshots_dir: Path,
+    sequence: int,
+    label: str,
+    context: dict[str, Any] | None = None,
+) -> Path:
+    """Create a mock snapshot file."""
+    if context is None:
+        context = {"run_id": "test-run", "current_phase": "plan", "status": "running"}
+
+    snapshot_data = {
+        "context": context,
+        "phase_result": None,
+        "timestamp": datetime.now(UTC).isoformat(),
+        "label": label,
+        "sequence": sequence,
+    }
+
+    filename = f"{sequence:03d}_{label}.json"
+    path = snapshots_dir / filename
+    path.write_text(json.dumps(snapshot_data, indent=2))
+    return path
 
 
 class TestLogsCLIStructure:
@@ -63,3 +103,64 @@ class TestLogsCLIStructure:
         )
         assert result.exit_code == 1
         assert "Cannot mix" in result.output
+
+
+class TestLogsSnapshotsCommand:
+    """Tests for logs snapshots command."""
+
+    def test_snapshots_no_adw_dir(self, runner: CliRunner, tmp_path: Path) -> None:
+        """Error when no .adw directory exists."""
+        import os
+
+        os.chdir(tmp_path)
+        result = runner.invoke(app, ["logs", "snapshots", "test-run"])
+        assert result.exit_code == 1
+        assert "No .adw directory found" in result.output
+
+    def test_snapshots_run_not_found(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Error when run ID doesn't exist."""
+        result = runner.invoke(app, ["logs", "snapshots", "nonexistent-run"])
+        assert result.exit_code == 1
+        assert "not found" in result.output.lower()
+
+    def test_snapshots_no_snapshots(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Shows message when run has no snapshots."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        snapshots_dir = run_dir / "snapshots"
+        snapshots_dir.mkdir()
+
+        result = runner.invoke(app, ["logs", "snapshots", "test-run"])
+        assert result.exit_code == 0
+        assert "No snapshots" in result.output
+
+    def test_snapshots_lists_all(self, runner: CliRunner, mock_adw_dir: Path) -> None:
+        """Lists all snapshots in order."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        snapshots_dir = run_dir / "snapshots"
+        snapshots_dir.mkdir()
+
+        # Create snapshots
+        create_mock_snapshot(snapshots_dir, 1, "pre_plan")
+        create_mock_snapshot(snapshots_dir, 2, "post_plan")
+        create_mock_snapshot(snapshots_dir, 3, "pre_build")
+
+        result = runner.invoke(app, ["logs", "snapshots", "test-run"])
+        assert result.exit_code == 0
+
+        # Verify all snapshots shown
+        assert "pre_plan" in result.output
+        assert "post_plan" in result.output
+        assert "pre_build" in result.output
+
+        # Verify order (sequence numbers should appear in order)
+        output = result.output
+        pos_1 = output.find("1")
+        pos_2 = output.find("2")
+        pos_3 = output.find("3")
+        assert pos_1 < pos_2 < pos_3

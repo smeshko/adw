@@ -43,10 +43,10 @@ so that I can debug state-related issues.
 - [x] Add `snapshots` subcommand
 
 ### Task 2: Implement `logs snapshots` Command
-- [ ] Accept run_id parameter
-- [ ] List all files in `.agent/runs/<run_id>/snapshots/`
-- [ ] Display table: #, Timestamp, Label, Trigger
-- [ ] Sort by sequence number
+- [x] Accept run_id parameter
+- [x] List all files in `.adw/runs/<run_id>/snapshots/`
+- [x] Display table: #, Timestamp, Label, Trigger
+- [x] Sort by sequence number
 
 ### Task 3: Implement `logs state` Command
 - [ ] Accept run_id parameter
@@ -312,6 +312,7 @@ Key patterns:
 ### Completion Notes List
 
 - Task 1: Created logs CLI subapp with state, diff, snapshots commands. Registered with main app.
+- Task 2: Implemented snapshots command with table display showing sequence, timestamp, label, and trigger.
 
 ### File List
 
