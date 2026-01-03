@@ -38,11 +38,11 @@ so that I have appropriate output for different use cases.
 ## Tasks / Subtasks
 
 ### Task 1: Create Logging Models (models/logging.py)
-- [ ] Create `LogLevel` enum (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
-- [ ] Create `LogCategory` enum per architecture spec
-- [ ] Create `LogEvent` Pydantic model with all fields
-- [ ] Create `LogContext` model for scoped context
-- [ ] Export from `models/__init__.py`
+- [x] Create `LogLevel` enum (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
+- [x] Create `LogCategory` enum per architecture spec
+- [x] Create `LogEvent` Pydantic model with all fields
+- [x] Create `LogContext` model for scoped context
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Console Transport (logging/console.py)
 - [ ] Create `ConsoleTransport` class using Rich Console
@@ -274,6 +274,18 @@ Key patterns and rules from project context:
 
 ---
 
+## Dependencies
+
+- **Depends On:** None (foundation story)
+- **Blocks:** Story 7.2, Story 7.3, Story 7.4, Story 7.5, Story 7.6
+- **Can Parallel With:** None
+
+### Dependency Rationale
+- All other stories in Epic 7 depend on the logging infrastructure this story creates
+- This is the foundation story that must be completed first
+
+---
+
 ## Dev Agent Record
 
 ### Context Reference
@@ -286,5 +298,11 @@ Key patterns and rules from project context:
 
 ### Completion Notes List
 
+- Task 1: Created LogLevel (6 levels), LogCategory (6 categories), LogEvent, and LogContext Pydantic models with full type annotations, docstrings, and serialization support. 22 unit tests passing with 97% coverage.
+
 ### File List
+
+- src/adw/models/logging.py (NEW)
+- src/adw/models/__init__.py (MODIFIED)
+- tests/unit/models/test_logging.py (NEW)
 
