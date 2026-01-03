@@ -61,7 +61,7 @@ So that common destructive operations are prevented out of the box.
   - Override instructions with `--allow-dangerous`
 
 ### Task 5: Enhance SecurityError with Rich Context
-- [ ] Update `SecurityError` to include:
+- [x] Update `SecurityError` to include:
   - `alternatives`: List of safe alternative commands
   - `override_instruction`: How to bypass if needed
   - `severity`: "critical", "warning", "info"
@@ -307,6 +307,7 @@ claude-opus-4-5-20251101
 - Task 2: BlockedPattern model already includes PatternCategory type with all four categories (destructive, permission, git_dangerous, secret_access). Added 17 comprehensive tests for security models (BlockedPattern, SecurityConfig, ToolCallLog).
 - Task 3: Implemented PatternMatcher class with match_command() and match_file_access() methods. Supports custom patterns, allow_dangerous mode, and ALLOWED_ENV_PATTERNS for exceptions (.env.example, .env.sample). 25 tests added.
 - Task 4: Created SuggestionFormatter class with format_single() and format_multiple() methods. Added CATEGORY_EXAMPLES and get_override_instruction(). 11 tests added.
+- Task 5: Added SecurityError exception with pattern_matched, tool_name, alternatives, override_instruction, and severity fields. Custom __str__() and to_dict() methods. 9 tests added.
 
 ### File List
 
@@ -321,9 +322,11 @@ claude-opus-4-5-20251101
 - tests/unit/security/test_patterns.py
 - tests/unit/security/test_suggestions.py
 - tests/unit/models/test_security.py
+- tests/unit/test_security_error.py
 
 **Modified Files:**
 - src/adw/models/__init__.py
+- src/adw/exceptions.py
 
 ## Dependencies
 
