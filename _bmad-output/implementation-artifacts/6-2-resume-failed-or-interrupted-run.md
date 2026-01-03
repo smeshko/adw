@@ -78,10 +78,10 @@ So that I don't lose progress.
 - [x] Indicate which phase will resume
 
 ### Task 7: Handle Edge Cases
-- [ ] Handle run_id that doesn't exist → ConfigError "RUN_NOT_FOUND"
-- [ ] Handle no incomplete runs available → inform user
-- [ ] Handle concurrent resume attempts → file lock prevents double resume
-- [ ] Handle resume from last phase (document) → continue to completion
+- [x] Handle run_id that doesn't exist → ConfigError "RUN_NOT_FOUND"
+- [x] Handle no incomplete runs available → inform user
+- [x] Handle concurrent resume attempts → file lock prevents double resume
+- [x] Handle resume from last phase (document) → continue to completion
 
 ### Task 8: Write Unit Tests
 - [ ] Create `tests/unit/cli/test_resume.py`
