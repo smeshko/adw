@@ -184,10 +184,7 @@ class Redactor:
             >>> redactor.should_redact_env("DEBUG_MODE")
             False
         """
-        for pattern in self._env_patterns:
-            if pattern.match(name):
-                return True
-        return False
+        return any(pattern.match(name) for pattern in self._env_patterns)
 
     def redact_env_dict(self, env: dict[str, str]) -> dict[str, str]:
         """Redact values for sensitive environment variables.

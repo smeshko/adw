@@ -151,7 +151,8 @@ class StreamLogger:
             stats: Final statistics (tokens, duration).
 
         Example:
-            >>> logger.end(LLMStats(input_tokens=100, output_tokens=50, duration_ms=1000))
+            >>> stats = LLMStats(input_tokens=100, output_tokens=50)
+            >>> logger.end(stats)
         """
         event = LLMStreamEvent(
             t=self._elapsed_ms(),

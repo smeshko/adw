@@ -176,7 +176,7 @@ class RedactionConfig(BaseModel):
     )
     disable_defaults: bool = Field(
         default=False,
-        description="If True, only use custom patterns instead of merging with defaults",
+        description="If True, use only custom patterns (skip defaults)",
     )
 
 

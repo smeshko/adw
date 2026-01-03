@@ -157,10 +157,8 @@ class RunLookup:
             >>> # Get failed runs only
             >>> failed = lookup.list_runs(status="failed")
         """
-        if status:
-            filter_fn = lambda ctx: ctx.status == status
-        else:
-            filter_fn = None
+        def status_filter(ctx: RunContext) -> bool:
+            return ctx.status == status
 
-        runs = self._list_runs(filter_fn=filter_fn)
+        runs = self._list_runs(filter_fn=status_filter if status else None)
         return runs[:limit]
