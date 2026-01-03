@@ -11,6 +11,8 @@ from typing import TextIO, cast
 from rich.console import Console
 
 from adw.cli.progress import ProgressDisplay
+from adw.commands.resolver import CommandResolver
+from adw.commands.template import TemplateEngine
 from adw.core import (
     ArtifactManager,
     ContextManager,
@@ -19,8 +21,12 @@ from adw.core import (
     RunDirectoryManager,
     SnapshotManager,
 )
+from adw.core.phase_runner import PhaseRunner
+from adw.executors.claude_code import ClaudeCodeExecutor
+from adw.hooks.runner import HookRunner
 from adw.logging import LogManager
 from adw.logging.console import ConsoleTransport
+from adw.models.config import HookConfig, LLMConfig
 from adw.models.logging import Verbosity
 
 
@@ -100,6 +106,7 @@ def create_orchestrator(
     - RunDirectoryManager for directory structure
     - InterruptionHandler for graceful shutdown
     - ProgressDisplay for CLI output (optional)
+    - PhaseRunner with CommandResolver, TemplateEngine, HookRunner, LLMExecutor
 
     Args:
         console: Rich console for output. If None, creates a new one.
@@ -114,6 +121,7 @@ def create_orchestrator(
     """
     project_root = get_project_root()
     runs_dir = get_runs_dir(project_root)
+    console = console or Console()
 
     # Create managers
     context_manager = ContextManager(runs_dir)
@@ -125,8 +133,23 @@ def create_orchestrator(
     # Progress display for CLI feedback
     progress_display = None
     if with_progress:
-        console = console or Console()
         progress_display = ProgressDisplay(console)
+
+    # Create PhaseRunner dependencies (Epic 2 & 3)
+    command_resolver = CommandResolver(project_root=project_root)
+    template_engine = TemplateEngine(project_root=project_root)
+    hook_runner = HookRunner(config=HookConfig())
+    llm_executor = ClaudeCodeExecutor(config=LLMConfig(), console=console)
+
+    # Create PhaseRunner (Story 5.2)
+    phase_runner = PhaseRunner(
+        command_resolver=command_resolver,
+        template_engine=template_engine,
+        hook_runner=hook_runner,
+        executor=llm_executor,
+        artifact_manager=artifact_manager,
+        progress_display=progress_display,
+    )
 
     # Create orchestrator
     orchestrator = Orchestrator(
@@ -138,5 +161,8 @@ def create_orchestrator(
         interruption_handler=interruption_handler,
         progress_display=progress_display,
     )
+
+    # Wire up the PhaseRunner
+    orchestrator.set_phase_runner(phase_runner)
 
     return orchestrator

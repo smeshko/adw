@@ -333,6 +333,52 @@ class Orchestrator:
             )
             raise
 
+        except Exception as e:
+            # Catch-all for unexpected errors (RuntimeError, etc.)
+            # Ensures run status is updated even for infrastructure errors
+            context = context.model_copy(
+                update={
+                    "status": "failed",
+                    "completed_at": datetime.now(UTC),
+                }
+            )
+            self.context_manager.save(context)
+
+            # Update global index on failure (Story 7.0)
+            self.index_manager.update_run(
+                context.run_id,
+                status="failed",
+                completed_at=context.completed_at,
+                phase_reached=context.current_phase,
+                phases_completed=list(context.phase_history),
+            )
+
+            # Show pipeline summary on failure (Story 5.5)
+            if self.progress_display:
+                total_tokens = sum(context.phase_tokens.values())
+                duration_ms = 0
+                if context.completed_at and context.started_at:
+                    duration_ms = int(
+                        (context.completed_at - context.started_at).total_seconds()
+                        * 1000
+                    )
+                self.progress_display.show_pipeline_summary(
+                    completed_phases=context.phase_history,
+                    status="failed",
+                    total_duration_ms=duration_ms,
+                    total_tokens=total_tokens,
+                )
+
+            logger.error(
+                "Run failed with unexpected error",
+                extra={
+                    "run_id": run_id,
+                    "phase": context.current_phase,
+                    "error": str(e),
+                },
+            )
+            raise
+
         return context
 
     def run_single_phase(
@@ -456,6 +502,35 @@ class Orchestrator:
                     "run_id": run_id,
                     "phase": phase,
                     "error_code": e.code,
+                },
+            )
+            raise
+
+        except Exception as e:
+            # Catch-all for unexpected errors (RuntimeError, etc.)
+            context = context.model_copy(
+                update={
+                    "status": "failed",
+                    "completed_at": datetime.now(UTC),
+                }
+            )
+            self.context_manager.save(context)
+
+            # Update global index on failure (Story 7.0)
+            self.index_manager.update_run(
+                context.run_id,
+                status="failed",
+                completed_at=context.completed_at,
+                phase_reached=context.current_phase,
+                phases_completed=list(context.phase_history),
+            )
+
+            logger.error(
+                "Single-phase run failed with unexpected error",
+                extra={
+                    "run_id": run_id,
+                    "phase": phase,
+                    "error": str(e),
                 },
             )
             raise
@@ -638,6 +713,51 @@ class Orchestrator:
                     "run_id": run_id,
                     "phase": getattr(e, "phase", None),
                     "error_code": e.code,
+                },
+            )
+            raise
+
+        except Exception as e:
+            # Catch-all for unexpected errors (RuntimeError, etc.)
+            context = context.model_copy(
+                update={
+                    "status": "failed",
+                    "completed_at": datetime.now(UTC),
+                }
+            )
+            self.context_manager.save(context)
+
+            # Update global index on failure (Story 7.0)
+            self.index_manager.update_run(
+                context.run_id,
+                status="failed",
+                completed_at=context.completed_at,
+                phase_reached=context.current_phase,
+                phases_completed=list(context.phase_history),
+            )
+
+            # Show pipeline summary on failure (Story 5.5)
+            if self.progress_display:
+                total_tokens = sum(context.phase_tokens.values())
+                duration_ms = 0
+                if context.completed_at and context.started_at:
+                    duration_ms = int(
+                        (context.completed_at - context.started_at).total_seconds()
+                        * 1000
+                    )
+                self.progress_display.show_pipeline_summary(
+                    completed_phases=context.phase_history,
+                    status="failed",
+                    total_duration_ms=duration_ms,
+                    total_tokens=total_tokens,
+                )
+
+            logger.error(
+                "Resume failed with unexpected error",
+                extra={
+                    "run_id": run_id,
+                    "phase": context.current_phase,
+                    "error": str(e),
                 },
             )
             raise
