@@ -78,13 +78,13 @@ So that I can stop a stuck or unwanted run.
 - [x] Use distinct color for aborted (e.g., orange)
 
 ### Task 7: Write Unit Tests
-- [ ] Create `tests/unit/cli/test_abort.py`
-- [ ] Test abort active run succeeds
-- [ ] Test abort inactive run fails
-- [ ] Test abort non-existent run fails
-- [ ] Test force flag skips confirmation
-- [ ] Test Ctrl+C confirmation flow
-- [ ] Target: >80% coverage
+- [x] Create `tests/unit/cli/test_abort.py`
+- [x] Test abort active run succeeds
+- [x] Test abort inactive run fails
+- [x] Test abort non-existent run fails
+- [x] Test force flag skips confirmation
+- [x] Test Ctrl+C confirmation flow
+- [x] Target: >80% coverage
 
 ### Task 8: Write Integration Tests
 - [ ] Create `tests/integration/cli/test_abort_integration.py`
