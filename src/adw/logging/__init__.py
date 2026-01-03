@@ -24,6 +24,7 @@ from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
 from adw.logging.llm_capture import LLMCaptureManager
 from adw.logging.manager import LogManager, Transport
+from adw.logging.redaction import RedactionFilter, redact_secrets
 from adw.logging.stream import StreamLogger
 from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
 
@@ -112,6 +113,7 @@ __all__ = [
     "Transport",
     "StreamLogger",
     "LLMCaptureManager",
+    "RedactionFilter",
     # Transports
     "ConsoleTransport",
     "RawFileTransport",
@@ -125,4 +127,5 @@ __all__ = [
     "get_logger",
     "configure_default_logger",
     "reset_logger",
+    "redact_secrets",
 ]

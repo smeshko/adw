@@ -65,9 +65,9 @@ so that I can debug and reproduce issues.
 - [x] Handle errors gracefully
 
 ### Task 5: Add Secret Filtering (prep for 7.6)
-- [ ] Add `redact_secrets(content)` placeholder function
-- [ ] Apply to request/response before saving
-- [ ] Document integration point for Story 7.6
+- [x] Add `redact_secrets(content)` placeholder function
+- [x] Apply to request/response before saving
+- [x] Document integration point for Story 7.6
 
 ### Task 6: Write Unit Tests
 - [ ] Test LLM model serialization
@@ -303,15 +303,18 @@ claude-opus-4-5-20250514
 - Task 2: Implemented StreamLogger in logging/stream.py - Captures streaming events with relative timestamps using time.monotonic(). Methods: token(), tool_call(), tool_result(), thinking(), end(), error(). Added to logging package __all__.
 - Task 3: Implemented LLMCaptureManager in logging/llm_capture.py - Writes request/response JSON and stream JSONL files to llm/ directory. 3-digit zero-padded sequence numbers (001, 002, etc.).
 - Task 4: Integrated StreamLogger with ClaudeCodeExecutor - Added optional stream_logger parameter to execute(). Tokens captured during streaming, completion/error events captured in _build_result().
+- Task 5: Added redaction placeholder in logging/redaction.py - Created redact_secrets() function and RedactionFilter class as placeholders for Story 7.6. Documented integration points in docstrings.
 
 ### File List
 - src/adw/models/logging.py (modified) - Added 7 new models for LLM capture
 - tests/unit/models/test_logging.py (modified) - Added 18 new tests for LLM capture models
 - src/adw/logging/stream.py (new) - StreamLogger class for capturing LLM streaming events
-- src/adw/logging/__init__.py (modified) - Added StreamLogger and LLMCaptureManager to package exports
+- src/adw/logging/__init__.py (modified) - Added StreamLogger, LLMCaptureManager, redact_secrets, RedactionFilter to package exports
 - tests/unit/logging/test_stream.py (new) - 16 tests for StreamLogger
 - src/adw/logging/llm_capture.py (new) - LLMCaptureManager class for file-based capture
 - tests/unit/logging/test_llm_capture.py (new) - 15 tests for LLMCaptureManager
 - src/adw/executors/claude_code.py (modified) - Added stream_logger parameter to execute() and _stream_subprocess()
 - tests/unit/executors/test_claude_code.py (modified) - Added 5 tests for StreamLogger integration
+- src/adw/logging/redaction.py (new) - Placeholder redaction module for Story 7.6
+- tests/unit/logging/test_redaction.py (new) - 12 tests for redaction placeholders
 
