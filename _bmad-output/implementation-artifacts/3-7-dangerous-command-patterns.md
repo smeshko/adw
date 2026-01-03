@@ -40,12 +40,12 @@ So that common destructive operations are prevented out of the box.
   - `PATTERN_METADATA`: Dictionary mapping patterns to descriptions and alternatives
 
 ### Task 2: Implement Pattern Categories
-- [ ] Create categories in `BlockedPattern` model:
+- [x] Create categories in `BlockedPattern` model:
   - `destructive`: rm -rf, format, dd commands
   - `permission`: chmod 777, chown root
   - `git_dangerous`: force push, reset --hard
   - `secret_access`: .env, credentials, secrets
-- [ ] Add `category` field to BlockedPattern model
+- [x] Add `category` field to BlockedPattern model
 
 ### Task 3: Implement Pattern Matching Engine
 - [ ] Enhance `src/adw/security/patterns.py` with:
@@ -304,6 +304,7 @@ claude-opus-4-5-20251101
 ### Completion Notes List
 
 - Task 1: Created comprehensive defaults.py with DESTRUCTIVE_PATTERNS, PERMISSION_PATTERNS, GIT_DANGEROUS_PATTERNS, SECRET_ACCESS_PATTERNS, FILE_ACCESS_PATTERNS. Also created BlockedPattern model in models/security.py with category field. 20 tests written and passing.
+- Task 2: BlockedPattern model already includes PatternCategory type with all four categories (destructive, permission, git_dangerous, secret_access). Added 17 comprehensive tests for security models (BlockedPattern, SecurityConfig, ToolCallLog).
 
 ### File List
 
@@ -313,6 +314,7 @@ claude-opus-4-5-20251101
 - src/adw/models/security.py
 - tests/unit/security/__init__.py
 - tests/unit/security/test_defaults.py
+- tests/unit/models/test_security.py
 
 **Modified Files:**
 - src/adw/models/__init__.py
