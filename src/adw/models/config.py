@@ -147,6 +147,52 @@ class PipelineConfig(BaseModel):
     )
 
 
+class RedactionConfig(BaseModel):
+    """Configuration for secret redaction in logs.
+
+    Controls how sensitive data is redacted from log output to prevent
+    accidental exposure of secrets, API keys, and other sensitive values.
+
+    Attributes:
+        enabled: Whether redaction is active (default: True)
+        patterns: Additional custom regex patterns to redact
+        disable_defaults: If True, only use custom patterns (default: False)
+
+    Example:
+        >>> config = RedactionConfig(
+        ...     patterns=["ACME_[A-Z0-9]{20}", "my-custom-token-[A-Za-z0-9]+"]
+        ... )
+        >>> config.enabled
+        True
+    """
+
+    enabled: bool = Field(
+        default=True,
+        description="Whether redaction is active",
+    )
+    patterns: list[str] = Field(
+        default_factory=list,
+        description="Additional custom regex patterns to redact",
+    )
+    disable_defaults: bool = Field(
+        default=False,
+        description="If True, only use custom patterns instead of merging with defaults",
+    )
+
+
+class LoggingConfig(BaseModel):
+    """Configuration for logging behavior.
+
+    Attributes:
+        redaction: Secret redaction configuration
+    """
+
+    redaction: RedactionConfig = Field(
+        default_factory=RedactionConfig,
+        description="Secret redaction configuration",
+    )
+
+
 class ProjectConfig(BaseModel):
     """Main project configuration loaded from adw.yaml.
 
@@ -164,6 +210,7 @@ class ProjectConfig(BaseModel):
         phases: Phase-specific configuration
         hooks: Hook configuration
         pipeline: Pipeline behavior configuration
+        logging: Logging configuration (includes redaction settings)
 
     Example:
         >>> config = ProjectConfig.from_yaml('''
@@ -193,6 +240,9 @@ class ProjectConfig(BaseModel):
     )
     pipeline: PipelineConfig = Field(
         default_factory=PipelineConfig, description="Pipeline behavior configuration"
+    )
+    logging: LoggingConfig = Field(
+        default_factory=LoggingConfig, description="Logging configuration"
     )
 
     @model_validator(mode="before")
