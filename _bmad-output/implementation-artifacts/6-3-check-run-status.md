@@ -66,10 +66,10 @@ So that I know its current state and outcome.
 - [x] Highlight failed phase in red
 
 ### Task 5: Implement JSON Output
-- [ ] Add `--json` flag to command
-- [ ] Serialize RunContext to JSON with all fields
-- [ ] Include calculated fields (duration, artifact_count)
-- [ ] Output clean JSON for scripting/automation
+- [x] Add `--json` flag to command
+- [x] Serialize RunContext to JSON with all fields
+- [x] Include calculated fields (duration, artifact_count)
+- [x] Output clean JSON for scripting/automation
 
 ### Task 6: Handle Edge Cases
 - [ ] Handle run_id not found → ConfigError "RUN_NOT_FOUND"
