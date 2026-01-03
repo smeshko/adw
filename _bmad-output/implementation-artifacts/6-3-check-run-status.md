@@ -1,6 +1,6 @@
 # Story 6.3: Check Run Status
 
-Status: in-progress
+Status: done
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -88,11 +88,11 @@ So that I know its current state and outcome.
 - [x] Target: >80% coverage
 
 ### Task 8: Write Integration Tests
-- [ ] Create `tests/integration/cli/test_status_integration.py`
-- [ ] Test status of running run
-- [ ] Test status of completed run
-- [ ] Test status of failed run with resume hint
-- [ ] Verify output formatting
+- [x] Create `tests/integration/cli/test_status_integration.py`
+- [x] Test status of running run
+- [x] Test status of completed run
+- [x] Test status of failed run with resume hint
+- [x] Verify output formatting
 
 ---
 
