@@ -167,10 +167,10 @@ class TestUpdateRun:
         context = _create_test_context()
         manager.register_run(context, Path("/test/project"))
 
-        manager.update_run(context.run_id, phases_completed=["plan", "code"])
+        manager.update_run(context.run_id, phases_completed=["plan", "build"])
 
         entries = manager.get_recent_runs(limit=10)
-        assert entries[0].phases_completed == ["plan", "code"]
+        assert entries[0].phases_completed == ["plan", "build"]
 
     def test_update_nonexistent_run_id_raises_error(self, tmp_path: Path) -> None:
         """Test that updating nonexistent run_id raises StateError."""
@@ -199,15 +199,15 @@ class TestUpdateRun:
             context.run_id,
             status="completed",
             completed_at=completed_at,
-            phase_reached="verify",
-            phases_completed=["plan", "code", "test", "verify"],
+            phase_reached="validate",
+            phases_completed=["plan", "build", "verify", "validate"],
         )
 
         entries = manager.get_recent_runs(limit=10)
         assert entries[0].status == "completed"
         assert entries[0].completed_at is not None
-        assert entries[0].phase_reached == "verify"
-        assert entries[0].phases_completed == ["plan", "code", "test", "verify"]
+        assert entries[0].phase_reached == "validate"
+        assert entries[0].phases_completed == ["plan", "build", "verify", "validate"]
 
 
 class TestGetRecentRuns:

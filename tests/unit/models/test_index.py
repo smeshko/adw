@@ -51,13 +51,13 @@ class TestIndexEntryModel:
             started_at=started,
             completed_at=completed,
             status="completed",
-            phase_reached="verify",
-            phases_completed=["plan", "code", "test", "verify"],
+            phase_reached="validate",
+            phases_completed=["plan", "build", "verify", "validate"],
         )
 
         assert entry.completed_at == completed
-        assert entry.phase_reached == "verify"
-        assert entry.phases_completed == ["plan", "code", "test", "verify"]
+        assert entry.phase_reached == "validate"
+        assert entry.phases_completed == ["plan", "build", "verify", "validate"]
 
     def test_default_phases_completed_is_empty_list(self) -> None:
         """Test that phases_completed defaults to empty list."""
@@ -179,8 +179,8 @@ class TestIndexEntrySerialization:
             started_at=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
             completed_at=datetime(2024, 1, 15, 11, 45, tzinfo=UTC),
             status="completed",
-            phase_reached="verify",
-            phases_completed=["plan", "code", "test", "verify"],
+            phase_reached="validate",
+            phases_completed=["plan", "build", "verify", "validate"],
         )
 
         # Serialize and deserialize

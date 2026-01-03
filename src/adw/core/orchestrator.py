@@ -382,6 +382,9 @@ class Orchestrator:
         # Persist initial state
         self.context_manager.save(context)
 
+        # Register run in global index (Story 7.0)
+        self.index_manager.register_run(context, self._project_path)
+
         logger.info(
             "Starting single-phase run",
             extra={
@@ -414,6 +417,15 @@ class Orchestrator:
             )
             self.context_manager.save(context)
 
+            # Update global index on completion (Story 7.0)
+            self.index_manager.update_run(
+                context.run_id,
+                status="completed",
+                completed_at=context.completed_at,
+                phase_reached=context.current_phase,
+                phases_completed=list(context.phase_history),
+            )
+
             logger.info(
                 "Single-phase run completed",
                 extra={"run_id": run_id, "phase": phase},
@@ -428,6 +440,15 @@ class Orchestrator:
                 }
             )
             self.context_manager.save(context)
+
+            # Update global index on failure (Story 7.0)
+            self.index_manager.update_run(
+                context.run_id,
+                status="failed",
+                completed_at=context.completed_at,
+                phase_reached=context.current_phase,
+                phases_completed=list(context.phase_history),
+            )
 
             logger.error(
                 "Single-phase run failed",
@@ -534,6 +555,15 @@ class Orchestrator:
                 )
                 self.context_manager.save(context)
 
+                # Update global index on resume completion (Story 7.0)
+                self.index_manager.update_run(
+                    context.run_id,
+                    status="completed",
+                    completed_at=context.completed_at,
+                    phase_reached=context.current_phase,
+                    phases_completed=list(context.phase_history),
+                )
+
                 # Show pipeline summary (Story 5.5)
                 if self.progress_display:
                     total_tokens = sum(context.phase_tokens.values())
@@ -554,6 +584,13 @@ class Orchestrator:
 
         except ShutdownRequested as e:
             # Graceful shutdown - state already saved by handler
+            # Update global index on resume interruption (Story 7.0)
+            self.index_manager.update_run(
+                context.run_id,
+                status="interrupted",
+                phase_reached=e.phase,
+                phases_completed=list(context.phase_history),
+            )
             logger.info(
                 "Resume interrupted",
                 extra={"run_id": run_id, "phase": e.phase},
@@ -569,6 +606,15 @@ class Orchestrator:
                 }
             )
             self.context_manager.save(context)
+
+            # Update global index on resume failure (Story 7.0)
+            self.index_manager.update_run(
+                context.run_id,
+                status="failed",
+                completed_at=context.completed_at,
+                phase_reached=context.current_phase,
+                phases_completed=list(context.phase_history),
+            )
 
             # Show pipeline summary on failure (Story 5.5)
             if self.progress_display:

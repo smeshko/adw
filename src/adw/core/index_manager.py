@@ -12,12 +12,18 @@ Key features:
 - Automatic archival when index exceeds threshold
 """
 
+import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from adw.exceptions import StateError
 from adw.models.index import IndexEntry
+
+if TYPE_CHECKING:
+    from adw.models import RunContext
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["IndexManager"]
 
@@ -67,7 +73,7 @@ class IndexManager:
 
         Creates a new index entry with status='running' and appends it
         to the index file. Creates the index file and parent directories
-        if they don't exist.
+        if they don't exist. Triggers archival if index exceeds threshold.
 
         Args:
             context: The RunContext for the new run.
@@ -76,8 +82,6 @@ class IndexManager:
         Example:
             >>> manager.register_run(context, Path("/path/to/project"))
         """
-        from adw.models import RunContext  # Avoid circular import
-
         # Ensure parent directories exist
         self.index_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -96,6 +100,9 @@ class IndexManager:
 
         # Append to index (JSONL format)
         self._append_entry(entry)
+
+        # Check if archive is needed (AC5: archive when >10,000 entries)
+        self._archive_old_entries()
 
     def update_run(self, run_id: str, **updates: Any) -> None:
         """Update an existing run entry.
@@ -243,7 +250,7 @@ class IndexManager:
     def _read_all_entries(self) -> list[IndexEntry]:
         """Read all entries from the index file.
 
-        Skips corrupted lines (invalid JSON or validation errors).
+        Skips corrupted lines (invalid JSON or validation errors) and logs warnings.
 
         Returns:
             List of IndexEntry objects.
@@ -251,16 +258,22 @@ class IndexManager:
         entries: list[IndexEntry] = []
 
         with open(self.index_path, "r") as f:
-            for line in f:
+            for line_num, line in enumerate(f, start=1):
                 line = line.strip()
                 if not line:
                     continue
                 try:
                     entry = IndexEntry.model_validate_json(line)
                     entries.append(entry)
-                except Exception:
-                    # Skip corrupted lines - log this in production
-                    pass
+                except Exception as e:
+                    logger.warning(
+                        "Skipping corrupted line in index",
+                        extra={
+                            "line_number": line_num,
+                            "error": str(e),
+                            "index_path": str(self.index_path),
+                        },
+                    )
 
         return entries
 
@@ -273,8 +286,3 @@ class IndexManager:
         with open(self.index_path, "w") as f:
             for entry in entries:
                 f.write(entry.model_dump_json() + "\n")
-
-
-# Type hint for RunContext to avoid circular import
-if False:  # TYPE_CHECKING equivalent that works at runtime
-    from adw.models import RunContext

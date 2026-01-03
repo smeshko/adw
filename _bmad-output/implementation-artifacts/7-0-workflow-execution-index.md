@@ -383,10 +383,24 @@ def list_runs(
 ### Context Reference
 
 ### Agent Model Used
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
 ### Completion Notes List
+- Code review identified and fixed: missing auto-archive trigger, missing index registration in run_single_phase/resume, silent exception swallowing, incorrect phase names in tests
 
 ### File List
 
+**New Files Created:**
+- `src/adw/models/index.py` - IndexEntry Pydantic model for global workflow index
+- `src/adw/core/index_manager.py` - IndexManager class for JSONL index operations
+- `tests/unit/models/test_index.py` - Unit tests for IndexEntry model
+- `tests/unit/core/test_index_manager.py` - Unit tests for IndexManager
+
+**Files Modified:**
+- `src/adw/models/__init__.py` - Added IndexEntry export
+- `src/adw/core/orchestrator.py` - Integrated IndexManager for run registration and status updates
+- `src/adw/cli/list.py` - Added --global and --project flags for global index queries
+- `tests/unit/core/test_orchestrator.py` - Added index integration tests
+- `tests/unit/cli/test_list.py` - Added global index flag tests
