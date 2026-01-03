@@ -18,6 +18,7 @@ from adw.cli.bootstrap import get_runs_dir
 from adw.cli.status_display import StatusDisplay, output_json
 from adw.core.run_lookup import RunLookup
 from adw.exceptions import ADWError, ConfigError, StateError
+from adw.models import RunContext
 
 console = Console()
 
@@ -68,7 +69,7 @@ def status(
         display.show_status(context, verbose=verbose)
 
 
-def _find_run(run_id: str | None):
+def _find_run(run_id: str | None) -> RunContext:
     """Find the run to display status for.
 
     Args:
@@ -82,8 +83,6 @@ def _find_run(run_id: str | None):
         StateError: If run context is corrupted.
         typer.Exit: If no runs exist (user-friendly exit).
     """
-    from adw.models import RunContext
-
     runs_dir = get_runs_dir()
     lookup = RunLookup(runs_dir)
 

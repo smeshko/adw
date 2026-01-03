@@ -111,16 +111,63 @@ class StatusDisplay:
 
         UX-3: Failed status includes error message, suggestion, resume command.
         """
+        # Build error details message
+        error_msg = f"[red]Error:[/] Phase '{context.current_phase}' failed"
+
+        # Provide phase-specific suggestions
+        suggestions = self._get_phase_suggestions(context.current_phase)
+
+        # Build the recovery panel content
+        content_parts = [
+            error_msg,
+            "",
+            "[yellow]Suggestions:[/]",
+            *[f"  • {s}" for s in suggestions],
+            "",
+            "[dim]To resume this run:[/]",
+            f"  adw resume {context.run_id}",
+        ]
+
         self.console.print()
         self.console.print(
             Panel(
-                f"[red]Phase Failed:[/] {context.current_phase}\n\n"
-                f"[dim]To resume this run:[/]\n"
-                f"  adw resume {context.run_id}",
+                "\n".join(content_parts),
                 title="[red]Recovery[/]",
                 border_style="red",
             )
         )
+
+    def _get_phase_suggestions(self, phase: str | None) -> list[str]:
+        """Get suggestions for recovering from a failed phase."""
+        base_suggestions = [
+            "Check the run logs for detailed error information",
+            "Review the phase artifacts in .adw/runs/<run_id>/artifacts/",
+        ]
+
+        phase_specific = {
+            "plan": [
+                "Verify the feature description is clear and actionable",
+                "Check if required context files exist",
+            ],
+            "build": [
+                "Review code changes for syntax or type errors",
+                "Ensure all dependencies are installed",
+            ],
+            "verify": [
+                "Check test output for specific failures",
+                "Verify test fixtures and mock data are correct",
+            ],
+            "validate": [
+                "Review validation criteria in the plan",
+                "Check if all acceptance criteria are testable",
+            ],
+            "document": [
+                "Ensure documentation templates exist",
+                "Check for missing artifact references",
+            ],
+        }
+
+        return base_suggestions + phase_specific.get(phase or "", [])
 
     def _format_duration(self, context: RunContext) -> str:
         """Format run duration in human-readable form."""

@@ -543,6 +543,17 @@ Story 6.3 implements the status command for inspecting run state and outcome.
 
 ### File List
 
+**New Files:**
+- `src/adw/cli/status.py` - Status command implementation
+- `src/adw/cli/status_display.py` - StatusDisplay class with Rich formatting
+- `tests/unit/cli/test_status.py` - Unit tests for status command
+- `tests/unit/cli/test_status_display.py` - Unit tests for StatusDisplay class
+- `tests/integration/cli/test_status_integration.py` - Integration tests
+
+**Modified Files:**
+- `src/adw/cli/app.py` - Registered status command
+- `src/adw/core/run_lookup.py` - Added `find_most_recent()` and refactored with `_list_runs()`
+
 ---
 
 ## Dependencies
@@ -562,3 +573,5 @@ Story 6.3 implements the status command for inspecting run state and outcome.
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-03 | BMAD Create-Epic | Initial story creation with comprehensive context |
+| 2026-01-03 | Dev Agent | Implementation complete - all 8 tasks done |
+| 2026-01-03 | Code Review | Fixed: UX-3 error details, type annotations, code duplication, weak test |

@@ -60,13 +60,19 @@ class TestStatusNoRuns:
             or "RUN_NOT_FOUND" in result.output
         )
 
-    def test_status_no_runs_message(self) -> None:
+    def test_status_no_runs_message(self, tmp_path) -> None:
         """Test message when no runs exist and no run_id provided."""
-        # This test needs a clean runs directory - hard to test in isolation
-        # The integration tests will cover this more thoroughly
-        result = runner.invoke(app, ["status", "--help"])
-        # Help should show that run_id is optional
-        assert result.exit_code == 0
+        from unittest.mock import patch
+
+        # Create empty runs directory
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+            result = runner.invoke(app, ["status"])
+
+        # Should show "No runs found" message
+        assert "No runs found" in result.output
 
 
 class TestStatusCorruptedContext:

@@ -224,6 +224,31 @@ class TestFailedRunDetails:
         result = output.getvalue()
         assert "build" in result  # The failed phase
 
+    def test_failed_shows_error_message(self, failed_context: RunContext) -> None:
+        """Test that failed status shows error message (UX-3)."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+        display = StatusDisplay(console)
+
+        display.show_status(failed_context)
+
+        result = output.getvalue()
+        assert "Error" in result
+        assert "failed" in result.lower()
+
+    def test_failed_shows_suggestions(self, failed_context: RunContext) -> None:
+        """Test that failed status shows suggestions (UX-3)."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+        display = StatusDisplay(console)
+
+        display.show_status(failed_context)
+
+        result = output.getvalue()
+        assert "Suggestions" in result
+        # Should include phase-specific suggestions for build phase
+        assert "syntax" in result.lower() or "dependencies" in result.lower()
+
 
 class TestDurationFormatting:
     """Tests for duration formatting."""
