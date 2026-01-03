@@ -48,7 +48,7 @@ So that common destructive operations are prevented out of the box.
 - [x] Add `category` field to BlockedPattern model
 
 ### Task 3: Implement Pattern Matching Engine
-- [ ] Enhance `src/adw/security/patterns.py` with:
+- [x] Enhance `src/adw/security/patterns.py` with:
   - `PatternMatcher` class
   - `match_command(command: str) -> list[PatternMatch]`
   - `match_file_access(path: str) -> list[PatternMatch]`
@@ -305,15 +305,18 @@ claude-opus-4-5-20251101
 
 - Task 1: Created comprehensive defaults.py with DESTRUCTIVE_PATTERNS, PERMISSION_PATTERNS, GIT_DANGEROUS_PATTERNS, SECRET_ACCESS_PATTERNS, FILE_ACCESS_PATTERNS. Also created BlockedPattern model in models/security.py with category field. 20 tests written and passing.
 - Task 2: BlockedPattern model already includes PatternCategory type with all four categories (destructive, permission, git_dangerous, secret_access). Added 17 comprehensive tests for security models (BlockedPattern, SecurityConfig, ToolCallLog).
+- Task 3: Implemented PatternMatcher class with match_command() and match_file_access() methods. Supports custom patterns, allow_dangerous mode, and ALLOWED_ENV_PATTERNS for exceptions (.env.example, .env.sample). 25 tests added.
 
 ### File List
 
 **New Files:**
 - src/adw/security/__init__.py
 - src/adw/security/defaults.py
+- src/adw/security/patterns.py
 - src/adw/models/security.py
 - tests/unit/security/__init__.py
 - tests/unit/security/test_defaults.py
+- tests/unit/security/test_patterns.py
 - tests/unit/models/test_security.py
 
 **Modified Files:**

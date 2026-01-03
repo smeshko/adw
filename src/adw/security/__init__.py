@@ -15,10 +15,16 @@ from adw.security.defaults import (
     DEFAULT_SHELL_PATTERNS,
     PATTERN_METADATA,
 )
+from adw.security.patterns import (
+    PatternMatch,
+    PatternMatcher,
+)
 
 __all__: list[str] = [
     "ALLOWED_ENV_PATTERNS",
     "DEFAULT_FILE_PATTERNS",
     "DEFAULT_SHELL_PATTERNS",
     "PATTERN_METADATA",
+    "PatternMatch",
+    "PatternMatcher",
 ]
