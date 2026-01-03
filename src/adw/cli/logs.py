@@ -152,7 +152,8 @@ def _load_snapshot_content(path: Path) -> dict[str, Any]:
         typer.Exit: If snapshot cannot be loaded.
     """
     try:
-        return json.loads(path.read_text())
+        content: dict[str, Any] = json.loads(path.read_text())
+        return content
     except (json.JSONDecodeError, OSError) as e:
         console.print(f"[red]Error:[/] Failed to load snapshot: {e}")
         raise typer.Exit(1) from None
@@ -178,7 +179,8 @@ def _load_context(run_id: str) -> dict[str, Any]:
         raise typer.Exit(1)
 
     try:
-        return json.loads(context_path.read_text())
+        content: dict[str, Any] = json.loads(context_path.read_text())
+        return content
     except (json.JSONDecodeError, OSError) as e:
         console.print(f"[red]Error:[/] Failed to load context: {e}")
         raise typer.Exit(1) from None
