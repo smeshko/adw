@@ -66,9 +66,9 @@ so that I have appropriate output for different use cases.
 - [x] Route events to all registered transports
 
 ### Task 5: Update Package Exports (logging/__init__.py)
-- [ ] Export LogManager, transports, models
-- [ ] Create convenience `get_logger()` function
-- [ ] Document module-level docstring
+- [x] Export LogManager, transports, models
+- [x] Create convenience `get_logger()` function
+- [x] Document module-level docstring
 
 ### Task 6: Write Unit Tests
 - [ ] Test LogEvent model creation and serialization
@@ -302,6 +302,7 @@ Key patterns and rules from project context:
 - Task 2: Implemented ConsoleTransport with TTY detection, Rich formatting for TTY output, plain text for non-TTY (UX-7 compliant). Level-based styling with distinct ERROR/FATAL formatting. 19 unit tests passing with 94% coverage.
 - Task 3: Implemented RawFileTransport (human-readable) and StructuredFileTransport (JSONL) with file locking for concurrent write safety. Auto-creates parent directories. 26 unit tests passing with 96% coverage.
 - Task 4: Implemented LogManager with transport registration, level filtering, child() for scoped loggers with context inheritance, and level methods (trace, debug, info, warn, error, fatal). Transport protocol for extensibility. 24 unit tests passing with 98% coverage.
+- Task 5: Updated logging/__init__.py with all exports, get_logger() convenience function, configure_default_logger() for quick setup, and comprehensive module docstring. 20 unit tests passing with 100% coverage.
 
 ### File List
 
@@ -315,4 +316,6 @@ Key patterns and rules from project context:
 - tests/unit/logging/test_file.py (NEW)
 - src/adw/logging/manager.py (NEW)
 - tests/unit/logging/test_manager.py (NEW)
+- src/adw/logging/__init__.py (MODIFIED)
+- tests/unit/logging/test_package.py (NEW)
 
