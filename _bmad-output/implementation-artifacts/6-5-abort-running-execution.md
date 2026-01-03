@@ -1,6 +1,6 @@
 # Story 6.5: Abort Running Execution
 
-Status: ready-for-dev
+Status: review-pending
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -87,11 +87,11 @@ So that I can stop a stuck or unwanted run.
 - [x] Target: >80% coverage
 
 ### Task 8: Write Integration Tests
-- [ ] Create `tests/integration/cli/test_abort_integration.py`
-- [ ] Test full abort flow
-- [ ] Test state is saved on abort
-- [ ] Test aborted run can be resumed
-- [ ] Verify abort snapshot created
+- [x] Create `tests/integration/cli/test_abort_integration.py`
+- [x] Test full abort flow
+- [x] Test state is saved on abort
+- [x] Test aborted run can be resumed
+- [x] Verify abort snapshot created
 
 ---
 
