@@ -38,11 +38,11 @@ So that I don't lose progress.
 ## Tasks / Subtasks
 
 ### Task 1: Implement CLI Resume Command
-- [ ] Create `src/adw/cli/resume.py` with resume command
-- [ ] Add optional `run_id` argument (positional)
-- [ ] Add `--from-phase` option to restart from specific phase
-- [ ] Add `--verbose/-v` flag for debug output
-- [ ] Register command in main app
+- [x] Create `src/adw/cli/resume.py` with resume command
+- [x] Add optional `run_id` argument (positional)
+- [x] Add `--from-phase` option to restart from specific phase
+- [x] Add `--verbose/-v` flag for debug output
+- [x] Register command in main app
 
 ### Task 2: Implement Run Lookup
 - [ ] Create `src/adw/core/run_lookup.py` with `RunLookup` class
@@ -595,6 +595,11 @@ Story 6.2 implements the resume command, enabling users to continue runs that fa
 ### Completion Notes List
 
 ### File List
+
+- src/adw/cli/resume.py (NEW)
+- src/adw/cli/app.py (MODIFIED - added resume import and registration)
+- src/adw/core/run_lookup.py (NEW - stub for Task 2)
+- src/adw/core/__init__.py (MODIFIED - export RunLookup)
 
 ---
 

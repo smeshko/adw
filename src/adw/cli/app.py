@@ -9,6 +9,7 @@ from rich.panel import Panel
 from ulid import ULID
 
 from adw.cli.bootstrap import create_orchestrator
+from adw.cli.resume import resume as resume_command
 from adw.cli.run_display import RunDisplay
 from adw.commands.template import escape_feature_description
 from adw.core.constants import PHASE_SEQUENCE
@@ -167,3 +168,7 @@ def run(
             "[dim]Suggestion:[/] Ensure phase commands are configured in .adw/commands/"
         )
         raise typer.Exit(1)
+
+
+# Register the resume command (Story 6.2)
+app.command()(resume_command)
