@@ -1,6 +1,6 @@
 # Story 7.2: Configure Verbosity Levels
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-03
@@ -38,9 +38,9 @@ so that I see the right amount of detail for my needs.
 ## Tasks / Subtasks
 
 ### Task 1: Create Verbosity Model (models/logging.py)
-- [ ] Add `Verbosity` enum (QUIET, NORMAL, VERBOSE, TRACE)
-- [ ] Add verbosity-to-level mapping
-- [ ] Document level filtering rules
+- [x] Add `Verbosity` enum (QUIET, NORMAL, VERBOSE, TRACE)
+- [x] Add verbosity-to-level mapping
+- [x] Document level filtering rules
 
 ### Task 2: Add CLI Verbosity Options (cli/app.py)
 - [ ] Add `-q/--quiet` flag (Verbosity.QUIET)
@@ -264,12 +264,18 @@ Key patterns:
 ## Dev Agent Record
 
 ### Context Reference
+- Story 7.1 Multi-Tier Logging System (provides LogLevel, ConsoleTransport, LogManager)
+- Project context: project-context.md
 
 ### Agent Model Used
+Claude Opus 4.5
 
 ### Debug Log References
 
 ### Completion Notes List
+- **Task 1 (2026-01-03):** Created Verbosity enum (QUIET, NORMAL, VERBOSE, TRACE) in models/logging.py. Added VERBOSITY_LEVEL_MAP constant mapping each Verbosity to its LogLevel threshold. Documented filtering rules in docstrings. Added 6 unit tests for Verbosity, all passing.
 
 ### File List
+- src/adw/models/logging.py (modified: added Verbosity enum and VERBOSITY_LEVEL_MAP)
+- tests/unit/models/test_logging.py (modified: added TestVerbosity test class)
 
