@@ -38,11 +38,11 @@ So that I can stop a stuck or unwanted run.
 ## Tasks / Subtasks
 
 ### Task 1: Implement Ctrl+C Confirmation (UX-8)
-- [ ] Modify InterruptionHandler to show confirmation prompt
-- [ ] Display "Abort run? [Y/n]" on first Ctrl+C
-- [ ] On 'Y' or Enter: proceed with abort
-- [ ] On 'N': cancel abort and continue run
-- [ ] On second Ctrl+C: force immediate abort
+- [x] Modify InterruptionHandler to show confirmation prompt
+- [x] Display "Abort run? [Y/n]" on first Ctrl+C
+- [x] On 'Y' or Enter: proceed with abort
+- [x] On 'N': cancel abort and continue run
+- [x] On second Ctrl+C: force immediate abort
 
 ### Task 2: Implement Graceful Abort
 - [ ] Save current state before aborting
