@@ -23,6 +23,15 @@ For run-scoped logging:
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
 from adw.logging.manager import LogManager, Transport
+from adw.logging.redactor import (
+    DEFAULT_REDACTION_PATTERNS,
+    REDACTED_PLACEHOLDER,
+    SENSITIVE_ENV_PATTERNS,
+    Redactor,
+    configure_redactor,
+    get_redactor,
+    reset_redactor,
+)
 from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
 
 # Module-level default logger instance
@@ -112,6 +121,14 @@ __all__ = [
     "ConsoleTransport",
     "RawFileTransport",
     "StructuredFileTransport",
+    # Redaction
+    "Redactor",
+    "DEFAULT_REDACTION_PATTERNS",
+    "SENSITIVE_ENV_PATTERNS",
+    "REDACTED_PLACEHOLDER",
+    "get_redactor",
+    "configure_redactor",
+    "reset_redactor",
     # Models (re-exported for convenience)
     "LogCategory",
     "LogContext",
