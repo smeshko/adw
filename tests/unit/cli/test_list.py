@@ -256,3 +256,129 @@ class TestGetRunsDir:
         with patch("adw.cli.list.Path.cwd", return_value=tmp_path):
             result = _get_runs_dir()
             assert result == runs_dir
+
+
+class TestGlobalIndexFlags:
+    """Tests for --global and --project flags (Story 7.0)."""
+
+    def test_global_flag_shows_global_index_table(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test that --global flag uses global index and shows table header."""
+        from datetime import UTC, datetime
+
+        from adw.models.index import IndexEntry
+
+        # Create mock entries
+        mock_entry = IndexEntry(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            project_path="/test/project",
+            project_name="test-project",
+            feature_description="Test feature",
+            started_at=datetime.now(UTC),
+            status="completed",
+            phase_reached="document",
+            phases_completed=["plan", "build", "document"],
+        )
+
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            # Create local .adw/runs to test that --global still uses global index
+            (Path.cwd() / ".adw" / "runs").mkdir(parents=True)
+
+            with patch("adw.cli.list.IndexManager") as mock_index:
+                mock_index.return_value.get_recent_runs.return_value = [mock_entry]
+                result = runner.invoke(app, ["list", "--global"])
+
+        assert result.exit_code == 0
+        assert "Global Index" in result.output
+        # Project name may be truncated in table, check for prefix
+        assert "test-proj" in result.output
+
+    def test_project_flag_filters_to_current_project(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test that --project flag filters results to current project."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            with patch("adw.cli.list.IndexManager") as mock_index:
+                mock_index.return_value.get_recent_runs.return_value = []
+                result = runner.invoke(app, ["list", "--global", "--project"])
+
+        assert result.exit_code == 0
+        # Verify get_recent_runs was called with project_path
+        mock_index.return_value.get_recent_runs.assert_called_once()
+        call_kwargs = mock_index.return_value.get_recent_runs.call_args[1]
+        assert call_kwargs.get("project_path") is not None
+
+    def test_short_flags_work(self, runner: CliRunner, tmp_path: Path) -> None:
+        """Test that -g and -p short flags work."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            with patch("adw.cli.list.IndexManager") as mock_index:
+                mock_index.return_value.get_recent_runs.return_value = []
+                result_g = runner.invoke(app, ["list", "-g"])
+                result_p = runner.invoke(app, ["list", "-g", "-p"])
+
+        assert result_g.exit_code == 0
+        assert result_p.exit_code == 0
+
+    def test_global_json_output(self, runner: CliRunner, tmp_path: Path) -> None:
+        """Test that --global --json outputs valid JSON."""
+        from datetime import UTC, datetime
+
+        from adw.models.index import IndexEntry
+
+        mock_entry = IndexEntry(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            project_path="/test/project",
+            project_name="test-project",
+            feature_description="Test feature",
+            started_at=datetime.now(UTC),
+            status="completed",
+            phase_reached="document",
+            phases_completed=["plan", "build"],
+        )
+
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            with patch("adw.cli.list.IndexManager") as mock_index:
+                mock_index.return_value.get_recent_runs.return_value = [mock_entry]
+                result = runner.invoke(app, ["list", "--global", "--json"])
+
+        assert result.exit_code == 0
+        # Parse JSON output
+        output = result.output.strip()
+        json_start = output.find("[")
+        if json_start >= 0:
+            json_str = output[json_start:]
+            data = json.loads(json_str)
+            assert isinstance(data, list)
+            assert len(data) == 1
+            assert data[0]["run_id"] == "01KDSG2VDHNK0W4HSCZWJZXWSQ"
+            assert data[0]["project_name"] == "test-project"
+            assert "phases_completed" in data[0]
+
+    def test_no_local_runs_falls_back_to_global(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test that when no .adw/runs exists, falls back to global index."""
+        from datetime import UTC, datetime
+
+        from adw.models.index import IndexEntry
+
+        mock_entry = IndexEntry(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            project_path="/test/project",
+            project_name="test-project",
+            feature_description="Test feature",
+            started_at=datetime.now(UTC),
+            status="completed",
+            phase_reached="document",
+            phases_completed=[],
+        )
+
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            # No .adw/runs directory - should use global index
+            with patch("adw.cli.list.IndexManager") as mock_index:
+                mock_index.return_value.get_recent_runs.return_value = [mock_entry]
+                result = runner.invoke(app, ["list"])
+
+        assert result.exit_code == 0
+        assert "Global Index" in result.output

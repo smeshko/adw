@@ -1,6 +1,6 @@
 # Story 7.0: Workflow Execution Index
 
-Status: ready-for-dev
+Status: done
 Linear Issue: pending
 Epic: 7 - Observability & Logging
 Created: 2026-01-03
@@ -66,10 +66,10 @@ so that I can quickly find and reference past executions across all projects.
 - [x] Add `--global` flag to force global view even inside project
 
 ### Task 5: Write Unit Tests
-- [ ] `tests/unit/models/test_index.py` - IndexEntry model tests
-- [ ] `tests/unit/core/test_index_manager.py` - IndexManager tests
-- [ ] Update `tests/unit/core/test_orchestrator.py` - index integration
-- [ ] Update `tests/unit/cli/test_list.py` - global list tests
+- [x] `tests/unit/models/test_index.py` - IndexEntry model tests
+- [x] `tests/unit/core/test_index_manager.py` - IndexManager tests
+- [x] Update `tests/unit/core/test_orchestrator.py` - index integration
+- [x] Update `tests/unit/cli/test_list.py` - global list tests
 
 ---
 
