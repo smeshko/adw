@@ -19,6 +19,11 @@ from adw.security.patterns import (
     PatternMatch,
     PatternMatcher,
 )
+from adw.security.suggestions import (
+    SuggestionFormatter,
+    get_category_examples,
+    get_override_instruction,
+)
 
 __all__: list[str] = [
     "ALLOWED_ENV_PATTERNS",
@@ -27,4 +32,7 @@ __all__: list[str] = [
     "PATTERN_METADATA",
     "PatternMatch",
     "PatternMatcher",
+    "SuggestionFormatter",
+    "get_category_examples",
+    "get_override_instruction",
 ]

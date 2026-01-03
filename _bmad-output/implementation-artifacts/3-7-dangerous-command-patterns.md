@@ -55,7 +55,7 @@ So that common destructive operations are prevented out of the box.
   - Context-aware matching (distinguish between safe and dangerous uses)
 
 ### Task 4: Add Alternative Suggestions
-- [ ] Create `src/adw/security/suggestions.py` with:
+- [x] Create `src/adw/security/suggestions.py` with:
   - Mapping of blocked patterns to safe alternatives
   - Examples for each blocked pattern
   - Override instructions with `--allow-dangerous`
@@ -306,6 +306,7 @@ claude-opus-4-5-20251101
 - Task 1: Created comprehensive defaults.py with DESTRUCTIVE_PATTERNS, PERMISSION_PATTERNS, GIT_DANGEROUS_PATTERNS, SECRET_ACCESS_PATTERNS, FILE_ACCESS_PATTERNS. Also created BlockedPattern model in models/security.py with category field. 20 tests written and passing.
 - Task 2: BlockedPattern model already includes PatternCategory type with all four categories (destructive, permission, git_dangerous, secret_access). Added 17 comprehensive tests for security models (BlockedPattern, SecurityConfig, ToolCallLog).
 - Task 3: Implemented PatternMatcher class with match_command() and match_file_access() methods. Supports custom patterns, allow_dangerous mode, and ALLOWED_ENV_PATTERNS for exceptions (.env.example, .env.sample). 25 tests added.
+- Task 4: Created SuggestionFormatter class with format_single() and format_multiple() methods. Added CATEGORY_EXAMPLES and get_override_instruction(). 11 tests added.
 
 ### File List
 
@@ -313,10 +314,12 @@ claude-opus-4-5-20251101
 - src/adw/security/__init__.py
 - src/adw/security/defaults.py
 - src/adw/security/patterns.py
+- src/adw/security/suggestions.py
 - src/adw/models/security.py
 - tests/unit/security/__init__.py
 - tests/unit/security/test_defaults.py
 - tests/unit/security/test_patterns.py
+- tests/unit/security/test_suggestions.py
 - tests/unit/models/test_security.py
 
 **Modified Files:**
