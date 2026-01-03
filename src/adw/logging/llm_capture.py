@@ -12,11 +12,14 @@ Example:
     >>> manager.capture_request(LLMRequest(prompt="test", phase="build"))
     >>> manager.capture_stream(stream_events)
     >>> manager.capture_response(LLMResponse(content="...", phase="build"))
-    >>> manager.next_sequence()  # Ready for next LLM call
+    >>> manager.next_sequence()  # Advance to next sequence number
+    >>> # Second LLM call uses sequence 002
+    >>> manager.capture_request(LLMRequest(prompt="second", phase="plan"))
 """
 
 from pathlib import Path
 
+from adw.logging.redaction import redact_secrets
 from adw.models.logging import LLMRequest, LLMResponse, LLMStreamEvent
 
 
@@ -26,17 +29,23 @@ class LLMCaptureManager:
     Writes LLM request, response, and stream data to the run's llm directory.
     Uses 3-digit zero-padded sequence numbers for file ordering.
 
+    Sequence Management:
+        - All captures (request, stream, response) use the current sequence
+        - Call next_sequence() after completing a request/response pair
+        - Sequence starts at 1 and increments with each next_sequence() call
+
     Attributes:
-        llm_dir: Directory for LLM capture files
+        llm_dir: Directory for LLM capture files (stored as _llm_dir internally)
         sequence: Current sequence number (1-based)
         current_phase: Phase from the current request
 
     Example:
         >>> manager = LLMCaptureManager(Path(".agent/runs/123/llm"))
-        >>> manager.capture_request(request)
-        >>> manager.capture_stream(events)
-        >>> manager.capture_response(response)
-        >>> manager.next_sequence()
+        >>> manager.capture_request(request)   # writes 001_..._request.json
+        >>> manager.capture_stream(events)     # writes 001_..._stream.jsonl
+        >>> manager.capture_response(response) # writes 001_..._response.json
+        >>> manager.next_sequence()            # advance to 002
+        >>> manager.capture_request(request2)  # writes 002_..._request.json
     """
 
     def __init__(self, llm_dir: Path | str) -> None:
@@ -82,6 +91,10 @@ class LLMCaptureManager:
         Writes the request to `<seq>_<phase>_request.json`.
         Updates the current phase for subsequent captures.
 
+        Note:
+            Does NOT increment sequence. Call next_sequence() after
+            completing the request/response pair to advance.
+
         Args:
             request: The LLM request to capture.
 
@@ -99,11 +112,13 @@ class LLMCaptureManager:
         filename = f"{self._sequence_str()}_{request.phase}_request.json"
         file_path = self._llm_dir / filename
 
-        # Write formatted JSON for readability
-        file_path.write_text(request.model_dump_json(indent=2))
+        # Apply secret redaction before writing (placeholder until Story 7.6)
+        redacted_request = request.model_copy(
+            update={"prompt": redact_secrets(request.prompt)}
+        )
 
-        # Increment sequence after request (response will use same seq)
-        self._sequence += 1
+        # Write formatted JSON for readability
+        file_path.write_text(redacted_request.model_dump_json(indent=2))
 
         return file_path
 
@@ -111,7 +126,7 @@ class LLMCaptureManager:
         """Capture an LLM response to file.
 
         Writes the response to `<seq>_<phase>_response.json`.
-        Uses the sequence from the preceding request (seq-1).
+        Uses the current sequence number.
 
         Args:
             response: The LLM response to capture.
@@ -126,13 +141,16 @@ class LLMCaptureManager:
         """
         self._ensure_dir()
 
-        # Use the sequence from the preceding request
-        seq = self._sequence - 1
-        filename = f"{seq:03d}_{response.phase}_response.json"
+        filename = f"{self._sequence_str()}_{response.phase}_response.json"
         file_path = self._llm_dir / filename
 
+        # Apply secret redaction before writing (placeholder until Story 7.6)
+        redacted_response = response.model_copy(
+            update={"content": redact_secrets(response.content)}
+        )
+
         # Write formatted JSON for readability
-        file_path.write_text(response.model_dump_json(indent=2))
+        file_path.write_text(redacted_response.model_dump_json(indent=2))
 
         return file_path
 
@@ -140,7 +158,7 @@ class LLMCaptureManager:
         """Capture stream events to a JSONL file.
 
         Writes events to `<seq>_<phase>_stream.jsonl` in JSON Lines format.
-        Uses the sequence from the preceding request (seq-1).
+        Uses the current sequence number.
 
         Args:
             events: List of stream events to capture.
@@ -156,9 +174,7 @@ class LLMCaptureManager:
         """
         self._ensure_dir()
 
-        # Use the sequence from the preceding request
-        seq = self._sequence - 1
-        filename = f"{seq:03d}_{self._current_phase}_stream.jsonl"
+        filename = f"{self._sequence_str()}_{self._current_phase}_stream.jsonl"
         file_path = self._llm_dir / filename
 
         # Write JSONL (one JSON object per line)
@@ -173,13 +189,10 @@ class LLMCaptureManager:
         Call this after completing a request/response pair to
         prepare for the next LLM interaction.
 
-        Note: capture_request() already increments the sequence,
-        so this is only needed if you want to skip a sequence
-        or explicitly advance after a response without a new request.
-
         Example:
-            >>> manager.next_sequence()
+            >>> manager.capture_request(request)
+            >>> manager.capture_response(response)
+            >>> manager.next_sequence()  # Now at sequence 002
+            >>> manager.capture_request(request2)  # Writes 002_..._request.json
         """
-        # Sequence is already incremented by capture_request()
-        # This method is provided for explicit control if needed
-        pass
+        self._sequence += 1

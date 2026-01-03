@@ -25,7 +25,7 @@ so that I can debug and reproduce issues.
 
 **Given** streaming output
 **When** capturing
-**Then** raw stream is captured to `llm/<seq>_stream.txt`
+**Then** raw stream is captured to `llm/<seq>_stream.jsonl`
 
 **Given** captured LLM interactions
 **When** replayed with same prompt
@@ -33,7 +33,7 @@ so that I can debug and reproduce issues.
 
 **Given** captured interactions
 **When** reviewing
-**Then** no API keys or secrets are included (NFR14)
+**Then** no API keys or secrets are included (NFR14 - placeholder implemented, full redaction in Story 7.6)
 
 ## Tasks / Subtasks
 
@@ -313,9 +313,10 @@ claude-opus-4-5-20250514
 - src/adw/logging/__init__.py (modified) - Added StreamLogger, LLMCaptureManager, redact_secrets, RedactionFilter to package exports
 - tests/unit/logging/test_stream.py (new) - 16 tests for StreamLogger
 - src/adw/logging/llm_capture.py (new) - LLMCaptureManager class for file-based capture
-- tests/unit/logging/test_llm_capture.py (new) - 15 tests for LLMCaptureManager
+- tests/unit/logging/test_llm_capture.py (new) - 16 tests for LLMCaptureManager
 - src/adw/executors/claude_code.py (modified) - Added stream_logger parameter to execute() and _stream_subprocess()
 - tests/unit/executors/test_claude_code.py (modified) - Added 5 tests for StreamLogger integration
 - src/adw/logging/redaction.py (new) - Placeholder redaction module for Story 7.6
 - tests/unit/logging/test_redaction.py (new) - 12 tests for redaction placeholders
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified) - Updated story status
 

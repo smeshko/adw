@@ -76,16 +76,19 @@ class TestLLMCaptureManagerRequest:
         assert content["phase"] == "plan"
         assert content["params"]["model"] == "claude-sonnet-4-20250514"
 
-    def test_capture_request_increments_sequence(self, tmp_path: Path) -> None:
-        """capture_request() increments sequence number."""
+    def test_capture_request_does_not_increment_sequence(self, tmp_path: Path) -> None:
+        """capture_request() does NOT increment sequence (use next_sequence())."""
         llm_dir = tmp_path / "llm"
         manager = LLMCaptureManager(llm_dir)
 
         manager.capture_request(LLMRequest(prompt="first", phase="plan"))
+        assert manager.sequence == 1  # Still 1, not incremented
+
+        manager.next_sequence()  # Explicitly advance
         assert manager.sequence == 2
 
         manager.capture_request(LLMRequest(prompt="second", phase="build"))
-        assert manager.sequence == 3
+        assert manager.sequence == 2  # Still 2, not incremented
 
 
 class TestLLMCaptureManagerResponse:
@@ -132,17 +135,15 @@ class TestLLMCaptureManagerResponse:
         assert content["stats"]["input_tokens"] == 4521
 
     def test_capture_response_does_not_increment_sequence(self, tmp_path: Path) -> None:
-        """capture_response() does not increment sequence (matches request)."""
+        """capture_response() does not increment sequence."""
         llm_dir = tmp_path / "llm"
         manager = LLMCaptureManager(llm_dir)
 
         manager.capture_request(LLMRequest(prompt="test", phase="build"))
-        seq_after_request = manager.sequence
+        assert manager.sequence == 1
 
         manager.capture_response(LLMResponse(content="response", phase="build"))
-        seq_after_response = manager.sequence
-
-        assert seq_after_request == seq_after_response
+        assert manager.sequence == 1  # Still 1, neither method increments
 
 
 class TestLLMCaptureManagerStream:
@@ -209,6 +210,17 @@ class TestLLMCaptureManagerSequencing:
         manager.capture_request(LLMRequest(prompt="test", phase="build"))
         assert (llm_dir / "001_build_request.json").exists()
 
+    def test_next_sequence_increments(self, tmp_path: Path) -> None:
+        """next_sequence() increments the sequence number."""
+        llm_dir = tmp_path / "llm"
+        manager = LLMCaptureManager(llm_dir)
+
+        assert manager.sequence == 1
+        manager.next_sequence()
+        assert manager.sequence == 2
+        manager.next_sequence()
+        assert manager.sequence == 3
+
     def test_multiple_sequences(self, tmp_path: Path) -> None:
         """Multiple request/response pairs use different sequences."""
         llm_dir = tmp_path / "llm"
@@ -227,6 +239,51 @@ class TestLLMCaptureManagerSequencing:
         assert (llm_dir / "001_plan_response.json").exists()
         assert (llm_dir / "002_build_request.json").exists()
         assert (llm_dir / "002_build_response.json").exists()
+
+
+class TestLLMCaptureManagerRedaction:
+    """Tests for redaction integration (Story 7.6 prep)."""
+
+    def test_request_applies_redaction(self, tmp_path: Path) -> None:
+        """capture_request() applies redact_secrets() to prompt."""
+        from unittest.mock import patch
+
+        llm_dir = tmp_path / "llm"
+        manager = LLMCaptureManager(llm_dir)
+
+        with patch("adw.logging.llm_capture.redact_secrets") as mock_redact:
+            mock_redact.return_value = "REDACTED_PROMPT"
+            manager.capture_request(
+                LLMRequest(prompt="secret: sk-1234", phase="build")
+            )
+
+            mock_redact.assert_called_once_with("secret: sk-1234")
+
+        # Verify redacted content was written
+        file_path = llm_dir / "001_build_request.json"
+        content = json.loads(file_path.read_text())
+        assert content["prompt"] == "REDACTED_PROMPT"
+
+    def test_response_applies_redaction(self, tmp_path: Path) -> None:
+        """capture_response() applies redact_secrets() to content."""
+        from unittest.mock import patch
+
+        llm_dir = tmp_path / "llm"
+        manager = LLMCaptureManager(llm_dir)
+        manager.capture_request(LLMRequest(prompt="test", phase="build"))
+
+        with patch("adw.logging.llm_capture.redact_secrets") as mock_redact:
+            mock_redact.return_value = "REDACTED_CONTENT"
+            manager.capture_response(
+                LLMResponse(content="API key: sk-secret", phase="build")
+            )
+
+            mock_redact.assert_called_once_with("API key: sk-secret")
+
+        # Verify redacted content was written
+        file_path = llm_dir / "001_build_response.json"
+        content = json.loads(file_path.read_text())
+        assert content["content"] == "REDACTED_CONTENT"
 
 
 class TestLLMCaptureManagerIntegration:
