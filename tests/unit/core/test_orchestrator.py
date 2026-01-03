@@ -98,6 +98,16 @@ def mock_interruption_handler() -> MagicMock:
 
 
 @pytest.fixture
+def mock_index_manager() -> MagicMock:
+    """Create a mock IndexManager."""
+    manager = MagicMock()
+    manager.register_run = MagicMock()
+    manager.update_run = MagicMock()
+    manager.get_recent_runs = MagicMock(return_value=[])
+    return manager
+
+
+@pytest.fixture
 def orchestrator(
     tmp_path: Path,
     mock_context_manager: MagicMock,
@@ -105,6 +115,7 @@ def orchestrator(
     mock_artifact_manager: MagicMock,
     mock_run_directory_manager: MagicMock,
     mock_interruption_handler: MagicMock,
+    mock_index_manager: MagicMock,
 ) -> "Orchestrator":
     """Create an Orchestrator instance with mocked dependencies."""
     from adw.core.orchestrator import Orchestrator
@@ -119,6 +130,7 @@ def orchestrator(
         artifact_manager=mock_artifact_manager,
         run_directory_manager=mock_run_directory_manager,
         interruption_handler=mock_interruption_handler,
+        index_manager=mock_index_manager,
     )
     return orch
 

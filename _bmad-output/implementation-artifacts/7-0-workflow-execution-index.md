@@ -1,6 +1,6 @@
 # Story 7.0: Workflow Execution Index
 
-Status: ready-for-dev
+Status: done
 Linear Issue: pending
 Epic: 7 - Observability & Logging
 Created: 2026-01-03
@@ -39,37 +39,37 @@ so that I can quickly find and reference past executions across all projects.
 ## Tasks / Subtasks
 
 ### Task 1: Create IndexEntry Model
-- [ ] Create `src/adw/models/index.py`
-- [ ] Define `IndexEntry` Pydantic model with all required fields
-- [ ] Add JSON serialization support
-- [ ] Export from `src/adw/models/__init__.py`
+- [x] Create `src/adw/models/index.py`
+- [x] Define `IndexEntry` Pydantic model with all required fields
+- [x] Add JSON serialization support
+- [x] Export from `src/adw/models/__init__.py`
 
 ### Task 2: Implement IndexManager
-- [ ] Create `src/adw/core/index_manager.py`
-- [ ] Implement `register_run()` - append new entry on run start
-- [ ] Implement `update_run()` - update existing entry on status change
-- [ ] Implement `get_recent_runs()` - query with filters
-- [ ] Implement `_archive_old_entries()` - archive when >10,000 entries
-- [ ] Handle concurrent access safely (JSONL is append-only)
+- [x] Create `src/adw/core/index_manager.py`
+- [x] Implement `register_run()` - append new entry on run start
+- [x] Implement `update_run()` - update existing entry on status change
+- [x] Implement `get_recent_runs()` - query with filters
+- [x] Implement `_archive_old_entries()` - archive when >10,000 entries
+- [x] Handle concurrent access safely (JSONL is append-only)
 
 ### Task 3: Integrate with Orchestrator
-- [ ] Modify `src/adw/core/orchestrator.py`
-- [ ] Call `index_manager.register_run()` on run initialization
-- [ ] Call `index_manager.update_run()` on phase transitions
-- [ ] Call `index_manager.update_run()` on run completion/failure
+- [x] Modify `src/adw/core/orchestrator.py`
+- [x] Call `index_manager.register_run()` on run initialization
+- [x] Call `index_manager.update_run()` on phase transitions
+- [x] Call `index_manager.update_run()` on run completion/failure
 
 ### Task 4: Update CLI List Command
-- [ ] Modify `src/adw/cli/list.py`
-- [ ] Detect when outside project context
-- [ ] Use global index when outside project
-- [ ] Add `--project` flag to filter to current project
-- [ ] Add `--global` flag to force global view even inside project
+- [x] Modify `src/adw/cli/list.py`
+- [x] Detect when outside project context
+- [x] Use global index when outside project
+- [x] Add `--project` flag to filter to current project
+- [x] Add `--global` flag to force global view even inside project
 
 ### Task 5: Write Unit Tests
-- [ ] `tests/unit/models/test_index.py` - IndexEntry model tests
-- [ ] `tests/unit/core/test_index_manager.py` - IndexManager tests
-- [ ] Update `tests/unit/core/test_orchestrator.py` - index integration
-- [ ] Update `tests/unit/cli/test_list.py` - global list tests
+- [x] `tests/unit/models/test_index.py` - IndexEntry model tests
+- [x] `tests/unit/core/test_index_manager.py` - IndexManager tests
+- [x] Update `tests/unit/core/test_orchestrator.py` - index integration
+- [x] Update `tests/unit/cli/test_list.py` - global list tests
 
 ---
 
@@ -383,10 +383,24 @@ def list_runs(
 ### Context Reference
 
 ### Agent Model Used
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
 ### Completion Notes List
+- Code review identified and fixed: missing auto-archive trigger, missing index registration in run_single_phase/resume, silent exception swallowing, incorrect phase names in tests
 
 ### File List
 
+**New Files Created:**
+- `src/adw/models/index.py` - IndexEntry Pydantic model for global workflow index
+- `src/adw/core/index_manager.py` - IndexManager class for JSONL index operations
+- `tests/unit/models/test_index.py` - Unit tests for IndexEntry model
+- `tests/unit/core/test_index_manager.py` - Unit tests for IndexManager
+
+**Files Modified:**
+- `src/adw/models/__init__.py` - Added IndexEntry export
+- `src/adw/core/orchestrator.py` - Integrated IndexManager for run registration and status updates
+- `src/adw/cli/list.py` - Added --global and --project flags for global index queries
+- `tests/unit/core/test_orchestrator.py` - Added index integration tests
+- `tests/unit/cli/test_list.py` - Added global index flag tests

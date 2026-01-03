@@ -8,6 +8,7 @@ This package contains all Pydantic models used throughout ADW:
 - llm: LLMResult, ToolCall
 - hook: HookResult
 - logging: LogLevel, LogCategory, LogContext, LogEvent
+- index: IndexEntry
 """
 
 from adw.models.command import LoadedCommand, ResolvedCommand
@@ -26,6 +27,7 @@ from adw.models.context import (
     StateSnapshot,
 )
 from adw.models.hook import HookResult
+from adw.models.index import IndexEntry
 from adw.models.llm import (
     LLMResult,
     ToolCall,
@@ -65,6 +67,8 @@ __all__: list[str] = [
     "StateSnapshot",
     # Hook models
     "HookResult",
+    # Index models
+    "IndexEntry",
     # LLM models
     "LLMResult",
     "ToolCall",
