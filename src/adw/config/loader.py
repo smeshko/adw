@@ -141,8 +141,9 @@ class ConfigLoader:
         defaults = detector.get_defaults(project_type)
 
         # Create config with detected defaults
+        language = defaults.get("language") or "unknown"
         return ProjectConfig(
             name=self.project_root.name,
-            language=defaults.get("language", "unknown"),
+            language=language,
             test_command=defaults.get("test_command"),
         )

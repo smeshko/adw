@@ -643,6 +643,9 @@ class Orchestrator:
                             source_run_id, phase, artifact_name
                         )
                         if content:
+                            # Ensure content is a string for template access
+                            if isinstance(content, bytes):
+                                content = content.decode("utf-8")
                             phase_map[name_without_ext] = content
 
                 if phase_map:
