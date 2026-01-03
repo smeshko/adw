@@ -1,9 +1,16 @@
 """Main Typer CLI application for ADW."""
 
+from datetime import UTC, datetime
+from pathlib import Path
+
 import typer
 from rich.console import Console
+from rich.panel import Panel
+from ulid import ULID
 
 from adw.cli.bootstrap import create_orchestrator
+from adw.cli.run_display import RunDisplay
+from adw.commands.template import escape_feature_description
 from adw.core.constants import PHASE_SEQUENCE
 from adw.exceptions import ADWError, ConfigError
 
@@ -52,6 +59,7 @@ def run(
     feature: str = typer.Argument(
         ...,
         help="Feature description to implement",
+        metavar="FEATURE_DESCRIPTION",
     ),
     phase: str | None = typer.Option(
         None,
@@ -65,6 +73,17 @@ def run(
         "--from-run",
         "-f",
         help="Load artifacts from this run ID (required for phases after plan)",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose output",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show what would happen without executing",
     ),
 ) -> None:
     """Run the agentic development workflow.
@@ -80,12 +99,40 @@ def run(
 
         # Single phase with artifacts from previous run
         adw run --phase build --from-run 01HQXK5P3Z7V "Add login"
+
+        # Dry run to see what would happen
+        adw run "Add login" --dry-run
     """
+    # Validate feature description is not empty (Story 6.1)
+    if not feature.strip():
+        console.print("[red]Error:[/] Feature description cannot be empty")
+        raise typer.Exit(code=1)
+
+    # Escape special characters for template safety (Story 6.1 Task 5)
+    safe_feature = escape_feature_description(feature)
+    _ = safe_feature  # Will be used when templates need the escaped version
+
+    # Generate run ID and timestamp (Story 6.1)
+    run_id = str(ULID())
+    started_at = datetime.now(UTC)
+
+    # Show run header using RunDisplay (UX-12, Story 6.1)
+    run_display = RunDisplay(console)
+    run_display.show_run_header(
+        run_id=run_id,
+        feature=feature,
+        started_at=started_at,
+    )
+
+    if dry_run:
+        console.print("[yellow]Dry run mode - no execution[/]")
+        return
+
     try:
         orchestrator = create_orchestrator(console)
 
         if phase:
-            # Validate --from-run requirement for non-plan phases
+            # Validate --from-run requirement for non-plan phases (Story 5.4)
             if phase != "plan" and from_run is None:
                 console.print(
                     f"[red]Error:[/] Phase '{phase}' requires artifacts from previous phases"
@@ -95,7 +142,7 @@ def run(
                 )
                 raise typer.Exit(1)
 
-            # Single phase execution
+            # Single phase execution (Story 5.4)
             context = orchestrator.run_single_phase(phase, feature, from_run)
             console.print(f"[green]✓[/] Single phase '{phase}' completed: {context.run_id}")
         else:
