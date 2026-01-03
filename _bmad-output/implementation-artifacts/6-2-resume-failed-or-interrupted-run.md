@@ -1,6 +1,6 @@
 # Story 6.2: Resume Failed or Interrupted Run
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -95,11 +95,11 @@ So that I don't lose progress.
 - [x] Target: >80% coverage (achieved 92.18%)
 
 ### Task 9: Write Integration Tests
-- [ ] Create `tests/integration/cli/test_resume_integration.py`
-- [ ] Test full resume flow from failed run
-- [ ] Test resume from interrupted run
-- [ ] Test artifact loading across phases
-- [ ] Verify progress display works correctly
+- [x] Create `tests/integration/cli/test_resume_integration.py`
+- [x] Test full resume flow from failed run
+- [x] Test resume from interrupted run
+- [x] Test artifact loading across phases
+- [x] Verify progress display works correctly
 
 ---
 
@@ -604,6 +604,7 @@ Story 6.2 implements the resume command, enabling users to continue runs that fa
 - src/adw/core/orchestrator.py (MODIFIED - added resume() method)
 - tests/unit/cli/test_resume.py (NEW)
 - tests/unit/core/test_run_lookup.py (NEW)
+- tests/integration/cli/test_resume_integration.py (NEW)
 
 ---
 
