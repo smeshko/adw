@@ -75,7 +75,7 @@ So that I can begin AI-assisted development.
 - [x] Add tests for various special character scenarios
 
 ### Task 6: Integrate Run Command with Orchestrator
-- [x] Wire CLI `run` command to `Orchestrator.run()`
+- [x] Wire CLI `run` command to `Orchestrator.run()` *(partial - orchestrator created but run() not called; requires PhaseRunner/LLM executor)*
 - [x] Create all required managers (ContextManager, SnapshotManager, etc.)
 - [x] Initialize ProgressDisplay and pass to Orchestrator
 - [x] Handle and display errors using Rich formatting
@@ -564,13 +564,32 @@ Story 6.1 implements the main CLI entry point for starting new ADW runs, connect
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
 ### File List
+
+**New Files Created:**
+- `src/adw/cli/run_display.py` - RunDisplay class for UX-12 header
+- `src/adw/config/__init__.py` - Config package exports
+- `src/adw/config/loader.py` - ConfigLoader with three-tier resolution
+- `src/adw/config/detector.py` - ProjectTypeDetector class
+- `tests/unit/cli/test_run.py` - Unit tests for run command
+- `tests/unit/cli/test_run_display.py` - Unit tests for RunDisplay
+- `tests/unit/config/__init__.py` - Test package init
+- `tests/unit/config/test_loader.py` - Unit tests for ConfigLoader
+- `tests/unit/config/test_detector.py` - Unit tests for ProjectTypeDetector
+- `tests/unit/commands/test_escape.py` - Unit tests for escape function
+- `tests/integration/cli/__init__.py` - Integration test package init
+- `tests/integration/cli/test_run_integration.py` - Integration tests for run command
+
+**Modified Files:**
+- `src/adw/cli/__init__.py` - Added RunDisplay export
+- `src/adw/cli/app.py` - Implemented run command with orchestrator setup
+- `src/adw/commands/template.py` - Added escape_feature_description function
 
 ---
 
@@ -593,3 +612,4 @@ Story 6.1 implements the main CLI entry point for starting new ADW runs, connect
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-03 | BMAD Create-Epic | Initial story creation with comprehensive context |
+| 2026-01-03 | Claude Opus 4.5 | Code review: Added escape_feature_description usage, updated File List, clarified Task 6 partial status |
