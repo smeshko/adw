@@ -46,12 +46,13 @@ class TestRunCommand:
         assert "empty" in result.output.lower()
 
     def test_run_accepts_verbose_flag(self) -> None:
-        """Test that --verbose/-v flag is accepted."""
-        result = runner.invoke(app, ["run", "Add feature", "--verbose", "--dry-run"])
+        """Test that --verbose/-v global flag is accepted with run command."""
+        # Note: Verbosity flags are now global options on the app, not run command
+        result = runner.invoke(app, ["--verbose", "run", "Add feature", "--dry-run"])
         assert result.exit_code == 0
 
         # Also test short form
-        result = runner.invoke(app, ["run", "Add feature", "-v", "--dry-run"])
+        result = runner.invoke(app, ["-v", "run", "Add feature", "--dry-run"])
         assert result.exit_code == 0
 
     def test_run_dry_run_shows_message(self) -> None:
