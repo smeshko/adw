@@ -112,7 +112,7 @@ development_status:
   6-1-start-new-run-with-feature-description: done
   6-2-resume-failed-or-interrupted-run: done
   6-3-check-run-status: ready-for-dev
-  6-4-list-recent-runs: ready-for-dev
+  6-4-list-recent-runs: review
   6-5-abort-running-execution: done
   6-6-initialize-new-project: done
   epic-6-retrospective: optional

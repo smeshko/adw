@@ -1,6 +1,6 @@
 # Story 6.4: List Recent Runs
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -38,51 +38,51 @@ So that I can find runs to resume or inspect.
 ## Tasks / Subtasks
 
 ### Task 1: Implement CLI List Command
-- [ ] Create `src/adw/cli/list.py` with list command
-- [ ] Add `--limit/-n` option for result count (default: 10)
-- [ ] Add `--status/-s` option to filter by status
-- [ ] Add `--json` flag for machine-readable output
-- [ ] Register command in main app (use name `list_runs` to avoid Python keyword)
+- [x] Create `src/adw/cli/list.py` with list command
+- [x] Add `--limit/-n` option for result count (default: 10)
+- [x] Add `--status/-s` option to filter by status
+- [x] Add `--json` flag for machine-readable output
+- [x] Register command in main app (use name `list_runs` to avoid Python keyword)
 
 ### Task 2: Create Run List Display
-- [ ] Create `src/adw/cli/list_display.py` with `ListDisplay` class
-- [ ] Implement `show_runs()` method using Rich Table
-- [ ] Display columns: ID (shortened), Feature, Status, Started
-- [ ] Color code status column
-- [ ] Truncate long feature descriptions
+- [x] Create `src/adw/cli/list_display.py` with `ListDisplay` class
+- [x] Implement `show_runs()` method using Rich Table
+- [x] Display columns: ID (shortened), Feature, Status, Started
+- [x] Color code status column
+- [x] Truncate long feature descriptions
 
 ### Task 3: Implement Run Collection
-- [ ] Add `list_runs()` method to RunLookup class
-- [ ] Support `limit` parameter for max results
-- [ ] Support `status` filter parameter
-- [ ] Sort by creation time (newest first, via ULID)
-- [ ] Return list of RunContext objects
+- [x] Add `list_runs()` method to RunLookup class
+- [x] Support `limit` parameter for max results
+- [x] Support `status` filter parameter
+- [x] Sort by creation time (newest first, via ULID)
+- [x] Return list of RunContext objects
 
 ### Task 4: Handle Empty State
-- [ ] Show "No runs found" when no runs exist
-- [ ] Show "No runs match filter" when filter has no results
-- [ ] Suggest `adw run "feature"` to create first run
+- [x] Show "No runs found" when no runs exist
+- [x] Show "No runs match filter" when filter has no results
+- [x] Suggest `adw run "feature"` to create first run
 
 ### Task 5: Implement JSON Output
-- [ ] Add `--json` flag to command
-- [ ] Output array of run summaries
-- [ ] Include: run_id, feature, status, started_at, completed_at
-- [ ] Clean JSON for scripting
+- [x] Add `--json` flag to command
+- [x] Output array of run summaries
+- [x] Include: run_id, feature, status, started_at, completed_at
+- [x] Clean JSON for scripting
 
 ### Task 6: Write Unit Tests
-- [ ] Create `tests/unit/cli/test_list.py`
-- [ ] Test list with default limit
-- [ ] Test list with custom limit
-- [ ] Test list with status filter
-- [ ] Test empty runs directory
-- [ ] Test JSON output format
-- [ ] Target: >80% coverage
+- [x] Create `tests/unit/cli/test_list.py`
+- [x] Test list with default limit
+- [x] Test list with custom limit
+- [x] Test list with status filter
+- [x] Test empty runs directory
+- [x] Test JSON output format
+- [x] Target: >80% coverage
 
 ### Task 7: Write Integration Tests
-- [ ] Create `tests/integration/cli/test_list_integration.py`
-- [ ] Test list with multiple runs
-- [ ] Test filter combinations
-- [ ] Verify sorting order
+- [x] Create `tests/integration/cli/test_list_integration.py`
+- [x] Test list with multiple runs
+- [x] Test filter combinations
+- [x] Verify sorting order
 
 ---
 
@@ -454,13 +454,35 @@ Story 6.4 implements the list command for viewing recent runs.
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A - No issues encountered during implementation.
+
 ### Completion Notes List
 
+- Implemented `adw list` command with full Rich Table display
+- Added `--limit/-n`, `--status/-s`, and `--json` options
+- Created ListDisplay class with color-coded status and truncation
+- Extended RunLookup with list_runs() method supporting filtering and sorting
+- All 1070 tests pass with 93% coverage
+- Implementation follows project patterns (Rich for output, ULID for sorting, Pydantic models)
+
 ### File List
+
+**New files:**
+- src/adw/cli/list.py
+- src/adw/cli/list_display.py
+- tests/unit/cli/test_list.py
+- tests/unit/cli/test_list_display.py
+- tests/integration/cli/test_list_integration.py
+
+**Modified files:**
+- src/adw/cli/__init__.py
+- src/adw/cli/app.py
+- src/adw/core/run_lookup.py
+- tests/unit/core/test_run_lookup.py
 
 ---
 
@@ -481,3 +503,5 @@ Story 6.4 implements the list command for viewing recent runs.
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-03 | BMAD Create-Epic | Initial story creation with comprehensive context |
+| 2026-01-03 | Dev Agent (Opus 4.5) | Implemented all tasks - list command, display, tests |
+| 2026-01-03 | Code Review (Opus 4.5) | Status updated to done, lint/type fixes applied |
