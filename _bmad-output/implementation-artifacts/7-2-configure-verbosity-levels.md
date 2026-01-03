@@ -43,11 +43,11 @@ so that I see the right amount of detail for my needs.
 - [x] Document level filtering rules
 
 ### Task 2: Add CLI Verbosity Options (cli/app.py)
-- [ ] Add `-q/--quiet` flag (Verbosity.QUIET)
-- [ ] Add `-v/--verbose` flag (Verbosity.VERBOSE)
-- [ ] Add `--trace` flag (Verbosity.TRACE)
-- [ ] Default to Verbosity.NORMAL
-- [ ] Store in Typer context for subcommands
+- [x] Add `-q/--quiet` flag (Verbosity.QUIET)
+- [x] Add `-v/--verbose` flag (Verbosity.VERBOSE)
+- [x] Add `--trace` flag (Verbosity.TRACE)
+- [x] Default to Verbosity.NORMAL
+- [x] Store in Typer context for subcommands
 
 ### Task 3: Implement Console Filtering (logging/console.py)
 - [ ] Add verbosity parameter to ConsoleTransport
@@ -274,8 +274,12 @@ Claude Opus 4.5
 
 ### Completion Notes List
 - **Task 1 (2026-01-03):** Created Verbosity enum (QUIET, NORMAL, VERBOSE, TRACE) in models/logging.py. Added VERBOSITY_LEVEL_MAP constant mapping each Verbosity to its LogLevel threshold. Documented filtering rules in docstrings. Added 6 unit tests for Verbosity, all passing.
+- **Task 2 (2026-01-03):** Added global verbosity flags (-q/--quiet, -v/--verbose, --trace) to CLI main callback. Implemented mutual exclusivity check with error message. Stores Verbosity in Typer context for subcommands. Removed redundant command-level --verbose from run command. Added 10 CLI verbosity tests, all 182 CLI tests passing.
 
 ### File List
 - src/adw/models/logging.py (modified: added Verbosity enum and VERBOSITY_LEVEL_MAP)
+- src/adw/cli/app.py (modified: added global verbosity flags to main callback)
 - tests/unit/models/test_logging.py (modified: added TestVerbosity test class)
+- tests/unit/cli/test_verbosity.py (new: CLI verbosity flag tests)
+- tests/unit/cli/test_run.py (modified: updated verbose flag test to use global flag)
 

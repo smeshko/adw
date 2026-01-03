@@ -15,6 +15,7 @@ from adw.cli.run_display import RunDisplay
 from adw.cli.validators import validate_phase
 from adw.commands.template import escape_feature_description
 from adw.exceptions import ADWError, ConfigError
+from adw.models.logging import Verbosity
 
 console = Console()
 app = typer.Typer(
@@ -60,9 +61,42 @@ def init(
 
 @app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     version: bool = typer.Option(False, "--version", "-V", help="Show version"),
+    quiet: bool = typer.Option(
+        False, "--quiet", "-q", help="Show errors only (minimal output)"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show detailed output including debug info"
+    ),
+    trace: bool = typer.Option(
+        False, "--trace", help="Show all output including trace-level debugging"
+    ),
 ) -> None:
     """Agentic Development Workflow SDK CLI."""
+    # Handle mutual exclusivity of verbosity flags
+    verbosity_flags = sum([quiet, verbose, trace])
+    if verbosity_flags > 1:
+        console.print(
+            "[red]Error:[/] Verbosity flags are mutually exclusive. "
+            "Use only one of: --quiet, --verbose, --trace"
+        )
+        raise typer.Exit(1)
+
+    # Determine verbosity level
+    if quiet:
+        verbosity = Verbosity.QUIET
+    elif trace:
+        verbosity = Verbosity.TRACE
+    elif verbose:
+        verbosity = Verbosity.VERBOSE
+    else:
+        verbosity = Verbosity.NORMAL
+
+    # Store verbosity in context for subcommands
+    ctx.ensure_object(dict)
+    ctx.obj["verbosity"] = verbosity
+
     if version:
         from adw import __version__
 
@@ -72,6 +106,7 @@ def main(
 
 @app.command()
 def run(
+    ctx: typer.Context,
     feature: str = typer.Argument(
         ...,
         help="Feature description to implement",
@@ -89,12 +124,6 @@ def run(
         "--from-run",
         "-f",
         help="Load artifacts from this run ID (required for phases after plan)",
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Enable verbose output",
     ),
     dry_run: bool = typer.Option(
         False,
