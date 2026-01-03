@@ -1,6 +1,6 @@
 # Story 7.2: Configure Verbosity Levels
 
-Status: in-progress
+Status: done
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-03
@@ -70,11 +70,11 @@ so that I see the right amount of detail for my needs.
 Note: `adw run` now uses global verbosity from context. `adw resume` retains its legacy local --verbose flag for backward compatibility; future story will align it with global verbosity.
 
 ### Task 6: Write Unit Tests
-- [ ] Test Verbosity enum values
-- [ ] Test CLI flag parsing for all verbosity options
-- [ ] Test console filtering at each verbosity level
-- [ ] Test file transports ignore verbosity
-- [ ] Integration test: run command with different verbosity flags
+- [x] Test Verbosity enum values
+- [x] Test CLI flag parsing for all verbosity options
+- [x] Test console filtering at each verbosity level
+- [x] Test file transports ignore verbosity
+- [x] Integration test: run command with different verbosity flags
 
 ---
 
@@ -280,6 +280,7 @@ Claude Opus 4.5
 - **Task 3 (2026-01-03):** Added `should_log(level, verbosity)` function with LEVEL_ORDER mapping for threshold comparison. Updated ConsoleTransport to accept verbosity parameter (default NORMAL) and filter events in write(). Updated existing tests to use TRACE/VERBOSE verbosity when testing DEBUG/TRACE level output. All 35 console tests passing.
 - **Task 4 (2026-01-03):** Added `verbosity` property and `set_verbosity(verbosity)` method to LogManager. Method updates all registered ConsoleTransport instances but leaves file transports unaffected. Updated child() to inherit verbosity. Added setter to ConsoleTransport.verbosity. All 30 manager tests passing.
 - **Task 5 (2026-01-03):** Added create_log_manager factory function in bootstrap. Wired run command to get verbosity from Typer context and create LogManager with it. LogManager ready for orchestrator integration in future stories. All 29 CLI tests passing.
+- **Task 6 (2026-01-03):** Added TestVerbosityWithRunCommand integration test class (4 tests) for run command with different verbosity flags. All 1131 unit tests passing.
 
 ### File List
 - src/adw/models/logging.py (modified: added Verbosity enum and VERBOSITY_LEVEL_MAP)

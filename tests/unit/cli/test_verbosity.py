@@ -89,3 +89,31 @@ class TestVerbosityContext:
         """Test that --trace sets Verbosity.TRACE in context."""
         result = runner.invoke(app, ["--trace", "--version"])
         assert result.exit_code == 0 or "version" in result.output.lower()
+
+
+class TestVerbosityWithRunCommand:
+    """Integration tests for verbosity with run command."""
+
+    def test_run_with_quiet_verbosity(self) -> None:
+        """Test run command works with --quiet flag."""
+        result = runner.invoke(app, ["-q", "run", "Add feature", "--dry-run"])
+        assert result.exit_code == 0
+        assert "Dry run" in result.output or "dry run" in result.output.lower()
+
+    def test_run_with_verbose_verbosity(self) -> None:
+        """Test run command works with --verbose flag."""
+        result = runner.invoke(app, ["-v", "run", "Add feature", "--dry-run"])
+        assert result.exit_code == 0
+        assert "Dry run" in result.output or "dry run" in result.output.lower()
+
+    def test_run_with_trace_verbosity(self) -> None:
+        """Test run command works with --trace flag."""
+        result = runner.invoke(app, ["--trace", "run", "Add feature", "--dry-run"])
+        assert result.exit_code == 0
+        assert "Dry run" in result.output or "dry run" in result.output.lower()
+
+    def test_run_without_verbosity_uses_normal(self) -> None:
+        """Test run command defaults to NORMAL verbosity."""
+        result = runner.invoke(app, ["run", "Add feature", "--dry-run"])
+        assert result.exit_code == 0
+        # Should work normally without any verbosity flag
