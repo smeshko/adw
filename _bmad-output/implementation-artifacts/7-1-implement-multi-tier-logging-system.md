@@ -59,11 +59,11 @@ so that I have appropriate output for different use cases.
 - [x] Ensure non-blocking writes per NFR3
 
 ### Task 4: Implement Log Manager (logging/manager.py)
-- [ ] Create `LogManager` singleton/global instance
-- [ ] Implement transport registration
-- [ ] Create `child(context)` method for scoped loggers
-- [ ] Implement level methods: trace, debug, info, warn, error, fatal
-- [ ] Route events to all registered transports
+- [x] Create `LogManager` singleton/global instance
+- [x] Implement transport registration
+- [x] Create `child(context)` method for scoped loggers
+- [x] Implement level methods: trace, debug, info, warn, error, fatal
+- [x] Route events to all registered transports
 
 ### Task 5: Update Package Exports (logging/__init__.py)
 - [ ] Export LogManager, transports, models
@@ -301,6 +301,7 @@ Key patterns and rules from project context:
 - Task 1: Created LogLevel (6 levels), LogCategory (6 categories), LogEvent, and LogContext Pydantic models with full type annotations, docstrings, and serialization support. 22 unit tests passing with 97% coverage.
 - Task 2: Implemented ConsoleTransport with TTY detection, Rich formatting for TTY output, plain text for non-TTY (UX-7 compliant). Level-based styling with distinct ERROR/FATAL formatting. 19 unit tests passing with 94% coverage.
 - Task 3: Implemented RawFileTransport (human-readable) and StructuredFileTransport (JSONL) with file locking for concurrent write safety. Auto-creates parent directories. 26 unit tests passing with 96% coverage.
+- Task 4: Implemented LogManager with transport registration, level filtering, child() for scoped loggers with context inheritance, and level methods (trace, debug, info, warn, error, fatal). Transport protocol for extensibility. 24 unit tests passing with 98% coverage.
 
 ### File List
 
@@ -312,4 +313,6 @@ Key patterns and rules from project context:
 - tests/unit/logging/test_console.py (NEW)
 - src/adw/logging/file.py (NEW)
 - tests/unit/logging/test_file.py (NEW)
+- src/adw/logging/manager.py (NEW)
+- tests/unit/logging/test_manager.py (NEW)
 
