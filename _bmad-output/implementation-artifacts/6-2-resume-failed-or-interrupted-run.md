@@ -45,11 +45,11 @@ So that I don't lose progress.
 - [x] Register command in main app
 
 ### Task 2: Implement Run Lookup
-- [ ] Create `src/adw/core/run_lookup.py` with `RunLookup` class
-- [ ] Implement `find_by_id(run_id)` to load specific run
-- [ ] Implement `find_most_recent_incomplete()` to find resumable run
-- [ ] Return `None` if no matching run found
-- [ ] Validate run directory structure exists
+- [x] Create `src/adw/core/run_lookup.py` with `RunLookup` class
+- [x] Implement `find_by_id(run_id)` to load specific run
+- [x] Implement `find_most_recent_incomplete()` to find resumable run
+- [x] Return `None` if no matching run found
+- [x] Validate run directory structure exists
 
 ### Task 3: Implement Resume Logic in Orchestrator
 - [ ] Add `resume(run_id: str, from_phase: str | None)` method to Orchestrator
