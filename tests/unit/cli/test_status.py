@@ -67,3 +67,32 @@ class TestStatusNoRuns:
         result = runner.invoke(app, ["status", "--help"])
         # Help should show that run_id is optional
         assert result.exit_code == 0
+
+
+class TestStatusCorruptedContext:
+    """Tests for status with corrupted context."""
+
+    def test_corrupted_context_raises_state_error(self, tmp_path) -> None:
+        """Test corrupted context.json raises StateError with snapshot suggestion."""
+        from pathlib import Path
+        from unittest.mock import patch
+
+        # Create a runs directory with corrupted context
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir()
+        # Write corrupted JSON
+        (run_dir / "context.json").write_text("{ invalid json }")
+
+        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+            result = runner.invoke(app, ["status", run_id])
+
+        # Should indicate corrupted state with snapshot suggestion
+        assert result.exit_code != 0
+        assert (
+            "corrupted" in result.output.lower()
+            or "STATE_CORRUPTED" in result.output
+            or "snapshot" in result.output.lower()
+        )

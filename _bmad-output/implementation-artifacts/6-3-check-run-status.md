@@ -72,10 +72,10 @@ So that I know its current state and outcome.
 - [x] Output clean JSON for scripting/automation
 
 ### Task 6: Handle Edge Cases
-- [ ] Handle run_id not found → ConfigError "RUN_NOT_FOUND"
-- [ ] Handle no runs exist → message "No runs found"
-- [ ] Handle corrupted context → show what's available
-- [ ] Handle very long feature descriptions → truncate
+- [x] Handle run_id not found → ConfigError "RUN_NOT_FOUND"
+- [x] Handle no runs exist → message "No runs found"
+- [x] Handle corrupted context → show what's available
+- [x] Handle very long feature descriptions → truncate
 
 ### Task 7: Write Unit Tests
 - [ ] Create `tests/unit/cli/test_status.py`
