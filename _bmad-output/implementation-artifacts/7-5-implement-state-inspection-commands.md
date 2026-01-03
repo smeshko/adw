@@ -304,12 +304,29 @@ Key patterns:
 ## Dev Agent Record
 
 ### Context Reference
+- Story 7.4 (Logs CLI structure)
+- Story 4.3 (State Snapshots - SnapshotManager)
+- Architecture: docs/arch-logging.md
 
 ### Agent Model Used
+claude-opus-4-5-20251101
 
 ### Debug Log References
+N/A - Implementation completed successfully
 
 ### Completion Notes List
+- All 6 tasks completed across 7 commits
+- 38 unit tests passing (20 CLI tests, 18 diff utility tests)
+- Commands registered in main app via `app.add_typer(logs_app, name="logs")`
+- Custom json_diff implementation (no external dependency like deepdiff)
+- Rich formatting for all output (tables, panels, syntax highlighting)
 
 ### File List
-
+| File | Action | Description |
+|------|--------|-------------|
+| `src/adw/cli/app.py` | Modified | Added `logs_app` import and registration via `app.add_typer()` |
+| `src/adw/cli/logs.py` | Created | State inspection CLI commands (snapshots, state, diff) - 536 lines |
+| `src/adw/utils/__init__.py` | Modified | Added exports for `DiffResult` and `json_diff` |
+| `src/adw/utils/diff.py` | Created | JSON diff utility with recursive comparison - 163 lines |
+| `tests/unit/cli/test_logs.py` | Created | Unit tests for logs CLI commands - 407 lines, 20 tests |
+| `tests/unit/utils/test_diff.py` | Created | Unit tests for diff utility - 174 lines, 18 tests |
