@@ -10,6 +10,7 @@ from adw.cli.bootstrap import create_orchestrator
 from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
 from adw.cli.resume import resume as resume_command
+from adw.cli.status import status as status_command
 from adw.cli.run_display import RunDisplay
 from adw.cli.validators import validate_phase
 from adw.commands.template import escape_feature_description
@@ -220,6 +221,9 @@ def abort(
 
 # Register the resume command (Story 6.2)
 app.command()(resume_command)
+
+# Register the status command (Story 6.3)
+app.command()(status_command)
 
 # Register the list command (Story 6.4)
 # Note: We use name="list" since list_runs avoids Python keyword conflict

@@ -1,6 +1,6 @@
 # Story 6.3: Check Run Status
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -38,61 +38,61 @@ So that I know its current state and outcome.
 ## Tasks / Subtasks
 
 ### Task 1: Implement CLI Status Command
-- [ ] Create `src/adw/cli/status.py` with status command
-- [ ] Add optional `run_id` argument (positional)
-- [ ] Add `--json` flag for machine-readable output
-- [ ] Add `--verbose/-v` flag for detailed output
-- [ ] Register command in main app
+- [x] Create `src/adw/cli/status.py` with status command
+- [x] Add optional `run_id` argument (positional)
+- [x] Add `--json` flag for machine-readable output
+- [x] Add `--verbose/-v` flag for detailed output
+- [x] Register command in main app
 
 ### Task 2: Create Status Display
-- [ ] Create `src/adw/cli/status_display.py` with `StatusDisplay` class
-- [ ] Implement `show_status()` method using Rich Table
-- [ ] Display basic info: run_id, feature, status, phase
-- [ ] Display timestamps: started_at, completed_at
-- [ ] Use color coding for status (green=completed, red=failed, yellow=running)
+- [x] Create `src/adw/cli/status_display.py` with `StatusDisplay` class
+- [x] Implement `show_status()` method using Rich Table
+- [x] Display basic info: run_id, feature, status, phase
+- [x] Display timestamps: started_at, completed_at
+- [x] Use color coding for status (green=completed, red=failed, yellow=running)
 
 ### Task 3: Display Completed Run Details
-- [ ] Calculate total duration from timestamps
-- [ ] Count phases completed from phase_history
-- [ ] Count artifacts per phase from artifact directories
-- [ ] Display token usage summary
-- [ ] Format duration in human-readable form (e.g., "2m 34s")
+- [x] Calculate total duration from timestamps
+- [x] Count phases completed from phase_history
+- [x] Count artifacts per phase from artifact directories
+- [x] Display token usage summary
+- [x] Format duration in human-readable form (e.g., "2m 34s")
 
 ### Task 4: Display Failed Run Details (UX-3)
-- [ ] Load error details from context or snapshot
-- [ ] Display error message and code
-- [ ] Display suggestion for resolution
-- [ ] Show resume command: `adw resume <run_id>`
-- [ ] Highlight failed phase in red
+- [x] Load error details from context or snapshot
+- [x] Display error message and code
+- [x] Display suggestion for resolution
+- [x] Show resume command: `adw resume <run_id>`
+- [x] Highlight failed phase in red
 
 ### Task 5: Implement JSON Output
-- [ ] Add `--json` flag to command
-- [ ] Serialize RunContext to JSON with all fields
-- [ ] Include calculated fields (duration, artifact_count)
-- [ ] Output clean JSON for scripting/automation
+- [x] Add `--json` flag to command
+- [x] Serialize RunContext to JSON with all fields
+- [x] Include calculated fields (duration, artifact_count)
+- [x] Output clean JSON for scripting/automation
 
 ### Task 6: Handle Edge Cases
-- [ ] Handle run_id not found → ConfigError "RUN_NOT_FOUND"
-- [ ] Handle no runs exist → message "No runs found"
-- [ ] Handle corrupted context → show what's available
-- [ ] Handle very long feature descriptions → truncate
+- [x] Handle run_id not found → ConfigError "RUN_NOT_FOUND"
+- [x] Handle no runs exist → message "No runs found"
+- [x] Handle corrupted context → show what's available
+- [x] Handle very long feature descriptions → truncate
 
 ### Task 7: Write Unit Tests
-- [ ] Create `tests/unit/cli/test_status.py`
-- [ ] Test status with valid run_id
-- [ ] Test status without run_id (most recent)
-- [ ] Test status non-existent run → error
-- [ ] Test JSON output format
-- [ ] Test completed run shows duration/artifacts
-- [ ] Test failed run shows error/suggestion
-- [ ] Target: >80% coverage
+- [x] Create `tests/unit/cli/test_status.py`
+- [x] Test status with valid run_id
+- [x] Test status without run_id (most recent)
+- [x] Test status non-existent run → error
+- [x] Test JSON output format
+- [x] Test completed run shows duration/artifacts
+- [x] Test failed run shows error/suggestion
+- [x] Target: >80% coverage
 
 ### Task 8: Write Integration Tests
-- [ ] Create `tests/integration/cli/test_status_integration.py`
-- [ ] Test status of running run
-- [ ] Test status of completed run
-- [ ] Test status of failed run with resume hint
-- [ ] Verify output formatting
+- [x] Create `tests/integration/cli/test_status_integration.py`
+- [x] Test status of running run
+- [x] Test status of completed run
+- [x] Test status of failed run with resume hint
+- [x] Verify output formatting
 
 ---
 
@@ -543,6 +543,17 @@ Story 6.3 implements the status command for inspecting run state and outcome.
 
 ### File List
 
+**New Files:**
+- `src/adw/cli/status.py` - Status command implementation
+- `src/adw/cli/status_display.py` - StatusDisplay class with Rich formatting
+- `tests/unit/cli/test_status.py` - Unit tests for status command
+- `tests/unit/cli/test_status_display.py` - Unit tests for StatusDisplay class
+- `tests/integration/cli/test_status_integration.py` - Integration tests
+
+**Modified Files:**
+- `src/adw/cli/app.py` - Registered status command
+- `src/adw/core/run_lookup.py` - Added `find_most_recent()` and refactored with `_list_runs()`
+
 ---
 
 ## Dependencies
@@ -562,3 +573,5 @@ Story 6.3 implements the status command for inspecting run state and outcome.
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-03 | BMAD Create-Epic | Initial story creation with comprehensive context |
+| 2026-01-03 | Dev Agent | Implementation complete - all 8 tasks done |
+| 2026-01-03 | Code Review | Fixed: UX-3 error details, type annotations, code duplication, weak test |

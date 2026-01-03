@@ -4,6 +4,7 @@ This module provides the RunLookup class for finding runs by ID or
 finding the most recent incomplete run for resume operations.
 """
 
+from collections.abc import Callable
 from pathlib import Path
 
 from adw.core.context_manager import ContextManager
@@ -62,6 +63,23 @@ class RunLookup:
         except Exception:
             return None
 
+    def find_most_recent(self) -> RunContext | None:
+        """Find the most recent run regardless of status.
+
+        Runs are sorted by their ULID which is lexicographically sortable
+        and encodes the creation timestamp.
+
+        Returns:
+            Most recent RunContext, or None if none found.
+
+        Example:
+            >>> context = lookup.find_most_recent()
+            >>> if context:
+            ...     print(f"Most recent: {context.run_id}")
+        """
+        runs = self._list_runs()
+        return runs[0] if runs else None
+
     def find_most_recent_incomplete(self) -> RunContext | None:
         """Find the most recent incomplete run.
 
@@ -77,10 +95,28 @@ class RunLookup:
             >>> if context:
             ...     print(f"Resume: {context.run_id}")
         """
-        if not self.runs_dir.exists():
-            return None
+        incomplete_statuses = ("running", "failed", "interrupted")
+        runs = self._list_runs(
+            filter_fn=lambda ctx: ctx.status in incomplete_statuses
+        )
+        return runs[0] if runs else None
 
-        incomplete_runs: list[tuple[str, RunContext]] = []
+    def _list_runs(
+        self,
+        filter_fn: Callable[[RunContext], bool] | None = None,
+    ) -> list[RunContext]:
+        """List all runs, optionally filtered, sorted by most recent first.
+
+        Args:
+            filter_fn: Optional function to filter runs. Returns True to include.
+
+        Returns:
+            List of RunContext objects sorted by run_id (most recent first).
+        """
+        if not self.runs_dir.exists():
+            return []
+
+        runs: list[tuple[str, RunContext]] = []
 
         for run_dir in self.runs_dir.iterdir():
             if not run_dir.is_dir():
@@ -88,18 +124,14 @@ class RunLookup:
 
             try:
                 context = self.context_manager.load(run_dir.name)
-                if context.status in ("running", "failed", "interrupted"):
-                    # Use run_id (ULID) for sorting - lexicographically sortable
-                    incomplete_runs.append((context.run_id, context))
+                if filter_fn is None or filter_fn(context):
+                    runs.append((context.run_id, context))
             except Exception:
                 continue
 
-        if not incomplete_runs:
-            return None
-
         # Sort by run_id (ULID) descending - most recent first
-        incomplete_runs.sort(key=lambda x: x[0], reverse=True)
-        return incomplete_runs[0][1]
+        runs.sort(key=lambda x: x[0], reverse=True)
+        return [ctx for _, ctx in runs]
 
     def list_runs(
         self,
@@ -125,33 +157,10 @@ class RunLookup:
             >>> # Get failed runs only
             >>> failed = lookup.list_runs(status="failed")
         """
-        if not self.runs_dir.exists():
-            return []
+        if status:
+            filter_fn = lambda ctx: ctx.status == status
+        else:
+            filter_fn = None
 
-        runs: list[RunContext] = []
-
-        # List all run directories (ULID sorts naturally by time)
-        run_dirs = sorted(self.runs_dir.iterdir(), reverse=True)
-
-        for run_dir in run_dirs:
-            if not run_dir.is_dir():
-                continue
-
-            try:
-                context = self.context_manager.load(run_dir.name)
-
-                # Apply status filter
-                if status and context.status != status:
-                    continue
-
-                runs.append(context)
-
-                # Stop when we have enough
-                if len(runs) >= limit:
-                    break
-
-            except Exception:
-                # Skip corrupted runs
-                continue
-
-        return runs
+        runs = self._list_runs(filter_fn=filter_fn)
+        return runs[:limit]

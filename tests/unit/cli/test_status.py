@@ -60,10 +60,187 @@ class TestStatusNoRuns:
             or "RUN_NOT_FOUND" in result.output
         )
 
-    def test_status_no_runs_message(self) -> None:
+    def test_status_no_runs_message(self, tmp_path) -> None:
         """Test message when no runs exist and no run_id provided."""
-        # This test needs a clean runs directory - hard to test in isolation
-        # The integration tests will cover this more thoroughly
-        result = runner.invoke(app, ["status", "--help"])
-        # Help should show that run_id is optional
+        from unittest.mock import patch
+
+        # Create empty runs directory
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+            result = runner.invoke(app, ["status"])
+
+        # Should show "No runs found" message
+        assert "No runs found" in result.output
+
+
+class TestStatusCorruptedContext:
+    """Tests for status with corrupted context."""
+
+    def test_corrupted_context_raises_state_error(self, tmp_path) -> None:
+        """Test corrupted context.json raises StateError with snapshot suggestion."""
+        from pathlib import Path
+        from unittest.mock import patch
+
+        # Create a runs directory with corrupted context
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir()
+        # Write corrupted JSON
+        (run_dir / "context.json").write_text("{ invalid json }")
+
+        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+            result = runner.invoke(app, ["status", run_id])
+
+        # Should indicate corrupted state with snapshot suggestion
+        assert result.exit_code != 0
+        assert (
+            "corrupted" in result.output.lower()
+            or "STATE_CORRUPTED" in result.output
+            or "snapshot" in result.output.lower()
+        )
+
+
+class TestStatusWithValidRun:
+    """Tests for status with valid run."""
+
+    def test_status_with_valid_run_id(self, tmp_path) -> None:
+        """Test status displays information for a valid run."""
+        import json
+        from datetime import UTC, datetime
+        from unittest.mock import patch
+
+        # Create a valid run
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir()
+
+        context_data = {
+            "run_id": run_id,
+            "feature_description": "Add user authentication",
+            "current_phase": "build",
+            "phase_history": ["plan"],
+            "started_at": "2026-01-03T10:30:45+00:00",
+            "completed_at": None,
+            "status": "running",
+            "interrupted_phase": None,
+            "interrupted_at": None,
+            "artifacts": {},
+            "phase_tokens": {},
+        }
+        (run_dir / "context.json").write_text(json.dumps(context_data))
+
+        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+            result = runner.invoke(app, ["status", run_id])
+
         assert result.exit_code == 0
+        assert run_id in result.output
+        assert "running" in result.output.lower()
+
+    def test_status_without_run_id_shows_most_recent(self, tmp_path) -> None:
+        """Test status without run_id shows most recent run."""
+        import json
+        from unittest.mock import patch
+
+        # Create a valid run
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir()
+
+        context_data = {
+            "run_id": run_id,
+            "feature_description": "Test feature",
+            "current_phase": "plan",
+            "phase_history": [],
+            "started_at": "2026-01-03T10:30:45+00:00",
+            "completed_at": None,
+            "status": "running",
+            "interrupted_phase": None,
+            "interrupted_at": None,
+            "artifacts": {},
+            "phase_tokens": {},
+        }
+        (run_dir / "context.json").write_text(json.dumps(context_data))
+
+        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+            result = runner.invoke(app, ["status"])
+
+        assert result.exit_code == 0
+        assert run_id in result.output
+
+    def test_status_json_output_with_valid_run(self, tmp_path) -> None:
+        """Test status --json outputs valid JSON."""
+        import json
+        from unittest.mock import patch
+
+        # Create a valid run
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir()
+
+        context_data = {
+            "run_id": run_id,
+            "feature_description": "Test feature",
+            "current_phase": "plan",
+            "phase_history": [],
+            "started_at": "2026-01-03T10:30:45+00:00",
+            "completed_at": None,
+            "status": "running",
+            "interrupted_phase": None,
+            "interrupted_at": None,
+            "artifacts": {},
+            "phase_tokens": {},
+        }
+        (run_dir / "context.json").write_text(json.dumps(context_data))
+
+        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+            result = runner.invoke(app, ["status", "--json"])
+
+        assert result.exit_code == 0
+        # Should be valid JSON
+        data = json.loads(result.output)
+        assert data["run_id"] == run_id
+        assert data["status"] == "running"
+
+    def test_status_verbose_shows_extra_info(self, tmp_path) -> None:
+        """Test status -v shows verbose information."""
+        import json
+        from unittest.mock import patch
+
+        # Create a completed run with tokens
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir()
+
+        context_data = {
+            "run_id": run_id,
+            "feature_description": "Test feature",
+            "current_phase": "document",
+            "phase_history": ["plan", "build"],
+            "started_at": "2026-01-03T10:30:45+00:00",
+            "completed_at": "2026-01-03T10:35:00+00:00",
+            "status": "completed",
+            "interrupted_phase": None,
+            "interrupted_at": None,
+            "artifacts": {"plan": ["plan.md"]},
+            "phase_tokens": {"plan": 500, "build": 1000},
+        }
+        (run_dir / "context.json").write_text(json.dumps(context_data))
+
+        with patch("adw.cli.status.get_runs_dir", return_value=runs_dir):
+            result = runner.invoke(app, ["status", "-v"])
+
+        assert result.exit_code == 0
+        # Should show tokens info in verbose mode
+        assert "Tokens" in result.output or "1,500" in result.output
