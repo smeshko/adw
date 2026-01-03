@@ -22,6 +22,7 @@ For run-scoped logging:
 
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
+from adw.logging.llm_capture import LLMCaptureManager
 from adw.logging.manager import LogManager, Transport
 from adw.logging.stream import StreamLogger
 from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
@@ -110,6 +111,7 @@ __all__ = [
     "LogManager",
     "Transport",
     "StreamLogger",
+    "LLMCaptureManager",
     # Transports
     "ConsoleTransport",
     "RawFileTransport",

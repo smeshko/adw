@@ -51,11 +51,11 @@ so that I can debug and reproduce issues.
 - [x] Implement `end(stats)` and `error(error)` methods
 
 ### Task 3: Implement LLM File Capture (logging/llm_capture.py)
-- [ ] Create `LLMCaptureManager` class
-- [ ] Implement `capture_request(phase, request)` → writes `<seq>_request.json`
-- [ ] Implement `capture_response(phase, response)` → writes `<seq>_response.json`
-- [ ] Implement `capture_stream(phase, events)` → writes `<seq>_stream.jsonl`
-- [ ] Sequence numbering: 001, 002, etc. per run
+- [x] Create `LLMCaptureManager` class
+- [x] Implement `capture_request(phase, request)` → writes `<seq>_request.json`
+- [x] Implement `capture_response(phase, response)` → writes `<seq>_response.json`
+- [x] Implement `capture_stream(phase, events)` → writes `<seq>_stream.jsonl`
+- [x] Sequence numbering: 001, 002, etc. per run
 
 ### Task 4: Integrate with Claude Code Executor
 - [ ] Modify `ClaudeCodeExecutor.execute()` to accept StreamLogger
@@ -301,11 +301,14 @@ claude-opus-4-5-20250514
 ### Completion Notes List
 - Task 1: Created LLM capture models in models/logging.py - Added StreamEventType enum, LLMStats, LLMToolCall, LLMToolResult, LLMRequest, LLMResponse, and LLMStreamEvent Pydantic models. All models support JSON serialization for file storage (request/response.json) and JSONL (stream events).
 - Task 2: Implemented StreamLogger in logging/stream.py - Captures streaming events with relative timestamps using time.monotonic(). Methods: token(), tool_call(), tool_result(), thinking(), end(), error(). Added to logging package __all__.
+- Task 3: Implemented LLMCaptureManager in logging/llm_capture.py - Writes request/response JSON and stream JSONL files to llm/ directory. 3-digit zero-padded sequence numbers (001, 002, etc.).
 
 ### File List
 - src/adw/models/logging.py (modified) - Added 7 new models for LLM capture
 - tests/unit/models/test_logging.py (modified) - Added 18 new tests for LLM capture models
 - src/adw/logging/stream.py (new) - StreamLogger class for capturing LLM streaming events
-- src/adw/logging/__init__.py (modified) - Added StreamLogger to package exports
+- src/adw/logging/__init__.py (modified) - Added StreamLogger and LLMCaptureManager to package exports
 - tests/unit/logging/test_stream.py (new) - 16 tests for StreamLogger
+- src/adw/logging/llm_capture.py (new) - LLMCaptureManager class for file-based capture
+- tests/unit/logging/test_llm_capture.py (new) - 15 tests for LLMCaptureManager
 
