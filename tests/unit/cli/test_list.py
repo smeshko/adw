@@ -63,7 +63,10 @@ class TestListCommand:
     ) -> None:
         """Test that list shows message when no runs exist."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["list"])
+            # Mock IndexManager to return empty results (no global index entries)
+            with patch("adw.cli.list.IndexManager") as mock_index:
+                mock_index.return_value.get_recent_runs.return_value = []
+                result = runner.invoke(app, ["list"])
 
             assert result.exit_code == 0
             assert "No runs found" in result.output
@@ -71,7 +74,10 @@ class TestListCommand:
     def test_list_suggests_run_command(self, runner: CliRunner, tmp_path: Path) -> None:
         """Test that list suggests adw run command when no runs."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["list"])
+            # Mock IndexManager to return empty results (no global index entries)
+            with patch("adw.cli.list.IndexManager") as mock_index:
+                mock_index.return_value.get_recent_runs.return_value = []
+                result = runner.invoke(app, ["list"])
 
             assert result.exit_code == 0
             assert "adw run" in result.output

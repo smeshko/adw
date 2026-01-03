@@ -59,11 +59,11 @@ so that I can quickly find and reference past executions across all projects.
 - [x] Call `index_manager.update_run()` on run completion/failure
 
 ### Task 4: Update CLI List Command
-- [ ] Modify `src/adw/cli/list.py`
-- [ ] Detect when outside project context
-- [ ] Use global index when outside project
-- [ ] Add `--project` flag to filter to current project
-- [ ] Add `--global` flag to force global view even inside project
+- [x] Modify `src/adw/cli/list.py`
+- [x] Detect when outside project context
+- [x] Use global index when outside project
+- [x] Add `--project` flag to filter to current project
+- [x] Add `--global` flag to force global view even inside project
 
 ### Task 5: Write Unit Tests
 - [ ] `tests/unit/models/test_index.py` - IndexEntry model tests
