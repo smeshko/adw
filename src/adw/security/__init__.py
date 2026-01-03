@@ -25,12 +25,15 @@ from adw.security.patterns import (
     match_file_pattern,
     match_shell_pattern,
 )
+from adw.security.tool_logger import ToolLogger
 
 __all__: list[str] = [
     # Interceptor
     "SecurityInterceptor",
     "SecurityCheckResult",
     "SecurityCheckResponse",
+    # Logger
+    "ToolLogger",
     # Pattern utilities
     "BLOCKED_SHELL_PATTERNS",
     "BLOCKED_FILE_PATTERNS",

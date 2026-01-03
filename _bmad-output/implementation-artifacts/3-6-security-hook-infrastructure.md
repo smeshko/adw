@@ -59,11 +59,11 @@ So that automated code generation cannot accidentally destroy my project.
   - Pattern matching utilities
 
 ### Task 4: Implement Tool Call Logger
-- [ ] Create `src/adw/security/tool_logger.py` with:
+- [x] Create `src/adw/security/tool_logger.py` with:
   - `ToolLogger` class
   - `log_tool_call(entry: ToolCallLog) -> None`
   - Writes to `.adw/runs/<id>/tools.jsonl`
-- [ ] Integrate with run directory structure
+- [x] Integrate with run directory structure
 
 ### Task 5: Integrate with Claude Code Executor
 - [ ] Modify `src/adw/executors/claude_code.py` to:
@@ -311,6 +311,7 @@ claude-opus-4-5-20251101
 - Task 1: Created security models (BlockedPattern, SecurityConfig, ToolCallLog) with SecuritySeverity enum. Added SecurityConfig to ProjectConfig. All models exported from adw.models.
 - Task 2: Created SecurityError exception with pattern_matched, tool_name, and suggestion fields. Follows existing exception hierarchy patterns.
 - Task 3: Implemented SecurityInterceptor with default blocked patterns for shell commands and file access. Supports custom patterns from config and allow_dangerous mode.
+- Task 4: Implemented ToolLogger for JSONL logging of tool calls. Writes to run_dir/tools.jsonl with convenience methods and read_entries support.
 
 ### File List
 
@@ -319,11 +320,13 @@ claude-opus-4-5-20251101
 - src/adw/security/__init__.py
 - src/adw/security/interceptor.py
 - src/adw/security/patterns.py
+- src/adw/security/tool_logger.py
 - tests/unit/models/test_security.py
 - tests/unit/test_exceptions.py
 - tests/unit/security/__init__.py
 - tests/unit/security/test_interceptor.py
 - tests/unit/security/test_patterns.py
+- tests/unit/security/test_tool_logger.py
 
 **Modified Files:**
 - src/adw/models/__init__.py
