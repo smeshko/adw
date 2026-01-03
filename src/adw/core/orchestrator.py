@@ -406,6 +406,192 @@ class Orchestrator:
 
         return context
 
+    def resume(
+        self,
+        run_id: str,
+        *,
+        from_phase: str | None = None,
+    ) -> RunContext:
+        """Resume a failed or interrupted run.
+
+        Loads the existing run context and continues execution from the
+        specified phase (or the current_phase if not specified).
+
+        Args:
+            run_id: ID of the run to resume.
+            from_phase: Phase to resume from (optional override).
+
+        Returns:
+            Final RunContext after completion.
+
+        Raises:
+            ConfigError: If run cannot be resumed (completed or invalid phase).
+            StateError: If run state is corrupted.
+            ADWError: If phase execution fails.
+            RuntimeError: If PhaseRunner is not set.
+
+        Example:
+            >>> context = orchestrator.resume("01HQXK5P3Z...")
+            >>> context = orchestrator.resume("01HQXK5P3Z...", from_phase="build")
+        """
+        # Load existing context
+        context = self.context_manager.load(run_id)
+
+        # Validate run can be resumed
+        if context.status == "completed":
+            raise ConfigError(
+                code="RUN_COMPLETED",
+                message="Run already completed",
+                suggestion="Start a new run with 'adw run'",
+                recoverable=False,
+            )
+
+        # Determine resume phase
+        resume_phase = from_phase or context.current_phase
+        if resume_phase not in PHASE_SEQUENCE:
+            valid_phases = ", ".join(PHASE_SEQUENCE)
+            raise ConfigError(
+                code="INVALID_PHASE",
+                message=f"Unknown phase: {resume_phase}",
+                suggestion=f"Valid phases: {valid_phases}",
+                recoverable=False,
+            )
+
+        # Update status to running
+        context = context.model_copy(update={"status": "running"})
+        self.context_manager.save(context)
+
+        logger.info(
+            "Resuming run",
+            extra={
+                "run_id": run_id,
+                "from_phase": resume_phase,
+                "completed_phases": context.phase_history,
+            },
+        )
+
+        # Find the index of the resume phase
+        start_idx = PHASE_SEQUENCE.index(resume_phase)
+
+        # Load artifacts from completed phases for context
+        source_artifacts = self._load_artifacts_for_resume(context, resume_phase)
+
+        try:
+            with self.interruption_handler.protected_execution(context):
+                for phase in PHASE_SEQUENCE[start_idx:]:
+                    # Check for shutdown request between phases
+                    self.interruption_handler.set_context(context)
+                    self.interruption_handler.check_shutdown()
+
+                    # Use source artifacts only for the resume phase
+                    # (subsequent phases will use artifacts from current run)
+                    artifacts = source_artifacts if phase == resume_phase else None
+                    context = self._execute_phase_with_transitions(
+                        context, phase, artifacts_override=artifacts
+                    )
+
+                # All phases complete
+                context = context.model_copy(
+                    update={
+                        "status": "completed",
+                        "completed_at": datetime.now(UTC),
+                    }
+                )
+                self.context_manager.save(context)
+
+                # Show pipeline summary (Story 5.5)
+                if self.progress_display:
+                    total_tokens = sum(context.phase_tokens.values())
+                    duration_ms = 0
+                    if context.completed_at and context.started_at:
+                        duration_ms = int(
+                            (context.completed_at - context.started_at).total_seconds()
+                            * 1000
+                        )
+                    self.progress_display.show_pipeline_summary(
+                        completed_phases=context.phase_history,
+                        status="completed",
+                        total_duration_ms=duration_ms,
+                        total_tokens=total_tokens,
+                    )
+
+                logger.info("Resume completed", extra={"run_id": run_id})
+
+        except ShutdownRequested as e:
+            # Graceful shutdown - state already saved by handler
+            logger.info(
+                "Resume interrupted",
+                extra={"run_id": run_id, "phase": e.phase},
+            )
+            raise
+
+        except ADWError as e:
+            # Mark as failed and persist
+            context = context.model_copy(
+                update={
+                    "status": "failed",
+                    "completed_at": datetime.now(UTC),
+                }
+            )
+            self.context_manager.save(context)
+
+            # Show pipeline summary on failure (Story 5.5)
+            if self.progress_display:
+                total_tokens = sum(context.phase_tokens.values())
+                duration_ms = 0
+                if context.completed_at and context.started_at:
+                    duration_ms = int(
+                        (context.completed_at - context.started_at).total_seconds()
+                        * 1000
+                    )
+                self.progress_display.show_pipeline_summary(
+                    completed_phases=context.phase_history,
+                    status="failed",
+                    total_duration_ms=duration_ms,
+                    total_tokens=total_tokens,
+                )
+
+            logger.error(
+                "Resume failed",
+                extra={
+                    "run_id": run_id,
+                    "phase": getattr(e, "phase", None),
+                    "error_code": e.code,
+                },
+            )
+            raise
+
+        return context
+
+    def _load_artifacts_for_resume(
+        self,
+        context: RunContext,
+        resume_phase: str,
+    ) -> dict[str, dict[str, str]] | None:
+        """Load artifacts from completed phases for resume.
+
+        Loads artifacts from phases that have already completed in this run.
+        These artifacts are made available to the resumed phase for template
+        rendering.
+
+        Args:
+            context: Current run context with phase history.
+            resume_phase: Phase about to resume.
+
+        Returns:
+            Nested dict: {phase: {artifact_name: content}}, or None if no
+            artifacts needed.
+
+        Example:
+            >>> artifacts = orch._load_artifacts_for_resume(ctx, "build")
+            >>> plan_content = artifacts["plan"]["plan"]
+        """
+        if not context.phase_history:
+            return None
+
+        # Load artifacts from phases that completed before the resume phase
+        return self._load_artifacts_from_source(context.run_id, resume_phase)
+
     def _load_artifacts_from_source(
         self,
         source_run_id: str,
@@ -507,15 +693,16 @@ class Orchestrator:
         missing_phases = [p for p in required_phases if p not in artifacts]
 
         if missing_phases:
+            missing_str = ", ".join(missing_phases)
             raise ConfigError(
                 code="MISSING_ARTIFACTS",
                 message=(
-                    f"Phase '{phase}' requires artifacts from: {', '.join(missing_phases)}. "
+                    f"Phase '{phase}' requires artifacts from: {missing_str}. "
                     f"Source run '{source_run_id}' is missing these artifacts."
                 ),
                 suggestion=(
                     f"Ensure the source run completed the following phases: "
-                    f"{', '.join(missing_phases)}"
+                    f"{missing_str}"
                 ),
             )
 

@@ -52,11 +52,11 @@ So that I don't lose progress.
 - [x] Validate run directory structure exists
 
 ### Task 3: Implement Resume Logic in Orchestrator
-- [ ] Add `resume(run_id: str, from_phase: str | None)` method to Orchestrator
-- [ ] Load existing RunContext from context.json
-- [ ] Determine resume phase (failed phase or from_phase parameter)
-- [ ] Load artifacts from completed phases
-- [ ] Continue phase sequence from resume point
+- [x] Add `resume(run_id: str, from_phase: str | None)` method to Orchestrator
+- [x] Load existing RunContext from context.json
+- [x] Determine resume phase (failed phase or from_phase parameter)
+- [x] Load artifacts from completed phases
+- [x] Continue phase sequence from resume point
 
 ### Task 4: Validate Run State for Resume
 - [ ] Check run status (must be "failed", "interrupted", or "running")
@@ -598,8 +598,9 @@ Story 6.2 implements the resume command, enabling users to continue runs that fa
 
 - src/adw/cli/resume.py (NEW)
 - src/adw/cli/app.py (MODIFIED - added resume import and registration)
-- src/adw/core/run_lookup.py (NEW - stub for Task 2)
+- src/adw/core/run_lookup.py (NEW)
 - src/adw/core/__init__.py (MODIFIED - export RunLookup)
+- src/adw/core/orchestrator.py (MODIFIED - added resume() method)
 
 ---
 
