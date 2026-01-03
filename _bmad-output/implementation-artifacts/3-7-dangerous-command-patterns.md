@@ -34,7 +34,7 @@ So that common destructive operations are prevented out of the box.
 ## Tasks / Subtasks
 
 ### Task 1: Define Comprehensive Default Patterns
-- [ ] Create `src/adw/security/defaults.py` with:
+- [x] Create `src/adw/security/defaults.py` with:
   - `DEFAULT_SHELL_PATTERNS`: List of blocked shell command patterns
   - `DEFAULT_FILE_PATTERNS`: List of blocked file access patterns
   - `PATTERN_METADATA`: Dictionary mapping patterns to descriptions and alternatives
@@ -303,7 +303,19 @@ claude-opus-4-5-20251101
 
 ### Completion Notes List
 
+- Task 1: Created comprehensive defaults.py with DESTRUCTIVE_PATTERNS, PERMISSION_PATTERNS, GIT_DANGEROUS_PATTERNS, SECRET_ACCESS_PATTERNS, FILE_ACCESS_PATTERNS. Also created BlockedPattern model in models/security.py with category field. 20 tests written and passing.
+
 ### File List
+
+**New Files:**
+- src/adw/security/__init__.py
+- src/adw/security/defaults.py
+- src/adw/models/security.py
+- tests/unit/security/__init__.py
+- tests/unit/security/test_defaults.py
+
+**Modified Files:**
+- src/adw/models/__init__.py
 
 ## Dependencies
 
