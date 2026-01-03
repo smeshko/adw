@@ -99,7 +99,7 @@ development_status:
   5-1-implement-phase-sequence-and-transitions: done
   5-2-implement-phase-runner-for-single-phase-execution: done
   5-3-pass-artifacts-between-phases: done
-  5-4-execute-single-phase-in-isolation: in-progress
+  5-4-execute-single-phase-in-isolation: review
   5-5-display-phase-progress: done
   epic-5-retrospective: optional
 
@@ -109,12 +109,12 @@ development_status:
   #       CLI commands
   # ═══════════════════════════════════════════════════════════════════════════
   epic-6: in-progress
-  6-1-start-new-run-with-feature-description: ready-for-dev
+  6-1-start-new-run-with-feature-description: review
   6-2-resume-failed-or-interrupted-run: ready-for-dev
   6-3-check-run-status: ready-for-dev
   6-4-list-recent-runs: ready-for-dev
   6-5-abort-running-execution: ready-for-dev
-  6-6-initialize-new-project: ready-for-dev
+  6-6-initialize-new-project: in-progress
   epic-6-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

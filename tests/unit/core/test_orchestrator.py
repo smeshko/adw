@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from adw.core.constants import PHASE_SEQUENCE
-from adw.exceptions import HookError, LLMTimeoutError, PhaseError
+from adw.exceptions import ConfigError, HookError, LLMTimeoutError, PhaseError
 from adw.models import RunContext
 from adw.models.phase import PhaseResult, PhaseStatus
 
@@ -61,7 +61,12 @@ def mock_phase_runner() -> MagicMock:
     """Create a mock PhaseRunner."""
     runner = MagicMock()
 
-    def run_side_effect(phase: str, context: RunContext) -> PhaseResult:
+    def run_side_effect(
+        phase: str,
+        context: RunContext,
+        *,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
+    ) -> PhaseResult:
         return PhaseResult(
             phase=phase,
             status=PhaseStatus.COMPLETED,
@@ -641,7 +646,12 @@ class TestErrorHandling:
         """Test handling of error on middle phase (build)."""
         call_count = 0
 
-        def side_effect(phase: str, context: RunContext) -> PhaseResult:
+        def side_effect(
+            phase: str,
+            context: RunContext,
+            *,
+            artifacts_override: dict[str, dict[str, str]] | None = None,
+        ) -> PhaseResult:
             nonlocal call_count
             call_count += 1
             if phase == "build":
@@ -681,7 +691,12 @@ class TestRetryLogic:
         """Test that recoverable errors trigger retries."""
         call_count = 0
 
-        def side_effect(phase: str, context: RunContext) -> PhaseResult:
+        def side_effect(
+            phase: str,
+            context: RunContext,
+            *,
+            artifacts_override: dict[str, dict[str, str]] | None = None,
+        ) -> PhaseResult:
             nonlocal call_count
             call_count += 1
             if phase == "plan" and call_count < 3:
@@ -813,7 +828,12 @@ class TestRetryLogic:
         """Test successful completion after recoverable failures."""
         call_count = 0
 
-        def side_effect(phase: str, context: RunContext) -> PhaseResult:
+        def side_effect(
+            phase: str,
+            context: RunContext,
+            *,
+            artifacts_override: dict[str, dict[str, str]] | None = None,
+        ) -> PhaseResult:
             nonlocal call_count
             call_count += 1
             if phase == "plan" and call_count == 1:
@@ -894,7 +914,12 @@ class TestTransitionPerformance:
         # Create a slow phase runner
         slow_runner = MagicMock()
 
-        def slow_run(phase: str, context: RunContext) -> PhaseResult:
+        def slow_run(
+            phase: str,
+            context: RunContext,
+            *,
+            artifacts_override: dict[str, dict[str, str]] | None = None,
+        ) -> PhaseResult:
             time.sleep(1.1)  # Exceed 1 second threshold
             return PhaseResult(
                 phase=phase,
@@ -987,3 +1012,256 @@ class TestInterruptionHandling:
         first_save = mock_context_manager.save.call_args_list[0][0][0]
         assert first_save.status == "running"
         assert first_save.phase_history == []  # No phases completed yet
+
+
+class TestRunSinglePhase:
+    """Tests for run_single_phase() method."""
+
+    def test_run_single_phase_generates_new_run_id(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that run_single_phase generates a unique run ID."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run_single_phase("plan", "Test feature")
+
+        assert context.run_id is not None
+        assert len(context.run_id) == 26  # ULID length
+
+    def test_run_single_phase_creates_context_with_feature(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that run_single_phase creates context with feature description."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run_single_phase("plan", "Add login feature")
+
+        assert context.feature_description == "Add login feature"
+
+    def test_run_single_phase_executes_only_specified_phase(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that only the specified phase is executed."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        orchestrator.run_single_phase("plan", "Test feature")
+
+        # Should only execute "plan", not the full sequence
+        assert mock_phase_runner.run.call_count == 1
+        call_args = mock_phase_runner.run.call_args[0]
+        assert call_args[0] == "plan"
+
+    def test_run_single_phase_returns_completed_context(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Test that run_single_phase returns context with completed status."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        context = orchestrator.run_single_phase("plan", "Test feature")
+
+        assert context.status == "completed"
+        assert context.completed_at is not None
+
+    def test_run_single_phase_records_phase_in_history(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that executed phase is recorded in phase_history."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Mock artifacts for required phases
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Plan Content"
+
+        context = orchestrator.run_single_phase("build", "Test feature", "01HQSOURCE")
+
+        assert "build" in context.phase_history
+
+    def test_run_single_phase_persists_state(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_context_manager: MagicMock,
+    ) -> None:
+        """Test that state is persisted during single phase execution."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        orchestrator.run_single_phase("plan", "Test feature")
+
+        # Should save at least once (initial + after phase)
+        assert mock_context_manager.save.call_count >= 1
+
+    def test_run_single_phase_creates_run_directory(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_run_directory_manager: MagicMock,
+    ) -> None:
+        """Test that run directory is created for single phase."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        orchestrator.run_single_phase("plan", "Test feature")
+
+        mock_run_directory_manager.create.assert_called()
+
+    def test_run_single_phase_with_from_run_id(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that from_run_id is accepted for non-plan phases."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Mock artifacts for required phases
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Plan Content"
+
+        # Should not raise - from_run_id provided for build phase with artifacts
+        context = orchestrator.run_single_phase(
+            "build", "Test feature", from_run_id="01HQSOURCE123"
+        )
+
+        assert context.status == "completed"
+
+
+class TestLoadArtifactsFromSource:
+    """Tests for loading artifacts from source run in single-phase execution."""
+
+    def test_load_artifacts_from_source_run(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that artifacts are loaded from source run when from_run_id is set."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Set up artifact manager to return artifacts for source run
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Test Plan Content"
+
+        orchestrator.run_single_phase(
+            "build", "Test feature", from_run_id="01HQSOURCE123"
+        )
+
+        # Verify artifacts were loaded from source run
+        mock_artifact_manager.list_artifacts.assert_called()
+        # The call should include the source run ID
+        call_args = mock_artifact_manager.list_artifacts.call_args_list
+        assert any("01HQSOURCE123" in str(c) for c in call_args)
+
+    def test_source_run_artifacts_not_modified(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that source run artifacts are not modified."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Set up artifact manager
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Test Plan Content"
+
+        orchestrator.run_single_phase(
+            "build", "Test feature", from_run_id="01HQSOURCE123"
+        )
+
+        # Verify store was NOT called with source run ID
+        for call in mock_artifact_manager.store.call_args_list:
+            assert "01HQSOURCE123" not in str(call)
+
+    def test_artifacts_stored_in_new_run(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that new artifacts are stored in new run, not source run."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Set up mock to capture store calls
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Test Plan Content"
+
+        context = orchestrator.run_single_phase(
+            "build", "Test feature", from_run_id="01HQSOURCE123"
+        )
+
+        # New run ID should be different from source run
+        assert context.run_id != "01HQSOURCE123"
+
+
+class TestPhaseRequirementsValidation:
+    """Tests for validating phase requirements before execution."""
+
+    def test_build_phase_requires_plan_artifacts(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that build phase requires plan artifacts from source run."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Source run has no plan artifacts
+        mock_artifact_manager.list_artifacts.return_value = []
+
+        with pytest.raises(ConfigError) as exc_info:
+            orchestrator.run_single_phase(
+                "build", "Test feature", from_run_id="01HQSOURCE123"
+            )
+
+        assert "plan" in str(exc_info.value).lower()
+
+    def test_verify_phase_requires_build_artifacts(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that verify phase requires build artifacts."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Source run has plan but no build artifacts
+        def list_artifacts_side_effect(run_id: str, phase: str):
+            if phase == "plan":
+                return [{"name": "plan.md"}]
+            return []
+
+        mock_artifact_manager.list_artifacts.side_effect = list_artifacts_side_effect
+
+        with pytest.raises(ConfigError) as exc_info:
+            orchestrator.run_single_phase(
+                "verify", "Test feature", from_run_id="01HQSOURCE123"
+            )
+
+        assert "build" in str(exc_info.value).lower()
+
+    def test_plan_phase_does_not_require_artifacts(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that plan phase does not require previous artifacts."""
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # No artifacts in source run - should not matter for plan
+        mock_artifact_manager.list_artifacts.return_value = []
+
+        # Should succeed for plan phase (no validation needed)
+        context = orchestrator.run_single_phase("plan", "Test feature")
+
+        assert context.status == "completed"

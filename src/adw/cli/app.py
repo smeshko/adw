@@ -8,17 +8,11 @@ from rich.console import Console
 from rich.panel import Panel
 from ulid import ULID
 
-from adw.cli.progress import ProgressDisplay
+from adw.cli.bootstrap import create_orchestrator
 from adw.cli.run_display import RunDisplay
 from adw.commands.template import escape_feature_description
-from adw.config.loader import ConfigLoader
-from adw.core.artifact_manager import ArtifactManager
-from adw.core.context_manager import ContextManager
-from adw.core.interruption import ShutdownRequested
-from adw.core.orchestrator import Orchestrator
-from adw.core.run_directory import RunDirectoryManager
-from adw.core.snapshot_manager import SnapshotManager
-from adw.exceptions import ADWError
+from adw.core.constants import PHASE_SEQUENCE
+from adw.exceptions import ADWError, ConfigError
 
 console = Console()
 app = typer.Typer(
@@ -26,54 +20,6 @@ app = typer.Typer(
     help="Agentic Development Workflow SDK",
     add_completion=True,
 )
-
-
-def _create_orchestrator(
-    project_root: Path,
-    console: Console,
-    *,
-    verbose: bool = False,
-) -> Orchestrator:
-    """Create and configure an Orchestrator with all required managers.
-
-    This factory function wires together all the components needed
-    for pipeline execution:
-    - ContextManager for state persistence
-    - SnapshotManager for debugging snapshots
-    - ArtifactManager for phase artifact storage
-    - RunDirectoryManager for directory structure
-    - ProgressDisplay for user feedback
-
-    Args:
-        project_root: Root directory of the project.
-        console: Rich Console for output.
-        verbose: Enable verbose logging.
-
-    Returns:
-        Configured Orchestrator ready for execution.
-    """
-    runs_dir = project_root / ".adw" / "runs"
-
-    # Create managers
-    context_manager = ContextManager(runs_dir)
-    snapshot_manager = SnapshotManager(runs_dir)
-    artifact_manager = ArtifactManager(runs_dir)
-    run_directory_manager = RunDirectoryManager(runs_dir)
-
-    # Create progress display for user feedback
-    progress_display = ProgressDisplay(console)
-
-    # Create and configure orchestrator
-    orchestrator = Orchestrator(
-        runs_dir=runs_dir,
-        context_manager=context_manager,
-        snapshot_manager=snapshot_manager,
-        artifact_manager=artifact_manager,
-        run_directory_manager=run_directory_manager,
-        progress_display=progress_display,
-    )
-
-    return orchestrator
 
 
 @app.callback(invoke_without_command=True)
@@ -88,12 +34,45 @@ def main(
         raise typer.Exit()
 
 
+def _validate_phase(value: str | None) -> str | None:
+    """Validate that phase is one of PHASE_SEQUENCE.
+
+    Args:
+        value: Phase name to validate, or None.
+
+    Returns:
+        The validated phase name, or None if not provided.
+
+    Raises:
+        typer.BadParameter: If phase is not a valid phase name.
+    """
+    if value is None:
+        return None
+    if value not in PHASE_SEQUENCE:
+        valid_phases = ", ".join(PHASE_SEQUENCE)
+        raise typer.BadParameter(f"Invalid phase: {value}. Valid phases: {valid_phases}")
+    return value
+
+
 @app.command()
 def run(
-    feature_description: str = typer.Argument(
+    feature: str = typer.Argument(
         ...,
-        help="Description of the feature to implement",
+        help="Feature description to implement",
         metavar="FEATURE_DESCRIPTION",
+    ),
+    phase: str | None = typer.Option(
+        None,
+        "--phase",
+        "-p",
+        help=f"Execute single phase only ({', '.join(PHASE_SEQUENCE)})",
+        callback=_validate_phase,
+    ),
+    from_run: str | None = typer.Option(
+        None,
+        "--from-run",
+        "-f",
+        help="Load artifacts from this run ID (required for phases after plan)",
     ),
     verbose: bool = typer.Option(
         False,
@@ -107,30 +86,41 @@ def run(
         help="Show what would happen without executing",
     ),
 ) -> None:
-    """Start a new ADW run with the given feature description.
+    """Run the agentic development workflow.
 
-    Example:
+    Execute the full pipeline or a single phase.
+
+    Examples:
+        # Full pipeline
         adw run "Add user authentication"
+
+        # Single phase (plan doesn't need --from-run)
+        adw run --phase plan "Add login"
+
+        # Single phase with artifacts from previous run
+        adw run --phase build --from-run 01HQXK5P3Z7V "Add login"
+
+        # Dry run to see what would happen
+        adw run "Add login" --dry-run
     """
-    # Validate feature description is not empty
-    if not feature_description.strip():
+    # Validate feature description is not empty (Story 6.1)
+    if not feature.strip():
         console.print("[red]Error:[/] Feature description cannot be empty")
         raise typer.Exit(code=1)
 
-    # Escape special characters for template safety (Task 5)
-    # Used when feature is passed to templates/orchestrator; display uses original
-    safe_feature = escape_feature_description(feature_description)
-    _ = safe_feature  # Will be used when orchestrator.run() is fully wired
+    # Escape special characters for template safety (Story 6.1 Task 5)
+    safe_feature = escape_feature_description(feature)
+    _ = safe_feature  # Will be used when templates need the escaped version
 
-    # Generate run ID and timestamp
+    # Generate run ID and timestamp (Story 6.1)
     run_id = str(ULID())
     started_at = datetime.now(UTC)
 
-    # Show run header using RunDisplay (UX-12)
+    # Show run header using RunDisplay (UX-12, Story 6.1)
     run_display = RunDisplay(console)
     run_display.show_run_header(
         run_id=run_id,
-        feature=feature_description,
+        feature=feature,
         started_at=started_at,
     )
 
@@ -138,60 +128,42 @@ def run(
         console.print("[yellow]Dry run mode - no execution[/]")
         return
 
-    # Load project configuration
-    project_root = Path.cwd()
-    config_loader = ConfigLoader(project_root)
-
     try:
-        config = config_loader.load()
-        if verbose:
-            console.print(f"[dim]Loaded config: {config.name} ({config.language})[/]")
+        orchestrator = create_orchestrator(console)
+
+        if phase:
+            # Validate --from-run requirement for non-plan phases (Story 5.4)
+            if phase != "plan" and from_run is None:
+                console.print(
+                    f"[red]Error:[/] Phase '{phase}' requires artifacts from previous phases"
+                )
+                console.print(
+                    "[dim]Suggestion:[/] Use --from-run <run_id> to specify source run"
+                )
+                raise typer.Exit(1)
+
+            # Single phase execution (Story 5.4)
+            context = orchestrator.run_single_phase(phase, feature, from_run)
+            console.print(f"[green]✓[/] Single phase '{phase}' completed: {context.run_id}")
+        else:
+            # Full pipeline execution
+            context = orchestrator.run(feature)
+            console.print(f"[green]✓[/] Run completed: {context.run_id}")
+
+    except ConfigError as e:
+        console.print(f"[red]Error:[/] {e.message}")
+        if e.suggestion:
+            console.print(f"[dim]Suggestion:[/] {e.suggestion}")
+        raise typer.Exit(1)
     except ADWError as e:
+        console.print(f"[red]Error:[/] {e.message}")
+        if e.suggestion:
+            console.print(f"[dim]Suggestion:[/] {e.suggestion}")
+        raise typer.Exit(1)
+    except RuntimeError as e:
+        # PhaseRunner not set - infrastructure not ready
+        console.print(f"[red]Error:[/] {e}")
         console.print(
-            Panel(
-                f"[red]Error:[/] {e.message}\n\n"
-                f"[dim]Suggestion:[/] {e.suggestion}",
-                title=f"[red]{e.code}[/]",
-                border_style="red",
-            )
+            "[dim]Suggestion:[/] Ensure phase commands are configured in .adw/commands/"
         )
-        raise typer.Exit(code=1) from e
-
-    # Create and run orchestrator
-    try:
-        orchestrator = _create_orchestrator(
-            project_root,
-            console,
-            verbose=verbose,
-        )
-
-        # Note: PhaseRunner must be set before running
-        # For now, we inform the user that full execution requires PhaseRunner setup
-        # This will be completed when we have the actual LLM executor wired up
-        console.print(
-            "[yellow]Note:[/] Full pipeline execution requires LLM executor configuration."
-        )
-        console.print(
-            "[dim]Run ID:[/] {run_id} | "
-            "[dim]Config:[/] {config.name} | "
-            "[dim]Language:[/] {config.language}".format(
-                run_id=run_id,
-                config=config,
-            )
-        )
-
-    except ShutdownRequested as e:
-        console.print(f"\n[yellow]Run interrupted at phase: {e.phase}[/]")
-        console.print("[dim]State saved. Use 'adw resume' to continue.[/]")
-        raise typer.Exit(code=130) from e  # 130 = 128 + SIGINT
-
-    except ADWError as e:
-        console.print(
-            Panel(
-                f"[red]Error:[/] {e.message}\n\n"
-                f"[dim]Suggestion:[/] {e.suggestion}",
-                title=f"[red]{e.code}[/]",
-                border_style="red",
-            )
-        )
-        raise typer.Exit(code=1) from e
+        raise typer.Exit(1)

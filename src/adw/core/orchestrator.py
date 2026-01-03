@@ -23,7 +23,7 @@ from adw.core.context_manager import ContextManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
-from adw.exceptions import ADWError
+from adw.exceptions import ADWError, ConfigError
 from adw.models import RunContext
 from adw.models.phase import PhaseResult
 
@@ -39,12 +39,20 @@ class PhaseRunnerProtocol(Protocol):
     the run() method, without requiring a specific PhaseRunner class.
     """
 
-    def run(self, phase: str, context: RunContext) -> PhaseResult:
+    def run(
+        self,
+        phase: str,
+        context: RunContext,
+        *,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
+    ) -> PhaseResult:
         """Execute a single phase.
 
         Args:
             phase: Phase name to execute.
             context: Current run context.
+            artifacts_override: Pre-loaded artifacts to use instead of loading
+                from the current run.
 
         Returns:
             PhaseResult from the execution.
@@ -118,7 +126,6 @@ class Orchestrator:
         self.runs_dir = runs_dir
         self.context_manager = context_manager
         self.snapshot_manager = snapshot_manager
-        # TODO(Story 5.3): ArtifactManager used for artifact passing
         self.artifact_manager = artifact_manager
         self.run_directory_manager = run_directory_manager
         self.interruption_handler = interruption_handler or InterruptionHandler(
@@ -293,10 +300,240 @@ class Orchestrator:
 
         return context
 
+    def run_single_phase(
+        self,
+        phase: str,
+        feature_description: str,
+        from_run_id: str | None = None,
+    ) -> RunContext:
+        """Execute a single phase in isolation.
+
+        Creates a new run ID for this execution and executes only the specified
+        phase. For phases after "plan", artifacts from a source run may be needed.
+
+        Args:
+            phase: Phase to execute (must be in PHASE_SEQUENCE).
+            feature_description: Description of the feature to implement.
+            from_run_id: Source run ID for loading artifacts (optional for plan).
+
+        Returns:
+            RunContext for this single-phase execution.
+
+        Raises:
+            ADWError: If phase execution fails.
+            RuntimeError: If PhaseRunner is not set.
+
+        Example:
+            >>> context = orchestrator.run_single_phase("plan", "Add login")
+            >>> context = orchestrator.run_single_phase(
+            ...     "build", "Add login", from_run_id="01HQTEST123"
+            ... )
+        """
+        # Generate new run ID for this single-phase execution
+        run_id = str(ULID())
+
+        # Create initial context
+        context = RunContext(
+            run_id=run_id,
+            feature_description=feature_description,
+            current_phase=phase,
+            started_at=datetime.now(UTC),
+            status="running",
+        )
+
+        # Create run directory structure
+        self.run_directory_manager.create(context)
+
+        # Persist initial state
+        self.context_manager.save(context)
+
+        logger.info(
+            "Starting single-phase run",
+            extra={
+                "run_id": run_id,
+                "phase": phase,
+                "from_run": from_run_id,
+            },
+        )
+
+        # Load artifacts from source run if specified
+        source_artifacts: dict[str, dict[str, str]] | None = None
+        if from_run_id:
+            source_artifacts = self._load_artifacts_from_source(from_run_id, phase)
+
+            # Validate required artifacts exist
+            self._validate_required_artifacts(phase, source_artifacts, from_run_id)
+
+        try:
+            # Execute only the specified phase with source artifacts
+            context = self._execute_phase_with_transitions(
+                context, phase, artifacts_override=source_artifacts
+            )
+
+            # Mark as completed
+            context = context.model_copy(
+                update={
+                    "status": "completed",
+                    "completed_at": datetime.now(UTC),
+                }
+            )
+            self.context_manager.save(context)
+
+            logger.info(
+                "Single-phase run completed",
+                extra={"run_id": run_id, "phase": phase},
+            )
+
+        except ADWError as e:
+            # Mark as failed
+            context = context.model_copy(
+                update={
+                    "status": "failed",
+                    "completed_at": datetime.now(UTC),
+                }
+            )
+            self.context_manager.save(context)
+
+            logger.error(
+                "Single-phase run failed",
+                extra={
+                    "run_id": run_id,
+                    "phase": phase,
+                    "error_code": e.code,
+                },
+            )
+            raise
+
+        return context
+
+    def _load_artifacts_from_source(
+        self,
+        source_run_id: str,
+        target_phase: str,
+    ) -> dict[str, dict[str, str]]:
+        """Load artifacts from a source run for single-phase execution.
+
+        Loads all artifacts from phases that would have executed before the
+        target phase. These artifacts are used for template rendering in
+        single-phase execution mode.
+
+        Args:
+            source_run_id: Run ID to load artifacts from.
+            target_phase: Phase about to execute (artifacts from earlier phases).
+
+        Returns:
+            Nested dict: {phase: {artifact_name: content}}
+
+        Example:
+            >>> artifacts = orch._load_artifacts_from_source("01HQ...", "build")
+            >>> plan_content = artifacts["plan"]["plan"]
+        """
+        artifacts_map: dict[str, dict[str, str]] = {}
+
+        # Only load artifacts from phases before target
+        try:
+            target_idx = PHASE_SEQUENCE.index(target_phase)
+        except ValueError:
+            logger.warning(
+                "Unknown phase for artifact loading",
+                extra={"phase": target_phase, "source_run": source_run_id},
+            )
+            return artifacts_map
+
+        previous_phases = PHASE_SEQUENCE[:target_idx]
+
+        for phase in previous_phases:
+            # List artifacts for this phase from source run
+            phase_artifacts = self.artifact_manager.list_artifacts(source_run_id, phase)
+
+            if phase_artifacts:
+                phase_map: dict[str, str] = {}
+                for artifact_info in phase_artifacts:
+                    artifact_name = artifact_info.get("name", "")
+                    if artifact_name:
+                        # Strip extension for template access
+                        name_without_ext = artifact_name.rsplit(".", 1)[0]
+                        content = self.artifact_manager.get(
+                            source_run_id, phase, artifact_name
+                        )
+                        if content:
+                            phase_map[name_without_ext] = content
+
+                if phase_map:
+                    artifacts_map[phase] = phase_map
+
+        logger.info(
+            "Loaded artifacts from source run",
+            extra={
+                "source_run": source_run_id,
+                "target_phase": target_phase,
+                "phases_loaded": list(artifacts_map.keys()),
+            },
+        )
+
+        return artifacts_map
+
+    def _validate_required_artifacts(
+        self,
+        phase: str,
+        artifacts: dict[str, dict[str, str]],
+        source_run_id: str,
+    ) -> None:
+        """Validate that required artifacts exist for the phase.
+
+        Each phase after "plan" requires artifacts from all previous phases.
+        Raises ConfigError if any required artifacts are missing.
+
+        Args:
+            phase: Phase about to execute.
+            artifacts: Loaded artifacts from source run.
+            source_run_id: Source run ID (for error messages).
+
+        Raises:
+            ConfigError: If required artifacts are missing.
+        """
+        # Determine required phases (all phases before target)
+        try:
+            target_idx = PHASE_SEQUENCE.index(phase)
+        except ValueError:
+            return  # Unknown phase - skip validation
+
+        required_phases = PHASE_SEQUENCE[:target_idx]
+
+        if not required_phases:
+            return  # plan phase has no requirements
+
+        # Check each required phase has artifacts
+        missing_phases = [p for p in required_phases if p not in artifacts]
+
+        if missing_phases:
+            raise ConfigError(
+                code="MISSING_ARTIFACTS",
+                message=(
+                    f"Phase '{phase}' requires artifacts from: {', '.join(missing_phases)}. "
+                    f"Source run '{source_run_id}' is missing these artifacts."
+                ),
+                suggestion=(
+                    f"Ensure the source run completed the following phases: "
+                    f"{', '.join(missing_phases)}"
+                ),
+            )
+
+        logger.debug(
+            "Validated required artifacts",
+            extra={
+                "phase": phase,
+                "required_phases": required_phases,
+                "found_phases": list(artifacts.keys()),
+            },
+        )
+
     def _execute_phase_with_transitions(
         self,
         context: RunContext,
         phase: str,
+        *,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
     ) -> RunContext:
         """Execute a single phase with proper transitions.
 
@@ -314,6 +551,8 @@ class Orchestrator:
         Args:
             context: Current run context.
             phase: Phase to execute.
+            artifacts_override: Pre-loaded artifacts to use instead of loading
+                from the current run. Used for single-phase execution.
 
         Returns:
             Updated context after phase completion.
@@ -342,7 +581,9 @@ class Orchestrator:
 
         try:
             # Execute phase with retry for recoverable errors
-            result = self._execute_phase_with_retry(context, phase)
+            result = self._execute_phase_with_retry(
+                context, phase, artifacts_override=artifacts_override
+            )
 
             # Post-phase snapshot
             self.snapshot_manager.create_post_phase_snapshot(context, phase, result)
@@ -384,6 +625,8 @@ class Orchestrator:
         self,
         context: RunContext,
         phase: str,
+        *,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
     ) -> PhaseResult:
         """Execute a phase with retry logic for recoverable errors.
 
@@ -392,6 +635,8 @@ class Orchestrator:
         Args:
             context: Current run context.
             phase: Phase to execute.
+            artifacts_override: Pre-loaded artifacts to use instead of loading
+                from the current run. Used for single-phase execution.
 
         Returns:
             PhaseResult from successful execution.
@@ -408,8 +653,9 @@ class Orchestrator:
         for attempt in range(self.max_retries):
             try:
                 # Delegate to PhaseRunner (Story 5.2)
-                # Using getattr to call run method since we don't have the type yet
-                return self._phase_runner.run(phase, context)
+                return self._phase_runner.run(
+                    phase, context, artifacts_override=artifacts_override
+                )
 
             except ADWError as e:
                 # Note: Only ADWError subclasses are retried. Other exceptions

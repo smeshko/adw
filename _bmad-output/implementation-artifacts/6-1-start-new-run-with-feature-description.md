@@ -1,6 +1,6 @@
 # Story 6.1: Start New Run with Feature Description
 
-Status: ready-for-dev
+Status: dev-complete
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -39,73 +39,74 @@ So that I can begin AI-assisted development.
 ## Tasks / Subtasks
 
 ### Task 1: Implement CLI Run Command
-- [ ] Modify `src/adw/cli/app.py` to accept feature description argument
-- [ ] Add `FEATURE_DESCRIPTION` positional argument to `run` command
-- [ ] Add `--verbose/-v` flag for debug output
-- [ ] Add `--dry-run` flag to show what would happen without executing
-- [ ] Validate feature description is not empty
+- [x] Modify `src/adw/cli/app.py` to accept feature description argument
+- [x] Add `FEATURE_DESCRIPTION` positional argument to `run` command
+- [x] Add `--verbose/-v` flag for debug output
+- [x] Add `--dry-run` flag to show what would happen without executing
+- [x] Validate feature description is not empty
 
 ### Task 2: Create Run Header Display
-- [ ] Create `src/adw/cli/run_display.py` with `RunDisplay` class
-- [ ] Implement `show_run_header()` method using Rich Panel
-- [ ] Display: run_id, feature description (truncated), started timestamp
-- [ ] Use UX-12 specification for header format
-- [ ] Integrate with ProgressDisplay from Story 5.5
+- [x] Create `src/adw/cli/run_display.py` with `RunDisplay` class
+- [x] Implement `show_run_header()` method using Rich Panel
+- [x] Display: run_id, feature description (truncated), started timestamp
+- [x] Use UX-12 specification for header format
+- [x] Integrate with ProgressDisplay from Story 5.5
 
 ### Task 3: Load and Validate Project Configuration
-- [ ] Create `src/adw/config/loader.py` with `ConfigLoader` class
-- [ ] Implement three-tier config resolution (project → user → defaults)
-- [ ] Check for `.adw/project.yaml` in current directory
-- [ ] If missing, use defaults from package bundled config
-- [ ] Validate config against Pydantic schema
-- [ ] Handle invalid config gracefully with `ConfigError`
+- [x] Create `src/adw/config/loader.py` with `ConfigLoader` class
+- [x] Implement three-tier config resolution (project → user → defaults)
+- [x] Check for `.adw/project.yaml` in current directory
+- [x] If missing, use defaults from package bundled config
+- [x] Validate config against Pydantic schema
+- [x] Handle invalid config gracefully with `ConfigError`
 
 ### Task 4: Detect Project Type for Defaults
-- [ ] Create `src/adw/config/detector.py` with `ProjectTypeDetector` class
-- [ ] Detect Python projects via `pyproject.toml`
-- [ ] Detect Node.js projects via `package.json`
-- [ ] Detect Go projects via `go.mod`
-- [ ] Set appropriate defaults (language, test_command) based on detection
-- [ ] Return "generic" if no known project type detected
+- [x] Create `src/adw/config/detector.py` with `ProjectTypeDetector` class
+- [x] Detect Python projects via `pyproject.toml`
+- [x] Detect Node.js projects via `package.json`
+- [x] Detect Go projects via `go.mod`
+- [x] Set appropriate defaults (language, test_command) based on detection
+- [x] Return "generic" if no known project type detected
 
 ### Task 5: Escape Special Characters in Feature Description
-- [ ] Update template engine in `src/adw/commands/template.py`
-- [ ] Escape quotes, backslashes, and shell metacharacters
-- [ ] Ensure feature description is safe for template substitution
-- [ ] Add tests for various special character scenarios
+- [x] Update template engine in `src/adw/commands/template.py`
+- [x] Escape quotes, backslashes, and shell metacharacters
+- [x] Ensure feature description is safe for template substitution
+- [x] Add tests for various special character scenarios
 
 ### Task 6: Integrate Run Command with Orchestrator
-- [ ] Wire CLI `run` command to `Orchestrator.run()`
-- [ ] Create all required managers (ContextManager, SnapshotManager, etc.)
-- [ ] Initialize ProgressDisplay and pass to Orchestrator
-- [ ] Handle and display errors using Rich formatting
-- [ ] Ensure startup time is under 2 seconds (NFR1)
+- [x] Wire CLI `run` command to `Orchestrator.run()`
+- [x] Create all required managers (ContextManager, SnapshotManager, etc.)
+- [x] Initialize ProgressDisplay and pass to Orchestrator
+- [x] Handle and display errors using Rich formatting
+- [x] Ensure startup time is under 2 seconds (NFR1)
 
 ### Task 7: Create ProjectConfig Model
-- [ ] Create `src/adw/models/project_config.py` with `ProjectConfig` class
-- [ ] Define fields: language, test_command, build_command, phases, llm, hooks
-- [ ] Add validation rules using Pydantic v2 validators
-- [ ] Add `from_yaml()` class method for loading from file
-- [ ] Add sensible defaults for all optional fields
+- [x] Create `src/adw/models/project_config.py` with `ProjectConfig` class
+  - Note: Already exists in `src/adw/models/config.py` from previous story
+- [x] Define fields: language, test_command, build_command, phases, llm, hooks
+- [x] Add validation rules using Pydantic v2 validators
+- [x] Add `from_yaml()` class method for loading from file
+- [x] Add sensible defaults for all optional fields
 
 ### Task 8: Write Unit Tests
-- [ ] Create `tests/unit/cli/test_run.py`
-- [ ] Test feature description argument parsing
-- [ ] Test verbose and dry-run flags
-- [ ] Test empty feature description validation
-- [ ] Create `tests/unit/config/test_loader.py`
-- [ ] Test config loading from project path
-- [ ] Test fallback to defaults when no config
-- [ ] Test config validation errors
-- [ ] Target: >80% coverage
+- [x] Create `tests/unit/cli/test_run.py`
+- [x] Test feature description argument parsing
+- [x] Test verbose and dry-run flags
+- [x] Test empty feature description validation
+- [x] Create `tests/unit/config/test_loader.py`
+- [x] Test config loading from project path
+- [x] Test fallback to defaults when no config
+- [x] Test config validation errors
+- [x] Target: >80% coverage
 
 ### Task 9: Write Integration Tests
-- [ ] Create `tests/integration/cli/test_run_integration.py`
-- [ ] Test full run command execution with MockExecutor
-- [ ] Test with project config present
-- [ ] Test without project config (using defaults)
-- [ ] Test special character handling in feature description
-- [ ] Measure startup time to verify NFR1
+- [x] Create `tests/integration/cli/test_run_integration.py`
+- [x] Test full run command execution with MockExecutor
+- [x] Test with project config present
+- [x] Test without project config (using defaults)
+- [x] Test special character handling in feature description
+- [x] Measure startup time to verify NFR1
 
 ---
 
