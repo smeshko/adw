@@ -67,7 +67,7 @@ So that common destructive operations are prevented out of the box.
   - `severity`: "critical", "warning", "info"
 
 ### Task 6: Implement Override Logging
-- [ ] When `--allow-dangerous` is active:
+- [x] When `--allow-dangerous` is active:
   - Log blocked patterns as warnings (not errors)
   - Continue execution instead of blocking
   - Track all overridden blocks in run log
@@ -308,6 +308,7 @@ claude-opus-4-5-20251101
 - Task 3: Implemented PatternMatcher class with match_command() and match_file_access() methods. Supports custom patterns, allow_dangerous mode, and ALLOWED_ENV_PATTERNS for exceptions (.env.example, .env.sample). 25 tests added.
 - Task 4: Created SuggestionFormatter class with format_single() and format_multiple() methods. Added CATEGORY_EXAMPLES and get_override_instruction(). 11 tests added.
 - Task 5: Added SecurityError exception with pattern_matched, tool_name, alternatives, override_instruction, and severity fields. Custom __str__() and to_dict() methods. 9 tests added.
+- Task 6: Created OverrideLogger class for tracking --allow-dangerous overrides. Logs warnings, tracks by category/severity, provides get_summary(). 8 tests added.
 
 ### File List
 
@@ -316,11 +317,13 @@ claude-opus-4-5-20251101
 - src/adw/security/defaults.py
 - src/adw/security/patterns.py
 - src/adw/security/suggestions.py
+- src/adw/security/override.py
 - src/adw/models/security.py
 - tests/unit/security/__init__.py
 - tests/unit/security/test_defaults.py
 - tests/unit/security/test_patterns.py
 - tests/unit/security/test_suggestions.py
+- tests/unit/security/test_override_logging.py
 - tests/unit/models/test_security.py
 - tests/unit/test_security_error.py
 

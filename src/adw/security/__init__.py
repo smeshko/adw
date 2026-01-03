@@ -24,6 +24,11 @@ from adw.security.suggestions import (
     get_category_examples,
     get_override_instruction,
 )
+from adw.security.override import (
+    OverrideLogger,
+    get_override_logger,
+    reset_override_logger,
+)
 
 __all__: list[str] = [
     "ALLOWED_ENV_PATTERNS",
@@ -35,4 +40,7 @@ __all__: list[str] = [
     "SuggestionFormatter",
     "get_category_examples",
     "get_override_instruction",
+    "OverrideLogger",
+    "get_override_logger",
+    "reset_override_logger",
 ]
