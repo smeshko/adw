@@ -15,8 +15,9 @@ import json
 import logging
 import shutil
 import time
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 
@@ -25,6 +26,10 @@ from adw.logging.stream import StreamLogger
 from adw.models.config import LLMConfig
 from adw.models.llm import LLMResult, ToolCall
 from adw.models.logging import LLMStats
+from adw.models.security import ToolCallLog
+
+if TYPE_CHECKING:
+    from adw.security.tool_logger import ToolLogger
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +58,7 @@ class ClaudeCodeExecutor:
         config: LLMConfig,
         *,
         console: Console | None = None,
+        tool_logger: "ToolLogger | None" = None,
     ) -> None:
         """Initialize the ClaudeCodeExecutor.
 
@@ -60,9 +66,12 @@ class ClaudeCodeExecutor:
             config: LLM configuration containing path, timeout, and other settings.
             console: Optional Rich console for streaming output. If not provided,
                      a new Console instance is created.
+            tool_logger: Optional ToolLogger for persisting tool call logs.
+                        Used for security auditing (Story 3.8).
         """
         self.config = config
         self.console = console or Console()
+        self.tool_logger = tool_logger
 
     def _resolve_timeout(self, timeout: int | None) -> int:
         """Resolve timeout using 3-tier hierarchy.
@@ -365,6 +374,10 @@ class ClaudeCodeExecutor:
             },
         )
 
+        # Log tool calls for security auditing (Story 3.8)
+        if self.tool_logger and parsed["tool_calls"]:
+            self._log_tool_calls(parsed["tool_calls"], duration_ms)
+
         # Build result
         if returncode == 0:
             # Log completion event if stream_logger provided
@@ -486,6 +499,48 @@ class ClaudeCodeExecutor:
             "tool_calls": tool_calls,
             "tokens_used": tokens_used,
         }
+
+    def _log_tool_calls(
+        self,
+        tool_calls: list[ToolCall],
+        total_duration_ms: int,
+    ) -> None:
+        """Log tool calls to the configured tool logger.
+
+        Creates ToolCallLog entries for each tool call and persists them
+        to the JSONL log file. Since individual tool timing is not available
+        from the Claude Code output, duration is distributed evenly across
+        tools as an approximation.
+
+        Args:
+            tool_calls: List of tool calls to log.
+            total_duration_ms: Total execution time for all tools.
+        """
+        if not self.tool_logger:
+            return
+
+        # Distribute duration evenly across tools (approximation)
+        per_tool_duration = total_duration_ms // len(tool_calls) if tool_calls else 0
+
+        timestamp = datetime.now(UTC).isoformat()
+
+        for tool_call in tool_calls:
+            # Truncate result summary if present
+            result_summary = tool_call.result_summary
+            if result_summary and len(result_summary) > 200:
+                result_summary = result_summary[:197] + "..."
+
+            log_entry = ToolCallLog(
+                timestamp=timestamp,
+                tool_name=tool_call.tool_name,
+                arguments=tool_call.arguments,
+                result_summary=result_summary,
+                duration_ms=per_tool_duration,
+                blocked=False,
+                block_reason=None,
+                phase=None,  # Phase context not available at executor level
+            )
+            self.tool_logger.log_tool_call(log_entry)
 
     def _verify_claude_path(self) -> Path:
         """Verify Claude Code executable exists.

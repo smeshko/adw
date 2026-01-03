@@ -1530,3 +1530,223 @@ class TestStreamLoggerIntegration:
             error_events = [e for e in events if e.type == StreamEventType.ERROR]
             assert len(error_events) == 1
             assert "Something went wrong" in (error_events[0].error or "")
+
+
+class TestToolLogging:
+    """Tests for tool call logging integration (Story 3.8)."""
+
+    @pytest.fixture
+    def executor(self) -> ClaudeCodeExecutor:
+        """Create executor with default config."""
+        config = LLMConfig(path="claude")
+        return ClaudeCodeExecutor(config)
+
+    def test_accepts_optional_tool_logger(self, tmp_path) -> None:
+        """Executor should accept optional tool_logger parameter."""
+        from adw.security.tool_logger import ToolLogger
+
+        run_dir = tmp_path / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        tool_logger = ToolLogger(run_dir)
+
+        config = LLMConfig(path="claude")
+        executor = ClaudeCodeExecutor(config, tool_logger=tool_logger)
+
+        assert executor.tool_logger is tool_logger
+
+    def test_tool_logger_defaults_to_none(self, executor: ClaudeCodeExecutor) -> None:
+        """Tool logger should default to None."""
+        assert executor.tool_logger is None
+
+    def test_logs_tool_calls_when_logger_provided(self, tmp_path) -> None:
+        """Should log tool calls when tool_logger is configured."""
+        import json
+
+        from adw.security.tool_logger import ToolLogger
+
+        run_dir = tmp_path / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        tool_logger = ToolLogger(run_dir)
+
+        config = LLMConfig(path="claude")
+        executor = ClaudeCodeExecutor(config, tool_logger=tool_logger)
+
+        # Mock subprocess with tool use output
+        tool_use_output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "Let me read that file."},
+                        {
+                            "type": "tool_use",
+                            "name": "Read",
+                            "input": {"file_path": "/src/main.py"},
+                        },
+                    ]
+                },
+            }
+        )
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(
+                side_effect=[tool_use_output.encode() + b"\n", b""]
+            )
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                result = executor.execute("Test prompt")
+
+        # Verify tool call was captured in result
+        assert len(result.tool_calls) == 1
+        assert result.tool_calls[0].tool_name == "Read"
+
+        # Verify tool call was logged
+        history = tool_logger.get_tool_history()
+        assert len(history) == 1
+        assert history[0].tool_name == "Read"
+        assert history[0].arguments == {"file_path": "/src/main.py"}
+
+    def test_logs_multiple_tool_calls(self, tmp_path) -> None:
+        """Should log all tool calls from execution."""
+        import json
+
+        from adw.security.tool_logger import ToolLogger
+
+        run_dir = tmp_path / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        tool_logger = ToolLogger(run_dir)
+
+        config = LLMConfig(path="claude")
+        executor = ClaudeCodeExecutor(config, tool_logger=tool_logger)
+
+        # Mock subprocess with multiple tool uses
+        output_lines = [
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "tool_use",
+                                "name": "Read",
+                                "input": {"file_path": "/file1.py"},
+                            },
+                        ]
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "tool_use",
+                                "name": "Write",
+                                "input": {"file_path": "/file2.py", "content": "test"},
+                            },
+                        ]
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "tool_use",
+                                "name": "Bash",
+                                "input": {"command": "npm test"},
+                            },
+                        ]
+                    },
+                }
+            ),
+        ]
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(
+                side_effect=[line.encode() + b"\n" for line in output_lines] + [b""]
+            )
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt")
+
+        # Verify all tool calls were logged
+        history = tool_logger.get_tool_history()
+        assert len(history) == 3
+        assert history[0].tool_name == "Read"
+        assert history[1].tool_name == "Write"
+        assert history[2].tool_name == "Bash"
+
+    def test_no_logging_when_logger_not_provided(self, executor: ClaudeCodeExecutor) -> None:
+        """Should not fail when no tool_logger is configured."""
+        import json
+
+        # Mock subprocess with tool use output
+        tool_use_output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "name": "Read",
+                            "input": {"file_path": "/src/main.py"},
+                        },
+                    ]
+                },
+            }
+        )
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(
+                side_effect=[tool_use_output.encode() + b"\n", b""]
+            )
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                result = executor.execute("Test prompt")
+
+        # Should still capture tool calls in result
+        assert len(result.tool_calls) == 1
+        assert executor.tool_logger is None
