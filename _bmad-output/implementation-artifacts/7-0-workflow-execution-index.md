@@ -45,12 +45,12 @@ so that I can quickly find and reference past executions across all projects.
 - [x] Export from `src/adw/models/__init__.py`
 
 ### Task 2: Implement IndexManager
-- [ ] Create `src/adw/core/index_manager.py`
-- [ ] Implement `register_run()` - append new entry on run start
-- [ ] Implement `update_run()` - update existing entry on status change
-- [ ] Implement `get_recent_runs()` - query with filters
-- [ ] Implement `_archive_old_entries()` - archive when >10,000 entries
-- [ ] Handle concurrent access safely (JSONL is append-only)
+- [x] Create `src/adw/core/index_manager.py`
+- [x] Implement `register_run()` - append new entry on run start
+- [x] Implement `update_run()` - update existing entry on status change
+- [x] Implement `get_recent_runs()` - query with filters
+- [x] Implement `_archive_old_entries()` - archive when >10,000 entries
+- [x] Handle concurrent access safely (JSONL is append-only)
 
 ### Task 3: Integrate with Orchestrator
 - [ ] Modify `src/adw/core/orchestrator.py`
