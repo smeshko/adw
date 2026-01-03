@@ -111,6 +111,30 @@ class SnapshotManager:
             timing="post",
         )
 
+    def create_abort_snapshot(
+        self,
+        context: "RunContext",
+        reason: str = "user_abort",
+    ) -> Path:
+        """Create snapshot when run is aborted.
+
+        Args:
+            context: Current run context (should have status="aborted").
+            reason: Reason for abort (e.g., "user_abort", "cli_abort").
+
+        Returns:
+            Path to created snapshot file.
+
+        Raises:
+            StateError: If snapshot creation fails.
+        """
+        return self._create_snapshot(
+            context=context,
+            phase_result=None,
+            phase=f"abort_{reason}",
+            timing="post",
+        )
+
     def _create_snapshot(
         self,
         context: "RunContext",
