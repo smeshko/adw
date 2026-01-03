@@ -78,14 +78,14 @@ So that I know its current state and outcome.
 - [x] Handle very long feature descriptions → truncate
 
 ### Task 7: Write Unit Tests
-- [ ] Create `tests/unit/cli/test_status.py`
-- [ ] Test status with valid run_id
-- [ ] Test status without run_id (most recent)
-- [ ] Test status non-existent run → error
-- [ ] Test JSON output format
-- [ ] Test completed run shows duration/artifacts
-- [ ] Test failed run shows error/suggestion
-- [ ] Target: >80% coverage
+- [x] Create `tests/unit/cli/test_status.py`
+- [x] Test status with valid run_id
+- [x] Test status without run_id (most recent)
+- [x] Test status non-existent run → error
+- [x] Test JSON output format
+- [x] Test completed run shows duration/artifacts
+- [x] Test failed run shows error/suggestion
+- [x] Target: >80% coverage
 
 ### Task 8: Write Integration Tests
 - [ ] Create `tests/integration/cli/test_status_integration.py`
