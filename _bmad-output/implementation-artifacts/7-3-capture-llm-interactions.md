@@ -1,6 +1,6 @@
 # Story 7.3: Capture LLM Interactions
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-03
@@ -70,11 +70,11 @@ so that I can debug and reproduce issues.
 - [x] Document integration point for Story 7.6
 
 ### Task 6: Write Unit Tests
-- [ ] Test LLM model serialization
-- [ ] Test StreamLogger event capture
-- [ ] Test LLMCaptureManager file creation
-- [ ] Test sequence numbering
-- [ ] Test integration with mock executor
+- [x] Test LLM model serialization
+- [x] Test StreamLogger event capture
+- [x] Test LLMCaptureManager file creation
+- [x] Test sequence numbering
+- [x] Test integration with mock executor
 
 ---
 
@@ -304,6 +304,7 @@ claude-opus-4-5-20250514
 - Task 3: Implemented LLMCaptureManager in logging/llm_capture.py - Writes request/response JSON and stream JSONL files to llm/ directory. 3-digit zero-padded sequence numbers (001, 002, etc.).
 - Task 4: Integrated StreamLogger with ClaudeCodeExecutor - Added optional stream_logger parameter to execute(). Tokens captured during streaming, completion/error events captured in _build_result().
 - Task 5: Added redaction placeholder in logging/redaction.py - Created redact_secrets() function and RedactionFilter class as placeholders for Story 7.6. Documented integration points in docstrings.
+- Task 6: All unit tests written via TDD during Tasks 1-5. Total: 66 new tests covering LLM model serialization, StreamLogger event capture, LLMCaptureManager file creation, sequence numbering, and executor integration.
 
 ### File List
 - src/adw/models/logging.py (modified) - Added 7 new models for LLM capture
