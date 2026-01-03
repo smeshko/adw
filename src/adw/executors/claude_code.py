@@ -8,6 +8,12 @@ Timeout Hierarchy:
     1. timeout parameter passed to execute() - highest priority
     2. config.timeout_seconds from LLMConfig
     3. DEFAULT_LLM_TIMEOUT constant - fallback default
+
+Security Integration:
+    When a SecurityInterceptor is provided, tool calls parsed from Claude Code
+    output are checked against security patterns. Blocked tool calls are logged
+    with a warning. When a ToolLogger is provided, all tool calls are recorded
+    for audit purposes.
 """
 
 import asyncio
@@ -16,15 +22,18 @@ import logging
 import shutil
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 
-from adw.exceptions import LLMError, LLMTimeoutError
+from adw.exceptions import LLMError, LLMTimeoutError, SecurityError
 from adw.logging.stream import StreamLogger
 from adw.models.config import LLMConfig
 from adw.models.llm import LLMResult, ToolCall
 from adw.models.logging import LLMStats
+
+if TYPE_CHECKING:
+    from adw.security import SecurityCheckResult, SecurityInterceptor, ToolLogger
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +62,9 @@ class ClaudeCodeExecutor:
         config: LLMConfig,
         *,
         console: Console | None = None,
+        security_interceptor: "SecurityInterceptor | None" = None,
+        tool_logger: "ToolLogger | None" = None,
+        allow_dangerous: bool = False,
     ) -> None:
         """Initialize the ClaudeCodeExecutor.
 
@@ -60,9 +72,15 @@ class ClaudeCodeExecutor:
             config: LLM configuration containing path, timeout, and other settings.
             console: Optional Rich console for streaming output. If not provided,
                      a new Console instance is created.
+            security_interceptor: Optional security interceptor for validating tool calls.
+            tool_logger: Optional tool logger for recording tool calls.
+            allow_dangerous: If True, log warnings instead of raising SecurityError.
         """
         self.config = config
         self.console = console or Console()
+        self.security_interceptor = security_interceptor
+        self.tool_logger = tool_logger
+        self.allow_dangerous = allow_dangerous
 
     def _resolve_timeout(self, timeout: int | None) -> int:
         """Resolve timeout using 3-tier hierarchy.
@@ -365,6 +383,9 @@ class ClaudeCodeExecutor:
             },
         )
 
+        # Check and log tool calls for security
+        self._check_and_log_tool_calls(parsed["tool_calls"], duration_ms)
+
         # Build result
         if returncode == 0:
             # Log completion event if stream_logger provided
@@ -486,6 +507,91 @@ class ClaudeCodeExecutor:
             "tool_calls": tool_calls,
             "tokens_used": tokens_used,
         }
+
+    def _check_and_log_tool_calls(
+        self,
+        tool_calls: list[ToolCall],
+        duration_ms: int,
+    ) -> None:
+        """Check tool calls against security interceptor and log them.
+
+        If a security interceptor is configured, each tool call is validated
+        against security patterns. If a tool logger is configured, all tool
+        calls are recorded for audit purposes.
+
+        Args:
+            tool_calls: List of tool calls from the LLM response.
+            duration_ms: Duration of the entire LLM call in milliseconds.
+
+        Raises:
+            SecurityError: If a tool call is blocked and allow_dangerous is False.
+        """
+        if not self.security_interceptor and not self.tool_logger:
+            return
+
+        # Import here to avoid circular imports
+        from adw.security import SecurityCheckResult
+
+        for tool_call in tool_calls:
+            blocked = False
+            block_reason: str | None = None
+
+            # Check against security interceptor
+            if self.security_interceptor:
+                response = self.security_interceptor.check_tool_call(
+                    tool_call.tool_name,
+                    tool_call.arguments,
+                )
+
+                if response.result == SecurityCheckResult.BLOCKED:
+                    blocked = True
+                    block_reason = (
+                        f"Blocked by pattern: {response.blocked_pattern} - "
+                        f"{response.description}"
+                    )
+                    logger.warning(
+                        "Tool call blocked by security policy",
+                        extra={
+                            "tool_name": tool_call.tool_name,
+                            "pattern": response.blocked_pattern,
+                            "description": response.description,
+                        },
+                    )
+
+                    if not self.allow_dangerous:
+                        raise SecurityError(
+                            code="DANGEROUS_COMMAND_BLOCKED",
+                            message=f"Tool call blocked: {tool_call.tool_name}",
+                            pattern_matched=response.blocked_pattern,
+                            tool_name=tool_call.tool_name,
+                            suggestion=(
+                                "Use --allow-dangerous flag to override security checks"
+                            ),
+                        )
+
+                elif response.result == SecurityCheckResult.WARNING:
+                    block_reason = (
+                        f"Warning: {response.blocked_pattern} - {response.description}"
+                    )
+                    logger.warning(
+                        "Tool call triggered security warning (allow_dangerous=True)",
+                        extra={
+                            "tool_name": tool_call.tool_name,
+                            "pattern": response.blocked_pattern,
+                            "description": response.description,
+                        },
+                    )
+
+            # Log to tool logger
+            if self.tool_logger:
+                self.tool_logger.log(
+                    tool_name=tool_call.tool_name,
+                    arguments=tool_call.arguments,
+                    result_summary=tool_call.result_summary or "executed",
+                    duration_ms=duration_ms // max(len(tool_calls), 1),
+                    blocked=blocked,
+                    block_reason=block_reason,
+                )
 
     def _verify_claude_path(self) -> Path:
         """Verify Claude Code executable exists.

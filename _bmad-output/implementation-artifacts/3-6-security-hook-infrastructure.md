@@ -66,7 +66,7 @@ So that automated code generation cannot accidentally destroy my project.
 - [x] Integrate with run directory structure
 
 ### Task 5: Integrate with Claude Code Executor
-- [ ] Modify `src/adw/executors/claude_code.py` to:
+- [x] Modify `src/adw/executors/claude_code.py` to:
   - Check tool calls against security interceptor before execution
   - Log all tool calls (blocked and allowed)
   - Raise SecurityError for blocked calls (unless --allow-dangerous)
@@ -312,6 +312,7 @@ claude-opus-4-5-20251101
 - Task 2: Created SecurityError exception with pattern_matched, tool_name, and suggestion fields. Follows existing exception hierarchy patterns.
 - Task 3: Implemented SecurityInterceptor with default blocked patterns for shell commands and file access. Supports custom patterns from config and allow_dangerous mode.
 - Task 4: Implemented ToolLogger for JSONL logging of tool calls. Writes to run_dir/tools.jsonl with convenience methods and read_entries support.
+- Task 5: Integrated security interceptor and tool logger with ClaudeCodeExecutor. Added _check_and_log_tool_calls method to validate and log tool calls.
 
 ### File List
 
@@ -332,6 +333,7 @@ claude-opus-4-5-20251101
 - src/adw/models/__init__.py
 - src/adw/models/config.py
 - src/adw/exceptions.py
+- src/adw/executors/claude_code.py
 
 ## Dependencies
 
