@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
-from adw.logging.console import ConsoleTransport
-from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
+from adw.logging.console import ConsoleTransport, should_log
+from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel, Verbosity
 
 
 class TestConsoleTransportTTYDetection:
@@ -61,7 +61,8 @@ class TestConsoleTransportWrite:
     def test_write_includes_timestamp(self) -> None:
         """write() includes timestamp in output."""
         output = io.StringIO()
-        transport = ConsoleTransport(file=output, force_tty=False)
+        # Use TRACE verbosity to ensure DEBUG level messages are written
+        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.TRACE)
 
         now = datetime.now(UTC)
         event = LogEvent(
@@ -97,9 +98,10 @@ class TestConsoleTransportLevelStyling:
 
     @pytest.mark.parametrize("level", list(LogLevel))
     def test_writes_all_log_levels(self, level: LogLevel) -> None:
-        """write() handles all log levels."""
+        """write() handles all log levels when verbosity allows."""
         output = io.StringIO()
-        transport = ConsoleTransport(file=output, force_tty=False)
+        # Use TRACE verbosity to ensure all levels are written
+        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.TRACE)
 
         event = LogEvent(
             level=level,
@@ -236,7 +238,8 @@ class TestConsoleTransportContext:
     def test_includes_extra_in_tty_mode(self) -> None:
         """write() includes extra context in TTY mode."""
         output = io.StringIO()
-        transport = ConsoleTransport(file=output, force_tty=True)
+        # Use VERBOSE verbosity to ensure DEBUG level messages are written
+        transport = ConsoleTransport(file=output, force_tty=True, verbosity=Verbosity.VERBOSE)
 
         event = LogEvent(
             level=LogLevel.DEBUG,
@@ -273,3 +276,127 @@ class TestLevelStyles:
 
         assert "red" in LEVEL_STYLES[LogLevel.ERROR]
         assert "red" in LEVEL_STYLES[LogLevel.FATAL]
+
+
+class TestShouldLogFunction:
+    """Tests for the should_log helper function."""
+
+    def test_quiet_only_shows_error_and_fatal(self) -> None:
+        """QUIET verbosity only allows ERROR and FATAL."""
+        assert should_log(LogLevel.TRACE, Verbosity.QUIET) is False
+        assert should_log(LogLevel.DEBUG, Verbosity.QUIET) is False
+        assert should_log(LogLevel.INFO, Verbosity.QUIET) is False
+        assert should_log(LogLevel.WARN, Verbosity.QUIET) is False
+        assert should_log(LogLevel.ERROR, Verbosity.QUIET) is True
+        assert should_log(LogLevel.FATAL, Verbosity.QUIET) is True
+
+    def test_normal_shows_info_and_above(self) -> None:
+        """NORMAL verbosity allows INFO and above."""
+        assert should_log(LogLevel.TRACE, Verbosity.NORMAL) is False
+        assert should_log(LogLevel.DEBUG, Verbosity.NORMAL) is False
+        assert should_log(LogLevel.INFO, Verbosity.NORMAL) is True
+        assert should_log(LogLevel.WARN, Verbosity.NORMAL) is True
+        assert should_log(LogLevel.ERROR, Verbosity.NORMAL) is True
+        assert should_log(LogLevel.FATAL, Verbosity.NORMAL) is True
+
+    def test_verbose_shows_debug_and_above(self) -> None:
+        """VERBOSE verbosity allows DEBUG and above."""
+        assert should_log(LogLevel.TRACE, Verbosity.VERBOSE) is False
+        assert should_log(LogLevel.DEBUG, Verbosity.VERBOSE) is True
+        assert should_log(LogLevel.INFO, Verbosity.VERBOSE) is True
+        assert should_log(LogLevel.WARN, Verbosity.VERBOSE) is True
+        assert should_log(LogLevel.ERROR, Verbosity.VERBOSE) is True
+        assert should_log(LogLevel.FATAL, Verbosity.VERBOSE) is True
+
+    def test_trace_shows_everything(self) -> None:
+        """TRACE verbosity allows all log levels."""
+        assert should_log(LogLevel.TRACE, Verbosity.TRACE) is True
+        assert should_log(LogLevel.DEBUG, Verbosity.TRACE) is True
+        assert should_log(LogLevel.INFO, Verbosity.TRACE) is True
+        assert should_log(LogLevel.WARN, Verbosity.TRACE) is True
+        assert should_log(LogLevel.ERROR, Verbosity.TRACE) is True
+        assert should_log(LogLevel.FATAL, Verbosity.TRACE) is True
+
+
+class TestConsoleTransportVerbosity:
+    """Tests for verbosity filtering in ConsoleTransport."""
+
+    def test_default_verbosity_is_normal(self) -> None:
+        """ConsoleTransport defaults to NORMAL verbosity."""
+        transport = ConsoleTransport(force_tty=False)
+        assert transport.verbosity == Verbosity.NORMAL
+
+    def test_can_set_verbosity_in_constructor(self) -> None:
+        """ConsoleTransport accepts verbosity parameter."""
+        transport = ConsoleTransport(force_tty=False, verbosity=Verbosity.QUIET)
+        assert transport.verbosity == Verbosity.QUIET
+
+    def test_quiet_filters_info_messages(self) -> None:
+        """QUIET verbosity filters out INFO level messages."""
+        output = io.StringIO()
+        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.QUIET)
+
+        event = LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.PHASE,
+            message="Info message should not appear",
+        )
+        transport.write(event)
+
+        assert output.getvalue() == ""
+
+    def test_quiet_allows_error_messages(self) -> None:
+        """QUIET verbosity allows ERROR level messages."""
+        output = io.StringIO()
+        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.QUIET)
+
+        event = LogEvent(
+            level=LogLevel.ERROR,
+            category=LogCategory.ERROR,
+            message="Error message should appear",
+        )
+        transport.write(event)
+
+        assert "Error message should appear" in output.getvalue()
+
+    def test_normal_filters_debug_messages(self) -> None:
+        """NORMAL verbosity filters out DEBUG level messages."""
+        output = io.StringIO()
+        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.NORMAL)
+
+        event = LogEvent(
+            level=LogLevel.DEBUG,
+            category=LogCategory.LLM,
+            message="Debug message should not appear",
+        )
+        transport.write(event)
+
+        assert output.getvalue() == ""
+
+    def test_verbose_allows_debug_messages(self) -> None:
+        """VERBOSE verbosity allows DEBUG level messages."""
+        output = io.StringIO()
+        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.VERBOSE)
+
+        event = LogEvent(
+            level=LogLevel.DEBUG,
+            category=LogCategory.LLM,
+            message="Debug message should appear",
+        )
+        transport.write(event)
+
+        assert "Debug message should appear" in output.getvalue()
+
+    def test_trace_allows_trace_messages(self) -> None:
+        """TRACE verbosity allows TRACE level messages."""
+        output = io.StringIO()
+        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.TRACE)
+
+        event = LogEvent(
+            level=LogLevel.TRACE,
+            category=LogCategory.PERFORMANCE,
+            message="Trace message should appear",
+        )
+        transport.write(event)
+
+        assert "Trace message should appear" in output.getvalue()

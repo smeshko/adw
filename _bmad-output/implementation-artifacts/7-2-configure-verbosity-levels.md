@@ -50,12 +50,12 @@ so that I see the right amount of detail for my needs.
 - [x] Store in Typer context for subcommands
 
 ### Task 3: Implement Console Filtering (logging/console.py)
-- [ ] Add verbosity parameter to ConsoleTransport
-- [ ] Implement `should_log(level, verbosity)` filtering
-- [ ] QUIET: only ERROR and FATAL
-- [ ] NORMAL: INFO and above
-- [ ] VERBOSE: DEBUG and above
-- [ ] TRACE: everything including TRACE
+- [x] Add verbosity parameter to ConsoleTransport
+- [x] Implement `should_log(level, verbosity)` filtering
+- [x] QUIET: only ERROR and FATAL
+- [x] NORMAL: INFO and above
+- [x] VERBOSE: DEBUG and above
+- [x] TRACE: everything including TRACE
 
 ### Task 4: Configure Log Manager (logging/manager.py)
 - [ ] Add `set_verbosity(level)` method to LogManager
@@ -275,11 +275,14 @@ Claude Opus 4.5
 ### Completion Notes List
 - **Task 1 (2026-01-03):** Created Verbosity enum (QUIET, NORMAL, VERBOSE, TRACE) in models/logging.py. Added VERBOSITY_LEVEL_MAP constant mapping each Verbosity to its LogLevel threshold. Documented filtering rules in docstrings. Added 6 unit tests for Verbosity, all passing.
 - **Task 2 (2026-01-03):** Added global verbosity flags (-q/--quiet, -v/--verbose, --trace) to CLI main callback. Implemented mutual exclusivity check with error message. Stores Verbosity in Typer context for subcommands. Removed redundant command-level --verbose from run command. Added 10 CLI verbosity tests, all 182 CLI tests passing.
+- **Task 3 (2026-01-03):** Added `should_log(level, verbosity)` function with LEVEL_ORDER mapping for threshold comparison. Updated ConsoleTransport to accept verbosity parameter (default NORMAL) and filter events in write(). Updated existing tests to use TRACE/VERBOSE verbosity when testing DEBUG/TRACE level output. All 35 console tests passing.
 
 ### File List
 - src/adw/models/logging.py (modified: added Verbosity enum and VERBOSITY_LEVEL_MAP)
 - src/adw/cli/app.py (modified: added global verbosity flags to main callback)
+- src/adw/logging/console.py (modified: added should_log function and verbosity filtering)
 - tests/unit/models/test_logging.py (modified: added TestVerbosity test class)
 - tests/unit/cli/test_verbosity.py (new: CLI verbosity flag tests)
 - tests/unit/cli/test_run.py (modified: updated verbose flag test to use global flag)
+- tests/unit/logging/test_console.py (modified: added verbosity filtering tests)
 

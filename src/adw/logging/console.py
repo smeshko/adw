@@ -10,7 +10,7 @@ from typing import TextIO
 from rich.console import Console
 from rich.text import Text
 
-from adw.models.logging import LogEvent, LogLevel
+from adw.models.logging import LogEvent, LogLevel, Verbosity, VERBOSITY_LEVEL_MAP
 
 # Level styling configuration for Rich console
 LEVEL_STYLES: dict[LogLevel, str] = {
@@ -21,6 +21,36 @@ LEVEL_STYLES: dict[LogLevel, str] = {
     LogLevel.ERROR: "bold red",
     LogLevel.FATAL: "bold white on red",
 }
+
+# Level ordering for comparison
+LEVEL_ORDER: dict[LogLevel, int] = {
+    LogLevel.TRACE: 0,
+    LogLevel.DEBUG: 1,
+    LogLevel.INFO: 2,
+    LogLevel.WARN: 3,
+    LogLevel.ERROR: 4,
+    LogLevel.FATAL: 5,
+}
+
+
+def should_log(level: LogLevel, verbosity: Verbosity) -> bool:
+    """Check if an event at the given level should be logged for the verbosity.
+
+    Args:
+        level: The log level of the event
+        verbosity: The current verbosity setting
+
+    Returns:
+        True if the event should be logged, False otherwise
+
+    Examples:
+        >>> should_log(LogLevel.DEBUG, Verbosity.VERBOSE)
+        True
+        >>> should_log(LogLevel.DEBUG, Verbosity.NORMAL)
+        False
+    """
+    threshold = VERBOSITY_LEVEL_MAP[verbosity]
+    return LEVEL_ORDER[level] >= LEVEL_ORDER[threshold]
 
 
 class ConsoleTransport:
@@ -48,14 +78,17 @@ class ConsoleTransport:
         *,
         file: TextIO | None = None,
         force_tty: bool | None = None,
+        verbosity: Verbosity = Verbosity.NORMAL,
     ) -> None:
         """Initialize the console transport.
 
         Args:
             file: Output file (defaults to sys.stdout)
             force_tty: Force TTY mode (True/False) or auto-detect (None)
+            verbosity: Verbosity level for filtering (default: NORMAL)
         """
         self._file = file or sys.stdout
+        self._verbosity = verbosity
 
         # Determine TTY mode
         if force_tty is not None:
@@ -79,15 +112,30 @@ class ConsoleTransport:
         """Check if output is to a TTY terminal."""
         return self._is_tty
 
+    @property
+    def verbosity(self) -> Verbosity:
+        """Get the current verbosity level."""
+        return self._verbosity
+
     def write(self, event: LogEvent) -> None:
         """Write a log event to the console.
 
         For TTY terminals, uses Rich formatting with colors and styles.
         For non-TTY output, uses plain text without ANSI codes.
 
+        Events are filtered based on verbosity level:
+        - QUIET: Only ERROR and FATAL
+        - NORMAL: INFO and above
+        - VERBOSE: DEBUG and above
+        - TRACE: All levels
+
         Args:
             event: The log event to write
         """
+        # Filter based on verbosity
+        if not should_log(event.level, self._verbosity):
+            return
+
         if self._is_tty:
             self._write_rich(event)
         else:
