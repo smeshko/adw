@@ -122,13 +122,13 @@ development_status:
   # Goal: Provide multi-tier logging, state inspection, and debugging
   #       capabilities
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-7: backlog
-  7-1-implement-multi-tier-logging-system: backlog
-  7-2-configure-verbosity-levels: backlog
-  7-3-capture-llm-interactions: backlog
-  7-4-implement-log-viewing-commands: backlog
-  7-5-implement-state-inspection-commands: backlog
-  7-6-implement-secret-redaction: backlog
+  epic-7: in-progress
+  7-1-implement-multi-tier-logging-system: review
+  7-2-configure-verbosity-levels: ready-for-dev
+  7-3-capture-llm-interactions: ready-for-dev
+  7-4-implement-log-viewing-commands: ready-for-dev
+  7-5-implement-state-inspection-commands: ready-for-dev
+  7-6-implement-secret-redaction: ready-for-dev
   epic-7-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

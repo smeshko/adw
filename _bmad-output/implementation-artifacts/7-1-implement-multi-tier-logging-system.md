@@ -1,6 +1,6 @@
 # Story 7.1: Implement Multi-Tier Logging System
 
-Status: ready-for-dev
+Status: Done
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-03
@@ -38,44 +38,44 @@ so that I have appropriate output for different use cases.
 ## Tasks / Subtasks
 
 ### Task 1: Create Logging Models (models/logging.py)
-- [ ] Create `LogLevel` enum (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
-- [ ] Create `LogCategory` enum per architecture spec
-- [ ] Create `LogEvent` Pydantic model with all fields
-- [ ] Create `LogContext` model for scoped context
-- [ ] Export from `models/__init__.py`
+- [x] Create `LogLevel` enum (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
+- [x] Create `LogCategory` enum per architecture spec
+- [x] Create `LogEvent` Pydantic model with all fields
+- [x] Create `LogContext` model for scoped context
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Console Transport (logging/console.py)
-- [ ] Create `ConsoleTransport` class using Rich Console
-- [ ] Implement TTY detection via `sys.stdout.isatty()`
-- [ ] Use Rich formatting when TTY, plain text otherwise
-- [ ] Implement `write(event: LogEvent)` method
-- [ ] Support styling based on log level
+- [x] Create `ConsoleTransport` class using Rich Console
+- [x] Implement TTY detection via `sys.stdout.isatty()`
+- [x] Use Rich formatting when TTY, plain text otherwise
+- [x] Implement `write(event: LogEvent)` method
+- [x] Support styling based on log level
 
 ### Task 3: Implement File Transport (logging/file.py)
-- [ ] Create `RawFileTransport` class for raw.log
-- [ ] Create `StructuredFileTransport` class for logs.jsonl
-- [ ] Implement atomic appends with file locking
-- [ ] Handle file rotation setup (optional for MVP)
-- [ ] Ensure non-blocking writes per NFR3
+- [x] Create `RawFileTransport` class for raw.log
+- [x] Create `StructuredFileTransport` class for logs.jsonl
+- [x] Implement atomic appends with file locking
+- [x] Handle file rotation setup (optional for MVP) - deferred to future story
+- [x] Ensure non-blocking writes per NFR3
 
 ### Task 4: Implement Log Manager (logging/manager.py)
-- [ ] Create `LogManager` singleton/global instance
-- [ ] Implement transport registration
-- [ ] Create `child(context)` method for scoped loggers
-- [ ] Implement level methods: trace, debug, info, warn, error, fatal
-- [ ] Route events to all registered transports
+- [x] Create `LogManager` singleton/global instance
+- [x] Implement transport registration
+- [x] Create `child(context)` method for scoped loggers
+- [x] Implement level methods: trace, debug, info, warn, error, fatal
+- [x] Route events to all registered transports
 
 ### Task 5: Update Package Exports (logging/__init__.py)
-- [ ] Export LogManager, transports, models
-- [ ] Create convenience `get_logger()` function
-- [ ] Document module-level docstring
+- [x] Export LogManager, transports, models
+- [x] Create convenience `get_logger()` function
+- [x] Document module-level docstring
 
 ### Task 6: Write Unit Tests
-- [ ] Test LogEvent model creation and serialization
-- [ ] Test ConsoleTransport TTY/non-TTY behavior (mock stdout)
-- [ ] Test file transports write correctly
-- [ ] Test LogManager routes to all transports
-- [ ] Test child() context inheritance
+- [x] Test LogEvent model creation and serialization
+- [x] Test ConsoleTransport TTY/non-TTY behavior (mock stdout)
+- [x] Test file transports write correctly
+- [x] Test LogManager routes to all transports
+- [x] Test child() context inheritance
 
 ---
 
@@ -274,6 +274,18 @@ Key patterns and rules from project context:
 
 ---
 
+## Dependencies
+
+- **Depends On:** None (foundation story)
+- **Blocks:** Story 7.2, Story 7.3, Story 7.4, Story 7.5, Story 7.6
+- **Can Parallel With:** None
+
+### Dependency Rationale
+- All other stories in Epic 7 depend on the logging infrastructure this story creates
+- This is the foundation story that must be completed first
+
+---
+
 ## Dev Agent Record
 
 ### Context Reference
@@ -286,5 +298,26 @@ Key patterns and rules from project context:
 
 ### Completion Notes List
 
+- Task 1: Created LogLevel (6 levels), LogCategory (6 categories), LogEvent, and LogContext Pydantic models with full type annotations, docstrings, and serialization support. 22 unit tests passing with 97% coverage.
+- Task 2: Implemented ConsoleTransport with TTY detection, Rich formatting for TTY output, plain text for non-TTY (UX-7 compliant). Level-based styling with distinct ERROR/FATAL formatting. 19 unit tests passing with 94% coverage.
+- Task 3: Implemented RawFileTransport (human-readable) and StructuredFileTransport (JSONL) with file locking for concurrent write safety. Auto-creates parent directories. 26 unit tests passing with 96% coverage.
+- Task 4: Implemented LogManager with transport registration, level filtering, child() for scoped loggers with context inheritance, and level methods (trace, debug, info, warn, error, fatal). Transport protocol for extensibility. 24 unit tests passing with 98% coverage.
+- Task 5: Updated logging/__init__.py with all exports, get_logger() convenience function, configure_default_logger() for quick setup, and comprehensive module docstring. 20 unit tests passing with 100% coverage.
+- Task 6: All unit tests written during red-green-refactor cycles (Tasks 1-5). Total: 111 logging-related tests covering models, console transport, file transports, log manager, and package exports.
+- Code Review Fixes: Addressed 8 issues (2 HIGH, 4 MEDIUM, 2 LOW). Added context.extra rendering, error handling, close() method with lock cleanup, transports property encapsulation, reset_logger() function, LEVEL_STYLES tests, and context manager support. 17 new tests added (128 total).
+
 ### File List
+
+- src/adw/models/logging.py (NEW)
+- src/adw/models/__init__.py (MODIFIED)
+- tests/unit/models/test_logging.py (NEW)
+- src/adw/logging/console.py (NEW)
+- tests/unit/logging/__init__.py (NEW)
+- tests/unit/logging/test_console.py (NEW)
+- src/adw/logging/file.py (NEW)
+- tests/unit/logging/test_file.py (NEW)
+- src/adw/logging/manager.py (NEW)
+- tests/unit/logging/test_manager.py (NEW)
+- src/adw/logging/__init__.py (MODIFIED)
+- tests/unit/logging/test_package.py (NEW)
 
