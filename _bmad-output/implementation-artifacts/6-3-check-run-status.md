@@ -1,6 +1,6 @@
 # Story 6.3: Check Run Status
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -38,11 +38,11 @@ So that I know its current state and outcome.
 ## Tasks / Subtasks
 
 ### Task 1: Implement CLI Status Command
-- [ ] Create `src/adw/cli/status.py` with status command
-- [ ] Add optional `run_id` argument (positional)
-- [ ] Add `--json` flag for machine-readable output
-- [ ] Add `--verbose/-v` flag for detailed output
-- [ ] Register command in main app
+- [x] Create `src/adw/cli/status.py` with status command
+- [x] Add optional `run_id` argument (positional)
+- [x] Add `--json` flag for machine-readable output
+- [x] Add `--verbose/-v` flag for detailed output
+- [x] Register command in main app
 
 ### Task 2: Create Status Display
 - [ ] Create `src/adw/cli/status_display.py` with `StatusDisplay` class

@@ -62,6 +62,43 @@ class RunLookup:
         except Exception:
             return None
 
+    def find_most_recent(self) -> RunContext | None:
+        """Find the most recent run regardless of status.
+
+        Runs are sorted by their ULID which is lexicographically sortable
+        and encodes the creation timestamp.
+
+        Returns:
+            Most recent RunContext, or None if none found.
+
+        Example:
+            >>> context = lookup.find_most_recent()
+            >>> if context:
+            ...     print(f"Most recent: {context.run_id}")
+        """
+        if not self.runs_dir.exists():
+            return None
+
+        runs: list[tuple[str, RunContext]] = []
+
+        for run_dir in self.runs_dir.iterdir():
+            if not run_dir.is_dir():
+                continue
+
+            try:
+                context = self.context_manager.load(run_dir.name)
+                # Use run_id (ULID) for sorting - lexicographically sortable
+                runs.append((context.run_id, context))
+            except Exception:
+                continue
+
+        if not runs:
+            return None
+
+        # Sort by run_id (ULID) descending - most recent first
+        runs.sort(key=lambda x: x[0], reverse=True)
+        return runs[0][1]
+
     def find_most_recent_incomplete(self) -> RunContext | None:
         """Find the most recent incomplete run.
 
