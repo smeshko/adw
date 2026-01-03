@@ -4,9 +4,14 @@ This module provides the central LogManager class that coordinates
 logging across all transports (console, file, JSONL).
 """
 
-from typing import Any, Protocol, runtime_checkable
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel, Verbosity
+
+if TYPE_CHECKING:
+    from adw.logging.redactor import Redactor
 
 # Level ordering for filtering
 LEVEL_ORDER: dict[LogLevel, int] = {
@@ -36,11 +41,13 @@ class LogManager:
     """Central manager for multi-tier logging.
 
     LogManager coordinates logging across multiple transports,
-    handles level filtering, and supports scoped child loggers.
+    handles level filtering, applies secret redaction, and supports
+    scoped child loggers.
 
     Attributes:
         level: Minimum log level to process
         transports: Registered transport instances
+        redactor: Optional redactor for secret removal
 
     Example:
         >>> manager = LogManager(level=LogLevel.INFO)
@@ -51,6 +58,11 @@ class LogManager:
         >>> # Create child logger with context
         >>> child = manager.child(run_id="01HQ123ABC", phase="build")
         >>> child.debug(LogCategory.LLM, "LLM request sent")
+        >>>
+        >>> # With redaction enabled
+        >>> from adw.logging.redactor import get_redactor
+        >>> manager = LogManager(redactor=get_redactor())
+        >>> manager.info(LogCategory.LLM, "API key: sk-abc123...")  # Will be redacted
     """
 
     def __init__(
@@ -60,6 +72,7 @@ class LogManager:
         context: LogContext | None = None,
         transports: list[Transport] | None = None,
         verbosity: Verbosity = Verbosity.NORMAL,
+        redactor: Redactor | None = None,
     ) -> None:
         """Initialize the log manager.
 
@@ -68,11 +81,13 @@ class LogManager:
             context: Initial context for all events
             transports: Initial transports to register
             verbosity: Initial verbosity for console output (default: NORMAL)
+            redactor: Optional redactor for secret removal from log messages
         """
         self._level = level
         self._context = context or LogContext()
         self._transports: list[Transport] = list(transports) if transports else []
         self._verbosity = verbosity
+        self._redactor = redactor
 
     @property
     def level(self) -> LogLevel:
@@ -100,6 +115,19 @@ class LogManager:
     def verbosity(self) -> Verbosity:
         """Get the current verbosity level."""
         return self._verbosity
+
+    @property
+    def redactor(self) -> Redactor | None:
+        """Get the configured redactor, if any."""
+        return self._redactor
+
+    def set_redactor(self, redactor: Redactor | None) -> None:
+        """Set or clear the redactor.
+
+        Args:
+            redactor: Redactor instance, or None to disable redaction
+        """
+        self._redactor = redactor
 
     def set_verbosity(self, verbosity: Verbosity) -> None:
         """Set verbosity level for console transports.
@@ -137,11 +165,12 @@ class LogManager:
         run_id: str | None = None,
         phase: str | None = None,
         extra: dict[str, Any] | None = None,
-    ) -> "LogManager":
+    ) -> LogManager:
         """Create a child logger with extended context.
 
-        Child loggers inherit the parent's transports, level, and verbosity,
-        but can add additional context that is included in all events.
+        Child loggers inherit the parent's transports, level, verbosity,
+        and redactor, but can add additional context that is included
+        in all events.
 
         Args:
             run_id: Run ID to add to context
@@ -161,6 +190,7 @@ class LogManager:
             context=new_context,
             transports=self._transports,
             verbosity=self._verbosity,
+            redactor=self._redactor,
         )
 
     def _should_log(self, level: LogLevel) -> bool:
@@ -177,6 +207,9 @@ class LogManager:
     def _log(self, level: LogLevel, category: LogCategory, message: str) -> None:
         """Log an event at the specified level.
 
+        Applies redaction to the message if a redactor is configured,
+        then sends the event to all registered transports.
+
         Args:
             level: Log level
             category: Log category
@@ -185,10 +218,15 @@ class LogManager:
         if not self._should_log(level):
             return
 
+        # Apply redaction if configured
+        redacted_message = message
+        if self._redactor is not None:
+            redacted_message = self._redactor.redact(message)
+
         event = LogEvent(
             level=level,
             category=category,
-            message=message,
+            message=redacted_message,
             context=self._context,
         )
 

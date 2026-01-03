@@ -400,3 +400,121 @@ class TestLogManagerVerbosity:
 
         # Child should also have QUIET verbosity effect
         assert child.verbosity == Verbosity.QUIET
+
+
+class TestLogManagerRedaction:
+    """Tests for secret redaction in LogManager."""
+
+    def test_redactor_is_none_by_default(self) -> None:
+        """LogManager has no redactor by default."""
+        manager = LogManager()
+        assert manager.redactor is None
+
+    def test_redactor_can_be_set_in_constructor(self) -> None:
+        """LogManager can be created with a redactor."""
+        from adw.logging.redactor import Redactor
+
+        redactor = Redactor(["test"])
+        manager = LogManager(redactor=redactor)
+        assert manager.redactor is redactor
+
+    def test_set_redactor_method(self) -> None:
+        """LogManager.set_redactor() sets the redactor."""
+        from adw.logging.redactor import Redactor
+
+        manager = LogManager()
+        redactor = Redactor(["test"])
+        manager.set_redactor(redactor)
+        assert manager.redactor is redactor
+
+    def test_set_redactor_to_none_disables(self) -> None:
+        """LogManager.set_redactor(None) disables redaction."""
+        from adw.logging.redactor import Redactor
+
+        manager = LogManager(redactor=Redactor(["test"]))
+        manager.set_redactor(None)
+        assert manager.redactor is None
+
+    def test_redaction_applied_to_messages(self) -> None:
+        """Redactor is applied to log messages."""
+        from adw.logging.redactor import DEFAULT_REDACTION_PATTERNS, Redactor
+
+        redactor = Redactor(DEFAULT_REDACTION_PATTERNS)
+        manager = LogManager(redactor=redactor)
+        mock_transport = MagicMock()
+        manager.register(mock_transport)
+
+        manager.info(LogCategory.LLM, "API key: sk-" + "a" * 50)
+
+        mock_transport.write.assert_called_once()
+        event = mock_transport.write.call_args[0][0]
+        assert "sk-" not in event.message
+        assert "[REDACTED]" in event.message
+
+    def test_no_redaction_without_redactor(self) -> None:
+        """Messages are not redacted when no redactor is set."""
+        manager = LogManager()
+        mock_transport = MagicMock()
+        manager.register(mock_transport)
+
+        secret = "sk-" + "a" * 50
+        manager.info(LogCategory.LLM, f"API key: {secret}")
+
+        mock_transport.write.assert_called_once()
+        event = mock_transport.write.call_args[0][0]
+        assert secret in event.message
+
+    def test_child_inherits_redactor(self) -> None:
+        """Child logger inherits parent's redactor."""
+        from adw.logging.redactor import Redactor
+
+        redactor = Redactor(["secret_[0-9]+"])
+        manager = LogManager(redactor=redactor)
+
+        child = manager.child(run_id="test-run")
+
+        assert child.redactor is redactor
+
+    def test_child_uses_inherited_redactor(self) -> None:
+        """Child logger applies inherited redactor to messages."""
+        from adw.logging.redactor import Redactor
+
+        redactor = Redactor(["secret_[0-9]+"])
+        manager = LogManager(redactor=redactor)
+        mock_transport = MagicMock()
+        manager.register(mock_transport)
+
+        child = manager.child(run_id="test-run")
+        child.info(LogCategory.LLM, "Code: secret_12345")
+
+        mock_transport.write.assert_called_once()
+        event = mock_transport.write.call_args[0][0]
+        assert "secret_12345" not in event.message
+        assert "[REDACTED]" in event.message
+
+    def test_redaction_at_all_log_levels(self) -> None:
+        """Redaction is applied at all log levels."""
+        from adw.logging.redactor import Redactor
+
+        redactor = Redactor(["secret"])
+        manager = LogManager(level=LogLevel.TRACE, redactor=redactor)
+        mock_transport = MagicMock()
+        manager.register(mock_transport)
+
+        levels = [
+            manager.trace,
+            manager.debug,
+            manager.info,
+            manager.warn,
+            manager.error,
+            manager.fatal,
+        ]
+
+        for log_method in levels:
+            log_method(LogCategory.LLM, "Contains secret data")
+
+        assert mock_transport.write.call_count == 6
+        for call in mock_transport.write.call_args_list:
+            event = call[0][0]
+            assert "secret" not in event.message
+            assert "[REDACTED]" in event.message

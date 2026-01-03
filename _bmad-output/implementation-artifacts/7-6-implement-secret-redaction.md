@@ -1,6 +1,6 @@
 # Story 7.6: Implement Secret Redaction
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-03
@@ -89,17 +89,18 @@ so that secrets are never exposed.
 ```python
 DEFAULT_REDACTION_PATTERNS = [
     # API Keys
-    r"Bearer [A-Za-z0-9\-_\.]+",
-    r"sk-[A-Za-z0-9]{48,}",        # OpenAI
+    r"Bearer\s+[A-Za-z0-9\-_\.]+",
+    r"sk-[A-Za-z0-9]{20,}",        # OpenAI (20+ chars for flexibility)
     r"AKIA[A-Z0-9]{16}",           # AWS Access Key
+    r"sk-ant-[A-Za-z0-9\-]{20,}",  # Anthropic (20+ chars for flexibility)
     r"ghp_[A-Za-z0-9]{36}",        # GitHub Personal Token
     r"gho_[A-Za-z0-9]{36}",        # GitHub OAuth Token
     r"github_pat_[A-Za-z0-9_]{82}", # GitHub PAT (fine-grained)
 
     # Generic patterns
-    r"(?i)api[_-]?key['\"]?\s*[:=]\s*['\"]?[A-Za-z0-9\-_\.]+",
-    r"(?i)secret[_-]?key['\"]?\s*[:=]\s*['\"]?[A-Za-z0-9\-_\.]+",
-    r"(?i)password['\"]?\s*[:=]\s*['\"]?[^\s'\"]+",
+    r"(?i)api[_-]?key['\"]?\s*[:=]\s*['\"]?[A-Za-z0-9\-_\.]{8,}",
+    r"(?i)secret[_-]?key['\"]?\s*[:=]\s*['\"]?[A-Za-z0-9\-_\.]{8,}",
+    r"(?i)password['\"]?\s*[:=]\s*['\"]?[^\s'\"]{4,}",
 ]
 
 SENSITIVE_ENV_PATTERNS = [
@@ -109,6 +110,8 @@ SENSITIVE_ENV_PATTERNS = [
     r".*_PASSWORD$",
     r".*_API_KEY$",
     r".*_AUTH$",
+    r"^APIKEY$",       # Standalone without underscore
+    r"^CREDENTIALS?$", # CREDENTIAL or CREDENTIALS
 ]
 ```
 
