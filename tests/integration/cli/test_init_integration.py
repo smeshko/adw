@@ -268,3 +268,59 @@ class TestInitConfigValidation:
 
         config = yaml.safe_load((tmp_path / ".adw" / "project.yaml").read_text())
         assert config["llm"]["claude_code"]["timeout_seconds"] == 300
+
+
+class TestInitRunIntegration:
+    """Integration tests verifying run command works after init."""
+
+    def test_run_command_loads_config_after_init(self, tmp_path: Path) -> None:
+        """Test that run command can load configuration after init.
+
+        This verifies that init creates a valid project structure that
+        the run command recognizes. The run may fail for other reasons
+        (missing claude CLI) but should not fail due to missing config.
+        """
+        # Initialize project
+        init_result = subprocess.run(
+            [sys.executable, "-m", "adw", "init"],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+        )
+        assert init_result.returncode == 0
+
+        # Run command - expect it to get past config loading
+        # It will fail because claude CLI is not available, but
+        # it should NOT fail with "not initialized" or config errors
+        run_result = subprocess.run(
+            [sys.executable, "-m", "adw", "run", "test feature"],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+        )
+
+        # Should not complain about missing config or initialization
+        combined_output = (run_result.stdout + run_result.stderr).lower()
+        assert "not initialized" not in combined_output
+        assert "project.yaml" not in combined_output or "error" not in combined_output
+
+    def test_run_help_works_after_init(self, tmp_path: Path) -> None:
+        """Test that run --help works in initialized project."""
+        # Initialize project
+        subprocess.run(
+            [sys.executable, "-m", "adw", "init"],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+        )
+
+        # Run help command
+        result = subprocess.run(
+            [sys.executable, "-m", "adw", "run", "--help"],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0
+        assert "feature" in result.stdout.lower()

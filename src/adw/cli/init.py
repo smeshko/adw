@@ -1,69 +1,65 @@
-"""CLI init command for initializing ADW projects.
+"""CLI init implementation for initializing ADW projects.
 
-This module provides the `adw init` command that creates the .adw/ directory
+This module provides the init logic that creates the .adw/ directory
 structure and generates project configuration based on auto-detection.
 """
 
 from pathlib import Path
 
-import typer
 from rich.console import Console
 from rich.panel import Panel
 
 from adw.config.detector import ProjectTypeDetector
 from adw.config.initializer import ProjectInitializer
+from adw.exceptions import ConfigError
 
 console = Console()
 
 
 def init(
-    force: bool = typer.Option(
-        False,
-        "--force",
-        "-f",
-        help="Overwrite existing configuration",
-    ),
-    language: str | None = typer.Option(
-        None,
-        "--language",
-        "-l",
-        help="Override detected language (python, javascript, go, rust, etc.)",
-    ),
-    template: str | None = typer.Option(
-        None,
-        "--template",
-        "-t",
-        help="Use a specific project template (future feature)",
-        hidden=True,
-    ),
+    force: bool = False,
+    language: str | None = None,
 ) -> None:
     """Initialize ADW in the current directory.
 
     Creates .adw/ directory with project configuration.
     Auto-detects project type and sets appropriate defaults.
 
-    Examples:
-        adw init                    # Auto-detect and initialize
-        adw init --force            # Reinitialize existing project
-        adw init --language python  # Override detection
+    Args:
+        force: If True, overwrite existing configuration.
+        language: Override detected language (python, javascript, etc.).
+
+    Raises:
+        ConfigError: If project is already initialized and force is False.
     """
     project_root = Path.cwd()
     adw_dir = project_root / ".adw"
 
     # Check if already initialized
     if adw_dir.exists() and not force:
-        console.print(
-            f"[red]Error:[/] Project already initialized\n"
-            f"[dim]Suggestion: Use 'adw init --force' to reinitialize[/]"
+        raise ConfigError(
+            code="PROJECT_ALREADY_INITIALIZED",
+            message="Project already initialized",
+            suggestion="Use 'adw init --force' to reinitialize",
+            recoverable=False,
         )
-        raise typer.Exit(code=1)
 
     # Detect project type
     detector = ProjectTypeDetector()
     detected_type = detector.detect(project_root)
 
-    # Override if specified
-    project_type = language or detected_type
+    # Validate and apply language override
+    if language:
+        valid_languages = set(detector.DEFAULTS.keys()) - {"unknown"}
+        if language not in valid_languages:
+            console.print(
+                f"[yellow]Warning:[/] Unknown language '{language}'. "
+                f"Valid options: {', '.join(sorted(valid_languages))}"
+            )
+            console.print("[dim]Proceeding with 'unknown' defaults.[/]")
+        project_type = language
+    else:
+        project_type = detected_type
 
     # Initialize
     initializer = ProjectInitializer(project_root)

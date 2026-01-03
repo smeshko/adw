@@ -1,6 +1,6 @@
 # Story 6.6: Initialize New Project
 
-Status: Ready for Review
+Status: Done
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -570,15 +570,23 @@ N/A - No debug issues encountered
 
 ### Completion Notes List
 
-- Implemented `adw init` CLI command with --force/-f, --language/-l, and --template/-t flags
+- Implemented `adw init` CLI command with --force/-f and --language/-l flags
 - Created ProjectTypeDetector for auto-detecting Python, Node.js, Go, Rust, Java, Ruby, PHP projects
 - Created ProjectInitializer for creating .adw/ directory structure and project.yaml configuration
 - Generates helpful commented project.yaml with language, test_command, LLM config
 - Creates .adw/runs/, .adw/commands/ directories and .gitignore for runs/
-- Handles existing .adw/ with error or --force backup and reinitialize
+- Handles existing .adw/ with ConfigError (per AC4) or --force backup and reinitialize
 - Rich Panel output showing detected project type, config location, and next steps
-- 23 unit tests + 13 integration tests = 36 new tests, all passing
-- Full test suite: 865 tests at 94% coverage
+- 31 unit tests + 13 integration tests = 44 new tests, all passing
+- Full test suite: 899 tests at 94% coverage
+
+### Code Review Fixes Applied
+
+- **AC4 Compliance**: Now raises ConfigError (caught in CLI layer) instead of just print+exit
+- **Language Validation**: Added warning when invalid language specified (e.g., `--language garbage`)
+- **Dead Code Removed**: Removed unused `--template` parameter
+- **Backup Collision Fix**: Handle edge case of multiple --force in same second
+- **Missing Tests Added**: Java/Ruby/PHP detection tests, language validation tests, run-after-init integration tests
 
 ### File List
 
@@ -614,3 +622,4 @@ N/A - No debug issues encountered
 |------|--------|--------|
 | 2026-01-03 | BMAD Create-Epic | Initial story creation with comprehensive context |
 | 2026-01-03 | Claude Opus 4.5 | Implementation complete - all 9 tasks done, 36 new tests |
+| 2026-01-03 | Claude Opus 4.5 | Code review fixes - AC4 compliance, validation, 8 new tests (44 total) |

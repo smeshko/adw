@@ -69,7 +69,7 @@ class TestInitCommand:
             assert "runs/" in content
 
     def test_init_fails_if_already_initialized(self, tmp_path: Path) -> None:
-        """Test that init fails if .adw/ already exists."""
+        """Test that init raises ConfigError if .adw/ already exists."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
             # Create existing .adw/ directory
             (Path.cwd() / ".adw").mkdir()
@@ -77,7 +77,9 @@ class TestInitCommand:
             result = runner.invoke(app, ["init"])
 
             assert result.exit_code != 0
+            # ConfigError is caught by Typer and displays the message
             assert "already initialized" in result.output.lower()
+            assert "adw init --force" in result.output.lower()
 
     def test_init_force_overwrites_existing(self, tmp_path: Path) -> None:
         """Test that init --force overwrites existing configuration."""
@@ -196,6 +198,53 @@ class TestInitProjectDetection:
             assert "language: rust" in config
             assert "cargo test" in config
 
+    def test_init_detects_java_from_build_gradle(self, tmp_path: Path) -> None:
+        """Test that init detects Java project from build.gradle."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            (Path.cwd() / "build.gradle").touch()
+
+            result = runner.invoke(app, ["init"])
+
+            assert result.exit_code == 0
+            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
+            assert "language: java" in config
+            assert "gradle test" in config
+
+    def test_init_detects_java_from_pom_xml(self, tmp_path: Path) -> None:
+        """Test that init detects Java project from pom.xml."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            (Path.cwd() / "pom.xml").touch()
+
+            result = runner.invoke(app, ["init"])
+
+            assert result.exit_code == 0
+            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
+            assert "language: java" in config
+
+    def test_init_detects_ruby_from_gemfile(self, tmp_path: Path) -> None:
+        """Test that init detects Ruby project from Gemfile."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            (Path.cwd() / "Gemfile").touch()
+
+            result = runner.invoke(app, ["init"])
+
+            assert result.exit_code == 0
+            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
+            assert "language: ruby" in config
+            assert "rspec" in config
+
+    def test_init_detects_php_from_composer_json(self, tmp_path: Path) -> None:
+        """Test that init detects PHP project from composer.json."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            (Path.cwd() / "composer.json").write_text("{}")
+
+            result = runner.invoke(app, ["init"])
+
+            assert result.exit_code == 0
+            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
+            assert "language: php" in config
+            assert "phpunit" in config
+
     def test_init_defaults_to_generic_when_no_markers(self, tmp_path: Path) -> None:
         """Test that init defaults to generic when no project markers found."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
@@ -204,6 +253,29 @@ class TestInitProjectDetection:
             assert result.exit_code == 0
             config = (Path.cwd() / ".adw" / "project.yaml").read_text()
             assert "language: unknown" in config
+
+
+class TestInitLanguageValidation:
+    """Tests for language override validation."""
+
+    def test_init_warns_on_invalid_language(self, tmp_path: Path) -> None:
+        """Test that init warns when invalid language is specified."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            result = runner.invoke(app, ["init", "--language", "garbage"])
+
+            assert result.exit_code == 0
+            assert "warning" in result.output.lower()
+            assert "unknown language" in result.output.lower()
+
+    def test_init_accepts_valid_language(self, tmp_path: Path) -> None:
+        """Test that init accepts valid language without warning."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            result = runner.invoke(app, ["init", "--language", "python"])
+
+            assert result.exit_code == 0
+            assert "warning" not in result.output.lower()
+            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
+            assert "language: python" in config
 
 
 class TestInitOutput:

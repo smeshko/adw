@@ -163,4 +163,11 @@ runs/
         """Backup existing .adw/ configuration."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_dir = self.project_root / f".adw.backup.{timestamp}"
+
+        # Handle collision if backup dir already exists (e.g., multiple --force in same second)
+        counter = 1
+        while backup_dir.exists():
+            backup_dir = self.project_root / f".adw.backup.{timestamp}.{counter}"
+            counter += 1
+
         shutil.move(str(self.adw_dir), str(backup_dir))

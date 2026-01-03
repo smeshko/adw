@@ -8,8 +8,8 @@ Provides three-tier configuration resolution:
 Also provides project initialization and type detection.
 """
 
-from adw.config.detector import ProjectTypeDetector
+from adw.config.detector import ProjectType, ProjectTypeDetector
 from adw.config.initializer import ProjectInitializer
 from adw.config.loader import ConfigLoader
 
-__all__ = ["ConfigLoader", "ProjectInitializer", "ProjectTypeDetector"]
+__all__ = ["ConfigLoader", "ProjectInitializer", "ProjectType", "ProjectTypeDetector"]
