@@ -1,6 +1,6 @@
 # Story 6.4: List Recent Runs
 
-Status: Ready for Review
+Status: done
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -504,3 +504,4 @@ N/A - No issues encountered during implementation.
 |------|--------|--------|
 | 2026-01-03 | BMAD Create-Epic | Initial story creation with comprehensive context |
 | 2026-01-03 | Dev Agent (Opus 4.5) | Implemented all tasks - list command, display, tests |
+| 2026-01-03 | Code Review (Opus 4.5) | Status updated to done, lint/type fixes applied |
