@@ -68,23 +68,63 @@ def reset_logger() -> None:
     _default_logger = None
 
 
+def create_redactor_from_config(
+    *,
+    enabled: bool = True,
+    patterns: list[str] | None = None,
+    disable_defaults: bool = False,
+) -> Redactor | None:
+    """Create a redactor from configuration options.
+
+    This function builds a Redactor based on the configuration settings
+    from project.yaml's logging.redaction section.
+
+    Args:
+        enabled: Whether redaction is active (default: True)
+        patterns: Additional custom patterns to add
+        disable_defaults: If True, only use custom patterns
+
+    Returns:
+        Configured Redactor instance, or None if disabled
+
+    Example:
+        >>> redactor = create_redactor_from_config(
+        ...     patterns=["ACME_[A-Z0-9]+"],
+        ...     disable_defaults=False,
+        ... )
+    """
+    if not enabled:
+        return None
+
+    return configure_redactor(
+        patterns=patterns,
+        disable_defaults=disable_defaults,
+    )
+
+
 def configure_default_logger(
     *,
     level: LogLevel = LogLevel.INFO,
     console: bool = True,
     raw_file: str | None = None,
     jsonl_file: str | None = None,
+    redaction_enabled: bool = True,
+    redaction_patterns: list[str] | None = None,
+    redaction_disable_defaults: bool = False,
 ) -> LogManager:
     """Configure and return the default logger with common transports.
 
     This is a convenience function for quick setup. Creates a new default
-    logger with the specified transports.
+    logger with the specified transports and redaction settings.
 
     Args:
         level: Minimum log level (default: INFO)
         console: Whether to add console transport (default: True)
         raw_file: Path to raw log file (optional)
         jsonl_file: Path to JSONL log file (optional)
+        redaction_enabled: Whether to enable secret redaction (default: True)
+        redaction_patterns: Additional custom patterns for redaction
+        redaction_disable_defaults: If True, only use custom patterns
 
     Returns:
         The configured default LogManager instance
@@ -94,12 +134,21 @@ def configure_default_logger(
         ...     level=LogLevel.DEBUG,
         ...     raw_file=".agent/runs/123/logs/raw.log",
         ...     jsonl_file=".agent/runs/123/logs/logs.jsonl",
+        ...     redaction_enabled=True,
+        ...     redaction_patterns=["ACME_[A-Z0-9]+"],
         ... )
     """
     global _default_logger
     from pathlib import Path
 
-    _default_logger = LogManager(level=level)
+    # Create redactor based on configuration
+    redactor = create_redactor_from_config(
+        enabled=redaction_enabled,
+        patterns=redaction_patterns,
+        disable_defaults=redaction_disable_defaults,
+    )
+
+    _default_logger = LogManager(level=level, redactor=redactor)
 
     if console:
         _default_logger.register(ConsoleTransport())
@@ -137,5 +186,6 @@ __all__ = [
     # Functions
     "get_logger",
     "configure_default_logger",
+    "create_redactor_from_config",
     "reset_logger",
 ]
