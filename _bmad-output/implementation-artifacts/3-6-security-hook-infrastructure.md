@@ -72,9 +72,9 @@ So that automated code generation cannot accidentally destroy my project.
   - Raise SecurityError for blocked calls (unless --allow-dangerous)
 
 ### Task 6: Add --allow-dangerous Flag
-- [ ] Add `--allow-dangerous` flag to CLI run commands
-- [ ] When set, log warnings instead of blocking
-- [ ] Pass flag through to executor configuration
+- [x] Add `--allow-dangerous` flag to CLI run commands
+- [x] When set, log warnings instead of blocking
+- [x] Pass flag through to executor configuration
 
 ### Task 7: Write Unit Tests
 - [ ] Test SecurityInterceptor with default patterns
@@ -313,6 +313,7 @@ claude-opus-4-5-20251101
 - Task 3: Implemented SecurityInterceptor with default blocked patterns for shell commands and file access. Supports custom patterns from config and allow_dangerous mode.
 - Task 4: Implemented ToolLogger for JSONL logging of tool calls. Writes to run_dir/tools.jsonl with convenience methods and read_entries support.
 - Task 5: Integrated security interceptor and tool logger with ClaudeCodeExecutor. Added _check_and_log_tool_calls method to validate and log tool calls.
+- Task 6: Added --allow-dangerous flag to CLI run command. Updated bootstrap to create security components and pass allow_dangerous to executor.
 
 ### File List
 
@@ -334,6 +335,8 @@ claude-opus-4-5-20251101
 - src/adw/models/config.py
 - src/adw/exceptions.py
 - src/adw/executors/claude_code.py
+- src/adw/cli/app.py
+- src/adw/cli/bootstrap.py
 
 ## Dependencies
 

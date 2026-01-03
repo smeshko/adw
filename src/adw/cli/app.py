@@ -131,6 +131,11 @@ def run(
         "--dry-run",
         help="Show what would happen without executing",
     ),
+    allow_dangerous: bool = typer.Option(
+        False,
+        "--allow-dangerous",
+        help="Allow dangerous LLM tool calls (log warnings instead of blocking)",
+    ),
 ) -> None:
     """Run the agentic development workflow.
 
@@ -148,6 +153,9 @@ def run(
 
         # Dry run to see what would happen
         adw run "Add login" --dry-run
+
+        # Allow dangerous operations (log warnings instead of blocking)
+        adw run "Add login" --allow-dangerous
     """
     # Validate feature description is not empty (Story 6.1)
     if not feature.strip():
@@ -185,7 +193,11 @@ def run(
     _ = log_manager  # Log manager created, integration with orchestrator pending
 
     try:
-        orchestrator = create_orchestrator(console)
+        orchestrator = create_orchestrator(
+            console,
+            allow_dangerous=allow_dangerous,
+            run_id=run_id,
+        )
 
         if phase:
             # Validate --from-run requirement for non-plan phases (Story 5.4)
