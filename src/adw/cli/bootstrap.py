@@ -18,6 +18,9 @@ from adw.core import (
     RunDirectoryManager,
     SnapshotManager,
 )
+from adw.logging import LogManager
+from adw.logging.console import ConsoleTransport
+from adw.models.logging import Verbosity
 
 
 def get_project_root() -> Path:
@@ -45,6 +48,41 @@ def get_runs_dir(project_root: Path | None = None) -> Path:
     runs_dir = root / ".adw" / "runs"
     runs_dir.mkdir(parents=True, exist_ok=True)
     return runs_dir
+
+
+def create_log_manager(
+    console: Console | None = None,
+    verbosity: Verbosity = Verbosity.NORMAL,
+) -> LogManager:
+    """Create a LogManager configured for CLI use.
+
+    Sets up console transport with the specified verbosity. Console output
+    respects verbosity settings while file transports (when added) capture
+    everything for debugging purposes.
+
+    Args:
+        console: Rich console for output. If None, creates a new one.
+        verbosity: Verbosity level for console output (default: NORMAL)
+
+    Returns:
+        Configured LogManager ready for use.
+
+    Example:
+        >>> logger = create_log_manager(verbosity=Verbosity.VERBOSE)
+        >>> logger.debug(LogCategory.PHASE, "Detailed info")
+    """
+    console = console or Console()
+    log_manager = LogManager(verbosity=verbosity)
+
+    # Add console transport with verbosity filtering
+    console_transport = ConsoleTransport(
+        file=console.file,
+        force_tty=console.is_terminal,
+        verbosity=verbosity,
+    )
+    log_manager.register(console_transport)
+
+    return log_manager
 
 
 def create_orchestrator(

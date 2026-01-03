@@ -5,7 +5,14 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
+from adw.models.logging import (
+    LogCategory,
+    LogContext,
+    LogEvent,
+    LogLevel,
+    Verbosity,
+    VERBOSITY_LEVEL_MAP,
+)
 
 
 class TestLogLevel:
@@ -28,6 +35,49 @@ class TestLogLevel:
         """LogLevel values are strings."""
         for level in LogLevel:
             assert isinstance(level.value, str)
+
+
+class TestVerbosity:
+    """Tests for the Verbosity enum."""
+
+    def test_all_verbosity_levels_defined(self) -> None:
+        """Verbosity contains all required levels per story spec."""
+        assert Verbosity.QUIET == "quiet"
+        assert Verbosity.NORMAL == "normal"
+        assert Verbosity.VERBOSE == "verbose"
+        assert Verbosity.TRACE == "trace"
+
+    def test_verbosity_count(self) -> None:
+        """Verbosity has exactly 4 levels."""
+        assert len(Verbosity) == 4
+
+    def test_verbosity_is_string_enum(self) -> None:
+        """Verbosity values are strings."""
+        for verbosity in Verbosity:
+            assert isinstance(verbosity.value, str)
+
+    def test_verbosity_level_map_contains_all_verbosities(self) -> None:
+        """VERBOSITY_LEVEL_MAP has an entry for each Verbosity."""
+        for verbosity in Verbosity:
+            assert verbosity in VERBOSITY_LEVEL_MAP
+
+    def test_verbosity_level_map_values_are_log_levels(self) -> None:
+        """VERBOSITY_LEVEL_MAP values are LogLevel instances."""
+        for log_level in VERBOSITY_LEVEL_MAP.values():
+            assert isinstance(log_level, LogLevel)
+
+    def test_verbosity_level_map_correct_mapping(self) -> None:
+        """VERBOSITY_LEVEL_MAP has correct verbosity-to-level mapping.
+
+        - QUIET: Only ERROR and FATAL (threshold at ERROR)
+        - NORMAL: INFO and above (threshold at INFO)
+        - VERBOSE: DEBUG and above (threshold at DEBUG)
+        - TRACE: Everything including TRACE (threshold at TRACE)
+        """
+        assert VERBOSITY_LEVEL_MAP[Verbosity.QUIET] == LogLevel.ERROR
+        assert VERBOSITY_LEVEL_MAP[Verbosity.NORMAL] == LogLevel.INFO
+        assert VERBOSITY_LEVEL_MAP[Verbosity.VERBOSE] == LogLevel.DEBUG
+        assert VERBOSITY_LEVEL_MAP[Verbosity.TRACE] == LogLevel.TRACE
 
 
 class TestLogCategory:

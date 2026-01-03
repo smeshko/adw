@@ -67,6 +67,8 @@ so that I see the right amount of detail for my needs.
 - [x] Ensure `adw run`, `adw resume`, etc. respect verbosity
 - [x] Test all verbosity levels work correctly
 
+Note: `adw run` now uses global verbosity from context. `adw resume` retains its legacy local --verbose flag for backward compatibility; future story will align it with global verbosity.
+
 ### Task 6: Write Unit Tests
 - [x] Test Verbosity enum values
 - [x] Test CLI flag parsing for all verbosity options
@@ -264,32 +266,32 @@ Key patterns:
 ## Dev Agent Record
 
 ### Context Reference
-- Story 7.1 provides base LogManager and ConsoleTransport
-- Architecture spec defines verbosity levels in docs/arch-logging.md
+- Story 7.1 Multi-Tier Logging System (provides LogLevel, ConsoleTransport, LogManager)
+- Project context: project-context.md
 
 ### Agent Model Used
-claude-opus-4-5-20251101
+Claude Opus 4.5
 
 ### Debug Log References
 N/A
 
 ### Completion Notes List
-- Verbosity enum added to models/logging.py alongside LogLevel
-- CLI flags implemented in app.py callback with mutual exclusivity validation
-- Console filtering uses VERBOSITY_LEVEL_MAP for threshold comparison
-- File transports unaffected by verbosity (always log everything)
-- Tests cover all verbosity levels and CLI flag combinations
+- **Task 1 (2026-01-03):** Created Verbosity enum (QUIET, NORMAL, VERBOSE, TRACE) in models/logging.py. Added VERBOSITY_LEVEL_MAP constant mapping each Verbosity to its LogLevel threshold. Documented filtering rules in docstrings. Added 6 unit tests for Verbosity, all passing.
+- **Task 2 (2026-01-03):** Added global verbosity flags (-q/--quiet, -v/--verbose, --trace) to CLI main callback. Implemented mutual exclusivity check with error message. Stores Verbosity in Typer context for subcommands. Removed redundant command-level --verbose from run command. Added 10 CLI verbosity tests, all 182 CLI tests passing.
+- **Task 3 (2026-01-03):** Added `should_log(level, verbosity)` function with LEVEL_ORDER mapping for threshold comparison. Updated ConsoleTransport to accept verbosity parameter (default NORMAL) and filter events in write(). Updated existing tests to use TRACE/VERBOSE verbosity when testing DEBUG/TRACE level output. All 35 console tests passing.
+- **Task 4 (2026-01-03):** Added `verbosity` property and `set_verbosity(verbosity)` method to LogManager. Method updates all registered ConsoleTransport instances but leaves file transports unaffected. Updated child() to inherit verbosity. Added setter to ConsoleTransport.verbosity. All 30 manager tests passing.
+- **Task 5 (2026-01-03):** Added create_log_manager factory function in bootstrap. Wired run command to get verbosity from Typer context and create LogManager with it. LogManager ready for orchestrator integration in future stories. All 29 CLI tests passing.
+- **Task 6 (2026-01-03):** Added TestVerbosityWithRunCommand integration test class (4 tests) for run command with different verbosity flags. All 1131 unit tests passing.
 
 ### File List
-- `src/adw/models/logging.py` - Added Verbosity enum and VERBOSITY_LEVEL_MAP
-- `src/adw/cli/app.py` - Added -q/--quiet, -v/--verbose, --trace flags
-- `src/adw/cli/bootstrap.py` - Added create_log_manager with verbosity support
-- `src/adw/cli/resume.py` - Updated to use global verbosity from context
-- `src/adw/logging/console.py` - Added should_log() and verbosity filtering
-- `src/adw/logging/manager.py` - Added set_verbosity() method
-- `tests/unit/models/test_logging.py` - Added Verbosity enum tests
-- `tests/unit/cli/test_verbosity.py` - Added CLI verbosity flag tests + resume tests
-- `tests/unit/logging/test_console.py` - Added console verbosity filtering tests
-- `tests/unit/logging/test_manager.py` - Added LogManager verbosity tests
-- `tests/unit/cli/test_run.py` - Updated for global verbosity flags
+- src/adw/models/logging.py (modified: added Verbosity enum and VERBOSITY_LEVEL_MAP)
+- src/adw/cli/app.py (modified: added global verbosity flags, wired run command to LogManager)
+- src/adw/cli/bootstrap.py (modified: added create_log_manager factory function)
+- src/adw/logging/console.py (modified: added should_log, verbosity filtering, and setter)
+- src/adw/logging/manager.py (modified: added verbosity property and set_verbosity method)
+- tests/unit/models/test_logging.py (modified: added TestVerbosity test class)
+- tests/unit/cli/test_verbosity.py (new: CLI verbosity flag tests)
+- tests/unit/cli/test_run.py (modified: updated verbose flag test to use global flag)
+- tests/unit/logging/test_console.py (modified: added verbosity filtering tests)
+- tests/unit/logging/test_manager.py (modified: added TestLogManagerVerbosity test class)
 
