@@ -62,7 +62,9 @@ class TestConsoleTransportWrite:
         """write() includes timestamp in output."""
         output = io.StringIO()
         # Use TRACE verbosity to ensure DEBUG level messages are written
-        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.TRACE)
+        transport = ConsoleTransport(
+            file=output, force_tty=False, verbosity=Verbosity.TRACE
+        )
 
         now = datetime.now(UTC)
         event = LogEvent(
@@ -101,7 +103,9 @@ class TestConsoleTransportLevelStyling:
         """write() handles all log levels when verbosity allows."""
         output = io.StringIO()
         # Use TRACE verbosity to ensure all levels are written
-        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.TRACE)
+        transport = ConsoleTransport(
+            file=output, force_tty=False, verbosity=Verbosity.TRACE
+        )
 
         event = LogEvent(
             level=level,
@@ -239,7 +243,9 @@ class TestConsoleTransportContext:
         """write() includes extra context in TTY mode."""
         output = io.StringIO()
         # Use VERBOSE verbosity to ensure DEBUG level messages are written
-        transport = ConsoleTransport(file=output, force_tty=True, verbosity=Verbosity.VERBOSE)
+        transport = ConsoleTransport(
+            file=output, force_tty=True, verbosity=Verbosity.VERBOSE
+        )
 
         event = LogEvent(
             level=LogLevel.DEBUG,
@@ -334,7 +340,9 @@ class TestConsoleTransportVerbosity:
     def test_quiet_filters_info_messages(self) -> None:
         """QUIET verbosity filters out INFO level messages."""
         output = io.StringIO()
-        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.QUIET)
+        transport = ConsoleTransport(
+            file=output, force_tty=False, verbosity=Verbosity.QUIET
+        )
 
         event = LogEvent(
             level=LogLevel.INFO,
@@ -348,7 +356,9 @@ class TestConsoleTransportVerbosity:
     def test_quiet_allows_error_messages(self) -> None:
         """QUIET verbosity allows ERROR level messages."""
         output = io.StringIO()
-        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.QUIET)
+        transport = ConsoleTransport(
+            file=output, force_tty=False, verbosity=Verbosity.QUIET
+        )
 
         event = LogEvent(
             level=LogLevel.ERROR,
@@ -362,7 +372,9 @@ class TestConsoleTransportVerbosity:
     def test_normal_filters_debug_messages(self) -> None:
         """NORMAL verbosity filters out DEBUG level messages."""
         output = io.StringIO()
-        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.NORMAL)
+        transport = ConsoleTransport(
+            file=output, force_tty=False, verbosity=Verbosity.NORMAL
+        )
 
         event = LogEvent(
             level=LogLevel.DEBUG,
@@ -376,7 +388,9 @@ class TestConsoleTransportVerbosity:
     def test_verbose_allows_debug_messages(self) -> None:
         """VERBOSE verbosity allows DEBUG level messages."""
         output = io.StringIO()
-        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.VERBOSE)
+        transport = ConsoleTransport(
+            file=output, force_tty=False, verbosity=Verbosity.VERBOSE
+        )
 
         event = LogEvent(
             level=LogLevel.DEBUG,
@@ -390,7 +404,9 @@ class TestConsoleTransportVerbosity:
     def test_trace_allows_trace_messages(self) -> None:
         """TRACE verbosity allows TRACE level messages."""
         output = io.StringIO()
-        transport = ConsoleTransport(file=output, force_tty=False, verbosity=Verbosity.TRACE)
+        transport = ConsoleTransport(
+            file=output, force_tty=False, verbosity=Verbosity.TRACE
+        )
 
         event = LogEvent(
             level=LogLevel.TRACE,

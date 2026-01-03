@@ -6,12 +6,12 @@ import pytest
 from pydantic import ValidationError
 
 from adw.models.logging import (
+    VERBOSITY_LEVEL_MAP,
     LogCategory,
     LogContext,
     LogEvent,
     LogLevel,
     Verbosity,
-    VERBOSITY_LEVEL_MAP,
 )
 
 
@@ -283,11 +283,16 @@ class TestLLMRequest:
         from adw.models.logging import LLMRequest
 
         now = datetime.now(UTC)
+        params = {
+            "model": "claude-sonnet-4-20250514",
+            "temperature": 0,
+            "max_tokens": 16000,
+        }
         request = LLMRequest(
             timestamp=now,
             prompt="Generate code",
             phase="build",
-            params={"model": "claude-sonnet-4-20250514", "temperature": 0, "max_tokens": 16000},
+            params=params,
         )
         assert request.timestamp == now
         assert request.prompt == "Generate code"
@@ -325,10 +330,12 @@ class TestLLMResponse:
 
     def test_create_full_response(self) -> None:
         """LLMResponse can be created with all fields."""
-        from adw.models.logging import LLMResponse, LLMToolCall, LLMStats
+        from adw.models.logging import LLMResponse, LLMStats, LLMToolCall
 
         now = datetime.now(UTC)
-        tool_call = LLMToolCall(id="call_01", name="create_file", input={"path": "test.py"})
+        tool_call = LLMToolCall(
+            id="call_01", name="create_file", input={"path": "test.py"}
+        )
         stats = LLMStats(input_tokens=4521, output_tokens=3892, duration_ms=47333)
         response = LLMResponse(
             timestamp=now,
@@ -401,7 +408,9 @@ class TestLLMToolCall:
         """LLMToolCall serializes correctly."""
         from adw.models.logging import LLMToolCall
 
-        tool_call = LLMToolCall(id="call_01", name="read_file", input={"path": "main.py"})
+        tool_call = LLMToolCall(
+            id="call_01", name="read_file", input={"path": "main.py"}
+        )
         d = tool_call.model_dump()
         assert d["id"] == "call_01"
         assert d["name"] == "read_file"
@@ -468,7 +477,7 @@ class TestLLMStreamEvent:
 
     def test_create_complete_event(self) -> None:
         """LLMStreamEvent can capture completion event with stats."""
-        from adw.models.logging import LLMStreamEvent, StreamEventType, LLMStats
+        from adw.models.logging import LLMStats, LLMStreamEvent, StreamEventType
 
         stats = LLMStats(input_tokens=4521, output_tokens=3892)
         event = LLMStreamEvent(

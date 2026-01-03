@@ -2,8 +2,6 @@
 
 import time
 
-import pytest
-
 from adw.logging.stream import StreamLogger
 from adw.models.logging import LLMStats, LLMStreamEvent, StreamEventType
 

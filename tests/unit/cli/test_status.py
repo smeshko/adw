@@ -80,7 +80,6 @@ class TestStatusCorruptedContext:
 
     def test_corrupted_context_raises_state_error(self, tmp_path) -> None:
         """Test corrupted context.json raises StateError with snapshot suggestion."""
-        from pathlib import Path
         from unittest.mock import patch
 
         # Create a runs directory with corrupted context
@@ -110,7 +109,6 @@ class TestStatusWithValidRun:
     def test_status_with_valid_run_id(self, tmp_path) -> None:
         """Test status displays information for a valid run."""
         import json
-        from datetime import UTC, datetime
         from unittest.mock import patch
 
         # Create a valid run

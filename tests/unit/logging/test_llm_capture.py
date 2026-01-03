@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from adw.logging.llm_capture import LLMCaptureManager
 from adw.models.logging import (
     LLMRequest,

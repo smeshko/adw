@@ -1,6 +1,5 @@
 """Tests for the secret redaction module."""
 
-import pytest
 
 from adw.logging.redactor import (
     DEFAULT_REDACTION_PATTERNS,

@@ -1,6 +1,5 @@
 """Unit tests for diff utility."""
 
-import pytest
 
 from adw.utils.diff import DiffResult, json_diff
 

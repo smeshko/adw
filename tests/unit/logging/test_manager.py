@@ -341,7 +341,9 @@ class TestLogManagerVerbosity:
 
         assert console.verbosity == Verbosity.QUIET
 
-    def test_set_verbosity_does_not_affect_file_transports(self, tmp_path: Path) -> None:
+    def test_set_verbosity_does_not_affect_file_transports(
+        self, tmp_path: Path
+    ) -> None:
         """set_verbosity() does not affect file transports."""
         manager = LogManager()
         output = io.StringIO()
