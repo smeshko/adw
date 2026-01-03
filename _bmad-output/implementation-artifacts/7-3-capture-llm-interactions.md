@@ -38,10 +38,10 @@ so that I can debug and reproduce issues.
 ## Tasks / Subtasks
 
 ### Task 1: Create LLM Capture Models (models/logging.py)
-- [ ] Create `LLMRequest` model (prompt, params, timestamp, phase)
-- [ ] Create `LLMResponse` model (content, tool_calls, tokens, duration)
-- [ ] Create `LLMStreamEvent` model for stream capture
-- [ ] Create `LLMToolCall` and `LLMToolResult` models
+- [x] Create `LLMRequest` model (prompt, params, timestamp, phase)
+- [x] Create `LLMResponse` model (content, tool_calls, tokens, duration)
+- [x] Create `LLMStreamEvent` model for stream capture
+- [x] Create `LLMToolCall` and `LLMToolResult` models
 
 ### Task 2: Implement Stream Logger (logging/stream.py)
 - [ ] Create `StreamLogger` class with interface from arch doc
@@ -294,10 +294,14 @@ Key patterns:
 ### Context Reference
 
 ### Agent Model Used
+claude-opus-4-5-20250514
 
 ### Debug Log References
 
 ### Completion Notes List
+- Task 1: Created LLM capture models in models/logging.py - Added StreamEventType enum, LLMStats, LLMToolCall, LLMToolResult, LLMRequest, LLMResponse, and LLMStreamEvent Pydantic models. All models support JSON serialization for file storage (request/response.json) and JSONL (stream events).
 
 ### File List
+- src/adw/models/logging.py (modified) - Added 7 new models for LLM capture
+- tests/unit/models/test_logging.py (modified) - Added 18 new tests for LLM capture models
 
