@@ -68,6 +68,8 @@ class ProgressDisplay:
         "running": "►",
         "completed": "✓",
         "failed": "✗",
+        "aborted": "⊘",
+        "interrupted": "⏸",
     }
 
     def __init__(self, console: Console | None = None) -> None:
@@ -252,8 +254,15 @@ class ProgressDisplay:
         # Format duration
         duration = f"{total_duration_ms / 1000:.1f}s"
 
-        # Status color
-        status_color = "green" if status == "completed" else "red"
+        # Status color: green for completed, orange for aborted, red for failed
+        if status == "completed":
+            status_color = "green"
+        elif status == "aborted":
+            status_color = "yellow"  # Rich uses "yellow" as closest to orange
+        elif status == "interrupted":
+            status_color = "cyan"
+        else:
+            status_color = "red"
 
         self.console.print(
             Panel(

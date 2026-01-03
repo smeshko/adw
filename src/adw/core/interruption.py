@@ -414,7 +414,7 @@ def get_run_status(context: RunContext) -> dict[str, object]:
     Returns:
         Dictionary with status fields:
         - run_id: The run identifier
-        - status: Current status (running, completed, interrupted, failed)
+        - status: Current status (running, completed, interrupted, failed, aborted)
         - current_phase: Phase currently set
         - interrupted_phase: Phase where interruption occurred (if any)
         - completed_phases: List of phases in phase_history

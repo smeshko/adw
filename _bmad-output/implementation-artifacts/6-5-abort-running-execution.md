@@ -72,10 +72,10 @@ So that I can stop a stuck or unwanted run.
 - [x] Multiple abort attempts → handle gracefully
 
 ### Task 6: Update Run Status Enum
-- [ ] Add "aborted" as valid run status
-- [ ] Update status transitions documentation
-- [ ] Update StatusDisplay to handle "aborted" status
-- [ ] Use distinct color for aborted (e.g., orange)
+- [x] Add "aborted" as valid run status
+- [x] Update status transitions documentation
+- [x] Update StatusDisplay to handle "aborted" status
+- [x] Use distinct color for aborted (e.g., orange)
 
 ### Task 7: Write Unit Tests
 - [ ] Create `tests/unit/cli/test_abort.py`
