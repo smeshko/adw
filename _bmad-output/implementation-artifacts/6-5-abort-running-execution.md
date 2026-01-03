@@ -59,11 +59,11 @@ So that I can stop a stuck or unwanted run.
 - [x] Display result of abort operation
 
 ### Task 4: Implement Remote Abort Logic
-- [ ] Add `abort()` method to Orchestrator
-- [ ] Check if run is in "running" status
-- [ ] Set abort flag that InterruptionHandler checks
-- [ ] Handle race condition with phase completion
-- [ ] Update context with "aborted" status
+- [x] Add `abort()` method to Orchestrator
+- [x] Check if run is in "running" status
+- [x] Set abort flag that InterruptionHandler checks
+- [x] Handle race condition with phase completion
+- [x] Update context with "aborted" status
 
 ### Task 5: Handle Edge Cases
 - [ ] Run not in progress → ConfigError "RUN_NOT_ACTIVE"
