@@ -59,11 +59,11 @@ So that I know its current state and outcome.
 - [x] Format duration in human-readable form (e.g., "2m 34s")
 
 ### Task 4: Display Failed Run Details (UX-3)
-- [ ] Load error details from context or snapshot
-- [ ] Display error message and code
-- [ ] Display suggestion for resolution
-- [ ] Show resume command: `adw resume <run_id>`
-- [ ] Highlight failed phase in red
+- [x] Load error details from context or snapshot
+- [x] Display error message and code
+- [x] Display suggestion for resolution
+- [x] Show resume command: `adw resume <run_id>`
+- [x] Highlight failed phase in red
 
 ### Task 5: Implement JSON Output
 - [ ] Add `--json` flag to command
