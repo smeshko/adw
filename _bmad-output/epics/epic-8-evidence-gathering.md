@@ -177,3 +177,61 @@ So that storage and transfer are efficient.
 **Then** max sizes are respected per file type
 
 ---
+
+## Epic 8: Dependency Flowchart
+
+```
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 1: Start Immediately                                                    ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [8.1] Detect Project Platform Type                                          ║
+║        Foundation for all evidence strategies                                 ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+                                    │
+                                    ▼
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 2: After 8.1 (PARALLEL x3)                                              ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [8.2] CLI Capture    ║    [8.3] Web Screenshots    ║    [8.4] API Capture   ║
+║  Terminal output      ║    Playwright-based         ║    curl/httpx          ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+                                    │
+                                    ▼
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 3: After 8.1, 8.2, 8.3, 8.4                                             ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [8.5] Generate Evidence Manifest                                             ║
+║        Links evidence items to plan steps, calculates coverage                ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+                                    │
+                                    ▼
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 4: After 8.2, 8.3, 8.4, 8.5                                             ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [8.6] Compress and Optimize Evidence                                         ║
+║        Image compression, text truncation, size monitoring                    ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+```
+
+### Wave Summary
+
+| Wave | Stories | Description |
+|------|---------|-------------|
+| 1 | 8.1 | Platform detection (foundation) |
+| 2 | 8.2, 8.3, 8.4 | Evidence capture strategies (parallelizable) |
+| 3 | 8.5 | Manifest generation |
+| 4 | 8.6 | Optimization |
+
+### Parallelization Opportunities
+
+**Wave 2** offers significant parallelization: Stories 8.2, 8.3, and 8.4 can all be developed simultaneously by different developers or in parallel agent sessions after Story 8.1 completes.
+
+---

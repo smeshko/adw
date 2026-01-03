@@ -230,11 +230,202 @@ Wave 3: [11.3]  [11.4]   [11.5]
 
 ---
 
-## Future Stories (Other Task Managers)
+## Story 11.6: Post Status Update Comments (Course Correction 2026-01-03)
 
-- 11.6: Jira Task Manager Implementation
-- 11.7: GitHub Issues Task Manager Implementation
-- 11.8: Custom Task Manager via Webhook/HTTP
+As a user,
+I want ADW to post comments to my task when significant events occur,
+So that my team can follow progress without checking CLI output.
+
+**Acceptance Criteria:**
+
+**Given** a phase completes successfully
+**When** `sync_comments: true` in config
+**Then** a comment is posted: "✓ [PHASE] completed - [summary]"
+
+**Given** a phase fails
+**When** `sync_comments: true` in config
+**Then** a comment is posted: "❌ [PHASE] failed - [error summary]. Run ID: [id]"
+
+**Given** a run completes with PR created
+**When** `sync_comments: true` in config
+**Then** a comment is posted with PR link and artifact summary
+
+**Given** `sync_comments: false` or not specified
+**When** phases transition
+**Then** no comments are posted (status-only sync)
+
+**Given** comment posting fails (API error)
+**When** the failure occurs
+**Then** warning is logged, run continues (non-blocking)
+
+---
+
+## Story 11.7: Label Management (Course Correction 2026-01-03)
+
+As a user,
+I want ADW to manage task labels based on run state,
+So that my task board reflects current progress.
+
+**Acceptance Criteria:**
+
+**Given** a run starts
+**When** orchestrator initializes
+**Then** label `adw:running` is added to the task
+
+**Given** a phase starts
+**When** phase runner begins
+**Then** label `adw:phase:{phase_name}` is added (e.g., `adw:phase:build`)
+
+**Given** a phase completes
+**When** moving to next phase
+**Then** previous phase label is removed, new phase label is added
+
+**Given** a run completes successfully
+**When** all phases done
+**Then** `adw:running` removed, `adw:completed` added
+
+**Given** a run fails
+**When** error occurs
+**Then** `adw:running` removed, `adw:failed` added, phase label remains
+
+**Given** label configuration
+**When** `labels.enabled: false` in config
+**Then** no label operations are performed
+
+---
+
+## Story 11.8: Issue Closing (Course Correction 2026-01-03)
+
+As a user,
+I want ADW to close my task when the PR is merged,
+So that completed work is automatically tracked.
+
+**Acceptance Criteria:**
+
+**Given** Ship phase completes with PR merged
+**When** `auto_close: true` in config
+**Then** the source task is moved to "Done" state and closed
+
+**Given** Ship phase completes but PR not merged (manual approval pending)
+**When** `auto_close: true` in config
+**Then** task remains open with `adw:pr-ready` label
+
+**Given** task closing fails
+**When** API error occurs
+**Then** warning logged with manual close instructions
+
+**Given** `auto_close: false` or not specified
+**When** run completes
+**Then** task status updated but not closed
+
+---
+
+## Story 11.9: Issue Assignment (Course Correction 2026-01-03)
+
+As a user,
+I want ADW to assign the task to me when a run starts,
+So that ownership is clear during automated work.
+
+**Acceptance Criteria:**
+
+**Given** a run starts from a task
+**When** `auto_assign: true` in config
+**Then** task is assigned to the configured user (from API key owner or explicit config)
+
+**Given** task is already assigned
+**When** run starts
+**Then** assignment is not changed
+
+**Given** `auto_assign: false` or not specified
+**When** run starts
+**Then** no assignment change occurs
+
+---
+
+## Story 11.10: GitHub Issues Provider (Course Correction 2026-01-03)
+
+As a user,
+I want to run `adw run #123` to fetch my GitHub issue,
+So that I can use ADW with GitHub Issues as my task manager.
+
+**Acceptance Criteria:**
+
+**Given** `task_manager: github_issues` in config
+**When** `adw run #123` is executed
+**Then** issue title and body are fetched via `gh` CLI
+
+**Given** GitHub issue with labels
+**When** fetched
+**Then** labels are available as `{{task.labels}}` in prompts
+
+**Given** `GITHUB_TOKEN` not set and `gh` not authenticated
+**When** GitHub task manager is configured
+**Then** ConfigError raised with authentication instructions
+
+**Given** issue doesn't exist
+**When** fetch attempted
+**Then** TaskError raised: "Issue #123 not found"
+
+**Given** status sync
+**When** phase transitions
+**Then** issue labels are updated (using Story 11.7 patterns)
+
+---
+
+## Updated Configuration Schema (Course Correction 2026-01-03)
+
+```yaml
+# Full task_manager_config schema (updated)
+task_manager: linear  # or: github_issues, jira, none
+task_manager_config:
+  api_key_env: LINEAR_API_KEY
+  team_key: RULE
+
+  # Status mapping
+  state_mapping:
+    pending: "Todo"
+    running: "In Progress"
+    completed: "Done"
+    failed: "In Progress"
+
+  # Comment sync
+  sync_comments: true           # Post comments on phase transitions
+  comment_on_failure_only: false # Only comment when things fail
+
+  # Label management
+  labels:
+    enabled: true
+    prefix: "adw:"              # Label prefix
+
+  # Issue lifecycle
+  auto_assign: true             # Assign task on run start
+  auto_close: true              # Close task when PR merged
+
+  # Existing
+  include_labels: true
+  include_parent: true
+```
+
+---
+
+## Updated Dependency Flowchart (Course Correction 2026-01-03)
+
+```
+Wave 1: [11.1] TaskManager Protocol + Config
+           │
+           ▼
+Wave 2: [11.2] Linear Implementation
+           │
+     ┌─────┴─────┬──────────┐
+     ▼           ▼          ▼
+Wave 3: [11.3]  [11.4]   [11.5]
+        Status   Pattern   Context
+        Sync     Detect    in Prompts
+           │
+           ▼
+Wave 4: [11.6]  [11.7]   [11.8]   [11.9]   [11.10]
+        Comments Labels   Closing  Assign   GitHub
+```
 
 ---
 

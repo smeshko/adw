@@ -1,6 +1,62 @@
 # Epic 7: Observability & Logging
 
-**Goal:** Provide multi-tier logging (console, raw file, structured JSONL), LLM interaction capture, and debugging commands for state inspection, log search, and export.
+**Goal:** Provide multi-tier logging (console, raw file, structured JSONL), LLM interaction capture, workflow index, and debugging commands for state inspection, log search, and export.
+
+---
+
+## Story 7.0: Workflow Execution Index (MVP Priority - Course Correction 2026-01-03)
+
+**Priority:** MVP (pulled forward from post-MVP)
+
+As a developer,
+I want a central index of all workflow runs,
+So that I can quickly find and reference past executions.
+
+**Acceptance Criteria:**
+
+**Given** a new run starts
+**When** the orchestrator initializes
+**Then** an entry is added to `~/.adw/index.jsonl` with: run_id, project_path, feature_description, started_at, status
+
+**Given** a run completes or fails
+**When** the status changes
+**Then** the index entry is updated with: completed_at, final_status, phase_reached
+
+**Given** command `adw list`
+**When** executed without project context
+**Then** shows recent runs from the global index (across all projects)
+
+**Given** command `adw list --project`
+**When** executed in a project directory
+**Then** filters to runs from current project only
+
+**Given** the index file
+**When** it grows large (>10,000 entries)
+**Then** older entries are archived to `~/.adw/index-archive/YYYY-MM.jsonl`
+
+### Index Entry Schema
+
+```json
+{
+  "run_id": "01HQXK5P3Z7V8R2M4N6T9W1Y3C",
+  "project_path": "/Users/dev/my-project",
+  "project_name": "my-project",
+  "feature_description": "Add user authentication",
+  "started_at": "2025-01-15T10:30:00Z",
+  "completed_at": "2025-01-15T10:35:00Z",
+  "status": "completed",
+  "phase_reached": "document",
+  "phases_completed": ["plan", "build", "verify", "validate", "document"]
+}
+```
+
+### Implementation Notes
+
+- JSONL format for append-only writes (no locking needed)
+- Index is read-only during queries (no corruption risk)
+- Enables future Epic 10 (Cross-Project Dashboard) without schema changes
+
+---
 
 ## Story 7.1: Implement Multi-Tier Logging System
 
