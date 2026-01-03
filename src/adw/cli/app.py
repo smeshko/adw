@@ -9,6 +9,7 @@ from ulid import ULID
 from adw.cli.bootstrap import create_orchestrator
 from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
+from adw.cli.logs import logs_app
 from adw.cli.resume import resume as resume_command
 from adw.cli.status import status as status_command
 from adw.cli.run_display import RunDisplay
@@ -228,3 +229,6 @@ app.command()(status_command)
 # Register the list command (Story 6.4)
 # Note: We use name="list" since list_runs avoids Python keyword conflict
 app.command(name="list")(list_runs)
+
+# Register the logs subapp (Story 7.5)
+app.add_typer(logs_app, name="logs")

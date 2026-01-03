@@ -1,6 +1,6 @@
 # Story 7.5: Implement State Inspection Commands
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-03
@@ -38,41 +38,41 @@ so that I can debug state-related issues.
 ## Tasks / Subtasks
 
 ### Task 1: Extend Logs CLI (cli/logs.py)
-- [ ] Add `state` subcommand
-- [ ] Add `diff` subcommand
-- [ ] Add `snapshots` subcommand
+- [x] Add `state` subcommand
+- [x] Add `diff` subcommand
+- [x] Add `snapshots` subcommand
 
 ### Task 2: Implement `logs snapshots` Command
-- [ ] Accept run_id parameter
-- [ ] List all files in `.agent/runs/<run_id>/snapshots/`
-- [ ] Display table: #, Timestamp, Label, Trigger
-- [ ] Sort by sequence number
+- [x] Accept run_id parameter
+- [x] List all files in `.adw/runs/<run_id>/snapshots/`
+- [x] Display table: #, Timestamp, Label, Trigger
+- [x] Sort by sequence number
 
 ### Task 3: Implement `logs state` Command
-- [ ] Accept run_id parameter
-- [ ] Default: show current/final context.json
-- [ ] With `--snapshot <seq>`: load specific snapshot
-- [ ] With `--phase <name> --at start|end`: show phase boundary state
-- [ ] Format with Rich (JSON syntax highlighting)
+- [x] Accept run_id parameter
+- [x] Default: show current/final context.json
+- [x] With `--snapshot <seq>`: load specific snapshot
+- [x] With `--phase <name> --at start|end`: show phase boundary state
+- [x] Format with Rich (JSON syntax highlighting)
 
 ### Task 4: Implement `logs diff` Command
-- [ ] Accept run_id and two phase identifiers
-- [ ] Load snapshots for both phases
-- [ ] Compute JSON diff (additions, removals, changes)
-- [ ] Display diff with color coding
-- [ ] Support `--from-snapshot` and `--to-snapshot` for specific snapshots
+- [x] Accept run_id and two phase identifiers
+- [x] Load snapshots for both phases
+- [x] Compute JSON diff (additions, removals, changes)
+- [x] Display diff with color coding
+- [x] Support `--from-snapshot` and `--to-snapshot` for specific snapshots
 
 ### Task 5: Create Diff Utility (utils/diff.py)
-- [ ] Implement `json_diff(a, b)` function
-- [ ] Return structured diff with paths
-- [ ] Support nested object comparison
-- [ ] Handle arrays appropriately
+- [x] Implement `json_diff(a, b)` function
+- [x] Return structured diff with paths
+- [x] Support nested object comparison
+- [x] Handle arrays appropriately
 
 ### Task 6: Write Unit Tests
-- [ ] Test snapshots listing
-- [ ] Test state display at different points
-- [ ] Test diff computation
-- [ ] Test CLI command integration
+- [x] Test snapshots listing
+- [x] Test state display at different points
+- [x] Test diff computation
+- [x] Test CLI command integration
 
 ---
 
@@ -311,5 +311,18 @@ Key patterns:
 
 ### Completion Notes List
 
+- Task 1: Created logs CLI subapp with state, diff, snapshots commands. Registered with main app.
+- Task 2: Implemented snapshots command with table display showing sequence, timestamp, label, and trigger.
+- Task 3: Implemented state command with Rich JSON syntax highlighting, supports --snapshot and --phase --at options.
+- Task 4: Implemented diff command with color-coded output for additions (green), removals (red), and changes (yellow).
+- Task 5: Created diff utility module with DiffResult class, supports nested dicts and arrays.
+- Task 6: All 38 unit tests written and passing (20 CLI tests, 18 diff utility tests).
+
 ### File List
+
+- src/adw/cli/logs.py (NEW)
+- src/adw/cli/app.py (MODIFIED)
+- src/adw/utils/diff.py (NEW)
+- tests/unit/cli/test_logs.py (NEW)
+- tests/unit/utils/test_diff.py (NEW)
 
