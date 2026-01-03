@@ -48,13 +48,13 @@ So that automated code generation cannot accidentally destroy my project.
   - suggestion: How to override if needed
 
 ### Task 3: Implement Security Interceptor
-- [ ] Create `src/adw/security/__init__.py`
-- [ ] Create `src/adw/security/interceptor.py` with:
+- [x] Create `src/adw/security/__init__.py`
+- [x] Create `src/adw/security/interceptor.py` with:
   - `SecurityInterceptor` class
   - `check_tool_call(tool_name: str, arguments: dict) -> SecurityCheckResult`
   - `is_blocked(command: str) -> tuple[bool, BlockedPattern | None]`
   - Default blocked patterns (rm -rf, .env access, git push --force)
-- [ ] Create `src/adw/security/patterns.py` with:
+- [x] Create `src/adw/security/patterns.py` with:
   - Default security patterns (BLOCKED_SHELL_PATTERNS, BLOCKED_FILE_PATTERNS)
   - Pattern matching utilities
 
@@ -310,13 +310,20 @@ claude-opus-4-5-20251101
 
 - Task 1: Created security models (BlockedPattern, SecurityConfig, ToolCallLog) with SecuritySeverity enum. Added SecurityConfig to ProjectConfig. All models exported from adw.models.
 - Task 2: Created SecurityError exception with pattern_matched, tool_name, and suggestion fields. Follows existing exception hierarchy patterns.
+- Task 3: Implemented SecurityInterceptor with default blocked patterns for shell commands and file access. Supports custom patterns from config and allow_dangerous mode.
 
 ### File List
 
 **New Files:**
 - src/adw/models/security.py
+- src/adw/security/__init__.py
+- src/adw/security/interceptor.py
+- src/adw/security/patterns.py
 - tests/unit/models/test_security.py
 - tests/unit/test_exceptions.py
+- tests/unit/security/__init__.py
+- tests/unit/security/test_interceptor.py
+- tests/unit/security/test_patterns.py
 
 **Modified Files:**
 - src/adw/models/__init__.py
