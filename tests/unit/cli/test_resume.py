@@ -42,7 +42,8 @@ class TestResumeCommand:
     def test_resume_from_phase_flag_accepted(self, cli_runner: CliRunner) -> None:
         """Test that --from-phase flag is recognized."""
         result = cli_runner.invoke(app, ["resume", "--help"])
-        assert "--from-phase" in result.output
+        # Check for "from-phase" to handle ANSI escape codes splitting the dashes
+        assert "from-phase" in result.output
 
     def test_resume_verbose_flag_accepted(self, cli_runner: CliRunner) -> None:
         """Test that --verbose/-v flag is recognized."""
