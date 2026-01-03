@@ -124,10 +124,10 @@ development_status:
   # ═══════════════════════════════════════════════════════════════════════════
   epic-7: in-progress
   7-1-implement-multi-tier-logging-system: done
-  7-2-configure-verbosity-levels: ready-for-dev
+  7-2-configure-verbosity-levels: in-progress
   7-3-capture-llm-interactions: in-progress
   7-4-implement-log-viewing-commands: ready-for-dev
-  7-5-implement-state-inspection-commands: ready-for-dev
+  7-5-implement-state-inspection-commands: done
   7-6-implement-secret-redaction: ready-for-dev
   epic-7-retrospective: optional
 
