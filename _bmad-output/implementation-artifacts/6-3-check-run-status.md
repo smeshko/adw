@@ -52,11 +52,11 @@ So that I know its current state and outcome.
 - [x] Use color coding for status (green=completed, red=failed, yellow=running)
 
 ### Task 3: Display Completed Run Details
-- [ ] Calculate total duration from timestamps
-- [ ] Count phases completed from phase_history
-- [ ] Count artifacts per phase from artifact directories
-- [ ] Display token usage summary
-- [ ] Format duration in human-readable form (e.g., "2m 34s")
+- [x] Calculate total duration from timestamps
+- [x] Count phases completed from phase_history
+- [x] Count artifacts per phase from artifact directories
+- [x] Display token usage summary
+- [x] Format duration in human-readable form (e.g., "2m 34s")
 
 ### Task 4: Display Failed Run Details (UX-3)
 - [ ] Load error details from context or snapshot
