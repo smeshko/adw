@@ -1,6 +1,6 @@
 # Story 7.5: Implement State Inspection Commands
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-03
@@ -38,9 +38,9 @@ so that I can debug state-related issues.
 ## Tasks / Subtasks
 
 ### Task 1: Extend Logs CLI (cli/logs.py)
-- [ ] Add `state` subcommand
-- [ ] Add `diff` subcommand
-- [ ] Add `snapshots` subcommand
+- [x] Add `state` subcommand
+- [x] Add `diff` subcommand
+- [x] Add `snapshots` subcommand
 
 ### Task 2: Implement `logs snapshots` Command
 - [ ] Accept run_id parameter
@@ -311,5 +311,11 @@ Key patterns:
 
 ### Completion Notes List
 
+- Task 1: Created logs CLI subapp with state, diff, snapshots commands. Registered with main app.
+
 ### File List
+
+- src/adw/cli/logs.py (NEW)
+- src/adw/cli/app.py (MODIFIED)
+- tests/unit/cli/test_logs.py (NEW)
 
