@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
 from adw.logging.manager import LogManager
-from adw.models.logging import LogCategory, LogEvent, LogLevel
+from adw.models.logging import LogCategory, LogEvent, LogLevel, Verbosity
 
 
 class TestLogManagerCreation:
@@ -325,3 +325,78 @@ class TestLogManagerSetLevel:
         # Now allowed
         manager.info(LogCategory.PHASE, "Allowed")
         assert mock_transport.write.call_count == 1
+
+
+class TestLogManagerVerbosity:
+    """Tests for verbosity control in LogManager."""
+
+    def test_set_verbosity_updates_console_transports(self) -> None:
+        """set_verbosity() updates verbosity on console transports."""
+        manager = LogManager()
+        output = io.StringIO()
+        console = ConsoleTransport(file=output, force_tty=False)
+        manager.register(console)
+
+        manager.set_verbosity(Verbosity.QUIET)
+
+        assert console.verbosity == Verbosity.QUIET
+
+    def test_set_verbosity_does_not_affect_file_transports(self, tmp_path: Path) -> None:
+        """set_verbosity() does not affect file transports."""
+        manager = LogManager()
+        output = io.StringIO()
+        console = ConsoleTransport(file=output, force_tty=False)
+        raw_file = RawFileTransport(tmp_path / "raw.log")
+
+        manager.register(console)
+        manager.register(raw_file)
+
+        # Set verbosity to quiet
+        manager.set_verbosity(Verbosity.QUIET)
+
+        # Log at INFO level
+        manager.info(LogCategory.PHASE, "Info message")
+
+        # Console should not show INFO (filtered by QUIET)
+        assert output.getvalue() == ""
+
+        # File should still have the message (files ignore verbosity)
+        assert "Info message" in (tmp_path / "raw.log").read_text()
+
+    def test_set_verbosity_filters_console_output(self) -> None:
+        """set_verbosity() filters messages on console."""
+        manager = LogManager()
+        output = io.StringIO()
+        console = ConsoleTransport(file=output, force_tty=False)
+        manager.register(console)
+
+        # Set to quiet - only errors
+        manager.set_verbosity(Verbosity.QUIET)
+
+        manager.info(LogCategory.PHASE, "Info filtered")
+        manager.error(LogCategory.ERROR, "Error shown")
+
+        result = output.getvalue()
+        assert "Info filtered" not in result
+        assert "Error shown" in result
+
+    def test_verbosity_property(self) -> None:
+        """LogManager has verbosity property."""
+        manager = LogManager()
+        assert manager.verbosity == Verbosity.NORMAL
+
+        manager.set_verbosity(Verbosity.VERBOSE)
+        assert manager.verbosity == Verbosity.VERBOSE
+
+    def test_child_inherits_verbosity(self) -> None:
+        """Child logger inherits parent's verbosity setting."""
+        manager = LogManager()
+        output = io.StringIO()
+        console = ConsoleTransport(file=output, force_tty=False)
+        manager.register(console)
+        manager.set_verbosity(Verbosity.QUIET)
+
+        child = manager.child(run_id="01HQ123ABC")
+
+        # Child should also have QUIET verbosity effect
+        assert child.verbosity == Verbosity.QUIET

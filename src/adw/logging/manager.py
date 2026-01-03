@@ -6,7 +6,7 @@ logging across all transports (console, file, JSONL).
 
 from typing import Any, Protocol, runtime_checkable
 
-from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
+from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel, Verbosity
 
 # Level ordering for filtering
 LEVEL_ORDER: dict[LogLevel, int] = {
@@ -59,6 +59,7 @@ class LogManager:
         level: LogLevel = LogLevel.INFO,
         context: LogContext | None = None,
         transports: list[Transport] | None = None,
+        verbosity: Verbosity = Verbosity.NORMAL,
     ) -> None:
         """Initialize the log manager.
 
@@ -66,10 +67,12 @@ class LogManager:
             level: Minimum log level to process (default: INFO)
             context: Initial context for all events
             transports: Initial transports to register
+            verbosity: Initial verbosity for console output (default: NORMAL)
         """
         self._level = level
         self._context = context or LogContext()
         self._transports: list[Transport] = list(transports) if transports else []
+        self._verbosity = verbosity
 
     @property
     def level(self) -> LogLevel:
@@ -93,6 +96,33 @@ class LogManager:
         """
         self._level = level
 
+    @property
+    def verbosity(self) -> Verbosity:
+        """Get the current verbosity level."""
+        return self._verbosity
+
+    def set_verbosity(self, verbosity: Verbosity) -> None:
+        """Set verbosity level for console transports.
+
+        This method updates the verbosity on all registered ConsoleTransport
+        instances. File transports are not affected - they always log everything.
+
+        Args:
+            verbosity: New verbosity level
+
+        Example:
+            >>> manager = LogManager()
+            >>> manager.register(ConsoleTransport())
+            >>> manager.set_verbosity(Verbosity.QUIET)  # Console shows errors only
+        """
+        # Import here to avoid circular import
+        from adw.logging.console import ConsoleTransport
+
+        self._verbosity = verbosity
+        for transport in self._transports:
+            if isinstance(transport, ConsoleTransport):
+                transport.verbosity = verbosity
+
     def register(self, transport: Transport) -> None:
         """Register a transport.
 
@@ -110,7 +140,7 @@ class LogManager:
     ) -> "LogManager":
         """Create a child logger with extended context.
 
-        Child loggers inherit the parent's transports and level,
+        Child loggers inherit the parent's transports, level, and verbosity,
         but can add additional context that is included in all events.
 
         Args:
@@ -130,6 +160,7 @@ class LogManager:
             level=self._level,
             context=new_context,
             transports=self._transports,
+            verbosity=self._verbosity,
         )
 
     def _should_log(self, level: LogLevel) -> bool:

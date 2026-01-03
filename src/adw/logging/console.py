@@ -117,6 +117,15 @@ class ConsoleTransport:
         """Get the current verbosity level."""
         return self._verbosity
 
+    @verbosity.setter
+    def verbosity(self, value: Verbosity) -> None:
+        """Set the verbosity level.
+
+        Args:
+            value: New verbosity level
+        """
+        self._verbosity = value
+
     def write(self, event: LogEvent) -> None:
         """Write a log event to the console.
 
