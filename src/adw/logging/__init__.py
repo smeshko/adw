@@ -20,6 +20,8 @@ For run-scoped logging:
     >>> run_logger.debug(LogCategory.LLM, "Sending request")
 """
 
+import logging
+
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
 from adw.logging.manager import LogManager, Transport
@@ -94,6 +96,9 @@ def create_redactor_from_config(
         ... )
     """
     if not enabled:
+        logging.getLogger(__name__).warning(
+            "Secret redaction is DISABLED - sensitive data may appear in logs"
+        )
         return None
 
     return configure_redactor(

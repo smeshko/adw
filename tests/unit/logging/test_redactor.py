@@ -115,6 +115,24 @@ class TestRedactorRedactMethod:
         assert "sk-ant-" not in result
         assert REDACTED_PLACEHOLDER in result
 
+    def test_redact_anthropic_key_shorter(self) -> None:
+        """Shorter Anthropic API keys (20+ chars) are also redacted."""
+        redactor = Redactor(DEFAULT_REDACTION_PATTERNS)
+        # Real-world Anthropic keys can be shorter than 50 chars
+        key = "sk-ant-api03-" + "a" * 20
+        result = redactor.redact(f"Key: {key}")
+        assert "sk-ant-" not in result
+        assert REDACTED_PLACEHOLDER in result
+
+    def test_redact_openai_key_minimum_length(self) -> None:
+        """OpenAI keys at minimum length (20 chars) are redacted."""
+        redactor = Redactor(DEFAULT_REDACTION_PATTERNS)
+        # Test at exactly 20 chars (minimum)
+        key = "sk-" + "a" * 20
+        result = redactor.redact(f"Key: {key}")
+        assert "sk-" not in result
+        assert REDACTED_PLACEHOLDER in result
+
     def test_redact_api_key_assignment(self) -> None:
         """Generic api_key= patterns are redacted."""
         redactor = Redactor(DEFAULT_REDACTION_PATTERNS)
@@ -188,6 +206,17 @@ class TestRedactorEnvDetection:
         assert redactor.should_redact_env("LOG_LEVEL") is False
         assert redactor.should_redact_env("HOME") is False
 
+    def test_detects_apikey_without_underscore(self) -> None:
+        """APIKEY (without underscore) is detected."""
+        redactor = Redactor([])
+        assert redactor.should_redact_env("APIKEY") is True
+
+    def test_detects_credentials_variants(self) -> None:
+        """CREDENTIAL and CREDENTIALS are detected."""
+        redactor = Redactor([])
+        assert redactor.should_redact_env("CREDENTIAL") is True
+        assert redactor.should_redact_env("CREDENTIALS") is True
+
 
 class TestRedactorEnvDict:
     """Tests for Redactor.redact_env_dict() method."""
@@ -243,6 +272,21 @@ class TestRedactorDeepRedaction:
         result = redactor.redact_dict(data)
         for item in result["tokens"]:
             assert REDACTED_PLACEHOLDER in item
+
+    def test_redacts_nested_dicts_in_lists(self) -> None:
+        """Nested dictionaries within lists are recursively redacted."""
+        redactor = Redactor(DEFAULT_REDACTION_PATTERNS)
+        data = {
+            "items": [
+                {"api_key": "secret1", "name": "item1"},
+                {"password": "secret2", "name": "item2"},
+            ]
+        }
+        result = redactor.redact_dict(data)
+        assert result["items"][0]["api_key"] == REDACTED_PLACEHOLDER
+        assert result["items"][0]["name"] == "item1"
+        assert result["items"][1]["password"] == REDACTED_PLACEHOLDER
+        assert result["items"][1]["name"] == "item2"
 
     def test_preserves_non_string_values(self) -> None:
         """Non-string values are preserved."""

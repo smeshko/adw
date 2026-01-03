@@ -49,8 +49,8 @@ DEFAULT_REDACTION_PATTERNS: list[str] = [
     r"ghr_[A-Za-z0-9]{36}",
     # GitHub Fine-Grained PAT
     r"github_pat_[A-Za-z0-9_]{82}",
-    # Anthropic API keys
-    r"sk-ant-[A-Za-z0-9\-]{40,}",
+    # Anthropic API keys (typically sk-ant-api03-xxx format, variable length)
+    r"sk-ant-[A-Za-z0-9\-]{20,}",
     # ==========================================================================
     # Generic Secret Patterns (case-insensitive)
     # ==========================================================================
@@ -74,6 +74,7 @@ DEFAULT_REDACTION_PATTERNS: list[str] = [
 # =============================================================================
 
 SENSITIVE_ENV_PATTERNS: list[str] = [
+    # Suffix patterns (e.g., DATABASE_PASSWORD, AWS_SECRET)
     r".*_KEY$",
     r".*_SECRET$",
     r".*_TOKEN$",
@@ -81,11 +82,14 @@ SENSITIVE_ENV_PATTERNS: list[str] = [
     r".*_API_KEY$",
     r".*_AUTH$",
     r".*_CREDENTIAL.*",
+    # Exact matches (common standalone names)
     r"^API_KEY$",
+    r"^APIKEY$",
     r"^SECRET$",
     r"^TOKEN$",
     r"^PASSWORD$",
     r"^AUTH$",
+    r"^CREDENTIALS?$",
 ]
 
 # Placeholder used for redacted content
