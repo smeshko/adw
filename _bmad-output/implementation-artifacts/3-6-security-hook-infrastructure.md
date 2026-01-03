@@ -1,6 +1,6 @@
 # Story 3.6: Security Hook Infrastructure
 
-Status: in-progress
+Status: done
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2026-01-03
@@ -77,11 +77,11 @@ So that automated code generation cannot accidentally destroy my project.
 - [x] Pass flag through to executor configuration
 
 ### Task 7: Write Unit Tests
-- [ ] Test SecurityInterceptor with default patterns
-- [ ] Test custom pattern configuration
-- [ ] Test ToolLogger writes correctly
-- [ ] Test SecurityError formatting
-- [ ] Test .env exception patterns (.env.example, .env.sample)
+- [x] Test SecurityInterceptor with default patterns
+- [x] Test custom pattern configuration
+- [x] Test ToolLogger writes correctly
+- [x] Test SecurityError formatting
+- [x] Test .env exception patterns (.env.example, .env.sample)
 
 ---
 
@@ -314,6 +314,7 @@ claude-opus-4-5-20251101
 - Task 4: Implemented ToolLogger for JSONL logging of tool calls. Writes to run_dir/tools.jsonl with convenience methods and read_entries support.
 - Task 5: Integrated security interceptor and tool logger with ClaudeCodeExecutor. Added _check_and_log_tool_calls method to validate and log tool calls.
 - Task 6: Added --allow-dangerous flag to CLI run command. Updated bootstrap to create security components and pass allow_dangerous to executor.
+- Task 7: All unit tests written and passing (62 total security-related tests). Coverage: security.py 100%, patterns.py 97%, tool_logger.py 97%, interceptor.py 78%.
 
 ### File List
 
