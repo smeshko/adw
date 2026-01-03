@@ -58,11 +58,11 @@ so that I can debug and reproduce issues.
 - [x] Sequence numbering: 001, 002, etc. per run
 
 ### Task 4: Integrate with Claude Code Executor
-- [ ] Modify `ClaudeCodeExecutor.execute()` to accept StreamLogger
-- [ ] Capture all tokens during streaming
-- [ ] Capture tool calls and results
-- [ ] Save request before execution, response after
-- [ ] Handle errors gracefully
+- [x] Modify `ClaudeCodeExecutor.execute()` to accept StreamLogger
+- [x] Capture all tokens during streaming
+- [x] Capture tool calls and results
+- [x] Save request before execution, response after
+- [x] Handle errors gracefully
 
 ### Task 5: Add Secret Filtering (prep for 7.6)
 - [ ] Add `redact_secrets(content)` placeholder function
@@ -302,6 +302,7 @@ claude-opus-4-5-20250514
 - Task 1: Created LLM capture models in models/logging.py - Added StreamEventType enum, LLMStats, LLMToolCall, LLMToolResult, LLMRequest, LLMResponse, and LLMStreamEvent Pydantic models. All models support JSON serialization for file storage (request/response.json) and JSONL (stream events).
 - Task 2: Implemented StreamLogger in logging/stream.py - Captures streaming events with relative timestamps using time.monotonic(). Methods: token(), tool_call(), tool_result(), thinking(), end(), error(). Added to logging package __all__.
 - Task 3: Implemented LLMCaptureManager in logging/llm_capture.py - Writes request/response JSON and stream JSONL files to llm/ directory. 3-digit zero-padded sequence numbers (001, 002, etc.).
+- Task 4: Integrated StreamLogger with ClaudeCodeExecutor - Added optional stream_logger parameter to execute(). Tokens captured during streaming, completion/error events captured in _build_result().
 
 ### File List
 - src/adw/models/logging.py (modified) - Added 7 new models for LLM capture
@@ -311,4 +312,6 @@ claude-opus-4-5-20250514
 - tests/unit/logging/test_stream.py (new) - 16 tests for StreamLogger
 - src/adw/logging/llm_capture.py (new) - LLMCaptureManager class for file-based capture
 - tests/unit/logging/test_llm_capture.py (new) - 15 tests for LLMCaptureManager
+- src/adw/executors/claude_code.py (modified) - Added stream_logger parameter to execute() and _stream_subprocess()
+- tests/unit/executors/test_claude_code.py (modified) - Added 5 tests for StreamLogger integration
 

@@ -1344,3 +1344,189 @@ class TestExceptionCleanup:
 
             # Since returncode is set, kill should NOT be called
             process.kill.assert_not_called()
+
+
+class TestStreamLoggerIntegration:
+    """Tests for StreamLogger integration with ClaudeCodeExecutor (Story 7.3 Task 4)."""
+
+    @pytest.fixture
+    def executor(self) -> ClaudeCodeExecutor:
+        """Create executor with default config."""
+        config = LLMConfig(path="claude")
+        return ClaudeCodeExecutor(config)
+
+    def test_execute_accepts_stream_logger_parameter(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """execute() should accept an optional stream_logger parameter."""
+        from adw.logging.stream import StreamLogger
+
+        stream_logger = StreamLogger()
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"Output\n", b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                # Should not raise - stream_logger is a valid parameter
+                result = executor.execute("Test prompt", stream_logger=stream_logger)
+
+            assert isinstance(result, LLMResult)
+
+    def test_stream_logger_captures_tokens(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """StreamLogger should capture tokens when provided."""
+        from adw.logging.stream import StreamLogger
+        from adw.models.logging import StreamEventType
+
+        stream_logger = StreamLogger()
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(
+                side_effect=[
+                    b"Hello ",
+                    b"World!\n",
+                    b"",  # EOF
+                ]
+            )
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt", stream_logger=stream_logger)
+
+            events = stream_logger.get_events()
+            # Should have captured token events
+            assert len(events) >= 1
+            token_events = [e for e in events if e.type == StreamEventType.TOKEN]
+            assert len(token_events) >= 1
+
+    def test_stream_logger_none_by_default(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """stream_logger should be None by default (no capturing)."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b"Output\n", b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                # Should work without stream_logger
+                result = executor.execute("Test prompt")
+
+            assert isinstance(result, LLMResult)
+
+    def test_stream_logger_captures_complete_event(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """StreamLogger should capture completion event with stats."""
+        import json
+
+        from adw.logging.stream import StreamLogger
+        from adw.models.logging import StreamEventType
+
+        stream_logger = StreamLogger()
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            # Return JSONL with token usage
+            result_json = json.dumps(
+                {
+                    "type": "result",
+                    "usage": {"input_tokens": 100, "output_tokens": 50},
+                }
+            )
+            process.stdout.readline = AsyncMock(
+                side_effect=[result_json.encode() + b"\n", b""]
+            )
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt", stream_logger=stream_logger)
+
+            events = stream_logger.get_events()
+            complete_events = [e for e in events if e.type == StreamEventType.COMPLETE]
+            assert len(complete_events) == 1
+            assert complete_events[0].stats is not None
+
+    def test_stream_logger_captures_error_on_failure(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """StreamLogger should capture error event on failure."""
+        from adw.logging.stream import StreamLogger
+        from adw.models.logging import StreamEventType
+
+        stream_logger = StreamLogger()
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(
+                side_effect=[b"Error: Something went wrong\n", b""]
+            )
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 1  # Failure
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                result = executor.execute("Test prompt", stream_logger=stream_logger)
+
+            assert result.success is False
+            events = stream_logger.get_events()
+            error_events = [e for e in events if e.type == StreamEventType.ERROR]
+            assert len(error_events) == 1
+            assert "Something went wrong" in (error_events[0].error or "")
