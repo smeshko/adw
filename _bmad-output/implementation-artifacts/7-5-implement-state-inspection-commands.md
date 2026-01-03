@@ -1,6 +1,6 @@
 # Story 7.5: Implement State Inspection Commands
 
-Status: in-progress
+Status: done
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-03
@@ -69,10 +69,10 @@ so that I can debug state-related issues.
 - [x] Handle arrays appropriately
 
 ### Task 6: Write Unit Tests
-- [ ] Test snapshots listing
-- [ ] Test state display at different points
-- [ ] Test diff computation
-- [ ] Test CLI command integration
+- [x] Test snapshots listing
+- [x] Test state display at different points
+- [x] Test diff computation
+- [x] Test CLI command integration
 
 ---
 
@@ -316,6 +316,7 @@ Key patterns:
 - Task 3: Implemented state command with Rich JSON syntax highlighting, supports --snapshot and --phase --at options.
 - Task 4: Implemented diff command with color-coded output for additions (green), removals (red), and changes (yellow).
 - Task 5: Created diff utility module with DiffResult class, supports nested dicts and arrays.
+- Task 6: All 38 unit tests written and passing (20 CLI tests, 18 diff utility tests).
 
 ### File List
 
