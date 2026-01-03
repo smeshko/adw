@@ -10,6 +10,7 @@ from ulid import ULID
 
 from adw.cli.progress import ProgressDisplay
 from adw.cli.run_display import RunDisplay
+from adw.commands.template import escape_feature_description
 from adw.config.loader import ConfigLoader
 from adw.core.artifact_manager import ArtifactManager
 from adw.core.context_manager import ContextManager
@@ -115,6 +116,11 @@ def run(
     if not feature_description.strip():
         console.print("[red]Error:[/] Feature description cannot be empty")
         raise typer.Exit(code=1)
+
+    # Escape special characters for template safety (Task 5)
+    # Used when feature is passed to templates/orchestrator; display uses original
+    safe_feature = escape_feature_description(feature_description)
+    _ = safe_feature  # Will be used when orchestrator.run() is fully wired
 
     # Generate run ID and timestamp
     run_id = str(ULID())
