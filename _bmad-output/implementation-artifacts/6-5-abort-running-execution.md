@@ -1,6 +1,6 @@
 # Story 6.5: Abort Running Execution
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -38,60 +38,60 @@ So that I can stop a stuck or unwanted run.
 ## Tasks / Subtasks
 
 ### Task 1: Implement Ctrl+C Confirmation (UX-8)
-- [ ] Modify InterruptionHandler to show confirmation prompt
-- [ ] Display "Abort run? [Y/n]" on first Ctrl+C
-- [ ] On 'Y' or Enter: proceed with abort
-- [ ] On 'N': cancel abort and continue run
-- [ ] On second Ctrl+C: force immediate abort
+- [x] Modify InterruptionHandler to show confirmation prompt
+- [x] Display "Abort run? [Y/n]" on first Ctrl+C
+- [x] On 'Y' or Enter: proceed with abort
+- [x] On 'N': cancel abort and continue run
+- [x] On second Ctrl+C: force immediate abort
 
 ### Task 2: Implement Graceful Abort
-- [ ] Save current state before aborting
-- [ ] Update run status to "aborted" (distinct from "interrupted")
-- [ ] Create abort snapshot with reason
-- [ ] Stop any running LLM processes
-- [ ] Display abort confirmation message
+- [x] Save current state before aborting
+- [x] Update run status to "aborted" (distinct from "interrupted")
+- [x] Create abort snapshot with reason
+- [x] Stop any running LLM processes
+- [x] Display abort confirmation message
 
 ### Task 3: Implement CLI Abort Command
-- [ ] Create `src/adw/cli/abort.py` with abort command
-- [ ] Add `run_id` required argument
-- [ ] Add `--force/-f` flag to skip confirmation
-- [ ] Validate run exists and is active
-- [ ] Display result of abort operation
+- [x] Create `src/adw/cli/abort.py` with abort command
+- [x] Add `run_id` required argument
+- [x] Add `--force/-f` flag to skip confirmation
+- [x] Validate run exists and is active
+- [x] Display result of abort operation
 
 ### Task 4: Implement Remote Abort Logic
-- [ ] Add `abort()` method to Orchestrator
-- [ ] Check if run is in "running" status
-- [ ] Set abort flag that InterruptionHandler checks
-- [ ] Handle race condition with phase completion
-- [ ] Update context with "aborted" status
+- [x] Add `abort()` method to Orchestrator
+- [x] Check if run is in "running" status
+- [x] Set abort flag that InterruptionHandler checks
+- [x] Handle race condition with phase completion
+- [x] Update context with "aborted" status
 
 ### Task 5: Handle Edge Cases
-- [ ] Run not in progress → ConfigError "RUN_NOT_ACTIVE"
-- [ ] Run already aborted → ConfigError "RUN_ALREADY_ABORTED"
-- [ ] Run not found → ConfigError "RUN_NOT_FOUND"
-- [ ] Multiple abort attempts → handle gracefully
+- [x] Run not in progress → ConfigError "RUN_NOT_ACTIVE"
+- [x] Run already aborted → ConfigError "RUN_ALREADY_ABORTED"
+- [x] Run not found → ConfigError "RUN_NOT_FOUND"
+- [x] Multiple abort attempts → handle gracefully
 
 ### Task 6: Update Run Status Enum
-- [ ] Add "aborted" as valid run status
-- [ ] Update status transitions documentation
-- [ ] Update StatusDisplay to handle "aborted" status
-- [ ] Use distinct color for aborted (e.g., orange)
+- [x] Add "aborted" as valid run status
+- [x] Update status transitions documentation
+- [x] Update StatusDisplay to handle "aborted" status
+- [x] Use distinct color for aborted (e.g., orange)
 
 ### Task 7: Write Unit Tests
-- [ ] Create `tests/unit/cli/test_abort.py`
-- [ ] Test abort active run succeeds
-- [ ] Test abort inactive run fails
-- [ ] Test abort non-existent run fails
-- [ ] Test force flag skips confirmation
-- [ ] Test Ctrl+C confirmation flow
-- [ ] Target: >80% coverage
+- [x] Create `tests/unit/cli/test_abort.py`
+- [x] Test abort active run succeeds
+- [x] Test abort inactive run fails
+- [x] Test abort non-existent run fails
+- [x] Test force flag skips confirmation
+- [x] Test Ctrl+C confirmation flow
+- [x] Target: >80% coverage
 
 ### Task 8: Write Integration Tests
-- [ ] Create `tests/integration/cli/test_abort_integration.py`
-- [ ] Test full abort flow
-- [ ] Test state is saved on abort
-- [ ] Test aborted run can be resumed
-- [ ] Verify abort snapshot created
+- [x] Create `tests/integration/cli/test_abort_integration.py`
+- [x] Test full abort flow
+- [x] Test state is saved on abort
+- [x] Test aborted run can be resumed
+- [x] Verify abort snapshot created
 
 ---
 
@@ -508,6 +508,22 @@ Story 6.5 implements abort functionality for stopping running executions.
 
 ### File List
 
+**New Files Created:**
+- `src/adw/cli/abort.py` - Abort CLI command implementation
+- `tests/unit/cli/test_abort.py` - Unit tests for abort command
+- `tests/integration/cli/test_abort_integration.py` - Integration tests for abort flow
+
+**Files Modified:**
+- `src/adw/cli/app.py` - Added abort command registration
+- `src/adw/cli/progress.py` - Added aborted status icon and color
+- `src/adw/core/interruption.py` - Added Ctrl+C confirmation, abort_gracefully method
+- `src/adw/core/orchestrator.py` - Added abort() method
+- `src/adw/core/snapshot_manager.py` - Added create_abort_snapshot() method
+- `src/adw/models/context.py` - Added "aborted" to status Literal
+- `tests/unit/core/test_interruption.py` - Added tests for abort functionality
+- `tests/unit/core/test_orchestrator.py` - Added tests for Orchestrator.abort()
+- `.gitignore` - Added .adw/ directory
+
 ---
 
 ## Dependencies
@@ -527,3 +543,14 @@ Story 6.5 implements abort functionality for stopping running executions.
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-03 | BMAD Create-Epic | Initial story creation with comprehensive context |
+| 2026-01-03 | Dev Agent | Implemented Ctrl+C confirmation prompt (UX-8) |
+| 2026-01-03 | Dev Agent | Implemented abort_gracefully method with state preservation |
+| 2026-01-03 | Dev Agent | Added abort CLI command with --force flag |
+| 2026-01-03 | Dev Agent | Added Orchestrator.abort() method for remote abort |
+| 2026-01-03 | Dev Agent | Added "aborted" status to RunContext model |
+| 2026-01-03 | Dev Agent | Added create_abort_snapshot to SnapshotManager |
+| 2026-01-03 | Dev Agent | Updated StatusDisplay with aborted icon and color |
+| 2026-01-03 | Dev Agent | Added unit and integration tests |
+| 2026-01-03 | Code Review | Fixed .gitignore for .adw/ directory |
+| 2026-01-03 | Code Review | Fixed aborted status color to dark_orange |
+| 2026-01-03 | Code Review | Populated File List section |

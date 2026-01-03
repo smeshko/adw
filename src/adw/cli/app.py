@@ -7,6 +7,7 @@ from rich.console import Console
 from ulid import ULID
 
 from adw.cli.bootstrap import create_orchestrator
+from adw.cli.init import init as init_impl
 from adw.cli.resume import resume as resume_command
 from adw.cli.run_display import RunDisplay
 from adw.cli.validators import validate_phase
@@ -19,6 +20,40 @@ app = typer.Typer(
     help="Agentic Development Workflow SDK",
     add_completion=True,
 )
+
+
+@app.command(name="init")
+def init(
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite existing configuration",
+    ),
+    language: str | None = typer.Option(
+        None,
+        "--language",
+        "-l",
+        help="Override detected language (python, javascript, go, rust, etc.)",
+    ),
+) -> None:
+    """Initialize ADW in the current directory.
+
+    Creates .adw/ directory with project configuration.
+    Auto-detects project type and sets appropriate defaults.
+
+    Examples:
+        adw init                    # Auto-detect and initialize
+        adw init --force            # Reinitialize existing project
+        adw init --language python  # Override detection
+    """
+    try:
+        init_impl(force=force, language=language)
+    except ConfigError as e:
+        console.print(f"[red]Error:[/] {e.message}")
+        if e.suggestion:
+            console.print(f"[dim]Suggestion:[/] {e.suggestion}")
+        raise typer.Exit(1) from None
 
 
 @app.callback(invoke_without_command=True)
@@ -148,6 +183,39 @@ def run(
         console.print(
             "[dim]Suggestion:[/] Ensure phase commands are in .adw/commands/"
         )
+        raise typer.Exit(1) from None
+
+
+@app.command()
+def abort(
+    run_id: str = typer.Argument(
+        ...,
+        help="Run ID to abort",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Abort without confirmation",
+    ),
+) -> None:
+    """Abort a running execution.
+
+    The run must be in 'running' status to be aborted.
+    Use --force to skip the confirmation prompt.
+
+    Examples:
+        adw abort 01HQXK5P3Z7V8R2M4N6T9W1Y3C
+        adw abort 01HQXK5P3Z7V8R2M4N6T9W1Y3C --force
+    """
+    from adw.cli.abort import abort_command
+
+    try:
+        abort_command(run_id=run_id, force=force)
+    except ConfigError as e:
+        console.print(f"[red]Error:[/] {e.message}")
+        if e.suggestion:
+            console.print(f"[dim]Suggestion:[/] {e.suggestion}")
         raise typer.Exit(1) from None
 
 
