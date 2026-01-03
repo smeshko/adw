@@ -328,7 +328,22 @@ N/A - Implementation completed successfully
 - Task 5: Created diff utility module with DiffResult class, supports nested dicts and arrays.
 - Task 6: All 38 unit tests written and passing (20 CLI tests, 18 diff utility tests).
 
+- Task 1: Created logs CLI subapp with state, diff, snapshots commands. Registered with main app.
+- Task 2: Implemented snapshots command with table display showing sequence, timestamp, label, and trigger.
+- Task 3: Implemented state command with Rich JSON syntax highlighting, supports --snapshot and --phase --at options.
+- Task 4: Implemented diff command with color-coded output for additions (green), removals (red), and changes (yellow).
+- Task 5: Created diff utility module with DiffResult class, supports nested dicts and arrays.
+- Task 6: All 38 unit tests written and passing (20 CLI tests, 18 diff utility tests).
+
 ### File List
+| File | Action | Description |
+|------|--------|-------------|
+| `src/adw/cli/app.py` | Modified | Added `logs_app` import and registration via `app.add_typer()` |
+| `src/adw/cli/logs.py` | Created | State inspection CLI commands (snapshots, state, diff) - 536 lines |
+| `src/adw/utils/__init__.py` | Modified | Added exports for `DiffResult` and `json_diff` |
+| `src/adw/utils/diff.py` | Created | JSON diff utility with recursive comparison - 163 lines |
+| `tests/unit/cli/test_logs.py` | Created | Unit tests for logs CLI commands - 407 lines, 20 tests |
+| `tests/unit/utils/test_diff.py` | Created | Unit tests for diff utility - 174 lines, 18 tests |
 
 - src/adw/cli/logs.py (NEW)
 - src/adw/cli/app.py (MODIFIED)
