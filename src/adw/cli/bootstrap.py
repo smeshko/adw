@@ -6,6 +6,7 @@ the complexity of instantiating the orchestrator and its dependencies.
 """
 
 from pathlib import Path
+from typing import TextIO, cast
 
 from rich.console import Console
 
@@ -76,7 +77,7 @@ def create_log_manager(
 
     # Add console transport with verbosity filtering
     console_transport = ConsoleTransport(
-        file=console.file,
+        file=cast(TextIO, console.file),
         force_tty=console.is_terminal,
         verbosity=verbosity,
     )
