@@ -45,11 +45,11 @@ so that I have appropriate output for different use cases.
 - [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Console Transport (logging/console.py)
-- [ ] Create `ConsoleTransport` class using Rich Console
-- [ ] Implement TTY detection via `sys.stdout.isatty()`
-- [ ] Use Rich formatting when TTY, plain text otherwise
-- [ ] Implement `write(event: LogEvent)` method
-- [ ] Support styling based on log level
+- [x] Create `ConsoleTransport` class using Rich Console
+- [x] Implement TTY detection via `sys.stdout.isatty()`
+- [x] Use Rich formatting when TTY, plain text otherwise
+- [x] Implement `write(event: LogEvent)` method
+- [x] Support styling based on log level
 
 ### Task 3: Implement File Transport (logging/file.py)
 - [ ] Create `RawFileTransport` class for raw.log
@@ -299,10 +299,14 @@ Key patterns and rules from project context:
 ### Completion Notes List
 
 - Task 1: Created LogLevel (6 levels), LogCategory (6 categories), LogEvent, and LogContext Pydantic models with full type annotations, docstrings, and serialization support. 22 unit tests passing with 97% coverage.
+- Task 2: Implemented ConsoleTransport with TTY detection, Rich formatting for TTY output, plain text for non-TTY (UX-7 compliant). Level-based styling with distinct ERROR/FATAL formatting. 19 unit tests passing with 94% coverage.
 
 ### File List
 
 - src/adw/models/logging.py (NEW)
 - src/adw/models/__init__.py (MODIFIED)
 - tests/unit/models/test_logging.py (NEW)
+- src/adw/logging/console.py (NEW)
+- tests/unit/logging/__init__.py (NEW)
+- tests/unit/logging/test_console.py (NEW)
 
