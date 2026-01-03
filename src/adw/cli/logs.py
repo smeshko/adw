@@ -21,6 +21,8 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
+from adw.utils.diff import json_diff
+
 console = Console()
 
 logs_app = typer.Typer(
@@ -251,42 +253,6 @@ def _display_state(state: dict[str, Any], title: str) -> None:
     json_str = json.dumps(state, indent=2, default=str)
     syntax = Syntax(json_str, "json", theme="monokai", word_wrap=True)
     console.print(Panel(syntax, title=title, border_style="blue"))
-
-
-def _compute_diff(
-    old: dict[str, Any], new: dict[str, Any], path: str = ""
-) -> list[tuple[str, str, str]]:
-    """Compute differences between two dicts.
-
-    Args:
-        old: Original dict.
-        new: Modified dict.
-        path: Current path prefix for nested keys.
-
-    Returns:
-        List of (type, path, value) tuples where type is '+', '-', or '~'.
-    """
-    changes: list[tuple[str, str, str]] = []
-    all_keys = set(old.keys()) | set(new.keys())
-
-    for key in sorted(all_keys):
-        current_path = f"{path}.{key}" if path else str(key)
-
-        if key not in old:
-            # Addition
-            changes.append(("+", current_path, repr(new[key])))
-        elif key not in new:
-            # Removal
-            changes.append(("-", current_path, repr(old[key])))
-        elif old[key] != new[key]:
-            # Change
-            if isinstance(old[key], dict) and isinstance(new[key], dict):
-                # Recurse into nested dicts
-                changes.extend(_compute_diff(old[key], new[key], current_path))
-            else:
-                changes.append(("~", current_path, f"{repr(old[key])} → {repr(new[key])}"))
-
-    return changes
 
 
 def _display_diff(
@@ -561,6 +527,7 @@ def diff(
     source_state = source_content.get("context", source_content)
     target_state = target_content.get("context", target_content)
 
-    # Compute and display diff
-    changes = _compute_diff(source_state, target_state)
+    # Compute and display diff using utility
+    diff_result = json_diff(source_state, target_state)
+    changes = diff_result.to_changes_list()
     _display_diff(changes, from_label, to_label)

@@ -63,10 +63,10 @@ so that I can debug state-related issues.
 - [x] Support `--from-snapshot` and `--to-snapshot` for specific snapshots
 
 ### Task 5: Create Diff Utility (utils/diff.py)
-- [ ] Implement `json_diff(a, b)` function
-- [ ] Return structured diff with paths
-- [ ] Support nested object comparison
-- [ ] Handle arrays appropriately
+- [x] Implement `json_diff(a, b)` function
+- [x] Return structured diff with paths
+- [x] Support nested object comparison
+- [x] Handle arrays appropriately
 
 ### Task 6: Write Unit Tests
 - [ ] Test snapshots listing
@@ -315,10 +315,13 @@ Key patterns:
 - Task 2: Implemented snapshots command with table display showing sequence, timestamp, label, and trigger.
 - Task 3: Implemented state command with Rich JSON syntax highlighting, supports --snapshot and --phase --at options.
 - Task 4: Implemented diff command with color-coded output for additions (green), removals (red), and changes (yellow).
+- Task 5: Created diff utility module with DiffResult class, supports nested dicts and arrays.
 
 ### File List
 
 - src/adw/cli/logs.py (NEW)
 - src/adw/cli/app.py (MODIFIED)
+- src/adw/utils/diff.py (NEW)
 - tests/unit/cli/test_logs.py (NEW)
+- tests/unit/utils/test_diff.py (NEW)
 
