@@ -67,7 +67,8 @@ development_status:
   # ═══════════════════════════════════════════════════════════════════════════
   # EPIC 3: Hook & Phase Execution
   # Goal: Execute shell hooks and LLM calls within phases with streaming,
-  #       retry, and timeout support
+  #       retry, and timeout support. Includes security hooks added via
+  #       Course Correction 2026-01-03.
   # ═══════════════════════════════════════════════════════════════════════════
   epic-3: in-progress
   3-1-execute-shell-hooks-with-capture: done
@@ -75,6 +76,10 @@ development_status:
   3-3-implement-retry-logic-with-exponential-backoff: done
   3-4-implement-timeout-configuration-and-enforcement: done
   3-5-track-token-usage-and-tool-calls: done
+  # Security Hooks (Course Correction 2026-01-03)
+  3-6-security-hook-infrastructure: ready-for-dev
+  3-7-dangerous-command-patterns: ready-for-dev
+  3-8-tool-execution-logging: ready-for-dev
   epic-3-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -123,7 +128,7 @@ development_status:
   #       capabilities
   # ═══════════════════════════════════════════════════════════════════════════
   epic-7: in-progress
-  7-0-workflow-execution-index: ready-for-dev
+  7-0-workflow-execution-index: in-progress
   7-1-implement-multi-tier-logging-system: done
   7-2-configure-verbosity-levels: done
   7-3-capture-llm-interactions: review

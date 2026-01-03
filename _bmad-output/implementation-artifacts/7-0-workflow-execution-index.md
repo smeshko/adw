@@ -39,10 +39,10 @@ so that I can quickly find and reference past executions across all projects.
 ## Tasks / Subtasks
 
 ### Task 1: Create IndexEntry Model
-- [ ] Create `src/adw/models/index.py`
-- [ ] Define `IndexEntry` Pydantic model with all required fields
-- [ ] Add JSON serialization support
-- [ ] Export from `src/adw/models/__init__.py`
+- [x] Create `src/adw/models/index.py`
+- [x] Define `IndexEntry` Pydantic model with all required fields
+- [x] Add JSON serialization support
+- [x] Export from `src/adw/models/__init__.py`
 
 ### Task 2: Implement IndexManager
 - [ ] Create `src/adw/core/index_manager.py`
