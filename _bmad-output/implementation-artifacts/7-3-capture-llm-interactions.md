@@ -44,11 +44,11 @@ so that I can debug and reproduce issues.
 - [x] Create `LLMToolCall` and `LLMToolResult` models
 
 ### Task 2: Implement Stream Logger (logging/stream.py)
-- [ ] Create `StreamLogger` class with interface from arch doc
-- [ ] Implement `token(content)` method
-- [ ] Implement `tool_call(call)` and `tool_result(result)` methods
-- [ ] Implement `thinking(content)` for reasoning blocks
-- [ ] Implement `end(stats)` and `error(error)` methods
+- [x] Create `StreamLogger` class with interface from arch doc
+- [x] Implement `token(content)` method
+- [x] Implement `tool_call(call)` and `tool_result(result)` methods
+- [x] Implement `thinking(content)` for reasoning blocks
+- [x] Implement `end(stats)` and `error(error)` methods
 
 ### Task 3: Implement LLM File Capture (logging/llm_capture.py)
 - [ ] Create `LLMCaptureManager` class
@@ -300,8 +300,12 @@ claude-opus-4-5-20250514
 
 ### Completion Notes List
 - Task 1: Created LLM capture models in models/logging.py - Added StreamEventType enum, LLMStats, LLMToolCall, LLMToolResult, LLMRequest, LLMResponse, and LLMStreamEvent Pydantic models. All models support JSON serialization for file storage (request/response.json) and JSONL (stream events).
+- Task 2: Implemented StreamLogger in logging/stream.py - Captures streaming events with relative timestamps using time.monotonic(). Methods: token(), tool_call(), tool_result(), thinking(), end(), error(). Added to logging package __all__.
 
 ### File List
 - src/adw/models/logging.py (modified) - Added 7 new models for LLM capture
 - tests/unit/models/test_logging.py (modified) - Added 18 new tests for LLM capture models
+- src/adw/logging/stream.py (new) - StreamLogger class for capturing LLM streaming events
+- src/adw/logging/__init__.py (modified) - Added StreamLogger to package exports
+- tests/unit/logging/test_stream.py (new) - 16 tests for StreamLogger
 
