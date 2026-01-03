@@ -59,11 +59,11 @@ So that I don't lose progress.
 - [x] Continue phase sequence from resume point
 
 ### Task 4: Validate Run State for Resume
-- [ ] Check run status (must be "failed", "interrupted", or "running")
-- [ ] Raise ConfigError for "completed" runs
-- [ ] Validate context.json is not corrupted
-- [ ] Raise StateError with snapshot suggestion if corrupted
-- [ ] Check required artifacts exist for resume phase
+- [x] Check run status (must be "failed", "interrupted", or "running")
+- [x] Raise ConfigError for "completed" runs
+- [x] Validate context.json is not corrupted
+- [x] Raise StateError with snapshot suggestion if corrupted
+- [x] Check required artifacts exist for resume phase
 
 ### Task 5: Load Artifacts from Previous Phases
 - [ ] Retrieve artifacts from completed phases via ArtifactManager
