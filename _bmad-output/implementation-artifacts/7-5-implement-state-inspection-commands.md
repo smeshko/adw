@@ -115,7 +115,7 @@ src/adw/cli/logs.py   # Add state/diff/snapshots commands
 
 **Snapshot File Structure:**
 ```
-.agent/runs/<run_id>/snapshots/
+.adw/runs/<run_id>/snapshots/
 ├── 001_run_start.json
 ├── 002_plan_start.json
 ├── 003_plan_end.json
@@ -304,10 +304,15 @@ Key patterns:
 ## Dev Agent Record
 
 ### Context Reference
+- Story 7.4 (Logs CLI structure)
+- Story 4.3 (State Snapshots - SnapshotManager)
+- Architecture: docs/arch-logging.md
 
 ### Agent Model Used
+claude-opus-4-5-20251101
 
 ### Debug Log References
+N/A - Implementation completed successfully
 
 ### Completion Notes List
 
@@ -319,10 +324,12 @@ Key patterns:
 - Task 6: All 38 unit tests written and passing (20 CLI tests, 18 diff utility tests).
 
 ### File List
-
-- src/adw/cli/logs.py (NEW)
-- src/adw/cli/app.py (MODIFIED)
-- src/adw/utils/diff.py (NEW)
-- tests/unit/cli/test_logs.py (NEW)
-- tests/unit/utils/test_diff.py (NEW)
+| File | Action | Description |
+|------|--------|-------------|
+| `src/adw/cli/app.py` | Modified | Added `logs_app` import and registration via `app.add_typer()` |
+| `src/adw/cli/logs.py` | Created | State inspection CLI commands (snapshots, state, diff) - 536 lines |
+| `src/adw/utils/__init__.py` | Modified | Added exports for `DiffResult` and `json_diff` |
+| `src/adw/utils/diff.py` | Created | JSON diff utility with recursive comparison - 163 lines |
+| `tests/unit/cli/test_logs.py` | Created | Unit tests for logs CLI commands - 407 lines, 20 tests |
+| `tests/unit/utils/test_diff.py` | Created | Unit tests for diff utility - 174 lines, 18 tests |
 
