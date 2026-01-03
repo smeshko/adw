@@ -9,8 +9,16 @@ from typing import Literal
 
 # Type alias for project types
 ProjectType = Literal[
-    "python", "nodejs", "javascript", "go", "rust",
-    "java", "ruby", "php", "unknown", "generic",
+    "python",
+    "nodejs",
+    "javascript",
+    "go",
+    "rust",
+    "java",
+    "ruby",
+    "php",
+    "unknown",
+    "generic",
 ]
 
 

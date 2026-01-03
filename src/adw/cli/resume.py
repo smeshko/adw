@@ -63,8 +63,7 @@ def resume(
     except ADWError as e:
         console.print(
             Panel(
-                f"[red]Error:[/] {e.message}\n\n"
-                f"[dim]Suggestion:[/] {e.suggestion}",
+                f"[red]Error:[/] {e.message}\n\n[dim]Suggestion:[/] {e.suggestion}",
                 title=f"[red]{e.code}[/]",
                 border_style="red",
             )
@@ -97,8 +96,7 @@ def resume(
     except ADWError as e:
         console.print(
             Panel(
-                f"[red]Error:[/] {e.message}\n\n"
-                f"[dim]Suggestion:[/] {e.suggestion}",
+                f"[red]Error:[/] {e.message}\n\n[dim]Suggestion:[/] {e.suggestion}",
                 title=f"[red]{e.code}[/]",
                 border_style="red",
             )

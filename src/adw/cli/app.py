@@ -180,9 +180,7 @@ def run(
     except RuntimeError as e:
         # PhaseRunner not set - infrastructure not ready
         console.print(f"[red]Error:[/] {e}")
-        console.print(
-            "[dim]Suggestion:[/] Ensure phase commands are in .adw/commands/"
-        )
+        console.print("[dim]Suggestion:[/] Ensure phase commands are in .adw/commands/")
         raise typer.Exit(1) from None
 
 

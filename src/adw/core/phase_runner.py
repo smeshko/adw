@@ -142,7 +142,10 @@ class PhaseRunner:
 
             # Step 2: Load and render prompt
             rendered_prompt = self._load_and_render_prompt(
-                phase, context, pre_hook_output, command,
+                phase,
+                context,
+                pre_hook_output,
+                command,
                 artifacts_override=artifacts_override,
             )
 
