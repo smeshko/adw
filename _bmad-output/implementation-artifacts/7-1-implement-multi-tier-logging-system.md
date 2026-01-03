@@ -52,11 +52,11 @@ so that I have appropriate output for different use cases.
 - [x] Support styling based on log level
 
 ### Task 3: Implement File Transport (logging/file.py)
-- [ ] Create `RawFileTransport` class for raw.log
-- [ ] Create `StructuredFileTransport` class for logs.jsonl
-- [ ] Implement atomic appends with file locking
-- [ ] Handle file rotation setup (optional for MVP)
-- [ ] Ensure non-blocking writes per NFR3
+- [x] Create `RawFileTransport` class for raw.log
+- [x] Create `StructuredFileTransport` class for logs.jsonl
+- [x] Implement atomic appends with file locking
+- [x] Handle file rotation setup (optional for MVP) - deferred to future story
+- [x] Ensure non-blocking writes per NFR3
 
 ### Task 4: Implement Log Manager (logging/manager.py)
 - [ ] Create `LogManager` singleton/global instance
@@ -300,6 +300,7 @@ Key patterns and rules from project context:
 
 - Task 1: Created LogLevel (6 levels), LogCategory (6 categories), LogEvent, and LogContext Pydantic models with full type annotations, docstrings, and serialization support. 22 unit tests passing with 97% coverage.
 - Task 2: Implemented ConsoleTransport with TTY detection, Rich formatting for TTY output, plain text for non-TTY (UX-7 compliant). Level-based styling with distinct ERROR/FATAL formatting. 19 unit tests passing with 94% coverage.
+- Task 3: Implemented RawFileTransport (human-readable) and StructuredFileTransport (JSONL) with file locking for concurrent write safety. Auto-creates parent directories. 26 unit tests passing with 96% coverage.
 
 ### File List
 
@@ -309,4 +310,6 @@ Key patterns and rules from project context:
 - src/adw/logging/console.py (NEW)
 - tests/unit/logging/__init__.py (NEW)
 - tests/unit/logging/test_console.py (NEW)
+- src/adw/logging/file.py (NEW)
+- tests/unit/logging/test_file.py (NEW)
 
