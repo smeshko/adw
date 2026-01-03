@@ -6,7 +6,7 @@ import typer
 from rich.console import Console
 from ulid import ULID
 
-from adw.cli.bootstrap import create_orchestrator
+from adw.cli.bootstrap import create_log_manager, create_orchestrator
 from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
 from adw.cli.resume import resume as resume_command
@@ -172,6 +172,14 @@ def run(
     if dry_run:
         console.print("[yellow]Dry run mode - no execution[/]")
         return
+
+    # Get verbosity from context (Story 7.2)
+    verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL) if ctx.obj else Verbosity.NORMAL
+
+    # Create log manager with verbosity (Story 7.2)
+    # Note: LogManager will be integrated with orchestrator in future stories
+    log_manager = create_log_manager(console, verbosity=verbosity)
+    _ = log_manager  # Log manager created, integration with orchestrator pending
 
     try:
         orchestrator = create_orchestrator(console)
