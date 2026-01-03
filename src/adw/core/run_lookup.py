@@ -100,3 +100,58 @@ class RunLookup:
         # Sort by run_id (ULID) descending - most recent first
         incomplete_runs.sort(key=lambda x: x[0], reverse=True)
         return incomplete_runs[0][1]
+
+    def list_runs(
+        self,
+        limit: int = 10,
+        status: str | None = None,
+    ) -> list[RunContext]:
+        """List runs with optional filtering.
+
+        Returns runs sorted by creation time (newest first). ULID provides
+        natural lexicographic sorting by timestamp.
+
+        Args:
+            limit: Maximum number of runs to return.
+            status: Filter by status (optional).
+
+        Returns:
+            List of RunContext objects, sorted newest first.
+
+        Example:
+            >>> lookup = RunLookup(runs_dir)
+            >>> # Get 10 most recent runs
+            >>> runs = lookup.list_runs()
+            >>> # Get failed runs only
+            >>> failed = lookup.list_runs(status="failed")
+        """
+        if not self.runs_dir.exists():
+            return []
+
+        runs: list[RunContext] = []
+
+        # List all run directories (ULID sorts naturally by time)
+        run_dirs = sorted(self.runs_dir.iterdir(), reverse=True)
+
+        for run_dir in run_dirs:
+            if not run_dir.is_dir():
+                continue
+
+            try:
+                context = self.context_manager.load(run_dir.name)
+
+                # Apply status filter
+                if status and context.status != status:
+                    continue
+
+                runs.append(context)
+
+                # Stop when we have enough
+                if len(runs) >= limit:
+                    break
+
+            except Exception:
+                # Skip corrupted runs
+                continue
+
+        return runs

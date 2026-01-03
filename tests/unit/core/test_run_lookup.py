@@ -222,3 +222,144 @@ class TestFindMostRecentIncomplete:
 
         context = lookup.find_most_recent_incomplete()
         assert context is None
+
+
+class TestListRuns:
+    """Tests for list_runs method (Story 6.4)."""
+
+    def test_list_returns_empty_when_no_runs(self, runs_dir: Path) -> None:
+        """Test that list returns empty list when no runs exist."""
+        lookup = RunLookup(runs_dir)
+        runs = lookup.list_runs()
+
+        assert runs == []
+
+    def test_list_returns_default_limit(self, runs_dir: Path) -> None:
+        """Test that list returns default 10 runs when more exist."""
+        # Create 15 runs
+        for i in range(15):
+            run_id = f"01HQXK5P3Z7V8R2M4N6T9W{i:04d}"
+            create_test_run(runs_dir, run_id, status="completed")
+
+        lookup = RunLookup(runs_dir)
+        runs = lookup.list_runs()
+
+        assert len(runs) == 10
+
+    def test_list_respects_custom_limit(self, runs_dir: Path) -> None:
+        """Test that list respects custom limit parameter."""
+        # Create 10 runs
+        for i in range(10):
+            run_id = f"01HQXK5P3Z7V8R2M4N6T9W{i:04d}"
+            create_test_run(runs_dir, run_id, status="completed")
+
+        lookup = RunLookup(runs_dir)
+        runs = lookup.list_runs(limit=5)
+
+        assert len(runs) == 5
+
+    def test_list_sorted_newest_first(self, runs_dir: Path) -> None:
+        """Test that runs are sorted newest first by ULID."""
+        # Create runs with specific ULIDs (lexicographic order)
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3A", status="completed")
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3Z", status="completed")
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y30", status="completed")
+
+        lookup = RunLookup(runs_dir)
+        runs = lookup.list_runs()
+
+        # Z > A > 0 in ULID sorting (newest first)
+        assert runs[0].run_id == "01HQXK5P3Z7V8R2M4N6T9W1Y3Z"
+        assert runs[1].run_id == "01HQXK5P3Z7V8R2M4N6T9W1Y3A"
+        assert runs[2].run_id == "01HQXK5P3Z7V8R2M4N6T9W1Y30"
+
+    def test_list_filters_by_status(self, runs_dir: Path) -> None:
+        """Test that status filter works correctly."""
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3A", status="completed")
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3B", status="failed")
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3C", status="completed")
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3D", status="failed")
+
+        lookup = RunLookup(runs_dir)
+        failed_runs = lookup.list_runs(status="failed")
+
+        assert len(failed_runs) == 2
+        assert all(r.status == "failed" for r in failed_runs)
+
+    def test_list_filters_by_running_status(self, runs_dir: Path) -> None:
+        """Test filtering by running status."""
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3A", status="completed")
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3B", status="running")
+
+        lookup = RunLookup(runs_dir)
+        running_runs = lookup.list_runs(status="running")
+
+        assert len(running_runs) == 1
+        assert running_runs[0].status == "running"
+
+    def test_list_filters_by_interrupted_status(self, runs_dir: Path) -> None:
+        """Test filtering by interrupted status."""
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3A", status="completed")
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3B", status="interrupted")
+
+        lookup = RunLookup(runs_dir)
+        interrupted_runs = lookup.list_runs(status="interrupted")
+
+        assert len(interrupted_runs) == 1
+        assert interrupted_runs[0].status == "interrupted"
+
+    def test_list_returns_fewer_when_less_exist(self, runs_dir: Path) -> None:
+        """Test that list returns all runs when fewer than limit exist."""
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3A", status="completed")
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3B", status="completed")
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3C", status="completed")
+
+        lookup = RunLookup(runs_dir)
+        runs = lookup.list_runs(limit=10)
+
+        assert len(runs) == 3
+
+    def test_list_skips_corrupted_runs(self, runs_dir: Path) -> None:
+        """Test that corrupted runs are skipped."""
+        # Create valid runs
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3A", status="completed")
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3C", status="completed")
+
+        # Create a corrupted run
+        corrupted_dir = runs_dir / "01HQXK5P3Z7V8R2M4N6T9W1Y3B"
+        corrupted_dir.mkdir(parents=True)
+        (corrupted_dir / "context.json").write_text("{ invalid }")
+
+        lookup = RunLookup(runs_dir)
+        runs = lookup.list_runs()
+
+        # Should only get the valid runs
+        assert len(runs) == 2
+
+    def test_list_ignores_non_directory_entries(self, runs_dir: Path) -> None:
+        """Test that non-directory entries are ignored."""
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3A", status="completed")
+        (runs_dir / "somefile.txt").write_text("not a run")
+
+        lookup = RunLookup(runs_dir)
+        runs = lookup.list_runs()
+
+        assert len(runs) == 1
+
+    def test_list_handles_missing_runs_dir(self, tmp_path: Path) -> None:
+        """Test that missing runs_dir returns empty list."""
+        nonexistent = tmp_path / "nonexistent" / "runs"
+        lookup = RunLookup(nonexistent)
+
+        runs = lookup.list_runs()
+        assert runs == []
+
+    def test_list_filter_returns_empty_when_no_match(self, runs_dir: Path) -> None:
+        """Test that filter returns empty when no runs match."""
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3A", status="completed")
+        create_test_run(runs_dir, "01HQXK5P3Z7V8R2M4N6T9W1Y3B", status="completed")
+
+        lookup = RunLookup(runs_dir)
+        failed_runs = lookup.list_runs(status="failed")
+
+        assert failed_runs == []
