@@ -167,3 +167,36 @@ def run(
             "[dim]Suggestion:[/] Ensure phase commands are configured in .adw/commands/"
         )
         raise typer.Exit(1)
+
+
+@app.command()
+def abort(
+    run_id: str = typer.Argument(
+        ...,
+        help="Run ID to abort",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Abort without confirmation",
+    ),
+) -> None:
+    """Abort a running execution.
+
+    The run must be in 'running' status to be aborted.
+    Use --force to skip the confirmation prompt.
+
+    Examples:
+        adw abort 01HQXK5P3Z7V8R2M4N6T9W1Y3C
+        adw abort 01HQXK5P3Z7V8R2M4N6T9W1Y3C --force
+    """
+    from adw.cli.abort import abort_command
+
+    try:
+        abort_command(run_id=run_id, force=force)
+    except ConfigError as e:
+        console.print(f"[red]Error:[/] {e.message}")
+        if e.suggestion:
+            console.print(f"[dim]Suggestion:[/] {e.suggestion}")
+        raise typer.Exit(1)

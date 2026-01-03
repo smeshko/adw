@@ -52,11 +52,11 @@ So that I can stop a stuck or unwanted run.
 - [x] Display abort confirmation message
 
 ### Task 3: Implement CLI Abort Command
-- [ ] Create `src/adw/cli/abort.py` with abort command
-- [ ] Add `run_id` required argument
-- [ ] Add `--force/-f` flag to skip confirmation
-- [ ] Validate run exists and is active
-- [ ] Display result of abort operation
+- [x] Create `src/adw/cli/abort.py` with abort command
+- [x] Add `run_id` required argument
+- [x] Add `--force/-f` flag to skip confirmation
+- [x] Validate run exists and is active
+- [x] Display result of abort operation
 
 ### Task 4: Implement Remote Abort Logic
 - [ ] Add `abort()` method to Orchestrator
