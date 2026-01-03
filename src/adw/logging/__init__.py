@@ -49,6 +49,16 @@ def get_logger() -> LogManager:
     return _default_logger
 
 
+def reset_logger() -> None:
+    """Reset the default logger instance.
+
+    Clears the module-level default logger, allowing a fresh instance
+    to be created on the next get_logger() call. Useful for testing.
+    """
+    global _default_logger
+    _default_logger = None
+
+
 def configure_default_logger(
     *,
     level: LogLevel = LogLevel.INFO,
@@ -110,4 +120,5 @@ __all__ = [
     # Functions
     "get_logger",
     "configure_default_logger",
+    "reset_logger",
 ]

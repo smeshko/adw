@@ -10,8 +10,7 @@ from typing import TextIO
 from rich.console import Console
 from rich.text import Text
 
-from adw.models.logging import LogCategory, LogEvent, LogLevel
-
+from adw.models.logging import LogEvent, LogLevel
 
 # Level styling configuration for Rich console
 LEVEL_STYLES: dict[LogLevel, str] = {
@@ -61,8 +60,10 @@ class ConsoleTransport:
         # Determine TTY mode
         if force_tty is not None:
             self._is_tty = force_tty
+        elif hasattr(self._file, "isatty"):
+            self._is_tty = self._file.isatty()
         else:
-            self._is_tty = self._file.isatty() if hasattr(self._file, "isatty") else False
+            self._is_tty = False
 
         # Create Rich console for TTY output
         # force_terminal=None uses is_terminal detection
@@ -118,6 +119,9 @@ class ConsoleTransport:
             text.append(f"({event.context.run_id}) ", style="dim")
         if event.context.phase:
             text.append(f"[{event.context.phase}] ", style="magenta")
+        if event.context.extra:
+            extra_str = " ".join(f"{k}={v}" for k, v in event.context.extra.items())
+            text.append(f"{{{extra_str}}} ", style="dim italic")
 
         # Message (styled based on level for errors)
         if event.level in (LogLevel.ERROR, LogLevel.FATAL):
@@ -139,12 +143,16 @@ class ConsoleTransport:
             context_parts.append(f"({event.context.run_id})")
         if event.context.phase:
             context_parts.append(f"[{event.context.phase}]")
+        if event.context.extra:
+            extra_str = " ".join(f"{k}={v}" for k, v in event.context.extra.items())
+            context_parts.append(f"{{{extra_str}}}")
         context_str = " ".join(context_parts)
         if context_str:
             context_str = f" {context_str}"
 
-        # Format: TIMESTAMP [LEVEL] [category] (run_id) [phase] message
-        line = f"{timestamp} [{level_name:5}] [{event.category.value}]{context_str} {event.message}"
+        # Format: TIMESTAMP [LEVEL] [category] (run_id) [phase] {extra} message
+        category = event.category.value
+        line = f"{timestamp} [{level_name:5}] [{category}]{context_str} {event.message}"
 
         # Use console.print to ensure consistent output, but without markup
         self._console.print(line, markup=False, highlight=False)

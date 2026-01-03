@@ -2,15 +2,12 @@
 
 import io
 from pathlib import Path
-from typing import Protocol
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
-from adw.logging.manager import LogManager, Transport
-from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
+from adw.logging.manager import LogManager
+from adw.models.logging import LogCategory, LogEvent, LogLevel
 
 
 class TestLogManagerCreation:
@@ -70,6 +67,23 @@ class TestTransportRegistration:
         transport = CustomTransport()
         manager.register(transport)
 
+        assert len(manager.transports) == 1
+
+    def test_transports_returns_copy(self) -> None:
+        """transports property returns a copy, not the internal list."""
+        manager = LogManager()
+        mock_transport = MagicMock()
+        manager.register(mock_transport)
+
+        # Get the transports list
+        transports1 = manager.transports
+        transports2 = manager.transports
+
+        # Should be different list objects
+        assert transports1 is not transports2
+
+        # Mutating the returned list should not affect internal state
+        transports1.clear()
         assert len(manager.transports) == 1
 
 

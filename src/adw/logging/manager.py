@@ -8,7 +8,6 @@ from typing import Any, Protocol, runtime_checkable
 
 from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
 
-
 # Level ordering for filtering
 LEVEL_ORDER: dict[LogLevel, int] = {
     LogLevel.TRACE: 0,
@@ -79,8 +78,12 @@ class LogManager:
 
     @property
     def transports(self) -> list[Transport]:
-        """Get the registered transports."""
-        return self._transports
+        """Get a copy of the registered transports.
+
+        Returns a copy to prevent external mutation of the internal list.
+        Use register() to add new transports.
+        """
+        return list(self._transports)
 
     def set_level(self, level: LogLevel) -> None:
         """Set the log level.

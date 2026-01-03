@@ -1,6 +1,6 @@
 """Tests for logging-related Pydantic models."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -119,7 +119,7 @@ class TestLogEvent:
 
     def test_create_full_event(self) -> None:
         """LogEvent can be created with all fields."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ctx = LogContext(run_id="01HQ123ABC", phase="build")
         event = LogEvent(
             timestamp=now,
@@ -136,13 +136,13 @@ class TestLogEvent:
 
     def test_event_auto_timestamp(self) -> None:
         """LogEvent auto-generates timestamp if not provided."""
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         event = LogEvent(
             level=LogLevel.DEBUG,
             category=LogCategory.LLM,
             message="Auto timestamp test",
         )
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
         assert before <= event.timestamp <= after
 
     def test_event_serialization(self) -> None:

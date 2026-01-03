@@ -2,8 +2,8 @@
 
 import io
 import sys
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import patch
 
 import pytest
 
@@ -63,7 +63,7 @@ class TestConsoleTransportWrite:
         output = io.StringIO()
         transport = ConsoleTransport(file=output, force_tty=False)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         event = LogEvent(
             timestamp=now,
             level=LogLevel.DEBUG,
@@ -215,3 +215,61 @@ class TestConsoleTransportContext:
 
         result = output.getvalue()
         assert "build" in result
+
+    def test_includes_extra_when_present(self) -> None:
+        """write() includes extra context fields."""
+        output = io.StringIO()
+        transport = ConsoleTransport(file=output, force_tty=False)
+
+        event = LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.LLM,
+            message="LLM request",
+            context=LogContext(extra={"component": "executor", "attempt": 1}),
+        )
+        transport.write(event)
+
+        result = output.getvalue()
+        assert "component=executor" in result
+        assert "attempt=1" in result
+
+    def test_includes_extra_in_tty_mode(self) -> None:
+        """write() includes extra context in TTY mode."""
+        output = io.StringIO()
+        transport = ConsoleTransport(file=output, force_tty=True)
+
+        event = LogEvent(
+            level=LogLevel.DEBUG,
+            category=LogCategory.HOOK,
+            message="Hook running",
+            context=LogContext(extra={"hook_name": "pre-build"}),
+        )
+        transport.write(event)
+
+        result = output.getvalue()
+        assert "hook_name=pre-build" in result
+
+
+class TestLevelStyles:
+    """Tests for LEVEL_STYLES constant."""
+
+    def test_all_levels_have_styles(self) -> None:
+        """LEVEL_STYLES maps all LogLevel values."""
+        from adw.logging.console import LEVEL_STYLES
+
+        for level in LogLevel:
+            assert level in LEVEL_STYLES, f"Missing style for {level}"
+
+    def test_styles_are_strings(self) -> None:
+        """All LEVEL_STYLES values are strings."""
+        from adw.logging.console import LEVEL_STYLES
+
+        for level, style in LEVEL_STYLES.items():
+            assert isinstance(style, str), f"Style for {level} is not a string"
+
+    def test_error_levels_have_red(self) -> None:
+        """ERROR and FATAL levels include red styling."""
+        from adw.logging.console import LEVEL_STYLES
+
+        assert "red" in LEVEL_STYLES[LogLevel.ERROR]
+        assert "red" in LEVEL_STYLES[LogLevel.FATAL]

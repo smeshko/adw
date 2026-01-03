@@ -2,9 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
-from adw import logging as adw_logging
 from adw.logging import (
     ConsoleTransport,
     LogCategory,
@@ -17,6 +14,7 @@ from adw.logging import (
     Transport,
     configure_default_logger,
     get_logger,
+    reset_logger,
 )
 
 
@@ -70,14 +68,14 @@ class TestGetLogger:
     def test_get_logger_returns_log_manager(self) -> None:
         """get_logger returns a LogManager instance."""
         # Reset module state for clean test
-        adw_logging._default_logger = None
+        reset_logger()
 
         logger = get_logger()
         assert isinstance(logger, LogManager)
 
     def test_get_logger_returns_same_instance(self) -> None:
         """get_logger returns the same instance on repeated calls."""
-        adw_logging._default_logger = None
+        reset_logger()
 
         logger1 = get_logger()
         logger2 = get_logger()
@@ -85,7 +83,7 @@ class TestGetLogger:
 
     def test_get_logger_default_level_is_info(self) -> None:
         """get_logger default level is INFO."""
-        adw_logging._default_logger = None
+        reset_logger()
 
         logger = get_logger()
         assert logger.level == LogLevel.INFO
@@ -96,21 +94,21 @@ class TestConfigureDefaultLogger:
 
     def test_configure_creates_new_logger(self) -> None:
         """configure_default_logger creates a new logger."""
-        adw_logging._default_logger = None
+        reset_logger()
 
         logger = configure_default_logger()
         assert isinstance(logger, LogManager)
 
     def test_configure_with_custom_level(self) -> None:
         """configure_default_logger accepts custom level."""
-        adw_logging._default_logger = None
+        reset_logger()
 
         logger = configure_default_logger(level=LogLevel.DEBUG)
         assert logger.level == LogLevel.DEBUG
 
     def test_configure_with_console_true(self) -> None:
         """configure_default_logger adds console transport by default."""
-        adw_logging._default_logger = None
+        reset_logger()
 
         logger = configure_default_logger(console=True)
         assert len(logger.transports) == 1
@@ -118,14 +116,14 @@ class TestConfigureDefaultLogger:
 
     def test_configure_with_console_false(self) -> None:
         """configure_default_logger can skip console transport."""
-        adw_logging._default_logger = None
+        reset_logger()
 
         logger = configure_default_logger(console=False)
         assert len(logger.transports) == 0
 
     def test_configure_with_raw_file(self, tmp_path: Path) -> None:
         """configure_default_logger adds raw file transport."""
-        adw_logging._default_logger = None
+        reset_logger()
         log_path = tmp_path / "raw.log"
 
         logger = configure_default_logger(
@@ -137,7 +135,7 @@ class TestConfigureDefaultLogger:
 
     def test_configure_with_jsonl_file(self, tmp_path: Path) -> None:
         """configure_default_logger adds JSONL file transport."""
-        adw_logging._default_logger = None
+        reset_logger()
         log_path = tmp_path / "logs.jsonl"
 
         logger = configure_default_logger(
@@ -149,7 +147,7 @@ class TestConfigureDefaultLogger:
 
     def test_configure_with_all_transports(self, tmp_path: Path) -> None:
         """configure_default_logger can add all transports."""
-        adw_logging._default_logger = None
+        reset_logger()
 
         logger = configure_default_logger(
             console=True,
@@ -160,10 +158,32 @@ class TestConfigureDefaultLogger:
 
     def test_configure_replaces_previous_logger(self) -> None:
         """configure_default_logger replaces the previous default logger."""
-        adw_logging._default_logger = None
+        reset_logger()
 
         logger1 = configure_default_logger(level=LogLevel.INFO)
         logger2 = configure_default_logger(level=LogLevel.DEBUG)
 
         assert logger1 is not logger2
         assert get_logger() is logger2
+
+
+class TestResetLogger:
+    """Tests for reset_logger function."""
+
+    def test_reset_logger_clears_default(self) -> None:
+        """reset_logger clears the default logger."""
+        # First create a logger
+        reset_logger()
+        logger1 = get_logger()
+
+        # Reset and get a new one
+        reset_logger()
+        logger2 = get_logger()
+
+        # Should be different instances
+        assert logger1 is not logger2
+
+    def test_reset_logger_exported(self) -> None:
+        """reset_logger is exported from package."""
+        assert reset_logger is not None
+        assert callable(reset_logger)

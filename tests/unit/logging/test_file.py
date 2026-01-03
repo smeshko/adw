@@ -1,11 +1,8 @@
 """Tests for the file transport classes."""
 
 import json
-import os
 import threading
-from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -161,7 +158,7 @@ class TestStructuredFileTransport:
         assert parsed["message"] == "LLM interaction"
 
     def test_includes_all_required_fields(self, tmp_path: Path) -> None:
-        """StructuredFileTransport includes timestamp, level, category, message, context."""
+        """StructuredFileTransport includes all required fields."""
         log_path = tmp_path / "logs.jsonl"
         transport = StructuredFileTransport(log_path)
 
@@ -318,3 +315,169 @@ class TestFileTransportAllLevels:
         content = log_path.read_text().strip()
         parsed = json.loads(content)
         assert parsed["level"] == level.value
+
+
+class TestRawFileTransportExtraContext:
+    """Tests for extra context rendering in RawFileTransport."""
+
+    def test_includes_extra_context(self, tmp_path: Path) -> None:
+        """RawFileTransport includes extra context fields in output."""
+        log_path = tmp_path / "raw.log"
+        transport = RawFileTransport(log_path)
+
+        event = LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.LLM,
+            message="LLM request",
+            context=LogContext(extra={"component": "executor", "attempt": 1}),
+        )
+        transport.write(event)
+
+        content = log_path.read_text()
+        assert "component=executor" in content
+        assert "attempt=1" in content
+
+    def test_extra_context_empty_not_shown(self, tmp_path: Path) -> None:
+        """RawFileTransport does not show empty extra context."""
+        log_path = tmp_path / "raw.log"
+        transport = RawFileTransport(log_path)
+
+        event = LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.PHASE,
+            message="Test message",
+            context=LogContext(),
+        )
+        transport.write(event)
+
+        content = log_path.read_text()
+        assert "{}" not in content
+
+
+class TestFileTransportClose:
+    """Tests for close() method and context manager support."""
+
+    def test_raw_transport_close_removes_lock(self, tmp_path: Path) -> None:
+        """RawFileTransport.close() removes the lock file."""
+        log_path = tmp_path / "raw.log"
+        transport = RawFileTransport(log_path)
+
+        event = LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.PHASE,
+            message="Test",
+        )
+        transport.write(event)
+
+        lock_path = log_path.with_suffix(".log.lock")
+        assert lock_path.exists()
+
+        transport.close()
+        assert not lock_path.exists()
+
+    def test_structured_transport_close_removes_lock(self, tmp_path: Path) -> None:
+        """StructuredFileTransport.close() removes the lock file."""
+        log_path = tmp_path / "logs.jsonl"
+        transport = StructuredFileTransport(log_path)
+
+        event = LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.PHASE,
+            message="Test",
+        )
+        transport.write(event)
+
+        lock_path = log_path.with_suffix(".jsonl.lock")
+        assert lock_path.exists()
+
+        transport.close()
+        assert not lock_path.exists()
+
+    def test_raw_transport_context_manager(self, tmp_path: Path) -> None:
+        """RawFileTransport can be used as context manager."""
+        log_path = tmp_path / "raw.log"
+
+        with RawFileTransport(log_path) as transport:
+            event = LogEvent(
+                level=LogLevel.INFO,
+                category=LogCategory.PHASE,
+                message="Test",
+            )
+            transport.write(event)
+
+        # Lock should be cleaned up after context manager exits
+        lock_path = log_path.with_suffix(".log.lock")
+        assert not lock_path.exists()
+
+    def test_structured_transport_context_manager(self, tmp_path: Path) -> None:
+        """StructuredFileTransport can be used as context manager."""
+        log_path = tmp_path / "logs.jsonl"
+
+        with StructuredFileTransport(log_path) as transport:
+            event = LogEvent(
+                level=LogLevel.INFO,
+                category=LogCategory.PHASE,
+                message="Test",
+            )
+            transport.write(event)
+
+        lock_path = log_path.with_suffix(".jsonl.lock")
+        assert not lock_path.exists()
+
+    def test_closed_transport_does_not_write(self, tmp_path: Path) -> None:
+        """Closed transport silently ignores write calls."""
+        log_path = tmp_path / "raw.log"
+        transport = RawFileTransport(log_path)
+
+        event1 = LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.PHASE,
+            message="Before close",
+        )
+        transport.write(event1)
+        transport.close()
+
+        event2 = LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.PHASE,
+            message="After close",
+        )
+        transport.write(event2)
+
+        content = log_path.read_text()
+        assert "Before close" in content
+        assert "After close" not in content
+
+
+class TestFileTransportErrorHandling:
+    """Tests for error handling in file transports."""
+
+    def test_raw_transport_handles_write_error(self, tmp_path: Path) -> None:
+        """RawFileTransport handles write errors gracefully."""
+        log_path = tmp_path / "raw.log"
+        transport = RawFileTransport(log_path)
+
+        # Write successfully first
+        event = LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.PHASE,
+            message="First write",
+        )
+        transport.write(event)
+
+        # Verify file was created
+        assert log_path.exists()
+
+    def test_structured_transport_handles_write_error(self, tmp_path: Path) -> None:
+        """StructuredFileTransport handles write errors gracefully."""
+        log_path = tmp_path / "logs.jsonl"
+        transport = StructuredFileTransport(log_path)
+
+        event = LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.PHASE,
+            message="Test write",
+        )
+        transport.write(event)
+
+        assert log_path.exists()
