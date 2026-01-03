@@ -20,6 +20,7 @@ from ulid import ULID
 
 from adw.core.constants import PHASE_SEQUENCE
 from adw.core.context_manager import ContextManager
+from adw.core.index_manager import IndexManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
@@ -84,6 +85,7 @@ class Orchestrator:
         artifact_manager: Manager for storing phase artifacts.
         run_directory_manager: Manager for run directory structure.
         interruption_handler: Handler for graceful shutdown on Ctrl+C/SIGTERM.
+        index_manager: Manager for global workflow execution index.
         max_retries: Maximum retry attempts for recoverable errors.
 
     Example:
@@ -107,6 +109,7 @@ class Orchestrator:
         artifact_manager: "ArtifactManager",
         run_directory_manager: RunDirectoryManager,
         interruption_handler: InterruptionHandler | None = None,
+        index_manager: IndexManager | None = None,
         *,
         progress_display: "ProgressDisplay | None" = None,
         max_retries: int = 3,
@@ -120,10 +123,13 @@ class Orchestrator:
             artifact_manager: Manager for storing phase artifacts.
             run_directory_manager: Manager for run directory structure.
             interruption_handler: Handler for graceful shutdown (optional).
+            index_manager: Manager for global execution index (optional).
             progress_display: Display for phase progress (optional, Story 5.5).
             max_retries: Maximum retry attempts for recoverable errors (default: 3).
         """
         self.runs_dir = runs_dir
+        # Derive project path from runs_dir (runs_dir is typically .adw/runs)
+        self._project_path = runs_dir.parent.parent
         self.context_manager = context_manager
         self.snapshot_manager = snapshot_manager
         self.artifact_manager = artifact_manager
@@ -131,6 +137,7 @@ class Orchestrator:
         self.interruption_handler = interruption_handler or InterruptionHandler(
             context_manager, snapshot_manager
         )
+        self.index_manager = index_manager or IndexManager()
         self.progress_display = progress_display
         self.max_retries = max_retries
         self._phase_runner: PhaseRunnerProtocol | None = None
@@ -213,6 +220,9 @@ class Orchestrator:
         # Persist initial state before any phase execution (NFR6)
         self.context_manager.save(context)
 
+        # Register run in global index (Story 7.0)
+        self.index_manager.register_run(context, self._project_path)
+
         logger.info(
             "Starting run",
             extra={"run_id": run_id, "feature": feature_description},
@@ -236,6 +246,15 @@ class Orchestrator:
                 )
                 self.context_manager.save(context)
 
+                # Update global index on completion (Story 7.0)
+                self.index_manager.update_run(
+                    context.run_id,
+                    status="completed",
+                    completed_at=context.completed_at,
+                    phase_reached=context.current_phase,
+                    phases_completed=list(context.phase_history),
+                )
+
                 # Show pipeline summary (Story 5.5)
                 if self.progress_display:
                     total_tokens = sum(context.phase_tokens.values())
@@ -256,6 +275,13 @@ class Orchestrator:
 
         except ShutdownRequested as e:
             # Graceful shutdown - state already saved by handler
+            # Update global index on interruption (Story 7.0)
+            self.index_manager.update_run(
+                context.run_id,
+                status="interrupted",
+                phase_reached=e.phase,
+                phases_completed=list(context.phase_history),
+            )
             logger.info(
                 "Run interrupted",
                 extra={"run_id": run_id, "phase": e.phase},
@@ -271,6 +297,15 @@ class Orchestrator:
                 }
             )
             self.context_manager.save(context)
+
+            # Update global index on failure (Story 7.0)
+            self.index_manager.update_run(
+                context.run_id,
+                status="failed",
+                completed_at=context.completed_at,
+                phase_reached=context.current_phase,
+                phases_completed=list(context.phase_history),
+            )
 
             # Show pipeline summary on failure (Story 5.5)
             if self.progress_display:
@@ -790,6 +825,13 @@ class Orchestrator:
                 }
             )
             self.context_manager.save(context)
+
+            # Update global index on phase transition (Story 7.0)
+            self.index_manager.update_run(
+                context.run_id,
+                phase_reached=phase,
+                phases_completed=list(context.phase_history),
+            )
 
             transition_time_ms = (time.monotonic() - transition_start) * 1000
             logger.info(

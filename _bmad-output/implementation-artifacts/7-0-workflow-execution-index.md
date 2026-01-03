@@ -53,10 +53,10 @@ so that I can quickly find and reference past executions across all projects.
 - [x] Handle concurrent access safely (JSONL is append-only)
 
 ### Task 3: Integrate with Orchestrator
-- [ ] Modify `src/adw/core/orchestrator.py`
-- [ ] Call `index_manager.register_run()` on run initialization
-- [ ] Call `index_manager.update_run()` on phase transitions
-- [ ] Call `index_manager.update_run()` on run completion/failure
+- [x] Modify `src/adw/core/orchestrator.py`
+- [x] Call `index_manager.register_run()` on run initialization
+- [x] Call `index_manager.update_run()` on phase transitions
+- [x] Call `index_manager.update_run()` on run completion/failure
 
 ### Task 4: Update CLI List Command
 - [ ] Modify `src/adw/cli/list.py`
