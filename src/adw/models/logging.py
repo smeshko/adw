@@ -16,7 +16,7 @@ And LLM capture models (Story 7.3):
 - StreamEventType: Types of stream events
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -41,6 +41,35 @@ class LogLevel(str, Enum):
     WARN = "warn"
     ERROR = "error"
     FATAL = "fatal"
+
+
+class Verbosity(str, Enum):
+    """CLI verbosity levels for controlling console output.
+
+    Verbosity controls what level of detail is shown on the console:
+    - QUIET: Only errors and fatal messages (-q, --quiet)
+    - NORMAL: Info and above (default)
+    - VERBOSE: Debug and above (-v, --verbose)
+    - TRACE: Everything including trace (--trace)
+
+    Note: Verbosity affects console output only, not file logs.
+    File logs always capture everything for debugging purposes.
+    """
+
+    QUIET = "quiet"
+    NORMAL = "normal"
+    VERBOSE = "verbose"
+    TRACE = "trace"
+
+
+# Verbosity-to-LogLevel threshold mapping
+# Determines the minimum LogLevel shown at each Verbosity
+VERBOSITY_LEVEL_MAP: dict["Verbosity", LogLevel] = {
+    Verbosity.QUIET: LogLevel.ERROR,  # Only ERROR and FATAL
+    Verbosity.NORMAL: LogLevel.INFO,  # INFO, WARN, ERROR, FATAL
+    Verbosity.VERBOSE: LogLevel.DEBUG,  # DEBUG and above
+    Verbosity.TRACE: LogLevel.TRACE,  # Everything
+}
 
 
 class LogCategory(str, Enum):
@@ -141,7 +170,7 @@ class LogContext(BaseModel):
 
 def _utc_now() -> datetime:
     """Get current UTC timestamp."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class LogEvent(BaseModel):

@@ -6,15 +6,17 @@ import typer
 from rich.console import Console
 from ulid import ULID
 
-from adw.cli.bootstrap import create_orchestrator
+from adw.cli.bootstrap import create_log_manager, create_orchestrator
 from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
+from adw.cli.logs import logs_app
 from adw.cli.resume import resume as resume_command
-from adw.cli.status import status as status_command
 from adw.cli.run_display import RunDisplay
+from adw.cli.status import status as status_command
 from adw.cli.validators import validate_phase
 from adw.commands.template import escape_feature_description
 from adw.exceptions import ADWError, ConfigError
+from adw.models.logging import Verbosity
 
 console = Console()
 app = typer.Typer(
@@ -60,9 +62,42 @@ def init(
 
 @app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     version: bool = typer.Option(False, "--version", "-V", help="Show version"),
+    quiet: bool = typer.Option(
+        False, "--quiet", "-q", help="Show errors only (minimal output)"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show detailed output including debug info"
+    ),
+    trace: bool = typer.Option(
+        False, "--trace", help="Show all output including trace-level debugging"
+    ),
 ) -> None:
     """Agentic Development Workflow SDK CLI."""
+    # Handle mutual exclusivity of verbosity flags
+    verbosity_flags = sum([quiet, verbose, trace])
+    if verbosity_flags > 1:
+        console.print(
+            "[red]Error:[/] Verbosity flags are mutually exclusive. "
+            "Use only one of: --quiet, --verbose, --trace"
+        )
+        raise typer.Exit(1)
+
+    # Determine verbosity level
+    if quiet:
+        verbosity = Verbosity.QUIET
+    elif trace:
+        verbosity = Verbosity.TRACE
+    elif verbose:
+        verbosity = Verbosity.VERBOSE
+    else:
+        verbosity = Verbosity.NORMAL
+
+    # Store verbosity in context for subcommands
+    ctx.ensure_object(dict)
+    ctx.obj["verbosity"] = verbosity
+
     if version:
         from adw import __version__
 
@@ -72,6 +107,7 @@ def main(
 
 @app.command()
 def run(
+    ctx: typer.Context,
     feature: str = typer.Argument(
         ...,
         help="Feature description to implement",
@@ -89,12 +125,6 @@ def run(
         "--from-run",
         "-f",
         help="Load artifacts from this run ID (required for phases after plan)",
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Enable verbose output",
     ),
     dry_run: bool = typer.Option(
         False,
@@ -143,6 +173,16 @@ def run(
     if dry_run:
         console.print("[yellow]Dry run mode - no execution[/]")
         return
+
+    # Get verbosity from context (Story 7.2)
+    verbosity = Verbosity.NORMAL
+    if ctx.obj:
+        verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL)
+
+    # Create log manager with verbosity (Story 7.2)
+    # Note: LogManager will be integrated with orchestrator in future stories
+    log_manager = create_log_manager(console, verbosity=verbosity)
+    _ = log_manager  # Log manager created, integration with orchestrator pending
 
     try:
         orchestrator = create_orchestrator(console)
@@ -228,3 +268,6 @@ app.command()(status_command)
 # Register the list command (Story 6.4)
 # Note: We use name="list" since list_runs avoids Python keyword conflict
 app.command(name="list")(list_runs)
+
+# Register the logs subapp (Story 7.5)
+app.add_typer(logs_app, name="logs")

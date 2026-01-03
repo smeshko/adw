@@ -15,18 +15,20 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
-from adw.cli.bootstrap import create_orchestrator, get_runs_dir
+from adw.cli.bootstrap import create_log_manager, create_orchestrator, get_runs_dir
 from adw.cli.run_display import RunDisplay
 from adw.cli.validators import validate_phase
 from adw.core.run_lookup import RunLookup
 from adw.exceptions import ADWError, ConfigError, StateError
 from adw.models import RunContext
+from adw.models.logging import Verbosity
 
 console = Console()
 logger = logging.getLogger(__name__)
 
 
 def resume(
+    ctx: typer.Context,
     run_id: str | None = typer.Argument(
         None,
         help="Run ID to resume (defaults to most recent incomplete)",
@@ -36,12 +38,6 @@ def resume(
         "--from-phase",
         help="Phase to resume from (overrides saved state)",
         callback=validate_phase,
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Enable verbose output",
     ),
 ) -> None:
     """Resume a failed or interrupted run.
@@ -53,8 +49,13 @@ def resume(
         adw resume 01HQXK5P3Z...     # Resume specific run
         adw resume --from-phase build # Restart from build phase
     """
-    # Enable verbose logging if requested (Story 6.2 Task 1)
-    if verbose:
+    # Get verbosity from context (Story 7.2)
+    verbosity = Verbosity.NORMAL
+    if ctx.obj:
+        verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL)
+
+    # Enable debug logging for VERBOSE/TRACE levels
+    if verbosity in (Verbosity.VERBOSE, Verbosity.TRACE):
         logging.basicConfig(level=logging.DEBUG, format="%(name)s - %(message)s")
         logger.debug("Verbose mode enabled")
 
@@ -90,6 +91,11 @@ def resume(
 
     try:
         logger.debug("Creating orchestrator and starting resume")
+
+        # Create log manager with verbosity (Story 7.2)
+        log_manager = create_log_manager(console, verbosity=verbosity)
+        _ = log_manager  # Log manager created, integration with orchestrator pending
+
         orchestrator = create_orchestrator(console)
         result = orchestrator.resume(context.run_id, from_phase=from_phase)
         console.print(f"[green]Run completed:[/] {result.run_id}")

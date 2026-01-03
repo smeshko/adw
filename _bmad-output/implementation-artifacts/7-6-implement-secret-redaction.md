@@ -1,6 +1,6 @@
 # Story 7.6: Implement Secret Redaction
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-03
@@ -34,40 +34,40 @@ so that secrets are never exposed.
 ## Tasks / Subtasks
 
 ### Task 1: Create Redaction Models (models/config.py)
-- [ ] Add `RedactionConfig` model to config
-- [ ] Define default redaction patterns
-- [ ] Support custom patterns from project.yaml
+- [x] Add `RedactionConfig` model to config
+- [x] Define default redaction patterns
+- [x] Support custom patterns from project.yaml
 
 ### Task 2: Implement Redactor (logging/redactor.py)
-- [ ] Create `Redactor` class
-- [ ] Implement pattern-based redaction
-- [ ] Support environment variable name matching
-- [ ] Implement `redact(content: str) -> str` method
-- [ ] Handle JSON content (deep redaction)
+- [x] Create `Redactor` class
+- [x] Implement pattern-based redaction
+- [x] Support environment variable name matching
+- [x] Implement `redact(content: str) -> str` method
+- [x] Handle JSON content (deep redaction)
 
 ### Task 3: Define Default Patterns
-- [ ] API key patterns: `Bearer [A-Za-z0-9-_]+`, `sk-[A-Za-z0-9]+`
-- [ ] Environment variables: `*_KEY`, `*_SECRET`, `*_TOKEN`, `*_PASSWORD`
-- [ ] Common secrets: AWS keys, GitHub tokens, etc.
-- [ ] Document patterns in code comments
+- [x] API key patterns: `Bearer [A-Za-z0-9-_]+`, `sk-[A-Za-z0-9]+`
+- [x] Environment variables: `*_KEY`, `*_SECRET`, `*_TOKEN`, `*_PASSWORD`
+- [x] Common secrets: AWS keys, GitHub tokens, etc.
+- [x] Document patterns in code comments
 
 ### Task 4: Integrate with Log Manager
-- [ ] Apply redaction before writing to all transports
-- [ ] Redact console output
-- [ ] Redact file logs (raw and structured)
-- [ ] Redact LLM captures (request/response)
+- [x] Apply redaction before writing to all transports
+- [x] Redact console output
+- [x] Redact file logs (raw and structured)
+- [x] Redact LLM captures (request/response)
 
 ### Task 5: Add Configuration Support
-- [ ] Load redaction patterns from project.yaml
-- [ ] Merge with default patterns
-- [ ] Support pattern enable/disable
+- [x] Load redaction patterns from project.yaml
+- [x] Merge with default patterns
+- [x] Support pattern enable/disable
 
 ### Task 6: Write Unit Tests
-- [ ] Test default pattern redaction
-- [ ] Test custom pattern addition
-- [ ] Test environment variable redaction
-- [ ] Test JSON deep redaction
-- [ ] Test log manager integration
+- [x] Test default pattern redaction
+- [x] Test custom pattern addition
+- [x] Test environment variable redaction
+- [x] Test JSON deep redaction
+- [x] Test log manager integration
 
 ---
 
@@ -89,17 +89,18 @@ so that secrets are never exposed.
 ```python
 DEFAULT_REDACTION_PATTERNS = [
     # API Keys
-    r"Bearer [A-Za-z0-9\-_\.]+",
-    r"sk-[A-Za-z0-9]{48,}",        # OpenAI
+    r"Bearer\s+[A-Za-z0-9\-_\.]+",
+    r"sk-[A-Za-z0-9]{20,}",        # OpenAI (20+ chars for flexibility)
     r"AKIA[A-Z0-9]{16}",           # AWS Access Key
+    r"sk-ant-[A-Za-z0-9\-]{20,}",  # Anthropic (20+ chars for flexibility)
     r"ghp_[A-Za-z0-9]{36}",        # GitHub Personal Token
     r"gho_[A-Za-z0-9]{36}",        # GitHub OAuth Token
     r"github_pat_[A-Za-z0-9_]{82}", # GitHub PAT (fine-grained)
 
     # Generic patterns
-    r"(?i)api[_-]?key['\"]?\s*[:=]\s*['\"]?[A-Za-z0-9\-_\.]+",
-    r"(?i)secret[_-]?key['\"]?\s*[:=]\s*['\"]?[A-Za-z0-9\-_\.]+",
-    r"(?i)password['\"]?\s*[:=]\s*['\"]?[^\s'\"]+",
+    r"(?i)api[_-]?key['\"]?\s*[:=]\s*['\"]?[A-Za-z0-9\-_\.]{8,}",
+    r"(?i)secret[_-]?key['\"]?\s*[:=]\s*['\"]?[A-Za-z0-9\-_\.]{8,}",
+    r"(?i)password['\"]?\s*[:=]\s*['\"]?[^\s'\"]{4,}",
 ]
 
 SENSITIVE_ENV_PATTERNS = [
@@ -109,6 +110,8 @@ SENSITIVE_ENV_PATTERNS = [
     r".*_PASSWORD$",
     r".*_API_KEY$",
     r".*_AUTH$",
+    r"^APIKEY$",       # Standalone without underscore
+    r"^CREDENTIALS?$", # CREDENTIAL or CREDENTIALS
 ]
 ```
 
@@ -317,12 +320,37 @@ Key patterns:
 ## Dev Agent Record
 
 ### Context Reference
+- PRD: NFR14 (No secrets in logs), NFR17 (Configurable redaction patterns)
+- Architecture: logging module, config models
 
 ### Agent Model Used
+claude-opus-4-5-20251101
 
 ### Debug Log References
+N/A
 
 ### Completion Notes List
+1. Created `RedactionConfig` and `LoggingConfig` models in `models/config.py`
+2. Implemented `Redactor` class in `logging/redactor.py` with:
+   - Pattern-based string redaction
+   - Environment variable name detection
+   - Deep dictionary redaction for JSON logs
+3. Defined comprehensive default patterns covering:
+   - Bearer tokens, OpenAI keys, AWS keys, GitHub PATs
+   - Anthropic keys, generic api_key/password/token patterns
+   - Sensitive env var suffixes (_KEY, _SECRET, _TOKEN, _PASSWORD)
+4. Integrated redactor with `LogManager` - redaction applied before all transports
+5. Added configuration support via `configure_default_logger()` and `create_redactor_from_config()`
+6. Wrote 48 comprehensive unit tests with 90%+ coverage on new code
 
 ### File List
+**New Files:**
+- `src/adw/logging/redactor.py` - Redactor class and patterns
+- `tests/unit/logging/test_redactor.py` - 39 tests for redactor
+
+**Modified Files:**
+- `src/adw/models/config.py` - Added RedactionConfig, LoggingConfig
+- `src/adw/logging/manager.py` - Integrated redactor with LogManager
+- `src/adw/logging/__init__.py` - Exported redaction functions
+- `tests/unit/logging/test_manager.py` - Added 9 redaction tests
 

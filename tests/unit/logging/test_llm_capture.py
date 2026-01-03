@@ -242,22 +242,24 @@ class TestLLMCaptureManagerSequencing:
 
 
 class TestLLMCaptureManagerRedaction:
-    """Tests for redaction integration (Story 7.6 prep)."""
+    """Tests for redaction integration."""
 
     def test_request_applies_redaction(self, tmp_path: Path) -> None:
-        """capture_request() applies redact_secrets() to prompt."""
-        from unittest.mock import patch
+        """capture_request() applies Redactor.redact() to prompt."""
+        from unittest.mock import MagicMock, patch
 
         llm_dir = tmp_path / "llm"
         manager = LLMCaptureManager(llm_dir)
 
-        with patch("adw.logging.llm_capture.redact_secrets") as mock_redact:
-            mock_redact.return_value = "REDACTED_PROMPT"
+        mock_redactor = MagicMock()
+        mock_redactor.redact.return_value = "REDACTED_PROMPT"
+
+        with patch("adw.logging.llm_capture.get_redactor", return_value=mock_redactor):
             manager.capture_request(
                 LLMRequest(prompt="secret: sk-1234", phase="build")
             )
 
-            mock_redact.assert_called_once_with("secret: sk-1234")
+            mock_redactor.redact.assert_called_once_with("secret: sk-1234")
 
         # Verify redacted content was written
         file_path = llm_dir / "001_build_request.json"
@@ -265,20 +267,22 @@ class TestLLMCaptureManagerRedaction:
         assert content["prompt"] == "REDACTED_PROMPT"
 
     def test_response_applies_redaction(self, tmp_path: Path) -> None:
-        """capture_response() applies redact_secrets() to content."""
-        from unittest.mock import patch
+        """capture_response() applies Redactor.redact() to content."""
+        from unittest.mock import MagicMock, patch
 
         llm_dir = tmp_path / "llm"
         manager = LLMCaptureManager(llm_dir)
         manager.capture_request(LLMRequest(prompt="test", phase="build"))
 
-        with patch("adw.logging.llm_capture.redact_secrets") as mock_redact:
-            mock_redact.return_value = "REDACTED_CONTENT"
+        mock_redactor = MagicMock()
+        mock_redactor.redact.return_value = "REDACTED_CONTENT"
+
+        with patch("adw.logging.llm_capture.get_redactor", return_value=mock_redactor):
             manager.capture_response(
                 LLMResponse(content="API key: sk-secret", phase="build")
             )
 
-            mock_redact.assert_called_once_with("API key: sk-secret")
+            mock_redactor.redact.assert_called_once_with("API key: sk-secret")
 
         # Verify redacted content was written
         file_path = llm_dir / "001_build_response.json"

@@ -19,7 +19,7 @@ Example:
 
 from pathlib import Path
 
-from adw.logging.redaction import redact_secrets
+from adw.logging.redactor import get_redactor
 from adw.models.logging import LLMRequest, LLMResponse, LLMStreamEvent
 
 
@@ -112,9 +112,10 @@ class LLMCaptureManager:
         filename = f"{self._sequence_str()}_{request.phase}_request.json"
         file_path = self._llm_dir / filename
 
-        # Apply secret redaction before writing (placeholder until Story 7.6)
+        # Apply secret redaction before writing
+        redactor = get_redactor()
         redacted_request = request.model_copy(
-            update={"prompt": redact_secrets(request.prompt)}
+            update={"prompt": redactor.redact(request.prompt)}
         )
 
         # Write formatted JSON for readability
@@ -144,9 +145,10 @@ class LLMCaptureManager:
         filename = f"{self._sequence_str()}_{response.phase}_response.json"
         file_path = self._llm_dir / filename
 
-        # Apply secret redaction before writing (placeholder until Story 7.6)
+        # Apply secret redaction before writing
+        redactor = get_redactor()
         redacted_response = response.model_copy(
-            update={"content": redact_secrets(response.content)}
+            update={"content": redactor.redact(response.content)}
         )
 
         # Write formatted JSON for readability
