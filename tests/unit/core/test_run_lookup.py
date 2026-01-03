@@ -3,7 +3,6 @@
 Tests for finding runs by ID and finding the most recent incomplete run.
 """
 
-import json
 from datetime import UTC, datetime
 from pathlib import Path
 

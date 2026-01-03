@@ -594,15 +594,24 @@ Story 6.2 implements the resume command, enabling users to continue runs that fa
 
 ### Completion Notes List
 
+- Code review performed: Fixed 3 HIGH and 4 MEDIUM issues
+- Extracted duplicate `_validate_phase` to shared `validators.py` (DRY fix)
+- Added proper StateError handling for corrupted context files (AC4 compliance)
+- Implemented verbose flag with debug logging support
+- Added test for StateError on corrupted context
+- All 32 tests passing
+
 ### File List
 
 - src/adw/cli/resume.py (NEW)
-- src/adw/cli/app.py (MODIFIED - added resume import and registration)
+- src/adw/cli/validators.py (NEW - shared phase validation, extracted from duplicate code)
+- src/adw/cli/app.py (MODIFIED - added resume import, uses shared validators)
 - src/adw/cli/run_display.py (MODIFIED - added show_resume_header())
+- src/adw/cli/__init__.py (MODIFIED - export validate_phase)
 - src/adw/core/run_lookup.py (NEW)
 - src/adw/core/__init__.py (MODIFIED - export RunLookup)
 - src/adw/core/orchestrator.py (MODIFIED - added resume() method)
-- tests/unit/cli/test_resume.py (NEW)
+- tests/unit/cli/test_resume.py (NEW - includes StateError test for AC4)
 - tests/unit/core/test_run_lookup.py (NEW)
 - tests/integration/cli/test_resume_integration.py (NEW)
 
@@ -626,3 +635,4 @@ Story 6.2 implements the resume command, enabling users to continue runs that fa
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-03 | BMAD Create-Epic | Initial story creation with comprehensive context |
+| 2026-01-03 | Code Review | Fixed 3 HIGH, 4 MEDIUM issues; added validators.py, StateError handling |

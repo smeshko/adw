@@ -5,7 +5,10 @@ Tests for the `adw resume [RUN_ID]` command including:
 - Flag handling (--from-phase, --verbose)
 - Resume header display
 - Error handling for non-existent runs
+- StateError for corrupted context (AC4)
 """
+
+from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
@@ -85,13 +88,43 @@ class TestResumeNoRuns:
         )
 
 
+class TestResumeCorruptedState:
+    """Tests for StateError on corrupted context (AC4)."""
+
+    def test_corrupted_context_raises_state_error(self, tmp_path: Path) -> None:
+        """Test corrupted context.json raises StateError with snapshot suggestion."""
+        from unittest.mock import patch
+
+        # Create a runs directory with corrupted context
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir()
+        # Write corrupted JSON
+        (run_dir / "context.json").write_text("{ invalid json }")
+
+        with patch("adw.cli.resume.get_runs_dir", return_value=runs_dir):
+            result = runner.invoke(app, ["resume", run_id])
+
+        # Should indicate corrupted state with snapshot suggestion
+        assert result.exit_code != 0
+        assert (
+            "corrupted" in result.output.lower()
+            or "STATE_CORRUPTED" in result.output
+            or "snapshot" in result.output.lower()
+        )
+
+
 class TestResumeHeaderDisplay:
     """Tests for resume header display formatting."""
 
     def test_resume_header_has_required_sections(self) -> None:
         """Test that resume header would include required information."""
-        from rich.console import Console
         from io import StringIO
+
+        from rich.console import Console
+
         from adw.cli.run_display import RunDisplay
 
         output = StringIO()
@@ -115,8 +148,10 @@ class TestResumeHeaderDisplay:
 
     def test_resume_header_truncates_long_feature(self) -> None:
         """Test that long feature descriptions are truncated."""
-        from rich.console import Console
         from io import StringIO
+
+        from rich.console import Console
+
         from adw.cli.run_display import RunDisplay
 
         output = StringIO()
@@ -133,13 +168,16 @@ class TestResumeHeaderDisplay:
         )
 
         result = output.getvalue()
-        # Should be truncated
-        assert "..." in result or len(long_feature) not in [len(line) for line in result.split("\n")]
+        # Should be truncated - full feature shouldn't appear on any single line
+        lines = result.split("\n")
+        assert "..." in result or len(long_feature) not in [len(line) for line in lines]
 
     def test_resume_header_shows_completed_phases(self) -> None:
         """Test that completed phases are shown with checkmarks."""
-        from rich.console import Console
         from io import StringIO
+
+        from rich.console import Console
+
         from adw.cli.run_display import RunDisplay
 
         output = StringIO()

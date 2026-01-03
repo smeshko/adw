@@ -9,38 +9,21 @@ Examples:
     adw resume --from-phase build # Restart from specific phase
 """
 
+import logging
+
 import typer
 from rich.console import Console
 from rich.panel import Panel
 
 from adw.cli.bootstrap import create_orchestrator, get_runs_dir
 from adw.cli.run_display import RunDisplay
-from adw.core.constants import PHASE_SEQUENCE
+from adw.cli.validators import validate_phase
 from adw.core.run_lookup import RunLookup
-from adw.exceptions import ADWError, ConfigError
+from adw.exceptions import ADWError, ConfigError, StateError
+from adw.models import RunContext
 
 console = Console()
-
-
-def _validate_phase(value: str | None) -> str | None:
-    """Validate that phase is one of PHASE_SEQUENCE.
-
-    Args:
-        value: Phase name to validate, or None.
-
-    Returns:
-        The validated phase name, or None if not provided.
-
-    Raises:
-        typer.BadParameter: If phase is not a valid phase name.
-    """
-    if value is None:
-        return None
-    if value not in PHASE_SEQUENCE:
-        valid_phases = ", ".join(PHASE_SEQUENCE)
-        msg = f"Invalid phase: {value}. Valid phases: {valid_phases}"
-        raise typer.BadParameter(msg)
-    return value
+logger = logging.getLogger(__name__)
 
 
 def resume(
@@ -52,7 +35,7 @@ def resume(
         None,
         "--from-phase",
         help="Phase to resume from (overrides saved state)",
-        callback=_validate_phase,
+        callback=validate_phase,
     ),
     verbose: bool = typer.Option(
         False,
@@ -70,37 +53,32 @@ def resume(
         adw resume 01HQXK5P3Z...     # Resume specific run
         adw resume --from-phase build # Restart from build phase
     """
-    runs_dir = get_runs_dir()
-    lookup = RunLookup(runs_dir)
+    # Enable verbose logging if requested (Story 6.2 Task 1)
+    if verbose:
+        logging.basicConfig(level=logging.DEBUG, format="%(name)s - %(message)s")
+        logger.debug("Verbose mode enabled")
 
-    # Find the run to resume
-    if run_id:
-        context = lookup.find_by_id(run_id)
-        if not context:
-            raise ConfigError(
-                code="RUN_NOT_FOUND",
-                message=f"Run {run_id} not found",
-                suggestion="Use 'adw list' to see available runs",
-                recoverable=False,
+    try:
+        context = _find_run_to_resume(run_id)
+    except ADWError as e:
+        console.print(
+            Panel(
+                f"[red]Error:[/] {e.message}\n\n"
+                f"[dim]Suggestion:[/] {e.suggestion}",
+                title=f"[red]{e.code}[/]",
+                border_style="red",
             )
-    else:
-        context = lookup.find_most_recent_incomplete()
-        if not context:
-            console.print("[yellow]No incomplete runs found[/]")
-            console.print("Use 'adw run \"feature\"' to start a new run")
-            raise typer.Exit()
-
-    # Validate resumable
-    if context.status == "completed":
-        raise ConfigError(
-            code="RUN_COMPLETED",
-            message="Run already completed",
-            suggestion="Start a new run with 'adw run'",
-            recoverable=False,
         )
+        raise typer.Exit(code=1) from None
 
     # Determine resume phase
     resume_phase = from_phase or context.current_phase
+    logger.debug(
+        "Resume phase: %s (from_phase=%s, context.current_phase=%s)",
+        resume_phase,
+        from_phase,
+        context.current_phase,
+    )
 
     # Show resume header (Story 6.2 Task 6)
     run_display = RunDisplay(console)
@@ -112,6 +90,7 @@ def resume(
     )
 
     try:
+        logger.debug("Creating orchestrator and starting resume")
         orchestrator = create_orchestrator(console)
         result = orchestrator.resume(context.run_id, from_phase=from_phase)
         console.print(f"[green]Run completed:[/] {result.run_id}")
@@ -125,3 +104,65 @@ def resume(
             )
         )
         raise typer.Exit(code=1) from None
+
+
+def _find_run_to_resume(run_id: str | None) -> RunContext:
+    """Find the run to resume.
+
+    Args:
+        run_id: Specific run ID to resume, or None for most recent incomplete.
+
+    Returns:
+        RunContext of the run to resume.
+
+    Raises:
+        ConfigError: If run not found or already completed.
+        StateError: If run context is corrupted.
+        typer.Exit: If no incomplete runs found (user-friendly exit).
+    """
+    runs_dir = get_runs_dir()
+    lookup = RunLookup(runs_dir)
+
+    if run_id:
+        context = lookup.find_by_id(run_id)
+        if not context:
+            # Check if run directory exists but context is corrupted (AC4)
+            run_path = runs_dir / run_id
+            if run_path.exists():
+                # Directory exists but context couldn't be loaded - corrupted state
+                raise StateError(
+                    code="STATE_CORRUPTED",
+                    message=f"Run {run_id} has corrupted state",
+                    suggestion=(
+                        f"Check snapshots in .adw/runs/{run_id}/snapshots/ "
+                        "for recovery options"
+                    ),
+                    recoverable=False,
+                )
+            raise ConfigError(
+                code="RUN_NOT_FOUND",
+                message=f"Run {run_id} not found",
+                suggestion="Use 'adw list' to see available runs",
+                recoverable=False,
+            )
+    else:
+        logger.debug("No run_id provided, finding most recent incomplete run")
+        context = lookup.find_most_recent_incomplete()
+        if not context:
+            console.print("[yellow]No incomplete runs found[/]")
+            console.print("Use 'adw run \"feature\"' to start a new run")
+            raise typer.Exit()
+        logger.debug(
+            "Found incomplete run: %s (status=%s)", context.run_id, context.status
+        )
+
+    # Validate resumable
+    if context.status == "completed":
+        raise ConfigError(
+            code="RUN_COMPLETED",
+            message="Run already completed",
+            suggestion="Start a new run with 'adw run'",
+            recoverable=False,
+        )
+
+    return context
