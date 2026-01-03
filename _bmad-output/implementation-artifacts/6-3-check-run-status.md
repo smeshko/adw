@@ -45,11 +45,11 @@ So that I know its current state and outcome.
 - [x] Register command in main app
 
 ### Task 2: Create Status Display
-- [ ] Create `src/adw/cli/status_display.py` with `StatusDisplay` class
-- [ ] Implement `show_status()` method using Rich Table
-- [ ] Display basic info: run_id, feature, status, phase
-- [ ] Display timestamps: started_at, completed_at
-- [ ] Use color coding for status (green=completed, red=failed, yellow=running)
+- [x] Create `src/adw/cli/status_display.py` with `StatusDisplay` class
+- [x] Implement `show_status()` method using Rich Table
+- [x] Display basic info: run_id, feature, status, phase
+- [x] Display timestamps: started_at, completed_at
+- [x] Use color coding for status (green=completed, red=failed, yellow=running)
 
 ### Task 3: Display Completed Run Details
 - [ ] Calculate total duration from timestamps
