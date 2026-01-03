@@ -84,15 +84,15 @@ So that I don't lose progress.
 - [x] Handle resume from last phase (document) → continue to completion
 
 ### Task 8: Write Unit Tests
-- [ ] Create `tests/unit/cli/test_resume.py`
-- [ ] Test resume with valid run_id
-- [ ] Test resume without run_id (most recent)
-- [ ] Test resume completed run → error
-- [ ] Test resume non-existent run → error
-- [ ] Create `tests/unit/core/test_run_lookup.py`
-- [ ] Test find_by_id
-- [ ] Test find_most_recent_incomplete
-- [ ] Target: >80% coverage
+- [x] Create `tests/unit/cli/test_resume.py`
+- [x] Test resume with valid run_id
+- [x] Test resume without run_id (most recent)
+- [x] Test resume completed run → error
+- [x] Test resume non-existent run → error
+- [x] Create `tests/unit/core/test_run_lookup.py`
+- [x] Test find_by_id
+- [x] Test find_most_recent_incomplete
+- [x] Target: >80% coverage (achieved 92.18%)
 
 ### Task 9: Write Integration Tests
 - [ ] Create `tests/integration/cli/test_resume_integration.py`
@@ -602,6 +602,8 @@ Story 6.2 implements the resume command, enabling users to continue runs that fa
 - src/adw/core/run_lookup.py (NEW)
 - src/adw/core/__init__.py (MODIFIED - export RunLookup)
 - src/adw/core/orchestrator.py (MODIFIED - added resume() method)
+- tests/unit/cli/test_resume.py (NEW)
+- tests/unit/core/test_run_lookup.py (NEW)
 
 ---
 
