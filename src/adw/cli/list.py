@@ -10,6 +10,7 @@ from rich.console import Console
 
 from adw.cli.list_display import ListDisplay
 from adw.core.run_lookup import RunLookup
+from adw.models import RunContext
 
 console = Console()
 
@@ -95,7 +96,7 @@ def _get_runs_dir() -> Path | None:
     return runs_dir
 
 
-def _output_json_list(runs: list) -> None:
+def _output_json_list(runs: list[RunContext]) -> None:
     """Output runs as JSON array.
 
     Args:
@@ -105,12 +106,16 @@ def _output_json_list(runs: list) -> None:
 
     output = []
     for run in runs:
-        output.append({
-            "run_id": run.run_id,
-            "feature": run.feature_description,
-            "status": run.status,
-            "started_at": run.started_at.isoformat() if run.started_at else None,
-            "completed_at": run.completed_at.isoformat() if run.completed_at else None,
-        })
+        output.append(
+            {
+                "run_id": run.run_id,
+                "feature": run.feature_description,
+                "status": run.status,
+                "started_at": run.started_at.isoformat() if run.started_at else None,
+                "completed_at": run.completed_at.isoformat()
+                if run.completed_at
+                else None,
+            }
+        )
 
     console.print_json(json.dumps(output))

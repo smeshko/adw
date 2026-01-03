@@ -146,7 +146,9 @@ class TestTruncateText:
 
     def test_truncate_long_text(self, display: ListDisplay) -> None:
         """Test that long text is truncated with ellipsis."""
-        long_text = "This is a very long feature description that exceeds the maximum width"
+        long_text = (
+            "This is a very long feature description that exceeds the maximum width"
+        )
         result = display._truncate_text(long_text, max_length=37)
 
         assert len(result) == 37

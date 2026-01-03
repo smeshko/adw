@@ -101,7 +101,7 @@ class ListDisplay:
             Truncated text with ellipsis if needed.
         """
         if len(text) > max_length:
-            return f"{text[:max_length - 3]}..."
+            return f"{text[: max_length - 3]}..."
         return text
 
     def _format_timestamp(self, dt: object) -> str:

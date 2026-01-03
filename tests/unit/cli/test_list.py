@@ -5,16 +5,14 @@ Tests for the `adw list` command functionality.
 
 import json
 from datetime import UTC, datetime
-from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from rich.console import Console
 from typer.testing import CliRunner
 
 from adw.cli.app import app
-from adw.cli.list import VALID_STATUSES, _get_runs_dir, list_runs
+from adw.cli.list import VALID_STATUSES, _get_runs_dir
 from adw.models import RunContext
 
 
@@ -70,9 +68,7 @@ class TestListCommand:
             assert result.exit_code == 0
             assert "No runs found" in result.output
 
-    def test_list_suggests_run_command(
-        self, runner: CliRunner, tmp_path: Path
-    ) -> None:
+    def test_list_suggests_run_command(self, runner: CliRunner, tmp_path: Path) -> None:
         """Test that list suggests adw run command when no runs."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
             result = runner.invoke(app, ["list"])
@@ -80,9 +76,7 @@ class TestListCommand:
             assert result.exit_code == 0
             assert "adw run" in result.output
 
-    def test_list_shows_runs_table(
-        self, runner: CliRunner, tmp_path: Path
-    ) -> None:
+    def test_list_shows_runs_table(self, runner: CliRunner, tmp_path: Path) -> None:
         """Test that list shows runs as a table."""
         # Create runs directory and runs
         runs_dir = tmp_path / ".adw" / "runs"
@@ -143,9 +137,7 @@ class TestListCommand:
             assert result.exit_code == 1
             assert "Invalid status" in result.output
 
-    def test_list_filters_by_status(
-        self, runner: CliRunner, tmp_path: Path
-    ) -> None:
+    def test_list_filters_by_status(self, runner: CliRunner, tmp_path: Path) -> None:
         """Test that --status filter works."""
         runs_dir = tmp_path / ".adw" / "runs"
         runs_dir.mkdir(parents=True)
@@ -238,7 +230,7 @@ class TestValidStatuses:
     def test_valid_statuses_contains_expected_values(self) -> None:
         """Test that VALID_STATUSES contains all expected values."""
         expected = {"running", "completed", "failed", "interrupted", "aborted"}
-        assert VALID_STATUSES == expected
+        assert expected == VALID_STATUSES
 
 
 class TestGetRunsDir:
