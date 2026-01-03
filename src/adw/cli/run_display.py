@@ -79,3 +79,54 @@ class RunDisplay:
             )
         )
         self.console.print()
+
+    def show_resume_header(
+        self,
+        run_id: str,
+        feature: str,
+        completed_phases: list[str],
+        resume_phase: str,
+    ) -> None:
+        """Display the resume header panel.
+
+        Shows run resume information including completed phases and which
+        phase will resume.
+
+        Args:
+            run_id: The ULID run identifier.
+            feature: Feature description (will be truncated if long).
+            completed_phases: List of phases that completed successfully.
+            resume_phase: The phase that will resume/restart.
+
+        Example:
+            >>> display.show_resume_header(
+            ...     run_id="01HQXK5P3Z...",
+            ...     feature="Add user auth",
+            ...     completed_phases=["plan"],
+            ...     resume_phase="build",
+            ... )
+        """
+        # Truncate long feature descriptions
+        max_len = 60
+        feature_display = (
+            f"{feature[:max_len]}..." if len(feature) > max_len else feature
+        )
+
+        # Format completed phases with checkmarks
+        completed_display = ""
+        if completed_phases:
+            phase_list = ", ".join(f"✓ {p}" for p in completed_phases)
+            completed_display = f"\n[green]Completed:[/] {phase_list}"
+
+        self.console.print()
+        self.console.print(
+            Panel(
+                f"[bold cyan]Run ID:[/] {run_id}\n"
+                f"[bold]Feature:[/] {feature_display}"
+                f"{completed_display}\n"
+                f"[yellow]Resuming from:[/] {resume_phase}",
+                title="[bold yellow]Resuming Run[/]",
+                border_style="yellow",
+            )
+        )
+        self.console.print()

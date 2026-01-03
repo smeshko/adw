@@ -72,10 +72,10 @@ So that I don't lose progress.
 - [x] Log which artifacts were loaded for debugging
 
 ### Task 6: Display Resume Header
-- [ ] Show "Resuming Run" panel with run_id
-- [ ] Display: original feature, failed phase, resume phase
-- [ ] Show completed phases with checkmarks
-- [ ] Indicate which phase will resume
+- [x] Show "Resuming Run" panel with run_id
+- [x] Display: original feature, failed phase, resume phase
+- [x] Show completed phases with checkmarks
+- [x] Indicate which phase will resume
 
 ### Task 7: Handle Edge Cases
 - [ ] Handle run_id that doesn't exist → ConfigError "RUN_NOT_FOUND"
@@ -598,6 +598,7 @@ Story 6.2 implements the resume command, enabling users to continue runs that fa
 
 - src/adw/cli/resume.py (NEW)
 - src/adw/cli/app.py (MODIFIED - added resume import and registration)
+- src/adw/cli/run_display.py (MODIFIED - added show_resume_header())
 - src/adw/core/run_lookup.py (NEW)
 - src/adw/core/__init__.py (MODIFIED - export RunLookup)
 - src/adw/core/orchestrator.py (MODIFIED - added resume() method)

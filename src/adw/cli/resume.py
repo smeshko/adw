@@ -14,6 +14,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from adw.cli.bootstrap import create_orchestrator, get_runs_dir
+from adw.cli.run_display import RunDisplay
 from adw.core.constants import PHASE_SEQUENCE
 from adw.core.run_lookup import RunLookup
 from adw.exceptions import ADWError, ConfigError
@@ -97,6 +98,18 @@ def resume(
             suggestion="Start a new run with 'adw run'",
             recoverable=False,
         )
+
+    # Determine resume phase
+    resume_phase = from_phase or context.current_phase
+
+    # Show resume header (Story 6.2 Task 6)
+    run_display = RunDisplay(console)
+    run_display.show_resume_header(
+        run_id=context.run_id,
+        feature=context.feature_description,
+        completed_phases=context.phase_history,
+        resume_phase=resume_phase,
+    )
 
     try:
         orchestrator = create_orchestrator(console)
