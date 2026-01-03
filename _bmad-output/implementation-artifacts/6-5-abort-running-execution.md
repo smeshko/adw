@@ -66,10 +66,10 @@ So that I can stop a stuck or unwanted run.
 - [x] Update context with "aborted" status
 
 ### Task 5: Handle Edge Cases
-- [ ] Run not in progress → ConfigError "RUN_NOT_ACTIVE"
-- [ ] Run already aborted → ConfigError "RUN_ALREADY_ABORTED"
-- [ ] Run not found → ConfigError "RUN_NOT_FOUND"
-- [ ] Multiple abort attempts → handle gracefully
+- [x] Run not in progress → ConfigError "RUN_NOT_ACTIVE"
+- [x] Run already aborted → ConfigError "RUN_ALREADY_ABORTED"
+- [x] Run not found → ConfigError "RUN_NOT_FOUND"
+- [x] Multiple abort attempts → handle gracefully
 
 ### Task 6: Update Run Status Enum
 - [ ] Add "aborted" as valid run status

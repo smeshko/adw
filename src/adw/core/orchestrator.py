@@ -711,6 +711,15 @@ class Orchestrator:
         # Load context
         context = self.context_manager.load(run_id)
 
+        # Check if already aborted
+        if context.status == "aborted":
+            raise ConfigError(
+                code="RUN_ALREADY_ABORTED",
+                message=f"Run {run_id} is already aborted",
+                suggestion="Run was previously aborted",
+                recoverable=False,
+            )
+
         # Validate run is active
         if context.status != "running":
             raise ConfigError(

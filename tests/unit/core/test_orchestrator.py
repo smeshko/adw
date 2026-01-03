@@ -1349,3 +1349,24 @@ class TestOrchestratorAbort:
         mock_interruption_handler.abort_gracefully.assert_called_once()
         call_args = mock_interruption_handler.abort_gracefully.call_args
         assert call_args[1]["reason"] == "cli_abort"
+
+    def test_abort_already_aborted_raises(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+    ) -> None:
+        """Test aborting an already aborted run raises error."""
+        aborted_context = RunContext(
+            run_id="01JFTEST000000000000000001",
+            feature_description="Test feature",
+            current_phase="build",
+            phase_history=["plan"],
+            started_at=datetime.now(UTC),
+            status="aborted",
+        )
+        mock_context_manager.load.return_value = aborted_context
+
+        with pytest.raises(ConfigError) as exc_info:
+            orchestrator.abort("01JFTEST000000000000000001")
+
+        assert exc_info.value.code == "RUN_ALREADY_ABORTED"
