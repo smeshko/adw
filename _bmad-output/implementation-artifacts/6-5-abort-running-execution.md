@@ -1,6 +1,6 @@
 # Story 6.5: Abort Running Execution
 
-Status: review-pending
+Status: done
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -508,6 +508,22 @@ Story 6.5 implements abort functionality for stopping running executions.
 
 ### File List
 
+**New Files Created:**
+- `src/adw/cli/abort.py` - Abort CLI command implementation
+- `tests/unit/cli/test_abort.py` - Unit tests for abort command
+- `tests/integration/cli/test_abort_integration.py` - Integration tests for abort flow
+
+**Files Modified:**
+- `src/adw/cli/app.py` - Added abort command registration
+- `src/adw/cli/progress.py` - Added aborted status icon and color
+- `src/adw/core/interruption.py` - Added Ctrl+C confirmation, abort_gracefully method
+- `src/adw/core/orchestrator.py` - Added abort() method
+- `src/adw/core/snapshot_manager.py` - Added create_abort_snapshot() method
+- `src/adw/models/context.py` - Added "aborted" to status Literal
+- `tests/unit/core/test_interruption.py` - Added tests for abort functionality
+- `tests/unit/core/test_orchestrator.py` - Added tests for Orchestrator.abort()
+- `.gitignore` - Added .adw/ directory
+
 ---
 
 ## Dependencies
@@ -527,3 +543,14 @@ Story 6.5 implements abort functionality for stopping running executions.
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-03 | BMAD Create-Epic | Initial story creation with comprehensive context |
+| 2026-01-03 | Dev Agent | Implemented Ctrl+C confirmation prompt (UX-8) |
+| 2026-01-03 | Dev Agent | Implemented abort_gracefully method with state preservation |
+| 2026-01-03 | Dev Agent | Added abort CLI command with --force flag |
+| 2026-01-03 | Dev Agent | Added Orchestrator.abort() method for remote abort |
+| 2026-01-03 | Dev Agent | Added "aborted" status to RunContext model |
+| 2026-01-03 | Dev Agent | Added create_abort_snapshot to SnapshotManager |
+| 2026-01-03 | Dev Agent | Updated StatusDisplay with aborted icon and color |
+| 2026-01-03 | Dev Agent | Added unit and integration tests |
+| 2026-01-03 | Code Review | Fixed .gitignore for .adw/ directory |
+| 2026-01-03 | Code Review | Fixed aborted status color to dark_orange |
+| 2026-01-03 | Code Review | Populated File List section |

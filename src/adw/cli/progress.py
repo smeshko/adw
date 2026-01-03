@@ -258,7 +258,7 @@ class ProgressDisplay:
         if status == "completed":
             status_color = "green"
         elif status == "aborted":
-            status_color = "yellow"  # Rich uses "yellow" as closest to orange
+            status_color = "dark_orange"  # Distinct orange for aborted status
         elif status == "interrupted":
             status_color = "cyan"
         else:
