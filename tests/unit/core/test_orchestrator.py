@@ -1265,3 +1265,108 @@ class TestPhaseRequirementsValidation:
         context = orchestrator.run_single_phase("plan", "Test feature")
 
         assert context.status == "completed"
+
+
+class TestOrchestratorAbort:
+    """Tests for Orchestrator.abort() method."""
+
+    def test_abort_running_run(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+        mock_interruption_handler: MagicMock,
+    ) -> None:
+        """Test aborting a running run."""
+        running_context = RunContext(
+            run_id="01JFTEST000000000000000001",
+            feature_description="Test feature",
+            current_phase="build",
+            phase_history=["plan"],
+            started_at=datetime.now(UTC),
+            status="running",
+        )
+        mock_context_manager.load.return_value = running_context
+
+        # Configure abort_gracefully to return aborted context
+        aborted_context = running_context.model_copy(
+            update={"status": "aborted", "completed_at": datetime.now(UTC)}
+        )
+        mock_interruption_handler.abort_gracefully.return_value = aborted_context
+
+        result = orchestrator.abort("01JFTEST000000000000000001")
+
+        assert result.status == "aborted"
+        assert result.completed_at is not None
+        mock_interruption_handler.abort_gracefully.assert_called_once()
+
+    def test_abort_not_running_raises(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+    ) -> None:
+        """Test aborting a non-running run raises error."""
+        completed_context = RunContext(
+            run_id="01JFTEST000000000000000001",
+            feature_description="Test feature",
+            current_phase="document",
+            phase_history=PHASE_SEQUENCE,
+            started_at=datetime.now(UTC),
+            status="completed",
+        )
+        mock_context_manager.load.return_value = completed_context
+
+        with pytest.raises(ConfigError) as exc_info:
+            orchestrator.abort("01JFTEST000000000000000001")
+
+        assert exc_info.value.code == "RUN_NOT_ACTIVE"
+
+    def test_abort_with_custom_reason(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+        mock_interruption_handler: MagicMock,
+    ) -> None:
+        """Test abort with custom reason."""
+        running_context = RunContext(
+            run_id="01JFTEST000000000000000001",
+            feature_description="Test feature",
+            current_phase="build",
+            phase_history=["plan"],
+            started_at=datetime.now(UTC),
+            status="running",
+        )
+        mock_context_manager.load.return_value = running_context
+
+        # Configure abort_gracefully to return aborted context
+        aborted_context = running_context.model_copy(
+            update={"status": "aborted", "completed_at": datetime.now(UTC)}
+        )
+        mock_interruption_handler.abort_gracefully.return_value = aborted_context
+
+        orchestrator.abort("01JFTEST000000000000000001", reason="cli_abort")
+
+        # Check that abort_gracefully was called with reason
+        mock_interruption_handler.abort_gracefully.assert_called_once()
+        call_args = mock_interruption_handler.abort_gracefully.call_args
+        assert call_args[1]["reason"] == "cli_abort"
+
+    def test_abort_already_aborted_raises(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+    ) -> None:
+        """Test aborting an already aborted run raises error."""
+        aborted_context = RunContext(
+            run_id="01JFTEST000000000000000001",
+            feature_description="Test feature",
+            current_phase="build",
+            phase_history=["plan"],
+            started_at=datetime.now(UTC),
+            status="aborted",
+        )
+        mock_context_manager.load.return_value = aborted_context
+
+        with pytest.raises(ConfigError) as exc_info:
+            orchestrator.abort("01JFTEST000000000000000001")
+
+        assert exc_info.value.code == "RUN_ALREADY_ABORTED"

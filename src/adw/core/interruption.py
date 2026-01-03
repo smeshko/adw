@@ -8,6 +8,7 @@ Key features:
 - Context preservation on interrupt (NFR7)
 - Snapshot creation for recovery
 - Graceful shutdown flag for main loop checking
+- Ctrl+C confirmation prompt (UX-8)
 """
 
 from __future__ import annotations
@@ -17,6 +18,9 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
+
+from rich.console import Console
+from rich.prompt import Confirm
 
 if TYPE_CHECKING:
     from adw.core.context_manager import ContextManager
@@ -63,10 +67,12 @@ class InterruptionHandler:
     - Current context is saved before exit (NFR7)
     - Run status is set to "interrupted"
     - Final snapshot is created
+    - Ctrl+C shows confirmation prompt (UX-8)
 
     Attributes:
         context_manager: Manager for context persistence.
         snapshot_manager: Manager for state snapshots.
+        console: Rich console for output.
 
     Example:
         >>> handler = InterruptionHandler(context_manager, snapshot_manager)
@@ -79,16 +85,20 @@ class InterruptionHandler:
         self,
         context_manager: ContextManager,
         snapshot_manager: SnapshotManager,
+        console: Console | None = None,
     ) -> None:
         """Initialize the InterruptionHandler.
 
         Args:
             context_manager: Manager for context persistence.
             snapshot_manager: Manager for state snapshots.
+            console: Rich console for output. Creates new if not provided.
         """
         self.context_manager = context_manager
         self.snapshot_manager = snapshot_manager
+        self.console = console or Console()
         self._shutdown_requested: bool = False
+        self._confirmation_pending: bool = False
         self._original_handlers: dict[signal.Signals, Any] = {}
         self._current_context: RunContext | None = None
 
@@ -100,6 +110,86 @@ class InterruptionHandler:
             True if a signal has been received requesting shutdown.
         """
         return self._shutdown_requested
+
+    @property
+    def confirmation_pending(self) -> bool:
+        """Check if confirmation prompt is pending.
+
+        Returns:
+            True if waiting for user to confirm abort.
+        """
+        return self._confirmation_pending
+
+    def handle_interrupt(self) -> bool:
+        """Handle interrupt signal with confirmation prompt (UX-8).
+
+        Shows confirmation prompt on first Ctrl+C, forces abort on second.
+
+        Returns:
+            True if run should abort, False to continue.
+        """
+        if self._confirmation_pending:
+            # Second Ctrl+C - force abort
+            self.console.print("\n[red]Forcing abort...[/]")
+            return True
+
+        # First Ctrl+C - show confirmation
+        self._confirmation_pending = True
+        self.console.print()
+
+        try:
+            if Confirm.ask("Abort run?", default=False):
+                return True
+            else:
+                self.console.print("[green]Continuing...[/]")
+                self._confirmation_pending = False
+                return False
+        except KeyboardInterrupt:
+            # Ctrl+C during prompt - force abort
+            self.console.print("\n[red]Forcing abort...[/]")
+            return True
+
+    def abort_gracefully(
+        self,
+        context: "RunContext",
+        reason: str = "user_abort",
+    ) -> "RunContext":
+        """Abort run gracefully with state preservation.
+
+        Saves current state, updates status to aborted, and creates
+        an abort snapshot with the specified reason.
+
+        Args:
+            context: Current run context.
+            reason: Reason for abort (e.g., "user_abort", "cli_abort").
+
+        Returns:
+            Updated RunContext with aborted status.
+        """
+        # Update status to aborted
+        updated_context = context.model_copy(
+            update={
+                "status": "aborted",
+                "completed_at": datetime.now(UTC),
+            }
+        )
+
+        # Save state
+        self.context_manager.save(updated_context)
+
+        # Create abort snapshot
+        self.snapshot_manager.create_abort_snapshot(
+            context=updated_context,
+            reason=reason,
+        )
+
+        # Display abort confirmation
+        self.console.print(
+            f"[yellow]Run aborted:[/] {updated_context.run_id}\n"
+            f"[dim]Resume with:[/] adw resume {updated_context.run_id}"
+        )
+
+        return updated_context
 
     def set_context(self, context: RunContext) -> None:
         """Set the current context to save on interrupt.
@@ -324,7 +414,7 @@ def get_run_status(context: RunContext) -> dict[str, object]:
     Returns:
         Dictionary with status fields:
         - run_id: The run identifier
-        - status: Current status (running, completed, interrupted, failed)
+        - status: Current status (running, completed, interrupted, failed, aborted)
         - current_phase: Phase currently set
         - interrupted_phase: Phase where interruption occurred (if any)
         - completed_phases: List of phases in phase_history

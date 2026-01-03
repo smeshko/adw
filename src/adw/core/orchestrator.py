@@ -691,3 +691,52 @@ class Orchestrator:
         if last_error is not None:
             raise last_error
         raise RuntimeError("Unexpected state: no error captured but retries exhausted")
+
+    def abort(self, run_id: str, reason: str = "remote_abort") -> RunContext:
+        """Abort a running execution.
+
+        Loads the context for the specified run, validates it's in "running"
+        status, and then aborts it gracefully using the InterruptionHandler.
+
+        Args:
+            run_id: ID of the run to abort.
+            reason: Reason for abort (e.g., "remote_abort", "cli_abort").
+
+        Returns:
+            Updated RunContext with aborted status.
+
+        Raises:
+            ConfigError: If run is not found or not active.
+        """
+        # Load context
+        context = self.context_manager.load(run_id)
+
+        # Check if already aborted
+        if context.status == "aborted":
+            raise ConfigError(
+                code="RUN_ALREADY_ABORTED",
+                message=f"Run {run_id} is already aborted",
+                suggestion="Run was previously aborted",
+                recoverable=False,
+            )
+
+        # Validate run is active
+        if context.status != "running":
+            raise ConfigError(
+                code="RUN_NOT_ACTIVE",
+                message=f"Run is not active (status: {context.status})",
+                suggestion="Only running executions can be aborted",
+                recoverable=False,
+            )
+
+        # Abort gracefully using InterruptionHandler
+        updated_context = self.interruption_handler.abort_gracefully(
+            context, reason=reason
+        )
+
+        logger.info(
+            "Run aborted",
+            extra={"run_id": run_id, "reason": reason},
+        )
+
+        return updated_context
