@@ -313,6 +313,57 @@ llm:
 
 **Error Handling:** If `claude` not found, raise `ConfigError` with suggestion to install Claude Code or configure path.
 
+### Model Configuration Per Phase (Course Correction 2026-01-03)
+
+**Decision:** Configurable model per phase via `project.yaml`
+
+**Configuration:**
+```yaml
+# .adw/project.yaml
+phases:
+  plan:
+    model: opus        # Heavy reasoning for planning
+    timeout_seconds: 600
+  build:
+    model: opus        # Heavy for code generation
+    timeout_seconds: 900
+  verify:
+    model: sonnet      # Lighter for evidence gathering
+    timeout_seconds: 300
+  validate:
+    model: sonnet      # Lighter for test analysis
+    timeout_seconds: 300
+  document:
+    model: sonnet      # Lighter for documentation
+    timeout_seconds: 300
+
+llm:
+  default_model: opus  # Fallback if phase doesn't specify
+```
+
+**Implementation:**
+```python
+# In PhaseConfig model
+class PhaseConfig(BaseModel):
+    model: str | None = None  # None = use default
+    timeout_seconds: int = 300
+    pre_hook: str | None = None
+    post_hook: str | None = None
+
+# In executor invocation
+def get_model_for_phase(phase: str, config: ProjectConfig) -> str:
+    phase_config = config.phases.get(phase)
+    if phase_config and phase_config.model:
+        return phase_config.model
+    return config.llm.default_model
+```
+
+**Rationale:**
+- Enables cost optimization (lighter models for simpler phases)
+- Enables quality optimization (heavier models for critical phases)
+- Mirrors adw-sdk's `SLASH_COMMAND_MODEL_MAP` pattern
+- Backward compatible (defaults work without config)
+
 ### Evidence Gathering (MVP)
 
 **Decision:** API evidence only for MVP
