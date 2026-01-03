@@ -258,3 +258,247 @@ class TestLogEvent:
         assert isinstance(event.category, LogCategory)
         assert isinstance(event.message, str)
         assert isinstance(event.context, LogContext)
+
+
+# ============================================================================
+# LLM Capture Models (Story 7.3)
+# ============================================================================
+
+
+class TestLLMRequest:
+    """Tests for the LLMRequest model."""
+
+    def test_create_minimal_request(self) -> None:
+        """LLMRequest can be created with minimal fields."""
+        from adw.models.logging import LLMRequest
+
+        request = LLMRequest(prompt="Hello, world", phase="plan")
+        assert request.prompt == "Hello, world"
+        assert request.phase == "plan"
+        assert request.timestamp is not None
+        assert request.params == {}
+
+    def test_create_full_request(self) -> None:
+        """LLMRequest can be created with all fields."""
+        from adw.models.logging import LLMRequest
+
+        now = datetime.now(UTC)
+        request = LLMRequest(
+            timestamp=now,
+            prompt="Generate code",
+            phase="build",
+            params={"model": "claude-sonnet-4-20250514", "temperature": 0, "max_tokens": 16000},
+        )
+        assert request.timestamp == now
+        assert request.prompt == "Generate code"
+        assert request.phase == "build"
+        assert request.params["model"] == "claude-sonnet-4-20250514"
+
+    def test_request_serialization(self) -> None:
+        """LLMRequest serializes to JSON correctly for file storage."""
+        from adw.models.logging import LLMRequest
+
+        request = LLMRequest(
+            prompt="Test prompt",
+            phase="plan",
+            params={"model": "claude-sonnet-4-20250514"},
+        )
+        json_str = request.model_dump_json()
+        assert "Test prompt" in json_str
+        assert "plan" in json_str
+        assert "claude-sonnet-4-20250514" in json_str
+
+
+class TestLLMResponse:
+    """Tests for the LLMResponse model."""
+
+    def test_create_minimal_response(self) -> None:
+        """LLMResponse can be created with minimal fields."""
+        from adw.models.logging import LLMResponse
+
+        response = LLMResponse(content="Generated content", phase="build")
+        assert response.content == "Generated content"
+        assert response.phase == "build"
+        assert response.timestamp is not None
+        assert response.tool_calls == []
+        assert response.stats.input_tokens == 0
+
+    def test_create_full_response(self) -> None:
+        """LLMResponse can be created with all fields."""
+        from adw.models.logging import LLMResponse, LLMToolCall, LLMStats
+
+        now = datetime.now(UTC)
+        tool_call = LLMToolCall(id="call_01", name="create_file", input={"path": "test.py"})
+        stats = LLMStats(input_tokens=4521, output_tokens=3892, duration_ms=47333)
+        response = LLMResponse(
+            timestamp=now,
+            content="Here's the code",
+            phase="build",
+            tool_calls=[tool_call],
+            stats=stats,
+        )
+        assert response.timestamp == now
+        assert response.content == "Here's the code"
+        assert response.phase == "build"
+        assert len(response.tool_calls) == 1
+        assert response.stats.input_tokens == 4521
+        assert response.stats.output_tokens == 3892
+        assert response.stats.duration_ms == 47333
+
+    def test_response_serialization(self) -> None:
+        """LLMResponse serializes to JSON correctly."""
+        from adw.models.logging import LLMResponse, LLMStats
+
+        response = LLMResponse(
+            content="Response content",
+            phase="build",
+            stats=LLMStats(input_tokens=100, output_tokens=50, duration_ms=1000),
+        )
+        json_str = response.model_dump_json()
+        assert "Response content" in json_str
+        assert "100" in json_str  # input_tokens
+
+
+class TestLLMStats:
+    """Tests for the LLMStats model."""
+
+    def test_create_stats(self) -> None:
+        """LLMStats can be created with token counts and duration."""
+        from adw.models.logging import LLMStats
+
+        stats = LLMStats(input_tokens=4521, output_tokens=3892, duration_ms=47333)
+        assert stats.input_tokens == 4521
+        assert stats.output_tokens == 3892
+        assert stats.duration_ms == 47333
+
+    def test_stats_defaults(self) -> None:
+        """LLMStats has sensible defaults."""
+        from adw.models.logging import LLMStats
+
+        stats = LLMStats()
+        assert stats.input_tokens == 0
+        assert stats.output_tokens == 0
+        assert stats.duration_ms == 0
+
+
+class TestLLMToolCall:
+    """Tests for the LLMToolCall model."""
+
+    def test_create_tool_call(self) -> None:
+        """LLMToolCall captures tool invocation details."""
+        from adw.models.logging import LLMToolCall
+
+        tool_call = LLMToolCall(
+            id="call_01",
+            name="create_file",
+            input={"path": "test.py", "content": "# test"},
+        )
+        assert tool_call.id == "call_01"
+        assert tool_call.name == "create_file"
+        assert tool_call.input["path"] == "test.py"
+
+    def test_tool_call_serialization(self) -> None:
+        """LLMToolCall serializes correctly."""
+        from adw.models.logging import LLMToolCall
+
+        tool_call = LLMToolCall(id="call_01", name="read_file", input={"path": "main.py"})
+        d = tool_call.model_dump()
+        assert d["id"] == "call_01"
+        assert d["name"] == "read_file"
+
+
+class TestLLMToolResult:
+    """Tests for the LLMToolResult model."""
+
+    def test_create_tool_result(self) -> None:
+        """LLMToolResult captures tool execution result."""
+        from adw.models.logging import LLMToolResult
+
+        result = LLMToolResult(
+            id="call_01",
+            output="File created successfully",
+            success=True,
+            duration_ms=45,
+        )
+        assert result.id == "call_01"
+        assert result.output == "File created successfully"
+        assert result.success is True
+        assert result.duration_ms == 45
+
+    def test_tool_result_defaults(self) -> None:
+        """LLMToolResult has sensible defaults."""
+        from adw.models.logging import LLMToolResult
+
+        result = LLMToolResult(id="call_01", output="result")
+        assert result.success is True
+        assert result.duration_ms == 0
+
+
+class TestLLMStreamEvent:
+    """Tests for the LLMStreamEvent model."""
+
+    def test_create_token_event(self) -> None:
+        """LLMStreamEvent can capture a token event."""
+        from adw.models.logging import LLMStreamEvent, StreamEventType
+
+        event = LLMStreamEvent(
+            t=12,
+            type=StreamEventType.TOKEN,
+            content="Hello",
+        )
+        assert event.t == 12
+        assert event.type == StreamEventType.TOKEN
+        assert event.content == "Hello"
+
+    def test_create_tool_call_event(self) -> None:
+        """LLMStreamEvent can capture a tool call start event."""
+        from adw.models.logging import LLMStreamEvent, StreamEventType
+
+        event = LLMStreamEvent(
+            t=1250,
+            type=StreamEventType.TOOL_CALL_START,
+            id="call_01",
+            name="create_file",
+            input={"path": "test.py"},
+        )
+        assert event.t == 1250
+        assert event.type == StreamEventType.TOOL_CALL_START
+        assert event.id == "call_01"
+        assert event.name == "create_file"
+
+    def test_create_complete_event(self) -> None:
+        """LLMStreamEvent can capture completion event with stats."""
+        from adw.models.logging import LLMStreamEvent, StreamEventType, LLMStats
+
+        stats = LLMStats(input_tokens=4521, output_tokens=3892)
+        event = LLMStreamEvent(
+            t=45230,
+            type=StreamEventType.COMPLETE,
+            stats=stats,
+        )
+        assert event.t == 45230
+        assert event.type == StreamEventType.COMPLETE
+        assert event.stats is not None
+        assert event.stats.input_tokens == 4521
+
+    def test_stream_event_serialization(self) -> None:
+        """LLMStreamEvent serializes to JSONL format correctly."""
+        from adw.models.logging import LLMStreamEvent, StreamEventType
+
+        event = LLMStreamEvent(t=0, type=StreamEventType.TOKEN, content="I'll")
+        json_str = event.model_dump_json()
+        # Should be compact for JSONL
+        assert '"t":' in json_str or '"t": ' in json_str
+        assert "token" in json_str
+        assert "I'll" in json_str
+
+    def test_stream_event_types(self) -> None:
+        """StreamEventType has all required event types."""
+        from adw.models.logging import StreamEventType
+
+        assert StreamEventType.TOKEN == "token"
+        assert StreamEventType.TOOL_CALL_START == "tool_call_start"
+        assert StreamEventType.TOOL_CALL_END == "tool_call_end"
+        assert StreamEventType.THINKING == "thinking"
+        assert StreamEventType.COMPLETE == "complete"
+        assert StreamEventType.ERROR == "error"

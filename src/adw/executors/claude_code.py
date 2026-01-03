@@ -21,8 +21,10 @@ from typing import Any
 from rich.console import Console
 
 from adw.exceptions import LLMError, LLMTimeoutError
+from adw.logging.stream import StreamLogger
 from adw.models.config import LLMConfig
 from adw.models.llm import LLMResult, ToolCall
+from adw.models.logging import LLMStats
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +89,7 @@ class ClaudeCodeExecutor:
         prompt: str,
         *,
         timeout: int | None = None,
+        stream_logger: StreamLogger | None = None,
     ) -> LLMResult:
         """Execute a prompt using Claude Code CLI.
 
@@ -96,6 +99,8 @@ class ClaudeCodeExecutor:
         Args:
             prompt: The prompt to send to Claude Code.
             timeout: Optional timeout in seconds. If None, uses config default.
+            stream_logger: Optional StreamLogger for capturing stream events.
+                          Used for debugging and replay (Story 7.3).
 
         Returns:
             LLMResult with success status, content, tool calls, and metrics.
@@ -104,12 +109,15 @@ class ClaudeCodeExecutor:
             LLMError: If Claude Code is not found, execution fails, or timeout.
         """
         effective_timeout = self._resolve_timeout(timeout)
-        return asyncio.run(self._stream_subprocess(prompt, effective_timeout))
+        return asyncio.run(
+            self._stream_subprocess(prompt, effective_timeout, stream_logger)
+        )
 
     async def _stream_subprocess(
         self,
         prompt: str,
         timeout: int,
+        stream_logger: StreamLogger | None = None,
     ) -> LLMResult:
         """Execute Claude Code subprocess with streaming output.
 
@@ -119,6 +127,7 @@ class ClaudeCodeExecutor:
         Args:
             prompt: The prompt to send to Claude Code.
             timeout: Timeout in seconds.
+            stream_logger: Optional StreamLogger for capturing stream events.
 
         Returns:
             LLMResult with execution results.
@@ -158,10 +167,10 @@ class ClaudeCodeExecutor:
         try:
             # Use concurrent tasks to read stdout and stderr to prevent deadlocks
             result = await asyncio.wait_for(
-                self._read_process_output(process),
+                self._read_process_output(process, stream_logger),
                 timeout=timeout,
             )
-            return self._build_result(result, start_time)
+            return self._build_result(result, start_time, stream_logger)
 
         except TimeoutError:
             # Calculate elapsed time before cleanup
@@ -252,6 +261,7 @@ class ClaudeCodeExecutor:
     async def _read_process_output(
         self,
         process: asyncio.subprocess.Process,
+        stream_logger: StreamLogger | None = None,
     ) -> dict[str, Any]:
         """Read stdout and stderr concurrently to prevent deadlocks.
 
@@ -260,6 +270,7 @@ class ClaudeCodeExecutor:
 
         Args:
             process: The subprocess to read from.
+            stream_logger: Optional StreamLogger for capturing stream events.
 
         Returns:
             Dictionary with stdout_lines, stderr, and returncode.
@@ -283,6 +294,9 @@ class ClaudeCodeExecutor:
                 content_lines.append(decoded)
                 # Stream to console in real-time
                 self.console.print(decoded, end="")
+                # Capture to stream logger if provided
+                if stream_logger:
+                    stream_logger.token(decoded)
 
         async def read_stderr() -> None:
             """Read stderr line-by-line."""
@@ -321,12 +335,14 @@ class ClaudeCodeExecutor:
         self,
         process_output: dict[str, Any],
         start_time: float,
+        stream_logger: StreamLogger | None = None,
     ) -> LLMResult:
         """Build LLMResult from process output.
 
         Args:
             process_output: Dictionary with stdout, stderr, returncode.
             start_time: Time when execution started.
+            stream_logger: Optional StreamLogger for capturing completion/error.
 
         Returns:
             LLMResult instance.
@@ -351,6 +367,20 @@ class ClaudeCodeExecutor:
 
         # Build result
         if returncode == 0:
+            # Log completion event if stream_logger provided
+            if stream_logger:
+                # Estimate input tokens as ~1/4 of total (rough approximation)
+                # Real token counts come from parsed output
+                tokens_used = parsed["tokens_used"]
+                input_tokens = tokens_used // 4 if tokens_used else 0
+                output_tokens = tokens_used - input_tokens if tokens_used else 0
+                stream_logger.end(
+                    LLMStats(
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                        duration_ms=duration_ms,
+                    )
+                )
             return LLMResult(
                 success=True,
                 content=parsed["content"],
@@ -359,13 +389,17 @@ class ClaudeCodeExecutor:
                 duration_ms=duration_ms,
             )
         else:
+            error_msg = stderr or f"Claude Code exited with code {returncode}"
+            # Log error event if stream_logger provided
+            if stream_logger:
+                stream_logger.error(error_msg)
             return LLMResult(
                 success=False,
                 content=parsed["content"],
                 tool_calls=parsed["tool_calls"],
                 tokens_used=parsed["tokens_used"],
                 duration_ms=duration_ms,
-                error=stderr or f"Claude Code exited with code {returncode}",
+                error=error_msg,
             )
 
     def _parse_output(self, raw_output: str) -> dict[str, Any]:

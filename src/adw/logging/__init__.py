@@ -24,6 +24,7 @@ import logging
 
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
+from adw.logging.llm_capture import LLMCaptureManager
 from adw.logging.manager import LogManager, Transport
 from adw.logging.redactor import (
     DEFAULT_REDACTION_PATTERNS,
@@ -34,6 +35,7 @@ from adw.logging.redactor import (
     get_redactor,
     reset_redactor,
 )
+from adw.logging.stream import StreamLogger
 from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
 
 # Module-level default logger instance
@@ -171,6 +173,8 @@ __all__ = [
     # Core classes
     "LogManager",
     "Transport",
+    "StreamLogger",
+    "LLMCaptureManager",
     # Transports
     "ConsoleTransport",
     "RawFileTransport",
