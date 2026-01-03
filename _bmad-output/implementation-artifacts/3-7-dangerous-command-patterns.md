@@ -1,6 +1,6 @@
 # Story 3.7: Dangerous Command Patterns
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2026-01-03
@@ -73,11 +73,11 @@ So that common destructive operations are prevented out of the box.
   - Track all overridden blocks in run log
 
 ### Task 7: Write Unit Tests
-- [ ] Test each default pattern category
-- [ ] Test pattern matching edge cases
-- [ ] Test alternative suggestions
-- [ ] Test override behavior
-- [ ] Test context-aware matching (safe vs dangerous uses)
+- [x] Test each default pattern category
+- [x] Test pattern matching edge cases
+- [x] Test alternative suggestions
+- [x] Test override behavior
+- [x] Test context-aware matching (safe vs dangerous uses)
 
 ---
 
@@ -309,6 +309,7 @@ claude-opus-4-5-20251101
 - Task 4: Created SuggestionFormatter class with format_single() and format_multiple() methods. Added CATEGORY_EXAMPLES and get_override_instruction(). 11 tests added.
 - Task 5: Added SecurityError exception with pattern_matched, tool_name, alternatives, override_instruction, and severity fields. Custom __str__() and to_dict() methods. 9 tests added.
 - Task 6: Created OverrideLogger class for tracking --allow-dangerous overrides. Logs warnings, tracks by category/severity, provides get_summary(). 8 tests added.
+- Task 7: All unit tests integrated throughout implementation. Total: 90 tests covering defaults, patterns, suggestions, override logging, security models, and SecurityError exception.
 
 ### File List
 
