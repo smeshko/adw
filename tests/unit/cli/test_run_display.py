@@ -4,9 +4,7 @@ Tests for the run header display functionality (UX-12).
 """
 
 from datetime import UTC, datetime
-from unittest.mock import MagicMock
 
-import pytest
 from rich.console import Console
 
 from adw.cli.run_display import RunDisplay

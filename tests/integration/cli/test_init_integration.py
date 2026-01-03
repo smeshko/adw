@@ -4,12 +4,10 @@ Tests the full init flow including directory creation, configuration
 generation, and subsequent run command integration.
 """
 
-import os
 import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 import yaml
 
 

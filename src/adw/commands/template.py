@@ -56,6 +56,7 @@ def escape_feature_description(description: str) -> str:
     result = result.replace("`", "\\`")
     return result
 
+
 # Compile patterns once at module level for efficiency
 # Matches {{variable}} or {{variable.nested.path}} or {{variable.*}} for wildcards
 VARIABLE_PATTERN = re.compile(r"\{\{([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")

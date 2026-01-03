@@ -3,9 +3,8 @@
 Tests for project type detection based on filesystem markers.
 """
 
-import pytest
 
-from adw.config.detector import ProjectType, ProjectTypeDetector
+from adw.config.detector import ProjectTypeDetector
 
 
 class TestProjectTypeDetector:

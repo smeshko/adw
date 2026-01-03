@@ -72,10 +72,9 @@ def abort_command(
         )
 
     # Confirm abort unless --force
-    if not force:
-        if not Confirm.ask(f"Abort run {run_id}?", default=False):
-            console.print("[green]Abort cancelled[/]")
-            return
+    if not force and not Confirm.ask(f"Abort run {run_id}?", default=False):
+        console.print("[green]Abort cancelled[/]")
+        return
 
     # Perform abort using InterruptionHandler
     handler = InterruptionHandler(

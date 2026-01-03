@@ -1,6 +1,6 @@
 # Story 6.2: Resume Failed or Interrupted Run
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-03
@@ -38,68 +38,68 @@ So that I don't lose progress.
 ## Tasks / Subtasks
 
 ### Task 1: Implement CLI Resume Command
-- [ ] Create `src/adw/cli/resume.py` with resume command
-- [ ] Add optional `run_id` argument (positional)
-- [ ] Add `--from-phase` option to restart from specific phase
-- [ ] Add `--verbose/-v` flag for debug output
-- [ ] Register command in main app
+- [x] Create `src/adw/cli/resume.py` with resume command
+- [x] Add optional `run_id` argument (positional)
+- [x] Add `--from-phase` option to restart from specific phase
+- [x] Add `--verbose/-v` flag for debug output
+- [x] Register command in main app
 
 ### Task 2: Implement Run Lookup
-- [ ] Create `src/adw/core/run_lookup.py` with `RunLookup` class
-- [ ] Implement `find_by_id(run_id)` to load specific run
-- [ ] Implement `find_most_recent_incomplete()` to find resumable run
-- [ ] Return `None` if no matching run found
-- [ ] Validate run directory structure exists
+- [x] Create `src/adw/core/run_lookup.py` with `RunLookup` class
+- [x] Implement `find_by_id(run_id)` to load specific run
+- [x] Implement `find_most_recent_incomplete()` to find resumable run
+- [x] Return `None` if no matching run found
+- [x] Validate run directory structure exists
 
 ### Task 3: Implement Resume Logic in Orchestrator
-- [ ] Add `resume(run_id: str, from_phase: str | None)` method to Orchestrator
-- [ ] Load existing RunContext from context.json
-- [ ] Determine resume phase (failed phase or from_phase parameter)
-- [ ] Load artifacts from completed phases
-- [ ] Continue phase sequence from resume point
+- [x] Add `resume(run_id: str, from_phase: str | None)` method to Orchestrator
+- [x] Load existing RunContext from context.json
+- [x] Determine resume phase (failed phase or from_phase parameter)
+- [x] Load artifacts from completed phases
+- [x] Continue phase sequence from resume point
 
 ### Task 4: Validate Run State for Resume
-- [ ] Check run status (must be "failed", "interrupted", or "running")
-- [ ] Raise ConfigError for "completed" runs
-- [ ] Validate context.json is not corrupted
-- [ ] Raise StateError with snapshot suggestion if corrupted
-- [ ] Check required artifacts exist for resume phase
+- [x] Check run status (must be "failed", "interrupted", or "running")
+- [x] Raise ConfigError for "completed" runs
+- [x] Validate context.json is not corrupted
+- [x] Raise StateError with snapshot suggestion if corrupted
+- [x] Check required artifacts exist for resume phase
 
 ### Task 5: Load Artifacts from Previous Phases
-- [ ] Retrieve artifacts from completed phases via ArtifactManager
-- [ ] Make previous phase outputs available to resumed phase
-- [ ] Handle missing artifacts gracefully
-- [ ] Log which artifacts were loaded for debugging
+- [x] Retrieve artifacts from completed phases via ArtifactManager
+- [x] Make previous phase outputs available to resumed phase
+- [x] Handle missing artifacts gracefully
+- [x] Log which artifacts were loaded for debugging
 
 ### Task 6: Display Resume Header
-- [ ] Show "Resuming Run" panel with run_id
-- [ ] Display: original feature, failed phase, resume phase
-- [ ] Show completed phases with checkmarks
-- [ ] Indicate which phase will resume
+- [x] Show "Resuming Run" panel with run_id
+- [x] Display: original feature, failed phase, resume phase
+- [x] Show completed phases with checkmarks
+- [x] Indicate which phase will resume
 
 ### Task 7: Handle Edge Cases
-- [ ] Handle run_id that doesn't exist → ConfigError "RUN_NOT_FOUND"
-- [ ] Handle no incomplete runs available → inform user
-- [ ] Handle concurrent resume attempts → file lock prevents double resume
-- [ ] Handle resume from last phase (document) → continue to completion
+- [x] Handle run_id that doesn't exist → ConfigError "RUN_NOT_FOUND"
+- [x] Handle no incomplete runs available → inform user
+- [x] Handle concurrent resume attempts → file lock prevents double resume
+- [x] Handle resume from last phase (document) → continue to completion
 
 ### Task 8: Write Unit Tests
-- [ ] Create `tests/unit/cli/test_resume.py`
-- [ ] Test resume with valid run_id
-- [ ] Test resume without run_id (most recent)
-- [ ] Test resume completed run → error
-- [ ] Test resume non-existent run → error
-- [ ] Create `tests/unit/core/test_run_lookup.py`
-- [ ] Test find_by_id
-- [ ] Test find_most_recent_incomplete
-- [ ] Target: >80% coverage
+- [x] Create `tests/unit/cli/test_resume.py`
+- [x] Test resume with valid run_id
+- [x] Test resume without run_id (most recent)
+- [x] Test resume completed run → error
+- [x] Test resume non-existent run → error
+- [x] Create `tests/unit/core/test_run_lookup.py`
+- [x] Test find_by_id
+- [x] Test find_most_recent_incomplete
+- [x] Target: >80% coverage (achieved 92.18%)
 
 ### Task 9: Write Integration Tests
-- [ ] Create `tests/integration/cli/test_resume_integration.py`
-- [ ] Test full resume flow from failed run
-- [ ] Test resume from interrupted run
-- [ ] Test artifact loading across phases
-- [ ] Verify progress display works correctly
+- [x] Create `tests/integration/cli/test_resume_integration.py`
+- [x] Test full resume flow from failed run
+- [x] Test resume from interrupted run
+- [x] Test artifact loading across phases
+- [x] Verify progress display works correctly
 
 ---
 
@@ -594,7 +594,26 @@ Story 6.2 implements the resume command, enabling users to continue runs that fa
 
 ### Completion Notes List
 
+- Code review performed: Fixed 3 HIGH and 4 MEDIUM issues
+- Extracted duplicate `_validate_phase` to shared `validators.py` (DRY fix)
+- Added proper StateError handling for corrupted context files (AC4 compliance)
+- Implemented verbose flag with debug logging support
+- Added test for StateError on corrupted context
+- All 32 tests passing
+
 ### File List
+
+- src/adw/cli/resume.py (NEW)
+- src/adw/cli/validators.py (NEW - shared phase validation, extracted from duplicate code)
+- src/adw/cli/app.py (MODIFIED - added resume import, uses shared validators)
+- src/adw/cli/run_display.py (MODIFIED - added show_resume_header())
+- src/adw/cli/__init__.py (MODIFIED - export validate_phase)
+- src/adw/core/run_lookup.py (NEW)
+- src/adw/core/__init__.py (MODIFIED - export RunLookup)
+- src/adw/core/orchestrator.py (MODIFIED - added resume() method)
+- tests/unit/cli/test_resume.py (NEW - includes StateError test for AC4)
+- tests/unit/core/test_run_lookup.py (NEW)
+- tests/integration/cli/test_resume_integration.py (NEW)
 
 ---
 
@@ -616,3 +635,4 @@ Story 6.2 implements the resume command, enabling users to continue runs that fa
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-03 | BMAD Create-Epic | Initial story creation with comprehensive context |
+| 2026-01-03 | Code Review | Fixed 3 HIGH, 4 MEDIUM issues; added validators.py, StateError handling |

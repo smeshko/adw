@@ -29,7 +29,9 @@ class TestRunCommand:
         """Test that run command requires feature description argument."""
         result = runner.invoke(app, ["run"])
         assert result.exit_code != 0
-        assert "Missing argument" in result.output or "FEATURE_DESCRIPTION" in result.output
+        has_missing = "Missing argument" in result.output
+        has_feature = "FEATURE_DESCRIPTION" in result.output
+        assert has_missing or has_feature
 
     def test_run_accepts_feature_description(self) -> None:
         """Test that run command accepts feature description with --dry-run."""
@@ -113,7 +115,9 @@ class TestPhaseFlag:
         # Verify the feature was received (implementation will process it)
         assert "No such option" not in result.output
 
-    def test_run_without_phase_attempts_full_pipeline(self, cli_runner: CliRunner) -> None:
+    def test_run_without_phase_attempts_full_pipeline(
+        self, cli_runner: CliRunner
+    ) -> None:
         """Test run command without --phase attempts full pipeline execution."""
         result = cli_runner.invoke(app, ["run", "Add feature", "--dry-run"])
 

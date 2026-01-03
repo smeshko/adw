@@ -3,7 +3,6 @@
 Tests for special character escaping in feature descriptions.
 """
 
-import pytest
 
 from adw.commands.template import escape_feature_description
 

@@ -2,13 +2,13 @@
 
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
 
 from adw.cli.app import app
-from adw.exceptions import ConfigError, StateError
+from adw.exceptions import StateError
 from adw.models import RunContext
 
 
@@ -89,7 +89,7 @@ class TestAbortCommand:
 
             with (
                 patch("adw.cli.abort.ContextManager") as mock_cm,
-                patch("adw.cli.abort.SnapshotManager") as mock_sm,
+                patch("adw.cli.abort.SnapshotManager"),
                 patch("adw.cli.abort.InterruptionHandler") as mock_handler,
             ):
                 mock_cm.return_value.load.return_value = sample_context

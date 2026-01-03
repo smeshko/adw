@@ -5,6 +5,7 @@ structure and generates project configuration based on auto-detection.
 """
 
 from pathlib import Path
+from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
@@ -74,7 +75,7 @@ def init(
 
 def _show_init_summary(
     project_type: str,
-    config: dict,
+    config: dict[str, Any],
     adw_dir: Path,
 ) -> None:
     """Display initialization summary.
@@ -96,7 +97,7 @@ def _show_init_summary(
             f"[dim]Config:[/] {adw_dir / 'project.yaml'}\n\n"
             f"[bold]Next steps:[/]\n"
             f"  1. Review configuration: {adw_dir / 'project.yaml'}\n"
-            f"  2. Start your first run: adw run \"Add feature description\"",
+            f'  2. Start your first run: adw run "Add feature description"',
             title="[blue]ADW Init[/]",
             border_style="green",
         )

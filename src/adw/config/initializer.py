@@ -7,6 +7,7 @@ directory structure and generates project configuration.
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from adw.config.detector import ProjectTypeDetector
 
@@ -84,7 +85,7 @@ runs/
         self,
         project_type: str,
         force: bool = False,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Initialize ADW project.
 
         Creates the .adw/ directory structure and generates configuration
@@ -119,7 +120,7 @@ runs/
         (self.adw_dir / "runs").mkdir(exist_ok=True)
         (self.adw_dir / "commands").mkdir(exist_ok=True)
 
-    def _generate_config(self, project_type: str) -> dict:
+    def _generate_config(self, project_type: str) -> dict[str, Any]:
         """Generate configuration based on project type.
 
         Args:
@@ -137,7 +138,7 @@ runs/
             "build_command": defaults.get("build_command"),
         }
 
-    def _write_config(self, config: dict) -> None:
+    def _write_config(self, config: dict[str, Any]) -> None:
         """Write project.yaml configuration file.
 
         Args:
@@ -164,7 +165,7 @@ runs/
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_dir = self.project_root / f".adw.backup.{timestamp}"
 
-        # Handle collision if backup dir already exists (e.g., multiple --force in same second)
+        # Handle collision if backup dir already exists (multiple --force)
         counter = 1
         while backup_dir.exists():
             backup_dir = self.project_root / f".adw.backup.{timestamp}.{counter}"

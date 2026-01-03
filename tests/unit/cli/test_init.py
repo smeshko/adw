@@ -5,13 +5,10 @@ including project detection, directory creation, and configuration generation.
 """
 
 from pathlib import Path
-from unittest.mock import patch
 
-import pytest
 from typer.testing import CliRunner
 
 from adw.cli.app import app
-
 
 runner = CliRunner()
 

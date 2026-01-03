@@ -151,9 +151,9 @@ class InterruptionHandler:
 
     def abort_gracefully(
         self,
-        context: "RunContext",
+        context: RunContext,
         reason: str = "user_abort",
-    ) -> "RunContext":
+    ) -> RunContext:
         """Abort run gracefully with state preservation.
 
         Saves current state, updates status to aborted, and creates

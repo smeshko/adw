@@ -104,7 +104,8 @@ test_command: pytest
         elapsed = time.perf_counter() - start
 
         assert result.exit_code == 0
-        assert elapsed < 2.0, f"Startup time {elapsed:.2f}s exceeds NFR1 requirement of 2s"
+        msg = f"Startup time {elapsed:.2f}s exceeds NFR1 requirement of 2s"
+        assert elapsed < 2.0, msg
 
     def test_run_displays_run_header_format(self) -> None:
         """Test that run header follows UX-12 specification."""

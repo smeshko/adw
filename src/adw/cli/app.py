@@ -1,18 +1,17 @@
 """Main Typer CLI application for ADW."""
 
 from datetime import UTC, datetime
-from pathlib import Path
 
 import typer
 from rich.console import Console
-from rich.panel import Panel
 from ulid import ULID
 
 from adw.cli.bootstrap import create_orchestrator
 from adw.cli.init import init as init_impl
+from adw.cli.resume import resume as resume_command
 from adw.cli.run_display import RunDisplay
+from adw.cli.validators import validate_phase
 from adw.commands.template import escape_feature_description
-from adw.core.constants import PHASE_SEQUENCE
 from adw.exceptions import ADWError, ConfigError
 
 console = Console()
@@ -35,7 +34,7 @@ def init(
         None,
         "--language",
         "-l",
-        help="Override detected language (python, javascript, go, rust, java, ruby, php)",
+        help="Override detected language (python, javascript, go, rust, etc.)",
     ),
 ) -> None:
     """Initialize ADW in the current directory.
@@ -54,7 +53,7 @@ def init(
         console.print(f"[red]Error:[/] {e.message}")
         if e.suggestion:
             console.print(f"[dim]Suggestion:[/] {e.suggestion}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.callback(invoke_without_command=True)
@@ -69,26 +68,6 @@ def main(
         raise typer.Exit()
 
 
-def _validate_phase(value: str | None) -> str | None:
-    """Validate that phase is one of PHASE_SEQUENCE.
-
-    Args:
-        value: Phase name to validate, or None.
-
-    Returns:
-        The validated phase name, or None if not provided.
-
-    Raises:
-        typer.BadParameter: If phase is not a valid phase name.
-    """
-    if value is None:
-        return None
-    if value not in PHASE_SEQUENCE:
-        valid_phases = ", ".join(PHASE_SEQUENCE)
-        raise typer.BadParameter(f"Invalid phase: {value}. Valid phases: {valid_phases}")
-    return value
-
-
 @app.command()
 def run(
     feature: str = typer.Argument(
@@ -100,8 +79,8 @@ def run(
         None,
         "--phase",
         "-p",
-        help=f"Execute single phase only ({', '.join(PHASE_SEQUENCE)})",
-        callback=_validate_phase,
+        help="Execute single phase only (plan, build, verify, validate, document)",
+        callback=validate_phase,
     ),
     from_run: str | None = typer.Option(
         None,
@@ -144,8 +123,8 @@ def run(
         raise typer.Exit(code=1)
 
     # Escape special characters for template safety (Story 6.1 Task 5)
-    safe_feature = escape_feature_description(feature)
-    _ = safe_feature  # Will be used when templates need the escaped version
+    # Note: safe_feature will be used when templates need the escaped version
+    _ = escape_feature_description(feature)
 
     # Generate run ID and timestamp (Story 6.1)
     run_id = str(ULID())
@@ -170,7 +149,8 @@ def run(
             # Validate --from-run requirement for non-plan phases (Story 5.4)
             if phase != "plan" and from_run is None:
                 console.print(
-                    f"[red]Error:[/] Phase '{phase}' requires artifacts from previous phases"
+                    f"[red]Error:[/] Phase '{phase}' requires artifacts "
+                    "from previous phases"
                 )
                 console.print(
                     "[dim]Suggestion:[/] Use --from-run <run_id> to specify source run"
@@ -179,7 +159,9 @@ def run(
 
             # Single phase execution (Story 5.4)
             context = orchestrator.run_single_phase(phase, feature, from_run)
-            console.print(f"[green]✓[/] Single phase '{phase}' completed: {context.run_id}")
+            console.print(
+                f"[green]✓[/] Single phase '{phase}' completed: {context.run_id}"
+            )
         else:
             # Full pipeline execution
             context = orchestrator.run(feature)
@@ -189,19 +171,17 @@ def run(
         console.print(f"[red]Error:[/] {e.message}")
         if e.suggestion:
             console.print(f"[dim]Suggestion:[/] {e.suggestion}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     except ADWError as e:
         console.print(f"[red]Error:[/] {e.message}")
         if e.suggestion:
             console.print(f"[dim]Suggestion:[/] {e.suggestion}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     except RuntimeError as e:
         # PhaseRunner not set - infrastructure not ready
         console.print(f"[red]Error:[/] {e}")
-        console.print(
-            "[dim]Suggestion:[/] Ensure phase commands are configured in .adw/commands/"
-        )
-        raise typer.Exit(1)
+        console.print("[dim]Suggestion:[/] Ensure phase commands are in .adw/commands/")
+        raise typer.Exit(1) from None
 
 
 @app.command()
@@ -234,4 +214,8 @@ def abort(
         console.print(f"[red]Error:[/] {e.message}")
         if e.suggestion:
             console.print(f"[dim]Suggestion:[/] {e.suggestion}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
+
+
+# Register the resume command (Story 6.2)
+app.command()(resume_command)
