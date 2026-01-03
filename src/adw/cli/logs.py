@@ -17,6 +17,8 @@ from typing import Any
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
+from rich.syntax import Syntax
 from rich.table import Table
 
 console = Console()
@@ -135,6 +137,122 @@ def _list_snapshots(run_id: str) -> list[dict[str, Any]]:
     return sorted(snapshots, key=lambda s: s["sequence"])
 
 
+def _load_snapshot_content(path: Path) -> dict[str, Any]:
+    """Load full snapshot content.
+
+    Args:
+        path: Path to snapshot file.
+
+    Returns:
+        Snapshot content as dict.
+
+    Raises:
+        typer.Exit: If snapshot cannot be loaded.
+    """
+    try:
+        return json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        console.print(f"[red]Error:[/] Failed to load snapshot: {e}")
+        raise typer.Exit(1) from None
+
+
+def _load_context(run_id: str) -> dict[str, Any]:
+    """Load current/final context for a run.
+
+    Args:
+        run_id: The run ID.
+
+    Returns:
+        Context content as dict.
+
+    Raises:
+        typer.Exit: If context cannot be loaded.
+    """
+    run_dir = _get_run_dir(run_id)
+    context_path = run_dir / "context.json"
+
+    if not context_path.exists():
+        console.print(f"[red]Error:[/] No context.json found for run: {run_id}")
+        raise typer.Exit(1)
+
+    try:
+        return json.loads(context_path.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        console.print(f"[red]Error:[/] Failed to load context: {e}")
+        raise typer.Exit(1) from None
+
+
+def _find_snapshot_by_sequence(run_id: str, sequence: int) -> dict[str, Any]:
+    """Find snapshot by sequence number.
+
+    Args:
+        run_id: The run ID.
+        sequence: Snapshot sequence number.
+
+    Returns:
+        Snapshot metadata including path.
+
+    Raises:
+        typer.Exit: If snapshot not found.
+    """
+    snapshots = _list_snapshots(run_id)
+    for snap in snapshots:
+        if snap["sequence"] == sequence:
+            return snap
+
+    console.print(f"[red]Error:[/] Snapshot {sequence} not found for run: {run_id}")
+    console.print(
+        "[dim]Suggestion:[/] Use 'adw logs snapshots' to see available snapshots"
+    )
+    raise typer.Exit(1)
+
+
+def _find_phase_snapshot(
+    run_id: str, phase: str, boundary: str
+) -> dict[str, Any]:
+    """Find snapshot at phase boundary.
+
+    Args:
+        run_id: The run ID.
+        phase: Phase name.
+        boundary: 'start' or 'end'.
+
+    Returns:
+        Snapshot metadata including path.
+
+    Raises:
+        typer.Exit: If snapshot not found.
+    """
+    # Map boundary to snapshot label prefix
+    label_prefix = "pre_" if boundary == "start" else "post_"
+    target_label = f"{label_prefix}{phase}"
+
+    snapshots = _list_snapshots(run_id)
+    for snap in snapshots:
+        if snap["label"] == target_label:
+            return snap
+
+    console.print(
+        f"[red]Error:[/] No {boundary} snapshot found for phase '{phase}'"
+    )
+    console.print(
+        "[dim]Suggestion:[/] Use 'adw logs snapshots' to see available snapshots"
+    )
+    raise typer.Exit(1)
+
+
+def _display_state(state: dict[str, Any], title: str) -> None:
+    """Display state with JSON syntax highlighting.
+
+    Args:
+        state: State dict to display.
+        title: Panel title.
+    """
+    json_str = json.dumps(state, indent=2, default=str)
+    syntax = Syntax(json_str, "json", theme="monokai", word_wrap=True)
+    console.print(Panel(syntax, title=title, border_style="blue"))
+
+
 def _format_timestamp(timestamp: str) -> str:
     """Format ISO timestamp for display.
 
@@ -248,9 +366,45 @@ def state(
         adw logs state 01HQXK5P3Z7V8R2M4N6T9W1Y3C --snapshot 3
         adw logs state 01HQXK5P3Z7V8R2M4N6T9W1Y3C --phase plan --at end
     """
-    # Implementation in Task 3
-    console.print(f"[dim]Showing state for run:[/] {run_id}")
-    console.print("[yellow]Not yet implemented[/]")
+    # Validate options
+    if phase is not None and at is None:
+        console.print("[red]Error:[/] --phase requires --at option")
+        console.print("[dim]Suggestion:[/] Use --at 'start' or --at 'end'")
+        raise typer.Exit(1)
+
+    if at is not None and phase is None:
+        console.print("[red]Error:[/] --at requires --phase option")
+        raise typer.Exit(1)
+
+    if at is not None and at not in ("start", "end"):
+        console.print(f"[red]Error:[/] Invalid --at value: {at}")
+        console.print("[dim]Suggestion:[/] Use 'start' or 'end'")
+        raise typer.Exit(1)
+
+    # Determine which state to show
+    if snapshot is not None:
+        # Show specific snapshot
+        snap = _find_snapshot_by_sequence(run_id, snapshot)
+        content = _load_snapshot_content(snap["path"])
+        title = f"Snapshot #{snapshot} ({snap['label']})"
+        # Display the context from snapshot
+        state_data = content.get("context", content)
+        _display_state(state_data, title)
+
+    elif phase is not None and at is not None:
+        # Show phase boundary snapshot
+        snap = _find_phase_snapshot(run_id, phase, at)
+        content = _load_snapshot_content(snap["path"])
+        title = f"State at {phase} phase {at}"
+        # Display the context from snapshot
+        state_data = content.get("context", content)
+        _display_state(state_data, title)
+
+    else:
+        # Show current/final context
+        context = _load_context(run_id)
+        title = f"Current State for {run_id}"
+        _display_state(context, title)
 
 
 @logs_app.command(name="diff")

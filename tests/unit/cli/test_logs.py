@@ -164,3 +164,121 @@ class TestLogsSnapshotsCommand:
         pos_2 = output.find("2")
         pos_3 = output.find("3")
         assert pos_1 < pos_2 < pos_3
+
+
+class TestLogsStateCommand:
+    """Tests for logs state command."""
+
+    def test_state_no_adw_dir(self, runner: CliRunner, tmp_path: Path) -> None:
+        """Error when no .adw directory exists."""
+        import os
+
+        os.chdir(tmp_path)
+        result = runner.invoke(app, ["logs", "state", "test-run"])
+        assert result.exit_code == 1
+        assert "No .adw directory found" in result.output
+
+    def test_state_run_not_found(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Error when run ID doesn't exist."""
+        result = runner.invoke(app, ["logs", "state", "nonexistent-run"])
+        assert result.exit_code == 1
+        assert "not found" in result.output.lower()
+
+    def test_state_shows_final_state(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Shows final/current context when no options provided."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        snapshots_dir = run_dir / "snapshots"
+        snapshots_dir.mkdir()
+
+        # Create context.json (final state)
+        context_data = {
+            "run_id": "test-run",
+            "current_phase": "build",
+            "status": "completed",
+        }
+        (run_dir / "context.json").write_text(json.dumps(context_data, indent=2))
+
+        result = runner.invoke(app, ["logs", "state", "test-run"])
+        assert result.exit_code == 0
+        # Should show context content
+        assert "test-run" in result.output
+        assert "build" in result.output or "completed" in result.output
+
+    def test_state_shows_specific_snapshot(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Shows state at specific snapshot when --snapshot provided."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        snapshots_dir = run_dir / "snapshots"
+        snapshots_dir.mkdir()
+
+        # Create snapshots
+        create_mock_snapshot(
+            snapshots_dir,
+            1,
+            "pre_plan",
+            {"run_id": "test-run", "current_phase": "plan", "status": "running"},
+        )
+        create_mock_snapshot(
+            snapshots_dir,
+            2,
+            "post_plan",
+            {"run_id": "test-run", "current_phase": "build", "status": "running"},
+        )
+
+        result = runner.invoke(
+            app, ["logs", "state", "test-run", "--snapshot", "1"]
+        )
+        assert result.exit_code == 0
+        # Should show snapshot 1 content (plan phase)
+        assert "plan" in result.output.lower()
+
+    def test_state_shows_phase_boundary(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Shows state at phase boundary when --phase --at provided."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        snapshots_dir = run_dir / "snapshots"
+        snapshots_dir.mkdir()
+
+        # Create pre and post phase snapshots
+        create_mock_snapshot(
+            snapshots_dir,
+            1,
+            "pre_plan",
+            {"run_id": "test-run", "current_phase": "plan", "status": "running"},
+        )
+        create_mock_snapshot(
+            snapshots_dir,
+            2,
+            "post_plan",
+            {"run_id": "test-run", "current_phase": "build", "status": "running"},
+        )
+
+        result = runner.invoke(
+            app, ["logs", "state", "test-run", "--phase", "plan", "--at", "end"]
+        )
+        assert result.exit_code == 0
+        # Should show post_plan snapshot
+
+    def test_state_phase_requires_at(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Error when --phase provided without --at."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+        snapshots_dir = run_dir / "snapshots"
+        snapshots_dir.mkdir()
+
+        result = runner.invoke(
+            app, ["logs", "state", "test-run", "--phase", "plan"]
+        )
+        assert result.exit_code == 1
+        assert "--at" in result.output.lower()
