@@ -50,17 +50,17 @@ so that appropriate evidence gathering strategies are used.
 - [x] Log platform source as "config" for traceability
 
 ### Task 3: Implement Project Marker Detection (evidence/detector.py)
-- [ ] Create `PlatformDetector` class in `src/adw/evidence/`
-- [ ] Implement marker detection for web projects:
+- [x] Create `PlatformDetector` class in `src/adw/evidence/`
+- [x] Implement marker detection for web projects:
   - `package.json` with react/vue/angular/svelte → WEB
   - `next.config.js`, `nuxt.config.ts` → WEB
   - `index.html` at root → WEB
-- [ ] Implement marker detection for backend projects:
+- [x] Implement marker detection for backend projects:
   - `main.py` with fastapi/flask/django → BACKEND
   - `app.py` with API patterns → BACKEND
   - `requirements.txt` with web frameworks → BACKEND
   - `Dockerfile` with EXPOSE → BACKEND
-- [ ] Implement marker detection for CLI projects:
+- [x] Implement marker detection for CLI projects:
   - `pyproject.toml` with `[project.scripts]` → CLI
   - `setup.py` with `entry_points` → CLI
   - No web/backend markers → default CLI

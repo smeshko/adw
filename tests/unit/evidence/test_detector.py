@@ -131,3 +131,193 @@ platform: cli
         assert result.platform == PlatformType.CLI
         assert result.source == "config"
         assert result.markers == []  # No marker detection performed
+
+
+class TestWebMarkerDetection:
+    """Tests for web project marker detection (Task 3)."""
+
+    def test_detect_react_from_package_json(self, tmp_path: Path) -> None:
+        """Test detecting WEB platform from React in package.json."""
+        package_json = tmp_path / "package.json"
+        package_json.write_text('{"dependencies": {"react": "^18.0.0"}}')
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.WEB
+        assert result.source == "markers"
+        assert "package.json:react" in result.markers
+
+    def test_detect_vue_from_package_json(self, tmp_path: Path) -> None:
+        """Test detecting WEB platform from Vue in package.json."""
+        package_json = tmp_path / "package.json"
+        package_json.write_text('{"dependencies": {"vue": "^3.0.0"}}')
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.WEB
+        assert "package.json:vue" in result.markers
+
+    def test_detect_angular_from_package_json(self, tmp_path: Path) -> None:
+        """Test detecting WEB platform from Angular in package.json."""
+        package_json = tmp_path / "package.json"
+        package_json.write_text('{"dependencies": {"@angular/core": "^17.0.0"}}')
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.WEB
+        assert "package.json:angular" in result.markers
+
+    def test_detect_svelte_from_package_json(self, tmp_path: Path) -> None:
+        """Test detecting WEB platform from Svelte in package.json."""
+        package_json = tmp_path / "package.json"
+        package_json.write_text('{"dependencies": {"svelte": "^4.0.0"}}')
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.WEB
+        assert "package.json:svelte" in result.markers
+
+    def test_detect_next_config(self, tmp_path: Path) -> None:
+        """Test detecting WEB platform from next.config.js."""
+        (tmp_path / "next.config.js").write_text("module.exports = {}")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.WEB
+        assert "next.config.js" in result.markers
+
+    def test_detect_nuxt_config(self, tmp_path: Path) -> None:
+        """Test detecting WEB platform from nuxt.config.ts."""
+        (tmp_path / "nuxt.config.ts").write_text("export default {}")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.WEB
+        assert "nuxt.config.ts" in result.markers
+
+    def test_detect_index_html(self, tmp_path: Path) -> None:
+        """Test detecting WEB platform from index.html at root."""
+        (tmp_path / "index.html").write_text("<!DOCTYPE html>")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.WEB
+        assert "index.html" in result.markers
+
+
+class TestBackendMarkerDetection:
+    """Tests for backend project marker detection (Task 3)."""
+
+    def test_detect_fastapi_from_main_py(self, tmp_path: Path) -> None:
+        """Test detecting BACKEND from FastAPI in main.py."""
+        (tmp_path / "main.py").write_text("from fastapi import FastAPI\napp = FastAPI()")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.BACKEND
+        assert "main.py:fastapi" in result.markers
+
+    def test_detect_flask_from_main_py(self, tmp_path: Path) -> None:
+        """Test detecting BACKEND from Flask in main.py."""
+        (tmp_path / "main.py").write_text("from flask import Flask\napp = Flask(__name__)")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.BACKEND
+        assert "main.py:flask" in result.markers
+
+    def test_detect_django_from_main_py(self, tmp_path: Path) -> None:
+        """Test detecting BACKEND from Django in main.py."""
+        (tmp_path / "main.py").write_text("import django\ndjango.setup()")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.BACKEND
+        assert "main.py:django" in result.markers
+
+    def test_detect_api_from_app_py(self, tmp_path: Path) -> None:
+        """Test detecting BACKEND from API patterns in app.py."""
+        (tmp_path / "app.py").write_text('@app.route("/api")\ndef get_data(): pass')
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.BACKEND
+        assert "app.py:api-pattern" in result.markers
+
+    def test_detect_fastapi_from_requirements(self, tmp_path: Path) -> None:
+        """Test detecting BACKEND from FastAPI in requirements.txt."""
+        (tmp_path / "requirements.txt").write_text("fastapi==0.100.0\nuvicorn")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.BACKEND
+        assert "requirements.txt:fastapi" in result.markers
+
+    def test_detect_expose_from_dockerfile(self, tmp_path: Path) -> None:
+        """Test detecting BACKEND from EXPOSE in Dockerfile."""
+        (tmp_path / "Dockerfile").write_text("FROM python:3.11\nEXPOSE 8000")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.BACKEND
+        assert "Dockerfile:EXPOSE" in result.markers
+
+
+class TestCliMarkerDetection:
+    """Tests for CLI project marker detection (Task 3)."""
+
+    def test_detect_cli_from_pyproject_scripts(self, tmp_path: Path) -> None:
+        """Test detecting CLI from [project.scripts] in pyproject.toml."""
+        pyproject = tmp_path / "pyproject.toml"
+        pyproject.write_text("""
+[project]
+name = "my-cli"
+
+[project.scripts]
+mycli = "mypackage.cli:main"
+""")
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.CLI
+        assert "pyproject.toml:scripts" in result.markers
+
+    def test_detect_cli_from_setup_py_entry_points(self, tmp_path: Path) -> None:
+        """Test detecting CLI from entry_points in setup.py."""
+        setup_py = tmp_path / "setup.py"
+        setup_py.write_text("""
+from setuptools import setup
+setup(
+    name="my-cli",
+    entry_points={
+        "console_scripts": ["mycli=mypackage.cli:main"],
+    },
+)
+""")
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.CLI
+        assert "setup.py:entry_points" in result.markers
+
+    def test_default_to_cli_when_no_markers(self, tmp_path: Path) -> None:
+        """Test defaulting to CLI when no markers found."""
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.CLI
+        assert result.source == "default"
+        assert result.confidence == Confidence.LOW
