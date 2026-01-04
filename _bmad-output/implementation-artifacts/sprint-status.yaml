@@ -152,11 +152,11 @@ development_status:
   epic-8: in-progress
   8-1-detect-project-platform-type: done
   8-2-capture-cli-terminal-output: in-progress
-  8-3-capture-web-screenshots: review
-  8-3b-capture-mobile-screenshots: backlog
-  8-4-capture-api-request-response-pairs: backlog
-  8-5-generate-evidence-manifest: backlog
-  8-6-compress-and-optimize-evidence: backlog
+  8-3-capture-web-screenshots: done
+  8-3b-capture-mobile-screenshots: ready-for-dev
+  8-4-capture-api-request-response-pairs: in-progress
+  8-5-generate-evidence-manifest: ready-for-dev
+  8-6-compress-and-optimize-evidence: ready-for-dev
   # UX Fix (from ISS-001)
   ux-fix-ISS-001-llm-output-too-verbose-in-terminal: ready-for-dev
   epic-8-retrospective: optional
