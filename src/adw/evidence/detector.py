@@ -341,7 +341,7 @@ class PlatformDetector:
         """Detect mobile project markers.
 
         Checks for:
-        - iOS native: .xcodeproj or .xcworkspace directories
+        - iOS native: .xcodeproj or .xcworkspace directories, Info.plist
         - Android native: AndroidManifest.xml with build.gradle
         - Flutter: pubspec.yaml with flutter SDK dependency
 
@@ -354,6 +354,17 @@ class PlatformDetector:
         for item in self.project_root.iterdir():
             if item.is_dir() and item.suffix in (".xcodeproj", ".xcworkspace"):
                 markers.append(f"{item.name}:ios")
+                break
+
+        # Check for iOS Info.plist in common locations
+        info_plist_paths = [
+            self.project_root / "Info.plist",
+            # Check subdirectories that might contain Info.plist
+            *self.project_root.glob("*/Info.plist"),
+        ]
+        for plist_path in info_plist_paths:
+            if plist_path.exists() and plist_path.is_file():
+                markers.append("Info.plist:ios")
                 break
 
         # Check for Android native project

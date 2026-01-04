@@ -62,6 +62,22 @@ platform: backend
         assert result.confidence == Confidence.HIGH
         assert result.source == "config"
 
+    def test_detect_mobile_from_config(self, tmp_path: Path) -> None:
+        """Test detecting MOBILE platform from explicit config."""
+        config_file = tmp_path / ".adw" / "project.yaml"
+        config_file.parent.mkdir(parents=True)
+        config_file.write_text("""
+name: my-ios-app
+language: swift
+platform: mobile
+""")
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.MOBILE
+        assert result.confidence == Confidence.HIGH
+        assert result.source == "config"
+
     def test_config_platform_is_case_insensitive(self, tmp_path: Path) -> None:
         """Test that platform value in config is case insensitive."""
         config_file = tmp_path / ".adw" / "project.yaml"
@@ -341,6 +357,37 @@ class TestMobileMarkerDetection:
 
         assert result.platform == PlatformType.MOBILE
         assert "MyApp.xcworkspace:ios" in result.markers
+
+    def test_detect_ios_from_info_plist_at_root(self, tmp_path: Path) -> None:
+        """Test detecting MOBILE from Info.plist at project root."""
+        info_plist = tmp_path / "Info.plist"
+        info_plist.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.example.myapp</string>
+</dict>
+</plist>
+""")
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.MOBILE
+        assert "Info.plist:ios" in result.markers
+
+    def test_detect_ios_from_info_plist_in_subdirectory(self, tmp_path: Path) -> None:
+        """Test detecting MOBILE from Info.plist in app subdirectory."""
+        app_dir = tmp_path / "MyApp"
+        app_dir.mkdir()
+        info_plist = app_dir / "Info.plist"
+        info_plist.write_text("<plist><dict></dict></plist>")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.MOBILE
+        assert "Info.plist:ios" in result.markers
 
     def test_detect_android_from_manifest_and_gradle(self, tmp_path: Path) -> None:
         """Test detecting MOBILE from AndroidManifest.xml and build.gradle."""
