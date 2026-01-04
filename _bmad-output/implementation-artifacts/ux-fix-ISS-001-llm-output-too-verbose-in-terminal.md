@@ -209,16 +209,26 @@ Issue: `_bmad-output/implementation-artifacts/issues/ISS-001-llm-output-too-verb
 
 ### Agent Model Used
 
-_To be filled by dev agent_
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
-_To be filled during implementation_
+N/A - Implementation went smoothly without debugging issues.
 
 ### Completion Notes List
 
-_To be filled during implementation_
+1. Added `show_llm_output` parameter to `ClaudeCodeExecutor.__init__()` (default: False)
+2. Modified `_read_process_output()` to only print when `show_llm_output=True`
+3. Added `--show-llm-output` flag to `adw run` CLI command
+4. Wired flag through `create_orchestrator()` to executor
+5. Integrated with verbosity: `--trace` enables LLM output automatically
+6. Preserved StreamLogger capture regardless of console output setting
+7. All 78 executor tests pass, including 5 new tests for this feature
 
 ### File List
 
-_To be filled during implementation_
+Modified files:
+- `src/adw/executors/claude_code.py` - Added show_llm_output parameter and conditional printing
+- `src/adw/cli/app.py` - Added --show-llm-output flag and verbosity integration
+- `src/adw/cli/bootstrap.py` - Pass show_llm_output to executor
+- `tests/unit/executors/test_claude_code.py` - Added tests for new behavior
