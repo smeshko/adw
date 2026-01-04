@@ -44,10 +44,10 @@ so that appropriate evidence gathering strategies are used.
 - [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Configuration-Based Detection
-- [ ] Read `platform` key from `.adw/project.yaml`
-- [ ] Parse and validate platform value against PlatformType enum
-- [ ] Return immediately if explicit platform is configured
-- [ ] Log platform source as "config" for traceability
+- [x] Read `platform` key from `.adw/project.yaml`
+- [x] Parse and validate platform value against PlatformType enum
+- [x] Return immediately if explicit platform is configured
+- [x] Log platform source as "config" for traceability
 
 ### Task 3: Implement Project Marker Detection (evidence/detector.py)
 - [ ] Create `PlatformDetector` class in `src/adw/evidence/`
