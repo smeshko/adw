@@ -668,3 +668,386 @@ class TestCaptureAndroidScreenshot:
 
             assert result.success is False
             assert result.error is not None
+
+    def test_capture_android_screenshot_bytes_stderr(self, tmp_path: Path) -> None:
+        """Test Android screenshot failure with bytes stderr."""
+        output_path = tmp_path / "screenshot.png"
+
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stderr = b"error: device not found"
+
+        with patch("subprocess.run", return_value=mock_result):
+            from adw.evidence.mobile_capture import capture_android_screenshot
+            result = capture_android_screenshot(output_path, "home")
+
+            assert result.success is False
+            assert "device not found" in result.error
+
+    def test_capture_android_screenshot_timeout(self, tmp_path: Path) -> None:
+        """Test Android screenshot timeout handling."""
+        import subprocess
+        output_path = tmp_path / "screenshot.png"
+
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("cmd", 30)):
+            from adw.evidence.mobile_capture import capture_android_screenshot
+            result = capture_android_screenshot(output_path, "home")
+
+            assert result.success is False
+            assert "timed out" in result.error.lower()
+
+    def test_capture_android_screenshot_adb_not_found(self, tmp_path: Path) -> None:
+        """Test when adb is not available."""
+        output_path = tmp_path / "screenshot.png"
+
+        with patch("subprocess.run", side_effect=FileNotFoundError):
+            from adw.evidence.mobile_capture import capture_android_screenshot
+            result = capture_android_screenshot(output_path, "home")
+
+            assert result.success is False
+            assert "adb not found" in result.error
+
+
+# =============================================================================
+# Capture Configured Screens Tests (Task 7)
+# =============================================================================
+
+
+class TestCaptureConfiguredScreens:
+    """Tests for capture_configured_screens function."""
+
+    def test_capture_configured_screens_no_config(self, tmp_path: Path) -> None:
+        """Test capturing screens when no config exists."""
+        output_dir = tmp_path / "output"
+
+        # Mock iOS simulator available
+        mock_device_info = MagicMock()
+        mock_device_info.returncode = 0
+        mock_device_info.stdout = json.dumps({
+            "devices": {
+                "com.apple.CoreSimulator.SimRuntime.iOS-17-2": [{
+                    "udid": "12345",
+                    "name": "iPhone 15",
+                    "state": "Booted"
+                }]
+            }
+        })
+
+        mock_capture = MagicMock()
+        mock_capture.returncode = 0
+        mock_capture.stderr = ""
+
+        def mock_run(cmd, *args, **kwargs):
+            if "screenshot" in cmd:
+                (output_dir / "current_ios.png").parent.mkdir(parents=True, exist_ok=True)
+                (output_dir / "current_ios.png").write_bytes(b"fake")
+                return mock_capture
+            return mock_device_info
+
+        with patch("subprocess.run", side_effect=mock_run):
+            from adw.evidence.mobile_capture import capture_configured_screens
+            from adw.models.evidence import MobileDeviceType
+
+            summary = capture_configured_screens(
+                project_root=tmp_path,
+                output_dir=output_dir,
+                device_type=MobileDeviceType.IOS,
+            )
+
+            assert summary.total_screenshots == 1
+            assert summary.results[0].screen_name == "current"
+
+    def test_capture_configured_screens_with_config(self, tmp_path: Path) -> None:
+        """Test capturing screens with configuration."""
+        # Create config
+        config_dir = tmp_path / ".adw"
+        config_dir.mkdir()
+        (config_dir / "project.yaml").write_text("""
+evidence:
+  mobile_screens:
+    - name: "home"
+      deeplink: "myapp://home"
+    - name: "profile"
+      deeplink: "myapp://profile"
+""")
+
+        output_dir = tmp_path / "output"
+
+        # Mock successful captures
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = b"fake png"
+        mock_result.stderr = ""
+
+        call_count = 0
+        def mock_run(cmd, *args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if "screencap" in cmd:
+                return mock_result
+            # For adb shell getprop
+            mock_getprop = MagicMock()
+            mock_getprop.returncode = 0
+            mock_getprop.stdout = "sdk_gphone64\n"
+            return mock_getprop
+
+        with patch("subprocess.run", side_effect=mock_run):
+            from adw.evidence.mobile_capture import capture_configured_screens
+            from adw.models.evidence import MobileDeviceType
+
+            summary = capture_configured_screens(
+                project_root=tmp_path,
+                output_dir=output_dir,
+                device_type=MobileDeviceType.ANDROID,
+            )
+
+            assert summary.total_screenshots == 2
+            assert output_dir.exists()
+
+    def test_capture_configured_screens_flutter_ios(self, tmp_path: Path) -> None:
+        """Test capturing screens with Flutter iOS device type."""
+        output_dir = tmp_path / "output"
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = json.dumps({
+            "devices": {
+                "com.apple.CoreSimulator.SimRuntime.iOS-17-2": [{
+                    "udid": "12345",
+                    "name": "iPhone 15",
+                    "state": "Booted"
+                }]
+            }
+        })
+        mock_result.stderr = ""
+
+        def mock_run(cmd, *args, **kwargs):
+            if "screenshot" in cmd:
+                (output_dir / "current_flutter_ios.png").parent.mkdir(parents=True, exist_ok=True)
+                (output_dir / "current_flutter_ios.png").write_bytes(b"fake")
+            return mock_result
+
+        with patch("subprocess.run", side_effect=mock_run):
+            from adw.evidence.mobile_capture import capture_configured_screens
+            from adw.models.evidence import MobileDeviceType
+
+            summary = capture_configured_screens(
+                project_root=tmp_path,
+                output_dir=output_dir,
+                device_type=MobileDeviceType.FLUTTER_IOS,
+            )
+
+            assert summary.total_screenshots == 1
+
+
+class TestCaptureFlutterScreenshotFallbacks:
+    """Tests for capture_flutter_screenshot fallback paths."""
+
+    def test_flutter_fallback_to_ios_when_no_flutter_device(self, tmp_path: Path) -> None:
+        """Test Flutter falls back to iOS when no flutter device detected."""
+        output_path = tmp_path / "screenshot.png"
+
+        # Mock flutter devices returning empty
+        mock_flutter = MagicMock()
+        mock_flutter.returncode = 0
+        mock_flutter.stdout = "[]"
+
+        # Mock iOS simulator available
+        mock_ios = MagicMock()
+        mock_ios.returncode = 0
+        mock_ios.stdout = json.dumps({
+            "devices": {
+                "com.apple.CoreSimulator.SimRuntime.iOS-17-2": [{
+                    "udid": "12345",
+                    "name": "iPhone 15",
+                    "state": "Booted"
+                }]
+            }
+        })
+        mock_ios.stderr = ""
+
+        call_count = 0
+        def mock_run(cmd, *args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if "flutter" in cmd:
+                return mock_flutter
+            if "screenshot" in cmd:
+                output_path.write_bytes(b"fake")
+            return mock_ios
+
+        with patch("subprocess.run", side_effect=mock_run):
+            from adw.evidence.mobile_capture import capture_flutter_screenshot
+            result = capture_flutter_screenshot(output_path, "home")
+
+            assert result.device_type.value in ("flutter_ios", "ios")
+
+    def test_flutter_fallback_to_android_when_no_ios(self, tmp_path: Path) -> None:
+        """Test Flutter falls back to Android when no iOS available."""
+        output_path = tmp_path / "screenshot.png"
+
+        # Mock flutter devices returning empty
+        mock_flutter = MagicMock()
+        mock_flutter.returncode = 0
+        mock_flutter.stdout = "[]"
+
+        # Mock iOS not available, Android available
+        mock_ios_empty = MagicMock()
+        mock_ios_empty.returncode = 0
+        mock_ios_empty.stdout = json.dumps({"devices": {}})
+
+        mock_android = MagicMock()
+        mock_android.returncode = 0
+        mock_android.stdout = "List of devices attached\nemulator-5554\tdevice\n"
+
+        mock_screencap = MagicMock()
+        mock_screencap.returncode = 0
+        mock_screencap.stdout = b"fake png"
+
+        call_count = 0
+        def mock_run(cmd, *args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            cmd_str = " ".join(cmd) if isinstance(cmd, list) else cmd
+            if "flutter" in cmd_str:
+                return mock_flutter
+            if "simctl" in cmd_str:
+                return mock_ios_empty
+            if "adb devices" in cmd_str:
+                return mock_android
+            if "screencap" in cmd_str:
+                return mock_screencap
+            # getprop
+            mock_prop = MagicMock()
+            mock_prop.returncode = 0
+            mock_prop.stdout = "sdk_gphone64\n"
+            return mock_prop
+
+        with patch("subprocess.run", side_effect=mock_run):
+            from adw.evidence.mobile_capture import capture_flutter_screenshot
+            result = capture_flutter_screenshot(output_path, "home")
+
+            assert result.device_type.value in ("flutter_android", "android")
+
+    def test_flutter_no_device_available(self, tmp_path: Path) -> None:
+        """Test Flutter when no device is available at all."""
+        output_path = tmp_path / "screenshot.png"
+
+        # All devices return empty/not available
+        mock_empty = MagicMock()
+        mock_empty.returncode = 0
+        mock_empty.stdout = "[]"
+
+        mock_ios_empty = MagicMock()
+        mock_ios_empty.returncode = 0
+        mock_ios_empty.stdout = json.dumps({"devices": {}})
+
+        mock_android_empty = MagicMock()
+        mock_android_empty.returncode = 0
+        mock_android_empty.stdout = "List of devices attached\n"
+
+        def mock_run(cmd, *args, **kwargs):
+            cmd_str = " ".join(cmd) if isinstance(cmd, list) else cmd
+            if "flutter" in cmd_str:
+                return mock_empty
+            if "simctl" in cmd_str:
+                return mock_ios_empty
+            if "adb" in cmd_str:
+                return mock_android_empty
+            return mock_empty
+
+        with patch("subprocess.run", side_effect=mock_run):
+            from adw.evidence.mobile_capture import capture_flutter_screenshot
+            result = capture_flutter_screenshot(output_path, "home")
+
+            assert result.success is False
+            assert "No Flutter device" in result.error or "simulator/emulator" in result.error
+
+    def test_flutter_android_device_detected(self, tmp_path: Path) -> None:
+        """Test Flutter with Android device detected."""
+        output_path = tmp_path / "screenshot.png"
+
+        mock_flutter = MagicMock()
+        mock_flutter.returncode = 0
+        mock_flutter.stdout = json.dumps([{
+            "name": "sdk_gphone64",
+            "id": "emulator-5554",
+            "platform": "android"
+        }])
+
+        mock_screencap = MagicMock()
+        mock_screencap.returncode = 0
+        mock_screencap.stdout = b"fake png"
+
+        def mock_run(cmd, *args, **kwargs):
+            cmd_str = " ".join(cmd) if isinstance(cmd, list) else cmd
+            if "flutter" in cmd_str:
+                return mock_flutter
+            if "screencap" in cmd_str:
+                return mock_screencap
+            mock_prop = MagicMock()
+            mock_prop.returncode = 0
+            mock_prop.stdout = "sdk_gphone64\n"
+            return mock_prop
+
+        with patch("subprocess.run", side_effect=mock_run):
+            from adw.evidence.mobile_capture import capture_flutter_screenshot
+            result = capture_flutter_screenshot(output_path, "home")
+
+            assert result.device_type.value == "flutter_android"
+
+    def test_flutter_unknown_platform(self, tmp_path: Path) -> None:
+        """Test Flutter with unknown platform type."""
+        output_path = tmp_path / "screenshot.png"
+
+        mock_flutter = MagicMock()
+        mock_flutter.returncode = 0
+        mock_flutter.stdout = json.dumps([{
+            "name": "Unknown Device",
+            "id": "unknown-123",
+            "platform": "web"  # Unknown platform
+        }])
+
+        with patch("subprocess.run", return_value=mock_flutter):
+            from adw.evidence.mobile_capture import capture_flutter_screenshot
+            result = capture_flutter_screenshot(output_path, "home")
+
+            assert result.success is False
+            assert "Unknown Flutter platform" in result.error
+
+
+class TestIosVersionParsing:
+    """Tests for iOS version parsing helper."""
+
+    def test_get_ios_version_from_runtime(self) -> None:
+        """Test extracting iOS version from runtime string."""
+        from adw.evidence.mobile_capture import _get_ios_version_from_runtime
+
+        assert _get_ios_version_from_runtime(
+            "com.apple.CoreSimulator.SimRuntime.iOS-17-2"
+        ) == "17.2"
+        assert _get_ios_version_from_runtime(
+            "com.apple.CoreSimulator.SimRuntime.iOS-16-0"
+        ) == "16.0"
+
+    def test_get_ios_version_invalid_runtime(self) -> None:
+        """Test with invalid runtime string."""
+        from adw.evidence.mobile_capture import _get_ios_version_from_runtime
+
+        assert _get_ios_version_from_runtime("invalid-runtime") is None
+        assert _get_ios_version_from_runtime("") is None
+
+
+class TestCaptureIosScreenshotXcrunNotFound:
+    """Test for xcrun not found scenario."""
+
+    def test_capture_ios_xcrun_not_found(self, tmp_path: Path) -> None:
+        """Test iOS capture when xcrun is not installed."""
+        output_path = tmp_path / "screenshot.png"
+
+        with patch("subprocess.run", side_effect=FileNotFoundError):
+            from adw.evidence.mobile_capture import capture_ios_screenshot
+            result = capture_ios_screenshot(output_path, "home")
+
+            assert result.success is False
+            assert "xcrun not found" in result.error

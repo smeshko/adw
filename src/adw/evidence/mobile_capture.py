@@ -7,10 +7,13 @@ during evidence gathering. It supports:
 - Flutter projects (routes to appropriate platform)
 """
 
+from __future__ import annotations
+
 import json
 import subprocess
 import time
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -21,7 +24,6 @@ from adw.models.evidence import (
     MobileScreenConfig,
     MobileScreenshotResult,
 )
-
 
 # =============================================================================
 # iOS Simulator Functions
@@ -180,7 +182,8 @@ def capture_ios_screenshot(
 
         logger.info(
             LogCategory.STATE,
-            f"iOS screenshot captured: {screen_name} (device={device_name}, path={output_path})",
+            f"iOS screenshot captured: {screen_name} "
+            f"(device={device_name}, path={output_path})",
         )
 
         return MobileScreenshotResult(
@@ -250,10 +253,7 @@ def check_android_emulator_available() -> bool:
         # Parse adb devices output
         # Format: "List of devices attached\nemulator-5554\tdevice\n"
         lines = result.stdout.strip().split("\n")
-        for line in lines[1:]:  # Skip header line
-            if "\tdevice" in line:
-                return True
-        return False
+        return any("\tdevice" in line for line in lines[1:])
 
     except (subprocess.TimeoutExpired, FileNotFoundError):
         return False
@@ -386,7 +386,8 @@ def capture_android_screenshot(
 
         logger.info(
             LogCategory.STATE,
-            f"Android screenshot captured: {screen_name} (device={device_name}, path={output_path})",
+            f"Android screenshot captured: {screen_name} "
+            f"(device={device_name}, path={output_path})",
         )
 
         return MobileScreenshotResult(
@@ -430,7 +431,7 @@ def capture_android_screenshot(
 # =============================================================================
 
 
-def detect_flutter_device() -> dict[str, str] | None:
+def detect_flutter_device() -> dict[str, Any] | None:
     """Detect the active Flutter device (iOS or Android).
 
     Uses `flutter devices --machine` to list connected devices and
@@ -455,7 +456,7 @@ def detect_flutter_device() -> dict[str, str] | None:
         if result.returncode != 0:
             return None
 
-        devices = json.loads(result.stdout)
+        devices: list[dict[str, Any]] = json.loads(result.stdout)
         if not devices:
             return None
 

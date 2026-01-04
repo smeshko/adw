@@ -3,14 +3,34 @@
 This package contains modules for:
 - Platform detection (determining if project is CLI, WEB, MOBILE, or BACKEND)
 - Evidence capture strategies (terminal output, screenshots, API responses)
+- Mobile screenshot capture (iOS Simulator, Android Emulator, Flutter)
 """
 
 from pathlib import Path
 
 from adw.evidence.detector import PlatformDetector
+from adw.evidence.mobile_capture import (
+    capture_android_screenshot,
+    capture_configured_screens,
+    capture_flutter_screenshot,
+    capture_ios_screenshot,
+    check_android_emulator_available,
+    check_ios_simulator_available,
+    detect_flutter_device,
+    get_booted_simulator,
+    get_running_emulator,
+    load_mobile_screens_config,
+    navigate_android_deeplink,
+    navigate_ios_deeplink,
+    save_evidence_metadata,
+)
 from adw.logging import LogCategory, get_logger
 from adw.models.evidence import (
     EvidenceStrategy,
+    MobileDeviceType,
+    MobileEvidenceSummary,
+    MobileScreenConfig,
+    MobileScreenshotResult,
     PlatformDetectionResult,
     PlatformType,
 )
@@ -83,7 +103,27 @@ def get_evidence_strategy(platform: PlatformType) -> EvidenceStrategy:
 
 
 __all__ = [
+    # Platform detection
     "PlatformDetector",
     "detect_platform",
     "get_evidence_strategy",
+    # Mobile capture
+    "capture_android_screenshot",
+    "capture_configured_screens",
+    "capture_flutter_screenshot",
+    "capture_ios_screenshot",
+    "check_android_emulator_available",
+    "check_ios_simulator_available",
+    "detect_flutter_device",
+    "get_booted_simulator",
+    "get_running_emulator",
+    "load_mobile_screens_config",
+    "navigate_android_deeplink",
+    "navigate_ios_deeplink",
+    "save_evidence_metadata",
+    # Mobile models
+    "MobileDeviceType",
+    "MobileEvidenceSummary",
+    "MobileScreenConfig",
+    "MobileScreenshotResult",
 ]
