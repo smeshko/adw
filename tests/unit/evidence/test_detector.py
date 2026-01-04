@@ -6,8 +6,9 @@ types from configuration and file markers.
 
 from pathlib import Path
 
+from adw.evidence import detect_platform, get_evidence_strategy
 from adw.evidence.detector import PlatformDetector
-from adw.models.evidence import Confidence, PlatformType
+from adw.models.evidence import Confidence, EvidenceStrategy, PlatformType
 
 
 class TestConfigurationBasedDetection:
@@ -385,3 +386,55 @@ class TestConfidenceScoring:
         assert "main.py:fastapi" in result.markers
         assert "requirements.txt:fastapi" in result.markers
         assert len(result.markers) == 2
+
+
+class TestEvidenceStrategyFactory:
+    """Tests for get_evidence_strategy factory function (Task 5)."""
+
+    def test_cli_maps_to_terminal_output(self) -> None:
+        """Test that CLI platform maps to TERMINAL_OUTPUT strategy."""
+        strategy = get_evidence_strategy(PlatformType.CLI)
+        assert strategy == EvidenceStrategy.TERMINAL_OUTPUT
+
+    def test_web_maps_to_screenshot(self) -> None:
+        """Test that WEB platform maps to SCREENSHOT strategy."""
+        strategy = get_evidence_strategy(PlatformType.WEB)
+        assert strategy == EvidenceStrategy.SCREENSHOT
+
+    def test_backend_maps_to_api_capture(self) -> None:
+        """Test that BACKEND platform maps to API_CAPTURE strategy."""
+        strategy = get_evidence_strategy(PlatformType.BACKEND)
+        assert strategy == EvidenceStrategy.API_CAPTURE
+
+    def test_unknown_maps_to_terminal_output(self) -> None:
+        """Test that UNKNOWN platform maps to TERMINAL_OUTPUT strategy."""
+        strategy = get_evidence_strategy(PlatformType.UNKNOWN)
+        assert strategy == EvidenceStrategy.TERMINAL_OUTPUT
+
+
+class TestDetectPlatformConvenience:
+    """Tests for detect_platform convenience function (Task 5)."""
+
+    def test_detect_platform_returns_result(self, tmp_path: Path) -> None:
+        """Test that detect_platform returns a valid result."""
+        result = detect_platform(tmp_path)
+        assert result.platform == PlatformType.CLI
+        assert result.source == "default"
+
+    def test_detect_platform_with_config(self, tmp_path: Path) -> None:
+        """Test detect_platform with explicit config."""
+        config_file = tmp_path / ".adw" / "project.yaml"
+        config_file.parent.mkdir(parents=True)
+        config_file.write_text("name: test\nlanguage: python\nplatform: web")
+
+        result = detect_platform(tmp_path)
+        assert result.platform == PlatformType.WEB
+        assert result.source == "config"
+
+    def test_detect_platform_with_markers(self, tmp_path: Path) -> None:
+        """Test detect_platform with file markers."""
+        (tmp_path / "package.json").write_text('{"dependencies": {"react": "^18"}}')
+
+        result = detect_platform(tmp_path)
+        assert result.platform == PlatformType.WEB
+        assert result.source == "markers"

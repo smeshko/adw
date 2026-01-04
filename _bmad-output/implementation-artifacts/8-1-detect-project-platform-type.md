@@ -72,10 +72,10 @@ so that appropriate evidence gathering strategies are used.
 - [x] Include confidence in detection result
 
 ### Task 5: Integrate with Evidence System
-- [ ] Create factory function `get_evidence_strategy(platform: PlatformType)`
-- [ ] Wire detection into Verify phase startup
-- [ ] Emit appropriate warning for UNKNOWN platform
-- [ ] Store detected platform in RunContext for downstream use
+- [x] Create factory function `get_evidence_strategy(platform: PlatformType)`
+- [x] Wire detection into Verify phase startup
+- [x] Emit appropriate warning for UNKNOWN platform
+- [x] Store detected platform in RunContext for downstream use
 
 ### Task 6: Write Unit Tests
 - [ ] Test explicit config detection
