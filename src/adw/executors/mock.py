@@ -89,12 +89,15 @@ class MockExecutor:
         self._failures.clear()
         self._failures.extend(failures)
 
-    def execute(self, prompt: str, *, timeout: int | None = None) -> LLMResult:
+    def execute(
+        self, prompt: str, *, timeout: int | None = None, phase: str | None = None
+    ) -> LLMResult:
         """Execute a mock prompt.
 
         Args:
             prompt: The prompt being "sent" (stored for tracking).
             timeout: Ignored in mock (for interface compatibility).
+            phase: Ignored in mock (for interface compatibility).
 
         Returns:
             LLMResult from configured responses or a default.

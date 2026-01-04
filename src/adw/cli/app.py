@@ -212,10 +212,13 @@ def run(
     if ctx.obj:
         verbosity = ctx.obj.get("verbosity", Verbosity.NORMAL)
 
-    # Create log manager with verbosity (Story 7.2)
-    # Note: LogManager will be integrated with orchestrator in future stories
-    log_manager = create_log_manager(console, verbosity=verbosity)
-    _ = log_manager  # Log manager created, integration with orchestrator pending
+    # Calculate run directory for file logging
+    runs_dir = Path.cwd() / ".adw" / "runs"
+    run_dir = runs_dir / run_id
+
+    # Create log manager with file transports (Story 7.2, ISS-003 fix)
+    log_manager = create_log_manager(console, verbosity=verbosity, run_dir=run_dir)
+    _ = log_manager  # Log manager created for file logging
 
     # Enable LLM output if flag is set OR verbosity is TRACE (Story UX-FIX-ISS-001)
     effective_show_llm_output = show_llm_output or verbosity == Verbosity.TRACE

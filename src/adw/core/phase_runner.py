@@ -555,7 +555,7 @@ class PhaseRunner:
             self.progress_display.on_llm_start()
 
         try:
-            result = self.executor.execute(prompt)
+            result = self.executor.execute(prompt, phase=phase)
 
             logger.debug(
                 "LLM execution completed",

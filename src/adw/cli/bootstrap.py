@@ -24,8 +24,9 @@ from adw.core import (
 from adw.core.phase_runner import PhaseRunner
 from adw.executors.claude_code import ClaudeCodeExecutor
 from adw.hooks.runner import HookRunner
-from adw.logging import LogManager
+from adw.logging import LogManager, LLMCaptureManager
 from adw.logging.console import ConsoleTransport
+from adw.logging.file import RawFileTransport, StructuredFileTransport
 from adw.models.config import HookConfig, LLMConfig
 from adw.models.logging import Verbosity
 from adw.security import SecurityInterceptor, ToolLogger
@@ -61,16 +62,18 @@ def get_runs_dir(project_root: Path | None = None) -> Path:
 def create_log_manager(
     console: Console | None = None,
     verbosity: Verbosity = Verbosity.NORMAL,
+    run_dir: Path | None = None,
 ) -> LogManager:
     """Create a LogManager configured for CLI use.
 
-    Sets up console transport with the specified verbosity. Console output
-    respects verbosity settings while file transports (when added) capture
-    everything for debugging purposes.
+    Sets up console transport with the specified verbosity. When run_dir is
+    provided, also sets up file transports for persistent logging.
 
     Args:
         console: Rich console for output. If None, creates a new one.
         verbosity: Verbosity level for console output (default: NORMAL)
+        run_dir: Optional run directory for file logging. If provided,
+                 creates logs/logs.jsonl and logs/raw.log in the run directory.
 
     Returns:
         Configured LogManager ready for use.
@@ -89,6 +92,20 @@ def create_log_manager(
         verbosity=verbosity,
     )
     log_manager.register(console_transport)
+
+    # Add file transports when run_dir is provided
+    # Note: File transports create directories lazily on first write,
+    # so we don't mkdir here to avoid conflicts with RunDirectoryManager
+    if run_dir:
+        logs_dir = run_dir / "logs"
+
+        # Structured JSON Lines for programmatic access
+        jsonl_transport = StructuredFileTransport(logs_dir / "logs.jsonl")
+        log_manager.register(jsonl_transport)
+
+        # Human-readable raw log
+        raw_transport = RawFileTransport(logs_dir / "raw.log")
+        log_manager.register(raw_transport)
 
     return log_manager
 
@@ -152,8 +169,12 @@ def create_orchestrator(
     # Create security components (Story 3.6)
     security_interceptor = SecurityInterceptor(allow_dangerous=allow_dangerous)
     tool_logger = None
+    llm_capture = None
     if run_id:
-        tool_logger = ToolLogger(runs_dir / run_id)
+        run_dir = runs_dir / run_id
+        tool_logger = ToolLogger(run_dir)
+        # Create LLM capture manager for debugging (ISS-003 fix)
+        llm_capture = LLMCaptureManager(run_dir / "llm")
 
     llm_executor = ClaudeCodeExecutor(
         config=LLMConfig(),
@@ -162,6 +183,7 @@ def create_orchestrator(
         tool_logger=tool_logger,
         allow_dangerous=allow_dangerous,
         show_llm_output=show_llm_output,
+        llm_capture=llm_capture,
     )
 
     # Create PhaseRunner (Story 5.2)

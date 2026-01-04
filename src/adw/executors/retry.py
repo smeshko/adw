@@ -49,12 +49,14 @@ class RetryExecutor:
         prompt: str,
         *,
         timeout: int | None = None,
+        phase: str | None = None,
     ) -> LLMResult:
         """Execute a prompt with automatic retry on transient failures.
 
         Args:
             prompt: The prompt to send to the LLM.
             timeout: Optional timeout in seconds.
+            phase: Optional phase name for logging and debugging purposes.
 
         Returns:
             LLMResult with success status, content, and attempt count.
@@ -62,18 +64,20 @@ class RetryExecutor:
         Raises:
             LLMError: If all retry attempts fail or a non-retryable error occurs.
         """
-        return asyncio.run(self._execute_with_retry(prompt, timeout))
+        return asyncio.run(self._execute_with_retry(prompt, timeout, phase))
 
     async def _execute_with_retry(
         self,
         prompt: str,
         timeout: int | None,
+        phase: str | None = None,
     ) -> LLMResult:
         """Execute prompt with retry logic (async implementation).
 
         Args:
             prompt: The prompt to send to the LLM.
             timeout: Optional timeout in seconds.
+            phase: Optional phase name for logging and debugging purposes.
 
         Returns:
             LLMResult with attempt count set.
@@ -85,7 +89,7 @@ class RetryExecutor:
 
         for attempt in range(1, self.config.max_retries + 1):
             try:
-                result = self.executor.execute(prompt, timeout=timeout)
+                result = self.executor.execute(prompt, timeout=timeout, phase=phase)
                 result.attempt_count = attempt
                 return result
             except LLMError as e:

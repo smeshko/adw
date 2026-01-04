@@ -29,6 +29,7 @@ from adw.models.logging import LLMStats
 from adw.models.security import ToolCallLog
 
 if TYPE_CHECKING:
+    from adw.logging.llm_capture import LLMCaptureManager
     from adw.security.interceptor import SecurityInterceptor
     from adw.security.tool_logger import ToolLogger
 
@@ -63,6 +64,7 @@ class ClaudeCodeExecutor:
         security_interceptor: "SecurityInterceptor | None" = None,
         allow_dangerous: bool = False,
         show_llm_output: bool = False,
+        llm_capture: "LLMCaptureManager | None" = None,
     ) -> None:
         """Initialize the ClaudeCodeExecutor.
 
@@ -78,6 +80,8 @@ class ClaudeCodeExecutor:
                         commands (Story 3.6).
             show_llm_output: If True, stream LLM output to console in real-time.
                         Default False to reduce terminal noise (UX-FIX-ISS-001).
+            llm_capture: Optional LLMCaptureManager for capturing LLM interactions
+                        to files for debugging (ISS-003 fix).
         """
         self.config = config
         self.console = console or Console()
@@ -85,6 +89,7 @@ class ClaudeCodeExecutor:
         self.security_interceptor = security_interceptor
         self.allow_dangerous = allow_dangerous
         self.show_llm_output = show_llm_output
+        self.llm_capture = llm_capture
 
     def _resolve_timeout(self, timeout: int | None) -> int:
         """Resolve timeout using 3-tier hierarchy.
@@ -112,6 +117,7 @@ class ClaudeCodeExecutor:
         *,
         timeout: int | None = None,
         stream_logger: StreamLogger | None = None,
+        phase: str | None = None,
     ) -> LLMResult:
         """Execute a prompt using Claude Code CLI.
 
@@ -123,6 +129,7 @@ class ClaudeCodeExecutor:
             timeout: Optional timeout in seconds. If None, uses config default.
             stream_logger: Optional StreamLogger for capturing stream events.
                           Used for debugging and replay (Story 7.3).
+            phase: Optional phase name for LLM capture logging.
 
         Returns:
             LLMResult with success status, content, tool calls, and metrics.
@@ -130,10 +137,43 @@ class ClaudeCodeExecutor:
         Raises:
             LLMError: If Claude Code is not found, execution fails, or timeout.
         """
+        from adw.models.logging import LLMRequest, LLMResponse
+
         effective_timeout = self._resolve_timeout(timeout)
-        return asyncio.run(
+        current_phase = phase or "unknown"
+
+        # Capture LLM request if capture manager is configured
+        if self.llm_capture:
+            request = LLMRequest(
+                prompt=prompt,
+                phase=current_phase,
+                params={"model": self.config.model, "timeout": effective_timeout},
+            )
+            self.llm_capture.capture_request(request)
+
+        result = asyncio.run(
             self._stream_subprocess(prompt, effective_timeout, stream_logger)
         )
+
+        # Capture LLM response if capture manager is configured
+        if self.llm_capture:
+            response = LLMResponse(
+                content=result.content,
+                phase=current_phase,
+                stats=LLMStats(
+                    input_tokens=0,  # Not tracked by CLI currently
+                    output_tokens=result.tokens_used,
+                    duration_ms=int(result.duration_seconds * 1000),
+                ),
+                tool_calls=[
+                    {"id": tc.id, "name": tc.name, "input": tc.input}
+                    for tc in result.tool_calls
+                ],
+            )
+            self.llm_capture.capture_response(response)
+            self.llm_capture.next_sequence()
+
+        return result
 
     async def _stream_subprocess(
         self,
