@@ -36,21 +36,21 @@ so that my work is isolated from the main branch.
 
 ## Tasks / Subtasks
 
-- [ ] Create `src/adw/hooks/git_branch.py` module
-- [ ] Implement `sanitize_branch_name(feature: str) -> str` function
+- [x] Create `src/adw/hooks/git_branch.py` module
+- [x] Implement `sanitize_branch_name(feature: str) -> str` function
   - Lowercase, replace spaces with hyphens, remove special chars
   - Max length 50 chars
-- [ ] Implement `create_or_switch_branch(branch_name: str) -> None`
+- [x] Implement `create_or_switch_branch(branch_name: str) -> None`
   - Check if branch exists: `git branch --list`
   - Create: `git checkout -b <branch>`
   - Switch: `git checkout <branch>`
-- [ ] Implement `check_uncommitted_changes() -> bool`
+- [x] Implement `check_uncommitted_changes() -> bool`
   - Use `git status --porcelain`
 - [ ] Add git integration config to project.yaml schema
   - `git.enabled: bool`
   - `git.branch_prefix: str` (default: "feature/")
 - [ ] Create bundled pre-hook script `defaults/commands/plan/pre.sh`
-- [ ] Write unit tests for branch name sanitization
+- [x] Write unit tests for branch name sanitization
 - [ ] Write integration tests with git repo fixture
 
 ---
@@ -123,8 +123,18 @@ Key patterns:
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude Opus 4.5
 
 ### Completion Notes List
+- Implemented git_branch.py module with sanitize_branch_name, check_uncommitted_changes, and create_or_switch_branch functions
+- All functions use subprocess.run() as specified, no gitpython dependency
+- sanitize_branch_name handles: lowercase, spaces->hyphens, special char removal, max 50 chars, hyphen collapsing
+- create_or_switch_branch is idempotent - creates if not exists, switches if exists
+- All functions follow exception hierarchy using HookError
+- Unit tests cover all edge cases with 18 passing tests
 
 ### File List
+- src/adw/hooks/git_branch.py (new)
+- src/adw/hooks/__init__.py (modified - added exports)
+- tests/unit/hooks/test_git_branch.py (new)
 
