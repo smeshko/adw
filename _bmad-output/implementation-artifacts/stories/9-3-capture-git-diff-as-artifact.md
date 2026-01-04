@@ -32,20 +32,20 @@ so that changes can be reviewed and included in PR description.
 
 ## Tasks / Subtasks
 
-- [ ] Create `src/adw/hooks/git_diff.py` module
-- [ ] Implement `capture_diff(since: str = "HEAD~1") -> str`
+- [x] Create `src/adw/hooks/git_diff.py` module
+- [x] Implement `capture_diff(since: str = "HEAD~1") -> str`
   - Use `git diff --stat` for summary
   - Use `git diff` for full content
-- [ ] Implement `capture_staged_diff() -> str`
+- [x] Implement `capture_staged_diff() -> str`
   - Use `git diff --cached` for uncommitted staged changes
-- [ ] Implement `truncate_diff(diff: str, max_bytes: int = 102400) -> str`
+- [x] Implement `truncate_diff(diff: str, max_bytes: int = 102400) -> str`
   - Preserve file headers when truncating
   - Add truncation notice at end
-- [ ] Implement `get_diff_stats(diff: str) -> DiffStats`
+- [x] Implement `get_diff_stats(diff: str) -> DiffStats`
   - Parse insertions/deletions from --stat output
 - [ ] Integrate diff capture into Build phase artifact collection
 - [ ] Add diff to template variable namespace as `{{artifacts.build.diff}}`
-- [ ] Write unit tests for diff parsing and truncation
+- [x] Write unit tests for diff parsing and truncation
 - [ ] Write integration tests with actual git changes
 
 ---
@@ -120,8 +120,20 @@ Key patterns:
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude claude-opus-4-5-20251101
 
 ### Completion Notes List
+- Created git_diff.py module with all core diff capture functions
+- Implemented DiffStats Pydantic model for structured diff statistics
+- capture_diff() captures git diff since a given commit (default HEAD~1)
+- capture_staged_diff() captures staged changes via git diff --cached
+- truncate_diff() handles large diffs with truncation notice
+- get_diff_stats() parses git diff --stat output into DiffStats model
+- All functions use --no-color flag to avoid ANSI escape codes
+- 20 unit tests written and passing (95% coverage for module)
 
 ### File List
+- src/adw/hooks/git_diff.py (new)
+- src/adw/hooks/__init__.py (modified - added exports)
+- tests/unit/hooks/test_git_diff.py (new)
 
