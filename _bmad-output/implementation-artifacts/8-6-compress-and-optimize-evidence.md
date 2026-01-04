@@ -40,27 +40,27 @@ so that storage and transfer are efficient.
 - [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Image Compression (evidence/optimizer.py)
-- [ ] Create `EvidenceOptimizer` class
-- [ ] Implement PNG compression using Pillow
-- [ ] Support quality settings (lossy acceptable)
-- [ ] Handle missing Pillow gracefully (skip optimization)
+- [x] Create `EvidenceOptimizer` class
+- [x] Implement PNG compression using Pillow
+- [x] Support quality settings (lossy acceptable)
+- [x] Handle missing Pillow gracefully (skip optimization)
 
 ### Task 3: Implement Text Truncation
-- [ ] Implement truncation for CLI output files
-- [ ] Preserve head and tail of truncated files
-- [ ] Add truncation marker with original size
-- [ ] Configurable max size threshold (default: 100KB)
+- [x] Implement truncation for CLI output files
+- [x] Preserve head and tail of truncated files
+- [x] Add truncation marker with original size
+- [x] Configurable max size threshold (default: 100KB)
 
 ### Task 4: Implement JSON Minification
-- [ ] Minify JSON files (remove whitespace)
-- [ ] Option to keep pretty-printed manifest
-- [ ] Calculate size savings
+- [x] Minify JSON files (remove whitespace)
+- [x] Option to keep pretty-printed manifest
+- [x] Calculate size savings
 
 ### Task 5: Implement Size Monitoring
-- [ ] Calculate total evidence directory size
-- [ ] Calculate per-type size breakdown
-- [ ] Log summary to console via LogManager
-- [ ] Emit warning if over configurable threshold
+- [x] Calculate total evidence directory size
+- [x] Calculate per-type size breakdown
+- [x] Log summary to console via LogManager
+- [x] Emit warning if over configurable threshold
 
 ### Task 6: Implement Config-Based Settings
 - [ ] Read optimization config from `.adw/project.yaml`
