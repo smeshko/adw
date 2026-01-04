@@ -166,7 +166,7 @@ development_status:
   # Goal: Support git workflows and generate PR-ready documentation
   # ═══════════════════════════════════════════════════════════════════════════
   epic-9: in-progress
-  9-1-create-feature-branch-via-pre-hook: in-progress
+  9-1-create-feature-branch-via-pre-hook: review
   9-2-stage-and-commit-changes-via-post-hook: ready-for-dev
   9-3-capture-git-diff-as-artifact: in-progress
   9-4-generate-pr-description: ready-for-dev
