@@ -81,12 +81,12 @@ so that verification is traceable.
 - [x] Return manifest for downstream phases
 
 ### Task 8: Write Unit Tests
-- [ ] Test manifest model creation and serialization
-- [ ] Test evidence item aggregation
-- [ ] Test plan step linking logic
-- [ ] Test coverage calculation
-- [ ] Test manifest file writing
-- [ ] Test with mixed success/failure evidence
+- [x] Test manifest model creation and serialization
+- [x] Test evidence item aggregation
+- [x] Test plan step linking logic
+- [x] Test coverage calculation
+- [x] Test manifest file writing
+- [x] Test with mixed success/failure evidence
 
 ---
 
