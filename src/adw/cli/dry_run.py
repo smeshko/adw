@@ -7,11 +7,16 @@ any phases or modifying state.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
 from adw.core.constants import PHASE_SEQUENCE
+
+if TYPE_CHECKING:
+    from adw.models import ProjectConfig
 
 __all__ = ["DryRunDisplay"]
 
@@ -52,6 +57,7 @@ class DryRunDisplay:
         feature: str,
         phase: str | None = None,
         from_run: str | None = None,
+        config: ProjectConfig | None = None,
     ) -> None:
         """Display the execution preview.
 
@@ -62,6 +68,7 @@ class DryRunDisplay:
             feature: Feature description for the run.
             phase: Single phase to execute, or None for full pipeline.
             from_run: Source run ID for artifact loading, or None.
+            config: Project configuration for hook display, or None.
         """
         # Determine phases to show
         if phase:
@@ -83,8 +90,8 @@ class DryRunDisplay:
             )
         )
 
-        # Show phases table
-        self._show_phases_table(phases_to_show)
+        # Show phases table with hooks from config
+        self._show_phases_table(phases_to_show, config)
 
         # Show artifact info if --from-run specified
         if from_run:
@@ -97,11 +104,16 @@ class DryRunDisplay:
         )
         self.console.print()
 
-    def _show_phases_table(self, phases: list[str]) -> None:
+    def _show_phases_table(
+        self,
+        phases: list[str],
+        config: ProjectConfig | None = None,
+    ) -> None:
         """Display table of phases that would execute.
 
         Args:
             phases: List of phase names to show.
+            config: Project configuration for hook display, or None.
         """
         self.console.print()
 
@@ -111,8 +123,18 @@ class DryRunDisplay:
         table.add_column("Post-Hook", style="dim")
 
         for phase_name in phases:
-            # Hooks are shown in Task 2 & 3 when config is loaded
-            table.add_row(phase_name, "—", "—")
+            pre_hook = "—"
+            post_hook = "—"
+
+            # Get hooks from config if available
+            if config and phase_name in config.phases:
+                phase_config = config.phases[phase_name]
+                if phase_config.pre_hook:
+                    pre_hook = phase_config.pre_hook
+                if phase_config.post_hook:
+                    post_hook = phase_config.post_hook
+
+            table.add_row(phase_name, pre_hook, post_hook)
 
         self.console.print(table)
 

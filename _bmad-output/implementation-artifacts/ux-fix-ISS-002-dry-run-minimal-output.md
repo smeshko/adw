@@ -31,12 +31,12 @@ so that **I can verify my configuration and phase selection before committing to
 - [x] Use Rich panels and tables for structured output
 
 ### Task 2: Implement Phase Preview Display
-- [ ] Show phases in execution order (PHASE_SEQUENCE or single phase)
-- [ ] For each phase, display:
+- [x] Show phases in execution order (PHASE_SEQUENCE or single phase)
+- [x] For each phase, display:
   - Phase name (with status: "would execute")
   - Pre-hook command (if configured in project.yaml)
   - Post-hook command (if configured in project.yaml)
-- [ ] Use Rich Table for clean alignment
+- [x] Use Rich Table for clean alignment
 
 ### Task 3: Implement Configuration Display
 - [ ] Load project config via ConfigLoader

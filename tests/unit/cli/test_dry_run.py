@@ -93,3 +93,54 @@ class TestDryRunDisplay:
 
         result = output.getvalue().lower()
         assert "dry run" in result or "no execution" in result
+
+
+class TestDryRunDisplayWithConfig:
+    """Tests for DryRunDisplay with configuration."""
+
+    def test_show_phases_with_hooks(self) -> None:
+        """Test phase display shows pre and post hooks when configured."""
+        from adw.models import ProjectConfig, PhaseConfig
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        display = DryRunDisplay(console)
+
+        config = ProjectConfig(
+            name="test-project",
+            language="python",
+            phases={
+                "build": PhaseConfig(pre_hook="npm install", post_hook="npm run lint"),
+                "validate": PhaseConfig(post_hook="pytest"),
+            },
+        )
+
+        display.show_execution_preview(
+            feature="Test feature",
+            phase=None,
+            from_run=None,
+            config=config,
+        )
+
+        result = output.getvalue()
+        assert "npm install" in result
+        assert "npm run lint" in result
+        assert "pytest" in result
+
+    def test_show_phases_without_config(self) -> None:
+        """Test phase display works without config (shows dashes)."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        display = DryRunDisplay(console)
+
+        display.show_execution_preview(
+            feature="Test feature",
+            phase=None,
+            from_run=None,
+            config=None,
+        )
+
+        result = output.getvalue()
+        # Should still show phases
+        for phase in ["plan", "build", "verify", "validate", "document"]:
+            assert phase in result.lower()
