@@ -80,8 +80,8 @@ so that mobile UI changes can be visually verified.
 - [x] Add configurable wait time between navigation and capture
 
 ### Task 6: Implement Config-Based Screen Loading
-- [ ] Read `evidence.mobile_screens` from `.adw/project.yaml`
-- [ ] Support screen configuration format:
+- [x] Read `evidence.mobile_screens` from `.adw/project.yaml`
+- [x] Support screen configuration format:
   ```yaml
   evidence:
     mobile_screens:
@@ -95,8 +95,8 @@ so that mobile UI changes can be visually verified.
           - type: "tap"
             selector: "Settings Button"
   ```
-- [ ] Validate configuration
-- [ ] Handle missing config (capture current screen with warning)
+- [x] Validate configuration
+- [x] Handle missing config (capture current screen with warning)
 
 ### Task 7: Implement Evidence File Organization
 - [ ] Create directory: `.adw/runs/<run_id>/evidence/screenshots/mobile/`

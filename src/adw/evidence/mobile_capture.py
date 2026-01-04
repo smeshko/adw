@@ -9,10 +9,18 @@ during evidence gathering. It supports:
 
 import json
 import subprocess
+import time
 from pathlib import Path
 
+import yaml
+
 from adw.logging import LogCategory, get_logger
-from adw.models.evidence import MobileDeviceType, MobileScreenshotResult
+from adw.models.evidence import (
+    MobileDeviceType,
+    MobileEvidenceSummary,
+    MobileScreenConfig,
+    MobileScreenshotResult,
+)
 
 
 # =============================================================================
@@ -551,6 +559,186 @@ def navigate_android_deeplink(deeplink: str) -> bool:
 
     except (subprocess.TimeoutExpired, FileNotFoundError):
         return False
+
+
+# =============================================================================
+# Config-Based Screen Loading
+# =============================================================================
+
+
+def load_mobile_screens_config(project_root: Path) -> list[MobileScreenConfig]:
+    """Load mobile screen configuration from project.yaml.
+
+    Reads the `evidence.mobile_screens` section from .adw/project.yaml
+    and returns a list of MobileScreenConfig objects.
+
+    Args:
+        project_root: Path to the project root directory
+
+    Returns:
+        List of MobileScreenConfig objects, empty list if no config found
+
+    Example:
+        >>> screens = load_mobile_screens_config(Path("/my/project"))
+        >>> for screen in screens:
+        ...     print(f"Capture screen: {screen.name}")
+    """
+    logger = get_logger()
+    config_path = project_root / ".adw" / "project.yaml"
+
+    if not config_path.exists():
+        logger.debug(
+            LogCategory.STATE,
+            "No .adw/project.yaml found - using default screen capture",
+        )
+        return []
+
+    try:
+        content = config_path.read_text()
+        data = yaml.safe_load(content)
+
+        if not isinstance(data, dict):
+            return []
+
+        evidence_config = data.get("evidence", {})
+        if not isinstance(evidence_config, dict):
+            return []
+
+        mobile_screens = evidence_config.get("mobile_screens", [])
+        if not isinstance(mobile_screens, list):
+            return []
+
+        configs = []
+        for screen in mobile_screens:
+            if not isinstance(screen, dict):
+                continue
+
+            name = screen.get("name")
+            if not name:
+                continue
+
+            configs.append(MobileScreenConfig(
+                name=name,
+                deeplink=screen.get("deeplink"),
+                capture_delay_ms=screen.get("capture_delay_ms", 500),
+                navigation_steps=screen.get("navigation_steps", []),
+            ))
+
+        logger.info(
+            LogCategory.STATE,
+            f"Loaded {len(configs)} mobile screen configs from project.yaml",
+        )
+        return configs
+
+    except (yaml.YAMLError, OSError) as e:
+        logger.warn(
+            LogCategory.STATE,
+            f"Failed to load mobile screens config: {e}",
+        )
+        return []
+
+
+def capture_configured_screens(
+    project_root: Path,
+    output_dir: Path,
+    device_type: MobileDeviceType,
+) -> MobileEvidenceSummary:
+    """Capture screenshots for all configured screens.
+
+    Loads configuration from project.yaml, navigates to each screen
+    (if deeplink is provided), and captures screenshots.
+
+    Args:
+        project_root: Path to the project root directory
+        output_dir: Directory where screenshots should be saved
+        device_type: Type of device to use for capture
+
+    Returns:
+        MobileEvidenceSummary with all capture results
+
+    Example:
+        >>> summary = capture_configured_screens(
+        ...     project_root=Path("/my/project"),
+        ...     output_dir=Path("/tmp/evidence/mobile"),
+        ...     device_type=MobileDeviceType.IOS,
+        ... )
+        >>> print(f"Captured {summary.successful} of {summary.total_screenshots}")
+    """
+    logger = get_logger()
+
+    # Ensure output directory exists
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Load configuration
+    screens = load_mobile_screens_config(project_root)
+
+    if not screens:
+        # No config - capture current screen
+        logger.info(
+            LogCategory.STATE,
+            "No mobile_screens configured - capturing current screen",
+        )
+        screens = [MobileScreenConfig(name="current")]
+
+    results: list[MobileScreenshotResult] = []
+
+    for screen in screens:
+        # Determine output filename
+        device_suffix = device_type.value.replace("flutter_", "")
+        filename = f"{_sanitize_filename(screen.name)}_{device_suffix}.png"
+        output_path = output_dir / filename
+
+        # Navigate to screen if deeplink is provided
+        if screen.deeplink:
+            logger.debug(
+                LogCategory.STATE,
+                f"Navigating to {screen.name} via deeplink",
+            )
+            if device_type in (MobileDeviceType.IOS, MobileDeviceType.FLUTTER_IOS):
+                navigate_ios_deeplink(screen.deeplink)
+            else:
+                navigate_android_deeplink(screen.deeplink)
+
+            # Wait for navigation
+            time.sleep(screen.capture_delay_ms / 1000.0)
+
+        # Capture screenshot based on device type
+        if device_type in (MobileDeviceType.IOS, MobileDeviceType.FLUTTER_IOS):
+            result = capture_ios_screenshot(output_path, screen.name)
+        else:
+            result = capture_android_screenshot(output_path, screen.name)
+
+        results.append(result)
+
+    # Build summary
+    successful = sum(1 for r in results if r.success)
+    failed = len(results) - successful
+
+    return MobileEvidenceSummary(
+        total_screenshots=len(results),
+        successful=successful,
+        failed=failed,
+        results=results,
+    )
+
+
+def _sanitize_filename(name: str) -> str:
+    """Sanitize a screen name for use in filenames.
+
+    Replaces spaces with underscores and removes special characters.
+
+    Args:
+        name: Screen name to sanitize
+
+    Returns:
+        Safe filename string
+    """
+    # Replace spaces and common separators
+    safe = name.replace(" ", "_").replace("-", "_").replace("/", "_")
+    # Remove other non-alphanumeric characters
+    safe = "".join(c for c in safe if c.isalnum() or c == "_")
+    # Lowercase for consistency
+    return safe.lower()
 
 
 def capture_flutter_screenshot(

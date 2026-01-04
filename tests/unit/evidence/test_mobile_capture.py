@@ -470,6 +470,76 @@ class TestCaptureFlutterScreenshot:
             assert result.device_type in (MobileDeviceType.FLUTTER_IOS, MobileDeviceType.IOS)
 
 
+# =============================================================================
+# Config-Based Screen Loading Tests (Task 6)
+# =============================================================================
+
+
+class TestLoadMobileScreensConfig:
+    """Tests for loading mobile screen configuration."""
+
+    def test_load_config_from_project_yaml(self, tmp_path: Path) -> None:
+        """Test loading screens from .adw/project.yaml."""
+        # Create config directory and file
+        config_dir = tmp_path / ".adw"
+        config_dir.mkdir()
+        config_file = config_dir / "project.yaml"
+        config_file.write_text("""
+evidence:
+  mobile_screens:
+    - name: "home"
+      deeplink: "myapp://home"
+      capture_delay_ms: 500
+    - name: "profile"
+      deeplink: "myapp://profile/123"
+""")
+
+        from adw.evidence.mobile_capture import load_mobile_screens_config
+        screens = load_mobile_screens_config(tmp_path)
+
+        assert len(screens) == 2
+        assert screens[0].name == "home"
+        assert screens[0].deeplink == "myapp://home"
+        assert screens[1].name == "profile"
+
+    def test_load_config_empty_when_no_file(self, tmp_path: Path) -> None:
+        """Test empty list when no config file exists."""
+        from adw.evidence.mobile_capture import load_mobile_screens_config
+        screens = load_mobile_screens_config(tmp_path)
+        assert screens == []
+
+    def test_load_config_handles_invalid_yaml(self, tmp_path: Path) -> None:
+        """Test graceful handling of invalid YAML."""
+        config_dir = tmp_path / ".adw"
+        config_dir.mkdir()
+        config_file = config_dir / "project.yaml"
+        config_file.write_text("invalid: yaml: content:")
+
+        from adw.evidence.mobile_capture import load_mobile_screens_config
+        screens = load_mobile_screens_config(tmp_path)
+        assert screens == []
+
+
+class TestSanitizeFilename:
+    """Tests for filename sanitization."""
+
+    def test_sanitize_spaces(self) -> None:
+        """Test that spaces are replaced with underscores."""
+        from adw.evidence.mobile_capture import _sanitize_filename
+        assert _sanitize_filename("home screen") == "home_screen"
+
+    def test_sanitize_special_chars(self) -> None:
+        """Test that special characters are removed."""
+        from adw.evidence.mobile_capture import _sanitize_filename
+        assert _sanitize_filename("profile/edit") == "profile_edit"
+        assert _sanitize_filename("user@profile") == "userprofile"
+
+    def test_sanitize_lowercase(self) -> None:
+        """Test that result is lowercase."""
+        from adw.evidence.mobile_capture import _sanitize_filename
+        assert _sanitize_filename("HomeScreen") == "homescreen"
+
+
 class TestCaptureAndroidScreenshot:
     """Tests for Android screenshot capture."""
 
