@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from adw.models import (
+    GitConfig,
     HookConfig,
     LLMConfig,
     PhaseConfig,
@@ -82,6 +83,25 @@ class TestHookConfig:
         )
         assert config.shell == "/bin/zsh"
         assert config.timeout_seconds == 120
+
+
+class TestGitConfig:
+    """Tests for GitConfig model."""
+
+    def test_defaults(self) -> None:
+        """GitConfig has sensible defaults."""
+        config = GitConfig()
+        assert config.enabled is False
+        assert config.branch_prefix == "feature/"
+
+    def test_enabled_with_custom_prefix(self) -> None:
+        """GitConfig accepts custom prefix."""
+        config = GitConfig(
+            enabled=True,
+            branch_prefix="feat/",
+        )
+        assert config.enabled is True
+        assert config.branch_prefix == "feat/"
 
 
 class TestProjectConfig:
@@ -174,6 +194,21 @@ language: python
         assert config.llm.path == "claude"
         assert config.llm.timeout_seconds == 300
         assert config.hooks.shell == "/bin/bash"
+        assert config.git.enabled is False
+        assert config.git.branch_prefix == "feature/"
+
+    def test_with_git_config(self) -> None:
+        """ProjectConfig with git integration enabled."""
+        yaml_content = """
+name: git-enabled
+language: python
+git:
+  enabled: true
+  branch_prefix: "feat/"
+"""
+        config = ProjectConfig.from_yaml(yaml_content)
+        assert config.git.enabled is True
+        assert config.git.branch_prefix == "feat/"
 
     def test_with_phase_config(self) -> None:
         """ProjectConfig with phase-specific configuration."""
