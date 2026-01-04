@@ -49,7 +49,7 @@ so that my work is isolated from the main branch.
 - [x] Add git integration config to project.yaml schema
   - `git.enabled: bool`
   - `git.branch_prefix: str` (default: "feature/")
-- [ ] Create bundled pre-hook script `defaults/commands/plan/pre.sh`
+- [x] Create bundled pre-hook script `defaults/commands/plan/pre.sh`
 - [x] Write unit tests for branch name sanitization
 - [ ] Write integration tests with git repo fixture
 
@@ -138,6 +138,7 @@ Claude Opus 4.5
 - src/adw/hooks/__init__.py (modified - added exports)
 - src/adw/models/config.py (modified - added GitConfig)
 - src/adw/models/__init__.py (modified - exported GitConfig)
+- src/adw/defaults/commands/plan/pre.sh (new - bundled git branch hook)
 - tests/unit/hooks/test_git_branch.py (new)
 - tests/unit/models/test_config.py (modified - added GitConfig tests)
 
