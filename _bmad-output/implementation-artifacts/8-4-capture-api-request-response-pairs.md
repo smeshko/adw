@@ -76,8 +76,8 @@ so that endpoint behavior can be verified.
   ```
 
 ### Task 5: Implement Config-Based Endpoint Loading
-- [ ] Read `evidence.endpoints` from `.adw/project.yaml`
-- [ ] Support endpoint configuration format:
+- [x] Read `evidence.endpoints` from `.adw/project.yaml`
+- [x] Support endpoint configuration format:
   ```yaml
   evidence:
     base_url: "http://localhost:8000"
@@ -98,8 +98,8 @@ so that endpoint behavior can be verified.
         headers:
           Accept: "application/json"
   ```
-- [ ] Validate configuration
-- [ ] Handle missing config (skip with warning)
+- [x] Validate configuration
+- [x] Handle missing config (skip with warning)
 
 ### Task 6: Implement Evidence File Writer
 - [ ] Create directory: `.adw/runs/<run_id>/evidence/api/`
