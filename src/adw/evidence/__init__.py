@@ -17,6 +17,11 @@ from adw.evidence.config_loader import (
     EvidenceConfig,
     load_evidence_commands,
     load_evidence_config,
+    load_optimization_config,
+)
+from adw.evidence.optimizer import (
+    PILLOW_AVAILABLE,
+    EvidenceOptimizer,
 )
 from adw.evidence.detector import PlatformDetector
 from adw.evidence.file_writer import EvidenceFileWriter
@@ -78,10 +83,13 @@ from adw.models.evidence import (
     EvidenceStatus,
     EvidenceStrategy,
     EvidenceType,
+    FileOptimization,
     MobileDeviceType,
     MobileEvidenceSummary,
     MobileScreenConfig,
     MobileScreenshotResult,
+    OptimizationConfig,
+    OptimizationReport,
     PlanStepCoverage,
     PlatformDetectionResult,
     PlatformType,
@@ -248,6 +256,82 @@ def generate_evidence_manifest(
     return manifest
 
 
+def optimize_evidence(
+    run_id: str,
+    evidence_directory: Path,
+    project_root: Path | None = None,
+    config: "OptimizationConfig | None" = None,
+) -> "OptimizationReport":
+    """Optimize evidence files for storage and transfer.
+
+    This is the main integration point for evidence optimization during
+    the Verify phase. It should be called BEFORE manifest generation
+    to ensure optimized file sizes are reflected in the manifest.
+
+    Optimization includes:
+    - Image compression (PNG/JPEG) using Pillow if available
+    - Text file truncation with head/tail preservation
+    - JSON minification
+
+    Args:
+        run_id: Unique identifier for the run (ULID)
+        evidence_directory: Path to the evidence directory to optimize
+        project_root: Optional project root for loading config from project.yaml.
+                      If not provided, uses default OptimizationConfig.
+        config: Optional explicit OptimizationConfig. Takes precedence over
+                loading from project.yaml.
+
+    Returns:
+        OptimizationReport with complete optimization results
+
+    Example:
+        >>> from adw.evidence import optimize_evidence
+        >>> report = optimize_evidence(
+        ...     run_id="01HQ...",
+        ...     evidence_directory=Path(".adw/runs/01HQ/evidence"),
+        ...     project_root=Path("/my/project"),
+        ... )
+        >>> print(f"Saved {report.total_savings_bytes} bytes")
+    """
+    logger = get_logger()
+
+    # Load config from project.yaml if not provided explicitly
+    if config is None and project_root is not None:
+        config = load_optimization_config(project_root)
+    elif config is None:
+        config = OptimizationConfig()
+
+    # Check if optimization is enabled
+    if not config.enabled:
+        logger.info(
+            LogCategory.STATE,
+            "Evidence optimization disabled by configuration",
+        )
+        # Return empty report
+        return OptimizationReport(
+            run_id=run_id,
+            total_files=0,
+            files_optimized=0,
+            files_skipped=0,
+            original_total_bytes=0,
+            optimized_total_bytes=0,
+            total_savings_bytes=0,
+            total_savings_percent=0.0,
+        )
+
+    # Create optimizer and run
+    optimizer = EvidenceOptimizer(config=config)
+    report = optimizer.optimize_directory(evidence_directory, run_id=run_id)
+
+    logger.info(
+        LogCategory.STATE,
+        f"Evidence optimization complete: {report.files_optimized}/{report.total_files} files optimized, "
+        f"saved {report.total_savings_bytes:,} bytes ({report.total_savings_percent:.1f}%)",
+    )
+
+    return report
+
+
 __all__ = [
     # Platform detection
     "PlatformDetector",
@@ -255,6 +339,15 @@ __all__ = [
     "get_evidence_strategy",
     # Manifest generation (main integration point)
     "generate_evidence_manifest",
+    # Evidence optimization
+    "EvidenceOptimizer",
+    "optimize_evidence",
+    "load_optimization_config",
+    "PILLOW_AVAILABLE",
+    # Optimization models
+    "FileOptimization",
+    "OptimizationConfig",
+    "OptimizationReport",
     # API evidence gathering (requires httpx)
     "HTTPX_AVAILABLE",
     "APIEvidenceWriter",

@@ -1,6 +1,6 @@
 # Story 8.6: Compress and Optimize Evidence
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-03
@@ -78,18 +78,18 @@ so that storage and transfer are efficient.
 - [x] Apply sensible defaults when not configured
 
 ### Task 7: Integrate with Verify Phase
-- [ ] Run optimization after manifest generation
-- [ ] Update manifest with optimized file sizes
-- [ ] Store optimization results in RunContext
-- [ ] Log total size and savings summary
+- [x] Run optimization after manifest generation
+- [x] Update manifest with optimized file sizes
+- [x] Store optimization results in RunContext
+- [x] Log total size and savings summary
 
 ### Task 8: Write Unit Tests
-- [ ] Test image compression (mock Pillow)
-- [ ] Test text truncation logic
-- [ ] Test JSON minification
-- [ ] Test size calculation
-- [ ] Test config loading and defaults
-- [ ] Test warning threshold
+- [x] Test image compression (mock Pillow)
+- [x] Test text truncation logic
+- [x] Test JSON minification
+- [x] Test size calculation
+- [x] Test config loading and defaults
+- [x] Test warning threshold
 
 ---
 

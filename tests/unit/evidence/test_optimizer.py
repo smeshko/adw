@@ -385,3 +385,85 @@ class TestOptimizeDirectory:
         # With a 0 MB threshold, any file should trigger warning
         # The actual implementation may vary
         assert report is not None
+
+
+# =============================================================================
+# Integration Function Tests
+# =============================================================================
+
+
+class TestOptimizeEvidenceFunction:
+    """Tests for the optimize_evidence integration function."""
+
+    def test_optimize_evidence_function_exists(self) -> None:
+        """Test that optimize_evidence function is exported."""
+        from adw.evidence import optimize_evidence
+
+        assert callable(optimize_evidence)
+
+    def test_optimize_evidence_returns_report(self, tmp_path: Path) -> None:
+        """Test that optimize_evidence returns OptimizationReport."""
+        from adw.evidence import optimize_evidence
+
+        # Create test evidence directory
+        evidence_dir = tmp_path / "evidence"
+        evidence_dir.mkdir()
+        (evidence_dir / "test.txt").write_text("test content")
+
+        report = optimize_evidence(
+            run_id="test123",
+            evidence_directory=evidence_dir,
+        )
+
+        assert isinstance(report, OptimizationReport)
+        assert report.run_id == "test123"
+
+    def test_optimize_evidence_with_config(self, tmp_path: Path) -> None:
+        """Test optimize_evidence with explicit config."""
+        from adw.evidence import optimize_evidence
+
+        evidence_dir = tmp_path / "evidence"
+        evidence_dir.mkdir()
+        (evidence_dir / "test.txt").write_text("test")
+
+        config = OptimizationConfig(enabled=False)
+        report = optimize_evidence(
+            run_id="test123",
+            evidence_directory=evidence_dir,
+            config=config,
+        )
+
+        # Should skip all files when disabled
+        assert report.files_optimized == 0
+
+    def test_optimize_evidence_loads_project_config(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that optimize_evidence loads config from project.yaml."""
+        from adw.evidence import optimize_evidence
+
+        # Create project structure
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        config_dir = project_root / ".adw"
+        config_dir.mkdir()
+        config_file = config_dir / "project.yaml"
+        config_file.write_text("""
+evidence:
+  optimization:
+    enabled: true
+    max_image_size_kb: 200
+""")
+
+        # Create evidence directory
+        evidence_dir = project_root / "evidence"
+        evidence_dir.mkdir()
+        (evidence_dir / "test.txt").write_text("test")
+
+        report = optimize_evidence(
+            run_id="test123",
+            evidence_directory=evidence_dir,
+            project_root=project_root,
+        )
+
+        assert isinstance(report, OptimizationReport)
