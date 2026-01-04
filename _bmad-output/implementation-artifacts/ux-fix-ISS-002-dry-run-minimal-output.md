@@ -1,6 +1,6 @@
 # Story UX-FIX-ISS-002: Implement Complete Dry-Run Execution Preview
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-04
@@ -26,9 +26,9 @@ so that **I can verify my configuration and phase selection before committing to
 ## Tasks / Subtasks
 
 ### Task 1: Create Dry-Run Display Module
-- [ ] Create `src/adw/cli/dry_run.py` with `DryRunDisplay` class
-- [ ] Implement `show_execution_preview()` method
-- [ ] Use Rich panels and tables for structured output
+- [x] Create `src/adw/cli/dry_run.py` with `DryRunDisplay` class
+- [x] Implement `show_execution_preview()` method
+- [x] Use Rich panels and tables for structured output
 
 ### Task 2: Implement Phase Preview Display
 - [ ] Show phases in execution order (PHASE_SEQUENCE or single phase)

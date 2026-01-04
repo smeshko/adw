@@ -1,6 +1,7 @@
 """ADW CLI package."""
 
 from adw.cli.app import app
+from adw.cli.dry_run import DryRunDisplay
 from adw.cli.init import init
 from adw.cli.list import list_runs
 from adw.cli.list_display import ListDisplay
@@ -10,6 +11,7 @@ from adw.cli.validators import validate_phase
 
 __all__ = [
     "app",
+    "DryRunDisplay",
     "init",
     "list_runs",
     "ListDisplay",
