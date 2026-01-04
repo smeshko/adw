@@ -223,3 +223,15 @@ class TestGitHookErrorHandling:
 
         assert exc_info.value.code == "GIT_BRANCH_FAILED"
         assert "not a git repository" in exc_info.value.stderr.lower() or "not a git repository" in exc_info.value.message.lower()
+
+    def test_check_uncommitted_changes_in_non_git_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should raise HookError when checking changes outside a git repo."""
+        monkeypatch.chdir(tmp_path)
+
+        with pytest.raises(HookError) as exc_info:
+            check_uncommitted_changes()
+
+        assert exc_info.value.code == "GIT_STATUS_FAILED"
+        assert "not a git repository" in exc_info.value.stderr.lower() or "not a git repository" in exc_info.value.message.lower()

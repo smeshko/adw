@@ -97,6 +97,20 @@ class TestCheckUncommittedChanges:
             mock_run.return_value = MagicMock(stdout="A  staged_file.py\n", returncode=0)
             assert check_uncommitted_changes() is True
 
+    def test_raises_on_git_error(self) -> None:
+        """Should raise HookError when git status fails."""
+        from adw.exceptions import HookError
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                stdout="",
+                stderr="fatal: not a git repository",
+                returncode=128,
+            )
+            with pytest.raises(HookError) as exc_info:
+                check_uncommitted_changes()
+            assert exc_info.value.code == "GIT_STATUS_FAILED"
+
 
 class TestCreateOrSwitchBranch:
     """Tests for create_or_switch_branch function."""
@@ -112,9 +126,11 @@ class TestCreateOrSwitchBranch:
             ]
             create_or_switch_branch("feature/add-auth")
             assert mock_run.call_count == 2
-            # Verify second call was checkout -b
+            # Verify exact commands
+            first_call = mock_run.call_args_list[0]
+            assert first_call[0][0] == ["git", "branch", "--list", "feature/add-auth"]
             second_call = mock_run.call_args_list[1]
-            assert "-b" in second_call[0][0]
+            assert second_call[0][0] == ["git", "checkout", "-b", "feature/add-auth"]
 
     def test_switch_to_existing_branch(self) -> None:
         """Should switch to existing branch."""
@@ -127,9 +143,11 @@ class TestCreateOrSwitchBranch:
             ]
             create_or_switch_branch("feature/add-auth")
             assert mock_run.call_count == 2
-            # Verify second call was checkout (no -b)
+            # Verify exact commands
+            first_call = mock_run.call_args_list[0]
+            assert first_call[0][0] == ["git", "branch", "--list", "feature/add-auth"]
             second_call = mock_run.call_args_list[1]
-            assert "-b" not in second_call[0][0]
+            assert second_call[0][0] == ["git", "checkout", "feature/add-auth"]
 
     def test_raises_on_git_error(self) -> None:
         """Should raise HookError on git command failure."""

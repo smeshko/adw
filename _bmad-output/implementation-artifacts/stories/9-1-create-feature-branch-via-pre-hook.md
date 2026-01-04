@@ -74,7 +74,6 @@ so that my work is isolated from the main branch.
 | Library | Usage |
 |---------|-------|
 | subprocess | Git command execution |
-| shlex | Command argument escaping |
 
 ### File Structure Requirements
 

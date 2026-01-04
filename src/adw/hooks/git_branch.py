@@ -15,7 +15,9 @@ import subprocess
 
 from adw.exceptions import HookError
 
-# Maximum length for branch names
+# Maximum length for branch names.
+# Git allows ~256 chars, but we use 50 to keep branch names readable
+# in terminal prompts, git log output, and CI/CD dashboards.
 MAX_BRANCH_LENGTH = 50
 
 
@@ -78,6 +80,9 @@ def check_uncommitted_changes() -> bool:
     Returns:
         True if uncommitted changes exist, False otherwise.
 
+    Raises:
+        HookError: If git status command fails (e.g., not a git repo).
+
     Example:
         >>> if check_uncommitted_changes():
         ...     print("Please commit or stash your changes first")
@@ -88,6 +93,17 @@ def check_uncommitted_changes() -> bool:
         text=True,
         check=False,
     )
+
+    if result.returncode != 0:
+        raise HookError(
+            code="GIT_STATUS_FAILED",
+            message=f"Failed to check git status: {result.stderr.strip()}",
+            phase="pre-hook",
+            exit_code=result.returncode,
+            stderr=result.stderr,
+            suggestion="Ensure you are in a git repository",
+        )
+
     # Any output means there are changes
     return bool(result.stdout.strip())
 

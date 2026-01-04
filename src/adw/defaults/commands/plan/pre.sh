@@ -79,11 +79,4 @@ try:
 except Exception as e:
     print(f'Error creating branch: {e}')
     sys.exit(1)
-" 2>&1 || {
-    exit_code=$?
-    if [[ $exit_code -ne 0 ]]; then
-        exit $exit_code
-    fi
-}
-
-exit 0
+" 2>&1 || exit $?
