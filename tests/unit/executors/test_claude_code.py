@@ -362,13 +362,19 @@ class TestRealTimeStreaming:
             assert "Second line" in result.content
             assert "Third line" in result.content
 
-    def test_forwards_output_to_rich_console(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
-        """Should forward output to Rich console in real-time."""
+    def test_forwards_output_to_rich_console_when_enabled(self) -> None:
+        """Should forward output to Rich console when show_llm_output=True.
+
+        Note: As of Story UX-FIX-ISS-001, show_llm_output defaults to False.
+        This test verifies output is forwarded when explicitly enabled.
+        """
         import json
 
         from rich.console import Console
+
+        # Create executor with show_llm_output=True to test console forwarding
+        config = LLMConfig(path="claude")
+        executor = ClaudeCodeExecutor(config, show_llm_output=True)
 
         mock_console = MagicMock(spec=Console)
         executor.console = mock_console
@@ -1538,6 +1544,165 @@ class TestStreamLoggerIntegration:
             error_events = [e for e in events if e.type == StreamEventType.ERROR]
             assert len(error_events) == 1
             assert "Something went wrong" in (error_events[0].error or "")
+
+
+class TestShowLLMOutputFlag:
+    """Tests for show_llm_output flag (Story UX-FIX-ISS-001).
+
+    By default, LLM streaming output should NOT be printed to the terminal.
+    Users can enable it with --show-llm-output or --trace verbosity.
+    """
+
+    @pytest.fixture
+    def executor_with_show_output(self) -> ClaudeCodeExecutor:
+        """Create executor with show_llm_output=True."""
+        config = LLMConfig(path="claude")
+        return ClaudeCodeExecutor(config, show_llm_output=True)
+
+    @pytest.fixture
+    def executor_without_show_output(self) -> ClaudeCodeExecutor:
+        """Create executor with show_llm_output=False (default)."""
+        config = LLMConfig(path="claude")
+        return ClaudeCodeExecutor(config, show_llm_output=False)
+
+    def test_show_llm_output_defaults_to_false(self) -> None:
+        """show_llm_output should default to False."""
+        config = LLMConfig(path="claude")
+        executor = ClaudeCodeExecutor(config)
+        assert executor.show_llm_output is False
+
+    def test_console_print_not_called_when_show_llm_output_false(
+        self, executor_without_show_output: ClaudeCodeExecutor
+    ) -> None:
+        """Console.print should NOT be called when show_llm_output=False."""
+        import json
+
+        from rich.console import Console
+
+        mock_console = MagicMock(spec=Console)
+        executor_without_show_output.console = mock_console
+
+        # Use valid stream-json format with content_block_delta
+        stream_json = json.dumps({
+            "type": "content_block_delta",
+            "delta": {"type": "text_delta", "text": "Hello world"}
+        })
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(
+                side_effect=[
+                    (stream_json + "\n").encode(),
+                    b"",  # EOF
+                ]
+            )
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                result = executor_without_show_output.execute("Test prompt")
+
+            # Content should still be captured
+            assert "Hello world" in result.content
+            # But console.print should NOT have been called
+            mock_console.print.assert_not_called()
+
+    def test_console_print_called_when_show_llm_output_true(
+        self, executor_with_show_output: ClaudeCodeExecutor
+    ) -> None:
+        """Console.print should be called when show_llm_output=True."""
+        import json
+
+        from rich.console import Console
+
+        mock_console = MagicMock(spec=Console)
+        executor_with_show_output.console = mock_console
+
+        # Use valid stream-json format with content_block_delta
+        stream_json = json.dumps({
+            "type": "content_block_delta",
+            "delta": {"type": "text_delta", "text": "Hello world"}
+        })
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(
+                side_effect=[
+                    (stream_json + "\n").encode(),
+                    b"",  # EOF
+                ]
+            )
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                result = executor_with_show_output.execute("Test prompt")
+
+            # Content should be captured
+            assert "Hello world" in result.content
+            # Console.print SHOULD have been called
+            mock_console.print.assert_called()
+
+    def test_stream_logger_still_captures_when_console_suppressed(
+        self, executor_without_show_output: ClaudeCodeExecutor
+    ) -> None:
+        """StreamLogger should still capture tokens even when console is suppressed."""
+        from adw.logging.stream import StreamLogger
+        from adw.models.logging import StreamEventType
+
+        stream_logger = StreamLogger()
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(
+                side_effect=[
+                    b"Hello ",
+                    b"World!\n",
+                    b"",  # EOF
+                ]
+            )
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor_without_show_output.execute(
+                    "Test prompt", stream_logger=stream_logger
+                )
+
+            events = stream_logger.get_events()
+            # Should have captured token events even though console is suppressed
+            token_events = [e for e in events if e.type == StreamEventType.TOKEN]
+            assert len(token_events) >= 1
 
 
 class TestToolLogging:

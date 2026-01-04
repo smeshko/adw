@@ -26,9 +26,9 @@ so that **I can easily follow execution progress without being overwhelmed by ve
 ## Tasks / Subtasks
 
 ### Task 1: Suppress default LLM console printing
-- [ ] Modify `ClaudeCodeExecutor._read_process_output()` to skip `console.print()` by default
-- [ ] Add `show_llm_output: bool` parameter to executor (default: False)
-- [ ] Only print to console when `show_llm_output=True`
+- [x] Modify `ClaudeCodeExecutor._read_process_output()` to skip `console.print()` by default
+- [x] Add `show_llm_output: bool` parameter to executor (default: False)
+- [x] Only print to console when `show_llm_output=True`
 
 ### Task 2: Add CLI flag for explicit LLM output
 - [ ] Add `--show-llm-output` flag to `adw run` command
