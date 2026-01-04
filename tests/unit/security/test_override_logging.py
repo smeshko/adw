@@ -168,3 +168,81 @@ class TestOverrideLoggerWithStructuredLogging:
         logger.log_override(match, command="rm -rf /tmp")
         # Logging is side-effect tested, count is the main assertion
         assert logger.get_override_count() == 1
+
+
+class TestModuleLevelFunctions:
+    """Tests for module-level convenience functions."""
+
+    def test_get_override_logger_returns_singleton(self) -> None:
+        """Test get_override_logger returns same instance."""
+        from adw.security.override import get_override_logger, reset_override_logger
+
+        # Reset to ensure clean state
+        reset_override_logger()
+
+        logger1 = get_override_logger()
+        logger2 = get_override_logger()
+        assert logger1 is logger2
+
+        # Cleanup
+        reset_override_logger()
+
+    def test_reset_override_logger_clears_instance(self) -> None:
+        """Test reset_override_logger creates new instance."""
+        from adw.security.override import get_override_logger, reset_override_logger
+
+        logger1 = get_override_logger()
+        match = PatternMatch(
+            pattern=r"test",
+            description="Test",
+            severity="warning",
+            category="permission",
+            alternative="",
+            allowed=True,
+        )
+        logger1.log_override(match, command="test")
+        assert logger1.get_override_count() == 1
+
+        reset_override_logger()
+
+        logger2 = get_override_logger()
+        assert logger2.get_override_count() == 0
+        assert logger1 is not logger2
+
+        # Cleanup
+        reset_override_logger()
+
+    def test_get_summary_with_multiple_categories(self) -> None:
+        """Test get_summary with multiple categories and severities."""
+        from adw.security.override import OverrideLogger
+
+        logger = OverrideLogger()
+        logger.log_override(
+            PatternMatch(
+                pattern=r"rm",
+                description="Delete",
+                severity="critical",
+                category="destructive",
+                alternative="",
+                allowed=True,
+            ),
+            command="rm -rf /",
+        )
+        logger.log_override(
+            PatternMatch(
+                pattern=r"chmod",
+                description="Chmod",
+                severity="warning",
+                category="permission",
+                alternative="",
+                allowed=True,
+            ),
+            command="chmod 777 /",
+        )
+
+        summary = logger.get_summary()
+        assert "2 security block(s)" in summary
+        assert "destructive" in summary
+        assert "permission" in summary
+        assert "critical" in summary
+        assert "warning" in summary

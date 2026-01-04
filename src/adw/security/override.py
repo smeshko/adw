@@ -100,11 +100,11 @@ class OverrideLogger:
         self._overrides.append(record)
 
         # Log warning with structured context
-        context = command if command else file_path
         _logger.warning(
-            "[ALLOW-DANGEROUS] %s: %s",
+            "[ALLOW-DANGEROUS] %s: %s (context: %s)",
             match.category.upper(),
             match.description,
+            command if command else file_path,
             extra={
                 "pattern": match.pattern,
                 "severity": match.severity,

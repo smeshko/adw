@@ -153,3 +153,144 @@ class TestCategoryExamples:
 
         examples = get_category_examples("unknown")
         assert examples == []
+
+
+class TestSuggestionFormatterAdvanced:
+    """Additional tests for SuggestionFormatter edge cases."""
+
+    def test_format_single_without_alternative(self) -> None:
+        """Test formatting a match without alternative suggestion."""
+        from adw.security.patterns import PatternMatch
+        from adw.security.suggestions import SuggestionFormatter
+
+        match = PatternMatch(
+            pattern=r"test",
+            description="Test pattern",
+            severity="info",
+            category="destructive",
+            alternative="",  # Empty alternative
+            allowed=False,
+        )
+        formatter = SuggestionFormatter()
+        result = formatter.format_single(match)
+
+        assert "Test pattern" in result
+        # Should not have "Suggested alternative" section
+        assert "Suggested alternative" not in result or result.count("Suggested alternative") == 0
+
+    def test_format_single_allowed_no_override(self) -> None:
+        """Test that allowed matches don't show override instruction."""
+        from adw.security.patterns import PatternMatch
+        from adw.security.suggestions import SuggestionFormatter
+
+        match = PatternMatch(
+            pattern=r"test",
+            description="Test pattern",
+            severity="warning",
+            category="permission",
+            alternative="Use something else",
+            allowed=True,  # Already allowed
+        )
+        formatter = SuggestionFormatter()
+        result = formatter.format_single(match)
+
+        # Should NOT include override instruction since already allowed
+        assert "--allow-dangerous" not in result
+
+    def test_format_single_without_override_instruction(self) -> None:
+        """Test formatter with include_override=False."""
+        from adw.security.patterns import PatternMatch
+        from adw.security.suggestions import SuggestionFormatter
+
+        match = PatternMatch(
+            pattern=r"test",
+            description="Test pattern",
+            severity="critical",
+            category="destructive",
+            alternative="Alternative",
+            allowed=False,
+        )
+        formatter = SuggestionFormatter(include_override=False)
+        result = formatter.format_single(match)
+
+        assert "--allow-dangerous" not in result
+
+    def test_format_error_message_with_command(self) -> None:
+        """Test format_error_message with command."""
+        from adw.security.patterns import PatternMatch
+        from adw.security.suggestions import SuggestionFormatter
+
+        match = PatternMatch(
+            pattern=r"rm\s+-rf",
+            description="Recursive delete",
+            severity="critical",
+            category="destructive",
+            alternative="Use specific paths",
+            allowed=False,
+        )
+        formatter = SuggestionFormatter()
+        result = formatter.format_error_message([match], command="rm -rf /")
+
+        assert "DANGEROUS OPERATION BLOCKED" in result
+        assert "Command: rm -rf /" in result
+        assert "Recursive delete" in result
+
+    def test_format_error_message_with_file_path(self) -> None:
+        """Test format_error_message with file_path."""
+        from adw.security.patterns import PatternMatch
+        from adw.security.suggestions import SuggestionFormatter
+
+        match = PatternMatch(
+            pattern=r"\.env$",
+            description="Env file access",
+            severity="warning",
+            category="secret_access",
+            alternative="Use env vars",
+            allowed=False,
+        )
+        formatter = SuggestionFormatter()
+        result = formatter.format_error_message([match], file_path=".env")
+
+        assert "DANGEROUS OPERATION BLOCKED" in result
+        assert "File: .env" in result
+
+    def test_format_error_message_with_both(self) -> None:
+        """Test format_error_message with both command and file_path."""
+        from adw.security.patterns import PatternMatch
+        from adw.security.suggestions import SuggestionFormatter
+
+        match = PatternMatch(
+            pattern=r"test",
+            description="Test",
+            severity="warning",
+            category="permission",
+            alternative="Alternative",
+            allowed=False,
+        )
+        formatter = SuggestionFormatter()
+        result = formatter.format_error_message(
+            [match], command="test cmd", file_path="test.txt"
+        )
+
+        assert "Command: test cmd" in result
+        assert "File: test.txt" in result
+
+    def test_format_multiple_single_match(self) -> None:
+        """Test format_multiple with just one match (no issue numbering)."""
+        from adw.security.patterns import PatternMatch
+        from adw.security.suggestions import SuggestionFormatter
+
+        match = PatternMatch(
+            pattern=r"test",
+            description="Single test",
+            severity="warning",
+            category="permission",
+            alternative="Alt",
+            allowed=False,
+        )
+        formatter = SuggestionFormatter()
+        result = formatter.format_multiple([match])
+
+        # Should not have "Issue 1 of 1" for single match
+        assert "Issue 1 of 1" not in result
+        assert "Single test" in result
