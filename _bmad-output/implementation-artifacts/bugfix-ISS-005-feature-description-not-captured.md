@@ -1,6 +1,6 @@
 # Story: Bugfix ISS-005 - Feature Description Not Captured
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-04
@@ -15,11 +15,13 @@ so that **I can identify my runs in the list output by their actual purpose**.
 
 ## Acceptance Criteria
 
-- [ ] When running `adw run "my specific feature"`, the exact text "my specific feature" is saved to RunContext
-- [ ] The `adw list` command displays the actual feature description, not a generic placeholder
-- [ ] Feature descriptions are preserved through the full data flow (CLI → Orchestrator → RunContext → context.json → IndexEntry → List display)
-- [ ] Integration test verifies end-to-end feature description preservation
-- [ ] Existing runs with correct feature descriptions continue to display correctly
+- [x] When running `adw run "my specific feature"`, the exact text "my specific feature" is saved to RunContext
+- [x] The `adw list` command displays the actual feature description, not a generic placeholder
+- [x] Feature descriptions are preserved through the full data flow (CLI → Orchestrator → RunContext → context.json → IndexEntry → List display)
+- [x] Integration test verifies end-to-end feature description preservation
+- [x] Existing runs with correct feature descriptions continue to display correctly
+
+**Note:** Investigation confirmed this was NOT a bug - the system works correctly. The "Add feature" entries were test artifacts from pytest runs polluting the global index.
 
 ## Tasks / Subtasks
 
@@ -60,8 +62,15 @@ Since the bug is not reproducible, implement preventive measures:
 - Edge cases: spaces, special characters, quotes, hyphens
 
 ### Task 4: Cleanup Test Runs
-- [ ] Document that existing runs with "Add feature" are from test executions
-- [ ] Consider adding a cleanup command or option to purge test runs
+- [x] Document that existing runs with "Add feature" are from test executions
+- [x] Consider adding a cleanup command or option to purge test runs
+
+**Resolution:**
+- Documented in Task 1 investigation results that "Add feature" entries are from pytest test runs
+- Existing test artifacts in `~/.adw/index.jsonl` are from previous test executions
+- New `isolated_global_index` autouse fixture prevents future test pollution
+- Users can manually clear `~/.adw/index.jsonl` to remove old test entries if desired
+- No cleanup command needed - this is a one-time historical issue that won't recur
 
 ---
 
