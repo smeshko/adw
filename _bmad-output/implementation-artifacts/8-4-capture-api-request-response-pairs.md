@@ -46,11 +46,11 @@ so that endpoint behavior can be verified.
 - [x] Export from `models/__init__.py`
 
 ### Task 2: Implement HTTP Client Wrapper (evidence/api_capture.py)
-- [ ] Create `APICaptureStrategy` class
-- [ ] Use `httpx` or `subprocess` + `curl` for requests
-- [ ] Implement `call_endpoint(config: EndpointConfig) -> APIEvidenceResult`
-- [ ] Support all HTTP methods (GET, POST, PUT, DELETE, PATCH)
-- [ ] Handle timeouts gracefully
+- [x] Create `APICaptureStrategy` class
+- [x] Use `httpx` or `subprocess` + `curl` for requests
+- [x] Implement `call_endpoint(config: EndpointConfig) -> APIEvidenceResult`
+- [x] Support all HTTP methods (GET, POST, PUT, DELETE, PATCH)
+- [x] Handle timeouts gracefully
 
 ### Task 3: Implement Request/Response Capture
 - [ ] Capture full request details (method, url, headers, body)

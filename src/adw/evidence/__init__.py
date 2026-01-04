@@ -7,6 +7,7 @@ This package contains modules for:
 
 from pathlib import Path
 
+from adw.evidence.api_capture import APICaptureStrategy
 from adw.evidence.detector import PlatformDetector
 from adw.logging import LogCategory, get_logger
 from adw.models.evidence import (
@@ -83,6 +84,7 @@ def get_evidence_strategy(platform: PlatformType) -> EvidenceStrategy:
 
 
 __all__ = [
+    "APICaptureStrategy",
     "PlatformDetector",
     "detect_platform",
     "get_evidence_strategy",
