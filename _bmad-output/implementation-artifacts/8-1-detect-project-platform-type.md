@@ -1,6 +1,6 @@
 # Story 8.1: Detect Project Platform Type
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-03
@@ -78,12 +78,12 @@ so that appropriate evidence gathering strategies are used.
 - [x] Store detected platform in RunContext for downstream use
 
 ### Task 6: Write Unit Tests
-- [ ] Test explicit config detection
-- [ ] Test web marker detection (React, Vue, Next.js, etc.)
-- [ ] Test backend marker detection (FastAPI, Django, etc.)
-- [ ] Test CLI marker detection (pyproject.toml scripts)
-- [ ] Test fallback to CLI with warning when unknown
-- [ ] Test confidence scoring logic
+- [x] Test explicit config detection
+- [x] Test web marker detection (React, Vue, Next.js, etc.)
+- [x] Test backend marker detection (FastAPI, Django, etc.)
+- [x] Test CLI marker detection (pyproject.toml scripts)
+- [x] Test fallback to CLI with warning when unknown
+- [x] Test confidence scoring logic
 
 ---
 
