@@ -1,6 +1,6 @@
 # Story 8.3b: Capture Mobile Screenshots
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-04
@@ -46,42 +46,42 @@ so that mobile UI changes can be visually verified.
 ## Tasks / Subtasks
 
 ### Task 1: Create Mobile Screenshot Models (models/evidence.py)
-- [ ] Create `MobileDeviceType` enum (IOS, ANDROID, FLUTTER)
-- [ ] Create `MobileScreenConfig` model for screen configuration
-- [ ] Create `MobileScreenshotResult` model with path, screen_name, device_type, status
-- [ ] Create `MobileEvidenceSummary` model for aggregate results
-- [ ] Export from `models/__init__.py`
+- [x] Create `MobileDeviceType` enum (IOS, ANDROID, FLUTTER)
+- [x] Create `MobileScreenConfig` model for screen configuration
+- [x] Create `MobileScreenshotResult` model with path, screen_name, device_type, status
+- [x] Create `MobileEvidenceSummary` model for aggregate results
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement iOS Simulator Screenshot Capture (evidence/mobile_capture.py)
-- [ ] Create `MobileCaptureStrategy` class
-- [ ] Implement `check_ios_simulator_available() -> bool`
-- [ ] Implement `get_booted_simulator() -> str | None` (returns UDID)
-- [ ] Implement `capture_ios_screenshot(output_path: Path) -> MobileScreenshotResult`
-- [ ] Use `xcrun simctl io booted screenshot <path>` for capture
-- [ ] Extract device info via `xcrun simctl list devices booted --json`
+- [x] Create `MobileCaptureStrategy` class
+- [x] Implement `check_ios_simulator_available() -> bool`
+- [x] Implement `get_booted_simulator() -> str | None` (returns UDID)
+- [x] Implement `capture_ios_screenshot(output_path: Path) -> MobileScreenshotResult`
+- [x] Use `xcrun simctl io booted screenshot <path>` for capture
+- [x] Extract device info via `xcrun simctl list devices booted --json`
 
 ### Task 3: Implement Android Emulator Screenshot Capture
-- [ ] Implement `check_android_emulator_available() -> bool`
-- [ ] Implement `get_running_emulator() -> str | None` (returns device serial)
-- [ ] Implement `capture_android_screenshot(output_path: Path) -> MobileScreenshotResult`
-- [ ] Use `adb exec-out screencap -p > <path>` for capture
-- [ ] Extract device info via `adb shell getprop`
+- [x] Implement `check_android_emulator_available() -> bool`
+- [x] Implement `get_running_emulator() -> str | None` (returns device serial)
+- [x] Implement `capture_android_screenshot(output_path: Path) -> MobileScreenshotResult`
+- [x] Use `adb exec-out screencap -p > <path>` for capture
+- [x] Extract device info via `adb shell getprop`
 
 ### Task 4: Implement Flutter Cross-Platform Support
-- [ ] Detect active Flutter device (iOS simulator or Android emulator)
-- [ ] Use `flutter devices --machine` for device detection
-- [ ] Route to appropriate iOS or Android capture method
-- [ ] Handle hybrid projects with both simulators
+- [x] Detect active Flutter device (iOS simulator or Android emulator)
+- [x] Use `flutter devices --machine` for device detection
+- [x] Route to appropriate iOS or Android capture method
+- [x] Handle hybrid projects with both simulators
 
 ### Task 5: Implement Screen Navigation (Optional Feature)
-- [ ] Support `navigation_steps` in screen config for complex navigation
-- [ ] Implement basic tap/swipe commands via xcrun/adb
-- [ ] Implement deeplink navigation for supported screens
-- [ ] Add configurable wait time between navigation and capture
+- [x] Support `navigation_steps` in screen config for complex navigation
+- [x] Implement basic tap/swipe commands via xcrun/adb
+- [x] Implement deeplink navigation for supported screens
+- [x] Add configurable wait time between navigation and capture
 
 ### Task 6: Implement Config-Based Screen Loading
-- [ ] Read `evidence.mobile_screens` from `.adw/project.yaml`
-- [ ] Support screen configuration format:
+- [x] Read `evidence.mobile_screens` from `.adw/project.yaml`
+- [x] Support screen configuration format:
   ```yaml
   evidence:
     mobile_screens:
@@ -95,22 +95,22 @@ so that mobile UI changes can be visually verified.
           - type: "tap"
             selector: "Settings Button"
   ```
-- [ ] Validate configuration
-- [ ] Handle missing config (capture current screen with warning)
+- [x] Validate configuration
+- [x] Handle missing config (capture current screen with warning)
 
 ### Task 7: Implement Evidence File Organization
-- [ ] Create directory: `.adw/runs/<run_id>/evidence/screenshots/mobile/`
-- [ ] Save screenshots as PNG
-- [ ] Generate metadata JSON with device info, timestamps
-- [ ] Handle filename sanitization for screen names
+- [x] Create directory: `.adw/runs/<run_id>/evidence/screenshots/mobile/`
+- [x] Save screenshots as PNG
+- [x] Generate metadata JSON with device info, timestamps
+- [x] Handle filename sanitization for screen names
 
 ### Task 8: Write Unit Tests
-- [ ] Test iOS simulator availability check (mock subprocess)
-- [ ] Test Android emulator availability check (mock subprocess)
-- [ ] Test screenshot path generation
-- [ ] Test configuration loading and validation
-- [ ] Test error handling for unavailable devices
-- [ ] Test result model serialization
+- [x] Test iOS simulator availability check (mock subprocess)
+- [x] Test Android emulator availability check (mock subprocess)
+- [x] Test screenshot path generation
+- [x] Test configuration loading and validation
+- [x] Test error handling for unavailable devices
+- [x] Test result model serialization
 
 ---
 
@@ -572,9 +572,26 @@ Key patterns and rules from project context:
 
 ### Agent Model Used
 
+claude-opus-4-5-20251101
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- All 8 tasks completed
+- 52 unit tests written (91% coverage on mobile_capture.py)
+- Mobile capture functions exported from evidence package
+- Code quality issues fixed (linting, type annotations)
+
 ### File List
+
+**New Files:**
+- `src/adw/evidence/mobile_capture.py` - iOS/Android/Flutter screenshot capture (897 lines)
+- `tests/unit/evidence/test_mobile_capture.py` - Unit tests for mobile capture (1054 lines)
+
+**Modified Files:**
+- `src/adw/models/evidence.py` - Added MobileDeviceType, MobileScreenConfig, MobileScreenshotResult, MobileEvidenceSummary models
+- `src/adw/models/__init__.py` - Export new mobile evidence models
+- `src/adw/evidence/__init__.py` - Export mobile capture functions and models
+- `tests/unit/models/test_evidence.py` - Added tests for mobile evidence models
 
