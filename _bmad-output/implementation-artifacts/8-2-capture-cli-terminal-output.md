@@ -1,6 +1,6 @@
 # Story 8.2: Capture CLI Terminal Output
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-03
@@ -85,13 +85,13 @@ so that command execution can be verified.
 - [x] Return structured results for phase runner
 
 ### Task 7: Write Unit Tests
-- [ ] Test command execution with mock subprocess
-- [ ] Test output capture (stdout, stderr)
-- [ ] Test timeout handling
-- [ ] Test non-zero exit code handling
-- [ ] Test evidence file writing
-- [ ] Test summary generation
-- [ ] Test config loading
+- [x] Test command execution with mock subprocess
+- [x] Test output capture (stdout, stderr)
+- [x] Test timeout handling
+- [x] Test non-zero exit code handling
+- [x] Test evidence file writing
+- [x] Test summary generation
+- [x] Test config loading
 
 ---
 
@@ -411,6 +411,7 @@ claude-opus-4-5-20251101
 - **Task 4**: Implemented load_evidence_commands() in evidence/config_loader.py. Reads evidence.commands from .adw/project.yaml, validates command configurations, and handles missing config gracefully. Added 8 unit tests. Coverage: 86% for config_loader.py.
 - **Task 5**: Implemented SummaryGenerator in evidence/summary_generator.py. Tracks passed/failed counts, generates "X passed, Y failed" text, and writes summary.json file. Added 10 unit tests. Coverage: 100% for summary_generator.py.
 - **Task 6**: Implemented CLIEvidenceGatherer in evidence/cli_gatherer.py. Orchestrates all CLI evidence gathering: loads config, executes commands, writes evidence files, generates summary. Added 11 unit tests. Coverage: 100% for cli_gatherer.py. Updated evidence/__init__.py to export all new classes.
+- **Task 7**: All unit test requirements covered by tests written during Tasks 1-6. Total: 67 new tests for CLI evidence gathering (18 models + 11 capture + 9 file writer + 8 config loader + 10 summary + 11 gatherer). All tests pass.
 
 ### File List
 
