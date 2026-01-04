@@ -165,12 +165,12 @@ development_status:
   # EPIC 9: Git Integration & Documentation
   # Goal: Support git workflows and generate PR-ready documentation
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-9: backlog
-  9-1-create-feature-branch-via-pre-hook: backlog
-  9-2-stage-and-commit-changes-via-post-hook: backlog
-  9-3-capture-git-diff-as-artifact: backlog
-  9-4-generate-pr-description: backlog
-  9-5-support-pr-creation-command: backlog
+  epic-9: in-progress
+  9-1-create-feature-branch-via-pre-hook: drafted
+  9-2-stage-and-commit-changes-via-post-hook: drafted
+  9-3-capture-git-diff-as-artifact: drafted
+  9-4-generate-pr-description: drafted
+  9-5-support-pr-creation-command: drafted
   epic-9-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

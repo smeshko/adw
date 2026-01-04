@@ -10,6 +10,7 @@ Commands:
 - logs tools <run_id>: Display tool execution history for a run
 """
 
+import contextlib
 import json
 import re
 from datetime import datetime
@@ -1046,10 +1047,8 @@ def _load_llm_files(
         resp_file = llm_dir / f"{seq:03d}_{phase}_response.json"
         response: dict[str, Any] | None = None
         if resp_file.exists():
-            try:
+            with contextlib.suppress(json.JSONDecodeError, OSError):
                 response = json.loads(resp_file.read_text())
-            except (json.JSONDecodeError, OSError):
-                pass
 
         pairs.append((seq, phase, request, response))
 
@@ -1339,10 +1338,8 @@ def logs_export(
         # Load context
         context_file = run_dir / "context.json"
         if context_file.exists():
-            try:
+            with contextlib.suppress(json.JSONDecodeError, OSError):
                 export_data["context"] = json.loads(context_file.read_text())
-            except (json.JSONDecodeError, OSError):
-                pass
 
         # Load logs
         export_data["logs"] = _load_log_entries(run_dir)
@@ -1402,10 +1399,8 @@ def _generate_html_report(run_id: str, run_dir: Path, log_limit: int = 0) -> str
     context: dict[str, Any] = {}
     context_file = run_dir / "context.json"
     if context_file.exists():
-        try:
+        with contextlib.suppress(json.JSONDecodeError, OSError):
             context = json.loads(context_file.read_text())
-        except (json.JSONDecodeError, OSError):
-            pass
 
     logs = _load_log_entries(run_dir)
     llm_pairs = _load_llm_files(run_dir / "llm")
