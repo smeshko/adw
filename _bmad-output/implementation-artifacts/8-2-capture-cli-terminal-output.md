@@ -73,10 +73,10 @@ so that command execution can be verified.
 - [x] Handle missing config gracefully (skip with warning)
 
 ### Task 5: Implement Summary Generation
-- [ ] Track passed/failed command counts
-- [ ] Generate summary output: "X passed, Y failed"
-- [ ] Create summary file with all command results
-- [ ] Log summary to console via LogManager
+- [x] Track passed/failed command counts
+- [x] Generate summary output: "X passed, Y failed"
+- [x] Create summary file with all command results
+- [x] Log summary to console via LogManager
 
 ### Task 6: Integrate with Verify Phase
 - [ ] Wire CLICaptureStrategy into evidence gathering
@@ -409,6 +409,7 @@ claude-opus-4-5-20251101
 - **Task 2**: Implemented CLICaptureStrategy in evidence/cli_capture.py. Uses subprocess.run() with capture_output=True to capture stdout, stderr, exit code, and duration. Handles timeout gracefully with exit_code=-1. Added 11 unit tests with mocked subprocess. Coverage: 100% for cli_capture.py.
 - **Task 3**: Implemented EvidenceFileWriter in evidence/file_writer.py. Creates evidence directory structure and writes command results to human-readable .txt files with headers containing command, timestamp, duration, exit code, and status. Added 9 unit tests. Coverage: 100% for file_writer.py.
 - **Task 4**: Implemented load_evidence_commands() in evidence/config_loader.py. Reads evidence.commands from .adw/project.yaml, validates command configurations, and handles missing config gracefully. Added 8 unit tests. Coverage: 86% for config_loader.py.
+- **Task 5**: Implemented SummaryGenerator in evidence/summary_generator.py. Tracks passed/failed counts, generates "X passed, Y failed" text, and writes summary.json file. Added 10 unit tests. Coverage: 100% for summary_generator.py.
 
 ### File List
 
@@ -417,8 +418,10 @@ claude-opus-4-5-20251101
 - src/adw/evidence/cli_capture.py (new - CLICaptureStrategy class)
 - src/adw/evidence/file_writer.py (new - EvidenceFileWriter class)
 - src/adw/evidence/config_loader.py (new - load_evidence_commands function)
+- src/adw/evidence/summary_generator.py (new - SummaryGenerator class)
 - tests/unit/evidence/test_cli_models.py (new - 18 tests for CLI models)
 - tests/unit/evidence/test_cli_capture.py (new - 11 tests for CLI capture)
 - tests/unit/evidence/test_file_writer.py (new - 9 tests for file writer)
 - tests/unit/evidence/test_config_loader.py (new - 8 tests for config loader)
+- tests/unit/evidence/test_summary_generator.py (new - 10 tests for summary generator)
 
