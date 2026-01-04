@@ -137,14 +137,87 @@ class TestCustomPatterns:
         assert response.result == SecurityCheckResult.BLOCKED
         assert response.description == "Custom blocked command"
 
+    def test_invalid_regex_pattern_skipped(self) -> None:
+        """Test that invalid regex patterns are skipped with warning."""
+        config = SecurityConfig(
+            blocked_patterns=[
+                BlockedPattern(
+                    pattern=r"[invalid(regex",  # Invalid regex
+                    description="This should be skipped",
+                    severity=SecuritySeverity.HIGH,
+                ),
+                BlockedPattern(
+                    pattern=r"valid-pattern",
+                    description="This should work",
+                    severity=SecuritySeverity.HIGH,
+                ),
+            ]
+        )
+        # Should not raise, invalid pattern is skipped
+        interceptor = SecurityInterceptor(config=config)
+        # Valid pattern should still work
+        response = interceptor.check_tool_call("Bash", {"command": "valid-pattern"})
+        assert response.result == SecurityCheckResult.BLOCKED
+        assert response.description == "This should work"
+
+    def test_custom_pattern_on_non_shell_tool(self) -> None:
+        """Test custom patterns are checked against all tool arguments."""
+        config = SecurityConfig(
+            blocked_patterns=[
+                BlockedPattern(
+                    pattern=r"secret-value",
+                    description="Contains secret",
+                    severity=SecuritySeverity.HIGH,
+                )
+            ]
+        )
+        interceptor = SecurityInterceptor(config=config)
+        # Custom patterns check all string arguments for unknown tools
+        response = interceptor.check_tool_call("CustomTool", {"data": "secret-value-here"})
+        assert response.result == SecurityCheckResult.BLOCKED
+
     def test_is_blocked_convenience_method(self) -> None:
         """Test the is_blocked convenience method."""
         interceptor = SecurityInterceptor()
-        
+
         is_blocked, pattern = interceptor.is_blocked("rm -rf /")
         assert is_blocked is True
         assert pattern is not None
-        
+
         is_blocked, pattern = interceptor.is_blocked("ls -la")
         assert is_blocked is False
         assert pattern is None
+
+
+class TestCaseInsensitiveToolNames:
+    """Tests for case-insensitive tool name matching."""
+
+    def test_bash_lowercase(self) -> None:
+        """Test bash (lowercase) is handled."""
+        interceptor = SecurityInterceptor()
+        response = interceptor.check_tool_call("bash", {"command": "rm -rf /"})
+        assert response.result == SecurityCheckResult.BLOCKED
+
+    def test_bash_mixedcase(self) -> None:
+        """Test BASH (uppercase) is handled."""
+        interceptor = SecurityInterceptor()
+        response = interceptor.check_tool_call("BASH", {"command": "rm -rf /"})
+        assert response.result == SecurityCheckResult.BLOCKED
+
+    def test_read_lowercase(self) -> None:
+        """Test read (lowercase) is handled."""
+        interceptor = SecurityInterceptor()
+        response = interceptor.check_tool_call("read", {"file_path": ".env"})
+        assert response.result == SecurityCheckResult.BLOCKED
+
+    def test_write_uppercase(self) -> None:
+        """Test WRITE (uppercase) is handled."""
+        interceptor = SecurityInterceptor()
+        response = interceptor.check_tool_call("WRITE", {"file_path": ".env"})
+        assert response.result == SecurityCheckResult.BLOCKED
+
+    def test_edit_mixedcase(self) -> None:
+        """Test Edit (mixed case) is handled."""
+        interceptor = SecurityInterceptor()
+        response = interceptor.check_tool_call("eDiT", {"file_path": ".env"})
+        assert response.result == SecurityCheckResult.BLOCKED

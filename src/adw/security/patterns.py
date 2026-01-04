@@ -48,26 +48,49 @@ _COMPILED_ALLOWED_PATTERNS: list[re.Pattern[str]] = []
 
 
 def _compile_patterns() -> None:
-    """Compile all patterns once for performance."""
+    """Compile all patterns once for performance.
+
+    This function populates the module-level compiled pattern caches on first call.
+    Subsequent calls are no-ops unless _reset_compiled_patterns() is called first.
+
+    Side Effects:
+        Modifies global variables:
+        - _COMPILED_SHELL_PATTERNS
+        - _COMPILED_FILE_PATTERNS
+        - _COMPILED_ALLOWED_PATTERNS
+    """
     global _COMPILED_SHELL_PATTERNS, _COMPILED_FILE_PATTERNS, _COMPILED_ALLOWED_PATTERNS
-    
+
     if not _COMPILED_SHELL_PATTERNS:
         _COMPILED_SHELL_PATTERNS = [
             (re.compile(pattern, re.IGNORECASE), desc)
             for pattern, desc in BLOCKED_SHELL_PATTERNS
         ]
-    
+
     if not _COMPILED_FILE_PATTERNS:
         _COMPILED_FILE_PATTERNS = [
             (re.compile(pattern, re.IGNORECASE), desc)
             for pattern, desc in BLOCKED_FILE_PATTERNS
         ]
-    
+
     if not _COMPILED_ALLOWED_PATTERNS:
         _COMPILED_ALLOWED_PATTERNS = [
             re.compile(pattern, re.IGNORECASE)
             for pattern in ALLOWED_FILE_PATTERNS
         ]
+
+
+def _reset_compiled_patterns() -> None:
+    """Reset compiled pattern caches for testing.
+
+    This function clears all compiled pattern caches, forcing
+    recompilation on the next call to _compile_patterns().
+    Primarily useful for testing.
+    """
+    global _COMPILED_SHELL_PATTERNS, _COMPILED_FILE_PATTERNS, _COMPILED_ALLOWED_PATTERNS
+    _COMPILED_SHELL_PATTERNS = []
+    _COMPILED_FILE_PATTERNS = []
+    _COMPILED_ALLOWED_PATTERNS = []
 
 
 def match_shell_pattern(command: str) -> tuple[str, str] | None:

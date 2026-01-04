@@ -25,10 +25,10 @@ So that automated code generation cannot accidentally destroy my project.
 
 **Given** any tool call is executed
 **When** execution completes
-**Then** the tool name, arguments, and result are logged to `tools.log`
+**Then** the tool name, arguments, and result are logged to `tools.jsonl`
 
 **Given** security patterns are configurable
-**When** `project.yaml` includes `security.blocked_patterns`
+**When** `adw.yaml` includes `security.blocked_patterns`
 **Then** custom patterns are also blocked
 
 ## Tasks / Subtasks
@@ -314,7 +314,7 @@ claude-opus-4-5-20251101
 - Task 4: Implemented ToolLogger for JSONL logging of tool calls. Writes to run_dir/tools.jsonl with convenience methods and read_entries support.
 - Task 5: Integrated security interceptor and tool logger with ClaudeCodeExecutor. Added _check_and_log_tool_calls method to validate and log tool calls.
 - Task 6: Added --allow-dangerous flag to CLI run command. Updated bootstrap to create security components and pass allow_dangerous to executor.
-- Task 7: All unit tests written and passing (62 total security-related tests). Coverage: security.py 100%, patterns.py 97%, tool_logger.py 97%, interceptor.py 78%.
+- Task 7: All unit tests written and passing (77 total security-related tests). Added tests for invalid regex handling, case-insensitive tool names, and executor security integration.
 
 ### File List
 
@@ -330,6 +330,7 @@ claude-opus-4-5-20251101
 - tests/unit/security/test_interceptor.py
 - tests/unit/security/test_patterns.py
 - tests/unit/security/test_tool_logger.py
+- tests/unit/executors/test_claude_code_security.py
 
 **Modified Files:**
 - src/adw/models/__init__.py

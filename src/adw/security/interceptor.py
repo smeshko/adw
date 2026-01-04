@@ -4,6 +4,7 @@ This module provides the SecurityInterceptor class that validates
 tool calls against security patterns before execution.
 """
 
+import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
@@ -11,12 +12,12 @@ from typing import Any
 
 from adw.models.security import BlockedPattern, SecurityConfig, SecuritySeverity
 from adw.security.patterns import (
-    BLOCKED_FILE_PATTERNS,
-    BLOCKED_SHELL_PATTERNS,
     is_allowed_env_file,
     match_file_pattern,
     match_shell_pattern,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SecurityCheckResult(Enum):
@@ -84,9 +85,15 @@ class SecurityInterceptor:
             try:
                 compiled = re.compile(pattern.pattern, re.IGNORECASE)
                 self._custom_patterns.append((compiled, pattern))
-            except re.error:
-                # Skip invalid patterns
-                pass
+            except re.error as e:
+                # Log warning for invalid patterns and skip them
+                logger.warning(
+                    "Invalid regex pattern in security config, skipping",
+                    extra={
+                        "pattern": pattern.pattern,
+                        "error": str(e),
+                    },
+                )
     
     def check_tool_call(
         self,
@@ -102,12 +109,14 @@ class SecurityInterceptor:
         Returns:
             SecurityCheckResponse with the result of the check.
         """
-        # Route to appropriate checker based on tool name
-        if tool_name in ("Bash", "bash"):
+        # Route to appropriate checker based on tool name (case-insensitive)
+        tool_lower = tool_name.lower()
+
+        if tool_lower == "bash":
             command = arguments.get("command", "")
             return self._check_shell_command(tool_name, command)
-        
-        if tool_name in ("Read", "read", "Write", "write", "Edit", "edit"):
+
+        if tool_lower in ("read", "write", "edit"):
             file_path = arguments.get("file_path", arguments.get("path", ""))
             return self._check_file_access(tool_name, file_path)
         
