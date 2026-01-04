@@ -63,10 +63,10 @@ so that verification is traceable.
 - [x] Generate relative paths for portability
 
 ### Task 5: Implement Manifest Writer
-- [ ] Write manifest to `evidence/manifest.json`
-- [ ] Use pretty-printed JSON for readability
-- [ ] Include metadata (generated_at, run_id, platform)
-- [ ] Validate manifest structure before writing
+- [x] Write manifest to `evidence/manifest.json`
+- [x] Use pretty-printed JSON for readability
+- [x] Include metadata (generated_at, run_id, platform)
+- [x] Validate manifest structure before writing
 
 ### Task 6: Implement Coverage Calculation
 - [ ] Count evidence items per plan step

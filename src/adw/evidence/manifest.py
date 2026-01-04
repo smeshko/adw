@@ -928,3 +928,160 @@ class EvidenceDirectoryScanner:
             details["format"] = file_path.suffix[1:].upper()
 
         return details if len(details) > 1 else None
+
+
+class ManifestWriter:
+    """Writes evidence manifests to JSON files.
+
+    Handles serialization and file writing for evidence manifests,
+    including validation and pretty-printing.
+
+    Example:
+        >>> writer = ManifestWriter(Path(".adw/runs/01HQ/evidence"))
+        >>> path = writer.write(manifest)
+    """
+
+    DEFAULT_FILENAME = "manifest.json"
+
+    def __init__(self, evidence_directory: Path) -> None:
+        """Initialize the manifest writer.
+
+        Args:
+            evidence_directory: Path to the evidence directory
+        """
+        self.evidence_directory = evidence_directory
+        self._logger = get_logger()
+
+    def write(
+        self,
+        manifest: EvidenceManifest,
+        filename: str | None = None,
+    ) -> Path:
+        """Write manifest to JSON file.
+
+        Serializes the manifest to pretty-printed JSON and writes
+        it to the evidence directory.
+
+        Args:
+            manifest: Evidence manifest to write
+            filename: Optional custom filename (default: manifest.json)
+
+        Returns:
+            Path to the written manifest file
+
+        Raises:
+            OSError: If unable to write the file
+        """
+        filename = filename or self.DEFAULT_FILENAME
+        output_path = self.evidence_directory / filename
+
+        # Validate manifest before writing
+        self._validate_manifest(manifest)
+
+        # Ensure evidence directory exists
+        self.evidence_directory.mkdir(parents=True, exist_ok=True)
+
+        # Serialize with custom datetime handling
+        json_content = manifest.model_dump_json(indent=2)
+
+        # Write atomically using temporary file
+        temp_path = output_path.with_suffix(".tmp")
+        try:
+            temp_path.write_text(json_content, encoding="utf-8")
+            temp_path.rename(output_path)
+        except OSError:
+            # Clean up temp file on error
+            if temp_path.exists():
+                temp_path.unlink()
+            raise
+
+        self._logger.info(
+            LogCategory.STATE,
+            f"Manifest written to {output_path} "
+            f"({manifest.total_items} items, {len(json_content)} bytes)",
+        )
+
+        return output_path
+
+    def _validate_manifest(self, manifest: EvidenceManifest) -> None:
+        """Validate manifest structure before writing.
+
+        Checks that required fields are present and statistics are consistent.
+
+        Args:
+            manifest: Manifest to validate
+
+        Raises:
+            ValueError: If manifest is invalid
+        """
+        # Check required fields
+        if not manifest.run_id:
+            raise ValueError("Manifest missing required field: run_id")
+        if not manifest.platform:
+            raise ValueError("Manifest missing required field: platform")
+        if not manifest.evidence_directory:
+            raise ValueError("Manifest missing required field: evidence_directory")
+
+        # Validate statistics consistency
+        expected_total = (
+            manifest.passed + manifest.failed + manifest.errors + manifest.skipped
+        )
+        if manifest.total_items != expected_total:
+            self._logger.warn(
+                LogCategory.STATE,
+                f"Manifest statistics inconsistent: total_items={manifest.total_items} "
+                f"but passed+failed+errors+skipped={expected_total}",
+            )
+
+        # Validate item count matches total
+        if len(manifest.items) != manifest.total_items:
+            self._logger.warn(
+                LogCategory.STATE,
+                f"Manifest item count inconsistent: items list has {len(manifest.items)} "
+                f"but total_items={manifest.total_items}",
+            )
+
+        # Validate coverage if present
+        if manifest.coverage:
+            total = manifest.coverage.total_plan_steps
+            covered = manifest.coverage.covered_steps
+            uncovered = manifest.coverage.uncovered_steps
+
+            if covered + uncovered != total:
+                self._logger.warn(
+                    LogCategory.STATE,
+                    f"Coverage statistics inconsistent: covered={covered} + "
+                    f"uncovered={uncovered} != total={total}",
+                )
+
+    def read(self, filename: str | None = None) -> EvidenceManifest | None:
+        """Read an existing manifest from file.
+
+        Args:
+            filename: Optional custom filename (default: manifest.json)
+
+        Returns:
+            EvidenceManifest if file exists and is valid, None otherwise
+        """
+        import json
+
+        filename = filename or self.DEFAULT_FILENAME
+        manifest_path = self.evidence_directory / filename
+
+        if not manifest_path.exists():
+            self._logger.debug(
+                LogCategory.STATE,
+                f"Manifest file not found: {manifest_path}",
+            )
+            return None
+
+        try:
+            content = manifest_path.read_text(encoding="utf-8")
+            data = json.loads(content)
+            return EvidenceManifest.model_validate(data)
+        except (json.JSONDecodeError, ValueError) as e:
+            self._logger.warn(
+                LogCategory.STATE,
+                f"Failed to parse manifest file: {e}",
+            )
+            return None
