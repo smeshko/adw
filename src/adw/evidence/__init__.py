@@ -10,10 +10,16 @@ This package contains modules for:
 
 from pathlib import Path
 
+from adw.evidence.api_capture import APICaptureStrategy, generate_summary
 from adw.evidence.cli_capture import CLICaptureStrategy
 from adw.evidence.cli_gatherer import CLIEvidenceGatherer
-from adw.evidence.config_loader import load_evidence_commands
+from adw.evidence.config_loader import (
+    EvidenceConfig,
+    load_evidence_commands,
+    load_evidence_config,
+)
 from adw.evidence.detector import PlatformDetector
+from adw.evidence.evidence_writer import APIEvidenceWriter
 from adw.evidence.file_writer import EvidenceFileWriter
 from adw.evidence.mobile_capture import (
     capture_android_screenshot,
@@ -129,6 +135,12 @@ __all__ = [
     "PlatformDetector",
     "detect_platform",
     "get_evidence_strategy",
+    # API evidence gathering
+    "APIEvidenceWriter",
+    "APICaptureStrategy",
+    "EvidenceConfig",
+    "generate_summary",
+    "load_evidence_config",
     # CLI evidence gathering
     "CLICaptureStrategy",
     "CLIEvidenceGatherer",

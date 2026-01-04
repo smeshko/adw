@@ -26,8 +26,8 @@ try:
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
-    PlaywrightTimeout = type(None)  # Sentinel for unavailable
-    sync_playwright = None
+    PlaywrightTimeout = TimeoutError  # type: ignore[misc,assignment]
+    sync_playwright = None  # type: ignore[assignment]
 
 
 DEFAULT_VIEWPORTS: list[ViewportConfig] = [

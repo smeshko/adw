@@ -8,10 +8,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from adw.models.evidence import MobileDeviceType
-
 
 # =============================================================================
 # iOS Simulator Tests (Task 2)
@@ -525,12 +522,12 @@ class TestSaveEvidenceMetadata:
 
     def test_save_metadata_creates_json_file(self, tmp_path: Path) -> None:
         """Test that metadata is saved as JSON."""
+        from adw.evidence.mobile_capture import save_evidence_metadata
         from adw.models.evidence import (
             MobileDeviceType,
             MobileEvidenceSummary,
             MobileScreenshotResult,
         )
-        from adw.evidence.mobile_capture import save_evidence_metadata
 
         results = [
             MobileScreenshotResult(
@@ -563,12 +560,12 @@ class TestSaveEvidenceMetadata:
 
     def test_metadata_includes_all_fields(self, tmp_path: Path) -> None:
         """Test that metadata includes all required fields."""
+        from adw.evidence.mobile_capture import save_evidence_metadata
         from adw.models.evidence import (
             MobileDeviceType,
             MobileEvidenceSummary,
             MobileScreenshotResult,
         )
-        from adw.evidence.mobile_capture import save_evidence_metadata
 
         results = [
             MobileScreenshotResult(

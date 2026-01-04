@@ -6,9 +6,7 @@ integration for capturing web screenshots.
 
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from adw.evidence.web_capture import (
     PLAYWRIGHT_AVAILABLE,
@@ -58,7 +56,7 @@ class TestWebCaptureStrategy:
         output_dir = tmp_path / "screenshots" / "nested"
         assert not output_dir.exists()
 
-        strategy = WebCaptureStrategy(
+        WebCaptureStrategy(
             output_dir=output_dir,
             base_url="http://localhost:3000",
         )

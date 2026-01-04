@@ -80,3 +80,11 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# HTML templates and multiline strings
+"src/adw/cli/logs.py" = ["E501"]
+"src/adw/models/__init__.py" = ["E501"]
+"src/adw/models/evidence.py" = ["E501"]
+# Test data strings and long assertions
+"tests/*" = ["E501"]
