@@ -200,13 +200,15 @@ def run(
                 raise typer.Exit(1)
 
             # Single phase execution (Story 5.4)
-            context = orchestrator.run_single_phase(phase, feature, from_run)
+            context = orchestrator.run_single_phase(
+                phase, feature, from_run, run_id=run_id
+            )
             console.print(
                 f"[green]✓[/] Single phase '{phase}' completed: {context.run_id}"
             )
         else:
             # Full pipeline execution
-            context = orchestrator.run(feature)
+            context = orchestrator.run(feature, run_id=run_id)
             console.print(f"[green]✓[/] Run completed: {context.run_id}")
 
     except ConfigError as e:

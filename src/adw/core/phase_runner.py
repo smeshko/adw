@@ -309,13 +309,31 @@ class PhaseRunner:
 
         # Build template variables
         variables = {
-            "context": context.model_dump(),
+            "context": context,  # Pass the model directly for nested access
             "pre_hook_output": pre_hook_output,
             "artifacts": artifacts_map,  # Nested: {phase: {name: content}}
             "run_id": context.run_id,
             "phase": phase,
             "feature": context.feature_description,
+            "feature_description": context.feature_description,  # Alias for templates
         }
+
+        # Add convenience aliases for common artifact references
+        # These allow templates to use {{plan}} instead of {{artifacts.plan.plan_output}}
+
+        if "plan" in artifacts_map and "plan_output" in artifacts_map["plan"]:
+            variables["plan"] = artifacts_map["plan"]["plan_output"]
+        if "build" in artifacts_map and "build_output" in artifacts_map["build"]:
+            variables["implementation"] = artifacts_map["build"]["build_output"]
+        if "verify" in artifacts_map and "verify_output" in artifacts_map["verify"]:
+            variables["output"] = artifacts_map["verify"]["verify_output"]
+
+        # Load schema from command directory if exists (for validate phase)
+        schema_path = command.path / "schema.json"
+        if schema_path.exists():
+            variables["schema"] = schema_path.read_text(encoding="utf-8")
+        else:
+            variables["schema"] = ""  # Empty string if no schema defined
 
         # Render template with strict matching artifact mode:
         # - strict_artifacts=True: We validated artifacts, use strict=True for all vars

@@ -916,11 +916,11 @@ class TestTransitionPerformance:
             ]
             assert len(completed_calls) == 5  # One per phase
 
-    def test_slow_transition_logs_warning(
+    def test_slow_transition_logs_debug(
         self,
         orchestrator: "Orchestrator",
     ) -> None:
-        """Test that slow transitions log a warning."""
+        """Test that slow transitions log a debug message."""
         import time
 
         # Create a slow phase runner
@@ -956,11 +956,15 @@ class TestTransitionPerformance:
 
             orchestrator._execute_phase_with_transitions(context, "plan")
 
-            # Should have logged a warning about slow transition
-            warning_calls = mock_logger.warning.call_args_list
-            assert len(warning_calls) >= 1
-            warning_str = str(warning_calls[0]).lower()
-            assert "exceeded 1s" in warning_str or "1s" in warning_str
+            # Should have logged a debug message about slow transition
+            debug_calls = mock_logger.debug.call_args_list
+            assert len(debug_calls) >= 1
+            # Find the transition exceeded message
+            found_transition_msg = any(
+                "exceeded 1s" in str(call).lower() or "1s" in str(call).lower()
+                for call in debug_calls
+            )
+            assert found_transition_msg, f"Expected transition debug log, got: {debug_calls}"
 
 
 class TestInterruptionHandling:

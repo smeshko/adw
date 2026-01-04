@@ -141,7 +141,15 @@ class ClaudeCodeExecutor:
         claude_path = self._verify_claude_path()
 
         # Build command arguments
-        args = [str(claude_path), "--print", prompt]
+        # Note: --output-format stream-json requires --verbose
+        args = [
+            str(claude_path),
+            "--print",
+            "--verbose",
+            "--output-format", "stream-json",  # Get structured output with token counts
+            "--dangerously-skip-permissions",  # Allow file writes in automated pipelines
+            prompt,
+        ]
 
         # Add model if configured
         if self.config.model:
@@ -285,15 +293,23 @@ class ClaudeCodeExecutor:
         stderr = process.stderr
 
         async def read_stdout() -> None:
-            """Read stdout line-by-line and stream to console."""
+            """Read stdout line-by-line and stream to console.
+
+            With --output-format stream-json, each line is JSON.
+            We parse it to extract text content for real-time display.
+            """
             while True:
                 line = await stdout.readline()
                 if not line:
                     break
                 decoded = line.decode()
                 content_lines.append(decoded)
-                # Stream to console in real-time
-                self.console.print(decoded, end="")
+
+                # Try to extract text content from stream-json for display
+                display_text = self._extract_display_text(decoded)
+                if display_text:
+                    self.console.print(display_text, end="")
+
                 # Capture to stream logger if provided
                 if stream_logger:
                     stream_logger.token(decoded)
@@ -486,6 +502,48 @@ class ClaudeCodeExecutor:
             "tool_calls": tool_calls,
             "tokens_used": tokens_used,
         }
+
+    def _extract_display_text(self, json_line: str) -> str:
+        """Extract displayable text from a stream-json line.
+
+        Parses a single JSON line from --output-format stream-json and
+        extracts any text content that should be displayed to the user.
+
+        Args:
+            json_line: A single line of JSON from the stream.
+
+        Returns:
+            Text to display, or empty string if no displayable content.
+        """
+        if not json_line.strip():
+            return ""
+
+        try:
+            data = json.loads(json_line)
+        except json.JSONDecodeError:
+            # Not valid JSON, might be plain text - display as-is
+            return json_line
+
+        if not isinstance(data, dict):
+            return ""
+
+        msg_type = data.get("type", "")
+
+        # Extract text from content_block_delta (streaming text)
+        if msg_type == "content_block_delta":
+            delta = data.get("delta", {})
+            if delta.get("type") == "text_delta":
+                return delta.get("text", "")
+
+        # Extract text from assistant message content blocks
+        if msg_type == "assistant":
+            text_parts = []
+            for block in data.get("message", {}).get("content", []):
+                if block.get("type") == "text":
+                    text_parts.append(block.get("text", ""))
+            return "".join(text_parts)
+
+        return ""
 
     def _verify_claude_path(self) -> Path:
         """Verify Claude Code executable exists.

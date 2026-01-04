@@ -177,11 +177,15 @@ class Orchestrator:
         except ValueError:
             return None
 
-    def run(self, feature_description: str) -> RunContext:
+    def run(
+        self,
+        feature_description: str,
+        run_id: str | None = None,
+    ) -> RunContext:
         """Execute the full pipeline for a feature.
 
         This method orchestrates the complete execution flow:
-        1. Generate a new run ID (ULID)
+        1. Generate a new run ID (ULID) if not provided
         2. Create initial context and run directory
         3. Execute each phase in sequence with interruption checking
         4. Handle errors, retries, and graceful shutdown
@@ -189,6 +193,7 @@ class Orchestrator:
 
         Args:
             feature_description: Description of the feature to implement.
+            run_id: Optional run ID. If not provided, a new ULID is generated.
 
         Returns:
             Final RunContext with status and artifacts.
@@ -202,8 +207,8 @@ class Orchestrator:
             >>> context = orchestrator.run("Add user authentication")
             >>> print(context.status)  # "completed" or "failed"
         """
-        # Generate run ID
-        run_id = str(ULID())
+        # Use provided run_id or generate new one
+        run_id = run_id or str(ULID())
 
         # Create initial context
         context = RunContext(
@@ -386,16 +391,19 @@ class Orchestrator:
         phase: str,
         feature_description: str,
         from_run_id: str | None = None,
+        run_id: str | None = None,
     ) -> RunContext:
         """Execute a single phase in isolation.
 
-        Creates a new run ID for this execution and executes only the specified
-        phase. For phases after "plan", artifacts from a source run may be needed.
+        Creates a new run ID for this execution (or uses provided one) and
+        executes only the specified phase. For phases after "plan", artifacts
+        from a source run may be needed.
 
         Args:
             phase: Phase to execute (must be in PHASE_SEQUENCE).
             feature_description: Description of the feature to implement.
             from_run_id: Source run ID for loading artifacts (optional for plan).
+            run_id: Optional run ID. If not provided, a new ULID is generated.
 
         Returns:
             RunContext for this single-phase execution.
@@ -410,8 +418,8 @@ class Orchestrator:
             ...     "build", "Add login", from_run_id="01HQTEST123"
             ... )
         """
-        # Generate new run ID for this single-phase execution
-        run_id = str(ULID())
+        # Use provided run_id or generate new one
+        run_id = run_id or str(ULID())
 
         # Create initial context
         context = RunContext(
@@ -1006,7 +1014,7 @@ class Orchestrator:
             )
 
             if transition_time_ms > 1000:
-                logger.warning(
+                logger.debug(
                     "Transition exceeded 1s",
                     extra={"phase": phase, "duration_ms": transition_time_ms},
                 )
