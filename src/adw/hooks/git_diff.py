@@ -14,43 +14,59 @@ import re
 import subprocess
 from pathlib import Path
 
-from pydantic import BaseModel, Field
-
 from adw.exceptions import HookError
+from adw.models.artifacts import DiffStats
 
 logger = logging.getLogger(__name__)
 
+# Pattern to detect binary file markers in git diff output
+BINARY_FILE_PATTERN = re.compile(r"Binary files .+ differ")
 
-class DiffStats(BaseModel):
-    """Statistics from a git diff.
 
-    This model captures aggregate statistics from git diff output,
-    including file counts and line change counts.
+def has_commits(*, working_dir: Path | None = None) -> bool:
+    """Check if the repository has any commits.
 
-    Attributes:
-        files_changed: Number of files changed
-        insertions: Number of lines added
-        deletions: Number of lines removed
+    Used to handle the initial commit edge case where HEAD~1 doesn't exist.
+
+    Args:
+        working_dir: Directory to run git command in (default: current dir)
+
+    Returns:
+        True if the repository has at least one commit, False otherwise.
 
     Example:
-        >>> stats = DiffStats(files_changed=3, insertions=42, deletions=13)
-        >>> stats.summary()
-        '3 files changed, +42, -13'
+        >>> if has_commits():
+        ...     diff = capture_diff(since="HEAD~1")
+        ... else:
+        ...     diff = capture_staged_diff()
     """
+    cwd = working_dir if working_dir is not None else Path.cwd()
 
-    files_changed: int = Field(default=0, ge=0, description="Number of files changed")
-    insertions: int = Field(default=0, ge=0, description="Number of lines added")
-    deletions: int = Field(default=0, ge=0, description="Number of lines removed")
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+    )
 
-    def summary(self) -> str:
-        """Generate a human-readable summary of the diff stats.
+    return result.returncode == 0
 
-        Returns:
-            Summary string like '3 files changed, +42, -13'
-        """
-        return (
-            f"{self.files_changed} files changed, +{self.insertions}, -{self.deletions}"
-        )
+
+def count_binary_files(diff_content: str) -> int:
+    """Count binary files detected in git diff output.
+
+    Binary files are noted in git diff with "Binary files ... differ" lines.
+
+    Args:
+        diff_content: Raw git diff output
+
+    Returns:
+        Number of binary files detected in the diff
+    """
+    if not diff_content:
+        return 0
+
+    return len(BINARY_FILE_PATTERN.findall(diff_content))
 
 
 def capture_diff(
@@ -244,14 +260,15 @@ def truncate_diff(diff: str, max_bytes: int = 102400) -> str:
     return truncated + truncation_notice
 
 
-def get_diff_stats(stat_output: str) -> DiffStats:
+def get_diff_stats(stat_output: str, diff_content: str = "") -> DiffStats:
     """Parse git diff --stat output into DiffStats model.
 
-    Extracts file count, insertions, and deletions from the
-    summary line of git diff --stat output.
+    Extracts file count, insertions, deletions, and binary file count from
+    the summary line of git diff --stat output and the raw diff content.
 
     Args:
         stat_output: Output from `git diff --stat`
+        diff_content: Raw diff output (optional, for binary file detection)
 
     Returns:
         DiffStats with parsed values (all 0 if parsing fails)
@@ -293,12 +310,16 @@ def get_diff_stats(stat_output: str) -> DiffStats:
     if deletions_match:
         deletions = int(deletions_match.group(1))
 
+    # Count binary files from raw diff content
+    binary_files = count_binary_files(diff_content)
+
     logger.debug(
         "Parsed diff stats",
         extra={
             "files_changed": files_changed,
             "insertions": insertions,
             "deletions": deletions,
+            "binary_files": binary_files,
         },
     )
 
@@ -306,4 +327,5 @@ def get_diff_stats(stat_output: str) -> DiffStats:
         files_changed=files_changed,
         insertions=insertions,
         deletions=deletions,
+        binary_files=binary_files,
     )

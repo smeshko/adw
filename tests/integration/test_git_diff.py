@@ -10,12 +10,14 @@ from pathlib import Path
 import pytest
 
 from adw.hooks.git_diff import (
-    DiffStats,
     capture_diff,
     capture_staged_diff,
+    count_binary_files,
     get_diff_stats,
+    has_commits,
     truncate_diff,
 )
+from adw.models.artifacts import DiffStats
 
 
 @pytest.fixture
@@ -235,3 +237,114 @@ class TestTruncateDiffIntegration:
         assert len(truncated.encode("utf-8")) < len(diff.encode("utf-8"))
         assert "[TRUNCATED]" in truncated
         assert "diff --git" in truncated  # Header preserved
+
+
+class TestHasCommitsIntegration:
+    """Integration tests for has_commits function."""
+
+    def test_has_commits_true_for_repo_with_commits(self, git_repo: Path) -> None:
+        """Test has_commits returns True for repository with commits."""
+        # git_repo fixture already has an initial commit
+        result = has_commits(working_dir=git_repo)
+
+        assert result is True
+
+    def test_has_commits_false_for_empty_repo(self, tmp_path: Path) -> None:
+        """Test has_commits returns False for repository with no commits."""
+        # Create empty git repo without any commits
+        empty_repo = tmp_path / "empty_repo"
+        empty_repo.mkdir()
+        subprocess.run(["git", "init"], cwd=empty_repo, check=True, capture_output=True)
+
+        result = has_commits(working_dir=empty_repo)
+
+        assert result is False
+
+
+class TestInitialCommitEdgeCase:
+    """Integration tests for initial commit edge case (M3)."""
+
+    def test_capture_staged_diff_in_empty_repo(self, tmp_path: Path) -> None:
+        """Test that staged changes can be captured in a repo with no commits.
+
+        Story requirement: Handle repos with no commits (initial commit case)
+        """
+        # Create empty git repo
+        empty_repo = tmp_path / "empty_repo"
+        empty_repo.mkdir()
+        subprocess.run(["git", "init"], cwd=empty_repo, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@test.com"],
+            cwd=empty_repo,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test User"],
+            cwd=empty_repo,
+            check=True,
+            capture_output=True,
+        )
+
+        # Stage a new file (no commits exist yet)
+        (empty_repo / "first_file.py").write_text("print('first file')\n")
+        subprocess.run(["git", "add", "."], cwd=empty_repo, check=True)
+
+        # Should be able to capture staged diff even with no commits
+        diff = capture_staged_diff(working_dir=empty_repo)
+
+        assert "first_file.py" in diff
+        assert "print('first file')" in diff
+
+
+class TestBinaryFilesIntegration:
+    """Integration tests for binary file detection."""
+
+    def test_count_binary_files_in_real_diff(self, git_repo: Path) -> None:
+        """Test binary file detection with real git diff containing binary."""
+        # Create a binary file (simple PNG header bytes)
+        binary_content = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+        (git_repo / "image.png").write_bytes(binary_content)
+        subprocess.run(["git", "add", "."], cwd=git_repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Add binary file"],
+            cwd=git_repo,
+            check=True,
+            capture_output=True,
+        )
+
+        diff = capture_diff(since="HEAD~1", working_dir=git_repo)
+
+        # Git should note binary file
+        binary_count = count_binary_files(diff)
+        assert binary_count >= 1
+
+    def test_diff_stats_includes_binary_count(self, git_repo: Path) -> None:
+        """Test DiffStats includes binary file count from real diff."""
+        # Create a binary file
+        binary_content = b"\x89PNG\r\n\x1a\n\x00\x00"
+        (git_repo / "icon.png").write_bytes(binary_content)
+        # And a text file
+        (git_repo / "readme.txt").write_text("readme content\n")
+        subprocess.run(["git", "add", "."], cwd=git_repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Add files"],
+            cwd=git_repo,
+            check=True,
+            capture_output=True,
+        )
+
+        # Get diff and stats
+        diff = capture_diff(since="HEAD~1", working_dir=git_repo)
+        stat_result = subprocess.run(
+            ["git", "diff", "--stat", "HEAD~1"],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        stats = get_diff_stats(stat_result.stdout, diff)
+
+        assert stats.files_changed == 2
+        assert stats.binary_files >= 1  # At least the PNG file

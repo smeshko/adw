@@ -1,6 +1,7 @@
 """ADW data models - Pydantic models for validation and serialization.
 
 This package contains all Pydantic models used throughout ADW:
+- artifacts: DiffStats
 - command: ResolvedCommand, LoadedCommand
 - context: RunContext, SessionContext, ProjectContext, StateSnapshot
 - phase: PhaseStatus, PhaseResult, Artifact, ArtifactType
@@ -21,6 +22,7 @@ This package contains all Pydantic models used throughout ADW:
             OptimizationConfig, FileOptimization, OptimizationReport
 """
 
+from adw.models.artifacts import DiffStats
 from adw.models.command import LoadedCommand, ResolvedCommand
 from adw.models.config import (
     HookConfig,
@@ -98,6 +100,8 @@ from adw.models.security import (
 StateSnapshot.model_rebuild()
 
 __all__: list[str] = [
+    # Artifact models
+    "DiffStats",
     # Command models
     "LoadedCommand",
     "ResolvedCommand",

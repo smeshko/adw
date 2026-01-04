@@ -7,13 +7,15 @@ for build artifacts.
 
 from adw.hooks.environment import build_hook_environment
 from adw.hooks.git_diff import (
-    DiffStats,
     capture_diff,
     capture_staged_diff,
+    count_binary_files,
     get_diff_stats,
+    has_commits,
     truncate_diff,
 )
 from adw.hooks.runner import HookRunner, find_hook
+from adw.models.artifacts import DiffStats
 
 __all__: list[str] = [
     "HookRunner",
@@ -23,6 +25,8 @@ __all__: list[str] = [
     "DiffStats",
     "capture_diff",
     "capture_staged_diff",
+    "count_binary_files",
     "get_diff_stats",
+    "has_commits",
     "truncate_diff",
 ]

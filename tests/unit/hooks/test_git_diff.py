@@ -12,12 +12,14 @@ import pytest
 
 from adw.exceptions import HookError
 from adw.hooks.git_diff import (
-    DiffStats,
     capture_diff,
     capture_staged_diff,
+    count_binary_files,
     get_diff_stats,
+    has_commits,
     truncate_diff,
 )
+from adw.models.artifacts import DiffStats
 
 
 class TestCaptureDiff:
@@ -251,3 +253,118 @@ class TestGetDiffStats:
         assert "3 files" in summary
         assert "+42" in summary
         assert "-13" in summary
+
+    def test_diff_stats_with_binary_files(self) -> None:
+        """Test DiffStats includes binary files in summary."""
+        stats = DiffStats(files_changed=3, insertions=42, deletions=13, binary_files=2)
+
+        summary = stats.summary()
+
+        assert "3 files" in summary
+        assert "(2 binary)" in summary
+
+    def test_diff_stats_binary_files_default_zero(self) -> None:
+        """Test DiffStats defaults binary_files to 0."""
+        stats = DiffStats(files_changed=1, insertions=1, deletions=0)
+
+        assert stats.binary_files == 0
+
+
+class TestHasCommits:
+    """Tests for has_commits function."""
+
+    def test_has_commits_returns_true_for_repository_with_commits(self) -> None:
+        """Test has_commits returns True when repository has commits."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = has_commits()
+
+            assert result is True
+
+    def test_has_commits_returns_false_for_empty_repository(self) -> None:
+        """Test has_commits returns False for initial commit case."""
+        mock_result = MagicMock()
+        mock_result.returncode = 128  # git rev-parse fails with no commits
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = has_commits()
+
+            assert result is False
+
+    def test_has_commits_with_working_dir(self) -> None:
+        """Test has_commits uses specified working directory."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            has_commits(working_dir=Path("/test/repo"))
+
+            assert mock_run.call_args[1]["cwd"] == Path("/test/repo")
+
+
+class TestCountBinaryFiles:
+    """Tests for count_binary_files function."""
+
+    def test_count_binary_files_detects_binary_markers(self) -> None:
+        """Test count_binary_files counts binary file markers in diff."""
+        diff_with_binaries = """
+diff --git a/image.png b/image.png
+Binary files a/image.png and b/image.png differ
+diff --git a/code.py b/code.py
+--- a/code.py
++++ b/code.py
++print("hello")
+diff --git a/doc.pdf b/doc.pdf
+Binary files /dev/null and b/doc.pdf differ
+"""
+        count = count_binary_files(diff_with_binaries)
+
+        assert count == 2
+
+    def test_count_binary_files_returns_zero_for_no_binaries(self) -> None:
+        """Test count_binary_files returns 0 when no binary files."""
+        text_diff = """
+diff --git a/code.py b/code.py
+--- a/code.py
++++ b/code.py
++print("hello")
+"""
+        count = count_binary_files(text_diff)
+
+        assert count == 0
+
+    def test_count_binary_files_handles_empty_diff(self) -> None:
+        """Test count_binary_files handles empty input."""
+        assert count_binary_files("") == 0
+
+    def test_count_binary_files_handles_none_like_input(self) -> None:
+        """Test count_binary_files handles falsy input."""
+        assert count_binary_files("") == 0
+
+
+class TestGetDiffStatsWithBinaryFiles:
+    """Tests for get_diff_stats with binary file detection."""
+
+    def test_get_diff_stats_includes_binary_count(self) -> None:
+        """Test get_diff_stats parses and includes binary file count."""
+        stat_output = "2 files changed, 10 insertions(+), 5 deletions(-)"
+        diff_content = "Binary files a/image.png and b/image.png differ"
+
+        stats = get_diff_stats(stat_output, diff_content)
+
+        assert stats.files_changed == 2
+        assert stats.insertions == 10
+        assert stats.deletions == 5
+        assert stats.binary_files == 1
+
+    def test_get_diff_stats_without_diff_content(self) -> None:
+        """Test get_diff_stats works without diff content (backwards compatible)."""
+        stat_output = "1 file changed, 5 insertions(+)"
+
+        stats = get_diff_stats(stat_output)
+
+        assert stats.files_changed == 1
+        assert stats.insertions == 5
+        assert stats.binary_files == 0

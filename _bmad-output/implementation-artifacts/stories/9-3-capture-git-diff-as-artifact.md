@@ -123,25 +123,30 @@ Key patterns:
 Claude claude-opus-4-5-20251101
 
 ### Completion Notes List
+- Created DiffStats Pydantic model in src/adw/models/artifacts.py (per architecture compliance)
 - Created git_diff.py module with all core diff capture functions
-- Implemented DiffStats Pydantic model for structured diff statistics
 - capture_diff() captures git diff since a given commit (default HEAD~1)
 - capture_staged_diff() captures staged changes via git diff --cached
 - truncate_diff() handles large diffs with truncation notice
 - get_diff_stats() parses git diff --stat output into DiffStats model
+- has_commits() checks if repository has commits (initial commit edge case)
+- count_binary_files() detects binary files in diff output
+- DiffStats includes binary_files field for binary file tracking
 - All functions use --no-color flag to avoid ANSI escape codes
 - Integrated diff capture into PhaseRunner._capture_artifacts for build phase
+- Handles initial commit edge case (no HEAD~1 exists)
 - diff.txt accessible as {{artifacts.build.diff}} via existing template mapping
-- 20 unit tests for git_diff module (95% coverage)
+- 30 unit tests for git_diff module
 - 6 unit tests for PhaseRunner git diff integration
-- 10 integration tests with real git operations
-- All 51 tests passing
+- 17 integration tests with real git operations including binary file and initial commit tests
 
 ### File List
-- src/adw/hooks/git_diff.py (new)
+- src/adw/models/artifacts.py (new - DiffStats model per architecture compliance)
+- src/adw/models/__init__.py (modified - export DiffStats)
+- src/adw/hooks/git_diff.py (new - diff capture functions)
 - src/adw/hooks/__init__.py (modified - added exports)
 - src/adw/core/phase_runner.py (modified - added diff capture in build phase)
-- tests/unit/hooks/test_git_diff.py (new)
+- tests/unit/hooks/test_git_diff.py (new - 30 unit tests)
 - tests/unit/core/test_phase_runner.py (modified - added git diff tests)
-- tests/integration/test_git_diff.py (new - 10 integration tests)
+- tests/integration/test_git_diff.py (new - 17 integration tests)
 
