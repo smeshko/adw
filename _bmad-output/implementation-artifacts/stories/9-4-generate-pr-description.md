@@ -1,6 +1,6 @@
 # Story 9.4: Generate PR Description
 
-Status: drafted
+Status: review
 Epic: 9 - Git Integration & Documentation
 Created: 2026-01-04
 
