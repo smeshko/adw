@@ -1,6 +1,6 @@
 # Story 9.2: Stage and Commit Changes via Post-Hook
 
-Status: drafted
+Status: Ready for Review
 Epic: 9 - Git Integration & Documentation
 Created: 2026-01-04
 
