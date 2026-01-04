@@ -4,6 +4,7 @@ This module tests the WebCaptureStrategy class which handles Playwright
 integration for capturing web screenshots.
 """
 
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -14,7 +15,7 @@ from adw.evidence.web_capture import (
     WebCaptureStrategy,
     check_playwright_available,
 )
-from adw.models.evidence import RouteConfig, ViewportConfig
+from adw.models.evidence import RouteConfig, ScreenshotResult, ViewportConfig
 
 
 class TestPlaywrightAvailability:
@@ -139,3 +140,93 @@ class TestWebCaptureStrategyGracefulDegradation:
         assert hasattr(strategy, "unavailable_reason")
         assert strategy.unavailable_reason is not None
         assert "playwright" in strategy.unavailable_reason.lower()
+
+
+class TestRouteCaptureMethod:
+    """Tests for capture_route method."""
+
+    def test_capture_route_method_exists(self, tmp_path: Path) -> None:
+        """Test that capture_route method exists."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+        assert hasattr(strategy, "capture_route")
+        assert callable(strategy.capture_route)
+
+    def test_capture_route_returns_screenshot_result(self, tmp_path: Path) -> None:
+        """Test that capture_route returns a ScreenshotResult."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+        route = RouteConfig(name="home", path="/")
+        viewport = ViewportConfig(name="desktop", width=1920, height=1080)
+
+        result = strategy.capture_route(route, viewport)
+
+        assert isinstance(result, ScreenshotResult)
+        assert result.route == "home"
+        assert result.viewport == "1920x1080"
+
+    def test_capture_route_generates_correct_path(self, tmp_path: Path) -> None:
+        """Test that capture generates correct output path."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+        route = RouteConfig(name="dashboard", path="/dashboard")
+        viewport = ViewportConfig(name="mobile", width=375, height=667)
+
+        result = strategy.capture_route(route, viewport)
+
+        # Path should include route name and viewport
+        assert "dashboard" in str(result.path)
+        assert "mobile" in str(result.path)
+        assert result.path.suffix == ".png"
+
+    @patch("adw.evidence.web_capture.PLAYWRIGHT_AVAILABLE", False)
+    def test_capture_route_fails_gracefully_when_unavailable(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that capture_route fails gracefully when Playwright unavailable."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+        route = RouteConfig(name="home", path="/")
+        viewport = ViewportConfig(name="desktop", width=1920, height=1080)
+
+        result = strategy.capture_route(route, viewport)
+
+        assert result.success is False
+        assert result.error is not None
+        assert "playwright" in result.error.lower()
+
+    def test_capture_route_uses_configured_timeout(self, tmp_path: Path) -> None:
+        """Test that capture_route respects route timeout configuration."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+        route = RouteConfig(name="slow", path="/slow", timeout_ms=60000)
+        viewport = ViewportConfig(name="desktop", width=1920, height=1080)
+
+        # Method should accept route with custom timeout without error
+        result = strategy.capture_route(route, viewport)
+        assert isinstance(result, ScreenshotResult)
+
+    def test_capture_route_has_captured_at_timestamp(self, tmp_path: Path) -> None:
+        """Test that capture_route sets captured_at timestamp."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+        route = RouteConfig(name="home", path="/")
+        viewport = ViewportConfig(name="desktop", width=1920, height=1080)
+
+        before = datetime.now()
+        result = strategy.capture_route(route, viewport)
+        after = datetime.now()
+
+        assert before <= result.captured_at <= after

@@ -186,3 +186,142 @@ class WebCaptureStrategy:
             LogCategory.STATE,
             f"Web screenshot capture skipped: {self._unavailable_reason}",
         )
+
+    def _generate_screenshot_path(
+        self, route: RouteConfig, viewport: ViewportConfig
+    ) -> Path:
+        """Generate the output path for a screenshot.
+
+        Args:
+            route: Route configuration
+            viewport: Viewport configuration
+
+        Returns:
+            Path where screenshot should be saved.
+        """
+        # Sanitize route name for filename
+        safe_name = route.name.replace("/", "_").replace(" ", "_")
+        filename = f"{safe_name}_{viewport.name}.png"
+        return self.output_dir / filename
+
+    def _build_full_url(self, route: RouteConfig) -> str:
+        """Build the full URL for a route.
+
+        Args:
+            route: Route configuration with path
+
+        Returns:
+            Full URL combining base_url and route path.
+        """
+        base = self.base_url.rstrip("/")
+        path = route.path if route.path.startswith("/") else f"/{route.path}"
+        return f"{base}{path}"
+
+    def capture_route(
+        self, route: RouteConfig, viewport: ViewportConfig
+    ) -> ScreenshotResult:
+        """Capture a screenshot of a single route at a specific viewport.
+
+        This method navigates to the route URL, waits for the page to load
+        according to the route's wait_for strategy, and captures a full-page
+        screenshot.
+
+        Args:
+            route: Configuration for the route to capture
+            viewport: Viewport dimensions for the screenshot
+
+        Returns:
+            ScreenshotResult with path, success status, and any error info.
+
+        Example:
+            >>> route = RouteConfig(name="home", path="/")
+            >>> viewport = ViewportConfig(name="desktop", width=1920, height=1080)
+            >>> result = strategy.capture_route(route, viewport)
+            >>> result.success
+            True
+        """
+        screenshot_path = self._generate_screenshot_path(route, viewport)
+        viewport_str = f"{viewport.width}x{viewport.height}"
+        full_url = self._build_full_url(route)
+
+        # If Playwright is not available, return failure result
+        if not self.is_available:
+            self._log_availability_warning()
+            return ScreenshotResult(
+                path=screenshot_path,
+                route=route.name,
+                viewport=viewport_str,
+                success=False,
+                error=f"Playwright not available: {self._unavailable_reason}",
+            )
+
+        # Capture with Playwright
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=self.headless)
+                context = browser.new_context(
+                    viewport={"width": viewport.width, "height": viewport.height}
+                )
+                page = context.new_page()
+
+                try:
+                    # Navigate to the URL with configured wait strategy
+                    page.goto(
+                        full_url,
+                        timeout=route.timeout_ms,
+                        wait_until=route.wait_for,
+                    )
+
+                    # Take full-page screenshot
+                    page.screenshot(path=str(screenshot_path), full_page=True)
+
+                    self._logger.debug(
+                        LogCategory.STATE,
+                        f"Screenshot captured: {route.name} at {viewport_str}",
+                    )
+
+                    return ScreenshotResult(
+                        path=screenshot_path,
+                        route=route.name,
+                        viewport=viewport_str,
+                        success=True,
+                    )
+
+                except PlaywrightTimeout:
+                    error_msg = (
+                        f"Timeout waiting for page load: {full_url} "
+                        f"(timeout: {route.timeout_ms}ms)"
+                    )
+                    self._logger.warn(LogCategory.STATE, error_msg)
+                    return ScreenshotResult(
+                        path=screenshot_path,
+                        route=route.name,
+                        viewport=viewport_str,
+                        success=False,
+                        error=error_msg,
+                    )
+
+                except Exception as e:
+                    error_msg = f"Navigation failed: {e!s}"
+                    self._logger.warn(LogCategory.STATE, error_msg)
+                    return ScreenshotResult(
+                        path=screenshot_path,
+                        route=route.name,
+                        viewport=viewport_str,
+                        success=False,
+                        error=error_msg,
+                    )
+
+                finally:
+                    browser.close()
+
+        except Exception as e:
+            error_msg = f"Browser launch failed: {e!s}"
+            self._logger.error(LogCategory.STATE, error_msg)
+            return ScreenshotResult(
+                path=screenshot_path,
+                route=route.name,
+                viewport=viewport_str,
+                success=False,
+                error=error_msg,
+            )
