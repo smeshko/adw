@@ -99,18 +99,18 @@ so that mobile UI changes can be visually verified.
 - [x] Handle missing config (capture current screen with warning)
 
 ### Task 7: Implement Evidence File Organization
-- [ ] Create directory: `.adw/runs/<run_id>/evidence/screenshots/mobile/`
-- [ ] Save screenshots as PNG
-- [ ] Generate metadata JSON with device info, timestamps
-- [ ] Handle filename sanitization for screen names
+- [x] Create directory: `.adw/runs/<run_id>/evidence/screenshots/mobile/`
+- [x] Save screenshots as PNG
+- [x] Generate metadata JSON with device info, timestamps
+- [x] Handle filename sanitization for screen names
 
 ### Task 8: Write Unit Tests
-- [ ] Test iOS simulator availability check (mock subprocess)
-- [ ] Test Android emulator availability check (mock subprocess)
-- [ ] Test screenshot path generation
-- [ ] Test configuration loading and validation
-- [ ] Test error handling for unavailable devices
-- [ ] Test result model serialization
+- [x] Test iOS simulator availability check (mock subprocess)
+- [x] Test Android emulator availability check (mock subprocess)
+- [x] Test screenshot path generation
+- [x] Test configuration loading and validation
+- [x] Test error handling for unavailable devices
+- [x] Test result model serialization
 
 ---
 

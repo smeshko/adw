@@ -722,6 +722,51 @@ def capture_configured_screens(
     )
 
 
+def save_evidence_metadata(
+    output_dir: Path,
+    summary: MobileEvidenceSummary,
+) -> Path:
+    """Save evidence metadata to a JSON file.
+
+    Creates a metadata.json file with device info and capture results.
+
+    Args:
+        output_dir: Directory where metadata should be saved
+        summary: Evidence summary with capture results
+
+    Returns:
+        Path to the saved metadata file
+
+    Example:
+        >>> metadata_path = save_evidence_metadata(output_dir, summary)
+        >>> print(f"Metadata saved to {metadata_path}")
+    """
+    metadata = {
+        "captured_at": summary.captured_at.isoformat(),
+        "platform_type": "mobile",
+        "total_screenshots": summary.total_screenshots,
+        "successful": summary.successful,
+        "failed": summary.failed,
+        "screenshots": [
+            {
+                "screen_name": r.screen_name,
+                "device_type": r.device_type.value,
+                "device_name": r.device_name,
+                "os_version": r.os_version,
+                "file": r.path.name,
+                "success": r.success,
+                "error": r.error,
+                "captured_at": r.captured_at.isoformat(),
+            }
+            for r in summary.results
+        ],
+    }
+
+    metadata_path = output_dir / "metadata.json"
+    metadata_path.write_text(json.dumps(metadata, indent=2))
+    return metadata_path
+
+
 def _sanitize_filename(name: str) -> str:
     """Sanitize a screen name for use in filenames.
 

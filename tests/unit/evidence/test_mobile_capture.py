@@ -520,6 +520,87 @@ evidence:
         assert screens == []
 
 
+class TestSaveEvidenceMetadata:
+    """Tests for saving evidence metadata."""
+
+    def test_save_metadata_creates_json_file(self, tmp_path: Path) -> None:
+        """Test that metadata is saved as JSON."""
+        from adw.models.evidence import (
+            MobileDeviceType,
+            MobileEvidenceSummary,
+            MobileScreenshotResult,
+        )
+        from adw.evidence.mobile_capture import save_evidence_metadata
+
+        results = [
+            MobileScreenshotResult(
+                path=tmp_path / "home_ios.png",
+                screen_name="home",
+                device_type=MobileDeviceType.IOS,
+                device_name="iPhone 15",
+                os_version="17.2",
+                success=True,
+            ),
+        ]
+        summary = MobileEvidenceSummary(
+            total_screenshots=1,
+            successful=1,
+            failed=0,
+            results=results,
+        )
+
+        metadata_path = save_evidence_metadata(tmp_path, summary)
+
+        assert metadata_path.exists()
+        assert metadata_path.name == "metadata.json"
+
+        # Verify JSON content
+        content = json.loads(metadata_path.read_text())
+        assert content["total_screenshots"] == 1
+        assert content["successful"] == 1
+        assert len(content["screenshots"]) == 1
+        assert content["screenshots"][0]["screen_name"] == "home"
+
+    def test_metadata_includes_all_fields(self, tmp_path: Path) -> None:
+        """Test that metadata includes all required fields."""
+        from adw.models.evidence import (
+            MobileDeviceType,
+            MobileEvidenceSummary,
+            MobileScreenshotResult,
+        )
+        from adw.evidence.mobile_capture import save_evidence_metadata
+
+        results = [
+            MobileScreenshotResult(
+                path=tmp_path / "test.png",
+                screen_name="test",
+                device_type=MobileDeviceType.ANDROID,
+                device_name="sdk_gphone64",
+                os_version="14",
+                success=True,
+            ),
+        ]
+        summary = MobileEvidenceSummary(
+            total_screenshots=1,
+            successful=1,
+            failed=0,
+            results=results,
+        )
+
+        metadata_path = save_evidence_metadata(tmp_path, summary)
+        content = json.loads(metadata_path.read_text())
+
+        # Check screenshot entry
+        screenshot = content["screenshots"][0]
+        assert "screen_name" in screenshot
+        assert "device_type" in screenshot
+        assert "device_name" in screenshot
+        assert "os_version" in screenshot
+        assert "file" in screenshot
+        assert "success" in screenshot
+        assert "captured_at" in screenshot
+
+
 class TestSanitizeFilename:
     """Tests for filename sanitization."""
 
