@@ -45,7 +45,7 @@ issue_counter: 5
 # ═══════════════════════════════════════════════════════════════════════════
 issues:
   ISS-001-llm-output-too-verbose-in-terminal: fixed
-  ISS-002-dry-run-minimal-output: reported
+  ISS-002-dry-run-minimal-output: fixed
   ISS-003-run-id-not-found-by-logs-command: in-progress
   ISS-004-run-id-truncated-in-list-output: reported
   ISS-005-feature-description-not-captured: reported
@@ -133,7 +133,7 @@ development_status:
   6-5-abort-running-execution: done
   6-6-initialize-new-project: done
   # UX Fix (from ISS-002)
-  ux-fix-ISS-002-dry-run-minimal-output: ready-for-dev
+  ux-fix-ISS-002-dry-run-minimal-output: done
   # UX Fix (from ISS-004)
   ux-fix-ISS-004-run-id-truncated-in-list-output: in-progress
   # Bugfix (from ISS-005)
