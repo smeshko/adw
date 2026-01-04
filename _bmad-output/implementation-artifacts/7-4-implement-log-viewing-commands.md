@@ -1,6 +1,6 @@
 # Story 7.4: Implement Log Viewing Commands
 
-Status: ready-for-dev
+Status: review
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-03
@@ -38,54 +38,54 @@ so that I can debug issues without navigating files manually.
 ## Tasks / Subtasks
 
 ### Task 1: Create Logs CLI Subcommand (cli/logs.py)
-- [ ] Create `logs` Typer subapp
-- [ ] Register with main app in `cli/app.py`
-- [ ] Add common options (--run-id, --phase, --level)
+- [x] Create `logs` Typer subapp
+- [x] Register with main app in `cli/app.py`
+- [x] Add common options (--run-id, --phase, --level)
 
 ### Task 2: Implement `logs show` Command
-- [ ] Accept run_id parameter
-- [ ] Load logs from `.agent/runs/<run_id>/logs/`
-- [ ] Display with Rich formatting
-- [ ] Support `--tail N` for last N entries
-- [ ] Support `--phase` filter
-- [ ] Support `--level` filter
+- [x] Accept run_id parameter
+- [x] Load logs from `.adw/runs/<run_id>/logs/`
+- [x] Display with Rich formatting
+- [x] Support `--tail N` for last N entries
+- [x] Support `--phase` filter
+- [x] Support `--level` filter
 
 ### Task 3: Implement `logs follow` Command
-- [ ] Accept run_id parameter
-- [ ] Check if run is active (context.json status)
-- [ ] Use file watching for new log entries
-- [ ] Stream to console in real-time
-- [ ] Exit gracefully when run completes
+- [x] Accept run_id parameter
+- [x] Check if run is active (context.json status)
+- [x] Use file watching for new log entries
+- [x] Stream to console in real-time
+- [x] Exit gracefully when run completes
 
 ### Task 4: Implement `logs search` Command
-- [ ] Accept pattern parameter (regex)
-- [ ] Search across all runs or specific run
-- [ ] Search in structured.jsonl files
-- [ ] Display matching entries with context
-- [ ] Support `--category` filter
+- [x] Accept pattern parameter (regex)
+- [x] Search across all runs or specific run
+- [x] Search in structured.jsonl files
+- [x] Display matching entries with context
+- [x] Support `--category` filter
 
 ### Task 5: Implement `logs llm` Command
-- [ ] Accept run_id parameter
-- [ ] Load files from `.agent/runs/<run_id>/llm/`
-- [ ] Display request/response pairs
-- [ ] Support `--phase` filter
-- [ ] Support `--request-only` and `--response-only`
-- [ ] Support `--tools` for tool calls only
-- [ ] Support `--stream` for token replay
+- [x] Accept run_id parameter
+- [x] Load files from `.adw/runs/<run_id>/llm/`
+- [x] Display request/response pairs
+- [x] Support `--phase` filter
+- [x] Support `--request-only` and `--response-only`
+- [x] Support `--tools` for tool calls only
+- [x] Support `--stream` for token replay
 
 ### Task 6: Implement `logs export` Command
-- [ ] Accept run_id parameter
-- [ ] Create tarball/zip of run directory
-- [ ] Include: logs/, llm/, snapshots/, context.json
-- [ ] Support `--format json|html` for reports
-- [ ] Output to stdout or file with `--output`
+- [x] Accept run_id parameter
+- [x] Create tarball/zip of run directory
+- [x] Include: logs/, llm/, snapshots/, context.json
+- [x] Support `--format json|html` for reports
+- [x] Output to stdout or file with `--output`
 
 ### Task 7: Write Unit Tests
-- [ ] Test logs show with various filters
-- [ ] Test logs follow with mock file watcher
-- [ ] Test logs search pattern matching
-- [ ] Test logs llm output formatting
-- [ ] Test logs export bundle creation
+- [x] Test logs show with various filters
+- [x] Test logs follow with mock file watcher
+- [x] Test logs search pattern matching
+- [x] Test logs llm output formatting
+- [x] Test logs export bundle creation
 
 ---
 
@@ -338,12 +338,31 @@ Key patterns:
 ## Dev Agent Record
 
 ### Context Reference
+- Story 7.1 (LogEvent model, log file format)
+- Story 7.3 (LLMCaptureManager, LLM file format)
+- Story 7.5 (existing logs.py with state inspection commands)
 
 ### Agent Model Used
+claude-opus-4-5-20250514
 
 ### Debug Log References
+N/A
 
 ### Completion Notes List
+- All 7 tasks completed successfully
+- 24 new tests added for Story 7.4 commands (54 total CLI tests pass)
+- Implemented 5 new CLI commands: show, follow, search, llm, export
+- Follows existing patterns from Story 7.5 state inspection commands
+- Export supports tar.gz, json, and html formats
 
 ### File List
+**Modified:**
+- `src/adw/cli/logs.py` - Added log viewing commands (show, follow, search, llm, export)
+- `tests/unit/cli/test_logs.py` - Added comprehensive unit tests for new commands
+
+**Architecture Compliance:**
+- Uses existing RunLookup for run ID resolution
+- Uses LogEvent model for parsing structured logs
+- Uses Rich for terminal output formatting
+- Integrates with existing logs_app Typer subcommand
 
