@@ -556,3 +556,103 @@ class ValidationError(ADWError):
             }
         )
         return d
+
+
+class SecurityError(ADWError):
+    """Exception for security-related blocking.
+
+    Used when a dangerous command or file access is blocked by the
+    security interceptor. Includes rich context for user feedback.
+
+    Common error codes:
+    - DANGEROUS_COMMAND_BLOCKED: A shell command matched a blocked pattern
+    - DANGEROUS_FILE_ACCESS: A file access matched a blocked pattern
+
+    Example:
+        >>> raise SecurityError(
+        ...     code="DANGEROUS_COMMAND_BLOCKED",
+        ...     message="Command 'rm -rf /' blocked for safety",
+        ...     pattern_matched=r"rm\\s+-rf\\s+/",
+        ...     tool_name="Bash",
+        ...     alternatives=["Use specific paths: rm -rf ./node_modules"],
+        ...     override_instruction="adw run --allow-dangerous 'feature'",
+        ...     severity="critical",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        pattern_matched: str,
+        tool_name: str,
+        alternatives: list[str] | None = None,
+        override_instruction: str | None = None,
+        severity: str = "warning",
+        suggestion: str | None = None,
+        recoverable: bool = False,
+    ) -> None:
+        """Initialize a SecurityError.
+
+        Args:
+            code: Unique error code (e.g., "DANGEROUS_COMMAND_BLOCKED").
+            message: Human-readable error message.
+            pattern_matched: The regex pattern that triggered the block.
+            tool_name: The tool that was blocked (e.g., "Bash", "Write").
+            alternatives: List of safe alternative commands or approaches.
+            override_instruction: How to bypass the block if needed.
+            severity: Severity level ("critical", "warning", "info").
+            suggestion: Optional actionable next step (inherited from ADWError).
+            recoverable: Whether the operation can be retried (default False).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
+        self.pattern_matched = pattern_matched
+        self.tool_name = tool_name
+        self.alternatives = alternatives if alternatives is not None else []
+        self.override_instruction = override_instruction
+        self.severity = severity
+
+    def __str__(self) -> str:
+        """Format error for user-friendly display.
+
+        Returns:
+            Formatted error string with all security context.
+        """
+        parts = [f"[{self.code}] {self.message}"]
+
+        if self.alternatives:
+            parts.append("Alternatives:")
+            for alt in self.alternatives:
+                parts.append(f"  - {alt}")
+
+        if self.override_instruction:
+            parts.append(f"Override: {self.override_instruction}")
+
+        if self.suggestion:
+            parts.append(f"Suggestion: {self.suggestion}")
+
+        return "\n".join(parts)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize error to dictionary for structured logging.
+
+        Returns:
+            Dictionary containing all error attributes including security fields.
+        """
+        d = super().to_dict()
+        d.update(
+            {
+                "pattern_matched": self.pattern_matched,
+                "tool_name": self.tool_name,
+                "alternatives": self.alternatives,
+                "override_instruction": self.override_instruction,
+                "severity": self.severity,
+            }
+        )
+        return d

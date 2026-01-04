@@ -1,11 +1,93 @@
 """Security-related Pydantic models.
 
-This module defines models for security monitoring and tool execution logging.
+This module contains models for security configuration and tool call logging,
+including blocked pattern definitions and security interceptor configuration.
 """
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+
+
+# Valid pattern categories for security blocking
+PatternCategory = Literal["destructive", "permission", "git_dangerous", "secret_access"]
+
+# Valid severity levels for security patterns
+PatternSeverity = Literal["critical", "warning", "info"]
+
+
+class BlockedPattern(BaseModel):
+    """Configuration for a blocked shell command or file pattern.
+
+    Blocked patterns define dangerous operations that should be prevented
+    by the security interceptor. Each pattern includes metadata to help
+    users understand why it was blocked and what alternatives exist.
+
+    Attributes:
+        pattern: Regex pattern to match against commands/paths
+        description: Human-readable description of what this pattern blocks
+        severity: How severe the security risk is (critical/warning/info)
+        category: Category of the pattern (destructive/permission/git_dangerous/secret_access)
+        alternative: Suggested safe alternative command or approach
+
+    Example:
+        >>> pattern = BlockedPattern(
+        ...     pattern=r"rm\\s+-rf\\s+/",
+        ...     description="Recursive delete of root directory",
+        ...     severity="critical",
+        ...     category="destructive",
+        ...     alternative="Use specific paths: rm -rf ./node_modules",
+        ... )
+    """
+
+    pattern: str = Field(description="Regex pattern to match against commands/paths")
+    description: str = Field(description="Human-readable description of what this blocks")
+    severity: PatternSeverity = Field(
+        default="warning", description="Severity level (critical/warning/info)"
+    )
+    category: PatternCategory = Field(
+        description="Category of the pattern (destructive/permission/git_dangerous/secret_access)"
+    )
+    alternative: str = Field(
+        default="", description="Suggested safe alternative command or approach"
+    )
+
+
+class SecurityConfig(BaseModel):
+    """Security configuration for the ADW runner.
+
+    Configures which patterns are blocked, whether blocking is enforced,
+    and which files are protected from access.
+
+    Attributes:
+        blocked_patterns: Additional patterns to block (merged with defaults)
+        allow_dangerous: If True, log warnings instead of blocking
+        blocked_env_files: File patterns to block (in addition to defaults)
+
+    Example:
+        >>> config = SecurityConfig(
+        ...     allow_dangerous=False,
+        ...     blocked_patterns=[
+        ...         BlockedPattern(
+        ...             pattern=r"npm\\s+publish",
+        ...             description="Publishing to npm",
+        ...             category="permission",
+        ...         )
+        ...     ],
+        ... )
+    """
+
+    blocked_patterns: list[BlockedPattern] = Field(
+        default_factory=list,
+        description="Additional patterns to block (merged with defaults)",
+    )
+    allow_dangerous: bool = Field(
+        default=False, description="If True, log warnings instead of blocking"
+    )
+    blocked_env_files: list[str] = Field(
+        default_factory=list,
+        description="Additional file patterns to block (in addition to defaults)",
+    )
 
 
 class ToolCallLog(BaseModel):
