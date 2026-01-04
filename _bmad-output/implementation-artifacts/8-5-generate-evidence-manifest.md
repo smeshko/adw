@@ -75,10 +75,10 @@ so that verification is traceable.
 - [x] Add coverage summary to manifest
 
 ### Task 7: Integrate with Verify Phase
-- [ ] Call manifest generation after all evidence capture
-- [ ] Pass all strategy results to manifest generator
-- [ ] Store manifest path in RunContext
-- [ ] Return manifest for downstream phases
+- [x] Call manifest generation after all evidence capture
+- [x] Pass all strategy results to manifest generator
+- [x] Store manifest path in RunContext
+- [x] Return manifest for downstream phases
 
 ### Task 8: Write Unit Tests
 - [ ] Test manifest model creation and serialization

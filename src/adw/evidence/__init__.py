@@ -20,6 +20,12 @@ from adw.evidence.config_loader import (
 )
 from adw.evidence.detector import PlatformDetector
 from adw.evidence.file_writer import EvidenceFileWriter
+from adw.evidence.manifest import (
+    EvidenceDirectoryScanner,
+    ManifestGenerator,
+    ManifestWriter,
+    PlanStepLinker,
+)
 
 # API capture requires httpx (optional dependency)
 try:
@@ -66,11 +72,17 @@ from adw.models.evidence import (
     CLIEvidenceSummary,
     CommandConfig,
     CommandResult,
+    CoverageSummary,
+    EvidenceItem,
+    EvidenceManifest,
+    EvidenceStatus,
     EvidenceStrategy,
+    EvidenceType,
     MobileDeviceType,
     MobileEvidenceSummary,
     MobileScreenConfig,
     MobileScreenshotResult,
+    PlanStepCoverage,
     PlatformDetectionResult,
     PlatformType,
     RouteConfig,
@@ -146,11 +158,103 @@ def get_evidence_strategy(platform: PlatformType) -> EvidenceStrategy:
     return strategy
 
 
+def generate_evidence_manifest(
+    run_id: str,
+    platform: str,
+    evidence_directory: Path,
+    summaries: list = None,
+    plan_path: Path | None = None,
+    explicit_links: dict[str, str] | None = None,
+) -> "EvidenceManifest":
+    """Generate a complete evidence manifest for a run.
+
+    This is the main integration point for manifest generation during
+    the Verify phase. It combines:
+    - ManifestGenerator for creating the manifest from summaries
+    - PlanStepLinker for linking evidence to plan steps
+    - ManifestWriter for persisting to disk
+
+    Args:
+        run_id: Unique identifier for the run (ULID)
+        platform: Detected platform type (cli, web, backend, etc.)
+        evidence_directory: Path to the evidence directory
+        summaries: Optional list of evidence summaries from capture strategies.
+                   If None, will scan the evidence directory for files.
+        plan_path: Optional path to plan.md for step linking
+        explicit_links: Optional dict mapping evidence names to step IDs
+
+    Returns:
+        EvidenceManifest with all evidence items and coverage data
+
+    Example:
+        >>> from adw.evidence import generate_evidence_manifest
+        >>> manifest = generate_evidence_manifest(
+        ...     run_id="01HQ...",
+        ...     platform="backend",
+        ...     evidence_directory=Path(".adw/runs/01HQ/evidence"),
+        ...     summaries=[cli_summary, api_summary],
+        ...     plan_path=Path(".adw/plan.md"),
+        ... )
+    """
+    logger = get_logger()
+
+    # Generate manifest from summaries or scan directory
+    if summaries:
+        generator = ManifestGenerator(
+            run_id=run_id,
+            platform=platform,
+            evidence_directory=evidence_directory,
+        )
+        manifest = generator.generate(summaries)
+    else:
+        # Scan directory for evidence files
+        scanner = EvidenceDirectoryScanner(evidence_directory)
+        items = scanner.scan()
+
+        # Calculate statistics
+        passed = sum(1 for i in items if i.status == EvidenceStatus.PASS)
+        failed = sum(1 for i in items if i.status == EvidenceStatus.FAIL)
+        errors = sum(1 for i in items if i.status == EvidenceStatus.ERROR)
+        skipped = sum(1 for i in items if i.status == EvidenceStatus.SKIPPED)
+
+        manifest = EvidenceManifest(
+            run_id=run_id,
+            platform=platform,
+            evidence_directory=str(evidence_directory),
+            total_items=len(items),
+            passed=passed,
+            failed=failed,
+            errors=errors,
+            skipped=skipped,
+            items=items,
+        )
+
+    # Link to plan steps if plan exists
+    if plan_path and plan_path.exists():
+        linker = PlanStepLinker(plan_path=plan_path, explicit_links=explicit_links)
+        manifest = linker.link_steps(manifest)
+
+    # Write manifest to file
+    writer = ManifestWriter(evidence_directory)
+    manifest_path = writer.write(manifest)
+
+    logger.info(
+        LogCategory.STATE,
+        f"Evidence manifest generated: {manifest.total_items} items, "
+        f"{manifest.passed} passed, {manifest.failed} failed. "
+        f"Written to: {manifest_path}",
+    )
+
+    return manifest
+
+
 __all__ = [
     # Platform detection
     "PlatformDetector",
     "detect_platform",
     "get_evidence_strategy",
+    # Manifest generation (main integration point)
+    "generate_evidence_manifest",
     # API evidence gathering (requires httpx)
     "HTTPX_AVAILABLE",
     "APIEvidenceWriter",
@@ -168,6 +272,18 @@ __all__ = [
     "CLIEvidenceSummary",
     "CommandConfig",
     "CommandResult",
+    # Manifest generation
+    "EvidenceDirectoryScanner",
+    "ManifestGenerator",
+    "ManifestWriter",
+    "PlanStepLinker",
+    # Manifest models
+    "CoverageSummary",
+    "EvidenceItem",
+    "EvidenceManifest",
+    "EvidenceStatus",
+    "EvidenceType",
+    "PlanStepCoverage",
     # Web capture
     "DEFAULT_VIEWPORTS",
     "WebCaptureStrategy",
