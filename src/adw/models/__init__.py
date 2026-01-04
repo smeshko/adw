@@ -29,6 +29,9 @@ from adw.models.context import (
     StateSnapshot,
 )
 from adw.models.evidence import (
+    CLIEvidenceSummary,
+    CommandConfig,
+    CommandResult,
     Confidence,
     EvidenceStrategy,
     PlatformDetectionResult,
@@ -79,6 +82,9 @@ __all__: list[str] = [
     "SessionContext",
     "StateSnapshot",
     # Evidence models
+    "CLIEvidenceSummary",
+    "CommandConfig",
+    "CommandResult",
     "Confidence",
     "EvidenceStrategy",
     "PlatformDetectionResult",

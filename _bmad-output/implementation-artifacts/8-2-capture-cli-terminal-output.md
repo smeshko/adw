@@ -38,10 +38,10 @@ so that command execution can be verified.
 ## Tasks / Subtasks
 
 ### Task 1: Create CLI Evidence Models (models/evidence.py)
-- [ ] Create `CLIEvidenceConfig` model for command configuration
-- [ ] Create `CommandResult` model with command, exit_code, duration, stdout, stderr
-- [ ] Create `CLIEvidenceSummary` model for aggregate results
-- [ ] Export from `models/__init__.py`
+- [x] Create `CLIEvidenceConfig` model for command configuration
+- [x] Create `CommandResult` model with command, exit_code, duration, stdout, stderr
+- [x] Create `CLIEvidenceSummary` model for aggregate results
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Command Executor (evidence/cli_capture.py)
 - [ ] Create `CLICaptureStrategy` class
@@ -399,9 +399,17 @@ Key patterns and rules from project context:
 
 ### Agent Model Used
 
+claude-opus-4-5-20251101
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- **Task 1**: Created CLI evidence models (CommandConfig, CommandResult, CLIEvidenceSummary) in models/evidence.py. Models use Pydantic with full type annotations, UTC timestamps, and comprehensive validation. Added 18 unit tests covering all model functionality. All tests pass. Coverage: 94% for evidence.py.
+
 ### File List
+
+- src/adw/models/evidence.py (modified - added CommandConfig, CommandResult, CLIEvidenceSummary)
+- src/adw/models/__init__.py (modified - export new models)
+- tests/unit/evidence/test_cli_models.py (new - 18 tests for CLI models)
 
