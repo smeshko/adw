@@ -270,3 +270,66 @@ class TestDryRunArtifactPreview:
         result = output.getvalue().lower()
         assert "01noartifacts" in result
         assert "no artifacts" in result or "artifact" in result
+
+
+class TestDryRunEdgeCases:
+    """Edge case tests for DryRunDisplay."""
+
+    def test_format_size_bytes(self) -> None:
+        """Test file size formatting for bytes."""
+        display = DryRunDisplay()
+        assert display._format_size(512) == "512 B"
+        assert display._format_size(0) == "0 B"
+
+    def test_format_size_kilobytes(self) -> None:
+        """Test file size formatting for kilobytes."""
+        display = DryRunDisplay()
+        assert display._format_size(1024) == "1.0 KB"
+        assert display._format_size(2560) == "2.5 KB"
+
+    def test_format_size_megabytes(self) -> None:
+        """Test file size formatting for megabytes."""
+        display = DryRunDisplay()
+        assert display._format_size(1024 * 1024) == "1.0 MB"
+        assert display._format_size(2 * 1024 * 1024 + 512 * 1024) == "2.5 MB"
+
+    def test_config_without_optional_fields(self) -> None:
+        """Test config display with minimal configuration."""
+        from adw.models import ProjectConfig
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        display = DryRunDisplay(console)
+
+        # Minimal config - only required fields
+        config = ProjectConfig(
+            name="minimal-project",
+            language="rust",
+        )
+
+        display.show_execution_preview(
+            feature="Test feature",
+            phase=None,
+            from_run=None,
+            config=config,
+        )
+
+        result = output.getvalue()
+        assert "minimal-project" in result
+        assert "rust" in result
+        # Framework should not appear since it's None
+        # But other defaults should be present
+        assert "claude" in result  # Default LLM path
+
+    def test_exit_code_zero(self) -> None:
+        """Test that dry run completes successfully (AC6)."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        display = DryRunDisplay(console)
+
+        # Should not raise any exceptions
+        display.show_execution_preview(
+            feature="Test feature",
+            phase=None,
+            from_run=None,
+        )

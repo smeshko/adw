@@ -1,6 +1,6 @@
 # Story UX-FIX-ISS-002: Implement Complete Dry-Run Execution Preview
 
-Status: in-progress
+Status: done
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-04
@@ -15,13 +15,13 @@ so that **I can verify my configuration and phase selection before committing to
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** When `--dry-run` is specified, display ALL phases that would execute (full pipeline or single `--phase`)
-- [ ] **AC2:** For each phase, show pre-hook and post-hook commands if configured
-- [ ] **AC3:** Display relevant project configuration (language, test_command, build_command, platform)
-- [ ] **AC4:** When `--from-run` is specified, show which artifacts would be loaded from the source run
-- [ ] **AC5:** Use Rich formatting consistent with existing CLI output patterns (panels, tables, styled text)
-- [ ] **AC6:** Return exit code 0 after displaying preview (no error state)
-- [ ] **AC7:** No actual phase execution or state modification occurs
+- [x] **AC1:** When `--dry-run` is specified, display ALL phases that would execute (full pipeline or single `--phase`)
+- [x] **AC2:** For each phase, show pre-hook and post-hook commands if configured
+- [x] **AC3:** Display relevant project configuration (language, test_command, build_command, platform)
+- [x] **AC4:** When `--from-run` is specified, show which artifacts would be loaded from the source run
+- [x] **AC5:** Use Rich formatting consistent with existing CLI output patterns (panels, tables, styled text)
+- [x] **AC6:** Return exit code 0 after displaying preview (no error state)
+- [x] **AC7:** No actual phase execution or state modification occurs
 
 ## Tasks / Subtasks
 
@@ -65,11 +65,11 @@ so that **I can verify my configuration and phase selection before committing to
 - [x] Pass all relevant parameters: phase, from_run, feature, config
 
 ### Task 6: Add Unit Tests
-- [ ] Test `DryRunDisplay.show_execution_preview()` output
-- [ ] Test phase sequence display (full vs single phase)
-- [ ] Test config display with various configurations
-- [ ] Test artifact display with --from-run
-- [ ] Test edge cases (no config, missing source run)
+- [x] Test `DryRunDisplay.show_execution_preview()` output
+- [x] Test phase sequence display (full vs single phase)
+- [x] Test config display with various configurations
+- [x] Test artifact display with --from-run
+- [x] Test edge cases (no config, missing source run)
 
 ---
 
