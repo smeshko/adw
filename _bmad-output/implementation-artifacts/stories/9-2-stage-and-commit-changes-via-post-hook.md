@@ -45,7 +45,7 @@ so that my work is preserved incrementally.
 - [x] Implement `create_commit(phase: str, feature: str, run_id: str) -> str | None`
   - Format message: `[adw] {Phase}: {feature}\n\nRun: {run_id}`
   - Return commit SHA or None if no changes
-- [ ] Add commit config to project.yaml schema
+- [x] Add commit config to project.yaml schema
   - `git.auto_commit: bool` (default: true)
   - `git.commit_template: str` (optional override)
 - [ ] Create bundled post-hook script `defaults/commands/build/post.sh`
@@ -136,5 +136,7 @@ Claude Opus 4.5
 ### File List
 - src/adw/hooks/git_commit.py (NEW)
 - src/adw/hooks/__init__.py (MODIFIED - added exports)
+- src/adw/models/config.py (MODIFIED - added auto_commit, commit_template to GitConfig)
 - tests/unit/hooks/test_git_commit.py (NEW)
+- tests/unit/models/test_config.py (MODIFIED - added GitConfig commit tests)
 
