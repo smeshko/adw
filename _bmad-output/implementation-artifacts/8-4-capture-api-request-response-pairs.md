@@ -1,6 +1,6 @@
 # Story 8.4: Capture API Request/Response Pairs
 
-Status: ready-for-dev
+Status: review
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-03
@@ -38,31 +38,31 @@ so that endpoint behavior can be verified.
 ## Tasks / Subtasks
 
 ### Task 1: Create API Evidence Models (models/evidence.py)
-- [ ] Create `EndpointConfig` model for endpoint configuration
-- [ ] Create `APIRequest` model with method, url, headers, body
-- [ ] Create `APIResponse` model with status_code, headers, body, duration
-- [ ] Create `APIEvidenceResult` model combining request + response
-- [ ] Create `APIEvidenceSummary` model for aggregate results
-- [ ] Export from `models/__init__.py`
+- [x] Create `EndpointConfig` model for endpoint configuration
+- [x] Create `APIRequest` model with method, url, headers, body
+- [x] Create `APIResponse` model with status_code, headers, body, duration
+- [x] Create `APIEvidenceResult` model combining request + response
+- [x] Create `APIEvidenceSummary` model for aggregate results
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement HTTP Client Wrapper (evidence/api_capture.py)
-- [ ] Create `APICaptureStrategy` class
-- [ ] Use `httpx` or `subprocess` + `curl` for requests
-- [ ] Implement `call_endpoint(config: EndpointConfig) -> APIEvidenceResult`
-- [ ] Support all HTTP methods (GET, POST, PUT, DELETE, PATCH)
-- [ ] Handle timeouts gracefully
+- [x] Create `APICaptureStrategy` class
+- [x] Use `httpx` or `subprocess` + `curl` for requests
+- [x] Implement `call_endpoint(config: EndpointConfig) -> APIEvidenceResult`
+- [x] Support all HTTP methods (GET, POST, PUT, DELETE, PATCH)
+- [x] Handle timeouts gracefully
 
 ### Task 3: Implement Request/Response Capture
-- [ ] Capture full request details (method, url, headers, body)
-- [ ] Capture full response details (status, headers, body, timing)
-- [ ] Preserve response body as JSON when possible, raw string otherwise
-- [ ] Calculate request duration
+- [x] Capture full request details (method, url, headers, body)
+- [x] Capture full response details (status, headers, body, timing)
+- [x] Preserve response body as JSON when possible, raw string otherwise
+- [x] Calculate request duration
 
 ### Task 4: Implement Authentication Support
-- [ ] Support Bearer token authentication
-- [ ] Support API key headers
-- [ ] Read auth from config or environment variables
-- [ ] Support auth config format:
+- [x] Support Bearer token authentication
+- [x] Support API key headers
+- [x] Read auth from config or environment variables
+- [x] Support auth config format:
   ```yaml
   evidence:
     auth:
@@ -76,8 +76,8 @@ so that endpoint behavior can be verified.
   ```
 
 ### Task 5: Implement Config-Based Endpoint Loading
-- [ ] Read `evidence.endpoints` from `.adw/project.yaml`
-- [ ] Support endpoint configuration format:
+- [x] Read `evidence.endpoints` from `.adw/project.yaml`
+- [x] Support endpoint configuration format:
   ```yaml
   evidence:
     base_url: "http://localhost:8000"
@@ -98,29 +98,29 @@ so that endpoint behavior can be verified.
         headers:
           Accept: "application/json"
   ```
-- [ ] Validate configuration
-- [ ] Handle missing config (skip with warning)
+- [x] Validate configuration
+- [x] Handle missing config (skip with warning)
 
 ### Task 6: Implement Evidence File Writer
-- [ ] Create directory: `.adw/runs/<run_id>/evidence/api/`
-- [ ] Write individual API results to `<endpoint_name>.json`
-- [ ] Include complete request/response details
-- [ ] Generate summary file with all results
+- [x] Create directory: `.adw/runs/<run_id>/evidence/api/`
+- [x] Write individual API results to `<endpoint_name>.json`
+- [x] Include complete request/response details
+- [x] Generate summary file with all results
 
 ### Task 7: Implement Summary Generation
-- [ ] Track successful/failed API calls
-- [ ] Track expected vs actual status codes
-- [ ] Generate summary output
-- [ ] Log summary to console via LogManager
+- [x] Track successful/failed API calls
+- [x] Track expected vs actual status codes
+- [x] Generate summary output
+- [x] Log summary to console via LogManager
 
 ### Task 8: Write Unit Tests
-- [ ] Test endpoint configuration loading
-- [ ] Test HTTP method support (mock responses)
-- [ ] Test authentication header injection
-- [ ] Test error response handling
-- [ ] Test evidence file writing
-- [ ] Test summary generation
-- [ ] Test timeout handling
+- [x] Test endpoint configuration loading
+- [x] Test HTTP method support (mock responses)
+- [x] Test authentication header injection
+- [x] Test error response handling
+- [x] Test evidence file writing
+- [x] Test summary generation
+- [x] Test timeout handling
 
 ---
 
@@ -535,5 +535,24 @@ Key patterns and rules from project context:
 
 ### Completion Notes List
 
+- Implemented API evidence capture using httpx library
+- Added basic auth support in addition to bearer and API key
+- Added LogManager summary output for captured evidence
+- Code review fixes applied for code quality issues
+
 ### File List
+
+**New Files:**
+- `src/adw/evidence/api_capture.py` - APICaptureStrategy class for HTTP request/response capture
+- `src/adw/evidence/config_loader.py` - EvidenceConfig loading from .adw/project.yaml
+- `src/adw/evidence/evidence_writer.py` - APIEvidenceWriter for JSON file output
+- `tests/unit/evidence/test_api_capture.py` - Unit tests for API capture strategy
+- `tests/unit/evidence/test_config_loader.py` - Unit tests for config loading
+- `tests/unit/evidence/test_evidence_writer.py` - Unit tests for evidence file writing
+
+**Modified Files:**
+- `src/adw/evidence/__init__.py` - Added exports for API capture classes
+- `src/adw/models/__init__.py` - Added exports for API evidence models
+- `src/adw/models/evidence.py` - Added EndpointConfig, AuthConfig, APIRequest, APIResponse, APIEvidenceResult, APIEvidenceSummary models
+- `tests/unit/models/test_evidence.py` - Added tests for API evidence models
 
