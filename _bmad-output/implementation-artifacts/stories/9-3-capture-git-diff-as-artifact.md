@@ -44,7 +44,7 @@ so that changes can be reviewed and included in PR description.
 - [x] Implement `get_diff_stats(diff: str) -> DiffStats`
   - Parse insertions/deletions from --stat output
 - [x] Integrate diff capture into Build phase artifact collection
-- [ ] Add diff to template variable namespace as `{{artifacts.build.diff}}`
+- [x] Add diff to template variable namespace as `{{artifacts.build.diff}}`
 - [x] Write unit tests for diff parsing and truncation
 - [ ] Write integration tests with actual git changes
 

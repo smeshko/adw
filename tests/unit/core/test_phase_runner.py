@@ -636,6 +636,42 @@ class TestPhaseRunnerGitDiffCapture:
             mock_diff.assert_not_called()
             assert "diff.txt" not in result.artifacts
 
+    def test_diff_artifact_accessible_as_template_variable(
+        self,
+        mock_artifact_manager: ArtifactManager,
+        sample_context: RunContext,
+    ) -> None:
+        """Test that diff.txt artifact is accessible as {{artifacts.build.diff}}.
+
+        Story 9.3 AC2: Given the diff artifact, when accessed by Document phase,
+        then it's available as {{artifacts.build.diff}}.
+        """
+        # Store a diff artifact as the build phase would
+        mock_artifact_manager.store_text(
+            sample_context.run_id,
+            "build",
+            "diff.txt",
+            "diff --git a/file.py\n+new line",
+        )
+
+        # Create a PhaseRunner to test _load_phase_artifacts
+        from unittest.mock import MagicMock
+
+        runner = PhaseRunner(
+            command_resolver=MagicMock(),
+            template_engine=MagicMock(),
+            hook_runner=MagicMock(),
+            executor=MagicMock(),
+            artifact_manager=mock_artifact_manager,
+        )
+
+        # Load artifacts for build phase
+        artifacts = runner._load_phase_artifacts(sample_context.run_id, "build")
+
+        # Verify diff is accessible without extension
+        assert "diff" in artifacts
+        assert "diff --git" in artifacts["diff"]
+
 
 class TestPhaseRunnerWithMockExecutor:
     """Integration-style tests using MockExecutor."""
