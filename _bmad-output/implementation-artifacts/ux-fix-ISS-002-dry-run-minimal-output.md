@@ -1,6 +1,6 @@
 # Story UX-FIX-ISS-002: Implement Complete Dry-Run Execution Preview
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 6 - Run Management & Recovery
 Created: 2026-01-04
@@ -15,32 +15,32 @@ so that **I can verify my configuration and phase selection before committing to
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** When `--dry-run` is specified, display ALL phases that would execute (full pipeline or single `--phase`)
-- [ ] **AC2:** For each phase, show pre-hook and post-hook commands if configured
-- [ ] **AC3:** Display relevant project configuration (language, test_command, build_command, platform)
-- [ ] **AC4:** When `--from-run` is specified, show which artifacts would be loaded from the source run
-- [ ] **AC5:** Use Rich formatting consistent with existing CLI output patterns (panels, tables, styled text)
-- [ ] **AC6:** Return exit code 0 after displaying preview (no error state)
-- [ ] **AC7:** No actual phase execution or state modification occurs
+- [x] **AC1:** When `--dry-run` is specified, display ALL phases that would execute (full pipeline or single `--phase`)
+- [x] **AC2:** For each phase, show pre-hook and post-hook commands if configured
+- [x] **AC3:** Display relevant project configuration (language, test_command, build_command, platform)
+- [x] **AC4:** When `--from-run` is specified, show which artifacts would be loaded from the source run
+- [x] **AC5:** Use Rich formatting consistent with existing CLI output patterns (panels, tables, styled text)
+- [x] **AC6:** Return exit code 0 after displaying preview (no error state)
+- [x] **AC7:** No actual phase execution or state modification occurs
 
 ## Tasks / Subtasks
 
 ### Task 1: Create Dry-Run Display Module
-- [ ] Create `src/adw/cli/dry_run.py` with `DryRunDisplay` class
-- [ ] Implement `show_execution_preview()` method
-- [ ] Use Rich panels and tables for structured output
+- [x] Create `src/adw/cli/dry_run.py` with `DryRunDisplay` class
+- [x] Implement `show_execution_preview()` method
+- [x] Use Rich panels and tables for structured output
 
 ### Task 2: Implement Phase Preview Display
-- [ ] Show phases in execution order (PHASE_SEQUENCE or single phase)
-- [ ] For each phase, display:
+- [x] Show phases in execution order (PHASE_SEQUENCE or single phase)
+- [x] For each phase, display:
   - Phase name (with status: "would execute")
   - Pre-hook command (if configured in project.yaml)
   - Post-hook command (if configured in project.yaml)
-- [ ] Use Rich Table for clean alignment
+- [x] Use Rich Table for clean alignment
 
 ### Task 3: Implement Configuration Display
-- [ ] Load project config via ConfigLoader
-- [ ] Display relevant settings:
+- [x] Load project config via ConfigLoader
+- [x] Display relevant settings:
   - Project name
   - Language
   - Framework (if set)
@@ -49,27 +49,27 @@ so that **I can verify my configuration and phase selection before committing to
   - Build command (if set)
   - LLM path and timeout
   - Git integration settings (if enabled)
-- [ ] Handle case when no .adw/project.yaml exists (show defaults)
+- [x] Handle case when no .adw/project.yaml exists (show defaults)
 
 ### Task 4: Implement Artifact Preview (--from-run)
-- [ ] When `--from-run` is specified:
+- [x] When `--from-run` is specified:
   - Load source run's context
   - List artifacts that would be passed to target phase
   - Show artifact names and sizes
-- [ ] Validate source run exists before displaying
-- [ ] Show clear message if no artifacts found
+- [x] Validate source run exists before displaying
+- [x] Show clear message if no artifacts found
 
 ### Task 5: Integrate into run Command
-- [ ] Modify `src/adw/cli/app.py:run()` command
-- [ ] Replace minimal dry-run block (lines 186-188) with `DryRunDisplay` call
-- [ ] Pass all relevant parameters: phase, from_run, feature, config
+- [x] Modify `src/adw/cli/app.py:run()` command
+- [x] Replace minimal dry-run block (lines 186-188) with `DryRunDisplay` call
+- [x] Pass all relevant parameters: phase, from_run, feature, config
 
 ### Task 6: Add Unit Tests
-- [ ] Test `DryRunDisplay.show_execution_preview()` output
-- [ ] Test phase sequence display (full vs single phase)
-- [ ] Test config display with various configurations
-- [ ] Test artifact display with --from-run
-- [ ] Test edge cases (no config, missing source run)
+- [x] Test `DryRunDisplay.show_execution_preview()` output
+- [x] Test phase sequence display (full vs single phase)
+- [x] Test config display with various configurations
+- [x] Test artifact display with --from-run
+- [x] Test edge cases (no config, missing source run)
 
 ---
 

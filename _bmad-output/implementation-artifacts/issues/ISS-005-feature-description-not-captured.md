@@ -3,7 +3,7 @@
 **ID:** ISS-005
 **Severity:** Major
 **Type:** Bug
-**Status:** reported
+**Status:** resolved (not-a-bug)
 **Reported:** 2026-01-04
 **Reporter:** Ivo
 
@@ -69,13 +69,21 @@ N/A
 ## Resolution
 
 - **Fix Story:** bugfix-ISS-005-feature-description-not-captured.md
-- **Fixed In:** Pending
-- **Verified By:** Pending
-- **Verified Date:** Pending
+- **Fixed In:** N/A - Not a bug
+- **Verified By:** Investigation
+- **Verified Date:** 2026-01-04
 
-## Notes
+## Root Cause Analysis
 
-This could be:
-1. Feature description not being saved to run context during initialization
-2. Feature description not being loaded/displayed by the list command
-3. Default/placeholder value overwriting user input
+**Investigation confirmed this is NOT a bug.** The system works correctly:
+1. Feature descriptions ARE being stored correctly in `~/.adw/index.jsonl`
+2. Example: `"feature_description":"Add heelo world cli command"` stored and displayed correctly
+3. The "Add feature" entries in the index are from pytest test runs polluting the user's index
+4. Tests use "Add feature" as placeholder text
+5. User error: Issue report mentioned `adw start` but command is `adw run`
+
+## Preventive Measures Implemented
+
+1. Added `ADW_TEST_INDEX_PATH` environment variable support to IndexManager
+2. Created `isolated_global_index` autouse fixture to prevent test pollution
+3. Added comprehensive integration tests for feature description preservation

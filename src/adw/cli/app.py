@@ -1,12 +1,14 @@
 """Main Typer CLI application for ADW."""
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 import typer
 from rich.console import Console
 from ulid import ULID
 
 from adw.cli.bootstrap import create_log_manager, create_orchestrator
+from adw.cli.dry_run import DryRunDisplay
 from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
 from adw.cli.logs import logs_app
@@ -15,6 +17,7 @@ from adw.cli.run_display import RunDisplay
 from adw.cli.status import status as status_command
 from adw.cli.validators import validate_phase
 from adw.commands.template import escape_feature_description
+from adw.config.loader import ConfigLoader
 from adw.exceptions import ADWError, ConfigError
 from adw.models.logging import Verbosity
 
@@ -184,7 +187,24 @@ def run(
     )
 
     if dry_run:
-        console.print("[yellow]Dry run mode - no execution[/]")
+        # Load config for dry-run preview (Story UX-FIX-ISS-002)
+        try:
+            config = ConfigLoader().load()
+        except ConfigError:
+            config = None
+
+        # Determine runs directory for artifact lookup
+        runs_dir = Path.cwd() / ".adw" / "runs"
+
+        # Show detailed dry-run preview
+        dry_run_display = DryRunDisplay(console)
+        dry_run_display.show_execution_preview(
+            feature=feature,
+            phase=phase,
+            from_run=from_run,
+            config=config,
+            runs_dir=runs_dir if runs_dir.exists() else None,
+        )
         return
 
     # Get verbosity from context (Story 7.2)
