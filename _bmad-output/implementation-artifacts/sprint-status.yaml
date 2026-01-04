@@ -1,4 +1,4 @@
-# generated: 2025-12-31
+# generated: 2026-01-04
 # project: adw-sdk
 # tracking_system: file-system
 # story_location: _bmad-output/implementation-artifacts
@@ -33,7 +33,7 @@
 # - SM typically drafts next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
-generated: 2025-12-31
+generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
@@ -65,7 +65,7 @@ development_status:
   # Goal: Enable command/prompt resolution with three-tier hierarchy and
   #       template variable substitution
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-2: in-progress
+  epic-2: done
   2-1-implement-three-tier-command-resolution: review
   2-2-create-template-engine-with-variable-substitution: review
   2-3-load-and-render-phase-prompts: done
@@ -78,7 +78,7 @@ development_status:
   #       retry, and timeout support. Includes security hooks added via
   #       Course Correction 2026-01-03.
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-3: in-progress
+  epic-3: done
   3-1-execute-shell-hooks-with-capture: done
   3-2-implement-claude-code-executor-with-streaming: done
   3-3-implement-retry-logic-with-exponential-backoff: done
@@ -108,7 +108,7 @@ development_status:
   # Goal: Coordinate phase execution in order, manage transitions, and handle
   #       artifacts
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-5: in-progress
+  epic-5: done
   5-1-implement-phase-sequence-and-transitions: done
   5-2-implement-phase-runner-for-single-phase-execution: done
   5-3-pass-artifacts-between-phases: done
@@ -121,7 +121,7 @@ development_status:
   # Goal: Enable users to start, resume, abort, and monitor runs through
   #       CLI commands
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-6: in-progress
+  epic-6: done
   6-1-start-new-run-with-feature-description: done
   6-2-resume-failed-or-interrupted-run: done
   6-3-check-run-status: done
@@ -135,7 +135,7 @@ development_status:
   # Goal: Provide multi-tier logging, state inspection, and debugging
   #       capabilities
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-7: in-progress
+  epic-7: done
   7-0-workflow-execution-index: done
   7-1-implement-multi-tier-logging-system: done
   7-2-configure-verbosity-levels: done
@@ -143,8 +143,6 @@ development_status:
   7-4-implement-log-viewing-commands: in-progress
   7-5-implement-state-inspection-commands: done
   7-6-implement-secret-redaction: done
-  # UX Fix (from ISS-001)
-  ux-fix-ISS-001-llm-output-too-verbose-in-terminal: ready-for-dev
   epic-7-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -154,10 +152,13 @@ development_status:
   epic-8: in-progress
   8-1-detect-project-platform-type: done
   8-2-capture-cli-terminal-output: done
-  8-3-capture-web-screenshots: backlog
-  8-4-capture-api-request-response-pairs: backlog
-  8-5-generate-evidence-manifest: backlog
-  8-6-compress-and-optimize-evidence: backlog
+  8-3-capture-web-screenshots: done
+  8-3b-capture-mobile-screenshots: ready-for-dev
+  8-4-capture-api-request-response-pairs: in-progress
+  8-5-generate-evidence-manifest: ready-for-dev
+  8-6-compress-and-optimize-evidence: ready-for-dev
+  # UX Fix (from ISS-001)
+  ux-fix-ISS-001-llm-output-too-verbose-in-terminal: ready-for-dev
   epic-8-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -171,3 +172,91 @@ development_status:
   9-4-generate-pr-description: backlog
   9-5-support-pr-creation-command: backlog
   epic-9-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EPIC 10: Cross-Project Dashboard (Post-MVP)
+  # Goal: Enable users to view and analyze runs across all ADW-enabled projects
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-10: backlog
+  10-1-project-registry: backlog
+  10-2-global-run-list: backlog
+  10-3-cross-project-statistics: backlog
+  10-4-central-run-index: backlog
+  10-5-tui-dashboard: backlog
+  10-6-run-context-enhancements: backlog
+  10-7-export-and-reporting: backlog
+  epic-10-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EPIC 11: Task Manager Integration (Post-MVP)
+  # Goal: Enable runs to be initiated from external task management systems
+  #       (Linear, Jira, GitHub Issues) with bidirectional status sync
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-11: backlog
+  11-1-taskmanager-protocol-and-configuration: backlog
+  11-2-linear-task-manager-implementation: backlog
+  11-3-status-synchronization-at-phase-transitions: backlog
+  11-4-task-id-pattern-detection: backlog
+  11-5-task-context-in-prompts: backlog
+  11-6-post-status-update-comments: backlog
+  11-7-label-management: backlog
+  11-8-issue-closing: backlog
+  11-9-issue-assignment: backlog
+  11-10-github-issues-provider: backlog
+  epic-11-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EPIC 12: Worktree Isolation (MVP P2)
+  # Goal: Enable concurrent workflow execution via git worktrees with
+  #       deterministic port allocation
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-12: backlog
+  12-1-worktree-creation-and-lifecycle: backlog
+  12-2-worktree-directory-structure: backlog
+  12-3-port-allocation-system: backlog
+  12-4-concurrent-run-management: backlog
+  12-5-worktree-context-in-phases: backlog
+  12-6-worktree-branch-management: backlog
+  epic-12-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EPIC 13: Ship Phase & Deployment (Post-MVP)
+  # Goal: Automate PR approval, merge, and project-specific deployment hooks
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-13: backlog
+  13-1-ship-phase-definition: backlog
+  13-2-pr-approval-automation: backlog
+  13-3-pr-merge-automation: backlog
+  13-4-project-specific-deployment-hooks: backlog
+  13-5-issue-closing: backlog
+  13-6-ship-phase-guards: backlog
+  epic-13-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EPIC 14: Webhook Infrastructure (Post-MVP)
+  # Goal: Enable ADW runs to be triggered by external events via webhooks
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-14: backlog
+  14-1-generic-webhook-server-framework: backlog
+  14-2-webhook-provider-protocol: backlog
+  14-3-linear-webhook-provider: backlog
+  14-4-event-to-workflow-mapping: backlog
+  14-5-bot-loop-prevention: backlog
+  14-6-webhook-signature-verification: backlog
+  14-7-github-webhook-provider: backlog
+  epic-14-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EPIC 15: Validation Loop (MVP P2)
+  # Goal: Replace single-pass Verify/Validate phases with iterative
+  #       review-fix-review cycle
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-15: backlog
+  15-1-unified-validation-phase: backlog
+  15-2-validation-issue-model: backlog
+  15-3-issue-triage-system: backlog
+  15-4-fix-iteration-loop: backlog
+  15-5-iteration-limits-and-exit-conditions: backlog
+  15-6-validation-state-persistence: backlog
+  15-7-validation-report-generation: backlog
+  epic-15-retrospective: optional

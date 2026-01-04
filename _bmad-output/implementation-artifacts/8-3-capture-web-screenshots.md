@@ -1,6 +1,6 @@
 # Story 8.3: Capture Web Screenshots
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-03
@@ -38,40 +38,40 @@ so that UI changes can be visually verified.
 ## Tasks / Subtasks
 
 ### Task 1: Create Web Screenshot Models (models/evidence.py)
-- [ ] Create `RouteConfig` model for route configuration
-- [ ] Create `ViewportConfig` model for viewport sizes
-- [ ] Create `ScreenshotResult` model with path, route, viewport, status
-- [ ] Create `WebEvidenceSummary` model for aggregate results
-- [ ] Export from `models/__init__.py`
+- [x] Create `RouteConfig` model for route configuration
+- [x] Create `ViewportConfig` model for viewport sizes
+- [x] Create `ScreenshotResult` model with path, route, viewport, status
+- [x] Create `WebEvidenceSummary` model for aggregate results
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Playwright Integration (evidence/web_capture.py)
-- [ ] Create `WebCaptureStrategy` class
-- [ ] Implement optional Playwright dependency check
-- [ ] Create browser context with headless mode
-- [ ] Implement graceful degradation if Playwright not installed
+- [x] Create `WebCaptureStrategy` class
+- [x] Implement optional Playwright dependency check
+- [x] Create browser context with headless mode
+- [x] Implement graceful degradation if Playwright not installed
 
 ### Task 3: Implement Route Screenshot Capture
-- [ ] Implement `capture_route(route: RouteConfig) -> ScreenshotResult`
-- [ ] Navigate to route URL
-- [ ] Wait for page load (configurable timeout)
-- [ ] Take full-page screenshot
-- [ ] Handle navigation errors gracefully
+- [x] Implement `capture_route(route: RouteConfig) -> ScreenshotResult`
+- [x] Navigate to route URL
+- [x] Wait for page load (configurable timeout)
+- [x] Take full-page screenshot
+- [x] Handle navigation errors gracefully
 
 ### Task 4: Implement Viewport Support
-- [ ] Support multiple viewport configurations
-- [ ] Default viewports: desktop (1920x1080), tablet (768x1024), mobile (375x667)
-- [ ] Generate separate screenshots per viewport
-- [ ] Name files with viewport suffix: `home_desktop.png`, `home_mobile.png`
+- [x] Support multiple viewport configurations
+- [x] Default viewports: desktop (1920x1080), tablet (768x1024), mobile (375x667)
+- [x] Generate separate screenshots per viewport
+- [x] Name files with viewport suffix: `home_desktop.png`, `home_mobile.png`
 
 ### Task 5: Implement Error Screenshot Capture
-- [ ] On navigation failure, capture current state
-- [ ] Include error message overlay or metadata
-- [ ] Save error screenshots with `_error` suffix
-- [ ] Record error details in result model
+- [x] On navigation failure, capture current state
+- [x] Include error message overlay or metadata
+- [x] Save error screenshots with `_error` suffix
+- [x] Record error details in result model
 
 ### Task 6: Implement Config-Based Route Loading
-- [ ] Read `evidence.routes` from `.adw/project.yaml`
-- [ ] Support route configuration format:
+- [x] Read `evidence.routes` from `.adw/project.yaml`
+- [x] Support route configuration format:
   ```yaml
   evidence:
     base_url: "http://localhost:3000"
@@ -90,22 +90,22 @@ so that UI changes can be visually verified.
         width: 375
         height: 667
   ```
-- [ ] Validate configuration
-- [ ] Handle missing config (skip with warning)
+- [x] Validate configuration
+- [x] Handle missing config (skip with warning)
 
 ### Task 7: Implement Evidence File Organization
-- [ ] Create directory: `.adw/runs/<run_id>/evidence/screenshots/`
-- [ ] Save screenshots as PNG
-- [ ] Generate metadata JSON alongside screenshots
-- [ ] Handle filename sanitization for routes
+- [x] Create directory: `.adw/runs/<run_id>/evidence/screenshots/`
+- [x] Save screenshots as PNG
+- [x] Generate metadata JSON alongside screenshots
+- [x] Handle filename sanitization for routes
 
 ### Task 8: Write Unit Tests
-- [ ] Test Playwright availability check
-- [ ] Test route configuration loading
-- [ ] Test viewport configuration
-- [ ] Test screenshot path generation
-- [ ] Test error handling (mock Playwright)
-- [ ] Test result model serialization
+- [x] Test Playwright availability check
+- [x] Test route configuration loading
+- [x] Test viewport configuration
+- [x] Test screenshot path generation
+- [x] Test error handling (mock Playwright)
+- [x] Test result model serialization
 
 ---
 
@@ -443,4 +443,14 @@ Key patterns and rules from project context:
 ### Completion Notes List
 
 ### File List
+
+**Created:**
+- `src/adw/evidence/web_capture.py` - WebCaptureStrategy and helper functions for Playwright screenshot capture
+- `tests/unit/evidence/test_web_capture.py` - Unit tests for web capture functionality (37 tests)
+
+**Modified:**
+- `src/adw/models/evidence.py` - Added RouteConfig, ViewportConfig, ScreenshotResult, WebEvidenceSummary models
+- `src/adw/models/__init__.py` - Export new evidence models
+- `src/adw/evidence/__init__.py` - Export WebCaptureStrategy and helpers
+- `tests/unit/models/test_evidence.py` - Added tests for new evidence models (43 tests)
 
