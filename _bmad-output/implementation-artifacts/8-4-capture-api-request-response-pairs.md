@@ -114,13 +114,13 @@ so that endpoint behavior can be verified.
 - [x] Log summary to console via LogManager
 
 ### Task 8: Write Unit Tests
-- [ ] Test endpoint configuration loading
-- [ ] Test HTTP method support (mock responses)
-- [ ] Test authentication header injection
-- [ ] Test error response handling
-- [ ] Test evidence file writing
-- [ ] Test summary generation
-- [ ] Test timeout handling
+- [x] Test endpoint configuration loading
+- [x] Test HTTP method support (mock responses)
+- [x] Test authentication header injection
+- [x] Test error response handling
+- [x] Test evidence file writing
+- [x] Test summary generation
+- [x] Test timeout handling
 
 ---
 
