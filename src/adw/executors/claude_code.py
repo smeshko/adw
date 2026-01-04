@@ -62,6 +62,7 @@ class ClaudeCodeExecutor:
         tool_logger: "ToolLogger | None" = None,
         security_interceptor: "SecurityInterceptor | None" = None,
         allow_dangerous: bool = False,
+        show_llm_output: bool = False,
     ) -> None:
         """Initialize the ClaudeCodeExecutor.
 
@@ -75,12 +76,15 @@ class ClaudeCodeExecutor:
                         calls against security patterns (Story 3.6).
             allow_dangerous: If True, log warnings instead of blocking dangerous
                         commands (Story 3.6).
+            show_llm_output: If True, stream LLM output to console in real-time.
+                        Default False to reduce terminal noise (UX-FIX-ISS-001).
         """
         self.config = config
         self.console = console or Console()
         self.tool_logger = tool_logger
         self.security_interceptor = security_interceptor
         self.allow_dangerous = allow_dangerous
+        self.show_llm_output = show_llm_output
 
     def _resolve_timeout(self, timeout: int | None) -> int:
         """Resolve timeout using 3-tier hierarchy.
@@ -312,10 +316,14 @@ class ClaudeCodeExecutor:
         stderr = process.stderr
 
         async def read_stdout() -> None:
-            """Read stdout line-by-line and stream to console.
+            """Read stdout line-by-line and optionally stream to console.
 
             With --output-format stream-json, each line is JSON.
             We parse it to extract text content for real-time display.
+
+            Note: Console output is controlled by self.show_llm_output flag.
+            When False (default), LLM output is NOT printed to reduce terminal noise.
+            StreamLogger capture is always performed regardless of this flag.
             """
             while True:
                 line = await stdout.readline()
@@ -325,11 +333,13 @@ class ClaudeCodeExecutor:
                 content_lines.append(decoded)
 
                 # Try to extract text content from stream-json for display
-                display_text = self._extract_display_text(decoded)
-                if display_text:
-                    self.console.print(display_text, end="")
+                # Only print to console if show_llm_output is enabled
+                if self.show_llm_output:
+                    display_text = self._extract_display_text(decoded)
+                    if display_text:
+                        self.console.print(display_text, end="")
 
-                # Capture to stream logger if provided
+                # Capture to stream logger if provided (always, regardless of flag)
                 if stream_logger:
                     stream_logger.token(decoded)
 

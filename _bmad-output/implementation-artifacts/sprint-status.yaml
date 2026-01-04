@@ -44,7 +44,7 @@ issue_counter: 1
 # Status: reported | investigating | in-progress | fixed | verified | wont-fix
 # ═══════════════════════════════════════════════════════════════════════════
 issues:
-  ISS-001-llm-output-too-verbose-in-terminal: reported
+  ISS-001-llm-output-too-verbose-in-terminal: fixed
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -158,7 +158,7 @@ development_status:
   8-5-generate-evidence-manifest: ready-for-dev
   8-6-compress-and-optimize-evidence: ready-for-dev
   # UX Fix (from ISS-001)
-  ux-fix-ISS-001-llm-output-too-verbose-in-terminal: ready-for-dev
+  ux-fix-ISS-001-llm-output-too-verbose-in-terminal: review
   epic-8-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

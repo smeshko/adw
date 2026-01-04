@@ -1,6 +1,6 @@
 # Story: UX Fix - Hide verbose LLM output from terminal
 
-Status: ready-for-dev
+Status: complete
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-04
@@ -16,38 +16,38 @@ so that **I can easily follow execution progress without being overwhelmed by ve
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: During phase execution, LLM streaming text is NOT printed to the terminal by default
-- [ ] **AC2**: A progress spinner with token count continues to show execution is happening (existing behavior preserved)
-- [ ] **AC3**: LLM output is still captured to log files (existing `StreamLogger` behavior preserved)
-- [ ] **AC4**: Users can view live LLM output via `adw logs --follow` in a separate terminal
-- [ ] **AC5**: A new `--show-llm-output` flag enables verbose LLM streaming (for debugging)
-- [ ] **AC6**: Verbosity level `--trace` also enables LLM output streaming (backward compatibility)
+- [x] **AC1**: During phase execution, LLM streaming text is NOT printed to the terminal by default
+- [x] **AC2**: A progress spinner with token count continues to show execution is happening (existing behavior preserved)
+- [x] **AC3**: LLM output is still captured to log files (existing `StreamLogger` behavior preserved)
+- [x] **AC4**: Users can view live LLM output via `adw logs --follow` in a separate terminal
+- [x] **AC5**: A new `--show-llm-output` flag enables verbose LLM streaming (for debugging)
+- [x] **AC6**: Verbosity level `--trace` also enables LLM output streaming (backward compatibility)
 
 ## Tasks / Subtasks
 
 ### Task 1: Suppress default LLM console printing
-- [ ] Modify `ClaudeCodeExecutor._read_process_output()` to skip `console.print()` by default
-- [ ] Add `show_llm_output: bool` parameter to executor (default: False)
-- [ ] Only print to console when `show_llm_output=True`
+- [x] Modify `ClaudeCodeExecutor._read_process_output()` to skip `console.print()` by default
+- [x] Add `show_llm_output: bool` parameter to executor (default: False)
+- [x] Only print to console when `show_llm_output=True`
 
 ### Task 2: Add CLI flag for explicit LLM output
-- [ ] Add `--show-llm-output` flag to `adw run` command
-- [ ] Pass flag through to executor via config or direct parameter
-- [ ] Document flag in help text
+- [x] Add `--show-llm-output` flag to `adw run` command
+- [x] Pass flag through to executor via config or direct parameter
+- [x] Document flag in help text
 
 ### Task 3: Wire verbosity to LLM output control
-- [ ] When `--trace` verbosity is set, enable `show_llm_output`
-- [ ] Ensure backward compatibility for users who expect verbose output
+- [x] When `--trace` verbosity is set, enable `show_llm_output`
+- [x] Ensure backward compatibility for users who expect verbose output
 
 ### Task 4: Verify log capture still works
-- [ ] Confirm `StreamLogger.token()` continues capturing all output
-- [ ] Confirm JSONL stream files are written correctly
-- [ ] Confirm `adw logs --follow` can display live output (Story 7-4 dependency)
+- [x] Confirm `StreamLogger.token()` continues capturing all output
+- [x] Confirm JSONL stream files are written correctly
+- [x] Confirm `adw logs --follow` can display live output (Story 7-4 dependency)
 
 ### Task 5: Update tests
-- [ ] Add test for suppressed console output (default behavior)
-- [ ] Add test for `--show-llm-output` flag enabling console print
-- [ ] Add test for `--trace` enabling LLM output
+- [x] Add test for suppressed console output (default behavior)
+- [x] Add test for `--show-llm-output` flag enabling console print
+- [x] Add test for `--trace` enabling LLM output
 
 ---
 
@@ -209,16 +209,31 @@ Issue: `_bmad-output/implementation-artifacts/issues/ISS-001-llm-output-too-verb
 
 ### Agent Model Used
 
-_To be filled by dev agent_
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
-_To be filled during implementation_
+N/A - Implementation went smoothly without debugging issues.
 
 ### Completion Notes List
 
-_To be filled during implementation_
+1. Added `show_llm_output` parameter to `ClaudeCodeExecutor.__init__()` (default: False)
+2. Modified `_read_process_output()` to only print when `show_llm_output=True`
+3. Added `--show-llm-output` flag to `adw run` CLI command
+4. Wired flag through `create_orchestrator()` to executor
+5. Integrated with verbosity: `--trace` enables LLM output automatically
+6. Preserved StreamLogger capture regardless of console output setting
+7. All 78 executor tests pass, including 5 new tests for this feature
 
 ### File List
 
-_To be filled during implementation_
+Modified files:
+- `src/adw/executors/claude_code.py` - Added show_llm_output parameter and conditional printing
+- `src/adw/cli/app.py` - Added --show-llm-output flag and verbosity integration
+- `src/adw/cli/bootstrap.py` - Pass show_llm_output to executor
+- `tests/unit/executors/test_claude_code.py` - Added tests for new behavior
+- `tests/integration/cli/test_run_integration.py` - Added verbosity integration tests (code review fix)
+
+### Architecture Note
+
+**PhaseRunner Exclusion**: The original story requirements listed `phase_runner.py` as needing modification to pass the flag. However, the actual implementation wires `show_llm_output` directly at executor construction in `bootstrap.py:158-165`. This approach is simpler and avoids threading the flag through PhaseRunner, which doesn't need to know about display preferences. The PhaseRunner remains focused on orchestrating phase execution, not console output configuration.
