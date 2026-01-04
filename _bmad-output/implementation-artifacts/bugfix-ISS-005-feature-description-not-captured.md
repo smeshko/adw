@@ -40,8 +40,13 @@ so that **I can identify my runs in the list output by their actual purpose**.
 ### Task 2: Implement Preventive Fix (based on investigation)
 Since the bug is not reproducible, implement preventive measures:
 - [x] Verify code paths are correct (confirmed in Task 1)
-- [ ] Update IndexManager to use test-specific index path during pytest runs
-- [ ] Ensure test runs don't pollute the user's global index
+- [x] Update IndexManager to use test-specific index path during pytest runs
+- [x] Ensure test runs don't pollute the user's global index
+
+**Implementation:**
+- Added `ADW_TEST_INDEX_PATH` environment variable support to `IndexManager`
+- Created `isolated_global_index` autouse fixture in `tests/conftest.py`
+- Added tests for environment variable precedence behavior
 
 ### Task 3: Add Integration Test
 - [ ] Create test that runs `adw run "unique test feature xyz"`

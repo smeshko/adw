@@ -43,6 +43,11 @@ class IndexManager:
         index_path: Path to the index.jsonl file.
         archive_dir: Path to the archive directory for old entries.
 
+    Environment Variables:
+        ADW_TEST_INDEX_PATH: If set, overrides the default index path.
+            Used during testing to prevent test runs from polluting
+            the user's global index.
+
     Example:
         >>> from pathlib import Path
         >>> manager = IndexManager()
@@ -59,11 +64,21 @@ class IndexManager:
         """Initialize the IndexManager.
 
         Args:
-            index_path: Path to the index file. Defaults to ~/.adw/index.jsonl.
+            index_path: Path to the index file. Defaults to ~/.adw/index.jsonl,
+                or the path specified by ADW_TEST_INDEX_PATH environment variable.
             archive_threshold: Number of entries before triggering archive.
                               Defaults to 10,000.
         """
-        self.index_path = index_path or (Path.home() / ".adw" / "index.jsonl")
+        import os
+
+        # Allow environment variable to override default path (for testing)
+        env_index_path = os.environ.get("ADW_TEST_INDEX_PATH")
+        if index_path is not None:
+            self.index_path = index_path
+        elif env_index_path:
+            self.index_path = Path(env_index_path)
+        else:
+            self.index_path = Path.home() / ".adw" / "index.jsonl"
         self.archive_dir = self.index_path.parent / "index-archive"
         self._archive_threshold = archive_threshold
 
