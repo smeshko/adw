@@ -1,6 +1,6 @@
 # Story 8.3: Capture Web Screenshots
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-03
@@ -38,24 +38,24 @@ so that UI changes can be visually verified.
 ## Tasks / Subtasks
 
 ### Task 1: Create Web Screenshot Models (models/evidence.py)
-- [ ] Create `RouteConfig` model for route configuration
-- [ ] Create `ViewportConfig` model for viewport sizes
-- [ ] Create `ScreenshotResult` model with path, route, viewport, status
-- [ ] Create `WebEvidenceSummary` model for aggregate results
-- [ ] Export from `models/__init__.py`
+- [x] Create `RouteConfig` model for route configuration
+- [x] Create `ViewportConfig` model for viewport sizes
+- [x] Create `ScreenshotResult` model with path, route, viewport, status
+- [x] Create `WebEvidenceSummary` model for aggregate results
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Playwright Integration (evidence/web_capture.py)
-- [ ] Create `WebCaptureStrategy` class
-- [ ] Implement optional Playwright dependency check
-- [ ] Create browser context with headless mode
-- [ ] Implement graceful degradation if Playwright not installed
+- [x] Create `WebCaptureStrategy` class
+- [x] Implement optional Playwright dependency check
+- [x] Create browser context with headless mode
+- [x] Implement graceful degradation if Playwright not installed
 
 ### Task 3: Implement Route Screenshot Capture
-- [ ] Implement `capture_route(route: RouteConfig) -> ScreenshotResult`
-- [ ] Navigate to route URL
-- [ ] Wait for page load (configurable timeout)
-- [ ] Take full-page screenshot
-- [ ] Handle navigation errors gracefully
+- [x] Implement `capture_route(route: RouteConfig) -> ScreenshotResult`
+- [x] Navigate to route URL
+- [x] Wait for page load (configurable timeout)
+- [x] Take full-page screenshot
+- [x] Handle navigation errors gracefully
 
 ### Task 4: Implement Viewport Support
 - [ ] Support multiple viewport configurations
