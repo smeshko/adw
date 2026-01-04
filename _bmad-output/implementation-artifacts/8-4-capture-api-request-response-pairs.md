@@ -1,6 +1,6 @@
 # Story 8.4: Capture API Request/Response Pairs
 
-Status: ready-for-dev
+Status: review
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-03
