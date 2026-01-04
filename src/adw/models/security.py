@@ -4,7 +4,6 @@ This module contains models for security configuration and tool call logging,
 including blocked pattern definitions and security interceptor configuration.
 """
 
-from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -92,42 +91,46 @@ class SecurityConfig(BaseModel):
 
 
 class ToolCallLog(BaseModel):
-    """Log entry for a tool call execution.
+    """Log entry for a tool call during LLM execution.
 
-    Records details about every tool call made by the LLM, including
-    whether it was blocked and why. Written to tools.jsonl.
+    Captures comprehensive information about each tool invocation including
+    timing, arguments, results, and security blocking status.
 
-    Attributes:
-        timestamp: When the tool call occurred
-        tool_name: Name of the tool (e.g., "Bash", "Read", "Write")
-        arguments: Arguments passed to the tool
-        result_summary: Brief summary of the result or "blocked"
-        duration_ms: Time taken to execute (0 if blocked)
-        blocked: Whether the call was blocked by security
-        block_reason: Why it was blocked (if blocked)
+    This model is designed for JSONL serialization to support append-only
+    logging in `.adw/runs/<id>/tools.jsonl`.
 
     Example:
         >>> log = ToolCallLog(
-        ...     timestamp=datetime.now(),
+        ...     timestamp="2026-01-03T10:30:00.123Z",
         ...     tool_name="Bash",
-        ...     arguments={"command": "rm -rf /tmp/test"},
-        ...     result_summary="blocked",
-        ...     duration_ms=0,
-        ...     blocked=True,
-        ...     block_reason="Matches dangerous pattern: rm -rf",
+        ...     arguments={"command": "npm test"},
+        ...     result_summary="Exit code: 0, output: 15 tests passed",
+        ...     duration_ms=2500,
+        ...     phase="build",
         ... )
+        >>> log.model_dump_json()  # Write to JSONL file
     """
 
-    timestamp: datetime = Field(default_factory=datetime.now)
-    tool_name: str = Field(description="Name of the tool called")
-    arguments: dict[str, Any] = Field(
-        default_factory=dict, description="Arguments passed to the tool"
-    )
-    result_summary: str = Field(
-        default="", description="Brief summary of the result or 'blocked'"
-    )
-    duration_ms: int = Field(default=0, description="Time taken to execute (0 if blocked)")
-    blocked: bool = Field(default=False, description="Whether the call was blocked")
-    block_reason: str | None = Field(
-        default=None, description="Why it was blocked (if blocked)"
-    )
+    timestamp: str
+    """ISO 8601 format timestamp when the tool was called."""
+
+    tool_name: str
+    """Name of the tool that was called (e.g., 'Bash', 'Read', 'Write')."""
+
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    """Arguments passed to the tool."""
+
+    result_summary: str | None = None
+    """Brief summary of result (truncated if long)."""
+
+    duration_ms: int = 0
+    """Execution time in milliseconds."""
+
+    blocked: bool = False
+    """Whether the tool call was blocked by security checks."""
+
+    block_reason: str | None = None
+    """Reason for blocking (if blocked is True)."""
+
+    phase: str | None = None
+    """Current phase when the tool was called (e.g., 'plan', 'build')."""
