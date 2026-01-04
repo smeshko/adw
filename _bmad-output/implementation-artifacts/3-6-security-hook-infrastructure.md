@@ -1,6 +1,6 @@
 # Story 3.6: Security Hook Infrastructure
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2026-01-03
@@ -25,63 +25,63 @@ So that automated code generation cannot accidentally destroy my project.
 
 **Given** any tool call is executed
 **When** execution completes
-**Then** the tool name, arguments, and result are logged to `tools.log`
+**Then** the tool name, arguments, and result are logged to `tools.jsonl`
 
 **Given** security patterns are configurable
-**When** `project.yaml` includes `security.blocked_patterns`
+**When** `adw.yaml` includes `security.blocked_patterns`
 **Then** custom patterns are also blocked
 
 ## Tasks / Subtasks
 
 ### Task 1: Create Security Models
-- [ ] Create `src/adw/models/security.py` with:
+- [x] Create `src/adw/models/security.py` with:
   - `BlockedPattern` model (pattern, description, severity)
   - `SecurityConfig` model (blocked_patterns, allow_dangerous, blocked_env_files)
   - `ToolCallLog` model (timestamp, tool_name, arguments, result_summary, duration_ms, blocked, block_reason)
-- [ ] Add SecurityConfig to project configuration loading
+- [x] Add SecurityConfig to project configuration loading
 
 ### Task 2: Create SecurityError Exception
-- [ ] Add `SecurityError` to `src/adw/exceptions.py`
+- [x] Add `SecurityError` to `src/adw/exceptions.py`
   - code: e.g., "DANGEROUS_COMMAND_BLOCKED"
   - pattern_matched: The pattern that triggered the block
   - tool_name: The tool that was blocked
   - suggestion: How to override if needed
 
 ### Task 3: Implement Security Interceptor
-- [ ] Create `src/adw/security/__init__.py`
-- [ ] Create `src/adw/security/interceptor.py` with:
+- [x] Create `src/adw/security/__init__.py`
+- [x] Create `src/adw/security/interceptor.py` with:
   - `SecurityInterceptor` class
   - `check_tool_call(tool_name: str, arguments: dict) -> SecurityCheckResult`
   - `is_blocked(command: str) -> tuple[bool, BlockedPattern | None]`
   - Default blocked patterns (rm -rf, .env access, git push --force)
-- [ ] Create `src/adw/security/patterns.py` with:
+- [x] Create `src/adw/security/patterns.py` with:
   - Default security patterns (BLOCKED_SHELL_PATTERNS, BLOCKED_FILE_PATTERNS)
   - Pattern matching utilities
 
 ### Task 4: Implement Tool Call Logger
-- [ ] Create `src/adw/security/tool_logger.py` with:
+- [x] Create `src/adw/security/tool_logger.py` with:
   - `ToolLogger` class
   - `log_tool_call(entry: ToolCallLog) -> None`
   - Writes to `.adw/runs/<id>/tools.jsonl`
-- [ ] Integrate with run directory structure
+- [x] Integrate with run directory structure
 
 ### Task 5: Integrate with Claude Code Executor
-- [ ] Modify `src/adw/executors/claude_code.py` to:
+- [x] Modify `src/adw/executors/claude_code.py` to:
   - Check tool calls against security interceptor before execution
   - Log all tool calls (blocked and allowed)
   - Raise SecurityError for blocked calls (unless --allow-dangerous)
 
 ### Task 6: Add --allow-dangerous Flag
-- [ ] Add `--allow-dangerous` flag to CLI run commands
-- [ ] When set, log warnings instead of blocking
-- [ ] Pass flag through to executor configuration
+- [x] Add `--allow-dangerous` flag to CLI run commands
+- [x] When set, log warnings instead of blocking
+- [x] Pass flag through to executor configuration
 
 ### Task 7: Write Unit Tests
-- [ ] Test SecurityInterceptor with default patterns
-- [ ] Test custom pattern configuration
-- [ ] Test ToolLogger writes correctly
-- [ ] Test SecurityError formatting
-- [ ] Test .env exception patterns (.env.example, .env.sample)
+- [x] Test SecurityInterceptor with default patterns
+- [x] Test custom pattern configuration
+- [x] Test ToolLogger writes correctly
+- [x] Test SecurityError formatting
+- [x] Test .env exception patterns (.env.example, .env.sample)
 
 ---
 
@@ -308,7 +308,37 @@ claude-opus-4-5-20251101
 
 ### Completion Notes List
 
+- Task 1: Created security models (BlockedPattern, SecurityConfig, ToolCallLog) with SecuritySeverity enum. Added SecurityConfig to ProjectConfig. All models exported from adw.models.
+- Task 2: Created SecurityError exception with pattern_matched, tool_name, and suggestion fields. Follows existing exception hierarchy patterns.
+- Task 3: Implemented SecurityInterceptor with default blocked patterns for shell commands and file access. Supports custom patterns from config and allow_dangerous mode.
+- Task 4: Implemented ToolLogger for JSONL logging of tool calls. Writes to run_dir/tools.jsonl with convenience methods and read_entries support.
+- Task 5: Integrated security interceptor and tool logger with ClaudeCodeExecutor. Added _check_and_log_tool_calls method to validate and log tool calls.
+- Task 6: Added --allow-dangerous flag to CLI run command. Updated bootstrap to create security components and pass allow_dangerous to executor.
+- Task 7: All unit tests written and passing (77 total security-related tests). Added tests for invalid regex handling, case-insensitive tool names, and executor security integration.
+
 ### File List
+
+**New Files:**
+- src/adw/models/security.py
+- src/adw/security/__init__.py
+- src/adw/security/interceptor.py
+- src/adw/security/patterns.py
+- src/adw/security/tool_logger.py
+- tests/unit/models/test_security.py
+- tests/unit/test_exceptions.py
+- tests/unit/security/__init__.py
+- tests/unit/security/test_interceptor.py
+- tests/unit/security/test_patterns.py
+- tests/unit/security/test_tool_logger.py
+- tests/unit/executors/test_claude_code_security.py
+
+**Modified Files:**
+- src/adw/models/__init__.py
+- src/adw/models/config.py
+- src/adw/exceptions.py
+- src/adw/executors/claude_code.py
+- src/adw/cli/app.py
+- src/adw/cli/bootstrap.py
 
 ## Dependencies
 

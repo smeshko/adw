@@ -28,6 +28,7 @@ from adw.logging import LogManager
 from adw.logging.console import ConsoleTransport
 from adw.models.config import HookConfig, LLMConfig
 from adw.models.logging import Verbosity
+from adw.security import SecurityInterceptor, ToolLogger
 
 
 def get_project_root() -> Path:
@@ -96,6 +97,8 @@ def create_orchestrator(
     console: Console | None = None,
     *,
     with_progress: bool = True,
+    allow_dangerous: bool = False,
+    run_id: str | None = None,
 ) -> Orchestrator:
     """Create a fully configured Orchestrator instance.
 
@@ -106,11 +109,15 @@ def create_orchestrator(
     - RunDirectoryManager for directory structure
     - InterruptionHandler for graceful shutdown
     - ProgressDisplay for CLI output (optional)
+    - SecurityInterceptor for tool call validation
+    - ToolLogger for tool call audit trail
     - PhaseRunner with CommandResolver, TemplateEngine, HookRunner, LLMExecutor
 
     Args:
         console: Rich console for output. If None, creates a new one.
         with_progress: Whether to include progress display.
+        allow_dangerous: If True, log warnings instead of blocking dangerous operations.
+        run_id: Optional run ID for tool logging. If None, tool logging is disabled.
 
     Returns:
         Configured Orchestrator ready for use.
@@ -139,7 +146,20 @@ def create_orchestrator(
     command_resolver = CommandResolver(project_root=project_root)
     template_engine = TemplateEngine(project_root=project_root)
     hook_runner = HookRunner(config=HookConfig())
-    llm_executor = ClaudeCodeExecutor(config=LLMConfig(), console=console)
+
+    # Create security components (Story 3.6)
+    security_interceptor = SecurityInterceptor(allow_dangerous=allow_dangerous)
+    tool_logger = None
+    if run_id:
+        tool_logger = ToolLogger(runs_dir / run_id)
+
+    llm_executor = ClaudeCodeExecutor(
+        config=LLMConfig(),
+        console=console,
+        security_interceptor=security_interceptor,
+        tool_logger=tool_logger,
+        allow_dangerous=allow_dangerous,
+    )
 
     # Create PhaseRunner (Story 5.2)
     phase_runner = PhaseRunner(

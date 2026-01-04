@@ -6,11 +6,17 @@ dangerous LLM tool calls and logging tool execution.
 Key components:
 - defaults: Default blocked patterns for shell commands and file access
 - patterns: Pattern matching engine for security checks
+- interceptor: Security interceptor for blocking dangerous operations
 - suggestions: Alternative command suggestions for blocked patterns
 - override: Override logging for --allow-dangerous mode
 - tool_logger: Tool execution logging to JSONL files
 """
 
+from adw.security.interceptor import (
+    SecurityCheckResponse,
+    SecurityCheckResult,
+    SecurityInterceptor,
+)
 from adw.security.defaults import (
     ALLOWED_ENV_PATTERNS,
     DEFAULT_FILE_PATTERNS,
@@ -34,6 +40,10 @@ from adw.security.suggestions import (
 from adw.security.tool_logger import ToolLogger
 
 __all__: list[str] = [
+    # Interceptor (Story 3.6)
+    "SecurityCheckResponse",
+    "SecurityCheckResult",
+    "SecurityInterceptor",
     # Defaults
     "ALLOWED_ENV_PATTERNS",
     "DEFAULT_FILE_PATTERNS",
