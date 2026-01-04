@@ -230,3 +230,83 @@ class TestRouteCaptureMethod:
         after = datetime.now()
 
         assert before <= result.captured_at <= after
+
+
+class TestMultiViewportCapture:
+    """Tests for multi-viewport capture functionality."""
+
+    def test_capture_route_all_viewports_method_exists(self, tmp_path: Path) -> None:
+        """Test that capture_route_all_viewports method exists."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+        assert hasattr(strategy, "capture_route_all_viewports")
+        assert callable(strategy.capture_route_all_viewports)
+
+    def test_capture_route_all_viewports_returns_list(self, tmp_path: Path) -> None:
+        """Test that capture_route_all_viewports returns list of results."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+        route = RouteConfig(name="home", path="/")
+
+        results = strategy.capture_route_all_viewports(route)
+
+        assert isinstance(results, list)
+        # Should have one result per default viewport
+        assert len(results) == len(strategy.viewports)
+
+    def test_capture_route_all_viewports_uses_all_viewports(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that capture uses all configured viewports."""
+        custom_viewports = [
+            ViewportConfig(name="small", width=320, height=480),
+            ViewportConfig(name="large", width=2560, height=1440),
+        ]
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+            viewports=custom_viewports,
+        )
+        route = RouteConfig(name="test", path="/test")
+
+        results = strategy.capture_route_all_viewports(route)
+
+        assert len(results) == 2
+        viewport_names = {r.viewport for r in results}
+        assert "320x480" in viewport_names
+        assert "2560x1440" in viewport_names
+
+    def test_default_viewports_include_standard_sizes(self, tmp_path: Path) -> None:
+        """Test that default viewports include desktop, tablet, mobile."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+
+        viewport_names = [v.name for v in strategy.viewports]
+        assert "desktop" in viewport_names
+        assert "tablet" in viewport_names
+        assert "mobile" in viewport_names
+
+    def test_file_naming_includes_viewport_suffix(self, tmp_path: Path) -> None:
+        """Test that screenshot files are named with viewport suffix."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+        route = RouteConfig(name="dashboard", path="/dashboard")
+
+        results = strategy.capture_route_all_viewports(route)
+
+        for result in results:
+            # Filename should contain route name and viewport name
+            filename = result.path.name
+            assert "dashboard" in filename
+            # Should have viewport name in filename (desktop, tablet, or mobile)
+            assert any(
+                vp.name in filename for vp in strategy.viewports
+            ), f"Filename {filename} should contain viewport name"

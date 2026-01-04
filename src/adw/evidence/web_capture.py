@@ -325,3 +325,31 @@ class WebCaptureStrategy:
                 success=False,
                 error=error_msg,
             )
+
+    def capture_route_all_viewports(
+        self, route: RouteConfig
+    ) -> list[ScreenshotResult]:
+        """Capture screenshots of a route at all configured viewports.
+
+        This method captures the same route at each viewport configuration,
+        generating one screenshot per viewport.
+
+        Args:
+            route: Configuration for the route to capture
+
+        Returns:
+            List of ScreenshotResult, one per viewport.
+
+        Example:
+            >>> route = RouteConfig(name="home", path="/")
+            >>> results = strategy.capture_route_all_viewports(route)
+            >>> len(results)  # One per viewport (desktop, tablet, mobile)
+            3
+        """
+        results: list[ScreenshotResult] = []
+
+        for viewport in self.viewports:
+            result = self.capture_route(route, viewport)
+            results.append(result)
+
+        return results
