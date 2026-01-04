@@ -6,8 +6,10 @@ This module provides common fixtures for testing ADW components:
 - sample_run_context: Returns a valid RunContext with test data
 - sample_project_config: Returns a valid ProjectConfig
 - fixtures_path: Returns path to test fixtures directory
+- isolated_global_index: Redirects global index to temp directory (autouse)
 """
 
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -16,6 +18,36 @@ from ulid import ULID
 
 from adw.executors.mock import MockExecutor
 from adw.models import ProjectConfig, RunContext
+
+
+@pytest.fixture(autouse=True, scope="function")
+def isolated_global_index(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Automatically isolate the global index for each test.
+
+    This fixture runs automatically for every test (autouse=True) and
+    redirects the global index from ~/.adw/index.jsonl to a temporary
+    location. This prevents test runs from polluting the user's actual
+    global index file.
+
+    The ADW_TEST_INDEX_PATH environment variable is set to a temporary
+    path, which the IndexManager will use instead of the default location.
+
+    Args:
+        tmp_path: Pytest's built-in temporary path fixture.
+        monkeypatch: Pytest's monkeypatch fixture for environment manipulation.
+
+    Returns:
+        Path to the isolated test index file.
+
+    Note:
+        This fixture is automatically applied to all tests. Individual tests
+        that need to test the real index behavior can use monkeypatch to
+        temporarily unset the environment variable.
+    """
+    test_index_path = tmp_path / ".adw" / "test-index.jsonl"
+    test_index_path.parent.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("ADW_TEST_INDEX_PATH", str(test_index_path))
+    return test_index_path
 
 
 @pytest.fixture
