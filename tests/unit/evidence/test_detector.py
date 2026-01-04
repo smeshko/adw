@@ -278,6 +278,137 @@ class TestBackendMarkerDetection:
         assert result.platform == PlatformType.BACKEND
         assert "Dockerfile:EXPOSE" in result.markers
 
+    def test_detect_vapor_from_package_swift(self, tmp_path: Path) -> None:
+        """Test detecting BACKEND from Vapor in Package.swift."""
+        package_swift = tmp_path / "Package.swift"
+        package_swift.write_text('''
+// swift-tools-version:5.9
+import PackageDescription
+
+let package = Package(
+    name: "MyApp",
+    dependencies: [
+        .package(url: "https://github.com/vapor/vapor.git", from: "4.76.0"),
+    ],
+    targets: [
+        .executableTarget(name: "App", dependencies: ["Vapor"])
+    ]
+)
+''')
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.BACKEND
+        assert "Package.swift:vapor" in result.markers
+
+    def test_detect_vapor_with_quoted_name(self, tmp_path: Path) -> None:
+        """Test detecting BACKEND from Vapor with quoted dependency name."""
+        package_swift = tmp_path / "Package.swift"
+        package_swift.write_text('''
+let package = Package(
+    dependencies: [.package(name: "vapor", url: "...")]
+)
+''')
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.BACKEND
+        assert "Package.swift:vapor" in result.markers
+
+
+class TestMobileMarkerDetection:
+    """Tests for mobile project marker detection."""
+
+    def test_detect_ios_from_xcodeproj(self, tmp_path: Path) -> None:
+        """Test detecting MOBILE from .xcodeproj directory."""
+        xcodeproj = tmp_path / "MyApp.xcodeproj"
+        xcodeproj.mkdir()
+        (xcodeproj / "project.pbxproj").write_text("// project file")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.MOBILE
+        assert "MyApp.xcodeproj:ios" in result.markers
+
+    def test_detect_ios_from_xcworkspace(self, tmp_path: Path) -> None:
+        """Test detecting MOBILE from .xcworkspace directory."""
+        xcworkspace = tmp_path / "MyApp.xcworkspace"
+        xcworkspace.mkdir()
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.MOBILE
+        assert "MyApp.xcworkspace:ios" in result.markers
+
+    def test_detect_android_from_manifest_and_gradle(self, tmp_path: Path) -> None:
+        """Test detecting MOBILE from AndroidManifest.xml and build.gradle."""
+        # Create Android project structure
+        app_dir = tmp_path / "app" / "src" / "main"
+        app_dir.mkdir(parents=True)
+        (app_dir / "AndroidManifest.xml").write_text('<manifest />')
+        (tmp_path / "build.gradle").write_text("plugins { id 'android' }")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.MOBILE
+        assert "AndroidManifest.xml:android" in result.markers
+
+    def test_detect_android_with_gradle_kts(self, tmp_path: Path) -> None:
+        """Test detecting MOBILE with build.gradle.kts."""
+        (tmp_path / "AndroidManifest.xml").write_text('<manifest />')
+        (tmp_path / "build.gradle.kts").write_text("plugins { kotlin('android') }")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.MOBILE
+        assert "AndroidManifest.xml:android" in result.markers
+
+    def test_detect_flutter_from_pubspec(self, tmp_path: Path) -> None:
+        """Test detecting MOBILE from pubspec.yaml with flutter SDK."""
+        pubspec = tmp_path / "pubspec.yaml"
+        pubspec.write_text('''
+name: my_flutter_app
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+''')
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.MOBILE
+        assert "pubspec.yaml:flutter" in result.markers
+
+    def test_pure_dart_pubspec_not_detected_as_mobile(self, tmp_path: Path) -> None:
+        """Test that pubspec.yaml without flutter SDK is not detected as MOBILE."""
+        pubspec = tmp_path / "pubspec.yaml"
+        pubspec.write_text('''
+name: my_dart_package
+dependencies:
+  http: ^0.13.0
+''')
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        # Should fall through to default CLI since no mobile markers
+        assert result.platform == PlatformType.CLI
+        assert result.source == "default"
+
+    def test_android_requires_both_manifest_and_gradle(self, tmp_path: Path) -> None:
+        """Test that AndroidManifest.xml alone is not enough for MOBILE detection."""
+        (tmp_path / "AndroidManifest.xml").write_text('<manifest />')
+        # No build.gradle
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        # Should fall through to default CLI
+        assert result.platform == PlatformType.CLI
+
 
 class TestCliMarkerDetection:
     """Tests for CLI project marker detection (Task 3)."""
@@ -406,6 +537,11 @@ class TestEvidenceStrategyFactory:
         strategy = get_evidence_strategy(PlatformType.BACKEND)
         assert strategy == EvidenceStrategy.API_CAPTURE
 
+    def test_mobile_maps_to_screenshot(self) -> None:
+        """Test that MOBILE platform maps to SCREENSHOT strategy."""
+        strategy = get_evidence_strategy(PlatformType.MOBILE)
+        assert strategy == EvidenceStrategy.SCREENSHOT
+
     def test_unknown_maps_to_terminal_output(self) -> None:
         """Test that UNKNOWN platform maps to TERMINAL_OUTPUT strategy."""
         strategy = get_evidence_strategy(PlatformType.UNKNOWN)
@@ -454,9 +590,9 @@ class TestWarningEmission:
 
             # Call get_evidence_strategy with UNKNOWN - re-import to use patched logger
             from adw.evidence import get_evidence_strategy as get_strategy
-            from adw.models.evidence import PlatformType as PT
+            from adw.models.evidence import PlatformType as PType
 
-            strategy = get_strategy(PT.UNKNOWN)
+            strategy = get_strategy(PType.UNKNOWN)
 
             # Verify strategy is TERMINAL_OUTPUT
             assert strategy == EvidenceStrategy.TERMINAL_OUTPUT

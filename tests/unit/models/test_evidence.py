@@ -22,6 +22,7 @@ class TestPlatformType:
         """Test that all expected platform types exist."""
         assert PlatformType.CLI == "cli"
         assert PlatformType.WEB == "web"
+        assert PlatformType.MOBILE == "mobile"
         assert PlatformType.BACKEND == "backend"
         assert PlatformType.UNKNOWN == "unknown"
 
@@ -29,11 +30,13 @@ class TestPlatformType:
         """Test that PlatformType inherits from str."""
         assert isinstance(PlatformType.CLI, str)
         assert isinstance(PlatformType.WEB, str)
+        assert isinstance(PlatformType.MOBILE, str)
 
     def test_platform_type_from_string(self) -> None:
         """Test creating PlatformType from string value."""
         assert PlatformType("cli") == PlatformType.CLI
         assert PlatformType("web") == PlatformType.WEB
+        assert PlatformType("mobile") == PlatformType.MOBILE
         assert PlatformType("backend") == PlatformType.BACKEND
         assert PlatformType("unknown") == PlatformType.UNKNOWN
 

@@ -1,7 +1,7 @@
 """Evidence gathering package for ADW.
 
 This package contains modules for:
-- Platform detection (determining if project is CLI, WEB, or BACKEND)
+- Platform detection (determining if project is CLI, WEB, MOBILE, or BACKEND)
 - Evidence capture strategies (terminal output, screenshots, API responses)
 """
 
@@ -43,7 +43,8 @@ def get_evidence_strategy(platform: PlatformType) -> EvidenceStrategy:
 
     Maps platform types to evidence gathering strategies:
     - CLI -> TERMINAL_OUTPUT: Capture stdout/stderr
-    - WEB -> SCREENSHOT: Capture browser screenshots (future)
+    - WEB -> SCREENSHOT: Capture browser screenshots
+    - MOBILE -> SCREENSHOT: Capture device/simulator screenshots
     - BACKEND -> API_CAPTURE: Capture HTTP request/response pairs
     - UNKNOWN -> TERMINAL_OUTPUT: Default with warning
 
@@ -64,6 +65,7 @@ def get_evidence_strategy(platform: PlatformType) -> EvidenceStrategy:
     strategy_map = {
         PlatformType.CLI: EvidenceStrategy.TERMINAL_OUTPUT,
         PlatformType.WEB: EvidenceStrategy.SCREENSHOT,
+        PlatformType.MOBILE: EvidenceStrategy.SCREENSHOT,
         PlatformType.BACKEND: EvidenceStrategy.API_CAPTURE,
         PlatformType.UNKNOWN: EvidenceStrategy.TERMINAL_OUTPUT,
     }
@@ -74,7 +76,7 @@ def get_evidence_strategy(platform: PlatformType) -> EvidenceStrategy:
         logger.warn(
             LogCategory.STATE,
             "Platform could not be determined - defaulting to terminal output "
-            "strategy. Add 'platform: cli|web|backend' to .adw/project.yaml",
+            "strategy. Add 'platform: cli|web|mobile|backend' to .adw/project.yaml",
         )
 
     return strategy

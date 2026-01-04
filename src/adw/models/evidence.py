@@ -15,13 +15,15 @@ class PlatformType(str, Enum):
     The platform type determines which evidence gathering strategy
     to use during the Verify phase:
     - CLI: Capture terminal output from CLI commands
-    - WEB: Capture screenshots (future enhancement)
+    - WEB: Capture browser screenshots
+    - MOBILE: Capture device/simulator screenshots
     - BACKEND: Capture API request/response pairs
     - UNKNOWN: Default to CLI strategy with warning
     """
 
     CLI = "cli"
     WEB = "web"
+    MOBILE = "mobile"
     BACKEND = "backend"
     UNKNOWN = "unknown"
 
@@ -45,7 +47,7 @@ class EvidenceStrategy(str, Enum):
 
     Each strategy determines how evidence is captured:
     - TERMINAL_OUTPUT: Capture stdout/stderr from CLI commands
-    - SCREENSHOT: Capture browser screenshots (future)
+    - SCREENSHOT: Capture browser/device screenshots (WEB and MOBILE)
     - API_CAPTURE: Capture HTTP request/response pairs
     """
 

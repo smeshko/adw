@@ -1,7 +1,8 @@
 """Platform detection for evidence gathering.
 
 This module provides the PlatformDetector class that determines the
-project platform type (CLI, WEB, BACKEND) from configuration or file markers.
+project platform type (CLI, WEB, MOBILE, BACKEND) from configuration or
+file markers.
 """
 
 import json
@@ -147,8 +148,9 @@ class PlatformDetector:
     def _detect_from_markers(self) -> PlatformDetectionResult | None:
         """Attempt to detect platform from file markers.
 
-        Checks for:
+        Checks for (in priority order):
         - Web markers: package.json with frameworks, next/nuxt config, index.html
+        - Mobile markers: .xcodeproj/.xcworkspace, AndroidManifest.xml, pubspec.yaml
         - Backend markers: main.py/app.py with frameworks, requirements.txt, Dockerfile
         - CLI markers: pyproject.toml scripts, setup.py entry_points
 
@@ -163,6 +165,17 @@ class PlatformDetector:
             markers.extend(web_markers)
             return PlatformDetectionResult(
                 platform=PlatformType.WEB,
+                confidence=self._calculate_confidence(markers),
+                source="markers",
+                markers=markers,
+            )
+
+        # Check for mobile markers (iOS, Android, Flutter)
+        mobile_markers = self._detect_mobile_markers()
+        if mobile_markers:
+            markers.extend(mobile_markers)
+            return PlatformDetectionResult(
+                platform=PlatformType.MOBILE,
                 confidence=self._calculate_confidence(markers),
                 source="markers",
                 markers=markers,
@@ -260,6 +273,7 @@ class PlatformDetector:
         - app.py with API patterns
         - requirements.txt with web frameworks
         - Dockerfile with EXPOSE
+        - Package.swift with Vapor dependency (Swift backend)
 
         Returns:
             List of detected marker strings
@@ -307,6 +321,68 @@ class PlatformDetector:
                 content = dockerfile.read_text()
                 if re.search(r"^\s*EXPOSE\s+\d+", content, re.MULTILINE):
                     markers.append("Dockerfile:EXPOSE")
+            except OSError:
+                pass
+
+        # Check Package.swift for Swift Vapor backend
+        package_swift = self.project_root / "Package.swift"
+        if package_swift.exists():
+            try:
+                content = package_swift.read_text()
+                # Check for Vapor dependency (vapor/vapor.git or just "vapor")
+                if re.search(r'vapor/vapor\.git|"vapor"', content, re.IGNORECASE):
+                    markers.append("Package.swift:vapor")
+            except OSError:
+                pass
+
+        return markers
+
+    def _detect_mobile_markers(self) -> list[str]:
+        """Detect mobile project markers.
+
+        Checks for:
+        - iOS native: .xcodeproj or .xcworkspace directories
+        - Android native: AndroidManifest.xml with build.gradle
+        - Flutter: pubspec.yaml with flutter SDK dependency
+
+        Returns:
+            List of detected marker strings
+        """
+        markers: list[str] = []
+
+        # Check for iOS native project (.xcodeproj or .xcworkspace)
+        for item in self.project_root.iterdir():
+            if item.is_dir() and item.suffix in (".xcodeproj", ".xcworkspace"):
+                markers.append(f"{item.name}:ios")
+                break
+
+        # Check for Android native project
+        # Look for AndroidManifest.xml in common locations
+        android_manifest_paths = [
+            self.project_root / "app" / "src" / "main" / "AndroidManifest.xml",
+            self.project_root / "AndroidManifest.xml",
+        ]
+        build_gradle_paths = [
+            self.project_root / "build.gradle",
+            self.project_root / "build.gradle.kts",
+            self.project_root / "app" / "build.gradle",
+            self.project_root / "app" / "build.gradle.kts",
+        ]
+
+        has_manifest = any(p.exists() for p in android_manifest_paths)
+        has_gradle = any(p.exists() for p in build_gradle_paths)
+
+        if has_manifest and has_gradle:
+            markers.append("AndroidManifest.xml:android")
+
+        # Check for Flutter project (pubspec.yaml with flutter SDK)
+        pubspec = self.project_root / "pubspec.yaml"
+        if pubspec.exists():
+            try:
+                content = pubspec.read_text()
+                # Check for flutter SDK dependency
+                if "flutter:" in content and "sdk: flutter" in content:
+                    markers.append("pubspec.yaml:flutter")
             except OSError:
                 pass
 
