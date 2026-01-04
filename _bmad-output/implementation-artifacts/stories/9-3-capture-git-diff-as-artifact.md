@@ -46,7 +46,7 @@ so that changes can be reviewed and included in PR description.
 - [x] Integrate diff capture into Build phase artifact collection
 - [x] Add diff to template variable namespace as `{{artifacts.build.diff}}`
 - [x] Write unit tests for diff parsing and truncation
-- [ ] Write integration tests with actual git changes
+- [x] Write integration tests with actual git changes
 
 ---
 
@@ -138,4 +138,5 @@ Claude claude-opus-4-5-20251101
 - src/adw/core/phase_runner.py (modified - added diff capture in build phase)
 - tests/unit/hooks/test_git_diff.py (new)
 - tests/unit/core/test_phase_runner.py (modified - added git diff tests)
+- tests/integration/test_git_diff.py (new - 10 integration tests)
 
