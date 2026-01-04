@@ -668,6 +668,21 @@ class PhaseRunner:
         )
         artifacts.append(output_name)
 
+        # Document phase: also save as pr_description.md (Story 9.4)
+        if phase == "document":
+            pr_desc_name = "pr_description.md"
+            self.artifact_manager.store(
+                context.run_id,
+                phase,
+                pr_desc_name,
+                llm_result.content,
+            )
+            artifacts.append(pr_desc_name)
+            logger.info(
+                "PR description artifact saved",
+                extra={"run_id": context.run_id, "artifact": pr_desc_name},
+            )
+
         # Store tool calls if any
         if llm_result.tool_calls:
             tool_calls_name = f"{phase}_tool_calls.json"

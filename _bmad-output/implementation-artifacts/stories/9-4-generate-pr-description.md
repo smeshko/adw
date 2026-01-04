@@ -32,14 +32,14 @@ so that I can quickly create a pull request.
 
 ## Tasks / Subtasks
 
-- [ ] Create PR description prompt template `defaults/commands/document/prompt.md`
-- [ ] Define PR description sections:
+- [x] Create PR description prompt template `defaults/commands/document/prompt.md`
+- [x] Define PR description sections:
   - Summary (1-2 sentences)
   - Changes (bullet list from diff stats)
   - Testing (from test results artifact)
   - Evidence (from evidence manifest if exists)
   - Screenshots (placeholder links if evidence includes images)
-- [ ] Implement PR description artifact saving
+- [x] Implement PR description artifact saving
 - [ ] Add `{{artifacts.verify.evidence_manifest}}` to template variables
 - [ ] Create `PRDescription` Pydantic model for structured output
 - [ ] Update run completion panel to show PR description path
