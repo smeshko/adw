@@ -323,6 +323,14 @@ def optimize_evidence(
     optimizer = EvidenceOptimizer(config=config)
     report = optimizer.optimize_directory(evidence_directory, run_id=run_id)
 
+    # Write optimization report to evidence directory (Story 8.6)
+    report_path = evidence_directory / "optimization_report.json"
+    report_path.write_text(report.model_dump_json(indent=2))
+    logger.debug(
+        LogCategory.STATE,
+        f"Optimization report written to {report_path}",
+    )
+
     logger.info(
         LogCategory.STATE,
         f"Evidence optimization complete: {report.files_optimized}/{report.total_files} files optimized, "

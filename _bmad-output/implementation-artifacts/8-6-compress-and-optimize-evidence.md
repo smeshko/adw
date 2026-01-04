@@ -565,9 +565,33 @@ Key patterns and rules from project context:
 
 ### Agent Model Used
 
+claude-opus-4-5-20251101
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Created optimization models (OptimizationConfig, FileOptimization, OptimizationReport)
+- Implemented image compression with iterative quality reduction to meet max_image_size_kb target
+- Implemented text truncation preserving head/tail with truncation marker
+- Implemented JSON minification with manifest.json exception
+- Added config loading from project.yaml evidence.optimization section
+- Integrated optimization into verify phase pipeline via orchestrator
+- Added optimization_report.json output to evidence directory
+- All tests passing (59 tests)
+
 ### File List
+
+**New Files:**
+- `src/adw/evidence/optimizer.py` - EvidenceOptimizer class with image/text/JSON optimization
+- `tests/unit/evidence/test_optimizer.py` - Unit tests for optimizer functionality
+- `tests/unit/evidence/test_optimizer_models.py` - Unit tests for optimization models
+
+**Modified Files:**
+- `src/adw/models/evidence.py` - Added OptimizationConfig, FileOptimization, OptimizationReport models
+- `src/adw/models/__init__.py` - Exported new optimization models
+- `src/adw/evidence/__init__.py` - Exported optimizer, added optimize_evidence() integration function
+- `src/adw/evidence/config_loader.py` - Added load_optimization_config() function
+- `src/adw/core/orchestrator.py` - Integrated optimization after verify phase
+- `tests/unit/evidence/test_config_loader.py` - Added tests for optimization config loading
 

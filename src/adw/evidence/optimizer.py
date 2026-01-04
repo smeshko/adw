@@ -197,6 +197,7 @@ class EvidenceOptimizer:
         """Compress an image file.
 
         Uses Pillow to compress PNG/JPEG images with configurable quality.
+        Iteratively reduces quality until max_image_size_kb is met.
         Falls back gracefully when Pillow is not installed.
 
         Args:
@@ -215,6 +216,7 @@ class EvidenceOptimizer:
 
         quality = quality or self.config.image_quality
         original_size = path.stat().st_size
+        max_size_bytes = self.config.max_image_size_kb * 1024
 
         try:
             with Image.open(path) as img:
@@ -222,8 +224,24 @@ class EvidenceOptimizer:
                 if img.mode == "RGBA" and path.suffix.lower() in {".jpg", ".jpeg"}:
                     img = img.convert("RGB")
 
-                # Save with optimization
+                # Save with initial optimization
                 img.save(path, optimize=True, quality=quality)
+
+                # Iteratively reduce quality if still over max size (max 5 iterations)
+                current_size = path.stat().st_size
+                min_quality = 20  # Don't go below 20% quality
+                iterations = 0
+                max_iterations = 5
+
+                while (
+                    current_size > max_size_bytes
+                    and quality > min_quality
+                    and iterations < max_iterations
+                ):
+                    quality = max(min_quality, quality - 15)
+                    img.save(path, optimize=True, quality=quality)
+                    current_size = path.stat().st_size
+                    iterations += 1
 
             optimized_size = path.stat().st_size
             savings = original_size - optimized_size

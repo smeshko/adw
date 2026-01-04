@@ -375,16 +375,19 @@ class TestOptimizeDirectory:
         """Test that size warning is triggered when threshold exceeded."""
         from adw.evidence.optimizer import EvidenceOptimizer
 
-        # Create a file that will trigger warning (1KB file with 0KB threshold)
-        (tmp_path / "test.txt").write_text("x" * 2000)
+        # Create files that exceed the warning threshold
+        # Using 1 MB threshold and creating files that exceed it
+        (tmp_path / "large1.txt").write_text("x" * 600_000)  # ~600 KB
+        (tmp_path / "large2.txt").write_text("y" * 600_000)  # ~600 KB
+        # Total > 1 MB, should trigger warning
 
-        config = OptimizationConfig(warn_total_size_mb=0)  # 0 = always warn
+        config = OptimizationConfig(warn_total_size_mb=1)  # 1 MB threshold
         optimizer = EvidenceOptimizer(config=config)
         report = optimizer.optimize_directory(tmp_path, run_id="test123")
 
-        # With a 0 MB threshold, any file should trigger warning
-        # The actual implementation may vary
-        assert report is not None
+        # With files exceeding 1 MB threshold, size_warning should be True
+        assert report.size_warning is True
+        assert report.warning_threshold_mb == 1
 
 
 # =============================================================================
