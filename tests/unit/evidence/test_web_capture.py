@@ -488,3 +488,83 @@ evidence:
         result = load_routes_from_config(tmp_path)
         # Invalid config should be handled gracefully
         assert result is None
+
+
+class TestEvidenceFileOrganization:
+    """Tests for evidence file organization."""
+
+    def test_create_evidence_directory_method_exists(self, tmp_path: Path) -> None:
+        """Test that create_evidence_directory method exists."""
+        from adw.evidence.web_capture import create_evidence_directory
+
+        assert callable(create_evidence_directory)
+
+    def test_create_evidence_directory_creates_path(self, tmp_path: Path) -> None:
+        """Test that evidence directory is created with correct structure."""
+        from adw.evidence.web_capture import create_evidence_directory
+
+        run_id = "01HQXYZ123456"
+        evidence_dir = create_evidence_directory(tmp_path, run_id)
+
+        assert evidence_dir.exists()
+        assert ".adw/runs" in str(evidence_dir)
+        assert run_id in str(evidence_dir)
+        assert "screenshots" in str(evidence_dir)
+
+    def test_create_evidence_directory_returns_path(self, tmp_path: Path) -> None:
+        """Test that create_evidence_directory returns correct path."""
+        from adw.evidence.web_capture import create_evidence_directory
+
+        run_id = "01HQXYZ123456"
+        evidence_dir = create_evidence_directory(tmp_path, run_id)
+
+        expected_path = tmp_path / ".adw" / "runs" / run_id / "evidence" / "screenshots"
+        assert evidence_dir == expected_path
+
+    def test_generate_metadata_json(self, tmp_path: Path) -> None:
+        """Test that metadata JSON is generated correctly."""
+        from adw.evidence.web_capture import generate_evidence_metadata
+
+        results = [
+            ScreenshotResult(
+                path=Path("/tmp/home_desktop.png"),
+                route="home",
+                viewport="1920x1080",
+                success=True,
+            ),
+            ScreenshotResult(
+                path=Path("/tmp/dashboard_mobile.png"),
+                route="dashboard",
+                viewport="375x667",
+                success=False,
+                error="Timeout",
+            ),
+        ]
+        base_url = "http://localhost:3000"
+
+        metadata = generate_evidence_metadata(results, base_url)
+
+        assert metadata["base_url"] == base_url
+        assert metadata["total_screenshots"] == 2
+        assert metadata["successful"] == 1
+        assert metadata["failed"] == 1
+        assert len(metadata["screenshots"]) == 2
+
+    def test_sanitize_filename_removes_special_chars(self, tmp_path: Path) -> None:
+        """Test that filename sanitization handles special characters."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+
+        # Routes with special characters
+        route1 = RouteConfig(name="user/profile", path="/user/profile")
+        route2 = RouteConfig(name="api endpoint", path="/api/endpoint")
+        viewport = ViewportConfig(name="desktop", width=1920, height=1080)
+
+        path1 = strategy._generate_screenshot_path(route1, viewport)
+        path2 = strategy._generate_screenshot_path(route2, viewport)
+
+        # Should not contain / or spaces
+        assert "/" not in path1.name or str(path1.name).count("/") == 0
+        assert " " not in path2.name

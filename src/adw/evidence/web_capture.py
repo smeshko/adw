@@ -153,6 +153,75 @@ def load_routes_from_config(
     return routes, base_url, viewports
 
 
+def create_evidence_directory(project_root: Path, run_id: str) -> Path:
+    """Create the evidence directory for a run.
+
+    Creates the directory structure for storing web screenshots:
+    .adw/runs/<run_id>/evidence/screenshots/
+
+    Args:
+        project_root: Path to the project root directory
+        run_id: Unique identifier for the run
+
+    Returns:
+        Path to the created screenshots directory.
+
+    Example:
+        >>> evidence_dir = create_evidence_directory(Path("/my/project"), "01HQ...")
+        >>> str(evidence_dir)
+        '/my/project/.adw/runs/01HQ.../evidence/screenshots'
+    """
+    evidence_dir = project_root / ".adw" / "runs" / run_id / "evidence" / "screenshots"
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    return evidence_dir
+
+
+def generate_evidence_metadata(
+    results: list[ScreenshotResult],
+    base_url: str,
+) -> dict:
+    """Generate metadata for captured screenshots.
+
+    Creates a dictionary suitable for serialization to JSON with summary
+    information and details about each screenshot.
+
+    Args:
+        results: List of screenshot capture results
+        base_url: Base URL that was captured
+
+    Returns:
+        Dictionary with metadata about the evidence capture session.
+
+    Example:
+        >>> metadata = generate_evidence_metadata(results, "http://localhost:3000")
+        >>> metadata["total_screenshots"]
+        4
+    """
+    successful = sum(1 for r in results if r.success)
+    failed = len(results) - successful
+
+    screenshots = []
+    for result in results:
+        screenshot_info = {
+            "path": str(result.path),
+            "route": result.route,
+            "viewport": result.viewport,
+            "success": result.success,
+            "captured_at": result.captured_at.isoformat(),
+        }
+        if result.error:
+            screenshot_info["error"] = result.error
+        screenshots.append(screenshot_info)
+
+    return {
+        "base_url": base_url,
+        "total_screenshots": len(results),
+        "successful": successful,
+        "failed": failed,
+        "screenshots": screenshots,
+    }
+
+
 def check_playwright_available() -> bool:
     """Check if Playwright is installed and browser binaries are available.
 
