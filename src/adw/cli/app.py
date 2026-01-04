@@ -197,12 +197,15 @@ def run(
     log_manager = create_log_manager(console, verbosity=verbosity)
     _ = log_manager  # Log manager created, integration with orchestrator pending
 
+    # Enable LLM output if flag is set OR verbosity is TRACE (Story UX-FIX-ISS-001)
+    effective_show_llm_output = show_llm_output or verbosity == Verbosity.TRACE
+
     try:
         orchestrator = create_orchestrator(
             console,
             allow_dangerous=allow_dangerous,
             run_id=run_id,
-            show_llm_output=show_llm_output,
+            show_llm_output=effective_show_llm_output,
         )
 
         if phase:

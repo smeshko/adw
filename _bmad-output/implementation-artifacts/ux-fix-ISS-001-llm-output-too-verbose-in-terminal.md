@@ -36,8 +36,8 @@ so that **I can easily follow execution progress without being overwhelmed by ve
 - [x] Document flag in help text
 
 ### Task 3: Wire verbosity to LLM output control
-- [ ] When `--trace` verbosity is set, enable `show_llm_output`
-- [ ] Ensure backward compatibility for users who expect verbose output
+- [x] When `--trace` verbosity is set, enable `show_llm_output`
+- [x] Ensure backward compatibility for users who expect verbose output
 
 ### Task 4: Verify log capture still works
 - [ ] Confirm `StreamLogger.token()` continues capturing all output
