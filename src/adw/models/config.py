@@ -195,6 +195,38 @@ class LoggingConfig(BaseModel):
     )
 
 
+class GitConfig(BaseModel):
+    """Configuration for git integration.
+
+    Controls automatic git branch management during workflow execution.
+    When enabled, ADW will automatically create or switch to feature
+    branches based on the feature description.
+
+    Attributes:
+        enabled: Whether git integration is enabled (default: False)
+        branch_prefix: Prefix for auto-created branches (default: "feature/")
+
+    Example:
+        >>> config = GitConfig(enabled=True, branch_prefix="feat/")
+        >>> config.branch_prefix
+        'feat/'
+
+    YAML example:
+        git:
+          enabled: true
+          branch_prefix: "feature/"
+    """
+
+    enabled: bool = Field(
+        default=False,
+        description="Whether git integration is enabled",
+    )
+    branch_prefix: str = Field(
+        default="feature/",
+        description="Prefix for auto-created branches",
+    )
+
+
 class ProjectConfig(BaseModel):
     """Main project configuration loaded from adw.yaml.
 
@@ -214,6 +246,7 @@ class ProjectConfig(BaseModel):
         pipeline: Pipeline behavior configuration
         logging: Logging configuration (includes redaction settings)
         security: Security configuration (blocked patterns, allow_dangerous)
+        git: Git integration configuration (branch management)
 
     Example:
         >>> config = ProjectConfig.from_yaml('''
@@ -249,6 +282,9 @@ class ProjectConfig(BaseModel):
     )
     security: SecurityConfig | None = Field(
         default=None, description="Security configuration"
+    )
+    git: GitConfig = Field(
+        default_factory=GitConfig, description="Git integration configuration"
     )
 
     @model_validator(mode="before")
@@ -328,6 +364,10 @@ class ProjectConfig(BaseModel):
                 "security": {
                     "allow_dangerous": False,
                     "blocked_patterns": [],
+                },
+                "git": {
+                    "enabled": False,
+                    "branch_prefix": "feature/",
                 },
             }
         },
