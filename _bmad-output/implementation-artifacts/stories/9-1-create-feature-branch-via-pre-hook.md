@@ -46,7 +46,7 @@ so that my work is isolated from the main branch.
   - Switch: `git checkout <branch>`
 - [x] Implement `check_uncommitted_changes() -> bool`
   - Use `git status --porcelain`
-- [ ] Add git integration config to project.yaml schema
+- [x] Add git integration config to project.yaml schema
   - `git.enabled: bool`
   - `git.branch_prefix: str` (default: "feature/")
 - [ ] Create bundled pre-hook script `defaults/commands/plan/pre.sh`
@@ -136,5 +136,8 @@ Claude Opus 4.5
 ### File List
 - src/adw/hooks/git_branch.py (new)
 - src/adw/hooks/__init__.py (modified - added exports)
+- src/adw/models/config.py (modified - added GitConfig)
+- src/adw/models/__init__.py (modified - exported GitConfig)
 - tests/unit/hooks/test_git_branch.py (new)
+- tests/unit/models/test_config.py (modified - added GitConfig tests)
 
