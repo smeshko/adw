@@ -12,8 +12,15 @@ from adw.evidence.config_loader import (
     EvidenceConfig,
     load_evidence_commands,
     load_evidence_config,
+    load_optimization_config,
 )
-from adw.models.evidence import AuthConfig, AuthType, CommandConfig, EndpointConfig
+from adw.models.evidence import (
+    AuthConfig,
+    AuthType,
+    CommandConfig,
+    EndpointConfig,
+    OptimizationConfig,
+)
 
 # =============================================================================
 # API Evidence Config Tests
@@ -378,3 +385,121 @@ evidence:
         assert len(commands) == 2
         assert commands[0].name == "version"
         assert commands[0].cmd == "adw --version"
+
+
+# =============================================================================
+# Optimization Config Tests
+# =============================================================================
+
+
+class TestLoadOptimizationConfig:
+    """Tests for load_optimization_config function."""
+
+    def test_load_optimization_config_from_yaml(self, tmp_path: Path) -> None:
+        """Test loading optimization config from project.yaml."""
+        config_file = tmp_path / ".adw" / "project.yaml"
+        config_file.parent.mkdir(parents=True)
+        config_file.write_text("""
+evidence:
+  optimization:
+    enabled: true
+    max_image_size_kb: 500
+    max_text_size_kb: 100
+    image_quality: 80
+    compress_json: true
+    warn_total_size_mb: 10
+""")
+
+        config = load_optimization_config(tmp_path)
+
+        assert config is not None
+        assert config.enabled is True
+        assert config.max_image_size_kb == 500
+        assert config.max_text_size_kb == 100
+        assert config.image_quality == 80
+
+    def test_load_optimization_config_custom_values(self, tmp_path: Path) -> None:
+        """Test loading optimization config with custom values."""
+        config_file = tmp_path / ".adw" / "project.yaml"
+        config_file.parent.mkdir(parents=True)
+        config_file.write_text("""
+evidence:
+  optimization:
+    enabled: false
+    max_image_size_kb: 1000
+    max_text_size_kb: 200
+    image_quality: 90
+    compress_json: false
+    keep_manifest_pretty: false
+    warn_total_size_mb: 20
+""")
+
+        config = load_optimization_config(tmp_path)
+
+        assert config is not None
+        assert config.enabled is False
+        assert config.max_image_size_kb == 1000
+        assert config.max_text_size_kb == 200
+        assert config.image_quality == 90
+        assert config.compress_json is False
+        assert config.keep_manifest_pretty is False
+        assert config.warn_total_size_mb == 20
+
+    def test_load_optimization_config_no_config_file(self, tmp_path: Path) -> None:
+        """Test that defaults are returned when no config file exists."""
+        config = load_optimization_config(tmp_path)
+
+        # Should return defaults
+        assert config is not None
+        assert config.enabled is True
+        assert config.max_image_size_kb == 500
+
+    def test_load_optimization_config_no_evidence_section(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that defaults are returned when no evidence section exists."""
+        config_file = tmp_path / ".adw" / "project.yaml"
+        config_file.parent.mkdir(parents=True)
+        config_file.write_text("""
+name: test-project
+""")
+
+        config = load_optimization_config(tmp_path)
+
+        assert config is not None
+        assert config.enabled is True
+
+    def test_load_optimization_config_no_optimization_section(
+        self, tmp_path: Path
+    ) -> None:
+        """Test defaults when evidence section exists but no optimization."""
+        config_file = tmp_path / ".adw" / "project.yaml"
+        config_file.parent.mkdir(parents=True)
+        config_file.write_text("""
+evidence:
+  base_url: "http://localhost:8000"
+""")
+
+        config = load_optimization_config(tmp_path)
+
+        assert config is not None
+        assert config.enabled is True
+
+    def test_load_optimization_config_partial_values(self, tmp_path: Path) -> None:
+        """Test that missing values use defaults."""
+        config_file = tmp_path / ".adw" / "project.yaml"
+        config_file.parent.mkdir(parents=True)
+        config_file.write_text("""
+evidence:
+  optimization:
+    max_image_size_kb: 200
+""")
+
+        config = load_optimization_config(tmp_path)
+
+        assert config is not None
+        assert config.max_image_size_kb == 200
+        # Other values should be defaults
+        assert config.enabled is True
+        assert config.max_text_size_kb == 100
+        assert config.image_quality == 80

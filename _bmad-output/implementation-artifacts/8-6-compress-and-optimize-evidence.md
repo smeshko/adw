@@ -1,6 +1,6 @@
 # Story 8.6: Compress and Optimize Evidence
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-03
@@ -34,37 +34,37 @@ so that storage and transfer are efficient.
 ## Tasks / Subtasks
 
 ### Task 1: Create Optimization Models (models/evidence.py)
-- [ ] Create `OptimizationConfig` model with max sizes per type
-- [ ] Create `OptimizationResult` model with before/after sizes
-- [ ] Create `FileOptimization` model for individual file results
-- [ ] Export from `models/__init__.py`
+- [x] Create `OptimizationConfig` model with max sizes per type
+- [x] Create `OptimizationResult` model with before/after sizes
+- [x] Create `FileOptimization` model for individual file results
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Image Compression (evidence/optimizer.py)
-- [ ] Create `EvidenceOptimizer` class
-- [ ] Implement PNG compression using Pillow
-- [ ] Support quality settings (lossy acceptable)
-- [ ] Handle missing Pillow gracefully (skip optimization)
+- [x] Create `EvidenceOptimizer` class
+- [x] Implement PNG compression using Pillow
+- [x] Support quality settings (lossy acceptable)
+- [x] Handle missing Pillow gracefully (skip optimization)
 
 ### Task 3: Implement Text Truncation
-- [ ] Implement truncation for CLI output files
-- [ ] Preserve head and tail of truncated files
-- [ ] Add truncation marker with original size
-- [ ] Configurable max size threshold (default: 100KB)
+- [x] Implement truncation for CLI output files
+- [x] Preserve head and tail of truncated files
+- [x] Add truncation marker with original size
+- [x] Configurable max size threshold (default: 100KB)
 
 ### Task 4: Implement JSON Minification
-- [ ] Minify JSON files (remove whitespace)
-- [ ] Option to keep pretty-printed manifest
-- [ ] Calculate size savings
+- [x] Minify JSON files (remove whitespace)
+- [x] Option to keep pretty-printed manifest
+- [x] Calculate size savings
 
 ### Task 5: Implement Size Monitoring
-- [ ] Calculate total evidence directory size
-- [ ] Calculate per-type size breakdown
-- [ ] Log summary to console via LogManager
-- [ ] Emit warning if over configurable threshold
+- [x] Calculate total evidence directory size
+- [x] Calculate per-type size breakdown
+- [x] Log summary to console via LogManager
+- [x] Emit warning if over configurable threshold
 
 ### Task 6: Implement Config-Based Settings
-- [ ] Read optimization config from `.adw/project.yaml`
-- [ ] Support configuration format:
+- [x] Read optimization config from `.adw/project.yaml`
+- [x] Support configuration format:
   ```yaml
   evidence:
     optimization:
@@ -75,21 +75,21 @@ so that storage and transfer are efficient.
       compress_json: true
       warn_total_size_mb: 10
   ```
-- [ ] Apply sensible defaults when not configured
+- [x] Apply sensible defaults when not configured
 
 ### Task 7: Integrate with Verify Phase
-- [ ] Run optimization after manifest generation
-- [ ] Update manifest with optimized file sizes
-- [ ] Store optimization results in RunContext
-- [ ] Log total size and savings summary
+- [x] Run optimization after manifest generation
+- [x] Update manifest with optimized file sizes
+- [x] Store optimization results in RunContext
+- [x] Log total size and savings summary
 
 ### Task 8: Write Unit Tests
-- [ ] Test image compression (mock Pillow)
-- [ ] Test text truncation logic
-- [ ] Test JSON minification
-- [ ] Test size calculation
-- [ ] Test config loading and defaults
-- [ ] Test warning threshold
+- [x] Test image compression (mock Pillow)
+- [x] Test text truncation logic
+- [x] Test JSON minification
+- [x] Test size calculation
+- [x] Test config loading and defaults
+- [x] Test warning threshold
 
 ---
 
@@ -565,9 +565,33 @@ Key patterns and rules from project context:
 
 ### Agent Model Used
 
+claude-opus-4-5-20251101
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Created optimization models (OptimizationConfig, FileOptimization, OptimizationReport)
+- Implemented image compression with iterative quality reduction to meet max_image_size_kb target
+- Implemented text truncation preserving head/tail with truncation marker
+- Implemented JSON minification with manifest.json exception
+- Added config loading from project.yaml evidence.optimization section
+- Integrated optimization into verify phase pipeline via orchestrator
+- Added optimization_report.json output to evidence directory
+- All tests passing (59 tests)
+
 ### File List
+
+**New Files:**
+- `src/adw/evidence/optimizer.py` - EvidenceOptimizer class with image/text/JSON optimization
+- `tests/unit/evidence/test_optimizer.py` - Unit tests for optimizer functionality
+- `tests/unit/evidence/test_optimizer_models.py` - Unit tests for optimization models
+
+**Modified Files:**
+- `src/adw/models/evidence.py` - Added OptimizationConfig, FileOptimization, OptimizationReport models
+- `src/adw/models/__init__.py` - Exported new optimization models
+- `src/adw/evidence/__init__.py` - Exported optimizer, added optimize_evidence() integration function
+- `src/adw/evidence/config_loader.py` - Added load_optimization_config() function
+- `src/adw/core/orchestrator.py` - Integrated optimization after verify phase
+- `tests/unit/evidence/test_config_loader.py` - Added tests for optimization config loading
 

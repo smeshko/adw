@@ -24,7 +24,7 @@ from adw.core.index_manager import IndexManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
-from adw.evidence import detect_platform
+from adw.evidence import detect_platform, optimize_evidence
 from adw.exceptions import ADWError, ConfigError
 from adw.models import RunContext
 from adw.models.evidence import PlatformType
@@ -990,6 +990,10 @@ class Orchestrator:
                 context, phase, artifacts_override=artifacts_override
             )
 
+            # Run evidence optimization after verify phase (Story 8.6)
+            if phase == "verify":
+                self._optimize_evidence_after_verify(context)
+
             # Post-phase snapshot
             self.snapshot_manager.create_post_phase_snapshot(context, phase, result)
 
@@ -1145,6 +1149,56 @@ class Orchestrator:
         self.context_manager.save(context)
 
         return context
+
+    def _optimize_evidence_after_verify(self, context: RunContext) -> None:
+        """Optimize evidence files after verify phase completes (Story 8.6).
+
+        Runs evidence optimization on the evidence directory to:
+        - Compress images to reduce size
+        - Truncate large text files
+        - Minify JSON files
+
+        The optimization report is saved to the evidence directory.
+
+        Args:
+            context: Current run context with run_id.
+        """
+        # Construct evidence directory path
+        run_dir = self.runs_dir / context.run_id
+        evidence_dir = run_dir / "evidence"
+
+        # Only optimize if evidence directory exists
+        if not evidence_dir.exists():
+            logger.debug(
+                "No evidence directory found, skipping optimization",
+                extra={"run_id": context.run_id},
+            )
+            return
+
+        try:
+            report = optimize_evidence(
+                run_id=context.run_id,
+                evidence_directory=evidence_dir,
+                project_root=self._project_path,
+            )
+
+            logger.info(
+                "Evidence optimization completed",
+                extra={
+                    "run_id": context.run_id,
+                    "files_optimized": report.files_optimized,
+                    "total_files": report.total_files,
+                    "savings_bytes": report.total_savings_bytes,
+                    "savings_percent": report.total_savings_percent,
+                },
+            )
+
+        except Exception as e:
+            # Log but don't fail the phase if optimization fails
+            logger.warning(
+                "Evidence optimization failed",
+                extra={"run_id": context.run_id, "error": str(e)},
+            )
 
     def abort(self, run_id: str, reason: str = "remote_abort") -> RunContext:
         """Abort a running execution.
