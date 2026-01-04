@@ -74,10 +74,10 @@ so that mobile UI changes can be visually verified.
 - [x] Handle hybrid projects with both simulators
 
 ### Task 5: Implement Screen Navigation (Optional Feature)
-- [ ] Support `navigation_steps` in screen config for complex navigation
-- [ ] Implement basic tap/swipe commands via xcrun/adb
-- [ ] Implement deeplink navigation for supported screens
-- [ ] Add configurable wait time between navigation and capture
+- [x] Support `navigation_steps` in screen config for complex navigation
+- [x] Implement basic tap/swipe commands via xcrun/adb
+- [x] Implement deeplink navigation for supported screens
+- [x] Add configurable wait time between navigation and capture
 
 ### Task 6: Implement Config-Based Screen Loading
 - [ ] Read `evidence.mobile_screens` from `.adw/project.yaml`

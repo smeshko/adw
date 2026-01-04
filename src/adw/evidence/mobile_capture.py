@@ -458,6 +458,101 @@ def detect_flutter_device() -> dict[str, str] | None:
         return None
 
 
+# =============================================================================
+# Screen Navigation Functions
+# =============================================================================
+
+
+def navigate_ios_deeplink(deeplink: str) -> bool:
+    """Navigate iOS Simulator to a deeplink URL.
+
+    Uses xcrun simctl openurl to open the deeplink in the booted simulator.
+
+    Args:
+        deeplink: The deeplink URL to open (e.g., "myapp://profile/123")
+
+    Returns:
+        True if navigation succeeded, False otherwise
+
+    Example:
+        >>> if navigate_ios_deeplink("myapp://home"):
+        ...     time.sleep(0.5)  # Wait for navigation
+        ...     capture_ios_screenshot(...)
+    """
+    logger = get_logger()
+
+    try:
+        result = subprocess.run(
+            ["xcrun", "simctl", "openurl", "booted", deeplink],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+
+        if result.returncode != 0:
+            logger.warn(
+                LogCategory.STATE,
+                f"iOS deeplink navigation failed: {result.stderr}",
+            )
+            return False
+
+        logger.debug(
+            LogCategory.STATE,
+            f"Navigated iOS simulator to: {deeplink}",
+        )
+        return True
+
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+
+
+def navigate_android_deeplink(deeplink: str) -> bool:
+    """Navigate Android Emulator to a deeplink URL.
+
+    Uses adb shell am start to open the deeplink.
+
+    Args:
+        deeplink: The deeplink URL to open (e.g., "myapp://profile/123")
+
+    Returns:
+        True if navigation succeeded, False otherwise
+
+    Example:
+        >>> if navigate_android_deeplink("myapp://home"):
+        ...     time.sleep(0.5)  # Wait for navigation
+        ...     capture_android_screenshot(...)
+    """
+    logger = get_logger()
+
+    try:
+        result = subprocess.run(
+            [
+                "adb", "shell", "am", "start",
+                "-a", "android.intent.action.VIEW",
+                "-d", deeplink,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+
+        if result.returncode != 0:
+            logger.warn(
+                LogCategory.STATE,
+                f"Android deeplink navigation failed: {result.stderr}",
+            )
+            return False
+
+        logger.debug(
+            LogCategory.STATE,
+            f"Navigated Android emulator to: {deeplink}",
+        )
+        return True
+
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+
+
 def capture_flutter_screenshot(
     output_path: Path,
     screen_name: str,

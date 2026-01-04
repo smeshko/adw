@@ -353,6 +353,71 @@ class TestDetectFlutterDevice:
             assert result is not None
 
 
+# =============================================================================
+# Screen Navigation Tests (Task 5)
+# =============================================================================
+
+
+class TestNavigateIosDeeplink:
+    """Tests for iOS deeplink navigation."""
+
+    def test_navigate_ios_deeplink_success(self) -> None:
+        """Test successful iOS deeplink navigation."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            from adw.evidence.mobile_capture import navigate_ios_deeplink
+            assert navigate_ios_deeplink("myapp://home") is True
+
+    def test_navigate_ios_deeplink_failure(self) -> None:
+        """Test failed iOS deeplink navigation."""
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stderr = "Unable to open URL"
+
+        with patch("subprocess.run", return_value=mock_result):
+            from adw.evidence.mobile_capture import navigate_ios_deeplink
+            assert navigate_ios_deeplink("myapp://invalid") is False
+
+    def test_navigate_ios_deeplink_xcrun_not_found(self) -> None:
+        """Test when xcrun is not available."""
+        with patch("subprocess.run", side_effect=FileNotFoundError):
+            from adw.evidence.mobile_capture import navigate_ios_deeplink
+            assert navigate_ios_deeplink("myapp://home") is False
+
+
+class TestNavigateAndroidDeeplink:
+    """Tests for Android deeplink navigation."""
+
+    def test_navigate_android_deeplink_success(self) -> None:
+        """Test successful Android deeplink navigation."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            from adw.evidence.mobile_capture import navigate_android_deeplink
+            assert navigate_android_deeplink("myapp://home") is True
+
+    def test_navigate_android_deeplink_failure(self) -> None:
+        """Test failed Android deeplink navigation."""
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stderr = "Error: Activity not found"
+
+        with patch("subprocess.run", return_value=mock_result):
+            from adw.evidence.mobile_capture import navigate_android_deeplink
+            assert navigate_android_deeplink("myapp://invalid") is False
+
+    def test_navigate_android_deeplink_adb_not_found(self) -> None:
+        """Test when adb is not available."""
+        with patch("subprocess.run", side_effect=FileNotFoundError):
+            from adw.evidence.mobile_capture import navigate_android_deeplink
+            assert navigate_android_deeplink("myapp://home") is False
+
+
 class TestCaptureFlutterScreenshot:
     """Tests for Flutter screenshot capture."""
 
