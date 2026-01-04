@@ -266,6 +266,145 @@ class TestGetRunningEmulator:
             assert get_running_emulator() is None
 
 
+# =============================================================================
+# Flutter Support Tests (Task 4)
+# =============================================================================
+
+
+class TestDetectFlutterDevice:
+    """Tests for Flutter device detection."""
+
+    def test_detect_flutter_ios_device(self) -> None:
+        """Test detecting a Flutter iOS device."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = json.dumps([
+            {
+                "name": "iPhone 15 Pro",
+                "id": "12345-ABCDE",
+                "platform": "ios",
+                "platformType": "ios"
+            }
+        ])
+
+        with patch("subprocess.run", return_value=mock_result):
+            from adw.evidence.mobile_capture import detect_flutter_device
+            result = detect_flutter_device()
+            assert result is not None
+            assert result["platform"] == "ios"
+            assert result["id"] == "12345-ABCDE"
+
+    def test_detect_flutter_android_device(self) -> None:
+        """Test detecting a Flutter Android device."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = json.dumps([
+            {
+                "name": "sdk_gphone64",
+                "id": "emulator-5554",
+                "platform": "android",
+                "platformType": "android"
+            }
+        ])
+
+        with patch("subprocess.run", return_value=mock_result):
+            from adw.evidence.mobile_capture import detect_flutter_device
+            result = detect_flutter_device()
+            assert result is not None
+            assert result["platform"] == "android"
+
+    def test_detect_flutter_no_devices(self) -> None:
+        """Test when no Flutter devices available."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "[]"
+
+        with patch("subprocess.run", return_value=mock_result):
+            from adw.evidence.mobile_capture import detect_flutter_device
+            assert detect_flutter_device() is None
+
+    def test_detect_flutter_not_installed(self) -> None:
+        """Test graceful handling when flutter is not installed."""
+        with patch("subprocess.run", side_effect=FileNotFoundError):
+            from adw.evidence.mobile_capture import detect_flutter_device
+            assert detect_flutter_device() is None
+
+    def test_flutter_prefers_ios_when_both_available(self) -> None:
+        """Test that iOS is preferred when both platforms are available."""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = json.dumps([
+            {
+                "name": "sdk_gphone64",
+                "id": "emulator-5554",
+                "platform": "android"
+            },
+            {
+                "name": "iPhone 15 Pro",
+                "id": "12345-ABCDE",
+                "platform": "ios"
+            }
+        ])
+
+        with patch("subprocess.run", return_value=mock_result):
+            from adw.evidence.mobile_capture import detect_flutter_device
+            result = detect_flutter_device()
+            # Should return first device (order preserved)
+            assert result is not None
+
+
+class TestCaptureFlutterScreenshot:
+    """Tests for Flutter screenshot capture."""
+
+    def test_capture_flutter_ios_screenshot(self, tmp_path: Path) -> None:
+        """Test Flutter screenshot capture on iOS."""
+        output_path = tmp_path / "screenshot.png"
+
+        # Mock flutter devices returning iOS
+        mock_flutter_devices = MagicMock()
+        mock_flutter_devices.returncode = 0
+        mock_flutter_devices.stdout = json.dumps([{
+            "name": "iPhone 15 Pro",
+            "id": "12345-ABCDE",
+            "platform": "ios"
+        }])
+
+        # Mock iOS screenshot capture
+        mock_capture = MagicMock()
+        mock_capture.returncode = 0
+        mock_capture.stderr = ""
+
+        # Mock device info
+        mock_device_info = MagicMock()
+        mock_device_info.returncode = 0
+        mock_device_info.stdout = json.dumps({
+            "devices": {
+                "com.apple.CoreSimulator.SimRuntime.iOS-17-2": [{
+                    "udid": "12345-ABCDE",
+                    "name": "iPhone 15 Pro",
+                    "state": "Booted"
+                }]
+            }
+        })
+
+        call_count = 0
+        def mock_run(cmd, *args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if "flutter" in cmd:
+                return mock_flutter_devices
+            if "screenshot" in cmd:
+                output_path.write_bytes(b"fake png")
+                return mock_capture
+            return mock_device_info
+
+        with patch("subprocess.run", side_effect=mock_run):
+            from adw.evidence.mobile_capture import capture_flutter_screenshot
+            result = capture_flutter_screenshot(output_path, "home")
+            assert result.success is True
+            assert result.device_type in (MobileDeviceType.FLUTTER_IOS, MobileDeviceType.IOS)
+
+
 class TestCaptureAndroidScreenshot:
     """Tests for Android screenshot capture."""
 

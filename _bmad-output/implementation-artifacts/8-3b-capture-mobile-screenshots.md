@@ -68,10 +68,10 @@ so that mobile UI changes can be visually verified.
 - [x] Extract device info via `adb shell getprop`
 
 ### Task 4: Implement Flutter Cross-Platform Support
-- [ ] Detect active Flutter device (iOS simulator or Android emulator)
-- [ ] Use `flutter devices --machine` for device detection
-- [ ] Route to appropriate iOS or Android capture method
-- [ ] Handle hybrid projects with both simulators
+- [x] Detect active Flutter device (iOS simulator or Android emulator)
+- [x] Use `flutter devices --machine` for device detection
+- [x] Route to appropriate iOS or Android capture method
+- [x] Handle hybrid projects with both simulators
 
 ### Task 5: Implement Screen Navigation (Optional Feature)
 - [ ] Support `navigation_steps` in screen config for complex navigation

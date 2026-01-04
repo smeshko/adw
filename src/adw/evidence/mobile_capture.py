@@ -415,3 +415,157 @@ def capture_android_screenshot(
             success=False,
             error="adb not found - Android SDK may not be installed",
         )
+
+
+# =============================================================================
+# Flutter Cross-Platform Functions
+# =============================================================================
+
+
+def detect_flutter_device() -> dict[str, str] | None:
+    """Detect the active Flutter device (iOS or Android).
+
+    Uses `flutter devices --machine` to list connected devices and
+    returns the first available device.
+
+    Returns:
+        Dictionary with device info including 'platform' ('ios' or 'android'),
+        or None if no device is available
+
+    Example:
+        >>> device = detect_flutter_device()
+        >>> if device:
+        ...     print(f"Using {device['platform']} device: {device['name']}")
+    """
+    try:
+        result = subprocess.run(
+            ["flutter", "devices", "--machine"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            return None
+
+        devices = json.loads(result.stdout)
+        if not devices:
+            return None
+
+        # Return first available device
+        return devices[0]
+
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
+        return None
+
+
+def capture_flutter_screenshot(
+    output_path: Path,
+    screen_name: str,
+) -> MobileScreenshotResult:
+    """Capture screenshot from Flutter project's active device.
+
+    Detects whether the Flutter project is running on iOS or Android,
+    then routes to the appropriate capture method.
+
+    Args:
+        output_path: Path where the screenshot should be saved
+        screen_name: Name of the screen being captured
+
+    Returns:
+        MobileScreenshotResult with capture details and status
+
+    Example:
+        >>> result = capture_flutter_screenshot(Path("/tmp/home.png"), "home")
+        >>> if result.success:
+        ...     print(f"Captured on {result.device_type}")
+    """
+    logger = get_logger()
+
+    # Detect which platform Flutter is using
+    device = detect_flutter_device()
+
+    if device is None:
+        logger.warn(
+            LogCategory.STATE,
+            "No Flutter device detected - checking native simulators/emulators",
+        )
+        # Fall back to checking native platforms
+        if check_ios_simulator_available():
+            result = capture_ios_screenshot(output_path, screen_name)
+            # Mark as Flutter iOS
+            return MobileScreenshotResult(
+                path=result.path,
+                screen_name=result.screen_name,
+                device_type=MobileDeviceType.FLUTTER_IOS,
+                device_name=result.device_name,
+                os_version=result.os_version,
+                success=result.success,
+                error=result.error,
+            )
+        elif check_android_emulator_available():
+            result = capture_android_screenshot(output_path, screen_name)
+            return MobileScreenshotResult(
+                path=result.path,
+                screen_name=result.screen_name,
+                device_type=MobileDeviceType.FLUTTER_ANDROID,
+                device_name=result.device_name,
+                os_version=result.os_version,
+                success=result.success,
+                error=result.error,
+            )
+        else:
+            return MobileScreenshotResult(
+                path=output_path,
+                screen_name=screen_name,
+                device_type=MobileDeviceType.FLUTTER_IOS,  # Default
+                success=False,
+                error="No Flutter device or simulator/emulator available",
+            )
+
+    # Route based on detected platform
+    platform = device.get("platform", "").lower()
+
+    if platform == "ios":
+        logger.info(
+            LogCategory.STATE,
+            f"Flutter using iOS device: {device.get('name', 'Unknown')}",
+        )
+        result = capture_ios_screenshot(output_path, screen_name)
+        return MobileScreenshotResult(
+            path=result.path,
+            screen_name=result.screen_name,
+            device_type=MobileDeviceType.FLUTTER_IOS,
+            device_name=result.device_name,
+            os_version=result.os_version,
+            success=result.success,
+            error=result.error,
+        )
+
+    elif platform == "android":
+        logger.info(
+            LogCategory.STATE,
+            f"Flutter using Android device: {device.get('name', 'Unknown')}",
+        )
+        result = capture_android_screenshot(output_path, screen_name)
+        return MobileScreenshotResult(
+            path=result.path,
+            screen_name=result.screen_name,
+            device_type=MobileDeviceType.FLUTTER_ANDROID,
+            device_name=result.device_name,
+            os_version=result.os_version,
+            success=result.success,
+            error=result.error,
+        )
+
+    else:
+        logger.warn(
+            LogCategory.STATE,
+            f"Unknown Flutter platform: {platform}",
+        )
+        return MobileScreenshotResult(
+            path=output_path,
+            screen_name=screen_name,
+            device_type=MobileDeviceType.FLUTTER_IOS,
+            success=False,
+            error=f"Unknown Flutter platform: {platform}",
+        )
