@@ -1,4 +1,4 @@
-# Epic 15: Validation Loop
+# Epic 11: Validation Loop
 
 **Goal:** Replace single-pass Verify/Validate phases with an iterative review→fix→review cycle that continues until all issues are resolved or max iterations reached.
 
@@ -7,7 +7,7 @@
 
 ---
 
-## Story 15.1: Unified Validation Phase
+## Story 11.1: Unified Validation Phase
 
 As a developer,
 I want a single "Validation" phase that combines evidence, code review, and tests,
@@ -39,7 +39,7 @@ validation:
 
 ---
 
-## Story 15.2: Validation Issue Model
+## Story 11.2: Validation Issue Model
 
 As a developer,
 I want validation issues tracked with structured metadata,
@@ -65,7 +65,7 @@ So that triage and fix tracking work reliably.
 
 ---
 
-## Story 15.3: Issue Triage System
+## Story 11.3: Issue Triage System
 
 As a developer,
 I want to triage validation issues into FIX, DISMISS, or DEFER,
@@ -99,7 +99,7 @@ So that I control which issues block the pipeline.
 
 ---
 
-## Story 15.4: Fix Iteration Loop
+## Story 11.4: Fix Iteration Loop
 
 As a developer,
 I want the system to attempt fixes and re-validate,
@@ -129,7 +129,7 @@ So that issues are resolved automatically when possible.
 
 ---
 
-## Story 15.5: Iteration Limits and Exit Conditions
+## Story 11.5: Iteration Limits and Exit Conditions
 
 As a developer,
 I want configurable limits on validation iterations,
@@ -161,7 +161,7 @@ validation:
 
 ---
 
-## Story 15.6: Validation State Persistence
+## Story 11.6: Validation State Persistence
 
 As a developer,
 I want validation state persisted,
@@ -187,7 +187,7 @@ So that I can resume validation after interruption.
 
 ---
 
-## Story 15.7: Validation Report Generation
+## Story 11.7: Validation Report Generation
 
 As a developer,
 I want a validation report summarizing the loop results,
@@ -310,10 +310,10 @@ validation:
 ## Dependency Flowchart
 
 ```
-     Story 15.1 (Unified Phase)
+     Story 11.1 (Unified Phase)
               │
               ▼
-     Story 15.2 (Issue Model)
+     Story 11.2 (Issue Model)
               │
      ┌────────┼────────┐
      ▼        ▼        ▼
@@ -322,10 +322,10 @@ validation:
      │        │        │
      └────────┼────────┘
               ▼
-     Story 15.5 (Limits)
+     Story 11.5 (Limits)
               │
               ▼
-     Story 15.7 (Report)
+     Story 11.7 (Report)
 ```
 
 ---
