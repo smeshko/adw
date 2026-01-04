@@ -59,10 +59,10 @@ so that endpoint behavior can be verified.
 - [x] Calculate request duration
 
 ### Task 4: Implement Authentication Support
-- [ ] Support Bearer token authentication
-- [ ] Support API key headers
-- [ ] Read auth from config or environment variables
-- [ ] Support auth config format:
+- [x] Support Bearer token authentication
+- [x] Support API key headers
+- [x] Read auth from config or environment variables
+- [x] Support auth config format:
   ```yaml
   evidence:
     auth:

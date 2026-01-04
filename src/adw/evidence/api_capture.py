@@ -5,6 +5,7 @@ HTTP requests to configured endpoints and captures request/response
 pairs for evidence gathering during the Verify phase.
 """
 
+import os
 from datetime import datetime, timezone
 
 import httpx
@@ -167,9 +168,50 @@ class APICaptureStrategy:
             headers.update(config.headers)
 
         # Add auth headers if configured
-        # (Auth header injection will be implemented in Task 4)
+        if self.auth:
+            auth_headers = self._get_auth_headers()
+            if auth_headers:
+                headers.update(auth_headers)
 
         return headers if headers else None
+
+    def _get_auth_headers(self) -> dict[str, str] | None:
+        """Get authentication headers from config and environment.
+
+        Reads auth tokens from environment variables based on
+        the authentication configuration.
+
+        Returns:
+            Dictionary of auth headers or None if not configured/available
+        """
+        if not self.auth:
+            return None
+
+        if self.auth.type == AuthType.BEARER:
+            if self.auth.token_env:
+                token = os.environ.get(self.auth.token_env)
+                if token:
+                    return {"Authorization": f"Bearer {token}"}
+                else:
+                    self._logger.warn(
+                        LogCategory.STATE,
+                        f"Bearer token env var '{self.auth.token_env}' not set",
+                    )
+            return None
+
+        elif self.auth.type == AuthType.API_KEY:
+            if self.auth.key_env and self.auth.header:
+                key = os.environ.get(self.auth.key_env)
+                if key:
+                    return {self.auth.header: key}
+                else:
+                    self._logger.warn(
+                        LogCategory.STATE,
+                        f"API key env var '{self.auth.key_env}' not set",
+                    )
+            return None
+
+        return None
 
     def _redact_auth_headers(
         self, headers: dict[str, str] | None

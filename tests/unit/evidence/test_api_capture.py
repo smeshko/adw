@@ -363,6 +363,110 @@ class TestRequestResponseCapture:
         assert result.response.duration_seconds >= 0.01
 
 
+class TestAuthenticationSupport:
+    """Tests for authentication support (Task 4)."""
+
+    @patch("adw.evidence.api_capture.httpx.Client")
+    @patch.dict("os.environ", {"API_TOKEN": "secret-bearer-token"})
+    def test_bearer_token_auth_from_env(self, mock_client_class: MagicMock) -> None:
+        """Test bearer token auth from environment variable."""
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.text = "{}"
+        mock_response.is_success = True
+        mock_client.request.return_value = mock_response
+
+        auth = AuthConfig(type=AuthType.BEARER, token_env="API_TOKEN")
+        strategy = APICaptureStrategy(base_url="http://localhost:8000", auth=auth)
+        endpoint = EndpointConfig(name="test", path="/test")
+        result = strategy.call_endpoint(endpoint)
+
+        # Verify auth header was included in request
+        call_kwargs = mock_client.request.call_args[1]
+        assert "headers" in call_kwargs
+        assert call_kwargs["headers"]["Authorization"] == "Bearer secret-bearer-token"
+
+    @patch("adw.evidence.api_capture.httpx.Client")
+    @patch.dict("os.environ", {"API_KEY": "my-api-key"})
+    def test_api_key_auth_from_env(self, mock_client_class: MagicMock) -> None:
+        """Test API key auth from environment variable."""
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.text = "{}"
+        mock_response.is_success = True
+        mock_client.request.return_value = mock_response
+
+        auth = AuthConfig(type=AuthType.API_KEY, header="X-API-Key", key_env="API_KEY")
+        strategy = APICaptureStrategy(base_url="http://localhost:8000", auth=auth)
+        endpoint = EndpointConfig(name="test", path="/test")
+        result = strategy.call_endpoint(endpoint)
+
+        # Verify API key header was included
+        call_kwargs = mock_client.request.call_args[1]
+        assert call_kwargs["headers"]["X-API-Key"] == "my-api-key"
+
+    @patch("adw.evidence.api_capture.httpx.Client")
+    @patch.dict("os.environ", {"API_TOKEN": "secret-token"}, clear=False)
+    def test_auth_headers_redacted_in_result(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """Test that auth headers are redacted in captured result."""
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.text = "{}"
+        mock_response.is_success = True
+        mock_client.request.return_value = mock_response
+
+        auth = AuthConfig(type=AuthType.BEARER, token_env="API_TOKEN")
+        strategy = APICaptureStrategy(base_url="http://localhost:8000", auth=auth)
+        endpoint = EndpointConfig(name="test", path="/test")
+        result = strategy.call_endpoint(endpoint)
+
+        # Captured result should have redacted auth header
+        if result.request.headers and "Authorization" in result.request.headers:
+            assert result.request.headers["Authorization"] == "[REDACTED]"
+
+    @patch("adw.evidence.api_capture.httpx.Client")
+    def test_missing_env_var_handles_gracefully(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """Test graceful handling when env var is missing."""
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.text = "{}"
+        mock_response.is_success = True
+        mock_client.request.return_value = mock_response
+
+        # Auth config points to non-existent env var
+        auth = AuthConfig(type=AuthType.BEARER, token_env="NONEXISTENT_TOKEN")
+        strategy = APICaptureStrategy(base_url="http://localhost:8000", auth=auth)
+        endpoint = EndpointConfig(name="test", path="/test")
+
+        # Should not raise, but may warn
+        result = strategy.call_endpoint(endpoint)
+        assert result is not None
+
+
 class TestStatusMatching:
     """Tests for expected status matching."""
 
