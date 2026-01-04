@@ -1,6 +1,6 @@
 # Story 9.2: Stage and Commit Changes via Post-Hook
 
-Status: Ready for Review
+Status: Done
 Epic: 9 - Git Integration & Documentation
 Created: 2026-01-04
 
@@ -133,12 +133,22 @@ Claude Opus 4.5
 - Supports custom commit message templates via optional template parameter
 - Unit tests cover all functions including edge cases
 
+### Code Review Fixes (2026-01-04)
+- Added re-staging logic when pre-commit hooks modify files (with retry up to 3 times)
+- Added get_unstaged_modifications() helper function
+- Added skip_hooks parameter to create_commit() and GitConfig.skip_hooks config
+- Added commit_shas field to RunContext for audit trail
+- Improved post.sh error handling with debug logging and proper error messages
+- Added integration tests for pre-commit hook scenarios (reject, modify, skip)
+
 ### File List
 - src/adw/hooks/git_commit.py (NEW)
 - src/adw/hooks/__init__.py (MODIFIED - added exports)
-- src/adw/models/config.py (MODIFIED - added auto_commit, commit_template to GitConfig)
+- src/adw/models/config.py (MODIFIED - added auto_commit, commit_template, skip_hooks to GitConfig)
+- src/adw/models/context.py (MODIFIED - added commit_shas field)
 - src/adw/defaults/commands/build/post.sh (NEW)
 - tests/unit/hooks/test_git_commit.py (NEW)
 - tests/unit/models/test_config.py (MODIFIED - added GitConfig commit tests)
-- tests/integration/test_git_hooks.py (MODIFIED - added git commit integration tests)
+- tests/unit/models/test_context.py (MODIFIED - added commit_shas tests)
+- tests/integration/test_git_hooks.py (MODIFIED - added git commit and pre-commit hook integration tests)
 

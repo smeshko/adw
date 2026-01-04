@@ -5,6 +5,7 @@ commits during ADW workflow execution, including:
 - Staging all changes
 - Checking for staged changes
 - Creating commits with formatted messages
+- Handling pre-commit hooks that modify files
 
 All git operations use subprocess.run() for simplicity and
 avoid external dependencies like gitpython.
@@ -16,6 +17,9 @@ from adw.exceptions import HookError
 
 # Default commit message template
 DEFAULT_COMMIT_TEMPLATE = "[adw] {Phase}: {feature}\n\nRun: {run_id}"
+
+# Maximum retries when pre-commit hook modifies files
+MAX_HOOK_RETRIES = 3
 
 
 def format_commit_message(
@@ -160,23 +164,69 @@ def has_staged_changes() -> bool:
         )
 
 
+def get_unstaged_modifications() -> list[str]:
+    """Get list of files with unstaged modifications.
+
+    Uses `git diff --name-only` to find files that have been modified
+    but not yet staged. This is useful for detecting when pre-commit
+    hooks have modified files after staging.
+
+    Returns:
+        List of file paths with unstaged modifications.
+
+    Raises:
+        HookError: If git diff command fails.
+
+    Example:
+        >>> modified = get_unstaged_modifications()
+        >>> if modified:
+        ...     print(f"Files modified: {modified}")
+    """
+    result = subprocess.run(
+        ["git", "diff", "--name-only"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    if result.returncode != 0:
+        raise HookError(
+            code="GIT_DIFF_FAILED",
+            message=f"Failed to check unstaged changes: {result.stderr.strip()}",
+            phase="post-hook",
+            exit_code=result.returncode,
+            stderr=result.stderr,
+            suggestion="Ensure you are in a git repository",
+        )
+
+    # Parse file list, filtering empty lines
+    files = [f for f in result.stdout.strip().split("\n") if f]
+    return files
+
+
 def create_commit(
     phase: str,
     feature: str,
     run_id: str,
     *,
     template: str | None = None,
+    skip_hooks: bool = False,
 ) -> str | None:
     """Create a commit with the staged changes.
 
     If there are no staged changes, returns None without error.
     Handles pre-commit hook failures gracefully by raising HookError.
 
+    When pre-commit hooks modify files (e.g., formatters), this function
+    will automatically re-stage the modified files and retry the commit
+    up to MAX_HOOK_RETRIES times.
+
     Args:
         phase: The phase name (e.g., "build", "verify").
         feature: The feature description for this run.
         run_id: The unique run identifier.
         template: Optional custom commit message template.
+        skip_hooks: If True, use --no-verify to skip pre-commit hooks.
 
     Returns:
         Commit SHA if commit was created, None if no changes to commit.
@@ -203,15 +253,88 @@ def create_commit(
         template=template,
     )
 
-    # Create the commit
-    commit_result = subprocess.run(
-        ["git", "commit", "-m", message],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    # Build commit command
+    commit_cmd = ["git", "commit", "-m", message]
+    if skip_hooks:
+        commit_cmd.insert(2, "--no-verify")
 
-    if commit_result.returncode != 0:
+    # Attempt commit with retry for hook-modified files
+    for attempt in range(MAX_HOOK_RETRIES):
+        # Record files that are currently staged
+        staged_before = set(
+            subprocess.run(
+                ["git", "diff", "--cached", "--name-only"],
+                capture_output=True,
+                text=True,
+                check=False,
+            ).stdout.strip().split("\n")
+        )
+
+        # Create the commit
+        commit_result = subprocess.run(
+            commit_cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        if commit_result.returncode == 0:
+            # Commit succeeded - check if hooks modified any files
+            modified = get_unstaged_modifications()
+            hook_modified = [f for f in modified if f in staged_before]
+
+            if hook_modified and attempt < MAX_HOOK_RETRIES - 1:
+                # Pre-commit hook modified files - re-stage and amend
+                stage_changes()
+                # Amend the commit with the hook-modified files
+                amend_result = subprocess.run(
+                    ["git", "commit", "--amend", "--no-edit"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                if amend_result.returncode != 0:
+                    stderr = amend_result.stderr.strip()
+                    raise HookError(
+                        code="GIT_COMMIT_FAILED",
+                        message=f"Failed to amend commit with hook changes: {stderr}",
+                        phase="post-hook",
+                        exit_code=amend_result.returncode,
+                        stderr=amend_result.stderr,
+                        suggestion="Pre-commit hook modified files but amend failed",
+                    )
+
+            # Get the commit SHA
+            sha_result = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if sha_result.returncode != 0:
+                stderr = sha_result.stderr.strip()
+                raise HookError(
+                    code="GIT_COMMIT_FAILED",
+                    message=f"Commit created but failed to get SHA: {stderr}",
+                    phase="post-hook",
+                    exit_code=sha_result.returncode,
+                    stderr=sha_result.stderr,
+                    suggestion="Commit may have succeeded - check git log",
+                )
+
+            return sha_result.stdout.strip()
+
+        # Commit failed - check if it's due to hook modifying files
+        modified = get_unstaged_modifications()
+        hook_modified = [f for f in modified if f in staged_before]
+
+        if hook_modified and attempt < MAX_HOOK_RETRIES - 1:
+            # Re-stage modified files and retry
+            stage_changes()
+            continue
+
+        # Not a hook modification issue or out of retries
         raise HookError(
             code="GIT_COMMIT_FAILED",
             message=f"Failed to create commit: {commit_result.stderr.strip()}",
@@ -222,23 +345,11 @@ def create_commit(
             suggestion="Check pre-commit hooks or commit message format",
         )
 
-    # Get the commit SHA
-    sha_result = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=False,
+    # Should not reach here, but handle edge case
+    raise HookError(
+        code="GIT_COMMIT_FAILED",
+        message="Commit failed after maximum retries",
+        phase="post-hook",
+        exit_code=1,
+        suggestion="Pre-commit hooks may be continuously modifying files",
     )
-
-    if sha_result.returncode != 0:
-        stderr = sha_result.stderr.strip()
-        raise HookError(
-            code="GIT_COMMIT_FAILED",
-            message=f"Commit created but failed to get SHA: {stderr}",
-            phase="post-hook",
-            exit_code=sha_result.returncode,
-            stderr=sha_result.stderr,
-            suggestion="Commit may have succeeded - check git log",
-        )
-
-    return sha_result.stdout.strip()

@@ -208,6 +208,7 @@ class GitConfig(BaseModel):
         branch_prefix: Prefix for auto-created branches (default: "feature/")
         auto_commit: Whether to auto-commit after phases (default: True)
         commit_template: Custom commit message template (optional)
+        skip_hooks: Skip pre-commit hooks with --no-verify (default: False)
 
     Example:
         >>> config = GitConfig(enabled=True, branch_prefix="feat/")
@@ -222,6 +223,7 @@ class GitConfig(BaseModel):
           branch_prefix: "feature/"
           auto_commit: true
           commit_template: "{phase}: {feature}"
+          skip_hooks: false
     """
 
     enabled: bool = Field(
@@ -239,6 +241,10 @@ class GitConfig(BaseModel):
     commit_template: str | None = Field(
         default=None,
         description="Custom commit message template ({phase}, {feature}, {run_id})",
+    )
+    skip_hooks: bool = Field(
+        default=False,
+        description="Skip pre-commit hooks with --no-verify (use with caution)",
     )
 
 
@@ -385,6 +391,7 @@ class ProjectConfig(BaseModel):
                     "branch_prefix": "feature/",
                     "auto_commit": True,
                     "commit_template": None,
+                    "skip_hooks": False,
                 },
             }
         },

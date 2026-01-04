@@ -12,6 +12,7 @@ from adw.exceptions import HookError
 from adw.hooks.git_commit import (
     create_commit,
     format_commit_message,
+    get_unstaged_modifications,
     has_staged_changes,
     stage_changes,
 )
@@ -151,17 +152,54 @@ class TestHasStagedChanges:
             assert exc_info.value.code == "GIT_DIFF_FAILED"
 
 
+class TestGetUnstagedModifications:
+    """Tests for get_unstaged_modifications function."""
+
+    def test_returns_modified_files(self) -> None:
+        """Should return list of files with unstaged modifications."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                stdout="file1.py\nfile2.py\n",
+                returncode=0,
+            )
+            result = get_unstaged_modifications()
+            assert result == ["file1.py", "file2.py"]
+
+    def test_returns_empty_list_when_no_modifications(self) -> None:
+        """Should return empty list when no unstaged modifications."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="", returncode=0)
+            result = get_unstaged_modifications()
+            assert result == []
+
+    def test_raises_on_git_error(self) -> None:
+        """Should raise HookError when git diff fails."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                stdout="",
+                stderr="fatal: not a git repository",
+                returncode=128,
+            )
+            with pytest.raises(HookError) as exc_info:
+                get_unstaged_modifications()
+            assert exc_info.value.code == "GIT_DIFF_FAILED"
+
+
 class TestCreateCommit:
     """Tests for create_commit function."""
 
     def test_creates_commit_with_staged_changes(self) -> None:
         """Should create commit and return SHA when changes exist."""
         with patch("subprocess.run") as mock_run:
-            # git commit
+            # First call: git diff --cached --name-only (get staged files before)
+            # Second call: git commit
+            # Third call: git diff --name-only (check for unstaged modifications)
+            # Fourth call: git rev-parse HEAD
             mock_run.side_effect = [
-                MagicMock(returncode=0, stdout=""),
-                # git rev-parse HEAD
-                MagicMock(returncode=0, stdout="abc123def456\n"),
+                MagicMock(returncode=0, stdout="file.py\n"),  # staged files
+                MagicMock(returncode=0, stdout=""),  # commit
+                MagicMock(returncode=0, stdout=""),  # no unstaged mods
+                MagicMock(returncode=0, stdout="abc123def456\n"),  # rev-parse
             ]
             with patch("adw.hooks.git_commit.has_staged_changes", return_value=True):
                 result = create_commit(
@@ -184,11 +222,15 @@ class TestCreateCommit:
     def test_raises_on_commit_failure(self) -> None:
         """Should raise HookError when commit fails."""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                stdout="",
-                stderr="error: pre-commit hook rejected",
-                returncode=1,
-            )
+            mock_run.side_effect = [
+                MagicMock(returncode=0, stdout="file.py\n"),  # staged files
+                MagicMock(
+                    stdout="",
+                    stderr="error: pre-commit hook rejected",
+                    returncode=1,
+                ),  # commit fails
+                MagicMock(returncode=0, stdout=""),  # no unstaged mods (no retry)
+            ]
             with patch("adw.hooks.git_commit.has_staged_changes", return_value=True):
                 with pytest.raises(HookError) as exc_info:
                     create_commit(
@@ -203,8 +245,10 @@ class TestCreateCommit:
         """Should use custom commit template when provided."""
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = [
-                MagicMock(returncode=0, stdout=""),
-                MagicMock(returncode=0, stdout="abc123\n"),
+                MagicMock(returncode=0, stdout="file.py\n"),  # staged files
+                MagicMock(returncode=0, stdout=""),  # commit
+                MagicMock(returncode=0, stdout=""),  # no unstaged mods
+                MagicMock(returncode=0, stdout="abc123\n"),  # rev-parse
             ]
             with patch("adw.hooks.git_commit.has_staged_changes", return_value=True):
                 create_commit(
@@ -213,8 +257,28 @@ class TestCreateCommit:
                     run_id="01HQ123",
                     template="{phase}: {feature}",
                 )
-            # Verify the commit message used
-            commit_call = mock_run.call_args_list[0]
-            # git commit -m "message" -> message is at index 3
+            # Verify the commit message used (second call is the commit)
+            commit_call = mock_run.call_args_list[1]
             commit_msg = commit_call[0][0][3]
             assert commit_msg == "build: Add auth"
+
+    def test_skip_hooks_adds_no_verify(self) -> None:
+        """Should add --no-verify flag when skip_hooks=True."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                MagicMock(returncode=0, stdout="file.py\n"),  # staged files
+                MagicMock(returncode=0, stdout=""),  # commit
+                MagicMock(returncode=0, stdout=""),  # no unstaged mods
+                MagicMock(returncode=0, stdout="abc123\n"),  # rev-parse
+            ]
+            with patch("adw.hooks.git_commit.has_staged_changes", return_value=True):
+                create_commit(
+                    phase="build",
+                    feature="Add auth",
+                    run_id="01HQ123",
+                    skip_hooks=True,
+                )
+            # Verify --no-verify is in the commit command
+            commit_call = mock_run.call_args_list[1]
+            commit_cmd = commit_call[0][0]
+            assert "--no-verify" in commit_cmd

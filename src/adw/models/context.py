@@ -74,6 +74,10 @@ class RunContext(BaseModel):
         default_factory=dict,
         description="Token usage per phase (phase name -> token count)",
     )
+    commit_shas: list[str] = Field(
+        default_factory=list,
+        description="Git commit SHAs created during this run (for audit)",
+    )
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -134,6 +138,7 @@ class RunContext(BaseModel):
                 "interrupted_at": None,
                 "artifacts": {"plan": ["plan.md"]},
                 "phase_tokens": {"plan": 500, "code": 1200},
+                "commit_shas": ["abc123def456789..."],
             }
         },
     }

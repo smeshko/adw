@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 1
+issue_counter: 5
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -45,6 +45,10 @@ issue_counter: 1
 # ═══════════════════════════════════════════════════════════════════════════
 issues:
   ISS-001-llm-output-too-verbose-in-terminal: fixed
+  ISS-002-dry-run-minimal-output: reported
+  ISS-003-run-id-not-found-by-logs-command: reported
+  ISS-004-run-id-truncated-in-list-output: reported
+  ISS-005-feature-description-not-captured: reported
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -128,6 +132,12 @@ development_status:
   6-4-list-recent-runs: done
   6-5-abort-running-execution: done
   6-6-initialize-new-project: done
+  # UX Fix (from ISS-002)
+  ux-fix-ISS-002-dry-run-minimal-output: ready-for-dev
+  # UX Fix (from ISS-004)
+  ux-fix-ISS-004-run-id-truncated-in-list-output: ready-for-dev
+  # Bugfix (from ISS-005)
+  bugfix-ISS-005-feature-description-not-captured: ready-for-dev
   epic-6-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -143,6 +153,8 @@ development_status:
   7-4-implement-log-viewing-commands: done
   7-5-implement-state-inspection-commands: done
   7-6-implement-secret-redaction: done
+  # UX Fix (from ISS-003)
+  ux-fix-ISS-003-run-id-not-found-by-logs-command: backlog
   epic-7-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

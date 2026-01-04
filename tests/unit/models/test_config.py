@@ -123,6 +123,19 @@ class TestGitConfig:
         )
         assert config.commit_template == template
 
+    def test_skip_hooks_default_false(self) -> None:
+        """GitConfig defaults skip_hooks to False."""
+        config = GitConfig()
+        assert config.skip_hooks is False
+
+    def test_skip_hooks_enabled(self) -> None:
+        """GitConfig can enable skip_hooks."""
+        config = GitConfig(
+            enabled=True,
+            skip_hooks=True,
+        )
+        assert config.skip_hooks is True
+
 
 class TestProjectConfig:
     """Tests for ProjectConfig model."""

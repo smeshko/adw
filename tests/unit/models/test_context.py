@@ -33,6 +33,42 @@ class TestRunContext:
         assert context.phase_history == []
         assert context.artifacts == {}
         assert context.completed_at is None
+        assert context.commit_shas == []
+
+    def test_commit_shas_defaults_to_empty(self) -> None:
+        """commit_shas defaults to empty list."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+        assert context.commit_shas == []
+
+    def test_commit_shas_can_be_set(self) -> None:
+        """commit_shas can be set during creation."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            commit_shas=["abc123def456", "789xyz"],
+        )
+        assert context.commit_shas == ["abc123def456", "789xyz"]
+
+    def test_commit_shas_in_serialization(self) -> None:
+        """commit_shas is included in JSON serialization."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            commit_shas=["abc123"],
+        )
+        json_str = context.model_dump_json()
+        data = json.loads(json_str)
+        assert "commit_shas" in data
+        assert data["commit_shas"] == ["abc123"]
 
     def test_creation_with_all_fields(self) -> None:
         """RunContext creates with all optional fields."""

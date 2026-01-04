@@ -15,7 +15,7 @@
 #   1 - Error (commit failed or git error)
 #
 # This hook is designed to be run as a post-hook for any phase.
-# It respects the git.auto_commit configuration setting.
+# It respects the git.auto_commit and git.skip_hooks configuration settings.
 
 set -e
 
@@ -36,32 +36,53 @@ fi
 python3 -c "
 import sys
 import os
+import traceback
+
+# Flag for debug output
+DEBUG = os.environ.get('ADW_DEBUG', '').lower() in ('1', 'true', 'yes')
+
+def log_error(msg: str, exc: Exception | None = None) -> None:
+    \"\"\"Log error with optional traceback in debug mode.\"\"\"
+    print(f'Error: {msg}', file=sys.stderr)
+    if DEBUG and exc:
+        traceback.print_exc()
 
 try:
     from adw.hooks.git_commit import (
         stage_changes,
-        has_staged_changes,
         create_commit,
     )
     from adw.config import ConfigLoader
-except ImportError:
-    # ADW not installed in this environment, skip
+except ImportError as e:
+    # ADW not installed in this environment, skip gracefully
+    if DEBUG:
+        print(f'ADW not available: {e}', file=sys.stderr)
     sys.exit(0)
 
 # Load project config to check if git and auto_commit are enabled
 try:
     loader = ConfigLoader()
     config = loader.load()
-except Exception:
-    # No config or error loading, skip
+except FileNotFoundError:
+    # No config file, skip (expected in non-ADW projects)
+    if DEBUG:
+        print('No adw.yaml found, skipping', file=sys.stderr)
+    sys.exit(0)
+except Exception as e:
+    # Unexpected error loading config - log it
+    log_error(f'Failed to load config: {e}', e)
     sys.exit(0)
 
 if not config.git.enabled:
     # Git integration disabled, skip
+    if DEBUG:
+        print('Git integration disabled', file=sys.stderr)
     sys.exit(0)
 
 if not config.git.auto_commit:
     # Auto-commit disabled, skip
+    if DEBUG:
+        print('Auto-commit disabled', file=sys.stderr)
     sys.exit(0)
 
 # Get phase, feature, run_id from environment
@@ -70,6 +91,7 @@ feature = os.environ.get('ADW_FEATURE', '')
 run_id = os.environ.get('ADW_RUN_ID', '')
 
 if not all([phase, feature, run_id]):
+    print('Warning: Missing required environment variables', file=sys.stderr)
     sys.exit(0)
 
 # Stage all changes
@@ -80,23 +102,25 @@ try:
         sys.exit(0)
     print(f'Staged {len(staged_files)} file(s)')
 except Exception as e:
-    print(f'Error staging changes: {e}')
+    log_error(f'Failed to stage changes: {e}', e)
     sys.exit(1)
 
-# Create commit with optional custom template
+# Create commit with optional custom template and skip_hooks setting
 try:
     template = config.git.commit_template
+    skip_hooks = config.git.skip_hooks
     sha = create_commit(
         phase=phase,
         feature=feature,
         run_id=run_id,
         template=template,
+        skip_hooks=skip_hooks,
     )
     if sha:
         print(f'Created commit: {sha[:8]}')
     else:
         print('No changes to commit')
 except Exception as e:
-    print(f'Error creating commit: {e}')
+    log_error(f'Failed to create commit: {e}', e)
     sys.exit(1)
 " 2>&1 || exit $?

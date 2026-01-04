@@ -491,3 +491,124 @@ class TestGitCommitErrorHandling:
             has_staged_changes()
 
         assert exc_info.value.code == "GIT_DIFF_FAILED"
+
+
+class TestPreCommitHookIntegration:
+    """Integration tests for pre-commit hook handling."""
+
+    def test_pre_commit_hook_rejects(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should raise HookError when pre-commit hook rejects commit."""
+        monkeypatch.chdir(git_repo)
+
+        # Create a pre-commit hook that always rejects
+        hooks_dir = git_repo / ".git" / "hooks"
+        hooks_dir.mkdir(parents=True, exist_ok=True)
+        pre_commit = hooks_dir / "pre-commit"
+        pre_commit.write_text(
+            "#!/bin/bash\n"
+            "echo 'Pre-commit hook rejected' >&2\n"
+            "exit 1\n"
+        )
+        pre_commit.chmod(0o755)
+
+        # Create and stage a file
+        (git_repo / "test.py").write_text("# Test\n")
+        stage_changes()
+
+        # Attempt to commit - should raise HookError
+        with pytest.raises(HookError) as exc_info:
+            create_commit(
+                phase="build",
+                feature="Test feature",
+                run_id="01HQ123456",
+            )
+
+        assert exc_info.value.code == "GIT_COMMIT_FAILED"
+
+    def test_pre_commit_hook_modifies_files(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should handle pre-commit hook that modifies files and exits 0."""
+        monkeypatch.chdir(git_repo)
+
+        # Create a pre-commit hook that modifies the file (simulating a formatter)
+        hooks_dir = git_repo / ".git" / "hooks"
+        hooks_dir.mkdir(parents=True, exist_ok=True)
+        pre_commit = hooks_dir / "pre-commit"
+        pre_commit.write_text(
+            "#!/bin/bash\n"
+            "# Simulate a formatter that adds a trailing newline\n"
+            "for file in $(git diff --cached --name-only); do\n"
+            "    if [[ -f \"$file\" ]]; then\n"
+            "        echo '' >> \"$file\"\n"
+            "    fi\n"
+            "done\n"
+            "exit 0\n"
+        )
+        pre_commit.chmod(0o755)
+
+        # Create and stage a file
+        (git_repo / "format_test.py").write_text("# No trailing newline")
+        stage_changes()
+
+        # Commit should succeed and include hook modifications via amend
+        sha = create_commit(
+            phase="build",
+            feature="Test formatting",
+            run_id="01HQ789",
+        )
+
+        assert sha is not None
+        assert len(sha) == 40
+
+        # Verify the commit was created
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%s"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "[adw] Build: Test formatting" in result.stdout
+
+    def test_skip_hooks_bypasses_pre_commit(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should skip pre-commit hook when skip_hooks=True."""
+        monkeypatch.chdir(git_repo)
+
+        # Create a pre-commit hook that always rejects
+        hooks_dir = git_repo / ".git" / "hooks"
+        hooks_dir.mkdir(parents=True, exist_ok=True)
+        pre_commit = hooks_dir / "pre-commit"
+        pre_commit.write_text(
+            "#!/bin/bash\n"
+            "echo 'Pre-commit hook rejected' >&2\n"
+            "exit 1\n"
+        )
+        pre_commit.chmod(0o755)
+
+        # Create and stage a file
+        (git_repo / "skip_test.py").write_text("# Skip hooks test\n")
+        stage_changes()
+
+        # Commit with skip_hooks=True should succeed despite rejecting hook
+        sha = create_commit(
+            phase="build",
+            feature="Skip hooks test",
+            run_id="01HQ456",
+            skip_hooks=True,
+        )
+
+        assert sha is not None
+        assert len(sha) == 40
+
+        # Verify commit was created
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%s"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "[adw] Build: Skip hooks test" in result.stdout
