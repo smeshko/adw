@@ -140,11 +140,11 @@ development_status:
   7-1-implement-multi-tier-logging-system: done
   7-2-configure-verbosity-levels: done
   7-3-capture-llm-interactions: review
-  7-4-implement-log-viewing-commands: ready-for-dev
+  7-4-implement-log-viewing-commands: in-progress
   7-5-implement-state-inspection-commands: done
   7-6-implement-secret-redaction: done
   # UX Fix (from ISS-001)
-  ux-fix-ISS-001-llm-output-too-verbose-in-terminal: backlog
+  ux-fix-ISS-001-llm-output-too-verbose-in-terminal: ready-for-dev
   epic-7-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
