@@ -1,8 +1,8 @@
 """Integration tests for git hook functionality.
 
-Tests for git branch management with real git repositories,
-verifying end-to-end behavior of branch creation, switching,
-and uncommitted changes detection.
+Tests for git branch management and commit operations with real git
+repositories, verifying end-to-end behavior of branch creation,
+switching, uncommitted changes detection, staging, and commits.
 """
 
 import subprocess
@@ -15,6 +15,11 @@ from adw.hooks.git_branch import (
     check_uncommitted_changes,
     create_or_switch_branch,
     sanitize_branch_name,
+)
+from adw.hooks.git_commit import (
+    create_commit,
+    has_staged_changes,
+    stage_changes,
 )
 
 
@@ -235,3 +240,254 @@ class TestGitHookErrorHandling:
 
         assert exc_info.value.code == "GIT_STATUS_FAILED"
         assert "not a git repository" in exc_info.value.stderr.lower() or "not a git repository" in exc_info.value.message.lower()
+
+
+class TestStageChangesIntegration:
+    """Integration tests for stage_changes function."""
+
+    def test_stage_modified_file(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should stage modified files."""
+        monkeypatch.chdir(git_repo)
+
+        # Modify a file
+        (git_repo / "README.md").write_text("# Modified\n")
+
+        files = stage_changes()
+
+        assert "README.md" in files
+        assert has_staged_changes() is True
+
+    def test_stage_new_file(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should stage new files."""
+        monkeypatch.chdir(git_repo)
+
+        # Create new file
+        (git_repo / "new_file.py").write_text("# New file\n")
+
+        files = stage_changes()
+
+        assert "new_file.py" in files
+        assert has_staged_changes() is True
+
+    def test_stage_multiple_files(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should stage multiple files at once."""
+        monkeypatch.chdir(git_repo)
+
+        # Create multiple files
+        (git_repo / "file1.py").write_text("# File 1\n")
+        (git_repo / "file2.py").write_text("# File 2\n")
+        (git_repo / "file3.py").write_text("# File 3\n")
+
+        files = stage_changes()
+
+        assert len(files) == 3
+        assert "file1.py" in files
+        assert "file2.py" in files
+        assert "file3.py" in files
+
+    def test_stage_no_changes(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should return empty list when no changes."""
+        monkeypatch.chdir(git_repo)
+
+        files = stage_changes()
+
+        assert files == []
+        assert has_staged_changes() is False
+
+
+class TestHasStagedChangesIntegration:
+    """Integration tests for has_staged_changes function."""
+
+    def test_no_staged_changes(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should return False for clean repo."""
+        monkeypatch.chdir(git_repo)
+
+        assert has_staged_changes() is False
+
+    def test_has_staged_changes_after_add(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should return True after staging a file."""
+        monkeypatch.chdir(git_repo)
+
+        # Create and stage a file
+        (git_repo / "staged.py").write_text("# Staged\n")
+        subprocess.run(["git", "add", "staged.py"], check=True)
+
+        assert has_staged_changes() is True
+
+    def test_unstaged_changes_not_detected(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should return False for unstaged changes."""
+        monkeypatch.chdir(git_repo)
+
+        # Modify a file but don't stage it
+        (git_repo / "README.md").write_text("# Modified\n")
+
+        assert has_staged_changes() is False
+
+
+class TestCreateCommitIntegration:
+    """Integration tests for create_commit function."""
+
+    def test_create_commit_with_changes(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should create commit and return SHA."""
+        monkeypatch.chdir(git_repo)
+
+        # Create and stage a file
+        (git_repo / "feature.py").write_text("# Feature\n")
+        stage_changes()
+
+        sha = create_commit(
+            phase="build",
+            feature="Add feature",
+            run_id="01HQ123456",
+        )
+
+        assert sha is not None
+        assert len(sha) == 40  # Full SHA length
+
+        # Verify commit was created
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%s"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "[adw] Build: Add feature" in result.stdout
+
+    def test_create_commit_no_changes(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should return None when no changes to commit."""
+        monkeypatch.chdir(git_repo)
+
+        sha = create_commit(
+            phase="build",
+            feature="No changes",
+            run_id="01HQ123456",
+        )
+
+        assert sha is None
+
+    def test_create_commit_with_custom_template(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should use custom template for commit message."""
+        monkeypatch.chdir(git_repo)
+
+        # Create and stage a file
+        (git_repo / "custom.py").write_text("# Custom\n")
+        stage_changes()
+
+        sha = create_commit(
+            phase="verify",
+            feature="Custom template",
+            run_id="01HQ789",
+            template="{phase}: {feature}",
+        )
+
+        assert sha is not None
+
+        # Verify commit message uses custom template
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%s"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert result.stdout.strip() == "verify: Custom template"
+
+    def test_create_commit_includes_run_id(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should include run_id in commit body."""
+        monkeypatch.chdir(git_repo)
+
+        # Create and stage a file
+        (git_repo / "runid.py").write_text("# Run ID test\n")
+        stage_changes()
+
+        sha = create_commit(
+            phase="build",
+            feature="Run ID test",
+            run_id="01HQ999888",
+        )
+
+        assert sha is not None
+
+        # Verify commit body includes run_id
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%b"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "Run: 01HQ999888" in result.stdout
+
+    def test_create_commit_unicode_feature(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should handle unicode in feature description."""
+        monkeypatch.chdir(git_repo)
+
+        # Create and stage a file
+        (git_repo / "unicode.py").write_text("# Unicode test\n")
+        stage_changes()
+
+        sha = create_commit(
+            phase="build",
+            feature="Add émoji support 🚀",
+            run_id="01HQ123",
+        )
+
+        assert sha is not None
+
+        # Verify unicode is preserved
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%s"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "émoji" in result.stdout
+        assert "🚀" in result.stdout
+
+
+class TestGitCommitErrorHandling:
+    """Integration tests for git commit error handling."""
+
+    def test_stage_in_non_git_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should raise HookError when staging outside a git repo."""
+        monkeypatch.chdir(tmp_path)
+
+        with pytest.raises(HookError) as exc_info:
+            stage_changes()
+
+        assert exc_info.value.code == "GIT_STAGE_FAILED"
+
+    def test_has_staged_changes_in_non_git_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should raise HookError when checking staged changes outside a git repo."""
+        monkeypatch.chdir(tmp_path)
+
+        with pytest.raises(HookError) as exc_info:
+            has_staged_changes()
+
+        assert exc_info.value.code == "GIT_DIFF_FAILED"

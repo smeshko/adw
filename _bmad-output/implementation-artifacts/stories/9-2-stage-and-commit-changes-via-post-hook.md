@@ -51,7 +51,7 @@ so that my work is preserved incrementally.
 - [x] Create bundled post-hook script `defaults/commands/build/post.sh`
 - [x] Handle pre-commit hook failures gracefully
 - [x] Write unit tests for commit message formatting
-- [ ] Write integration tests with git repo fixture
+- [x] Write integration tests with git repo fixture
 
 ---
 
@@ -140,4 +140,5 @@ Claude Opus 4.5
 - src/adw/defaults/commands/build/post.sh (NEW)
 - tests/unit/hooks/test_git_commit.py (NEW)
 - tests/unit/models/test_config.py (MODIFIED - added GitConfig commit tests)
+- tests/integration/test_git_hooks.py (MODIFIED - added git commit integration tests)
 
