@@ -5,7 +5,6 @@ __pycache__/
 *.so
 .Python
 build/
-!src/adw/defaults/commands/build/
 develop-eggs/
 dist/
 downloads/
@@ -56,8 +55,4 @@ Thumbs.db
 
 # Project specific
 .runs/
-.adw/
 *.log
-
-# git
-.worktrees/

@@ -1,7 +1,0 @@
-{
-  "success": true,
-  "content": "Here is the generated code for your request...",
-  "tool_calls": [],
-  "tokens_used": 150,
-  "duration_ms": 2500
-}
