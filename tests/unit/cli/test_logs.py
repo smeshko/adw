@@ -404,3 +404,241 @@ class TestLogsDiffCommand:
             ["logs", "diff", "test-run", "--from-phase", "plan", "--to-phase", "plan"],
         )
         assert result.exit_code == 0
+
+
+class TestLogsToolsCommand:
+    """Tests for logs tools command (Story 3.8)."""
+
+    def test_logs_help_shows_tools_subcommand(self, runner: CliRunner) -> None:
+        """Verify logs --help shows tools subcommand."""
+        result = runner.invoke(app, ["logs", "--help"])
+        assert result.exit_code == 0
+        assert "tools" in result.output
+
+    def test_logs_tools_requires_run_id(self, runner: CliRunner) -> None:
+        """Verify tools command requires run_id argument."""
+        result = runner.invoke(app, ["logs", "tools"])
+        assert result.exit_code != 0
+        assert "Missing argument" in result.output or "RUN_ID" in result.output
+
+    def test_logs_tools_shows_error_for_missing_run(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Shows error when run directory doesn't exist."""
+        result = runner.invoke(app, ["logs", "tools", "nonexistent-run"])
+        assert result.exit_code == 1
+        assert "not found" in result.output.lower() or "error" in result.output.lower()
+
+    def test_logs_tools_shows_empty_message_when_no_tools(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Shows appropriate message when no tool calls logged."""
+        run_dir = mock_adw_dir / "runs" / "empty-run"
+        run_dir.mkdir(parents=True)
+
+        result = runner.invoke(app, ["logs", "tools", "empty-run"])
+        assert result.exit_code == 0
+        assert "no tool" in result.output.lower() or "empty" in result.output.lower()
+
+    def test_logs_tools_displays_tool_history(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Displays tool execution history in table format."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+
+        # Create tools.jsonl with sample entries
+        tools_file = run_dir / "tools.jsonl"
+        entries = [
+            {
+                "timestamp": "2026-01-03T10:30:00.123Z",
+                "tool_name": "Read",
+                "arguments": {"file_path": "/src/main.py"},
+                "result_summary": "File read successfully",
+                "duration_ms": 15,
+                "blocked": False,
+                "block_reason": None,
+                "phase": "plan",
+            },
+            {
+                "timestamp": "2026-01-03T10:30:01.456Z",
+                "tool_name": "Bash",
+                "arguments": {"command": "npm test"},
+                "result_summary": "Exit code: 0",
+                "duration_ms": 2500,
+                "blocked": False,
+                "block_reason": None,
+                "phase": "build",
+            },
+        ]
+        tools_file.write_text("\n".join(json.dumps(e) for e in entries) + "\n")
+
+        result = runner.invoke(app, ["logs", "tools", "test-run"])
+        assert result.exit_code == 0
+        assert "Read" in result.output
+        assert "Bash" in result.output
+
+    def test_logs_tools_shows_blocked_calls(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Shows blocked tool calls with reason."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+
+        tools_file = run_dir / "tools.jsonl"
+        entry = {
+            "timestamp": "2026-01-03T10:30:00.123Z",
+            "tool_name": "Bash",
+            "arguments": {"command": "rm -rf /"},
+            "result_summary": None,
+            "duration_ms": 0,
+            "blocked": True,
+            "block_reason": "Dangerous command",
+            "phase": "build",
+        }
+        tools_file.write_text(json.dumps(entry) + "\n")
+
+        result = runner.invoke(app, ["logs", "tools", "test-run"])
+        assert result.exit_code == 0
+        assert "Bash" in result.output
+        assert "Blocked" in result.output or "blocked" in result.output.lower()
+
+    def test_logs_tools_verbose_shows_arguments(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """--verbose flag shows full arguments."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+
+        tools_file = run_dir / "tools.jsonl"
+        entry = {
+            "timestamp": "2026-01-03T10:30:00.123Z",
+            "tool_name": "Read",
+            "arguments": {"file_path": "/src/very/long/path/to/file.py"},
+            "result_summary": "Success",
+            "duration_ms": 10,
+            "blocked": False,
+            "block_reason": None,
+            "phase": "plan",
+        }
+        tools_file.write_text(json.dumps(entry) + "\n")
+
+        result = runner.invoke(app, ["logs", "tools", "test-run", "--verbose"])
+        assert result.exit_code == 0
+        assert "/src/very/long/path/to/file.py" in result.output
+
+    def test_logs_tools_verbose_truncates_long_arguments(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """--verbose flag truncates arguments longer than 60 characters."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+
+        # Create an argument string that exceeds 60 characters
+        long_path = "/src/" + "a" * 80 + "/file.py"  # Well over 60 chars
+        tools_file = run_dir / "tools.jsonl"
+        entry = {
+            "timestamp": "2026-01-03T10:30:00.123Z",
+            "tool_name": "Read",
+            "arguments": {"file_path": long_path},
+            "result_summary": "Success",
+            "duration_ms": 10,
+            "blocked": False,
+            "block_reason": None,
+            "phase": "plan",
+        }
+        tools_file.write_text(json.dumps(entry) + "\n")
+
+        result = runner.invoke(app, ["logs", "tools", "test-run", "--verbose"])
+        assert result.exit_code == 0
+        # Should be truncated (Rich uses "…" ellipsis or "..." depending on terminal)
+        assert "…" in result.output or "..." in result.output
+        # Full path should NOT appear (it's too long and gets truncated)
+        assert long_path not in result.output
+
+    def test_logs_tools_blocked_only_filter(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """--blocked-only flag filters to only blocked calls."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+
+        tools_file = run_dir / "tools.jsonl"
+        entries = [
+            {
+                "timestamp": "2026-01-03T10:30:00.123Z",
+                "tool_name": "ReadTool",  # Use unique name to verify filtering
+                "arguments": {},
+                "result_summary": "Success",
+                "duration_ms": 10,
+                "blocked": False,
+                "block_reason": None,
+                "phase": None,
+            },
+            {
+                "timestamp": "2026-01-03T10:30:01.000Z",
+                "tool_name": "BlockedBash",  # Use unique name
+                "arguments": {"command": "rm -rf /"},
+                "result_summary": None,
+                "duration_ms": 0,
+                "blocked": True,
+                "block_reason": "Dangerous",
+                "phase": None,
+            },
+        ]
+        tools_file.write_text("\n".join(json.dumps(e) for e in entries) + "\n")
+
+        result = runner.invoke(app, ["logs", "tools", "test-run", "--blocked-only"])
+        assert result.exit_code == 0
+        # Blocked call should appear
+        assert "BlockedBash" in result.output
+        # Non-blocked ReadTool should NOT appear in the output at all
+        # (not in table, not in summary since --blocked-only filters them out)
+        assert "ReadTool" not in result.output
+
+    def test_logs_tools_shows_summary(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Shows summary statistics at the end."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+
+        tools_file = run_dir / "tools.jsonl"
+        entries = [
+            {
+                "timestamp": "2026-01-03T10:30:00.123Z",
+                "tool_name": "Read",
+                "arguments": {},
+                "result_summary": "Success",
+                "duration_ms": 100,
+                "blocked": False,
+                "block_reason": None,
+                "phase": None,
+            },
+            {
+                "timestamp": "2026-01-03T10:30:01.000Z",
+                "tool_name": "Write",
+                "arguments": {},
+                "result_summary": "Success",
+                "duration_ms": 50,
+                "blocked": False,
+                "block_reason": None,
+                "phase": None,
+            },
+            {
+                "timestamp": "2026-01-03T10:30:02.000Z",
+                "tool_name": "Bash",
+                "arguments": {},
+                "result_summary": None,
+                "duration_ms": 0,
+                "blocked": True,
+                "block_reason": "Dangerous",
+                "phase": None,
+            },
+        ]
+        tools_file.write_text("\n".join(json.dumps(e) for e in entries) + "\n")
+
+        result = runner.invoke(app, ["logs", "tools", "test-run"])
+        assert result.exit_code == 0
+        # Should show summary with totals
+        assert "3" in result.output or "Total" in result.output or "Summary" in result.output

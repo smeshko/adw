@@ -9,6 +9,7 @@ This package contains all Pydantic models used throughout ADW:
 - hook: HookResult
 - logging: LogLevel, LogCategory, LogContext, LogEvent
 - index: IndexEntry
+- security: ToolCallLog
 """
 
 from adw.models.command import LoadedCommand, ResolvedCommand
@@ -44,6 +45,7 @@ from adw.models.phase import (
     PhaseResult,
     PhaseStatus,
 )
+from adw.models.security import ToolCallLog
 
 # Rebuild StateSnapshot to resolve forward references to PhaseResult
 # This must happen after all models are imported
@@ -82,4 +84,6 @@ __all__: list[str] = [
     "ArtifactType",
     "PhaseResult",
     "PhaseStatus",
+    # Security models
+    "ToolCallLog",
 ]

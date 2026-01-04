@@ -1,12 +1,13 @@
 """Logs CLI subcommands for state inspection and debugging.
 
 This module provides CLI commands for inspecting run state, viewing snapshots,
-and computing state diffs for debugging purposes.
+computing state diffs, and viewing tool execution history for debugging purposes.
 
 Commands:
 - logs snapshots <run_id>: List all available snapshots
 - logs state <run_id>: Display current or specific snapshot state
 - logs diff <run_id>: Show differences between two snapshots/phases
+- logs tools <run_id>: Display tool execution history for a run
 """
 
 import json
@@ -21,6 +22,8 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
+from adw.models.security import ToolCallLog
+from adw.security.tool_logger import ToolLogger
 from adw.utils.diff import json_diff
 
 console = Console()
@@ -533,3 +536,125 @@ def diff(
     diff_result = json_diff(source_state, target_state)
     changes = diff_result.to_changes_list()
     _display_diff(changes, from_label, to_label)
+
+
+@logs_app.command("tools")
+def logs_tools(
+    run_id: str = typer.Argument(..., help="Run ID to view tool history for"),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Show full arguments for each tool call",
+    ),
+    blocked_only: bool = typer.Option(
+        False,
+        "--blocked-only",
+        help="Only show blocked tool calls",
+    ),
+) -> None:
+    """Display tool execution history for a run.
+
+    Shows a table of all tool calls made during the run, including:
+    - Timestamp
+    - Tool name
+    - Duration
+    - Status (success/blocked)
+
+    Use --verbose to see full tool arguments.
+    Use --blocked-only to filter to only blocked calls.
+    """
+    run_dir = _get_run_dir(run_id)
+
+    # Load tool history using ToolLogger
+    tool_logger = ToolLogger(run_dir)
+    history = tool_logger.get_tool_history()
+
+    if not history:
+        console.print(f"\n[dim]No tool calls logged for run {run_id}[/]")
+        return
+
+    # Apply filters
+    display_entries = history
+    if blocked_only:
+        display_entries = [e for e in history if e.blocked]
+        if not display_entries:
+            console.print(f"\n[dim]No blocked tool calls for run {run_id}[/]")
+            return
+
+    # Display header
+    console.print(f"\n[bold]Tool Execution History for run {run_id}[/]\n")
+
+    # Build table
+    table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("Timestamp", style="dim")
+    table.add_column("Tool")
+    table.add_column("Duration", justify="right")
+    table.add_column("Status")
+
+    if verbose:
+        table.add_column("Arguments", style="dim")
+
+    for entry in display_entries:
+        # Format timestamp (extract time portion)
+        timestamp = entry.timestamp
+        if "T" in timestamp:
+            timestamp = timestamp.split("T")[1].split(".")[0]
+
+        # Format duration
+        duration = f"{entry.duration_ms}ms"
+
+        # Format status
+        if entry.blocked:
+            status = "[red]✗ Blocked[/]"
+        else:
+            status = "[green]✓ Success[/]"
+
+        # Build row
+        if verbose:
+            args_str = json.dumps(entry.arguments, indent=None)
+            if len(args_str) > 60:
+                args_str = args_str[:57] + "..."
+            table.add_row(timestamp, entry.tool_name, duration, status, args_str)
+        else:
+            table.add_row(timestamp, entry.tool_name, duration, status)
+
+    console.print(table)
+
+    # Display summary
+    _display_tool_summary(history, blocked_only)
+
+
+def _display_tool_summary(
+    history: list[ToolCallLog],
+    blocked_only: bool = False,
+) -> None:
+    """Display summary statistics for tool calls.
+
+    Args:
+        history: List of all tool call log entries.
+        blocked_only: Whether showing only blocked calls.
+    """
+    total_calls = len(history)
+    blocked_calls = sum(1 for e in history if e.blocked)
+    successful_calls = total_calls - blocked_calls
+    total_duration = sum(e.duration_ms for e in history)
+
+    # Count tool usage
+    tool_counts: dict[str, int] = {}
+    for entry in history:
+        tool_counts[entry.tool_name] = tool_counts.get(entry.tool_name, 0) + 1
+
+    # Sort by usage count
+    sorted_tools = sorted(tool_counts.items(), key=lambda x: x[1], reverse=True)
+    top_tools = sorted_tools[:3] if len(sorted_tools) > 3 else sorted_tools
+
+    console.print("\n[bold]Summary[/]")
+    console.print(f"  Total calls:  {total_calls}")
+    console.print(f"  Successful:   [green]{successful_calls}[/]")
+    console.print(f"  Blocked:      [red]{blocked_calls}[/]")
+    console.print(f"  Total time:   {total_duration}ms")
+
+    if top_tools and not blocked_only:
+        most_used = ", ".join(f"{name} ({count})" for name, count in top_tools)
+        console.print(f"  Most used:    {most_used}")
