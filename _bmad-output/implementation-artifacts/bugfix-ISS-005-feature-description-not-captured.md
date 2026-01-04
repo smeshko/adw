@@ -24,17 +24,24 @@ so that **I can identify my runs in the list output by their actual purpose**.
 ## Tasks / Subtasks
 
 ### Task 1: Investigate Root Cause
-- [ ] Check if `context.json` files in `.adw/runs/` contain correct feature_description
-- [ ] Verify `~/.adw/index.jsonl` entries have correct feature_description
-- [ ] Trace the data flow from CLI argument to storage
-- [ ] Identify where the "Add feature" placeholder might be originating
+- [x] Check if `context.json` files in `.adw/runs/` contain correct feature_description
+- [x] Verify `~/.adw/index.jsonl` entries have correct feature_description
+- [x] Trace the data flow from CLI argument to storage
+- [x] Identify where the "Add feature" placeholder might be originating
 
-### Task 2: Implement Fix (based on investigation)
-Potential fix locations based on analysis:
-- [ ] `src/adw/cli/app.py` - Verify `feature` argument passed correctly to orchestrator
-- [ ] `src/adw/core/orchestrator.py` - Verify `feature_description` stored in RunContext
-- [ ] `src/adw/core/index_manager.py` - Verify IndexEntry created with correct feature
-- [ ] `src/adw/cli/list.py` - Verify feature read correctly from data sources
+**Investigation Results:**
+- ✅ **BUG NOT REPRODUCIBLE** - The system is working correctly
+- Feature descriptions ARE being stored correctly in `~/.adw/index.jsonl`
+- Example: `"feature_description":"Add heelo world cli command"` stored and displayed correctly
+- The "Add feature" entries are from pytest test runs (paths like `/private/var/folders/.../pytest...`)
+- Tests use "Add feature" as placeholder text, polluting the global index
+- User error: Issue report mentioned `adw start` but command is `adw run`
+
+### Task 2: Implement Preventive Fix (based on investigation)
+Since the bug is not reproducible, implement preventive measures:
+- [x] Verify code paths are correct (confirmed in Task 1)
+- [ ] Update IndexManager to use test-specific index path during pytest runs
+- [ ] Ensure test runs don't pollute the user's global index
 
 ### Task 3: Add Integration Test
 - [ ] Create test that runs `adw run "unique test feature xyz"`
