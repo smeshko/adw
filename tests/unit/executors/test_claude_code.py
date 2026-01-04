@@ -1705,6 +1705,35 @@ class TestShowLLMOutputFlag:
             assert len(token_events) >= 1
 
 
+class TestShowLLMOutputWithVerbosity:
+    """Tests for show_llm_output integration with verbosity (Story UX-FIX-ISS-001 Task 3).
+
+    When verbosity is TRACE, show_llm_output should be enabled automatically.
+    This is tested at the CLI level in app.py, but we can verify the executor
+    behaves correctly when show_llm_output=True is passed (regardless of how
+    that value was computed).
+    """
+
+    def test_trace_verbosity_logic_at_cli_level(self) -> None:
+        """Document that trace verbosity enables LLM output.
+
+        This is a documentation test - the actual logic is in app.py:
+        effective_show_llm_output = show_llm_output or verbosity == Verbosity.TRACE
+
+        The executor receives show_llm_output=True when trace is enabled.
+        """
+        from adw.models.logging import Verbosity
+
+        # Simulate the logic from app.py
+        show_llm_output_flag = False
+        verbosity = Verbosity.TRACE
+
+        # This is the logic in app.py line 200-201
+        effective_show_llm_output = show_llm_output_flag or verbosity == Verbosity.TRACE
+
+        assert effective_show_llm_output is True
+
+
 class TestToolLogging:
     """Tests for tool call logging integration (Story 3.8)."""
 

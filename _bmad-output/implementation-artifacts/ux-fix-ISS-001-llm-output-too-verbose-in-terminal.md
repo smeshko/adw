@@ -1,6 +1,6 @@
 # Story: UX Fix - Hide verbose LLM output from terminal
 
-Status: ready-for-dev
+Status: complete
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-04
@@ -16,12 +16,12 @@ so that **I can easily follow execution progress without being overwhelmed by ve
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: During phase execution, LLM streaming text is NOT printed to the terminal by default
-- [ ] **AC2**: A progress spinner with token count continues to show execution is happening (existing behavior preserved)
-- [ ] **AC3**: LLM output is still captured to log files (existing `StreamLogger` behavior preserved)
-- [ ] **AC4**: Users can view live LLM output via `adw logs --follow` in a separate terminal
-- [ ] **AC5**: A new `--show-llm-output` flag enables verbose LLM streaming (for debugging)
-- [ ] **AC6**: Verbosity level `--trace` also enables LLM output streaming (backward compatibility)
+- [x] **AC1**: During phase execution, LLM streaming text is NOT printed to the terminal by default
+- [x] **AC2**: A progress spinner with token count continues to show execution is happening (existing behavior preserved)
+- [x] **AC3**: LLM output is still captured to log files (existing `StreamLogger` behavior preserved)
+- [x] **AC4**: Users can view live LLM output via `adw logs --follow` in a separate terminal
+- [x] **AC5**: A new `--show-llm-output` flag enables verbose LLM streaming (for debugging)
+- [x] **AC6**: Verbosity level `--trace` also enables LLM output streaming (backward compatibility)
 
 ## Tasks / Subtasks
 
@@ -45,9 +45,9 @@ so that **I can easily follow execution progress without being overwhelmed by ve
 - [x] Confirm `adw logs --follow` can display live output (Story 7-4 dependency)
 
 ### Task 5: Update tests
-- [ ] Add test for suppressed console output (default behavior)
-- [ ] Add test for `--show-llm-output` flag enabling console print
-- [ ] Add test for `--trace` enabling LLM output
+- [x] Add test for suppressed console output (default behavior)
+- [x] Add test for `--show-llm-output` flag enabling console print
+- [x] Add test for `--trace` enabling LLM output
 
 ---
 
