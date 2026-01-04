@@ -214,9 +214,7 @@ def _find_snapshot_by_sequence(run_id: str, sequence: int) -> dict[str, Any]:
     raise typer.Exit(1)
 
 
-def _find_phase_snapshot(
-    run_id: str, phase: str, boundary: str
-) -> dict[str, Any]:
+def _find_phase_snapshot(run_id: str, phase: str, boundary: str) -> dict[str, Any]:
     """Find snapshot at phase boundary.
 
     Args:
@@ -239,9 +237,7 @@ def _find_phase_snapshot(
         if snap["label"] == target_label:
             return snap
 
-    console.print(
-        f"[red]Error:[/] No {boundary} snapshot found for phase '{phase}'"
-    )
+    console.print(f"[red]Error:[/] No {boundary} snapshot found for phase '{phase}'")
     console.print(
         "[dim]Suggestion:[/] Use 'adw logs snapshots' to see available snapshots"
     )
@@ -847,6 +843,12 @@ def logs_follow(
         "-p",
         help="Filter by phase",
     ),
+    interval: float = typer.Option(
+        0.1,
+        "--interval",
+        "-i",
+        help="Polling interval in seconds (default: 0.1)",
+    ),
 ) -> None:
     """Stream new log entries in real-time.
 
@@ -856,6 +858,7 @@ def logs_follow(
     Examples:
         adw logs follow 01HQXK5P3Z7V8R2M4N6T9W1Y3C
         adw logs follow 01HQXK5P3Z7V8R2M4N6T9W1Y3C --phase build
+        adw logs follow 01HQXK5P3Z7V8R2M4N6T9W1Y3C --interval 0.5
     """
     import time
 
@@ -868,9 +871,7 @@ def logs_follow(
             context = json.loads(context_file.read_text())
             status = context.get("status", "")
             if status not in ("running", ""):
-                console.print(
-                    f"[yellow]Run is not active (status: {status})[/]"
-                )
+                console.print(f"[yellow]Run is not active (status: {status})[/]")
                 console.print("[dim]Showing existing logs instead...[/]\n")
                 # Fall back to show
                 entries = _load_log_entries(run_dir)
@@ -923,7 +924,7 @@ def logs_follow(
                                 break
                         except (json.JSONDecodeError, OSError):
                             pass
-                    time.sleep(0.1)
+                    time.sleep(interval)
     except KeyboardInterrupt:
         console.print("\n[dim]Stopped following logs[/]")
 
@@ -963,6 +964,11 @@ def logs_search(
         regex = re.compile(pattern, re.IGNORECASE)
     except re.error as e:
         console.print(f"[red]Error:[/] Invalid regex pattern: {e}")
+        console.print("[dim]Examples of valid patterns:[/]")
+        console.print("  [cyan]error[/]              - literal text match")
+        console.print("  [cyan]error|warning[/]      - match either word")
+        console.print("  [cyan]phase.*failed[/]      - 'phase' followed by 'failed'")
+        console.print("  [cyan]\\[ERROR\\][/]          - literal brackets (escaped)")
         raise typer.Exit(1) from None
 
     # Determine which runs to search
@@ -1003,7 +1009,9 @@ def logs_search(
         _display_log_entry(entry)
 
 
-def _load_llm_files(llm_dir: Path) -> list[tuple[int, str, dict[str, Any], dict[str, Any] | None]]:
+def _load_llm_files(
+    llm_dir: Path,
+) -> list[tuple[int, str, dict[str, Any], dict[str, Any] | None]]:
     """Load LLM request/response pairs from directory.
 
     Args:
@@ -1046,6 +1054,68 @@ def _load_llm_files(llm_dir: Path) -> list[tuple[int, str, dict[str, Any], dict[
         pairs.append((seq, phase, request, response))
 
     return pairs
+
+
+def _replay_token_streams(
+    llm_dir: Path,
+    pairs: list[tuple[int, str, dict[str, Any], dict[str, Any] | None]],
+    phase_filter: str | None = None,
+) -> None:
+    """Replay token streams from JSONL files.
+
+    Args:
+        llm_dir: Path to the llm/ directory.
+        pairs: List of (sequence, phase, request, response) tuples.
+        phase_filter: Optional phase filter.
+    """
+    import time as time_module
+
+    console.print("\n[bold]Token Stream Replay[/]")
+    console.print("[dim]Press Ctrl+C to stop[/]\n")
+
+    try:
+        for seq, interaction_phase, _request, _response in pairs:
+            # Find stream file
+            stream_file = llm_dir / f"{seq:03d}_{interaction_phase}_stream.jsonl"
+            if not stream_file.exists():
+                msg = f"No stream file for interaction #{seq} ({interaction_phase})"
+                console.print(f"[dim]{msg}[/]")
+                continue
+
+            console.print(
+                f"\n[bold blue]═══ Replaying #{seq} ({interaction_phase}) ═══[/]\n"
+            )
+
+            # Read and replay tokens
+            prev_time = 0
+            try:
+                with open(stream_file) as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            event = json.loads(line)
+                            event_type = event.get("type", "")
+                            content = event.get("content", "")
+                            event_time = event.get("t", 0)
+
+                            # Simulate timing delay (scaled down for replay)
+                            delay = (event_time - prev_time) / 1000.0  # ms to seconds
+                            if delay > 0:
+                                time_module.sleep(min(delay * 0.1, 0.05))  # Cap at 50ms
+                            prev_time = event_time
+
+                            if event_type == "token" and content:
+                                console.print(content, end="")
+                        except json.JSONDecodeError:
+                            pass
+                console.print("\n")  # Newline after stream
+            except OSError as e:
+                console.print(f"[red]Error reading stream:[/] {e}")
+
+    except KeyboardInterrupt:
+        console.print("\n[dim]Stream replay stopped[/]")
 
 
 @logs_app.command(name="llm")
@@ -1108,17 +1178,26 @@ def logs_llm(
 
     # Filter by phase
     if phase:
-        pairs = [(s, p, req, resp) for s, p, req, resp in pairs if p.lower() == phase.lower()]
+        pairs = [
+            (s, p, req, resp) for s, p, req, resp in pairs if p.lower() == phase.lower()
+        ]
 
     if not pairs:
         console.print(f"[yellow]No LLM interactions found for phase:[/] {phase}")
+        return
+
+    # Handle stream mode - replay tokens from stream files
+    if stream:
+        _replay_token_streams(llm_dir, pairs, phase)
         return
 
     console.print(f"\n[bold]LLM Interactions for run {run_id}[/]")
     console.print(f"[dim]Found {len(pairs)} interaction(s)[/]\n")
 
     for seq, interaction_phase, request, response in pairs:
-        console.print(f"\n[bold blue]═══ Interaction #{seq} ({interaction_phase}) ═══[/]")
+        console.print(
+            f"\n[bold blue]═══ Interaction #{seq} ({interaction_phase}) ═══[/]"
+        )
 
         # Show request
         if not response_only:
@@ -1133,11 +1212,14 @@ def logs_llm(
 
             # Truncate long prompts for display
             if len(prompt) > 500:
-                console.print(Panel(
-                    prompt[:500] + "\n\n[dim]... (truncated, {0} chars total)[/]".format(len(prompt)),
-                    title="Prompt",
-                    border_style="green",
-                ))
+                console.print(
+                    Panel(
+                        prompt[:500]
+                        + f"\n\n[dim]... (truncated, {len(prompt)} chars total)[/]",
+                        title="Prompt",
+                        border_style="green",
+                    )
+                )
             else:
                 console.print(Panel(prompt, title="Prompt", border_style="green"))
 
@@ -1160,31 +1242,36 @@ def logs_llm(
                     f"Duration: {duration_ms}ms[/]"
                 )
 
-            # Tool calls
-            if tools or (tool_calls and not tools):
-                if tool_calls:
-                    console.print("\n[bold yellow]Tool Calls:[/]")
-                    for tc in tool_calls:
-                        tc_id = tc.get("id", "")
-                        tc_name = tc.get("name", "")
-                        tc_input = tc.get("input", {})
-                        console.print(f"  [yellow]{tc_name}[/] [dim]({tc_id})[/]")
-                        if tc_input:
-                            input_str = json.dumps(tc_input, indent=2)
-                            if len(input_str) > 200:
-                                input_str = input_str[:200] + "\n..."
-                            console.print(f"    [dim]{input_str}[/]")
+            # Tool calls (show when tool_calls exist, or when --tools flag is set)
+            if tool_calls:
+                console.print("\n[bold yellow]Tool Calls:[/]")
+                for tc in tool_calls:
+                    tc_id = tc.get("id", "")
+                    tc_name = tc.get("name", "")
+                    tc_input = tc.get("input", {})
+                    console.print(f"  [yellow]{tc_name}[/] [dim]({tc_id})[/]")
+                    if tc_input:
+                        input_str = json.dumps(tc_input, indent=2)
+                        if len(input_str) > 200:
+                            input_str = input_str[:200] + "\n..."
+                        console.print(f"    [dim]{input_str}[/]")
 
             # Content (skip if tools-only mode)
             if not tools:
                 if len(content) > 500:
-                    console.print(Panel(
-                        content[:500] + "\n\n[dim]... (truncated, {0} chars total)[/]".format(len(content)),
-                        title="Response Content",
-                        border_style="cyan",
-                    ))
+                    truncated = content[:500]
+                    suffix = f"\n\n[dim]... (truncated, {len(content)} total)[/]"
+                    console.print(
+                        Panel(
+                            truncated + suffix,
+                            title="Response Content",
+                            border_style="cyan",
+                        )
+                    )
                 else:
-                    console.print(Panel(content, title="Response Content", border_style="cyan"))
+                    console.print(
+                        Panel(content, title="Response Content", border_style="cyan")
+                    )
 
 
 @logs_app.command(name="export")
@@ -1205,6 +1292,12 @@ def logs_export(
         "-f",
         help="Export format: tar (tar.gz), json, or html",
     ),
+    limit: int = typer.Option(
+        0,
+        "--limit",
+        "-l",
+        help="Limit log entries in HTML export (0 = all)",
+    ),
 ) -> None:
     """Create a shareable bundle of logs and state.
 
@@ -1215,6 +1308,7 @@ def logs_export(
         adw logs export 01HQXK5P3Z7V8R2M4N6T9W1Y3C
         adw logs export 01HQXK5P3Z7V8R2M4N6T9W1Y3C --output debug.tar.gz
         adw logs export 01HQXK5P3Z7V8R2M4N6T9W1Y3C --format json
+        adw logs export 01HQXK5P3Z7V8R2M4N6T9W1Y3C --format html --limit 100
     """
     import shutil
     import tarfile
@@ -1265,17 +1359,19 @@ def logs_export(
         export_data["snapshots"] = []
         for snap in snapshots:
             content = _load_snapshot_content(snap["path"])
-            export_data["snapshots"].append({
-                "sequence": snap["sequence"],
-                "label": snap["label"],
-                "content": content,
-            })
+            export_data["snapshots"].append(
+                {
+                    "sequence": snap["sequence"],
+                    "label": snap["label"],
+                    "content": content,
+                }
+            )
 
         output_path.write_text(json.dumps(export_data, indent=2, default=str))
 
     elif format_type == "html":
         # Export as HTML report
-        html_content = _generate_html_report(run_id, run_dir)
+        html_content = _generate_html_report(run_id, run_dir, log_limit=limit)
         output_path.write_text(html_content)
 
     else:
@@ -1291,12 +1387,13 @@ def logs_export(
     console.print(f"[dim]Size: {output_path.stat().st_size / 1024:.1f} KB[/]")
 
 
-def _generate_html_report(run_id: str, run_dir: Path) -> str:
+def _generate_html_report(run_id: str, run_dir: Path, log_limit: int = 0) -> str:
     """Generate HTML report for a run.
 
     Args:
         run_id: The run ID.
         run_dir: Path to the run directory.
+        log_limit: Maximum log entries to include (0 = all).
 
     Returns:
         HTML content string.
@@ -1312,6 +1409,9 @@ def _generate_html_report(run_id: str, run_dir: Path) -> str:
 
     logs = _load_log_entries(run_dir)
     llm_pairs = _load_llm_files(run_dir / "llm")
+
+    # Apply limit if specified
+    display_logs = logs[-log_limit:] if log_limit > 0 else logs
 
     # Build HTML
     html = f"""<!DOCTYPE html>
@@ -1334,18 +1434,18 @@ def _generate_html_report(run_id: str, run_dir: Path) -> str:
 <body>
     <h1>ADW Run Export</h1>
     <p><strong>Run ID:</strong> {run_id}</p>
-    <p><strong>Feature:</strong> {context.get('feature_description', 'N/A')}</p>
-    <p><strong>Status:</strong> {context.get('status', 'N/A')}</p>
+    <p><strong>Feature:</strong> {context.get("feature_description", "N/A")}</p>
+    <p><strong>Status:</strong> {context.get("status", "N/A")}</p>
     <p><strong>Exported:</strong> {datetime.now().isoformat()}</p>
 
     <div class="section">
-        <h2>Logs ({len(logs)} entries)</h2>
+        <h2>Logs ({len(display_logs)} of {len(logs)} entries)</h2>
 """
 
-    for entry in logs[-50:]:  # Last 50 entries
-        level = entry.get('level', 'info').lower()
-        message = entry.get('message', '')
-        timestamp = entry.get('timestamp', '')[:19]
+    for entry in display_logs:
+        level = entry.get("level", "info").lower()
+        message = entry.get("message", "")
+        timestamp = entry.get("timestamp", "")[:19]
         html += f'        <div class="log-entry {level}">[{timestamp}] [{level.upper()}] {message}</div>\n'
 
     html += """    </div>
@@ -1355,17 +1455,17 @@ def _generate_html_report(run_id: str, run_dir: Path) -> str:
 """
 
     for seq, phase, request, response in llm_pairs:
-        prompt = request.get('prompt', '')[:500]
-        content = (response or {}).get('content', '')[:500]
-        stats = (response or {}).get('stats', {})
+        prompt = request.get("prompt", "")[:500]
+        content = (response or {}).get("content", "")[:500]
+        stats = (response or {}).get("stats", {})
 
         html += f"""
         <h3>#{seq} - {phase}</h3>
-        <p class="stats">Tokens: {stats.get('input_tokens', 0)} in / {stats.get('output_tokens', 0)} out</p>
+        <p class="stats">Tokens: {stats.get("input_tokens", 0)} in / {stats.get("output_tokens", 0)} out</p>
         <h4>Prompt</h4>
-        <pre>{prompt}{'...' if len(request.get('prompt', '')) > 500 else ''}</pre>
+        <pre>{prompt}{"..." if len(request.get("prompt", "")) > 500 else ""}</pre>
         <h4>Response</h4>
-        <pre>{content}{'...' if len((response or {}).get('content', '')) > 500 else ''}</pre>
+        <pre>{content}{"..." if len((response or {}).get("content", "")) > 500 else ""}</pre>
 """
 
     html += """    </div>
