@@ -43,6 +43,14 @@ def mock_adw_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return adw_dir
 
 
+# Standard test run IDs (valid ULID format - Crockford Base32 excludes I, L, O, U)
+# Each must be exactly 26 characters
+TEST_RUN_ID = "01HQTESTAB0000000000000001"
+TEST_RUN_ID_2 = "01HQTESTAB0000000000000002"
+EMPTY_RUN_ID = "01HQEMPTYB0000000000000001"
+NONEXISTENT_RUN_ID = "01HQNXSTAB0000000000000000"
+
+
 def create_mock_snapshot(
     snapshots_dir: Path,
     sequence: int,
@@ -51,7 +59,7 @@ def create_mock_snapshot(
 ) -> Path:
     """Create a mock snapshot file."""
     if context is None:
-        context = {"run_id": "test-run", "current_phase": "plan", "status": "running"}
+        context = {"run_id": TEST_RUN_ID, "current_phase": "plan", "status": "running"}
 
     snapshot_data = {
         "context": context,
@@ -98,7 +106,7 @@ class TestLogsCLIStructure:
 
     def test_logs_diff_requires_comparison_targets(self, runner: CliRunner) -> None:
         """Verify diff command requires phase or snapshot options."""
-        result = runner.invoke(app, ["logs", "diff", "test-run-id"])
+        result = runner.invoke(app, ["logs", "diff", TEST_RUN_ID])
         assert result.exit_code == 1
         assert "Must specify comparison targets" in result.output
 
@@ -109,7 +117,7 @@ class TestLogsCLIStructure:
             [
                 "logs",
                 "diff",
-                "test-run-id",
+                TEST_RUN_ID,
                 "--from-phase",
                 "plan",
                 "--from-snapshot",
@@ -128,7 +136,7 @@ class TestLogsSnapshotsCommand:
         import os
 
         os.chdir(tmp_path)
-        result = runner.invoke(app, ["logs", "snapshots", "test-run"])
+        result = runner.invoke(app, ["logs", "snapshots", TEST_RUN_ID])
         assert result.exit_code == 1
         assert "No .adw directory found" in result.output
 
@@ -136,7 +144,7 @@ class TestLogsSnapshotsCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """Error when run ID doesn't exist."""
-        result = runner.invoke(app, ["logs", "snapshots", "nonexistent-run"])
+        result = runner.invoke(app, ["logs", "snapshots", NONEXISTENT_RUN_ID])
         assert result.exit_code == 1
         assert "not found" in result.output.lower()
 
@@ -144,18 +152,18 @@ class TestLogsSnapshotsCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """Shows message when run has no snapshots."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
         snapshots_dir = run_dir / "snapshots"
         snapshots_dir.mkdir()
 
-        result = runner.invoke(app, ["logs", "snapshots", "test-run"])
+        result = runner.invoke(app, ["logs", "snapshots", TEST_RUN_ID])
         assert result.exit_code == 0
         assert "No snapshots" in result.output
 
     def test_snapshots_lists_all(self, runner: CliRunner, mock_adw_dir: Path) -> None:
         """Lists all snapshots in order."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
         snapshots_dir = run_dir / "snapshots"
         snapshots_dir.mkdir()
@@ -165,7 +173,7 @@ class TestLogsSnapshotsCommand:
         create_mock_snapshot(snapshots_dir, 2, "post_plan")
         create_mock_snapshot(snapshots_dir, 3, "pre_build")
 
-        result = runner.invoke(app, ["logs", "snapshots", "test-run"])
+        result = runner.invoke(app, ["logs", "snapshots", TEST_RUN_ID])
         assert result.exit_code == 0
 
         # Verify all snapshots shown
@@ -189,13 +197,13 @@ class TestLogsStateCommand:
         import os
 
         os.chdir(tmp_path)
-        result = runner.invoke(app, ["logs", "state", "test-run"])
+        result = runner.invoke(app, ["logs", "state", TEST_RUN_ID])
         assert result.exit_code == 1
         assert "No .adw directory found" in result.output
 
     def test_state_run_not_found(self, runner: CliRunner, mock_adw_dir: Path) -> None:
         """Error when run ID doesn't exist."""
-        result = runner.invoke(app, ["logs", "state", "nonexistent-run"])
+        result = runner.invoke(app, ["logs", "state", NONEXISTENT_RUN_ID])
         assert result.exit_code == 1
         assert "not found" in result.output.lower()
 
@@ -203,30 +211,30 @@ class TestLogsStateCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """Shows final/current context when no options provided."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
         snapshots_dir = run_dir / "snapshots"
         snapshots_dir.mkdir()
 
         # Create context.json (final state)
         context_data = {
-            "run_id": "test-run",
+            "run_id": TEST_RUN_ID,
             "current_phase": "build",
             "status": "completed",
         }
         (run_dir / "context.json").write_text(json.dumps(context_data, indent=2))
 
-        result = runner.invoke(app, ["logs", "state", "test-run"])
+        result = runner.invoke(app, ["logs", "state", TEST_RUN_ID])
         assert result.exit_code == 0
         # Should show context content
-        assert "test-run" in result.output
+        assert TEST_RUN_ID in result.output
         assert "build" in result.output or "completed" in result.output
 
     def test_state_shows_specific_snapshot(
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """Shows state at specific snapshot when --snapshot provided."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
         snapshots_dir = run_dir / "snapshots"
         snapshots_dir.mkdir()
@@ -236,16 +244,16 @@ class TestLogsStateCommand:
             snapshots_dir,
             1,
             "pre_plan",
-            {"run_id": "test-run", "current_phase": "plan", "status": "running"},
+            {"run_id": TEST_RUN_ID, "current_phase": "plan", "status": "running"},
         )
         create_mock_snapshot(
             snapshots_dir,
             2,
             "post_plan",
-            {"run_id": "test-run", "current_phase": "build", "status": "running"},
+            {"run_id": TEST_RUN_ID, "current_phase": "build", "status": "running"},
         )
 
-        result = runner.invoke(app, ["logs", "state", "test-run", "--snapshot", "1"])
+        result = runner.invoke(app, ["logs", "state", TEST_RUN_ID, "--snapshot", "1"])
         assert result.exit_code == 0
         # Should show snapshot 1 content (plan phase)
         assert "plan" in result.output.lower()
@@ -254,7 +262,7 @@ class TestLogsStateCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """Shows state at phase boundary when --phase --at provided."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
         snapshots_dir = run_dir / "snapshots"
         snapshots_dir.mkdir()
@@ -264,17 +272,17 @@ class TestLogsStateCommand:
             snapshots_dir,
             1,
             "pre_plan",
-            {"run_id": "test-run", "current_phase": "plan", "status": "running"},
+            {"run_id": TEST_RUN_ID, "current_phase": "plan", "status": "running"},
         )
         create_mock_snapshot(
             snapshots_dir,
             2,
             "post_plan",
-            {"run_id": "test-run", "current_phase": "build", "status": "running"},
+            {"run_id": TEST_RUN_ID, "current_phase": "build", "status": "running"},
         )
 
         result = runner.invoke(
-            app, ["logs", "state", "test-run", "--phase", "plan", "--at", "end"]
+            app, ["logs", "state", TEST_RUN_ID, "--phase", "plan", "--at", "end"]
         )
         assert result.exit_code == 0
         # Should show post_plan snapshot
@@ -283,12 +291,12 @@ class TestLogsStateCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """Error when --phase provided without --at."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
         snapshots_dir = run_dir / "snapshots"
         snapshots_dir.mkdir()
 
-        result = runner.invoke(app, ["logs", "state", "test-run", "--phase", "plan"])
+        result = runner.invoke(app, ["logs", "state", TEST_RUN_ID, "--phase", "plan"])
         assert result.exit_code == 1
         assert "--at" in result.output.lower()
 
@@ -298,7 +306,7 @@ class TestLogsDiffCommand:
 
     def test_diff_shows_additions(self, runner: CliRunner, mock_adw_dir: Path) -> None:
         """Shows additions in diff output."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
         snapshots_dir = run_dir / "snapshots"
         snapshots_dir.mkdir()
@@ -308,18 +316,18 @@ class TestLogsDiffCommand:
             snapshots_dir,
             1,
             "pre_plan",
-            {"run_id": "test-run", "status": "running"},
+            {"run_id": TEST_RUN_ID, "status": "running"},
         )
         create_mock_snapshot(
             snapshots_dir,
             2,
             "post_plan",
-            {"run_id": "test-run", "status": "running", "new_field": "added"},
+            {"run_id": TEST_RUN_ID, "status": "running", "new_field": "added"},
         )
 
         result = runner.invoke(
             app,
-            ["logs", "diff", "test-run", "--from-snapshot", "1", "--to-snapshot", "2"],
+            ["logs", "diff", TEST_RUN_ID, "--from-snapshot", "1", "--to-snapshot", "2"],
         )
         assert result.exit_code == 0
         # Should show the addition
@@ -327,7 +335,7 @@ class TestLogsDiffCommand:
 
     def test_diff_shows_removals(self, runner: CliRunner, mock_adw_dir: Path) -> None:
         """Shows removals in diff output."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
         snapshots_dir = run_dir / "snapshots"
         snapshots_dir.mkdir()
@@ -336,18 +344,18 @@ class TestLogsDiffCommand:
             snapshots_dir,
             1,
             "pre_plan",
-            {"run_id": "test-run", "status": "running", "old_field": "removed"},
+            {"run_id": TEST_RUN_ID, "status": "running", "old_field": "removed"},
         )
         create_mock_snapshot(
             snapshots_dir,
             2,
             "post_plan",
-            {"run_id": "test-run", "status": "running"},
+            {"run_id": TEST_RUN_ID, "status": "running"},
         )
 
         result = runner.invoke(
             app,
-            ["logs", "diff", "test-run", "--from-snapshot", "1", "--to-snapshot", "2"],
+            ["logs", "diff", TEST_RUN_ID, "--from-snapshot", "1", "--to-snapshot", "2"],
         )
         assert result.exit_code == 0
         # Should show the removal
@@ -355,7 +363,7 @@ class TestLogsDiffCommand:
 
     def test_diff_shows_changes(self, runner: CliRunner, mock_adw_dir: Path) -> None:
         """Shows changes in diff output."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
         snapshots_dir = run_dir / "snapshots"
         snapshots_dir.mkdir()
@@ -364,25 +372,25 @@ class TestLogsDiffCommand:
             snapshots_dir,
             1,
             "pre_plan",
-            {"run_id": "test-run", "status": "running"},
+            {"run_id": TEST_RUN_ID, "status": "running"},
         )
         create_mock_snapshot(
             snapshots_dir,
             2,
             "post_plan",
-            {"run_id": "test-run", "status": "completed"},
+            {"run_id": TEST_RUN_ID, "status": "completed"},
         )
 
         result = runner.invoke(
             app,
-            ["logs", "diff", "test-run", "--from-snapshot", "1", "--to-snapshot", "2"],
+            ["logs", "diff", TEST_RUN_ID, "--from-snapshot", "1", "--to-snapshot", "2"],
         )
         assert result.exit_code == 0
         # Should show the change in status
 
     def test_diff_phase_mode(self, runner: CliRunner, mock_adw_dir: Path) -> None:
         """Supports phase-based diff."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
         snapshots_dir = run_dir / "snapshots"
         snapshots_dir.mkdir()
@@ -391,18 +399,18 @@ class TestLogsDiffCommand:
             snapshots_dir,
             1,
             "pre_plan",
-            {"run_id": "test-run", "current_phase": "plan"},
+            {"run_id": TEST_RUN_ID, "current_phase": "plan"},
         )
         create_mock_snapshot(
             snapshots_dir,
             2,
             "post_plan",
-            {"run_id": "test-run", "current_phase": "build"},
+            {"run_id": TEST_RUN_ID, "current_phase": "build"},
         )
 
         result = runner.invoke(
             app,
-            ["logs", "diff", "test-run", "--from-phase", "plan", "--to-phase", "plan"],
+            ["logs", "diff", TEST_RUN_ID, "--from-phase", "plan", "--to-phase", "plan"],
         )
         assert result.exit_code == 0
 
@@ -426,7 +434,7 @@ class TestLogsToolsCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """Shows error when run directory doesn't exist."""
-        result = runner.invoke(app, ["logs", "tools", "nonexistent-run"])
+        result = runner.invoke(app, ["logs", "tools", NONEXISTENT_RUN_ID])
         assert result.exit_code == 1
         assert "not found" in result.output.lower() or "error" in result.output.lower()
 
@@ -434,10 +442,10 @@ class TestLogsToolsCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """Shows appropriate message when no tool calls logged."""
-        run_dir = mock_adw_dir / "runs" / "empty-run"
+        run_dir = mock_adw_dir / "runs" / EMPTY_RUN_ID
         run_dir.mkdir(parents=True)
 
-        result = runner.invoke(app, ["logs", "tools", "empty-run"])
+        result = runner.invoke(app, ["logs", "tools", EMPTY_RUN_ID])
         assert result.exit_code == 0
         assert "no tool" in result.output.lower() or "empty" in result.output.lower()
 
@@ -445,7 +453,7 @@ class TestLogsToolsCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """Displays tool execution history in table format."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
 
         # Create tools.jsonl with sample entries
@@ -474,7 +482,7 @@ class TestLogsToolsCommand:
         ]
         tools_file.write_text("\n".join(json.dumps(e) for e in entries) + "\n")
 
-        result = runner.invoke(app, ["logs", "tools", "test-run"])
+        result = runner.invoke(app, ["logs", "tools", TEST_RUN_ID])
         assert result.exit_code == 0
         assert "Read" in result.output
         assert "Bash" in result.output
@@ -483,7 +491,7 @@ class TestLogsToolsCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """Shows blocked tool calls with reason."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
 
         tools_file = run_dir / "tools.jsonl"
@@ -499,7 +507,7 @@ class TestLogsToolsCommand:
         }
         tools_file.write_text(json.dumps(entry) + "\n")
 
-        result = runner.invoke(app, ["logs", "tools", "test-run"])
+        result = runner.invoke(app, ["logs", "tools", TEST_RUN_ID])
         assert result.exit_code == 0
         assert "Bash" in result.output
         assert "Blocked" in result.output or "blocked" in result.output.lower()
@@ -508,7 +516,7 @@ class TestLogsToolsCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """--verbose flag shows full arguments."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
 
         tools_file = run_dir / "tools.jsonl"
@@ -524,7 +532,7 @@ class TestLogsToolsCommand:
         }
         tools_file.write_text(json.dumps(entry) + "\n")
 
-        result = runner.invoke(app, ["logs", "tools", "test-run", "--verbose"])
+        result = runner.invoke(app, ["logs", "tools", TEST_RUN_ID, "--verbose"])
         assert result.exit_code == 0
         assert "/src/very/long/path/to/file.py" in result.output
 
@@ -532,7 +540,7 @@ class TestLogsToolsCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """--verbose flag truncates arguments longer than 60 characters."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
 
         # Create an argument string that exceeds 60 characters
@@ -550,7 +558,7 @@ class TestLogsToolsCommand:
         }
         tools_file.write_text(json.dumps(entry) + "\n")
 
-        result = runner.invoke(app, ["logs", "tools", "test-run", "--verbose"])
+        result = runner.invoke(app, ["logs", "tools", TEST_RUN_ID, "--verbose"])
         assert result.exit_code == 0
         # Should be truncated (Rich uses "…" ellipsis or "..." depending on terminal)
         assert "…" in result.output or "..." in result.output
@@ -561,7 +569,7 @@ class TestLogsToolsCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """--blocked-only flag filters to only blocked calls."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
 
         tools_file = run_dir / "tools.jsonl"
@@ -589,7 +597,7 @@ class TestLogsToolsCommand:
         ]
         tools_file.write_text("\n".join(json.dumps(e) for e in entries) + "\n")
 
-        result = runner.invoke(app, ["logs", "tools", "test-run", "--blocked-only"])
+        result = runner.invoke(app, ["logs", "tools", TEST_RUN_ID, "--blocked-only"])
         assert result.exit_code == 0
         # Blocked call should appear
         assert "BlockedBash" in result.output
@@ -601,7 +609,7 @@ class TestLogsToolsCommand:
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
         """Shows summary statistics at the end."""
-        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
 
         tools_file = run_dir / "tools.jsonl"
@@ -639,7 +647,7 @@ class TestLogsToolsCommand:
         ]
         tools_file.write_text("\n".join(json.dumps(e) for e in entries) + "\n")
 
-        result = runner.invoke(app, ["logs", "tools", "test-run"])
+        result = runner.invoke(app, ["logs", "tools", TEST_RUN_ID])
         assert result.exit_code == 0
         # Should show summary with totals
         in_output = result.output
@@ -668,8 +676,8 @@ def run_with_logs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[str,
     runs_dir = adw_dir / "runs"
     runs_dir.mkdir()
 
-    # Create run with ULID-like ID
-    run_id = "01HQTEST123456789ABCDEF"
+    # Create run with valid ULID (26 chars, Crockford Base32)
+    run_id = "01HQTESTAB0000000000000003"
     run_dir = runs_dir / run_id
     run_dir.mkdir()
 
@@ -759,7 +767,7 @@ def run_with_llm_captures(
     runs_dir = adw_dir / "runs"
     runs_dir.mkdir()
 
-    run_id = "01HQLLMTEST456789ABCDEF"
+    run_id = "01HQTESTAB0000000000000004"
     run_dir = runs_dir / run_id
     run_dir.mkdir()
 
@@ -1049,3 +1057,92 @@ class TestLogsExportCommand:
             ],
         )
         assert result.exit_code == 0
+
+
+# =============================================================================
+# ISS-003: Run ID Validation and Improved Error Handling
+# =============================================================================
+
+
+class TestRunIdValidation:
+    """Tests for run ID validation and improved error handling (ISS-003)."""
+
+    def test_invalid_ulid_format_shows_error(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Invalid ULID format should show helpful error message."""
+        result = runner.invoke(app, ["logs", "show", "not-a-valid-ulid"])
+        assert result.exit_code == 1
+        assert "Invalid run ID format" in result.output
+        assert "26-character" in result.output.lower() or "ulid" in result.output.lower()
+
+    def test_truncated_ulid_shows_error(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Truncated ULID should show format error."""
+        # Valid ULID prefix but truncated
+        result = runner.invoke(app, ["logs", "show", "01HQXK5P3Z"])
+        assert result.exit_code == 1
+        assert "Invalid run ID format" in result.output
+
+    def test_valid_ulid_format_proceeds(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Valid ULID format should proceed to run lookup (not format error)."""
+        # Valid 26-character ULID that doesn't exist
+        result = runner.invoke(app, ["logs", "show", "01HQXK5P3Z7V8R2M4N6T9W1Y3C"])
+        assert result.exit_code == 1
+        # Should get "Run not found" error, not "Invalid format"
+        assert "Invalid run ID format" not in result.output
+        assert "not found" in result.output.lower()
+
+    def test_empty_run_id_shows_error(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Empty string run ID should show format error."""
+        result = runner.invoke(app, ["logs", "show", ""])
+        assert result.exit_code != 0
+
+    def test_fuzzy_match_suggests_similar_runs(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Similar run IDs should be suggested when run not found."""
+        # Create a run with a known ID
+        run_dir = mock_adw_dir / "runs" / "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        run_dir.mkdir(parents=True)
+        (run_dir / "context.json").write_text('{"run_id": "01HQXK5P3Z7V8R2M4N6T9W1Y3C"}')
+
+        # Search with similar but wrong ID (same prefix)
+        result = runner.invoke(app, ["logs", "show", "01HQXK5P3Z7V8R2M4N6T9W1Y3D"])
+        assert result.exit_code == 1
+        # Should suggest the similar run
+        assert "Did you mean" in result.output or "01HQXK5P3Z7V8R2M4N6T9W1Y3C" in result.output
+
+    def test_run_exists_but_no_logs_shows_helpful_message(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Run directory exists but no logs should show helpful message."""
+        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        run_dir = mock_adw_dir / "runs" / run_id
+        run_dir.mkdir(parents=True)
+        # Create context.json with running status
+        (run_dir / "context.json").write_text(
+            f'{{"run_id": "{run_id}", "status": "running"}}'
+        )
+        # Create logs directory but no logs.jsonl
+        (run_dir / "logs").mkdir()
+
+        result = runner.invoke(app, ["logs", "show", run_id])
+        assert result.exit_code == 0
+        # Should indicate no logs yet, not an error
+        assert "No log entries" in result.output or "no log" in result.output.lower()
+
+    def test_debug_flag_shows_lookup_path(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """--debug flag should show where lookup searched."""
+        result = runner.invoke(
+            app, ["logs", "show", "01HQXK5P3Z7V8R2M4N6T9W1Y3C", "--debug"]
+        )
+        # Should show the lookup path
+        assert ".adw/runs" in result.output or "Searching" in result.output
