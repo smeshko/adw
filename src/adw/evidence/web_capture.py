@@ -204,6 +204,26 @@ class WebCaptureStrategy:
         filename = f"{safe_name}_{viewport.name}.png"
         return self.output_dir / filename
 
+    def _generate_error_screenshot_path(
+        self, route: RouteConfig, viewport: ViewportConfig
+    ) -> Path:
+        """Generate the output path for an error screenshot.
+
+        Error screenshots have an _error suffix to distinguish them from
+        successful captures.
+
+        Args:
+            route: Route configuration
+            viewport: Viewport configuration
+
+        Returns:
+            Path where error screenshot should be saved.
+        """
+        # Sanitize route name for filename
+        safe_name = route.name.replace("/", "_").replace(" ", "_")
+        filename = f"{safe_name}_{viewport.name}_error.png"
+        return self.output_dir / filename
+
     def _build_full_url(self, route: RouteConfig) -> str:
         """Build the full URL for a route.
 

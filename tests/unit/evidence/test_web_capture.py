@@ -310,3 +310,57 @@ class TestMultiViewportCapture:
             assert any(
                 vp.name in filename for vp in strategy.viewports
             ), f"Filename {filename} should contain viewport name"
+
+
+class TestErrorScreenshotCapture:
+    """Tests for error screenshot capture functionality."""
+
+    def test_error_screenshot_path_generation(self, tmp_path: Path) -> None:
+        """Test that error screenshots have _error suffix."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+        route = RouteConfig(name="broken", path="/broken")
+        viewport = ViewportConfig(name="desktop", width=1920, height=1080)
+
+        error_path = strategy._generate_error_screenshot_path(route, viewport)
+
+        assert "_error" in str(error_path)
+        assert error_path.suffix == ".png"
+
+    def test_error_result_includes_details(self, tmp_path: Path) -> None:
+        """Test that error results include error details."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+        route = RouteConfig(name="broken", path="/broken")
+        viewport = ViewportConfig(name="desktop", width=1920, height=1080)
+
+        # When Playwright is not available, we should get a failure with error
+        result = strategy.capture_route(route, viewport)
+
+        # Since Playwright might not be available in tests, check structure
+        assert isinstance(result, ScreenshotResult)
+        if not result.success:
+            assert result.error is not None
+            assert len(result.error) > 0
+
+    @patch("adw.evidence.web_capture.PLAYWRIGHT_AVAILABLE", False)
+    def test_error_details_recorded_when_unavailable(self, tmp_path: Path) -> None:
+        """Test that error details are recorded when Playwright unavailable."""
+        strategy = WebCaptureStrategy(
+            output_dir=tmp_path,
+            base_url="http://localhost:3000",
+        )
+        route = RouteConfig(name="test", path="/test")
+        viewport = ViewportConfig(name="desktop", width=1920, height=1080)
+
+        result = strategy.capture_route(route, viewport)
+
+        assert result.success is False
+        assert result.error is not None
+        assert "playwright" in result.error.lower()
+        # Error should be descriptive
+        assert "not available" in result.error.lower()
