@@ -77,9 +77,9 @@ development_status:
   3-4-implement-timeout-configuration-and-enforcement: done
   3-5-track-token-usage-and-tool-calls: done
   # Security Hooks (Course Correction 2026-01-03)
-  3-6-security-hook-infrastructure: in-progress
-  3-7-dangerous-command-patterns: in-progress
-  3-8-tool-execution-logging: done
+  3-6-security-hook-infrastructure: ready-for-dev
+  3-7-dangerous-command-patterns: done
+  3-8-tool-execution-logging: ready-for-dev
   epic-3-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

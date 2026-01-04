@@ -5,10 +5,13 @@ and phase-specific configuration loaded from YAML files.
 """
 
 from pathlib import Path
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
+
+if TYPE_CHECKING:
+    from adw.models.security import SecurityConfig as SecurityConfigType
 
 
 class RetryConfig(BaseModel):
@@ -211,6 +214,7 @@ class ProjectConfig(BaseModel):
         hooks: Hook configuration
         pipeline: Pipeline behavior configuration
         logging: Logging configuration (includes redaction settings)
+        security: Security configuration (blocked patterns, allow_dangerous)
 
     Example:
         >>> config = ProjectConfig.from_yaml('''
@@ -243,6 +247,9 @@ class ProjectConfig(BaseModel):
     )
     logging: LoggingConfig = Field(
         default_factory=LoggingConfig, description="Logging configuration"
+    )
+    security: "SecurityConfigType | None" = Field(
+        default=None, description="Security configuration"
     )
 
     @model_validator(mode="before")
@@ -318,6 +325,10 @@ class ProjectConfig(BaseModel):
                 "llm": {
                     "path": "/usr/bin/claude",
                     "timeout_seconds": 300,
+                },
+                "security": {
+                    "allow_dangerous": False,
+                    "blocked_patterns": [],
                 },
             }
         },
