@@ -527,6 +527,35 @@ class TestLogsToolsCommand:
         assert result.exit_code == 0
         assert "/src/very/long/path/to/file.py" in result.output
 
+    def test_logs_tools_verbose_truncates_long_arguments(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """--verbose flag truncates arguments longer than 60 characters."""
+        run_dir = mock_adw_dir / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+
+        # Create an argument string that exceeds 60 characters
+        long_path = "/src/" + "a" * 80 + "/file.py"  # Well over 60 chars
+        tools_file = run_dir / "tools.jsonl"
+        entry = {
+            "timestamp": "2026-01-03T10:30:00.123Z",
+            "tool_name": "Read",
+            "arguments": {"file_path": long_path},
+            "result_summary": "Success",
+            "duration_ms": 10,
+            "blocked": False,
+            "block_reason": None,
+            "phase": "plan",
+        }
+        tools_file.write_text(json.dumps(entry) + "\n")
+
+        result = runner.invoke(app, ["logs", "tools", "test-run", "--verbose"])
+        assert result.exit_code == 0
+        # Should be truncated (Rich uses "…" ellipsis or "..." depending on terminal)
+        assert "…" in result.output or "..." in result.output
+        # Full path should NOT appear (it's too long and gets truncated)
+        assert long_path not in result.output
+
     def test_logs_tools_blocked_only_filter(
         self, runner: CliRunner, mock_adw_dir: Path
     ) -> None:
@@ -538,7 +567,7 @@ class TestLogsToolsCommand:
         entries = [
             {
                 "timestamp": "2026-01-03T10:30:00.123Z",
-                "tool_name": "Read",
+                "tool_name": "ReadTool",  # Use unique name to verify filtering
                 "arguments": {},
                 "result_summary": "Success",
                 "duration_ms": 10,
@@ -548,7 +577,7 @@ class TestLogsToolsCommand:
             },
             {
                 "timestamp": "2026-01-03T10:30:01.000Z",
-                "tool_name": "Bash",
+                "tool_name": "BlockedBash",  # Use unique name
                 "arguments": {"command": "rm -rf /"},
                 "result_summary": None,
                 "duration_ms": 0,
@@ -561,9 +590,11 @@ class TestLogsToolsCommand:
 
         result = runner.invoke(app, ["logs", "tools", "test-run", "--blocked-only"])
         assert result.exit_code == 0
-        assert "Bash" in result.output
-        # Read should be filtered out
-        # Note: It might appear in summary but not in main table
+        # Blocked call should appear
+        assert "BlockedBash" in result.output
+        # Non-blocked ReadTool should NOT appear in the output at all
+        # (not in table, not in summary since --blocked-only filters them out)
+        assert "ReadTool" not in result.output
 
     def test_logs_tools_shows_summary(
         self, runner: CliRunner, mock_adw_dir: Path

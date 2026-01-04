@@ -36,6 +36,31 @@ class TestToolLoggerInit:
         assert logger.log_path.name == "tools.jsonl"
         assert logger.log_path.parent == run_dir
 
+    def test_current_phase_defaults_to_none(self, tmp_path: Path) -> None:
+        """Test that current_phase defaults to None."""
+        run_dir = tmp_path / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+
+        logger = ToolLogger(run_dir)
+
+        assert logger.current_phase is None
+
+    def test_current_phase_can_be_set(self, tmp_path: Path) -> None:
+        """Test that current_phase can be set and retrieved."""
+        run_dir = tmp_path / "runs" / "test-run"
+        run_dir.mkdir(parents=True)
+
+        logger = ToolLogger(run_dir)
+        logger.current_phase = "build"
+
+        assert logger.current_phase == "build"
+
+        logger.current_phase = "test"
+        assert logger.current_phase == "test"
+
+        logger.current_phase = None
+        assert logger.current_phase is None
+
 
 class TestToolLoggerWrite:
     """Test suite for ToolLogger.log_tool_call()."""
@@ -257,6 +282,46 @@ class TestToolLoggerStaticRead:
         history = ToolLogger.get_tool_history_for_run(runs_dir, "nonexistent")
 
         assert history == []
+
+    def test_tools_jsonl_written_to_correct_adw_path(self, tmp_path: Path) -> None:
+        """Test that tools.jsonl is written to .adw/runs/<run_id>/tools.jsonl.
+
+        This integration test verifies the AC requirement that tool entries
+        are written to the correct location in the .adw directory structure.
+        """
+        # Set up the standard .adw directory structure
+        adw_dir = tmp_path / ".adw"
+        runs_dir = adw_dir / "runs"
+        run_id = "01HQXK5P3ZTEST"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+
+        # Create logger and write entry
+        logger = ToolLogger(run_dir)
+        entry = ToolCallLog(
+            timestamp="2026-01-03T10:30:00.123Z",
+            tool_name="Read",
+            arguments={"file_path": "/src/main.py"},
+            result_summary="File read successfully",
+            duration_ms=15,
+            phase="plan",
+        )
+        logger.log_tool_call(entry)
+
+        # Verify the exact file path
+        expected_path = tmp_path / ".adw" / "runs" / run_id / "tools.jsonl"
+        assert expected_path.exists(), f"Expected tools.jsonl at {expected_path}"
+        assert expected_path == logger.log_path
+
+        # Verify file content is valid JSONL with correct data
+        content = expected_path.read_text()
+        lines = content.strip().split("\n")
+        assert len(lines) == 1
+
+        parsed = json.loads(lines[0])
+        assert parsed["tool_name"] == "Read"
+        assert parsed["phase"] == "plan"
+        assert parsed["arguments"]["file_path"] == "/src/main.py"
 
 
 class TestToolLoggerThreadSafety:

@@ -508,9 +508,14 @@ class ClaudeCodeExecutor:
         """Log tool calls to the configured tool logger.
 
         Creates ToolCallLog entries for each tool call and persists them
-        to the JSONL log file. Since individual tool timing is not available
-        from the Claude Code output, duration is distributed evenly across
-        tools as an approximation.
+        to the JSONL log file.
+
+        Note:
+            **Duration Approximation**: Individual tool timing is not available
+            from Claude Code CLI output, so the total duration is distributed
+            evenly across all tools. The logged duration_ms values are
+            approximations and should not be used for precise performance
+            analysis of individual tools.
 
         Args:
             tool_calls: List of tool calls to log.
@@ -538,7 +543,7 @@ class ClaudeCodeExecutor:
                 duration_ms=per_tool_duration,
                 blocked=False,
                 block_reason=None,
-                phase=None,  # Phase context not available at executor level
+                phase=self.tool_logger.current_phase,
             )
             self.tool_logger.log_tool_call(log_entry)
 

@@ -24,6 +24,13 @@ class ToolLogger:
 
     The log file is stored at `.adw/runs/<run_id>/tools.jsonl`.
 
+    Note:
+        **Security Consideration**: Tool arguments are logged as-is without
+        sanitization. Callers should avoid passing sensitive data (API keys,
+        passwords, credentials) in tool arguments, or implement redaction
+        before logging if needed. A future enhancement may add built-in
+        redaction for common sensitive patterns.
+
     Example:
         >>> run_dir = Path(".adw/runs/01HQXK5P3Z")
         >>> logger = ToolLogger(run_dir)
@@ -57,6 +64,21 @@ class ToolLogger:
             self._log_path.suffix + ".lock"
         )
         self._closed = False
+        self._current_phase: str | None = None
+
+    @property
+    def current_phase(self) -> str | None:
+        """Get the current phase for logging context."""
+        return self._current_phase
+
+    @current_phase.setter
+    def current_phase(self, phase: str | None) -> None:
+        """Set the current phase for logging context.
+
+        The PhaseRunner should set this before each phase execution
+        so tool calls are logged with the correct phase context.
+        """
+        self._current_phase = phase
 
     @property
     def run_dir(self) -> Path:
