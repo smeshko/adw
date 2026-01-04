@@ -60,9 +60,9 @@ so that **I can verify my configuration and phase selection before committing to
 - [x] Show clear message if no artifacts found
 
 ### Task 5: Integrate into run Command
-- [ ] Modify `src/adw/cli/app.py:run()` command
-- [ ] Replace minimal dry-run block (lines 186-188) with `DryRunDisplay` call
-- [ ] Pass all relevant parameters: phase, from_run, feature, config
+- [x] Modify `src/adw/cli/app.py:run()` command
+- [x] Replace minimal dry-run block (lines 186-188) with `DryRunDisplay` call
+- [x] Pass all relevant parameters: phase, from_run, feature, config
 
 ### Task 6: Add Unit Tests
 - [ ] Test `DryRunDisplay.show_execution_preview()` output
