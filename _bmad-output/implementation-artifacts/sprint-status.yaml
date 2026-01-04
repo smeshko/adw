@@ -141,8 +141,8 @@ development_status:
   # EPIC 8: Evidence Gathering
   # Goal: Capture platform-appropriate evidence during Verify phase
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-8: backlog
-  8-1-detect-project-platform-type: backlog
+  epic-8: in-progress
+  8-1-detect-project-platform-type: done
   8-2-capture-cli-terminal-output: backlog
   8-3-capture-web-screenshots: backlog
   8-4-capture-api-request-response-pairs: backlog

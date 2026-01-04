@@ -1,6 +1,6 @@
 # Story 8.1: Detect Project Platform Type
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-03
@@ -27,9 +27,17 @@ so that appropriate evidence gathering strategies are used.
 **When** evidence gathering starts
 **Then** API capture strategy is used
 
+**Given** project config with `platform: mobile`
+**When** evidence gathering starts
+**Then** mobile screenshot strategy is used
+
 **Given** no platform specified
 **When** detection is attempted
-**Then** it's inferred from project markers (e.g., package.json with react → web)
+**Then** it's inferred from project markers:
+  - `package.json` with react/vue/angular → web
+  - `*.xcodeproj` or `*.xcworkspace` or `Info.plist` → mobile (iOS)
+  - `build.gradle` with android plugin or `AndroidManifest.xml` → mobile (Android)
+  - `pubspec.yaml` with flutter dependency → mobile (Flutter)
 
 **Given** platform cannot be determined
 **When** Verify phase runs
@@ -38,52 +46,60 @@ so that appropriate evidence gathering strategies are used.
 ## Tasks / Subtasks
 
 ### Task 1: Create Platform Type Models (models/evidence.py)
-- [ ] Create `PlatformType` enum (CLI, WEB, BACKEND, UNKNOWN)
-- [ ] Create `PlatformDetectionResult` model with platform, confidence, markers
-- [ ] Create `EvidenceStrategy` enum or Protocol for strategy selection
-- [ ] Export from `models/__init__.py`
+- [x] Create `PlatformType` enum (CLI, WEB, MOBILE, BACKEND, UNKNOWN)
+- [x] Create `PlatformDetectionResult` model with platform, confidence, markers
+- [x] Create `EvidenceStrategy` enum or Protocol for strategy selection
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Configuration-Based Detection
-- [ ] Read `platform` key from `.adw/project.yaml`
-- [ ] Parse and validate platform value against PlatformType enum
-- [ ] Return immediately if explicit platform is configured
-- [ ] Log platform source as "config" for traceability
+- [x] Read `platform` key from `.adw/project.yaml`
+- [x] Parse and validate platform value against PlatformType enum
+- [x] Return immediately if explicit platform is configured
+- [x] Log platform source as "config" for traceability
 
 ### Task 3: Implement Project Marker Detection (evidence/detector.py)
-- [ ] Create `PlatformDetector` class in `src/adw/evidence/`
-- [ ] Implement marker detection for web projects:
+- [x] Create `PlatformDetector` class in `src/adw/evidence/`
+- [x] Implement marker detection for web projects:
   - `package.json` with react/vue/angular/svelte → WEB
   - `next.config.js`, `nuxt.config.ts` → WEB
   - `index.html` at root → WEB
-- [ ] Implement marker detection for backend projects:
+- [x] Implement marker detection for mobile projects:
+  - `*.xcodeproj` or `*.xcworkspace` directories → MOBILE (iOS)
+  - [x] `Info.plist` in project root or common locations → MOBILE (iOS)
+  - `AndroidManifest.xml` with `build.gradle` → MOBILE (Android)
+  - `pubspec.yaml` with flutter SDK dependency → MOBILE (Flutter)
+- [x] Implement marker detection for backend projects:
   - `main.py` with fastapi/flask/django → BACKEND
   - `app.py` with API patterns → BACKEND
   - `requirements.txt` with web frameworks → BACKEND
   - `Dockerfile` with EXPOSE → BACKEND
-- [ ] Implement marker detection for CLI projects:
+- [x] Implement marker detection for CLI projects:
   - `pyproject.toml` with `[project.scripts]` → CLI
   - `setup.py` with `entry_points` → CLI
   - No web/backend markers → default CLI
 
 ### Task 4: Implement Confidence Scoring
-- [ ] Assign confidence levels (HIGH, MEDIUM, LOW) based on marker strength
-- [ ] Multiple corroborating markers increase confidence
-- [ ] Log all detected markers for debugging
-- [ ] Include confidence in detection result
+- [x] Assign confidence levels (HIGH, MEDIUM, LOW) based on marker strength
+- [x] Multiple corroborating markers increase confidence
+- [x] Log all detected markers for debugging
+- [x] Include confidence in detection result
 
 ### Task 5: Integrate with Evidence System
-- [ ] Create factory function `get_evidence_strategy(platform: PlatformType)`
-- [ ] Wire detection into Verify phase startup
-- [ ] Emit appropriate warning for UNKNOWN platform
-- [ ] Store detected platform in RunContext for downstream use
+- [x] Create factory function `get_evidence_strategy(platform: PlatformType)`
+- [x] Wire detection into Verify phase startup
+- [x] Emit appropriate warning for UNKNOWN platform
+- [x] Store detected platform in RunContext for downstream use
 
 ### Task 6: Write Unit Tests
-- [ ] Test explicit config detection
-- [ ] Test web marker detection (React, Vue, Next.js, etc.)
-- [ ] Test backend marker detection (FastAPI, Django, etc.)
-- [ ] Test CLI marker detection (pyproject.toml scripts)
-- [ ] Test fallback to CLI with warning when unknown
-- [ ] Test confidence scoring logic
+- [x] Test explicit config detection (CLI, WEB, BACKEND)
+- [x] Test explicit config detection for MOBILE platform
+- [x] Test web marker detection (React, Vue, Next.js, etc.)
+- [x] Test mobile marker detection (iOS .xcodeproj/.xcworkspace, Android AndroidManifest.xml, Flutter pubspec.yaml)
+- [x] Test iOS Info.plist marker detection
+- [x] Test backend marker detection (FastAPI, Django, etc.)
+- [x] Test CLI marker detection (pyproject.toml scripts)
+- [x] Test fallback to CLI with warning when unknown
+- [x] Test confidence scoring logic
 
 ---
 
@@ -153,6 +169,7 @@ from enum import Enum
 class PlatformType(str, Enum):
     CLI = "cli"
     WEB = "web"
+    MOBILE = "mobile"
     BACKEND = "backend"
     UNKNOWN = "unknown"
 
@@ -304,11 +321,12 @@ Key patterns and rules from project context:
 ## Dependencies
 
 - **Depends On:** None (foundation story for Epic 8)
-- **Blocks:** Story 8.2, Story 8.3, Story 8.4, Story 8.5
+- **Blocks:** Story 8.2, Story 8.3, Story 8.3b, Story 8.4, Story 8.5
 - **Can Parallel With:** None
 
 ### Dependency Rationale
-- All evidence capture stories (8.2, 8.3, 8.4) depend on platform detection to determine which strategy to use
+- All evidence capture stories (8.2, 8.3, 8.3b, 8.4) depend on platform detection to determine which strategy to use
+- Story 8.3b (mobile screenshots) specifically requires MOBILE platform detection
 - Story 8.5 (manifest) needs platform type metadata
 - This is the foundation story that must be completed first
 
@@ -327,4 +345,16 @@ Key patterns and rules from project context:
 ### Completion Notes List
 
 ### File List
+
+**New Files:**
+- `src/adw/models/evidence.py` - PlatformType (CLI, WEB, MOBILE, BACKEND, UNKNOWN), Confidence, EvidenceStrategy enums and PlatformDetectionResult model
+- `src/adw/evidence/__init__.py` - Package exports, detect_platform() and get_evidence_strategy() functions
+- `src/adw/evidence/detector.py` - PlatformDetector class with config and marker detection (web, mobile, backend, cli)
+- `tests/unit/evidence/__init__.py` - Test package init
+- `tests/unit/evidence/test_detector.py` - 51 unit tests for platform detection
+- `tests/unit/models/test_evidence.py` - 21 unit tests for evidence models
+
+**Modified Files:**
+- `src/adw/models/__init__.py` - Added evidence model exports
+- `src/adw/core/orchestrator.py` - Integrated platform detection at verify phase startup
 
