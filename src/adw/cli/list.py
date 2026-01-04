@@ -195,7 +195,7 @@ def _display_index_entries(entries: list[IndexEntry]) -> None:
     table = Table(title="Recent Runs (Global Index)")
     table.add_column("Run ID", style="cyan", no_wrap=True)
     table.add_column("Project", style="green")
-    table.add_column("Feature", max_width=40)
+    table.add_column("Feature", max_width=30)
     table.add_column("Status", style="bold")
     table.add_column("Started", style="dim")
     table.add_column("Phase", style="yellow")
@@ -210,13 +210,13 @@ def _display_index_entries(entries: list[IndexEntry]) -> None:
         else:
             started = "-"
 
-        # Truncate run_id for display
-        run_id_short = entry.run_id[:12] + "..."
+        # Full run_id for display (allows copy/paste for other commands)
+        run_id_short = entry.run_id
 
         # Truncate feature description if too long
         feature = entry.feature_description
-        if len(feature) > 40:
-            feature = feature[:40] + "..."
+        if len(feature) > 30:
+            feature = feature[:27] + "..."
 
         table.add_row(
             run_id_short,
