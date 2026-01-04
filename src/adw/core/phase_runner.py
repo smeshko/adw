@@ -8,6 +8,7 @@ post-hook → artifact capture.
 import logging
 import os
 import re
+import subprocess
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -15,6 +16,13 @@ from typing import TYPE_CHECKING
 
 from adw.core.constants import PHASE_SEQUENCE
 from adw.exceptions import ADWError, ConfigError, HookError, LLMError
+from adw.hooks.git_diff import (
+    capture_diff,
+    capture_staged_diff,
+    get_diff_stats,
+    has_commits,
+    truncate_diff,
+)
 from adw.hooks.runner import find_hook
 from adw.models import (
     LLMResult,
@@ -671,7 +679,135 @@ class PhaseRunner:
             )
             artifacts.append(tool_calls_name)
 
+        # Capture git diff for build phase (Story 9.3)
+        if phase == "build":
+            diff_artifacts = self._capture_git_diff_artifacts(context)
+            artifacts.extend(diff_artifacts)
+
         logger.debug(
             "Artifacts captured", extra={"phase": phase, "count": len(artifacts)}
         )
+        return artifacts
+
+    def _capture_git_diff_artifacts(
+        self,
+        context: RunContext,
+    ) -> list[str]:
+        """Capture git diff as build phase artifact (Story 9.3).
+
+        Captures the git diff since the last commit and stores it as an artifact.
+        If no commits were made during build, captures staged changes instead.
+        Large diffs (>100KB) are truncated with a summary.
+        Handles initial commit edge case where HEAD~1 doesn't exist.
+
+        Args:
+            context: Run context.
+
+        Returns:
+            List of artifact filenames created (diff.txt, diff_stats.json).
+        """
+        artifacts: list[str] = []
+        diff_reference = "HEAD~1"
+
+        try:
+            # Check if repository has commits (handles initial commit edge case)
+            if not has_commits():
+                logger.debug(
+                    "No commits in repository, trying staged changes",
+                    extra={"run_id": context.run_id},
+                )
+                diff_content = capture_staged_diff()
+                diff_reference = "--cached"
+            else:
+                # Try to capture diff since last commit
+                diff_content = capture_diff(since="HEAD~1")
+
+                # If no diff found, try staged changes
+                if not diff_content.strip():
+                    logger.debug(
+                        "No commit diff found, trying staged changes",
+                        extra={"run_id": context.run_id},
+                    )
+                    diff_content = capture_staged_diff()
+                    diff_reference = "--cached"
+
+            # Handle empty diff case
+            if not diff_content.strip():
+                logger.debug(
+                    "No git changes to capture",
+                    extra={"run_id": context.run_id},
+                )
+                return artifacts
+
+            # Store raw diff content for binary file detection
+            raw_diff_content = diff_content
+
+            # Truncate if too large (>100KB)
+            original_size = len(diff_content.encode("utf-8"))
+            diff_content = truncate_diff(diff_content, max_bytes=102400)
+
+            # Store diff content
+            self.artifact_manager.store_text(
+                context.run_id,
+                "build",
+                "diff.txt",
+                diff_content,
+            )
+            artifacts.append("diff.txt")
+
+            # Capture and store diff statistics
+            # Run git diff --stat to get stats summary
+            try:
+                stat_cmd = ["git", "diff", "--stat", "--no-color"]
+                if diff_reference == "--cached":
+                    stat_cmd.append("--cached")
+                else:
+                    stat_cmd.append(diff_reference)
+
+                stat_result = subprocess.run(
+                    stat_cmd,
+                    capture_output=True,
+                    text=True,
+                    cwd=Path.cwd(),
+                )
+                if stat_result.returncode == 0:
+                    # Pass raw diff for binary file detection
+                    stats = get_diff_stats(stat_result.stdout, raw_diff_content)
+                    self.artifact_manager.store_json(
+                        context.run_id,
+                        "build",
+                        "diff_stats.json",
+                        stats.model_dump(),
+                    )
+                    artifacts.append("diff_stats.json")
+
+                    logger.info(
+                        "Git diff captured",
+                        extra={
+                            "run_id": context.run_id,
+                            "original_bytes": original_size,
+                            "files_changed": stats.files_changed,
+                            "insertions": stats.insertions,
+                            "deletions": stats.deletions,
+                            "binary_files": stats.binary_files,
+                        },
+                    )
+            except Exception as stat_error:
+                # Stats are optional - log and continue
+                logger.debug(
+                    "Could not capture diff stats",
+                    extra={"error": str(stat_error)},
+                )
+
+        except HookError as e:
+            # Git diff errors are non-fatal - log and continue
+            logger.warning(
+                "Could not capture git diff",
+                extra={
+                    "run_id": context.run_id,
+                    "error_code": e.code,
+                    "error": str(e),
+                },
+            )
+
         return artifacts

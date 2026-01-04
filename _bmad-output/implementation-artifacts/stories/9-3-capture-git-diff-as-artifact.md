@@ -1,6 +1,6 @@
 # Story 9.3: Capture Git Diff as Artifact
 
-Status: drafted
+Status: completed
 Epic: 9 - Git Integration & Documentation
 Created: 2026-01-04
 
@@ -32,21 +32,21 @@ so that changes can be reviewed and included in PR description.
 
 ## Tasks / Subtasks
 
-- [ ] Create `src/adw/hooks/git_diff.py` module
-- [ ] Implement `capture_diff(since: str = "HEAD~1") -> str`
+- [x] Create `src/adw/hooks/git_diff.py` module
+- [x] Implement `capture_diff(since: str = "HEAD~1") -> str`
   - Use `git diff --stat` for summary
   - Use `git diff` for full content
-- [ ] Implement `capture_staged_diff() -> str`
+- [x] Implement `capture_staged_diff() -> str`
   - Use `git diff --cached` for uncommitted staged changes
-- [ ] Implement `truncate_diff(diff: str, max_bytes: int = 102400) -> str`
+- [x] Implement `truncate_diff(diff: str, max_bytes: int = 102400) -> str`
   - Preserve file headers when truncating
   - Add truncation notice at end
-- [ ] Implement `get_diff_stats(diff: str) -> DiffStats`
+- [x] Implement `get_diff_stats(diff: str) -> DiffStats`
   - Parse insertions/deletions from --stat output
-- [ ] Integrate diff capture into Build phase artifact collection
-- [ ] Add diff to template variable namespace as `{{artifacts.build.diff}}`
-- [ ] Write unit tests for diff parsing and truncation
-- [ ] Write integration tests with actual git changes
+- [x] Integrate diff capture into Build phase artifact collection
+- [x] Add diff to template variable namespace as `{{artifacts.build.diff}}`
+- [x] Write unit tests for diff parsing and truncation
+- [x] Write integration tests with actual git changes
 
 ---
 
@@ -120,8 +120,33 @@ Key patterns:
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude claude-opus-4-5-20251101
 
 ### Completion Notes List
+- Created DiffStats Pydantic model in src/adw/models/artifacts.py (per architecture compliance)
+- Created git_diff.py module with all core diff capture functions
+- capture_diff() captures git diff since a given commit (default HEAD~1)
+- capture_staged_diff() captures staged changes via git diff --cached
+- truncate_diff() handles large diffs with truncation notice
+- get_diff_stats() parses git diff --stat output into DiffStats model
+- has_commits() checks if repository has commits (initial commit edge case)
+- count_binary_files() detects binary files in diff output
+- DiffStats includes binary_files field for binary file tracking
+- All functions use --no-color flag to avoid ANSI escape codes
+- Integrated diff capture into PhaseRunner._capture_artifacts for build phase
+- Handles initial commit edge case (no HEAD~1 exists)
+- diff.txt accessible as {{artifacts.build.diff}} via existing template mapping
+- 30 unit tests for git_diff module
+- 6 unit tests for PhaseRunner git diff integration
+- 17 integration tests with real git operations including binary file and initial commit tests
 
 ### File List
+- src/adw/models/artifacts.py (new - DiffStats model per architecture compliance)
+- src/adw/models/__init__.py (modified - export DiffStats)
+- src/adw/hooks/git_diff.py (new - diff capture functions)
+- src/adw/hooks/__init__.py (modified - added exports)
+- src/adw/core/phase_runner.py (modified - added diff capture in build phase)
+- tests/unit/hooks/test_git_diff.py (new - 30 unit tests)
+- tests/unit/core/test_phase_runner.py (modified - added git diff tests)
+- tests/integration/test_git_diff.py (new - 17 integration tests)
 
