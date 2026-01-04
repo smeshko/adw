@@ -154,7 +154,7 @@ development_status:
   8-2-capture-cli-terminal-output: done
   8-3-capture-web-screenshots: done
   8-3b-capture-mobile-screenshots: done
-  8-4-capture-api-request-response-pairs: review
+  8-4-capture-api-request-response-pairs: done
   8-5-generate-evidence-manifest: ready-for-dev
   8-6-compress-and-optimize-evidence: ready-for-dev
   # UX Fix (from ISS-001)
