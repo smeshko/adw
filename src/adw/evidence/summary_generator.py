@@ -6,6 +6,7 @@ of CLI evidence gathering results.
 
 from pathlib import Path
 
+from adw.logging import LogCategory, get_logger
 from adw.models.evidence import CLIEvidenceSummary, CommandResult
 
 
@@ -54,7 +55,7 @@ class SummaryGenerator:
         )
 
     def write_summary(self, summary: CLIEvidenceSummary) -> Path:
-        """Write summary to a JSON file.
+        """Write summary to a JSON file and log to console.
 
         Args:
             summary: The summary to write
@@ -62,9 +63,18 @@ class SummaryGenerator:
         Returns:
             Path to the written summary file
         """
+        logger = get_logger()
         output_path = self.evidence_dir / "summary.json"
         content = summary.model_dump_json(indent=2)
-        output_path.write_text(content)
+        output_path.write_text(content, encoding="utf-8")
+
+        # Log summary to console per AC requirement
+        summary_text = self.format_summary_text(summary)
+        logger.info(
+            LogCategory.STATE,
+            f"CLI evidence gathering complete: {summary_text}",
+        )
+
         return output_path
 
     def format_summary_text(self, summary: CLIEvidenceSummary) -> str:

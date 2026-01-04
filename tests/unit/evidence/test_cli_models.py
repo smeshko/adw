@@ -6,7 +6,7 @@ Tests the Pydantic models used for CLI terminal output capture:
 - CLIEvidenceSummary: Summary of all command executions
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -107,7 +107,7 @@ class TestCommandResult:
 
     def test_executed_at_default(self) -> None:
         """CommandResult should set executed_at to current time."""
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         result = CommandResult(
             command="echo test",
             exit_code=0,
@@ -116,14 +116,14 @@ class TestCommandResult:
             duration_seconds=0.01,
             success=True,
         )
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
 
         # executed_at should be between before and after
         assert before <= result.executed_at <= after
 
     def test_custom_executed_at(self) -> None:
         """CommandResult should accept custom executed_at."""
-        custom_time = datetime(2026, 1, 3, 10, 30, 45, tzinfo=timezone.utc)
+        custom_time = datetime(2026, 1, 3, 10, 30, 45, tzinfo=UTC)
         result = CommandResult(
             command="echo test",
             exit_code=0,
@@ -198,14 +198,14 @@ class TestCLIEvidenceSummary:
 
     def test_captured_at_default(self) -> None:
         """CLIEvidenceSummary should set captured_at to current time."""
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         summary = CLIEvidenceSummary(
             total_commands=0,
             passed=0,
             failed=0,
             results=[],
         )
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
         assert before <= summary.captured_at <= after
 
     def test_platform_default(self) -> None:

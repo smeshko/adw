@@ -4,10 +4,8 @@ Tests the CLICaptureStrategy class that executes commands and captures output.
 """
 
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from adw.evidence.cli_capture import CLICaptureStrategy
 from adw.models.evidence import CommandConfig, CommandResult
@@ -16,15 +14,10 @@ from adw.models.evidence import CommandConfig, CommandResult
 class TestCLICaptureStrategy:
     """Tests for CLICaptureStrategy class."""
 
-    def test_init_default(self) -> None:
-        """CLICaptureStrategy should initialize with default shell."""
+    def test_init(self) -> None:
+        """CLICaptureStrategy should initialize without parameters."""
         strategy = CLICaptureStrategy()
-        assert strategy.shell == "/bin/bash"
-
-    def test_init_custom_shell(self) -> None:
-        """CLICaptureStrategy should accept custom shell."""
-        strategy = CLICaptureStrategy(shell="/bin/sh")
-        assert strategy.shell == "/bin/sh"
+        assert strategy is not None
 
 
 class TestExecuteCommand:
@@ -129,10 +122,10 @@ class TestExecuteCommand:
             stderr="",
         )
 
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         strategy = CLICaptureStrategy()
         result = strategy.execute_command("echo ok", timeout=30)
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
 
         assert before <= result.executed_at <= after
 

@@ -10,6 +10,7 @@ from adw.evidence.cli_capture import CLICaptureStrategy
 from adw.evidence.config_loader import load_evidence_commands
 from adw.evidence.file_writer import EvidenceFileWriter
 from adw.evidence.summary_generator import SummaryGenerator
+from adw.logging import LogCategory, get_logger
 from adw.models.evidence import (
     CLIEvidenceSummary,
     CommandResult,
@@ -60,7 +61,16 @@ class CLIEvidenceGatherer:
         Returns:
             True if CLI evidence should be gathered, False otherwise
         """
-        return platform in (PlatformType.CLI, PlatformType.UNKNOWN)
+        logger = get_logger()
+        should = platform in (PlatformType.CLI, PlatformType.UNKNOWN)
+
+        if should and platform == PlatformType.UNKNOWN:
+            logger.info(
+                LogCategory.STATE,
+                "Platform unknown - defaulting to CLI evidence gathering",
+            )
+
+        return should
 
     def gather(self) -> CLIEvidenceSummary:
         """Gather CLI evidence from configured commands.

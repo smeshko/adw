@@ -4,10 +4,8 @@ Tests the SummaryGenerator class that creates summaries and logs results.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-
-import pytest
 
 from adw.evidence.summary_generator import SummaryGenerator
 from adw.models.evidence import CLIEvidenceSummary, CommandResult
@@ -164,14 +162,14 @@ class TestWriteSummary:
             stderr="",
             duration_seconds=0.5,
             success=True,
-            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=timezone.utc),
+            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=UTC),
         )
         summary = CLIEvidenceSummary(
             total_commands=1,
             passed=1,
             failed=0,
             results=[result],
-            captured_at=datetime(2026, 1, 3, 10, 31, 0, tzinfo=timezone.utc),
+            captured_at=datetime(2026, 1, 3, 10, 31, 0, tzinfo=UTC),
         )
 
         output_path = generator.write_summary(summary)

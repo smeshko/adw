@@ -9,10 +9,10 @@ Includes:
 - CLI evidence capture models (CommandConfig, CommandResult, CLIEvidenceSummary)
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class PlatformType(str, Enum):
@@ -147,15 +147,6 @@ class CommandConfig(BaseModel):
         description="Maximum execution time in seconds",
     )
 
-    @field_validator("timeout")
-    @classmethod
-    def validate_timeout(cls, v: int) -> int:
-        """Ensure timeout is positive."""
-        if v <= 0:
-            msg = "timeout must be greater than 0"
-            raise ValueError(msg)
-        return v
-
     model_config = {
         "frozen": False,
         "validate_assignment": True,
@@ -206,7 +197,7 @@ class CommandResult(BaseModel):
     )
     success: bool = Field(..., description="Whether the command succeeded")
     executed_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="When the command was executed (UTC)",
     )
 
@@ -268,7 +259,7 @@ class CLIEvidenceSummary(BaseModel):
         default="cli", description="Platform type (always 'cli')"
     )
     captured_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="When evidence was captured (UTC)",
     )
 

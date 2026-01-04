@@ -3,10 +3,8 @@
 Tests the EvidenceFileWriter class that writes command results to files.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-
-import pytest
 
 from adw.evidence.file_writer import EvidenceFileWriter
 from adw.models.evidence import CommandResult
@@ -49,7 +47,7 @@ class TestWriteCommandResult:
             stderr="",
             duration_seconds=0.125,
             success=True,
-            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=timezone.utc),
+            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=UTC),
         )
 
         output_path = writer.write_command_result("version", result)
@@ -79,7 +77,7 @@ class TestWriteCommandResult:
             stderr="command not found: invalid-cmd\n",
             duration_seconds=0.05,
             success=False,
-            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=timezone.utc),
+            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=UTC),
         )
 
         output_path = writer.write_command_result("invalid", result)
@@ -101,7 +99,7 @@ class TestWriteCommandResult:
             stderr="warning: something\n",
             duration_seconds=0.1,
             success=True,
-            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=timezone.utc),
+            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=UTC),
         )
 
         output_path = writer.write_command_result("warnings", result)
@@ -124,7 +122,7 @@ class TestWriteCommandResult:
             stderr="",
             duration_seconds=0.01,
             success=True,
-            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=timezone.utc),
+            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=UTC),
         )
 
         output_path = writer.write_command_result("silent", result)
@@ -144,7 +142,7 @@ class TestWriteCommandResult:
             stderr="Command timed out",
             duration_seconds=30.0,
             success=False,
-            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=timezone.utc),
+            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=UTC),
         )
 
         output_path = writer.write_command_result("timeout", result)
@@ -200,7 +198,7 @@ class TestFormatEvidenceFile:
             stderr="",
             duration_seconds=0.5,
             success=True,
-            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=timezone.utc),
+            executed_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=UTC),
         )
 
         output_path = writer.write_command_result("test", result)

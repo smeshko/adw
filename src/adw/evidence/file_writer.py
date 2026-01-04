@@ -4,10 +4,10 @@ This module provides the EvidenceFileWriter class for writing command
 execution results to evidence files in a human-readable format.
 """
 
+import re
 from pathlib import Path
 
 from adw.models.evidence import CommandResult
-
 
 SECTION_SEPARATOR = "=" * 80
 
@@ -53,9 +53,11 @@ class EvidenceFileWriter:
         Returns:
             Path to the written evidence file
         """
-        output_path = self.evidence_dir / f"{name}.txt"
+        # Sanitize name to prevent path traversal
+        safe_name = re.sub(r"[^\w\-]", "_", name)
+        output_path = self.evidence_dir / f"{safe_name}.txt"
         content = self._format_evidence(result)
-        output_path.write_text(content)
+        output_path.write_text(content, encoding="utf-8")
         return output_path
 
     def _format_evidence(self, result: CommandResult) -> str:
@@ -76,7 +78,7 @@ class EvidenceFileWriter:
             SECTION_SEPARATOR,
             f"Command: {result.command}",
             f"Executed: {executed_at}",
-            f"Duration: {result.duration_seconds}s",
+            f"Duration: {result.duration_seconds:.3f}s",
             f"Exit Code: {result.exit_code}",
             f"Status: {status}",
             "",

@@ -9,6 +9,7 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
+from adw.logging import LogCategory, get_logger
 from adw.models.evidence import CommandConfig
 
 
@@ -35,6 +36,7 @@ def load_evidence_commands(project_root: Path) -> list[CommandConfig]:
         ...     print(f"{cmd.name}: {cmd.cmd}")
         version: adw --version
     """
+    logger = get_logger()
     config_path = project_root / ".adw" / "project.yaml"
 
     if not config_path.exists():
@@ -43,7 +45,17 @@ def load_evidence_commands(project_root: Path) -> list[CommandConfig]:
     try:
         content = config_path.read_text()
         data = yaml.safe_load(content)
-    except (yaml.YAMLError, OSError):
+    except yaml.YAMLError as e:
+        logger.warn(
+            LogCategory.STATE,
+            f"Failed to parse evidence config: {e}",
+        )
+        return []
+    except OSError as e:
+        logger.warn(
+            LogCategory.STATE,
+            f"Failed to read evidence config file: {e}",
+        )
         return []
 
     if not isinstance(data, dict):
@@ -65,8 +77,11 @@ def load_evidence_commands(project_root: Path) -> list[CommandConfig]:
         try:
             command = CommandConfig.model_validate(cmd_data)
             commands.append(command)
-        except ValidationError:
-            # Skip invalid command configurations
+        except ValidationError as e:
+            logger.warn(
+                LogCategory.STATE,
+                f"Skipping invalid command config: {e}",
+            )
             continue
 
     return commands

@@ -6,7 +6,7 @@ and capturing their output during the Verify phase of evidence gathering.
 
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from adw.models.evidence import CommandConfig, CommandResult
 
@@ -17,9 +17,6 @@ class CLICaptureStrategy:
     Executes commands and captures stdout, stderr, exit code, and timing
     information for evidence gathering during the Verify phase.
 
-    Attributes:
-        shell: Path to the shell to use for command execution
-
     Example:
         >>> strategy = CLICaptureStrategy()
         >>> result = strategy.execute_command("adw --version", timeout=30)
@@ -28,14 +25,6 @@ class CLICaptureStrategy:
         >>> result.stdout
         'adw version 1.0.0'
     """
-
-    def __init__(self, shell: str = "/bin/bash") -> None:
-        """Initialize the CLI capture strategy.
-
-        Args:
-            shell: Path to the shell to use for command execution
-        """
-        self.shell = shell
 
     def execute_command(self, cmd: str, timeout: int) -> CommandResult:
         """Execute a command and capture its output.
@@ -55,7 +44,7 @@ class CLICaptureStrategy:
             exit_code=-1 and success=False rather than raising.
         """
         start_time = time.monotonic()
-        executed_at = datetime.now(timezone.utc)
+        executed_at = datetime.now(UTC)
 
         try:
             result = subprocess.run(

@@ -5,7 +5,6 @@ Tests loading command configurations from project.yaml evidence section.
 
 from pathlib import Path
 
-import pytest
 import yaml
 
 from adw.evidence.config_loader import load_evidence_commands
