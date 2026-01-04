@@ -605,10 +605,7 @@ def logs_tools(
         duration = f"{entry.duration_ms}ms"
 
         # Format status
-        if entry.blocked:
-            status = "[red]✗ Blocked[/]"
-        else:
-            status = "[green]✓ Success[/]"
+        status = "[red]✗ Blocked[/]" if entry.blocked else "[green]✓ Success[/]"
 
         # Build row
         if verbose:

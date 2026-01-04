@@ -4,7 +4,6 @@ Verifies that when --allow-dangerous is active, blocked patterns are
 logged as warnings instead of errors and execution continues.
 """
 
-import pytest
 
 from adw.security.patterns import PatternMatch
 

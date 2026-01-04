@@ -641,4 +641,6 @@ class TestLogsToolsCommand:
         result = runner.invoke(app, ["logs", "tools", "test-run"])
         assert result.exit_code == 0
         # Should show summary with totals
-        assert "3" in result.output or "Total" in result.output or "Summary" in result.output
+        in_output = result.output
+        has_summary = "3" in in_output or "Total" in in_output or "Summary" in in_output
+        assert has_summary

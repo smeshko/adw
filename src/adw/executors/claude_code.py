@@ -29,6 +29,7 @@ from adw.models.logging import LLMStats
 from adw.models.security import ToolCallLog
 
 if TYPE_CHECKING:
+    from adw.security.interceptor import SecurityInterceptor
     from adw.security.tool_logger import ToolLogger
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,8 @@ class ClaudeCodeExecutor:
         *,
         console: Console | None = None,
         tool_logger: "ToolLogger | None" = None,
+        security_interceptor: "SecurityInterceptor | None" = None,
+        allow_dangerous: bool = False,
     ) -> None:
         """Initialize the ClaudeCodeExecutor.
 
@@ -68,10 +71,16 @@ class ClaudeCodeExecutor:
                      a new Console instance is created.
             tool_logger: Optional ToolLogger for persisting tool call logs.
                         Used for security auditing (Story 3.8).
+            security_interceptor: Optional SecurityInterceptor for checking tool
+                        calls against security patterns (Story 3.6).
+            allow_dangerous: If True, log warnings instead of blocking dangerous
+                        commands (Story 3.6).
         """
         self.config = config
         self.console = console or Console()
         self.tool_logger = tool_logger
+        self.security_interceptor = security_interceptor
+        self.allow_dangerous = allow_dangerous
 
     def _resolve_timeout(self, timeout: int | None) -> int:
         """Resolve timeout using 3-tier hierarchy.
@@ -155,8 +164,8 @@ class ClaudeCodeExecutor:
             str(claude_path),
             "--print",
             "--verbose",
-            "--output-format", "stream-json",  # Get structured output with token counts
-            "--dangerously-skip-permissions",  # Allow file writes in automated pipelines
+            "--output-format", "stream-json",  # Structured output with tokens
+            "--dangerously-skip-permissions",  # Allow automated file writes
             prompt,
         ]
 
@@ -605,3 +614,137 @@ class ClaudeCodeExecutor:
             ),
             recoverable=False,
         )
+
+    def _extract_display_text(self, line: str) -> str | None:
+        """Extract displayable text from a stream-json line.
+
+        Claude Code --output-format stream-json produces JSONL with various
+        message types. This extracts text content suitable for real-time display.
+
+        Args:
+            line: A single line of stream-json output.
+
+        Returns:
+            Text content to display, or None if no displayable content.
+        """
+        try:
+            data = json.loads(line.strip())
+        except json.JSONDecodeError:
+            return None
+
+        if not isinstance(data, dict):
+            return None
+
+        msg_type = data.get("type", "")
+
+        # Extract text from content block deltas (streaming text)
+        if msg_type == "content_block_delta":
+            delta = data.get("delta", {})
+            if delta.get("type") == "text_delta":
+                text = delta.get("text", "")
+                return str(text) if text else None
+
+        # Extract text from assistant message content blocks
+        if msg_type == "assistant":
+            for block in data.get("message", {}).get("content", []):
+                if block.get("type") == "text":
+                    text = block.get("text", "")
+                    return str(text) if text else None
+
+        return None
+
+    def _check_and_log_tool_calls(
+        self,
+        tool_calls: list[ToolCall],
+        total_duration_ms: int,
+    ) -> None:
+        """Check tool calls against security patterns and log them.
+
+        This method combines security validation (Story 3.6) with tool logging
+        (Story 3.8). It checks each tool call against the security interceptor
+        and raises SecurityError if blocked, then logs all calls.
+
+        Args:
+            tool_calls: List of tool calls to check and log.
+            total_duration_ms: Total execution time for all tools.
+
+        Raises:
+            SecurityError: If a tool call is blocked and allow_dangerous is False.
+        """
+        from adw.exceptions import SecurityError
+        from adw.security.interceptor import SecurityCheckResult
+
+        if not tool_calls:
+            return
+
+        timestamp = datetime.now(UTC).isoformat()
+        per_tool_duration = total_duration_ms // len(tool_calls)
+
+        for tool_call in tool_calls:
+            blocked = False
+            block_reason: str | None = None
+
+            # Check against security interceptor if configured
+            if self.security_interceptor:
+                response = self.security_interceptor.check_tool_call(
+                    tool_call.tool_name,
+                    tool_call.arguments,
+                )
+
+                if response.result == SecurityCheckResult.BLOCKED:
+                    # Build block reason message
+                    match = response.matches[0] if response.matches else None
+                    if match:
+                        block_reason = f"Blocked: {match.description}"
+                    else:
+                        block_reason = "Blocked by security policy"
+
+                    blocked = True
+
+                    # Log before raising if tool_logger is configured
+                    if self.tool_logger:
+                        log_entry = ToolCallLog(
+                            timestamp=timestamp,
+                            tool_name=tool_call.tool_name,
+                            arguments=tool_call.arguments,
+                            result_summary=None,
+                            duration_ms=per_tool_duration,
+                            blocked=True,
+                            block_reason=block_reason,
+                            phase=self.tool_logger.current_phase,
+                        )
+                        self.tool_logger.log_tool_call(log_entry)
+
+                    # Raise security error
+                    raise SecurityError(
+                        code="DANGEROUS_COMMAND_BLOCKED",
+                        message=block_reason,
+                        tool_name=tool_call.tool_name,
+                        pattern_matched=match.pattern if match else "",
+                        suggestion=match.alternative if match else None,
+                    )
+
+                elif response.result == SecurityCheckResult.WARNING:
+                    # Log warning but don't block
+                    match = response.matches[0] if response.matches else None
+                    if match:
+                        block_reason = f"Warning: {match.description}"
+                    blocked = False  # Not actually blocked in warning mode
+
+            # Log the tool call
+            if self.tool_logger:
+                result_summary = tool_call.result_summary
+                if result_summary and len(result_summary) > 200:
+                    result_summary = result_summary[:197] + "..."
+
+                log_entry = ToolCallLog(
+                    timestamp=timestamp,
+                    tool_name=tool_call.tool_name,
+                    arguments=tool_call.arguments,
+                    result_summary=result_summary,
+                    duration_ms=per_tool_duration,
+                    blocked=blocked,
+                    block_reason=block_reason,
+                    phase=self.tool_logger.current_phase,
+                )
+                self.tool_logger.log_tool_call(log_entry)

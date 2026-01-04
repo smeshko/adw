@@ -4,7 +4,6 @@ Verifies SecurityError includes all required fields for rich error
 context including alternatives, override instructions, and severity.
 """
 
-import pytest
 
 from adw.exceptions import ADWError
 

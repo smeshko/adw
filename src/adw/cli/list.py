@@ -205,15 +205,23 @@ def _display_index_entries(entries: list[IndexEntry]) -> None:
         status_style = _get_status_style(entry.status)
 
         # Format started time
-        started = entry.started_at.strftime("%Y-%m-%d %H:%M") if entry.started_at else "-"
+        if entry.started_at:
+            started = entry.started_at.strftime("%Y-%m-%d %H:%M")
+        else:
+            started = "-"
 
         # Truncate run_id for display
         run_id_short = entry.run_id[:12] + "..."
 
+        # Truncate feature description if too long
+        feature = entry.feature_description
+        if len(feature) > 40:
+            feature = feature[:40] + "..."
+
         table.add_row(
             run_id_short,
             entry.project_name,
-            entry.feature_description[:40] + "..." if len(entry.feature_description) > 40 else entry.feature_description,
+            feature,
             f"[{status_style}]{entry.status}[/{status_style}]",
             started,
             entry.phase_reached or "-",
@@ -258,7 +266,9 @@ def _output_json_index_entries(entries: list[IndexEntry]) -> None:
                 "project_name": entry.project_name,
                 "feature": entry.feature_description,
                 "status": entry.status,
-                "started_at": entry.started_at.isoformat() if entry.started_at else None,
+                "started_at": (
+                    entry.started_at.isoformat() if entry.started_at else None
+                ),
                 "completed_at": entry.completed_at.isoformat()
                 if entry.completed_at
                 else None,

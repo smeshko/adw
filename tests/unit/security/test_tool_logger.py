@@ -7,8 +7,6 @@ import json
 import threading
 from pathlib import Path
 
-import pytest
-
 from adw.models.security import ToolCallLog
 from adw.security.tool_logger import ToolLogger
 

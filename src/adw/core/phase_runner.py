@@ -319,7 +319,7 @@ class PhaseRunner:
         }
 
         # Add convenience aliases for common artifact references
-        # These allow templates to use {{plan}} instead of {{artifacts.plan.plan_output}}
+        # e.g., {{plan}} instead of {{artifacts.plan.plan_output}}
 
         if "plan" in artifacts_map and "plan_output" in artifacts_map["plan"]:
             variables["plan"] = artifacts_map["plan"]["plan_output"]

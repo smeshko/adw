@@ -10,13 +10,11 @@ Tests cover:
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 import pytest
 
 from adw.core.index_manager import IndexManager
 from adw.models import RunContext
-from adw.models.index import IndexEntry
 
 
 class TestIndexManagerInit:

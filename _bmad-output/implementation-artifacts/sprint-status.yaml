@@ -37,6 +37,14 @@ generated: 2025-12-31
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
+issue_counter: 1
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ISSUES
+# Status: reported | investigating | in-progress | fixed | verified | wont-fix
+# ═══════════════════════════════════════════════════════════════════════════
+issues:
+  ISS-001-llm-output-too-verbose-in-terminal: reported
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -135,6 +143,8 @@ development_status:
   7-4-implement-log-viewing-commands: ready-for-dev
   7-5-implement-state-inspection-commands: done
   7-6-implement-secret-redaction: done
+  # UX Fix (from ISS-001)
+  ux-fix-ISS-001-llm-output-too-verbose-in-terminal: backlog
   epic-7-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -142,7 +152,7 @@ development_status:
   # Goal: Capture platform-appropriate evidence during Verify phase
   # ═══════════════════════════════════════════════════════════════════════════
   epic-8: in-progress
-  8-1-detect-project-platform-type: done
+  8-1-detect-project-platform-type: in-progress
   8-2-capture-cli-terminal-output: backlog
   8-3-capture-web-screenshots: backlog
   8-4-capture-api-request-response-pairs: backlog

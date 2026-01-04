@@ -46,7 +46,7 @@ DESTRUCTIVE_PATTERNS: list[BlockedPattern] = [
         description="Format filesystem command",
         severity="critical",
         category="destructive",
-        alternative="This operation requires manual execution with explicit confirmation",
+        alternative="Requires manual execution with explicit confirmation",
     ),
     BlockedPattern(
         pattern=r"dd\s+.*of\s*=\s*/dev/(?:sd|hd|nvme|vd)",
@@ -77,7 +77,7 @@ PERMISSION_PATTERNS: list[BlockedPattern] = [
         description="Setting world-writable permissions (chmod 777)",
         severity="warning",
         category="permission",
-        alternative="Use more restrictive permissions: chmod 755 (dirs) or chmod 644 (files)",
+        alternative="Use chmod 755 for dirs or chmod 644 for files instead",
     ),
     BlockedPattern(
         pattern=r"chmod\s+-R\s+777",
@@ -91,7 +91,7 @@ PERMISSION_PATTERNS: list[BlockedPattern] = [
         description="Changing ownership to root",
         severity="warning",
         category="permission",
-        alternative="Consider using current user ownership or a dedicated service account",
+        alternative="Use current user ownership or a dedicated service account",
     ),
 ]
 
@@ -109,7 +109,7 @@ GIT_DANGEROUS_PATTERNS: list[BlockedPattern] = [
         description="Force push to remote repository",
         severity="warning",
         category="git_dangerous",
-        alternative="Use --force-with-lease for safer force push that respects others' changes",
+        alternative="Use --force-with-lease for safer force push",
     ),
     BlockedPattern(
         pattern=r"git\s+push\s+-f(?:\s|$)",

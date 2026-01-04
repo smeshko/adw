@@ -10,6 +10,7 @@ Story 3.6: Security Hook Infrastructure - adds blocking to pattern matching.
 import logging
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 from adw.exceptions import SecurityError
 from adw.models.security import BlockedPattern
@@ -89,7 +90,7 @@ class SecurityInterceptor:
     def check_tool_call(
         self,
         tool_name: str,
-        arguments: dict,
+        arguments: dict[str, Any],
     ) -> SecurityCheckResponse:
         """Check if a tool call should be allowed.
 
@@ -179,7 +180,7 @@ class SecurityInterceptor:
     def validate_and_raise(
         self,
         tool_name: str,
-        arguments: dict,
+        arguments: dict[str, Any],
     ) -> None:
         """Validate a tool call and raise SecurityError if blocked.
 

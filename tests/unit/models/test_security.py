@@ -46,7 +46,9 @@ class TestBlockedPattern:
 
     def test_valid_categories(self) -> None:
         """Test all valid category values are accepted."""
-        valid_categories = ["destructive", "permission", "git_dangerous", "secret_access"]
+        valid_categories = [
+            "destructive", "permission", "git_dangerous", "secret_access"
+        ]
 
         for category in valid_categories:
             pattern = BlockedPattern(

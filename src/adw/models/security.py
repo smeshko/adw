@@ -8,7 +8,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-
 # Valid pattern categories for security blocking
 PatternCategory = Literal["destructive", "permission", "git_dangerous", "secret_access"]
 
@@ -27,7 +26,7 @@ class BlockedPattern(BaseModel):
         pattern: Regex pattern to match against commands/paths
         description: Human-readable description of what this pattern blocks
         severity: How severe the security risk is (critical/warning/info)
-        category: Category of the pattern (destructive/permission/git_dangerous/secret_access)
+        category: Category of the pattern (destructive/permission/etc.)
         alternative: Suggested safe alternative command or approach
 
     Example:
@@ -40,13 +39,13 @@ class BlockedPattern(BaseModel):
         ... )
     """
 
-    pattern: str = Field(description="Regex pattern to match against commands/paths")
-    description: str = Field(description="Human-readable description of what this blocks")
+    pattern: str = Field(description="Regex pattern to match against commands")
+    description: str = Field(description="Human-readable description of pattern")
     severity: PatternSeverity = Field(
         default="warning", description="Severity level (critical/warning/info)"
     )
     category: PatternCategory = Field(
-        description="Category of the pattern (destructive/permission/git_dangerous/secret_access)"
+        description="Category (destructive/permission/git_dangerous/secret_access)"
     )
     alternative: str = Field(
         default="", description="Suggested safe alternative command or approach"

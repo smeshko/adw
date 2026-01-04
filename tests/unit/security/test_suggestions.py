@@ -4,7 +4,6 @@ Verifies that suggestions are properly formatted for user output
 including alternatives and override instructions.
 """
 
-import pytest
 
 
 class TestSuggestionFormatter:
@@ -176,7 +175,9 @@ class TestSuggestionFormatterAdvanced:
 
         assert "Test pattern" in result
         # Should not have "Suggested alternative" section
-        assert "Suggested alternative" not in result or result.count("Suggested alternative") == 0
+        has_no_alt = "Suggested alternative" not in result
+        alt_count_zero = result.count("Suggested alternative") == 0
+        assert has_no_alt or alt_count_zero
 
     def test_format_single_allowed_no_override(self) -> None:
         """Test that allowed matches don't show override instruction."""

@@ -1,7 +1,6 @@
 """Unit tests for ClaudeCodeExecutor security integration."""
 
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -71,7 +70,7 @@ class TestExecutorSecurityIntegration:
         ]
         with pytest.raises(SecurityError) as exc_info:
             executor._check_and_log_tool_calls(tool_calls, 100)
-        
+
         assert exc_info.value.code == "DANGEROUS_COMMAND_BLOCKED"
         assert exc_info.value.tool_name == "Bash"
 
@@ -111,12 +110,12 @@ class TestExecutorSecurityIntegration:
             )
         ]
         executor._check_and_log_tool_calls(tool_calls, 100)
-        
+
         # Check that log was written
-        entries = logger.read_entries()
+        entries = logger.get_tool_history()
         assert len(entries) == 1
         assert entries[0].tool_name == "Bash"
-        # Note: blocked is False because allow_dangerous=True results in WARNING not BLOCKED
+        # blocked=False because allow_dangerous=True makes it WARNING not BLOCKED
         assert entries[0].block_reason is not None
         assert "Warning" in entries[0].block_reason
 
@@ -137,9 +136,9 @@ class TestExecutorSecurityIntegration:
             )
         ]
         executor._check_and_log_tool_calls(tool_calls, 100)
-        
+
         # Check that log was written
-        entries = logger.read_entries()
+        entries = logger.get_tool_history()
         assert len(entries) == 1
         assert entries[0].tool_name == "Bash"
         assert entries[0].blocked is False

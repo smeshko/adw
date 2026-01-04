@@ -366,10 +366,18 @@ class TestRealTimeStreaming:
         self, executor: ClaudeCodeExecutor
     ) -> None:
         """Should forward output to Rich console in real-time."""
+        import json
+
         from rich.console import Console
 
         mock_console = MagicMock(spec=Console)
         executor.console = mock_console
+
+        # Use valid stream-json format with content_block_delta
+        stream_json = json.dumps({
+            "type": "content_block_delta",
+            "delta": {"type": "text_delta", "text": "Hello world"}
+        })
 
         with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
             process = AsyncMock()
@@ -377,7 +385,7 @@ class TestRealTimeStreaming:
             process.stderr = AsyncMock()
             process.stdout.readline = AsyncMock(
                 side_effect=[
-                    b"Output line\n",
+                    (stream_json + "\n").encode(),
                     b"",  # EOF
                 ]
             )
@@ -395,7 +403,7 @@ class TestRealTimeStreaming:
             with patch("shutil.which", return_value="/usr/bin/claude"):
                 executor.execute("Test prompt")
 
-            # Verify console.print was called with output
+            # Verify console.print was called with the extracted text
             mock_console.print.assert_called()
 
     def test_streaming_does_not_block_on_empty_lines(
@@ -1706,7 +1714,9 @@ class TestToolLogging:
         assert history[1].tool_name == "Write"
         assert history[2].tool_name == "Bash"
 
-    def test_no_logging_when_logger_not_provided(self, executor: ClaudeCodeExecutor) -> None:
+    def test_no_logging_when_logger_not_provided(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
         """Should not fail when no tool_logger is configured."""
         import json
 

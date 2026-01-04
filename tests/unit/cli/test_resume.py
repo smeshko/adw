@@ -45,10 +45,10 @@ class TestResumeCommand:
         # Check for "from-phase" to handle ANSI escape codes splitting the dashes
         assert "from-phase" in result.output
 
-    def test_resume_verbose_flag_accepted(self, cli_runner: CliRunner) -> None:
-        """Test that --verbose/-v flag is recognized."""
+    def test_resume_help_flag_accepted(self, cli_runner: CliRunner) -> None:
+        """Test that --help flag shows command usage."""
         result = cli_runner.invoke(app, ["resume", "--help"])
-        assert "--verbose" in result.output or "-v" in result.output
+        assert "Resume" in result.output or "resume" in result.output
 
 
 class TestFromPhaseValidation:

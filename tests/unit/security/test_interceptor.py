@@ -31,7 +31,9 @@ class TestSecurityInterceptor:
     def test_block_chmod_777(self) -> None:
         """Test that chmod 777 is blocked."""
         interceptor = SecurityInterceptor()
-        response = interceptor.check_tool_call("Bash", {"command": "chmod 777 /etc/passwd"})
+        response = interceptor.check_tool_call(
+            "Bash", {"command": "chmod 777 /etc/passwd"}
+        )
         assert response.result == SecurityCheckResult.BLOCKED
 
     def test_block_git_push_force(self) -> None:
@@ -45,7 +47,9 @@ class TestSecurityInterceptor:
     def test_allow_regular_git_push(self) -> None:
         """Test that regular git push is allowed."""
         interceptor = SecurityInterceptor()
-        response = interceptor.check_tool_call("Bash", {"command": "git push origin main"})
+        response = interceptor.check_tool_call(
+            "Bash", {"command": "git push origin main"}
+        )
         assert response.result == SecurityCheckResult.ALLOWED
 
 

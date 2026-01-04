@@ -233,9 +233,13 @@ class TestListEmptyStates:
         assert "No runs found" in result.output
 
     def test_no_adw_directory(self, tmp_path: Path) -> None:
-        """Test message when .adw directory doesn't exist."""
-        # Patch to return None (no runs dir)
-        with patch("adw.cli.list._get_runs_dir", return_value=None):
+        """Test message when .adw directory doesn't exist and global index empty."""
+        # Patch to return None (no runs dir) and mock global index as empty
+        with (
+            patch("adw.cli.list._get_runs_dir", return_value=None),
+            patch("adw.cli.list.IndexManager") as mock_index,
+        ):
+            mock_index.return_value.get_recent_runs.return_value = []
             result = runner.invoke(app, ["list"])
 
             assert result.exit_code == 0

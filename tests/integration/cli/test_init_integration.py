@@ -300,7 +300,10 @@ class TestInitRunIntegration:
         # Should not complain about missing config or initialization
         combined_output = (run_result.stdout + run_result.stderr).lower()
         assert "not initialized" not in combined_output
-        assert "project.yaml" not in combined_output or "error" not in combined_output
+        # Check for config-related errors (missing/invalid project.yaml)
+        assert "missing project.yaml" not in combined_output
+        assert "cannot find project.yaml" not in combined_output
+        assert "invalid project.yaml" not in combined_output
 
     def test_run_help_works_after_init(self, tmp_path: Path) -> None:
         """Test that run --help works in initialized project."""

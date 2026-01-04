@@ -5,13 +5,12 @@ and phase-specific configuration loaded from YAML files.
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self
+from typing import Any, Self
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
 
-if TYPE_CHECKING:
-    from adw.models.security import SecurityConfig as SecurityConfigType
+from adw.models.security import SecurityConfig
 
 
 class RetryConfig(BaseModel):
@@ -248,7 +247,7 @@ class ProjectConfig(BaseModel):
     logging: LoggingConfig = Field(
         default_factory=LoggingConfig, description="Logging configuration"
     )
-    security: "SecurityConfigType | None" = Field(
+    security: SecurityConfig | None = Field(
         default=None, description="Security configuration"
     )
 

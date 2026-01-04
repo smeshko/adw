@@ -13,7 +13,6 @@ Key features:
 """
 
 import logging
-from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -257,7 +256,7 @@ class IndexManager:
         """
         entries: list[IndexEntry] = []
 
-        with open(self.index_path, "r") as f:
+        with open(self.index_path) as f:
             for line_num, line in enumerate(f, start=1):
                 line = line.strip()
                 if not line:

@@ -9,8 +9,6 @@ Verifies that:
 
 import re
 
-import pytest
-
 
 class TestDefaultShellPatterns:
     """Tests for DEFAULT_SHELL_PATTERNS configuration."""
@@ -159,26 +157,32 @@ class TestPatternCategories:
         """Verify destructive category patterns exist."""
         from adw.security.defaults import DEFAULT_SHELL_PATTERNS
 
-        destructive_patterns = [p for p in DEFAULT_SHELL_PATTERNS if p.category == "destructive"]
-        assert len(destructive_patterns) > 0, "Should have destructive category patterns"
+        destructive_patterns = [
+            p for p in DEFAULT_SHELL_PATTERNS if p.category == "destructive"
+        ]
+        assert len(destructive_patterns) > 0, "Should have destructive patterns"
 
     def test_permission_category_exists(self) -> None:
         """Verify permission category patterns exist."""
         from adw.security.defaults import DEFAULT_SHELL_PATTERNS
 
-        permission_patterns = [p for p in DEFAULT_SHELL_PATTERNS if p.category == "permission"]
-        assert len(permission_patterns) > 0, "Should have permission category patterns"
+        permission_patterns = [
+            p for p in DEFAULT_SHELL_PATTERNS if p.category == "permission"
+        ]
+        assert len(permission_patterns) > 0, "Should have permission patterns"
 
     def test_git_dangerous_category_exists(self) -> None:
         """Verify git_dangerous category patterns exist."""
         from adw.security.defaults import DEFAULT_SHELL_PATTERNS
 
-        git_patterns = [p for p in DEFAULT_SHELL_PATTERNS if p.category == "git_dangerous"]
-        assert len(git_patterns) > 0, "Should have git_dangerous category patterns"
+        git_patterns = [
+            p for p in DEFAULT_SHELL_PATTERNS if p.category == "git_dangerous"
+        ]
+        assert len(git_patterns) > 0, "Should have git_dangerous patterns"
 
     def test_secret_access_category_exists(self) -> None:
         """Verify secret_access category patterns exist."""
-        from adw.security.defaults import DEFAULT_SHELL_PATTERNS, DEFAULT_FILE_PATTERNS
+        from adw.security.defaults import DEFAULT_FILE_PATTERNS, DEFAULT_SHELL_PATTERNS
 
         all_patterns = DEFAULT_SHELL_PATTERNS + DEFAULT_FILE_PATTERNS
         secret_patterns = [p for p in all_patterns if p.category == "secret_access"]
@@ -188,7 +192,9 @@ class TestPatternCategories:
         """Verify all patterns have one of the valid categories."""
         from adw.security.defaults import DEFAULT_FILE_PATTERNS, DEFAULT_SHELL_PATTERNS
 
-        valid_categories = {"destructive", "permission", "git_dangerous", "secret_access"}
+        valid_categories = {
+            "destructive", "permission", "git_dangerous", "secret_access"
+        }
         all_patterns = DEFAULT_SHELL_PATTERNS + DEFAULT_FILE_PATTERNS
 
         for pattern in all_patterns:

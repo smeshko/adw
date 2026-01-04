@@ -22,9 +22,17 @@ So that appropriate evidence gathering strategies are used.
 **When** evidence gathering starts
 **Then** API capture strategy is used
 
+**Given** project config with `platform: mobile`
+**When** evidence gathering starts
+**Then** mobile screenshot strategy is used
+
 **Given** no platform specified
 **When** detection is attempted
-**Then** it's inferred from project markers (e.g., package.json with react → web)
+**Then** it's inferred from project markers:
+  - `package.json` with react/vue/angular → web
+  - `*.xcodeproj` or `*.xcworkspace` or `Info.plist` → mobile (iOS)
+  - `build.gradle` with android plugin or `AndroidManifest.xml` → mobile (Android)
+  - `pubspec.yaml` with flutter dependency → mobile (Flutter)
 
 **Given** platform cannot be determined
 **When** Verify phase runs
@@ -89,6 +97,44 @@ So that UI changes can be visually verified.
 **Given** multiple viewport sizes configured
 **When** capturing
 **Then** screenshots at each viewport are generated
+
+---
+
+## Story 8.3b: Capture Mobile Screenshots
+
+As a developer,
+I want screenshots captured from iOS simulators and Android emulators,
+So that mobile UI changes can be visually verified.
+
+**Acceptance Criteria:**
+
+**Given** mobile platform type (iOS native)
+**When** evidence gathering runs
+**Then** iOS Simulator screenshots are captured via `xcrun simctl io booted screenshot`
+
+**Given** mobile platform type (Android native)
+**When** evidence gathering runs
+**Then** Android Emulator screenshots are captured via `adb exec-out screencap`
+
+**Given** mobile platform type (Flutter)
+**When** evidence gathering runs
+**Then** screenshots are captured from the active simulator/emulator (iOS or Android)
+
+**Given** configured screens in project.yaml `evidence.mobile_screens`
+**When** each screen is captured
+**Then** screenshot is saved to `evidence/screenshots/mobile/<screen_name>.png`
+
+**Given** navigation to feature screen required
+**When** no deeplink is available
+**Then** system navigates to screen via configured steps before capture
+
+**Given** no simulator or emulator is running
+**When** capture is attempted
+**Then** capture fails gracefully with warning (does not fail the phase)
+
+**Given** screenshot capture
+**When** successful
+**Then** it includes metadata: device_type, os_version, screen_name, timestamp
 
 ---
 
@@ -192,11 +238,14 @@ So that storage and transfer are efficient.
                                     │
                                     ▼
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║  WAVE 2: After 8.1 (PARALLEL x3)                                              ║
+║  WAVE 2: After 8.1 (PARALLEL x4)                                              ║
 ╠═══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                               ║
-║  [8.2] CLI Capture    ║    [8.3] Web Screenshots    ║    [8.4] API Capture   ║
-║  Terminal output      ║    Playwright-based         ║    curl/httpx          ║
+║  [8.2] CLI Capture  ║  [8.3] Web Screenshots  ║  [8.3b] Mobile Screenshots   ║
+║  Terminal output    ║  Playwright-based       ║  xcrun simctl / adb          ║
+║                     ║                         ║                              ║
+║                              [8.4] API Capture                               ║
+║                              curl/httpx                                      ║
 ║                                                                               ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
                                     │
@@ -226,12 +275,12 @@ So that storage and transfer are efficient.
 | Wave | Stories | Description |
 |------|---------|-------------|
 | 1 | 8.1 | Platform detection (foundation) |
-| 2 | 8.2, 8.3, 8.4 | Evidence capture strategies (parallelizable) |
+| 2 | 8.2, 8.3, 8.3b, 8.4 | Evidence capture strategies (parallelizable) |
 | 3 | 8.5 | Manifest generation |
 | 4 | 8.6 | Optimization |
 
 ### Parallelization Opportunities
 
-**Wave 2** offers significant parallelization: Stories 8.2, 8.3, and 8.4 can all be developed simultaneously by different developers or in parallel agent sessions after Story 8.1 completes.
+**Wave 2** offers significant parallelization: Stories 8.2, 8.3, 8.3b, and 8.4 can all be developed simultaneously by different developers or in parallel agent sessions after Story 8.1 completes.
 
 ---

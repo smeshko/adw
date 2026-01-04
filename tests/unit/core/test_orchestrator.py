@@ -964,7 +964,7 @@ class TestTransitionPerformance:
                 "exceeded 1s" in str(call).lower() or "1s" in str(call).lower()
                 for call in debug_calls
             )
-            assert found_transition_msg, f"Expected transition debug log, got: {debug_calls}"
+            assert found_transition_msg, f"Expected transition debug log: {debug_calls}"
 
 
 class TestInterruptionHandling:

@@ -4,7 +4,6 @@ Verifies PatternMatcher class correctly identifies dangerous commands
 and file access patterns with context-aware matching.
 """
 
-import pytest
 
 from adw.models.security import BlockedPattern
 
@@ -55,7 +54,9 @@ class TestPatternMatcher:
         # Should not match destructive patterns (but might match if too broad)
         # The key is it should NOT match the "rm -rf /" pattern
         for match in matches:
-            assert "root" not in match.description.lower() or "/node_modules" in match.description
+            not_root = "root" not in match.description.lower()
+            has_node_modules = "/node_modules" in match.description
+            assert not_root or has_node_modules
 
     def test_match_chmod_777(self) -> None:
         """Test detecting chmod 777 command."""
@@ -249,7 +250,7 @@ class TestPatternMatcherAllowDangerous:
 
     def test_allow_dangerous_flag_in_match(self) -> None:
         """Test PatternMatch includes allowed flag when allow_dangerous is True."""
-        from adw.security.patterns import PatternMatcher, PatternMatch
+        from adw.security.patterns import PatternMatch, PatternMatcher
 
         matcher = PatternMatcher(allow_dangerous=True)
         matches = matcher.match_command("rm -rf /")

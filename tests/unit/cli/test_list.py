@@ -298,10 +298,12 @@ class TestGlobalIndexFlags:
         self, runner: CliRunner, tmp_path: Path
     ) -> None:
         """Test that --project flag filters results to current project."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            with patch("adw.cli.list.IndexManager") as mock_index:
-                mock_index.return_value.get_recent_runs.return_value = []
-                result = runner.invoke(app, ["list", "--global", "--project"])
+        with (
+            runner.isolated_filesystem(temp_dir=tmp_path),
+            patch("adw.cli.list.IndexManager") as mock_index,
+        ):
+            mock_index.return_value.get_recent_runs.return_value = []
+            result = runner.invoke(app, ["list", "--global", "--project"])
 
         assert result.exit_code == 0
         # Verify get_recent_runs was called with project_path
@@ -311,11 +313,13 @@ class TestGlobalIndexFlags:
 
     def test_short_flags_work(self, runner: CliRunner, tmp_path: Path) -> None:
         """Test that -g and -p short flags work."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            with patch("adw.cli.list.IndexManager") as mock_index:
-                mock_index.return_value.get_recent_runs.return_value = []
-                result_g = runner.invoke(app, ["list", "-g"])
-                result_p = runner.invoke(app, ["list", "-g", "-p"])
+        with (
+            runner.isolated_filesystem(temp_dir=tmp_path),
+            patch("adw.cli.list.IndexManager") as mock_index,
+        ):
+            mock_index.return_value.get_recent_runs.return_value = []
+            result_g = runner.invoke(app, ["list", "-g"])
+            result_p = runner.invoke(app, ["list", "-g", "-p"])
 
         assert result_g.exit_code == 0
         assert result_p.exit_code == 0
@@ -337,10 +341,12 @@ class TestGlobalIndexFlags:
             phases_completed=["plan", "build"],
         )
 
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            with patch("adw.cli.list.IndexManager") as mock_index:
-                mock_index.return_value.get_recent_runs.return_value = [mock_entry]
-                result = runner.invoke(app, ["list", "--global", "--json"])
+        with (
+            runner.isolated_filesystem(temp_dir=tmp_path),
+            patch("adw.cli.list.IndexManager") as mock_index,
+        ):
+            mock_index.return_value.get_recent_runs.return_value = [mock_entry]
+            result = runner.invoke(app, ["list", "--global", "--json"])
 
         assert result.exit_code == 0
         # Parse JSON output
@@ -374,11 +380,13 @@ class TestGlobalIndexFlags:
             phases_completed=[],
         )
 
-        with runner.isolated_filesystem(temp_dir=tmp_path):
+        with (
+            runner.isolated_filesystem(temp_dir=tmp_path),
+            patch("adw.cli.list.IndexManager") as mock_index,
+        ):
             # No .adw/runs directory - should use global index
-            with patch("adw.cli.list.IndexManager") as mock_index:
-                mock_index.return_value.get_recent_runs.return_value = [mock_entry]
-                result = runner.invoke(app, ["list"])
+            mock_index.return_value.get_recent_runs.return_value = [mock_entry]
+            result = runner.invoke(app, ["list"])
 
         assert result.exit_code == 0
         assert "Global Index" in result.output
