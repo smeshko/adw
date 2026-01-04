@@ -22,12 +22,59 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
+from ulid import ULID
 
 from adw.models.security import ToolCallLog
 from adw.security.tool_logger import ToolLogger
 from adw.utils.diff import json_diff
 
 console = Console()
+
+
+def _validate_ulid(run_id: str) -> bool:
+    """Check if string is valid ULID format.
+
+    Args:
+        run_id: The run ID to validate.
+
+    Returns:
+        True if valid ULID format, False otherwise.
+    """
+    if not run_id or len(run_id) != 26:
+        return False
+    try:
+        ULID.from_str(run_id)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+def _find_similar_runs(runs_dir: Path, target: str) -> list[str]:
+    """Find run IDs similar to target (prefix match).
+
+    Args:
+        runs_dir: Path to the runs directory.
+        target: The target run ID to match against.
+
+    Returns:
+        List of similar run IDs.
+    """
+    if not runs_dir.exists():
+        return []
+
+    similar: list[str] = []
+    # Only check prefix if target is at least 8 characters
+    min_prefix_len = min(8, len(target))
+
+    for run_path in runs_dir.iterdir():
+        if run_path.is_dir() and not run_path.name.startswith("."):
+            run_id = run_path.name
+            # Prefix match (common copy/paste truncation)
+            if len(target) >= min_prefix_len and len(run_id) >= min_prefix_len:
+                if run_id[:min_prefix_len] == target[:min_prefix_len]:
+                    similar.append(run_id)
+
+    return similar
 
 logs_app = typer.Typer(
     name="logs",
@@ -54,25 +101,52 @@ def _get_runs_dir() -> Path:
     return adw_dir / "runs"
 
 
-def _get_run_dir(run_id: str) -> Path:
-    """Get the run directory path.
+def _get_run_dir(run_id: str, *, debug: bool = False) -> Path:
+    """Get the run directory path with improved error handling.
 
     Args:
         run_id: The run ID.
+        debug: If True, show diagnostic information.
 
     Returns:
         Path to .adw/runs/<run_id> directory.
 
     Raises:
-        typer.Exit: If run not found.
+        typer.Exit: If run not found or invalid format.
     """
     runs_dir = _get_runs_dir()
-    run_dir = runs_dir / run_id
-    if not run_dir.exists():
-        console.print(f"[red]Error:[/] Run not found: {run_id}")
-        console.print("[dim]Suggestion:[/] Use 'adw list' to see available runs")
+
+    if debug:
+        console.print(f"[dim]Searching in: {runs_dir}[/]")
+
+    # Step 1: Validate ULID format
+    if not _validate_ulid(run_id):
+        console.print(f"[red]Error:[/] Invalid run ID format: {run_id}")
+        console.print(
+            "[dim]Run IDs are 26-character ULIDs "
+            "(e.g., 01HQXK5P3Z7V8R2M4N6T9W1Y3C)[/]"
+        )
         raise typer.Exit(1)
-    return run_dir
+
+    run_dir = runs_dir / run_id
+
+    # Step 2: Check if run directory exists
+    if run_dir.exists():
+        return run_dir
+
+    # Step 3: Try fuzzy match for similar IDs
+    similar_runs = _find_similar_runs(runs_dir, run_id)
+    if similar_runs:
+        console.print(f"[red]Error:[/] Run not found: {run_id}")
+        console.print("[yellow]Did you mean one of these?[/]")
+        for similar_id in similar_runs[:3]:
+            console.print(f"  • {similar_id}")
+        raise typer.Exit(1)
+
+    # Step 4: Generic not found
+    console.print(f"[red]Error:[/] Run not found: {run_id}")
+    console.print("[dim]Suggestion:[/] Use 'adw list' to see available runs")
+    raise typer.Exit(1)
 
 
 def _parse_snapshot_filename(filename: str) -> tuple[int, str] | None:
@@ -792,6 +866,11 @@ def logs_show(
         "-l",
         help="Minimum log level (trace, debug, info, warn, error, fatal)",
     ),
+    debug: bool = typer.Option(
+        False,
+        "--debug",
+        help="Show diagnostic information about run lookup",
+    ),
 ) -> None:
     """Display log entries from a run.
 
@@ -802,8 +881,9 @@ def logs_show(
         adw logs show 01HQXK5P3Z7V8R2M4N6T9W1Y3C --tail 100
         adw logs show 01HQXK5P3Z7V8R2M4N6T9W1Y3C --phase build
         adw logs show 01HQXK5P3Z7V8R2M4N6T9W1Y3C --level error
+        adw logs show 01HQXK5P3Z7V8R2M4N6T9W1Y3C --debug
     """
-    run_dir = _get_run_dir(run_id)
+    run_dir = _get_run_dir(run_id, debug=debug)
 
     # Load log entries
     entries = _load_log_entries(run_dir)
