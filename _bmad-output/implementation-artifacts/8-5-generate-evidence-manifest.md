@@ -1,6 +1,6 @@
 # Story 8.5: Generate Evidence Manifest
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-03
