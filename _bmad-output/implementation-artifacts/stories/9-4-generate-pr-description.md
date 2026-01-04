@@ -45,7 +45,7 @@ so that I can quickly create a pull request.
 - [x] Update run completion panel to show PR description path
 - [x] Implement schema validation for PR description output
 - [x] Write unit tests for PR description model
-- [ ] Write integration tests for Document phase with PR output
+- [x] Write integration tests for Document phase with PR output
 
 ---
 
