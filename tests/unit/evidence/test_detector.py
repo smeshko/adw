@@ -438,3 +438,31 @@ class TestDetectPlatformConvenience:
         result = detect_platform(tmp_path)
         assert result.platform == PlatformType.WEB
         assert result.source == "markers"
+
+
+class TestWarningEmission:
+    """Tests for warning emission on UNKNOWN platform (Task 5)."""
+
+    def test_unknown_platform_emits_warning(self) -> None:
+        """Test that UNKNOWN platform emits a warning when getting strategy."""
+        from unittest.mock import MagicMock, patch
+
+        # Mock the logger
+        with patch("adw.evidence.get_logger") as mock_get_logger:
+            mock_logger = MagicMock()
+            mock_get_logger.return_value = mock_logger
+
+            # Call get_evidence_strategy with UNKNOWN - re-import to use patched logger
+            from adw.evidence import get_evidence_strategy as get_strategy
+            from adw.models.evidence import PlatformType as PT
+
+            strategy = get_strategy(PT.UNKNOWN)
+
+            # Verify strategy is TERMINAL_OUTPUT
+            assert strategy == EvidenceStrategy.TERMINAL_OUTPUT
+
+            # Verify warning was logged
+            mock_logger.warn.assert_called_once()
+            call_args = mock_logger.warn.call_args
+            # Check the message contains expected text
+            assert "Platform could not be determined" in call_args[0][1]

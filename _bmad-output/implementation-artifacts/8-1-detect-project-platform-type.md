@@ -328,3 +328,15 @@ Key patterns and rules from project context:
 
 ### File List
 
+**New Files:**
+- `src/adw/models/evidence.py` - PlatformType, Confidence, EvidenceStrategy enums and PlatformDetectionResult model
+- `src/adw/evidence/__init__.py` - Package exports, detect_platform() and get_evidence_strategy() functions
+- `src/adw/evidence/detector.py` - PlatformDetector class with config and marker detection
+- `tests/unit/evidence/__init__.py` - Test package init
+- `tests/unit/evidence/test_detector.py` - 37 unit tests for platform detection
+- `tests/unit/models/test_evidence.py` - 21 unit tests for evidence models
+
+**Modified Files:**
+- `src/adw/models/__init__.py` - Added evidence model exports
+- `src/adw/core/orchestrator.py` - Integrated platform detection at verify phase startup
+

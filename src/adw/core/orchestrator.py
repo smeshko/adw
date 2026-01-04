@@ -24,8 +24,10 @@ from adw.core.index_manager import IndexManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
+from adw.evidence import detect_platform
 from adw.exceptions import ADWError, ConfigError
 from adw.models import RunContext
+from adw.models.evidence import PlatformType
 from adw.models.phase import PhaseResult
 
 if TYPE_CHECKING:
@@ -978,6 +980,10 @@ class Orchestrator:
             extra={"phase": phase, "run_id": context.run_id},
         )
 
+        # Detect platform at verify phase startup (Story 8.1)
+        if phase == "verify":
+            context = self._detect_and_store_platform(context)
+
         try:
             # Execute phase with retry for recoverable errors
             result = self._execute_phase_with_retry(
@@ -1097,6 +1103,48 @@ class Orchestrator:
         if last_error is not None:
             raise last_error
         raise RuntimeError("Unexpected state: no error captured but retries exhausted")
+
+    def _detect_and_store_platform(self, context: RunContext) -> RunContext:
+        """Detect platform type and store in RunContext (Story 8.1).
+
+        Runs platform detection at the start of the verify phase to determine
+        which evidence gathering strategy to use. The detected platform is
+        stored in the context for downstream use.
+
+        Args:
+            context: Current run context.
+
+        Returns:
+            Updated context with detected platform stored.
+        """
+        detection_result = detect_platform(self._project_path)
+
+        logger.info(
+            "Platform detected for evidence gathering",
+            extra={
+                "platform": detection_result.platform.value,
+                "confidence": detection_result.confidence.value,
+                "source": detection_result.source,
+                "markers": detection_result.markers,
+            },
+        )
+
+        # Store detected platform in context for downstream use
+        # Map PlatformType enum to string value for context storage
+        platform_value = detection_result.platform.value
+
+        # Handle UNKNOWN platform with default to CLI
+        if detection_result.platform == PlatformType.UNKNOWN:
+            platform_value = "cli"
+            logger.warning(
+                "Platform unknown, defaulting to CLI",
+                extra={"run_id": context.run_id},
+            )
+
+        context = context.model_copy(update={"platform": platform_value})
+        self.context_manager.save(context)
+
+        return context
 
     def abort(self, run_id: str, reason: str = "remote_abort") -> RunContext:
         """Abort a running execution.

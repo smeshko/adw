@@ -73,8 +73,8 @@ def get_evidence_strategy(platform: PlatformType) -> EvidenceStrategy:
     if platform == PlatformType.UNKNOWN:
         logger.warn(
             LogCategory.STATE,
-            "Platform could not be determined - defaulting to terminal output strategy. "
-            "Consider adding 'platform: cli|web|backend' to your .adw/project.yaml",
+            "Platform could not be determined - defaulting to terminal output "
+            "strategy. Add 'platform: cli|web|backend' to .adw/project.yaml",
         )
 
     return strategy
