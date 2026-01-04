@@ -97,10 +97,14 @@ src/adw/models/
 
 ## Dependencies
 
-- **Depends on:**
-  - 9.2 (Stage and Commit) - needs commit history for Changes section
-  - 9.3 (Capture Git Diff) - needs diff stats for Changes section
+- **Depends On:** 9.2 (Stage and Commit), 9.3 (Capture Git Diff)
 - **Blocks:** 9.5 (Support PR Creation Command)
+- **Can Parallel With:** None
+
+### Dependency Rationale
+- 9.2: Needs commit history for the Changes section
+- 9.3: Needs diff stats artifact for the Changes section
+- 9.5: PR creation command uses the generated description
 
 ---
 

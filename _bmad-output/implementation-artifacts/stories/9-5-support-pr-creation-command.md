@@ -105,8 +105,12 @@ src/adw/cli/
 
 ## Dependencies
 
-- **Depends on:** 9.4 (Generate PR Description) - needs the description artifact
+- **Depends On:** 9.4 (Generate PR Description)
 - **Blocks:** None (final story in epic)
+- **Can Parallel With:** None
+
+### Dependency Rationale
+- 9.4: Needs the generated PR description artifact for pr create command
 
 ---
 

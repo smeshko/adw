@@ -97,8 +97,12 @@ src/adw/models/
 
 ## Dependencies
 
-- **Depends on:** None (Wave 1 - can start in parallel with 9.1)
-- **Blocks:** 9.4 (Generate PR Description) - needs diff artifact
+- **Depends On:** None (Wave 1 - can start immediately)
+- **Blocks:** 9.4 (Generate PR Description)
+- **Can Parallel With:** 9.1 (Create Feature Branch)
+
+### Dependency Rationale
+- 9.4: PR description needs the diff artifact to generate the Changes section
 
 ---
 

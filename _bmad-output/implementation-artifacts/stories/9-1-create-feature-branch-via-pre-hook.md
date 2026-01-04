@@ -99,8 +99,12 @@ defaults/commands/plan/
 
 ## Dependencies
 
-- **Depends on:** None (Wave 1 - can start immediately)
+- **Depends On:** None (Wave 1 - can start immediately)
 - **Blocks:** 9.2 (Stage and Commit Changes)
+- **Can Parallel With:** 9.3 (Capture Git Diff)
+
+### Dependency Rationale
+- 9.2: Commits must go to the feature branch created by this story
 
 ---
 

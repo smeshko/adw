@@ -100,8 +100,13 @@ defaults/commands/build/
 
 ## Dependencies
 
-- **Depends on:** 9.1 (Create Feature Branch) - commits go to the feature branch
-- **Blocks:** 9.4 (Generate PR Description) - needs commit history
+- **Depends On:** 9.1 (Create Feature Branch)
+- **Blocks:** 9.4 (Generate PR Description)
+- **Can Parallel With:** None
+
+### Dependency Rationale
+- 9.1: Commits must go to the feature branch created by 9.1
+- 9.4: PR description needs commit history from this story
 
 ---
 
