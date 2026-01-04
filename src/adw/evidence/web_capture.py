@@ -7,6 +7,9 @@ Playwright is not installed.
 
 from pathlib import Path
 
+import yaml
+from pydantic import ValidationError
+
 from adw.logging import LogCategory, get_logger
 from adw.models.evidence import (
     RouteConfig,
@@ -37,6 +40,117 @@ DEFAULT_VIEWPORTS = [
     ViewportConfig(name="tablet", width=768, height=1024),
     ViewportConfig(name="mobile", width=375, height=667),
 ]
+
+# Config file path
+CONFIG_FILE = ".adw/project.yaml"
+
+
+def load_routes_from_config(
+    project_root: Path,
+) -> tuple[list[RouteConfig], str, list[ViewportConfig]] | None:
+    """Load route and viewport configuration from project config.
+
+    Reads the evidence configuration section from .adw/project.yaml and
+    returns parsed routes, base URL, and viewports.
+
+    Args:
+        project_root: Path to the project root directory
+
+    Returns:
+        Tuple of (routes, base_url, viewports) if config is valid,
+        None if config doesn't exist or is invalid.
+
+    Example:
+        >>> result = load_routes_from_config(Path("/my/project"))
+        >>> if result:
+        ...     routes, base_url, viewports = result
+        ...     print(f"Found {len(routes)} routes")
+    """
+    logger = get_logger()
+    config_path = project_root / CONFIG_FILE
+
+    # Check if config file exists
+    if not config_path.exists():
+        logger.debug(
+            LogCategory.STATE,
+            f"No config file found at {config_path}",
+        )
+        return None
+
+    # Load and parse config
+    try:
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        logger.warn(
+            LogCategory.STATE,
+            f"Failed to parse config file {config_path}: {e}",
+        )
+        return None
+
+    # Check for evidence section
+    if not config or "evidence" not in config:
+        logger.debug(
+            LogCategory.STATE,
+            "No 'evidence' section in project config",
+        )
+        return None
+
+    evidence_config = config["evidence"]
+
+    # Extract base_url (required)
+    if "base_url" not in evidence_config:
+        logger.warn(
+            LogCategory.STATE,
+            "Missing 'base_url' in evidence config",
+        )
+        return None
+
+    base_url = evidence_config["base_url"]
+
+    # Extract routes (required)
+    if "routes" not in evidence_config or not evidence_config["routes"]:
+        logger.warn(
+            LogCategory.STATE,
+            "Missing or empty 'routes' in evidence config",
+        )
+        return None
+
+    # Parse routes
+    routes: list[RouteConfig] = []
+    try:
+        for route_data in evidence_config["routes"]:
+            route = RouteConfig.model_validate(route_data)
+            routes.append(route)
+    except ValidationError as e:
+        logger.warn(
+            LogCategory.STATE,
+            f"Invalid route configuration: {e}",
+        )
+        return None
+
+    # Parse viewports (optional, use defaults if not specified)
+    viewports: list[ViewportConfig] = []
+    if "viewports" in evidence_config and evidence_config["viewports"]:
+        try:
+            for viewport_data in evidence_config["viewports"]:
+                viewport = ViewportConfig.model_validate(viewport_data)
+                viewports.append(viewport)
+        except ValidationError as e:
+            logger.warn(
+                LogCategory.STATE,
+                f"Invalid viewport configuration: {e}",
+            )
+            return None
+    else:
+        viewports = DEFAULT_VIEWPORTS.copy()
+
+    logger.debug(
+        LogCategory.STATE,
+        f"Loaded {len(routes)} routes and {len(viewports)} viewports from config",
+    )
+
+    return routes, base_url, viewports
 
 
 def check_playwright_available() -> bool:

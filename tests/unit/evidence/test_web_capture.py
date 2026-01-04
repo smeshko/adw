@@ -364,3 +364,127 @@ class TestErrorScreenshotCapture:
         assert "playwright" in result.error.lower()
         # Error should be descriptive
         assert "not available" in result.error.lower()
+
+
+class TestConfigBasedRouteLoading:
+    """Tests for loading routes from project configuration."""
+
+    def test_load_routes_from_config_method_exists(self, tmp_path: Path) -> None:
+        """Test that load_routes_from_config method exists."""
+        from adw.evidence.web_capture import load_routes_from_config
+
+        assert callable(load_routes_from_config)
+
+    def test_load_routes_from_valid_config(self, tmp_path: Path) -> None:
+        """Test loading routes from a valid project config."""
+        from adw.evidence.web_capture import load_routes_from_config
+
+        # Create a test config file
+        config_dir = tmp_path / ".adw"
+        config_dir.mkdir()
+        config_file = config_dir / "project.yaml"
+        config_file.write_text(
+            """
+evidence:
+  base_url: "http://localhost:3000"
+  routes:
+    - name: "home"
+      path: "/"
+      wait_for: "networkidle"
+    - name: "dashboard"
+      path: "/dashboard"
+      wait_for: "load"
+  viewports:
+    - name: "desktop"
+      width: 1920
+      height: 1080
+"""
+        )
+
+        routes, base_url, viewports = load_routes_from_config(tmp_path)
+
+        assert base_url == "http://localhost:3000"
+        assert len(routes) == 2
+        assert routes[0].name == "home"
+        assert routes[0].path == "/"
+        assert routes[1].name == "dashboard"
+        assert len(viewports) == 1
+        assert viewports[0].name == "desktop"
+
+    def test_load_routes_returns_none_when_no_config(self, tmp_path: Path) -> None:
+        """Test that loading returns None when no config file exists."""
+        from adw.evidence.web_capture import load_routes_from_config
+
+        result = load_routes_from_config(tmp_path)
+
+        assert result is None
+
+    def test_load_routes_returns_none_when_no_evidence_section(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that loading returns None when no evidence section in config."""
+        from adw.evidence.web_capture import load_routes_from_config
+
+        # Create a config file without evidence section
+        config_dir = tmp_path / ".adw"
+        config_dir.mkdir()
+        config_file = config_dir / "project.yaml"
+        config_file.write_text(
+            """
+project:
+  name: "test-project"
+"""
+        )
+
+        result = load_routes_from_config(tmp_path)
+
+        assert result is None
+
+    def test_load_routes_uses_default_viewports_when_not_specified(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that default viewports are used when not in config."""
+        from adw.evidence.web_capture import (
+            DEFAULT_VIEWPORTS,
+            load_routes_from_config,
+        )
+
+        # Create config with routes but no viewports
+        config_dir = tmp_path / ".adw"
+        config_dir.mkdir()
+        config_file = config_dir / "project.yaml"
+        config_file.write_text(
+            """
+evidence:
+  base_url: "http://localhost:3000"
+  routes:
+    - name: "home"
+      path: "/"
+"""
+        )
+
+        routes, base_url, viewports = load_routes_from_config(tmp_path)
+
+        assert len(viewports) == len(DEFAULT_VIEWPORTS)
+
+    def test_load_routes_validates_route_config(self, tmp_path: Path) -> None:
+        """Test that invalid route configs raise validation error."""
+        from adw.evidence.web_capture import load_routes_from_config
+
+        # Create config with invalid route (missing path)
+        config_dir = tmp_path / ".adw"
+        config_dir.mkdir()
+        config_file = config_dir / "project.yaml"
+        config_file.write_text(
+            """
+evidence:
+  base_url: "http://localhost:3000"
+  routes:
+    - name: "home"
+"""
+        )
+
+        # Should return None or handle gracefully
+        result = load_routes_from_config(tmp_path)
+        # Invalid config should be handled gracefully
+        assert result is None
