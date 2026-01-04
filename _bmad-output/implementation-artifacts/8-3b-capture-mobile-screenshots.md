@@ -53,19 +53,19 @@ so that mobile UI changes can be visually verified.
 - [x] Export from `models/__init__.py`
 
 ### Task 2: Implement iOS Simulator Screenshot Capture (evidence/mobile_capture.py)
-- [ ] Create `MobileCaptureStrategy` class
-- [ ] Implement `check_ios_simulator_available() -> bool`
-- [ ] Implement `get_booted_simulator() -> str | None` (returns UDID)
-- [ ] Implement `capture_ios_screenshot(output_path: Path) -> MobileScreenshotResult`
-- [ ] Use `xcrun simctl io booted screenshot <path>` for capture
-- [ ] Extract device info via `xcrun simctl list devices booted --json`
+- [x] Create `MobileCaptureStrategy` class
+- [x] Implement `check_ios_simulator_available() -> bool`
+- [x] Implement `get_booted_simulator() -> str | None` (returns UDID)
+- [x] Implement `capture_ios_screenshot(output_path: Path) -> MobileScreenshotResult`
+- [x] Use `xcrun simctl io booted screenshot <path>` for capture
+- [x] Extract device info via `xcrun simctl list devices booted --json`
 
 ### Task 3: Implement Android Emulator Screenshot Capture
-- [ ] Implement `check_android_emulator_available() -> bool`
-- [ ] Implement `get_running_emulator() -> str | None` (returns device serial)
-- [ ] Implement `capture_android_screenshot(output_path: Path) -> MobileScreenshotResult`
-- [ ] Use `adb exec-out screencap -p > <path>` for capture
-- [ ] Extract device info via `adb shell getprop`
+- [x] Implement `check_android_emulator_available() -> bool`
+- [x] Implement `get_running_emulator() -> str | None` (returns device serial)
+- [x] Implement `capture_android_screenshot(output_path: Path) -> MobileScreenshotResult`
+- [x] Use `adb exec-out screencap -p > <path>` for capture
+- [x] Extract device info via `adb shell getprop`
 
 ### Task 4: Implement Flutter Cross-Platform Support
 - [ ] Detect active Flutter device (iOS simulator or Android emulator)
@@ -581,4 +581,6 @@ Key patterns and rules from project context:
 - src/adw/models/evidence.py (modified - added mobile evidence models)
 - src/adw/models/__init__.py (modified - exported new models)
 - tests/unit/models/test_evidence.py (modified - added mobile model tests)
+- src/adw/evidence/mobile_capture.py (new - iOS and Android capture functions)
+- tests/unit/evidence/test_mobile_capture.py (new - capture function tests)
 
