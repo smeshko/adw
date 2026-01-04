@@ -10,6 +10,7 @@ from pathlib import Path
 from adw.evidence.api_capture import APICaptureStrategy
 from adw.evidence.config_loader import EvidenceConfig, load_evidence_config
 from adw.evidence.detector import PlatformDetector
+from adw.evidence.evidence_writer import APIEvidenceWriter
 from adw.logging import LogCategory, get_logger
 from adw.models.evidence import (
     EvidenceStrategy,
@@ -85,6 +86,7 @@ def get_evidence_strategy(platform: PlatformType) -> EvidenceStrategy:
 
 
 __all__ = [
+    "APIEvidenceWriter",
     "APICaptureStrategy",
     "EvidenceConfig",
     "PlatformDetector",

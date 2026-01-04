@@ -102,10 +102,10 @@ so that endpoint behavior can be verified.
 - [x] Handle missing config (skip with warning)
 
 ### Task 6: Implement Evidence File Writer
-- [ ] Create directory: `.adw/runs/<run_id>/evidence/api/`
-- [ ] Write individual API results to `<endpoint_name>.json`
-- [ ] Include complete request/response details
-- [ ] Generate summary file with all results
+- [x] Create directory: `.adw/runs/<run_id>/evidence/api/`
+- [x] Write individual API results to `<endpoint_name>.json`
+- [x] Include complete request/response details
+- [x] Generate summary file with all results
 
 ### Task 7: Implement Summary Generation
 - [ ] Track successful/failed API calls
