@@ -15,7 +15,9 @@ This package contains all Pydantic models used throughout ADW:
             EndpointConfig, AuthConfig, AuthType,
             CommandConfig, CommandResult, CLIEvidenceSummary,
             RouteConfig, ViewportConfig, ScreenshotResult, WebEvidenceSummary,
-            MobileDeviceType, MobileScreenConfig, MobileScreenshotResult, MobileEvidenceSummary
+            MobileDeviceType, MobileScreenConfig, MobileScreenshotResult, MobileEvidenceSummary,
+            EvidenceType, EvidenceStatus, EvidenceItem, PlanStepCoverage,
+            CoverageSummary, EvidenceManifest
 """
 
 from adw.models.command import LoadedCommand, ResolvedCommand
@@ -44,12 +46,18 @@ from adw.models.evidence import (
     CommandConfig,
     CommandResult,
     Confidence,
+    CoverageSummary,
     EndpointConfig,
+    EvidenceItem,
+    EvidenceManifest,
+    EvidenceStatus,
     EvidenceStrategy,
+    EvidenceType,
     MobileDeviceType,
     MobileEvidenceSummary,
     MobileScreenConfig,
     MobileScreenshotResult,
+    PlanStepCoverage,
     PlatformDetectionResult,
     PlatformType,
     RouteConfig,
@@ -113,6 +121,13 @@ __all__: list[str] = [
     "CLIEvidenceSummary",
     "CommandConfig",
     "CommandResult",
+    # Evidence models - Manifest
+    "CoverageSummary",
+    "EvidenceItem",
+    "EvidenceManifest",
+    "EvidenceStatus",
+    "EvidenceType",
+    "PlanStepCoverage",
     # Evidence models - Mobile
     "MobileDeviceType",
     "MobileEvidenceSummary",

@@ -38,11 +38,11 @@ so that verification is traceable.
 ## Tasks / Subtasks
 
 ### Task 1: Create Manifest Models (models/evidence.py)
-- [ ] Create `EvidenceItem` model with type, path, status, plan_step
-- [ ] Create `EvidenceType` enum (CLI, SCREENSHOT, API, LOG)
-- [ ] Create `EvidenceStatus` enum (PASS, FAIL, ERROR, SKIPPED)
-- [ ] Create `EvidenceManifest` model with full manifest structure
-- [ ] Export from `models/__init__.py`
+- [x] Create `EvidenceItem` model with type, path, status, plan_step
+- [x] Create `EvidenceType` enum (CLI, SCREENSHOT, API, LOG)
+- [x] Create `EvidenceStatus` enum (PASS, FAIL, ERROR, SKIPPED)
+- [x] Create `EvidenceManifest` model with full manifest structure
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Manifest Generator (evidence/manifest.py)
 - [ ] Create `ManifestGenerator` class

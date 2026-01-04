@@ -12,6 +12,8 @@ Includes:
 - CLI evidence capture models (CommandConfig, CommandResult, CLIEvidenceSummary)
 - Web evidence capture models (ViewportConfig, RouteConfig, ScreenshotResult,
   WebEvidenceSummary)
+- Evidence manifest models (EvidenceType, EvidenceStatus, EvidenceItem,
+  PlanStepCoverage, CoverageSummary, EvidenceManifest)
 """
 
 from datetime import UTC, datetime
@@ -851,6 +853,265 @@ class MobileEvidenceSummary(BaseModel):
                 "successful": 3,
                 "failed": 1,
                 "results": [],
+            }
+        }
+    }
+
+
+# =============================================================================
+# Evidence Manifest Models (Story 8.5)
+# =============================================================================
+
+
+class EvidenceType(str, Enum):
+    """Type of evidence captured during the Verify phase.
+
+    Used to categorize evidence items in the manifest:
+    - CLI: Terminal/command output captures
+    - SCREENSHOT: Browser or device screenshots
+    - API: HTTP request/response pairs
+    - LOG: Application or server logs
+    """
+
+    CLI = "cli"
+    SCREENSHOT = "screenshot"
+    API = "api"
+    LOG = "log"
+
+
+class EvidenceStatus(str, Enum):
+    """Status of an evidence item.
+
+    Indicates whether the evidence capture succeeded and if the
+    captured evidence shows expected behavior:
+    - PASS: Evidence captured and shows expected behavior
+    - FAIL: Evidence captured but shows unexpected/failed behavior
+    - ERROR: Failed to capture evidence (technical error)
+    - SKIPPED: Evidence capture was skipped (e.g., prerequisite failed)
+    """
+
+    PASS = "pass"
+    FAIL = "fail"
+    ERROR = "error"
+    SKIPPED = "skipped"
+
+
+class EvidenceItem(BaseModel):
+    """Single piece of captured evidence.
+
+    Represents one evidence item captured during the Verify phase,
+    linking it to the plan step it verifies (if determinable).
+
+    Attributes:
+        name: Unique identifier for this evidence (e.g., "health_check", "home_screenshot")
+        type: Type of evidence (cli, screenshot, api, log)
+        path: Relative path within the evidence directory
+        status: Status of this evidence (pass, fail, error, skipped)
+        plan_step: Reference to plan.md step if linkable (e.g., "step_3")
+        details: Type-specific details (e.g., exit_code, status_code, duration)
+
+    Example:
+        >>> item = EvidenceItem(
+        ...     name="health_check",
+        ...     type=EvidenceType.API,
+        ...     path="api/health.json",
+        ...     status=EvidenceStatus.PASS,
+        ...     plan_step="step_1",
+        ...     details={"method": "GET", "status_code": 200},
+        ... )
+    """
+
+    name: str = Field(..., description="Unique identifier for this evidence")
+    type: EvidenceType = Field(..., description="Type of evidence")
+    path: str = Field(..., description="Relative path within evidence directory")
+    status: EvidenceStatus = Field(..., description="Status of this evidence")
+    plan_step: str | None = Field(
+        default=None, description="Reference to plan.md step (e.g., 'step_3')"
+    )
+    details: dict[str, Any] | None = Field(
+        default=None, description="Type-specific details"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "name": "health_check",
+                "type": "api",
+                "path": "api/health.json",
+                "status": "pass",
+                "plan_step": "step_1",
+                "details": {"method": "GET", "status_code": 200, "duration_seconds": 0.012},
+            }
+        }
+    }
+
+
+class PlanStepCoverage(BaseModel):
+    """Coverage information for a single plan step.
+
+    Tracks which evidence items are linked to a specific plan step,
+    enabling coverage analysis.
+
+    Attributes:
+        step_id: Identifier for the plan step (e.g., "step_1", "task_3")
+        step_description: Human-readable description of the step
+        evidence_items: Names of evidence items linked to this step
+        covered: Whether this step has any linked evidence
+
+    Example:
+        >>> coverage = PlanStepCoverage(
+        ...     step_id="step_1",
+        ...     step_description="Implement health check endpoint",
+        ...     evidence_items=["health_check", "status_endpoint"],
+        ...     covered=True,
+        ... )
+    """
+
+    step_id: str = Field(..., description="Plan step identifier")
+    step_description: str | None = Field(
+        default=None, description="Human-readable step description"
+    )
+    evidence_items: list[str] = Field(
+        default_factory=list, description="Names of linked evidence items"
+    )
+    covered: bool = Field(default=False, description="Whether step has linked evidence")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "step_id": "step_1",
+                "step_description": "Implement health check endpoint",
+                "evidence_items": ["health_check"],
+                "covered": True,
+            }
+        }
+    }
+
+
+class CoverageSummary(BaseModel):
+    """Summary of evidence coverage for plan steps.
+
+    Provides an overview of how well the evidence covers the plan,
+    identifying gaps in verification.
+
+    Attributes:
+        total_plan_steps: Total number of steps parsed from plan.md
+        covered_steps: Number of steps with at least one evidence item
+        uncovered_steps: Number of steps without evidence
+        coverage_percentage: Percentage of steps covered (0-100)
+        uncovered_step_ids: List of step IDs without evidence
+
+    Example:
+        >>> summary = CoverageSummary(
+        ...     total_plan_steps=5,
+        ...     covered_steps=3,
+        ...     uncovered_steps=2,
+        ...     coverage_percentage=60.0,
+        ...     uncovered_step_ids=["step_2", "step_5"],
+        ... )
+    """
+
+    total_plan_steps: int = Field(..., ge=0, description="Total plan steps")
+    covered_steps: int = Field(..., ge=0, description="Steps with evidence")
+    uncovered_steps: int = Field(..., ge=0, description="Steps without evidence")
+    coverage_percentage: float = Field(
+        ..., ge=0, le=100, description="Coverage percentage"
+    )
+    uncovered_step_ids: list[str] = Field(
+        default_factory=list, description="Step IDs without evidence"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "total_plan_steps": 5,
+                "covered_steps": 3,
+                "uncovered_steps": 2,
+                "coverage_percentage": 60.0,
+                "uncovered_step_ids": ["step_2", "step_5"],
+            }
+        }
+    }
+
+
+class EvidenceManifest(BaseModel):
+    """Complete evidence manifest for a run.
+
+    The manifest is the central index of all captured evidence,
+    linking evidence items to plan steps for traceability and
+    providing coverage analysis for the Validate phase.
+
+    Attributes:
+        run_id: Unique identifier for the run (ULID)
+        generated_at: When the manifest was generated
+        platform: Platform type that was detected (cli, web, backend, etc.)
+        evidence_directory: Path to the evidence directory
+        total_items: Total number of evidence items
+        passed: Number of items with PASS status
+        failed: Number of items with FAIL status
+        errors: Number of items with ERROR status
+        skipped: Number of items with SKIPPED status
+        items: List of all evidence items
+        coverage: Coverage summary (optional - only if plan.md exists)
+        step_coverage: Per-step coverage details (optional)
+
+    Example:
+        >>> manifest = EvidenceManifest(
+        ...     run_id="01HQXK5P3Z7V8R2M4N6T9W1Y3C",
+        ...     platform="backend",
+        ...     evidence_directory=".adw/runs/01HQXK/evidence",
+        ...     total_items=8,
+        ...     passed=6,
+        ...     failed=1,
+        ...     errors=0,
+        ...     skipped=1,
+        ...     items=[...],
+        ... )
+    """
+
+    run_id: str = Field(..., description="Unique run identifier (ULID)")
+    generated_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        description="When manifest was generated",
+    )
+    platform: str = Field(..., description="Detected platform type")
+    evidence_directory: str = Field(..., description="Path to evidence directory")
+
+    # Summary statistics
+    total_items: int = Field(..., ge=0, description="Total evidence items")
+    passed: int = Field(..., ge=0, description="Items with PASS status")
+    failed: int = Field(..., ge=0, description="Items with FAIL status")
+    errors: int = Field(..., ge=0, description="Items with ERROR status")
+    skipped: int = Field(..., ge=0, description="Items with SKIPPED status")
+
+    # Evidence items
+    items: list[EvidenceItem] = Field(
+        default_factory=list, description="All evidence items"
+    )
+
+    # Plan coverage (optional - only if plan.md exists)
+    coverage: CoverageSummary | None = Field(
+        default=None, description="Coverage summary"
+    )
+    step_coverage: list[PlanStepCoverage] | None = Field(
+        default=None, description="Per-step coverage details"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "run_id": "01HQXK5P3Z7V8R2M4N6T9W1Y3C",
+                "generated_at": "2026-01-03T10:30:45Z",
+                "platform": "backend",
+                "evidence_directory": ".adw/runs/01HQXK5P3Z7V8R2M4N6T9W1Y3C/evidence",
+                "total_items": 8,
+                "passed": 6,
+                "failed": 1,
+                "errors": 0,
+                "skipped": 1,
+                "items": [],
+                "coverage": None,
+                "step_coverage": None,
             }
         }
     }
