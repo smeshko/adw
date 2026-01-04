@@ -158,7 +158,7 @@ development_status:
   8-5-generate-evidence-manifest: ready-for-dev
   8-6-compress-and-optimize-evidence: ready-for-dev
   # UX Fix (from ISS-001)
-  ux-fix-ISS-001-llm-output-too-verbose-in-terminal: review
+  ux-fix-ISS-001-llm-output-too-verbose-in-terminal: done
   epic-8-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
