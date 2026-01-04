@@ -79,10 +79,10 @@ so that command execution can be verified.
 - [x] Log summary to console via LogManager
 
 ### Task 6: Integrate with Verify Phase
-- [ ] Wire CLICaptureStrategy into evidence gathering
-- [ ] Execute only when platform is CLI
-- [ ] Store results for manifest generation (Story 8.5)
-- [ ] Return structured results for phase runner
+- [x] Wire CLICaptureStrategy into evidence gathering
+- [x] Execute only when platform is CLI
+- [x] Store results for manifest generation (Story 8.5)
+- [x] Return structured results for phase runner
 
 ### Task 7: Write Unit Tests
 - [ ] Test command execution with mock subprocess
@@ -410,18 +410,22 @@ claude-opus-4-5-20251101
 - **Task 3**: Implemented EvidenceFileWriter in evidence/file_writer.py. Creates evidence directory structure and writes command results to human-readable .txt files with headers containing command, timestamp, duration, exit code, and status. Added 9 unit tests. Coverage: 100% for file_writer.py.
 - **Task 4**: Implemented load_evidence_commands() in evidence/config_loader.py. Reads evidence.commands from .adw/project.yaml, validates command configurations, and handles missing config gracefully. Added 8 unit tests. Coverage: 86% for config_loader.py.
 - **Task 5**: Implemented SummaryGenerator in evidence/summary_generator.py. Tracks passed/failed counts, generates "X passed, Y failed" text, and writes summary.json file. Added 10 unit tests. Coverage: 100% for summary_generator.py.
+- **Task 6**: Implemented CLIEvidenceGatherer in evidence/cli_gatherer.py. Orchestrates all CLI evidence gathering: loads config, executes commands, writes evidence files, generates summary. Added 11 unit tests. Coverage: 100% for cli_gatherer.py. Updated evidence/__init__.py to export all new classes.
 
 ### File List
 
 - src/adw/models/evidence.py (modified - added CommandConfig, CommandResult, CLIEvidenceSummary)
 - src/adw/models/__init__.py (modified - export new models)
+- src/adw/evidence/__init__.py (modified - export CLI evidence classes)
 - src/adw/evidence/cli_capture.py (new - CLICaptureStrategy class)
 - src/adw/evidence/file_writer.py (new - EvidenceFileWriter class)
 - src/adw/evidence/config_loader.py (new - load_evidence_commands function)
 - src/adw/evidence/summary_generator.py (new - SummaryGenerator class)
+- src/adw/evidence/cli_gatherer.py (new - CLIEvidenceGatherer class)
 - tests/unit/evidence/test_cli_models.py (new - 18 tests for CLI models)
 - tests/unit/evidence/test_cli_capture.py (new - 11 tests for CLI capture)
 - tests/unit/evidence/test_file_writer.py (new - 9 tests for file writer)
 - tests/unit/evidence/test_config_loader.py (new - 8 tests for config loader)
 - tests/unit/evidence/test_summary_generator.py (new - 10 tests for summary generator)
+- tests/unit/evidence/test_cli_gatherer.py (new - 11 tests for CLI gatherer)
 

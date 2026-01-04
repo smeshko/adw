@@ -3,11 +3,17 @@
 This package contains modules for:
 - Platform detection (determining if project is CLI, WEB, MOBILE, or BACKEND)
 - Evidence capture strategies (terminal output, screenshots, API responses)
+- CLI evidence gathering (command execution and output capture)
 """
 
 from pathlib import Path
 
+from adw.evidence.cli_capture import CLICaptureStrategy
+from adw.evidence.cli_gatherer import CLIEvidenceGatherer
+from adw.evidence.config_loader import load_evidence_commands
 from adw.evidence.detector import PlatformDetector
+from adw.evidence.file_writer import EvidenceFileWriter
+from adw.evidence.summary_generator import SummaryGenerator
 from adw.logging import LogCategory, get_logger
 from adw.models.evidence import (
     EvidenceStrategy,
@@ -83,7 +89,14 @@ def get_evidence_strategy(platform: PlatformType) -> EvidenceStrategy:
 
 
 __all__ = [
+    # Platform detection
     "PlatformDetector",
     "detect_platform",
     "get_evidence_strategy",
+    # CLI evidence gathering
+    "CLICaptureStrategy",
+    "CLIEvidenceGatherer",
+    "EvidenceFileWriter",
+    "SummaryGenerator",
+    "load_evidence_commands",
 ]
