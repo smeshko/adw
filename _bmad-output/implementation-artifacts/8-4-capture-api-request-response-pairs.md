@@ -53,10 +53,10 @@ so that endpoint behavior can be verified.
 - [x] Handle timeouts gracefully
 
 ### Task 3: Implement Request/Response Capture
-- [ ] Capture full request details (method, url, headers, body)
-- [ ] Capture full response details (status, headers, body, timing)
-- [ ] Preserve response body as JSON when possible, raw string otherwise
-- [ ] Calculate request duration
+- [x] Capture full request details (method, url, headers, body)
+- [x] Capture full response details (status, headers, body, timing)
+- [x] Preserve response body as JSON when possible, raw string otherwise
+- [x] Calculate request duration
 
 ### Task 4: Implement Authentication Support
 - [ ] Support Bearer token authentication

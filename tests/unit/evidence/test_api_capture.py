@@ -225,6 +225,144 @@ class TestTimeoutHandling:
         assert result.error is not None
 
 
+class TestRequestResponseCapture:
+    """Tests for request/response capture functionality (Task 3)."""
+
+    @patch("adw.evidence.api_capture.httpx.Client")
+    def test_captures_full_request_details(self, mock_client_class: MagicMock) -> None:
+        """Test that full request details are captured."""
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.text = "{}"
+        mock_response.is_success = True
+        mock_client.request.return_value = mock_response
+
+        strategy = APICaptureStrategy(base_url="http://localhost:8000")
+        endpoint = EndpointConfig(
+            name="test",
+            method="POST",
+            path="/api/test",
+            headers={"X-Custom": "value"},
+            body={"key": "data"},
+        )
+        result = strategy.call_endpoint(endpoint)
+
+        # Verify request details captured
+        assert result.request.method == "POST"
+        assert result.request.url == "http://localhost:8000/api/test"
+        assert result.request.headers == {"X-Custom": "value"}
+        assert result.request.body == {"key": "data"}
+
+    @patch("adw.evidence.api_capture.httpx.Client")
+    def test_captures_full_response_details(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """Test that full response details are captured."""
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 201
+        mock_response.headers = {
+            "Content-Type": "application/json",
+            "X-Request-Id": "abc123",
+        }
+        mock_response.text = '{"id": 42, "created": true}'
+        mock_response.is_success = True
+        mock_client.request.return_value = mock_response
+
+        strategy = APICaptureStrategy(base_url="http://localhost:8000")
+        endpoint = EndpointConfig(name="test", path="/test")
+        result = strategy.call_endpoint(endpoint)
+
+        # Verify response details captured
+        assert result.response.status_code == 201
+        assert result.response.headers is not None
+        assert "Content-Type" in result.response.headers
+        assert result.response.body == {"id": 42, "created": True}
+        assert result.response.duration_seconds >= 0
+
+    @patch("adw.evidence.api_capture.httpx.Client")
+    def test_preserves_json_response_as_dict(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """Test that JSON responses are parsed to dict."""
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.text = '{"users": [{"id": 1}, {"id": 2}]}'
+        mock_response.is_success = True
+        mock_client.request.return_value = mock_response
+
+        strategy = APICaptureStrategy(base_url="http://localhost:8000")
+        endpoint = EndpointConfig(name="test", path="/test")
+        result = strategy.call_endpoint(endpoint)
+
+        assert isinstance(result.response.body, dict)
+        assert result.response.body == {"users": [{"id": 1}, {"id": 2}]}
+
+    @patch("adw.evidence.api_capture.httpx.Client")
+    def test_preserves_non_json_response_as_string(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """Test that non-JSON responses are kept as string."""
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.text = "OK - Server is running"
+        mock_response.is_success = True
+        mock_client.request.return_value = mock_response
+
+        strategy = APICaptureStrategy(base_url="http://localhost:8000")
+        endpoint = EndpointConfig(name="test", path="/test")
+        result = strategy.call_endpoint(endpoint)
+
+        assert isinstance(result.response.body, str)
+        assert result.response.body == "OK - Server is running"
+
+    @patch("adw.evidence.api_capture.httpx.Client")
+    def test_calculates_request_duration(self, mock_client_class: MagicMock) -> None:
+        """Test that request duration is calculated."""
+        import time
+
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        # Simulate a small delay
+        def slow_request(*args, **kwargs):
+            time.sleep(0.01)  # 10ms
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {}
+            mock_response.text = "{}"
+            mock_response.is_success = True
+            return mock_response
+
+        mock_client.request.side_effect = slow_request
+
+        strategy = APICaptureStrategy(base_url="http://localhost:8000")
+        endpoint = EndpointConfig(name="test", path="/test")
+        result = strategy.call_endpoint(endpoint)
+
+        # Duration should be at least 10ms
+        assert result.response.duration_seconds >= 0.01
+
+
 class TestStatusMatching:
     """Tests for expected status matching."""
 
