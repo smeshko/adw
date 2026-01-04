@@ -51,7 +51,7 @@ so that my work is isolated from the main branch.
   - `git.branch_prefix: str` (default: "feature/")
 - [x] Create bundled pre-hook script `defaults/commands/plan/pre.sh`
 - [x] Write unit tests for branch name sanitization
-- [ ] Write integration tests with git repo fixture
+- [x] Write integration tests with git repo fixture
 
 ---
 
@@ -132,6 +132,9 @@ Claude Opus 4.5
 - create_or_switch_branch is idempotent - creates if not exists, switches if exists
 - All functions follow exception hierarchy using HookError
 - Unit tests cover all edge cases with 18 passing tests
+- Added GitConfig model with enabled (default: False) and branch_prefix (default: "feature/")
+- Created bundled pre-hook at defaults/commands/plan/pre.sh with Python integration
+- Integration tests verify real git operations with tmp_path fixture (10 tests)
 
 ### File List
 - src/adw/hooks/git_branch.py (new)
@@ -141,4 +144,5 @@ Claude Opus 4.5
 - src/adw/defaults/commands/plan/pre.sh (new - bundled git branch hook)
 - tests/unit/hooks/test_git_branch.py (new)
 - tests/unit/models/test_config.py (modified - added GitConfig tests)
+- tests/integration/test_git_hooks.py (new - integration tests)
 
