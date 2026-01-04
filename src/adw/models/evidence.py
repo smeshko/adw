@@ -405,6 +405,7 @@ class CommandResult(BaseModel):
 
     Attributes:
         command: The command that was executed
+        name: Config name used for evidence file (e.g., "health_check")
         exit_code: Exit code from the command (-1 for timeout)
         stdout: Standard output captured from the command
         stderr: Standard error captured from the command
@@ -415,6 +416,7 @@ class CommandResult(BaseModel):
     Example:
         >>> result = CommandResult(
         ...     command="adw --version",
+        ...     name="version",
         ...     exit_code=0,
         ...     stdout="adw version 1.0.0",
         ...     stderr="",
@@ -426,6 +428,10 @@ class CommandResult(BaseModel):
     """
 
     command: str = Field(..., description="The command that was executed")
+    name: str | None = Field(
+        default=None,
+        description="Config name for evidence file (e.g., 'health_check')",
+    )
     exit_code: int = Field(..., description="Exit code from the command")
     stdout: str = Field(..., description="Standard output")
     stderr: str = Field(..., description="Standard error")

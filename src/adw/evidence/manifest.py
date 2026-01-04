@@ -169,9 +169,13 @@ class ManifestGenerator:
 
         for result in summary.results:
             status = self._cli_status(result)
-            # Generate relative path from command name
-            # CLI results are stored as cli/<name>.txt
-            name = self._sanitize_name(result.command.split()[0])
+            # Use configured name if available, fall back to command binary
+            if result.name:
+                # Sanitize same way as EvidenceFileWriter
+                name = self._sanitize_cli_name(result.name)
+            else:
+                # Legacy fallback for results without name field
+                name = self._sanitize_name(result.command.split()[0])
             path = f"cli/{name}.txt"
 
             items.append(
@@ -245,7 +249,9 @@ class ManifestGenerator:
         for result in summary.results:
             status = self._api_status(result)
             name = result.endpoint_name
-            path = f"api/{name}.json"
+            # Sanitize same way as APIEvidenceWriter._sanitize_filename
+            safe_name = self._sanitize_api_filename(name)
+            path = f"api/{safe_name}.json"
 
             items.append(
                 EvidenceItem(
@@ -284,7 +290,17 @@ class ManifestGenerator:
         for result in summary.results:
             status = self._mobile_status(result)
             name = f"{result.screen_name}_{result.device_type.value}"
-            path = f"screenshots/{result.path.name}" if result.path else f"screenshots/{name}.png"
+            # Mobile screenshots go to mobile/ directory, not screenshots/
+            # Use relative path from result if available
+            if result.path:
+                try:
+                    # Try to get relative path from evidence directory
+                    path = str(result.path.relative_to(self.evidence_directory))
+                except ValueError:
+                    # If path is not under evidence_directory, use mobile/<filename>
+                    path = f"mobile/{result.path.name}"
+            else:
+                path = f"mobile/{name}.png"
 
             items.append(
                 EvidenceItem(
@@ -386,6 +402,37 @@ class ManifestGenerator:
         sanitized = sanitized.replace(" ", "_").replace(".", "_")
         # Remove leading/trailing underscores
         return sanitized.strip("_") or "unnamed"
+
+    def _sanitize_cli_name(self, name: str) -> str:
+        """Sanitize CLI config name to match EvidenceFileWriter.
+
+        Uses the same regex sanitization as EvidenceFileWriter.write_command_result.
+
+        Args:
+            name: Config name for the command
+
+        Returns:
+            Sanitized name safe for filenames
+        """
+        # Match EvidenceFileWriter: re.sub(r"[^\w\-]", "_", name)
+        return re.sub(r"[^\w\-]", "_", name)
+
+    def _sanitize_api_filename(self, name: str) -> str:
+        """Sanitize API endpoint name to match APIEvidenceWriter.
+
+        Uses the same sanitization as APIEvidenceWriter._sanitize_filename.
+
+        Args:
+            name: Endpoint name (e.g., "GET /health")
+
+        Returns:
+            Sanitized name safe for filenames
+        """
+        # Match APIEvidenceWriter._sanitize_filename
+        safe = re.sub(r"[/\\:*?\"<>|]", "_", name)
+        safe = safe.strip("_")
+        safe = re.sub(r"_+", "_", safe)
+        return safe if safe else "unnamed"
 
 
 class PlanStepLinker:
