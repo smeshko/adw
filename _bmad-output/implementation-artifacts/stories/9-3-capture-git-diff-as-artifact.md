@@ -1,6 +1,6 @@
 # Story 9.3: Capture Git Diff as Artifact
 
-Status: drafted
+Status: completed
 Epic: 9 - Git Integration & Documentation
 Created: 2026-01-04
 
@@ -130,7 +130,12 @@ Claude claude-opus-4-5-20251101
 - truncate_diff() handles large diffs with truncation notice
 - get_diff_stats() parses git diff --stat output into DiffStats model
 - All functions use --no-color flag to avoid ANSI escape codes
-- 20 unit tests written and passing (95% coverage for module)
+- Integrated diff capture into PhaseRunner._capture_artifacts for build phase
+- diff.txt accessible as {{artifacts.build.diff}} via existing template mapping
+- 20 unit tests for git_diff module (95% coverage)
+- 6 unit tests for PhaseRunner git diff integration
+- 10 integration tests with real git operations
+- All 51 tests passing
 
 ### File List
 - src/adw/hooks/git_diff.py (new)
