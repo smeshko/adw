@@ -77,7 +77,7 @@ class ClaudeCodeExecutor:
             allow_dangerous: If True, log warnings instead of blocking dangerous
                         commands (Story 3.6).
             show_llm_output: If True, stream LLM output to console in real-time.
-                        Default is False to reduce terminal noise (Story UX-FIX-ISS-001).
+                        Default False to reduce terminal noise (UX-FIX-ISS-001).
         """
         self.config = config
         self.console = console or Console()
@@ -168,7 +168,8 @@ class ClaudeCodeExecutor:
             str(claude_path),
             "--print",
             "--verbose",
-            "--output-format", "stream-json",  # Structured output with tokens
+            "--output-format",
+            "stream-json",  # Structured output with tokens
             "--dangerously-skip-permissions",  # Allow automated file writes
             prompt,
         ]
@@ -338,7 +339,7 @@ class ClaudeCodeExecutor:
                     if display_text:
                         self.console.print(display_text, end="")
 
-                # Capture to stream logger if provided (always, regardless of show_llm_output)
+                # Capture to stream logger if provided (always, regardless of flag)
                 if stream_logger:
                     stream_logger.token(decoded)
 

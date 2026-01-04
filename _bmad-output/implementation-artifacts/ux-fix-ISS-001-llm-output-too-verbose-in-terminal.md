@@ -232,3 +232,8 @@ Modified files:
 - `src/adw/cli/app.py` - Added --show-llm-output flag and verbosity integration
 - `src/adw/cli/bootstrap.py` - Pass show_llm_output to executor
 - `tests/unit/executors/test_claude_code.py` - Added tests for new behavior
+- `tests/integration/cli/test_run_integration.py` - Added verbosity integration tests (code review fix)
+
+### Architecture Note
+
+**PhaseRunner Exclusion**: The original story requirements listed `phase_runner.py` as needing modification to pass the flag. However, the actual implementation wires `show_llm_output` directly at executor construction in `bootstrap.py:158-165`. This approach is simpler and avoids threading the flag through PhaseRunner, which doesn't need to know about display preferences. The PhaseRunner remains focused on orchestrating phase execution, not console output configuration.

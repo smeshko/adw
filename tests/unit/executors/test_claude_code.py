@@ -380,10 +380,12 @@ class TestRealTimeStreaming:
         executor.console = mock_console
 
         # Use valid stream-json format with content_block_delta
-        stream_json = json.dumps({
-            "type": "content_block_delta",
-            "delta": {"type": "text_delta", "text": "Hello world"}
-        })
+        stream_json = json.dumps(
+            {
+                "type": "content_block_delta",
+                "delta": {"type": "text_delta", "text": "Hello world"},
+            }
+        )
 
         with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
             process = AsyncMock()
@@ -1399,9 +1401,7 @@ class TestStreamLoggerIntegration:
 
             assert isinstance(result, LLMResult)
 
-    def test_stream_logger_captures_tokens(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
+    def test_stream_logger_captures_tokens(self, executor: ClaudeCodeExecutor) -> None:
         """StreamLogger should capture tokens when provided."""
         from adw.logging.stream import StreamLogger
         from adw.models.logging import StreamEventType
@@ -1439,9 +1439,7 @@ class TestStreamLoggerIntegration:
             token_events = [e for e in events if e.type == StreamEventType.TOKEN]
             assert len(token_events) >= 1
 
-    def test_stream_logger_none_by_default(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
+    def test_stream_logger_none_by_default(self, executor: ClaudeCodeExecutor) -> None:
         """stream_logger should be None by default (no capturing)."""
         with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
             process = AsyncMock()
@@ -1583,10 +1581,12 @@ class TestShowLLMOutputFlag:
         executor_without_show_output.console = mock_console
 
         # Use valid stream-json format with content_block_delta
-        stream_json = json.dumps({
-            "type": "content_block_delta",
-            "delta": {"type": "text_delta", "text": "Hello world"}
-        })
+        stream_json = json.dumps(
+            {
+                "type": "content_block_delta",
+                "delta": {"type": "text_delta", "text": "Hello world"},
+            }
+        )
 
         with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
             process = AsyncMock()
@@ -1629,10 +1629,12 @@ class TestShowLLMOutputFlag:
         executor_with_show_output.console = mock_console
 
         # Use valid stream-json format with content_block_delta
-        stream_json = json.dumps({
-            "type": "content_block_delta",
-            "delta": {"type": "text_delta", "text": "Hello world"}
-        })
+        stream_json = json.dumps(
+            {
+                "type": "content_block_delta",
+                "delta": {"type": "text_delta", "text": "Hello world"},
+            }
+        )
 
         with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
             process = AsyncMock()
@@ -1706,12 +1708,12 @@ class TestShowLLMOutputFlag:
 
 
 class TestShowLLMOutputWithVerbosity:
-    """Tests for show_llm_output integration with verbosity (Story UX-FIX-ISS-001 Task 3).
+    """Tests for show_llm_output integration with verbosity.
 
-    When verbosity is TRACE, show_llm_output should be enabled automatically.
-    This is tested at the CLI level in app.py, but we can verify the executor
-    behaves correctly when show_llm_output=True is passed (regardless of how
-    that value was computed).
+    Story UX-FIX-ISS-001 Task 3: When verbosity is TRACE, show_llm_output
+    should be enabled automatically. This is tested at the CLI level in
+    app.py, but we can verify the executor behaves correctly when
+    show_llm_output=True is passed (regardless of how it was computed).
     """
 
     def test_trace_verbosity_logic_at_cli_level(self) -> None:
@@ -1724,11 +1726,11 @@ class TestShowLLMOutputWithVerbosity:
         """
         from adw.models.logging import Verbosity
 
-        # Simulate the logic from app.py
+        # Simulate the CLI logic: when trace is enabled, show_llm_output becomes True
         show_llm_output_flag = False
         verbosity = Verbosity.TRACE
 
-        # This is the logic in app.py line 200-201
+        # This mirrors the app.py run command logic
         effective_show_llm_output = show_llm_output_flag or verbosity == Verbosity.TRACE
 
         assert effective_show_llm_output is True
