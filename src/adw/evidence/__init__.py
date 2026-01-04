@@ -3,14 +3,32 @@
 This package contains modules for:
 - Platform detection (determining if project is CLI, WEB, MOBILE, or BACKEND)
 - Evidence capture strategies (terminal output, screenshots, API responses)
+- CLI evidence gathering (command execution and output capture)
+- Web evidence gathering (browser screenshots)
 """
 
 from pathlib import Path
 
 from adw.evidence.api_capture import APICaptureStrategy, generate_summary
-from adw.evidence.config_loader import EvidenceConfig, load_evidence_config
+from adw.evidence.cli_capture import CLICaptureStrategy
+from adw.evidence.cli_gatherer import CLIEvidenceGatherer
+from adw.evidence.config_loader import (
+    EvidenceConfig,
+    load_evidence_commands,
+    load_evidence_config,
+)
 from adw.evidence.detector import PlatformDetector
 from adw.evidence.evidence_writer import APIEvidenceWriter
+from adw.evidence.file_writer import EvidenceFileWriter
+from adw.evidence.summary_generator import SummaryGenerator
+from adw.evidence.web_capture import (
+    DEFAULT_VIEWPORTS,
+    WebCaptureStrategy,
+    check_playwright_available,
+    create_evidence_directory,
+    generate_evidence_metadata,
+    load_routes_from_config,
+)
 from adw.logging import LogCategory, get_logger
 from adw.models.evidence import (
     EvidenceStrategy,
@@ -86,12 +104,27 @@ def get_evidence_strategy(platform: PlatformType) -> EvidenceStrategy:
 
 
 __all__ = [
+    # Platform detection
+    "PlatformDetector",
+    "detect_platform",
+    "get_evidence_strategy",
+    # API evidence gathering
     "APIEvidenceWriter",
     "APICaptureStrategy",
     "EvidenceConfig",
-    "PlatformDetector",
-    "detect_platform",
     "generate_summary",
-    "get_evidence_strategy",
     "load_evidence_config",
+    # CLI evidence gathering
+    "CLICaptureStrategy",
+    "CLIEvidenceGatherer",
+    "EvidenceFileWriter",
+    "SummaryGenerator",
+    "load_evidence_commands",
+    # Web capture
+    "DEFAULT_VIEWPORTS",
+    "WebCaptureStrategy",
+    "check_playwright_available",
+    "create_evidence_directory",
+    "generate_evidence_metadata",
+    "load_routes_from_config",
 ]

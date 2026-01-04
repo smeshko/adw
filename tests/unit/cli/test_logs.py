@@ -1,4 +1,18 @@
-"""Unit tests for logs CLI commands."""
+"""Unit tests for logs CLI commands.
+
+Tests for state inspection commands (Story 7.5):
+- logs snapshots: List snapshots for a run
+- logs state: Display run state
+- logs diff: Show state differences
+- logs tools: Display tool execution history
+
+Tests for log viewing commands (Story 7.4):
+- logs show: Display log entries from a run
+- logs follow: Stream log entries in real-time
+- logs search: Search logs for patterns
+- logs llm: View LLM prompts/responses
+- logs export: Create shareable bundles
+"""
 
 import json
 from datetime import UTC, datetime
@@ -9,6 +23,7 @@ import pytest
 from typer.testing import CliRunner
 
 from adw.cli.app import app
+from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
 
 
 @pytest.fixture
@@ -644,3 +659,399 @@ class TestLogsToolsCommand:
         in_output = result.output
         has_summary = "3" in in_output or "Total" in in_output or "Summary" in in_output
         assert has_summary
+
+
+# =============================================================================
+# Story 7.4: Log Viewing Commands
+# =============================================================================
+
+
+@pytest.fixture
+def run_with_logs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[str, Path]:
+    """Create a run directory with sample log files.
+
+    Returns:
+        Tuple of (run_id, project_path).
+    """
+    # Change to temp directory
+    monkeypatch.chdir(tmp_path)
+
+    # Create project structure
+    adw_dir = tmp_path / ".adw"
+    adw_dir.mkdir()
+    runs_dir = adw_dir / "runs"
+    runs_dir.mkdir()
+
+    # Create run with ULID-like ID
+    run_id = "01HQTEST123456789ABCDEF"
+    run_dir = runs_dir / run_id
+    run_dir.mkdir()
+
+    # Create required subdirectories
+    logs_dir = run_dir / "logs"
+    logs_dir.mkdir()
+    (run_dir / "snapshots").mkdir()
+    (run_dir / "llm").mkdir()
+    (run_dir / "artifacts").mkdir()
+
+    # Create context.json
+    context = {
+        "run_id": run_id,
+        "feature_description": "Test feature",
+        "current_phase": "build",
+        "phase_history": ["plan"],
+        "started_at": datetime.now(UTC).isoformat(),
+        "status": "completed",
+        "artifacts": {},
+    }
+    (run_dir / "context.json").write_text(json.dumps(context))
+
+    # Create structured log file (logs.jsonl)
+    log_events = [
+        LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.PHASE,
+            message="Phase plan started",
+            context=LogContext(run_id=run_id, phase="plan"),
+        ),
+        LogEvent(
+            level=LogLevel.DEBUG,
+            category=LogCategory.LLM,
+            message="Sending LLM request",
+            context=LogContext(run_id=run_id, phase="plan"),
+        ),
+        LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.PHASE,
+            message="Phase plan completed",
+            context=LogContext(run_id=run_id, phase="plan"),
+        ),
+        LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.PHASE,
+            message="Phase build started",
+            context=LogContext(run_id=run_id, phase="build"),
+        ),
+        LogEvent(
+            level=LogLevel.ERROR,
+            category=LogCategory.ERROR,
+            message="Build failed: Missing dependency",
+            context=LogContext(run_id=run_id, phase="build"),
+        ),
+    ]
+
+    jsonl_content = "\n".join(e.model_dump_json() for e in log_events)
+    (logs_dir / "logs.jsonl").write_text(jsonl_content)
+
+    # Create raw log file
+    raw_lines = [
+        "2026-01-03 10:00:00 [INFO ] [phase] (run) [plan] Phase plan started",
+        "2026-01-03 10:00:05 [DEBUG] [llm] (run) [plan] Sending LLM request",
+        "2026-01-03 10:01:00 [INFO ] [phase] (run) [plan] Phase plan completed",
+        "2026-01-03 10:01:05 [INFO ] [phase] (run) [build] Phase build started",
+        "2026-01-03 10:02:00 [ERROR] [error] (run) [build] Build failed: Missing dependency",
+    ]
+    (logs_dir / "raw.log").write_text("\n".join(raw_lines))
+
+    return run_id, tmp_path
+
+
+@pytest.fixture
+def run_with_llm_captures(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[str, Path]:
+    """Create a run directory with LLM capture files.
+
+    Returns:
+        Tuple of (run_id, project_path).
+    """
+    monkeypatch.chdir(tmp_path)
+
+    # Create project structure
+    adw_dir = tmp_path / ".adw"
+    adw_dir.mkdir()
+    runs_dir = adw_dir / "runs"
+    runs_dir.mkdir()
+
+    run_id = "01HQLLMTEST456789ABCDEF"
+    run_dir = runs_dir / run_id
+    run_dir.mkdir()
+
+    # Create directories
+    (run_dir / "logs").mkdir()
+    (run_dir / "snapshots").mkdir()
+    (run_dir / "artifacts").mkdir()
+    llm_dir = run_dir / "llm"
+    llm_dir.mkdir()
+
+    # Create context.json
+    context = {
+        "run_id": run_id,
+        "feature_description": "Test LLM feature",
+        "current_phase": "plan",
+        "phase_history": [],
+        "started_at": datetime.now(UTC).isoformat(),
+        "status": "completed",
+        "artifacts": {},
+    }
+    (run_dir / "context.json").write_text(json.dumps(context))
+
+    # Create LLM capture files
+    request_1 = {
+        "timestamp": "2026-01-03T10:00:00Z",
+        "prompt": "Generate a plan for user authentication",
+        "phase": "plan",
+        "params": {"model": "claude-sonnet-4-20250514", "temperature": 0},
+    }
+    (llm_dir / "001_plan_request.json").write_text(json.dumps(request_1, indent=2))
+
+    response_1 = {
+        "timestamp": "2026-01-03T10:01:00Z",
+        "content": "Here is the authentication plan...",
+        "phase": "plan",
+        "tool_calls": [],
+        "stats": {"input_tokens": 150, "output_tokens": 500, "duration_ms": 2500},
+    }
+    (llm_dir / "001_plan_response.json").write_text(json.dumps(response_1, indent=2))
+
+    # Create stream file
+    stream_events = [
+        '{"t": 0, "type": "token", "content": "Here"}',
+        '{"t": 10, "type": "token", "content": " is"}',
+        '{"t": 20, "type": "token", "content": " the"}',
+    ]
+    (llm_dir / "001_plan_stream.jsonl").write_text("\n".join(stream_events))
+
+    return run_id, tmp_path
+
+
+class TestLogsShowCommand:
+    """Tests for logs show command (Story 7.4)."""
+
+    def test_logs_help_shows_show_subcommand(self, runner: CliRunner) -> None:
+        """Verify logs --help shows show subcommand."""
+        result = runner.invoke(app, ["logs", "--help"])
+        assert result.exit_code == 0
+        assert "show" in result.output
+
+    def test_logs_show_requires_run_id(self, runner: CliRunner) -> None:
+        """Verify show command requires run_id argument."""
+        result = runner.invoke(app, ["logs", "show"])
+        assert result.exit_code != 0
+        assert "Missing argument" in result.output or "RUN_ID" in result.output
+
+    def test_logs_show_displays_entries(
+        self, runner: CliRunner, run_with_logs: tuple[str, Path]
+    ) -> None:
+        """Test that logs show displays log entries."""
+        run_id, _ = run_with_logs
+
+        result = runner.invoke(app, ["logs", "show", run_id])
+        assert result.exit_code == 0
+        # Should contain log messages
+        assert (
+            "Phase plan started" in result.output or "plan" in result.output.lower()
+        )
+
+    def test_logs_show_with_tail_option(
+        self, runner: CliRunner, run_with_logs: tuple[str, Path]
+    ) -> None:
+        """Test logs show with --tail option."""
+        run_id, _ = run_with_logs
+
+        result = runner.invoke(app, ["logs", "show", run_id, "--tail", "2"])
+        assert result.exit_code == 0
+        # Should show limited entries
+
+    def test_logs_show_with_phase_filter(
+        self, runner: CliRunner, run_with_logs: tuple[str, Path]
+    ) -> None:
+        """Test logs show with --phase filter."""
+        run_id, _ = run_with_logs
+
+        result = runner.invoke(app, ["logs", "show", run_id, "--phase", "build"])
+        assert result.exit_code == 0
+        # Should only show build phase logs
+
+    def test_logs_show_with_level_filter(
+        self, runner: CliRunner, run_with_logs: tuple[str, Path]
+    ) -> None:
+        """Test logs show with --level filter."""
+        run_id, _ = run_with_logs
+
+        result = runner.invoke(app, ["logs", "show", run_id, "--level", "error"])
+        assert result.exit_code == 0
+        # Should only show error level logs
+
+    def test_logs_show_run_not_found(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Test logs show with non-existent run."""
+        result = runner.invoke(app, ["logs", "show", "01NONEXISTENT"])
+        assert result.exit_code == 1
+        assert "not found" in result.output.lower() or "error" in result.output.lower()
+
+
+class TestLogsSearchCommand:
+    """Tests for logs search command (Story 7.4)."""
+
+    def test_logs_help_shows_search_subcommand(self, runner: CliRunner) -> None:
+        """Verify logs --help shows search subcommand."""
+        result = runner.invoke(app, ["logs", "--help"])
+        assert result.exit_code == 0
+        assert "search" in result.output
+
+    def test_logs_search_requires_pattern(self, runner: CliRunner) -> None:
+        """Verify search command requires pattern argument."""
+        result = runner.invoke(app, ["logs", "search"])
+        assert result.exit_code != 0
+        assert "Missing argument" in result.output or "PATTERN" in result.output
+
+    def test_logs_search_finds_pattern(
+        self, runner: CliRunner, run_with_logs: tuple[str, Path]
+    ) -> None:
+        """Test that logs search finds matching entries."""
+        run_id, _ = run_with_logs
+
+        result = runner.invoke(app, ["logs", "search", "dependency", "--run", run_id])
+        assert result.exit_code == 0
+        # Should find the error message with "Missing dependency"
+
+    def test_logs_search_no_matches(
+        self, runner: CliRunner, run_with_logs: tuple[str, Path]
+    ) -> None:
+        """Test logs search with no matching entries."""
+        run_id, _ = run_with_logs
+
+        result = runner.invoke(
+            app, ["logs", "search", "nonexistent_pattern_xyz123", "--run", run_id]
+        )
+        assert result.exit_code == 0
+        # Should indicate no matches
+
+    def test_logs_search_with_category_filter(
+        self, runner: CliRunner, run_with_logs: tuple[str, Path]
+    ) -> None:
+        """Test logs search with --category filter."""
+        run_id, _ = run_with_logs
+
+        result = runner.invoke(
+            app, ["logs", "search", "phase", "--run", run_id, "--category", "phase"]
+        )
+        assert result.exit_code == 0
+
+
+class TestLogsLlmCommand:
+    """Tests for logs llm command (Story 7.4)."""
+
+    def test_logs_help_shows_llm_subcommand(self, runner: CliRunner) -> None:
+        """Verify logs --help shows llm subcommand."""
+        result = runner.invoke(app, ["logs", "--help"])
+        assert result.exit_code == 0
+        assert "llm" in result.output
+
+    def test_logs_llm_requires_run_id(self, runner: CliRunner) -> None:
+        """Verify llm command requires run_id argument."""
+        result = runner.invoke(app, ["logs", "llm"])
+        assert result.exit_code != 0
+        assert "Missing argument" in result.output or "RUN_ID" in result.output
+
+    def test_logs_llm_displays_interactions(
+        self, runner: CliRunner, run_with_llm_captures: tuple[str, Path]
+    ) -> None:
+        """Test that logs llm displays LLM interactions."""
+        run_id, _ = run_with_llm_captures
+
+        result = runner.invoke(app, ["logs", "llm", run_id])
+        assert result.exit_code == 0
+        # Should contain prompt or response content
+        assert "plan" in result.output.lower() or "authentication" in result.output.lower()
+
+    def test_logs_llm_with_request_only(
+        self, runner: CliRunner, run_with_llm_captures: tuple[str, Path]
+    ) -> None:
+        """Test logs llm with --request-only option."""
+        run_id, _ = run_with_llm_captures
+
+        result = runner.invoke(app, ["logs", "llm", run_id, "--request-only"])
+        assert result.exit_code == 0
+
+    def test_logs_llm_with_response_only(
+        self, runner: CliRunner, run_with_llm_captures: tuple[str, Path]
+    ) -> None:
+        """Test logs llm with --response-only option."""
+        run_id, _ = run_with_llm_captures
+
+        result = runner.invoke(app, ["logs", "llm", run_id, "--response-only"])
+        assert result.exit_code == 0
+
+    def test_logs_llm_with_phase_filter(
+        self, runner: CliRunner, run_with_llm_captures: tuple[str, Path]
+    ) -> None:
+        """Test logs llm with --phase filter."""
+        run_id, _ = run_with_llm_captures
+
+        result = runner.invoke(app, ["logs", "llm", run_id, "--phase", "plan"])
+        assert result.exit_code == 0
+
+    def test_logs_llm_with_tools_filter(
+        self, runner: CliRunner, run_with_llm_captures: tuple[str, Path]
+    ) -> None:
+        """Test logs llm with --tools filter for tool calls only."""
+        run_id, _ = run_with_llm_captures
+
+        result = runner.invoke(app, ["logs", "llm", run_id, "--tools"])
+        assert result.exit_code == 0
+
+
+class TestLogsExportCommand:
+    """Tests for logs export command (Story 7.4)."""
+
+    def test_logs_help_shows_export_subcommand(self, runner: CliRunner) -> None:
+        """Verify logs --help shows export subcommand."""
+        result = runner.invoke(app, ["logs", "--help"])
+        assert result.exit_code == 0
+        assert "export" in result.output
+
+    def test_logs_export_requires_run_id(self, runner: CliRunner) -> None:
+        """Verify export command requires run_id argument."""
+        result = runner.invoke(app, ["logs", "export"])
+        assert result.exit_code != 0
+        assert "Missing argument" in result.output or "RUN_ID" in result.output
+
+    def test_logs_export_creates_bundle(
+        self, runner: CliRunner, run_with_logs: tuple[str, Path]
+    ) -> None:
+        """Test that logs export creates a bundle file."""
+        run_id, project_path = run_with_logs
+        output_file = project_path / "export.tar.gz"
+
+        result = runner.invoke(
+            app, ["logs", "export", run_id, "--output", str(output_file)]
+        )
+        assert result.exit_code == 0
+        # Export file should be created
+        assert output_file.exists()
+
+    def test_logs_export_default_output(
+        self, runner: CliRunner, run_with_logs: tuple[str, Path]
+    ) -> None:
+        """Test logs export with default output location."""
+        run_id, project_path = run_with_logs
+
+        result = runner.invoke(app, ["logs", "export", run_id])
+        assert result.exit_code == 0
+        # Should mention the export path in output
+
+    def test_logs_export_json_format(
+        self, runner: CliRunner, run_with_logs: tuple[str, Path]
+    ) -> None:
+        """Test logs export with --format json."""
+        run_id, project_path = run_with_logs
+        output_file = project_path / "export.json"
+
+        result = runner.invoke(
+            app,
+            ["logs", "export", run_id, "--format", "json", "--output", str(output_file)],
+        )
+        assert result.exit_code == 0

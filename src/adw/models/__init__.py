@@ -11,8 +11,10 @@ This package contains all Pydantic models used throughout ADW:
 - index: IndexEntry
 - security: BlockedPattern, SecurityConfig, ToolCallLog
 - evidence: PlatformType, Confidence, EvidenceStrategy, PlatformDetectionResult,
-           APIRequest, APIResponse, APIEvidenceResult, APIEvidenceSummary,
-           EndpointConfig, AuthConfig, AuthType
+            APIRequest, APIResponse, APIEvidenceResult, APIEvidenceSummary,
+            EndpointConfig, AuthConfig, AuthType,
+            RouteConfig, ViewportConfig, ScreenshotResult, WebEvidenceSummary,
+            CommandConfig, CommandResult, CLIEvidenceSummary
 """
 
 from adw.models.command import LoadedCommand, ResolvedCommand
@@ -37,11 +39,18 @@ from adw.models.evidence import (
     APIResponse,
     AuthConfig,
     AuthType,
+    CLIEvidenceSummary,
+    CommandConfig,
+    CommandResult,
     Confidence,
     EndpointConfig,
     EvidenceStrategy,
     PlatformDetectionResult,
     PlatformType,
+    RouteConfig,
+    ScreenshotResult,
+    ViewportConfig,
+    WebEvidenceSummary,
 )
 from adw.models.hook import HookResult
 from adw.models.index import IndexEntry
@@ -87,15 +96,25 @@ __all__: list[str] = [
     "RunContext",
     "SessionContext",
     "StateSnapshot",
-    # Evidence models
+    # Evidence models - API
     "APIEvidenceResult",
     "APIEvidenceSummary",
     "APIRequest",
     "APIResponse",
     "AuthConfig",
     "AuthType",
-    "Confidence",
     "EndpointConfig",
+    # Evidence models - CLI
+    "CLIEvidenceSummary",
+    "CommandConfig",
+    "CommandResult",
+    # Evidence models - Web
+    "RouteConfig",
+    "ScreenshotResult",
+    "ViewportConfig",
+    "WebEvidenceSummary",
+    # Evidence models - Common
+    "Confidence",
     "EvidenceStrategy",
     "PlatformDetectionResult",
     "PlatformType",

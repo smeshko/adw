@@ -214,9 +214,7 @@ def _find_snapshot_by_sequence(run_id: str, sequence: int) -> dict[str, Any]:
     raise typer.Exit(1)
 
 
-def _find_phase_snapshot(
-    run_id: str, phase: str, boundary: str
-) -> dict[str, Any]:
+def _find_phase_snapshot(run_id: str, phase: str, boundary: str) -> dict[str, Any]:
     """Find snapshot at phase boundary.
 
     Args:
@@ -239,9 +237,7 @@ def _find_phase_snapshot(
         if snap["label"] == target_label:
             return snap
 
-    console.print(
-        f"[red]Error:[/] No {boundary} snapshot found for phase '{phase}'"
-    )
+    console.print(f"[red]Error:[/] No {boundary} snapshot found for phase '{phase}'")
     console.print(
         "[dim]Suggestion:[/] Use 'adw logs snapshots' to see available snapshots"
     )
@@ -655,3 +651,825 @@ def _display_tool_summary(
     if top_tools and not blocked_only:
         most_used = ", ".join(f"{name} ({count})" for name, count in top_tools)
         console.print(f"  Most used:    {most_used}")
+
+
+# =============================================================================
+# Story 7.4: Log Viewing Commands
+# =============================================================================
+
+
+def _load_log_entries(run_dir: Path) -> list[dict[str, Any]]:
+    """Load log entries from the structured log file.
+
+    Args:
+        run_dir: Path to the run directory.
+
+    Returns:
+        List of log entry dicts.
+    """
+    logs_file = run_dir / "logs" / "logs.jsonl"
+    if not logs_file.exists():
+        return []
+
+    entries: list[dict[str, Any]] = []
+    try:
+        with open(logs_file) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    entries.append(json.loads(line))
+    except (json.JSONDecodeError, OSError):
+        pass
+    return entries
+
+
+def _filter_log_entries(
+    entries: list[dict[str, Any]],
+    phase: str | None = None,
+    level: str | None = None,
+    category: str | None = None,
+) -> list[dict[str, Any]]:
+    """Filter log entries by phase, level, or category.
+
+    Args:
+        entries: List of log entry dicts.
+        phase: Filter by phase name.
+        level: Filter by log level (minimum level threshold).
+        category: Filter by category.
+
+    Returns:
+        Filtered list of entries.
+    """
+    # Level ordering for filtering
+    level_order = {"trace": 0, "debug": 1, "info": 2, "warn": 3, "error": 4, "fatal": 5}
+
+    filtered = entries
+
+    if phase:
+        filtered = [
+            e
+            for e in filtered
+            if e.get("context", {}).get("phase", "").lower() == phase.lower()
+        ]
+
+    if level:
+        min_level = level_order.get(level.lower(), 0)
+        filtered = [
+            e
+            for e in filtered
+            if level_order.get(e.get("level", "info").lower(), 0) >= min_level
+        ]
+
+    if category:
+        filtered = [
+            e for e in filtered if e.get("category", "").lower() == category.lower()
+        ]
+
+    return filtered
+
+
+def _display_log_entry(entry: dict[str, Any]) -> None:
+    """Display a single log entry with formatting.
+
+    Args:
+        entry: Log entry dict.
+    """
+    timestamp = entry.get("timestamp", "")
+    if "T" in timestamp:
+        # Parse ISO format, extract time
+        timestamp = timestamp.split("T")[1].split(".")[0]
+
+    level = entry.get("level", "info").upper()
+    category = entry.get("category", "")
+    message = entry.get("message", "")
+    context = entry.get("context", {})
+    phase = context.get("phase", "")
+
+    # Color coding by level
+    level_colors = {
+        "TRACE": "dim",
+        "DEBUG": "dim",
+        "INFO": "green",
+        "WARN": "yellow",
+        "ERROR": "red",
+        "FATAL": "red bold",
+    }
+    level_style = level_colors.get(level, "")
+
+    # Build display line
+    parts = [f"[dim]{timestamp}[/]", f"[{level_style}]{level:5}[/]"]
+    if category:
+        parts.append(f"[cyan][{category}][/]")
+    if phase:
+        parts.append(f"[magenta]({phase})[/]")
+    parts.append(message)
+
+    console.print(" ".join(parts))
+
+
+@logs_app.command(name="show")
+def logs_show(
+    run_id: str = typer.Argument(
+        ...,
+        help="Run ID to show logs for",
+    ),
+    tail: int = typer.Option(
+        50,
+        "--tail",
+        "-n",
+        help="Last N entries to show",
+    ),
+    phase: str | None = typer.Option(
+        None,
+        "--phase",
+        "-p",
+        help="Filter by phase",
+    ),
+    level: str | None = typer.Option(
+        None,
+        "--level",
+        "-l",
+        help="Minimum log level (trace, debug, info, warn, error, fatal)",
+    ),
+) -> None:
+    """Display log entries from a run.
+
+    Shows recent log entries with optional filtering by phase or level.
+
+    Examples:
+        adw logs show 01HQXK5P3Z7V8R2M4N6T9W1Y3C
+        adw logs show 01HQXK5P3Z7V8R2M4N6T9W1Y3C --tail 100
+        adw logs show 01HQXK5P3Z7V8R2M4N6T9W1Y3C --phase build
+        adw logs show 01HQXK5P3Z7V8R2M4N6T9W1Y3C --level error
+    """
+    run_dir = _get_run_dir(run_id)
+
+    # Load log entries
+    entries = _load_log_entries(run_dir)
+
+    if not entries:
+        console.print(f"[yellow]No log entries found for run:[/] {run_id}")
+        return
+
+    # Apply filters
+    entries = _filter_log_entries(entries, phase=phase, level=level)
+
+    if not entries:
+        console.print("[yellow]No entries match the filters[/]")
+        return
+
+    # Apply tail limit
+    if tail > 0 and len(entries) > tail:
+        entries = entries[-tail:]
+
+    # Display header
+    console.print(f"\n[bold]Logs for run {run_id}[/]")
+    console.print(f"[dim]Showing {len(entries)} entries[/]\n")
+
+    # Display entries
+    for entry in entries:
+        _display_log_entry(entry)
+
+
+@logs_app.command(name="follow")
+def logs_follow(
+    run_id: str = typer.Argument(
+        ...,
+        help="Run ID to follow logs for",
+    ),
+    phase: str | None = typer.Option(
+        None,
+        "--phase",
+        "-p",
+        help="Filter by phase",
+    ),
+    interval: float = typer.Option(
+        0.1,
+        "--interval",
+        "-i",
+        help="Polling interval in seconds (default: 0.1)",
+    ),
+) -> None:
+    """Stream new log entries in real-time.
+
+    Watches for new log entries and displays them as they arrive.
+    Press Ctrl+C to stop following.
+
+    Examples:
+        adw logs follow 01HQXK5P3Z7V8R2M4N6T9W1Y3C
+        adw logs follow 01HQXK5P3Z7V8R2M4N6T9W1Y3C --phase build
+        adw logs follow 01HQXK5P3Z7V8R2M4N6T9W1Y3C --interval 0.5
+    """
+    import time
+
+    run_dir = _get_run_dir(run_id)
+
+    # Check if run is active
+    context_file = run_dir / "context.json"
+    if context_file.exists():
+        try:
+            context = json.loads(context_file.read_text())
+            status = context.get("status", "")
+            if status not in ("running", ""):
+                console.print(f"[yellow]Run is not active (status: {status})[/]")
+                console.print("[dim]Showing existing logs instead...[/]\n")
+                # Fall back to show
+                entries = _load_log_entries(run_dir)
+                entries = _filter_log_entries(entries, phase=phase)
+                for entry in entries:
+                    _display_log_entry(entry)
+                return
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    logs_file = run_dir / "logs" / "logs.jsonl"
+    if not logs_file.exists():
+        console.print(f"[yellow]No log file found for run:[/] {run_id}")
+        return
+
+    console.print(f"[bold]Following logs for run {run_id}[/]")
+    console.print("[dim]Press Ctrl+C to stop[/]\n")
+
+    # Track file position
+    try:
+        with open(logs_file) as f:
+            # Go to end of file
+            f.seek(0, 2)
+
+            while True:
+                line = f.readline()
+                if line:
+                    line = line.strip()
+                    if line:
+                        try:
+                            entry = json.loads(line)
+                            # Apply phase filter
+                            if phase:
+                                entry_phase = entry.get("context", {}).get("phase", "")
+                                if entry_phase.lower() != phase.lower():
+                                    continue
+                            _display_log_entry(entry)
+                        except json.JSONDecodeError:
+                            pass
+                else:
+                    # Check if run is still active
+                    if context_file.exists():
+                        try:
+                            context = json.loads(context_file.read_text())
+                            status = context.get("status", "")
+                            if status not in ("running", ""):
+                                console.print(
+                                    f"\n[green]Run completed (status: {status})[/]"
+                                )
+                                break
+                        except (json.JSONDecodeError, OSError):
+                            pass
+                    time.sleep(interval)
+    except KeyboardInterrupt:
+        console.print("\n[dim]Stopped following logs[/]")
+
+
+@logs_app.command(name="search")
+def logs_search(
+    pattern: str = typer.Argument(
+        ...,
+        help="Pattern to search for (regex supported)",
+    ),
+    run_id: str | None = typer.Option(
+        None,
+        "--run",
+        "-r",
+        help="Search in specific run (otherwise searches all runs)",
+    ),
+    category: str | None = typer.Option(
+        None,
+        "--category",
+        "-c",
+        help="Filter by category",
+    ),
+) -> None:
+    """Search logs for matching entries.
+
+    Searches log entries for pattern matches across runs.
+
+    Examples:
+        adw logs search "error" --run 01HQXK5P3Z7V8R2M4N6T9W1Y3C
+        adw logs search "phase.*failed" --category error
+        adw logs search "timeout" --run 01HQXK5P3Z7V8R2M4N6T9W1Y3C
+    """
+    runs_dir = _get_runs_dir()
+
+    # Compile regex pattern
+    try:
+        regex = re.compile(pattern, re.IGNORECASE)
+    except re.error as e:
+        console.print(f"[red]Error:[/] Invalid regex pattern: {e}")
+        console.print("[dim]Examples of valid patterns:[/]")
+        console.print("  [cyan]error[/]              - literal text match")
+        console.print("  [cyan]error|warning[/]      - match either word")
+        console.print("  [cyan]phase.*failed[/]      - 'phase' followed by 'failed'")
+        console.print("  [cyan]\\[ERROR\\][/]          - literal brackets (escaped)")
+        raise typer.Exit(1) from None
+
+    # Determine which runs to search
+    if run_id:
+        run_dirs = [_get_run_dir(run_id)]
+    else:
+        if not runs_dir.exists():
+            console.print("[yellow]No runs found[/]")
+            return
+        run_dirs = [d for d in runs_dir.iterdir() if d.is_dir()]
+
+    matches: list[tuple[str, dict[str, Any]]] = []
+
+    for run_dir in run_dirs:
+        entries = _load_log_entries(run_dir)
+
+        # Apply category filter
+        if category:
+            entries = _filter_log_entries(entries, category=category)
+
+        # Search for pattern matches
+        for entry in entries:
+            message = entry.get("message", "")
+            if regex.search(message):
+                matches.append((run_dir.name, entry))
+
+    if not matches:
+        console.print("[yellow]No matches found[/]")
+        return
+
+    console.print(f"\n[bold]Found {len(matches)} match(es)[/]\n")
+
+    current_run = None
+    for run_name, entry in matches:
+        if run_name != current_run:
+            current_run = run_name
+            console.print(f"\n[bold blue]Run: {run_name}[/]")
+        _display_log_entry(entry)
+
+
+def _load_llm_files(
+    llm_dir: Path,
+) -> list[tuple[int, str, dict[str, Any], dict[str, Any] | None]]:
+    """Load LLM request/response pairs from directory.
+
+    Args:
+        llm_dir: Path to the llm/ directory.
+
+    Returns:
+        List of (sequence, phase, request, response) tuples.
+    """
+    if not llm_dir.exists():
+        return []
+
+    # Find all request files
+    request_files = sorted(llm_dir.glob("*_request.json"))
+    pairs: list[tuple[int, str, dict[str, Any], dict[str, Any] | None]] = []
+
+    for req_file in request_files:
+        # Parse filename: 001_plan_request.json -> seq=1, phase=plan
+        match = re.match(r"(\d+)_(.+)_request\.json", req_file.name)
+        if not match:
+            continue
+
+        seq = int(match.group(1))
+        phase = match.group(2)
+
+        # Load request
+        try:
+            request: dict[str, Any] = json.loads(req_file.read_text())
+        except (json.JSONDecodeError, OSError):
+            continue
+
+        # Try to load matching response
+        resp_file = llm_dir / f"{seq:03d}_{phase}_response.json"
+        response: dict[str, Any] | None = None
+        if resp_file.exists():
+            try:
+                response = json.loads(resp_file.read_text())
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        pairs.append((seq, phase, request, response))
+
+    return pairs
+
+
+def _replay_token_streams(
+    llm_dir: Path,
+    pairs: list[tuple[int, str, dict[str, Any], dict[str, Any] | None]],
+    phase_filter: str | None = None,
+) -> None:
+    """Replay token streams from JSONL files.
+
+    Args:
+        llm_dir: Path to the llm/ directory.
+        pairs: List of (sequence, phase, request, response) tuples.
+        phase_filter: Optional phase filter.
+    """
+    import time as time_module
+
+    console.print("\n[bold]Token Stream Replay[/]")
+    console.print("[dim]Press Ctrl+C to stop[/]\n")
+
+    try:
+        for seq, interaction_phase, _request, _response in pairs:
+            # Find stream file
+            stream_file = llm_dir / f"{seq:03d}_{interaction_phase}_stream.jsonl"
+            if not stream_file.exists():
+                msg = f"No stream file for interaction #{seq} ({interaction_phase})"
+                console.print(f"[dim]{msg}[/]")
+                continue
+
+            console.print(
+                f"\n[bold blue]═══ Replaying #{seq} ({interaction_phase}) ═══[/]\n"
+            )
+
+            # Read and replay tokens
+            prev_time = 0
+            try:
+                with open(stream_file) as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            event = json.loads(line)
+                            event_type = event.get("type", "")
+                            content = event.get("content", "")
+                            event_time = event.get("t", 0)
+
+                            # Simulate timing delay (scaled down for replay)
+                            delay = (event_time - prev_time) / 1000.0  # ms to seconds
+                            if delay > 0:
+                                time_module.sleep(min(delay * 0.1, 0.05))  # Cap at 50ms
+                            prev_time = event_time
+
+                            if event_type == "token" and content:
+                                console.print(content, end="")
+                        except json.JSONDecodeError:
+                            pass
+                console.print("\n")  # Newline after stream
+            except OSError as e:
+                console.print(f"[red]Error reading stream:[/] {e}")
+
+    except KeyboardInterrupt:
+        console.print("\n[dim]Stream replay stopped[/]")
+
+
+@logs_app.command(name="llm")
+def logs_llm(
+    run_id: str = typer.Argument(
+        ...,
+        help="Run ID to view LLM interactions for",
+    ),
+    phase: str | None = typer.Option(
+        None,
+        "--phase",
+        "-p",
+        help="Filter by phase",
+    ),
+    request_only: bool = typer.Option(
+        False,
+        "--request-only",
+        help="Show only requests (prompts)",
+    ),
+    response_only: bool = typer.Option(
+        False,
+        "--response-only",
+        help="Show only responses",
+    ),
+    tools: bool = typer.Option(
+        False,
+        "--tools",
+        help="Show only tool calls",
+    ),
+    stream: bool = typer.Option(
+        False,
+        "--stream",
+        help="Replay token stream",
+    ),
+) -> None:
+    """View LLM prompts and responses for a run.
+
+    Shows the LLM interactions captured during the run, including
+    prompts, responses, and tool calls.
+
+    Examples:
+        adw logs llm 01HQXK5P3Z7V8R2M4N6T9W1Y3C
+        adw logs llm 01HQXK5P3Z7V8R2M4N6T9W1Y3C --phase plan
+        adw logs llm 01HQXK5P3Z7V8R2M4N6T9W1Y3C --request-only
+        adw logs llm 01HQXK5P3Z7V8R2M4N6T9W1Y3C --tools
+    """
+    run_dir = _get_run_dir(run_id)
+    llm_dir = run_dir / "llm"
+
+    if not llm_dir.exists():
+        console.print(f"[yellow]No LLM captures found for run:[/] {run_id}")
+        return
+
+    # Load LLM pairs
+    pairs = _load_llm_files(llm_dir)
+
+    if not pairs:
+        console.print(f"[yellow]No LLM interactions found for run:[/] {run_id}")
+        return
+
+    # Filter by phase
+    if phase:
+        pairs = [
+            (s, p, req, resp) for s, p, req, resp in pairs if p.lower() == phase.lower()
+        ]
+
+    if not pairs:
+        console.print(f"[yellow]No LLM interactions found for phase:[/] {phase}")
+        return
+
+    # Handle stream mode - replay tokens from stream files
+    if stream:
+        _replay_token_streams(llm_dir, pairs, phase)
+        return
+
+    console.print(f"\n[bold]LLM Interactions for run {run_id}[/]")
+    console.print(f"[dim]Found {len(pairs)} interaction(s)[/]\n")
+
+    for seq, interaction_phase, request, response in pairs:
+        console.print(
+            f"\n[bold blue]═══ Interaction #{seq} ({interaction_phase}) ═══[/]"
+        )
+
+        # Show request
+        if not response_only:
+            prompt = request.get("prompt", "")
+            params = request.get("params", {})
+            timestamp = request.get("timestamp", "")
+
+            console.print(f"\n[bold green]Request[/] [dim]({timestamp})[/]")
+            if params:
+                model = params.get("model", "unknown")
+                console.print(f"[dim]Model: {model}[/]")
+
+            # Truncate long prompts for display
+            if len(prompt) > 500:
+                console.print(
+                    Panel(
+                        prompt[:500]
+                        + f"\n\n[dim]... (truncated, {len(prompt)} chars total)[/]",
+                        title="Prompt",
+                        border_style="green",
+                    )
+                )
+            else:
+                console.print(Panel(prompt, title="Prompt", border_style="green"))
+
+        # Show response
+        if not request_only and response:
+            content = response.get("content", "")
+            stats = response.get("stats", {})
+            tool_calls = response.get("tool_calls", [])
+            timestamp = response.get("timestamp", "")
+
+            console.print(f"\n[bold cyan]Response[/] [dim]({timestamp})[/]")
+
+            # Stats
+            if stats:
+                input_tokens = stats.get("input_tokens", 0)
+                output_tokens = stats.get("output_tokens", 0)
+                duration_ms = stats.get("duration_ms", 0)
+                console.print(
+                    f"[dim]Tokens: {input_tokens} in / {output_tokens} out | "
+                    f"Duration: {duration_ms}ms[/]"
+                )
+
+            # Tool calls (show when tool_calls exist, or when --tools flag is set)
+            if tool_calls:
+                console.print("\n[bold yellow]Tool Calls:[/]")
+                for tc in tool_calls:
+                    tc_id = tc.get("id", "")
+                    tc_name = tc.get("name", "")
+                    tc_input = tc.get("input", {})
+                    console.print(f"  [yellow]{tc_name}[/] [dim]({tc_id})[/]")
+                    if tc_input:
+                        input_str = json.dumps(tc_input, indent=2)
+                        if len(input_str) > 200:
+                            input_str = input_str[:200] + "\n..."
+                        console.print(f"    [dim]{input_str}[/]")
+
+            # Content (skip if tools-only mode)
+            if not tools:
+                if len(content) > 500:
+                    truncated = content[:500]
+                    suffix = f"\n\n[dim]... (truncated, {len(content)} total)[/]"
+                    console.print(
+                        Panel(
+                            truncated + suffix,
+                            title="Response Content",
+                            border_style="cyan",
+                        )
+                    )
+                else:
+                    console.print(
+                        Panel(content, title="Response Content", border_style="cyan")
+                    )
+
+
+@logs_app.command(name="export")
+def logs_export(
+    run_id: str = typer.Argument(
+        ...,
+        help="Run ID to export",
+    ),
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output file path (defaults to <run_id>_export.tar.gz)",
+    ),
+    format_type: str = typer.Option(
+        "tar",
+        "--format",
+        "-f",
+        help="Export format: tar (tar.gz), json, or html",
+    ),
+    limit: int = typer.Option(
+        0,
+        "--limit",
+        "-l",
+        help="Limit log entries in HTML export (0 = all)",
+    ),
+) -> None:
+    """Create a shareable bundle of logs and state.
+
+    Exports logs, LLM captures, snapshots, and context for debugging
+    and sharing.
+
+    Examples:
+        adw logs export 01HQXK5P3Z7V8R2M4N6T9W1Y3C
+        adw logs export 01HQXK5P3Z7V8R2M4N6T9W1Y3C --output debug.tar.gz
+        adw logs export 01HQXK5P3Z7V8R2M4N6T9W1Y3C --format json
+        adw logs export 01HQXK5P3Z7V8R2M4N6T9W1Y3C --format html --limit 100
+    """
+    import shutil
+    import tarfile
+    import tempfile
+
+    run_dir = _get_run_dir(run_id)
+
+    # Determine output path
+    if output:
+        output_path = Path(output)
+    else:
+        if format_type == "json":
+            output_path = Path(f"{run_id}_export.json")
+        elif format_type == "html":
+            output_path = Path(f"{run_id}_export.html")
+        else:
+            output_path = Path(f"{run_id}_export.tar.gz")
+
+    console.print(f"[bold]Exporting run {run_id}...[/]")
+
+    if format_type == "json":
+        # Export as single JSON file
+        export_data: dict[str, Any] = {
+            "run_id": run_id,
+            "exported_at": datetime.now().isoformat(),
+        }
+
+        # Load context
+        context_file = run_dir / "context.json"
+        if context_file.exists():
+            try:
+                export_data["context"] = json.loads(context_file.read_text())
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        # Load logs
+        export_data["logs"] = _load_log_entries(run_dir)
+
+        # Load LLM interactions
+        llm_pairs = _load_llm_files(run_dir / "llm")
+        export_data["llm_interactions"] = [
+            {"sequence": s, "phase": p, "request": req, "response": resp}
+            for s, p, req, resp in llm_pairs
+        ]
+
+        # Load snapshots
+        snapshots = _list_snapshots(run_id)
+        export_data["snapshots"] = []
+        for snap in snapshots:
+            content = _load_snapshot_content(snap["path"])
+            export_data["snapshots"].append(
+                {
+                    "sequence": snap["sequence"],
+                    "label": snap["label"],
+                    "content": content,
+                }
+            )
+
+        output_path.write_text(json.dumps(export_data, indent=2, default=str))
+
+    elif format_type == "html":
+        # Export as HTML report
+        html_content = _generate_html_report(run_id, run_dir, log_limit=limit)
+        output_path.write_text(html_content)
+
+    else:
+        # Export as tar.gz
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp) / run_id
+            shutil.copytree(run_dir, tmp_path)
+
+            with tarfile.open(output_path, "w:gz") as tar:
+                tar.add(tmp_path, arcname=run_id)
+
+    console.print(f"[green]✓[/] Exported to: {output_path}")
+    console.print(f"[dim]Size: {output_path.stat().st_size / 1024:.1f} KB[/]")
+
+
+def _generate_html_report(run_id: str, run_dir: Path, log_limit: int = 0) -> str:
+    """Generate HTML report for a run.
+
+    Args:
+        run_id: The run ID.
+        run_dir: Path to the run directory.
+        log_limit: Maximum log entries to include (0 = all).
+
+    Returns:
+        HTML content string.
+    """
+    # Load data
+    context: dict[str, Any] = {}
+    context_file = run_dir / "context.json"
+    if context_file.exists():
+        try:
+            context = json.loads(context_file.read_text())
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    logs = _load_log_entries(run_dir)
+    llm_pairs = _load_llm_files(run_dir / "llm")
+
+    # Apply limit if specified
+    display_logs = logs[-log_limit:] if log_limit > 0 else logs
+
+    # Build HTML
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>ADW Run Export: {run_id}</title>
+    <style>
+        body {{ font-family: system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }}
+        h1, h2, h3 {{ color: #333; }}
+        .section {{ margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }}
+        .log-entry {{ font-family: monospace; font-size: 13px; padding: 4px 0; }}
+        .log-entry.error {{ color: #d32f2f; }}
+        .log-entry.warn {{ color: #f57c00; }}
+        .log-entry.info {{ color: #388e3c; }}
+        .log-entry.debug {{ color: #757575; }}
+        pre {{ background: #f5f5f5; padding: 15px; overflow-x: auto; border-radius: 4px; }}
+        .stats {{ color: #666; font-size: 14px; }}
+    </style>
+</head>
+<body>
+    <h1>ADW Run Export</h1>
+    <p><strong>Run ID:</strong> {run_id}</p>
+    <p><strong>Feature:</strong> {context.get("feature_description", "N/A")}</p>
+    <p><strong>Status:</strong> {context.get("status", "N/A")}</p>
+    <p><strong>Exported:</strong> {datetime.now().isoformat()}</p>
+
+    <div class="section">
+        <h2>Logs ({len(display_logs)} of {len(logs)} entries)</h2>
+"""
+
+    for entry in display_logs:
+        level = entry.get("level", "info").lower()
+        message = entry.get("message", "")
+        timestamp = entry.get("timestamp", "")[:19]
+        html += f'        <div class="log-entry {level}">[{timestamp}] [{level.upper()}] {message}</div>\n'
+
+    html += """    </div>
+
+    <div class="section">
+        <h2>LLM Interactions</h2>
+"""
+
+    for seq, phase, request, response in llm_pairs:
+        prompt = request.get("prompt", "")[:500]
+        content = (response or {}).get("content", "")[:500]
+        stats = (response or {}).get("stats", {})
+
+        html += f"""
+        <h3>#{seq} - {phase}</h3>
+        <p class="stats">Tokens: {stats.get("input_tokens", 0)} in / {stats.get("output_tokens", 0)} out</p>
+        <h4>Prompt</h4>
+        <pre>{prompt}{"..." if len(request.get("prompt", "")) > 500 else ""}</pre>
+        <h4>Response</h4>
+        <pre>{content}{"..." if len((response or {}).get("content", "")) > 500 else ""}</pre>
+"""
+
+    html += """    </div>
+</body>
+</html>
+"""
+    return html

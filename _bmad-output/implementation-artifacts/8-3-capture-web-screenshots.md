@@ -438,9 +438,13 @@ Key patterns and rules from project context:
 
 ### Agent Model Used
 
+claude-opus-4-5-20251101
+
 ### Debug Log References
 
 ### Completion Notes List
+
+- Task 1: Created web screenshot models (ViewportConfig, RouteConfig, ScreenshotResult, WebEvidenceSummary) in models/evidence.py with full Pydantic validation, field validators for path conversion, and proper model configuration. Added comprehensive tests for all new models.
 
 ### File List
 
