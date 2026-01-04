@@ -8,6 +8,14 @@ This package contains modules for:
 from pathlib import Path
 
 from adw.evidence.detector import PlatformDetector
+from adw.evidence.web_capture import (
+    DEFAULT_VIEWPORTS,
+    WebCaptureStrategy,
+    check_playwright_available,
+    create_evidence_directory,
+    generate_evidence_metadata,
+    load_routes_from_config,
+)
 from adw.logging import LogCategory, get_logger
 from adw.models.evidence import (
     EvidenceStrategy,
@@ -83,7 +91,15 @@ def get_evidence_strategy(platform: PlatformType) -> EvidenceStrategy:
 
 
 __all__ = [
+    # Platform detection
     "PlatformDetector",
     "detect_platform",
     "get_evidence_strategy",
+    # Web capture
+    "DEFAULT_VIEWPORTS",
+    "WebCaptureStrategy",
+    "check_playwright_available",
+    "create_evidence_directory",
+    "generate_evidence_metadata",
+    "load_routes_from_config",
 ]

@@ -8,6 +8,7 @@ models for capturing browser-based evidence.
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -159,7 +160,7 @@ class RouteConfig(BaseModel):
 
     name: str = Field(..., description="Human-readable name for the route")
     path: str = Field(..., description="URL path relative to base_url")
-    wait_for: str = Field(
+    wait_for: Literal["load", "domcontentloaded", "networkidle"] = Field(
         default="networkidle",
         description="Page load strategy: networkidle, load, or domcontentloaded",
     )
@@ -214,7 +215,9 @@ class ScreenshotResult(BaseModel):
         ..., description='Viewport dimensions as string (e.g., "1920x1080")'
     )
     success: bool = Field(..., description="Whether the capture was successful")
-    error: str | None = Field(default=None, description="Error message if capture failed")
+    error: str | None = Field(
+        default=None, description="Error message if capture failed"
+    )
     captured_at: datetime = Field(
         default_factory=datetime.now,
         description="Timestamp when screenshot was captured",

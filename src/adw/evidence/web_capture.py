@@ -6,6 +6,7 @@ Playwright is not installed.
 """
 
 from pathlib import Path
+from typing import Any
 
 import yaml
 from pydantic import ValidationError
@@ -15,31 +16,32 @@ from adw.models.evidence import (
     RouteConfig,
     ScreenshotResult,
     ViewportConfig,
-    WebEvidenceSummary,
 )
 
 # Try to import Playwright - it's an optional dependency
 try:
-    from playwright.sync_api import (
-        TimeoutError as PlaywrightTimeout,
-    )
-    from playwright.sync_api import (
-        sync_playwright,
-    )
+    from playwright.sync_api import TimeoutError as PlaywrightTimeout
+    from playwright.sync_api import sync_playwright
 
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
-    PlaywrightTimeout = None  # type: ignore[misc, assignment]
-    sync_playwright = None  # type: ignore[misc, assignment]
+    PlaywrightTimeout = type(None)  # Sentinel for unavailable
+    sync_playwright = None
 
 
-# Default viewports for web evidence capture
-DEFAULT_VIEWPORTS = [
+DEFAULT_VIEWPORTS: list[ViewportConfig] = [
     ViewportConfig(name="desktop", width=1920, height=1080),
     ViewportConfig(name="tablet", width=768, height=1024),
     ViewportConfig(name="mobile", width=375, height=667),
 ]
+"""Default viewport configurations for web evidence capture.
+
+Provides standard screen sizes for responsive testing:
+- desktop: 1920x1080 (Full HD)
+- tablet: 768x1024 (iPad portrait)
+- mobile: 375x667 (iPhone SE)
+"""
 
 # Config file path
 CONFIG_FILE = ".adw/project.yaml"
@@ -179,7 +181,7 @@ def create_evidence_directory(project_root: Path, run_id: str) -> Path:
 def generate_evidence_metadata(
     results: list[ScreenshotResult],
     base_url: str,
-) -> dict:
+) -> dict[str, Any]:
     """Generate metadata for captured screenshots.
 
     Creates a dictionary suitable for serialization to JSON with summary
@@ -294,7 +296,10 @@ class WebCaptureStrategy:
         """
         self.output_dir = output_dir
         self.base_url = base_url
-        self.viewports = viewports if viewports is not None else DEFAULT_VIEWPORTS.copy()
+        if viewports is not None:
+            self.viewports = viewports
+        else:
+            self.viewports = DEFAULT_VIEWPORTS.copy()
         self.headless = headless
         self._logger = get_logger()
 
@@ -350,18 +355,6 @@ class WebCaptureStrategy:
             Human-readable reason, or None if available.
         """
         return self._unavailable_reason
-
-    def _create_browser_context(self, playwright_instance: "sync_playwright"):
-        """Create a browser context with the specified settings.
-
-        Args:
-            playwright_instance: The Playwright instance to use
-
-        Returns:
-            A tuple of (browser, context) that must be closed after use.
-        """
-        browser = playwright_instance.chromium.launch(headless=self.headless)
-        return browser
 
     def _log_availability_warning(self) -> None:
         """Log a warning that Playwright is not available."""
@@ -496,8 +489,20 @@ class WebCaptureStrategy:
                         f"(timeout: {route.timeout_ms}ms)"
                     )
                     self._logger.warn(LogCategory.STATE, error_msg)
+
+                    # Capture error screenshot of current state
+                    error_path = self._generate_error_screenshot_path(route, viewport)
+                    try:
+                        page.screenshot(path=str(error_path), full_page=True)
+                        self._logger.debug(
+                            LogCategory.STATE,
+                            f"Error screenshot captured: {error_path}",
+                        )
+                    except Exception:
+                        pass  # Best effort - don't fail if error screenshot fails
+
                     return ScreenshotResult(
-                        path=screenshot_path,
+                        path=error_path,
                         route=route.name,
                         viewport=viewport_str,
                         success=False,
@@ -507,8 +512,20 @@ class WebCaptureStrategy:
                 except Exception as e:
                     error_msg = f"Navigation failed: {e!s}"
                     self._logger.warn(LogCategory.STATE, error_msg)
+
+                    # Capture error screenshot of current state
+                    error_path = self._generate_error_screenshot_path(route, viewport)
+                    try:
+                        page.screenshot(path=str(error_path), full_page=True)
+                        self._logger.debug(
+                            LogCategory.STATE,
+                            f"Error screenshot captured: {error_path}",
+                        )
+                    except Exception:
+                        pass  # Best effort - don't fail if error screenshot fails
+
                     return ScreenshotResult(
-                        path=screenshot_path,
+                        path=error_path,
                         route=route.name,
                         viewport=viewport_str,
                         success=False,
@@ -529,9 +546,7 @@ class WebCaptureStrategy:
                 error=error_msg,
             )
 
-    def capture_route_all_viewports(
-        self, route: RouteConfig
-    ) -> list[ScreenshotResult]:
+    def capture_route_all_viewports(self, route: RouteConfig) -> list[ScreenshotResult]:
         """Capture screenshots of a route at all configured viewports.
 
         This method captures the same route at each viewport configuration,
