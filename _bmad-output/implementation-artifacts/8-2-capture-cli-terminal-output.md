@@ -57,8 +57,8 @@ so that command execution can be verified.
 - [x] Append stdout and stderr with clear section markers
 
 ### Task 4: Implement Config-Based Command Loading
-- [ ] Read `evidence.commands` from `.adw/project.yaml`
-- [ ] Support command configuration format:
+- [x] Read `evidence.commands` from `.adw/project.yaml`
+- [x] Support command configuration format:
   ```yaml
   evidence:
     commands:
@@ -69,8 +69,8 @@ so that command execution can be verified.
         cmd: "adw --help"
         timeout: 30
   ```
-- [ ] Validate command configuration
-- [ ] Handle missing config gracefully (skip with warning)
+- [x] Validate command configuration
+- [x] Handle missing config gracefully (skip with warning)
 
 ### Task 5: Implement Summary Generation
 - [ ] Track passed/failed command counts
@@ -408,6 +408,7 @@ claude-opus-4-5-20251101
 - **Task 1**: Created CLI evidence models (CommandConfig, CommandResult, CLIEvidenceSummary) in models/evidence.py. Models use Pydantic with full type annotations, UTC timestamps, and comprehensive validation. Added 18 unit tests covering all model functionality. All tests pass. Coverage: 94% for evidence.py.
 - **Task 2**: Implemented CLICaptureStrategy in evidence/cli_capture.py. Uses subprocess.run() with capture_output=True to capture stdout, stderr, exit code, and duration. Handles timeout gracefully with exit_code=-1. Added 11 unit tests with mocked subprocess. Coverage: 100% for cli_capture.py.
 - **Task 3**: Implemented EvidenceFileWriter in evidence/file_writer.py. Creates evidence directory structure and writes command results to human-readable .txt files with headers containing command, timestamp, duration, exit code, and status. Added 9 unit tests. Coverage: 100% for file_writer.py.
+- **Task 4**: Implemented load_evidence_commands() in evidence/config_loader.py. Reads evidence.commands from .adw/project.yaml, validates command configurations, and handles missing config gracefully. Added 8 unit tests. Coverage: 86% for config_loader.py.
 
 ### File List
 
@@ -415,7 +416,9 @@ claude-opus-4-5-20251101
 - src/adw/models/__init__.py (modified - export new models)
 - src/adw/evidence/cli_capture.py (new - CLICaptureStrategy class)
 - src/adw/evidence/file_writer.py (new - EvidenceFileWriter class)
+- src/adw/evidence/config_loader.py (new - load_evidence_commands function)
 - tests/unit/evidence/test_cli_models.py (new - 18 tests for CLI models)
 - tests/unit/evidence/test_cli_capture.py (new - 11 tests for CLI capture)
 - tests/unit/evidence/test_file_writer.py (new - 9 tests for file writer)
+- tests/unit/evidence/test_config_loader.py (new - 8 tests for config loader)
 
