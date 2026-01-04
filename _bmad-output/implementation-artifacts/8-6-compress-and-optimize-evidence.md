@@ -63,8 +63,8 @@ so that storage and transfer are efficient.
 - [x] Emit warning if over configurable threshold
 
 ### Task 6: Implement Config-Based Settings
-- [ ] Read optimization config from `.adw/project.yaml`
-- [ ] Support configuration format:
+- [x] Read optimization config from `.adw/project.yaml`
+- [x] Support configuration format:
   ```yaml
   evidence:
     optimization:
@@ -75,7 +75,7 @@ so that storage and transfer are efficient.
       compress_json: true
       warn_total_size_mb: 10
   ```
-- [ ] Apply sensible defaults when not configured
+- [x] Apply sensible defaults when not configured
 
 ### Task 7: Integrate with Verify Phase
 - [ ] Run optimization after manifest generation

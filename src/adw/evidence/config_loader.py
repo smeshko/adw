@@ -11,7 +11,13 @@ import yaml
 from pydantic import BaseModel, Field, ValidationError
 
 from adw.logging import LogCategory, get_logger
-from adw.models.evidence import AuthConfig, AuthType, CommandConfig, EndpointConfig
+from adw.models.evidence import (
+    AuthConfig,
+    AuthType,
+    CommandConfig,
+    EndpointConfig,
+    OptimizationConfig,
+)
 
 # =============================================================================
 # API Evidence Configuration
@@ -251,3 +257,76 @@ def load_evidence_commands(project_root: Path) -> list[CommandConfig]:
             continue
 
     return commands
+
+
+# =============================================================================
+# Optimization Configuration
+# =============================================================================
+
+
+def load_optimization_config(project_root: Path) -> OptimizationConfig:
+    """Load optimization configuration from project config file.
+
+    Reads the .adw/project.yaml file and extracts the 'evidence.optimization'
+    section, parsing it into an OptimizationConfig model. Returns default
+    configuration if no config file exists or optimization section is missing.
+
+    Args:
+        project_root: Path to the project root directory
+
+    Returns:
+        OptimizationConfig (defaults if not configured)
+
+    Example:
+        >>> config = load_optimization_config(Path("/my/project"))
+        >>> print(f"Max image size: {config.max_image_size_kb} KB")
+    """
+    logger = get_logger()
+    config_path = project_root / ".adw" / "project.yaml"
+
+    if not config_path.exists():
+        logger.debug(
+            LogCategory.STATE,
+            "No config file found, using default optimization settings",
+        )
+        return OptimizationConfig()
+
+    try:
+        content = config_path.read_text()
+        data = yaml.safe_load(content)
+
+        if not isinstance(data, dict):
+            return OptimizationConfig()
+
+        evidence = data.get("evidence")
+        if not isinstance(evidence, dict):
+            return OptimizationConfig()
+
+        optimization_data = evidence.get("optimization")
+        if not isinstance(optimization_data, dict):
+            return OptimizationConfig()
+
+        # Parse with defaults for missing values
+        return OptimizationConfig(
+            enabled=optimization_data.get("enabled", True),
+            max_image_size_kb=optimization_data.get("max_image_size_kb", 500),
+            max_text_size_kb=optimization_data.get("max_text_size_kb", 100),
+            image_quality=optimization_data.get("image_quality", 80),
+            compress_json=optimization_data.get("compress_json", True),
+            keep_manifest_pretty=optimization_data.get("keep_manifest_pretty", True),
+            warn_total_size_mb=optimization_data.get("warn_total_size_mb", 10),
+        )
+
+    except yaml.YAMLError as e:
+        logger.warn(
+            LogCategory.STATE,
+            f"Failed to parse config file for optimization settings: {e}",
+        )
+        return OptimizationConfig()
+
+    except OSError as e:
+        logger.warn(
+            LogCategory.STATE,
+            f"Failed to read config file for optimization settings: {e}",
+        )
+        return OptimizationConfig()
