@@ -536,9 +536,14 @@ def navigate_android_deeplink(deeplink: str) -> bool:
     try:
         result = subprocess.run(
             [
-                "adb", "shell", "am", "start",
-                "-a", "android.intent.action.VIEW",
-                "-d", deeplink,
+                "adb",
+                "shell",
+                "am",
+                "start",
+                "-a",
+                "android.intent.action.VIEW",
+                "-d",
+                deeplink,
             ],
             capture_output=True,
             text=True,
@@ -618,12 +623,14 @@ def load_mobile_screens_config(project_root: Path) -> list[MobileScreenConfig]:
             if not name:
                 continue
 
-            configs.append(MobileScreenConfig(
-                name=name,
-                deeplink=screen.get("deeplink"),
-                capture_delay_ms=screen.get("capture_delay_ms", 500),
-                navigation_steps=screen.get("navigation_steps", []),
-            ))
+            configs.append(
+                MobileScreenConfig(
+                    name=name,
+                    deeplink=screen.get("deeplink"),
+                    capture_delay_ms=screen.get("capture_delay_ms", 500),
+                    navigation_steps=screen.get("navigation_steps", []),
+                )
+            )
 
         logger.info(
             LogCategory.STATE,

@@ -67,6 +67,16 @@ python_version = "3.13"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
+module = [
+    "httpx",
+    "httpx.*",
+    "playwright",
+    "playwright.*",
+]
+ignore_missing_imports = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/adw"]

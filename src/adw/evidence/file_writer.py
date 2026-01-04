@@ -38,9 +38,7 @@ class EvidenceFileWriter:
         self.evidence_dir = evidence_dir
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
 
-    def write_command_result(
-        self, name: str, result: CommandResult
-    ) -> Path:
+    def write_command_result(self, name: str, result: CommandResult) -> Path:
         """Write a command result to an evidence file.
 
         Creates a file named <name>.txt with the command execution

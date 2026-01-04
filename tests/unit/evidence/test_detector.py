@@ -297,7 +297,7 @@ class TestBackendMarkerDetection:
     def test_detect_vapor_from_package_swift(self, tmp_path: Path) -> None:
         """Test detecting BACKEND from Vapor in Package.swift."""
         package_swift = tmp_path / "Package.swift"
-        package_swift.write_text('''
+        package_swift.write_text("""
 // swift-tools-version:5.9
 import PackageDescription
 
@@ -310,7 +310,7 @@ let package = Package(
         .executableTarget(name: "App", dependencies: ["Vapor"])
     ]
 )
-''')
+""")
         detector = PlatformDetector(tmp_path)
         result = detector.detect()
 
@@ -320,11 +320,11 @@ let package = Package(
     def test_detect_vapor_with_quoted_name(self, tmp_path: Path) -> None:
         """Test detecting BACKEND from Vapor with quoted dependency name."""
         package_swift = tmp_path / "Package.swift"
-        package_swift.write_text('''
+        package_swift.write_text("""
 let package = Package(
     dependencies: [.package(name: "vapor", url: "...")]
 )
-''')
+""")
         detector = PlatformDetector(tmp_path)
         result = detector.detect()
 
@@ -394,7 +394,7 @@ class TestMobileMarkerDetection:
         # Create Android project structure
         app_dir = tmp_path / "app" / "src" / "main"
         app_dir.mkdir(parents=True)
-        (app_dir / "AndroidManifest.xml").write_text('<manifest />')
+        (app_dir / "AndroidManifest.xml").write_text("<manifest />")
         (tmp_path / "build.gradle").write_text("plugins { id 'android' }")
 
         detector = PlatformDetector(tmp_path)
@@ -405,7 +405,7 @@ class TestMobileMarkerDetection:
 
     def test_detect_android_with_gradle_kts(self, tmp_path: Path) -> None:
         """Test detecting MOBILE with build.gradle.kts."""
-        (tmp_path / "AndroidManifest.xml").write_text('<manifest />')
+        (tmp_path / "AndroidManifest.xml").write_text("<manifest />")
         (tmp_path / "build.gradle.kts").write_text("plugins { kotlin('android') }")
 
         detector = PlatformDetector(tmp_path)
@@ -417,13 +417,13 @@ class TestMobileMarkerDetection:
     def test_detect_flutter_from_pubspec(self, tmp_path: Path) -> None:
         """Test detecting MOBILE from pubspec.yaml with flutter SDK."""
         pubspec = tmp_path / "pubspec.yaml"
-        pubspec.write_text('''
+        pubspec.write_text("""
 name: my_flutter_app
 dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
-''')
+""")
         detector = PlatformDetector(tmp_path)
         result = detector.detect()
 
@@ -433,11 +433,11 @@ dependencies:
     def test_pure_dart_pubspec_not_detected_as_mobile(self, tmp_path: Path) -> None:
         """Test that pubspec.yaml without flutter SDK is not detected as MOBILE."""
         pubspec = tmp_path / "pubspec.yaml"
-        pubspec.write_text('''
+        pubspec.write_text("""
 name: my_dart_package
 dependencies:
   http: ^0.13.0
-''')
+""")
         detector = PlatformDetector(tmp_path)
         result = detector.detect()
 
@@ -447,7 +447,7 @@ dependencies:
 
     def test_android_requires_both_manifest_and_gradle(self, tmp_path: Path) -> None:
         """Test that AndroidManifest.xml alone is not enough for MOBILE detection."""
-        (tmp_path / "AndroidManifest.xml").write_text('<manifest />')
+        (tmp_path / "AndroidManifest.xml").write_text("<manifest />")
         # No build.gradle
 
         detector = PlatformDetector(tmp_path)

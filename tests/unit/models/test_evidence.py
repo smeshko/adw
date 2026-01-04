@@ -446,9 +446,7 @@ class TestAPIEvidenceResult:
                 url="http://localhost:8000/users",
                 body={"name": "test"},
             ),
-            response=APIResponse(
-                status_code=201, body={"id": 1}, duration_seconds=0.1
-            ),
+            response=APIResponse(status_code=201, body={"id": 1}, duration_seconds=0.1),
             success=True,
             expected_status=201,
             status_match=True,

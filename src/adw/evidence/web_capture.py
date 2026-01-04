@@ -5,6 +5,9 @@ screenshots using Playwright. It supports graceful degradation when
 Playwright is not installed.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -18,16 +21,20 @@ from adw.models.evidence import (
     ViewportConfig,
 )
 
-# Try to import Playwright - it's an optional dependency
+# Playwright is an optional dependency
+PLAYWRIGHT_AVAILABLE = False
+PlaywrightTimeout: type[Exception] = TimeoutError
+sync_playwright: Callable[[], Any] | None = None
+
 try:
-    from playwright.sync_api import TimeoutError as PlaywrightTimeout
-    from playwright.sync_api import sync_playwright
+    from playwright.sync_api import TimeoutError as PlaywrightTimeout  # noqa: F811
+    from playwright.sync_api import (
+        sync_playwright,  # type: ignore[assignment]  # noqa: F811
+    )
 
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
-    PLAYWRIGHT_AVAILABLE = False
-    PlaywrightTimeout = TimeoutError  # type: ignore[misc,assignment]
-    sync_playwright = None  # type: ignore[assignment]
+    pass
 
 
 DEFAULT_VIEWPORTS: list[ViewportConfig] = [
@@ -239,7 +246,7 @@ def check_playwright_available() -> bool:
         ...     # Safe to use Playwright
         ...     pass
     """
-    if not PLAYWRIGHT_AVAILABLE:
+    if not PLAYWRIGHT_AVAILABLE or sync_playwright is None:
         return False
 
     try:
@@ -441,7 +448,7 @@ class WebCaptureStrategy:
         full_url = self._build_full_url(route)
 
         # If Playwright is not available, return failure result
-        if not self.is_available:
+        if not self.is_available or sync_playwright is None:
             self._log_availability_warning()
             return ScreenshotResult(
                 path=screenshot_path,

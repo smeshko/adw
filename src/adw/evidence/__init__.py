@@ -9,8 +9,8 @@ This package contains modules for:
 """
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from adw.evidence.api_capture import APICaptureStrategy, generate_summary
 from adw.evidence.cli_capture import CLICaptureStrategy
 from adw.evidence.cli_gatherer import CLIEvidenceGatherer
 from adw.evidence.config_loader import (
@@ -19,8 +19,24 @@ from adw.evidence.config_loader import (
     load_evidence_config,
 )
 from adw.evidence.detector import PlatformDetector
-from adw.evidence.evidence_writer import APIEvidenceWriter
 from adw.evidence.file_writer import EvidenceFileWriter
+
+# API capture requires httpx (optional dependency)
+try:
+    from adw.evidence.api_capture import (
+        HTTPX_AVAILABLE,
+        APICaptureStrategy,
+        generate_summary,
+    )
+    from adw.evidence.evidence_writer import APIEvidenceWriter
+except ImportError:
+    HTTPX_AVAILABLE = False
+    APICaptureStrategy = None  # type: ignore[assignment,misc]
+    generate_summary = None  # type: ignore[assignment]
+    APIEvidenceWriter = None  # type: ignore[assignment,misc]
+    if TYPE_CHECKING:
+        from adw.evidence.api_capture import APICaptureStrategy, generate_summary
+        from adw.evidence.evidence_writer import APIEvidenceWriter
 from adw.evidence.mobile_capture import (
     capture_android_screenshot,
     capture_configured_screens,
@@ -135,7 +151,8 @@ __all__ = [
     "PlatformDetector",
     "detect_platform",
     "get_evidence_strategy",
-    # API evidence gathering
+    # API evidence gathering (requires httpx)
+    "HTTPX_AVAILABLE",
     "APIEvidenceWriter",
     "APICaptureStrategy",
     "EvidenceConfig",

@@ -3,7 +3,6 @@
 Tests for special character escaping in feature descriptions.
 """
 
-
 from adw.commands.template import escape_feature_description
 
 
@@ -14,7 +13,7 @@ class TestEscapeFeatureDescription:
         """Test that double quotes are escaped."""
         result = escape_feature_description('Add "quoted" text')
         assert '\\"' in result
-        assert 'quoted' in result
+        assert "quoted" in result
 
     def test_escapes_backslashes(self) -> None:
         """Test that backslashes are doubled."""
@@ -58,7 +57,7 @@ class TestEscapeFeatureDescription:
         result = escape_feature_description('Add "\\ path"')
         # Should be: Add \"\\\\ path\" (escaped quote, escaped backslash)
         assert '\\\\"' not in result  # No triple backslash before quote
-        assert '\\\\ ' in result  # Double backslash for the actual backslash
+        assert "\\\\ " in result  # Double backslash for the actual backslash
 
     def test_preserves_unicode(self) -> None:
         """Test that unicode characters are preserved."""

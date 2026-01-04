@@ -170,9 +170,7 @@ class TestAPIEvidenceWriter:
             result = APIEvidenceResult(
                 endpoint_name="api/users/create",  # Contains slashes
                 request=APIRequest(method="GET", url="http://localhost/test"),
-                response=APIResponse(
-                    status_code=200, body={}, duration_seconds=0.01
-                ),
+                response=APIResponse(status_code=200, body={}, duration_seconds=0.01),
                 success=True,
             )
 

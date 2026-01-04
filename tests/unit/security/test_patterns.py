@@ -4,7 +4,6 @@ Verifies PatternMatcher class correctly identifies dangerous commands
 and file access patterns with context-aware matching.
 """
 
-
 from adw.models.security import BlockedPattern
 
 

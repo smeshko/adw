@@ -258,9 +258,7 @@ class APIResponse(BaseModel):
     """
 
     status_code: int = Field(..., description="HTTP status code")
-    headers: dict[str, str] | None = Field(
-        default=None, description="Response headers"
-    )
+    headers: dict[str, str] | None = Field(default=None, description="Response headers")
     body: str | dict[str, Any] = Field(..., description="Response body")
     duration_seconds: float = Field(..., description="Request duration in seconds")
 

@@ -149,9 +149,7 @@ class TestAbortIntegration:
         snapshot_manager = SnapshotManager(runs_dir)
         artifact_manager = ArtifactManager(runs_dir)
         run_directory_manager = RunDirectoryManager(runs_dir.parent.parent)
-        interruption_handler = InterruptionHandler(
-            context_manager, snapshot_manager
-        )
+        interruption_handler = InterruptionHandler(context_manager, snapshot_manager)
 
         orchestrator = Orchestrator(
             runs_dir=runs_dir,

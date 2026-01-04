@@ -164,7 +164,8 @@ class ClaudeCodeExecutor:
             str(claude_path),
             "--print",
             "--verbose",
-            "--output-format", "stream-json",  # Structured output with tokens
+            "--output-format",
+            "stream-json",  # Structured output with tokens
             "--dangerously-skip-permissions",  # Allow automated file writes
             prompt,
         ]

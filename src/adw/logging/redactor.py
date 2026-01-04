@@ -128,13 +128,9 @@ class Redactor:
             env_patterns: List of patterns for sensitive env var names.
                 Defaults to SENSITIVE_ENV_PATTERNS if not provided.
         """
-        self._patterns: list[re.Pattern[str]] = [
-            re.compile(p) for p in patterns
-        ]
+        self._patterns: list[re.Pattern[str]] = [re.compile(p) for p in patterns]
         env_pats = env_patterns if env_patterns is not None else SENSITIVE_ENV_PATTERNS
-        self._env_patterns: list[re.Pattern[str]] = [
-            re.compile(p) for p in env_pats
-        ]
+        self._env_patterns: list[re.Pattern[str]] = [re.compile(p) for p in env_pats]
 
     @property
     def patterns(self) -> list[re.Pattern[str]]:

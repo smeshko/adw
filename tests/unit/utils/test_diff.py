@@ -1,6 +1,5 @@
 """Unit tests for diff utility."""
 
-
 from adw.utils.diff import DiffResult, json_diff
 
 

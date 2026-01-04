@@ -193,7 +193,10 @@ class TestPatternCategories:
         from adw.security.defaults import DEFAULT_FILE_PATTERNS, DEFAULT_SHELL_PATTERNS
 
         valid_categories = {
-            "destructive", "permission", "git_dangerous", "secret_access"
+            "destructive",
+            "permission",
+            "git_dangerous",
+            "secret_access",
         }
         all_patterns = DEFAULT_SHELL_PATTERNS + DEFAULT_FILE_PATTERNS
 

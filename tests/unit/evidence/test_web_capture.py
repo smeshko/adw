@@ -305,9 +305,9 @@ class TestMultiViewportCapture:
             filename = result.path.name
             assert "dashboard" in filename
             # Should have viewport name in filename (desktop, tablet, or mobile)
-            assert any(
-                vp.name in filename for vp in strategy.viewports
-            ), f"Filename {filename} should contain viewport name"
+            assert any(vp.name in filename for vp in strategy.viewports), (
+                f"Filename {filename} should contain viewport name"
+            )
 
 
 class TestErrorScreenshotCapture:

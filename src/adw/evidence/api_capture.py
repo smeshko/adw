@@ -5,15 +5,25 @@ HTTP requests to configured endpoints and captures request/response
 pairs for evidence gathering during the Verify phase.
 """
 
+from __future__ import annotations
+
 import base64
 import json
 import os
 from datetime import UTC, datetime
-from typing import Any
-
-import httpx
+from typing import TYPE_CHECKING, Any
 
 from adw.logging import LogCategory, get_logger
+
+# httpx is an optional dependency
+try:
+    import httpx
+
+    HTTPX_AVAILABLE = True
+except ImportError:
+    HTTPX_AVAILABLE = False
+    if TYPE_CHECKING:
+        import httpx
 from adw.models.evidence import (
     APIEvidenceResult,
     APIEvidenceSummary,
@@ -56,7 +66,15 @@ class APICaptureStrategy:
         Args:
             base_url: Base URL for all API endpoints
             auth: Optional authentication configuration
+
+        Raises:
+            ImportError: If httpx is not installed
         """
+        if not HTTPX_AVAILABLE:
+            raise ImportError(
+                "httpx is required for API evidence capture. "
+                "Install it with: pip install httpx"
+            )
         # Normalize base URL (remove trailing slash)
         self.base_url = base_url.rstrip("/")
         self.auth = auth
