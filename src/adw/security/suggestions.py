@@ -18,8 +18,7 @@ from adw.security.patterns import PatternMatch
 # =============================================================================
 
 OVERRIDE_INSTRUCTION = (
-    "To override (use with caution):\n"
-    "  adw run --allow-dangerous \"your feature\""
+    'To override (use with caution):\n  adw run --allow-dangerous "your feature"'
 )
 
 
@@ -66,7 +65,7 @@ CATEGORY_EXAMPLES: dict[str, list[str]] = {
     ],
     "secret_access": [
         "cat .env (read environment secrets)",
-        "echo \"SECRET=x\" > .env (write to .env file)",
+        'echo "SECRET=x" > .env (write to .env file)',
         "cat credentials.json (read credentials)",
         "read private-key.pem (access private key)",
     ],

@@ -5,11 +5,12 @@ This package contains modules for:
 - Evidence capture strategies (terminal output, screenshots, API responses)
 - CLI evidence gathering (command execution and output capture)
 - Web evidence gathering (browser screenshots)
+- Mobile screenshot capture (iOS Simulator, Android Emulator, Flutter)
 """
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from adw.evidence.api_capture import APICaptureStrategy, generate_summary
 from adw.evidence.cli_capture import CLICaptureStrategy
 from adw.evidence.cli_gatherer import CLIEvidenceGatherer
 from adw.evidence.config_loader import (
@@ -18,8 +19,39 @@ from adw.evidence.config_loader import (
     load_evidence_config,
 )
 from adw.evidence.detector import PlatformDetector
-from adw.evidence.evidence_writer import APIEvidenceWriter
 from adw.evidence.file_writer import EvidenceFileWriter
+
+# API capture requires httpx (optional dependency)
+try:
+    from adw.evidence.api_capture import (
+        HTTPX_AVAILABLE,
+        APICaptureStrategy,
+        generate_summary,
+    )
+    from adw.evidence.evidence_writer import APIEvidenceWriter
+except ImportError:
+    HTTPX_AVAILABLE = False
+    APICaptureStrategy = None  # type: ignore[assignment,misc]
+    generate_summary = None  # type: ignore[assignment]
+    APIEvidenceWriter = None  # type: ignore[assignment,misc]
+    if TYPE_CHECKING:
+        from adw.evidence.api_capture import APICaptureStrategy, generate_summary
+        from adw.evidence.evidence_writer import APIEvidenceWriter
+from adw.evidence.mobile_capture import (
+    capture_android_screenshot,
+    capture_configured_screens,
+    capture_flutter_screenshot,
+    capture_ios_screenshot,
+    check_android_emulator_available,
+    check_ios_simulator_available,
+    detect_flutter_device,
+    get_booted_simulator,
+    get_running_emulator,
+    load_mobile_screens_config,
+    navigate_android_deeplink,
+    navigate_ios_deeplink,
+    save_evidence_metadata,
+)
 from adw.evidence.summary_generator import SummaryGenerator
 from adw.evidence.web_capture import (
     DEFAULT_VIEWPORTS,
@@ -31,9 +63,20 @@ from adw.evidence.web_capture import (
 )
 from adw.logging import LogCategory, get_logger
 from adw.models.evidence import (
+    CLIEvidenceSummary,
+    CommandConfig,
+    CommandResult,
     EvidenceStrategy,
+    MobileDeviceType,
+    MobileEvidenceSummary,
+    MobileScreenConfig,
+    MobileScreenshotResult,
     PlatformDetectionResult,
     PlatformType,
+    RouteConfig,
+    ScreenshotResult,
+    ViewportConfig,
+    WebEvidenceSummary,
 )
 
 
@@ -108,7 +151,8 @@ __all__ = [
     "PlatformDetector",
     "detect_platform",
     "get_evidence_strategy",
-    # API evidence gathering
+    # API evidence gathering (requires httpx)
+    "HTTPX_AVAILABLE",
     "APIEvidenceWriter",
     "APICaptureStrategy",
     "EvidenceConfig",
@@ -120,6 +164,10 @@ __all__ = [
     "EvidenceFileWriter",
     "SummaryGenerator",
     "load_evidence_commands",
+    # CLI models
+    "CLIEvidenceSummary",
+    "CommandConfig",
+    "CommandResult",
     # Web capture
     "DEFAULT_VIEWPORTS",
     "WebCaptureStrategy",
@@ -127,4 +175,28 @@ __all__ = [
     "create_evidence_directory",
     "generate_evidence_metadata",
     "load_routes_from_config",
+    # Web models
+    "RouteConfig",
+    "ScreenshotResult",
+    "ViewportConfig",
+    "WebEvidenceSummary",
+    # Mobile capture
+    "capture_android_screenshot",
+    "capture_configured_screens",
+    "capture_flutter_screenshot",
+    "capture_ios_screenshot",
+    "check_android_emulator_available",
+    "check_ios_simulator_available",
+    "detect_flutter_device",
+    "get_booted_simulator",
+    "get_running_emulator",
+    "load_mobile_screens_config",
+    "navigate_android_deeplink",
+    "navigate_ios_deeplink",
+    "save_evidence_metadata",
+    # Mobile models
+    "MobileDeviceType",
+    "MobileEvidenceSummary",
+    "MobileScreenConfig",
+    "MobileScreenshotResult",
 ]

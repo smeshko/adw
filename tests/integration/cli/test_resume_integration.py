@@ -27,8 +27,10 @@ def mock_runs_dir(tmp_path: Path):
     runs_dir.mkdir(parents=True)
 
     # Patch in both places where it might be imported
-    with patch("adw.cli.resume.get_runs_dir", return_value=runs_dir), \
-         patch("adw.cli.bootstrap.get_runs_dir", return_value=runs_dir):
+    with (
+        patch("adw.cli.resume.get_runs_dir", return_value=runs_dir),
+        patch("adw.cli.bootstrap.get_runs_dir", return_value=runs_dir),
+    ):
         yield runs_dir
 
 

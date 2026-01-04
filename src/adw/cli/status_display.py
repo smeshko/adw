@@ -98,9 +98,7 @@ class StatusDisplay:
 
         # Wrap in panel
         self.console.print()
-        self.console.print(
-            Panel(table, title="Run Status", border_style=status_color)
-        )
+        self.console.print(Panel(table, title="Run Status", border_style=status_color))
 
         # Show failure details (UX-3)
         if context.status == "failed":

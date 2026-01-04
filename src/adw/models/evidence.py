@@ -14,7 +14,7 @@ Includes:
   WebEvidenceSummary)
 """
 
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
@@ -258,16 +258,14 @@ class APIResponse(BaseModel):
     """
 
     status_code: int = Field(..., description="HTTP status code")
-    headers: dict[str, str] | None = Field(
-        default=None, description="Response headers"
-    )
+    headers: dict[str, str] | None = Field(default=None, description="Response headers")
     body: str | dict[str, Any] = Field(..., description="Response body")
     duration_seconds: float = Field(..., description="Request duration in seconds")
 
 
 def _utc_now() -> datetime:
     """Return current UTC datetime for default factory."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class APIEvidenceResult(BaseModel):
@@ -701,4 +699,158 @@ class WebEvidenceSummary(BaseModel):
                 "results": [],
             }
         },
+    }
+
+
+# =============================================================================
+# Mobile Evidence Models (Story 8.3b)
+# =============================================================================
+
+
+class MobileDeviceType(str, Enum):
+    """Type of mobile device for evidence gathering.
+
+    Distinguishes between native iOS, native Android, and Flutter-based
+    mobile apps running on each platform.
+    """
+
+    IOS = "ios"
+    ANDROID = "android"
+    FLUTTER_IOS = "flutter_ios"
+    FLUTTER_ANDROID = "flutter_android"
+
+
+class MobileScreenConfig(BaseModel):
+    """Configuration for a mobile screen to capture.
+
+    Attributes:
+        name: Screen identifier (used in filename)
+        deeplink: Optional deeplink URL to navigate to this screen
+        capture_delay_ms: Delay before capture after navigation (default 500ms)
+        navigation_steps: Optional list of navigation actions (for complex navigation)
+
+    Example:
+        >>> config = MobileScreenConfig(
+        ...     name="profile",
+        ...     deeplink="myapp://profile/123",
+        ...     capture_delay_ms=1000,
+        ... )
+    """
+
+    name: str = Field(..., description="Screen identifier for the screenshot")
+    deeplink: str | None = Field(
+        default=None, description="Deeplink URL to navigate to this screen"
+    )
+    capture_delay_ms: int = Field(
+        default=500, description="Delay in milliseconds before capture"
+    )
+    navigation_steps: list[dict[str, str]] = Field(
+        default_factory=list,
+        description="Navigation steps if deeplink not available",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "name": "profile",
+                "deeplink": "myapp://profile/123",
+                "capture_delay_ms": 500,
+            }
+        }
+    }
+
+
+class MobileScreenshotResult(BaseModel):
+    """Result of a mobile screenshot capture operation.
+
+    Attributes:
+        path: Path to the saved screenshot file
+        screen_name: Name of the screen captured
+        device_type: Type of mobile device used
+        device_name: Human-readable device name (e.g., "iPhone 15 Pro")
+        os_version: OS version string (e.g., "17.2")
+        success: Whether the capture was successful
+        error: Error message if capture failed
+        captured_at: Timestamp when capture was performed
+
+    Example:
+        >>> result = MobileScreenshotResult(
+        ...     path=Path("/tmp/home_ios.png"),
+        ...     screen_name="home",
+        ...     device_type=MobileDeviceType.IOS,
+        ...     device_name="iPhone 15 Pro",
+        ...     os_version="17.2",
+        ...     success=True,
+        ... )
+    """
+
+    path: Path = Field(..., description="Path to the saved screenshot file")
+    screen_name: str = Field(..., description="Name of the screen captured")
+    device_type: MobileDeviceType = Field(..., description="Type of mobile device")
+    device_name: str | None = Field(
+        default=None, description="Human-readable device name"
+    )
+    os_version: str | None = Field(default=None, description="OS version string")
+    success: bool = Field(..., description="Whether capture was successful")
+    error: str | None = Field(default=None, description="Error message if failed")
+    captured_at: datetime = Field(
+        default_factory=datetime.now, description="Timestamp of capture"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "path": "/tmp/home_ios.png",
+                "screen_name": "home",
+                "device_type": "ios",
+                "device_name": "iPhone 15 Pro",
+                "os_version": "17.2",
+                "success": True,
+            }
+        }
+    }
+
+
+class MobileEvidenceSummary(BaseModel):
+    """Summary of mobile evidence capture results.
+
+    Aggregates results from multiple screenshot captures for reporting.
+
+    Attributes:
+        total_screenshots: Total number of screenshots attempted
+        successful: Number of successful captures
+        failed: Number of failed captures
+        results: List of individual screenshot results
+        captured_at: Timestamp when capture session completed
+
+    Example:
+        >>> summary = MobileEvidenceSummary(
+        ...     total_screenshots=4,
+        ...     successful=3,
+        ...     failed=1,
+        ...     results=[...],
+        ... )
+    """
+
+    total_screenshots: int = Field(
+        default=0, description="Total number of screenshots attempted"
+    )
+    successful: int = Field(default=0, description="Number of successful captures")
+    failed: int = Field(default=0, description="Number of failed captures")
+    results: list[MobileScreenshotResult] = Field(
+        default_factory=list, description="Individual screenshot results"
+    )
+    captured_at: datetime = Field(
+        default_factory=datetime.now, description="Timestamp of capture session"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "total_screenshots": 4,
+                "successful": 3,
+                "failed": 1,
+                "results": [],
+            }
+        }
     }

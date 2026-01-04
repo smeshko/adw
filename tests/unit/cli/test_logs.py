@@ -193,9 +193,7 @@ class TestLogsStateCommand:
         assert result.exit_code == 1
         assert "No .adw directory found" in result.output
 
-    def test_state_run_not_found(
-        self, runner: CliRunner, mock_adw_dir: Path
-    ) -> None:
+    def test_state_run_not_found(self, runner: CliRunner, mock_adw_dir: Path) -> None:
         """Error when run ID doesn't exist."""
         result = runner.invoke(app, ["logs", "state", "nonexistent-run"])
         assert result.exit_code == 1
@@ -247,9 +245,7 @@ class TestLogsStateCommand:
             {"run_id": "test-run", "current_phase": "build", "status": "running"},
         )
 
-        result = runner.invoke(
-            app, ["logs", "state", "test-run", "--snapshot", "1"]
-        )
+        result = runner.invoke(app, ["logs", "state", "test-run", "--snapshot", "1"])
         assert result.exit_code == 0
         # Should show snapshot 1 content (plan phase)
         assert "plan" in result.output.lower()
@@ -292,9 +288,7 @@ class TestLogsStateCommand:
         snapshots_dir = run_dir / "snapshots"
         snapshots_dir.mkdir()
 
-        result = runner.invoke(
-            app, ["logs", "state", "test-run", "--phase", "plan"]
-        )
+        result = runner.invoke(app, ["logs", "state", "test-run", "--phase", "plan"])
         assert result.exit_code == 1
         assert "--at" in result.output.lower()
 
@@ -302,9 +296,7 @@ class TestLogsStateCommand:
 class TestLogsDiffCommand:
     """Tests for logs diff command."""
 
-    def test_diff_shows_additions(
-        self, runner: CliRunner, mock_adw_dir: Path
-    ) -> None:
+    def test_diff_shows_additions(self, runner: CliRunner, mock_adw_dir: Path) -> None:
         """Shows additions in diff output."""
         run_dir = mock_adw_dir / "runs" / "test-run"
         run_dir.mkdir(parents=True)
@@ -333,9 +325,7 @@ class TestLogsDiffCommand:
         # Should show the addition
         assert "new_field" in result.output or "added" in result.output
 
-    def test_diff_shows_removals(
-        self, runner: CliRunner, mock_adw_dir: Path
-    ) -> None:
+    def test_diff_shows_removals(self, runner: CliRunner, mock_adw_dir: Path) -> None:
         """Shows removals in diff output."""
         run_dir = mock_adw_dir / "runs" / "test-run"
         run_dir.mkdir(parents=True)
@@ -363,9 +353,7 @@ class TestLogsDiffCommand:
         # Should show the removal
         assert "old_field" in result.output or "removed" in result.output
 
-    def test_diff_shows_changes(
-        self, runner: CliRunner, mock_adw_dir: Path
-    ) -> None:
+    def test_diff_shows_changes(self, runner: CliRunner, mock_adw_dir: Path) -> None:
         """Shows changes in diff output."""
         run_dir = mock_adw_dir / "runs" / "test-run"
         run_dir.mkdir(parents=True)
@@ -392,9 +380,7 @@ class TestLogsDiffCommand:
         assert result.exit_code == 0
         # Should show the change in status
 
-    def test_diff_phase_mode(
-        self, runner: CliRunner, mock_adw_dir: Path
-    ) -> None:
+    def test_diff_phase_mode(self, runner: CliRunner, mock_adw_dir: Path) -> None:
         """Supports phase-based diff."""
         run_dir = mock_adw_dir / "runs" / "test-run"
         run_dir.mkdir(parents=True)
@@ -849,9 +835,7 @@ class TestLogsShowCommand:
         result = runner.invoke(app, ["logs", "show", run_id])
         assert result.exit_code == 0
         # Should contain log messages
-        assert (
-            "Phase plan started" in result.output or "plan" in result.output.lower()
-        )
+        assert "Phase plan started" in result.output or "plan" in result.output.lower()
 
     def test_logs_show_with_tail_option(
         self, runner: CliRunner, run_with_logs: tuple[str, Path]
@@ -965,7 +949,9 @@ class TestLogsLlmCommand:
         result = runner.invoke(app, ["logs", "llm", run_id])
         assert result.exit_code == 0
         # Should contain prompt or response content
-        assert "plan" in result.output.lower() or "authentication" in result.output.lower()
+        assert (
+            "plan" in result.output.lower() or "authentication" in result.output.lower()
+        )
 
     def test_logs_llm_with_request_only(
         self, runner: CliRunner, run_with_llm_captures: tuple[str, Path]
@@ -1052,6 +1038,14 @@ class TestLogsExportCommand:
 
         result = runner.invoke(
             app,
-            ["logs", "export", run_id, "--format", "json", "--output", str(output_file)],
+            [
+                "logs",
+                "export",
+                run_id,
+                "--format",
+                "json",
+                "--output",
+                str(output_file),
+            ],
         )
         assert result.exit_code == 0

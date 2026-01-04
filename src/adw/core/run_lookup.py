@@ -96,9 +96,7 @@ class RunLookup:
             ...     print(f"Resume: {context.run_id}")
         """
         incomplete_statuses = ("running", "failed", "interrupted")
-        runs = self._list_runs(
-            filter_fn=lambda ctx: ctx.status in incomplete_statuses
-        )
+        runs = self._list_runs(filter_fn=lambda ctx: ctx.status in incomplete_statuses)
         return runs[0] if runs else None
 
     def _list_runs(
@@ -157,6 +155,7 @@ class RunLookup:
             >>> # Get failed runs only
             >>> failed = lookup.list_runs(status="failed")
         """
+
         def status_filter(ctx: RunContext) -> bool:
             return ctx.status == status
 

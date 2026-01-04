@@ -60,9 +60,7 @@ class ToolLogger:
         """
         self._run_dir = Path(run_dir)
         self._log_path = self._run_dir / self.FILENAME
-        self._lock_path = self._log_path.with_suffix(
-            self._log_path.suffix + ".lock"
-        )
+        self._lock_path = self._log_path.with_suffix(self._log_path.suffix + ".lock")
         self._closed = False
         self._current_phase: str | None = None
 

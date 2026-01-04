@@ -3,7 +3,6 @@
 Tests for project type detection based on filesystem markers.
 """
 
-
 from adw.config.detector import ProjectTypeDetector
 
 

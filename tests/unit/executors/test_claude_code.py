@@ -374,10 +374,12 @@ class TestRealTimeStreaming:
         executor.console = mock_console
 
         # Use valid stream-json format with content_block_delta
-        stream_json = json.dumps({
-            "type": "content_block_delta",
-            "delta": {"type": "text_delta", "text": "Hello world"}
-        })
+        stream_json = json.dumps(
+            {
+                "type": "content_block_delta",
+                "delta": {"type": "text_delta", "text": "Hello world"},
+            }
+        )
 
         with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
             process = AsyncMock()
@@ -1393,9 +1395,7 @@ class TestStreamLoggerIntegration:
 
             assert isinstance(result, LLMResult)
 
-    def test_stream_logger_captures_tokens(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
+    def test_stream_logger_captures_tokens(self, executor: ClaudeCodeExecutor) -> None:
         """StreamLogger should capture tokens when provided."""
         from adw.logging.stream import StreamLogger
         from adw.models.logging import StreamEventType
@@ -1433,9 +1433,7 @@ class TestStreamLoggerIntegration:
             token_events = [e for e in events if e.type == StreamEventType.TOKEN]
             assert len(token_events) >= 1
 
-    def test_stream_logger_none_by_default(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
+    def test_stream_logger_none_by_default(self, executor: ClaudeCodeExecutor) -> None:
         """stream_logger should be None by default (no capturing)."""
         with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
             process = AsyncMock()

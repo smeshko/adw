@@ -5,7 +5,6 @@ including alternatives and override instructions.
 """
 
 
-
 class TestSuggestionFormatter:
     """Tests for SuggestionFormatter class."""
 

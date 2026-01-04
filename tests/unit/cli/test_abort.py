@@ -118,9 +118,7 @@ class TestAbortCommand:
                 mock_cm.return_value.load.return_value = sample_context
                 mock_confirm.ask.return_value = False
 
-                result = runner.invoke(
-                    app, ["abort", "01JFTEST000000000000000001"]
-                )
+                result = runner.invoke(app, ["abort", "01JFTEST000000000000000001"])
 
                 assert result.exit_code == 0
                 assert "cancelled" in result.output.lower()

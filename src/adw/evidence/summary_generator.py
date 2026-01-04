@@ -33,9 +33,7 @@ class SummaryGenerator:
         """
         self.evidence_dir = evidence_dir
 
-    def generate_summary(
-        self, results: list[CommandResult]
-    ) -> CLIEvidenceSummary:
+    def generate_summary(self, results: list[CommandResult]) -> CLIEvidenceSummary:
         """Generate a summary from command results.
 
         Args:

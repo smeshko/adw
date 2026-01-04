@@ -4,13 +4,21 @@ This module tests writing captured API evidence to files.
 """
 
 import json
-import pytest
-from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from adw.evidence.evidence_writer import APIEvidenceWriter
-from adw.models.evidence import (
+import pytest
+
+from adw.evidence import HTTPX_AVAILABLE
+
+# Skip all tests in this module if httpx is not available
+pytestmark = pytest.mark.skipif(
+    not HTTPX_AVAILABLE,
+    reason="httpx not installed - API evidence writer tests skipped",
+)
+
+from adw.evidence.evidence_writer import APIEvidenceWriter  # noqa: E402
+from adw.models.evidence import (  # noqa: E402
     APIEvidenceResult,
     APIEvidenceSummary,
     APIRequest,
@@ -172,9 +180,7 @@ class TestAPIEvidenceWriter:
             result = APIEvidenceResult(
                 endpoint_name="api/users/create",  # Contains slashes
                 request=APIRequest(method="GET", url="http://localhost/test"),
-                response=APIResponse(
-                    status_code=200, body={}, duration_seconds=0.01
-                ),
+                response=APIResponse(status_code=200, body={}, duration_seconds=0.01),
                 success=True,
             )
 

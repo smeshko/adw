@@ -8,7 +8,7 @@ This module tests all evidence-related models:
   WebEvidenceSummary
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -446,9 +446,7 @@ class TestAPIEvidenceResult:
                 url="http://localhost:8000/users",
                 body={"name": "test"},
             ),
-            response=APIResponse(
-                status_code=201, body={"id": 1}, duration_seconds=0.1
-            ),
+            response=APIResponse(status_code=201, body={"id": 1}, duration_seconds=0.1),
             success=True,
             expected_status=201,
             status_match=True,
@@ -485,14 +483,14 @@ class TestAPIEvidenceResult:
 
     def test_evidence_result_has_captured_at(self) -> None:
         """Test that evidence result has captured_at timestamp."""
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         result = APIEvidenceResult(
             endpoint_name="test",
             request=APIRequest(method="GET", url="http://localhost:8000/test"),
             response=APIResponse(status_code=200, body="", duration_seconds=0.01),
             success=True,
         )
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
         assert before <= result.captured_at <= after
 
     def test_evidence_result_json_serialization(self) -> None:
@@ -595,7 +593,7 @@ class TestAPIEvidenceSummary:
 
     def test_summary_has_captured_at(self) -> None:
         """Test that summary has captured_at timestamp."""
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         summary = APIEvidenceSummary(
             base_url="http://localhost:8000",
             total_endpoints=0,
@@ -604,7 +602,7 @@ class TestAPIEvidenceSummary:
             status_mismatches=0,
             results=[],
         )
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
         assert before <= summary.captured_at <= after
 
 
@@ -873,3 +871,225 @@ class TestWebEvidenceSummary:
                 failed=0,
                 results=["not a ScreenshotResult"],
             )
+
+
+# =============================================================================
+# Mobile Evidence Models Tests (Story 8.3b)
+# =============================================================================
+
+
+class TestMobileDeviceType:
+    """Tests for MobileDeviceType enum."""
+
+    def test_mobile_device_type_values(self) -> None:
+        """Test all mobile device type values exist."""
+        from adw.models.evidence import MobileDeviceType
+
+        assert MobileDeviceType.IOS.value == "ios"
+        assert MobileDeviceType.ANDROID.value == "android"
+        assert MobileDeviceType.FLUTTER_IOS.value == "flutter_ios"
+        assert MobileDeviceType.FLUTTER_ANDROID.value == "flutter_android"
+
+    def test_mobile_device_type_is_string_enum(self) -> None:
+        """Test MobileDeviceType is a string enum."""
+        from adw.models.evidence import MobileDeviceType
+
+        assert isinstance(MobileDeviceType.IOS, str)
+        assert MobileDeviceType.IOS.value == "ios"
+
+    def test_mobile_device_type_from_string(self) -> None:
+        """Test creating MobileDeviceType from string."""
+        from adw.models.evidence import MobileDeviceType
+
+        assert MobileDeviceType("ios") == MobileDeviceType.IOS
+        assert MobileDeviceType("android") == MobileDeviceType.ANDROID
+
+    def test_invalid_mobile_device_type_raises(self) -> None:
+        """Test invalid mobile device type raises ValueError."""
+        from adw.models.evidence import MobileDeviceType
+
+        with pytest.raises(ValueError):
+            MobileDeviceType("invalid")
+
+
+class TestMobileScreenConfig:
+    """Tests for MobileScreenConfig model."""
+
+    def test_create_basic_screen_config(self) -> None:
+        """Test creating a basic screen config."""
+        from adw.models.evidence import MobileScreenConfig
+
+        config = MobileScreenConfig(name="home")
+        assert config.name == "home"
+        assert config.deeplink is None
+        assert config.capture_delay_ms == 500
+
+    def test_create_screen_config_with_deeplink(self) -> None:
+        """Test creating a screen config with deeplink."""
+        from adw.models.evidence import MobileScreenConfig
+
+        config = MobileScreenConfig(
+            name="profile",
+            deeplink="myapp://profile/123",
+            capture_delay_ms=1000,
+        )
+        assert config.name == "profile"
+        assert config.deeplink == "myapp://profile/123"
+        assert config.capture_delay_ms == 1000
+
+    def test_screen_config_json_serialization(self) -> None:
+        """Test JSON serialization of screen config."""
+        from adw.models.evidence import MobileScreenConfig
+
+        config = MobileScreenConfig(name="home", deeplink="myapp://home")
+        data = config.model_dump()
+        assert data["name"] == "home"
+        assert data["deeplink"] == "myapp://home"
+
+    def test_screen_config_name_required(self) -> None:
+        """Test that name is required."""
+        from adw.models.evidence import MobileScreenConfig
+
+        with pytest.raises(ValidationError):
+            MobileScreenConfig()
+
+
+class TestMobileScreenshotResult:
+    """Tests for MobileScreenshotResult model."""
+
+    def test_create_successful_screenshot_result(self) -> None:
+        """Test creating a successful screenshot result."""
+        from adw.models.evidence import MobileDeviceType, MobileScreenshotResult
+
+        result = MobileScreenshotResult(
+            path=Path("/tmp/home.png"),
+            screen_name="home",
+            device_type=MobileDeviceType.IOS,
+            success=True,
+        )
+        assert result.path == Path("/tmp/home.png")
+        assert result.screen_name == "home"
+        assert result.device_type == MobileDeviceType.IOS
+        assert result.success is True
+        assert result.error is None
+
+    def test_create_failed_screenshot_result(self) -> None:
+        """Test creating a failed screenshot result."""
+        from adw.models.evidence import MobileDeviceType, MobileScreenshotResult
+
+        result = MobileScreenshotResult(
+            path=Path("/tmp/profile.png"),
+            screen_name="profile",
+            device_type=MobileDeviceType.ANDROID,
+            success=False,
+            error="Device not found",
+        )
+        assert result.success is False
+        assert result.error == "Device not found"
+
+    def test_screenshot_result_with_device_info(self) -> None:
+        """Test screenshot result with device info."""
+        from adw.models.evidence import MobileDeviceType, MobileScreenshotResult
+
+        result = MobileScreenshotResult(
+            path=Path("/tmp/home.png"),
+            screen_name="home",
+            device_type=MobileDeviceType.IOS,
+            device_name="iPhone 15 Pro",
+            os_version="17.2",
+            success=True,
+        )
+        assert result.device_name == "iPhone 15 Pro"
+        assert result.os_version == "17.2"
+
+    def test_screenshot_result_has_captured_at(self) -> None:
+        """Test screenshot result has captured_at timestamp."""
+        from adw.models.evidence import MobileDeviceType, MobileScreenshotResult
+
+        result = MobileScreenshotResult(
+            path=Path("/tmp/home.png"),
+            screen_name="home",
+            device_type=MobileDeviceType.IOS,
+            success=True,
+        )
+        assert result.captured_at is not None
+
+    def test_screenshot_result_json_serialization(self) -> None:
+        """Test JSON serialization of screenshot result."""
+        from adw.models.evidence import MobileDeviceType, MobileScreenshotResult
+
+        result = MobileScreenshotResult(
+            path=Path("/tmp/home.png"),
+            screen_name="home",
+            device_type=MobileDeviceType.IOS,
+            success=True,
+        )
+        data = result.model_dump()
+        assert data["screen_name"] == "home"
+        assert data["device_type"] == "ios"
+
+
+class TestMobileEvidenceSummary:
+    """Tests for MobileEvidenceSummary model."""
+
+    def test_create_empty_summary(self) -> None:
+        """Test creating an empty summary."""
+        from adw.models.evidence import MobileEvidenceSummary
+
+        summary = MobileEvidenceSummary()
+        assert summary.total_screenshots == 0
+        assert summary.successful == 0
+        assert summary.failed == 0
+        assert summary.results == []
+
+    def test_create_summary_with_results(self) -> None:
+        """Test creating a summary with results."""
+        from adw.models.evidence import (
+            MobileDeviceType,
+            MobileEvidenceSummary,
+            MobileScreenshotResult,
+        )
+
+        results = [
+            MobileScreenshotResult(
+                path=Path("/tmp/home.png"),
+                screen_name="home",
+                device_type=MobileDeviceType.IOS,
+                success=True,
+            ),
+            MobileScreenshotResult(
+                path=Path("/tmp/profile.png"),
+                screen_name="profile",
+                device_type=MobileDeviceType.IOS,
+                success=False,
+                error="Navigation failed",
+            ),
+        ]
+        summary = MobileEvidenceSummary(
+            total_screenshots=2,
+            successful=1,
+            failed=1,
+            results=results,
+        )
+        assert summary.total_screenshots == 2
+        assert len(summary.results) == 2
+
+    def test_summary_json_serialization(self) -> None:
+        """Test JSON serialization of summary."""
+        from adw.models.evidence import MobileEvidenceSummary
+
+        summary = MobileEvidenceSummary(
+            total_screenshots=5,
+            successful=4,
+            failed=1,
+        )
+        data = summary.model_dump()
+        assert data["total_screenshots"] == 5
+        assert data["successful"] == 4
+
+    def test_summary_has_captured_at(self) -> None:
+        """Test summary has captured_at timestamp."""
+        from adw.models.evidence import MobileEvidenceSummary
+
+        summary = MobileEvidenceSummary()
+        assert summary.captured_at is not None

@@ -29,9 +29,7 @@ class TestLLMCaptureManagerCreation:
         assert not llm_dir.exists()
         manager = LLMCaptureManager(llm_dir)
         # Directory created on first capture, not on init
-        manager.capture_request(
-            LLMRequest(prompt="test", phase="plan")
-        )
+        manager.capture_request(LLMRequest(prompt="test", phase="plan"))
         assert llm_dir.exists()
 
     def test_initial_sequence_is_one(self, tmp_path: Path) -> None:
@@ -253,9 +251,7 @@ class TestLLMCaptureManagerRedaction:
         mock_redactor.redact.return_value = "REDACTED_PROMPT"
 
         with patch("adw.logging.llm_capture.get_redactor", return_value=mock_redactor):
-            manager.capture_request(
-                LLMRequest(prompt="secret: sk-1234", phase="build")
-            )
+            manager.capture_request(LLMRequest(prompt="secret: sk-1234", phase="build"))
 
             mock_redactor.redact.assert_called_once_with("secret: sk-1234")
 

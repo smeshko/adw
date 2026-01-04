@@ -42,10 +42,14 @@ class TestGather:
         config_dir = project_root / ".adw"
         config_dir.mkdir()
         config_file = config_dir / "project.yaml"
-        config_file.write_text(yaml.dump({
-            "name": "test",
-            "language": "python",
-        }))
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "name": "test",
+                    "language": "python",
+                }
+            )
+        )
 
         gatherer = CLIEvidenceGatherer(
             project_root=project_root,
@@ -71,16 +75,20 @@ class TestGather:
         config_dir = project_root / ".adw"
         config_dir.mkdir()
         config_file = config_dir / "project.yaml"
-        config_file.write_text(yaml.dump({
-            "name": "test",
-            "language": "python",
-            "evidence": {
-                "commands": [
-                    {"name": "version", "cmd": "python --version"},
-                    {"name": "help", "cmd": "python --help"},
-                ]
-            }
-        }))
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "name": "test",
+                    "language": "python",
+                    "evidence": {
+                        "commands": [
+                            {"name": "version", "cmd": "python --version"},
+                            {"name": "help", "cmd": "python --help"},
+                        ]
+                    },
+                }
+            )
+        )
 
         mock_run.return_value = MagicMock(
             returncode=0,
@@ -110,15 +118,19 @@ class TestGather:
         config_dir = project_root / ".adw"
         config_dir.mkdir()
         config_file = config_dir / "project.yaml"
-        config_file.write_text(yaml.dump({
-            "name": "test",
-            "language": "python",
-            "evidence": {
-                "commands": [
-                    {"name": "version", "cmd": "python --version"},
-                ]
-            }
-        }))
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "name": "test",
+                    "language": "python",
+                    "evidence": {
+                        "commands": [
+                            {"name": "version", "cmd": "python --version"},
+                        ]
+                    },
+                }
+            )
+        )
 
         mock_run.return_value = MagicMock(
             returncode=0,
@@ -150,15 +162,19 @@ class TestGather:
         config_dir = project_root / ".adw"
         config_dir.mkdir()
         config_file = config_dir / "project.yaml"
-        config_file.write_text(yaml.dump({
-            "name": "test",
-            "language": "python",
-            "evidence": {
-                "commands": [
-                    {"name": "test", "cmd": "echo ok"},
-                ]
-            }
-        }))
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "name": "test",
+                    "language": "python",
+                    "evidence": {
+                        "commands": [
+                            {"name": "test", "cmd": "echo ok"},
+                        ]
+                    },
+                }
+            )
+        )
 
         mock_run.return_value = MagicMock(
             returncode=0,
@@ -187,17 +203,21 @@ class TestGather:
         config_dir = project_root / ".adw"
         config_dir.mkdir()
         config_file = config_dir / "project.yaml"
-        config_file.write_text(yaml.dump({
-            "name": "test",
-            "language": "python",
-            "evidence": {
-                "commands": [
-                    {"name": "pass", "cmd": "echo ok"},
-                    {"name": "fail", "cmd": "false"},
-                    {"name": "also-pass", "cmd": "echo done"},
-                ]
-            }
-        }))
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "name": "test",
+                    "language": "python",
+                    "evidence": {
+                        "commands": [
+                            {"name": "pass", "cmd": "echo ok"},
+                            {"name": "fail", "cmd": "false"},
+                            {"name": "also-pass", "cmd": "echo done"},
+                        ]
+                    },
+                }
+            )
+        )
 
         # First and third succeed, second fails
         mock_run.side_effect = [

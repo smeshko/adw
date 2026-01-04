@@ -6,7 +6,6 @@ This module tests loading endpoint and command configurations from project confi
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-import pytest
 import yaml
 
 from adw.evidence.config_loader import (
@@ -15,7 +14,6 @@ from adw.evidence.config_loader import (
     load_evidence_config,
 )
 from adw.models.evidence import AuthConfig, AuthType, CommandConfig, EndpointConfig
-
 
 # =============================================================================
 # API Evidence Config Tests
@@ -224,16 +222,24 @@ class TestLoadEvidenceCommands:
         """load_evidence_commands should parse commands from config."""
         config_file = tmp_path / ".adw" / "project.yaml"
         config_file.parent.mkdir(parents=True)
-        config_file.write_text(yaml.dump({
-            "name": "test-project",
-            "language": "python",
-            "evidence": {
-                "commands": [
-                    {"name": "version", "cmd": "python --version", "timeout": 30},
-                    {"name": "help", "cmd": "python --help", "timeout": 60},
-                ]
-            }
-        }))
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "name": "test-project",
+                    "language": "python",
+                    "evidence": {
+                        "commands": [
+                            {
+                                "name": "version",
+                                "cmd": "python --version",
+                                "timeout": 30,
+                            },
+                            {"name": "help", "cmd": "python --help", "timeout": 60},
+                        ]
+                    },
+                }
+            )
+        )
 
         commands = load_evidence_commands(tmp_path)
 
@@ -249,15 +255,15 @@ class TestLoadEvidenceCommands:
         """load_evidence_commands should use default timeout."""
         config_file = tmp_path / ".adw" / "project.yaml"
         config_file.parent.mkdir(parents=True)
-        config_file.write_text(yaml.dump({
-            "name": "test-project",
-            "language": "python",
-            "evidence": {
-                "commands": [
-                    {"name": "quick", "cmd": "echo hi"}
-                ]
-            }
-        }))
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "name": "test-project",
+                    "language": "python",
+                    "evidence": {"commands": [{"name": "quick", "cmd": "echo hi"}]},
+                }
+            )
+        )
 
         commands = load_evidence_commands(tmp_path)
 
@@ -268,10 +274,14 @@ class TestLoadEvidenceCommands:
         """load_evidence_commands should return empty list if no evidence section."""
         config_file = tmp_path / ".adw" / "project.yaml"
         config_file.parent.mkdir(parents=True)
-        config_file.write_text(yaml.dump({
-            "name": "test-project",
-            "language": "python",
-        }))
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "name": "test-project",
+                    "language": "python",
+                }
+            )
+        )
 
         commands = load_evidence_commands(tmp_path)
 
@@ -281,13 +291,15 @@ class TestLoadEvidenceCommands:
         """load_evidence_commands should return empty if commands key missing."""
         config_file = tmp_path / ".adw" / "project.yaml"
         config_file.parent.mkdir(parents=True)
-        config_file.write_text(yaml.dump({
-            "name": "test-project",
-            "language": "python",
-            "evidence": {
-                "other_key": "value"
-            }
-        }))
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "name": "test-project",
+                    "language": "python",
+                    "evidence": {"other_key": "value"},
+                }
+            )
+        )
 
         commands = load_evidence_commands(tmp_path)
 
@@ -297,13 +309,15 @@ class TestLoadEvidenceCommands:
         """load_evidence_commands should return empty if commands list empty."""
         config_file = tmp_path / ".adw" / "project.yaml"
         config_file.parent.mkdir(parents=True)
-        config_file.write_text(yaml.dump({
-            "name": "test-project",
-            "language": "python",
-            "evidence": {
-                "commands": []
-            }
-        }))
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "name": "test-project",
+                    "language": "python",
+                    "evidence": {"commands": []},
+                }
+            )
+        )
 
         commands = load_evidence_commands(tmp_path)
 
@@ -319,17 +333,21 @@ class TestLoadEvidenceCommands:
         """load_evidence_commands should skip invalid commands."""
         config_file = tmp_path / ".adw" / "project.yaml"
         config_file.parent.mkdir(parents=True)
-        config_file.write_text(yaml.dump({
-            "name": "test-project",
-            "language": "python",
-            "evidence": {
-                "commands": [
-                    {"name": "valid", "cmd": "echo hi"},
-                    {"invalid": "missing name and cmd"},  # invalid
-                    {"name": "also-valid", "cmd": "echo ok"},
-                ]
-            }
-        }))
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "name": "test-project",
+                    "language": "python",
+                    "evidence": {
+                        "commands": [
+                            {"name": "valid", "cmd": "echo hi"},
+                            {"invalid": "missing name and cmd"},  # invalid
+                            {"name": "also-valid", "cmd": "echo ok"},
+                        ]
+                    },
+                }
+            )
+        )
 
         commands = load_evidence_commands(tmp_path)
 

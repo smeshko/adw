@@ -1,6 +1,6 @@
 # Story 8.3b: Capture Mobile Screenshots
 
-Status: done
+Status: review
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-04
@@ -572,26 +572,27 @@ Key patterns and rules from project context:
 
 ### Agent Model Used
 
-claude-opus-4-5-20251101
-
 ### Debug Log References
 
 ### Completion Notes List
 
 - All 8 tasks completed
-- 52 unit tests written (91% coverage on mobile_capture.py)
-- Mobile capture functions exported from evidence package
-- Code quality issues fixed (linting, type annotations)
+- 38 tests for mobile_capture.py, all passing
+- 17 tests for mobile evidence models, all passing
+- Total: 127 tests in evidence module (88) + evidence models (39)
+- iOS, Android, and Flutter screenshot capture implemented
+- Deeplink navigation for both platforms
+- Config-based screen loading from project.yaml
+- Metadata generation with device info and timestamps
 
 ### File List
 
 **New Files:**
-- `src/adw/evidence/mobile_capture.py` - iOS/Android/Flutter screenshot capture (897 lines)
-- `tests/unit/evidence/test_mobile_capture.py` - Unit tests for mobile capture (1054 lines)
+- src/adw/evidence/mobile_capture.py - Main mobile screenshot capture module
+- tests/unit/evidence/test_mobile_capture.py - 38 unit tests for mobile capture
 
 **Modified Files:**
-- `src/adw/models/evidence.py` - Added MobileDeviceType, MobileScreenConfig, MobileScreenshotResult, MobileEvidenceSummary models
-- `src/adw/models/__init__.py` - Export new mobile evidence models
-- `src/adw/evidence/__init__.py` - Export mobile capture functions and models
-- `tests/unit/models/test_evidence.py` - Added tests for mobile evidence models
+- src/adw/models/evidence.py - Added MobileDeviceType, MobileScreenConfig, MobileScreenshotResult, MobileEvidenceSummary
+- src/adw/models/__init__.py - Exported new mobile models
+- tests/unit/models/test_evidence.py - Added 17 tests for mobile models
 

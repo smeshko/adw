@@ -4,11 +4,20 @@ This module tests the APICaptureStrategy class that handles
 HTTP requests and response capture for evidence gathering.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 
-from adw.evidence.api_capture import APICaptureStrategy
-from adw.models.evidence import (
+import pytest
+
+from adw.evidence.api_capture import HTTPX_AVAILABLE
+
+# Skip all tests in this module if httpx is not available
+pytestmark = pytest.mark.skipif(
+    not HTTPX_AVAILABLE,
+    reason="httpx not installed - API capture tests skipped",
+)
+
+from adw.evidence.api_capture import APICaptureStrategy  # noqa: E402
+from adw.models.evidence import (  # noqa: E402
     APIEvidenceResult,
     APIRequest,
     APIResponse,
@@ -259,9 +268,7 @@ class TestRequestResponseCapture:
         assert result.request.body == {"key": "data"}
 
     @patch("adw.evidence.api_capture.httpx.Client")
-    def test_captures_full_response_details(
-        self, mock_client_class: MagicMock
-    ) -> None:
+    def test_captures_full_response_details(self, mock_client_class: MagicMock) -> None:
         """Test that full response details are captured."""
         mock_client = MagicMock()
         mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
@@ -384,7 +391,7 @@ class TestAuthenticationSupport:
         auth = AuthConfig(type=AuthType.BEARER, token_env="API_TOKEN")
         strategy = APICaptureStrategy(base_url="http://localhost:8000", auth=auth)
         endpoint = EndpointConfig(name="test", path="/test")
-        result = strategy.call_endpoint(endpoint)
+        strategy.call_endpoint(endpoint)
 
         # Verify auth header was included in request
         call_kwargs = mock_client.request.call_args[1]
@@ -409,7 +416,7 @@ class TestAuthenticationSupport:
         auth = AuthConfig(type=AuthType.API_KEY, header="X-API-Key", key_env="API_KEY")
         strategy = APICaptureStrategy(base_url="http://localhost:8000", auth=auth)
         endpoint = EndpointConfig(name="test", path="/test")
-        result = strategy.call_endpoint(endpoint)
+        strategy.call_endpoint(endpoint)
 
         # Verify API key header was included
         call_kwargs = mock_client.request.call_args[1]
@@ -490,13 +497,15 @@ class TestAuthenticationSupport:
         )
         strategy = APICaptureStrategy(base_url="http://localhost:8000", auth=auth)
         endpoint = EndpointConfig(name="test", path="/test")
-        result = strategy.call_endpoint(endpoint)
+        strategy.call_endpoint(endpoint)
 
         # Verify basic auth header was included
         call_kwargs = mock_client.request.call_args[1]
         assert "headers" in call_kwargs
         expected_credentials = base64.b64encode(b"admin:secret123").decode()
-        assert call_kwargs["headers"]["Authorization"] == f"Basic {expected_credentials}"
+        assert (
+            call_kwargs["headers"]["Authorization"] == f"Basic {expected_credentials}"
+        )
 
 
 class TestSummaryGeneration:
@@ -544,9 +553,7 @@ class TestSummaryGeneration:
             APIEvidenceResult(
                 endpoint_name="health",
                 request=APIRequest(method="GET", url="http://localhost/health"),
-                response=APIResponse(
-                    status_code=200, body={}, duration_seconds=0.01
-                ),
+                response=APIResponse(status_code=200, body={}, duration_seconds=0.01),
                 success=True,
             ),
             APIEvidenceResult(
@@ -583,9 +590,7 @@ class TestSummaryGeneration:
             APIEvidenceResult(
                 endpoint_name="get",
                 request=APIRequest(method="GET", url="http://localhost/items/1"),
-                response=APIResponse(
-                    status_code=200, body={}, duration_seconds=0.01
-                ),
+                response=APIResponse(status_code=200, body={}, duration_seconds=0.01),
                 success=True,
                 expected_status=200,
                 status_match=True,
@@ -601,7 +606,9 @@ class TestErrorResponseCapture:
     """Tests for error response capture (AC: error responses captured for verification)."""
 
     @patch("adw.evidence.api_capture.httpx.Client")
-    def test_captures_4xx_error_response_body(self, mock_client_class: MagicMock) -> None:
+    def test_captures_4xx_error_response_body(
+        self, mock_client_class: MagicMock
+    ) -> None:
         """Test that 4xx error responses are fully captured with body content."""
         mock_client = MagicMock()
         mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
@@ -610,7 +617,9 @@ class TestErrorResponseCapture:
         mock_response = MagicMock()
         mock_response.status_code = 400
         mock_response.headers = {"Content-Type": "application/json"}
-        mock_response.text = '{"error": "Bad Request", "details": "Missing required field"}'
+        mock_response.text = (
+            '{"error": "Bad Request", "details": "Missing required field"}'
+        )
         mock_response.is_success = False
         mock_client.request.return_value = mock_response
 
@@ -621,11 +630,16 @@ class TestErrorResponseCapture:
         # Verify error response is fully captured for verification
         assert result.success is False
         assert result.response.status_code == 400
-        assert result.response.body == {"error": "Bad Request", "details": "Missing required field"}
+        assert result.response.body == {
+            "error": "Bad Request",
+            "details": "Missing required field",
+        }
         assert result.error is None  # HTTP errors don't set error field
 
     @patch("adw.evidence.api_capture.httpx.Client")
-    def test_captures_5xx_error_response_body(self, mock_client_class: MagicMock) -> None:
+    def test_captures_5xx_error_response_body(
+        self, mock_client_class: MagicMock
+    ) -> None:
         """Test that 5xx error responses are fully captured with body content."""
         mock_client = MagicMock()
         mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
@@ -645,7 +659,10 @@ class TestErrorResponseCapture:
         # Verify 5xx error response is fully captured
         assert result.success is False
         assert result.response.status_code == 500
-        assert result.response.body == {"error": "Internal Server Error", "trace_id": "abc123"}
+        assert result.response.body == {
+            "error": "Internal Server Error",
+            "trace_id": "abc123",
+        }
         assert result.response.headers is not None
 
     @patch("adw.evidence.api_capture.httpx.Client")

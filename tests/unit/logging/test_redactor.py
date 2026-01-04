@@ -1,6 +1,5 @@
 """Tests for the secret redaction module."""
 
-
 from adw.logging.redactor import (
     DEFAULT_REDACTION_PATTERNS,
     REDACTED_PLACEHOLDER,

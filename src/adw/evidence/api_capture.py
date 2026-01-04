@@ -5,15 +5,25 @@ HTTP requests to configured endpoints and captures request/response
 pairs for evidence gathering during the Verify phase.
 """
 
+from __future__ import annotations
+
 import base64
 import json
 import os
-from datetime import datetime, timezone
-from typing import Any
-
-import httpx
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
 from adw.logging import LogCategory, get_logger
+
+# httpx is an optional dependency
+try:
+    import httpx
+
+    HTTPX_AVAILABLE = True
+except ImportError:
+    HTTPX_AVAILABLE = False
+    if TYPE_CHECKING:
+        import httpx
 from adw.models.evidence import (
     APIEvidenceResult,
     APIEvidenceSummary,
@@ -56,7 +66,15 @@ class APICaptureStrategy:
         Args:
             base_url: Base URL for all API endpoints
             auth: Optional authentication configuration
+
+        Raises:
+            ImportError: If httpx is not installed
         """
+        if not HTTPX_AVAILABLE:
+            raise ImportError(
+                "httpx is required for API evidence capture. "
+                "Install it with: pip install httpx"
+            )
         # Normalize base URL (remove trailing slash)
         self.base_url = base_url.rstrip("/")
         self.auth = auth
@@ -83,7 +101,7 @@ class APICaptureStrategy:
             f"Calling endpoint: {config.method} {url} (name={config.name})",
         )
 
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
 
         try:
             with httpx.Client(timeout=config.timeout_seconds) as client:
@@ -94,7 +112,7 @@ class APICaptureStrategy:
                     json=config.body if config.body else None,
                 )
 
-            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+            duration = (datetime.now(UTC) - start_time).total_seconds()
 
             # Build request record
             request = APIRequest(
@@ -275,7 +293,8 @@ class APICaptureStrategy:
             return ""
 
         try:
-            return json.loads(text)
+            result: dict[str, Any] = json.loads(text)
+            return result
         except (json.JSONDecodeError, ValueError):
             return text
 
@@ -299,7 +318,7 @@ class APICaptureStrategy:
         Returns:
             APIEvidenceResult with error details
         """
-        duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+        duration = (datetime.now(UTC) - start_time).total_seconds()
 
         return APIEvidenceResult(
             endpoint_name=config.name,

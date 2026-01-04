@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field, ValidationError
 from adw.logging import LogCategory, get_logger
 from adw.models.evidence import AuthConfig, AuthType, CommandConfig, EndpointConfig
 
-
 # =============================================================================
 # API Evidence Configuration
 # =============================================================================
@@ -96,7 +95,7 @@ def load_evidence_config(project_root: Path) -> EvidenceConfig | None:
         )
         return None
 
-    except (OSError, IOError) as e:
+    except OSError as e:
         logger.warn(
             LogCategory.STATE,
             f"Failed to read config file: {e}",

@@ -67,9 +67,7 @@ class TestExecuteCommand:
         assert result.success is False
 
     @patch("subprocess.run")
-    def test_execute_command_with_stdout_and_stderr(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_execute_command_with_stdout_and_stderr(self, mock_run: MagicMock) -> None:
         """execute_command should capture both stdout and stderr."""
         mock_run.return_value = MagicMock(
             returncode=0,
@@ -169,9 +167,7 @@ class TestExecuteCommandConfig:
         assert call_kwargs["timeout"] == 60
 
     @patch("subprocess.run")
-    def test_execute_from_config_uses_config_timeout(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_execute_from_config_uses_config_timeout(self, mock_run: MagicMock) -> None:
         """execute_command_config should use timeout from config."""
         mock_run.return_value = MagicMock(
             returncode=0,
