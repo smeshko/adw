@@ -1146,3 +1146,115 @@ class TestRunIdValidation:
         )
         # Should show the lookup path
         assert ".adw/runs" in result.output or "Searching" in result.output
+
+
+class TestIssueISS003Scenario:
+    """Integration tests reproducing the ISS-003 issue scenario.
+
+    ISS-003: Run ID not found by logs command when copied from progress output.
+    This happens when run IDs are truncated in display and users copy them.
+    """
+
+    def test_truncated_run_id_from_display_shows_helpful_error(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Truncated run ID (as shown in progress display) should show format error.
+
+        Scenario: User sees "01HQXK5P3Z..." in progress output and copies it
+        without realizing the "..." means truncation.
+        """
+        # This simulates copying "01HQXK5P3Z..." literally
+        result = runner.invoke(app, ["logs", "show", "01HQXK5P3Z..."])
+        assert result.exit_code == 1
+        assert "Invalid run ID format" in result.output
+        assert "26-character" in result.output.lower() or "ulid" in result.output.lower()
+
+    def test_partial_run_id_with_typo_suggests_correct_id(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Run ID with last character wrong should suggest the correct run.
+
+        Scenario: User copies run ID but makes a typo in the last character.
+        """
+        # Create a real run
+        real_run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        run_dir = mock_adw_dir / "runs" / real_run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / "context.json").write_text(f'{{"run_id": "{real_run_id}"}}')
+
+        # Try with wrong last character (D instead of C)
+        wrong_run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3D"
+        result = runner.invoke(app, ["logs", "show", wrong_run_id])
+
+        assert result.exit_code == 1
+        # Should suggest the correct run ID
+        assert "Did you mean" in result.output
+        assert real_run_id in result.output
+
+    def test_run_exists_but_still_running_shows_no_logs_message(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Run that exists but is still running should show appropriate message.
+
+        Scenario: User starts a run, immediately tries to view logs before
+        any log entries are written.
+        """
+        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        run_dir = mock_adw_dir / "runs" / run_id
+        run_dir.mkdir(parents=True)
+
+        # Create context.json with running status (as would exist during early run)
+        (run_dir / "context.json").write_text(
+            f'{{"run_id": "{run_id}", "status": "running"}}'
+        )
+        # Create logs directory but no logs.jsonl yet
+        (run_dir / "logs").mkdir()
+
+        result = runner.invoke(app, ["logs", "show", run_id])
+        # Should not error - just show no logs yet
+        assert result.exit_code == 0
+        assert "No log entries" in result.output or "no log" in result.output.lower()
+
+    def test_complete_workflow_run_id_lookup(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
+        """Complete workflow: create run, add logs, view logs.
+
+        This tests the happy path after ISS-003 fixes.
+        """
+        import json
+        from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
+
+        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        run_dir = mock_adw_dir / "runs" / run_id
+        run_dir.mkdir(parents=True)
+
+        # Create complete run structure
+        (run_dir / "context.json").write_text(
+            json.dumps({
+                "run_id": run_id,
+                "status": "completed",
+                "current_phase": "build",
+            })
+        )
+
+        logs_dir = run_dir / "logs"
+        logs_dir.mkdir()
+
+        # Add log entries
+        log_events = [
+            LogEvent(
+                level=LogLevel.INFO,
+                category=LogCategory.PHASE,
+                message="Phase plan started",
+                context=LogContext(run_id=run_id, phase="plan"),
+            ),
+        ]
+        (logs_dir / "logs.jsonl").write_text(
+            "\n".join(e.model_dump_json() for e in log_events)
+        )
+
+        # View logs should work
+        result = runner.invoke(app, ["logs", "show", run_id])
+        assert result.exit_code == 0
+        assert "plan" in result.output.lower()
