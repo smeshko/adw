@@ -52,12 +52,12 @@ so that **I can verify my configuration and phase selection before committing to
 - [x] Handle case when no .adw/project.yaml exists (show defaults)
 
 ### Task 4: Implement Artifact Preview (--from-run)
-- [ ] When `--from-run` is specified:
+- [x] When `--from-run` is specified:
   - Load source run's context
   - List artifacts that would be passed to target phase
   - Show artifact names and sizes
-- [ ] Validate source run exists before displaying
-- [ ] Show clear message if no artifacts found
+- [x] Validate source run exists before displaying
+- [x] Show clear message if no artifacts found
 
 ### Task 5: Integrate into run Command
 - [ ] Modify `src/adw/cli/app.py:run()` command

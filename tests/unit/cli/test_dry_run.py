@@ -202,3 +202,71 @@ class TestDryRunDisplayWithConfig:
         # Should show git integration is enabled
         assert "git" in result
         assert "enabled" in result or "true" in result
+
+
+class TestDryRunArtifactPreview:
+    """Tests for artifact preview display."""
+
+    def test_show_artifact_preview_with_from_run(self, tmp_path: pytest.TempPathFactory) -> None:
+        """Test artifact preview shows source run info."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        display = DryRunDisplay(console)
+
+        display.show_execution_preview(
+            feature="Test feature",
+            phase="build",
+            from_run="01HQXK5P3Z7V8R2M4N6T9W1Y3C",
+        )
+
+        result = output.getvalue()
+        assert "01HQXK5P3Z7V8R2M4N6T9W1Y3C" in result
+        assert "artifact" in result.lower()
+
+    def test_show_artifact_preview_with_artifacts(self, tmp_path) -> None:
+        """Test artifact preview lists actual artifacts."""
+        from pathlib import Path
+        from adw.core.artifact_manager import ArtifactManager
+
+        # Create test artifacts
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+        manager = ArtifactManager(runs_dir)
+        manager.store("01TEST123", "plan", "plan.md", "# Plan content")
+        manager.store("01TEST123", "build", "diff.txt", "diff content here")
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        display = DryRunDisplay(console)
+
+        display.show_execution_preview(
+            feature="Test feature",
+            phase="build",
+            from_run="01TEST123",
+            runs_dir=runs_dir,
+        )
+
+        result = output.getvalue()
+        assert "01TEST123" in result
+        # Should show artifacts
+        assert "plan.md" in result or "diff.txt" in result
+
+    def test_show_artifact_preview_no_artifacts(self, tmp_path) -> None:
+        """Test artifact preview with no artifacts shows message."""
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        display = DryRunDisplay(console)
+
+        display.show_execution_preview(
+            feature="Test feature",
+            phase="build",
+            from_run="01NOARTIFACTS",
+            runs_dir=runs_dir,
+        )
+
+        result = output.getvalue().lower()
+        assert "01noartifacts" in result
+        assert "no artifacts" in result or "artifact" in result

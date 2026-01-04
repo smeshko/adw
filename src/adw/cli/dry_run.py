@@ -7,6 +7,7 @@ any phases or modifying state.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from rich.console import Console
@@ -58,6 +59,7 @@ class DryRunDisplay:
         phase: str | None = None,
         from_run: str | None = None,
         config: ProjectConfig | None = None,
+        runs_dir: Path | None = None,
     ) -> None:
         """Display the execution preview.
 
@@ -69,6 +71,7 @@ class DryRunDisplay:
             phase: Single phase to execute, or None for full pipeline.
             from_run: Source run ID for artifact loading, or None.
             config: Project configuration for hook display, or None.
+            runs_dir: Path to runs directory for artifact lookup, or None.
         """
         # Determine phases to show
         if phase:
@@ -99,7 +102,7 @@ class DryRunDisplay:
 
         # Show artifact info if --from-run specified
         if from_run:
-            self._show_artifact_preview(from_run, phase)
+            self._show_artifact_preview(from_run, phase, runs_dir)
 
         # Show dry-run notice
         self.console.print()
@@ -181,19 +184,60 @@ class DryRunDisplay:
         self,
         from_run: str,
         target_phase: str | None,
+        runs_dir: Path | None = None,
     ) -> None:
         """Display preview of artifacts from source run.
 
         Args:
             from_run: Source run ID to load artifacts from.
             target_phase: Target phase (None for full pipeline).
+            runs_dir: Path to runs directory for artifact lookup, or None.
         """
         self.console.print()
-        self.console.print(
-            Panel(
-                f"[bold]Source Run:[/] {from_run}\n"
-                f"[dim]Artifacts would be loaded from this run[/]",
-                title="[bold cyan]Artifact Source[/]",
-                border_style="cyan",
+
+        # If we have runs_dir, try to list actual artifacts
+        artifacts = []
+        if runs_dir:
+            from adw.core.artifact_manager import ArtifactManager
+
+            manager = ArtifactManager(runs_dir)
+            artifacts = manager.list_artifacts(from_run)
+
+        if artifacts:
+            # Show artifacts in a table
+            table = Table(title=f"Artifacts from Run: {from_run}")
+            table.add_column("Phase", style="cyan")
+            table.add_column("Artifact", style="bold")
+            table.add_column("Size", style="dim", justify="right")
+
+            for artifact in artifacts:
+                size_str = self._format_size(artifact["size"])
+                table.add_row(artifact["phase"], artifact["name"], size_str)
+
+            self.console.print(table)
+        else:
+            # No artifacts found or no runs_dir provided
+            self.console.print(
+                Panel(
+                    f"[bold]Source Run:[/] {from_run}\n"
+                    f"[dim]No artifacts found or run does not exist[/]",
+                    title="[bold cyan]Artifact Source[/]",
+                    border_style="cyan",
+                )
             )
-        )
+
+    def _format_size(self, size_bytes: int) -> str:
+        """Format file size in human-readable format.
+
+        Args:
+            size_bytes: Size in bytes.
+
+        Returns:
+            Human-readable size string (e.g., "1.5 KB", "2.3 MB").
+        """
+        if size_bytes < 1024:
+            return f"{size_bytes} B"
+        elif size_bytes < 1024 * 1024:
+            return f"{size_bytes / 1024:.1f} KB"
+        else:
+            return f"{size_bytes / (1024 * 1024):.1f} MB"
