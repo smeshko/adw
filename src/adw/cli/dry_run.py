@@ -93,6 +93,10 @@ class DryRunDisplay:
         # Show phases table with hooks from config
         self._show_phases_table(phases_to_show, config)
 
+        # Show configuration display if config provided
+        if config:
+            self._show_config_table(config)
+
         # Show artifact info if --from-run specified
         if from_run:
             self._show_artifact_preview(from_run, phase)
@@ -135,6 +139,41 @@ class DryRunDisplay:
                     post_hook = phase_config.post_hook
 
             table.add_row(phase_name, pre_hook, post_hook)
+
+        self.console.print(table)
+
+    def _show_config_table(self, config: ProjectConfig) -> None:
+        """Display table of project configuration.
+
+        Args:
+            config: Project configuration to display.
+        """
+        self.console.print()
+
+        table = Table(title="Project Configuration")
+        table.add_column("Setting", style="bold")
+        table.add_column("Value")
+
+        # Core project settings
+        table.add_row("Name", config.name)
+        table.add_row("Language", config.language)
+        if config.framework:
+            table.add_row("Framework", config.framework)
+        table.add_row("Platform", config.platform)
+
+        # Commands
+        if config.test_command:
+            table.add_row("Test Command", config.test_command)
+        if config.build_command:
+            table.add_row("Build Command", config.build_command)
+
+        # LLM settings
+        table.add_row("LLM Path", config.llm.path)
+        table.add_row("LLM Timeout", f"{config.llm.timeout_seconds}s")
+
+        # Git integration
+        git_status = "enabled" if config.git.enabled else "disabled"
+        table.add_row("Git Integration", git_status)
 
         self.console.print(table)
 

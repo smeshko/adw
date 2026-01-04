@@ -39,8 +39,8 @@ so that **I can verify my configuration and phase selection before committing to
 - [x] Use Rich Table for clean alignment
 
 ### Task 3: Implement Configuration Display
-- [ ] Load project config via ConfigLoader
-- [ ] Display relevant settings:
+- [x] Load project config via ConfigLoader
+- [x] Display relevant settings:
   - Project name
   - Language
   - Framework (if set)
@@ -49,7 +49,7 @@ so that **I can verify my configuration and phase selection before committing to
   - Build command (if set)
   - LLM path and timeout
   - Git integration settings (if enabled)
-- [ ] Handle case when no .adw/project.yaml exists (show defaults)
+- [x] Handle case when no .adw/project.yaml exists (show defaults)
 
 ### Task 4: Implement Artifact Preview (--from-run)
 - [ ] When `--from-run` is specified:

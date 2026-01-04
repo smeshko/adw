@@ -144,3 +144,61 @@ class TestDryRunDisplayWithConfig:
         # Should still show phases
         for phase in ["plan", "build", "verify", "validate", "document"]:
             assert phase in result.lower()
+
+    def test_show_config_display(self) -> None:
+        """Test configuration display shows project settings."""
+        from adw.models import ProjectConfig
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        display = DryRunDisplay(console)
+
+        config = ProjectConfig(
+            name="my-test-project",
+            language="python",
+            framework="fastapi",
+            platform="api",
+            test_command="pytest",
+            build_command="python -m build",
+        )
+
+        display.show_execution_preview(
+            feature="Test feature",
+            phase=None,
+            from_run=None,
+            config=config,
+        )
+
+        result = output.getvalue()
+        assert "my-test-project" in result
+        assert "python" in result
+        assert "fastapi" in result
+        assert "api" in result
+        assert "pytest" in result
+        assert "python -m build" in result
+
+    def test_show_config_with_git_settings(self) -> None:
+        """Test configuration display shows git integration settings."""
+        from adw.models import ProjectConfig, GitConfig
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        display = DryRunDisplay(console)
+
+        config = ProjectConfig(
+            name="test-project",
+            language="python",
+            git=GitConfig(enabled=True, branch_prefix="feat/"),
+        )
+
+        display.show_execution_preview(
+            feature="Test feature",
+            phase=None,
+            from_run=None,
+            config=config,
+        )
+
+        result = output.getvalue().lower()
+        # Should show git integration is enabled
+        assert "git" in result
+        assert "enabled" in result or "true" in result
