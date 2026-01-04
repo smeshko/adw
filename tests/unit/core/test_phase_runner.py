@@ -497,6 +497,146 @@ class TestPhaseRunnerErrorHandling:
         assert exc_info.value.code == "LLM_ERROR"
 
 
+class TestPhaseRunnerGitDiffCapture:
+    """Tests for git diff artifact capture during build phase (Story 9.3)."""
+
+    def test_build_phase_captures_git_diff(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_artifact_manager: ArtifactManager,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that build phase captures git diff artifacts."""
+        from unittest.mock import patch
+
+        mock_executor.execute.return_value = LLMResult(
+            success=True,
+            content="Build output",
+            tokens_used=100,
+            duration_ms=1000,
+        )
+
+        # Update context to build phase
+        sample_context = sample_context.model_copy(update={"current_phase": "build"})
+
+        # Mock git diff to return test content
+        with (
+            patch("adw.core.phase_runner.capture_diff") as mock_capture,
+            patch("adw.core.phase_runner.subprocess.run") as mock_stat,
+        ):
+            mock_capture.return_value = "diff --git a/test.py\n+added line"
+            mock_stat.return_value = MagicMock(
+                returncode=0,
+                stdout="1 file changed, 1 insertion(+)",
+            )
+
+            result = phase_runner.run("build", sample_context)
+
+            # Verify diff artifact was captured
+            assert "diff.txt" in result.artifacts
+
+            # Verify content was stored
+            diff_content = mock_artifact_manager.get(
+                sample_context.run_id, "build", "diff.txt"
+            )
+            assert diff_content is not None
+            assert "diff --git" in diff_content
+
+    def test_build_phase_falls_back_to_staged_diff(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_artifact_manager: ArtifactManager,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that build phase falls back to staged diff when no commit diff."""
+        from unittest.mock import patch
+
+        mock_executor.execute.return_value = LLMResult(
+            success=True,
+            content="Build output",
+            tokens_used=100,
+            duration_ms=1000,
+        )
+
+        sample_context = sample_context.model_copy(update={"current_phase": "build"})
+
+        with (
+            patch("adw.core.phase_runner.capture_diff") as mock_diff,
+            patch("adw.core.phase_runner.capture_staged_diff") as mock_staged,
+            patch("adw.core.phase_runner.subprocess.run") as mock_stat,
+        ):
+            # No commit diff available
+            mock_diff.return_value = ""
+            # But staged changes exist
+            mock_staged.return_value = "diff --git staged changes"
+            mock_stat.return_value = MagicMock(returncode=0, stdout="")
+
+            result = phase_runner.run("build", sample_context)
+
+            # Should have called capture_staged_diff
+            mock_staged.assert_called_once()
+            assert "diff.txt" in result.artifacts
+
+    def test_build_phase_handles_git_error_gracefully(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that git errors don't fail the build phase."""
+        from unittest.mock import patch
+
+        from adw.exceptions import HookError
+
+        mock_executor.execute.return_value = LLMResult(
+            success=True,
+            content="Build output",
+            tokens_used=100,
+            duration_ms=1000,
+        )
+
+        sample_context = sample_context.model_copy(update={"current_phase": "build"})
+
+        with patch("adw.core.phase_runner.capture_diff") as mock_diff:
+            mock_diff.side_effect = HookError(
+                code="GIT_DIFF_FAILED",
+                message="Git not available",
+                phase="build",
+            )
+
+            # Should complete without error
+            result = phase_runner.run("build", sample_context)
+
+            # Build succeeded but no diff artifact
+            assert result.status == PhaseStatus.COMPLETED
+            assert "diff.txt" not in result.artifacts
+
+    def test_non_build_phase_does_not_capture_diff(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that non-build phases don't capture git diff."""
+        from unittest.mock import patch
+
+        mock_executor.execute.return_value = LLMResult(
+            success=True,
+            content="Plan output",
+            tokens_used=100,
+            duration_ms=1000,
+        )
+
+        with patch("adw.core.phase_runner.capture_diff") as mock_diff:
+            result = phase_runner.run("plan", sample_context)
+
+            # capture_diff should not be called for plan phase
+            mock_diff.assert_not_called()
+            assert "diff.txt" not in result.artifacts
+
+
 class TestPhaseRunnerWithMockExecutor:
     """Integration-style tests using MockExecutor."""
 

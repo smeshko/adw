@@ -43,7 +43,7 @@ so that changes can be reviewed and included in PR description.
   - Add truncation notice at end
 - [x] Implement `get_diff_stats(diff: str) -> DiffStats`
   - Parse insertions/deletions from --stat output
-- [ ] Integrate diff capture into Build phase artifact collection
+- [x] Integrate diff capture into Build phase artifact collection
 - [ ] Add diff to template variable namespace as `{{artifacts.build.diff}}`
 - [x] Write unit tests for diff parsing and truncation
 - [ ] Write integration tests with actual git changes
@@ -135,5 +135,7 @@ Claude claude-opus-4-5-20251101
 ### File List
 - src/adw/hooks/git_diff.py (new)
 - src/adw/hooks/__init__.py (modified - added exports)
+- src/adw/core/phase_runner.py (modified - added diff capture in build phase)
 - tests/unit/hooks/test_git_diff.py (new)
+- tests/unit/core/test_phase_runner.py (modified - added git diff tests)
 
