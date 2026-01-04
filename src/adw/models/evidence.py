@@ -79,12 +79,8 @@ class PlatformDetectionResult(BaseModel):
         <PlatformType.WEB: 'web'>
     """
 
-    platform: PlatformType = Field(
-        ..., description="The detected platform type"
-    )
-    confidence: Confidence = Field(
-        ..., description="How confident the detection is"
-    )
+    platform: PlatformType = Field(..., description="The detected platform type")
+    confidence: Confidence = Field(..., description="How confident the detection is")
     source: str = Field(
         ..., description="Where the detection came from (config, markers, default)"
     )
