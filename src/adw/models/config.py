@@ -198,23 +198,32 @@ class LoggingConfig(BaseModel):
 class GitConfig(BaseModel):
     """Configuration for git integration.
 
-    Controls automatic git branch management during workflow execution.
-    When enabled, ADW will automatically create or switch to feature
-    branches based on the feature description.
+    Controls automatic git branch management and commit automation
+    during workflow execution. When enabled, ADW will automatically
+    create or switch to feature branches based on the feature description
+    and optionally commit changes after each phase.
 
     Attributes:
         enabled: Whether git integration is enabled (default: False)
         branch_prefix: Prefix for auto-created branches (default: "feature/")
+        auto_commit: Whether to auto-commit after phases (default: True)
+        commit_template: Custom commit message template (optional)
+        skip_hooks: Skip pre-commit hooks with --no-verify (default: False)
 
     Example:
         >>> config = GitConfig(enabled=True, branch_prefix="feat/")
         >>> config.branch_prefix
         'feat/'
+        >>> config.auto_commit
+        True
 
     YAML example:
         git:
           enabled: true
           branch_prefix: "feature/"
+          auto_commit: true
+          commit_template: "{phase}: {feature}"
+          skip_hooks: false
     """
 
     enabled: bool = Field(
@@ -224,6 +233,18 @@ class GitConfig(BaseModel):
     branch_prefix: str = Field(
         default="feature/",
         description="Prefix for auto-created branches",
+    )
+    auto_commit: bool = Field(
+        default=True,
+        description="Whether to auto-commit after phases",
+    )
+    commit_template: str | None = Field(
+        default=None,
+        description="Custom commit message template ({phase}, {feature}, {run_id})",
+    )
+    skip_hooks: bool = Field(
+        default=False,
+        description="Skip pre-commit hooks with --no-verify (use with caution)",
     )
 
 
@@ -368,6 +389,9 @@ class ProjectConfig(BaseModel):
                 "git": {
                     "enabled": False,
                     "branch_prefix": "feature/",
+                    "auto_commit": True,
+                    "commit_template": None,
+                    "skip_hooks": False,
                 },
             }
         },

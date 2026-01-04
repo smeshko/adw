@@ -93,6 +93,8 @@ class TestGitConfig:
         config = GitConfig()
         assert config.enabled is False
         assert config.branch_prefix == "feature/"
+        assert config.auto_commit is True
+        assert config.commit_template is None
 
     def test_enabled_with_custom_prefix(self) -> None:
         """GitConfig accepts custom prefix."""
@@ -102,6 +104,37 @@ class TestGitConfig:
         )
         assert config.enabled is True
         assert config.branch_prefix == "feat/"
+
+    def test_auto_commit_disabled(self) -> None:
+        """GitConfig can disable auto-commit."""
+        config = GitConfig(
+            enabled=True,
+            auto_commit=False,
+        )
+        assert config.enabled is True
+        assert config.auto_commit is False
+
+    def test_custom_commit_template(self) -> None:
+        """GitConfig accepts custom commit template."""
+        template = "{phase}: {feature} [{run_id}]"
+        config = GitConfig(
+            enabled=True,
+            commit_template=template,
+        )
+        assert config.commit_template == template
+
+    def test_skip_hooks_default_false(self) -> None:
+        """GitConfig defaults skip_hooks to False."""
+        config = GitConfig()
+        assert config.skip_hooks is False
+
+    def test_skip_hooks_enabled(self) -> None:
+        """GitConfig can enable skip_hooks."""
+        config = GitConfig(
+            enabled=True,
+            skip_hooks=True,
+        )
+        assert config.skip_hooks is True
 
 
 class TestProjectConfig:
@@ -209,6 +242,34 @@ git:
         config = ProjectConfig.from_yaml(yaml_content)
         assert config.git.enabled is True
         assert config.git.branch_prefix == "feat/"
+
+    def test_with_git_commit_config(self) -> None:
+        """ProjectConfig with git auto-commit configuration."""
+        yaml_content = """
+name: git-commit-enabled
+language: python
+git:
+  enabled: true
+  auto_commit: true
+  commit_template: "{phase}: {feature}"
+"""
+        config = ProjectConfig.from_yaml(yaml_content)
+        assert config.git.enabled is True
+        assert config.git.auto_commit is True
+        assert config.git.commit_template == "{phase}: {feature}"
+
+    def test_with_git_auto_commit_disabled(self) -> None:
+        """ProjectConfig with auto-commit disabled."""
+        yaml_content = """
+name: git-no-commit
+language: python
+git:
+  enabled: true
+  auto_commit: false
+"""
+        config = ProjectConfig.from_yaml(yaml_content)
+        assert config.git.enabled is True
+        assert config.git.auto_commit is False
 
     def test_with_phase_config(self) -> None:
         """ProjectConfig with phase-specific configuration."""
