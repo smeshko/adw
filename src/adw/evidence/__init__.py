@@ -3,12 +3,18 @@
 This package contains modules for:
 - Platform detection (determining if project is CLI, WEB, MOBILE, or BACKEND)
 - Evidence capture strategies (terminal output, screenshots, API responses)
+- CLI evidence gathering (command execution and output capture)
+- Web evidence gathering (browser screenshots)
 - Mobile screenshot capture (iOS Simulator, Android Emulator, Flutter)
 """
 
 from pathlib import Path
 
+from adw.evidence.cli_capture import CLICaptureStrategy
+from adw.evidence.cli_gatherer import CLIEvidenceGatherer
+from adw.evidence.config_loader import load_evidence_commands
 from adw.evidence.detector import PlatformDetector
+from adw.evidence.file_writer import EvidenceFileWriter
 from adw.evidence.mobile_capture import (
     capture_android_screenshot,
     capture_configured_screens,
@@ -24,8 +30,20 @@ from adw.evidence.mobile_capture import (
     navigate_ios_deeplink,
     save_evidence_metadata,
 )
+from adw.evidence.summary_generator import SummaryGenerator
+from adw.evidence.web_capture import (
+    DEFAULT_VIEWPORTS,
+    WebCaptureStrategy,
+    check_playwright_available,
+    create_evidence_directory,
+    generate_evidence_metadata,
+    load_routes_from_config,
+)
 from adw.logging import LogCategory, get_logger
 from adw.models.evidence import (
+    CLIEvidenceSummary,
+    CommandConfig,
+    CommandResult,
     EvidenceStrategy,
     MobileDeviceType,
     MobileEvidenceSummary,
@@ -33,6 +51,10 @@ from adw.models.evidence import (
     MobileScreenshotResult,
     PlatformDetectionResult,
     PlatformType,
+    RouteConfig,
+    ScreenshotResult,
+    ViewportConfig,
+    WebEvidenceSummary,
 )
 
 
@@ -107,6 +129,28 @@ __all__ = [
     "PlatformDetector",
     "detect_platform",
     "get_evidence_strategy",
+    # CLI evidence gathering
+    "CLICaptureStrategy",
+    "CLIEvidenceGatherer",
+    "EvidenceFileWriter",
+    "SummaryGenerator",
+    "load_evidence_commands",
+    # CLI models
+    "CLIEvidenceSummary",
+    "CommandConfig",
+    "CommandResult",
+    # Web capture
+    "DEFAULT_VIEWPORTS",
+    "WebCaptureStrategy",
+    "check_playwright_available",
+    "create_evidence_directory",
+    "generate_evidence_metadata",
+    "load_routes_from_config",
+    # Web models
+    "RouteConfig",
+    "ScreenshotResult",
+    "ViewportConfig",
+    "WebEvidenceSummary",
     # Mobile capture
     "capture_android_screenshot",
     "capture_configured_screens",

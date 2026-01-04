@@ -1,4 +1,4 @@
-# Epic 12: Worktree Isolation
+# Epic 10: Worktree Isolation
 
 **Goal:** Enable concurrent workflow execution via git worktrees with deterministic port allocation, allowing up to 15 simultaneous ADW runs.
 
@@ -7,7 +7,7 @@
 
 ---
 
-## Story 12.1: Worktree Creation and Lifecycle
+## Story 10.1: Worktree Creation and Lifecycle
 
 As a developer,
 I want each ADW run to execute in an isolated git worktree,
@@ -37,7 +37,7 @@ So that concurrent runs don't interfere with each other or my working directory.
 
 ---
 
-## Story 12.2: Worktree Directory Structure
+## Story 10.2: Worktree Directory Structure
 
 As a developer,
 I want worktrees organized predictably,
@@ -67,7 +67,7 @@ So that I can find and inspect them easily.
 
 ---
 
-## Story 12.3: Port Allocation System
+## Story 10.3: Port Allocation System
 
 As a developer,
 I want deterministic port allocation per run,
@@ -97,7 +97,7 @@ So that concurrent runs don't have port conflicts.
 
 ---
 
-## Story 12.4: Concurrent Run Management
+## Story 10.4: Concurrent Run Management
 
 As a developer,
 I want to run multiple ADW workflows simultaneously,
@@ -123,7 +123,7 @@ So that I can process multiple features in parallel.
 
 ---
 
-## Story 12.5: Worktree Context in Phases
+## Story 10.5: Worktree Context in Phases
 
 As a developer,
 I want phases to execute in the worktree context,
@@ -149,7 +149,7 @@ So that file operations happen in the isolated environment.
 
 ---
 
-## Story 12.6: Worktree Branch Management
+## Story 10.6: Worktree Branch Management
 
 As a developer,
 I want worktree branches managed automatically,
@@ -225,19 +225,19 @@ my-project/
 ## Dependency Flowchart
 
 ```
-Story 12.1 (Worktree Creation)
+Story 10.1 (Worktree Creation)
        │
-       ├──▶ Story 12.2 (Directory Structure)
+       ├──▶ Story 10.2 (Directory Structure)
        │
-       ├──▶ Story 12.3 (Port Allocation)
+       ├──▶ Story 10.3 (Port Allocation)
        │
-       └──▶ Story 12.6 (Branch Management)
+       └──▶ Story 10.6 (Branch Management)
               │
               ▼
-Story 12.4 (Concurrent Management)
+Story 10.4 (Concurrent Management)
        │
        ▼
-Story 12.5 (Worktree Context in Phases)
+Story 10.5 (Worktree Context in Phases)
 ```
 
 ---

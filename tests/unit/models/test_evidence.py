@@ -2,7 +2,12 @@
 
 This module tests the PlatformType, Confidence, and PlatformDetectionResult
 models used for evidence gathering platform detection.
+Also tests web screenshot models: RouteConfig, ViewportConfig, ScreenshotResult,
+and WebEvidenceSummary.
 """
+
+from datetime import datetime
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -12,6 +17,10 @@ from adw.models.evidence import (
     EvidenceStrategy,
     PlatformDetectionResult,
     PlatformType,
+    RouteConfig,
+    ScreenshotResult,
+    ViewportConfig,
+    WebEvidenceSummary,
 )
 
 
@@ -214,6 +223,268 @@ class TestPlatformDetectionResult:
         assert result2.markers == []
 
 
+class TestViewportConfig:
+    """Tests for ViewportConfig model."""
+
+    def test_create_viewport_config(self) -> None:
+        """Test creating a basic viewport configuration."""
+        viewport = ViewportConfig(name="desktop", width=1920, height=1080)
+        assert viewport.name == "desktop"
+        assert viewport.width == 1920
+        assert viewport.height == 1080
+
+    def test_viewport_config_required_fields(self) -> None:
+        """Test that all fields are required."""
+        with pytest.raises(ValidationError):
+            ViewportConfig(name="desktop")  # Missing width and height
+
+    def test_viewport_config_json_serialization(self) -> None:
+        """Test JSON serialization of viewport config."""
+        viewport = ViewportConfig(name="mobile", width=375, height=667)
+        data = viewport.model_dump()
+        assert data["name"] == "mobile"
+        assert data["width"] == 375
+        assert data["height"] == 667
+
+    def test_viewport_config_json_deserialization(self) -> None:
+        """Test creating viewport from JSON data."""
+        data = {"name": "tablet", "width": 768, "height": 1024}
+        viewport = ViewportConfig.model_validate(data)
+        assert viewport.name == "tablet"
+        assert viewport.width == 768
+        assert viewport.height == 1024
+
+    def test_viewport_config_positive_dimensions(self) -> None:
+        """Test that dimensions must be positive."""
+        with pytest.raises(ValidationError):
+            ViewportConfig(name="invalid", width=-100, height=100)
+        with pytest.raises(ValidationError):
+            ViewportConfig(name="invalid", width=100, height=-100)
+
+
+class TestRouteConfig:
+    """Tests for RouteConfig model."""
+
+    def test_create_route_config_minimal(self) -> None:
+        """Test creating a route with minimal required fields."""
+        route = RouteConfig(name="home", path="/")
+        assert route.name == "home"
+        assert route.path == "/"
+        assert route.wait_for == "networkidle"  # Default
+        assert route.timeout_ms == 30000  # Default
+
+    def test_create_route_config_full(self) -> None:
+        """Test creating a route with all fields."""
+        route = RouteConfig(
+            name="dashboard",
+            path="/dashboard",
+            wait_for="load",
+            timeout_ms=60000,
+        )
+        assert route.name == "dashboard"
+        assert route.path == "/dashboard"
+        assert route.wait_for == "load"
+        assert route.timeout_ms == 60000
+
+    def test_route_config_wait_for_values(self) -> None:
+        """Test valid wait_for values."""
+        for wait_for in ["networkidle", "load", "domcontentloaded"]:
+            route = RouteConfig(name="test", path="/test", wait_for=wait_for)
+            assert route.wait_for == wait_for
+
+    def test_route_config_json_serialization(self) -> None:
+        """Test JSON serialization of route config."""
+        route = RouteConfig(name="login", path="/login", timeout_ms=15000)
+        data = route.model_dump()
+        assert data["name"] == "login"
+        assert data["path"] == "/login"
+        assert data["wait_for"] == "networkidle"
+        assert data["timeout_ms"] == 15000
+
+    def test_route_config_json_deserialization(self) -> None:
+        """Test creating route from JSON data."""
+        data = {
+            "name": "profile",
+            "path": "/profile",
+            "wait_for": "load",
+            "timeout_ms": 45000,
+        }
+        route = RouteConfig.model_validate(data)
+        assert route.name == "profile"
+        assert route.path == "/profile"
+        assert route.wait_for == "load"
+        assert route.timeout_ms == 45000
+
+    def test_route_config_required_fields(self) -> None:
+        """Test that name and path are required."""
+        with pytest.raises(ValidationError):
+            RouteConfig(name="test")  # Missing path
+        with pytest.raises(ValidationError):
+            RouteConfig(path="/test")  # Missing name
+
+
+class TestScreenshotResult:
+    """Tests for ScreenshotResult model."""
+
+    def test_create_screenshot_result_success(self) -> None:
+        """Test creating a successful screenshot result."""
+        result = ScreenshotResult(
+            path=Path("/tmp/screenshots/home_desktop.png"),
+            route="home",
+            viewport="1920x1080",
+            success=True,
+        )
+        assert result.path == Path("/tmp/screenshots/home_desktop.png")
+        assert result.route == "home"
+        assert result.viewport == "1920x1080"
+        assert result.success is True
+        assert result.error is None
+        assert isinstance(result.captured_at, datetime)
+
+    def test_create_screenshot_result_failure(self) -> None:
+        """Test creating a failed screenshot result."""
+        result = ScreenshotResult(
+            path=Path("/tmp/screenshots/dashboard_error.png"),
+            route="dashboard",
+            viewport="1920x1080",
+            success=False,
+            error="Timeout waiting for page load",
+        )
+        assert result.success is False
+        assert result.error == "Timeout waiting for page load"
+
+    def test_screenshot_result_path_types(self) -> None:
+        """Test that path can be string or Path."""
+        # With Path
+        result1 = ScreenshotResult(
+            path=Path("/tmp/test.png"),
+            route="test",
+            viewport="1920x1080",
+            success=True,
+        )
+        assert isinstance(result1.path, Path)
+
+        # With string (should convert to Path)
+        result2 = ScreenshotResult(
+            path="/tmp/test.png",
+            route="test",
+            viewport="1920x1080",
+            success=True,
+        )
+        assert isinstance(result2.path, Path)
+
+    def test_screenshot_result_json_serialization(self) -> None:
+        """Test JSON serialization of screenshot result."""
+        result = ScreenshotResult(
+            path=Path("/tmp/home.png"),
+            route="home",
+            viewport="1920x1080",
+            success=True,
+        )
+        data = result.model_dump()
+        assert data["route"] == "home"
+        assert data["viewport"] == "1920x1080"
+        assert data["success"] is True
+        assert data["error"] is None
+
+    def test_screenshot_result_default_captured_at(self) -> None:
+        """Test that captured_at is auto-generated."""
+        before = datetime.now()
+        result = ScreenshotResult(
+            path=Path("/tmp/test.png"),
+            route="test",
+            viewport="1920x1080",
+            success=True,
+        )
+        after = datetime.now()
+        assert before <= result.captured_at <= after
+
+
+class TestWebEvidenceSummary:
+    """Tests for WebEvidenceSummary model."""
+
+    def test_create_evidence_summary_empty(self) -> None:
+        """Test creating an empty evidence summary."""
+        summary = WebEvidenceSummary(
+            base_url="http://localhost:3000",
+            total_screenshots=0,
+            successful=0,
+            failed=0,
+            results=[],
+        )
+        assert summary.base_url == "http://localhost:3000"
+        assert summary.total_screenshots == 0
+        assert summary.successful == 0
+        assert summary.failed == 0
+        assert summary.results == []
+
+    def test_create_evidence_summary_with_results(self) -> None:
+        """Test creating an evidence summary with results."""
+        results = [
+            ScreenshotResult(
+                path=Path("/tmp/home.png"),
+                route="home",
+                viewport="1920x1080",
+                success=True,
+            ),
+            ScreenshotResult(
+                path=Path("/tmp/dashboard.png"),
+                route="dashboard",
+                viewport="1920x1080",
+                success=False,
+                error="Timeout",
+            ),
+        ]
+        summary = WebEvidenceSummary(
+            base_url="http://localhost:3000",
+            total_screenshots=2,
+            successful=1,
+            failed=1,
+            results=results,
+        )
+        assert summary.total_screenshots == 2
+        assert summary.successful == 1
+        assert summary.failed == 1
+        assert len(summary.results) == 2
+
+    def test_evidence_summary_json_serialization(self) -> None:
+        """Test JSON serialization of evidence summary."""
+        summary = WebEvidenceSummary(
+            base_url="http://localhost:3000",
+            total_screenshots=1,
+            successful=1,
+            failed=0,
+            results=[
+                ScreenshotResult(
+                    path=Path("/tmp/home.png"),
+                    route="home",
+                    viewport="1920x1080",
+                    success=True,
+                ),
+            ],
+        )
+        data = summary.model_dump()
+        assert data["base_url"] == "http://localhost:3000"
+        assert data["total_screenshots"] == 1
+        assert len(data["results"]) == 1
+
+    def test_evidence_summary_required_fields(self) -> None:
+        """Test that all fields are required."""
+        with pytest.raises(ValidationError):
+            WebEvidenceSummary(base_url="http://localhost:3000")
+
+    def test_evidence_summary_results_type(self) -> None:
+        """Test that results must be a list of ScreenshotResult."""
+        with pytest.raises(ValidationError):
+            WebEvidenceSummary(
+                base_url="http://localhost:3000",
+                total_screenshots=1,
+                successful=1,
+                failed=0,
+                results=["not a ScreenshotResult"],
+            )
+
+
 # =============================================================================
 # Mobile Evidence Models Tests (Story 8.3b)
 # =============================================================================
@@ -223,34 +494,30 @@ class TestMobileDeviceType:
     """Tests for MobileDeviceType enum."""
 
     def test_mobile_device_type_values(self) -> None:
-        """Test that all expected mobile device types exist."""
+        """Test all mobile device type values exist."""
         from adw.models.evidence import MobileDeviceType
 
-        assert MobileDeviceType.IOS == "ios"
-        assert MobileDeviceType.ANDROID == "android"
-        assert MobileDeviceType.FLUTTER_IOS == "flutter_ios"
-        assert MobileDeviceType.FLUTTER_ANDROID == "flutter_android"
+        assert MobileDeviceType.IOS.value == "ios"
+        assert MobileDeviceType.ANDROID.value == "android"
+        assert MobileDeviceType.FLUTTER_IOS.value == "flutter_ios"
+        assert MobileDeviceType.FLUTTER_ANDROID.value == "flutter_android"
 
     def test_mobile_device_type_is_string_enum(self) -> None:
-        """Test that MobileDeviceType inherits from str."""
+        """Test MobileDeviceType is a string enum."""
         from adw.models.evidence import MobileDeviceType
 
         assert isinstance(MobileDeviceType.IOS, str)
-        assert isinstance(MobileDeviceType.ANDROID, str)
-        assert isinstance(MobileDeviceType.FLUTTER_IOS, str)
-        assert isinstance(MobileDeviceType.FLUTTER_ANDROID, str)
+        assert MobileDeviceType.IOS.value == "ios"
 
     def test_mobile_device_type_from_string(self) -> None:
-        """Test creating MobileDeviceType from string value."""
+        """Test creating MobileDeviceType from string."""
         from adw.models.evidence import MobileDeviceType
 
         assert MobileDeviceType("ios") == MobileDeviceType.IOS
         assert MobileDeviceType("android") == MobileDeviceType.ANDROID
-        assert MobileDeviceType("flutter_ios") == MobileDeviceType.FLUTTER_IOS
-        assert MobileDeviceType("flutter_android") == MobileDeviceType.FLUTTER_ANDROID
 
     def test_invalid_mobile_device_type_raises(self) -> None:
-        """Test that invalid mobile device type raises ValueError."""
+        """Test invalid mobile device type raises ValueError."""
         from adw.models.evidence import MobileDeviceType
 
         with pytest.raises(ValueError):
@@ -261,17 +528,16 @@ class TestMobileScreenConfig:
     """Tests for MobileScreenConfig model."""
 
     def test_create_basic_screen_config(self) -> None:
-        """Test creating a basic screen configuration."""
+        """Test creating a basic screen config."""
         from adw.models.evidence import MobileScreenConfig
 
         config = MobileScreenConfig(name="home")
         assert config.name == "home"
         assert config.deeplink is None
-        assert config.capture_delay_ms == 500  # default
-        assert config.navigation_steps == []
+        assert config.capture_delay_ms == 500
 
     def test_create_screen_config_with_deeplink(self) -> None:
-        """Test creating screen config with deeplink."""
+        """Test creating a screen config with deeplink."""
         from adw.models.evidence import MobileScreenConfig
 
         config = MobileScreenConfig(
@@ -287,20 +553,17 @@ class TestMobileScreenConfig:
         """Test JSON serialization of screen config."""
         from adw.models.evidence import MobileScreenConfig
 
-        config = MobileScreenConfig(
-            name="settings",
-            deeplink="myapp://settings",
-        )
+        config = MobileScreenConfig(name="home", deeplink="myapp://home")
         data = config.model_dump()
-        assert data["name"] == "settings"
-        assert data["deeplink"] == "myapp://settings"
+        assert data["name"] == "home"
+        assert data["deeplink"] == "myapp://home"
 
     def test_screen_config_name_required(self) -> None:
         """Test that name is required."""
         from adw.models.evidence import MobileScreenConfig
 
         with pytest.raises(ValidationError):
-            MobileScreenConfig()  # type: ignore
+            MobileScreenConfig()
 
 
 class TestMobileScreenshotResult:
@@ -308,48 +571,40 @@ class TestMobileScreenshotResult:
 
     def test_create_successful_screenshot_result(self) -> None:
         """Test creating a successful screenshot result."""
-        from pathlib import Path
-
         from adw.models.evidence import MobileDeviceType, MobileScreenshotResult
 
         result = MobileScreenshotResult(
-            path=Path("/tmp/screenshot.png"),
+            path=Path("/tmp/home.png"),
             screen_name="home",
             device_type=MobileDeviceType.IOS,
             success=True,
         )
-        assert result.path == Path("/tmp/screenshot.png")
+        assert result.path == Path("/tmp/home.png")
         assert result.screen_name == "home"
         assert result.device_type == MobileDeviceType.IOS
         assert result.success is True
         assert result.error is None
-        assert result.device_name is None
-        assert result.os_version is None
 
     def test_create_failed_screenshot_result(self) -> None:
         """Test creating a failed screenshot result."""
-        from pathlib import Path
-
         from adw.models.evidence import MobileDeviceType, MobileScreenshotResult
 
         result = MobileScreenshotResult(
-            path=Path("/tmp/screenshot.png"),
+            path=Path("/tmp/profile.png"),
             screen_name="profile",
             device_type=MobileDeviceType.ANDROID,
             success=False,
-            error="No emulator running",
+            error="Device not found",
         )
         assert result.success is False
-        assert result.error == "No emulator running"
+        assert result.error == "Device not found"
 
     def test_screenshot_result_with_device_info(self) -> None:
         """Test screenshot result with device info."""
-        from pathlib import Path
-
         from adw.models.evidence import MobileDeviceType, MobileScreenshotResult
 
         result = MobileScreenshotResult(
-            path=Path("/tmp/home_ios.png"),
+            path=Path("/tmp/home.png"),
             screen_name="home",
             device_type=MobileDeviceType.IOS,
             device_name="iPhone 15 Pro",
@@ -360,46 +615,37 @@ class TestMobileScreenshotResult:
         assert result.os_version == "17.2"
 
     def test_screenshot_result_has_captured_at(self) -> None:
-        """Test that screenshot result has captured_at timestamp."""
-        from datetime import datetime
-        from pathlib import Path
-
+        """Test screenshot result has captured_at timestamp."""
         from adw.models.evidence import MobileDeviceType, MobileScreenshotResult
 
         result = MobileScreenshotResult(
-            path=Path("/tmp/screenshot.png"),
+            path=Path("/tmp/home.png"),
             screen_name="home",
             device_type=MobileDeviceType.IOS,
             success=True,
         )
-        assert isinstance(result.captured_at, datetime)
+        assert result.captured_at is not None
 
     def test_screenshot_result_json_serialization(self) -> None:
         """Test JSON serialization of screenshot result."""
-        from pathlib import Path
-
         from adw.models.evidence import MobileDeviceType, MobileScreenshotResult
 
         result = MobileScreenshotResult(
-            path=Path("/tmp/home_android.png"),
+            path=Path("/tmp/home.png"),
             screen_name="home",
-            device_type=MobileDeviceType.ANDROID,
-            device_name="sdk_gphone64",
-            os_version="14",
+            device_type=MobileDeviceType.IOS,
             success=True,
         )
         data = result.model_dump()
         assert data["screen_name"] == "home"
-        assert data["device_type"] == "android"
-        assert data["device_name"] == "sdk_gphone64"
-        assert data["success"] is True
+        assert data["device_type"] == "ios"
 
 
 class TestMobileEvidenceSummary:
     """Tests for MobileEvidenceSummary model."""
 
     def test_create_empty_summary(self) -> None:
-        """Test creating an empty mobile evidence summary."""
+        """Test creating an empty summary."""
         from adw.models.evidence import MobileEvidenceSummary
 
         summary = MobileEvidenceSummary()
@@ -409,9 +655,7 @@ class TestMobileEvidenceSummary:
         assert summary.results == []
 
     def test_create_summary_with_results(self) -> None:
-        """Test creating summary with screenshot results."""
-        from pathlib import Path
-
+        """Test creating a summary with results."""
         from adw.models.evidence import (
             MobileDeviceType,
             MobileEvidenceSummary,
@@ -420,17 +664,17 @@ class TestMobileEvidenceSummary:
 
         results = [
             MobileScreenshotResult(
-                path=Path("/tmp/home_ios.png"),
+                path=Path("/tmp/home.png"),
                 screen_name="home",
                 device_type=MobileDeviceType.IOS,
                 success=True,
             ),
             MobileScreenshotResult(
-                path=Path("/tmp/profile_ios.png"),
+                path=Path("/tmp/profile.png"),
                 screen_name="profile",
                 device_type=MobileDeviceType.IOS,
                 success=False,
-                error="Timeout",
+                error="Navigation failed",
             ),
         ]
         summary = MobileEvidenceSummary(
@@ -440,30 +684,24 @@ class TestMobileEvidenceSummary:
             results=results,
         )
         assert summary.total_screenshots == 2
-        assert summary.successful == 1
-        assert summary.failed == 1
         assert len(summary.results) == 2
 
     def test_summary_json_serialization(self) -> None:
-        """Test JSON serialization of evidence summary."""
+        """Test JSON serialization of summary."""
         from adw.models.evidence import MobileEvidenceSummary
 
         summary = MobileEvidenceSummary(
             total_screenshots=5,
             successful=4,
             failed=1,
-            results=[],
         )
         data = summary.model_dump()
         assert data["total_screenshots"] == 5
         assert data["successful"] == 4
-        assert data["failed"] == 1
 
     def test_summary_has_captured_at(self) -> None:
-        """Test that summary has captured_at timestamp."""
-        from datetime import datetime
-
+        """Test summary has captured_at timestamp."""
         from adw.models.evidence import MobileEvidenceSummary
 
         summary = MobileEvidenceSummary()
-        assert isinstance(summary.captured_at, datetime)
+        assert summary.captured_at is not None

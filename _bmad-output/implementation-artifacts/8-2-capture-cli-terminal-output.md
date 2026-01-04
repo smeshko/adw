@@ -1,6 +1,6 @@
 # Story 8.2: Capture CLI Terminal Output
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-03
@@ -38,27 +38,27 @@ so that command execution can be verified.
 ## Tasks / Subtasks
 
 ### Task 1: Create CLI Evidence Models (models/evidence.py)
-- [ ] Create `CLIEvidenceConfig` model for command configuration
-- [ ] Create `CommandResult` model with command, exit_code, duration, stdout, stderr
-- [ ] Create `CLIEvidenceSummary` model for aggregate results
-- [ ] Export from `models/__init__.py`
+- [x] Create `CLIEvidenceConfig` model for command configuration
+- [x] Create `CommandResult` model with command, exit_code, duration, stdout, stderr
+- [x] Create `CLIEvidenceSummary` model for aggregate results
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Command Executor (evidence/cli_capture.py)
-- [ ] Create `CLICaptureStrategy` class
-- [ ] Implement `execute_command(cmd: str, timeout: int) -> CommandResult`
-- [ ] Use `subprocess.run()` with capture_output=True
-- [ ] Capture stdout, stderr, exit code, and duration
-- [ ] Handle timeout gracefully with TimeoutExpired
+- [x] Create `CLICaptureStrategy` class
+- [x] Implement `execute_command(cmd: str, timeout: int) -> CommandResult`
+- [x] Use `subprocess.run()` with capture_output=True
+- [x] Capture stdout, stderr, exit code, and duration
+- [x] Handle timeout gracefully with TimeoutExpired
 
 ### Task 3: Implement Evidence File Writer
-- [ ] Create evidence directory structure: `.adw/runs/<run_id>/evidence/cli/`
-- [ ] Write individual command results to `<cmd_name>.txt`
-- [ ] Include header with command, timestamp, duration, exit code
-- [ ] Append stdout and stderr with clear section markers
+- [x] Create evidence directory structure: `.adw/runs/<run_id>/evidence/cli/`
+- [x] Write individual command results to `<cmd_name>.txt`
+- [x] Include header with command, timestamp, duration, exit code
+- [x] Append stdout and stderr with clear section markers
 
 ### Task 4: Implement Config-Based Command Loading
-- [ ] Read `evidence.commands` from `.adw/project.yaml`
-- [ ] Support command configuration format:
+- [x] Read `evidence.commands` from `.adw/project.yaml`
+- [x] Support command configuration format:
   ```yaml
   evidence:
     commands:
@@ -69,29 +69,29 @@ so that command execution can be verified.
         cmd: "adw --help"
         timeout: 30
   ```
-- [ ] Validate command configuration
-- [ ] Handle missing config gracefully (skip with warning)
+- [x] Validate command configuration
+- [x] Handle missing config gracefully (skip with warning)
 
 ### Task 5: Implement Summary Generation
-- [ ] Track passed/failed command counts
-- [ ] Generate summary output: "X passed, Y failed"
-- [ ] Create summary file with all command results
-- [ ] Log summary to console via LogManager
+- [x] Track passed/failed command counts
+- [x] Generate summary output: "X passed, Y failed"
+- [x] Create summary file with all command results
+- [x] Log summary to console via LogManager
 
 ### Task 6: Integrate with Verify Phase
-- [ ] Wire CLICaptureStrategy into evidence gathering
-- [ ] Execute only when platform is CLI
-- [ ] Store results for manifest generation (Story 8.5)
-- [ ] Return structured results for phase runner
+- [x] Wire CLICaptureStrategy into evidence gathering
+- [x] Execute only when platform is CLI
+- [x] Store results for manifest generation (Story 8.5)
+- [x] Return structured results for phase runner
 
 ### Task 7: Write Unit Tests
-- [ ] Test command execution with mock subprocess
-- [ ] Test output capture (stdout, stderr)
-- [ ] Test timeout handling
-- [ ] Test non-zero exit code handling
-- [ ] Test evidence file writing
-- [ ] Test summary generation
-- [ ] Test config loading
+- [x] Test command execution with mock subprocess
+- [x] Test output capture (stdout, stderr)
+- [x] Test timeout handling
+- [x] Test non-zero exit code handling
+- [x] Test evidence file writing
+- [x] Test summary generation
+- [x] Test config loading
 
 ---
 
@@ -399,9 +399,34 @@ Key patterns and rules from project context:
 
 ### Agent Model Used
 
+claude-opus-4-5-20251101
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- **Task 1**: Created CLI evidence models (CommandConfig, CommandResult, CLIEvidenceSummary) in models/evidence.py. Models use Pydantic with full type annotations, UTC timestamps, and comprehensive validation. Added 18 unit tests covering all model functionality. All tests pass. Coverage: 94% for evidence.py.
+- **Task 2**: Implemented CLICaptureStrategy in evidence/cli_capture.py. Uses subprocess.run() with capture_output=True to capture stdout, stderr, exit code, and duration. Handles timeout gracefully with exit_code=-1. Added 11 unit tests with mocked subprocess. Coverage: 100% for cli_capture.py.
+- **Task 3**: Implemented EvidenceFileWriter in evidence/file_writer.py. Creates evidence directory structure and writes command results to human-readable .txt files with headers containing command, timestamp, duration, exit code, and status. Added 9 unit tests. Coverage: 100% for file_writer.py.
+- **Task 4**: Implemented load_evidence_commands() in evidence/config_loader.py. Reads evidence.commands from .adw/project.yaml, validates command configurations, and handles missing config gracefully. Added 8 unit tests. Coverage: 86% for config_loader.py.
+- **Task 5**: Implemented SummaryGenerator in evidence/summary_generator.py. Tracks passed/failed counts, generates "X passed, Y failed" text, and writes summary.json file. Added 10 unit tests. Coverage: 100% for summary_generator.py.
+- **Task 6**: Implemented CLIEvidenceGatherer in evidence/cli_gatherer.py. Orchestrates all CLI evidence gathering: loads config, executes commands, writes evidence files, generates summary. Added 11 unit tests. Coverage: 100% for cli_gatherer.py. Updated evidence/__init__.py to export all new classes.
+- **Task 7**: All unit test requirements covered by tests written during Tasks 1-6. Total: 67 new tests for CLI evidence gathering (18 models + 11 capture + 9 file writer + 8 config loader + 10 summary + 11 gatherer). All tests pass.
+
 ### File List
+
+- src/adw/models/evidence.py (modified - added CommandConfig, CommandResult, CLIEvidenceSummary)
+- src/adw/models/__init__.py (modified - export new models)
+- src/adw/evidence/__init__.py (modified - export CLI evidence classes)
+- src/adw/evidence/cli_capture.py (new - CLICaptureStrategy class)
+- src/adw/evidence/file_writer.py (new - EvidenceFileWriter class)
+- src/adw/evidence/config_loader.py (new - load_evidence_commands function)
+- src/adw/evidence/summary_generator.py (new - SummaryGenerator class)
+- src/adw/evidence/cli_gatherer.py (new - CLIEvidenceGatherer class)
+- tests/unit/evidence/test_cli_models.py (new - 18 tests for CLI models)
+- tests/unit/evidence/test_cli_capture.py (new - 11 tests for CLI capture)
+- tests/unit/evidence/test_file_writer.py (new - 9 tests for file writer)
+- tests/unit/evidence/test_config_loader.py (new - 8 tests for config loader)
+- tests/unit/evidence/test_summary_generator.py (new - 10 tests for summary generator)
+- tests/unit/evidence/test_cli_gatherer.py (new - 11 tests for CLI gatherer)
 

@@ -1,4 +1,4 @@
-# Epic 11: Task Manager Integration
+# Epic 12: Task Manager Integration
 
 **Goal:** Enable runs to be initiated from external task management systems (Linear, Jira, GitHub Issues) with automatic task fetching and bidirectional status synchronization.
 
@@ -7,7 +7,7 @@
 
 ---
 
-## Story 11.1: TaskManager Protocol and Configuration
+## Story 12.1: TaskManager Protocol and Configuration
 
 As a developer,
 I want a pluggable TaskManager abstraction,
@@ -33,7 +33,7 @@ So that different task management systems can be supported.
 
 ---
 
-## Story 11.2: Linear Task Manager Implementation
+## Story 12.2: Linear Task Manager Implementation
 
 As a user,
 I want to run `adw run RULE-123` to fetch my Linear task,
@@ -64,7 +64,7 @@ So that I don't have to copy-paste task descriptions.
 
 ---
 
-## Story 11.3: Status Synchronization at Phase Transitions
+## Story 12.3: Status Synchronization at Phase Transitions
 
 As a user,
 I want Linear status updated automatically as my run progresses,
@@ -99,7 +99,7 @@ So that my team sees real-time progress.
 
 ---
 
-## Story 11.4: Task ID Pattern Detection
+## Story 12.4: Task ID Pattern Detection
 
 As a user,
 I want adw to auto-detect when I provide a task ID vs a feature string,
@@ -129,7 +129,7 @@ So that I don't need special flags.
 
 ---
 
-## Story 11.5: Task Context in Prompts
+## Story 12.5: Task Context in Prompts
 
 As a developer,
 I want task metadata available in prompt templates,
@@ -230,7 +230,7 @@ Wave 3: [11.3]  [11.4]   [11.5]
 
 ---
 
-## Story 11.6: Post Status Update Comments (Course Correction 2026-01-03)
+## Story 12.6: Post Status Update Comments (Course Correction 2026-01-03)
 
 As a user,
 I want ADW to post comments to my task when significant events occur,
@@ -260,7 +260,7 @@ So that my team can follow progress without checking CLI output.
 
 ---
 
-## Story 11.7: Label Management (Course Correction 2026-01-03)
+## Story 12.7: Label Management (Course Correction 2026-01-03)
 
 As a user,
 I want ADW to manage task labels based on run state,
@@ -294,7 +294,7 @@ So that my task board reflects current progress.
 
 ---
 
-## Story 11.8: Issue Closing (Course Correction 2026-01-03)
+## Story 12.8: Issue Closing (Course Correction 2026-01-03)
 
 As a user,
 I want ADW to close my task when the PR is merged,
@@ -320,7 +320,7 @@ So that completed work is automatically tracked.
 
 ---
 
-## Story 11.9: Issue Assignment (Course Correction 2026-01-03)
+## Story 12.9: Issue Assignment (Course Correction 2026-01-03)
 
 As a user,
 I want ADW to assign the task to me when a run starts,
@@ -342,7 +342,7 @@ So that ownership is clear during automated work.
 
 ---
 
-## Story 11.10: GitHub Issues Provider (Course Correction 2026-01-03)
+## Story 12.10: GitHub Issues Provider (Course Correction 2026-01-03)
 
 As a user,
 I want to run `adw run #123` to fetch my GitHub issue,
@@ -368,7 +368,7 @@ So that I can use ADW with GitHub Issues as my task manager.
 
 **Given** status sync
 **When** phase transitions
-**Then** issue labels are updated (using Story 11.7 patterns)
+**Then** issue labels are updated (using Story 12.7 patterns)
 
 ---
 

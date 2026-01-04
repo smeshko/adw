@@ -1,4 +1,4 @@
-# Epic 10: Cross-Project Dashboard (Post-MVP)
+# Epic 15: Cross-Project Dashboard (Post-MVP)
 
 **Goal:** Enable users to view and analyze runs across all their ADW-enabled projects from a single interface, with analytics, token/cost tracking, and dashboard views.
 
@@ -10,7 +10,7 @@
 
 ---
 
-## Story 10.1: Project Registry
+## Story 15.1: Project Registry
 
 As a user,
 I want to register projects with ADW globally,
@@ -45,7 +45,7 @@ So that I can track runs across multiple projects.
 
 ---
 
-## Story 10.2: Global Run List
+## Story 15.2: Global Run List
 
 As a user,
 I want to list runs across all registered projects,
@@ -80,7 +80,7 @@ So that I can see my development activity in one place.
 
 ---
 
-## Story 10.3: Cross-Project Statistics
+## Story 15.3: Cross-Project Statistics
 
 As a user,
 I want to see aggregate statistics across all my projects,
@@ -116,7 +116,7 @@ So that I can understand my overall ADW usage patterns.
 
 ---
 
-## Story 10.4: Central Run Index (Optional)
+## Story 15.4: Central Run Index (Optional)
 
 As a power user,
 I want a central index of all runs,
@@ -152,7 +152,7 @@ So that queries across thousands of runs are fast.
 
 ---
 
-## Story 10.5: TUI Dashboard
+## Story 15.5: TUI Dashboard
 
 As a user,
 I want a terminal dashboard showing my ADW activity,
@@ -191,7 +191,7 @@ So that I can monitor runs visually.
 
 ---
 
-## Story 10.6: Run Context Enhancements
+## Story 15.6: Run Context Enhancements
 
 As a developer,
 I want additional metadata captured per run,
@@ -227,7 +227,7 @@ So that cross-project analytics are more useful.
 
 ---
 
-## Story 10.7: Export and Reporting
+## Story 15.7: Export and Reporting
 
 As a user,
 I want to export run data for external analysis,
@@ -268,8 +268,8 @@ So that I can create custom reports or integrate with other tools.
 
 1. **Phase A (Foundation):** Stories 10.1, 10.2, 10.6 - Basic registry and listing
 2. **Phase B (Analytics):** Stories 10.3, 10.7 - Statistics and export
-3. **Phase C (Performance):** Story 10.4 - Central index for scale
-4. **Phase D (Polish):** Story 10.5 - TUI dashboard
+3. **Phase C (Performance):** Story 15.4 - Central index for scale
+4. **Phase D (Polish):** Story 15.5 - TUI dashboard
 
 ### File Locations
 

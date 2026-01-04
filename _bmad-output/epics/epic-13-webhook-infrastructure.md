@@ -1,4 +1,4 @@
-# Epic 14: Webhook Infrastructure
+# Epic 13: Webhook Infrastructure
 
 **Goal:** Enable ADW runs to be triggered by external events via webhooks, starting with Linear and expanding to GitHub.
 
@@ -7,7 +7,7 @@
 
 ---
 
-## Story 14.1: Generic Webhook Server Framework
+## Story 13.1: Generic Webhook Server Framework
 
 As a developer,
 I want a webhook server that can receive events from multiple providers,
@@ -45,7 +45,7 @@ webhook:
 
 ---
 
-## Story 14.2: Webhook Provider Protocol
+## Story 13.2: Webhook Provider Protocol
 
 As a developer,
 I want a pluggable provider interface,
@@ -74,7 +74,7 @@ class WebhookProvider(Protocol):
 
 ---
 
-## Story 14.3: Linear Webhook Provider
+## Story 13.3: Linear Webhook Provider
 
 As a user,
 I want Linear issue events to trigger ADW runs,
@@ -104,7 +104,7 @@ So that I can automate feature development from Linear.
 
 ---
 
-## Story 14.4: Event-to-Workflow Mapping
+## Story 13.4: Event-to-Workflow Mapping
 
 As a developer,
 I want to configure which events trigger which workflows,
@@ -141,7 +141,7 @@ webhook:
 
 ---
 
-## Story 14.5: Bot Loop Prevention
+## Story 13.5: Bot Loop Prevention
 
 As a developer,
 I want ADW to not trigger itself,
@@ -167,7 +167,7 @@ So that webhooks don't cause infinite loops.
 
 ---
 
-## Story 14.6: Webhook Signature Verification
+## Story 13.6: Webhook Signature Verification
 
 As a developer,
 I want webhook signatures verified,
@@ -193,7 +193,7 @@ So that only legitimate events trigger runs.
 
 ---
 
-## Story 14.7: GitHub Webhook Provider (Future)
+## Story 13.7: GitHub Webhook Provider (Future)
 
 As a user,
 I want GitHub issue events to trigger ADW runs,
@@ -299,10 +299,10 @@ webhook:
 ## Dependency Flowchart
 
 ```
-     Story 14.1 (Server Framework)
+     Story 13.1 (Server Framework)
               │
               ▼
-     Story 14.2 (Provider Protocol)
+     Story 13.2 (Provider Protocol)
               │
      ┌────────┼────────┐
      ▼        ▼        ▼
@@ -311,10 +311,10 @@ webhook:
      │        │   (future)
      └────────┼────────┘
               ▼
-     Story 14.4 (Event Mapping)
+     Story 13.4 (Event Mapping)
               │
               ▼
-     Story 14.5 (Loop Prevention)
+     Story 13.5 (Loop Prevention)
 ```
 
 ---
