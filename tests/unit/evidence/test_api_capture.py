@@ -6,8 +6,18 @@ HTTP requests and response capture for evidence gathering.
 
 from unittest.mock import MagicMock, patch
 
-from adw.evidence.api_capture import APICaptureStrategy
-from adw.models.evidence import (
+import pytest
+
+from adw.evidence.api_capture import HTTPX_AVAILABLE
+
+# Skip all tests in this module if httpx is not available
+pytestmark = pytest.mark.skipif(
+    not HTTPX_AVAILABLE,
+    reason="httpx not installed - API capture tests skipped",
+)
+
+from adw.evidence.api_capture import APICaptureStrategy  # noqa: E402
+from adw.models.evidence import (  # noqa: E402
     APIEvidenceResult,
     APIRequest,
     APIResponse,
