@@ -1,6 +1,6 @@
 # Story 8.3b: Capture Mobile Screenshots
 
-Status: ready-for-dev
+Status: review
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-04
@@ -576,11 +576,23 @@ Key patterns and rules from project context:
 
 ### Completion Notes List
 
+- All 8 tasks completed
+- 38 tests for mobile_capture.py, all passing
+- 17 tests for mobile evidence models, all passing
+- Total: 127 tests in evidence module (88) + evidence models (39)
+- iOS, Android, and Flutter screenshot capture implemented
+- Deeplink navigation for both platforms
+- Config-based screen loading from project.yaml
+- Metadata generation with device info and timestamps
+
 ### File List
 
-- src/adw/models/evidence.py (modified - added mobile evidence models)
-- src/adw/models/__init__.py (modified - exported new models)
-- tests/unit/models/test_evidence.py (modified - added mobile model tests)
-- src/adw/evidence/mobile_capture.py (new - iOS and Android capture functions)
-- tests/unit/evidence/test_mobile_capture.py (new - capture function tests)
+**New Files:**
+- src/adw/evidence/mobile_capture.py - Main mobile screenshot capture module
+- tests/unit/evidence/test_mobile_capture.py - 38 unit tests for mobile capture
+
+**Modified Files:**
+- src/adw/models/evidence.py - Added MobileDeviceType, MobileScreenConfig, MobileScreenshotResult, MobileEvidenceSummary
+- src/adw/models/__init__.py - Exported new mobile models
+- tests/unit/models/test_evidence.py - Added 17 tests for mobile models
 
