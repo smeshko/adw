@@ -48,8 +48,8 @@ so that my work is preserved incrementally.
 - [x] Add commit config to project.yaml schema
   - `git.auto_commit: bool` (default: true)
   - `git.commit_template: str` (optional override)
-- [ ] Create bundled post-hook script `defaults/commands/build/post.sh`
-- [ ] Handle pre-commit hook failures gracefully
+- [x] Create bundled post-hook script `defaults/commands/build/post.sh`
+- [x] Handle pre-commit hook failures gracefully
 - [x] Write unit tests for commit message formatting
 - [ ] Write integration tests with git repo fixture
 
@@ -137,6 +137,7 @@ Claude Opus 4.5
 - src/adw/hooks/git_commit.py (NEW)
 - src/adw/hooks/__init__.py (MODIFIED - added exports)
 - src/adw/models/config.py (MODIFIED - added auto_commit, commit_template to GitConfig)
+- src/adw/defaults/commands/build/post.sh (NEW)
 - tests/unit/hooks/test_git_commit.py (NEW)
 - tests/unit/models/test_config.py (MODIFIED - added GitConfig commit tests)
 
