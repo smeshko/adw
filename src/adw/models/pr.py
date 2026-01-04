@@ -6,6 +6,10 @@ generated during the document phase (Story 9.4).
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -177,6 +181,65 @@ class PRDescription(BaseModel):
             testing=testing,
             evidence=evidence,
         )
+
+    @classmethod
+    def get_json_schema(cls) -> dict[str, Any]:
+        """Get the JSON schema for PR description validation.
+
+        Returns the JSON schema from the document command directory
+        for use with LLM structured output.
+
+        Returns:
+            JSON schema dictionary.
+
+        Example:
+            >>> schema = PRDescription.get_json_schema()
+            >>> schema["title"]
+            'PRDescription'
+        """
+        # Schema is bundled in defaults/commands/document/schema.json
+        schema_path = (
+            Path(__file__).parent.parent
+            / "defaults"
+            / "commands"
+            / "document"
+            / "schema.json"
+        )
+
+        if schema_path.exists():
+            return json.loads(schema_path.read_text(encoding="utf-8"))
+
+        # Fallback to Pydantic's built-in schema generation
+        return cls.model_json_schema()
+
+    @classmethod
+    def validate_json(cls, json_data: str | dict[str, Any]) -> "PRDescription":
+        """Validate JSON data against PR description schema.
+
+        Parses JSON string or dict and validates against the PRDescription model.
+
+        Args:
+            json_data: JSON string or dictionary to validate.
+
+        Returns:
+            Validated PRDescription instance.
+
+        Raises:
+            ValidationError: If data doesn't match schema.
+            json.JSONDecodeError: If string is not valid JSON.
+
+        Example:
+            >>> data = {"summary": "Fix bug", "changes": ["Fix auth"], "testing": "Tests pass"}
+            >>> pr = PRDescription.validate_json(data)
+            >>> pr.summary
+            'Fix bug'
+        """
+        if isinstance(json_data, str):
+            data = json.loads(json_data)
+        else:
+            data = json_data
+
+        return cls.model_validate(data)
 
 
 __all__ = ["PRDescription"]
