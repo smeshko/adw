@@ -40,7 +40,7 @@ so that I can quickly create a pull request.
   - Evidence (from evidence manifest if exists)
   - Screenshots (placeholder links if evidence includes images)
 - [x] Implement PR description artifact saving
-- [ ] Add `{{artifacts.verify.evidence_manifest}}` to template variables
+- [x] Add `{{artifacts.verify.evidence_manifest}}` to template variables
 - [ ] Create `PRDescription` Pydantic model for structured output
 - [ ] Update run completion panel to show PR description path
 - [ ] Implement schema validation for PR description output

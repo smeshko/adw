@@ -683,6 +683,11 @@ class PhaseRunner:
                 extra={"run_id": context.run_id, "artifact": pr_desc_name},
             )
 
+        # Verify phase: copy evidence manifest to artifacts if it exists (Story 9.4)
+        if phase == "verify":
+            evidence_artifacts = self._capture_evidence_manifest(context)
+            artifacts.extend(evidence_artifacts)
+
         # Store tool calls if any
         if llm_result.tool_calls:
             tool_calls_name = f"{phase}_tool_calls.json"
@@ -702,6 +707,61 @@ class PhaseRunner:
         logger.debug(
             "Artifacts captured", extra={"phase": phase, "count": len(artifacts)}
         )
+        return artifacts
+
+    def _capture_evidence_manifest(
+        self,
+        context: RunContext,
+    ) -> list[str]:
+        """Copy evidence manifest to verify artifacts if it exists (Story 9.4).
+
+        Makes the evidence manifest available to the document phase template
+        via {{artifacts.verify.evidence_manifest}}.
+
+        Args:
+            context: Run context.
+
+        Returns:
+            List of artifact filenames created (evidence_manifest.json if exists).
+        """
+        artifacts: list[str] = []
+
+        # Evidence manifest location: .adw/runs/<run_id>/evidence/manifest.json
+        evidence_manifest_path = (
+            self.artifact_manager.runs_dir
+            / context.run_id
+            / "evidence"
+            / "manifest.json"
+        )
+
+        if not evidence_manifest_path.exists():
+            logger.debug(
+                "No evidence manifest found to copy",
+                extra={"run_id": context.run_id, "path": str(evidence_manifest_path)},
+            )
+            return artifacts
+
+        try:
+            manifest_content = evidence_manifest_path.read_text(encoding="utf-8")
+
+            self.artifact_manager.store(
+                context.run_id,
+                "verify",
+                "evidence_manifest.json",
+                manifest_content,
+            )
+            artifacts.append("evidence_manifest.json")
+
+            logger.info(
+                "Evidence manifest copied to verify artifacts",
+                extra={"run_id": context.run_id},
+            )
+        except OSError as e:
+            logger.warning(
+                "Failed to copy evidence manifest",
+                extra={"run_id": context.run_id, "error": str(e)},
+            )
+
         return artifacts
 
     def _capture_git_diff_artifacts(
