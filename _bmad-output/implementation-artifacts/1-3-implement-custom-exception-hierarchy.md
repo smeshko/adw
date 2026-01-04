@@ -1,6 +1,6 @@
 # Story 1.3: Implement Custom Exception Hierarchy
 
-Status: done
+Status: ready-for-dev
 Linear Issue: not-configured
 Epic: 1 - Project Scaffolding & Test Infrastructure
 Created: 2025-12-31
@@ -39,43 +39,43 @@ so that error handling is consistent and errors are actionable.
 ## Tasks / Subtasks
 
 ### Task 1: Create ADWError Base Class
-- [x] Define ADWError with code, message, suggestion, recoverable attributes
-- [x] Implement __str__ for user-friendly formatting
-- [x] Implement to_dict() for structured logging
-- [x] Add type hints for all attributes
+- [ ] Define ADWError with code, message, suggestion, recoverable attributes
+- [ ] Implement __str__ for user-friendly formatting
+- [ ] Implement to_dict() for structured logging
+- [ ] Add type hints for all attributes
 
 ### Task 2: Implement ConfigError
-- [x] Create ConfigError subclass for configuration issues
-- [x] Set default recoverable=False
-- [x] Add common error codes: CONFIG_NOT_FOUND, INVALID_CONFIG, COMMAND_NOT_FOUND
+- [ ] Create ConfigError subclass for configuration issues
+- [ ] Set default recoverable=False
+- [ ] Add common error codes: CONFIG_NOT_FOUND, INVALID_CONFIG, COMMAND_NOT_FOUND
 
 ### Task 3: Implement HookError
-- [x] Create HookError subclass with phase field
-- [x] Add exit_code field for hook exit status
-- [x] Add stdout/stderr fields for debugging
-- [x] Add common error codes: HOOK_FAILED, HOOK_TIMEOUT
+- [ ] Create HookError subclass with phase field
+- [ ] Add exit_code field for hook exit status
+- [ ] Add stdout/stderr fields for debugging
+- [ ] Add common error codes: HOOK_FAILED, HOOK_TIMEOUT
 
 ### Task 4: Implement LLMError Hierarchy
-- [x] Create LLMError base class for Claude Code issues
-- [x] Create LLMTimeoutError subclass (recoverable=True)
-- [x] Create LLMRateLimitError subclass (recoverable=True)
-- [x] Add retry_after field for rate limit errors
+- [ ] Create LLMError base class for Claude Code issues
+- [ ] Create LLMTimeoutError subclass (recoverable=True)
+- [ ] Create LLMRateLimitError subclass (recoverable=True)
+- [ ] Add retry_after field for rate limit errors
 
 ### Task 5: Implement StateError
-- [x] Create StateError for state persistence issues
-- [x] Add common error codes: CONTEXT_CORRUPTED, SNAPSHOT_FAILED, RUN_NOT_FOUND
+- [ ] Create StateError for state persistence issues
+- [ ] Add common error codes: CONTEXT_CORRUPTED, SNAPSHOT_FAILED, RUN_NOT_FOUND
 
 ### Task 6: Implement ValidationError
-- [x] Create ValidationError for schema validation failures
-- [x] Add field_errors list for field-level messages
-- [x] Add schema_path for reference to failed schema
+- [ ] Create ValidationError for schema validation failures
+- [ ] Add field_errors list for field-level messages
+- [ ] Add schema_path for reference to failed schema
 
 ### Task 7: Write Unit Tests
-- [x] Test ADWError formatting
-- [x] Test all subclass creation with required fields
-- [x] Test error code uniqueness
-- [x] Test recoverable flag inheritance
-- [x] Test phase field on HookError
+- [ ] Test ADWError formatting
+- [ ] Test all subclass creation with required fields
+- [ ] Test error code uniqueness
+- [ ] Test recoverable flag inheritance
+- [ ] Test phase field on HookError
 
 ---
 
@@ -418,20 +418,11 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
-- Implemented ADWError base class with code, message, suggestion, and recoverable attributes
-- All exception classes support __str__ for user-friendly formatting and to_dict() for structured logging
-- ConfigError: Configuration issues (non-recoverable by default)
-- HookError: Hook failures with phase, exit_code, stdout, stderr fields (non-recoverable by default)
-- LLMError: Base for LLM issues with LLMTimeoutError and LLMRateLimitError subclasses
-- LLMTimeoutError and LLMRateLimitError are recoverable by default (transient errors)
-- StateError: State persistence issues (non-recoverable by default)
-- ValidationError: Schema validation with field_errors list and schema_path (non-recoverable by default)
-- 49 comprehensive unit tests covering all exception types and hierarchy
+(To be filled by dev agent after implementation)
 
 ### File List
 
-- src/adw/exceptions.py - Exception hierarchy implementation (442 lines)
-- tests/unit/test_exceptions.py - Unit tests (560 lines)
+(To be filled by dev agent after implementation)
 
 ---
 

@@ -313,57 +313,6 @@ llm:
 
 **Error Handling:** If `claude` not found, raise `ConfigError` with suggestion to install Claude Code or configure path.
 
-### Model Configuration Per Phase (Course Correction 2026-01-03)
-
-**Decision:** Configurable model per phase via `project.yaml`
-
-**Configuration:**
-```yaml
-# .adw/project.yaml
-phases:
-  plan:
-    model: opus        # Heavy reasoning for planning
-    timeout_seconds: 600
-  build:
-    model: opus        # Heavy for code generation
-    timeout_seconds: 900
-  verify:
-    model: sonnet      # Lighter for evidence gathering
-    timeout_seconds: 300
-  validate:
-    model: sonnet      # Lighter for test analysis
-    timeout_seconds: 300
-  document:
-    model: sonnet      # Lighter for documentation
-    timeout_seconds: 300
-
-llm:
-  default_model: opus  # Fallback if phase doesn't specify
-```
-
-**Implementation:**
-```python
-# In PhaseConfig model
-class PhaseConfig(BaseModel):
-    model: str | None = None  # None = use default
-    timeout_seconds: int = 300
-    pre_hook: str | None = None
-    post_hook: str | None = None
-
-# In executor invocation
-def get_model_for_phase(phase: str, config: ProjectConfig) -> str:
-    phase_config = config.phases.get(phase)
-    if phase_config and phase_config.model:
-        return phase_config.model
-    return config.llm.default_model
-```
-
-**Rationale:**
-- Enables cost optimization (lighter models for simpler phases)
-- Enables quality optimization (heavier models for critical phases)
-- Mirrors adw-sdk's `SLASH_COMMAND_MODEL_MAP` pattern
-- Backward compatible (defaults work without config)
-
 ### Evidence Gathering (MVP)
 
 **Decision:** API evidence only for MVP
@@ -1233,7 +1182,6 @@ All blocking decisions have been made. Implementation can proceed.
 | OpenTelemetry integration | Distributed tracing support |
 | Plugin system architecture | Extensibility for custom phases |
 | Alternative executor support | OpenAI, local models |
-| Cross-project dashboard | Aggregate runs across all projects, token/cost tracking, analytics |
 
 ### Architecture Completeness Checklist
 
@@ -1279,7 +1227,6 @@ All blocking decisions have been made. Implementation can proceed.
 2. Webhook entry points for Linear/GitHub (post-MVP)
 3. Web/mobile evidence gathering (post-MVP)
 4. Plugin system for custom phases (post-MVP)
-5. Cross-project run visibility and dashboard (post-MVP) - See Epic 10
 
 ### Implementation Handoff
 
@@ -1318,186 +1265,6 @@ uv add --dev pytest pytest-asyncio pytest-cov ruff mypy
 # 8. core/ (depends on all above)
 # 9. cli/ (depends on core)
 ```
-
-## Future Enhancement: Cross-Project Run Visibility & Dashboard
-
-### Overview
-
-Post-MVP enhancement to provide visibility into all ADW runs across multiple projects from a single view. Enables dashboards, analytics, and cross-project run management.
-
-### Current Architecture Support
-
-The existing architecture already captures rich data per run:
-
-| Data | Location | Dashboard Use |
-|------|----------|---------------|
-| Run metadata | `context.json` | Run list, status, duration |
-| Phase results | `artifacts/<phase>/` | Phase performance, failure analysis |
-| Token usage | `llm/*_response.json` | Cost tracking, usage trends |
-| Structured logs | `logs/logs.jsonl` | Error patterns, debugging |
-| Timestamps | ULID run_id | Timeline views, sorting |
-
-### Architectural Additions Required
-
-**1. Project Registry** (`~/.config/adw/projects.yaml`)
-```yaml
-projects:
-  - path: /Users/dev/my-api
-    name: my-api
-    registered_at: 2025-01-15T10:00:00Z
-  - path: /Users/dev/frontend
-    name: frontend-app
-    registered_at: 2025-01-16T14:30:00Z
-```
-
-**2. Optional Central Index** (`~/.config/adw/run-index.sqlite` or `.jsonl`)
-- Mirrors run metadata for fast cross-project queries
-- Updated on run state changes (dual-write pattern)
-- Enables filtering, aggregation without filesystem scanning
-
-**3. Model Enhancements**
-
-```python
-# Add to RunContext
-class RunContext(BaseModel):
-    # ... existing fields ...
-    project_name: str | None = None    # Human-readable project name
-    tags: list[str] = []               # User-defined labels
-    initiated_by: str | None = None    # Username/identifier
-```
-
-### Dashboard Capabilities
-
-| View | Description | Data Source |
-|------|-------------|-------------|
-| Run Overview | All runs across projects with status, duration | `context.json` aggregation |
-| Project Summary | Per-project metrics, success rates | Grouped by project_name |
-| Timeline | Runs over time, patterns, trends | ULID timestamps |
-| Token/Cost Analytics | Usage tracking, cost estimates | `llm/*_response.json` |
-| Failure Analysis | Common errors, failure phases | PhaseResult + logs |
-| Active Runs | Currently running executions | `status == "running"` |
-
-### CLI Commands (Proposed)
-
-```bash
-adw register                    # Register current project
-adw global list                 # List runs across all projects
-adw global stats                # Show aggregate statistics
-adw global dashboard            # TUI dashboard (Rich-based)
-```
-
-### Implementation Notes
-
-- **File-based aggregation** works for <1000 runs, simple to implement
-- **SQLite index** recommended for larger scale, enables rich queries
-- **Web dashboard** could consume the index via simple HTTP server
-- No changes to core run execution - purely additive
-
-See **Epic 10** for detailed implementation stories.
-
-## Future Enhancement: Task Manager Integration
-
-### Overview
-
-Post-MVP enhancement enabling runs to be initiated from external task managers (Linear, Jira, GitHub Issues). The SDK fetches task content automatically and synchronizes status at phase transitions.
-
-### Architectural Pattern
-
-**Protocol-Based Abstraction:**
-
-```python
-from typing import Protocol
-
-class TaskManager(Protocol):
-    """Protocol for external task manager integration."""
-
-    def fetch_task(self, task_id: str) -> TaskInfo:
-        """Fetch task details from external system."""
-        ...
-
-    def update_status(self, task_id: str, status: str, metadata: dict) -> None:
-        """Update task status in external system."""
-        ...
-
-    def resolve_task_id(self, input_str: str) -> str | None:
-        """Extract task ID from input string if it matches this manager's pattern."""
-        ...
-```
-
-**Configuration:**
-
-```yaml
-# .adw/project.yaml
-task_manager: linear  # or: jira, github_issues, none
-task_manager_config:
-  # Linear-specific
-  api_key_env: LINEAR_API_KEY  # Environment variable name
-  team_key: RULE  # For pattern matching RULE-123
-
-  # State mapping (ADW state → Task Manager state)
-  state_mapping:
-    pending: "Todo"
-    running: "In Progress"
-    completed: "Done"
-    failed: "In Progress"  # Keep open for retry
-```
-
-### Integration Points
-
-| Component | Integration |
-|-----------|-------------|
-| CLI (`cli/run.py`) | Detect task ID pattern, call `task_manager.fetch_task()` |
-| Orchestrator | Call `task_manager.update_status()` at phase transitions |
-| Config | Load task_manager settings, instantiate correct implementation |
-| Models | `TaskInfo` model for fetched task data |
-
-### File Locations
-
-```
-src/adw/
-├── task_managers/           # New package
-│   ├── __init__.py
-│   ├── base.py              # TaskManager Protocol
-│   ├── linear.py            # Linear implementation
-│   ├── jira.py              # Jira implementation (future)
-│   └── github_issues.py     # GitHub Issues (future)
-└── models/
-    └── task.py              # TaskInfo model
-```
-
-### Data Flow
-
-```
-User: adw run RULE-123
-         │
-         ▼
-    CLI detects task ID pattern
-         │
-         ▼
-    TaskManager.fetch_task("RULE-123")
-         │
-         ▼
-    Returns TaskInfo(title, description, labels, ...)
-         │
-         ▼
-    RunContext created with task content as feature_request
-         │
-         ▼
-    Orchestrator runs phases
-         │ (at each transition)
-         ▼
-    TaskManager.update_status("RULE-123", "running", {phase: "build"})
-         │
-         ▼
-    Run completes
-         │
-         ▼
-    TaskManager.update_status("RULE-123", "completed", {run_id: "..."})
-```
-
-See **Epic 11** for implementation stories.
-
----
 
 ## Architecture Completion Summary
 
