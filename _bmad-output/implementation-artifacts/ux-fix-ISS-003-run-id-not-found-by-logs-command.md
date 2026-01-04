@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-003 - Run ID Not Found by Logs Command
 
-Status: ready-for-dev
+Status: complete
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-04
@@ -73,14 +73,14 @@ Key observations:
 
 ## Tasks / Subtasks
 
-- [ ] Add ULID validation to `_get_run_dir()` function
-- [ ] Implement fuzzy run ID matching for near-matches
-- [ ] Add `RunLookup` integration to logs.py (already used by status.py)
-- [ ] Separate "run not found" from "logs not available yet" error states
-- [ ] Add diagnostic output showing where lookup searched
-- [ ] Add `--debug` flag to logs commands for troubleshooting lookup issues
-- [ ] Write unit tests for run ID validation edge cases
-- [ ] Write integration test reproducing the exact issue scenario
+- [x] Add ULID validation to `_get_run_dir()` function
+- [x] Implement fuzzy run ID matching for near-matches
+- [x] Add `RunLookup` integration to logs.py (already used by status.py)
+- [x] Separate "run not found" from "logs not available yet" error states
+- [x] Add diagnostic output showing where lookup searched
+- [x] Add `--debug` flag to logs commands for troubleshooting lookup issues
+- [x] Write unit tests for run ID validation edge cases
+- [x] Write integration test reproducing the exact issue scenario
 
 ---
 
@@ -395,5 +395,26 @@ Key patterns from project context:
 
 ### Completion Notes List
 
+1. **ULID Validation**: Added `_validate_ulid()` function using python-ulid library to validate run ID format before filesystem lookup.
+
+2. **Fuzzy Matching**: Added `_find_similar_runs()` function that checks for prefix matches when a run ID is not found, suggesting similar run IDs.
+
+3. **Improved Error Handling**: Updated `_get_run_dir()` with stepped approach:
+   - Step 1: Validate ULID format (26-char Crockford Base32)
+   - Step 2: Check if run directory exists
+   - Step 3: If not found, find similar runs and suggest them
+   - Step 4: Generic not found error with helpful suggestion
+
+4. **Debug Flag**: Added `--debug` flag to `logs show` command to show diagnostic information about where lookup is searching.
+
+5. **Error States Separation**: Already handled by existing code - run exists but no logs shows "No log entries found" vs "Run not found" for missing runs.
+
+6. **Test Coverage**: Added 11 new tests:
+   - `TestRunIdValidation` class with 7 tests for ULID validation and error handling
+   - `TestIssueISS003Scenario` class with 4 integration tests for the specific issue scenarios
+
 ### File List
+
+- `src/adw/cli/logs.py` - Added ULID validation, fuzzy matching, debug flag, improved error handling
+- `tests/unit/cli/test_logs.py` - Added TestRunIdValidation and TestIssueISS003Scenario test classes
 
