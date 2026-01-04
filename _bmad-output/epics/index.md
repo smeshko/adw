@@ -58,6 +58,7 @@
     - [Story 8.1: Detect Project Platform Type](./epic-8-evidence-gathering.md#story-81-detect-project-platform-type)
     - [Story 8.2: Capture CLI Terminal Output](./epic-8-evidence-gathering.md#story-82-capture-cli-terminal-output)
     - [Story 8.3: Capture Web Screenshots](./epic-8-evidence-gathering.md#story-83-capture-web-screenshots)
+    - [Story 8.3b: Capture Mobile Screenshots](./epic-8-evidence-gathering.md#story-83b-capture-mobile-screenshots)
     - [Story 8.4: Capture API Request/Response Pairs](./epic-8-evidence-gathering.md#story-84-capture-api-requestresponse-pairs)
     - [Story 8.5: Generate Evidence Manifest](./epic-8-evidence-gathering.md#story-85-generate-evidence-manifest)
     - [Story 8.6: Compress and Optimize Evidence](./epic-8-evidence-gathering.md#story-86-compress-and-optimize-evidence)

@@ -258,14 +258,20 @@ The MVP is successful when:
    - Streaming output with tool call capture
    - Retry logic for transient failures
    - Token usage tracking
+   - Configurable model per phase (opus/sonnet/haiku) for cost/quality optimization
 
-5. **Context & Artifact Management**
+5. **Security Hooks** (Course Correction 2026-01-03)
+   - Block dangerous LLM tool calls (rm -rf, .env access)
+   - Configurable blocked patterns
+   - Tool execution logging for auditability
+
+6. **Context & Artifact Management**
    - Run context persistence (`.adw/runs/<id>/`)
    - Artifact storage per phase
    - State snapshots at phase boundaries
    - Variable namespace for prompt templates
 
-6. **Observability & Logging**
+7. **Observability & Logging**
    - Console output with phase progress (verbosity: quiet/normal/verbose/trace)
    - Raw logs (`.adw/runs/<id>/logs/raw.log`)
    - Structured JSON logs (`.adw/runs/<id>/logs/structured.jsonl`)
@@ -284,6 +290,11 @@ The MVP is successful when:
 
 ### Out of Scope (Post-MVP)
 
+- **Task Manager Integration** (Linear, Jira, GitHub Issues)
+  - `adw run TASK-123` fetches task content as feature description
+  - Configurable state mapping (ADW states → task manager states)
+  - Status updates at phase transitions
+  - Pluggable architecture via TaskManager protocol
 - Webhook entry points (Linear, GitHub)
 - GitHub Action adapter
 - Ship phase (deployment automation)

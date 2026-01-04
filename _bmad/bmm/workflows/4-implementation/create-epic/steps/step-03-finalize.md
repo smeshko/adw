@@ -3,7 +3,7 @@ name: 'step-03-finalize'
 description: 'Add dependency sections to stories and generate ASCII flowchart in epics.md'
 
 # Path Definitions
-workflow_path: '{project-root}/.bmad/bmm/workflows/4-implementation/create-epic'
+workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/create-epic'
 
 # File References
 thisStepFile: '{workflow_path}/steps/step-03-finalize.md'

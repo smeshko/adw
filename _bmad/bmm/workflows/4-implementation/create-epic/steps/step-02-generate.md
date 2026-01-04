@@ -3,7 +3,7 @@ name: 'step-02-generate'
 description: 'Create all story files by invoking the existing create-story workflow for each story'
 
 # Path Definitions
-workflow_path: '{project-root}/.bmad/bmm/workflows/4-implementation/create-epic'
+workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/create-epic'
 
 # File References
 thisStepFile: '{workflow_path}/steps/step-02-generate.md'
@@ -11,7 +11,7 @@ nextStepFile: '{workflow_path}/steps/step-03-finalize.md'
 workflowFile: '{workflow_path}/workflow.md'
 
 # External Workflow Reference
-createStoryWorkflow: '{project-root}/.bmad/bmm/workflows/4-implementation/create-story/workflow.yaml'
+createStoryWorkflow: '{project-root}/_bmad/bmm/workflows/4-implementation/create-story/workflow.yaml'
 
 # Template References
 # (No templates used in this step - delegates to create-story workflow)

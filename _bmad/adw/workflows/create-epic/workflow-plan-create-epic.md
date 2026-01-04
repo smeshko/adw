@@ -43,7 +43,7 @@ Create a `create-epic` workflow that:
 - **Required Input:** Epic number (passed as command argument, e.g., `/create-epic 2`)
 - **Source Files:**
   - `epics.md` - Contains epic definitions with story outlines
-  - Existing `create-story` workflow at `.bmad/bmm/workflows/4-implementation/create-story/`
+  - Existing `create-story` workflow at `_bmad/bmm/workflows/4-implementation/create-story/`
 
 ### 3. Output Specifications
 - **Primary Outputs:**
@@ -208,7 +208,7 @@ Create a `create-epic` workflow that:
 
 **Actions:**
 1. For each story in the epic (sequentially):
-   - Invoke the existing `create-story` workflow at `.bmad/bmm/workflows/4-implementation/create-story/`
+   - Invoke the existing `create-story` workflow at `_bmad/bmm/workflows/4-implementation/create-story/`
    - Pass story context (epic number, story number, title, acceptance criteria)
    - Wait for completion
    - If error: log error, continue to next story
@@ -354,7 +354,7 @@ Where N is the epic number (e.g., `/create-epic 2`)
 
 ### Prerequisites
 - `epics.md` must exist in output folder with epic definitions
-- `create-story` workflow available at `.bmad/bmm/workflows/4-implementation/create-story/`
+- `create-story` workflow available at `_bmad/bmm/workflows/4-implementation/create-story/`
 
 ### Expected Outputs
 1. Story files in sprint_artifacts folder (one per story)

@@ -3,7 +3,7 @@ name: 'step-01-init'
 description: 'Load the specified epic and analyze story dependencies'
 
 # Path Definitions
-workflow_path: '{project-root}/.bmad/bmm/workflows/4-implementation/create-epic'
+workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/create-epic'
 
 # File References
 thisStepFile: '{workflow_path}/steps/step-01-init.md'
@@ -12,7 +12,7 @@ workflowFile: '{workflow_path}/workflow.md'
 
 # Input/Output Files
 epicsFile: '{output_folder}/epics.md'
-createStoryWorkflow: '{project-root}/.bmad/bmm/workflows/4-implementation/create-story/workflow.yaml'
+createStoryWorkflow: '{project-root}/_bmad/bmm/workflows/4-implementation/create-story/workflow.yaml'
 
 # Template References
 # (No templates used in this initialization step)
