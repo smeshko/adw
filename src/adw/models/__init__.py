@@ -10,7 +10,9 @@ This package contains all Pydantic models used throughout ADW:
 - logging: LogLevel, LogCategory, LogContext, LogEvent
 - index: IndexEntry
 - security: BlockedPattern, SecurityConfig, ToolCallLog
-- evidence: PlatformType, Confidence, EvidenceStrategy, PlatformDetectionResult
+- evidence: PlatformType, Confidence, EvidenceStrategy, PlatformDetectionResult,
+           APIRequest, APIResponse, APIEvidenceResult, APIEvidenceSummary,
+           EndpointConfig, AuthConfig, AuthType
 """
 
 from adw.models.command import LoadedCommand, ResolvedCommand
@@ -29,7 +31,14 @@ from adw.models.context import (
     StateSnapshot,
 )
 from adw.models.evidence import (
+    APIEvidenceResult,
+    APIEvidenceSummary,
+    APIRequest,
+    APIResponse,
+    AuthConfig,
+    AuthType,
     Confidence,
+    EndpointConfig,
     EvidenceStrategy,
     PlatformDetectionResult,
     PlatformType,
@@ -79,7 +88,14 @@ __all__: list[str] = [
     "SessionContext",
     "StateSnapshot",
     # Evidence models
+    "APIEvidenceResult",
+    "APIEvidenceSummary",
+    "APIRequest",
+    "APIResponse",
+    "AuthConfig",
+    "AuthType",
     "Confidence",
+    "EndpointConfig",
     "EvidenceStrategy",
     "PlatformDetectionResult",
     "PlatformType",

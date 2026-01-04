@@ -212,3 +212,391 @@ class TestPlatformDetectionResult:
         # Ensure different instances have different lists
         result1.markers.append("test")
         assert result2.markers == []
+
+
+# ==============================================================================
+# API Evidence Models Tests (Story 8.4)
+# ==============================================================================
+
+from datetime import datetime, timezone
+
+from adw.models.evidence import (
+    APIEvidenceResult,
+    APIEvidenceSummary,
+    APIRequest,
+    APIResponse,
+    AuthConfig,
+    AuthType,
+    EndpointConfig,
+)
+
+
+class TestEndpointConfig:
+    """Tests for EndpointConfig model."""
+
+    def test_create_basic_endpoint(self) -> None:
+        """Test creating a basic endpoint configuration."""
+        endpoint = EndpointConfig(
+            name="health",
+            path="/health",
+        )
+        assert endpoint.name == "health"
+        assert endpoint.path == "/health"
+        assert endpoint.method == "GET"  # Default
+        assert endpoint.headers is None
+        assert endpoint.body is None
+        assert endpoint.expected_status is None
+        assert endpoint.timeout_seconds == 30  # Default
+
+    def test_create_post_endpoint_with_body(self) -> None:
+        """Test creating a POST endpoint with body."""
+        endpoint = EndpointConfig(
+            name="create_user",
+            method="POST",
+            path="/users",
+            body={"name": "test", "email": "test@example.com"},
+            expected_status=201,
+        )
+        assert endpoint.method == "POST"
+        assert endpoint.body == {"name": "test", "email": "test@example.com"}
+        assert endpoint.expected_status == 201
+
+    def test_endpoint_with_headers(self) -> None:
+        """Test endpoint with custom headers."""
+        endpoint = EndpointConfig(
+            name="get_users",
+            path="/users",
+            headers={"Accept": "application/json", "X-Custom": "value"},
+        )
+        assert endpoint.headers == {"Accept": "application/json", "X-Custom": "value"}
+
+    def test_endpoint_json_serialization(self) -> None:
+        """Test JSON serialization of endpoint config."""
+        endpoint = EndpointConfig(
+            name="test",
+            method="DELETE",
+            path="/items/123",
+            timeout_seconds=60,
+        )
+        data = endpoint.model_dump()
+        assert data["name"] == "test"
+        assert data["method"] == "DELETE"
+        assert data["path"] == "/items/123"
+        assert data["timeout_seconds"] == 60
+
+    def test_endpoint_required_fields(self) -> None:
+        """Test that required fields are enforced."""
+        with pytest.raises(ValidationError):
+            EndpointConfig(name="test")  # Missing path
+
+        with pytest.raises(ValidationError):
+            EndpointConfig(path="/test")  # Missing name
+
+
+class TestAuthConfig:
+    """Tests for AuthConfig model."""
+
+    def test_create_bearer_auth(self) -> None:
+        """Test creating bearer token auth config."""
+        auth = AuthConfig(
+            type=AuthType.BEARER,
+            token_env="API_TOKEN",
+        )
+        assert auth.type == AuthType.BEARER
+        assert auth.token_env == "API_TOKEN"
+        assert auth.header is None
+        assert auth.key_env is None
+
+    def test_create_api_key_auth(self) -> None:
+        """Test creating API key auth config."""
+        auth = AuthConfig(
+            type=AuthType.API_KEY,
+            header="X-API-Key",
+            key_env="API_KEY",
+        )
+        assert auth.type == AuthType.API_KEY
+        assert auth.header == "X-API-Key"
+        assert auth.key_env == "API_KEY"
+
+    def test_auth_type_enum_values(self) -> None:
+        """Test AuthType enum values."""
+        assert AuthType.BEARER == "bearer"
+        assert AuthType.API_KEY == "api_key"
+        assert AuthType.BASIC == "basic"
+
+
+class TestAPIRequest:
+    """Tests for APIRequest model."""
+
+    def test_create_get_request(self) -> None:
+        """Test creating a GET request."""
+        request = APIRequest(
+            method="GET",
+            url="http://localhost:8000/health",
+        )
+        assert request.method == "GET"
+        assert request.url == "http://localhost:8000/health"
+        assert request.headers is None
+        assert request.body is None
+
+    def test_create_post_request_with_body(self) -> None:
+        """Test creating a POST request with body."""
+        request = APIRequest(
+            method="POST",
+            url="http://localhost:8000/users",
+            headers={"Content-Type": "application/json"},
+            body={"name": "test"},
+        )
+        assert request.method == "POST"
+        assert request.headers == {"Content-Type": "application/json"}
+        assert request.body == {"name": "test"}
+
+    def test_request_json_serialization(self) -> None:
+        """Test JSON serialization of request."""
+        request = APIRequest(
+            method="PUT",
+            url="http://localhost:8000/items/1",
+            body={"value": 42},
+        )
+        data = request.model_dump()
+        assert data["method"] == "PUT"
+        assert data["url"] == "http://localhost:8000/items/1"
+        assert data["body"] == {"value": 42}
+
+
+class TestAPIResponse:
+    """Tests for APIResponse model."""
+
+    def test_create_success_response(self) -> None:
+        """Test creating a success response."""
+        response = APIResponse(
+            status_code=200,
+            body={"status": "ok"},
+            duration_seconds=0.045,
+        )
+        assert response.status_code == 200
+        assert response.body == {"status": "ok"}
+        assert response.duration_seconds == 0.045
+        assert response.headers is None
+
+    def test_create_response_with_headers(self) -> None:
+        """Test creating response with headers."""
+        response = APIResponse(
+            status_code=201,
+            headers={"Content-Type": "application/json", "X-Request-Id": "abc123"},
+            body={"id": 123},
+            duration_seconds=0.123,
+        )
+        assert response.headers == {
+            "Content-Type": "application/json",
+            "X-Request-Id": "abc123",
+        }
+
+    def test_response_with_string_body(self) -> None:
+        """Test response with string body (non-JSON)."""
+        response = APIResponse(
+            status_code=200,
+            body="OK",
+            duration_seconds=0.01,
+        )
+        assert response.body == "OK"
+
+    def test_response_json_serialization(self) -> None:
+        """Test JSON serialization of response."""
+        response = APIResponse(
+            status_code=404,
+            body={"error": "Not found"},
+            duration_seconds=0.05,
+        )
+        data = response.model_dump()
+        assert data["status_code"] == 404
+        assert data["body"] == {"error": "Not found"}
+
+
+class TestAPIEvidenceResult:
+    """Tests for APIEvidenceResult model."""
+
+    def test_create_evidence_result(self) -> None:
+        """Test creating an API evidence result."""
+        result = APIEvidenceResult(
+            endpoint_name="health",
+            request=APIRequest(method="GET", url="http://localhost:8000/health"),
+            response=APIResponse(
+                status_code=200, body={"status": "ok"}, duration_seconds=0.01
+            ),
+            success=True,
+        )
+        assert result.endpoint_name == "health"
+        assert result.success is True
+        assert result.error is None
+        assert result.status_match is True  # Default
+
+    def test_evidence_result_with_expected_status(self) -> None:
+        """Test evidence result with status matching."""
+        result = APIEvidenceResult(
+            endpoint_name="create_user",
+            request=APIRequest(
+                method="POST",
+                url="http://localhost:8000/users",
+                body={"name": "test"},
+            ),
+            response=APIResponse(
+                status_code=201, body={"id": 1}, duration_seconds=0.1
+            ),
+            success=True,
+            expected_status=201,
+            status_match=True,
+        )
+        assert result.expected_status == 201
+        assert result.status_match is True
+
+    def test_evidence_result_status_mismatch(self) -> None:
+        """Test evidence result with status mismatch."""
+        result = APIEvidenceResult(
+            endpoint_name="get_item",
+            request=APIRequest(method="GET", url="http://localhost:8000/items/999"),
+            response=APIResponse(
+                status_code=404, body={"error": "Not found"}, duration_seconds=0.05
+            ),
+            success=False,
+            expected_status=200,
+            status_match=False,
+        )
+        assert result.success is False
+        assert result.status_match is False
+
+    def test_evidence_result_with_error(self) -> None:
+        """Test evidence result with error."""
+        result = APIEvidenceResult(
+            endpoint_name="timeout_endpoint",
+            request=APIRequest(method="GET", url="http://localhost:8000/slow"),
+            response=APIResponse(status_code=0, body="", duration_seconds=30.0),
+            success=False,
+            error="Connection timeout after 30 seconds",
+        )
+        assert result.success is False
+        assert result.error == "Connection timeout after 30 seconds"
+
+    def test_evidence_result_has_captured_at(self) -> None:
+        """Test that evidence result has captured_at timestamp."""
+        before = datetime.now(timezone.utc)
+        result = APIEvidenceResult(
+            endpoint_name="test",
+            request=APIRequest(method="GET", url="http://localhost:8000/test"),
+            response=APIResponse(status_code=200, body="", duration_seconds=0.01),
+            success=True,
+        )
+        after = datetime.now(timezone.utc)
+        assert before <= result.captured_at <= after
+
+    def test_evidence_result_json_serialization(self) -> None:
+        """Test JSON serialization of evidence result."""
+        result = APIEvidenceResult(
+            endpoint_name="test",
+            request=APIRequest(method="GET", url="http://localhost:8000/test"),
+            response=APIResponse(status_code=200, body="OK", duration_seconds=0.01),
+            success=True,
+        )
+        data = result.model_dump()
+        assert data["endpoint_name"] == "test"
+        assert data["request"]["method"] == "GET"
+        assert data["response"]["status_code"] == 200
+        assert "captured_at" in data
+
+
+class TestAPIEvidenceSummary:
+    """Tests for APIEvidenceSummary model."""
+
+    def test_create_summary(self) -> None:
+        """Test creating an evidence summary."""
+        results = [
+            APIEvidenceResult(
+                endpoint_name="health",
+                request=APIRequest(method="GET", url="http://localhost:8000/health"),
+                response=APIResponse(
+                    status_code=200, body={"status": "ok"}, duration_seconds=0.01
+                ),
+                success=True,
+            ),
+            APIEvidenceResult(
+                endpoint_name="users",
+                request=APIRequest(method="GET", url="http://localhost:8000/users"),
+                response=APIResponse(
+                    status_code=200, body={"users": []}, duration_seconds=0.05
+                ),
+                success=True,
+            ),
+        ]
+        summary = APIEvidenceSummary(
+            base_url="http://localhost:8000",
+            total_endpoints=2,
+            successful=2,
+            failed=0,
+            status_mismatches=0,
+            results=results,
+        )
+        assert summary.base_url == "http://localhost:8000"
+        assert summary.total_endpoints == 2
+        assert summary.successful == 2
+        assert summary.failed == 0
+        assert len(summary.results) == 2
+
+    def test_summary_with_failures(self) -> None:
+        """Test summary with failed endpoints."""
+        results = [
+            APIEvidenceResult(
+                endpoint_name="health",
+                request=APIRequest(method="GET", url="http://localhost:8000/health"),
+                response=APIResponse(
+                    status_code=200, body={"status": "ok"}, duration_seconds=0.01
+                ),
+                success=True,
+            ),
+            APIEvidenceResult(
+                endpoint_name="broken",
+                request=APIRequest(method="GET", url="http://localhost:8000/broken"),
+                response=APIResponse(
+                    status_code=500, body={"error": "Internal"}, duration_seconds=0.1
+                ),
+                success=False,
+            ),
+        ]
+        summary = APIEvidenceSummary(
+            base_url="http://localhost:8000",
+            total_endpoints=2,
+            successful=1,
+            failed=1,
+            status_mismatches=0,
+            results=results,
+        )
+        assert summary.successful == 1
+        assert summary.failed == 1
+
+    def test_summary_json_serialization(self) -> None:
+        """Test JSON serialization of summary."""
+        summary = APIEvidenceSummary(
+            base_url="http://localhost:8000",
+            total_endpoints=0,
+            successful=0,
+            failed=0,
+            status_mismatches=0,
+            results=[],
+        )
+        data = summary.model_dump()
+        assert data["base_url"] == "http://localhost:8000"
+        assert data["total_endpoints"] == 0
+        assert data["results"] == []
+
+    def test_summary_has_captured_at(self) -> None:
+        """Test that summary has captured_at timestamp."""
+        before = datetime.now(timezone.utc)
+        summary = APIEvidenceSummary(
+            base_url="http://localhost:8000",
+            total_endpoints=0,
+            successful=0,
+            failed=0,
+            status_mismatches=0,
+            results=[],
+        )
+        after = datetime.now(timezone.utc)
+        assert before <= summary.captured_at <= after

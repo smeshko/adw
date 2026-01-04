@@ -38,12 +38,12 @@ so that endpoint behavior can be verified.
 ## Tasks / Subtasks
 
 ### Task 1: Create API Evidence Models (models/evidence.py)
-- [ ] Create `EndpointConfig` model for endpoint configuration
-- [ ] Create `APIRequest` model with method, url, headers, body
-- [ ] Create `APIResponse` model with status_code, headers, body, duration
-- [ ] Create `APIEvidenceResult` model combining request + response
-- [ ] Create `APIEvidenceSummary` model for aggregate results
-- [ ] Export from `models/__init__.py`
+- [x] Create `EndpointConfig` model for endpoint configuration
+- [x] Create `APIRequest` model with method, url, headers, body
+- [x] Create `APIResponse` model with status_code, headers, body, duration
+- [x] Create `APIEvidenceResult` model combining request + response
+- [x] Create `APIEvidenceSummary` model for aggregate results
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement HTTP Client Wrapper (evidence/api_capture.py)
 - [ ] Create `APICaptureStrategy` class
