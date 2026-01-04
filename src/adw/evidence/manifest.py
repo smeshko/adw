@@ -769,7 +769,7 @@ class EvidenceDirectoryScanner:
     }
 
     # Extensions for evidence files (not metadata)
-    EVIDENCE_EXTENSIONS = {".txt", ".png", ".jpg", ".jpeg", ".json"}
+    EVIDENCE_EXTENSIONS = {".txt", ".png", ".jpg", ".jpeg", ".json", ".log"}
 
     # Files to skip (metadata files)
     SKIP_FILES = {"summary.json", "metadata.json"}
