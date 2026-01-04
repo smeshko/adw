@@ -57,10 +57,10 @@ so that verification is traceable.
 - [x] Mark unlinked evidence items appropriately
 
 ### Task 4: Implement Evidence Item Collection
-- [ ] Scan evidence directory for all captured files
-- [ ] Categorize by type (CLI output, screenshot, API response)
-- [ ] Determine status from individual result files
-- [ ] Generate relative paths for portability
+- [x] Scan evidence directory for all captured files
+- [x] Categorize by type (CLI output, screenshot, API response)
+- [x] Determine status from individual result files
+- [x] Generate relative paths for portability
 
 ### Task 5: Implement Manifest Writer
 - [ ] Write manifest to `evidence/manifest.json`

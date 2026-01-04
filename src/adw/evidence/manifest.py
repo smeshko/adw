@@ -684,3 +684,247 @@ class PlanStepLinker:
         # Filter short tokens and common words
         stop_words = {"the", "a", "an", "and", "or", "to", "in", "for", "of"}
         return [w for w in words if len(w) > 2 and w not in stop_words]
+
+
+class EvidenceDirectoryScanner:
+    """Scans evidence directory to collect captured files.
+
+    Discovers evidence files from an evidence directory structure
+    and creates EvidenceItem objects for each file found.
+
+    The expected directory structure is:
+        evidence/
+        ├── cli/
+        │   ├── *.txt (command output files)
+        │   └── summary.json
+        ├── screenshots/
+        │   ├── *.png (screenshot files)
+        │   └── metadata.json
+        ├── api/
+        │   ├── *.json (API response files)
+        │   └── summary.json
+        └── mobile/
+            ├── *.png (mobile screenshot files)
+            └── metadata.json
+
+    Example:
+        >>> scanner = EvidenceDirectoryScanner(Path(".adw/runs/01HQ/evidence"))
+        >>> items = scanner.scan()
+    """
+
+    # File extension to evidence type mapping
+    TYPE_MAPPINGS = {
+        "cli": EvidenceType.CLI,
+        "screenshots": EvidenceType.SCREENSHOT,
+        "api": EvidenceType.API,
+        "mobile": EvidenceType.SCREENSHOT,
+        "logs": EvidenceType.LOG,
+    }
+
+    # Extensions for evidence files (not metadata)
+    EVIDENCE_EXTENSIONS = {".txt", ".png", ".jpg", ".jpeg", ".json"}
+
+    # Files to skip (metadata files)
+    SKIP_FILES = {"summary.json", "metadata.json"}
+
+    def __init__(self, evidence_directory: Path) -> None:
+        """Initialize the evidence directory scanner.
+
+        Args:
+            evidence_directory: Path to the evidence directory
+        """
+        self.evidence_directory = evidence_directory
+        self._logger = get_logger()
+
+    def scan(self) -> list[EvidenceItem]:
+        """Scan the evidence directory for captured files.
+
+        Walks the directory structure, categorizes files by type,
+        and creates EvidenceItem objects.
+
+        Returns:
+            List of EvidenceItem objects for each evidence file
+        """
+        if not self.evidence_directory.exists():
+            self._logger.warn(
+                LogCategory.STATE,
+                f"Evidence directory does not exist: {self.evidence_directory}",
+            )
+            return []
+
+        items: list[EvidenceItem] = []
+
+        # Scan each subdirectory
+        for subdir in self.evidence_directory.iterdir():
+            if not subdir.is_dir():
+                continue
+
+            subdir_name = subdir.name.lower()
+            evidence_type = self.TYPE_MAPPINGS.get(subdir_name)
+
+            if evidence_type is None:
+                self._logger.debug(
+                    LogCategory.STATE,
+                    f"Skipping unknown evidence subdirectory: {subdir_name}",
+                )
+                continue
+
+            # Scan files in this subdirectory
+            subdir_items = self._scan_directory(subdir, evidence_type)
+            items.extend(subdir_items)
+
+        self._logger.info(
+            LogCategory.STATE,
+            f"Scanned evidence directory: found {len(items)} evidence files",
+        )
+
+        return items
+
+    def _scan_directory(
+        self,
+        directory: Path,
+        evidence_type: EvidenceType,
+    ) -> list[EvidenceItem]:
+        """Scan a specific evidence subdirectory.
+
+        Args:
+            directory: Path to the subdirectory
+            evidence_type: Type of evidence in this directory
+
+        Returns:
+            List of EvidenceItem objects
+        """
+        items: list[EvidenceItem] = []
+
+        for file_path in directory.iterdir():
+            if not file_path.is_file():
+                continue
+
+            # Skip metadata files
+            if file_path.name in self.SKIP_FILES:
+                continue
+
+            # Check extension
+            if file_path.suffix.lower() not in self.EVIDENCE_EXTENSIONS:
+                continue
+
+            # Create relative path from evidence directory
+            relative_path = file_path.relative_to(self.evidence_directory)
+
+            # Generate name from filename (without extension)
+            name = file_path.stem
+
+            # Determine status from file content if possible
+            status = self._determine_status(file_path, evidence_type)
+
+            items.append(
+                EvidenceItem(
+                    name=name,
+                    type=evidence_type,
+                    path=str(relative_path),
+                    status=status,
+                    plan_step=None,  # Set by plan step linking
+                    details=self._extract_details(file_path, evidence_type),
+                )
+            )
+
+        return items
+
+    def _determine_status(
+        self,
+        file_path: Path,
+        evidence_type: EvidenceType,
+    ) -> EvidenceStatus:
+        """Determine evidence status from file content.
+
+        For JSON files, looks for status/success fields.
+        For other files, checks if they exist and have content.
+
+        Args:
+            file_path: Path to the evidence file
+            evidence_type: Type of evidence
+
+        Returns:
+            EvidenceStatus based on file content
+        """
+        import json
+
+        try:
+            # Check file exists and has content
+            if not file_path.exists() or file_path.stat().st_size == 0:
+                return EvidenceStatus.ERROR
+
+            # For JSON files, try to parse and check for status fields
+            if file_path.suffix.lower() == ".json":
+                try:
+                    content = json.loads(file_path.read_text(encoding="utf-8"))
+                    if isinstance(content, dict):
+                        # Check various status field patterns
+                        if content.get("success") is False:
+                            return EvidenceStatus.FAIL
+                        if content.get("error"):
+                            return EvidenceStatus.ERROR
+                        if content.get("status") == "fail":
+                            return EvidenceStatus.FAIL
+                        if content.get("exit_code", 0) != 0:
+                            return EvidenceStatus.FAIL
+                except json.JSONDecodeError:
+                    return EvidenceStatus.ERROR
+
+            # For images, existence with content = success
+            if file_path.suffix.lower() in {".png", ".jpg", ".jpeg"}:
+                return EvidenceStatus.PASS
+
+            # For text files, check for error indicators
+            if file_path.suffix.lower() == ".txt":
+                content = file_path.read_text(encoding="utf-8", errors="replace")
+                # Simple heuristic: check for error patterns
+                error_patterns = ["error:", "failed:", "exception:", "traceback"]
+                content_lower = content.lower()
+                for pattern in error_patterns:
+                    if pattern in content_lower:
+                        return EvidenceStatus.FAIL
+
+            return EvidenceStatus.PASS
+
+        except OSError:
+            return EvidenceStatus.ERROR
+
+    def _extract_details(
+        self,
+        file_path: Path,
+        evidence_type: EvidenceType,
+    ) -> dict[str, str | int | float] | None:
+        """Extract details from evidence file.
+
+        Args:
+            file_path: Path to the evidence file
+            evidence_type: Type of evidence
+
+        Returns:
+            Dictionary of details, or None if no details available
+        """
+        import json
+
+        details: dict[str, str | int | float] = {
+            "file_size": file_path.stat().st_size,
+        }
+
+        # For JSON files, extract key metadata
+        if file_path.suffix.lower() == ".json":
+            try:
+                content = json.loads(file_path.read_text(encoding="utf-8"))
+                if isinstance(content, dict):
+                    # Extract common fields
+                    for key in ["status_code", "method", "exit_code", "duration_seconds"]:
+                        if key in content:
+                            details[key] = content[key]
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        # For images, get dimensions if possible
+        if file_path.suffix.lower() in {".png", ".jpg", ".jpeg"}:
+            # We don't want to import PIL just for this
+            details["format"] = file_path.suffix[1:].upper()
+
+        return details if len(details) > 1 else None
