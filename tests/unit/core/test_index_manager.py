@@ -20,8 +20,12 @@ from adw.models import RunContext
 class TestIndexManagerInit:
     """Tests for IndexManager initialization."""
 
-    def test_default_index_path_uses_home_directory(self) -> None:
-        """Test that default index path is ~/.adw/index.jsonl."""
+    def test_default_index_path_uses_home_directory(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that default index path is ~/.adw/index.jsonl when no env var set."""
+        # Remove the test isolation env var to test true default behavior
+        monkeypatch.delenv("ADW_TEST_INDEX_PATH", raising=False)
         manager = IndexManager()
         expected = Path.home() / ".adw" / "index.jsonl"
         assert manager.index_path == expected
@@ -31,6 +35,27 @@ class TestIndexManagerInit:
         custom_path = tmp_path / "custom" / "index.jsonl"
         manager = IndexManager(index_path=custom_path)
         assert manager.index_path == custom_path
+
+    def test_custom_path_takes_precedence_over_env_var(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that explicit index_path takes precedence over environment variable."""
+        env_path = tmp_path / "env" / "index.jsonl"
+        custom_path = tmp_path / "custom" / "index.jsonl"
+        monkeypatch.setenv("ADW_TEST_INDEX_PATH", str(env_path))
+
+        manager = IndexManager(index_path=custom_path)
+        assert manager.index_path == custom_path
+
+    def test_env_var_overrides_default(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that ADW_TEST_INDEX_PATH environment variable overrides default."""
+        env_path = tmp_path / "test" / "index.jsonl"
+        monkeypatch.setenv("ADW_TEST_INDEX_PATH", str(env_path))
+
+        manager = IndexManager()
+        assert manager.index_path == env_path
 
     def test_archive_dir_derived_from_index_path(self, tmp_path: Path) -> None:
         """Test that archive directory is sibling to index file."""
