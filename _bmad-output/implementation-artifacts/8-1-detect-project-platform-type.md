@@ -38,10 +38,10 @@ so that appropriate evidence gathering strategies are used.
 ## Tasks / Subtasks
 
 ### Task 1: Create Platform Type Models (models/evidence.py)
-- [ ] Create `PlatformType` enum (CLI, WEB, BACKEND, UNKNOWN)
-- [ ] Create `PlatformDetectionResult` model with platform, confidence, markers
-- [ ] Create `EvidenceStrategy` enum or Protocol for strategy selection
-- [ ] Export from `models/__init__.py`
+- [x] Create `PlatformType` enum (CLI, WEB, BACKEND, UNKNOWN)
+- [x] Create `PlatformDetectionResult` model with platform, confidence, markers
+- [x] Create `EvidenceStrategy` enum or Protocol for strategy selection
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Configuration-Based Detection
 - [ ] Read `platform` key from `.adw/project.yaml`
