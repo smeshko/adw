@@ -229,6 +229,7 @@ class ProgressDisplay:
         status: str,
         total_duration_ms: int,
         total_tokens: int,
+        run_id: str | None = None,
     ) -> None:
         """Show pipeline summary at end of run.
 
@@ -237,6 +238,7 @@ class ProgressDisplay:
             status: Final run status.
             total_duration_ms: Total run duration in milliseconds.
             total_tokens: Total tokens used.
+            run_id: Optional run ID for displaying artifact paths.
         """
         self.console.print()
 
@@ -264,12 +266,24 @@ class ProgressDisplay:
         else:
             status_color = "red"
 
+        # Build content with optional PR description path (Story 9.4)
+        content_lines = [
+            status_line,
+            "",
+            f"[bold]Status:[/] [{status_color}]{status}[/]",
+            f"[bold]Duration:[/] {duration}",
+            f"[bold]Tokens:[/] {total_tokens:,}",
+        ]
+
+        # Add PR description path if document phase completed
+        if run_id and "document" in completed_phases:
+            pr_path = f".adw/runs/{run_id}/artifacts/document/pr_description.md"
+            content_lines.append("")
+            content_lines.append(f"[bold]PR Description:[/] [cyan]{pr_path}[/]")
+
         self.console.print(
             Panel(
-                f"{status_line}\n\n"
-                f"[bold]Status:[/] [{status_color}]{status}[/]\n"
-                f"[bold]Duration:[/] {duration}\n"
-                f"[bold]Tokens:[/] {total_tokens:,}",
+                "\n".join(content_lines),
                 title="Pipeline Summary",
                 border_style=status_color,
             )

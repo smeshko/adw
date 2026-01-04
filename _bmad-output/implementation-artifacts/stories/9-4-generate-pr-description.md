@@ -42,7 +42,7 @@ so that I can quickly create a pull request.
 - [x] Implement PR description artifact saving
 - [x] Add `{{artifacts.verify.evidence_manifest}}` to template variables
 - [x] Create `PRDescription` Pydantic model for structured output
-- [ ] Update run completion panel to show PR description path
+- [x] Update run completion panel to show PR description path
 - [ ] Implement schema validation for PR description output
 - [ ] Write unit tests for PR description model
 - [ ] Write integration tests for Document phase with PR output
