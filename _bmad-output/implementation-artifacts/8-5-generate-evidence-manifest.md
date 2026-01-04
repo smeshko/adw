@@ -69,10 +69,10 @@ so that verification is traceable.
 - [x] Validate manifest structure before writing
 
 ### Task 6: Implement Coverage Calculation
-- [ ] Count evidence items per plan step
-- [ ] Identify plan steps without evidence
-- [ ] Calculate coverage percentage
-- [ ] Add coverage summary to manifest
+- [x] Count evidence items per plan step
+- [x] Identify plan steps without evidence
+- [x] Calculate coverage percentage
+- [x] Add coverage summary to manifest
 
 ### Task 7: Integrate with Verify Phase
 - [ ] Call manifest generation after all evidence capture
