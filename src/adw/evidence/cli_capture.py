@@ -26,7 +26,12 @@ class CLICaptureStrategy:
         'adw version 1.0.0'
     """
 
-    def execute_command(self, cmd: str, timeout: int) -> CommandResult:
+    def execute_command(
+        self,
+        cmd: str,
+        timeout: int,
+        name: str | None = None,
+    ) -> CommandResult:
         """Execute a command and capture its output.
 
         Runs the command using subprocess with shell=True, capturing
@@ -35,6 +40,7 @@ class CLICaptureStrategy:
         Args:
             cmd: The shell command to execute
             timeout: Maximum execution time in seconds
+            name: Optional config name for evidence file naming
 
         Returns:
             CommandResult with captured output and metadata
@@ -59,6 +65,7 @@ class CLICaptureStrategy:
 
             return CommandResult(
                 command=cmd,
+                name=name,
                 exit_code=result.returncode,
                 stdout=result.stdout,
                 stderr=result.stderr,
@@ -72,6 +79,7 @@ class CLICaptureStrategy:
 
             return CommandResult(
                 command=cmd,
+                name=name,
                 exit_code=-1,
                 stdout="",
                 stderr="Command timed out",
@@ -92,4 +100,4 @@ class CLICaptureStrategy:
         Returns:
             CommandResult with captured output and metadata
         """
-        return self.execute_command(config.cmd, config.timeout)
+        return self.execute_command(config.cmd, config.timeout, config.name)

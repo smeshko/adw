@@ -1,6 +1,6 @@
 # Story 8.5: Generate Evidence Manifest
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 8 - Evidence Gathering
 Created: 2026-01-03
@@ -38,55 +38,55 @@ so that verification is traceable.
 ## Tasks / Subtasks
 
 ### Task 1: Create Manifest Models (models/evidence.py)
-- [ ] Create `EvidenceItem` model with type, path, status, plan_step
-- [ ] Create `EvidenceType` enum (CLI, SCREENSHOT, API, LOG)
-- [ ] Create `EvidenceStatus` enum (PASS, FAIL, ERROR, SKIPPED)
-- [ ] Create `EvidenceManifest` model with full manifest structure
-- [ ] Export from `models/__init__.py`
+- [x] Create `EvidenceItem` model with type, path, status, plan_step
+- [x] Create `EvidenceType` enum (CLI, SCREENSHOT, API, LOG)
+- [x] Create `EvidenceStatus` enum (PASS, FAIL, ERROR, SKIPPED)
+- [x] Create `EvidenceManifest` model with full manifest structure
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Manifest Generator (evidence/manifest.py)
-- [ ] Create `ManifestGenerator` class
-- [ ] Implement `generate(results: list[EvidenceResult]) -> EvidenceManifest`
-- [ ] Aggregate results from all evidence strategies (CLI, web, API)
-- [ ] Calculate summary statistics (total, passed, failed, errors)
+- [x] Create `ManifestGenerator` class
+- [x] Implement `generate(results: list[EvidenceResult]) -> EvidenceManifest`
+- [x] Aggregate results from all evidence strategies (CLI, web, API)
+- [x] Calculate summary statistics (total, passed, failed, errors)
 
 ### Task 3: Implement Plan Step Linking
-- [ ] Parse plan.md file to extract step IDs
-- [ ] Create mapping heuristics: evidence name → plan step
-- [ ] Support explicit linking via config
-- [ ] Mark unlinked evidence items appropriately
+- [x] Parse plan.md file to extract step IDs
+- [x] Create mapping heuristics: evidence name → plan step
+- [x] Support explicit linking via config
+- [x] Mark unlinked evidence items appropriately
 
 ### Task 4: Implement Evidence Item Collection
-- [ ] Scan evidence directory for all captured files
-- [ ] Categorize by type (CLI output, screenshot, API response)
-- [ ] Determine status from individual result files
-- [ ] Generate relative paths for portability
+- [x] Scan evidence directory for all captured files
+- [x] Categorize by type (CLI output, screenshot, API response)
+- [x] Determine status from individual result files
+- [x] Generate relative paths for portability
 
 ### Task 5: Implement Manifest Writer
-- [ ] Write manifest to `evidence/manifest.json`
-- [ ] Use pretty-printed JSON for readability
-- [ ] Include metadata (generated_at, run_id, platform)
-- [ ] Validate manifest structure before writing
+- [x] Write manifest to `evidence/manifest.json`
+- [x] Use pretty-printed JSON for readability
+- [x] Include metadata (generated_at, run_id, platform)
+- [x] Validate manifest structure before writing
 
 ### Task 6: Implement Coverage Calculation
-- [ ] Count evidence items per plan step
-- [ ] Identify plan steps without evidence
-- [ ] Calculate coverage percentage
-- [ ] Add coverage summary to manifest
+- [x] Count evidence items per plan step
+- [x] Identify plan steps without evidence
+- [x] Calculate coverage percentage
+- [x] Add coverage summary to manifest
 
 ### Task 7: Integrate with Verify Phase
-- [ ] Call manifest generation after all evidence capture
-- [ ] Pass all strategy results to manifest generator
-- [ ] Store manifest path in RunContext
-- [ ] Return manifest for downstream phases
+- [x] Call manifest generation after all evidence capture
+- [x] Pass all strategy results to manifest generator
+- [x] Store manifest path in RunContext
+- [x] Return manifest for downstream phases
 
 ### Task 8: Write Unit Tests
-- [ ] Test manifest model creation and serialization
-- [ ] Test evidence item aggregation
-- [ ] Test plan step linking logic
-- [ ] Test coverage calculation
-- [ ] Test manifest file writing
-- [ ] Test with mixed success/failure evidence
+- [x] Test manifest model creation and serialization
+- [x] Test evidence item aggregation
+- [x] Test plan step linking logic
+- [x] Test coverage calculation
+- [x] Test manifest file writing
+- [x] Test with mixed success/failure evidence
 
 ---
 
