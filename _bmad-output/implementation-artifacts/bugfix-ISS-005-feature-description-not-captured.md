@@ -49,10 +49,15 @@ Since the bug is not reproducible, implement preventive measures:
 - Added tests for environment variable precedence behavior
 
 ### Task 3: Add Integration Test
-- [ ] Create test that runs `adw run "unique test feature xyz"`
-- [ ] Verify context.json contains "unique test feature xyz"
-- [ ] Verify `adw list` output contains "unique test feature xyz"
-- [ ] Test with special characters and edge cases
+- [x] Create test that runs `adw run "unique test feature xyz"`
+- [x] Verify context.json contains "unique test feature xyz"
+- [x] Verify `adw list` output contains "unique test feature xyz"
+- [x] Test with special characters and edge cases
+
+**Implementation:**
+- Created `tests/integration/cli/test_feature_description.py` with 10 tests
+- Tests cover: CLI header display, RunContext serialization, ContextManager persistence, IndexManager storage
+- Edge cases: spaces, special characters, quotes, hyphens
 
 ### Task 4: Cleanup Test Runs
 - [ ] Document that existing runs with "Add feature" are from test executions
