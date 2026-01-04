@@ -44,11 +44,11 @@ so that command execution can be verified.
 - [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Command Executor (evidence/cli_capture.py)
-- [ ] Create `CLICaptureStrategy` class
-- [ ] Implement `execute_command(cmd: str, timeout: int) -> CommandResult`
-- [ ] Use `subprocess.run()` with capture_output=True
-- [ ] Capture stdout, stderr, exit code, and duration
-- [ ] Handle timeout gracefully with TimeoutExpired
+- [x] Create `CLICaptureStrategy` class
+- [x] Implement `execute_command(cmd: str, timeout: int) -> CommandResult`
+- [x] Use `subprocess.run()` with capture_output=True
+- [x] Capture stdout, stderr, exit code, and duration
+- [x] Handle timeout gracefully with TimeoutExpired
 
 ### Task 3: Implement Evidence File Writer
 - [ ] Create evidence directory structure: `.adw/runs/<run_id>/evidence/cli/`
@@ -406,10 +406,13 @@ claude-opus-4-5-20251101
 ### Completion Notes List
 
 - **Task 1**: Created CLI evidence models (CommandConfig, CommandResult, CLIEvidenceSummary) in models/evidence.py. Models use Pydantic with full type annotations, UTC timestamps, and comprehensive validation. Added 18 unit tests covering all model functionality. All tests pass. Coverage: 94% for evidence.py.
+- **Task 2**: Implemented CLICaptureStrategy in evidence/cli_capture.py. Uses subprocess.run() with capture_output=True to capture stdout, stderr, exit code, and duration. Handles timeout gracefully with exit_code=-1. Added 11 unit tests with mocked subprocess. Coverage: 100% for cli_capture.py.
 
 ### File List
 
 - src/adw/models/evidence.py (modified - added CommandConfig, CommandResult, CLIEvidenceSummary)
 - src/adw/models/__init__.py (modified - export new models)
+- src/adw/evidence/cli_capture.py (new - CLICaptureStrategy class)
 - tests/unit/evidence/test_cli_models.py (new - 18 tests for CLI models)
+- tests/unit/evidence/test_cli_capture.py (new - 11 tests for CLI capture)
 
