@@ -1121,3 +1121,225 @@ class EvidenceManifest(BaseModel):
             }
         }
     }
+
+
+# =============================================================================
+# Evidence Optimization Models (Story 8.6)
+# =============================================================================
+
+
+class OptimizationConfig(BaseModel):
+    """Configuration for evidence optimization.
+
+    Controls how evidence files are optimized for storage and transfer.
+    Settings can be configured in project.yaml under evidence.optimization.
+
+    Attributes:
+        enabled: Whether optimization is enabled
+        max_image_size_kb: Target maximum size for images in KB
+        max_text_size_kb: Maximum size for text files before truncation in KB
+        image_quality: JPEG/PNG quality level (1-100)
+        compress_json: Whether to minify JSON files
+        keep_manifest_pretty: Keep manifest.json human-readable
+        warn_total_size_mb: Emit warning if total size exceeds this threshold
+
+    Example:
+        >>> config = OptimizationConfig(
+        ...     max_image_size_kb=500,
+        ...     image_quality=80,
+        ... )
+    """
+
+    enabled: bool = Field(default=True, description="Whether optimization is enabled")
+    max_image_size_kb: int = Field(
+        default=500, description="Target maximum image size in KB"
+    )
+    max_text_size_kb: int = Field(
+        default=100, description="Maximum text file size before truncation in KB"
+    )
+    image_quality: int = Field(
+        default=80, ge=1, le=100, description="Image quality level (1-100)"
+    )
+    compress_json: bool = Field(
+        default=True, description="Whether to minify JSON files"
+    )
+    keep_manifest_pretty: bool = Field(
+        default=True, description="Keep manifest.json human-readable"
+    )
+    warn_total_size_mb: int = Field(
+        default=10, description="Warning threshold for total evidence size in MB"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "enabled": True,
+                "max_image_size_kb": 500,
+                "max_text_size_kb": 100,
+                "image_quality": 80,
+                "compress_json": True,
+                "keep_manifest_pretty": True,
+                "warn_total_size_mb": 10,
+            }
+        }
+    }
+
+
+class FileOptimization(BaseModel):
+    """Result of optimizing a single file.
+
+    Records the outcome of an optimization attempt on a single evidence file,
+    including before/after sizes and any savings achieved.
+
+    Attributes:
+        path: Relative path to the file within evidence directory
+        optimized: Whether the file was actually optimized
+        reason: Reason for skipping optimization (if optimized=False)
+        original_size: Original file size in bytes
+        optimized_size: Optimized file size in bytes
+        savings_bytes: Bytes saved (original - optimized)
+        savings_percent: Percentage reduction in size
+        truncated_lines: Number of lines truncated (for text files)
+
+    Example:
+        >>> result = FileOptimization(
+        ...     path="screenshots/home.png",
+        ...     optimized=True,
+        ...     original_size=1048576,
+        ...     optimized_size=262144,
+        ...     savings_bytes=786432,
+        ...     savings_percent=75.0,
+        ... )
+    """
+
+    path: str = Field(..., description="Relative path to the file")
+    optimized: bool = Field(..., description="Whether file was optimized")
+    reason: str | None = Field(
+        default=None, description="Reason for skipping optimization"
+    )
+    original_size: int | None = Field(
+        default=None, description="Original file size in bytes"
+    )
+    optimized_size: int | None = Field(
+        default=None, description="Optimized file size in bytes"
+    )
+    savings_bytes: int | None = Field(
+        default=None, description="Bytes saved by optimization"
+    )
+    savings_percent: float | None = Field(
+        default=None, description="Percentage reduction in size"
+    )
+    truncated_lines: int | None = Field(
+        default=None, description="Number of lines truncated (text files)"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "path": "screenshots/home.png",
+                "optimized": True,
+                "original_size": 1048576,
+                "optimized_size": 262144,
+                "savings_bytes": 786432,
+                "savings_percent": 75.0,
+            }
+        }
+    }
+
+
+class OptimizationReport(BaseModel):
+    """Complete optimization report for a run.
+
+    Aggregates all file optimization results for a run with summary statistics
+    and breakdown by file type.
+
+    Attributes:
+        run_id: Unique identifier for the run (ULID)
+        optimized_at: When optimization was performed
+        total_files: Total number of files processed
+        files_optimized: Number of files that were optimized
+        files_skipped: Number of files skipped (under threshold, etc.)
+        original_total_bytes: Total size before optimization
+        optimized_total_bytes: Total size after optimization
+        total_savings_bytes: Total bytes saved
+        total_savings_percent: Overall percentage reduction
+        image_optimization: Results for image files
+        text_optimization: Results for text files
+        json_optimization: Results for JSON files
+        size_warning: Whether total size exceeds warning threshold
+        warning_threshold_mb: Warning threshold that was exceeded
+
+    Example:
+        >>> report = OptimizationReport(
+        ...     run_id="01HQXK5P3Z7V8R2M4N6T9W1Y3C",
+        ...     total_files=12,
+        ...     files_optimized=8,
+        ...     files_skipped=4,
+        ...     original_total_bytes=5242880,
+        ...     optimized_total_bytes=2097152,
+        ...     total_savings_bytes=3145728,
+        ...     total_savings_percent=60.0,
+        ... )
+    """
+
+    run_id: str = Field(..., description="Unique run identifier (ULID)")
+    optimized_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        description="When optimization was performed",
+    )
+
+    # Summary statistics
+    total_files: int = Field(..., ge=0, description="Total files processed")
+    files_optimized: int = Field(..., ge=0, description="Files that were optimized")
+    files_skipped: int = Field(..., ge=0, description="Files skipped")
+
+    # Size metrics
+    original_total_bytes: int = Field(
+        ..., ge=0, description="Total size before optimization"
+    )
+    optimized_total_bytes: int = Field(
+        ..., ge=0, description="Total size after optimization"
+    )
+    total_savings_bytes: int = Field(..., ge=0, description="Total bytes saved")
+    total_savings_percent: float = Field(
+        ..., ge=0, le=100, description="Overall percentage reduction"
+    )
+
+    # Breakdown by type
+    image_optimization: list[FileOptimization] = Field(
+        default_factory=list, description="Results for image files"
+    )
+    text_optimization: list[FileOptimization] = Field(
+        default_factory=list, description="Results for text files"
+    )
+    json_optimization: list[FileOptimization] = Field(
+        default_factory=list, description="Results for JSON files"
+    )
+
+    # Warnings
+    size_warning: bool = Field(
+        default=False, description="Whether total size exceeds warning threshold"
+    )
+    warning_threshold_mb: int | None = Field(
+        default=None, description="Warning threshold that was exceeded"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "run_id": "01HQXK5P3Z7V8R2M4N6T9W1Y3C",
+                "optimized_at": "2026-01-03T10:31:00Z",
+                "total_files": 12,
+                "files_optimized": 8,
+                "files_skipped": 4,
+                "original_total_bytes": 5242880,
+                "optimized_total_bytes": 2097152,
+                "total_savings_bytes": 3145728,
+                "total_savings_percent": 60.0,
+                "image_optimization": [],
+                "text_optimization": [],
+                "json_optimization": [],
+                "size_warning": False,
+            }
+        }
+    }

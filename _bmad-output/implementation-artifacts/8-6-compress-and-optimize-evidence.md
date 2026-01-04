@@ -34,10 +34,10 @@ so that storage and transfer are efficient.
 ## Tasks / Subtasks
 
 ### Task 1: Create Optimization Models (models/evidence.py)
-- [ ] Create `OptimizationConfig` model with max sizes per type
-- [ ] Create `OptimizationResult` model with before/after sizes
-- [ ] Create `FileOptimization` model for individual file results
-- [ ] Export from `models/__init__.py`
+- [x] Create `OptimizationConfig` model with max sizes per type
+- [x] Create `OptimizationResult` model with before/after sizes
+- [x] Create `FileOptimization` model for individual file results
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Image Compression (evidence/optimizer.py)
 - [ ] Create `EvidenceOptimizer` class

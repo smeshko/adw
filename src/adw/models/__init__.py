@@ -17,7 +17,8 @@ This package contains all Pydantic models used throughout ADW:
             RouteConfig, ViewportConfig, ScreenshotResult, WebEvidenceSummary,
             MobileDeviceType, MobileScreenConfig, MobileScreenshotResult, MobileEvidenceSummary,
             EvidenceType, EvidenceStatus, EvidenceItem, PlanStepCoverage,
-            CoverageSummary, EvidenceManifest
+            CoverageSummary, EvidenceManifest,
+            OptimizationConfig, FileOptimization, OptimizationReport
 """
 
 from adw.models.command import LoadedCommand, ResolvedCommand
@@ -53,10 +54,13 @@ from adw.models.evidence import (
     EvidenceStatus,
     EvidenceStrategy,
     EvidenceType,
+    FileOptimization,
     MobileDeviceType,
     MobileEvidenceSummary,
     MobileScreenConfig,
     MobileScreenshotResult,
+    OptimizationConfig,
+    OptimizationReport,
     PlanStepCoverage,
     PlatformDetectionResult,
     PlatformType,
@@ -128,6 +132,10 @@ __all__: list[str] = [
     "EvidenceStatus",
     "EvidenceType",
     "PlanStepCoverage",
+    # Evidence models - Optimization
+    "FileOptimization",
+    "OptimizationConfig",
+    "OptimizationReport",
     # Evidence models - Mobile
     "MobileDeviceType",
     "MobileEvidenceSummary",
