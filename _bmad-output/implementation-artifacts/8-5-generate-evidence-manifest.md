@@ -45,10 +45,10 @@ so that verification is traceable.
 - [x] Export from `models/__init__.py`
 
 ### Task 2: Implement Manifest Generator (evidence/manifest.py)
-- [ ] Create `ManifestGenerator` class
-- [ ] Implement `generate(results: list[EvidenceResult]) -> EvidenceManifest`
-- [ ] Aggregate results from all evidence strategies (CLI, web, API)
-- [ ] Calculate summary statistics (total, passed, failed, errors)
+- [x] Create `ManifestGenerator` class
+- [x] Implement `generate(results: list[EvidenceResult]) -> EvidenceManifest`
+- [x] Aggregate results from all evidence strategies (CLI, web, API)
+- [x] Calculate summary statistics (total, passed, failed, errors)
 
 ### Task 3: Implement Plan Step Linking
 - [ ] Parse plan.md file to extract step IDs
