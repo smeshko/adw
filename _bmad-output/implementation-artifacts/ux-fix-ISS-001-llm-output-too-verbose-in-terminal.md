@@ -40,9 +40,9 @@ so that **I can easily follow execution progress without being overwhelmed by ve
 - [x] Ensure backward compatibility for users who expect verbose output
 
 ### Task 4: Verify log capture still works
-- [ ] Confirm `StreamLogger.token()` continues capturing all output
-- [ ] Confirm JSONL stream files are written correctly
-- [ ] Confirm `adw logs --follow` can display live output (Story 7-4 dependency)
+- [x] Confirm `StreamLogger.token()` continues capturing all output
+- [x] Confirm JSONL stream files are written correctly
+- [x] Confirm `adw logs --follow` can display live output (Story 7-4 dependency)
 
 ### Task 5: Update tests
 - [ ] Add test for suppressed console output (default behavior)
