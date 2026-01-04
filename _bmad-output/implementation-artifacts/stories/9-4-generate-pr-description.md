@@ -44,7 +44,7 @@ so that I can quickly create a pull request.
 - [x] Create `PRDescription` Pydantic model for structured output
 - [x] Update run completion panel to show PR description path
 - [x] Implement schema validation for PR description output
-- [ ] Write unit tests for PR description model
+- [x] Write unit tests for PR description model
 - [ ] Write integration tests for Document phase with PR output
 
 ---
