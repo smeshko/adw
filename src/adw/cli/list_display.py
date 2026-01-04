@@ -53,16 +53,16 @@ class ListDisplay:
         table = Table(title=f"Recent Runs ({len(runs)})")
 
         table.add_column("Run ID", style="cyan", no_wrap=True)
-        table.add_column("Feature", max_width=40)
+        table.add_column("Feature", max_width=30)
         table.add_column("Status", justify="center")
         table.add_column("Started", style="dim")
 
         for run in runs:
-            # Shorten run_id for display (show first 12 chars + ...)
+            # Full run_id for display (allows copy/paste for other commands)
             short_id = self._truncate_id(run.run_id)
 
             # Truncate feature description
-            feature = self._truncate_text(run.feature_description, max_length=37)
+            feature = self._truncate_text(run.feature_description, max_length=27)
 
             # Color-code status
             color = self.STATUS_COLORS.get(run.status, "white")
@@ -78,16 +78,16 @@ class ListDisplay:
         self.console.print()
 
     def _truncate_id(self, run_id: str) -> str:
-        """Truncate run ID for display.
+        """Return run ID for display.
+
+        Note: Full ID is returned to allow copying for use with other commands.
 
         Args:
             run_id: Full ULID run ID.
 
         Returns:
-            Shortened ID with ellipsis.
+            Full run ID without truncation.
         """
-        if len(run_id) > 15:
-            return f"{run_id[:12]}..."
         return run_id
 
     def _truncate_text(self, text: str, max_length: int = 37) -> str:

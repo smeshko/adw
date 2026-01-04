@@ -291,8 +291,10 @@ class TestGlobalIndexFlags:
 
         assert result.exit_code == 0
         assert "Global Index" in result.output
-        # Project name may be truncated in table, check for prefix
-        assert "test-proj" in result.output
+        # Full run ID should be visible (not truncated)
+        assert "01KDSG2VDHNK0W4HSCZWJZXWSQ" in result.output
+        # Project name will be truncated in narrow table; check for prefix
+        assert "test-p" in result.output
 
     def test_project_flag_filters_to_current_project(
         self, runner: CliRunner, tmp_path: Path

@@ -73,13 +73,14 @@ class TestShowRuns:
     def test_show_runs_includes_run_id(
         self, display: ListDisplay, console: Console
     ) -> None:
-        """Test that run ID is included in output."""
+        """Test that full run ID is included in output."""
         runs = [create_run_context(run_id="01HQXK5P3Z7V8R2M4N6T9W1Y3A")]
         display.show_runs(runs)
 
         output = console.file.getvalue()
-        # Should show truncated run ID
-        assert "01HQXK5P3Z7V" in output
+        # Should show full run ID (not truncated) for copy/paste
+        assert "01HQXK5P3Z7V8R2M4N6T9W1Y3A" in output
+        assert "..." not in output.replace("...", "", 1)  # Only feature truncation, not run ID
 
     def test_show_runs_includes_feature(
         self, display: ListDisplay, console: Console
@@ -127,16 +128,22 @@ class TestShowRuns:
 
 
 class TestTruncateId:
-    """Tests for _truncate_id method."""
+    """Tests for _truncate_id method.
 
-    def test_truncate_long_id(self, display: ListDisplay) -> None:
-        """Test that long IDs are truncated."""
-        result = display._truncate_id("01HQXK5P3Z7V8R2M4N6T9W1Y3C")
-        assert result == "01HQXK5P3Z7V..."
-        assert len(result) == 15
+    Note: _truncate_id now returns the full ID without truncation
+    to allow users to copy/paste run IDs for use with other commands.
+    """
 
-    def test_truncate_short_id(self, display: ListDisplay) -> None:
-        """Test that short IDs are not truncated."""
+    def test_returns_full_id(self, display: ListDisplay) -> None:
+        """Test that full IDs are returned without truncation."""
+        full_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
+        result = display._truncate_id(full_id)
+        assert result == full_id
+        assert "..." not in result
+        assert len(result) == 26  # Full ULID length
+
+    def test_short_id_unchanged(self, display: ListDisplay) -> None:
+        """Test that short IDs are returned unchanged."""
         result = display._truncate_id("short_id")
         assert result == "short_id"
 
