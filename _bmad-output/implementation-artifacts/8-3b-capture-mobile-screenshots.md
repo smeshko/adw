@@ -46,11 +46,11 @@ so that mobile UI changes can be visually verified.
 ## Tasks / Subtasks
 
 ### Task 1: Create Mobile Screenshot Models (models/evidence.py)
-- [ ] Create `MobileDeviceType` enum (IOS, ANDROID, FLUTTER)
-- [ ] Create `MobileScreenConfig` model for screen configuration
-- [ ] Create `MobileScreenshotResult` model with path, screen_name, device_type, status
-- [ ] Create `MobileEvidenceSummary` model for aggregate results
-- [ ] Export from `models/__init__.py`
+- [x] Create `MobileDeviceType` enum (IOS, ANDROID, FLUTTER)
+- [x] Create `MobileScreenConfig` model for screen configuration
+- [x] Create `MobileScreenshotResult` model with path, screen_name, device_type, status
+- [x] Create `MobileEvidenceSummary` model for aggregate results
+- [x] Export from `models/__init__.py`
 
 ### Task 2: Implement iOS Simulator Screenshot Capture (evidence/mobile_capture.py)
 - [ ] Create `MobileCaptureStrategy` class
@@ -577,4 +577,8 @@ Key patterns and rules from project context:
 ### Completion Notes List
 
 ### File List
+
+- src/adw/models/evidence.py (modified - added mobile evidence models)
+- src/adw/models/__init__.py (modified - exported new models)
+- tests/unit/models/test_evidence.py (modified - added mobile model tests)
 
