@@ -108,10 +108,10 @@ so that endpoint behavior can be verified.
 - [x] Generate summary file with all results
 
 ### Task 7: Implement Summary Generation
-- [ ] Track successful/failed API calls
-- [ ] Track expected vs actual status codes
-- [ ] Generate summary output
-- [ ] Log summary to console via LogManager
+- [x] Track successful/failed API calls
+- [x] Track expected vs actual status codes
+- [x] Generate summary output
+- [x] Log summary to console via LogManager
 
 ### Task 8: Write Unit Tests
 - [ ] Test endpoint configuration loading

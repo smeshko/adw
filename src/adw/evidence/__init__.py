@@ -7,7 +7,7 @@ This package contains modules for:
 
 from pathlib import Path
 
-from adw.evidence.api_capture import APICaptureStrategy
+from adw.evidence.api_capture import APICaptureStrategy, generate_summary
 from adw.evidence.config_loader import EvidenceConfig, load_evidence_config
 from adw.evidence.detector import PlatformDetector
 from adw.evidence.evidence_writer import APIEvidenceWriter
@@ -91,6 +91,7 @@ __all__ = [
     "EvidenceConfig",
     "PlatformDetector",
     "detect_platform",
+    "generate_summary",
     "get_evidence_strategy",
     "load_evidence_config",
 ]

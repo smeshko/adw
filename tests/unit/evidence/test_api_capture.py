@@ -467,6 +467,104 @@ class TestAuthenticationSupport:
         assert result is not None
 
 
+class TestSummaryGeneration:
+    """Tests for summary generation (Task 7)."""
+
+    def test_generate_summary_from_results(self) -> None:
+        """Test generating summary from a list of results."""
+        from adw.evidence.api_capture import generate_summary
+
+        results = [
+            APIEvidenceResult(
+                endpoint_name="health",
+                request=APIRequest(method="GET", url="http://localhost/health"),
+                response=APIResponse(
+                    status_code=200, body={"status": "ok"}, duration_seconds=0.01
+                ),
+                success=True,
+            ),
+            APIEvidenceResult(
+                endpoint_name="users",
+                request=APIRequest(method="GET", url="http://localhost/users"),
+                response=APIResponse(
+                    status_code=200, body={"users": []}, duration_seconds=0.02
+                ),
+                success=True,
+            ),
+        ]
+
+        summary = generate_summary(
+            base_url="http://localhost:8000",
+            results=results,
+        )
+
+        assert summary.base_url == "http://localhost:8000"
+        assert summary.total_endpoints == 2
+        assert summary.successful == 2
+        assert summary.failed == 0
+        assert len(summary.results) == 2
+
+    def test_generate_summary_with_failures(self) -> None:
+        """Test generating summary with failed endpoints."""
+        from adw.evidence.api_capture import generate_summary
+
+        results = [
+            APIEvidenceResult(
+                endpoint_name="health",
+                request=APIRequest(method="GET", url="http://localhost/health"),
+                response=APIResponse(
+                    status_code=200, body={}, duration_seconds=0.01
+                ),
+                success=True,
+            ),
+            APIEvidenceResult(
+                endpoint_name="broken",
+                request=APIRequest(method="GET", url="http://localhost/broken"),
+                response=APIResponse(
+                    status_code=500, body={"error": "Internal"}, duration_seconds=0.05
+                ),
+                success=False,
+            ),
+        ]
+
+        summary = generate_summary(base_url="http://localhost", results=results)
+
+        assert summary.total_endpoints == 2
+        assert summary.successful == 1
+        assert summary.failed == 1
+
+    def test_generate_summary_with_status_mismatches(self) -> None:
+        """Test generating summary counting status mismatches."""
+        from adw.evidence.api_capture import generate_summary
+
+        results = [
+            APIEvidenceResult(
+                endpoint_name="create",
+                request=APIRequest(method="POST", url="http://localhost/items"),
+                response=APIResponse(
+                    status_code=400, body={"error": "Bad"}, duration_seconds=0.01
+                ),
+                success=False,
+                expected_status=201,
+                status_match=False,
+            ),
+            APIEvidenceResult(
+                endpoint_name="get",
+                request=APIRequest(method="GET", url="http://localhost/items/1"),
+                response=APIResponse(
+                    status_code=200, body={}, duration_seconds=0.01
+                ),
+                success=True,
+                expected_status=200,
+                status_match=True,
+            ),
+        ]
+
+        summary = generate_summary(base_url="http://localhost", results=results)
+
+        assert summary.status_mismatches == 1
+
+
 class TestStatusMatching:
     """Tests for expected status matching."""
 

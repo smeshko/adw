@@ -13,6 +13,7 @@ import httpx
 from adw.logging import LogCategory, get_logger
 from adw.models.evidence import (
     APIEvidenceResult,
+    APIEvidenceSummary,
     APIRequest,
     APIResponse,
     AuthConfig,
@@ -295,3 +296,42 @@ class APICaptureStrategy:
             status_match=False,
             error=error,
         )
+
+
+def generate_summary(
+    base_url: str,
+    results: list[APIEvidenceResult],
+) -> APIEvidenceSummary:
+    """Generate a summary from API evidence results.
+
+    Aggregates results from all captured endpoints and calculates
+    success/failure counts and status mismatch counts.
+
+    Args:
+        base_url: Base URL for all endpoints
+        results: List of individual endpoint results
+
+    Returns:
+        APIEvidenceSummary with aggregated statistics
+
+    Example:
+        >>> summary = generate_summary(
+        ...     base_url="http://localhost:8000",
+        ...     results=[result1, result2],
+        ... )
+        >>> summary.successful
+        2
+    """
+    total = len(results)
+    successful = sum(1 for r in results if r.success)
+    failed = total - successful
+    status_mismatches = sum(1 for r in results if not r.status_match)
+
+    return APIEvidenceSummary(
+        base_url=base_url,
+        total_endpoints=total,
+        successful=successful,
+        failed=failed,
+        status_mismatches=status_mismatches,
+        results=results,
+    )
