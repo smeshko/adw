@@ -31,9 +31,9 @@ so that **I can easily follow execution progress without being overwhelmed by ve
 - [x] Only print to console when `show_llm_output=True`
 
 ### Task 2: Add CLI flag for explicit LLM output
-- [ ] Add `--show-llm-output` flag to `adw run` command
-- [ ] Pass flag through to executor via config or direct parameter
-- [ ] Document flag in help text
+- [x] Add `--show-llm-output` flag to `adw run` command
+- [x] Pass flag through to executor via config or direct parameter
+- [x] Document flag in help text
 
 ### Task 3: Wire verbosity to LLM output control
 - [ ] When `--trace` verbosity is set, enable `show_llm_output`

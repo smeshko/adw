@@ -136,6 +136,11 @@ def run(
         "--allow-dangerous",
         help="Allow dangerous LLM tool calls (log warnings instead of blocking)",
     ),
+    show_llm_output: bool = typer.Option(
+        False,
+        "--show-llm-output",
+        help="Stream LLM output to terminal in real-time (verbose, for debugging)",
+    ),
 ) -> None:
     """Run the agentic development workflow.
 
@@ -197,6 +202,7 @@ def run(
             console,
             allow_dangerous=allow_dangerous,
             run_id=run_id,
+            show_llm_output=show_llm_output,
         )
 
         if phase:

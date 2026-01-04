@@ -99,6 +99,7 @@ def create_orchestrator(
     with_progress: bool = True,
     allow_dangerous: bool = False,
     run_id: str | None = None,
+    show_llm_output: bool = False,
 ) -> Orchestrator:
     """Create a fully configured Orchestrator instance.
 
@@ -118,6 +119,7 @@ def create_orchestrator(
         with_progress: Whether to include progress display.
         allow_dangerous: If True, log warnings instead of blocking dangerous operations.
         run_id: Optional run ID for tool logging. If None, tool logging is disabled.
+        show_llm_output: If True, stream LLM output to terminal (Story UX-FIX-ISS-001).
 
     Returns:
         Configured Orchestrator ready for use.
@@ -159,6 +161,7 @@ def create_orchestrator(
         security_interceptor=security_interceptor,
         tool_logger=tool_logger,
         allow_dangerous=allow_dangerous,
+        show_llm_output=show_llm_output,
     )
 
     # Create PhaseRunner (Story 5.2)
