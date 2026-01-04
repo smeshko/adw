@@ -10,8 +10,8 @@ from pathlib import Path
 
 import yaml
 
+from adw.logging import LogCategory, get_logger
 from adw.models.evidence import Confidence, PlatformDetectionResult, PlatformType
-
 
 # Web framework markers in package.json
 WEB_FRAMEWORKS = ["react", "vue", "@angular/core", "svelte", "solid-js", "preact"]
@@ -55,6 +55,7 @@ class PlatformDetector:
             project_root: Path to the project root directory
         """
         self.project_root = project_root
+        self._logger = get_logger()
 
     def detect(self) -> PlatformDetectionResult:
         """Detect the platform type for the project.
@@ -67,18 +68,41 @@ class PlatformDetector:
         Returns:
             PlatformDetectionResult with detected platform and metadata
         """
+        self._logger.debug(
+            LogCategory.STATE,
+            f"Starting platform detection for {self.project_root}",
+        )
+
         # Priority 1: Check explicit configuration
         config_result = self._detect_from_config()
         if config_result is not None:
+            self._log_detection_result(config_result)
             return config_result
 
         # Priority 2: Check file markers
         marker_result = self._detect_from_markers()
         if marker_result is not None:
+            self._log_detection_result(marker_result)
             return marker_result
 
         # Priority 3: Default to CLI
-        return self._get_default_result()
+        default_result = self._get_default_result()
+        self._log_detection_result(default_result)
+        return default_result
+
+    def _log_detection_result(self, result: PlatformDetectionResult) -> None:
+        """Log the detection result with all markers for debugging.
+
+        Args:
+            result: The platform detection result to log
+        """
+        markers_str = ", ".join(result.markers) if result.markers else "none"
+        self._logger.info(
+            LogCategory.STATE,
+            f"Platform detected: {result.platform.value} "
+            f"(confidence={result.confidence.value}, source={result.source}, "
+            f"markers=[{markers_str}])",
+        )
 
     def _detect_from_config(self) -> PlatformDetectionResult | None:
         """Attempt to detect platform from configuration file.

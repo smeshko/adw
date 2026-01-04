@@ -217,7 +217,8 @@ class TestBackendMarkerDetection:
 
     def test_detect_fastapi_from_main_py(self, tmp_path: Path) -> None:
         """Test detecting BACKEND from FastAPI in main.py."""
-        (tmp_path / "main.py").write_text("from fastapi import FastAPI\napp = FastAPI()")
+        content = "from fastapi import FastAPI\napp = FastAPI()"
+        (tmp_path / "main.py").write_text(content)
 
         detector = PlatformDetector(tmp_path)
         result = detector.detect()
@@ -227,7 +228,8 @@ class TestBackendMarkerDetection:
 
     def test_detect_flask_from_main_py(self, tmp_path: Path) -> None:
         """Test detecting BACKEND from Flask in main.py."""
-        (tmp_path / "main.py").write_text("from flask import Flask\napp = Flask(__name__)")
+        content = "from flask import Flask\napp = Flask(__name__)"
+        (tmp_path / "main.py").write_text(content)
 
         detector = PlatformDetector(tmp_path)
         result = detector.detect()
@@ -321,3 +323,65 @@ setup(
         assert result.platform == PlatformType.CLI
         assert result.source == "default"
         assert result.confidence == Confidence.LOW
+
+
+class TestConfidenceScoring:
+    """Tests for confidence scoring (Task 4)."""
+
+    def test_single_marker_medium_confidence(self, tmp_path: Path) -> None:
+        """Test that single marker results in MEDIUM confidence."""
+        (tmp_path / "index.html").write_text("<!DOCTYPE html>")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.WEB
+        assert result.confidence == Confidence.MEDIUM
+        assert len(result.markers) == 1
+
+    def test_multiple_markers_high_confidence(self, tmp_path: Path) -> None:
+        """Test that multiple markers result in HIGH confidence."""
+        (tmp_path / "package.json").write_text('{"dependencies": {"react": "^18"}}')
+        (tmp_path / "next.config.js").write_text("module.exports = {}")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.WEB
+        assert result.confidence == Confidence.HIGH
+        assert len(result.markers) >= 2
+
+    def test_config_always_high_confidence(self, tmp_path: Path) -> None:
+        """Test that config-based detection always has HIGH confidence."""
+        config_file = tmp_path / ".adw" / "project.yaml"
+        config_file.parent.mkdir(parents=True)
+        config_file.write_text("name: test\nlanguage: python\nplatform: backend")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.BACKEND
+        assert result.confidence == Confidence.HIGH
+        assert result.source == "config"
+
+    def test_default_low_confidence(self, tmp_path: Path) -> None:
+        """Test that default CLI has LOW confidence."""
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.CLI
+        assert result.confidence == Confidence.LOW
+        assert result.source == "default"
+
+    def test_markers_included_in_result(self, tmp_path: Path) -> None:
+        """Test that all detected markers are included in result."""
+        (tmp_path / "main.py").write_text("from fastapi import FastAPI")
+        (tmp_path / "requirements.txt").write_text("fastapi\nuvicorn")
+
+        detector = PlatformDetector(tmp_path)
+        result = detector.detect()
+
+        assert result.platform == PlatformType.BACKEND
+        assert "main.py:fastapi" in result.markers
+        assert "requirements.txt:fastapi" in result.markers
+        assert len(result.markers) == 2

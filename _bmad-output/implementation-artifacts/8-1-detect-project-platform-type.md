@@ -66,10 +66,10 @@ so that appropriate evidence gathering strategies are used.
   - No web/backend markers → default CLI
 
 ### Task 4: Implement Confidence Scoring
-- [ ] Assign confidence levels (HIGH, MEDIUM, LOW) based on marker strength
-- [ ] Multiple corroborating markers increase confidence
-- [ ] Log all detected markers for debugging
-- [ ] Include confidence in detection result
+- [x] Assign confidence levels (HIGH, MEDIUM, LOW) based on marker strength
+- [x] Multiple corroborating markers increase confidence
+- [x] Log all detected markers for debugging
+- [x] Include confidence in detection result
 
 ### Task 5: Integrate with Evidence System
 - [ ] Create factory function `get_evidence_strategy(platform: PlatformType)`
