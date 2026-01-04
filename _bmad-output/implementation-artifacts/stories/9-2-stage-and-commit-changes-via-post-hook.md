@@ -36,13 +36,13 @@ so that my work is preserved incrementally.
 
 ## Tasks / Subtasks
 
-- [ ] Create `src/adw/hooks/git_commit.py` module
-- [ ] Implement `stage_changes() -> list[str]`
+- [x] Create `src/adw/hooks/git_commit.py` module
+- [x] Implement `stage_changes() -> list[str]`
   - Use `git add -A`
   - Return list of staged files
-- [ ] Implement `has_staged_changes() -> bool`
+- [x] Implement `has_staged_changes() -> bool`
   - Use `git diff --cached --quiet`
-- [ ] Implement `create_commit(phase: str, feature: str, run_id: str) -> str | None`
+- [x] Implement `create_commit(phase: str, feature: str, run_id: str) -> str | None`
   - Format message: `[adw] {Phase}: {feature}\n\nRun: {run_id}`
   - Return commit SHA or None if no changes
 - [ ] Add commit config to project.yaml schema
@@ -50,7 +50,7 @@ so that my work is preserved incrementally.
   - `git.commit_template: str` (optional override)
 - [ ] Create bundled post-hook script `defaults/commands/build/post.sh`
 - [ ] Handle pre-commit hook failures gracefully
-- [ ] Write unit tests for commit message formatting
+- [x] Write unit tests for commit message formatting
 - [ ] Write integration tests with git repo fixture
 
 ---
@@ -124,8 +124,17 @@ Key patterns:
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude Opus 4.5
 
 ### Completion Notes List
+- Created git_commit.py module with stage_changes(), has_staged_changes(), create_commit(), format_commit_message() functions
+- All functions use subprocess.run() following existing git_branch.py patterns
+- Implemented HookError handling for all git command failures
+- Supports custom commit message templates via optional template parameter
+- Unit tests cover all functions including edge cases
 
 ### File List
+- src/adw/hooks/git_commit.py (NEW)
+- src/adw/hooks/__init__.py (MODIFIED - added exports)
+- tests/unit/hooks/test_git_commit.py (NEW)
 
