@@ -51,10 +51,10 @@ so that verification is traceable.
 - [x] Calculate summary statistics (total, passed, failed, errors)
 
 ### Task 3: Implement Plan Step Linking
-- [ ] Parse plan.md file to extract step IDs
-- [ ] Create mapping heuristics: evidence name → plan step
-- [ ] Support explicit linking via config
-- [ ] Mark unlinked evidence items appropriately
+- [x] Parse plan.md file to extract step IDs
+- [x] Create mapping heuristics: evidence name → plan step
+- [x] Support explicit linking via config
+- [x] Mark unlinked evidence items appropriately
 
 ### Task 4: Implement Evidence Item Collection
 - [ ] Scan evidence directory for all captured files

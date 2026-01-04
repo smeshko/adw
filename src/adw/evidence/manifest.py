@@ -5,6 +5,7 @@ manifests that link captured evidence to plan steps for traceability
 and coverage analysis.
 """
 
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Union
@@ -15,12 +16,14 @@ from adw.models.evidence import (
     APIEvidenceSummary,
     CLIEvidenceSummary,
     CommandResult,
+    CoverageSummary,
     EvidenceItem,
     EvidenceManifest,
     EvidenceStatus,
     EvidenceType,
     MobileEvidenceSummary,
     MobileScreenshotResult,
+    PlanStepCoverage,
     ScreenshotResult,
     WebEvidenceSummary,
 )
@@ -383,3 +386,301 @@ class ManifestGenerator:
         sanitized = sanitized.replace(" ", "_").replace(".", "_")
         # Remove leading/trailing underscores
         return sanitized.strip("_") or "unnamed"
+
+
+class PlanStepLinker:
+    """Links evidence items to plan steps.
+
+    Parses plan.md files to extract step definitions and uses
+    heuristics to link evidence items to their corresponding
+    plan steps for coverage analysis.
+
+    Example:
+        >>> linker = PlanStepLinker(plan_path=Path(".adw/plan.md"))
+        >>> manifest = linker.link_steps(manifest)
+    """
+
+    # Patterns for extracting plan steps from markdown
+    STEP_PATTERNS = [
+        # "## Step 1: Description" or "## Step 1 - Description"
+        re.compile(r"^##\s+Step\s+(\d+)[:\s-]+\s*(.+)$", re.IGNORECASE),
+        # "### 1.1 Description" (numbered sub-steps)
+        re.compile(r"^###\s+(\d+\.\d+)\s+(.+)$"),
+        # "### Task 1: Description"
+        re.compile(r"^###\s+Task\s+(\d+)[:\s-]+\s*(.+)$", re.IGNORECASE),
+        # "- [ ] Checkbox task"
+        re.compile(r"^-\s+\[.\]\s+(.+)$"),
+    ]
+
+    def __init__(
+        self,
+        plan_path: Path | None = None,
+        explicit_links: dict[str, str] | None = None,
+    ) -> None:
+        """Initialize the plan step linker.
+
+        Args:
+            plan_path: Path to plan.md file (optional)
+            explicit_links: Dict mapping evidence names to step IDs
+                            for explicit linking configuration
+        """
+        self.plan_path = plan_path
+        self.explicit_links = explicit_links or {}
+        self._logger = get_logger()
+        self._plan_steps: list[tuple[str, str]] = []
+
+    def parse_plan_steps(self) -> list[tuple[str, str]]:
+        """Parse plan.md to extract step IDs and descriptions.
+
+        Returns:
+            List of (step_id, description) tuples
+
+        Example:
+            >>> linker = PlanStepLinker(Path("plan.md"))
+            >>> steps = linker.parse_plan_steps()
+            >>> steps[0]
+            ('step_1', 'Implement health check endpoint')
+        """
+        if self._plan_steps:
+            return self._plan_steps
+
+        if not self.plan_path or not self.plan_path.exists():
+            self._logger.debug(
+                LogCategory.STATE,
+                "No plan.md file found - skipping plan step parsing",
+            )
+            return []
+
+        try:
+            content = self.plan_path.read_text(encoding="utf-8")
+        except OSError as e:
+            self._logger.warn(
+                LogCategory.STATE,
+                f"Failed to read plan.md: {e}",
+            )
+            return []
+
+        steps: list[tuple[str, str]] = []
+        task_counter = 0
+
+        for line in content.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+
+            for pattern in self.STEP_PATTERNS:
+                match = pattern.match(line)
+                if match:
+                    groups = match.groups()
+                    if len(groups) == 2:
+                        # Numbered step pattern
+                        step_num, description = groups
+                        step_id = f"step_{step_num.replace('.', '_')}"
+                    else:
+                        # Checkbox task pattern
+                        task_counter += 1
+                        description = groups[0]
+                        step_id = f"task_{task_counter}"
+
+                    steps.append((step_id, description))
+                    break
+
+        self._plan_steps = steps
+        self._logger.info(
+            LogCategory.STATE,
+            f"Parsed {len(steps)} plan steps from {self.plan_path}",
+        )
+
+        return steps
+
+    def link_evidence_to_step(
+        self,
+        evidence_name: str,
+        plan_steps: list[tuple[str, str]] | None = None,
+    ) -> str | None:
+        """Attempt to link an evidence item to a plan step.
+
+        Uses the following priority:
+        1. Explicit configuration (if provided)
+        2. Keyword matching between evidence name and step descriptions
+
+        Args:
+            evidence_name: Name of the evidence item
+            plan_steps: Optional list of (step_id, description) tuples
+
+        Returns:
+            Step ID if linked, None otherwise
+        """
+        # Check explicit links first
+        if evidence_name in self.explicit_links:
+            return self.explicit_links[evidence_name]
+
+        # Fall back to heuristic matching
+        steps = plan_steps or self.parse_plan_steps()
+        if not steps:
+            return None
+
+        evidence_lower = evidence_name.lower()
+        evidence_words = set(self._tokenize(evidence_lower))
+
+        best_match: str | None = None
+        best_score = 0
+
+        for step_id, description in steps:
+            desc_lower = description.lower()
+            desc_words = set(self._tokenize(desc_lower))
+
+            # Score by word overlap
+            overlap = evidence_words & desc_words
+            if overlap:
+                score = len(overlap)
+                # Bonus for exact substring match
+                if evidence_lower in desc_lower or desc_lower in evidence_lower:
+                    score += 5
+
+                if score > best_score:
+                    best_score = score
+                    best_match = step_id
+
+        return best_match
+
+    def link_steps(self, manifest: EvidenceManifest) -> EvidenceManifest:
+        """Link all evidence items in a manifest to plan steps.
+
+        Updates evidence items with plan_step references and
+        calculates coverage statistics.
+
+        Args:
+            manifest: Evidence manifest to process
+
+        Returns:
+            Updated manifest with plan_step links and coverage
+        """
+        plan_steps = self.parse_plan_steps()
+
+        # Link each evidence item
+        linked_items: list[EvidenceItem] = []
+        for item in manifest.items:
+            step_id = self.link_evidence_to_step(item.name, plan_steps)
+            if step_id and step_id != item.plan_step:
+                # Create new item with updated plan_step
+                linked_item = EvidenceItem(
+                    name=item.name,
+                    type=item.type,
+                    path=item.path,
+                    status=item.status,
+                    plan_step=step_id,
+                    details=item.details,
+                )
+                linked_items.append(linked_item)
+            else:
+                linked_items.append(item)
+
+        # Calculate coverage if we have plan steps
+        coverage = None
+        step_coverage = None
+
+        if plan_steps:
+            coverage, step_coverage = self._calculate_coverage(
+                plan_steps, linked_items
+            )
+
+        # Return updated manifest
+        return EvidenceManifest(
+            run_id=manifest.run_id,
+            generated_at=manifest.generated_at,
+            platform=manifest.platform,
+            evidence_directory=manifest.evidence_directory,
+            total_items=manifest.total_items,
+            passed=manifest.passed,
+            failed=manifest.failed,
+            errors=manifest.errors,
+            skipped=manifest.skipped,
+            items=linked_items,
+            coverage=coverage,
+            step_coverage=step_coverage,
+        )
+
+    def _calculate_coverage(
+        self,
+        plan_steps: list[tuple[str, str]],
+        items: list[EvidenceItem],
+    ) -> tuple[CoverageSummary, list[PlanStepCoverage]]:
+        """Calculate coverage statistics.
+
+        Args:
+            plan_steps: List of (step_id, description) tuples
+            items: List of evidence items with plan_step links
+
+        Returns:
+            Tuple of (CoverageSummary, list[PlanStepCoverage])
+        """
+        # Build step coverage map
+        step_items: dict[str, list[str]] = {
+            step_id: [] for step_id, _ in plan_steps
+        }
+
+        for item in items:
+            if item.plan_step and item.plan_step in step_items:
+                step_items[item.plan_step].append(item.name)
+
+        # Build PlanStepCoverage list
+        step_coverage_list: list[PlanStepCoverage] = []
+        covered_count = 0
+        uncovered_ids: list[str] = []
+
+        for step_id, description in plan_steps:
+            evidence_items = step_items.get(step_id, [])
+            covered = len(evidence_items) > 0
+
+            if covered:
+                covered_count += 1
+            else:
+                uncovered_ids.append(step_id)
+
+            step_coverage_list.append(
+                PlanStepCoverage(
+                    step_id=step_id,
+                    step_description=description,
+                    evidence_items=evidence_items,
+                    covered=covered,
+                )
+            )
+
+        # Calculate summary
+        total = len(plan_steps)
+        uncovered = total - covered_count
+        percentage = (covered_count / total * 100) if total > 0 else 100.0
+
+        coverage_summary = CoverageSummary(
+            total_plan_steps=total,
+            covered_steps=covered_count,
+            uncovered_steps=uncovered,
+            coverage_percentage=round(percentage, 1),
+            uncovered_step_ids=uncovered_ids,
+        )
+
+        self._logger.info(
+            LogCategory.STATE,
+            f"Plan coverage: {covered_count}/{total} steps "
+            f"({coverage_summary.coverage_percentage}%)",
+        )
+
+        return coverage_summary, step_coverage_list
+
+    def _tokenize(self, text: str) -> list[str]:
+        """Tokenize text into words for matching.
+
+        Splits on common separators and filters short tokens.
+
+        Args:
+            text: Text to tokenize
+
+        Returns:
+            List of word tokens
+        """
+        # Split on common separators
+        words = re.split(r"[_\-\s/]+", text)
+        # Filter short tokens and common words
+        stop_words = {"the", "a", "an", "and", "or", "to", "in", "for", "of"}
+        return [w for w in words if len(w) > 2 and w not in stop_words]
