@@ -27,9 +27,11 @@ PlaywrightTimeout: type[Exception] = TimeoutError
 sync_playwright: Callable[[], Any] | None = None
 
 try:
-    from playwright.sync_api import TimeoutError as PlaywrightTimeout  # noqa: F811
-    from playwright.sync_api import (
-        sync_playwright,  # type: ignore[assignment]  # noqa: F811
+    from playwright.sync_api import (  # type: ignore[no-redef]
+        TimeoutError as PlaywrightTimeout,  # noqa: F811
+    )
+    from playwright.sync_api import (  # type: ignore[no-redef]
+        sync_playwright,  # noqa: F811
     )
 
     PLAYWRIGHT_AVAILABLE = True
