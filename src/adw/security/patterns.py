@@ -1,153 +1,237 @@
-"""Default security patterns for blocking dangerous operations.
+"""Pattern matching engine for security checks.
 
-This module defines the default blocked patterns for shell commands,
-file access, and allowed exceptions for safe files.
+This module provides the PatternMatcher class for checking commands and
+file paths against blocked patterns. It supports context-aware matching
+and can distinguish between safe and dangerous uses.
+
+Usage:
+    >>> from adw.security.patterns import PatternMatcher
+    >>> matcher = PatternMatcher()
+    >>> matches = matcher.match_command("rm -rf /")
+    >>> if matches:
+    ...     print(f"Blocked: {matches[0].description}")
 """
 
 import re
-from typing import Final
+from typing import NamedTuple
 
-# Shell command patterns that should be blocked
-BLOCKED_SHELL_PATTERNS: Final[list[tuple[str, str]]] = [
-    (r"rm\s+(-[rRfF]+\s+)*[/~\.]", "Recursive delete command targeting root, home, or current directory"),
-    (r"chmod\s+777", "Insecure file permissions (world-writable)"),
-    (r"git\s+push\s+.*--force", "Force push can destroy git history"),
-    (r"git\s+push\s+.*-f\b", "Force push can destroy git history"),
-    (r">\s*\.env\b", "Redirect output to .env file"),
-    (r"mkfs\.", "Filesystem format command"),
-    (r"dd\s+if=.*of=/dev/", "Direct disk write operation"),
-    (r":\(\)\{\s*:\|\s*:\s*&\s*\}\s*;:", "Fork bomb pattern"),
-]
-
-# File patterns that should be blocked from reading/writing
-BLOCKED_FILE_PATTERNS: Final[list[tuple[str, str]]] = [
-    (r"^\.env$", "Environment file containing secrets"),
-    (r"^\.adw\.env$", "ADW environment file containing secrets"),
-    (r"/\.env$", "Environment file in subdirectory"),
-    (r"/\.adw\.env$", "ADW environment file in subdirectory"),
-    (r"\.pem$", "PEM certificate/key file"),
-    (r"\.key$", "Private key file"),
-    (r"id_rsa", "SSH private key"),
-    (r"id_ed25519", "SSH private key"),
-    (r"credentials\.json$", "Credentials file"),
-    (r"\.aws/credentials$", "AWS credentials file"),
-]
-
-# File patterns that are exceptions to blocked patterns (safe to access)
-ALLOWED_FILE_PATTERNS: Final[list[str]] = [
-    r"\.env\.example$",
-    r"\.env\.sample$",
-    r"\.env\.template$",
-    r"\.env\.local\.example$",
-]
-
-# Pre-compiled patterns for performance
-_COMPILED_SHELL_PATTERNS: list[tuple[re.Pattern[str], str]] = []
-_COMPILED_FILE_PATTERNS: list[tuple[re.Pattern[str], str]] = []
-_COMPILED_ALLOWED_PATTERNS: list[re.Pattern[str]] = []
+from adw.models.security import BlockedPattern
+from adw.security.defaults import (
+    ALLOWED_ENV_PATTERNS,
+    DEFAULT_FILE_PATTERNS,
+    DEFAULT_SHELL_PATTERNS,
+)
 
 
-def _compile_patterns() -> None:
-    """Compile all patterns once for performance.
+class PatternMatch(NamedTuple):
+    """Result of a pattern match against a command or file path.
 
-    This function populates the module-level compiled pattern caches on first call.
-    Subsequent calls are no-ops unless _reset_compiled_patterns() is called first.
-
-    Side Effects:
-        Modifies global variables:
-        - _COMPILED_SHELL_PATTERNS
-        - _COMPILED_FILE_PATTERNS
-        - _COMPILED_ALLOWED_PATTERNS
+    Attributes:
+        pattern: The regex pattern that matched
+        description: Human-readable description of what was matched
+        severity: Severity level (critical/warning/info)
+        category: Category of the pattern
+        alternative: Suggested safe alternative
+        allowed: Whether this was allowed due to allow_dangerous mode
     """
-    global _COMPILED_SHELL_PATTERNS, _COMPILED_FILE_PATTERNS, _COMPILED_ALLOWED_PATTERNS
 
-    if not _COMPILED_SHELL_PATTERNS:
-        _COMPILED_SHELL_PATTERNS = [
-            (re.compile(pattern, re.IGNORECASE), desc)
-            for pattern, desc in BLOCKED_SHELL_PATTERNS
+    pattern: str
+    description: str
+    severity: str
+    category: str
+    alternative: str
+    allowed: bool = False
+
+
+class CompiledPattern:
+    """A compiled regex pattern with associated metadata.
+
+    Pre-compiles patterns at initialization for better performance.
+    """
+
+    def __init__(self, blocked_pattern: BlockedPattern) -> None:
+        """Initialize a compiled pattern.
+
+        Args:
+            blocked_pattern: The BlockedPattern to compile
+        """
+        self.blocked_pattern = blocked_pattern
+        self._compiled = re.compile(blocked_pattern.pattern)
+
+    def matches(self, text: str) -> bool:
+        """Check if the pattern matches the given text.
+
+        Args:
+            text: The text to check against
+
+        Returns:
+            True if the pattern matches
+        """
+        return bool(self._compiled.search(text))
+
+    def to_match(self, *, allowed: bool = False) -> PatternMatch:
+        """Convert to a PatternMatch result.
+
+        Args:
+            allowed: Whether the match was allowed due to allow_dangerous
+
+        Returns:
+            PatternMatch with pattern metadata
+        """
+        return PatternMatch(
+            pattern=self.blocked_pattern.pattern,
+            description=self.blocked_pattern.description,
+            severity=self.blocked_pattern.severity,
+            category=self.blocked_pattern.category,
+            alternative=self.blocked_pattern.alternative,
+            allowed=allowed,
+        )
+
+
+class PatternMatcher:
+    """Matches commands and file paths against blocked patterns.
+
+    The PatternMatcher maintains compiled regex patterns for efficient
+    matching and supports both shell command matching and file access
+    pattern matching.
+
+    Attributes:
+        allow_dangerous: If True, matches are still detected but marked as allowed
+
+    Example:
+        >>> matcher = PatternMatcher()
+        >>> matches = matcher.match_command("git push --force origin main")
+        >>> for m in matches:
+        ...     print(f"{m.severity}: {m.description}")
+        warning: Force push to remote repository
+    """
+
+    def __init__(
+        self,
+        additional_patterns: list[BlockedPattern] | None = None,
+        *,
+        allow_dangerous: bool = False,
+    ) -> None:
+        """Initialize the pattern matcher.
+
+        Args:
+            additional_patterns: Custom patterns to add to defaults
+            allow_dangerous: If True, still detect but don't block
+        """
+        self.allow_dangerous = allow_dangerous
+
+        # Compile shell patterns
+        all_shell_patterns = list(DEFAULT_SHELL_PATTERNS)
+        if additional_patterns:
+            all_shell_patterns.extend(additional_patterns)
+
+        self._shell_patterns: list[CompiledPattern] = [
+            CompiledPattern(p) for p in all_shell_patterns
         ]
 
-    if not _COMPILED_FILE_PATTERNS:
-        _COMPILED_FILE_PATTERNS = [
-            (re.compile(pattern, re.IGNORECASE), desc)
-            for pattern, desc in BLOCKED_FILE_PATTERNS
+        # Compile file patterns
+        self._file_patterns: list[CompiledPattern] = [
+            CompiledPattern(p) for p in DEFAULT_FILE_PATTERNS
         ]
 
-    if not _COMPILED_ALLOWED_PATTERNS:
-        _COMPILED_ALLOWED_PATTERNS = [
-            re.compile(pattern, re.IGNORECASE)
-            for pattern in ALLOWED_FILE_PATTERNS
+        # Compile allowed patterns (for exceptions like .env.example)
+        self._allowed_patterns: list[re.Pattern[str]] = [
+            re.compile(p) for p in ALLOWED_ENV_PATTERNS
         ]
 
+    def match_command(self, command: str) -> list[PatternMatch]:
+        """Check a shell command against blocked patterns.
 
-def _reset_compiled_patterns() -> None:
-    """Reset compiled pattern caches for testing.
+        Scans the command string against all shell patterns and returns
+        a list of matches. Each match includes the pattern that matched,
+        a description, and suggested alternatives.
 
-    This function clears all compiled pattern caches, forcing
-    recompilation on the next call to _compile_patterns().
-    Primarily useful for testing.
-    """
-    global _COMPILED_SHELL_PATTERNS, _COMPILED_FILE_PATTERNS, _COMPILED_ALLOWED_PATTERNS
-    _COMPILED_SHELL_PATTERNS = []
-    _COMPILED_FILE_PATTERNS = []
-    _COMPILED_ALLOWED_PATTERNS = []
+        Args:
+            command: The shell command to check
 
+        Returns:
+            List of PatternMatch objects for each matching pattern
 
-def match_shell_pattern(command: str) -> tuple[str, str] | None:
-    """Check if a shell command matches any blocked pattern.
-    
-    Args:
-        command: The shell command to check.
-        
-    Returns:
-        Tuple of (pattern, description) if blocked, None otherwise.
-    """
-    _compile_patterns()
-    
-    for pattern, description in _COMPILED_SHELL_PATTERNS:
-        if pattern.search(command):
-            return (pattern.pattern, description)
-    
-    return None
+        Example:
+            >>> matcher = PatternMatcher()
+            >>> matches = matcher.match_command("rm -rf ~")
+            >>> matches[0].category
+            'destructive'
+        """
+        matches: list[PatternMatch] = []
 
+        for compiled in self._shell_patterns:
+            if compiled.matches(command):
+                matches.append(compiled.to_match(allowed=self.allow_dangerous))
 
-def match_file_pattern(file_path: str) -> tuple[str, str] | None:
-    """Check if a file path matches any blocked pattern.
-    
-    Args:
-        file_path: The file path to check.
-        
-    Returns:
-        Tuple of (pattern, description) if blocked, None otherwise.
-    """
-    _compile_patterns()
-    
-    # Check if file is in the allowed list first
-    for pattern in _COMPILED_ALLOWED_PATTERNS:
-        if pattern.search(file_path):
-            return None
-    
-    # Check blocked patterns
-    for pattern, description in _COMPILED_FILE_PATTERNS:
-        if pattern.search(file_path):
-            return (pattern.pattern, description)
-    
-    return None
+        return matches
 
+    def match_file_access(self, path: str) -> list[PatternMatch]:
+        """Check a file path against blocked patterns.
 
-def is_allowed_env_file(file_path: str) -> bool:
-    """Check if a file is an allowed .env file (example, sample, template).
-    
-    Args:
-        file_path: The file path to check.
-        
-    Returns:
-        True if the file is an allowed env file, False otherwise.
-    """
-    _compile_patterns()
-    
-    for pattern in _COMPILED_ALLOWED_PATTERNS:
-        if pattern.search(file_path):
-            return True
-    
-    return False
+        Scans the file path against file access patterns. Automatically
+        allows exceptions like .env.example, .env.sample, .env.template.
+
+        Args:
+            path: The file path to check
+
+        Returns:
+            List of PatternMatch objects for each matching pattern
+
+        Example:
+            >>> matcher = PatternMatcher()
+            >>> matches = matcher.match_file_access(".env")
+            >>> len(matches) > 0
+            True
+            >>> matches = matcher.match_file_access(".env.example")
+            >>> len(matches)
+            0
+        """
+        # First check if this path matches an allowed exception
+        for allowed_pattern in self._allowed_patterns:
+            if allowed_pattern.search(path):
+                # This is an allowed file (e.g., .env.example)
+                return []
+
+        matches: list[PatternMatch] = []
+
+        for compiled in self._file_patterns:
+            if compiled.matches(path):
+                matches.append(compiled.to_match(allowed=self.allow_dangerous))
+
+        return matches
+
+    def is_blocked(
+        self, command: str | None = None, file_path: str | None = None
+    ) -> tuple[bool, list[PatternMatch]]:
+        """Check if a command or file path is blocked.
+
+        Convenience method that checks both command and file path and
+        returns whether blocking should occur along with all matches.
+
+        Args:
+            command: Shell command to check (optional)
+            file_path: File path to check (optional)
+
+        Returns:
+            Tuple of (is_blocked, list of matches)
+            is_blocked is False if allow_dangerous or no matches
+
+        Example:
+            >>> matcher = PatternMatcher()
+            >>> blocked, matches = matcher.is_blocked(command="rm -rf /")
+            >>> blocked
+            True
+        """
+        matches: list[PatternMatch] = []
+
+        if command:
+            matches.extend(self.match_command(command))
+
+        if file_path:
+            matches.extend(self.match_file_access(file_path))
+
+        # Not blocked if allow_dangerous or no matches
+        is_blocked = len(matches) > 0 and not self.allow_dangerous
+
+        return is_blocked, matches

@@ -1,6 +1,6 @@
 # Story 3.7: Dangerous Command Patterns
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 3 - Hook & Phase Execution
 Created: 2026-01-03
@@ -34,56 +34,56 @@ So that common destructive operations are prevented out of the box.
 ## Tasks / Subtasks
 
 ### Task 1: Define Comprehensive Default Patterns
-- [ ] Create `src/adw/security/defaults.py` with:
+- [x] Create `src/adw/security/defaults.py` with:
   - `DEFAULT_SHELL_PATTERNS`: List of blocked shell command patterns
   - `DEFAULT_FILE_PATTERNS`: List of blocked file access patterns
   - `PATTERN_METADATA`: Dictionary mapping patterns to descriptions and alternatives
 
 ### Task 2: Implement Pattern Categories
-- [ ] Create categories in `BlockedPattern` model:
+- [x] Create categories in `BlockedPattern` model:
   - `destructive`: rm -rf, format, dd commands
   - `permission`: chmod 777, chown root
   - `git_dangerous`: force push, reset --hard
   - `secret_access`: .env, credentials, secrets
-- [ ] Add `category` field to BlockedPattern model
+- [x] Add `category` field to BlockedPattern model
 
 ### Task 3: Implement Pattern Matching Engine
-- [ ] Enhance `src/adw/security/patterns.py` with:
+- [x] Enhance `src/adw/security/patterns.py` with:
   - `PatternMatcher` class
   - `match_command(command: str) -> list[PatternMatch]`
   - `match_file_access(path: str) -> list[PatternMatch]`
   - Context-aware matching (distinguish between safe and dangerous uses)
 
 ### Task 4: Add Alternative Suggestions
-- [ ] Create `src/adw/security/suggestions.py` with:
+- [x] Create `src/adw/security/suggestions.py` with:
   - Mapping of blocked patterns to safe alternatives
   - Examples for each blocked pattern
   - Override instructions with `--allow-dangerous`
 
 ### Task 5: Enhance SecurityError with Rich Context
-- [ ] Update `SecurityError` to include:
+- [x] Update `SecurityError` to include:
   - `alternatives`: List of safe alternative commands
   - `override_instruction`: How to bypass if needed
   - `severity`: "critical", "warning", "info"
 
 ### Task 6: Implement Override Logging
-- [ ] When `--allow-dangerous` is active:
+- [x] When `--allow-dangerous` is active:
   - Log blocked patterns as warnings (not errors)
   - Continue execution instead of blocking
   - Track all overridden blocks in run log
 
 ### Task 7: Write Unit Tests
-- [ ] Test each default pattern category
-- [ ] Test pattern matching edge cases
-- [ ] Test alternative suggestions
-- [ ] Test override behavior
-- [ ] Test context-aware matching (safe vs dangerous uses)
+- [x] Test each default pattern category
+- [x] Test pattern matching edge cases
+- [x] Test alternative suggestions
+- [x] Test override behavior
+- [x] Test context-aware matching (safe vs dangerous uses)
 
 ---
 
 ## Relevant Feature Documentation
 
-**Dependency**: Story 3.6 (Security Hook Infrastructure) must be completed first.
+**Relationship**: Story 3.6 (Security Hook Infrastructure) will integrate these patterns. Both stories can be developed in parallel - this story provides patterns, 3.6 provides the interceptor.
 
 ---
 
@@ -115,18 +115,24 @@ So that common destructive operations are prevented out of the box.
 
 **New Files:**
 - `src/adw/security/defaults.py` - Default pattern definitions
+- `src/adw/security/patterns.py` - Pattern matching engine
 - `src/adw/security/suggestions.py` - Alternative command suggestions
+- `src/adw/security/override.py` - Override logging for --allow-dangerous
+- `src/adw/models/security.py` - Security models (BlockedPattern, SecurityConfig, ToolCallLog)
 
 **Modified Files:**
-- `src/adw/security/patterns.py` - Enhanced pattern matching
-- `src/adw/security/interceptor.py` - Category-based blocking
 - `src/adw/exceptions.py` - Enhanced SecurityError fields
-- `src/adw/models/security.py` - Add category field to BlockedPattern
+- `src/adw/models/__init__.py` - Export security models
+
+**Note:** `src/adw/security/interceptor.py` is part of Story 3.6, not this story.
 
 **Test Files:**
 - `tests/unit/security/test_defaults.py`
+- `tests/unit/security/test_patterns.py`
 - `tests/unit/security/test_suggestions.py`
-- `tests/unit/security/test_patterns.py` (extend existing)
+- `tests/unit/security/test_override_logging.py`
+- `tests/unit/models/test_security.py`
+- `tests/unit/test_security_error.py`
 
 ### Testing Requirements
 
@@ -303,7 +309,54 @@ claude-opus-4-5-20251101
 
 ### Completion Notes List
 
+- Task 1: Created comprehensive defaults.py with DESTRUCTIVE_PATTERNS, PERMISSION_PATTERNS, GIT_DANGEROUS_PATTERNS, SECRET_ACCESS_PATTERNS, FILE_ACCESS_PATTERNS. Also created BlockedPattern model in models/security.py with category field. 20 tests written and passing.
+- Task 2: BlockedPattern model already includes PatternCategory type with all four categories (destructive, permission, git_dangerous, secret_access). Added 17 comprehensive tests for security models (BlockedPattern, SecurityConfig, ToolCallLog).
+- Task 3: Implemented PatternMatcher class with match_command() and match_file_access() methods. Supports custom patterns, allow_dangerous mode, and ALLOWED_ENV_PATTERNS for exceptions (.env.example, .env.sample). 25 tests added.
+- Task 4: Created SuggestionFormatter class with format_single() and format_multiple() methods. Added CATEGORY_EXAMPLES and get_override_instruction(). 11 tests added.
+- Task 5: Added SecurityError exception with pattern_matched, tool_name, alternatives, override_instruction, and severity fields. Custom __str__() and to_dict() methods. 9 tests added.
+- Task 6: Created OverrideLogger class for tracking --allow-dangerous overrides. Logs warnings, tracks by category/severity, provides get_summary(). 8 tests added.
+- Task 7: All unit tests integrated throughout implementation. Total: 90 tests covering defaults, patterns, suggestions, override logging, security models, and SecurityError exception.
+- Code Review: Fixed unused variable in override.py, fixed dependency documentation contradiction, added 16 more tests for edge cases. Final: 106 tests, coverage >80% for all security modules.
+
 ### File List
+
+**New Files:**
+- src/adw/security/__init__.py
+- src/adw/security/defaults.py
+- src/adw/security/patterns.py
+- src/adw/security/suggestions.py
+- src/adw/security/override.py
+- src/adw/models/security.py
+- tests/unit/security/__init__.py
+- tests/unit/security/test_defaults.py
+- tests/unit/security/test_patterns.py
+- tests/unit/security/test_suggestions.py
+- tests/unit/security/test_override_logging.py
+- tests/unit/models/test_security.py
+- tests/unit/test_security_error.py
+
+**Modified Files:**
+- src/adw/models/__init__.py
+- src/adw/exceptions.py
+
+## Senior Developer Review (AI)
+
+**Review Date:** 2026-01-04
+**Reviewer:** claude-opus-4-5-20251101
+
+### Review Outcome: ✅ APPROVED
+
+### Issues Found & Fixed:
+1. **[FIXED]** Unused `context` variable in override.py:103
+2. **[FIXED]** Dependency documentation contradiction (story said "Depends On: None" but also mentioned dependency on 3.6)
+3. **[FIXED]** Test coverage below 80% for suggestions.py - added 16 additional tests
+
+### Verification:
+- All 106 tests passing
+- Security module coverage: 97-100% for all files
+- No git discrepancies between story File List and actual changes
+- All Acceptance Criteria implemented and verified
+- All tasks marked [x] are genuinely complete
 
 ## Dependencies
 

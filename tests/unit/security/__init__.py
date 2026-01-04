@@ -1,1 +1,1 @@
-"""Security module tests."""
+"""Unit tests for the security module."""

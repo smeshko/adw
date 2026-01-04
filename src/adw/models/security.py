@@ -1,157 +1,136 @@
-"""Security models for ADW tool call protection.
+"""Security-related Pydantic models.
 
-This module contains models for security configuration, blocked patterns,
-and tool call logging. Used by the security interceptor to validate
-and log LLM tool calls.
+This module contains models for security configuration and tool call logging,
+including blocked pattern definitions and security interceptor configuration.
 """
 
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 
-class SecuritySeverity(str, Enum):
-    """Severity level for blocked patterns.
+# Valid pattern categories for security blocking
+PatternCategory = Literal["destructive", "permission", "git_dangerous", "secret_access"]
 
-    Determines the urgency and logging level when a pattern is matched.
-    """
-
-    CRITICAL = "critical"
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
+# Valid severity levels for security patterns
+PatternSeverity = Literal["critical", "warning", "info"]
 
 
 class BlockedPattern(BaseModel):
-    """A pattern that should be blocked by the security interceptor.
+    """Configuration for a blocked shell command or file pattern.
+
+    Blocked patterns define dangerous operations that should be prevented
+    by the security interceptor. Each pattern includes metadata to help
+    users understand why it was blocked and what alternatives exist.
 
     Attributes:
-        pattern: Regex pattern to match against commands or file paths.
-        description: Human-readable description of why this is blocked.
-        severity: Severity level of the security issue.
+        pattern: Regex pattern to match against commands/paths
+        description: Human-readable description of what this pattern blocks
+        severity: How severe the security risk is (critical/warning/info)
+        category: Category of the pattern (destructive/permission/git_dangerous/secret_access)
+        alternative: Suggested safe alternative command or approach
 
     Example:
         >>> pattern = BlockedPattern(
-        ...     pattern=r"rm\\s+-rf",
-        ...     description="Recursive delete command",
-        ...     severity=SecuritySeverity.CRITICAL,
+        ...     pattern=r"rm\\s+-rf\\s+/",
+        ...     description="Recursive delete of root directory",
+        ...     severity="critical",
+        ...     category="destructive",
+        ...     alternative="Use specific paths: rm -rf ./node_modules",
         ... )
-        >>> pattern.pattern
-        'rm\\\\s+-rf'
     """
 
-    pattern: str = Field(
-        ...,
-        description="Regex pattern to match against commands or file paths",
+    pattern: str = Field(description="Regex pattern to match against commands/paths")
+    description: str = Field(description="Human-readable description of what this blocks")
+    severity: PatternSeverity = Field(
+        default="warning", description="Severity level (critical/warning/info)"
     )
-    description: str = Field(
-        ...,
-        description="Human-readable description of why this is blocked",
+    category: PatternCategory = Field(
+        description="Category of the pattern (destructive/permission/git_dangerous/secret_access)"
     )
-    severity: SecuritySeverity = Field(
-        default=SecuritySeverity.HIGH,
-        description="Severity level of the security issue",
+    alternative: str = Field(
+        default="", description="Suggested safe alternative command or approach"
     )
 
 
 class SecurityConfig(BaseModel):
-    """Configuration for security features.
+    """Security configuration for the ADW runner.
 
-    Controls which commands and file access patterns are blocked,
-    and allows overriding security checks when explicitly permitted.
+    Configures which patterns are blocked, whether blocking is enforced,
+    and which files are protected from access.
 
     Attributes:
-        blocked_patterns: List of custom patterns to block.
-        allow_dangerous: If True, log warnings instead of blocking.
-        blocked_env_files: File patterns that should be blocked from reading.
-        allowed_env_patterns: Exception patterns that are safe to read.
+        blocked_patterns: Additional patterns to block (merged with defaults)
+        allow_dangerous: If True, log warnings instead of blocking
+        blocked_env_files: File patterns to block (in addition to defaults)
 
     Example:
         >>> config = SecurityConfig(
+        ...     allow_dangerous=False,
         ...     blocked_patterns=[
         ...         BlockedPattern(
-        ...             pattern=r"rm\\s+-rf",
-        ...             description="Dangerous delete",
-        ...             severity=SecuritySeverity.CRITICAL,
+        ...             pattern=r"npm\\s+publish",
+        ...             description="Publishing to npm",
+        ...             category="permission",
         ...         )
-        ...     ]
+        ...     ],
         ... )
-        >>> config.allow_dangerous
-        False
     """
 
     blocked_patterns: list[BlockedPattern] = Field(
         default_factory=list,
-        description="List of custom patterns to block",
+        description="Additional patterns to block (merged with defaults)",
     )
     allow_dangerous: bool = Field(
-        default=False,
-        description="If True, log warnings instead of blocking",
+        default=False, description="If True, log warnings instead of blocking"
     )
     blocked_env_files: list[str] = Field(
-        default_factory=lambda: [".env", ".adw.env"],
-        description="File patterns that should be blocked from reading",
-    )
-    allowed_env_patterns: list[str] = Field(
-        default_factory=lambda: [".env.example", ".env.sample", ".env.template"],
-        description="Exception patterns that are safe to read",
+        default_factory=list,
+        description="Additional file patterns to block (in addition to defaults)",
     )
 
 
 class ToolCallLog(BaseModel):
-    """Log entry for a tool call made by the LLM.
+    """Log entry for a tool call during LLM execution.
 
-    Captures all relevant information about tool calls for
-    audit trail and debugging purposes.
+    Captures comprehensive information about each tool invocation including
+    timing, arguments, results, and security blocking status.
 
-    Attributes:
-        timestamp: When the tool call was made.
-        tool_name: Name of the tool being called (e.g., "Bash", "Read").
-        arguments: Arguments passed to the tool.
-        result_summary: Brief summary of the result (e.g., "success", "blocked").
-        duration_ms: How long the tool call took in milliseconds.
-        blocked: Whether the tool call was blocked by security.
-        block_reason: Why the tool call was blocked, if applicable.
+    This model is designed for JSONL serialization to support append-only
+    logging in `.adw/runs/<id>/tools.jsonl`.
 
     Example:
-        >>> log_entry = ToolCallLog(
+        >>> log = ToolCallLog(
+        ...     timestamp="2026-01-03T10:30:00.123Z",
         ...     tool_name="Bash",
-        ...     arguments={"command": "ls -la"},
-        ...     result_summary="success",
-        ...     duration_ms=150,
+        ...     arguments={"command": "npm test"},
+        ...     result_summary="Exit code: 0, output: 15 tests passed",
+        ...     duration_ms=2500,
+        ...     phase="build",
         ... )
-        >>> log_entry.blocked
-        False
+        >>> log.model_dump_json()  # Write to JSONL file
     """
 
-    timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        description="When the tool call was made",
-    )
-    tool_name: str = Field(
-        ...,
-        description="Name of the tool being called",
-    )
-    arguments: dict[str, Any] = Field(
-        ...,
-        description="Arguments passed to the tool",
-    )
-    result_summary: str = Field(
-        ...,
-        description="Brief summary of the result",
-    )
-    duration_ms: int = Field(
-        ...,
-        ge=0,
-        description="How long the tool call took in milliseconds",
-    )
-    blocked: bool = Field(
-        default=False,
-        description="Whether the tool call was blocked by security",
-    )
-    block_reason: str | None = Field(
-        default=None,
-        description="Why the tool call was blocked, if applicable",
-    )
+    timestamp: str
+    """ISO 8601 format timestamp when the tool was called."""
+
+    tool_name: str
+    """Name of the tool that was called (e.g., 'Bash', 'Read', 'Write')."""
+
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    """Arguments passed to the tool."""
+
+    result_summary: str | None = None
+    """Brief summary of result (truncated if long)."""
+
+    duration_ms: int = 0
+    """Execution time in milliseconds."""
+
+    blocked: bool = False
+    """Whether the tool call was blocked by security checks."""
+
+    block_reason: str | None = None
+    """Reason for blocking (if blocked is True)."""
+
+    phase: str | None = None
+    """Current phase when the tool was called (e.g., 'plan', 'build')."""

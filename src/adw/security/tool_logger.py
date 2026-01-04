@@ -1,118 +1,196 @@
-"""Tool call logger for security audit trail.
+"""Tool execution logging for security auditing.
 
-This module provides the ToolLogger class for logging all LLM tool calls
-to a JSONL file for audit and debugging purposes.
+This module provides the ToolLogger class for persisting tool call logs
+to JSONL files for audit and debugging purposes.
 """
 
+import logging
 from pathlib import Path
-from typing import Any
+
+from filelock import FileLock
 
 from adw.models.security import ToolCallLog
 
+# Internal logger for transport errors
+_logger = logging.getLogger(__name__)
+
 
 class ToolLogger:
-    """Logger for LLM tool calls.
-    
-    Writes tool call entries to a JSONL file in the run directory.
-    Each entry is a single JSON object on its own line, allowing
-    for append-only writes and easy parsing.
-    
-    Attributes:
-        run_dir: Path to the run directory.
-        log_file: Path to the tools.jsonl file.
-        
+    """Logger for tool execution events.
+
+    Writes tool call logs to a JSONL file in the run directory for
+    audit and debugging purposes. Uses file locking for thread-safe
+    concurrent writes.
+
+    The log file is stored at `.adw/runs/<run_id>/tools.jsonl`.
+
+    Note:
+        **Security Consideration**: Tool arguments are logged as-is without
+        sanitization. Callers should avoid passing sensitive data (API keys,
+        passwords, credentials) in tool arguments, or implement redaction
+        before logging if needed. A future enhancement may add built-in
+        redaction for common sensitive patterns.
+
     Example:
-        >>> logger = ToolLogger(Path(".adw/runs/abc123"))
-        >>> logger.log_tool_call(ToolCallLog(
+        >>> run_dir = Path(".adw/runs/01HQXK5P3Z")
+        >>> logger = ToolLogger(run_dir)
+        >>> entry = ToolCallLog(
+        ...     timestamp="2026-01-03T10:30:00.123Z",
         ...     tool_name="Bash",
-        ...     arguments={"command": "ls"},
-        ...     result_summary="success",
-        ...     duration_ms=150,
-        ... ))
+        ...     arguments={"command": "npm test"},
+        ...     result_summary="Exit code: 0",
+        ...     duration_ms=2500,
+        ... )
+        >>> logger.log_tool_call(entry)
+        >>> logger.close()
+
+    Context manager usage:
+        >>> with ToolLogger(run_dir) as logger:
+        ...     logger.log_tool_call(entry)
     """
-    
-    def __init__(self, run_dir: Path) -> None:
-        """Initialize the tool logger.
-        
+
+    FILENAME = "tools.jsonl"
+    """Name of the tool log file."""
+
+    def __init__(self, run_dir: Path | str) -> None:
+        """Initialize the ToolLogger.
+
         Args:
-            run_dir: Path to the run directory where logs will be stored.
+            run_dir: Path to the run directory (e.g., .adw/runs/01HQXK5P3Z).
         """
-        self.run_dir = run_dir
-        self.log_file = run_dir / "tools.jsonl"
-        
-        # Ensure run directory exists
-        self.run_dir.mkdir(parents=True, exist_ok=True)
-    
+        self._run_dir = Path(run_dir)
+        self._log_path = self._run_dir / self.FILENAME
+        self._lock_path = self._log_path.with_suffix(
+            self._log_path.suffix + ".lock"
+        )
+        self._closed = False
+        self._current_phase: str | None = None
+
+    @property
+    def current_phase(self) -> str | None:
+        """Get the current phase for logging context."""
+        return self._current_phase
+
+    @current_phase.setter
+    def current_phase(self, phase: str | None) -> None:
+        """Set the current phase for logging context.
+
+        The PhaseRunner should set this before each phase execution
+        so tool calls are logged with the correct phase context.
+        """
+        self._current_phase = phase
+
+    @property
+    def run_dir(self) -> Path:
+        """Get the run directory path."""
+        return self._run_dir
+
+    @property
+    def log_path(self) -> Path:
+        """Get the tool log file path."""
+        return self._log_path
+
     def log_tool_call(self, entry: ToolCallLog) -> None:
-        """Log a tool call entry.
-        
-        Appends the entry as a JSON line to the tools.jsonl file.
-        
+        """Log a tool call to the JSONL file.
+
+        Creates the file and parent directories if they don't exist.
+        Uses file locking for concurrent write safety.
+
         Args:
             entry: The tool call log entry to write.
         """
-        # Serialize to JSON and append to file
-        json_line = entry.model_dump_json()
-        
-        with open(self.log_file, "a", encoding="utf-8") as f:
-            f.write(json_line)
-            f.write("\n")
-    
-    def log(
-        self,
-        tool_name: str,
-        arguments: dict[str, Any],
-        result_summary: str,
-        duration_ms: int,
-        *,
-        blocked: bool = False,
-        block_reason: str | None = None,
-    ) -> None:
-        """Convenience method to log a tool call.
-        
-        Creates a ToolCallLog entry and writes it to the log file.
-        
-        Args:
-            tool_name: Name of the tool that was called.
-            arguments: Arguments passed to the tool.
-            result_summary: Brief summary of the result.
-            duration_ms: Duration of the call in milliseconds.
-            blocked: Whether the call was blocked.
-            block_reason: Reason for blocking, if applicable.
-        """
-        entry = ToolCallLog(
-            tool_name=tool_name,
-            arguments=arguments,
-            result_summary=result_summary,
-            duration_ms=duration_ms,
-            blocked=blocked,
-            block_reason=block_reason,
-        )
-        self.log_tool_call(entry)
-    
-    def get_log_path(self) -> Path:
-        """Get the path to the log file.
-        
+        if self._closed:
+            return
+
+        try:
+            # Ensure parent directories exist
+            self._run_dir.mkdir(parents=True, exist_ok=True)
+
+            # Convert entry to JSON
+            json_line = entry.model_dump_json()
+
+            # Write with file locking for concurrency safety
+            with (
+                FileLock(self._lock_path),
+                open(self._log_path, "a", encoding="utf-8") as f,
+            ):
+                f.write(json_line + "\n")
+
+        except OSError as e:
+            # Log error but don't crash - logging should never break the app
+            _logger.warning(
+                "Failed to write tool log to %s: %s",
+                self._log_path,
+                e,
+            )
+
+    def get_tool_history(self) -> list[ToolCallLog]:
+        """Get all tool call entries from the log file.
+
+        Reads and parses the JSONL file, returning all entries
+        in chronological order.
+
         Returns:
-            Path to the tools.jsonl file.
+            List of ToolCallLog entries in order they were logged.
+            Returns empty list if file doesn't exist or is empty.
         """
-        return self.log_file
-    
-    def read_entries(self) -> list[ToolCallLog]:
-        """Read all log entries from the file.
-        
-        Returns:
-            List of ToolCallLog entries.
-        """
-        if not self.log_file.exists():
+        if not self._log_path.exists():
             return []
-        
-        entries = []
-        with open(self.log_file, encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    entry = ToolCallLog.model_validate_json(line)
-                    entries.append(entry)
-        
+
+        entries: list[ToolCallLog] = []
+        try:
+            with open(self._log_path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        entries.append(ToolCallLog.model_validate_json(line))
+        except (OSError, ValueError) as e:
+            _logger.warning(
+                "Failed to read tool log from %s: %s",
+                self._log_path,
+                e,
+            )
+
         return entries
+
+    @staticmethod
+    def get_tool_history_for_run(
+        runs_dir: Path | str,
+        run_id: str,
+    ) -> list[ToolCallLog]:
+        """Get tool history for a specific run ID.
+
+        Convenience static method for reading tool history without
+        needing to construct the full run directory path.
+
+        Args:
+            runs_dir: Path to the runs directory (e.g., .adw/runs).
+            run_id: The run ID.
+
+        Returns:
+            List of ToolCallLog entries for the run.
+            Returns empty list if run or log file doesn't exist.
+        """
+        run_dir = Path(runs_dir) / run_id
+        logger = ToolLogger(run_dir)
+        return logger.get_tool_history()
+
+    def close(self) -> None:
+        """Close the logger and clean up resources.
+
+        Removes the lock file if it exists.
+        """
+        self._closed = True
+        try:
+            if self._lock_path.exists():
+                self._lock_path.unlink()
+        except OSError:
+            pass  # Ignore cleanup errors
+
+    def __enter__(self) -> "ToolLogger":
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        """Context manager exit - ensures cleanup."""
+        self.close()

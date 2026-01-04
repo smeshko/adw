@@ -1,15 +1,15 @@
-"""Security module for ADW tool call protection.
+"""ADW Security module.
 
-This module provides security checks for LLM tool calls to prevent
-dangerous operations like destructive shell commands or sensitive
-file access.
+This package provides security interceptor functionality for blocking
+dangerous LLM tool calls and logging tool execution.
 
-Example:
-    >>> from adw.security import SecurityInterceptor, SecurityCheckResult
-    >>> interceptor = SecurityInterceptor()
-    >>> response = interceptor.check_tool_call("Bash", {"command": "rm -rf /"})
-    >>> response.result == SecurityCheckResult.BLOCKED
-    True
+Key components:
+- defaults: Default blocked patterns for shell commands and file access
+- patterns: Pattern matching engine for security checks
+- interceptor: Security interceptor for blocking dangerous operations
+- suggestions: Alternative command suggestions for blocked patterns
+- override: Override logging for --allow-dangerous mode
+- tool_logger: Tool execution logging to JSONL files
 """
 
 from adw.security.interceptor import (
@@ -17,28 +17,49 @@ from adw.security.interceptor import (
     SecurityCheckResult,
     SecurityInterceptor,
 )
+from adw.security.defaults import (
+    ALLOWED_ENV_PATTERNS,
+    DEFAULT_FILE_PATTERNS,
+    DEFAULT_SHELL_PATTERNS,
+    PATTERN_METADATA,
+)
+from adw.security.override import (
+    OverrideLogger,
+    get_override_logger,
+    reset_override_logger,
+)
 from adw.security.patterns import (
-    ALLOWED_FILE_PATTERNS,
-    BLOCKED_FILE_PATTERNS,
-    BLOCKED_SHELL_PATTERNS,
-    is_allowed_env_file,
-    match_file_pattern,
-    match_shell_pattern,
+    PatternMatch,
+    PatternMatcher,
+)
+from adw.security.suggestions import (
+    SuggestionFormatter,
+    get_category_examples,
+    get_override_instruction,
 )
 from adw.security.tool_logger import ToolLogger
 
 __all__: list[str] = [
-    # Interceptor
-    "SecurityInterceptor",
-    "SecurityCheckResult",
+    # Interceptor (Story 3.6)
     "SecurityCheckResponse",
-    # Logger
+    "SecurityCheckResult",
+    "SecurityInterceptor",
+    # Defaults
+    "ALLOWED_ENV_PATTERNS",
+    "DEFAULT_FILE_PATTERNS",
+    "DEFAULT_SHELL_PATTERNS",
+    "PATTERN_METADATA",
+    # Override logging
+    "OverrideLogger",
+    "get_override_logger",
+    "reset_override_logger",
+    # Pattern matching
+    "PatternMatch",
+    "PatternMatcher",
+    # Suggestions
+    "SuggestionFormatter",
+    "get_category_examples",
+    "get_override_instruction",
+    # Tool logging
     "ToolLogger",
-    # Pattern utilities
-    "BLOCKED_SHELL_PATTERNS",
-    "BLOCKED_FILE_PATTERNS",
-    "ALLOWED_FILE_PATTERNS",
-    "match_shell_pattern",
-    "match_file_pattern",
-    "is_allowed_env_file",
 ]
