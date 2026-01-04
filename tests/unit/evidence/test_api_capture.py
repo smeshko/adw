@@ -466,6 +466,38 @@ class TestAuthenticationSupport:
         result = strategy.call_endpoint(endpoint)
         assert result is not None
 
+    @patch("adw.evidence.api_capture.httpx.Client")
+    @patch.dict("os.environ", {"BASIC_USER": "admin", "BASIC_PASS": "secret123"})
+    def test_basic_auth_from_env(self, mock_client_class: MagicMock) -> None:
+        """Test basic authentication from environment variables."""
+        import base64
+
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.text = "{}"
+        mock_response.is_success = True
+        mock_client.request.return_value = mock_response
+
+        auth = AuthConfig(
+            type=AuthType.BASIC,
+            token_env="BASIC_USER",  # username
+            key_env="BASIC_PASS",  # password
+        )
+        strategy = APICaptureStrategy(base_url="http://localhost:8000", auth=auth)
+        endpoint = EndpointConfig(name="test", path="/test")
+        result = strategy.call_endpoint(endpoint)
+
+        # Verify basic auth header was included
+        call_kwargs = mock_client.request.call_args[1]
+        assert "headers" in call_kwargs
+        expected_credentials = base64.b64encode(b"admin:secret123").decode()
+        assert call_kwargs["headers"]["Authorization"] == f"Basic {expected_credentials}"
+
 
 class TestSummaryGeneration:
     """Tests for summary generation (Task 7)."""
@@ -563,6 +595,83 @@ class TestSummaryGeneration:
         summary = generate_summary(base_url="http://localhost", results=results)
 
         assert summary.status_mismatches == 1
+
+
+class TestErrorResponseCapture:
+    """Tests for error response capture (AC: error responses captured for verification)."""
+
+    @patch("adw.evidence.api_capture.httpx.Client")
+    def test_captures_4xx_error_response_body(self, mock_client_class: MagicMock) -> None:
+        """Test that 4xx error responses are fully captured with body content."""
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 400
+        mock_response.headers = {"Content-Type": "application/json"}
+        mock_response.text = '{"error": "Bad Request", "details": "Missing required field"}'
+        mock_response.is_success = False
+        mock_client.request.return_value = mock_response
+
+        strategy = APICaptureStrategy(base_url="http://localhost:8000")
+        endpoint = EndpointConfig(name="create_item", method="POST", path="/items")
+        result = strategy.call_endpoint(endpoint)
+
+        # Verify error response is fully captured for verification
+        assert result.success is False
+        assert result.response.status_code == 400
+        assert result.response.body == {"error": "Bad Request", "details": "Missing required field"}
+        assert result.error is None  # HTTP errors don't set error field
+
+    @patch("adw.evidence.api_capture.httpx.Client")
+    def test_captures_5xx_error_response_body(self, mock_client_class: MagicMock) -> None:
+        """Test that 5xx error responses are fully captured with body content."""
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.headers = {"Content-Type": "application/json"}
+        mock_response.text = '{"error": "Internal Server Error", "trace_id": "abc123"}'
+        mock_response.is_success = False
+        mock_client.request.return_value = mock_response
+
+        strategy = APICaptureStrategy(base_url="http://localhost:8000")
+        endpoint = EndpointConfig(name="health", path="/health")
+        result = strategy.call_endpoint(endpoint)
+
+        # Verify 5xx error response is fully captured
+        assert result.success is False
+        assert result.response.status_code == 500
+        assert result.response.body == {"error": "Internal Server Error", "trace_id": "abc123"}
+        assert result.response.headers is not None
+
+    @patch("adw.evidence.api_capture.httpx.Client")
+    def test_captures_error_response_with_non_json_body(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """Test that error responses with non-JSON bodies are captured as strings."""
+        mock_client = MagicMock()
+        mock_client_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_class.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 503
+        mock_response.headers = {"Content-Type": "text/plain"}
+        mock_response.text = "Service Unavailable - Server is overloaded"
+        mock_response.is_success = False
+        mock_client.request.return_value = mock_response
+
+        strategy = APICaptureStrategy(base_url="http://localhost:8000")
+        endpoint = EndpointConfig(name="api", path="/api")
+        result = strategy.call_endpoint(endpoint)
+
+        # Verify non-JSON error body is captured as string
+        assert result.success is False
+        assert result.response.status_code == 503
+        assert result.response.body == "Service Unavailable - Server is overloaded"
 
 
 class TestStatusMatching:

@@ -535,5 +535,24 @@ Key patterns and rules from project context:
 
 ### Completion Notes List
 
+- Implemented API evidence capture using httpx library
+- Added basic auth support in addition to bearer and API key
+- Added LogManager summary output for captured evidence
+- Code review fixes applied for code quality issues
+
 ### File List
+
+**New Files:**
+- `src/adw/evidence/api_capture.py` - APICaptureStrategy class for HTTP request/response capture
+- `src/adw/evidence/config_loader.py` - EvidenceConfig loading from .adw/project.yaml
+- `src/adw/evidence/evidence_writer.py` - APIEvidenceWriter for JSON file output
+- `tests/unit/evidence/test_api_capture.py` - Unit tests for API capture strategy
+- `tests/unit/evidence/test_config_loader.py` - Unit tests for config loading
+- `tests/unit/evidence/test_evidence_writer.py` - Unit tests for evidence file writing
+
+**Modified Files:**
+- `src/adw/evidence/__init__.py` - Added exports for API capture classes
+- `src/adw/models/__init__.py` - Added exports for API evidence models
+- `src/adw/models/evidence.py` - Added EndpointConfig, AuthConfig, APIRequest, APIResponse, APIEvidenceResult, APIEvidenceSummary models
+- `tests/unit/models/test_evidence.py` - Added tests for API evidence models
 

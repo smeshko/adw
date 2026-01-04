@@ -5,8 +5,11 @@ HTTP requests to configured endpoints and captures request/response
 pairs for evidence gathering during the Verify phase.
 """
 
+import base64
+import json
 import os
 from datetime import datetime, timezone
+from typing import Any
 
 import httpx
 
@@ -212,6 +215,28 @@ class APICaptureStrategy:
                     )
             return None
 
+        elif self.auth.type == AuthType.BASIC:
+            # Basic auth requires username and password from env vars
+            # Convention: token_env for username, key_env for password
+            if self.auth.token_env and self.auth.key_env:
+                username = os.environ.get(self.auth.token_env)
+                password = os.environ.get(self.auth.key_env)
+                if username and password:
+                    credentials = f"{username}:{password}"
+                    encoded = base64.b64encode(credentials.encode()).decode()
+                    return {"Authorization": f"Basic {encoded}"}
+                else:
+                    missing = []
+                    if not username:
+                        missing.append(self.auth.token_env)
+                    if not password:
+                        missing.append(self.auth.key_env)
+                    self._logger.warn(
+                        LogCategory.STATE,
+                        f"Basic auth env vars not set: {', '.join(missing)}",
+                    )
+            return None
+
         return None
 
     def _redact_auth_headers(
@@ -237,7 +262,7 @@ class APICaptureStrategy:
 
         return redacted
 
-    def _parse_response_body(self, text: str) -> str | dict:
+    def _parse_response_body(self, text: str) -> str | dict[str, Any]:
         """Parse response body, attempting JSON decode.
 
         Args:
@@ -250,8 +275,6 @@ class APICaptureStrategy:
             return ""
 
         try:
-            import json
-
             return json.loads(text)
         except (json.JSONDecodeError, ValueError):
             return text
@@ -305,7 +328,8 @@ def generate_summary(
     """Generate a summary from API evidence results.
 
     Aggregates results from all captured endpoints and calculates
-    success/failure counts and status mismatch counts.
+    success/failure counts and status mismatch counts. Logs the
+    summary to console via LogManager.
 
     Args:
         base_url: Base URL for all endpoints
@@ -322,12 +346,14 @@ def generate_summary(
         >>> summary.successful
         2
     """
+    logger = get_logger()
+
     total = len(results)
     successful = sum(1 for r in results if r.success)
     failed = total - successful
     status_mismatches = sum(1 for r in results if not r.status_match)
 
-    return APIEvidenceSummary(
+    summary = APIEvidenceSummary(
         base_url=base_url,
         total_endpoints=total,
         successful=successful,
@@ -335,3 +361,19 @@ def generate_summary(
         status_mismatches=status_mismatches,
         results=results,
     )
+
+    # Log summary to console
+    logger.info(
+        LogCategory.STATE,
+        f"API Evidence Summary: {successful}/{total} endpoints successful, "
+        f"{failed} failed, {status_mismatches} status mismatches",
+    )
+
+    if failed > 0:
+        failed_endpoints = [r.endpoint_name for r in results if not r.success]
+        logger.warn(
+            LogCategory.STATE,
+            f"Failed endpoints: {', '.join(failed_endpoints)}",
+        )
+
+    return summary
