@@ -27,10 +27,10 @@ so that **my PR descriptions include screenshots, command outputs, and API respo
 ## Tasks / Subtasks
 
 ### Task 1: Investigate Current Evidence Integration
-- [ ] Verify platform detection is working (`detect_platform` is called)
-- [ ] Check if evidence gathering functions are imported in orchestrator
-- [ ] Trace VERIFY phase flow to find missing integration point
-- [ ] Document what's called vs what's NOT called
+- [x] Verify platform detection is working (`detect_platform` is called)
+- [x] Check if evidence gathering functions are imported in orchestrator
+- [x] Trace VERIFY phase flow to find missing integration point
+- [x] Document what's called vs what's NOT called
 
 ### Task 2: Integrate Evidence Gathering into Verify Phase
 - [ ] After LLM verify phase completes, call evidence gathering based on platform:
@@ -320,6 +320,15 @@ claude-opus-4-5-20251101
 N/A
 
 ### Completion Notes List
+
+**Task 1 - Investigation Complete (2026-01-05):**
+- Confirmed `detect_platform()` is called at verify phase start (orchestrator.py:1122-1123)
+- Confirmed `optimize_evidence()` is called at verify phase end (orchestrator.py:1132-1133)
+- Found missing integration: NO evidence gathering code exists between these calls
+- Evidence module exports: CLIEvidenceGatherer, WebCaptureStrategy, APICaptureStrategy, mobile functions
+- Evidence module exports: get_evidence_strategy(), generate_evidence_manifest()
+- None of these are imported or called in orchestrator.py
+- Root cause confirmed: Evidence modules implemented but never wired into pipeline
 
 ### File List
 
