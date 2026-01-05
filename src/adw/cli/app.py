@@ -251,9 +251,9 @@ def run(
                 )
                 raise typer.Exit(1)
 
-            # Single phase execution (Story 5.4)
+            # Single phase execution (Story 5.4, Story 10.1: pass use_worktree flag)
             context = orchestrator.run_single_phase(
-                phase, feature, from_run, run_id=run_id
+                phase, feature, from_run, run_id=run_id, use_worktree=not no_worktree
             )
             console.print(
                 f"[green]✓[/] Single phase '{phase}' completed: {context.run_id}"

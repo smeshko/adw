@@ -777,6 +777,10 @@ class Orchestrator:
 
                 logger.info("Resume completed", extra={"run_id": run_id})
 
+                # Clean up worktree on successful resume (Story 10.1)
+                if context.use_worktree and context.worktree_path is not None:
+                    self._cleanup_worktree(context.run_id, preserve=False)
+
         except ShutdownRequested as e:
             # Graceful shutdown - state already saved by handler
             # Update global index on resume interruption (Story 7.0)
@@ -836,6 +840,13 @@ class Orchestrator:
                     "error_code": e.code,
                 },
             )
+
+            # Cleanup or preserve worktree based on config (Story 10.1)
+            if context.use_worktree and context.worktree_path is not None:
+                self._cleanup_worktree(
+                    context.run_id,
+                    preserve=self.worktree_config.preserve_on_failure,
+                )
             raise
 
         except Exception as e:
@@ -882,6 +893,13 @@ class Orchestrator:
                     "error": str(e),
                 },
             )
+
+            # Cleanup or preserve worktree based on config (Story 10.1)
+            if context.use_worktree and context.worktree_path is not None:
+                self._cleanup_worktree(
+                    context.run_id,
+                    preserve=self.worktree_config.preserve_on_failure,
+                )
             raise
 
         return context
