@@ -177,6 +177,20 @@ class TestCreatePrViaGh:
 
             assert exc_info.value.code == "GH_TIMEOUT"
 
+    def test_create_pr_with_no_open(self) -> None:
+        """Test no_open parameter is accepted (no-op behavior)."""
+        with patch("adw.cli.pr.subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="https://github.com/user/repo/pull/123\n",
+                stderr="",
+            )
+            # no_open should be accepted and work (no-op since gh default is no-open)
+            url = create_pr_via_gh(
+                "Test PR", "## Summary\nTest", "main", no_open=True
+            )
+            assert url == "https://github.com/user/repo/pull/123"
+
 
 class TestDisplayManualInstructions:
     """Tests for display_manual_instructions function."""
@@ -572,3 +586,50 @@ class TestPrCommand:
                                 mock_create.assert_called_once()
                                 args, _ = mock_create.call_args
                                 assert args[2] == "develop"
+
+    def test_pr_with_no_open_option(
+        self,
+        runner: CliRunner,
+        sample_context: RunContext,
+        sample_pr_description: PRDescription,
+        tmp_path: Path,
+    ) -> None:
+        """Test PR creation with --no-open option."""
+        runs_dir = tmp_path
+        run_dir = runs_dir / sample_context.run_id
+        doc_dir = run_dir / "artifacts" / "document"
+        doc_dir.mkdir(parents=True)
+
+        # Write PR description
+        pr_file = doc_dir / "pr_description.md"
+        pr_file.write_text(sample_pr_description.to_markdown())
+
+        with patch("adw.cli.pr.get_runs_dir") as mock_runs_dir:
+            mock_runs_dir.return_value = runs_dir
+
+            with patch("adw.cli.pr.RunLookup") as mock_lookup:
+                mock_lookup.return_value.find_by_id.return_value = sample_context
+
+                with patch("adw.cli.pr.check_gh_available") as mock_gh:
+                    mock_gh.return_value = True
+
+                    with patch("adw.cli.pr.check_gh_authenticated") as mock_auth:
+                        mock_auth.return_value = (True, "")
+
+                        with patch("adw.cli.pr.create_pr_via_gh") as mock_create:
+                            mock_create.return_value = (
+                                "https://github.com/user/repo/pull/123"
+                            )
+
+                            with patch("adw.cli.pr._store_pr_url") as mock_store:
+                                mock_store.return_value = sample_context
+
+                                result = runner.invoke(
+                                    app,
+                                    ["pr", sample_context.run_id, "--no-open"],
+                                )
+
+                                # Verify no_open=True was passed
+                                mock_create.assert_called_once()
+                                _, kwargs = mock_create.call_args
+                                assert kwargs.get("no_open") is True

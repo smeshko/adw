@@ -80,6 +80,7 @@ def create_pr_via_gh(
     base: str,
     *,
     draft: bool = False,
+    no_open: bool = False,
 ) -> str:
     """Create a PR using the gh CLI.
 
@@ -88,6 +89,7 @@ def create_pr_via_gh(
         body: PR body/description in markdown.
         base: Base branch for the PR.
         draft: If True, create as draft PR.
+        no_open: If True, don't open browser after creation.
 
     Returns:
         URL of the created PR.
@@ -113,6 +115,11 @@ def create_pr_via_gh(
 
     if draft:
         cmd.append("--draft")
+
+    # Note: gh pr create by default does NOT open browser (it just prints URL).
+    # The no_open parameter is provided for API completeness but has no effect
+    # since browser opening is not the default behavior.
+    _ = no_open  # Explicitly acknowledge the parameter (no-op)
 
     try:
         result = subprocess.run(
@@ -309,8 +316,12 @@ def _get_base_branch(run_dir: Path) -> str:
 
             with open(config_path, encoding="utf-8") as f:
                 config = yaml.safe_load(f)
-                if config and "git" in config:
-                    return config["git"].get("default_branch", "main")
+                if config and isinstance(config, dict) and "git" in config:
+                    git_config = config["git"]
+                    if isinstance(git_config, dict):
+                        branch = git_config.get("default_branch", "main")
+                        if isinstance(branch, str):
+                            return branch
         except Exception:
             pass
 
@@ -473,7 +484,9 @@ def pr(
     console.print()
 
     try:
-        pr_url = create_pr_via_gh(pr_title, pr_body, base_branch, draft=draft)
+        pr_url = create_pr_via_gh(
+            pr_title, pr_body, base_branch, draft=draft, no_open=no_open
+        )
 
         # Store PR URL in run artifacts
         _store_pr_url(context, pr_url, runs_dir)
