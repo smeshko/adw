@@ -51,15 +51,15 @@ so that file operations happen in the isolated environment.
 - [x] Add to variable documentation
 
 ### Task 4: Implement Relative Artifact Paths
-- [ ] Modify artifact storage to use relative paths
-- [ ] Store artifacts at `<worktree>/.adw/runs/<run_id>/artifacts/`
-- [ ] When storing in context, convert to relative path from worktree root
-- [ ] When loading, resolve relative to current worktree
+- [x] Modify artifact storage to use relative paths
+- [x] Store artifacts at `<worktree>/.adw/runs/<run_id>/artifacts/`
+- [x] When storing in context, convert to relative path from worktree root
+- [x] When loading, resolve relative to current worktree
 
 ### Task 5: Update RunContext Path Resolution
-- [ ] Add helper method `resolve_artifact_path(relative: str) -> Path`
-- [ ] Method considers worktree_path if present
-- [ ] Ensure all artifact references go through this method
+- [x] Add helper method `resolve_artifact_path(relative: str) -> Path`
+- [x] Method considers worktree_path if present
+- [x] Ensure all artifact references go through this method
 
 ### Task 6: Source .ports.env in Hooks
 - [ ] Auto-source `.ports.env` before hook script runs
@@ -378,6 +378,13 @@ N/A
 - Added unit tests for worktree_path template variable
 - All 23 phase runner tests pass
 
+**Tasks 4 & 5: Artifact Path Resolution**
+- Added `resolve_artifact_path()` method to RunContext for worktree-aware path resolution
+- Added `get_runs_dir()` method to get worktree-relative runs directory
+- Priority: worktree_path > project_root > cwd
+- Added 6 unit tests for artifact path resolution
+- All 49 context model tests pass
+
 ### File List
 
 **Modified:**
@@ -387,6 +394,8 @@ N/A
 - src/adw/executors/retry.py - Added cwd parameter passthrough
 - src/adw/core/phase_runner.py - Pass worktree_path to executor, added worktree_path template variable
 - src/adw/hooks/environment.py - Added ADW_WORKTREE_PATH and project_root parameter
+- src/adw/models/context.py - Added resolve_artifact_path() and get_runs_dir() methods
 - tests/unit/executors/test_claude_code.py - Added TestWorktreeWorkingDirectory tests
 - tests/unit/hooks/test_environment.py - Added TestWorktreePathEnvironment tests
 - tests/unit/core/test_phase_runner.py - Added TestPhaseRunnerWorktreeContext tests
+- tests/unit/models/test_context.py - Added TestRunContextArtifactPathResolution tests

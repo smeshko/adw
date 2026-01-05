@@ -105,6 +105,54 @@ class RunContext(BaseModel):
         """
         return sum(self.phase_tokens.values())
 
+    def resolve_artifact_path(
+        self,
+        relative: str,
+        *,
+        project_root: Path | None = None,
+    ) -> Path:
+        """Resolve a relative artifact path to an absolute path.
+
+        Considers worktree_path if present, otherwise falls back to
+        project_root for non-worktree runs.
+
+        Story 10.5: Worktree Context in Phases - enables artifact paths
+        to work correctly across worktree lifecycle.
+
+        Args:
+            relative: Relative artifact path (e.g., '.adw/runs/<run_id>/artifacts/plan/plan_output.md')
+            project_root: Optional project root for non-worktree runs.
+                         If None and worktree_path is None, uses Path.cwd().
+
+        Returns:
+            Absolute path to the artifact.
+
+        Example:
+            >>> context.worktree_path = Path('/project/.worktrees/01RUN')
+            >>> context.resolve_artifact_path('.adw/runs/01RUN/artifacts/plan/out.md')
+            PosixPath('/project/.worktrees/01RUN/.adw/runs/01RUN/artifacts/plan/out.md')
+        """
+        base = self.worktree_path or project_root or Path.cwd()
+        return base / relative
+
+    def get_runs_dir(self, project_root: Path | None = None) -> Path:
+        """Get the runs directory for this context.
+
+        Returns the appropriate .adw/runs directory based on whether
+        this is a worktree or non-worktree run.
+
+        Story 10.5: Worktree Context in Phases - ensures runs directory
+        is relative to worktree when in worktree mode.
+
+        Args:
+            project_root: Optional project root for non-worktree runs.
+
+        Returns:
+            Path to the .adw/runs directory.
+        """
+        base = self.worktree_path or project_root or Path.cwd()
+        return base / ".adw" / "runs"
+
     @field_validator("run_id")
     @classmethod
     def validate_ulid(cls, v: str) -> str:
