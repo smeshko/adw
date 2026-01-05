@@ -38,19 +38,19 @@ so that concurrent runs don't have port conflicts.
 ## Tasks / Subtasks
 
 ### Task 1: Create PortAllocator Class
-- [ ] Create `src/adw/worktree/ports.py` with `PortAllocator` class
-- [ ] Implement slot calculation: `hash(run_id) % 15`
-- [ ] Implement port calculation: `backend = 9100 + slot`, `frontend = 9200 + slot`
-- [ ] Add method `allocate(run_id: str) -> PortAllocation`
+- [x] Create `src/adw/worktree/ports.py` with `PortAllocator` class
+- [x] Implement slot calculation: `hash(run_id) % 15`
+- [x] Implement port calculation: `backend = 9100 + slot`, `frontend = 9200 + slot`
+- [x] Add method `allocate(run_id: str) -> PortAllocation`
 
 ### Task 2: Implement Port Availability Check
-- [ ] Add `is_port_available(port: int) -> bool` using socket connection test
-- [ ] Add `find_available_slot(run_id: str, max_attempts: int = 3) -> int`
-- [ ] Start from calculated slot, try next slots if occupied
-- [ ] Raise `PortAllocationError` if no slots available after max_attempts
+- [x] Add `is_port_available(port: int) -> bool` using socket connection test
+- [x] Add `find_available_slot(run_id: str, max_attempts: int = 3) -> int`
+- [x] Start from calculated slot, try next slots if occupied
+- [x] Raise `PortAllocationError` if no slots available after max_attempts
 
 ### Task 3: Create PortAllocation Model
-- [ ] Add `PortAllocation` model to `src/adw/models/worktree.py`:
+- [x] Add `PortAllocation` model to `src/adw/models/worktree.py`:
   ```python
   class PortAllocation(BaseModel):
       slot: int
@@ -60,15 +60,15 @@ so that concurrent runs don't have port conflicts.
   ```
 
 ### Task 4: Implement .ports.env Generation
-- [ ] Add `write_ports_env(allocation: PortAllocation, worktree_path: Path) -> Path`
-- [ ] Generate `.ports.env` file in worktree root:
+- [x] Add `write_ports_env(allocation: PortAllocation, worktree_path: Path) -> Path`
+- [x] Generate `.ports.env` file in worktree root:
   ```
   BACKEND_PORT=9100
   FRONTEND_PORT=9200
   ADW_SLOT=0
   ADW_RUN_ID=01HQXK5...
   ```
-- [ ] Return path to generated file
+- [x] Return path to generated file
 
 ### Task 5: Add Port Configuration
 - [ ] Extend `WorktreeConfig` with port settings:
@@ -375,16 +375,32 @@ Epic 10: Worktree Isolation - Story 10.3
 
 ### Agent Model Used
 
-<!-- To be filled by dev agent -->
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
-<!-- To be filled during implementation -->
+N/A
 
 ### Completion Notes List
 
-<!-- To be filled during implementation -->
+- Tasks 1-4 implemented together as they are interdependent
+- Created PortAllocator class in src/adw/worktree/ports.py
+- Created PortAllocation Pydantic model in src/adw/models/worktree.py
+- Added PortAllocationError exception to src/adw/exceptions.py
+- Implemented MD5-based deterministic slot calculation (not Python hash)
+- Implemented is_port_available() using socket.connect_ex() with 0.1s timeout
+- Implemented allocate() with retry logic for occupied ports
+- Implemented write_ports_env() for shell-sourceable environment files
+- Added unit tests covering slot calculation, port calculation, and allocation
 
 ### File List
 
-<!-- To be filled during implementation -->
+**New Files:**
+- src/adw/worktree/ports.py
+- src/adw/models/worktree.py
+- tests/unit/worktree/test_ports.py
+
+**Modified Files:**
+- src/adw/worktree/__init__.py
+- src/adw/models/__init__.py
+- src/adw/exceptions.py

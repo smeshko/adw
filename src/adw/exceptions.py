@@ -601,6 +601,48 @@ class WorktreeError(ADWError):
         )
 
 
+class PortAllocationError(ADWError):
+    """Exception for port allocation failures.
+
+    Used when port allocation fails due to all ports being in use
+    or other allocation issues.
+
+    Common error codes:
+    - PORT_ALLOCATION_FAILED: Could not find available ports after max attempts
+    - PORT_IN_USE: Specific port is already in use
+
+    Example:
+        >>> raise PortAllocationError(
+        ...     code="PORT_ALLOCATION_FAILED",
+        ...     message="Could not find available ports after 3 attempts",
+        ...     suggestion="Check for orphaned processes or increase max_concurrent",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        suggestion: str | None = None,
+        recoverable: bool = False,
+    ) -> None:
+        """Initialize a PortAllocationError.
+
+        Args:
+            code: Unique error code (e.g., "PORT_ALLOCATION_FAILED").
+            message: Human-readable error message.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default False).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
+
+
 class SecurityError(ADWError):
     """Exception for security-related blocking.
 
