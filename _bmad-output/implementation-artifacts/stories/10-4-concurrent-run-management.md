@@ -52,10 +52,10 @@ so that I can process multiple features in parallel.
 - [x] Include list of active runs in error for context
 
 ### Task 4: Implement --running Flag for List Command
-- [ ] Add `--running` / `-r` flag to `adw list` command
-- [ ] Filter to show only runs with status "running"
-- [ ] Display worktree path and allocated ports for each
-- [ ] Show elapsed time since start
+- [x] Add `--running` / `-r` flag to `adw list` command
+- [x] Filter to show only runs with status "running"
+- [x] Display worktree path and allocated ports for each
+- [x] Show elapsed time since start
 
 ### Task 5: Implement Cleanup Command
 - [ ] Add `adw cleanup` command to CLI
