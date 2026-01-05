@@ -24,10 +24,10 @@ so that **I don't accumulate orphan worktrees consuming disk space**.
 ## Tasks / Subtasks
 
 ### Task 1: Investigate Current Cleanup Logic
-- [ ] Examine `src/adw/core/orchestrator.py:333` - `_cleanup_worktree()` call
-- [ ] Check `WorktreeManager.remove_worktree()` implementation
-- [ ] Verify `_has_uncommitted_changes()` behavior with untracked files
-- [ ] Document current flow and identify fix point
+- [x] Examine `src/adw/core/orchestrator.py:333` - `_cleanup_worktree()` call
+- [x] Check `WorktreeManager.remove_worktree()` implementation
+- [x] Verify `_has_uncommitted_changes()` behavior with untracked files
+- [x] Document current flow and identify fix point
 
 ### Task 2: Implement Force Cleanup for Successful Runs
 - [ ] Modify `_cleanup_worktree()` to accept success status parameter
@@ -225,6 +225,15 @@ claude-opus-4-5-20251101
 N/A
 
 ### Completion Notes List
+
+**Task 1 - Investigation (2026-01-05):**
+- **ACTUAL ROOT CAUSE FOUND:** Parameter name mismatch in orchestrator.py
+- orchestrator.py:1487 calls `remove_worktree(run_id, force=True, cleanup_branch=...)`
+- BUT manager.py expects parameter `delete_branch`, not `cleanup_branch`
+- This causes `TypeError: got unexpected keyword argument 'cleanup_branch'`
+- The error is caught by `except Exception` at line 1497, warning logged, worktree NOT removed
+- The `force=True` was already being passed correctly - it just never reaches the method
+- **FIX:** Change `cleanup_branch=` to `delete_branch=` in orchestrator.py:1487
 
 ### File List
 
