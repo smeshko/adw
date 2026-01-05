@@ -1487,6 +1487,7 @@ class Orchestrator:
                 run_id,
                 force=True,
                 delete_branch=self.worktree_config.cleanup_branch_on_remove,
+                preserve=True,  # Preserve artifacts to main project before removal
             )
             # Log successful cleanup with path and force indication (ISS-008)
             logger.info(

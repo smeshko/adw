@@ -1,6 +1,6 @@
 # Story: Bugfix ISS-008 - Worktree Cleanup Fails with Untracked Files
 
-Status: Ready for Review
+Status: Done
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-05
@@ -256,5 +256,8 @@ N/A
 
 ### File List
 
-- `src/adw/core/orchestrator.py` - Fixed parameter name and enhanced logging
+- `src/adw/core/orchestrator.py` - Fixed parameter name, enhanced logging, added explicit preserve=True
+- `src/adw/worktree/manager.py` - Changed redundant log to debug level
 - `tests/unit/worktree/test_manager.py` - Added TestWorktreeForceCleanup tests
+- `tests/integration/worktree/__init__.py` - New integration test module
+- `tests/integration/worktree/test_worktree_cleanup_integration.py` - End-to-end cleanup tests (ISS-008)

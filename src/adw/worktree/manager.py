@@ -572,7 +572,7 @@ class WorktreeManager:
                     suggestion="Check git status and try again",
                 )
 
-            logger.info(
+            logger.debug(
                 "Worktree removed successfully",
                 extra={"run_id": run_id},
             )
