@@ -160,7 +160,7 @@ development_status:
   # UX Fix (from ISS-006)
   ux-fix-ISS-006-logmanager-not-connected-to-python-logging: ready-for-dev
   # UX Fix (from ISS-007)
-  ux-fix-ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: in-progress
+  ux-fix-ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: review
   epic-7-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -201,7 +201,7 @@ development_status:
   10-2-worktree-directory-structure: done
   10-3-port-allocation-system: done
   10-4-concurrent-run-management: done
-  10-5-worktree-context-in-phases: in-progress
+  10-5-worktree-context-in-phases: review
   10-6-worktree-branch-management: done
   epic-10-retrospective: optional
 
@@ -211,7 +211,7 @@ development_status:
   #       review-fix-review cycle
   # ═══════════════════════════════════════════════════════════════════════════
   epic-11: in-progress
-  11-1-unified-validation-phase: in-progress
+  11-1-unified-validation-phase: done
   11-2-validation-issue-model: ready-for-dev
   11-3-issue-triage-system: ready-for-dev
   11-4-fix-iteration-loop: ready-for-dev
