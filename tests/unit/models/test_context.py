@@ -70,6 +70,65 @@ class TestRunContext:
         assert "commit_shas" in data
         assert data["commit_shas"] == ["abc123"]
 
+    def test_worktree_path_defaults_to_none(self) -> None:
+        """worktree_path defaults to None."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+        assert context.worktree_path is None
+
+    def test_worktree_path_can_be_set(self) -> None:
+        """worktree_path can be set during creation."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            worktree_path=Path("/project/trees/01KDSG2VDHNK0W4HSCZWJZXWSQ"),
+        )
+        assert context.worktree_path == Path("/project/trees/01KDSG2VDHNK0W4HSCZWJZXWSQ")
+
+    def test_use_worktree_defaults_to_true(self) -> None:
+        """use_worktree defaults to True."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+        assert context.use_worktree is True
+
+    def test_use_worktree_can_be_disabled(self) -> None:
+        """use_worktree can be set to False."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            use_worktree=False,
+        )
+        assert context.use_worktree is False
+
+    def test_worktree_fields_in_serialization(self) -> None:
+        """worktree fields are included in JSON serialization."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            worktree_path=Path("/project/trees/run1"),
+            use_worktree=True,
+        )
+        json_str = context.model_dump_json()
+        data = json.loads(json_str)
+        assert "worktree_path" in data
+        assert data["worktree_path"] == "/project/trees/run1"
+        assert "use_worktree" in data
+        assert data["use_worktree"] is True
+
     def test_creation_with_all_fields(self) -> None:
         """RunContext creates with all optional fields."""
         now = datetime.now()
