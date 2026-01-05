@@ -54,10 +54,10 @@ Feature: LogManager connected to Python logging
 - [x] Ensure handler is properly configured before orchestrator starts
 
 ### Task 3: Test Integration
-- [ ] Write test that runs mock pipeline and verifies `logs.jsonl` exists
-- [ ] Write test that verifies log content structure
-- [ ] Write test for `adw logs show` command parsing the file
-- [ ] Write test for phase context propagation
+- [x] Write test that runs mock pipeline and verifies `logs.jsonl` exists
+- [x] Write test that verifies log content structure
+- [x] Write test for `adw logs show` command parsing the file
+- [x] Write test for phase context propagation
 
 ---
 
@@ -257,6 +257,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - Task 1: Created LogManagerHandler in src/adw/logging/handler.py that bridges Python logging to ADW LogManager. Implemented level mapping (DEBUG→DEBUG, INFO→INFO, WARNING→WARN, ERROR→ERROR, CRITICAL→FATAL) and category inference from logger names (executor/llm→LLM, hook→HOOK, state→STATE, default→PHASE). All 16 unit tests pass.
 - Task 2: Wired LogManagerHandler to Python's root logger in create_log_manager(). Handler level is set based on verbosity (using VERBOSITY_LEVEL_MAP). Removed unused `_ = log_manager` assignment in app.py. All logging.getLogger() calls now flow to logs.jsonl.
+- Task 3: Created integration tests verifying complete flow: Python logging → LogManager → logs.jsonl. Tests cover file creation, log level mapping, category inference, raw.log creation, and context preservation. All 5 tests pass.
 
 ### File List
 
@@ -265,3 +266,4 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - src/adw/cli/bootstrap.py (MODIFIED - wire handler in create_log_manager)
 - src/adw/cli/app.py (MODIFIED - remove unused log_manager assignment)
 - tests/unit/logging/test_handler.py (NEW)
+- tests/integration/cli/test_logs_integration.py (NEW)
