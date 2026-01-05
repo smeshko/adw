@@ -43,7 +43,7 @@ from adw.evidence import (
     optimize_evidence,
 )
 from adw.exceptions import ADWError, ConfigError
-from adw.models import RunContext, WorktreeConfig
+from adw.models import GitConfig, RunContext, WorktreeConfig
 from adw.models.evidence import (
     EvidenceStrategy,
     MobileDeviceType,
@@ -139,6 +139,7 @@ class Orchestrator:
         progress_display: "ProgressDisplay | None" = None,
         max_retries: int = 3,
         worktree_config: WorktreeConfig | None = None,
+        git_config: GitConfig | None = None,
     ) -> None:
         """Initialize the Orchestrator.
 
@@ -153,6 +154,7 @@ class Orchestrator:
             progress_display: Display for phase progress (optional, Story 5.5).
             max_retries: Maximum retry attempts for recoverable errors (default: 3).
             worktree_config: Worktree isolation config (optional, Story 10.1).
+            git_config: Git configuration for auto-PR creation (optional, ISS-011).
         """
         self.runs_dir = runs_dir
         # Derive project path from runs_dir (runs_dir is typically .adw/runs)
@@ -168,6 +170,9 @@ class Orchestrator:
         self.progress_display = progress_display
         self.max_retries = max_retries
         self._phase_runner: PhaseRunnerProtocol | None = None
+
+        # Git config for auto-PR (Story ISS-011)
+        self.git_config = git_config or GitConfig()
 
         # Worktree isolation (Story 10.1)
         self.worktree_config = worktree_config or WorktreeConfig()
@@ -341,12 +346,22 @@ class Orchestrator:
                             (context.completed_at - context.started_at).total_seconds()
                             * 1000
                         )
+
+                    # Attempt auto-PR creation if enabled (Story ISS-011)
+                    pr_result = self.progress_display.try_auto_create_pr(
+                        run_id=context.run_id,
+                        context=context,
+                        runs_dir=self.runs_dir,
+                        auto_create_pr_enabled=self.git_config.auto_create_pr,
+                    )
+
                     self.progress_display.show_pipeline_summary(
                         completed_phases=context.phase_history,
                         status="completed",
                         total_duration_ms=duration_ms,
                         total_tokens=total_tokens,
                         run_id=context.run_id,
+                        pr_result=pr_result,
                     )
 
                 # Clean up worktree on successful completion (Story 10.1)
@@ -796,12 +811,22 @@ class Orchestrator:
                             (context.completed_at - context.started_at).total_seconds()
                             * 1000
                         )
+
+                    # Attempt auto-PR creation if enabled (Story ISS-011)
+                    pr_result = self.progress_display.try_auto_create_pr(
+                        run_id=context.run_id,
+                        context=context,
+                        runs_dir=self.runs_dir,
+                        auto_create_pr_enabled=self.git_config.auto_create_pr,
+                    )
+
                     self.progress_display.show_pipeline_summary(
                         completed_phases=context.phase_history,
                         status="completed",
                         total_duration_ms=duration_ms,
                         total_tokens=total_tokens,
                         run_id=context.run_id,
+                        pr_result=pr_result,
                     )
 
                 logger.info("Resume completed", extra={"run_id": run_id})
