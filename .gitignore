@@ -61,3 +61,6 @@ Thumbs.db
 
 # git
 .worktrees/
+
+# ADW worktree directory
+trees/

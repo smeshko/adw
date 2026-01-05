@@ -181,8 +181,6 @@ development_status:
   8-6-compress-and-optimize-evidence: done
   # UX Fix (from ISS-001)
   ux-fix-ISS-001-llm-output-too-verbose-in-terminal: done
-  # Bugfix (from ISS-010)
-  bugfix-ISS-010-evidence-gathering-not-integrated: backlog
   epic-8-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -195,10 +193,6 @@ development_status:
   9-3-capture-git-diff-as-artifact: done
   9-4-generate-pr-description: done
   9-5-support-pr-creation-command: done
-  # Bugfix (from ISS-009)
-  bugfix-ISS-009-git-diff-capture-fails-no-commits: backlog
-  # UX Fix (from ISS-011)
-  ux-fix-ISS-011-adw-run-should-auto-create-pr: backlog
   epic-9-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -213,8 +207,6 @@ development_status:
   10-4-concurrent-run-management: done
   10-5-worktree-context-in-phases: done
   10-6-worktree-branch-management: done
-  # Bugfix (from ISS-008)
-  bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: backlog
   epic-10-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -230,6 +222,11 @@ development_status:
   11-5-iteration-limits-and-exit-conditions: ready-for-dev
   11-6-validation-state-persistence: ready-for-dev
   11-7-validation-report-generation: ready-for-dev
+  # Bugfixes (from manual testing)
+  bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: backlog
+  bugfix-ISS-009-git-diff-capture-fails-no-commits: backlog
+  bugfix-ISS-010-evidence-gathering-not-integrated: backlog
+  ux-fix-ISS-011-adw-run-should-auto-create-pr: backlog
   epic-11-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
