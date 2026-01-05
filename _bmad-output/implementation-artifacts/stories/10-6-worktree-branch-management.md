@@ -34,10 +34,10 @@ so that my git history stays clean.
 ## Tasks / Subtasks
 
 ### Task 1: Create WorktreeBranchManager Class
-- [ ] Create `src/adw/worktree/branch.py` with `WorktreeBranchManager` class
-- [ ] Implement `get_branch_name(run_id: str) -> str` returning `adw/<run_id>`
-- [ ] Implement `branch_exists(branch_name: str) -> bool`
-- [ ] Implement `create_branch(run_id: str, base_ref: str) -> str`
+- [x] Create `src/adw/worktree/branch.py` with `WorktreeBranchManager` class
+- [x] Implement `get_branch_name(run_id: str) -> str` returning `adw/<run_id>`
+- [x] Implement `branch_exists(branch_name: str) -> bool`
+- [x] Implement `create_branch(run_id: str, base_ref: str) -> str`
 
 ### Task 2: Implement Branch Deletion Logic
 - [ ] Implement `delete_branch(run_id: str, force: bool = False) -> bool`
