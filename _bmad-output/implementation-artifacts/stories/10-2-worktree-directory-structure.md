@@ -44,9 +44,9 @@ so that I can find and inspect them easily.
 - [x] Add `trees/` entry to project's root `.gitignore` if not present
 
 ### Task 2: Define Worktree Internal Structure
-- [ ] Document standard worktree structure in code comments
-- [ ] Ensure `.adw/` directory exists in worktree after creation
-- [ ] Create `runs/<run_id>/` directory structure matching main project
+- [x] Document standard worktree structure in code comments
+- [x] Ensure `.adw/` directory exists in worktree after creation
+- [x] Create `runs/<run_id>/` directory structure matching main project
 
 ### Task 3: Implement Artifact Preservation
 - [ ] Add `preserve_artifacts(worktree_path: Path, run_id: str, main_project: Path) -> list[Path]`

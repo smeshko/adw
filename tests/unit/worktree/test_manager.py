@@ -134,6 +134,65 @@ class TestTreesDirectory:
         assert content.count("tree") == 1  # Only original entry
 
 
+class TestWorktreeAdwStructure:
+    """Tests for WorktreeManager.ensure_worktree_adw_structure()."""
+
+    def test_creates_adw_directory(self, tmp_path: Path) -> None:
+        """Creates .adw directory in worktree."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=tmp_path)
+        worktree = tmp_path / "trees" / "01HQTEST"
+        worktree.mkdir(parents=True)
+
+        manager.ensure_worktree_adw_structure(worktree, "01HQTEST")
+
+        assert (worktree / ".adw").exists()
+        assert (worktree / ".adw").is_dir()
+
+    def test_creates_runs_directory(self, tmp_path: Path) -> None:
+        """Creates .adw/runs/<run_id> directory."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=tmp_path)
+        worktree = tmp_path / "trees" / "01HQTEST"
+        worktree.mkdir(parents=True)
+
+        run_dir = manager.ensure_worktree_adw_structure(worktree, "01HQTEST")
+
+        assert run_dir == worktree / ".adw" / "runs" / "01HQTEST"
+        assert run_dir.exists()
+
+    def test_creates_subdirectories(self, tmp_path: Path) -> None:
+        """Creates artifacts, logs, and llm subdirectories."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=tmp_path)
+        worktree = tmp_path / "trees" / "01HQTEST"
+        worktree.mkdir(parents=True)
+
+        run_dir = manager.ensure_worktree_adw_structure(worktree, "01HQTEST")
+
+        assert (run_dir / "artifacts").exists()
+        assert (run_dir / "logs").exists()
+        assert (run_dir / "llm").exists()
+
+    def test_idempotent(self, tmp_path: Path) -> None:
+        """Multiple calls don't fail or duplicate."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=tmp_path)
+        worktree = tmp_path / "trees" / "01HQTEST"
+        worktree.mkdir(parents=True)
+
+        # Call multiple times
+        run_dir1 = manager.ensure_worktree_adw_structure(worktree, "01HQTEST")
+        run_dir2 = manager.ensure_worktree_adw_structure(worktree, "01HQTEST")
+
+        assert run_dir1 == run_dir2
+        assert run_dir1.exists()
+
+
 class TestWorktreeManagerCreation:
     """Tests for WorktreeManager.create_worktree()."""
 

@@ -114,6 +114,54 @@ class WorktreeManager:
 
         return trees_path
 
+    def ensure_worktree_adw_structure(self, worktree_path: Path, run_id: str) -> Path:
+        """Create the .adw/runs/<run_id>/ directory structure in a worktree.
+
+        This creates the standard ADW run directory structure inside the worktree,
+        allowing the run to store artifacts, logs, and state in an isolated location.
+
+        Directory structure created:
+            <worktree_path>/
+            └── .adw/
+                └── runs/
+                    └── <run_id>/
+                        ├── artifacts/   # Phase output artifacts
+                        ├── logs/        # Log files
+                        └── llm/         # LLM interaction logs
+
+        Args:
+            worktree_path: Absolute path to the worktree directory.
+            run_id: ULID identifier for this run.
+
+        Returns:
+            Absolute path to the run directory (.adw/runs/<run_id>/).
+
+        Example:
+            >>> manager = WorktreeManager(project_root=Path("/project"))
+            >>> worktree = Path("/project/trees/01HQ...")
+            >>> run_dir = manager.ensure_worktree_adw_structure(worktree, "01HQ...")
+            >>> run_dir.exists()
+            True
+        """
+        run_dir = worktree_path / ".adw" / "runs" / run_id
+
+        # Create the main run directory and subdirectories
+        run_dir.mkdir(parents=True, exist_ok=True)
+        (run_dir / "artifacts").mkdir(exist_ok=True)
+        (run_dir / "logs").mkdir(exist_ok=True)
+        (run_dir / "llm").mkdir(exist_ok=True)
+
+        logger.debug(
+            "Created ADW run structure in worktree",
+            extra={
+                "worktree_path": str(worktree_path),
+                "run_id": run_id,
+                "run_dir": str(run_dir),
+            },
+        )
+
+        return run_dir
+
     def _ensure_root_gitignore_entry(self) -> None:
         """Ensure the trees directory is listed in the project's root .gitignore.
 
