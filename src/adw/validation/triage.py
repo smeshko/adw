@@ -393,7 +393,9 @@ class TriageSystem:
         context_str = ""
         if issue.context:
             if issue.context.code_snippet:
-                context_str += f"\n- Code snippet:\n```\n{issue.context.code_snippet[:500]}\n```"
+                snippet = issue.context.code_snippet[:500]
+                truncated = " (truncated)" if len(issue.context.code_snippet) > 500 else ""
+                context_str += f"\n- Code snippet{truncated}:\n```\n{snippet}\n```"
             if issue.context.error_message:
                 context_str += f"\n- Error message: {issue.context.error_message}"
             if issue.context.suggestion:
