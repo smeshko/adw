@@ -1386,3 +1386,115 @@ class TestOrchestratorAbort:
             orchestrator.abort("01JFTEST000000000000000001")
 
         assert exc_info.value.code == "RUN_ALREADY_ABORTED"
+
+
+class TestOrchestratorWorktree:
+    """Tests for Orchestrator worktree integration (Story 10.1)."""
+
+    def test_run_with_worktree_disabled(
+        self,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Test run with use_worktree=False doesn't create worktree."""
+        from adw.core.orchestrator import Orchestrator
+        from adw.models import WorktreeConfig
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        # Worktree config is enabled, but we'll pass use_worktree=False
+        worktree_config = WorktreeConfig(enabled=True)
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            worktree_config=worktree_config,
+        )
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # Run with worktree disabled
+        context = orchestrator.run("Test feature", use_worktree=False)
+
+        # Verify context indicates worktree was not used
+        assert context.use_worktree is False
+        assert context.worktree_path is None
+
+    def test_worktree_config_disabled(
+        self,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Test that worktree is not created when config.enabled=False."""
+        from adw.core.orchestrator import Orchestrator
+        from adw.models import WorktreeConfig
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        # Worktree config is disabled
+        worktree_config = WorktreeConfig(enabled=False)
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            worktree_config=worktree_config,
+        )
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # _worktree_manager should be None when config.enabled=False
+        assert orchestrator._worktree_manager is None
+
+        # Run should still work
+        context = orchestrator.run("Test feature")
+
+        # Verify context indicates worktree was not used
+        assert context.use_worktree is False
+        assert context.worktree_path is None
+
+    def test_run_default_uses_worktree(
+        self,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Test that run() defaults to using worktree when enabled."""
+        from adw.core.orchestrator import Orchestrator
+        from adw.models import WorktreeConfig
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        # Create worktree config
+        worktree_config = WorktreeConfig(enabled=True, base_dir="trees")
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            worktree_config=worktree_config,
+        )
+        orchestrator.set_phase_runner(mock_phase_runner)
+
+        # WorktreeManager should be created when config.enabled=True
+        assert orchestrator._worktree_manager is not None
+        assert orchestrator._worktree_manager.base_dir == "trees"

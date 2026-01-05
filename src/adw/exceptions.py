@@ -558,6 +558,49 @@ class ValidationError(ADWError):
         return d
 
 
+class WorktreeError(ADWError):
+    """Exception for worktree operation failures.
+
+    Used when git worktree creation, removal, or management fails.
+
+    Common error codes:
+    - BRANCH_EXISTS: The target branch already exists
+    - WORKTREE_PATH_EXISTS: The worktree directory already exists
+    - WORKTREE_NOT_FOUND: The worktree doesn't exist
+    - WORKTREE_HAS_CHANGES: Worktree has uncommitted changes
+
+    Example:
+        >>> raise WorktreeError(
+        ...     code="BRANCH_EXISTS",
+        ...     message="Branch 'adw/01HQ123' already exists",
+        ...     suggestion="Delete the branch or use a different run ID",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        suggestion: str | None = None,
+        recoverable: bool = False,
+    ) -> None:
+        """Initialize a WorktreeError.
+
+        Args:
+            code: Unique error code (e.g., "BRANCH_EXISTS").
+            message: Human-readable error message.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default False).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
+
+
 class SecurityError(ADWError):
     """Exception for security-related blocking.
 
