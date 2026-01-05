@@ -38,10 +38,10 @@ so that I can find and inspect them easily.
 ## Tasks / Subtasks
 
 ### Task 1: Create Trees Directory Management
-- [ ] Add `ensure_trees_directory(project_root: Path) -> Path` to WorktreeManager
-- [ ] Create `trees/` directory if it doesn't exist
-- [ ] Create `trees/.gitignore` with `*` to ignore all worktree contents
-- [ ] Add `trees/` entry to project's root `.gitignore` if not present
+- [x] Add `ensure_trees_directory(project_root: Path) -> Path` to WorktreeManager
+- [x] Create `trees/` directory if it doesn't exist
+- [x] Create `trees/.gitignore` with `*` to ignore all worktree contents
+- [x] Add `trees/` entry to project's root `.gitignore` if not present
 
 ### Task 2: Define Worktree Internal Structure
 - [ ] Document standard worktree structure in code comments

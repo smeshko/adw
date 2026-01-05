@@ -1,6 +1,7 @@
 """Unit tests for WorktreeManager class.
 
 Tests cover:
+- Trees directory management (ensure_trees_directory)
 - Worktree creation with branch naming
 - Worktree removal with cleanup options
 - Error handling for existing branches/worktrees
@@ -12,6 +13,125 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+
+class TestTreesDirectory:
+    """Tests for WorktreeManager.ensure_trees_directory()."""
+
+    def test_ensure_creates_directory(self, tmp_path: Path) -> None:
+        """Creates trees/ directory when it doesn't exist."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=tmp_path)
+        trees_path = manager.ensure_trees_directory()
+
+        assert trees_path.exists()
+        assert trees_path.is_dir()
+        assert trees_path == tmp_path / "trees"
+
+    def test_ensure_creates_gitignore(self, tmp_path: Path) -> None:
+        """Creates trees/.gitignore with * content."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=tmp_path)
+        manager.ensure_trees_directory()
+
+        gitignore = tmp_path / "trees" / ".gitignore"
+        assert gitignore.exists()
+        content = gitignore.read_text()
+        assert "*" in content
+        assert "Ignore all worktree contents" in content
+
+    def test_ensure_adds_to_root_gitignore(self, tmp_path: Path) -> None:
+        """Adds trees/ to project .gitignore if not present."""
+        from adw.worktree.manager import WorktreeManager
+
+        # Create existing .gitignore
+        root_gitignore = tmp_path / ".gitignore"
+        root_gitignore.write_text("node_modules/\n.env\n")
+
+        manager = WorktreeManager(project_root=tmp_path)
+        manager.ensure_trees_directory()
+
+        content = root_gitignore.read_text()
+        assert "trees/" in content
+        assert "node_modules/" in content  # Existing content preserved
+
+    def test_ensure_creates_root_gitignore_if_missing(self, tmp_path: Path) -> None:
+        """Creates project .gitignore with trees/ if it doesn't exist."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=tmp_path)
+        manager.ensure_trees_directory()
+
+        root_gitignore = tmp_path / ".gitignore"
+        assert root_gitignore.exists()
+        assert "trees/" in root_gitignore.read_text()
+
+    def test_ensure_idempotent(self, tmp_path: Path) -> None:
+        """Multiple calls don't duplicate .gitignore entries."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=tmp_path)
+
+        # Call multiple times
+        manager.ensure_trees_directory()
+        manager.ensure_trees_directory()
+        manager.ensure_trees_directory()
+
+        # Check root .gitignore
+        root_gitignore = tmp_path / ".gitignore"
+        content = root_gitignore.read_text()
+        # Count occurrences of "trees/"
+        count = content.count("trees/")
+        assert count == 1, f"Expected 1 occurrence, found {count}"
+
+    def test_ensure_custom_base_dir(self, tmp_path: Path) -> None:
+        """Works with custom base directory name."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=tmp_path, base_dir="worktrees")
+        trees_path = manager.ensure_trees_directory()
+
+        assert trees_path == tmp_path / "worktrees"
+        assert trees_path.exists()
+        assert (trees_path / ".gitignore").exists()
+
+        root_gitignore = tmp_path / ".gitignore"
+        assert "worktrees/" in root_gitignore.read_text()
+
+    def test_ensure_preserves_existing_trees_gitignore(self, tmp_path: Path) -> None:
+        """Doesn't overwrite existing trees/.gitignore."""
+        from adw.worktree.manager import WorktreeManager
+
+        # Create trees dir with custom gitignore
+        trees_dir = tmp_path / "trees"
+        trees_dir.mkdir()
+        trees_gitignore = trees_dir / ".gitignore"
+        trees_gitignore.write_text("# Custom content\n*\n!.gitkeep\n")
+
+        manager = WorktreeManager(project_root=tmp_path)
+        manager.ensure_trees_directory()
+
+        # Original content should be preserved
+        content = trees_gitignore.read_text()
+        assert "Custom content" in content
+        assert "!.gitkeep" in content
+
+    def test_ensure_handles_entry_without_slash(self, tmp_path: Path) -> None:
+        """Doesn't add duplicate if entry exists without trailing slash."""
+        from adw.worktree.manager import WorktreeManager
+
+        # Create .gitignore with entry without trailing slash
+        root_gitignore = tmp_path / ".gitignore"
+        root_gitignore.write_text("trees\n")
+
+        manager = WorktreeManager(project_root=tmp_path)
+        manager.ensure_trees_directory()
+
+        content = root_gitignore.read_text()
+        # Should not add duplicate
+        assert content.count("tree") == 1  # Only original entry
 
 
 class TestWorktreeManagerCreation:

@@ -3,6 +3,23 @@
 This module provides the WorktreeManager class for creating and managing
 git worktrees that isolate concurrent ADW runs from each other and from
 the user's working directory.
+
+Worktree Directory Structure:
+    <project-root>/
+    ├── trees/                      # Worktrees base directory
+    │   ├── .gitignore             # Contains: *
+    │   ├── 01HQXK5.../            # Active worktree
+    │   │   ├── (full project copy)
+    │   │   ├── .adw/
+    │   │   │   └── runs/01HQXK5.../
+    │   │   │       ├── context.json
+    │   │   │       ├── logs/
+    │   │   │       ├── artifacts/
+    │   │   │       └── llm/
+    │   └── 01HQXK6.../             # Another concurrent run
+    └── .adw/
+        └── runs/
+            └── 01HQXK5.../         # Preserved artifacts after worktree removal
 """
 
 import logging
@@ -56,6 +73,88 @@ class WorktreeManager:
         """
         return self.project_root / self.base_dir
 
+    def ensure_trees_directory(self) -> Path:
+        """Ensure the trees directory exists with proper gitignore setup.
+
+        Creates the trees directory if it doesn't exist, adds a .gitignore
+        file inside it to ignore all contents, and ensures the trees directory
+        itself is listed in the project's root .gitignore.
+
+        Returns:
+            Absolute path to the trees directory.
+
+        Example:
+            >>> manager = WorktreeManager(project_root=Path("/project"))
+            >>> trees_path = manager.ensure_trees_directory()
+            >>> trees_path.exists()
+            True
+            >>> (trees_path / ".gitignore").read_text()
+            '# Ignore all worktree contents\\n*\\n'
+        """
+        trees_path = self.worktree_base_path
+
+        # Create trees/ directory if it doesn't exist
+        trees_path.mkdir(parents=True, exist_ok=True)
+        logger.debug(
+            "Trees directory ensured",
+            extra={"path": str(trees_path)},
+        )
+
+        # Create trees/.gitignore with '*' to ignore all worktree contents
+        trees_gitignore = trees_path / ".gitignore"
+        if not trees_gitignore.exists():
+            trees_gitignore.write_text("# Ignore all worktree contents\n*\n")
+            logger.debug(
+                "Created trees gitignore",
+                extra={"path": str(trees_gitignore)},
+            )
+
+        # Add trees/ entry to project's root .gitignore if not present
+        self._ensure_root_gitignore_entry()
+
+        return trees_path
+
+    def _ensure_root_gitignore_entry(self) -> None:
+        """Ensure the trees directory is listed in the project's root .gitignore.
+
+        Checks if the trees directory entry already exists in .gitignore and
+        adds it with a newline if not present. Creates the .gitignore file if
+        it doesn't exist.
+        """
+        root_gitignore = self.project_root / ".gitignore"
+        entry = f"{self.base_dir}/"
+
+        if root_gitignore.exists():
+            content = root_gitignore.read_text()
+            # Check if entry already exists (as exact line or with comment)
+            lines = content.splitlines()
+            for line in lines:
+                # Strip comments and whitespace for comparison
+                stripped = line.split("#")[0].strip()
+                if stripped == entry or stripped == self.base_dir:
+                    logger.debug(
+                        "Trees directory already in root gitignore",
+                        extra={"entry": entry},
+                    )
+                    return
+
+            # Entry not found, append it with proper newline handling
+            if content and not content.endswith("\n"):
+                content += "\n"
+            content += f"\n# ADW worktree directory\n{entry}\n"
+            root_gitignore.write_text(content)
+            logger.info(
+                "Added trees directory to root gitignore",
+                extra={"entry": entry},
+            )
+        else:
+            # Create new .gitignore with the entry
+            root_gitignore.write_text(f"# ADW worktree directory\n{entry}\n")
+            logger.info(
+                "Created root gitignore with trees directory",
+                extra={"entry": entry},
+            )
+
     def create_worktree(
         self,
         run_id: str,
@@ -86,7 +185,8 @@ class WorktreeManager:
             raise WorktreeError(
                 code="WORKTREE_PATH_EXISTS",
                 message=f"Worktree path already exists: {worktree_path}",
-                suggestion=f"Remove the directory or use a different run ID: rm -rf {worktree_path}",
+                suggestion=f"Remove the directory or use a different run ID: "
+                f"rm -rf {worktree_path}",
             )
 
         # Check if branch already exists
@@ -341,7 +441,9 @@ class WorktreeManager:
                 )
 
         # Try to remove the branch if it was created
-        try:
+        import contextlib
+
+        with contextlib.suppress(OSError):
             subprocess.run(
                 ["git", "branch", "-D", branch_name],
                 cwd=self.project_root,
@@ -349,5 +451,3 @@ class WorktreeManager:
                 text=True,
                 check=False,
             )
-        except OSError:
-            pass
