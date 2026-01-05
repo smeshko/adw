@@ -9,6 +9,7 @@ from adw.models import (
     LLMConfig,
     PhaseConfig,
     ProjectConfig,
+    WorktreeConfig,
 )
 
 
@@ -135,6 +136,51 @@ class TestGitConfig:
             skip_hooks=True,
         )
         assert config.skip_hooks is True
+
+
+class TestWorktreeConfig:
+    """Tests for WorktreeConfig model."""
+
+    def test_defaults(self) -> None:
+        """WorktreeConfig has sensible defaults."""
+        config = WorktreeConfig()
+        assert config.enabled is True
+        assert config.base_dir == "trees"
+        assert config.preserve_on_failure is True
+        assert config.cleanup_branch_on_remove is False
+
+    def test_disabled(self) -> None:
+        """WorktreeConfig can be disabled."""
+        config = WorktreeConfig(enabled=False)
+        assert config.enabled is False
+
+    def test_custom_base_dir(self) -> None:
+        """WorktreeConfig accepts custom base_dir."""
+        config = WorktreeConfig(base_dir=".worktrees")
+        assert config.base_dir == ".worktrees"
+
+    def test_preserve_on_failure_false(self) -> None:
+        """WorktreeConfig can disable preserve_on_failure."""
+        config = WorktreeConfig(preserve_on_failure=False)
+        assert config.preserve_on_failure is False
+
+    def test_cleanup_branch_on_remove_true(self) -> None:
+        """WorktreeConfig can enable branch cleanup."""
+        config = WorktreeConfig(cleanup_branch_on_remove=True)
+        assert config.cleanup_branch_on_remove is True
+
+    def test_all_custom_values(self) -> None:
+        """WorktreeConfig accepts all custom values."""
+        config = WorktreeConfig(
+            enabled=False,
+            base_dir="my-worktrees",
+            preserve_on_failure=False,
+            cleanup_branch_on_remove=True,
+        )
+        assert config.enabled is False
+        assert config.base_dir == "my-worktrees"
+        assert config.preserve_on_failure is False
+        assert config.cleanup_branch_on_remove is True
 
 
 class TestProjectConfig:
@@ -270,6 +316,35 @@ git:
         config = ProjectConfig.from_yaml(yaml_content)
         assert config.git.enabled is True
         assert config.git.auto_commit is False
+
+    def test_with_worktree_config(self) -> None:
+        """ProjectConfig with worktree isolation enabled."""
+        yaml_content = """
+name: worktree-enabled
+language: python
+worktree:
+  enabled: true
+  base_dir: ".worktrees"
+  preserve_on_failure: false
+  cleanup_branch_on_remove: true
+"""
+        config = ProjectConfig.from_yaml(yaml_content)
+        assert config.worktree.enabled is True
+        assert config.worktree.base_dir == ".worktrees"
+        assert config.worktree.preserve_on_failure is False
+        assert config.worktree.cleanup_branch_on_remove is True
+
+    def test_worktree_defaults_in_project_config(self) -> None:
+        """ProjectConfig has worktree with default values."""
+        yaml_content = """
+name: minimal-project
+language: python
+"""
+        config = ProjectConfig.from_yaml(yaml_content)
+        assert config.worktree.enabled is True
+        assert config.worktree.base_dir == "trees"
+        assert config.worktree.preserve_on_failure is True
+        assert config.worktree.cleanup_branch_on_remove is False
 
     def test_with_phase_config(self) -> None:
         """ProjectConfig with phase-specific configuration."""
