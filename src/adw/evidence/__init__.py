@@ -28,9 +28,6 @@ from adw.evidence.manifest import (
     ManifestWriter,
     PlanStepLinker,
 )
-
-# Re-export for type annotation usage
-__EvidenceSummary = EvidenceSummary
 from adw.evidence.optimizer import (
     PILLOW_AVAILABLE,
     EvidenceOptimizer,
