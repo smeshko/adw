@@ -90,6 +90,7 @@ def orchestrator(
     snapshot_manager: SnapshotManager,
     artifact_manager: ArtifactManager,
     run_directory_manager: RunDirectoryManager,
+    mock_phase_runner: MagicMock,
 ) -> Orchestrator:
     """Create an Orchestrator with real dependencies."""
     return Orchestrator(
@@ -98,6 +99,7 @@ def orchestrator(
         snapshot_manager=snapshot_manager,
         artifact_manager=artifact_manager,
         run_directory_manager=run_directory_manager,
+        phase_runner=mock_phase_runner,
     )
 
 
@@ -111,7 +113,6 @@ class TestFullRunIntegration:
         runs_dir: Path,
     ) -> None:
         """Test that a full run creates the expected directory structure."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Add user authentication")
 
@@ -130,7 +131,6 @@ class TestFullRunIntegration:
         runs_dir: Path,
     ) -> None:
         """Test that snapshots are created for each phase."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Add user authentication")
 
@@ -155,7 +155,6 @@ class TestFullRunIntegration:
         context_manager: ContextManager,
     ) -> None:
         """Test that context is persisted and can be reloaded."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Add user authentication")
 
@@ -173,7 +172,6 @@ class TestFullRunIntegration:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that token usage is tracked for all phases."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Add user authentication")
 
@@ -195,7 +193,6 @@ class TestSnapshotIntegration:
         snapshot_manager: SnapshotManager,
     ) -> None:
         """Test that snapshots contain valid serialized context."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Test feature")
 
@@ -218,7 +215,6 @@ class TestSnapshotIntegration:
         snapshot_manager: SnapshotManager,
     ) -> None:
         """Test that pre-phase snapshots have no phase result."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Test feature")
 
@@ -239,7 +235,6 @@ class TestSnapshotIntegration:
         snapshot_manager: SnapshotManager,
     ) -> None:
         """Test that post-phase snapshots have phase results."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Test feature")
 
@@ -281,7 +276,6 @@ class TestContextPersistenceIntegration:
             return original_run(phase, context, artifacts_override=artifacts_override)
 
         mock_phase_runner.run.side_effect = tracking_run
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         orchestrator.run("Test feature")
 
@@ -295,7 +289,6 @@ class TestContextPersistenceIntegration:
         runs_dir: Path,
     ) -> None:
         """Test that final persisted context has completed status."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Test feature")
 
@@ -357,7 +350,6 @@ class TestResumeIntegration:
             )
 
         mock_phase_runner.run.side_effect = run_with_interrupt
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         with pytest.raises(ShutdownRequested):
             orchestrator.run("Test feature")
@@ -393,7 +385,6 @@ class TestResumeIntegration:
         """Test that completed runs correctly report they cannot be resumed."""
         from adw.core.interruption import can_resume, get_resume_phase
 
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Test feature")
 

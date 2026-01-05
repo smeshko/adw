@@ -114,6 +114,7 @@ def orchestrator(
     mock_snapshot_manager: MagicMock,
     mock_artifact_manager: MagicMock,
     mock_run_directory_manager: MagicMock,
+    mock_phase_runner: MagicMock,
     mock_interruption_handler: MagicMock,
     mock_index_manager: MagicMock,
 ) -> "Orchestrator":
@@ -129,6 +130,7 @@ def orchestrator(
         snapshot_manager=mock_snapshot_manager,
         artifact_manager=mock_artifact_manager,
         run_directory_manager=mock_run_directory_manager,
+        phase_runner=mock_phase_runner,
         interruption_handler=mock_interruption_handler,
         index_manager=mock_index_manager,
     )
@@ -145,6 +147,7 @@ class TestOrchestratorInit:
         mock_snapshot_manager: MagicMock,
         mock_artifact_manager: MagicMock,
         mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
         mock_interruption_handler: MagicMock,
     ) -> None:
         """Test that __init__ stores all dependencies."""
@@ -157,6 +160,7 @@ class TestOrchestratorInit:
             snapshot_manager=mock_snapshot_manager,
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
             interruption_handler=mock_interruption_handler,
         )
 
@@ -165,6 +169,7 @@ class TestOrchestratorInit:
         assert orch.snapshot_manager is mock_snapshot_manager
         assert orch.artifact_manager is mock_artifact_manager
         assert orch.run_directory_manager is mock_run_directory_manager
+        assert orch._phase_runner is mock_phase_runner
         assert orch.interruption_handler is mock_interruption_handler
 
     def test_init_creates_default_interruption_handler(
@@ -174,6 +179,7 @@ class TestOrchestratorInit:
         mock_snapshot_manager: MagicMock,
         mock_artifact_manager: MagicMock,
         mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
     ) -> None:
         """Test that InterruptionHandler is created by default."""
         from adw.core.interruption import InterruptionHandler
@@ -185,6 +191,7 @@ class TestOrchestratorInit:
             snapshot_manager=mock_snapshot_manager,
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
         )
 
         assert isinstance(orch.interruption_handler, InterruptionHandler)
@@ -196,6 +203,7 @@ class TestOrchestratorInit:
         mock_snapshot_manager: MagicMock,
         mock_artifact_manager: MagicMock,
         mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
     ) -> None:
         """Test that max_retries defaults to 3."""
         from adw.core.orchestrator import Orchestrator
@@ -206,6 +214,7 @@ class TestOrchestratorInit:
             snapshot_manager=mock_snapshot_manager,
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
         )
 
         assert orch.max_retries == 3
@@ -217,6 +226,7 @@ class TestOrchestratorInit:
         mock_snapshot_manager: MagicMock,
         mock_artifact_manager: MagicMock,
         mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
     ) -> None:
         """Test that max_retries can be customized."""
         from adw.core.orchestrator import Orchestrator
@@ -227,30 +237,11 @@ class TestOrchestratorInit:
             snapshot_manager=mock_snapshot_manager,
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
             max_retries=5,
         )
 
         assert orch.max_retries == 5
-
-    def test_init_phase_runner_is_none(
-        self,
-        orchestrator: "Orchestrator",
-    ) -> None:
-        """Test that phase runner is initially None."""
-        assert orchestrator._phase_runner is None
-
-
-class TestSetPhaseRunner:
-    """Tests for set_phase_runner method."""
-
-    def test_set_phase_runner(
-        self,
-        orchestrator: "Orchestrator",
-        mock_phase_runner: MagicMock,
-    ) -> None:
-        """Test that set_phase_runner stores the runner."""
-        orchestrator.set_phase_runner(mock_phase_runner)
-        assert orchestrator._phase_runner is mock_phase_runner
 
 
 class TestGetNextPhase:
@@ -295,7 +286,6 @@ class TestPhaseTransitions:
         mock_context_manager: MagicMock,
     ) -> None:
         """Test that state is persisted before each phase execution."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         # Create a mock context
         context = RunContext(
@@ -320,7 +310,6 @@ class TestPhaseTransitions:
         mock_snapshot_manager: MagicMock,
     ) -> None:
         """Test that pre-phase snapshot is created."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = RunContext(
             run_id="01TEST00000000000000000001",
@@ -343,7 +332,6 @@ class TestPhaseTransitions:
         mock_snapshot_manager: MagicMock,
     ) -> None:
         """Test that post-phase snapshot is created."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = RunContext(
             run_id="01TEST00000000000000000001",
@@ -365,7 +353,6 @@ class TestPhaseTransitions:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that phase_history is updated after transition."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = RunContext(
             run_id="01TEST00000000000000000001",
@@ -386,7 +373,6 @@ class TestPhaseTransitions:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that phase_tokens is updated after transition."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = RunContext(
             run_id="01TEST00000000000000000001",
@@ -408,7 +394,6 @@ class TestPhaseTransitions:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that transition returns an updated context."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = RunContext(
             run_id="01TEST00000000000000000001",
@@ -434,7 +419,6 @@ class TestRun:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that run generates a valid ULID."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Test feature")
 
@@ -448,7 +432,6 @@ class TestRun:
         mock_run_directory_manager: MagicMock,
     ) -> None:
         """Test that run creates the run directory."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         orchestrator.run("Test feature")
 
@@ -460,7 +443,6 @@ class TestRun:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that run executes all phases in order."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Test feature")
 
@@ -474,7 +456,6 @@ class TestRun:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that phases are executed in correct order."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         orchestrator.run("Test feature")
 
@@ -489,7 +470,6 @@ class TestRun:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that successful run sets status to completed."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Test feature")
 
@@ -503,7 +483,6 @@ class TestRun:
         mock_context_manager: MagicMock,
     ) -> None:
         """Test that final state is persisted."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         orchestrator.run("Test feature")
 
@@ -518,21 +497,10 @@ class TestRun:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that feature description is stored in context."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Add user authentication")
 
         assert context.feature_description == "Add user authentication"
-
-    def test_run_without_phase_runner_raises_error(
-        self,
-        orchestrator: "Orchestrator",
-    ) -> None:
-        """Test that run without phase runner raises RuntimeError."""
-        # Don't set phase runner
-
-        with pytest.raises(RuntimeError, match="PhaseRunner not set"):
-            orchestrator.run("Test feature")
 
     def test_run_tracks_tokens_per_phase(
         self,
@@ -540,7 +508,6 @@ class TestRun:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that token usage is tracked per phase."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Test feature")
 
@@ -567,7 +534,6 @@ class TestErrorHandling:
             phase="build",
         )
         mock_phase_runner.run.side_effect = error
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         with pytest.raises(HookError) as exc_info:
             orchestrator.run("Test feature")
@@ -591,7 +557,6 @@ class TestErrorHandling:
             phase="plan",
         )
         mock_phase_runner.run.side_effect = error
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         with pytest.raises(PhaseError):
             orchestrator.run("Test feature")
@@ -616,7 +581,6 @@ class TestErrorHandling:
             phase="build",
         )
         mock_phase_runner.run.side_effect = error
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         with pytest.raises(HookError):
             orchestrator.run("Test feature")
@@ -642,7 +606,6 @@ class TestErrorHandling:
             phase="plan",
         )
         mock_phase_runner.run.side_effect = error
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         with pytest.raises(HookError):
             orchestrator.run("Test feature")
@@ -683,7 +646,6 @@ class TestErrorHandling:
             )
 
         mock_phase_runner.run.side_effect = side_effect
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         with pytest.raises(HookError):
             orchestrator.run("Test feature")
@@ -729,7 +691,6 @@ class TestRetryLogic:
             )
 
         mock_phase_runner.run.side_effect = side_effect
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Test feature")
 
@@ -755,7 +716,6 @@ class TestRetryLogic:
             recoverable=True,
         )
         mock_phase_runner.run.side_effect = error
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         with pytest.raises(LLMTimeoutError):
             orchestrator.run("Test feature")
@@ -784,6 +744,7 @@ class TestRetryLogic:
             snapshot_manager=mock_snapshot_manager,
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
             max_retries=5,  # Custom max
         )
 
@@ -796,7 +757,6 @@ class TestRetryLogic:
             recoverable=True,
         )
         mock_phase_runner.run.side_effect = error
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         with pytest.raises(LLMTimeoutError):
             orchestrator.run("Test feature")
@@ -821,7 +781,6 @@ class TestRetryLogic:
             recoverable=True,
         )
         mock_phase_runner.run.side_effect = error
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         with pytest.raises(LLMTimeoutError):
             orchestrator.run("Test feature")
@@ -866,7 +825,6 @@ class TestRetryLogic:
             )
 
         mock_phase_runner.run.side_effect = side_effect
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run("Test feature")
 
@@ -887,7 +845,6 @@ class TestTransitionPerformance:
         import time
 
         # Make phase runner return immediately
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         start = time.monotonic()
         orchestrator.run("Test feature")
@@ -903,7 +860,6 @@ class TestTransitionPerformance:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that transition duration is logged."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         with patch("adw.core.orchestrator.logger") as mock_logger:
             orchestrator.run("Test feature")
@@ -942,7 +898,7 @@ class TestTransitionPerformance:
             )
 
         slow_runner.run = MagicMock(side_effect=slow_run)
-        orchestrator.set_phase_runner(slow_runner)
+        orchestrator._phase_runner = slow_runner
 
         with patch("adw.core.orchestrator.logger") as mock_logger:
             # Run just the first phase to avoid long test
@@ -977,7 +933,6 @@ class TestInterruptionHandling:
         mock_interruption_handler: MagicMock,
     ) -> None:
         """Test that shutdown is checked between phases."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         orchestrator.run("Test feature")
 
@@ -1006,7 +961,6 @@ class TestInterruptionHandling:
         mock_interruption_handler.check_shutdown.side_effect = (
             check_shutdown_side_effect
         )
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         with pytest.raises(ShutdownRequested) as exc_info:
             orchestrator.run("Test feature")
@@ -1020,7 +974,6 @@ class TestInterruptionHandling:
         mock_context_manager: MagicMock,
     ) -> None:
         """Test that initial state is persisted before phase loop."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         orchestrator.run("Test feature")
 
@@ -1039,7 +992,6 @@ class TestRunSinglePhase:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that run_single_phase generates a unique run ID."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run_single_phase("plan", "Test feature")
 
@@ -1052,7 +1004,6 @@ class TestRunSinglePhase:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that run_single_phase creates context with feature description."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run_single_phase("plan", "Add login feature")
 
@@ -1064,7 +1015,6 @@ class TestRunSinglePhase:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that only the specified phase is executed."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         orchestrator.run_single_phase("plan", "Test feature")
 
@@ -1079,7 +1029,6 @@ class TestRunSinglePhase:
         mock_phase_runner: MagicMock,
     ) -> None:
         """Test that run_single_phase returns context with completed status."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         context = orchestrator.run_single_phase("plan", "Test feature")
 
@@ -1093,7 +1042,6 @@ class TestRunSinglePhase:
         mock_artifact_manager: MagicMock,
     ) -> None:
         """Test that executed phase is recorded in phase_history."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         # Mock artifacts for required phases
         mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
@@ -1110,7 +1058,6 @@ class TestRunSinglePhase:
         mock_context_manager: MagicMock,
     ) -> None:
         """Test that state is persisted during single phase execution."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         orchestrator.run_single_phase("plan", "Test feature")
 
@@ -1124,7 +1071,6 @@ class TestRunSinglePhase:
         mock_run_directory_manager: MagicMock,
     ) -> None:
         """Test that run directory is created for single phase."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         orchestrator.run_single_phase("plan", "Test feature")
 
@@ -1137,7 +1083,6 @@ class TestRunSinglePhase:
         mock_artifact_manager: MagicMock,
     ) -> None:
         """Test that from_run_id is accepted for non-plan phases."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         # Mock artifacts for required phases
         mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
@@ -1161,7 +1106,6 @@ class TestLoadArtifactsFromSource:
         mock_artifact_manager: MagicMock,
     ) -> None:
         """Test that artifacts are loaded from source run when from_run_id is set."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         # Set up artifact manager to return artifacts for source run
         mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
@@ -1184,7 +1128,6 @@ class TestLoadArtifactsFromSource:
         mock_artifact_manager: MagicMock,
     ) -> None:
         """Test that source run artifacts are not modified."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         # Set up artifact manager
         mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
@@ -1205,7 +1148,6 @@ class TestLoadArtifactsFromSource:
         mock_artifact_manager: MagicMock,
     ) -> None:
         """Test that new artifacts are stored in new run, not source run."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         # Set up mock to capture store calls
         mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
@@ -1229,7 +1171,6 @@ class TestPhaseRequirementsValidation:
         mock_artifact_manager: MagicMock,
     ) -> None:
         """Test that build phase requires plan artifacts from source run."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         # Source run has no plan artifacts
         mock_artifact_manager.list_artifacts.return_value = []
@@ -1248,7 +1189,6 @@ class TestPhaseRequirementsValidation:
         mock_artifact_manager: MagicMock,
     ) -> None:
         """Test that verify phase requires build artifacts."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         # Source run has plan but no build artifacts
         def list_artifacts_side_effect(run_id: str, phase: str):
@@ -1272,7 +1212,6 @@ class TestPhaseRequirementsValidation:
         mock_artifact_manager: MagicMock,
     ) -> None:
         """Test that plan phase does not require previous artifacts."""
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         # No artifacts in source run - should not matter for plan
         mock_artifact_manager.list_artifacts.return_value = []
@@ -1416,9 +1355,9 @@ class TestOrchestratorWorktree:
             snapshot_manager=mock_snapshot_manager,
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
             worktree_config=worktree_config,
         )
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         # Run with worktree disabled
         context = orchestrator.run("Test feature", use_worktree=False)
@@ -1452,9 +1391,9 @@ class TestOrchestratorWorktree:
             snapshot_manager=mock_snapshot_manager,
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
             worktree_config=worktree_config,
         )
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         # _worktree_manager should be None when config.enabled=False
         assert orchestrator._worktree_manager is None
@@ -1491,9 +1430,9 @@ class TestOrchestratorWorktree:
             snapshot_manager=mock_snapshot_manager,
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
             worktree_config=worktree_config,
         )
-        orchestrator.set_phase_runner(mock_phase_runner)
 
         # WorktreeManager should be created when config.enabled=True
         assert orchestrator._worktree_manager is not None

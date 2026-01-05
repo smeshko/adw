@@ -109,6 +109,7 @@ class Orchestrator:
         snapshot_manager: Manager for creating state snapshots.
         artifact_manager: Manager for storing phase artifacts.
         run_directory_manager: Manager for run directory structure.
+        phase_runner: Runner for executing individual phases.
         interruption_handler: Handler for graceful shutdown on Ctrl+C/SIGTERM.
         index_manager: Manager for global workflow execution index.
         max_retries: Maximum retry attempts for recoverable errors.
@@ -121,8 +122,8 @@ class Orchestrator:
         ...     snapshot_manager=snapshot_manager,
         ...     artifact_manager=artifact_manager,
         ...     run_directory_manager=run_directory_manager,
+        ...     phase_runner=phase_runner,
         ... )
-        >>> orchestrator.set_phase_runner(phase_runner)
         >>> context = orchestrator.run("Add user authentication")
     """
 
@@ -133,6 +134,7 @@ class Orchestrator:
         snapshot_manager: SnapshotManager,
         artifact_manager: "ArtifactManager",
         run_directory_manager: RunDirectoryManager,
+        phase_runner: PhaseRunnerProtocol,
         interruption_handler: InterruptionHandler | None = None,
         index_manager: IndexManager | None = None,
         *,
@@ -149,6 +151,7 @@ class Orchestrator:
             snapshot_manager: Manager for creating state snapshots.
             artifact_manager: Manager for storing phase artifacts.
             run_directory_manager: Manager for run directory structure.
+            phase_runner: Runner for executing individual phases.
             interruption_handler: Handler for graceful shutdown (optional).
             index_manager: Manager for global execution index (optional).
             progress_display: Display for phase progress (optional, Story 5.5).
@@ -163,13 +166,13 @@ class Orchestrator:
         self.snapshot_manager = snapshot_manager
         self.artifact_manager = artifact_manager
         self.run_directory_manager = run_directory_manager
+        self._phase_runner = phase_runner
         self.interruption_handler = interruption_handler or InterruptionHandler(
             context_manager, snapshot_manager
         )
         self.index_manager = index_manager or IndexManager()
         self.progress_display = progress_display
         self.max_retries = max_retries
-        self._phase_runner: PhaseRunnerProtocol | None = None
 
         # Git config for auto-PR (Story ISS-011)
         self.git_config = git_config or GitConfig()
@@ -189,18 +192,6 @@ class Orchestrator:
                 max_concurrent=self.worktree_config.max_concurrent,
                 base_dir=self.worktree_config.base_dir,
             )
-
-    def set_phase_runner(self, phase_runner: PhaseRunnerProtocol) -> None:
-        """Set the phase runner for executing individual phases.
-
-        This is set separately to avoid circular dependencies, as PhaseRunner
-        needs to know about the Orchestrator but the Orchestrator needs to
-        delegate phase execution to the PhaseRunner.
-
-        Args:
-            phase_runner: The PhaseRunner instance to use.
-        """
-        self._phase_runner = phase_runner
 
     def get_next_phase(self, current_phase: str) -> str | None:
         """Get the next phase in the sequence.
@@ -255,7 +246,6 @@ class Orchestrator:
         Raises:
             ADWError: If a non-recoverable error occurs.
             ShutdownRequested: If graceful shutdown is requested (Ctrl+C/SIGTERM).
-            RuntimeError: If PhaseRunner is not set.
 
         Example:
             >>> context = orchestrator.run("Add user authentication")
@@ -522,7 +512,6 @@ class Orchestrator:
 
         Raises:
             ADWError: If phase execution fails.
-            RuntimeError: If PhaseRunner is not set.
 
         Example:
             >>> context = orchestrator.run_single_phase("plan", "Add login")
@@ -722,7 +711,6 @@ class Orchestrator:
             ConfigError: If run cannot be resumed (completed or invalid phase).
             StateError: If run state is corrupted.
             ADWError: If phase execution fails.
-            RuntimeError: If PhaseRunner is not set.
 
         Example:
             >>> context = orchestrator.resume("01HQXK5P3Z...")
@@ -1144,7 +1132,6 @@ class Orchestrator:
 
         Raises:
             ADWError: If phase fails with non-recoverable error.
-            RuntimeError: If PhaseRunner is not set.
         """
         transition_start = time.monotonic()
 
@@ -1247,10 +1234,10 @@ class Orchestrator:
 
         Raises:
             ADWError: If error is non-recoverable or retries exhausted.
-            RuntimeError: If PhaseRunner is not set.
         """
-        if self._phase_runner is None:
-            raise RuntimeError("PhaseRunner not set - call set_phase_runner() first")
+        # Note: _phase_runner is a required constructor argument, so this should
+        # never be None. This check is a defensive guard against improper usage.
+        assert self._phase_runner is not None, "PhaseRunner cannot be None"
 
         last_error: ADWError | None = None
 

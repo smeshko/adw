@@ -73,18 +73,18 @@ class TestOrchestratorProgressIntegration:
         artifact_manager = Mock(spec=ArtifactManager)
         run_directory_manager = Mock(spec=RunDirectoryManager)
 
+        # Create mock phase runner that completes all phases
+        mock_runner = MockPhaseRunner({})
+
         orchestrator = Orchestrator(
             runs_dir=tmp_path,
             context_manager=context_manager,
             snapshot_manager=snapshot_manager,
             artifact_manager=artifact_manager,
             run_directory_manager=run_directory_manager,
+            phase_runner=mock_runner,
             progress_display=progress,
         )
-
-        # Create mock phase runner that completes all phases
-        mock_runner = MockPhaseRunner({})
-        orchestrator.set_phase_runner(mock_runner)
 
         # Run
         orchestrator.run("Test feature")
@@ -110,17 +110,17 @@ class TestOrchestratorProgressIntegration:
         artifact_manager = Mock(spec=ArtifactManager)
         run_directory_manager = Mock(spec=RunDirectoryManager)
 
+        mock_runner = MockPhaseRunner({})
+
         orchestrator = Orchestrator(
             runs_dir=tmp_path,
             context_manager=context_manager,
             snapshot_manager=snapshot_manager,
             artifact_manager=artifact_manager,
             run_directory_manager=run_directory_manager,
+            phase_runner=mock_runner,
             progress_display=progress,
         )
-
-        mock_runner = MockPhaseRunner({})
-        orchestrator.set_phase_runner(mock_runner)
 
         orchestrator.run("Test feature")
 
@@ -139,15 +139,6 @@ class TestOrchestratorProgressIntegration:
         snapshot_manager = Mock(spec=SnapshotManager)
         artifact_manager = Mock(spec=ArtifactManager)
         run_directory_manager = Mock(spec=RunDirectoryManager)
-
-        orchestrator = Orchestrator(
-            runs_dir=tmp_path,
-            context_manager=context_manager,
-            snapshot_manager=snapshot_manager,
-            artifact_manager=artifact_manager,
-            run_directory_manager=run_directory_manager,
-            progress_display=progress,
-        )
 
         # Create runner that fails on build phase
         class FailingPhaseRunner:
@@ -174,7 +165,15 @@ class TestOrchestratorProgressIntegration:
                     tokens_used=0,
                 )
 
-        orchestrator.set_phase_runner(FailingPhaseRunner())
+        orchestrator = Orchestrator(
+            runs_dir=tmp_path,
+            context_manager=context_manager,
+            snapshot_manager=snapshot_manager,
+            artifact_manager=artifact_manager,
+            run_directory_manager=run_directory_manager,
+            phase_runner=FailingPhaseRunner(),
+            progress_display=progress,
+        )
 
         with pytest.raises(LLMError):
             orchestrator.run("Test feature")
@@ -197,17 +196,17 @@ class TestOrchestratorProgressIntegration:
         artifact_manager = Mock(spec=ArtifactManager)
         run_directory_manager = Mock(spec=RunDirectoryManager)
 
+        mock_runner = MockPhaseRunner({})
+
         orchestrator = Orchestrator(
             runs_dir=tmp_path,
             context_manager=context_manager,
             snapshot_manager=snapshot_manager,
             artifact_manager=artifact_manager,
             run_directory_manager=run_directory_manager,
+            phase_runner=mock_runner,
             progress_display=progress,
         )
-
-        mock_runner = MockPhaseRunner({})
-        orchestrator.set_phase_runner(mock_runner)
 
         orchestrator.run("Test feature")
 
@@ -228,15 +227,6 @@ class TestOrchestratorProgressIntegration:
         snapshot_manager = Mock(spec=SnapshotManager)
         artifact_manager = Mock(spec=ArtifactManager)
         run_directory_manager = Mock(spec=RunDirectoryManager)
-
-        orchestrator = Orchestrator(
-            runs_dir=tmp_path,
-            context_manager=context_manager,
-            snapshot_manager=snapshot_manager,
-            artifact_manager=artifact_manager,
-            run_directory_manager=run_directory_manager,
-            progress_display=progress,
-        )
 
         # Create runner that fails on verify phase
         class FailingPhaseRunner:
@@ -263,7 +253,15 @@ class TestOrchestratorProgressIntegration:
                     tokens_used=100,
                 )
 
-        orchestrator.set_phase_runner(FailingPhaseRunner())
+        orchestrator = Orchestrator(
+            runs_dir=tmp_path,
+            context_manager=context_manager,
+            snapshot_manager=snapshot_manager,
+            artifact_manager=artifact_manager,
+            run_directory_manager=run_directory_manager,
+            phase_runner=FailingPhaseRunner(),
+            progress_display=progress,
+        )
 
         with pytest.raises(LLMError):
             orchestrator.run("Test feature")

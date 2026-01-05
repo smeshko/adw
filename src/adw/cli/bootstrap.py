@@ -249,13 +249,11 @@ def create_orchestrator(
         snapshot_manager=snapshot_manager,
         artifact_manager=artifact_manager,
         run_directory_manager=run_directory_manager,
+        phase_runner=phase_runner,
         interruption_handler=interruption_handler,
         progress_display=progress_display,
         worktree_config=worktree_config,
         git_config=git_config,
     )
-
-    # Wire up the PhaseRunner
-    orchestrator.set_phase_runner(phase_runner)
 
     return orchestrator

@@ -138,6 +138,8 @@ class TestAbortIntegration:
         running_context: RunContext,
     ) -> None:
         """Test full abort flow using Orchestrator."""
+        from unittest.mock import MagicMock
+
         from adw.core import (
             ArtifactManager,
             InterruptionHandler,
@@ -150,6 +152,7 @@ class TestAbortIntegration:
         artifact_manager = ArtifactManager(runs_dir)
         run_directory_manager = RunDirectoryManager(runs_dir.parent.parent)
         interruption_handler = InterruptionHandler(context_manager, snapshot_manager)
+        mock_phase_runner = MagicMock()
 
         orchestrator = Orchestrator(
             runs_dir=runs_dir,
@@ -157,6 +160,7 @@ class TestAbortIntegration:
             snapshot_manager=snapshot_manager,
             artifact_manager=artifact_manager,
             run_directory_manager=run_directory_manager,
+            phase_runner=mock_phase_runner,
             interruption_handler=interruption_handler,
         )
 
