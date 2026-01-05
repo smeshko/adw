@@ -231,6 +231,124 @@ class TestCheckProgress:
         assert controller.state.last_progress_iteration == 3
 
 
+class TestAutoDeferRemaining:
+    """Tests for auto_defer_remaining() functionality."""
+
+    def test_auto_defer_changes_fix_to_defer(self) -> None:
+        """Auto-defer changes FIX issues to DEFER."""
+        from adw.validation.models import IssueSource, ValidationIssue
+
+        controller = ValidationLoopController(ValidationConfig(max_iterations=3))
+        controller.start_iteration()
+        controller.start_iteration()
+        controller.start_iteration()  # At max iterations
+
+        # Create FIX issues
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description="Must fix 1",
+            ),
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description="Must fix 2",
+            ),
+        ]
+        for issue in issues:
+            issue.triage_decision = "FIX"
+
+        # Auto-defer due to max iterations
+        deferred = controller.auto_defer_remaining(issues, ExitReason.MAX_ITERATIONS)
+
+        for issue in deferred:
+            assert issue.triage_decision == "DEFER"
+            assert "Max iterations reached" in issue.triage_reason
+
+    def test_auto_defer_sets_reason_for_stall(self) -> None:
+        """Auto-defer sets appropriate reason for stall exit."""
+        from adw.validation.models import IssueSource, ValidationIssue
+
+        controller = ValidationLoopController(
+            ValidationConfig(max_iterations=10, stall_threshold=2)
+        )
+        controller.start_iteration()
+        controller.state.stall_count = 2  # Stall detected
+
+        issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity="ERROR",
+            description="Stalled issue",
+        )
+        issue.triage_decision = "FIX"
+
+        deferred = controller.auto_defer_remaining([issue], ExitReason.STALL_DETECTED)
+
+        assert deferred[0].triage_decision == "DEFER"
+        assert "No progress" in deferred[0].triage_reason
+
+    def test_auto_defer_skips_non_fix_issues(self) -> None:
+        """Auto-defer only affects FIX-triaged issues."""
+        from adw.validation.models import IssueSource, ValidationIssue
+
+        controller = ValidationLoopController(ValidationConfig(max_iterations=3))
+        controller.start_iteration()
+        controller.start_iteration()
+        controller.start_iteration()
+
+        fix_issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity="ERROR",
+            description="Needs fixing",
+        )
+        fix_issue.triage_decision = "FIX"
+
+        dismiss_issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity="INFO",
+            description="Dismissed",
+        )
+        dismiss_issue.triage_decision = "DISMISS"
+
+        defer_issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity="WARNING",
+            description="Already deferred",
+        )
+        defer_issue.triage_decision = "DEFER"
+
+        result = controller.auto_defer_remaining(
+            [fix_issue, dismiss_issue, defer_issue], ExitReason.MAX_ITERATIONS
+        )
+
+        assert result[0].triage_decision == "DEFER"  # FIX -> DEFER
+        assert result[1].triage_decision == "DISMISS"  # Unchanged
+        assert result[2].triage_decision == "DEFER"  # Already DEFER
+
+    def test_auto_defer_logs_decisions(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Auto-defer logs each deferred issue."""
+        import logging
+
+        from adw.validation.models import IssueSource, ValidationIssue
+
+        controller = ValidationLoopController(ValidationConfig(max_iterations=2))
+        controller.start_iteration()
+        controller.start_iteration()
+
+        issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity="ERROR",
+            description="To defer",
+        )
+        issue.triage_decision = "FIX"
+
+        with caplog.at_level(logging.INFO):
+            controller.auto_defer_remaining([issue], ExitReason.MAX_ITERATIONS)
+
+        assert any("Auto-deferring" in record.message for record in caplog.records)
+
+
 class TestShouldExit:
     """Tests for should_exit() exit condition checks."""
 

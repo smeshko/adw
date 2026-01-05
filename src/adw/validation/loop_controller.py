@@ -210,5 +210,54 @@ class ValidationLoopController:
             if issue.triage_decision == "FIX"
         }
 
+    def auto_defer_remaining(
+        self,
+        issues: list[ValidationIssue],
+        reason: ExitReason,
+    ) -> list[ValidationIssue]:
+        """Auto-defer all remaining FIX issues when loop exits.
+
+        When the loop must exit with remaining issues (max iterations,
+        stall detection), this method changes all FIX-triaged issues
+        to DEFER with an appropriate explanation.
+
+        Args:
+            issues: List of all validation issues.
+            reason: The exit reason triggering the auto-defer.
+
+        Returns:
+            The modified list of issues with FIX changed to DEFER.
+        """
+        # Build reason text based on exit condition
+        reason_text = {
+            ExitReason.MAX_ITERATIONS: (
+                f"Max iterations reached ({self.config.max_iterations})"
+            ),
+            ExitReason.STALL_DETECTED: (
+                f"No progress after {self.state.stall_count} iterations"
+            ),
+        }.get(reason, "Loop exited")
+
+        deferred_count = 0
+        for issue in issues:
+            if issue.triage_decision == "FIX":
+                issue.triage_decision = "DEFER"
+                issue.triage_reason = reason_text
+                deferred_count += 1
+                logger.info(
+                    "Auto-deferring issue %s: %s",
+                    issue.id,
+                    reason_text,
+                )
+
+        if deferred_count > 0:
+            logger.info(
+                "Auto-deferred %d issues due to: %s",
+                deferred_count,
+                reason_text,
+            )
+
+        return issues
+
 
 __all__ = ["ExitReason", "LoopState", "ValidationLoopController"]

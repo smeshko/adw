@@ -59,12 +59,12 @@ validation:
 - [x] Increment stall counter when no progress
 
 ### Task 4: Implement Auto-Defer on Exit
-- [ ] When loop exits with remaining FIX issues
-- [ ] Auto-change to DEFER for all remaining
-- [ ] Set reason based on exit condition:
+- [x] When loop exits with remaining FIX issues
+- [x] Auto-change to DEFER for all remaining
+- [x] Set reason based on exit condition:
   - "Max iterations reached (5)"
   - "No progress after 2 iterations"
-- [ ] Log auto-defer decisions
+- [x] Log auto-defer decisions
 
 ### Task 5: Add Loop State Tracking
 - [ ] Create `LoopState` model with:
