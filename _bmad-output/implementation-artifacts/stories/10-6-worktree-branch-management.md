@@ -1,6 +1,6 @@
 # Story 10.6: Worktree Branch Management
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-05
@@ -65,10 +65,10 @@ so that my git history stays clean.
 - [x] Add `branch_deleted: bool = False` for tracking
 
 ### Task 7: Write Tests
-- [ ] Test branch name generation
-- [ ] Test branch creation from different base refs
-- [ ] Test deletion with unpushed commits handling
-- [ ] Test integration with worktree lifecycle
+- [x] Test branch name generation
+- [x] Test branch creation from different base refs
+- [x] Test deletion with unpushed commits handling
+- [x] Test integration with worktree lifecycle
 
 ---
 
