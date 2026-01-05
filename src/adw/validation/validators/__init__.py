@@ -8,7 +8,14 @@ This package contains:
 """
 
 from adw.validation.validators.base import Validator, ValidatorRegistry
+from adw.validation.validators.evidence_validator import EvidenceValidator
 from adw.validation.validators.review_validator import ReviewValidator
 from adw.validation.validators.test_validator import TestValidator
 
-__all__ = ["ReviewValidator", "TestValidator", "Validator", "ValidatorRegistry"]
+__all__ = [
+    "EvidenceValidator",
+    "ReviewValidator",
+    "TestValidator",
+    "Validator",
+    "ValidatorRegistry",
+]

@@ -67,11 +67,11 @@ validation:
 - [x] Support configurable review focus areas (security, error_handling, edge_cases)
 
 ### Task 5: Implement EvidenceValidator
-- [ ] Create `src/adw/validation/validators/evidence_validator.py`
-- [ ] Call evidence gathering system (Epic 8 integration)
-- [ ] Compare gathered evidence against plan requirements
-- [ ] Convert missing evidence to `ValidationIssue` with source=EVIDENCE
-- [ ] Handle platform detection for evidence type requirements
+- [x] Create `src/adw/validation/validators/evidence_validator.py`
+- [x] Call evidence gathering system (Epic 8 integration)
+- [x] Compare gathered evidence against plan requirements
+- [x] Convert missing evidence to `ValidationIssue` with source=EVIDENCE
+- [x] Handle platform detection for evidence type requirements
 
 ### Task 6: Add Validation Configuration
 - [ ] Add `validation` section to `ProjectConfig` model
@@ -347,6 +347,7 @@ claude-opus-4-5-20251101
 - Task 2: Created Validator Protocol in validators/base.py with name property and validate() method. Implemented ValidatorRegistry with register(), get_all(), get_enabled(), run_all(), run_enabled(), and clear() methods. Supports dynamic filtering based on ValidationConfig enable flags.
 - Task 3: Implemented TestValidator that runs test commands (pytest, npm test) and parses output for failures. Supports timeout handling, command not found errors, and regex-based parsing of pytest and npm/jest output formats.
 - Task 4: Implemented ReviewValidator that uses LLM executor for code review. Parses review response for issues with severity levels, supports configurable focus areas, handles LLM errors gracefully.
+- Task 5: Implemented EvidenceValidator that loads evidence manifest from Verify phase and reports failed, errored, or skipped evidence items as issues.
 
 ### File List
 
@@ -365,3 +366,5 @@ claude-opus-4-5-20251101
 - `tests/unit/validation/validators/test_test_validator.py` - 7 unit tests for TestValidator
 - `src/adw/validation/validators/review_validator.py` - ReviewValidator implementation
 - `tests/unit/validation/validators/test_review_validator.py` - 6 unit tests for ReviewValidator
+- `src/adw/validation/validators/evidence_validator.py` - EvidenceValidator implementation
+- `tests/unit/validation/validators/test_evidence_validator.py` - 6 unit tests for EvidenceValidator
