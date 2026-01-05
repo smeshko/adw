@@ -546,3 +546,68 @@ class TestIssueSerialization:
         md = issue.to_markdown()
 
         assert "**Fix Status:** PARTIAL (2 attempts)" in md
+
+    def test_to_yaml_returns_valid_yaml_string(self) -> None:
+        """to_yaml returns a valid YAML string."""
+        issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failed",
+            location=IssueLocation(file_path="src/auth.py", line_start=42),
+        )
+        yaml_str = issue.to_yaml()
+
+        assert isinstance(yaml_str, str)
+        assert "source: TEST" in yaml_str
+        assert "severity: ERROR" in yaml_str
+        assert "description: Test failed" in yaml_str
+
+    def test_from_yaml_creates_valid_issue(self) -> None:
+        """from_yaml creates a valid ValidationIssue from YAML string."""
+        yaml_str = """
+id: VI-01HQ123456789ABCDEFGHJKMNP
+source: REVIEW
+severity: WARNING
+description: Missing docstring
+location:
+  file_path: src/utils.py
+  line_start: 10
+"""
+        issue = ValidationIssue.from_yaml(yaml_str)
+
+        assert issue.id == "VI-01HQ123456789ABCDEFGHJKMNP"
+        assert issue.source == IssueSource.REVIEW
+        assert issue.severity == IssueSeverity.WARNING
+        assert issue.description == "Missing docstring"
+        assert issue.location.file_path == "src/utils.py"
+
+    def test_yaml_round_trip_serialization(self) -> None:
+        """Issue survives round-trip through to_yaml/from_yaml."""
+        original = ValidationIssue(
+            source=IssueSource.EVIDENCE,
+            severity=IssueSeverity.INFO,
+            description="Screenshot mismatch detected",
+            location=IssueLocation(
+                file_path="src/ui/button.py",
+                line_start=100,
+                function_name="render",
+            ),
+            context=IssueContext(
+                error_message="Visual diff > threshold",
+                suggestion="Update baseline screenshot",
+            ),
+            fix_attempted=True,
+            fix_attempt_count=1,
+            last_fix_result=FixResult.PARTIAL,
+        )
+
+        yaml_str = original.to_yaml()
+        restored = ValidationIssue.from_yaml(yaml_str)
+
+        assert restored.id == original.id
+        assert restored.source == original.source
+        assert restored.severity == original.severity
+        assert restored.description == original.description
+        assert restored.location.file_path == original.location.file_path
+        assert restored.context.suggestion == original.context.suggestion
+        assert restored.fix_attempted == original.fix_attempted

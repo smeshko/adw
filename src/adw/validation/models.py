@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+import yaml
 from pydantic import BaseModel, Field, field_validator
 
 from adw.utils.ulid import generate_run_id
@@ -400,6 +401,33 @@ class ValidationIssue(BaseModel):
             )
 
         return "\n".join(lines)
+
+    def to_yaml(self) -> str:
+        """Serialize issue to YAML format for persistence.
+
+        Uses the dict representation and converts to YAML string
+        with safe dumping for file storage.
+
+        Returns:
+            YAML-formatted string representation of the issue.
+        """
+        return yaml.safe_dump(self.to_dict(), default_flow_style=False, sort_keys=False)
+
+    @classmethod
+    def from_yaml(cls, yaml_str: str) -> "ValidationIssue":
+        """Deserialize issue from YAML string.
+
+        Creates a ValidationIssue instance from a YAML string,
+        typically from file storage.
+
+        Args:
+            yaml_str: YAML string containing issue data.
+
+        Returns:
+            New ValidationIssue instance.
+        """
+        data = yaml.safe_load(yaml_str)
+        return cls.from_dict(data)
 
     model_config = {
         "frozen": False,

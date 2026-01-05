@@ -365,10 +365,30 @@ Epic 11: Validation Loop - Story 11.2
 
 ### Agent Model Used
 
-<!-- To be filled during implementation -->
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+None - implementation completed without issues.
+
 ### Completion Notes List
 
+- All enums (IssueSource, IssueSeverity, FixResult) implemented with str base for JSON compatibility
+- ValidationIssue model includes backward compatibility for legacy severity strings (critical, high, medium, low)
+- YAML serialization added via to_yaml()/from_yaml() methods
+- Validation models re-exported from src/adw/models/__init__.py for consistent import patterns
+- 36 unit tests covering all model functionality
+
 ### File List
+
+**New Files:**
+- `src/adw/validation/models.py` - ValidationIssue, IssueSource, IssueSeverity, FixResult, IssueLocation, IssueContext, FixAttempt models
+- `tests/unit/validation/test_models.py` - 36 comprehensive unit tests for validation models
+
+**Modified Files:**
+- `src/adw/validation/__init__.py` - Export new validation models
+- `src/adw/models/__init__.py` - Re-export validation models for consistent import patterns
+- `tests/unit/validation/test_phase.py` - Updated to use new IssueSeverity enum
+- `tests/unit/validation/validators/test_evidence_validator.py` - Updated severity assertions
+- `tests/unit/validation/validators/test_review_validator.py` - Updated severity assertions
+- `tests/unit/validation/validators/test_test_validator.py` - Updated severity assertions
