@@ -34,47 +34,47 @@ so that I can process multiple features in parallel.
 ## Tasks / Subtasks
 
 ### Task 1: Create ConcurrentRunManager
-- [ ] Create `src/adw/worktree/concurrent.py` with `ConcurrentRunManager` class
-- [ ] Track active runs via lock files in `trees/.locks/`
-- [ ] Implement `can_start_run() -> bool` to check slot availability
-- [ ] Implement `register_run(run_id: str) -> None` to claim a slot
-- [ ] Implement `unregister_run(run_id: str) -> None` to release slot
+- [x] Create `src/adw/worktree/concurrent.py` with `ConcurrentRunManager` class
+- [x] Track active runs via lock files in `trees/.locks/`
+- [x] Implement `can_start_run() -> bool` to check slot availability
+- [x] Implement `register_run(run_id: str) -> None` to claim a slot
+- [x] Implement `unregister_run(run_id: str) -> None` to release slot
 
 ### Task 2: Implement Run Slot Tracking
-- [ ] Create lock file per active run: `trees/.locks/<run_id>.lock`
-- [ ] Store run metadata in lock file (PID, start time, worktree path)
-- [ ] Check for stale locks (PID no longer running)
-- [ ] Implement `get_active_runs() -> list[ActiveRun]`
+- [x] Create lock file per active run: `trees/.locks/<run_id>.lock`
+- [x] Store run metadata in lock file (PID, start time, worktree path)
+- [x] Check for stale locks (PID no longer running)
+- [x] Implement `get_active_runs() -> list[ActiveRun]`
 
 ### Task 3: Add Maximum Concurrent Limit
-- [ ] Check `len(get_active_runs()) < max_concurrent` before starting
-- [ ] Raise `MaxConcurrentRunsError` with actionable message
-- [ ] Include list of active runs in error for context
+- [x] Check `len(get_active_runs()) < max_concurrent` before starting
+- [x] Raise `MaxConcurrentRunsError` with actionable message
+- [x] Include list of active runs in error for context
 
 ### Task 4: Implement --running Flag for List Command
-- [ ] Add `--running` / `-r` flag to `adw list` command
-- [ ] Filter to show only runs with status "running"
-- [ ] Display worktree path and allocated ports for each
-- [ ] Show elapsed time since start
+- [x] Add `--running` / `-r` flag to `adw list` command
+- [x] Filter to show only runs with status "running"
+- [x] Display worktree path and allocated ports for each
+- [x] Show elapsed time since start
 
 ### Task 5: Implement Cleanup Command
-- [ ] Add `adw cleanup` command to CLI
-- [ ] Find orphaned worktrees (worktree exists but no lock or stale lock)
-- [ ] Show list of orphaned worktrees with confirmation prompt
-- [ ] Remove worktrees and associated branches on confirmation
-- [ ] Add `--force` flag to skip confirmation
+- [x] Add `adw cleanup-orphans` command to CLI
+- [x] Find orphaned worktrees (worktree exists but no lock or stale lock)
+- [x] Show list of orphaned worktrees with confirmation prompt
+- [x] Remove worktrees and associated branches on confirmation
+- [x] Add `--force` flag to skip confirmation
 
 ### Task 6: Integrate with Orchestrator
-- [ ] Call `can_start_run()` before worktree creation
-- [ ] Call `register_run()` after successful worktree creation
-- [ ] Call `unregister_run()` in finally block of run execution
+- [x] Call `check_can_start_or_raise()` before worktree creation
+- [x] Call `register_run()` after successful worktree creation
+- [x] Call `unregister_run()` in cleanup method (covers finally block)
 
 ### Task 7: Write Tests
-- [ ] Test concurrent run limit enforcement
-- [ ] Test lock file creation and cleanup
-- [ ] Test stale lock detection
-- [ ] Test --running filter for list command
-- [ ] Test cleanup command identifies orphaned worktrees
+- [x] Test concurrent run limit enforcement
+- [x] Test lock file creation and cleanup
+- [x] Test stale lock detection
+- [x] Test --running filter for list command
+- [x] Test cleanup command identifies orphaned worktrees
 
 ---
 

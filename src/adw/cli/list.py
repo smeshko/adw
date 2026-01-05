@@ -4,16 +4,20 @@ This module provides the `list` command for viewing recent ADW runs.
 Supports both project-local runs and global index queries.
 """
 
+import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.table import Table
 
 from adw.cli.list_display import ListDisplay
 from adw.core.index_manager import IndexManager
 from adw.core.run_lookup import RunLookup
 from adw.models import RunContext
 from adw.models.index import IndexEntry
+from adw.worktree import ConcurrentRunManager
 
 console = Console()
 
@@ -35,6 +39,12 @@ def list_runs(
         "--status",
         "-s",
         help="Filter by status (running, completed, failed, interrupted, aborted)",
+    ),
+    running: bool = typer.Option(
+        False,
+        "--running",
+        "-r",
+        help="Show only currently active runs (from lock files)",
     ),
     project: bool = typer.Option(
         False,
@@ -64,6 +74,7 @@ def list_runs(
 
     Use --global to show all runs across all projects.
     Use --project to filter global view to current project.
+    Use --running to show only currently executing runs with worktree and port info.
 
     Examples:
         adw list                       # List 10 most recent
@@ -72,12 +83,18 @@ def list_runs(
         adw list --global              # List all runs from global index
         adw list --project             # Filter to current project
         adw list --json                # JSON output for scripting
+        adw list --running             # Show active runs with ports
     """
     # Validate status filter
     if status and status not in VALID_STATUSES:
         console.print(f"[red]Error:[/] Invalid status: {status}")
         console.print(f"Valid values: {', '.join(sorted(VALID_STATUSES))}")
         raise typer.Exit(code=1)
+
+    # Handle --running flag: show active runs from lock files
+    if running:
+        _list_running_runs(json_output=json_output)
+        return
 
     # Determine data source: local runs or global index
     runs_dir = _get_runs_dir()
@@ -190,8 +207,6 @@ def _display_index_entries(entries: list[IndexEntry]) -> None:
     Args:
         entries: List of IndexEntry objects to display.
     """
-    from rich.table import Table
-
     table = Table(title="Recent Runs (Global Index)")
     table.add_column("Run ID", style="cyan", no_wrap=True)
     table.add_column("Project", style="green")
@@ -255,8 +270,6 @@ def _output_json_index_entries(entries: list[IndexEntry]) -> None:
     Args:
         entries: List of IndexEntry objects.
     """
-    import json
-
     output = []
     for entry in entries:
         output.append(
@@ -301,8 +314,6 @@ def _output_json_list(runs: list[RunContext]) -> None:
     Args:
         runs: List of RunContext objects.
     """
-    import json
-
     output = []
     for run in runs:
         output.append(
@@ -314,6 +325,135 @@ def _output_json_list(runs: list[RunContext]) -> None:
                 "completed_at": run.completed_at.isoformat()
                 if run.completed_at
                 else None,
+            }
+        )
+
+    console.print_json(json.dumps(output))
+
+
+def _list_running_runs(json_output: bool) -> None:
+    """List currently active runs from lock files.
+
+    Shows active runs with their worktree paths, allocated ports,
+    and elapsed time since start.
+
+    Args:
+        json_output: Whether to output as JSON.
+    """
+    project_root = Path.cwd()
+    manager = ConcurrentRunManager(project_root)
+
+    active_runs = manager.get_active_runs()
+
+    if not active_runs:
+        console.print("[yellow]No active runs[/]")
+        console.print("Use 'adw run \"feature\"' to start a new run")
+        return
+
+    if json_output:
+        _output_json_running(active_runs, manager.max_concurrent)
+    else:
+        _display_running_runs(active_runs, manager.max_concurrent)
+
+
+def _display_running_runs(
+    active_runs: list,  # list[ActiveRun]
+    max_concurrent: int,
+) -> None:
+    """Display active runs in Rich table format.
+
+    Args:
+        active_runs: List of ActiveRun objects.
+        max_concurrent: Maximum number of concurrent runs allowed.
+    """
+    table = Table(title=f"Active Runs ({len(active_runs)} of {max_concurrent})")
+    table.add_column("Run ID", style="cyan", no_wrap=True)
+    table.add_column("Elapsed", style="green")
+    table.add_column("Ports", style="yellow")
+    table.add_column("Worktree", style="dim", max_width=40)
+
+    now = datetime.now(UTC)
+
+    for run in active_runs:
+        # Calculate elapsed time
+        elapsed = now - run.start_time
+        elapsed_str = _format_elapsed(elapsed.total_seconds())
+
+        # Format ports
+        ports = []
+        if run.backend_port:
+            ports.append(str(run.backend_port))
+        if run.frontend_port:
+            ports.append(str(run.frontend_port))
+        ports_str = "/".join(ports) if ports else "-"
+
+        # Truncate worktree path for display
+        worktree_str = str(run.worktree_path)
+        if len(worktree_str) > 40:
+            worktree_str = "..." + worktree_str[-37:]
+
+        table.add_row(
+            run.run_id,
+            elapsed_str,
+            ports_str,
+            worktree_str,
+        )
+
+    console.print(table)
+
+
+def _format_elapsed(seconds: float) -> str:
+    """Format elapsed time in human-readable format.
+
+    Args:
+        seconds: Total seconds elapsed.
+
+    Returns:
+        Formatted string like "5m 23s" or "1h 30m".
+    """
+    total_seconds = int(seconds)
+
+    if total_seconds < 60:
+        return f"{total_seconds}s"
+    elif total_seconds < 3600:
+        minutes = total_seconds // 60
+        secs = total_seconds % 60
+        return f"{minutes}m {secs}s"
+    else:
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        return f"{hours}h {minutes}m"
+
+
+def _output_json_running(
+    active_runs: list,  # list[ActiveRun]
+    max_concurrent: int,
+) -> None:
+    """Output active runs as JSON.
+
+    Args:
+        active_runs: List of ActiveRun objects.
+        max_concurrent: Maximum number of concurrent runs allowed.
+    """
+    now = datetime.now(UTC)
+
+    output = {
+        "active_count": len(active_runs),
+        "max_concurrent": max_concurrent,
+        "runs": [],
+    }
+
+    for run in active_runs:
+        elapsed = now - run.start_time
+        output["runs"].append(
+            {
+                "run_id": run.run_id,
+                "pid": run.pid,
+                "start_time": run.start_time.isoformat(),
+                "elapsed_seconds": elapsed.total_seconds(),
+                "worktree_path": str(run.worktree_path),
+                "backend_port": run.backend_port,
+                "frontend_port": run.frontend_port,
             }
         )
 

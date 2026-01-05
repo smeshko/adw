@@ -374,3 +374,33 @@ def cleanup(
         if e.suggestion:
             console.print(f"[dim]Suggestion:[/] {e.suggestion}")
         raise typer.Exit(1) from None
+
+
+@app.command(name="cleanup-orphans")
+def cleanup_orphans(
+    delete_branch: bool = typer.Option(
+        False,
+        "--delete-branch",
+        "-b",
+        help="Also delete the adw/<run_id> branch for each orphaned worktree",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Skip confirmation prompt and force remove even with uncommitted changes",
+    ),
+) -> None:
+    """Find and remove orphaned worktrees.
+
+    Scans for worktrees that don't have corresponding active lock files
+    (from crashed or killed runs) and removes them after confirmation.
+
+    Examples:
+        adw cleanup-orphans
+        adw cleanup-orphans --delete-branch
+        adw cleanup-orphans --force
+    """
+    from adw.cli.cleanup import cleanup_orphans_command
+
+    cleanup_orphans_command(delete_branch=delete_branch, force=force)
