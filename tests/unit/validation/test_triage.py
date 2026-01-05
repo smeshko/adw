@@ -305,3 +305,121 @@ class TestAutoTriage:
         assert result[0].decision == TriageDecision.FIX
         # WARNING also defaults to FIX without LLM
         assert result[1].decision == TriageDecision.FIX
+
+
+class TestManualTriage:
+    """Tests for manual triage functionality."""
+
+    @pytest.fixture
+    def config(self) -> ValidationConfig:
+        """Create a ValidationConfig for manual triage testing."""
+        return ValidationConfig(triage_mode="manual")
+
+    def test_manual_triage_prompts_user(
+        self, config: ValidationConfig, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Manual triage prompts user for each issue."""
+        from io import StringIO
+        from rich.console import Console
+
+        # Create console with string output
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+
+        # Mock Rich Prompt to return "f" for FIX
+        from unittest.mock import patch
+
+        with patch("adw.validation.triage.Prompt.ask", return_value="f"):
+            system = TriageSystem(config=config, console=console)
+            issues = [
+                ValidationIssue(
+                    source=IssueSource.TEST,
+                    severity=IssueSeverity.ERROR,
+                    description="Test failed: test_login",
+                )
+            ]
+
+            result = system.triage(issues, mode="manual")
+
+            assert len(result) == 1
+            assert result[0].decision == TriageDecision.FIX
+            assert result[0].auto_decided is False
+
+    def test_manual_triage_dismiss_option(
+        self, config: ValidationConfig
+    ) -> None:
+        """Manual triage allows DISMISS option."""
+        from io import StringIO
+        from rich.console import Console
+        from unittest.mock import patch
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+
+        with patch("adw.validation.triage.Prompt.ask", return_value="d"):
+            system = TriageSystem(config=config, console=console)
+            issues = [
+                ValidationIssue(
+                    source=IssueSource.REVIEW,
+                    severity=IssueSeverity.WARNING,
+                    description="Unused variable",
+                )
+            ]
+
+            result = system.triage(issues, mode="manual")
+
+            assert result[0].decision == TriageDecision.DISMISS
+
+    def test_manual_triage_defer_option(
+        self, config: ValidationConfig
+    ) -> None:
+        """Manual triage allows DEFER option."""
+        from io import StringIO
+        from rich.console import Console
+        from unittest.mock import patch
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+
+        with patch("adw.validation.triage.Prompt.ask", return_value="e"):
+            system = TriageSystem(config=config, console=console)
+            issues = [
+                ValidationIssue(
+                    source=IssueSource.EVIDENCE,
+                    severity=IssueSeverity.INFO,
+                    description="Minor difference",
+                )
+            ]
+
+            result = system.triage(issues, mode="manual")
+
+            assert result[0].decision == TriageDecision.DEFER
+
+    def test_manual_triage_captures_reason(
+        self, config: ValidationConfig
+    ) -> None:
+        """Manual triage captures user's reasoning."""
+        from io import StringIO
+        from rich.console import Console
+        from unittest.mock import patch, call
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+
+        # First call returns decision, second returns reason
+        with patch(
+            "adw.validation.triage.Prompt.ask",
+            side_effect=["f", "Critical bug that must be fixed"],
+        ):
+            system = TriageSystem(config=config, console=console)
+            issues = [
+                ValidationIssue(
+                    source=IssueSource.TEST,
+                    severity=IssueSeverity.ERROR,
+                    description="Test failed",
+                )
+            ]
+
+            result = system.triage(issues, mode="manual")
+
+            assert result[0].reason == "Critical bug that must be fixed"

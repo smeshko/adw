@@ -62,11 +62,11 @@ so that I control which issues block the pipeline.
 - [x] Apply `auto_dismiss_info` config (auto-dismiss INFO severity)
 
 ### Task 4: Implement Manual Triage
-- [ ] Create `_manual_triage(issue: ValidationIssue) -> TriageDecision`
-- [ ] Display issue details using Rich formatting
-- [ ] Prompt user with options: [F]ix, [D]ismiss, de[F]er, [S]kip
-- [ ] Support batch selection for multiple similar issues
-- [ ] Capture user's reasoning for audit trail
+- [x] Create `_manual_triage(issue: ValidationIssue) -> TriageDecision`
+- [x] Display issue details using Rich formatting
+- [x] Prompt user with options: [F]ix, [D]ismiss, de[F]er, [S]kip
+- [x] Support batch selection for multiple similar issues
+- [x] Capture user's reasoning for audit trail
 
 ### Task 5: Implement Hybrid Triage
 - [ ] Create `_hybrid_triage(issues: list[ValidationIssue]) -> list[TriagedIssue]`

@@ -14,6 +14,9 @@ import logging
 from typing import TYPE_CHECKING, Literal
 
 from rich.console import Console
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.table import Table
 
 from adw.validation.config import ValidationConfig
 from adw.validation.models import (
@@ -269,19 +272,106 @@ Respond with JSON only:
         """
         results: list[TriagedIssue] = []
 
-        for issue in issues:
-            # TODO: Implement user prompts (Task 4)
-            # For now, default to FIX
-            results.append(
-                TriagedIssue(
-                    issue=issue,
-                    decision=TriageDecision.FIX,
-                    reason="Pending manual triage implementation",
-                    auto_decided=False,
-                )
-            )
+        for i, issue in enumerate(issues):
+            triaged = self._prompt_triage_decision(issue, i + 1, len(issues))
+            results.append(triaged)
 
         return results
+
+    def _prompt_triage_decision(
+        self,
+        issue: ValidationIssue,
+        current: int,
+        total: int,
+    ) -> TriagedIssue:
+        """Prompt user for triage decision on a single issue.
+
+        Args:
+            issue: The issue to triage.
+            current: Current issue number (1-indexed).
+            total: Total number of issues.
+
+        Returns:
+            TriagedIssue with user's decision.
+        """
+        # Display issue details
+        self._display_issue(issue, current, total)
+
+        # Prompt for decision
+        decision_str = Prompt.ask(
+            "[F]ix, [D]ismiss, d[E]fer",
+            choices=["f", "d", "e", "F", "D", "E"],
+            default="f",
+        ).lower()
+
+        decision_map = {
+            "f": TriageDecision.FIX,
+            "d": TriageDecision.DISMISS,
+            "e": TriageDecision.DEFER,
+        }
+        decision = decision_map[decision_str]
+
+        # Prompt for reason
+        reason = Prompt.ask("Reason (optional)", default="")
+        if not reason:
+            reason = f"User selected {decision.value}"
+
+        return TriagedIssue(
+            issue=issue,
+            decision=decision,
+            reason=reason,
+            auto_decided=False,
+        )
+
+    def _display_issue(
+        self,
+        issue: ValidationIssue,
+        current: int,
+        total: int,
+    ) -> None:
+        """Display issue details in a Rich panel.
+
+        Args:
+            issue: The issue to display.
+            current: Current issue number.
+            total: Total number of issues.
+        """
+        # Create severity color mapping
+        severity_colors = {
+            IssueSeverity.ERROR: "red",
+            IssueSeverity.WARNING: "yellow",
+            IssueSeverity.INFO: "blue",
+        }
+        color = severity_colors.get(issue.severity, "white")
+
+        # Build content
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_column("Field", style="dim")
+        table.add_column("Value")
+
+        table.add_row("Source", issue.source.value)
+        table.add_row("Severity", f"[{color}]{issue.severity.value}[/]")
+        table.add_row("Description", issue.description)
+
+        if issue.location:
+            loc = issue.location.file_path or ""
+            if issue.location.line_start:
+                loc += f":{issue.location.line_start}"
+            table.add_row("Location", loc)
+
+        if issue.context and issue.context.error_message:
+            table.add_row("Error", issue.context.error_message[:100])
+
+        if issue.context and issue.context.suggestion:
+            table.add_row("Suggestion", issue.context.suggestion)
+
+        self.console.print(
+            Panel(
+                table,
+                title=f"[bold]Issue {current}/{total}[/]",
+                border_style=color,
+            )
+        )
 
     def _hybrid_triage_all(
         self,
