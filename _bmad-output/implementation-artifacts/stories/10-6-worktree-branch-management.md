@@ -51,9 +51,9 @@ so that my git history stays clean.
 - [x] Store branch_name in RunContext
 
 ### Task 4: Implement Cleanup Integration
-- [ ] Add `delete_branch` parameter to `WorktreeManager.remove_worktree()`
-- [ ] Delete branch only when explicitly requested
-- [ ] Check for PR before allowing branch deletion (optional via gh CLI)
+- [x] Add `delete_branch` parameter to `WorktreeManager.remove_worktree()`
+- [x] Delete branch only when explicitly requested
+- [x] Check for PR before allowing branch deletion (optional via gh CLI)
 
 ### Task 5: Add --delete-branch CLI Flag
 - [ ] Add `--delete-branch` flag to `adw cleanup` command

@@ -250,9 +250,10 @@ class TestWorktreeManagerRemoval:
         assert worktree_path.exists()
 
         # Remove it
-        result = manager.remove_worktree(run_id)
+        worktree_removed, branch_deleted = manager.remove_worktree(run_id)
 
-        assert result is True
+        assert worktree_removed is True
+        assert branch_deleted is False  # Branch preserved by default
         assert not worktree_path.exists()
 
     def test_remove_worktree_not_found(self, git_repo: Path) -> None:
@@ -297,13 +298,14 @@ class TestWorktreeManagerRemoval:
         (worktree_path / "new_file.txt").write_text("uncommitted content")
 
         # Force remove should succeed
-        result = manager.remove_worktree(run_id, force=True)
+        worktree_removed, branch_deleted = manager.remove_worktree(run_id, force=True)
 
-        assert result is True
+        assert worktree_removed is True
+        assert branch_deleted is False  # Branch preserved by default
         assert not worktree_path.exists()
 
-    def test_remove_worktree_cleanup_branch(self, git_repo: Path) -> None:
-        """Branch is deleted when cleanup_branch=True."""
+    def test_remove_worktree_delete_branch(self, git_repo: Path) -> None:
+        """Branch is deleted when delete_branch=True."""
         from adw.worktree.manager import WorktreeManager
 
         manager = WorktreeManager(project_root=git_repo)
@@ -322,8 +324,13 @@ class TestWorktreeManagerRemoval:
         )
         assert branch_name in result.stdout
 
-        # Remove with cleanup_branch=True
-        manager.remove_worktree(run_id, cleanup_branch=True)
+        # Remove with delete_branch=True
+        worktree_removed, branch_deleted = manager.remove_worktree(
+            run_id, delete_branch=True
+        )
+
+        assert worktree_removed is True
+        assert branch_deleted is True
 
         # Verify branch is deleted
         result = subprocess.run(

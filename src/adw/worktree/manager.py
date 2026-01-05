@@ -179,24 +179,29 @@ class WorktreeManager:
         run_id: str,
         *,
         force: bool = False,
-        cleanup_branch: bool = False,
-    ) -> bool:
+        delete_branch: bool = False,
+    ) -> tuple[bool, bool]:
         """Remove an existing worktree for the given run.
 
         Args:
             run_id: ULID identifier for this run.
             force: If True, remove even if there are uncommitted changes.
-            cleanup_branch: If True, also delete the `adw/<run_id>` branch.
+            delete_branch: If True, also delete the `adw/<run_id>` branch.
+                Branch will be preserved if it has a PR or unpushed commits
+                (unless force=True).
 
         Returns:
-            True if the worktree was successfully removed.
+            Tuple of (worktree_removed, branch_deleted).
+            worktree_removed is True if the worktree was successfully removed.
+            branch_deleted is True if the branch was deleted, False if preserved
+            or if delete_branch was False.
 
         Raises:
             WorktreeError: If the worktree doesn't exist or has uncommitted changes
                 and force=False.
         """
         worktree_path = self.worktree_base_path / run_id
-        branch_name = f"adw/{run_id}"
+        branch_name = self._branch_manager.get_branch_name(run_id)
 
         # Check if worktree exists
         if not worktree_path.exists():
@@ -220,7 +225,7 @@ class WorktreeManager:
                 "run_id": run_id,
                 "path": str(worktree_path),
                 "force": force,
-                "cleanup_branch": cleanup_branch,
+                "delete_branch": delete_branch,
             },
         )
 
@@ -250,11 +255,28 @@ class WorktreeManager:
                 extra={"run_id": run_id},
             )
 
-            # Optionally clean up the branch
-            if cleanup_branch:
-                self._delete_branch(branch_name)
+            # Optionally delete the branch
+            branch_deleted = False
+            if delete_branch:
+                # Check for PR before deletion (optional - graceful if gh not available)
+                pr_exists = self._branch_manager.check_pr_exists(branch_name)
+                if pr_exists is True and not force:
+                    logger.info(
+                        "Preserving branch with existing PR",
+                        extra={"branch": branch_name, "run_id": run_id},
+                    )
+                else:
+                    # Use branch manager for deletion with safety checks
+                    branch_deleted = self._branch_manager.delete_branch(
+                        run_id, force=force
+                    )
+                    if not branch_deleted:
+                        logger.info(
+                            "Branch preserved (has unpushed commits)",
+                            extra={"branch": branch_name, "run_id": run_id},
+                        )
 
-            return True
+            return (True, branch_deleted)
 
         except FileNotFoundError as e:
             raise WorktreeError(
@@ -283,36 +305,6 @@ class WorktreeManager:
             return bool(result.stdout.strip())
         except (FileNotFoundError, OSError):
             return False
-
-    def _delete_branch(self, branch_name: str) -> None:
-        """Delete a branch.
-
-        Args:
-            branch_name: Name of the branch to delete.
-        """
-        try:
-            result = subprocess.run(
-                ["git", "branch", "-D", branch_name],
-                cwd=self.project_root,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if result.returncode == 0:
-                logger.info(
-                    "Branch deleted",
-                    extra={"branch": branch_name},
-                )
-            else:
-                logger.warning(
-                    "Failed to delete branch",
-                    extra={"branch": branch_name, "error": result.stderr.strip()},
-                )
-        except OSError as e:
-            logger.warning(
-                "Failed to delete branch",
-                extra={"branch": branch_name, "error": str(e)},
-            )
 
     def _cleanup_partial_worktree(
         self,
