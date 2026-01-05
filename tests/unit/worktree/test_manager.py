@@ -935,3 +935,153 @@ class TestWorktreeManagerBranchIntegration:
             text=True,
         )
         assert branch_name in result.stdout
+
+
+class TestWorktreeForceCleanup:
+    """Tests for worktree cleanup with force flag (ISS-008).
+
+    These tests verify that force=True allows cleanup even when
+    the worktree contains uncommitted changes.
+    """
+
+    @pytest.fixture
+    def git_repo(self, tmp_path: Path) -> Path:
+        """Create a temporary git repository for testing."""
+        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        # Create initial commit
+        readme = tmp_path / "README.md"
+        readme.write_text("# Test")
+        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Initial commit"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        return tmp_path
+
+    def test_force_removes_worktree_with_untracked_files(self, git_repo: Path) -> None:
+        """force=True removes worktree even with untracked files (ISS-008)."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQTEST_FORCE"
+
+        # Create worktree
+        worktree_path = manager.create_worktree(run_id)
+        assert worktree_path.exists()
+
+        # Create untracked file (simulating LLM-generated files)
+        untracked_file = worktree_path / "new_feature.py"
+        untracked_file.write_text("# Created by LLM")
+
+        # Verify untracked file exists
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=worktree_path,
+            capture_output=True,
+            text=True,
+        )
+        assert "new_feature.py" in result.stdout
+
+        # Force cleanup should succeed despite untracked files
+        worktree_removed, _ = manager.remove_worktree(
+            run_id, force=True, preserve=False
+        )
+
+        assert worktree_removed is True
+        assert not worktree_path.exists()
+
+    def test_no_force_raises_error_with_uncommitted_changes(
+        self, git_repo: Path
+    ) -> None:
+        """force=False raises WorktreeError with uncommitted changes."""
+        from adw.exceptions import WorktreeError
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQTEST_NOFORCE"
+
+        # Create worktree
+        worktree_path = manager.create_worktree(run_id)
+
+        # Create untracked file
+        untracked_file = worktree_path / "new_feature.py"
+        untracked_file.write_text("# Created by LLM")
+
+        # Non-force cleanup should fail
+        with pytest.raises(WorktreeError) as exc_info:
+            manager.remove_worktree(run_id, force=False, preserve=False)
+
+        assert exc_info.value.code == "WORKTREE_HAS_CHANGES"
+        # Worktree should still exist
+        assert worktree_path.exists()
+
+    def test_force_removes_worktree_with_modified_files(self, git_repo: Path) -> None:
+        """force=True removes worktree with modified tracked files."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQTEST_MODIFIED"
+
+        # Create worktree
+        worktree_path = manager.create_worktree(run_id)
+
+        # Modify existing file in worktree
+        readme = worktree_path / "README.md"
+        readme.write_text("# Modified by LLM")
+
+        # Force cleanup should succeed
+        worktree_removed, _ = manager.remove_worktree(
+            run_id, force=True, preserve=False
+        )
+
+        assert worktree_removed is True
+        assert not worktree_path.exists()
+
+    def test_delete_branch_parameter_works(self, git_repo: Path) -> None:
+        """delete_branch parameter correctly deletes the branch."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQTEST_BRANCH"
+        branch_name = f"adw/{run_id}"
+
+        # Create worktree
+        manager.create_worktree(run_id)
+
+        # Verify branch exists
+        branch_check = subprocess.run(
+            ["git", "branch", "--list", branch_name],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+        )
+        assert branch_name in branch_check.stdout
+
+        # Remove with delete_branch=True
+        _, branch_deleted = manager.remove_worktree(
+            run_id, force=True, delete_branch=True, preserve=False
+        )
+
+        assert branch_deleted is True
+        # Branch should be gone
+        branch_check_after = subprocess.run(
+            ["git", "branch", "--list", branch_name],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+        )
+        assert branch_name not in branch_check_after.stdout
