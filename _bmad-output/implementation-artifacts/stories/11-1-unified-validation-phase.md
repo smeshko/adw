@@ -1,6 +1,6 @@
 # Story 11.1: Unified Validation Phase
 
-Status: draft
+Status: in-progress
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
@@ -40,11 +40,11 @@ validation:
 ## Tasks / Subtasks
 
 ### Task 1: Create ValidationPhase Class
-- [ ] Create `src/adw/validation/__init__.py` package
-- [ ] Create `src/adw/validation/phase.py` with `ValidationPhase` class
-- [ ] Implement `run(context: RunContext) -> ValidationResult` method
-- [ ] Define `ValidationResult` model with `passed: bool`, `issues: list[ValidationIssue]`, `iteration: int`
-- [ ] Add phase to PHASE_SEQUENCE in pipeline orchestrator
+- [x] Create `src/adw/validation/__init__.py` package
+- [x] Create `src/adw/validation/phase.py` with `ValidationPhase` class
+- [x] Implement `run(context: RunContext) -> ValidationResult` method
+- [x] Define `ValidationResult` model with `passed: bool`, `issues: list[ValidationIssue]`, `iteration: int`
+- [x] Add phase to PHASE_SEQUENCE in pipeline orchestrator (validate already exists)
 
 ### Task 2: Create Validator Protocol
 - [ ] Define `Validator` Protocol in `src/adw/validation/validators/base.py`
@@ -337,10 +337,21 @@ Epic 11: Validation Loop - Story 11.1
 
 ### Agent Model Used
 
-<!-- To be filled during implementation -->
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created ValidationPhase class with run() method, ValidationResult and ValidationIssue models, ValidationConfig. The "validate" phase already exists in PHASE_SEQUENCE so no modification needed. Implemented Validator Protocol in phase.py for future validator implementations.
+
 ### File List
+
+**New Files:**
+- `src/adw/validation/__init__.py` - Package exports
+- `src/adw/validation/config.py` - ValidationConfig model
+- `src/adw/validation/models.py` - ValidationResult, ValidationIssue, ValidationSource
+- `src/adw/validation/phase.py` - ValidationPhase class with Validator Protocol
+- `src/adw/validation/validators/__init__.py` - Validators package (empty, for Tasks 3-5)
+- `tests/unit/validation/__init__.py` - Test package
+- `tests/unit/validation/test_phase.py` - 12 unit tests for ValidationPhase and models
