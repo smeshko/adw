@@ -1,6 +1,6 @@
 # Story 11.1: Unified Validation Phase
 
-Status: in-progress
+Status: review
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
@@ -85,11 +85,11 @@ validation:
   - `review_focus: list[str] = ["security", "error_handling", "edge_cases"]`
 
 ### Task 7: Write Tests
-- [ ] Unit tests for `ValidationPhase.run()` (5 tests)
-- [ ] Unit tests for each Validator implementation (4 tests each = 12 tests)
-- [ ] Unit tests for `ValidatorRegistry` (4 tests)
-- [ ] Integration test for full validation phase with all validators (3 tests)
-- [ ] Test configuration-based validator enabling/disabling (3 tests)
+- [x] Unit tests for `ValidationPhase.run()` (5 tests) - Have 12 tests in test_phase.py
+- [x] Unit tests for each Validator implementation (4 tests each = 12 tests) - Have 19 tests total
+- [x] Unit tests for `ValidatorRegistry` (4 tests) - Have 8 tests in test_base.py
+- [x] Integration test for full validation phase with all validators (3 tests) - Have 3 tests
+- [x] Test configuration-based validator enabling/disabling (3 tests) - Have 3 tests
 
 ---
 
@@ -349,6 +349,7 @@ claude-opus-4-5-20251101
 - Task 4: Implemented ReviewValidator that uses LLM executor for code review. Parses review response for issues with severity levels, supports configurable focus areas, handles LLM errors gracefully.
 - Task 5: Implemented EvidenceValidator that loads evidence manifest from Verify phase and reports failed, errored, or skipped evidence items as issues.
 - Task 6: Added validation field to ProjectConfig model that references ValidationConfig. Fixed circular import issues by using TYPE_CHECKING for RunContext imports in phase.py and base.py.
+- Task 7: Added 6 integration tests covering full validation phase with all validators and configuration-based validator enabling/disabling. Total: 45 tests.
 
 ### File List
 
@@ -369,3 +370,7 @@ claude-opus-4-5-20251101
 - `tests/unit/validation/validators/test_review_validator.py` - 6 unit tests for ReviewValidator
 - `src/adw/validation/validators/evidence_validator.py` - EvidenceValidator implementation
 - `tests/unit/validation/validators/test_evidence_validator.py` - 6 unit tests for EvidenceValidator
+- `tests/unit/validation/test_integration.py` - 6 integration tests
+
+**Modified Files:**
+- `src/adw/models/config.py` - Added validation field to ProjectConfig
