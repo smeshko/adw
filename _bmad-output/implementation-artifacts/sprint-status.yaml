@@ -167,7 +167,7 @@ development_status:
   # EPIC 8: Evidence Gathering
   # Goal: Capture platform-appropriate evidence during Verify phase
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-8: in-progress
+  epic-8: done
   8-1-detect-project-platform-type: done
   8-2-capture-cli-terminal-output: done
   8-3-capture-web-screenshots: done
@@ -183,7 +183,7 @@ development_status:
   # EPIC 9: Git Integration & Documentation
   # Goal: Support git workflows and generate PR-ready documentation
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-9: in-progress
+  epic-9: done
   9-1-create-feature-branch-via-pre-hook: done
   9-2-stage-and-commit-changes-via-post-hook: done
   9-3-capture-git-diff-as-artifact: done
@@ -210,14 +210,14 @@ development_status:
   # Goal: Replace single-pass Verify/Validate phases with iterative
   #       review-fix-review cycle
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-11: backlog
-  11-1-unified-validation-phase: backlog
-  11-2-validation-issue-model: backlog
-  11-3-issue-triage-system: backlog
-  11-4-fix-iteration-loop: backlog
-  11-5-iteration-limits-and-exit-conditions: backlog
-  11-6-validation-state-persistence: backlog
-  11-7-validation-report-generation: backlog
+  epic-11: ready-for-dev
+  11-1-unified-validation-phase: ready-for-dev
+  11-2-validation-issue-model: ready-for-dev
+  11-3-issue-triage-system: ready-for-dev
+  11-4-fix-iteration-loop: ready-for-dev
+  11-5-iteration-limits-and-exit-conditions: ready-for-dev
+  11-6-validation-state-persistence: ready-for-dev
+  11-7-validation-report-generation: ready-for-dev
   epic-11-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
