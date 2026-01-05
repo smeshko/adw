@@ -41,10 +41,10 @@ so that I can process multiple features in parallel.
 - [x] Implement `unregister_run(run_id: str) -> None` to release slot
 
 ### Task 2: Implement Run Slot Tracking
-- [ ] Create lock file per active run: `trees/.locks/<run_id>.lock`
-- [ ] Store run metadata in lock file (PID, start time, worktree path)
-- [ ] Check for stale locks (PID no longer running)
-- [ ] Implement `get_active_runs() -> list[ActiveRun]`
+- [x] Create lock file per active run: `trees/.locks/<run_id>.lock`
+- [x] Store run metadata in lock file (PID, start time, worktree path)
+- [x] Check for stale locks (PID no longer running)
+- [x] Implement `get_active_runs() -> list[ActiveRun]`
 
 ### Task 3: Add Maximum Concurrent Limit
 - [ ] Check `len(get_active_runs()) < max_concurrent` before starting
