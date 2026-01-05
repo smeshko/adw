@@ -69,10 +69,10 @@ so that I can find and inspect them easily.
 - [x] Log artifact preservation operations
 
 ### Task 6: Write Tests
-- [ ] Test trees directory creation and gitignore setup
-- [ ] Test artifact preservation copies correct files
-- [ ] Test artifact manifest is created correctly
-- [ ] Test integration with full worktree lifecycle
+- [x] Test trees directory creation and gitignore setup
+- [x] Test artifact preservation copies correct files
+- [x] Test artifact manifest is created correctly
+- [x] Test integration with full worktree lifecycle
 
 ---
 
