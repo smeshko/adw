@@ -80,9 +80,9 @@ so that concurrent runs don't have port conflicts.
   ```
 
 ### Task 6: Integrate with Hook Environment
-- [ ] Modify `hooks/environment.py` to include port variables
-- [ ] Source `.ports.env` in hook execution or inject directly
-- [ ] Add `ADW_BACKEND_PORT`, `ADW_FRONTEND_PORT` to hook environment
+- [x] Modify `hooks/environment.py` to include port variables
+- [x] Source `.ports.env` in hook execution or inject directly
+- [x] Add `ADW_BACKEND_PORT`, `ADW_FRONTEND_PORT` to hook environment
 
 ### Task 7: Write Tests
 - [ ] Test slot calculation is deterministic for same run_id
@@ -393,6 +393,7 @@ N/A
 - Implemented write_ports_env() for shell-sourceable environment files
 - Added unit tests covering slot calculation, port calculation, and allocation
 - Task 5: Added PortRangeConfig and extended WorktreeConfig with port_range and max_concurrent fields
+- Task 6: Integrated port allocation with hook environment (ADW_BACKEND_PORT, ADW_FRONTEND_PORT, ADW_SLOT)
 
 ### File List
 
@@ -406,4 +407,6 @@ N/A
 - src/adw/models/__init__.py
 - src/adw/models/config.py
 - src/adw/exceptions.py
+- src/adw/hooks/environment.py
 - tests/unit/models/test_config.py
+- tests/unit/hooks/test_environment.py
