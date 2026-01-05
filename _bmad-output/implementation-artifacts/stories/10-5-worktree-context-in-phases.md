@@ -62,9 +62,9 @@ so that file operations happen in the isolated environment.
 - [x] Ensure all artifact references go through this method
 
 ### Task 6: Source .ports.env in Hooks
-- [ ] Auto-source `.ports.env` before hook script runs
-- [ ] Make `BACKEND_PORT`, `FRONTEND_PORT` available to hooks
-- [ ] Add `ADW_PORTS_FILE` environment variable
+- [x] Auto-source `.ports.env` before hook script runs
+- [x] Make `BACKEND_PORT`, `FRONTEND_PORT` available to hooks
+- [x] Add `ADW_PORTS_FILE` environment variable
 
 ### Task 7: Integration Testing
 - [ ] Test phase execution in worktree context
@@ -384,6 +384,14 @@ N/A
 - Priority: worktree_path > project_root > cwd
 - Added 6 unit tests for artifact path resolution
 - All 49 context model tests pass
+
+**Task 6: Source .ports.env in Hooks**
+- Added `_parse_ports_env_file()` helper to parse shell-style env files
+- Added `ports_file` parameter to `build_hook_environment()`
+- Auto-detects `.ports.env` from worktree_path if not explicitly provided
+- Adds `ADW_PORTS_FILE` env var and sources all variables from the file
+- Added 6 unit tests for ports env auto-sourcing
+- All 115 hooks tests pass
 
 ### File List
 
