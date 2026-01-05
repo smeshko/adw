@@ -357,3 +357,52 @@ class ConcurrentRunManager:
 
         except (json.JSONDecodeError, KeyError, ValueError, OSError):
             return None
+
+    def get_orphaned_worktrees(self) -> list[Path]:
+        """Find worktrees without corresponding active locks.
+
+        Scans the worktree base directory for directories that don't have
+        corresponding lock files with running processes. These are considered
+        orphaned and safe to clean up.
+
+        Returns:
+            List of paths to orphaned worktree directories.
+
+        Note:
+            This method first calls get_active_runs() to clean up any stale
+            locks before determining which worktrees are orphaned.
+        """
+        # First, clean up stale locks by getting active runs
+        active_run_ids = {run.run_id for run in self.get_active_runs()}
+
+        worktree_base = self.project_root / self._base_dir
+        if not worktree_base.exists():
+            return []
+
+        orphaned: list[Path] = []
+
+        for entry in worktree_base.iterdir():
+            # Skip non-directories and special entries
+            if not entry.is_dir():
+                continue
+            if entry.name.startswith("."):
+                continue  # Skip .locks and other hidden directories
+
+            run_id = entry.name
+
+            # If this worktree has an active lock, it's not orphaned
+            if run_id in active_run_ids:
+                continue
+
+            # Verify it looks like a git worktree (has .git file or directory)
+            if (entry / ".git").exists():
+                orphaned.append(entry)
+                logger.debug(
+                    "Found orphaned worktree",
+                    extra={
+                        "run_id": run_id,
+                        "path": str(entry),
+                    },
+                )
+
+        return orphaned

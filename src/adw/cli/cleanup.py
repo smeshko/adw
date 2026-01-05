@@ -4,14 +4,17 @@ This module provides the cleanup command that allows users to remove
 worktrees and optionally delete their associated branches.
 """
 
+from pathlib import Path
+
 import typer
 from rich.console import Console
 from rich.prompt import Confirm
+from rich.table import Table
 
 from adw.cli.bootstrap import get_runs_dir
 from adw.core import ContextManager
 from adw.exceptions import ConfigError, StateError, WorktreeError
-from adw.worktree import WorktreeManager
+from adw.worktree import ConcurrentRunManager, WorktreeManager
 
 console = Console()
 
@@ -145,3 +148,107 @@ def cleanup_command(
             raise typer.Exit(1) from None
         else:
             raise
+
+
+def cleanup_orphans_command(
+    delete_branch: bool = typer.Option(
+        False,
+        "--delete-branch",
+        "-b",
+        help="Also delete the adw/<run_id> branch for each orphaned worktree",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Skip confirmation prompt and force remove even with uncommitted changes",
+    ),
+) -> None:
+    """Find and remove orphaned worktrees.
+
+    Scans for worktrees that don't have corresponding active lock files
+    (from crashed or killed runs) and removes them after confirmation.
+
+    Examples:
+        # Find and list orphaned worktrees
+        adw cleanup-orphans
+
+        # Remove orphaned worktrees and their branches
+        adw cleanup-orphans --delete-branch
+
+        # Skip confirmation
+        adw cleanup-orphans --force
+    """
+    project_root = Path.cwd()
+    manager = ConcurrentRunManager(project_root)
+
+    orphaned = manager.get_orphaned_worktrees()
+
+    if not orphaned:
+        console.print("[green]No orphaned worktrees found[/]")
+        return
+
+    # Display orphaned worktrees
+    table = Table(title=f"Orphaned Worktrees ({len(orphaned)})")
+    table.add_column("Run ID", style="cyan", no_wrap=True)
+    table.add_column("Path", style="dim", max_width=50)
+
+    for worktree_path in orphaned:
+        run_id = worktree_path.name
+        path_str = str(worktree_path)
+        if len(path_str) > 50:
+            path_str = "..." + path_str[-47:]
+        table.add_row(run_id, path_str)
+
+    console.print(table)
+
+    # Confirm cleanup
+    if not force:
+        msg = "Remove these orphaned worktrees?"
+        if delete_branch:
+            msg = "Remove these orphaned worktrees and their branches?"
+        if not Confirm.ask(msg, default=False):
+            console.print("[green]Cleanup cancelled[/]")
+            return
+
+    # Remove each orphaned worktree
+    worktree_manager = WorktreeManager(
+        project_root=project_root,
+        base_dir=manager._base_dir,
+    )
+
+    removed_count = 0
+    branch_deleted_count = 0
+
+    for worktree_path in orphaned:
+        run_id = worktree_path.name
+
+        try:
+            worktree_removed, branch_deleted = worktree_manager.remove_worktree(
+                run_id,
+                force=force,
+                delete_branch=delete_branch,
+            )
+
+            if worktree_removed:
+                removed_count += 1
+                console.print(f"[green]✓[/] Removed: {run_id}")
+
+            if branch_deleted:
+                branch_deleted_count += 1
+
+        except WorktreeError as e:
+            if e.code == "WORKTREE_NOT_FOUND":
+                console.print(f"[yellow]![/] Already removed: {run_id}")
+            elif e.code == "WORKTREE_HAS_CHANGES":
+                console.print(
+                    f"[yellow]![/] Has uncommitted changes (use --force): {run_id}"
+                )
+            else:
+                console.print(f"[red]✗[/] Error removing {run_id}: {e.message}")
+
+    # Summary
+    console.print()
+    console.print(f"[bold]Summary:[/] Removed {removed_count} orphaned worktrees")
+    if delete_branch:
+        console.print(f"[bold]Branches deleted:[/] {branch_deleted_count}")

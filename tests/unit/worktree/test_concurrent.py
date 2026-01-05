@@ -333,6 +333,97 @@ class TestConcurrentRunManager:
         assert {r.run_id for r in runs} == set(run_ids)
 
 
+class TestOrphanedWorktrees:
+    """Tests for orphaned worktree detection."""
+
+    @pytest.fixture
+    def manager(self, tmp_path: Path) -> ConcurrentRunManager:
+        """Create a ConcurrentRunManager for testing."""
+        return ConcurrentRunManager(tmp_path, max_concurrent=15)
+
+    def test_get_orphaned_worktrees_empty(
+        self, manager: ConcurrentRunManager
+    ) -> None:
+        """Returns empty list when no worktrees exist."""
+        orphaned = manager.get_orphaned_worktrees()
+        assert orphaned == []
+
+    def test_get_orphaned_worktrees_finds_orphans(
+        self, manager: ConcurrentRunManager, tmp_path: Path
+    ) -> None:
+        """Detects worktrees without active locks."""
+        # Create a fake worktree directory with .git
+        worktree_dir = tmp_path / "trees" / "orphaned_run"
+        worktree_dir.mkdir(parents=True)
+        (worktree_dir / ".git").touch()  # Marker for git worktree
+
+        orphaned = manager.get_orphaned_worktrees()
+
+        assert len(orphaned) == 1
+        assert orphaned[0] == worktree_dir
+
+    def test_get_orphaned_worktrees_ignores_active_runs(
+        self, manager: ConcurrentRunManager, tmp_path: Path
+    ) -> None:
+        """Does not report worktrees with active locks."""
+        run_id = "01HQTEST123456789ABCD"
+        worktree_dir = tmp_path / "trees" / run_id
+        worktree_dir.mkdir(parents=True)
+        (worktree_dir / ".git").touch()
+
+        # Register the run (creates lock with current PID)
+        manager.register_run(
+            run_id=run_id,
+            worktree_path=worktree_dir,
+        )
+
+        orphaned = manager.get_orphaned_worktrees()
+
+        # Worktree is not orphaned because it has an active lock
+        assert len(orphaned) == 0
+
+    def test_get_orphaned_worktrees_ignores_non_git_directories(
+        self, manager: ConcurrentRunManager, tmp_path: Path
+    ) -> None:
+        """Ignores directories without .git marker."""
+        # Create a directory without .git
+        non_git_dir = tmp_path / "trees" / "not_a_worktree"
+        non_git_dir.mkdir(parents=True)
+
+        orphaned = manager.get_orphaned_worktrees()
+
+        assert len(orphaned) == 0
+
+    def test_get_orphaned_worktrees_ignores_hidden_directories(
+        self, manager: ConcurrentRunManager, tmp_path: Path
+    ) -> None:
+        """Ignores hidden directories like .locks."""
+        locks_dir = tmp_path / "trees" / ".locks"
+        locks_dir.mkdir(parents=True)
+        (locks_dir / ".git").touch()  # Even if it has .git
+
+        orphaned = manager.get_orphaned_worktrees()
+
+        assert len(orphaned) == 0
+
+    def test_get_orphaned_worktrees_multiple(
+        self, manager: ConcurrentRunManager, tmp_path: Path
+    ) -> None:
+        """Detects multiple orphaned worktrees."""
+        run_ids = ["orphan1", "orphan2", "orphan3"]
+
+        for run_id in run_ids:
+            worktree_dir = tmp_path / "trees" / run_id
+            worktree_dir.mkdir(parents=True)
+            (worktree_dir / ".git").touch()
+
+        orphaned = manager.get_orphaned_worktrees()
+
+        assert len(orphaned) == 3
+        orphaned_names = {p.name for p in orphaned}
+        assert orphaned_names == set(run_ids)
+
+
 class TestMaxConcurrentRunsError:
     """Tests for MaxConcurrentRunsError exception."""
 

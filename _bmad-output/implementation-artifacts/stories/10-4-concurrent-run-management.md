@@ -58,11 +58,11 @@ so that I can process multiple features in parallel.
 - [x] Show elapsed time since start
 
 ### Task 5: Implement Cleanup Command
-- [ ] Add `adw cleanup` command to CLI
-- [ ] Find orphaned worktrees (worktree exists but no lock or stale lock)
-- [ ] Show list of orphaned worktrees with confirmation prompt
-- [ ] Remove worktrees and associated branches on confirmation
-- [ ] Add `--force` flag to skip confirmation
+- [x] Add `adw cleanup-orphans` command to CLI
+- [x] Find orphaned worktrees (worktree exists but no lock or stale lock)
+- [x] Show list of orphaned worktrees with confirmation prompt
+- [x] Remove worktrees and associated branches on confirmation
+- [x] Add `--force` flag to skip confirmation
 
 ### Task 6: Integrate with Orchestrator
 - [ ] Call `can_start_run()` before worktree creation
