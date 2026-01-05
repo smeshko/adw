@@ -1126,3 +1126,102 @@ class TestFixIterationResult:
         assert result.files_modified == []
         assert result.validation_rerun is False
         assert result.iteration_number == 0
+
+
+class TestFixValidateCycle:
+    """Integration tests for the complete fix→validate cycle."""
+
+    def test_full_cycle_issue_resolved(
+        self,
+        mock_llm_executor: MagicMock,
+        mock_context: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Full cycle: fix is applied, issue resolved on re-validation."""
+        # LLM returns a fix
+        test_file = tmp_path / "test.py"
+        test_file.write_text("broken_code()")
+
+        mock_llm_executor.execute.return_value = MagicMock(
+            success=True,
+            content=f'''{{
+                "fixes": [{{
+                    "issue_id": "VI-001",
+                    "file_path": "{test_file}",
+                    "replacement": "fixed_code()"
+                }}]
+            }}''',
+        )
+
+        issue = ValidationIssue(
+            id="VI-001",
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failed",
+            location=IssueLocation(file_path=str(test_file)),
+            triage_decision="FIX",
+        )
+
+        # Validator returns no issues (fix worked)
+        validator = MockValidator("test", [])
+
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[validator],
+        )
+
+        result = engine.attempt_fixes([issue], mock_context)
+
+        # Issue should be fixed
+        assert "VI-001" in result.issues_fixed
+        assert result.validation_rerun is True
+        # File should be modified
+        assert test_file.read_text() == "fixed_code()"
+
+    def test_full_cycle_issue_remains(
+        self,
+        mock_llm_executor: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
+        """Full cycle: fix is attempted but issue remains on re-validation."""
+        mock_llm_executor.execute.return_value = MagicMock(
+            success=True,
+            content='{"fixes": []}',  # No fix available
+        )
+
+        issue = ValidationIssue(
+            id="VI-001",
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Persistent test failure",
+            location=IssueLocation(file_path="tests/test.py"),
+            triage_decision="FIX",
+        )
+
+        # Validator returns same issue (still broken)
+        same_issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Persistent test failure",
+            location=IssueLocation(file_path="tests/test.py"),
+        )
+        validator = MockValidator("test", [same_issue])
+
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(max_fix_attempts_per_issue=3),
+            validators=[validator],
+        )
+
+        result = engine.attempt_fixes([issue], mock_context)
+
+        # Issue should remain
+        assert result.issues_fixed == []
+        assert "VI-001" in result.issues_remaining
+        assert result.validation_rerun is True
+
+        # Issue should have updated tracking
+        assert issue.fix_attempt_count == 1
+        assert issue.fix_attempted is True
+        assert issue.last_fix_result == FixResult.FAILED

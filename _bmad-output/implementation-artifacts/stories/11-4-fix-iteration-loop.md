@@ -83,12 +83,15 @@ so that issues are resolved automatically when possible.
 - [x] Support serialization for state persistence
 
 ### Task 8: Write Tests
-- [ ] Unit tests for FixEngine (6 tests)
-- [ ] Unit tests for fix prompt generation (4 tests)
-- [ ] Unit tests for fix application (5 tests)
-- [ ] Unit tests for selective re-validation (4 tests)
-- [ ] Unit tests for auto-defer logic (3 tests)
-- [ ] Integration test for fix→validate cycle (2 tests)
+- [x] Unit tests for FixEngine (5 tests)
+- [x] Unit tests for fix prompt generation (5 tests)
+- [x] Unit tests for fix application (7 tests)
+- [x] Unit tests for selective re-validation (6 tests)
+- [x] Unit tests for auto-defer logic (3 tests)
+- [x] Unit tests for FixIterationResult (4 tests)
+- [x] Unit tests for fix attempt tracking (4 tests)
+- [x] Integration test for fix→validate cycle (2 tests)
+- **Total: 36 tests, 93% coverage on fix_engine.py**
 
 ---
 
