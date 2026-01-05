@@ -1,6 +1,6 @@
 # Story 11.5: Iteration Limits and Exit Conditions
 
-Status: draft
+Status: done
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
@@ -40,34 +40,34 @@ validation:
 ## Tasks / Subtasks
 
 ### Task 1: Create ValidationLoopController
-- [ ] Create `src/adw/validation/loop_controller.py`
-- [ ] Define `ValidationLoopController` class
-- [ ] Track iteration count, stall count
-- [ ] Inject ValidationConfig for limits
+- [x] Create `src/adw/validation/loop_controller.py`
+- [x] Define `ValidationLoopController` class
+- [x] Track iteration count, stall count
+- [x] Inject ValidationConfig for limits
 
 ### Task 2: Implement Exit Condition Checks
-- [ ] Create `should_exit() -> tuple[bool, str]` method
-- [ ] Check `iteration_count >= max_iterations`
-- [ ] Check `all_issues_resolved_or_deferred()`
-- [ ] Check `stall_count >= stall_threshold`
-- [ ] Return (should_exit, reason)
+- [x] Create `should_exit() -> tuple[bool, str]` method
+- [x] Check `iteration_count >= max_iterations`
+- [x] Check `all_issues_resolved_or_deferred()`
+- [x] Check `stall_count >= stall_threshold`
+- [x] Return (should_exit, reason)
 
 ### Task 3: Implement Stall Detection
-- [ ] Create `check_progress(prev_issues, curr_issues) -> bool`
-- [ ] Compare issue counts and states
-- [ ] Detect "same issues, same state" stall
-- [ ] Increment stall counter when no progress
+- [x] Create `check_progress(prev_issues, curr_issues) -> bool`
+- [x] Compare issue counts and states
+- [x] Detect "same issues, same state" stall
+- [x] Increment stall counter when no progress
 
 ### Task 4: Implement Auto-Defer on Exit
-- [ ] When loop exits with remaining FIX issues
-- [ ] Auto-change to DEFER for all remaining
-- [ ] Set reason based on exit condition:
+- [x] When loop exits with remaining FIX issues
+- [x] Auto-change to DEFER for all remaining
+- [x] Set reason based on exit condition:
   - "Max iterations reached (5)"
   - "No progress after 2 iterations"
-- [ ] Log auto-defer decisions
+- [x] Log auto-defer decisions
 
 ### Task 5: Add Loop State Tracking
-- [ ] Create `LoopState` model with:
+- [x] Create `LoopState` model with:
   - `current_iteration: int`
   - `total_issues_found: int`
   - `issues_resolved: int`
@@ -75,26 +75,26 @@ validation:
   - `issues_deferred: int`
   - `stall_count: int`
   - `last_progress_iteration: int`
-- [ ] Update state after each iteration
+- [x] Update state after each iteration
 
 ### Task 6: Integrate with ValidationPhase
-- [ ] Modify ValidationPhase to use LoopController
-- [ ] Main loop: validate → triage → fix → repeat
-- [ ] Check exit conditions after each iteration
-- [ ] Handle graceful exit with summary
+- [x] Modify ValidationPhase to use LoopController
+- [x] Main loop: validate → triage → fix → repeat
+- [x] Check exit conditions after each iteration
+- [x] Handle graceful exit with summary
 
 ### Task 7: Add Loop Progress Display
-- [ ] Display iteration progress: "Iteration 2/5"
-- [ ] Show issues: "3 fixed, 2 remaining, 1 deferred"
-- [ ] Indicate stall warning if detected
-- [ ] Show exit reason when loop completes
+- [x] Display iteration progress: "Iteration 2/5"
+- [x] Show issues: "3 fixed, 2 remaining, 1 deferred"
+- [x] Indicate stall warning if detected
+- [x] Show exit reason when loop completes
 
 ### Task 8: Write Tests
-- [ ] Unit tests for ValidationLoopController (6 tests)
-- [ ] Unit tests for exit condition checks (5 tests)
-- [ ] Unit tests for stall detection (4 tests)
-- [ ] Unit tests for auto-defer logic (3 tests)
-- [ ] Integration test for full loop execution (2 tests)
+- [x] Unit tests for ValidationLoopController (6 tests)
+- [x] Unit tests for exit condition checks (5 tests)
+- [x] Unit tests for stall detection (4 tests)
+- [x] Unit tests for auto-defer logic (4 tests)
+- [x] Integration test for full loop execution (2 tests)
 
 ---
 
