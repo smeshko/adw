@@ -62,10 +62,10 @@ so that I can resume validation after interruption.
 - [x] Preserve triage reasoning for audit
 
 ### Task 5: Implement Fix History Persistence
-- [ ] Create `save_fix_history(history: list[FixIterationResult]) -> None`
-- [ ] Create `load_fix_history() -> list[FixIterationResult]`
-- [ ] Store at `.adw/runs/<id>/validation/fix-history.json`
-- [ ] Include file modifications for each iteration
+- [x] Create `save_fix_history(history: list[FixIterationResult]) -> None`
+- [x] Create `load_fix_history() -> list[FixIterationResult]`
+- [x] Store at `.adw/runs/<id>/validation/fix-history.json`
+- [x] Include file modifications for each iteration
 
 ### Task 6: Implement State Snapshot
 - [ ] Create `save_state(state: ValidationState) -> None`

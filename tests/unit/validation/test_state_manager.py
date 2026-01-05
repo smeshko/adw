@@ -225,6 +225,19 @@ class TestTriagePersistence:
 class TestFixHistoryPersistence:
     """Tests for fix history save/load."""
 
+    def test_fix_history_stored_at_correct_path(self, tmp_path: Path) -> None:
+        """Fix history is stored at .adw/runs/<id>/validation/fix-history.json."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        history = [{"iteration": 1, "issues_fixed": 1, "files_modified": []}]
+        manager.save_fix_history(history)
+
+        expected_path = base_path / "validation" / "fix-history.json"
+        assert expected_path.exists()
+        assert manager.fix_history_file == expected_path
+
     def test_save_and_load_fix_history(self, tmp_path: Path) -> None:
         """Fix history round-trips correctly."""
         base_path = tmp_path / "run-123"
@@ -248,6 +261,44 @@ class TestFixHistoryPersistence:
         assert loaded[0]["iteration"] == 1
         assert loaded[0]["issues_fixed"] == 3
         assert "timestamp" in loaded[0]  # Auto-added
+
+    def test_fix_history_includes_file_modifications(self, tmp_path: Path) -> None:
+        """Fix history preserves file modifications for each iteration."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        history = [
+            {
+                "iteration": 1,
+                "issues_fixed": 2,
+                "issues_remaining": 3,
+                "issues_deferred": 0,
+                "files_modified": [
+                    "src/adw/validation/models.py",
+                    "src/adw/validation/phase.py",
+                    "tests/unit/validation/test_models.py",
+                ],
+            },
+            {
+                "iteration": 2,
+                "issues_fixed": 3,
+                "issues_remaining": 0,
+                "issues_deferred": 0,
+                "files_modified": ["src/adw/validation/phase.py"],
+            },
+        ]
+
+        manager.save_fix_history(history)
+        loaded = manager.load_fix_history()
+
+        assert len(loaded) == 2
+        assert loaded[0]["files_modified"] == [
+            "src/adw/validation/models.py",
+            "src/adw/validation/phase.py",
+            "tests/unit/validation/test_models.py",
+        ]
+        assert loaded[1]["files_modified"] == ["src/adw/validation/phase.py"]
 
     def test_load_fix_history_empty(self, tmp_path: Path) -> None:
         """Load returns empty list when no fix history file exists."""
