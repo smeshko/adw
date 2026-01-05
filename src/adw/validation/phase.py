@@ -5,16 +5,18 @@ evidence gathering, code review, and test execution into a single
 validation phase.
 
 State persistence is handled via ValidationStateManager for resume support.
+Report generation via ValidationReportGenerator produces summary reports.
 """
 
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from adw.validation.config import ValidationConfig
-from adw.validation.loop_controller import ValidationLoopController
+from adw.validation.loop_controller import ExitReason, ValidationLoopController
 from adw.validation.models import (
     LoopState,
     ValidationIssue,
@@ -22,6 +24,7 @@ from adw.validation.models import (
     ValidationSource,
     ValidationState,
 )
+from adw.validation.report import ValidationReport, ValidationReportGenerator
 from adw.validation.state_manager import ValidationStateManager
 from adw.validation.validators.base import Validator, ValidatorRegistry
 
@@ -77,11 +80,17 @@ class ValidationPhase:
         self._state_manager: ValidationStateManager | None = None
         self._state: ValidationState | None = None
         self._loop_controller = ValidationLoopController(self.config)
+        self._report_generator: ValidationReportGenerator | None = None
+        self._start_time: datetime = datetime.now(UTC)
+        self._last_report: ValidationReport | None = None
 
-        # Initialize state manager if run_id is provided
+        # Initialize state manager and report generator if run_id is provided
         if run_id and runs_dir:
             base_path = runs_dir / run_id
             self._state_manager = ValidationStateManager(run_id, base_path)
+            self._report_generator = ValidationReportGenerator(
+                self._state_manager, self.config
+            )
             self._check_resume()
 
     def _check_resume(self) -> None:
@@ -243,13 +252,75 @@ class ValidationPhase:
         """
         return self._loop_controller
 
-    def get_summary(self) -> dict:
+    def get_summary(self) -> dict[str, Any]:
         """Get summary of loop execution from the controller.
 
         Returns:
             Dictionary with iteration stats, issue counts, and stall info.
         """
         return self._loop_controller.get_summary()
+
+    @property
+    def last_report(self) -> ValidationReport | None:
+        """Get the most recent validation report.
+
+        Returns:
+            ValidationReport if generated, None otherwise.
+        """
+        return self._last_report
+
+    def generate_report(
+        self,
+        issues: list[ValidationIssue],
+        exit_reason: ExitReason | str | None = None,
+    ) -> ValidationReport | None:
+        """Generate validation report from loop results.
+
+        Creates a ValidationReport with all metrics and deferred issues,
+        and saves both markdown and JSON versions to artifacts.
+
+        Args:
+            issues: All validation issues from the loop.
+            exit_reason: Why the loop exited. If None, will be inferred.
+
+        Returns:
+            ValidationReport if generator is available, None otherwise.
+        """
+        if not self._report_generator:
+            logger.warning("No report generator available (run_id not set)")
+            return None
+
+        loop_summary = self._loop_controller.get_summary()
+
+        # Add exit reason to summary if provided
+        if exit_reason:
+            if isinstance(exit_reason, ExitReason):
+                loop_summary["exit_reason"] = exit_reason.value
+            else:
+                loop_summary["exit_reason"] = exit_reason
+        elif "exit_reason" not in loop_summary:
+            loop_summary["exit_reason"] = "COMPLETED"
+
+        report = self._report_generator.generate(
+            loop_summary, issues, self._start_time
+        )
+
+        # Save the report to artifacts
+        report_path = self._report_generator.save(report)
+        logger.info("Validation report saved", extra={"path": str(report_path)})
+
+        self._last_report = report
+        return report
+
+    def get_pr_section(self) -> str:
+        """Get PR description section for known issues.
+
+        Returns:
+            Markdown string for PR description, or empty if no report.
+        """
+        if self._last_report:
+            return self._last_report.to_pr_section()
+        return ""
 
     def _run_validators(self, context: RunContext) -> list[ValidationIssue]:
         """Run all enabled validators and collect issues.

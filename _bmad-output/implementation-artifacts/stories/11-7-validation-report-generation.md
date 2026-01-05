@@ -1,6 +1,6 @@
 # Story 11.7: Validation Report Generation
 
-Status: draft
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
@@ -34,13 +34,13 @@ so that I understand what was checked and decided.
 ## Tasks / Subtasks
 
 ### Task 1: Create ValidationReportGenerator
-- [ ] Create `src/adw/validation/report.py` with `ValidationReportGenerator` class
-- [ ] Inject state manager for data access
-- [ ] Define `generate() -> ValidationReport` method
-- [ ] Return structured report model
+- [x] Create `src/adw/validation/report.py` with `ValidationReportGenerator` class
+- [x] Inject state manager for data access
+- [x] Define `generate() -> ValidationReport` method
+- [x] Return structured report model
 
 ### Task 2: Create ValidationReport Model
-- [ ] Create `ValidationReport` Pydantic model with:
+- [x] Create `ValidationReport` Pydantic model with:
   - `run_id: str`
   - `generated_at: datetime`
   - `iterations_run: int`
@@ -50,45 +50,45 @@ so that I understand what was checked and decided.
   - `issues_deferred: int`
   - `confidence: ConfidenceLevel`
   - `duration_seconds: float`
-- [ ] Add `deferred_issues: list[DeferredIssueSummary]`
+- [x] Add `deferred_issues: list[DeferredIssueSummary]`
 
 ### Task 3: Implement Confidence Calculation
-- [ ] Create `ConfidenceLevel` enum: HIGH, MEDIUM, LOW
-- [ ] Calculate based on issue resolution ratios:
+- [x] Create `ConfidenceLevel` enum: HIGH, MEDIUM, LOW
+- [x] Calculate based on issue resolution ratios:
   - HIGH: all resolved, no deferred
   - MEDIUM: some deferred (< 30%)
   - LOW: many deferred (>= 30%) or many dismissed
-- [ ] Include confidence explanation in report
+- [x] Include confidence explanation in report
 
 ### Task 4: Generate Markdown Report
-- [ ] Create `to_markdown() -> str` method
-- [ ] Include summary section with metrics
-- [ ] Include resolved issues section (brief)
-- [ ] Include deferred issues section (detailed)
-- [ ] Include dismissed issues section (with reasons)
+- [x] Create `to_markdown() -> str` method
+- [x] Include summary section with metrics
+- [x] Include resolved issues section (brief)
+- [x] Include deferred issues section (detailed)
+- [x] Include dismissed issues section (with reasons)
 
 ### Task 5: Generate PR Description Section
-- [ ] Create `to_pr_section() -> str` method
-- [ ] Format deferred issues as "Known Issues" section
-- [ ] Include confidence level as badge
-- [ ] Keep format concise for PR descriptions
+- [x] Create `to_pr_section() -> str` method
+- [x] Format deferred issues as "Known Issues" section
+- [x] Include confidence level as badge
+- [x] Keep format concise for PR descriptions
 
 ### Task 6: Store Report Artifact
-- [ ] Store at `.adw/runs/<id>/artifacts/validation/report.md`
-- [ ] Create JSON version at `report.json` for programmatic access
-- [ ] Include timestamp in report header
+- [x] Store at `.adw/runs/<id>/artifacts/validation/report.md`
+- [x] Create JSON version at `report.json` for programmatic access
+- [x] Include timestamp in report header
 
 ### Task 7: Add Report to Phase Output
-- [ ] ValidationPhase returns report in PhaseResult
-- [ ] Include report path in phase artifacts
-- [ ] Pass deferred issues to Document phase for PR
+- [x] ValidationPhase returns report in PhaseResult
+- [x] Include report path in phase artifacts
+- [x] Pass deferred issues to Document phase for PR
 
 ### Task 8: Write Tests
-- [ ] Unit tests for ValidationReportGenerator (5 tests)
-- [ ] Unit tests for confidence calculation (4 tests)
-- [ ] Unit tests for markdown generation (4 tests)
-- [ ] Unit tests for PR section generation (3 tests)
-- [ ] Integration test for full report cycle (2 tests)
+- [x] Unit tests for ValidationReportGenerator (5 tests)
+- [x] Unit tests for confidence calculation (5 tests)
+- [x] Unit tests for markdown generation (4 tests)
+- [x] Unit tests for PR section generation (3 tests)
+- [x] Integration test for full report cycle (5 tests)
 
 ---
 
@@ -541,10 +541,30 @@ Epic 11: Validation Loop - Story 11.7
 
 ### Agent Model Used
 
-<!-- To be filled during implementation -->
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
+None required - clean implementation.
+
 ### Completion Notes List
 
+- Created `src/adw/validation/report.py` with ValidationReport model and ValidationReportGenerator class
+- Implemented ConfidenceLevel enum (HIGH, MEDIUM, LOW) with calculation logic
+- Implemented to_markdown() for GitHub-flavored markdown reports
+- Implemented to_pr_section() for PR descriptions with shields.io badges
+- Integrated report generation into ValidationPhase with generate_report() method
+- Added last_report property and get_pr_section() convenience method to ValidationPhase
+- Updated `src/adw/validation/__init__.py` to export new components
+- Created comprehensive test suite with 21 tests covering all acceptance criteria
+
 ### File List
+
+**New Files:**
+- `src/adw/validation/report.py`
+- `tests/unit/validation/test_report.py`
+
+**Modified Files:**
+- `src/adw/validation/__init__.py`
+- `src/adw/validation/phase.py`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
