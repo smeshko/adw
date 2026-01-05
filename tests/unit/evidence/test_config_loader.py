@@ -34,7 +34,7 @@ class TestLoadEvidenceConfig:
         with TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             config_dir = project_root / ".adw"
-            config_dir.mkdir()
+            config_dir.mkdir(exist_ok=True)
 
             config_file = config_dir / "project.yaml"
             config_file.write_text("""
@@ -64,7 +64,7 @@ evidence:
         with TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             config_dir = project_root / ".adw"
-            config_dir.mkdir()
+            config_dir.mkdir(exist_ok=True)
 
             config_file = config_dir / "project.yaml"
             config_file.write_text("""
@@ -89,7 +89,7 @@ evidence:
         with TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             config_dir = project_root / ".adw"
-            config_dir.mkdir()
+            config_dir.mkdir(exist_ok=True)
 
             config_file = config_dir / "project.yaml"
             config_file.write_text("""
@@ -116,7 +116,7 @@ evidence:
         with TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             config_dir = project_root / ".adw"
-            config_dir.mkdir()
+            config_dir.mkdir(exist_ok=True)
 
             config_file = config_dir / "project.yaml"
             config_file.write_text("""
@@ -139,7 +139,7 @@ platform: "backend"
         with TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             config_dir = project_root / ".adw"
-            config_dir.mkdir()
+            config_dir.mkdir(exist_ok=True)
 
             config_file = config_dir / "project.yaml"
             config_file.write_text("""
@@ -169,7 +169,7 @@ evidence:
         with TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             config_dir = project_root / ".adw"
-            config_dir.mkdir()
+            config_dir.mkdir(exist_ok=True)
 
             config_file = config_dir / "project.yaml"
             config_file.write_text("""

@@ -43,8 +43,11 @@ def isolated_global_index(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Pa
         that need to test the real index behavior can use monkeypatch to
         temporarily unset the environment variable.
     """
-    test_index_path = tmp_path / ".adw" / "test-index.jsonl"
-    test_index_path.parent.mkdir(parents=True, exist_ok=True)
+    # Use a separate directory for test index to avoid interfering with
+    # tests that check for presence/absence of .adw/ directory
+    test_index_dir = tmp_path / ".adw-test-index"
+    test_index_dir.mkdir(parents=True, exist_ok=True)
+    test_index_path = test_index_dir / "index.jsonl"
     monkeypatch.setenv("ADW_TEST_INDEX_PATH", str(test_index_path))
     return test_index_path
 

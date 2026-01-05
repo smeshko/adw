@@ -379,7 +379,7 @@ class TestConfigBasedRouteLoading:
 
         # Create a test config file
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         config_file.write_text(
             """
@@ -425,7 +425,7 @@ evidence:
 
         # Create a config file without evidence section
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         config_file.write_text(
             """
@@ -449,7 +449,7 @@ project:
 
         # Create config with routes but no viewports
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         config_file.write_text(
             """
@@ -471,7 +471,7 @@ evidence:
 
         # Create config with invalid route (missing path)
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         config_file.write_text(
             """

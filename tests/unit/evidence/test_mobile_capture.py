@@ -521,7 +521,7 @@ class TestLoadMobileScreensConfig:
         """Test loading screens from .adw/project.yaml."""
         # Create config directory and file
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         config_file.write_text("""
 evidence:
@@ -552,7 +552,7 @@ evidence:
     def test_load_config_handles_invalid_yaml(self, tmp_path: Path) -> None:
         """Test graceful handling of invalid YAML."""
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         config_file.write_text("invalid: yaml: content:")
 
@@ -815,7 +815,7 @@ class TestCaptureConfiguredScreens:
         """Test capturing screens with configuration."""
         # Create config
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         (config_dir / "project.yaml").write_text("""
 evidence:
   mobile_screens:

@@ -25,7 +25,7 @@ class TestRunCommandIntegration:
         """Test run command with project config present."""
         # Create project structure
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         config_file.write_text("""
 name: test-project
@@ -154,7 +154,7 @@ class TestConfigIntegration:
     ) -> None:
         """Test that run works with incomplete config (uses defaults)."""
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         # Missing required fields - current implementation uses defaults
         config_file.write_text("""
@@ -179,7 +179,7 @@ framework: fastapi
     ) -> None:
         """Test that malformed YAML doesn't block run (uses defaults)."""
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         config_file.write_text("""
 name: test

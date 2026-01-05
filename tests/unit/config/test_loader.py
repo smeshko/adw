@@ -29,7 +29,7 @@ class TestConfigLoader:
     def test_load_from_project_config(self, tmp_path) -> None:
         """Test loading config from .adw/project.yaml."""
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         config_file.write_text("""
 name: my-test-project
@@ -63,7 +63,7 @@ framework: fastapi
     def test_load_with_invalid_config_raises_error(self, tmp_path) -> None:
         """Test that invalid config file raises ConfigError."""
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         config_file.write_text("""
 # Missing required fields
@@ -80,7 +80,7 @@ framework: fastapi
     def test_load_with_malformed_yaml_raises_error(self, tmp_path) -> None:
         """Test that malformed YAML raises ConfigError."""
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         config_file.write_text("""
 name: test
@@ -103,7 +103,7 @@ name: test
     def test_has_project_config_returns_true_when_exists(self, tmp_path) -> None:
         """Test has_project_config returns True when file exists."""
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         (config_dir / "project.yaml").write_text("name: test\nlanguage: python")
 
         loader = ConfigLoader(project_root=tmp_path)
@@ -117,7 +117,7 @@ name: test
     def test_load_returns_immutable_config(self, tmp_path) -> None:
         """Test that config modifications don't affect future loads."""
         config_dir = tmp_path / ".adw"
-        config_dir.mkdir()
+        config_dir.mkdir(exist_ok=True)
         config_file = config_dir / "project.yaml"
         config_file.write_text("""
 name: test-project
