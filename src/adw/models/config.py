@@ -208,6 +208,10 @@ class WorktreeConfig(BaseModel):
         preserve_on_failure: Keep worktree on failure for debugging (default: True)
         cleanup_branch_on_remove: Delete the adw/<run_id> branch when removing
             the worktree (default: False)
+        preserve_artifacts: List of artifact names to preserve when cleaning up
+            worktrees (default: ["context.json", "logs", "artifacts", "llm"])
+        artifact_manifest_file: Name of manifest file created during preservation
+            (default: "worktree-artifacts.json")
 
     Example:
         >>> config = WorktreeConfig(enabled=True, base_dir=".worktrees")
@@ -215,6 +219,8 @@ class WorktreeConfig(BaseModel):
         True
         >>> config.base_dir
         '.worktrees'
+        >>> config.preserve_artifacts
+        ['context.json', 'logs', 'artifacts', 'llm']
 
     YAML example:
         worktree:
@@ -222,6 +228,13 @@ class WorktreeConfig(BaseModel):
           base_dir: "trees"
           preserve_on_failure: true
           cleanup_branch_on_remove: false
+          preserve_artifacts:
+            - context.json
+            - logs
+            - artifacts
+            - llm
+            - custom-output.json
+          artifact_manifest_file: "worktree-artifacts.json"
     """
 
     enabled: bool = Field(
@@ -239,6 +252,14 @@ class WorktreeConfig(BaseModel):
     cleanup_branch_on_remove: bool = Field(
         default=False,
         description="Delete the adw/<run_id> branch when removing worktree",
+    )
+    preserve_artifacts: list[str] = Field(
+        default=["context.json", "logs", "artifacts", "llm"],
+        description="List of artifact names to preserve when cleaning up worktrees",
+    )
+    artifact_manifest_file: str = Field(
+        default="worktree-artifacts.json",
+        description="Name of manifest file created during artifact preservation",
     )
 
 

@@ -59,9 +59,9 @@ so that I can find and inspect them easily.
 - [x] Create manifest of preserved artifacts
 
 ### Task 4: Add Configuration for Artifact Preservation
-- [ ] Add `preserve_artifacts: list[str]` to WorktreeConfig with defaults
-- [ ] Add `artifact_manifest_file: str = "worktree-artifacts.json"` to config
-- [ ] Allow users to specify additional files to preserve
+- [x] Add `preserve_artifacts: list[str]` to WorktreeConfig with defaults
+- [x] Add `artifact_manifest_file: str = "worktree-artifacts.json"` to config
+- [x] Allow users to specify additional files to preserve
 
 ### Task 5: Integrate with Worktree Lifecycle
 - [ ] Call `ensure_trees_directory()` in `WorktreeManager.create_worktree()`
