@@ -46,9 +46,9 @@ so that **I don't need to run a separate command and can immediately see my work
 - [ ] If PR creation failed: display error + fallback to description path
 
 ### Task 4: Add Configuration Option
-- [ ] Add `git.auto_create_pr: bool` to project config schema
-- [ ] Default: `True` (auto-create when possible)
-- [ ] Allow users to disable auto-PR creation
+- [x] Add `git.auto_create_pr: bool` to project config schema
+- [x] Default: `True` (auto-create when possible)
+- [x] Allow users to disable auto-PR creation
 
 ### Task 5: Write Tests
 - [ ] Unit test: Remote detection works correctly
