@@ -115,7 +115,7 @@ def cleanup_command(
             else:
                 console.print(
                     f"[yellow]![/] Branch preserved: adw/{run_id} "
-                    "(has PR or unpushed commits)"
+                    "(has PR, gh CLI unavailable, or deletion failed)"
                 )
         else:
             console.print(f"[dim]Branch preserved: adw/{run_id}[/]")
@@ -126,13 +126,15 @@ def cleanup_command(
             # Still try to delete branch if requested
             if delete_branch:
                 branch_manager = worktree_manager.branch_manager
-                deleted = branch_manager.delete_branch(run_id, force=force)
+                # When worktree doesn't exist, user explicitly wants deletion
+                # Use force=True since there's no worktree to protect
+                deleted = branch_manager.delete_branch(run_id, force=True)
                 if deleted:
                     console.print(f"[green]✓[/] Branch deleted: adw/{run_id}")
                 else:
                     console.print(
                         f"[yellow]![/] Branch preserved: adw/{run_id} "
-                        "(has PR or unpushed commits)"
+                        "(branch not found or deletion failed)"
                     )
         elif e.code == "WORKTREE_HAS_CHANGES":
             worktree_path = context.worktree_path

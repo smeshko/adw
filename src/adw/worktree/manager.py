@@ -265,14 +265,22 @@ class WorktreeManager:
                         "Preserving branch with existing PR",
                         extra={"branch": branch_name, "run_id": run_id},
                     )
+                elif pr_exists is None and not force:
+                    # gh CLI unavailable - preserve branch to be safe
+                    logger.info(
+                        "Preserving branch (PR status unknown - gh CLI unavailable)",
+                        extra={"branch": branch_name, "run_id": run_id},
+                    )
                 else:
-                    # Use branch manager for deletion with safety checks
+                    # User explicitly requested deletion with --delete-branch
+                    # Use force=True since ADW branches always have unmerged commits
+                    # PR check above is the safety guard, not unmerged commits
                     branch_deleted = self._branch_manager.delete_branch(
-                        run_id, force=force
+                        run_id, force=True
                     )
                     if not branch_deleted:
-                        logger.info(
-                            "Branch preserved (has unpushed commits)",
+                        logger.warning(
+                            "Failed to delete branch",
                             extra={"branch": branch_name, "run_id": run_id},
                         )
 
