@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 11
+issue_counter: 14
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -55,6 +55,9 @@ issues:
   ISS-009-git-diff-capture-fails-no-commits: reported
   ISS-010-evidence-gathering-not-integrated: fixed
   ISS-011-adw-run-should-auto-create-pr: reported
+  ISS-012-hardcoded-artifact-capture-per-phase: reported
+  ISS-013-phaserunner-template-aliases-inconsistent: reported
+  ISS-014-resume-logic-scattered-across-codebase: reported
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
