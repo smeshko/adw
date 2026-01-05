@@ -393,8 +393,8 @@ class WorktreeManager:
                 suggestion=f"Delete the branch: git branch -D {branch_name}",
             )
 
-        # Ensure base directory exists
-        self.worktree_base_path.mkdir(parents=True, exist_ok=True)
+        # Ensure trees directory exists with proper gitignore setup
+        self.ensure_trees_directory()
 
         # Build the git worktree add command
         cmd = ["git", "worktree", "add", str(worktree_path), "-b", branch_name]
@@ -430,6 +430,9 @@ class WorktreeManager:
                     message=f"Failed to create worktree: {result.stderr.strip()}",
                     suggestion="Check git status and try again",
                 )
+
+            # Create .adw/runs/<run_id>/ structure in the new worktree
+            self.ensure_worktree_adw_structure(worktree_path, run_id)
 
             logger.info(
                 "Worktree created successfully",
@@ -475,6 +478,9 @@ class WorktreeManager:
         *,
         force: bool = False,
         cleanup_branch: bool = False,
+        preserve: bool = True,
+        artifacts_to_preserve: list[str] | None = None,
+        manifest_file: str = "worktree-artifacts.json",
     ) -> bool:
         """Remove an existing worktree for the given run.
 
@@ -482,6 +488,10 @@ class WorktreeManager:
             run_id: ULID identifier for this run.
             force: If True, remove even if there are uncommitted changes.
             cleanup_branch: If True, also delete the `adw/<run_id>` branch.
+            preserve: If True, preserve artifacts before removal (default: True).
+            artifacts_to_preserve: List of artifact names to preserve. If None,
+                uses DEFAULT_PRESERVE_ARTIFACTS.
+            manifest_file: Name of the manifest file to create.
 
         Returns:
             True if the worktree was successfully removed.
@@ -507,6 +517,22 @@ class WorktreeManager:
                 code="WORKTREE_HAS_CHANGES",
                 message=f"Worktree has uncommitted changes: {worktree_path}",
                 suggestion="Commit or discard changes, or use force=True",
+            )
+
+        # Preserve artifacts before removal
+        if preserve:
+            preserved = self.preserve_artifacts(
+                worktree_path,
+                run_id,
+                artifacts_to_preserve=artifacts_to_preserve,
+                manifest_file=manifest_file,
+            )
+            logger.info(
+                "Artifacts preserved before worktree removal",
+                extra={
+                    "run_id": run_id,
+                    "preserved_count": len(preserved),
+                },
             )
 
         logger.info(

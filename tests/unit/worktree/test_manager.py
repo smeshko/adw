@@ -336,6 +336,110 @@ class TestArtifactPreservation:
         assert artifacts["logs"]["type"] == "directory"
 
 
+class TestWorktreeLifecycleIntegration:
+    """Tests for worktree lifecycle integration."""
+
+    @pytest.fixture
+    def git_repo(self, tmp_path: Path) -> Path:
+        """Create a temporary git repository for testing."""
+        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@test.com"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        # Create initial commit
+        readme = tmp_path / "README.md"
+        readme.write_text("# Test")
+        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Initial commit"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        return tmp_path
+
+    def test_create_worktree_calls_ensure_trees_directory(self, git_repo: Path) -> None:
+        """create_worktree sets up trees directory with gitignore."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQTEST"
+
+        manager.create_worktree(run_id)
+
+        # Trees directory should have .gitignore
+        assert (git_repo / "trees" / ".gitignore").exists()
+        # Project .gitignore should have trees/ entry
+        assert (git_repo / ".gitignore").exists()
+        assert "trees/" in (git_repo / ".gitignore").read_text()
+
+    def test_create_worktree_creates_adw_structure(self, git_repo: Path) -> None:
+        """create_worktree creates .adw/runs/<run_id>/ structure."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQTEST"
+
+        worktree = manager.create_worktree(run_id)
+
+        # ADW structure should exist in worktree
+        adw_run_dir = worktree / ".adw" / "runs" / run_id
+        assert adw_run_dir.exists()
+        assert (adw_run_dir / "artifacts").exists()
+        assert (adw_run_dir / "logs").exists()
+        assert (adw_run_dir / "llm").exists()
+
+    def test_remove_worktree_preserves_artifacts(self, git_repo: Path) -> None:
+        """remove_worktree preserves artifacts to main project."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQTEST"
+
+        # Create worktree and add artifacts
+        worktree = manager.create_worktree(run_id)
+        run_dir = worktree / ".adw" / "runs" / run_id
+        (run_dir / "context.json").write_text('{"run_id": "test"}')
+        (run_dir / "logs" / "run.log").write_text("log content")
+
+        # Remove with preservation (force=True due to uncommitted .adw changes)
+        manager.remove_worktree(run_id, preserve=True, force=True)
+
+        # Artifacts should be in main project
+        main_run_dir = git_repo / ".adw" / "runs" / run_id
+        assert main_run_dir.exists()
+        assert (main_run_dir / "context.json").exists()
+        assert (main_run_dir / "worktree-artifacts.json").exists()
+
+    def test_remove_worktree_skip_preservation(self, git_repo: Path) -> None:
+        """remove_worktree can skip artifact preservation."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQTEST"
+
+        # Create worktree
+        worktree = manager.create_worktree(run_id)
+        run_dir = worktree / ".adw" / "runs" / run_id
+        (run_dir / "context.json").write_text('{"run_id": "test"}')
+
+        # Remove without preservation (force=True due to uncommitted .adw changes)
+        manager.remove_worktree(run_id, preserve=False, force=True)
+
+        # Artifacts should NOT be in main project
+        main_run_dir = git_repo / ".adw" / "runs" / run_id
+        assert not main_run_dir.exists()
+
+
 class TestWorktreeManagerCreation:
     """Tests for WorktreeManager.create_worktree()."""
 

@@ -64,9 +64,9 @@ so that I can find and inspect them easily.
 - [x] Allow users to specify additional files to preserve
 
 ### Task 5: Integrate with Worktree Lifecycle
-- [ ] Call `ensure_trees_directory()` in `WorktreeManager.create_worktree()`
-- [ ] Call `preserve_artifacts()` in `WorktreeManager.remove_worktree()` before removal
-- [ ] Log artifact preservation operations
+- [x] Call `ensure_trees_directory()` in `WorktreeManager.create_worktree()`
+- [x] Call `preserve_artifacts()` in `WorktreeManager.remove_worktree()` before removal
+- [x] Log artifact preservation operations
 
 ### Task 6: Write Tests
 - [ ] Test trees directory creation and gitignore setup
