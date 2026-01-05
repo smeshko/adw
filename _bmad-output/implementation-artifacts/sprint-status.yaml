@@ -46,15 +46,15 @@ issue_counter: 14
 issues:
   ISS-001-llm-output-too-verbose-in-terminal: fixed
   ISS-002-dry-run-minimal-output: fixed
-  ISS-003-run-id-not-found-by-logs-command: in-progress
+  ISS-003-run-id-not-found-by-logs-command: fixed
   ISS-004-run-id-truncated-in-list-output: fixed
   ISS-005-feature-description-not-captured: reported
-  ISS-006-logmanager-not-connected-to-python-logging: reported
-  ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: in-progress
+  ISS-006-logmanager-not-connected-to-python-logging: fixed
+  ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: fixed
   ISS-008-worktree-cleanup-fails-with-untracked-files: fixed
-  ISS-009-git-diff-capture-fails-no-commits: reported
+  ISS-009-git-diff-capture-fails-no-commits: fixed
   ISS-010-evidence-gathering-not-integrated: fixed
-  ISS-011-adw-run-should-auto-create-pr: reported
+  ISS-011-adw-run-should-auto-create-pr: fixed
   ISS-012-hardcoded-artifact-capture-per-phase: story-created
   ISS-013-phaserunner-template-aliases-inconsistent: story-created
   ISS-014-resume-logic-scattered-across-codebase: story-created
@@ -80,7 +80,7 @@ development_status:
   # ═══════════════════════════════════════════════════════════════════════════
   epic-2: done
   2-1-implement-three-tier-command-resolution: review
-  2-2-create-template-engine-with-variable-substitution: review
+  2-2-create-template-engine-with-variable-substitution: done
   2-3-load-and-render-phase-prompts: done
   2-4-validate-llm-output-against-schema: done
   epic-2-retrospective: optional
@@ -98,9 +98,9 @@ development_status:
   3-4-implement-timeout-configuration-and-enforcement: done
   3-5-track-token-usage-and-tool-calls: done
   # Security Hooks (Course Correction 2026-01-03)
-  3-6-security-hook-infrastructure: ready-for-dev
+  3-6-security-hook-infrastructure: done
   3-7-dangerous-command-patterns: done
-  3-8-tool-execution-logging: ready-for-dev
+  3-8-tool-execution-logging: done
   epic-3-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -125,7 +125,7 @@ development_status:
   5-1-implement-phase-sequence-and-transitions: done
   5-2-implement-phase-runner-for-single-phase-execution: done
   5-3-pass-artifacts-between-phases: done
-  5-4-execute-single-phase-in-isolation: review
+  5-4-execute-single-phase-in-isolation: done
   5-5-display-phase-progress: done
   epic-5-retrospective: optional
 
@@ -163,11 +163,11 @@ development_status:
   7-5-implement-state-inspection-commands: done
   7-6-implement-secret-redaction: done
   # UX Fix (from ISS-003)
-  ux-fix-ISS-003-run-id-not-found-by-logs-command: ready-for-dev
+  ux-fix-ISS-003-run-id-not-found-by-logs-command: done
   # UX Fix (from ISS-006)
-  ux-fix-ISS-006-logmanager-not-connected-to-python-logging: review
+  ux-fix-ISS-006-logmanager-not-connected-to-python-logging: done
   # UX Fix (from ISS-007)
-  ux-fix-ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: review
+  ux-fix-ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: done
   epic-7-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -199,9 +199,9 @@ development_status:
   9-4-generate-pr-description: done
   9-5-support-pr-creation-command: done
   # Bugfix (from ISS-009)
-  bugfix-ISS-009-git-diff-capture-fails-no-commits: ready-for-dev
+  bugfix-ISS-009-git-diff-capture-fails-no-commits: done
   # UX Fix (from ISS-011)
-  ux-fix-ISS-011-adw-run-should-auto-create-pr: ready-for-dev
+  ux-fix-ISS-011-adw-run-should-auto-create-pr: done
   epic-9-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -209,7 +209,7 @@ development_status:
   # Goal: Enable concurrent workflow execution via git worktrees with
   #       deterministic port allocation
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-10: in-progress
+  epic-10: done
   10-1-worktree-creation-and-lifecycle: done
   10-2-worktree-directory-structure: done
   10-3-port-allocation-system: done
@@ -217,7 +217,7 @@ development_status:
   10-5-worktree-context-in-phases: done
   10-6-worktree-branch-management: done
   # Bugfix (from ISS-008)
-  bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: ready-for-dev
+  bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: done
   epic-10-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -225,14 +225,14 @@ development_status:
   # Goal: Replace single-pass Verify/Validate phases with iterative
   #       review-fix-review cycle
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-11: in-progress
+  epic-11: done
   11-1-unified-validation-phase: done
   11-2-validation-issue-model: done
   11-3-issue-triage-system: done
   11-4-fix-iteration-loop: done
   11-5-iteration-limits-and-exit-conditions: done
   11-6-validation-state-persistence: done
-  11-7-validation-report-generation: review
+  11-7-validation-report-generation: done
   epic-11-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
