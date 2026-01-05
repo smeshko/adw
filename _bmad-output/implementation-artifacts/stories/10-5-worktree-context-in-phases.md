@@ -1,6 +1,7 @@
 # Story 10.5: Worktree Context in Phases
 
-Status: Draft
+Status: ready-for-dev
+Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-05
 
@@ -32,33 +33,56 @@ so that file operations happen in the isolated environment.
 
 ## Tasks / Subtasks
 
-- [ ] Update `PhaseRunner` to accept worktree context:
-  - Add `worktree_path: Path | None` parameter
-  - Change working directory before LLM invocation
-  - Restore original directory after phase completes
-- [ ] Extend hook environment with worktree variables:
-  - `ADW_WORKTREE_PATH` - absolute path to worktree
-  - `ADW_PROJECT_ROOT` - original project root
-  - `ADW_PORTS_FILE` - path to `.ports.env`
-- [ ] Add template variables for worktree:
-  - `{{worktree_path}}` - absolute worktree path
-  - `{{worktree_relative_path}}` - relative from project root
-  - `{{ports_file}}` - path to `.ports.env`
-- [ ] Update `RunContext` model:
-  - Add `worktree_path: Path | None`
-  - Add `using_worktree: bool`
-  - Update `artifacts_dir` to point to worktree `.adw/`
-- [ ] Implement path resolution utilities:
-  - `resolve_in_worktree(path: str, context: RunContext) -> Path`
-  - `make_relative_to_worktree(path: Path, context: RunContext) -> str`
-- [ ] Update artifact storage:
-  - Store paths relative to worktree root
-  - Resolve to absolute when reading
-- [ ] Source `.ports.env` in hook execution:
-  - Auto-source before hook script runs
-  - Make port variables available to hooks
-- [ ] Write unit tests for context integration
-- [ ] Write integration tests for phase execution in worktree
+### Task 1: Set Working Directory for LLM Execution
+- [ ] Modify `ClaudeCodeExecutor.execute()` to accept `cwd: Path | None`
+- [ ] Pass `worktree_path` from RunContext when executing LLM
+- [ ] Ensure all subprocess calls use worktree as working directory
+- [ ] Handle case where worktree_path is None (legacy mode)
+
+### Task 2: Add ADW_WORKTREE_PATH to Hook Environment
+- [ ] Add `ADW_WORKTREE_PATH` to hook environment variables
+- [ ] Set to absolute worktree path, or project root if no worktree
+- [ ] Update documentation of environment variables
+
+### Task 3: Add worktree_path Template Variable
+- [ ] Register `worktree_path` in template variable resolver
+- [ ] Resolve to absolute path of worktree
+- [ ] Resolve to project root if no worktree (backward compatibility)
+- [ ] Add to variable documentation
+
+### Task 4: Implement Relative Artifact Paths
+- [ ] Modify artifact storage to use relative paths
+- [ ] Store artifacts at `<worktree>/.adw/runs/<run_id>/artifacts/`
+- [ ] When storing in context, convert to relative path from worktree root
+- [ ] When loading, resolve relative to current worktree
+
+### Task 5: Update RunContext Path Resolution
+- [ ] Add helper method `resolve_artifact_path(relative: str) -> Path`
+- [ ] Method considers worktree_path if present
+- [ ] Ensure all artifact references go through this method
+
+### Task 6: Source .ports.env in Hooks
+- [ ] Auto-source `.ports.env` before hook script runs
+- [ ] Make `BACKEND_PORT`, `FRONTEND_PORT` available to hooks
+- [ ] Add `ADW_PORTS_FILE` environment variable
+
+### Task 7: Integration Testing
+- [ ] Test phase execution in worktree context
+- [ ] Test hook receives correct environment variables
+- [ ] Test template variables resolve correctly
+- [ ] Test artifact paths work across worktree lifecycle
+
+---
+
+## Dependencies
+
+**Depends On:**
+- 10-2: Worktree Directory Structure (needs directory layout for artifacts)
+- 10-4: Concurrent Run Management (needs concurrent infrastructure)
+
+**Blocks:** None (this is Wave 4 - final wave)
+
+**Can Parallel With:** None
 
 ---
 
@@ -66,67 +90,218 @@ so that file operations happen in the isolated environment.
 
 ### Technical Requirements
 
-- Use `os.chdir()` with context manager for directory changes
-- Ensure cleanup happens even on exceptions
-- Handle nested phase execution (directory already changed)
-- Template rendering must work with both worktree and non-worktree modes
-- Path resolution must be consistent across all phases
+1. **Working Directory Handling**
+   - Use `subprocess.run(cwd=worktree_path)` for all subprocess calls
+   - Ensure environment variables point to correct paths
+   - Handle path resolution for both absolute and relative paths
+
+2. **Environment Variable Consistency**
+   - All ADW_* environment variables should be consistent
+   - `ADW_WORKTREE_PATH` is the worktree root
+   - `ADW_PROJECT_ROOT` remains the original project root
+   - `ADW_ARTIFACTS_DIR` points to worktree's artifacts directory
+
+3. **Template Variable Resolution**
+   - `{{worktree_path}}` - absolute worktree path
+   - `{{project_root}}` - original project root (unchanged)
+   - `{{artifacts_dir}}` - worktree's artifacts directory
 
 ### Architecture Compliance
 
-- Modify `src/adw/core/phase_runner.py`
-- Extend `src/adw/models/context.py` (RunContext)
-- Update `src/adw/commands/template.py` for new variables
-- Extend `src/adw/hooks/executor.py` for environment vars
-- No breaking changes to existing non-worktree execution
+**Modified Files:**
+```
+src/adw/
+├── executors/
+│   └── claude_code.py    # Add cwd parameter
+├── hooks/
+│   └── environment.py    # Add ADW_WORKTREE_PATH
+├── commands/
+│   └── template.py       # Add worktree_path variable
+├── core/
+│   └── phase_runner.py   # Pass worktree context
+└── models/
+    └── context.py        # Add resolve_artifact_path()
+```
+
+**Executor Changes:**
+```python
+# src/adw/executors/claude_code.py
+class ClaudeCodeExecutor:
+    async def _stream_subprocess(
+        self,
+        prompt: str,
+        *,
+        cwd: Path | None = None,
+        timeout: int | None = None,
+    ) -> LLMResult:
+        """Execute Claude Code with optional working directory."""
+        process = await asyncio.create_subprocess_exec(
+            self.claude_path,
+            "--print",
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=cwd,  # NEW: Set working directory
+        )
+        # ... rest of implementation
+```
+
+**Environment Changes:**
+```python
+# src/adw/hooks/environment.py
+def get_hook_environment(context: RunContext) -> dict[str, str]:
+    """Build environment variables for hook execution."""
+    env = os.environ.copy()
+    env.update({
+        "ADW_RUN_ID": context.run_id,
+        "ADW_PHASE": context.current_phase,
+        "ADW_PROJECT_ROOT": str(context.project_root),
+        "ADW_ARTIFACTS_DIR": str(context.artifacts_dir),
+        # NEW: Worktree path
+        "ADW_WORKTREE_PATH": str(context.worktree_path or context.project_root),
+        # Port variables from .ports.env if available
+        **_load_ports_env(context),
+    })
+    return env
+```
+
+**Template Changes:**
+```python
+# src/adw/commands/template.py
+def get_template_variables(context: RunContext) -> dict[str, str]:
+    """Get all available template variables."""
+    return {
+        "run_id": context.run_id,
+        "project_root": str(context.project_root),
+        "current_phase": context.current_phase,
+        # NEW: Worktree path
+        "worktree_path": str(context.worktree_path or context.project_root),
+        # ... other variables
+    }
+```
 
 ### Library & Framework Requirements
 
-| Library | Version | Usage |
-|---------|---------|-------|
-| os | stdlib | Directory change, environment |
+| Library | Version | Purpose |
+|---------|---------|---------|
 | pathlib | stdlib | Path manipulation |
-| contextlib | stdlib | Context manager for cwd change |
+| os | stdlib | Environment handling |
+| asyncio | stdlib | Subprocess with cwd |
 
 ### File Structure Requirements
 
-```
-src/adw/
-├── core/
-│   └── phase_runner.py     # Modify for worktree context
-├── models/
-│   └── context.py          # Extend RunContext
-├── commands/
-│   └── template.py         # Add worktree variables
-├── hooks/
-│   └── executor.py         # Extend environment
-└── worktree/
-    └── context.py          # NEW - worktree context utilities
-```
+**Environment Variables (Complete Set):**
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `ADW_RUN_ID` | ULID | Current run identifier |
+| `ADW_PHASE` | string | Current phase name |
+| `ADW_PROJECT_ROOT` | path | Original project root |
+| `ADW_WORKTREE_PATH` | path | Worktree root (or project root) |
+| `ADW_ARTIFACTS_DIR` | path | Artifacts directory |
+| `ADW_CONTEXT_FILE` | path | Path to context.json |
+| `ADW_PORTS_FILE` | path | Path to .ports.env |
+| `BACKEND_PORT` | int | Allocated backend port |
+| `FRONTEND_PORT` | int | Allocated frontend port |
+
+**Template Variables (Complete Set):**
+
+| Variable | Resolves To |
+|----------|-------------|
+| `{{run_id}}` | Current run ULID |
+| `{{project_root}}` | Original project root |
+| `{{worktree_path}}` | Worktree root (or project root) |
+| `{{current_phase}}` | Current phase name |
+| `{{artifacts_dir}}` | Phase artifacts directory |
+| `{{feature_request}}` | Original feature request |
+| `{{backend_port}}` | Allocated backend port |
+| `{{frontend_port}}` | Allocated frontend port |
 
 ### Testing Requirements
 
-- Unit tests:
-  - Template variable resolution
-  - Path relativity conversion
-  - Environment variable injection
-- Integration tests:
-  - Full phase execution in worktree
-  - Hook execution with worktree env
-  - Artifact storage paths
-- Test both worktree and non-worktree modes
+**Unit Tests:**
+```python
+# tests/unit/executors/test_claude_code.py
+class TestWorktreeContext:
+    def test_execute_uses_worktree_cwd(self, executor, worktree_path):
+        """Subprocess runs with worktree as working directory."""
+
+    def test_execute_without_worktree_uses_project_root(self, executor):
+        """Falls back to project root when no worktree."""
+
+
+# tests/unit/hooks/test_environment.py
+class TestWorktreeEnvironment:
+    def test_includes_worktree_path(self, context_with_worktree):
+        """ADW_WORKTREE_PATH is set correctly."""
+
+    def test_worktree_path_fallback(self, context_without_worktree):
+        """Falls back to project root when no worktree."""
+
+
+# tests/unit/commands/test_template.py
+class TestWorktreeVariables:
+    def test_worktree_path_resolves(self, context_with_worktree):
+        """{{worktree_path}} resolves to worktree."""
+
+    def test_worktree_path_fallback(self, context_without_worktree):
+        """Falls back to project root when no worktree."""
+```
+
+**Integration Tests:**
+```python
+# tests/integration/test_worktree_phases.py
+class TestPhaseInWorktree:
+    def test_llm_executes_in_worktree(self, project_with_worktree, mock_executor):
+        """LLM execution happens in worktree directory."""
+
+    def test_hook_receives_worktree_env(self, project_with_worktree, hook_script):
+        """Hook script receives ADW_WORKTREE_PATH."""
+
+    def test_artifacts_stored_in_worktree(self, project_with_worktree):
+        """Artifacts are stored in worktree's .adw directory."""
+
+    def test_artifacts_preserved_after_cleanup(self, project_with_worktree):
+        """Key artifacts are copied to main project after worktree removal."""
+```
 
 ---
 
-## Dependencies
+## Previous Story Intelligence
 
-- **Depends On:** 10.2 (Directory Structure), 10.4 (Concurrent Management)
-- **Blocks:** None (final story in epic)
-- **Can Parallel With:** None
+**From Story 10-2:**
+- Directory structure defines where artifacts live in worktree
+- Artifact preservation copies files to main project
 
-### Dependency Rationale
-- 10.2: Needs directory structure defined for file operations
-- 10.4: Needs concurrent management to determine worktree context
+**From Story 10-4:**
+- Concurrent run management tracks active worktrees
+
+---
+
+## Git Intelligence
+
+**Relevant Patterns:**
+- Template variable patterns from `commands/template.py`
+- Environment variable patterns from `hooks/environment.py`
+- Executor subprocess patterns from `executors/claude_code.py`
+
+---
+
+## Latest Technical Information
+
+**asyncio.create_subprocess_exec() with cwd:**
+```python
+process = await asyncio.create_subprocess_exec(
+    *args,
+    cwd="/path/to/worktree",  # Sets working directory
+    env=env,                   # Custom environment
+)
+```
+
+**Path Resolution Best Practices:**
+- Always use absolute paths for subprocess cwd
+- Store relative paths in context for portability
+- Resolve relative paths at load time
 
 ---
 
@@ -135,41 +310,53 @@ src/adw/
 See: `_bmad-output/project-context.md`
 
 Key patterns:
-- Context managers for resources (cwd change)
-- Full type annotations
-- Immutable state updates (model_copy)
-- Structured logging
+- **Type annotations**: All Path parameters typed
+- **Backward compatibility**: Handle None worktree_path
+- **Structured logging**: Log cwd changes
 
 ---
 
-## Environment Variables Reference
+## Dev Notes
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `ADW_WORKTREE_PATH` | Absolute worktree path | `/project/trees/01HQ.../` |
-| `ADW_PROJECT_ROOT` | Original project root | `/project/` |
-| `ADW_PORTS_FILE` | Path to ports env | `/project/trees/01HQ.../.ports.env` |
-| `BACKEND_PORT` | Allocated backend port (from .ports.env) | `9101` |
-| `FRONTEND_PORT` | Allocated frontend port (from .ports.env) | `9201` |
+### Backward Compatibility
 
----
+All changes must be backward compatible:
+- `worktree_path = None` means run in project root (legacy)
+- All path resolution falls back to project root
+- Template variables resolve to project root when no worktree
 
-## Template Variables Reference
+### Error Handling
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `{{worktree_path}}` | Absolute worktree path | `/project/trees/01HQ.../` |
-| `{{worktree_relative_path}}` | Relative path | `trees/01HQ.../` |
-| `{{ports_file}}` | Ports env file path | `trees/01HQ.../.ports.env` |
-| `{{backend_port}}` | Backend port number | `9101` |
-| `{{frontend_port}}` | Frontend port number | `9201` |
+- If worktree path doesn't exist at execution time, fail with clear error
+- If artifacts directory can't be created, fail with suggestion
+- If template variable can't resolve, fail at template loading time
+
+### References
+
+- [Source: _bmad-output/epics/epic-10-worktree-isolation.md#Story 10.5]
+- [Source: _bmad-output/architecture.md#Hook Execution Environment]
+- [Source: _bmad-output/architecture.md#Template Engine]
 
 ---
 
 ## Dev Agent Record
 
+### Context Reference
+
+Epic 10: Worktree Isolation - Story 10.5
+
 ### Agent Model Used
+
+<!-- To be filled by dev agent -->
+
+### Debug Log References
+
+<!-- To be filled during implementation -->
 
 ### Completion Notes List
 
+<!-- To be filled during implementation -->
+
 ### File List
+
+<!-- To be filled during implementation -->
