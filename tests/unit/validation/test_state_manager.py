@@ -227,6 +227,19 @@ class TestTriagePersistence:
 
         assert loaded == {}
 
+    def test_load_triage_non_list_json(self, tmp_path: Path) -> None:
+        """Load returns empty dict when triage.json contains non-list JSON."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+        # Write valid JSON but wrong type (number instead of list)
+        manager.triage_file.write_text("42")
+
+        loaded = manager.load_triage()
+
+        # Should gracefully return empty dict, not crash with TypeError
+        assert loaded == {}
+
 
 class TestFixHistoryPersistence:
     """Tests for fix history save/load."""

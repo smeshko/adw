@@ -134,6 +134,7 @@ class ValidationPhase:
             self._state = ValidationState(
                 run_id=self._state_manager.run_id,
                 current_iteration=self._iteration,
+                total_iterations=self.config.max_iterations,
                 loop_state=loop_state,
             )
 

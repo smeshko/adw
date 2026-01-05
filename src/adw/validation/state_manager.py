@@ -108,7 +108,9 @@ class ValidationStateManager:
                 f.write(content)
                 f.flush()
                 os.fsync(f.fileno())
-            temp_path.rename(path)
+            # Use replace() for cross-platform atomic overwrite
+            # (rename() fails on Windows if destination exists)
+            temp_path.replace(path)
             logger.debug("Atomic write completed", extra={"path": str(path)})
         except OSError:
             # Clean up temp file on error
@@ -194,13 +196,16 @@ class ValidationStateManager:
 
         try:
             data = json.loads(self.triage_file.read_text())
+            # Validate that data is a list of dicts with issue_id
+            if not isinstance(data, list):
+                raise TypeError(f"Expected list, got {type(data).__name__}")
             result = {d["issue_id"]: d for d in data}
             logger.info(
                 "Triage decisions loaded",
                 extra={"count": len(result), "path": str(self.triage_file)},
             )
             return result
-        except (json.JSONDecodeError, KeyError) as e:
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
             logger.warning(
                 "Failed to load triage decisions",
                 extra={"error": str(e), "path": str(self.triage_file)},

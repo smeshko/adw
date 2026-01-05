@@ -464,3 +464,38 @@ class TestValidationPhaseStatePersistence:
         assert loaded_state.loop_state.stall_count == 1
         # issues_remaining should be updated to current issue count
         assert loaded_state.loop_state.issues_remaining == 2
+
+    def test_phase_uses_config_max_iterations_for_total(
+        self, tmp_path: Path, mock_context: RunContext
+    ) -> None:
+        """Phase uses config.max_iterations for total_iterations in state."""
+        from adw.validation.config import ValidationConfig
+        from adw.validation.state_manager import ValidationStateManager
+
+        # Create runs directory structure
+        run_id = "run-max-iter"
+        runs_dir = tmp_path / ".adw" / "runs"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+
+        # Create config with custom max_iterations (not the default 5)
+        config = ValidationConfig(max_iterations=3)
+        phase = ValidationPhase(config=config, run_id=run_id, runs_dir=runs_dir)
+
+        # Mock validators to return one issue
+        mock_issues = [
+            ValidationIssue(
+                source=ValidationSource.TEST,
+                message="Test issue",
+                severity="medium",
+            )
+        ]
+        with patch.object(phase, "_run_validators", return_value=mock_issues):
+            phase.run(mock_context)
+
+        # Load the saved state and verify total_iterations matches config
+        state_manager = ValidationStateManager(run_id, run_dir)
+        loaded_state = state_manager.load_state_model()
+        assert loaded_state is not None
+        # total_iterations should match config, not default 5
+        assert loaded_state.total_iterations == 3
