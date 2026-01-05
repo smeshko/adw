@@ -843,6 +843,72 @@ class TestSelectiveRevalidation:
         assert len(remaining) == 1
         assert remaining[0].id == "VI-001"
 
+    def test_revalidate_tracks_failed_validators(
+        self,
+        mock_llm_executor: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
+        """_revalidate returns set of failed validator names."""
+
+        class FailingValidator:
+            @property
+            def name(self) -> str:
+                return "failing"
+
+            def validate(self, context: RunContext) -> list[ValidationIssue]:
+                raise RuntimeError("Validator crashed")
+
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[FailingValidator()],
+        )
+
+        issues, failed = engine._revalidate([FailingValidator()], mock_context)
+
+        assert issues == []
+        assert "failing" in failed
+
+    def test_validator_failure_prevents_issue_resolution(
+        self,
+        mock_llm_executor: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
+        """Issues from failed validators are not marked as resolved."""
+        mock_llm_executor.execute.return_value = MagicMock(
+            success=True,
+            content='{"fixes": []}',
+        )
+
+        class FailingValidator:
+            @property
+            def name(self) -> str:
+                return "test"
+
+            def validate(self, context: RunContext) -> list[ValidationIssue]:
+                raise RuntimeError("Validator crashed")
+
+        issue = ValidationIssue(
+            id="VI-001",
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failed",
+            triage_decision="FIX",
+        )
+
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[FailingValidator()],
+        )
+
+        result = engine.attempt_fixes([issue], mock_context)
+
+        # Issue should NOT be in issues_fixed because validator failed
+        assert "VI-001" not in result.issues_fixed
+        # Issue should remain (cannot verify it was fixed)
+        assert "VI-001" in result.issues_remaining or issue.triage_decision == "DEFER"
+
 
 class TestFixAttemptTracking:
     """Tests for fix attempt tracking."""

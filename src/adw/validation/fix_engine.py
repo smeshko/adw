@@ -222,10 +222,27 @@ class FixEngine:
 
         # Re-validate affected validators
         affected_validators = self._get_affected_validators(fix_issues)
-        new_issues = self._revalidate(affected_validators, context)
+        new_issues, failed_validators = self._revalidate(affected_validators, context)
 
         # Check which issues are resolved
         resolved, remaining = self._check_resolution(fix_issues, new_issues)
+
+        # Issues from failed validators cannot be marked as resolved
+        # Move them from resolved to remaining
+        if failed_validators:
+            unverified = []
+            verified_resolved = []
+            for issue in resolved:
+                validator_name = _SOURCE_TO_VALIDATOR.get(issue.source)
+                if validator_name in failed_validators:
+                    logger.warning(
+                        f"Cannot verify fix for {issue.id}: validator {validator_name} failed"
+                    )
+                    unverified.append(issue)
+                else:
+                    verified_resolved.append(issue)
+            resolved = verified_resolved
+            remaining = remaining + unverified
 
         # Update fix tracking on remaining issues
         deferred_ids: list[str] = []
@@ -503,19 +520,22 @@ If unsure, set replacement to null and explain in notes.
         self,
         validators: list[ValidatorProtocol],
         context: RunContext,
-    ) -> list[ValidationIssue]:
+    ) -> tuple[list[ValidationIssue], set[str]]:
         """Re-run validators after fixes are applied.
 
         Executes each affected validator and collects new issues.
+        Also tracks which validators failed so their issues aren't
+        incorrectly marked as resolved.
 
         Args:
             validators: List of validators to run.
             context: Run context.
 
         Returns:
-            List of issues found during re-validation.
+            Tuple of (issues found, set of failed validator names).
         """
         all_issues: list[ValidationIssue] = []
+        failed_validators: set[str] = set()
 
         for validator in validators:
             try:
@@ -524,8 +544,9 @@ If unsure, set replacement to null and explain in notes.
                 all_issues.extend(issues)
             except Exception as e:
                 logger.warning(f"Validator {validator.name} failed: {e}")
+                failed_validators.add(validator.name)
 
-        return all_issues
+        return all_issues, failed_validators
 
     def _check_resolution(
         self,
