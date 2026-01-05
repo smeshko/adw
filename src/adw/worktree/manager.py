@@ -22,13 +22,29 @@ Worktree Directory Structure:
             └── 01HQXK5.../         # Preserved artifacts after worktree removal
 """
 
+import json
 import logging
+import shutil
 import subprocess
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import TypedDict
 
 from adw.exceptions import ConfigError, WorktreeError
 
 logger = logging.getLogger(__name__)
+
+
+# Default artifacts to preserve when cleaning up worktrees
+DEFAULT_PRESERVE_ARTIFACTS = ["context.json", "logs", "artifacts", "llm"]
+
+
+class PreservedArtifactInfo(TypedDict):
+    """Information about a preserved artifact."""
+
+    path: str
+    size: int
+    type: str  # "file" or "directory"
 
 
 class WorktreeManager:
@@ -161,6 +177,138 @@ class WorktreeManager:
         )
 
         return run_dir
+
+    def preserve_artifacts(
+        self,
+        worktree_path: Path,
+        run_id: str,
+        artifacts_to_preserve: list[str] | None = None,
+        manifest_file: str = "worktree-artifacts.json",
+    ) -> list[Path]:
+        """Copy key artifacts from worktree to main project before worktree removal.
+
+        This method copies specified artifacts from the worktree's .adw/runs/<run_id>/
+        directory to the main project's .adw/runs/<run_id>/ directory, and creates
+        a manifest file documenting what was preserved.
+
+        Args:
+            worktree_path: Absolute path to the worktree directory.
+            run_id: ULID identifier for this run.
+            artifacts_to_preserve: List of artifact names to preserve. If None,
+                uses DEFAULT_PRESERVE_ARTIFACTS (context.json, logs, artifacts, llm).
+            manifest_file: Name of the manifest file to create.
+
+        Returns:
+            List of paths to the preserved artifacts in the main project.
+
+        Example:
+            >>> manager = WorktreeManager(project_root=Path("/project"))
+            >>> preserved = manager.preserve_artifacts(
+            ...     Path("/project/trees/01HQ..."),
+            ...     "01HQ...",
+            ... )
+            >>> len(preserved) > 0
+            True
+        """
+        if artifacts_to_preserve is None:
+            artifacts_to_preserve = DEFAULT_PRESERVE_ARTIFACTS
+
+        source_run_dir = worktree_path / ".adw" / "runs" / run_id
+        target_run_dir = self.project_root / ".adw" / "runs" / run_id
+
+        # Ensure target directory exists
+        target_run_dir.mkdir(parents=True, exist_ok=True)
+
+        preserved_paths: list[Path] = []
+        manifest_entries: list[PreservedArtifactInfo] = []
+
+        for artifact_name in artifacts_to_preserve:
+            source_path = source_run_dir / artifact_name
+            target_path = target_run_dir / artifact_name
+
+            if not source_path.exists():
+                logger.debug(
+                    "Artifact not found, skipping",
+                    extra={"artifact": artifact_name, "source": str(source_path)},
+                )
+                continue
+
+            try:
+                if source_path.is_file():
+                    # Copy single file
+                    shutil.copy2(source_path, target_path)
+                    size = target_path.stat().st_size
+                    artifact_type = "file"
+                else:
+                    # Copy directory recursively
+                    if target_path.exists():
+                        shutil.rmtree(target_path)
+                    shutil.copytree(source_path, target_path)
+                    size = self._get_directory_size(target_path)
+                    artifact_type = "directory"
+
+                preserved_paths.append(target_path)
+                manifest_entries.append(
+                    PreservedArtifactInfo(
+                        path=artifact_name,
+                        size=size,
+                        type=artifact_type,
+                    )
+                )
+
+                logger.info(
+                    "Preserved artifact",
+                    extra={
+                        "artifact": artifact_name,
+                        "type": artifact_type,
+                        "size": size,
+                    },
+                )
+
+            except OSError as e:
+                logger.warning(
+                    "Failed to preserve artifact",
+                    extra={"artifact": artifact_name, "error": str(e)},
+                )
+
+        # Create manifest
+        manifest_path = target_run_dir / manifest_file
+        manifest_data = {
+            "run_id": run_id,
+            "source_worktree": str(worktree_path),
+            "preserved_at": datetime.now(UTC).isoformat(),
+            "artifacts": manifest_entries,
+        }
+
+        try:
+            manifest_path.write_text(json.dumps(manifest_data, indent=2))
+            preserved_paths.append(manifest_path)
+            logger.info(
+                "Created artifact manifest",
+                extra={"path": str(manifest_path)},
+            )
+        except OSError as e:
+            logger.warning(
+                "Failed to create artifact manifest",
+                extra={"path": str(manifest_path), "error": str(e)},
+            )
+
+        return preserved_paths
+
+    def _get_directory_size(self, path: Path) -> int:
+        """Calculate total size of a directory recursively.
+
+        Args:
+            path: Path to the directory.
+
+        Returns:
+            Total size in bytes.
+        """
+        total = 0
+        for file_path in path.rglob("*"):
+            if file_path.is_file():
+                total += file_path.stat().st_size
+        return total
 
     def _ensure_root_gitignore_entry(self) -> None:
         """Ensure the trees directory is listed in the project's root .gitignore.

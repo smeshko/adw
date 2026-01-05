@@ -193,6 +193,149 @@ class TestWorktreeAdwStructure:
         assert run_dir1.exists()
 
 
+class TestArtifactPreservation:
+    """Tests for WorktreeManager.preserve_artifacts()."""
+
+    @pytest.fixture
+    def worktree_with_artifacts(self, tmp_path: Path) -> tuple[Path, str, Path]:
+        """Create a worktree with sample artifacts for testing."""
+        run_id = "01HQXK5TEST"
+        worktree = tmp_path / "trees" / run_id
+        adw_dir = worktree / ".adw" / "runs" / run_id
+
+        adw_dir.mkdir(parents=True)
+        (adw_dir / "context.json").write_text('{"run_id": "test"}')
+        (adw_dir / "logs").mkdir()
+        (adw_dir / "logs" / "run.log").write_text("log content")
+        (adw_dir / "artifacts").mkdir()
+        (adw_dir / "artifacts" / "output.txt").write_text("artifact content")
+        (adw_dir / "llm").mkdir()
+        (adw_dir / "llm" / "interaction.json").write_text('{"prompt": "test"}')
+
+        return worktree, run_id, tmp_path
+
+    def test_preserve_copies_context_json(
+        self, worktree_with_artifacts: tuple[Path, str, Path]
+    ) -> None:
+        """context.json is copied to main project."""
+        from adw.worktree.manager import WorktreeManager
+
+        worktree, run_id, project_root = worktree_with_artifacts
+        manager = WorktreeManager(project_root=project_root)
+
+        preserved = manager.preserve_artifacts(worktree, run_id)
+
+        target = project_root / ".adw" / "runs" / run_id / "context.json"
+        assert target.exists()
+        assert target in preserved
+        assert target.read_text() == '{"run_id": "test"}'
+
+    def test_preserve_copies_log_directory(
+        self, worktree_with_artifacts: tuple[Path, str, Path]
+    ) -> None:
+        """logs/ directory is copied recursively."""
+        from adw.worktree.manager import WorktreeManager
+
+        worktree, run_id, project_root = worktree_with_artifacts
+        manager = WorktreeManager(project_root=project_root)
+
+        preserved = manager.preserve_artifacts(worktree, run_id)
+
+        logs_dir = project_root / ".adw" / "runs" / run_id / "logs"
+        assert logs_dir.exists()
+        assert logs_dir in preserved
+        assert (logs_dir / "run.log").exists()
+        assert (logs_dir / "run.log").read_text() == "log content"
+
+    def test_preserve_creates_manifest(
+        self, worktree_with_artifacts: tuple[Path, str, Path]
+    ) -> None:
+        """worktree-artifacts.json manifest is created."""
+        import json
+
+        from adw.worktree.manager import WorktreeManager
+
+        worktree, run_id, project_root = worktree_with_artifacts
+        manager = WorktreeManager(project_root=project_root)
+
+        preserved = manager.preserve_artifacts(worktree, run_id)
+
+        manifest = project_root / ".adw" / "runs" / run_id / "worktree-artifacts.json"
+        assert manifest.exists()
+        assert manifest in preserved
+
+        data = json.loads(manifest.read_text())
+        assert data["run_id"] == run_id
+        assert "source_worktree" in data
+        assert "preserved_at" in data
+        assert "artifacts" in data
+        assert len(data["artifacts"]) == 4  # context.json, logs, artifacts, llm
+
+    def test_preserve_handles_missing_artifacts(self, tmp_path: Path) -> None:
+        """Missing artifacts are skipped without error."""
+        from adw.worktree.manager import WorktreeManager
+
+        run_id = "01HQTEST"
+        worktree = tmp_path / "trees" / run_id
+        adw_dir = worktree / ".adw" / "runs" / run_id
+        adw_dir.mkdir(parents=True)
+        # Only create context.json, not logs/artifacts/llm
+        (adw_dir / "context.json").write_text('{"run_id": "test"}')
+
+        manager = WorktreeManager(project_root=tmp_path)
+
+        # Should not raise
+        preserved = manager.preserve_artifacts(worktree, run_id)
+
+        # Only context.json and manifest should be preserved
+        assert len(preserved) == 2  # context.json + manifest
+
+    def test_preserve_respects_config(
+        self, worktree_with_artifacts: tuple[Path, str, Path]
+    ) -> None:
+        """Only configured artifacts are preserved."""
+        from adw.worktree.manager import WorktreeManager
+
+        worktree, run_id, project_root = worktree_with_artifacts
+        manager = WorktreeManager(project_root=project_root)
+
+        # Only preserve context.json
+        preserved = manager.preserve_artifacts(
+            worktree, run_id, artifacts_to_preserve=["context.json"]
+        )
+
+        target_dir = project_root / ".adw" / "runs" / run_id
+        assert (target_dir / "context.json").exists()
+        assert not (target_dir / "logs").exists()
+        assert not (target_dir / "artifacts").exists()
+        # manifest + context.json = 2
+        assert len(preserved) == 2
+
+    def test_preserve_manifest_format(
+        self, worktree_with_artifacts: tuple[Path, str, Path]
+    ) -> None:
+        """Manifest has correct format with artifact details."""
+        import json
+
+        from adw.worktree.manager import WorktreeManager
+
+        worktree, run_id, project_root = worktree_with_artifacts
+        manager = WorktreeManager(project_root=project_root)
+
+        manager.preserve_artifacts(worktree, run_id)
+
+        manifest = project_root / ".adw" / "runs" / run_id / "worktree-artifacts.json"
+        data = json.loads(manifest.read_text())
+
+        # Check artifact entries
+        artifacts = {a["path"]: a for a in data["artifacts"]}
+        assert "context.json" in artifacts
+        assert artifacts["context.json"]["type"] == "file"
+        assert artifacts["context.json"]["size"] > 0
+        assert "logs" in artifacts
+        assert artifacts["logs"]["type"] == "directory"
+
+
 class TestWorktreeManagerCreation:
     """Tests for WorktreeManager.create_worktree()."""
 

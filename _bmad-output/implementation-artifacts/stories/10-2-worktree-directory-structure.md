@@ -49,14 +49,14 @@ so that I can find and inspect them easily.
 - [x] Create `runs/<run_id>/` directory structure matching main project
 
 ### Task 3: Implement Artifact Preservation
-- [ ] Add `preserve_artifacts(worktree_path: Path, run_id: str, main_project: Path) -> list[Path]`
-- [ ] Define list of artifacts to preserve:
+- [x] Add `preserve_artifacts(worktree_path: Path, run_id: str, main_project: Path) -> list[Path]`
+- [x] Define list of artifacts to preserve:
   - `context.json` - run state
   - `logs/` - all log files
   - `artifacts/` - phase outputs
   - `llm/` - LLM interaction logs
-- [ ] Copy artifacts to `main_project/.adw/runs/<run_id>/` before worktree removal
-- [ ] Create manifest of preserved artifacts
+- [x] Copy artifacts to `main_project/.adw/runs/<run_id>/` before worktree removal
+- [x] Create manifest of preserved artifacts
 
 ### Task 4: Add Configuration for Artifact Preservation
 - [ ] Add `preserve_artifacts: list[str]` to WorktreeConfig with defaults
