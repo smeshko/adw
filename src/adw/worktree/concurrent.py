@@ -115,6 +115,15 @@ class ConcurrentRunManager:
         self._base_dir = base_dir
         self.locks_dir = self.project_root / base_dir / ".locks"
 
+    @property
+    def base_dir(self) -> str:
+        """Get the base directory name for worktrees.
+
+        Returns:
+            The directory name (relative to project_root) where worktrees are stored.
+        """
+        return self._base_dir
+
     def _lock_path(self, run_id: str) -> Path:
         """Get the lock file path for a given run ID.
 

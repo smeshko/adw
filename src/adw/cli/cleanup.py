@@ -214,7 +214,7 @@ def cleanup_orphans_command(
     # Remove each orphaned worktree
     worktree_manager = WorktreeManager(
         project_root=project_root,
-        base_dir=manager._base_dir,
+        base_dir=manager.base_dir,
     )
 
     removed_count = 0

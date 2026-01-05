@@ -270,8 +270,6 @@ def _output_json_index_entries(entries: list[IndexEntry]) -> None:
     Args:
         entries: List of IndexEntry objects.
     """
-    import json
-
     output = []
     for entry in entries:
         output.append(
