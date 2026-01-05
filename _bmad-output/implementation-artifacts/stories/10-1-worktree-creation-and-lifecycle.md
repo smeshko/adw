@@ -1,6 +1,6 @@
 # Story 10.1: Worktree Creation and Lifecycle
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-05
@@ -73,10 +73,12 @@ so that concurrent runs don't interfere with each other or my working directory.
 - [x] Pass `use_worktree=not no_worktree` to orchestrator.run()
 
 ### Task 6: Write Tests
-- [ ] Unit tests for `WorktreeManager.create_worktree()`
-- [ ] Unit tests for `WorktreeManager.remove_worktree()`
-- [ ] Integration test for full worktree lifecycle (create → run → cleanup)
-- [ ] Test error handling: git not available, permission denied, branch conflicts
+- [x] Unit tests for `WorktreeManager.create_worktree()` (8 tests)
+- [x] Unit tests for `WorktreeManager.remove_worktree()` (6 tests)
+- [x] Integration test for full worktree lifecycle (3 orchestrator tests)
+- [x] Test error handling: git not available, permission denied, branch conflicts
+- [x] Unit tests for WorktreeConfig model (6 tests)
+- [x] Unit tests for RunContext worktree fields (5 tests)
 
 ---
 
@@ -382,6 +384,13 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
   - Updated help text with example usage
   - Passed use_worktree=not no_worktree to orchestrator.run()
 
+- Task 6: Completed all tests
+  - 14 unit tests for WorktreeManager (create + remove)
+  - 6 unit tests for WorktreeConfig model
+  - 5 unit tests for RunContext worktree fields
+  - 3 integration tests for orchestrator worktree integration
+  - Total: 28 new tests, all passing
+
 ### File List
 
 **New Files:**
@@ -392,3 +401,11 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 **Modified Files:**
 - src/adw/exceptions.py (added WorktreeError class)
+- src/adw/models/config.py (added WorktreeConfig class)
+- src/adw/models/context.py (added worktree_path, use_worktree fields)
+- src/adw/models/__init__.py (exported WorktreeConfig)
+- src/adw/core/orchestrator.py (integrated WorktreeManager)
+- src/adw/cli/app.py (added --no-worktree flag)
+- tests/unit/models/test_config.py (added WorktreeConfig tests)
+- tests/unit/models/test_context.py (added worktree field tests)
+- tests/unit/core/test_orchestrator.py (added worktree integration tests)
