@@ -80,7 +80,7 @@ N/A
 
 ## Resolution
 
-- **Fix Story:** Pending
+- **Fix Story:** refactor-ISS-012-config-driven-artifact-capture.md
 - **Fixed In:** Pending
 - **Verified By:** Pending
 - **Verified Date:** Pending

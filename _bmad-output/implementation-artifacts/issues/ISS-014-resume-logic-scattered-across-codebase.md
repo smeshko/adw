@@ -114,7 +114,7 @@ N/A
 
 ## Resolution
 
-- **Fix Story:** Pending
+- **Fix Story:** refactor-ISS-014-centralize-resume-logic.md
 - **Fixed In:** Pending
 - **Verified By:** Pending
 - **Verified Date:** Pending

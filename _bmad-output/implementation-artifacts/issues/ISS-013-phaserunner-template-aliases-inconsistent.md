@@ -83,7 +83,7 @@ N/A
 
 ## Resolution
 
-- **Fix Story:** Pending
+- **Fix Story:** refactor-ISS-013-remove-template-aliases.md
 - **Fixed In:** Pending
 - **Verified By:** Pending
 - **Verified Date:** Pending

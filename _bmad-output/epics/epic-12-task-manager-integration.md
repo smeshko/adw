@@ -408,24 +408,63 @@ task_manager_config:
 
 ---
 
-## Updated Dependency Flowchart (Course Correction 2026-01-03)
+## Epic 12: Dependency Flowchart (Updated 2026-01-05)
 
 ```
-Wave 1: [11.1] TaskManager Protocol + Config
-           │
-           ▼
-Wave 2: [11.2] Linear Implementation
-           │
-     ┌─────┴─────┬──────────┐
-     ▼           ▼          ▼
-Wave 3: [11.3]  [11.4]   [11.5]
-        Status   Pattern   Context
-        Sync     Detect    in Prompts
-           │
-           ▼
-Wave 4: [11.6]  [11.7]   [11.8]   [11.9]   [11.10]
-        Comments Labels   Closing  Assign   GitHub
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 1: Start Immediately                                                    ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [12.1] TaskManager Protocol and Configuration                                ║
+║         Foundation: Protocol, Models, NullManager, Factory                    ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+                                    │
+                                    ▼
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 2: After 12.1 (PARALLEL x3)                                             ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [12.2] Linear Task Manager  ║  [12.4] Task ID Pattern  ║  [12.10] GitHub    ║
+║         Implementation       ║         Detection        ║          Issues    ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+                    │                       │                      │
+                    ▼                       │                      │
+╔═══════════════════════════════════════════╗                      │
+║  WAVE 3: After 12.2 (PARALLEL x6)         ║◄─────────────────────┘
+╠═══════════════════════════════════════════╣
+║                                           ║
+║  [12.3] Status Sync    [12.5] Task Context║
+║  [12.7] Label Mgmt     [12.8] Issue Close ║
+║  [12.9] Issue Assign                      ║
+║                                           ║
+╚═══════════════════════════════════════════╝
+                    │
+                    ▼
+╔═══════════════════════════════════════════╗
+║  WAVE 4: After 12.3                       ║
+╠═══════════════════════════════════════════╣
+║                                           ║
+║  [12.6] Post Status Update Comments       ║
+║         (Extends status sync with comment ║
+║          posting at phase transitions)    ║
+║                                           ║
+╚═══════════════════════════════════════════╝
 ```
+
+### Execution Summary
+
+| Wave | Stories | Description | Parallelizable |
+|------|---------|-------------|----------------|
+| 1 | 12.1 | Protocol + Models | No (foundation) |
+| 2 | 12.2, 12.4, 12.10 | Providers + Pattern Detection | Yes (3 parallel) |
+| 3 | 12.3, 12.5, 12.7, 12.8, 12.9 | Features | Yes (5 parallel) |
+| 4 | 12.6 | Comments | No (depends on 12.3) |
+
+**Critical Path:** 12.1 → 12.2 → 12.3 → 12.6
+
+**Maximum Parallelization:** Up to 5 stories can be worked simultaneously in Wave 3
 
 ---
 
