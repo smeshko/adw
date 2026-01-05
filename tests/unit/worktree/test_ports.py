@@ -5,6 +5,7 @@ allocation for concurrent ADW runs.
 """
 
 import socket
+from unittest.mock import patch
 
 import pytest
 
@@ -94,19 +95,22 @@ class TestPortCalculation:
 class TestPortAllocation:
     """Tests for the allocation process."""
 
-    def test_allocate_returns_port_allocation(self) -> None:
+    @patch.object(PortAllocator, "is_port_available", return_value=True)
+    def test_allocate_returns_port_allocation(self, mock_port_check) -> None:
         """Allocation returns a PortAllocation model."""
         allocator = PortAllocator()
         result = allocator.allocate("01HQTEST123456789ABCD")
         assert isinstance(result, PortAllocation)
 
-    def test_allocation_contains_run_id(self) -> None:
+    @patch.object(PortAllocator, "is_port_available", return_value=True)
+    def test_allocation_contains_run_id(self, mock_port_check) -> None:
         """Allocation includes the original run_id."""
         allocator = PortAllocator()
         result = allocator.allocate("01HQTEST123456789ABCD")
         assert result.run_id == "01HQTEST123456789ABCD"
 
-    def test_allocation_ports_in_valid_range(self) -> None:
+    @patch.object(PortAllocator, "is_port_available", return_value=True)
+    def test_allocation_ports_in_valid_range(self, mock_port_check) -> None:
         """Allocated ports are within the configured range."""
         allocator = PortAllocator(
             backend_start=9100,
@@ -117,7 +121,8 @@ class TestPortAllocation:
         assert 9100 <= result.backend_port < 9115
         assert 9200 <= result.frontend_port < 9215
 
-    def test_allocation_slot_matches_ports(self) -> None:
+    @patch.object(PortAllocator, "is_port_available", return_value=True)
+    def test_allocation_slot_matches_ports(self, mock_port_check) -> None:
         """Allocation slot matches the port offset."""
         allocator = PortAllocator(
             backend_start=9100,
