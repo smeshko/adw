@@ -84,10 +84,10 @@ validation:
 - [x] Handle graceful exit with summary
 
 ### Task 7: Add Loop Progress Display
-- [ ] Display iteration progress: "Iteration 2/5"
-- [ ] Show issues: "3 fixed, 2 remaining, 1 deferred"
-- [ ] Indicate stall warning if detected
-- [ ] Show exit reason when loop completes
+- [x] Display iteration progress: "Iteration 2/5"
+- [x] Show issues: "3 fixed, 2 remaining, 1 deferred"
+- [x] Indicate stall warning if detected
+- [x] Show exit reason when loop completes
 
 ### Task 8: Write Tests
 - [ ] Unit tests for ValidationLoopController (6 tests)

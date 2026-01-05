@@ -453,6 +453,67 @@ class TestAutoDeferRemaining:
         assert any("Auto-deferring" in record.message for record in caplog.records)
 
 
+class TestGetProgressDisplay:
+    """Tests for progress display formatting."""
+
+    def test_get_progress_display_shows_iteration(self) -> None:
+        """Progress display shows current iteration / max."""
+        controller = ValidationLoopController(ValidationConfig(max_iterations=5))
+        controller.start_iteration()
+        controller.start_iteration()
+
+        display = controller.get_progress_display()
+
+        assert "Iteration 2/5" in display
+
+    def test_get_progress_display_shows_issue_counts(self) -> None:
+        """Progress display shows fixed, remaining, deferred counts."""
+        controller = ValidationLoopController(ValidationConfig())
+        controller.start_iteration()
+
+        # Set up counts
+        controller.state.issues_resolved = 3
+        controller.state.issues_remaining = 2
+        controller.state.issues_deferred = 1
+
+        display = controller.get_progress_display()
+
+        assert "3 fixed" in display
+        assert "2 remaining" in display
+        assert "1 deferred" in display
+
+    def test_get_progress_display_shows_stall_warning(self) -> None:
+        """Progress display shows stall warning when stalled."""
+        controller = ValidationLoopController(ValidationConfig(stall_threshold=3))
+        controller.start_iteration()
+        controller.state.stall_count = 2
+        controller.state.issues_remaining = 5
+
+        display = controller.get_progress_display()
+
+        assert "stall" in display.lower()
+
+    def test_get_exit_display_shows_reason(self) -> None:
+        """Exit display shows the exit reason."""
+        controller = ValidationLoopController(ValidationConfig(max_iterations=2))
+        controller.start_iteration()
+        controller.start_iteration()
+
+        display = controller.get_exit_display(ExitReason.MAX_ITERATIONS)
+
+        assert "max iterations" in display.lower()
+
+    def test_get_exit_display_all_resolved(self) -> None:
+        """Exit display shows success message for all resolved."""
+        controller = ValidationLoopController(ValidationConfig())
+        controller.start_iteration()
+        controller.state.issues_resolved = 5
+
+        display = controller.get_exit_display(ExitReason.ALL_RESOLVED)
+
+        assert "resolved" in display.lower() or "success" in display.lower()
+
+
 class TestShouldExit:
     """Tests for should_exit() exit condition checks."""
 

@@ -299,6 +299,76 @@ class ValidationLoopController:
 
         return issues
 
+    def get_progress_display(self) -> str:
+        """Get formatted progress display string.
+
+        Returns a human-readable string showing current iteration,
+        issue counts, and any warnings (like stall detection).
+
+        Returns:
+            Formatted progress string for display.
+        """
+        lines = []
+
+        # Iteration progress
+        lines.append(
+            f"Iteration {self.state.current_iteration}/{self.config.max_iterations}"
+        )
+
+        # Issue counts
+        counts = []
+        if self.state.issues_resolved > 0:
+            counts.append(f"{self.state.issues_resolved} fixed")
+        if self.state.issues_remaining > 0:
+            counts.append(f"{self.state.issues_remaining} remaining")
+        if self.state.issues_deferred > 0:
+            counts.append(f"{self.state.issues_deferred} deferred")
+        if self.state.issues_dismissed > 0:
+            counts.append(f"{self.state.issues_dismissed} dismissed")
+
+        if counts:
+            lines.append(" | ".join(counts))
+
+        # Stall warning
+        if self.state.stall_count > 0:
+            lines.append(
+                f"⚠ Stall warning: {self.state.stall_count}/"
+                f"{self.config.stall_threshold} iterations without progress"
+            )
+
+        return " | ".join(lines)
+
+    def get_exit_display(self, reason: ExitReason) -> str:
+        """Get formatted exit display string.
+
+        Returns a human-readable string explaining why the loop exited.
+
+        Args:
+            reason: The exit reason.
+
+        Returns:
+            Formatted exit string for display.
+        """
+        messages = {
+            ExitReason.ALL_RESOLVED: (
+                "✓ All issues resolved! "
+                f"({self.state.issues_resolved} fixed, "
+                f"{self.state.issues_dismissed} dismissed, "
+                f"{self.state.issues_deferred} deferred)"
+            ),
+            ExitReason.MAX_ITERATIONS: (
+                f"⚠ Max iterations reached ({self.config.max_iterations}). "
+                f"{self.state.issues_remaining} issues auto-deferred."
+            ),
+            ExitReason.STALL_DETECTED: (
+                f"⚠ Stall detected: No progress for "
+                f"{self.state.stall_count} iterations. "
+                f"{self.state.issues_remaining} issues auto-deferred."
+            ),
+            ExitReason.USER_CANCELLED: "User cancelled validation loop.",
+        }
+        return messages.get(reason, f"Loop exited: {reason.value}")
+
     def get_summary(self) -> dict:
         """Get summary of loop execution.
 
