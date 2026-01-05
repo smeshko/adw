@@ -230,6 +230,11 @@ development_status:
   11-5-iteration-limits-and-exit-conditions: ready-for-dev
   11-6-validation-state-persistence: ready-for-dev
   11-7-validation-report-generation: ready-for-dev
+  # Bugfixes (from manual testing)
+  bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: backlog
+  bugfix-ISS-009-git-diff-capture-fails-no-commits: backlog
+  bugfix-ISS-010-evidence-gathering-not-integrated: backlog
+  ux-fix-ISS-011-adw-run-should-auto-create-pr: backlog
   epic-11-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
