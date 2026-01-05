@@ -67,7 +67,7 @@ def format_commit_message(
     return template.format(**format_dict)
 
 
-def stage_changes(*, working_dir: "Path | None" = None) -> list[str]:
+def stage_changes(*, working_dir: Path | None = None) -> list[str]:
     """Stage all changes in the working tree.
 
     Uses `git add -A` to stage all changes including new files,

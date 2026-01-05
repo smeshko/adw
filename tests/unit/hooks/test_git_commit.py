@@ -98,6 +98,9 @@ class TestStageChanges:
             result = stage_changes()
             assert result == ["file1.py", "file2.py"]
             assert mock_run.call_count == 2
+            # Verify git add -A command was called (stages ALL changes including untracked)
+            add_call = mock_run.call_args_list[0]
+            assert add_call[0][0] == ["git", "add", "-A"]
 
     def test_stage_with_working_dir(self) -> None:
         """Should pass working_dir to subprocess.run cwd."""

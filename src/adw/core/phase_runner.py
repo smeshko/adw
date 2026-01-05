@@ -692,7 +692,7 @@ class PhaseRunner:
                 return None
 
             logger.info(
-                "Staged changes for commit",
+                "Staged changes",
                 extra={
                     "phase": phase,
                     "run_id": context.run_id,
@@ -712,11 +712,11 @@ class PhaseRunner:
 
             if sha:
                 logger.info(
-                    "Committed phase changes",
+                    "Committed changes",
                     extra={
                         "phase": phase,
                         "run_id": context.run_id,
-                        "sha": sha[:8],
+                        "sha": sha,
                         "file_count": len(staged_files),
                     },
                 )
@@ -969,10 +969,13 @@ class PhaseRunner:
                     )
                     artifacts.append("diff_stats.json")
 
+                    # Count lines in diff (insertions + deletions)
+                    lines = stats.insertions + stats.deletions
                     logger.info(
-                        "Git diff captured",
+                        "Captured diff",
                         extra={
                             "run_id": context.run_id,
+                            "lines": lines,
                             "original_bytes": original_size,
                             "files_changed": stats.files_changed,
                             "insertions": stats.insertions,

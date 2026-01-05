@@ -1,6 +1,6 @@
 # Story: Bugfix ISS-009 - Git Diff Capture Fails / Auto-Commit Not Working
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 9 - Git Integration & Documentation
 Created: 2026-01-05
@@ -15,43 +15,43 @@ so that **git diff capture works and I have incremental commits for PR history**
 
 ## Acceptance Criteria
 
-- [ ] After BUILD phase completes, all created/modified files are staged (`git add -A`)
-- [ ] A commit is created with message `[adw] Build: <feature-description>`
-- [ ] After subsequent phases (VERIFY, VALIDATE, DOCUMENT), commits are also created
-- [ ] Git diff capture (`git diff HEAD~1`) succeeds and captures the phase changes
-- [ ] Untracked files (new files created by LLM) are included in staging
-- [ ] PR description includes actual diff information
+- [x] After BUILD phase completes, all created/modified files are staged (`git add -A`)
+- [x] A commit is created with message `[adw] Build: <feature-description>`
+- [x] After subsequent phases (VERIFY, VALIDATE, DOCUMENT), commits are also created
+- [x] Git diff capture (`git diff HEAD~1`) succeeds and captures the phase changes
+- [x] Untracked files (new files created by LLM) are included in staging
+- [x] PR description includes actual diff information
 
 ## Tasks / Subtasks
 
 ### Task 1: Investigate Current Auto-Commit Flow
-- [ ] Check if post-phase hooks are being triggered
-- [ ] Examine `src/adw/hooks/` for commit-related hooks
-- [ ] Verify hook execution in orchestrator after phase completion
-- [ ] Trace why `git add -A` is not staging untracked files
+- [x] Check if post-phase hooks are being triggered
+- [x] Examine `src/adw/hooks/` for commit-related hooks
+- [x] Verify hook execution in orchestrator after phase completion
+- [x] Trace why `git add -A` is not staging untracked files
 
 ### Task 2: Fix Post-Phase Commit Hook
-- [ ] Ensure hook stages ALL changes including untracked: `git add -A`
-- [ ] Create commit with proper message format: `[adw] {phase}: {feature}`
-- [ ] Handle case where no changes to commit (empty diff)
-- [ ] Run in worktree context (correct git directory)
+- [x] Ensure hook stages ALL changes including untracked: `git add -A`
+- [x] Create commit with proper message format: `[adw] {phase}: {feature}`
+- [x] Handle case where no changes to commit (empty diff)
+- [x] Run in worktree context (correct git directory)
 
 ### Task 3: Fix Git Diff Capture
-- [ ] Ensure diff capture runs AFTER commit is created
-- [ ] Use `git diff HEAD~1` to capture changes from latest commit
-- [ ] Handle case where no previous commit exists (initial commit scenario)
-- [ ] Store diff as artifact for Document phase
+- [x] Ensure diff capture runs AFTER commit is created
+- [x] Use `git diff HEAD~1` to capture changes from latest commit
+- [x] Handle case where no previous commit exists (initial commit scenario)
+- [x] Store diff as artifact for Document phase
 
 ### Task 4: Add Structured Logging
-- [ ] Log when files are staged: `logger.info("Staged changes", file_count=N)`
-- [ ] Log when commit is created: `logger.info("Committed changes", sha=abc123)`
-- [ ] Log when diff is captured: `logger.info("Captured diff", lines=N)`
+- [x] Log when files are staged: `logger.info("Staged changes", file_count=N)`
+- [x] Log when commit is created: `logger.info("Committed changes", sha=abc123)`
+- [x] Log when diff is captured: `logger.info("Captured diff", lines=N)`
 
 ### Task 5: Write Tests
-- [ ] Unit test: Post-hook stages all file types (modified, untracked, deleted)
-- [ ] Unit test: Commit message format is correct
-- [ ] Unit test: Diff capture returns correct content
-- [ ] Integration test: End-to-end BUILD → commit → diff capture flow
+- [x] Unit test: Post-hook stages all file types (modified, untracked, deleted)
+- [x] Unit test: Commit message format is correct
+- [x] Unit test: Diff capture returns correct content
+- [x] Integration test: End-to-end BUILD → commit → diff capture flow
 
 ---
 
@@ -281,10 +281,25 @@ N/A
 
 ### Completion Notes List
 
+**Implementation Summary:**
+1. Added `_auto_commit_changes()` method to PhaseRunner that stages all changes (including untracked files) and creates a commit after each phase
+2. Added `working_dir` parameter to `stage_changes()`, `has_staged_changes()`, `get_unstaged_modifications()`, and `create_commit()` for worktree support
+3. Integrated auto-commit as Step 5 in the PhaseRunner.run() flow (before artifact capture)
+4. Commits are best-effort: errors are logged but don't fail the phase
+5. Structured logging follows story spec: "Staged changes", "Committed changes", "Captured diff" with appropriate context
+
+**Code Review Fixes Applied:**
+- Fixed log message format to match story spec (was "Staged changes for commit" → now "Staged changes")
+- Fixed SHA logging to include full SHA (was truncated to 8 chars)
+- Added `lines=N` parameter to "Captured diff" log
+- Added test assertion verifying `git add -A` command is called
+- Fixed type annotation consistency (removed quoted string annotation)
+- Added comprehensive integration tests for BUILD → commit → diff flow
+
 ### File List
 
-- `src/adw/hooks/` (investigate existing)
-- `src/adw/core/orchestrator.py`
-- `src/adw/git/` (if exists)
-- `tests/unit/hooks/test_git_hooks.py`
-- `tests/integration/test_git_commit_flow.py`
+- `src/adw/core/phase_runner.py` - Added `_auto_commit_changes()` method, integrated as Step 5 in run() flow
+- `src/adw/hooks/git_commit.py` - Added `working_dir` parameter for worktree support
+- `tests/unit/core/test_phase_runner.py` - Added `TestAutoCommitChanges` test class (5 tests)
+- `tests/unit/hooks/test_git_commit.py` - Added worktree support tests
+- `tests/integration/test_git_hooks.py` - Added `TestBuildCommitDiffFlowIntegration` class (5 tests)
