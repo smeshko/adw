@@ -324,6 +324,8 @@ class PhaseRunner:
             "phase": phase,
             "feature": context.feature_description,
             "feature_description": context.feature_description,  # Alias for templates
+            # Story 10.5: worktree path for templates (empty string if None for backward compat)
+            "worktree_path": str(context.worktree_path) if context.worktree_path else "",
         }
 
         # Add convenience aliases for common artifact references
@@ -548,14 +550,21 @@ class PhaseRunner:
         Raises:
             LLMError: If execution fails.
         """
-        logger.debug("Executing LLM", extra={"phase": phase})
+        logger.debug(
+            "Executing LLM",
+            extra={
+                "phase": phase,
+                "worktree_path": str(context.worktree_path) if context.worktree_path else None,
+            },
+        )
 
         # Start LLM progress display (Story 5.5)
         if self.progress_display:
             self.progress_display.on_llm_start()
 
         try:
-            result = self.executor.execute(prompt, phase=phase)
+            # Pass worktree_path for isolated execution (Story 10.5)
+            result = self.executor.execute(prompt, phase=phase, cwd=context.worktree_path)
 
             logger.debug(
                 "LLM execution completed",
@@ -786,16 +795,19 @@ class PhaseRunner:
 
         try:
             # Check if repository has commits (handles initial commit edge case)
-            if not has_commits():
+            # Pass worktree_path to git operations (Story 10.5)
+            if not has_commits(working_dir=context.worktree_path):
                 logger.debug(
                     "No commits in repository, trying staged changes",
                     extra={"run_id": context.run_id},
                 )
-                diff_content = capture_staged_diff()
+                diff_content = capture_staged_diff(working_dir=context.worktree_path)
                 diff_reference = "--cached"
             else:
                 # Try to capture diff since last commit
-                diff_content = capture_diff(since="HEAD~1")
+                diff_content = capture_diff(
+                    since="HEAD~1", working_dir=context.worktree_path
+                )
 
                 # If no diff found, try staged changes
                 if not diff_content.strip():
@@ -803,7 +815,9 @@ class PhaseRunner:
                         "No commit diff found, trying staged changes",
                         extra={"run_id": context.run_id},
                     )
-                    diff_content = capture_staged_diff()
+                    diff_content = capture_staged_diff(
+                        working_dir=context.worktree_path
+                    )
                     diff_reference = "--cached"
 
             # Handle empty diff case
@@ -843,7 +857,7 @@ class PhaseRunner:
                     stat_cmd,
                     capture_output=True,
                     text=True,
-                    cwd=Path.cwd(),
+                    cwd=context.worktree_path if context.worktree_path else None,
                 )
                 if stat_result.returncode == 0:
                     # Pass raw diff for binary file detection

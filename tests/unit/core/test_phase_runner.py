@@ -673,6 +673,48 @@ class TestPhaseRunnerGitDiffCapture:
         assert "diff --git" in artifacts["diff"]
 
 
+class TestPhaseRunnerWorktreeContext:
+    """Tests for worktree context in template variables (Story 10.5)."""
+
+    def test_worktree_path_available_as_template_variable(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_template_engine: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Test that worktree_path is available as template variable."""
+        # Set worktree_path in context
+        worktree_context = sample_context.model_copy(
+            update={"worktree_path": tmp_path / "worktree"}
+        )
+
+        phase_runner.run("plan", worktree_context)
+
+        # Verify template_engine.render was called with worktree_path
+        call_args = mock_template_engine.render.call_args
+        variables = call_args[0][1]  # Second positional argument
+        assert "worktree_path" in variables
+        assert variables["worktree_path"] == str(tmp_path / "worktree")
+
+    def test_worktree_path_none_uses_empty_string(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_template_engine: MagicMock,
+    ) -> None:
+        """Test that worktree_path is empty string when None in context."""
+        # Default context has worktree_path=None
+        assert sample_context.worktree_path is None
+
+        phase_runner.run("plan", sample_context)
+
+        call_args = mock_template_engine.render.call_args
+        variables = call_args[0][1]
+        assert "worktree_path" in variables
+        assert variables["worktree_path"] == ""
+
+
 class TestPhaseRunnerWithMockExecutor:
     """Integration-style tests using MockExecutor."""
 

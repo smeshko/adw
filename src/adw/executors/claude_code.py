@@ -118,6 +118,7 @@ class ClaudeCodeExecutor:
         timeout: int | None = None,
         stream_logger: StreamLogger | None = None,
         phase: str | None = None,
+        cwd: Path | None = None,
     ) -> LLMResult:
         """Execute a prompt using Claude Code CLI.
 
@@ -130,6 +131,9 @@ class ClaudeCodeExecutor:
             stream_logger: Optional StreamLogger for capturing stream events.
                           Used for debugging and replay (Story 7.3).
             phase: Optional phase name for LLM capture logging.
+            cwd: Optional working directory for subprocess execution.
+                 If None, uses current working directory (legacy mode).
+                 Used for worktree isolation support (Story 10.5).
 
         Returns:
             LLMResult with success status, content, tool calls, and metrics.
@@ -152,7 +156,7 @@ class ClaudeCodeExecutor:
             self.llm_capture.capture_request(request)
 
         result = asyncio.run(
-            self._stream_subprocess(prompt, effective_timeout, stream_logger)
+            self._stream_subprocess(prompt, effective_timeout, stream_logger, cwd=cwd)
         )
 
         # Capture LLM response if capture manager is configured
@@ -180,6 +184,8 @@ class ClaudeCodeExecutor:
         prompt: str,
         timeout: int,
         stream_logger: StreamLogger | None = None,
+        *,
+        cwd: Path | None = None,
     ) -> LLMResult:
         """Execute Claude Code subprocess with streaming output.
 
@@ -190,6 +196,8 @@ class ClaudeCodeExecutor:
             prompt: The prompt to send to Claude Code.
             timeout: Timeout in seconds.
             stream_logger: Optional StreamLogger for capturing stream events.
+            cwd: Optional working directory for subprocess execution.
+                 If None, uses current working directory (legacy mode).
 
         Returns:
             LLMResult with execution results.
@@ -225,6 +233,7 @@ class ClaudeCodeExecutor:
                 "model": self.config.model,
                 "timeout": timeout,
                 "prompt_length": len(prompt),
+                "cwd": str(cwd) if cwd else None,
             },
         )
 
@@ -235,6 +244,7 @@ class ClaudeCodeExecutor:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             limit=1024 * 1024,  # 1MB buffer limit
+            cwd=cwd,  # Set working directory for worktree support (Story 10.5)
         )
 
         try:

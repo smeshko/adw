@@ -5,6 +5,7 @@ a consistent interface for different LLM implementations (Claude Code,
 MockExecutor for testing, etc.).
 """
 
+from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 from adw.models.llm import LLMResult
@@ -36,6 +37,7 @@ class LLMExecutor(Protocol):
         *,
         timeout: int | None = None,
         phase: str | None = None,
+        cwd: Path | None = None,
     ) -> LLMResult:
         """Execute a prompt and return the result.
 
@@ -43,6 +45,9 @@ class LLMExecutor(Protocol):
             prompt: The prompt to send to the LLM.
             timeout: Optional timeout in seconds. If None, uses executor's default.
             phase: Optional phase name for logging and debugging purposes.
+            cwd: Optional working directory for subprocess execution.
+                 If None, uses current working directory (legacy mode).
+                 Used for worktree isolation support (Story 10.5).
 
         Returns:
             LLMResult with success status, content, tool calls, and metrics.
