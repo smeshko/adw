@@ -195,6 +195,36 @@ class LoggingConfig(BaseModel):
     )
 
 
+class PortRangeConfig(BaseModel):
+    """Configuration for port ranges used in concurrent run isolation.
+
+    Defines the starting port numbers for backend and frontend services
+    in each concurrent run. Ports are allocated as base + slot_number.
+
+    Attributes:
+        backend_start: Starting port for backend services (default: 9100)
+        frontend_start: Starting port for frontend services (default: 9200)
+
+    Example:
+        >>> config = PortRangeConfig(backend_start=8000, frontend_start=8100)
+        >>> config.backend_start
+        8000
+    """
+
+    backend_start: int = Field(
+        default=9100,
+        gt=0,
+        lt=65536,
+        description="Starting port for backend services",
+    )
+    frontend_start: int = Field(
+        default=9200,
+        gt=0,
+        lt=65536,
+        description="Starting port for frontend services",
+    )
+
+
 class WorktreeConfig(BaseModel):
     """Configuration for git worktree isolation.
 
@@ -212,6 +242,8 @@ class WorktreeConfig(BaseModel):
             worktrees (default: ["context.json", "logs", "artifacts", "llm"])
         artifact_manifest_file: Name of manifest file created during preservation
             (default: "worktree-artifacts.json")
+        port_range: Configuration for port allocation ranges
+        max_concurrent: Maximum number of concurrent runs (determines slot count)
 
     Example:
         >>> config = WorktreeConfig(enabled=True, base_dir=".worktrees")
@@ -235,6 +267,10 @@ class WorktreeConfig(BaseModel):
             - llm
             - custom-output.json
           artifact_manifest_file: "worktree-artifacts.json"
+          port_range:
+            backend_start: 9100
+            frontend_start: 9200
+          max_concurrent: 15
     """
 
     enabled: bool = Field(
@@ -260,6 +296,16 @@ class WorktreeConfig(BaseModel):
     artifact_manifest_file: str = Field(
         default="worktree-artifacts.json",
         description="Name of manifest file created during artifact preservation",
+    )
+    port_range: PortRangeConfig = Field(
+        default_factory=PortRangeConfig,
+        description="Port range configuration for concurrent runs",
+    )
+    max_concurrent: int = Field(
+        default=15,
+        gt=0,
+        le=100,
+        description="Maximum number of concurrent runs (slot count)",
     )
 
 

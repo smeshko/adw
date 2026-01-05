@@ -204,6 +204,28 @@ class TestWorktreeConfig:
         config = WorktreeConfig(artifact_manifest_file="custom-manifest.json")
         assert config.artifact_manifest_file == "custom-manifest.json"
 
+    def test_port_range_defaults(self) -> None:
+        """WorktreeConfig has default port range settings."""
+        config = WorktreeConfig()
+        assert config.port_range.backend_start == 9100
+        assert config.port_range.frontend_start == 9200
+        assert config.max_concurrent == 15
+
+    def test_custom_port_range(self) -> None:
+        """WorktreeConfig accepts custom port range."""
+        from adw.models.config import PortRangeConfig
+
+        config = WorktreeConfig(
+            port_range=PortRangeConfig(
+                backend_start=8000,
+                frontend_start=8100,
+            ),
+            max_concurrent=10,
+        )
+        assert config.port_range.backend_start == 8000
+        assert config.port_range.frontend_start == 8100
+        assert config.max_concurrent == 10
+
 
 class TestProjectConfig:
     """Tests for ProjectConfig model."""

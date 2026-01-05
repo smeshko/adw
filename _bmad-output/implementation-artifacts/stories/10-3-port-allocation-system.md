@@ -71,7 +71,7 @@ so that concurrent runs don't have port conflicts.
 - [x] Return path to generated file
 
 ### Task 5: Add Port Configuration
-- [ ] Extend `WorktreeConfig` with port settings:
+- [x] Extend `WorktreeConfig` with port settings:
   ```python
   port_range:
       backend_start: int = 9100
@@ -392,6 +392,7 @@ N/A
 - Implemented allocate() with retry logic for occupied ports
 - Implemented write_ports_env() for shell-sourceable environment files
 - Added unit tests covering slot calculation, port calculation, and allocation
+- Task 5: Added PortRangeConfig and extended WorktreeConfig with port_range and max_concurrent fields
 
 ### File List
 
@@ -403,4 +404,6 @@ N/A
 **Modified Files:**
 - src/adw/worktree/__init__.py
 - src/adw/models/__init__.py
+- src/adw/models/config.py
 - src/adw/exceptions.py
+- tests/unit/models/test_config.py
