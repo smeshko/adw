@@ -1,6 +1,6 @@
 # Story 10.4: Concurrent Run Management
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-05
