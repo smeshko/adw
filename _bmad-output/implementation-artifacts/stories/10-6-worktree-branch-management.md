@@ -40,10 +40,10 @@ so that my git history stays clean.
 - [x] Implement `create_branch(run_id: str, base_ref: str) -> str`
 
 ### Task 2: Implement Branch Deletion Logic
-- [ ] Implement `delete_branch(run_id: str, force: bool = False) -> bool`
-- [ ] Check for unpushed commits before deletion
-- [ ] Warn user if branch has work that would be lost
-- [ ] Return True if deleted, False if preserved
+- [x] Implement `delete_branch(run_id: str, force: bool = False) -> bool`
+- [x] Check for unpushed commits before deletion
+- [x] Warn user if branch has work that would be lost
+- [x] Return True if deleted, False if preserved
 
 ### Task 3: Integrate with Worktree Creation
 - [ ] Modify `WorktreeManager.create_worktree()` to use branch manager

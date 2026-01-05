@@ -235,3 +235,126 @@ class TestBranchCreation:
 
         assert exc_info.value.code == "BRANCH_EXISTS"
         assert f"adw/{run_id}" in exc_info.value.message
+
+
+class TestBranchDeletion:
+    """Tests for branch deletion logic."""
+
+    @pytest.fixture
+    def git_repo(self, tmp_path: Path) -> Path:
+        """Create a temporary git repository for testing."""
+        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@test.com"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        readme = tmp_path / "README.md"
+        readme.write_text("# Test")
+        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Initial commit"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        return tmp_path
+
+    @pytest.fixture
+    def git_repo_with_branch(self, git_repo: Path) -> Path:
+        """Git repo with an adw/ branch created."""
+        subprocess.run(
+            ["git", "branch", "adw/01HQTEST12345678901234567"],
+            cwd=git_repo,
+            check=True,
+            capture_output=True,
+        )
+        return git_repo
+
+    def test_deletes_branch(self, git_repo_with_branch: Path) -> None:
+        """Successfully deletes branch."""
+        from adw.worktree.branch import WorktreeBranchManager
+
+        manager = WorktreeBranchManager(git_repo_with_branch)
+        run_id = "01HQTEST12345678901234567"
+
+        result = manager.delete_branch(run_id)
+
+        assert result is True
+        # Verify branch is gone
+        branch_list = subprocess.run(
+            ["git", "branch", "--list", f"adw/{run_id}"],
+            cwd=git_repo_with_branch,
+            capture_output=True,
+            text=True,
+        )
+        assert f"adw/{run_id}" not in branch_list.stdout
+
+    def test_delete_nonexistent_branch_returns_true(self, git_repo: Path) -> None:
+        """Returns True when branch doesn't exist (already deleted)."""
+        from adw.worktree.branch import WorktreeBranchManager
+
+        manager = WorktreeBranchManager(git_repo)
+
+        result = manager.delete_branch("nonexistent-run-id-123456")
+
+        assert result is True
+
+    def test_has_unpushed_commits_false_when_no_upstream(
+        self, git_repo_with_branch: Path
+    ) -> None:
+        """has_unpushed_commits returns False when no upstream set."""
+        from adw.worktree.branch import WorktreeBranchManager
+
+        manager = WorktreeBranchManager(git_repo_with_branch)
+
+        # Branch has no upstream, so should return False
+        result = manager.has_unpushed_commits("adw/01HQTEST12345678901234567")
+
+        assert result is False
+
+    def test_force_deletes_branch(self, git_repo_with_branch: Path) -> None:
+        """force=True uses -D flag for deletion."""
+        from adw.worktree.branch import WorktreeBranchManager
+
+        manager = WorktreeBranchManager(git_repo_with_branch)
+        run_id = "01HQTEST12345678901234567"
+
+        # Even with force, should delete successfully
+        result = manager.delete_branch(run_id, force=True)
+
+        assert result is True
+        branch_list = subprocess.run(
+            ["git", "branch", "--list", f"adw/{run_id}"],
+            cwd=git_repo_with_branch,
+            capture_output=True,
+            text=True,
+        )
+        assert f"adw/{run_id}" not in branch_list.stdout
+
+
+class TestPRDetection:
+    """Tests for PR existence checking."""
+
+    def test_check_pr_exists_returns_none_when_gh_not_available(
+        self, tmp_path: Path
+    ) -> None:
+        """Returns None when gh CLI is not available."""
+        from adw.worktree.branch import WorktreeBranchManager
+
+        manager = WorktreeBranchManager(tmp_path)
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 1
+            mock_run.return_value.stdout = ""
+
+            result = manager.check_pr_exists("adw/01HQTEST")
+
+        assert result is None

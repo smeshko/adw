@@ -125,3 +125,114 @@ class WorktreeBranchManager:
         )
 
         return branch_name
+
+    def has_unpushed_commits(self, branch_name: str) -> bool:
+        """Check if branch has commits not pushed to upstream.
+
+        Args:
+            branch_name: Name of the branch to check.
+
+        Returns:
+            True if branch has unpushed commits, False otherwise.
+            Returns False if no upstream is set (conservative - assumes safe).
+        """
+        try:
+            result = subprocess.run(
+                ["git", "log", f"{branch_name}@{{u}}..{branch_name}", "--oneline"],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            # If command fails (no upstream), assume no unpushed
+            if result.returncode != 0:
+                return False
+            return bool(result.stdout.strip())
+        except FileNotFoundError:
+            return False
+
+    def delete_branch(self, run_id: str, force: bool = False) -> bool:
+        """Delete a worktree branch.
+
+        Args:
+            run_id: ULID identifier for the run.
+            force: If True, use -D flag (force delete even if not merged).
+                If False, use -d flag which fails on unmerged branches.
+
+        Returns:
+            True if branch was deleted or didn't exist, False if preserved
+            due to unpushed commits (when force=False).
+        """
+        branch_name = self.get_branch_name(run_id)
+
+        if not self.branch_exists(branch_name):
+            return True  # Already gone
+
+        # Check for unpushed commits when not forcing
+        if not force and self.has_unpushed_commits(branch_name):
+            logger.warning(
+                "Preserving branch with unpushed commits",
+                extra={"branch": branch_name, "run_id": run_id},
+            )
+            return False  # Preserve by default
+
+        delete_flag = "-D" if force else "-d"
+
+        logger.info(
+            "Deleting branch",
+            extra={
+                "branch": branch_name,
+                "run_id": run_id,
+                "force": force,
+            },
+        )
+
+        result = subprocess.run(
+            ["git", "branch", delete_flag, branch_name],
+            cwd=self.project_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        if result.returncode == 0:
+            logger.info(
+                "Branch deleted successfully",
+                extra={"branch": branch_name},
+            )
+            return True
+
+        logger.warning(
+            "Failed to delete branch",
+            extra={"branch": branch_name, "error": result.stderr.strip()},
+        )
+        return False
+
+    def check_pr_exists(self, branch_name: str) -> bool | None:
+        """Check if a PR exists for the branch using gh CLI.
+
+        Args:
+            branch_name: Name of the branch to check.
+
+        Returns:
+            True if PR exists (OPEN or MERGED), False if no PR,
+            None if gh CLI not available or not authenticated.
+        """
+        try:
+            result = subprocess.run(
+                ["gh", "pr", "view", branch_name, "--json", "state"],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                # Could be: gh not installed, not authenticated, no PR
+                return None
+
+            return "OPEN" in result.stdout or "MERGED" in result.stdout
+
+        except FileNotFoundError:
+            # gh CLI not installed
+            return None
