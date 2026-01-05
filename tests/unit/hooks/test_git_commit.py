@@ -315,25 +315,24 @@ class TestCreateCommit:
             ]
             with patch(
                 "adw.hooks.git_commit.has_staged_changes", return_value=True
-            ) as mock_has_staged:
-                with patch(
-                    "adw.hooks.git_commit.get_unstaged_modifications", return_value=[]
-                ) as mock_unstaged:
-                    result = create_commit(
-                        phase="build",
-                        feature="Add auth",
-                        run_id="01HQ123",
-                        working_dir=worktree,
-                    )
+            ) as mock_has_staged, patch(
+                "adw.hooks.git_commit.get_unstaged_modifications", return_value=[]
+            ) as mock_unstaged:
+                result = create_commit(
+                    phase="build",
+                    feature="Add auth",
+                    run_id="01HQ123",
+                    working_dir=worktree,
+                )
 
-                    # Verify working_dir passed to has_staged_changes
-                    mock_has_staged.assert_called_once_with(working_dir=worktree)
+                # Verify working_dir passed to has_staged_changes
+                mock_has_staged.assert_called_once_with(working_dir=worktree)
 
-                    # Verify working_dir passed to get_unstaged_modifications
-                    mock_unstaged.assert_called_once_with(working_dir=worktree)
+                # Verify working_dir passed to get_unstaged_modifications
+                mock_unstaged.assert_called_once_with(working_dir=worktree)
 
-                    assert result == "abc123def456"
+                assert result == "abc123def456"
 
-                    # Verify cwd passed to all subprocess.run calls
-                    for call in mock_run.call_args_list:
-                        assert call.kwargs.get("cwd") == worktree
+                # Verify cwd passed to all subprocess.run calls
+                for call in mock_run.call_args_list:
+                    assert call.kwargs.get("cwd") == worktree

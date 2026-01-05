@@ -15,12 +15,6 @@ from adw.validation.loop_controller import (
     ExitReason,
     ValidationLoopController,
 )
-from adw.validation.report import (
-    ConfidenceLevel,
-    DeferredIssueSummary,
-    ValidationReport,
-    ValidationReportGenerator,
-)
 from adw.validation.models import (
     FixAttempt,
     FixResult,
@@ -37,6 +31,12 @@ from adw.validation.models import (
     ValidationState,
 )
 from adw.validation.phase import ValidationPhase
+from adw.validation.report import (
+    ConfidenceLevel,
+    DeferredIssueSummary,
+    ValidationReport,
+    ValidationReportGenerator,
+)
 from adw.validation.state_manager import ValidationStateManager
 from adw.validation.triage import TriageSystem
 from adw.validation.validators.base import Validator, ValidatorRegistry

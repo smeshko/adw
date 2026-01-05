@@ -135,7 +135,7 @@ class TestValidator:
             return [
                 ValidationIssue(
                     source=ValidationSource.TEST,
-                    message=f"Test execution timed out after {self._timeout_seconds} seconds",
+                    message=f"Test execution timed out after {self._timeout_seconds}s",
                     severity="high",
                 )
             ]
@@ -218,10 +218,13 @@ class TestValidator:
             file_path = parts[0] if parts else None
             test_name = parts[1] if len(parts) > 1 else file_test
 
+            msg = f"Test failed: {test_name}"
+            if reason:
+                msg += f" - {reason}"
             issues.append(
                 ValidationIssue(
                     source=ValidationSource.TEST,
-                    message=f"Test failed: {test_name}" + (f" - {reason}" if reason else ""),
+                    message=msg,
                     severity="high",
                     file_path=file_path,
                 )
@@ -235,10 +238,13 @@ class TestValidator:
                 test_name = match[1]
                 reason = match[2] if len(match) > 2 else ""
 
+                msg = f"Test failed: {test_name}"
+                if reason:
+                    msg += f" - {reason}"
                 issues.append(
                     ValidationIssue(
                         source=ValidationSource.TEST,
-                        message=f"Test failed: {test_name}" + (f" - {reason}" if reason else ""),
+                        message=msg,
                         severity="high",
                         file_path=file_path,
                     )
@@ -299,10 +305,12 @@ class TestValidator:
 
         matches = GENERIC_ERROR_PATTERN.findall(output)
         for match in matches[:10]:  # Limit to first 10 to avoid spam
+            # Truncate long messages
+            error_text = match.strip()[:200]
             issues.append(
                 ValidationIssue(
                     source=ValidationSource.TEST,
-                    message=f"Test error: {match.strip()[:200]}",  # Truncate long messages
+                    message=f"Test error: {error_text}",
                     severity="high",
                 )
             )

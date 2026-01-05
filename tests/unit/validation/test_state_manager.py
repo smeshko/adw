@@ -14,8 +14,8 @@ from pathlib import Path
 import pytest
 
 from adw.validation.models import (
-    IssueSource,
     IssueSeverity,
+    IssueSource,
     LoopState,
     ValidationIssue,
     ValidationState,
@@ -484,7 +484,6 @@ class TestResumeCapability:
 
         # Create state with different run_id
         manager1 = ValidationStateManager("run-123", base_path)
-        state = {"run_id": "different-run", "current_iteration": 2}
         manager1.state_file.write_text('{"run_id": "different-run", "current_iteration": 2}')
 
         # Try to resume with different run_id

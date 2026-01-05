@@ -13,7 +13,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from rich.console import Console
 from rich.panel import Panel
@@ -97,7 +97,7 @@ class TriageResult:
 
         return f"Triage: {', '.join(parts)} ({self.stats.total} total)"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert result to dictionary for logging/serialization."""
         return {
             "triaged_issues": [
@@ -156,13 +156,11 @@ class TriageRule:
             return False
 
         # Check description pattern if specified
-        if self.description_pattern is not None:
-            if not re.search(
-                self.description_pattern, issue.description, re.IGNORECASE
-            ):
-                return False
-
-        return True
+        if self.description_pattern is None:
+            return True
+        return bool(
+            re.search(self.description_pattern, issue.description, re.IGNORECASE)
+        )
 
 
 class TriageSystem:
@@ -396,15 +394,16 @@ class TriageSystem:
         if issue.context:
             if issue.context.code_snippet:
                 snippet = issue.context.code_snippet[:500]
-                truncated = " (truncated)" if len(issue.context.code_snippet) > 500 else ""
+                is_truncated = len(issue.context.code_snippet) > 500
+                truncated = " (truncated)" if is_truncated else ""
                 context_str += f"\n- Code snippet{truncated}:\n```\n{snippet}\n```"
             if issue.context.error_message:
                 context_str += f"\n- Error message: {issue.context.error_message}"
             if issue.context.suggestion:
                 context_str += f"\n- Suggestion: {issue.context.suggestion}"
 
-        return f"""You are triaging a validation issue. Based on the severity and context,
-decide whether to FIX, DISMISS, or DEFER this issue.
+        return f"""You are triaging a validation issue. Based on the severity and \
+context, decide whether to FIX, DISMISS, or DEFER this issue.
 
 Issue:
 - Source: {issue.source.value}

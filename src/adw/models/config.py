@@ -328,14 +328,16 @@ class WorktreeConfig(BaseModel):
         if max_backend > 65535:
             msg = (
                 f"Backend port range exceeds valid ports: "
-                f"{self.port_range.backend_start} + {self.max_concurrent} - 1 = {max_backend} > 65535"
+                f"{self.port_range.backend_start} + {self.max_concurrent} - 1 "
+                f"= {max_backend} > 65535"
             )
             raise ValueError(msg)
 
         if max_frontend > 65535:
             msg = (
                 f"Frontend port range exceeds valid ports: "
-                f"{self.port_range.frontend_start} + {self.max_concurrent} - 1 = {max_frontend} > 65535"
+                f"{self.port_range.frontend_start} + {self.max_concurrent} - 1 "
+                f"= {max_frontend} > 65535"
             )
             raise ValueError(msg)
 

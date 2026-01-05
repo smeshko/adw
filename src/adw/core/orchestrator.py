@@ -26,25 +26,28 @@ from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
 from adw.evidence import (
+    HTTPX_AVAILABLE,
     APICaptureStrategy,
     CLIEvidenceGatherer,
     EvidenceSummary,
-    HTTPX_AVAILABLE,
     WebCaptureStrategy,
     capture_configured_screens,
     check_android_emulator_available,
     check_ios_simulator_available,
     detect_platform,
     generate_evidence_manifest,
-    generate_summary as generate_api_summary,
     get_evidence_strategy,
     load_evidence_config,
     load_routes_from_config,
     optimize_evidence,
 )
+from adw.evidence import (
+    generate_summary as generate_api_summary,
+)
 from adw.exceptions import ADWError, ConfigError
 from adw.models import GitConfig, RunContext, WorktreeConfig
 from adw.models.evidence import (
+    APIEvidenceResult,
     EvidenceStrategy,
     MobileDeviceType,
     PlatformType,
@@ -1428,6 +1431,7 @@ class Orchestrator:
                             from adw.models.evidence import WebEvidenceSummary
 
                             web_summary = WebEvidenceSummary(
+                                base_url=base_url,
                                 total_screenshots=len(results),
                                 successful=sum(1 for r in results if r.success),
                                 failed=sum(1 for r in results if not r.success),
@@ -1504,27 +1508,27 @@ class Orchestrator:
                     # Load API endpoints from project config
                     api_config = load_evidence_config(self._project_path)
                     if api_config and api_config.endpoints:
-                        capture = APICaptureStrategy(
+                        api_capture = APICaptureStrategy(
                             base_url=api_config.base_url,
                             auth=api_config.auth,
                         )
 
                         # Capture all configured endpoints
-                        results = []
+                        api_results: list[APIEvidenceResult] = []
                         for endpoint in api_config.endpoints:
-                            result = capture.call_endpoint(endpoint)
-                            results.append(result)
+                            api_result = api_capture.call_endpoint(endpoint)
+                            api_results.append(api_result)
 
                             # Write individual result to file
                             result_path = (
                                 api_evidence_dir / f"{endpoint.name}.json"
                             )
-                            result_path.write_text(result.model_dump_json(indent=2))
+                            result_path.write_text(api_result.model_dump_json(indent=2))
 
                         # Generate and store summary
                         api_summary = generate_api_summary(
                             base_url=api_config.base_url,
-                            results=results,
+                            results=api_results,
                         )
                         summaries.append(api_summary)
 

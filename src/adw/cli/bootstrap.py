@@ -31,7 +31,7 @@ from adw.logging import LLMCaptureManager, LogManager, LogManagerHandler
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
 from adw.models.config import GitConfig, HookConfig, LLMConfig, WorktreeConfig
-from adw.models.logging import LogLevel, Verbosity, VERBOSITY_LEVEL_MAP
+from adw.models.logging import VERBOSITY_LEVEL_MAP, LogLevel, Verbosity
 from adw.security import SecurityInterceptor, ToolLogger
 
 

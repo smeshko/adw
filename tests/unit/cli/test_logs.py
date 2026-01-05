@@ -431,7 +431,7 @@ class TestToolContextExtraction:
 
         args = {"file_path": "/very/long/path/to/some/file.py"}
         ctx = _extract_tool_context("Read", args)
-        assert "/very/long/path/to/some/file.py" == ctx
+        assert ctx == "/very/long/path/to/some/file.py"
 
     def test_extract_tool_context_read_truncates_long_path(self) -> None:
         """Test context extraction truncates long file paths."""
@@ -574,10 +574,12 @@ class TestDurationDisplay:
 
     def test_duration_estimate_indicator_in_display(self) -> None:
         """Verify duration display includes tilde to indicate estimate."""
+        from io import StringIO
+
+        from rich.console import Console
+
         from adw.cli.logs import _display_tool_summary
         from adw.models.security import ToolCallLog
-        from io import StringIO
-        from rich.console import Console
 
         # Capture console output
         output = StringIO()

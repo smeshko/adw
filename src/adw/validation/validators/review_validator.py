@@ -180,9 +180,14 @@ If no issues are found, state "No issues found."
             "lgtm",
         ]
         content_lower = content.lower()
-        if any(pattern in content_lower for pattern in no_issue_patterns):
-            if not any(sev in content_lower for sev in ["high", "medium", "critical"]):
-                return []
+        has_no_issue_pattern = any(
+            pattern in content_lower for pattern in no_issue_patterns
+        )
+        has_severity = any(
+            sev in content_lower for sev in ["high", "medium", "critical"]
+        )
+        if has_no_issue_pattern and not has_severity:
+            return []
 
         # Try to find issues with file paths first
         file_matches = FILE_ISSUE_PATTERN.findall(content)

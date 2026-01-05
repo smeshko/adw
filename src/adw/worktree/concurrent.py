@@ -4,6 +4,7 @@ This module provides the ConcurrentRunManager class for tracking
 and limiting concurrent ADW workflow executions.
 """
 
+import contextlib
 import json
 import logging
 import os
@@ -194,10 +195,8 @@ class ConcurrentRunManager:
                         "error": str(e),
                     },
                 )
-                try:
+                with contextlib.suppress(OSError):
                     lock_file.unlink(missing_ok=True)
-                except OSError:
-                    pass
 
         return active
 

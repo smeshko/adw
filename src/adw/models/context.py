@@ -81,7 +81,7 @@ class RunContext(BaseModel):
     )
     worktree_path: Path | None = Field(
         default=None,
-        description="Path to the git worktree for this run (None if not using worktree)",
+        description="Path to git worktree for this run (None if not using worktree)",
     )
     use_worktree: bool = Field(
         default=True,
@@ -89,7 +89,7 @@ class RunContext(BaseModel):
     )
     branch_name: str | None = Field(
         default=None,
-        description="Git branch name for this run (e.g., 'adw/01HQXK5P3Z7V8R2M4N6T9W1Y3C')",
+        description="Git branch name for this run (e.g., 'adw/01HQX...')",
     )
     branch_deleted: bool = Field(
         default=False,
@@ -126,7 +126,8 @@ class RunContext(BaseModel):
         to work correctly across worktree lifecycle.
 
         Args:
-            relative: Relative artifact path (e.g., '.adw/runs/<run_id>/artifacts/plan/plan_output.md')
+            relative: Relative artifact path
+                (e.g., '.adw/runs/<run_id>/artifacts/plan/plan_output.md')
             project_root: Optional project root for non-worktree runs.
                          If None and worktree_path is None, uses Path.cwd().
 

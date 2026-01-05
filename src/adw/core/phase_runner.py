@@ -328,8 +328,10 @@ class PhaseRunner:
             "phase": phase,
             "feature": context.feature_description,
             "feature_description": context.feature_description,  # Alias for templates
-            # Story 10.5: worktree path for templates (empty string if None for backward compat)
-            "worktree_path": str(context.worktree_path) if context.worktree_path else "",
+            # Story 10.5: worktree path for templates (empty if None)
+            "worktree_path": (
+                str(context.worktree_path) if context.worktree_path else ""
+            ),
         }
 
         # Add convenience aliases for common artifact references
@@ -558,7 +560,9 @@ class PhaseRunner:
             "Executing LLM",
             extra={
                 "phase": phase,
-                "worktree_path": str(context.worktree_path) if context.worktree_path else None,
+                "worktree_path": (
+                    str(context.worktree_path) if context.worktree_path else None
+                ),
             },
         )
 
@@ -568,7 +572,9 @@ class PhaseRunner:
 
         try:
             # Pass worktree_path for isolated execution (Story 10.5)
-            result = self.executor.execute(prompt, phase=phase, cwd=context.worktree_path)
+            result = self.executor.execute(
+                prompt, phase=phase, cwd=context.worktree_path
+            )
 
             logger.debug(
                 "LLM execution completed",

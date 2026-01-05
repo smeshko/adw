@@ -73,18 +73,20 @@ class TestValidationPhaseIntegration:
         evidence_validator = EvidenceValidator()
 
         # Mock the individual validators to return no issues
-        with patch.object(test_validator, "validate", return_value=[]):
-            with patch.object(review_validator, "validate", return_value=[]):
-                with patch.object(evidence_validator, "validate", return_value=[]):
-                    phase.register_validator(test_validator)
-                    phase.register_validator(review_validator)
-                    phase.register_validator(evidence_validator)
+        with (
+            patch.object(test_validator, "validate", return_value=[]),
+            patch.object(review_validator, "validate", return_value=[]),
+            patch.object(evidence_validator, "validate", return_value=[]),
+        ):
+            phase.register_validator(test_validator)
+            phase.register_validator(review_validator)
+            phase.register_validator(evidence_validator)
 
-                    result = phase.run(mock_context)
+            result = phase.run(mock_context)
 
-                    assert isinstance(result, ValidationResult)
-                    assert result.passed is True
-                    assert result.issues == []
+            assert isinstance(result, ValidationResult)
+            assert result.passed is True
+            assert result.issues == []
 
     def test_phase_collects_issues_from_multiple_validators(
         self, mock_context: RunContext
@@ -121,21 +123,23 @@ class TestValidationPhaseIntegration:
         review_validator = ReviewValidator(executor=mock_executor)
         evidence_validator = EvidenceValidator()
 
-        with patch.object(test_validator, "validate", return_value=test_issues):
-            with patch.object(review_validator, "validate", return_value=review_issues):
-                with patch.object(evidence_validator, "validate", return_value=evidence_issues):
-                    phase.register_validator(test_validator)
-                    phase.register_validator(review_validator)
-                    phase.register_validator(evidence_validator)
+        with (
+            patch.object(test_validator, "validate", return_value=test_issues),
+            patch.object(review_validator, "validate", return_value=review_issues),
+            patch.object(evidence_validator, "validate", return_value=evidence_issues),
+        ):
+            phase.register_validator(test_validator)
+            phase.register_validator(review_validator)
+            phase.register_validator(evidence_validator)
 
-                    result = phase.run(mock_context)
+            result = phase.run(mock_context)
 
-                    assert result.passed is False
-                    assert len(result.issues) == 3
-                    sources = {i.source for i in result.issues}
-                    assert ValidationSource.TEST in sources
-                    assert ValidationSource.REVIEW in sources
-                    assert ValidationSource.EVIDENCE in sources
+            assert result.passed is False
+            assert len(result.issues) == 3
+            sources = {i.source for i in result.issues}
+            assert ValidationSource.TEST in sources
+            assert ValidationSource.REVIEW in sources
+            assert ValidationSource.EVIDENCE in sources
 
     def test_phase_continues_after_validator_raises_exception(
         self, mock_context: RunContext

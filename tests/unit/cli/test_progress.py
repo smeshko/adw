@@ -699,7 +699,8 @@ class TestTryAutoCreatePr:
 
     def test_returns_none_when_disabled(self, tmp_path: Path) -> None:
         """Test returns None when auto-PR is disabled."""
-        from datetime import datetime, UTC
+        from datetime import UTC, datetime
+
         from adw.models import RunContext
 
         output = StringIO()
@@ -725,8 +726,9 @@ class TestTryAutoCreatePr:
 
     def test_returns_result_when_enabled(self, tmp_path: Path) -> None:
         """Test returns AutoPRResult when enabled."""
-        from datetime import datetime, UTC
+        from datetime import UTC, datetime
         from unittest.mock import patch
+
         from adw.cli.pr import AutoPRResult
         from adw.models import RunContext
 
@@ -761,8 +763,9 @@ class TestTryAutoCreatePr:
 
     def test_handles_exception_gracefully(self, tmp_path: Path) -> None:
         """Test handles exceptions without crashing."""
-        from datetime import datetime, UTC
+        from datetime import UTC, datetime
         from unittest.mock import patch
+
         from adw.models import RunContext
 
         output = StringIO()

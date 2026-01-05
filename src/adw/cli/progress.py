@@ -232,7 +232,7 @@ class ProgressDisplay:
         total_duration_ms: int,
         total_tokens: int,
         run_id: str | None = None,
-        pr_result: "AutoPRResult | None" = None,
+        pr_result: AutoPRResult | None = None,
     ) -> None:
         """Show pipeline summary at end of run.
 
@@ -327,10 +327,10 @@ class ProgressDisplay:
     def try_auto_create_pr(
         self,
         run_id: str,
-        context: "RunContext",
+        context: RunContext,
         runs_dir: Path,
         auto_create_pr_enabled: bool = True,
-    ) -> "AutoPRResult | None":
+    ) -> AutoPRResult | None:
         """Attempt automatic PR creation after successful run.
 
         This method attempts to create a PR using the generated PR description.

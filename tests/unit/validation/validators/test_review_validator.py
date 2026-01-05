@@ -5,14 +5,14 @@ and converts findings to ValidationIssues.
 """
 
 from datetime import UTC, datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from adw.models import RunContext
 from adw.models.llm import LLMResult
 from adw.validation.config import ValidationConfig
-from adw.validation.models import IssueSeverity, ValidationIssue, ValidationSource
+from adw.validation.models import IssueSeverity, ValidationSource
 from adw.validation.validators.review_validator import ReviewValidator
 
 

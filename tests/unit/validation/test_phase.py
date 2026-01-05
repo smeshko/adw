@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from adw.models import RunContext
-from adw.models.phase import PhaseResult, PhaseStatus
 from adw.validation import ValidationPhase
 from adw.validation.models import (
     IssueSeverity,
@@ -311,7 +310,6 @@ class TestValidationPhaseStatePersistence:
         self, tmp_path: Path, mock_context: RunContext
     ) -> None:
         """Phase saves state after each iteration when state manager configured."""
-        from pathlib import Path
 
         # Create runs directory structure
         run_id = "run-123"
@@ -341,7 +339,6 @@ class TestValidationPhaseStatePersistence:
         self, tmp_path: Path, mock_context: RunContext
     ) -> None:
         """Phase clears state when validation passes (no issues)."""
-        from pathlib import Path
 
         # Create runs directory structure
         run_id = "run-456"

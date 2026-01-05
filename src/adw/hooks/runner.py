@@ -104,7 +104,7 @@ class HookRunner:
             artifacts_dir: Optional path to artifacts directory for ADW_ARTIFACTS_DIR
             context_file: Optional path to context file for ADW_CONTEXT_FILE
             working_dir: Working directory for hook execution (defaults to project root)
-            port_allocation: Optional port allocation for ADW_BACKEND_PORT/ADW_FRONTEND_PORT
+            port_allocation: Optional port allocation for ADW ports
 
         Returns:
             HookResult with captured stdout, stderr, exit code, and timing

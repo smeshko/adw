@@ -18,6 +18,7 @@ from adw.core.run_lookup import RunLookup
 from adw.models import RunContext
 from adw.models.index import IndexEntry
 from adw.worktree import ConcurrentRunManager
+from adw.worktree.concurrent import ActiveRun
 
 console = Console()
 
@@ -357,7 +358,7 @@ def _list_running_runs(json_output: bool) -> None:
 
 
 def _display_running_runs(
-    active_runs: list,  # list[ActiveRun]
+    active_runs: list[ActiveRun],
     max_concurrent: int,
 ) -> None:
     """Display active runs in Rich table format.
@@ -426,7 +427,7 @@ def _format_elapsed(seconds: float) -> str:
 
 
 def _output_json_running(
-    active_runs: list,  # list[ActiveRun]
+    active_runs: list[ActiveRun],
     max_concurrent: int,
 ) -> None:
     """Output active runs as JSON.
@@ -437,15 +438,11 @@ def _output_json_running(
     """
     now = datetime.now(UTC)
 
-    output = {
-        "active_count": len(active_runs),
-        "max_concurrent": max_concurrent,
-        "runs": [],
-    }
+    runs_list: list[dict[str, object]] = []
 
     for run in active_runs:
         elapsed = now - run.start_time
-        output["runs"].append(
+        runs_list.append(
             {
                 "run_id": run.run_id,
                 "pid": run.pid,
@@ -457,4 +454,9 @@ def _output_json_running(
             }
         )
 
+    output = {
+        "active_count": len(active_runs),
+        "max_concurrent": max_concurrent,
+        "runs": runs_list,
+    }
     console.print_json(json.dumps(output))

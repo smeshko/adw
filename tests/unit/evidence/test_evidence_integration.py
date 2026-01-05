@@ -13,13 +13,11 @@ import pytest
 if TYPE_CHECKING:
     from adw.core.orchestrator import Orchestrator
 
-from adw.evidence import EvidenceSummary, get_evidence_strategy
+from adw.evidence import get_evidence_strategy
 from adw.models.evidence import (
     CLIEvidenceSummary,
     EvidenceStrategy,
-    MobileDeviceType,
     PlatformType,
-    WebEvidenceSummary,
 )
 
 

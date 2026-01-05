@@ -62,7 +62,7 @@ class EvidenceValidator:
             return [
                 ValidationIssue(
                     source=ValidationSource.EVIDENCE,
-                    message="Evidence manifest not found - verify phase may not have completed",
+                    message="Evidence manifest not found - verify may not have run",
                     severity="high",
                 )
             ]
@@ -125,17 +125,14 @@ class EvidenceValidator:
         Returns:
             EvidenceManifest if found, None otherwise.
         """
-        # Try to find manifest in artifacts
-        if context.worktree_path:
-            base_path = context.worktree_path
-        else:
-            # Default to current directory
-            base_path = Path.cwd()
+        # Try to find manifest in artifacts (default to cwd if no worktree)
+        base_path = context.worktree_path or Path.cwd()
 
         # Try common manifest locations
+        run_dir = base_path / ".adw" / "runs" / context.run_id
         potential_paths = [
-            base_path / ".adw" / "runs" / context.run_id / "evidence" / "evidence_manifest.json",
-            base_path / ".adw" / "runs" / context.run_id / "artifacts" / "verify" / "evidence_manifest.json",
+            run_dir / "evidence" / "evidence_manifest.json",
+            run_dir / "artifacts" / "verify" / "evidence_manifest.json",
         ]
 
         for path in potential_paths:

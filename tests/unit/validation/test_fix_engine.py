@@ -10,10 +10,9 @@ These tests verify the FixEngine correctly:
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -22,11 +21,10 @@ from adw.validation.fix_engine import FixEngine, FixIterationResult
 from adw.validation.models import (
     FixResult,
     IssueLocation,
-    IssueSource,
     IssueSeverity,
+    IssueSource,
     ValidationIssue,
 )
-from adw.validation.validators.base import Validator
 
 if TYPE_CHECKING:
     from adw.models import RunContext

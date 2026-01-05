@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from adw.validation.config import ValidationConfig
@@ -369,7 +369,7 @@ class ValidationLoopController:
         }
         return messages.get(reason, f"Loop exited: {reason.value}")
 
-    def get_summary(self) -> dict:
+    def get_summary(self) -> dict[str, Any]:
         """Get summary of loop execution.
 
         Returns a dictionary with all loop statistics for reporting

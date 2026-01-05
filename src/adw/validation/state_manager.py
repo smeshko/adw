@@ -253,7 +253,7 @@ class ValidationStateManager:
                 "Fix history loaded",
                 extra={"count": len(data), "path": str(self.fix_history_file)},
             )
-            return data
+            return list(data)
         except json.JSONDecodeError as e:
             logger.warning(
                 "Failed to load fix history",
@@ -261,7 +261,7 @@ class ValidationStateManager:
             )
             return []
 
-    def save_state(self, state: "dict[str, Any] | ValidationState") -> None:
+    def save_state(self, state: dict[str, Any] | ValidationState) -> None:
         """Save validation loop state to state.json.
 
         Automatically updates last_updated timestamp. Uses atomic write
@@ -279,10 +279,7 @@ class ValidationStateManager:
         from adw.validation.models import ValidationState
 
         # Convert ValidationState to dict if needed
-        if isinstance(state, ValidationState):
-            state_dict = state.to_dict()
-        else:
-            state_dict = state
+        state_dict = state.to_dict() if isinstance(state, ValidationState) else state
 
         # Ensure run_id matches and update timestamp
         state_dict["run_id"] = self.run_id
@@ -317,7 +314,7 @@ class ValidationStateManager:
                     "path": str(self.state_file),
                 },
             )
-            return data
+            return dict(data)
         except json.JSONDecodeError as e:
             logger.warning(
                 "Failed to load state",
@@ -325,7 +322,7 @@ class ValidationStateManager:
             )
             return None
 
-    def load_state_model(self) -> "ValidationState | None":
+    def load_state_model(self) -> ValidationState | None:
         """Load validation loop state as a ValidationState model.
 
         Returns:
@@ -380,7 +377,7 @@ class ValidationStateManager:
 
         return True
 
-    def resume(self) -> "ValidationState":
+    def resume(self) -> ValidationState:
         """Resume validation from saved state.
 
         Validates state integrity and returns the ValidationState model.
@@ -392,7 +389,6 @@ class ValidationStateManager:
         Raises:
             ValueError: If state cannot be resumed (use can_resume() first).
         """
-        from adw.validation.models import ValidationState
 
         if not self.can_resume():
             raise ValueError(

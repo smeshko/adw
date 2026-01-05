@@ -6,7 +6,7 @@ and reports missing or failed evidence.
 
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -17,7 +17,7 @@ from adw.models.evidence import (
     EvidenceStatus,
     EvidenceType,
 )
-from adw.validation.models import IssueSeverity, ValidationIssue, ValidationSource
+from adw.validation.models import IssueSeverity, ValidationSource
 from adw.validation.validators.evidence_validator import EvidenceValidator
 
 

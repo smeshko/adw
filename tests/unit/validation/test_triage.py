@@ -345,6 +345,7 @@ class TestManualTriage:
     ) -> None:
         """Manual triage prompts user for each issue."""
         from io import StringIO
+
         from rich.console import Console
 
         # Create console with string output
@@ -376,8 +377,9 @@ class TestManualTriage:
     ) -> None:
         """Manual triage allows DISMISS option."""
         from io import StringIO
-        from rich.console import Console
         from unittest.mock import patch
+
+        from rich.console import Console
 
         output = StringIO()
         console = Console(file=output, force_terminal=True)
@@ -401,8 +403,9 @@ class TestManualTriage:
     ) -> None:
         """Manual triage allows DEFER option."""
         from io import StringIO
-        from rich.console import Console
         from unittest.mock import patch
+
+        from rich.console import Console
 
         output = StringIO()
         console = Console(file=output, force_terminal=True)
@@ -426,8 +429,9 @@ class TestManualTriage:
     ) -> None:
         """Manual triage captures user's reasoning."""
         from io import StringIO
+        from unittest.mock import patch
+
         from rich.console import Console
-        from unittest.mock import patch, call
 
         output = StringIO()
         console = Console(file=output, force_terminal=True)
@@ -503,8 +507,9 @@ class TestHybridTriage:
     ) -> None:
         """Hybrid mode prompts user for ERROR severity issues."""
         from io import StringIO
-        from rich.console import Console
         from unittest.mock import patch
+
+        from rich.console import Console
 
         output = StringIO()
         console = Console(file=output, force_terminal=True)
@@ -534,8 +539,9 @@ class TestHybridTriage:
     ) -> None:
         """Hybrid mode correctly handles mixed severity issues."""
         from io import StringIO
-        from rich.console import Console
         from unittest.mock import patch
+
+        from rich.console import Console
 
         output = StringIO()
         console = Console(file=output, force_terminal=True)
@@ -750,7 +756,6 @@ class TestTriageResult:
         self, config: ValidationConfig
     ) -> None:
         """TriageResult can generate a summary string."""
-        from adw.validation.triage import TriageResult
 
         system = TriageSystem(config=config)
         issues = [
@@ -770,7 +775,6 @@ class TestTriageResult:
         self, config: ValidationConfig
     ) -> None:
         """TriageResult can be serialized for logging."""
-        from adw.validation.triage import TriageResult
 
         system = TriageSystem(config=config)
         issues = [

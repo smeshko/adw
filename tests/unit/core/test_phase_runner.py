@@ -781,22 +781,24 @@ class TestAutoCommitChanges:
             artifact_manager=mock_artifact_manager,
         )
 
-        with patch("adw.core.phase_runner.stage_changes") as mock_stage:
-            with patch("adw.core.phase_runner.create_commit") as mock_commit:
-                mock_stage.return_value = ["file1.py", "file2.py"]
-                mock_commit.return_value = "abc123def"
+        with (
+            patch("adw.core.phase_runner.stage_changes") as mock_stage,
+            patch("adw.core.phase_runner.create_commit") as mock_commit,
+        ):
+            mock_stage.return_value = ["file1.py", "file2.py"]
+            mock_commit.return_value = "abc123def"
 
-                sha = runner._auto_commit_changes("build", sample_context)
+            sha = runner._auto_commit_changes("build", sample_context)
 
-                mock_stage.assert_called_once_with(working_dir=None)
-                mock_commit.assert_called_once()
-                # Verify commit args
-                call_kwargs = mock_commit.call_args.kwargs
-                assert call_kwargs["phase"] == "build"
-                assert call_kwargs["feature"] == sample_context.feature_description
-                assert call_kwargs["run_id"] == sample_context.run_id
-                assert call_kwargs["working_dir"] is None
-                assert sha == "abc123def"
+            mock_stage.assert_called_once_with(working_dir=None)
+            mock_commit.assert_called_once()
+            # Verify commit args
+            call_kwargs = mock_commit.call_args.kwargs
+            assert call_kwargs["phase"] == "build"
+            assert call_kwargs["feature"] == sample_context.feature_description
+            assert call_kwargs["run_id"] == sample_context.run_id
+            assert call_kwargs["working_dir"] is None
+            assert sha == "abc123def"
 
     def test_auto_commit_returns_none_when_no_changes(
         self,
@@ -818,15 +820,17 @@ class TestAutoCommitChanges:
             artifact_manager=mock_artifact_manager,
         )
 
-        with patch("adw.core.phase_runner.stage_changes") as mock_stage:
-            with patch("adw.core.phase_runner.create_commit") as mock_commit:
-                mock_stage.return_value = []  # No files to stage
+        with (
+            patch("adw.core.phase_runner.stage_changes") as mock_stage,
+            patch("adw.core.phase_runner.create_commit") as mock_commit,
+        ):
+            mock_stage.return_value = []  # No files to stage
 
-                sha = runner._auto_commit_changes("build", sample_context)
+            sha = runner._auto_commit_changes("build", sample_context)
 
-                mock_stage.assert_called_once()
-                mock_commit.assert_not_called()
-                assert sha is None
+            mock_stage.assert_called_once()
+            mock_commit.assert_not_called()
+            assert sha is None
 
     def test_auto_commit_uses_worktree_path(
         self,
@@ -857,16 +861,18 @@ class TestAutoCommitChanges:
             use_worktree=True,
         )
 
-        with patch("adw.core.phase_runner.stage_changes") as mock_stage:
-            with patch("adw.core.phase_runner.create_commit") as mock_commit:
-                mock_stage.return_value = ["file.py"]
-                mock_commit.return_value = "abc123"
+        with (
+            patch("adw.core.phase_runner.stage_changes") as mock_stage,
+            patch("adw.core.phase_runner.create_commit") as mock_commit,
+        ):
+            mock_stage.return_value = ["file.py"]
+            mock_commit.return_value = "abc123"
 
-                runner._auto_commit_changes("build", context)
+            runner._auto_commit_changes("build", context)
 
-                mock_stage.assert_called_once_with(working_dir=worktree)
-                mock_commit.assert_called_once()
-                assert mock_commit.call_args.kwargs["working_dir"] == worktree
+            mock_stage.assert_called_once_with(working_dir=worktree)
+            mock_commit.assert_called_once()
+            assert mock_commit.call_args.kwargs["working_dir"] == worktree
 
     def test_auto_commit_catches_hook_errors(
         self,

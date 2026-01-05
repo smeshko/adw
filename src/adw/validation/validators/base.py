@@ -172,8 +172,8 @@ class ValidatorRegistry:
                     f"Validator {validator.name} failed with error: {e}",
                     exc_info=True,
                 )
-                # Continue to next validator - don't add error as issue
-                # The validator should handle its own errors and return appropriate issues
+                # Continue to next validator - don't add error as issue.
+                # The validator handles its own errors and returns issues.
 
         return all_issues
 

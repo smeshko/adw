@@ -23,11 +23,14 @@ from adw.evidence.detector import PlatformDetector
 from adw.evidence.file_writer import EvidenceFileWriter
 from adw.evidence.manifest import (
     EvidenceDirectoryScanner,
-    EvidenceSummary,
+    EvidenceSummary,  # Union type alias
     ManifestGenerator,
     ManifestWriter,
     PlanStepLinker,
 )
+
+# Re-export for type annotation usage
+__EvidenceSummary = EvidenceSummary
 from adw.evidence.optimizer import (
     PILLOW_AVAILABLE,
     EvidenceOptimizer,
@@ -349,6 +352,7 @@ __all__ = [
     "get_evidence_strategy",
     # Manifest generation (main integration point)
     "generate_evidence_manifest",
+    "EvidenceSummary",
     # Evidence optimization
     "EvidenceOptimizer",
     "optimize_evidence",

@@ -6,10 +6,7 @@ Verifies ISS-006 fix: LogManager connected to Python logging.
 
 import json
 import logging
-import tempfile
 from pathlib import Path
-
-import pytest
 
 from adw.cli.bootstrap import create_log_manager
 from adw.models.logging import LogCategory, Verbosity
@@ -24,7 +21,7 @@ class TestLogsJsonlCreation:
         run_dir = tmp_path / "runs" / "01TEST123"
         run_dir.mkdir(parents=True)
 
-        log_manager = create_log_manager(
+        _log_manager = create_log_manager(
             verbosity=Verbosity.VERBOSE,
             run_dir=run_dir,
         )

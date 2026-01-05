@@ -12,7 +12,7 @@ Story: 11.4 - Fix Iteration Loop
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
@@ -29,7 +29,6 @@ from adw.validation.models import (
 if TYPE_CHECKING:
     from adw.executors.base import LLMExecutor
     from adw.models import RunContext
-    from adw.validation.validators.base import Validator
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +235,8 @@ class FixEngine:
                 validator_name = _SOURCE_TO_VALIDATOR.get(issue.source)
                 if validator_name in failed_validators:
                     logger.warning(
-                        f"Cannot verify fix for {issue.id}: validator {validator_name} failed"
+                        f"Cannot verify fix for {issue.id}: "
+                        f"validator {validator_name} failed"
                     )
                     unverified.append(issue)
                 else:
@@ -373,10 +373,7 @@ If unsure, set replacement to null and explain in notes.
                         continue  # Skip uncertain fixes
 
                     file_path = Path(fix["file_path"])
-                    if file_path.exists():
-                        original = file_path.read_text()
-                    else:
-                        original = ""
+                    original = file_path.read_text() if file_path.exists() else ""
 
                     changes.append(
                         FileChange(
@@ -434,10 +431,7 @@ If unsure, set replacement to null and explain in notes.
 
         for file_path, file_changes in changes_by_file.items():
             # Read current file content (may have been modified by earlier changes)
-            if file_path.exists():
-                current_content = file_path.read_text()
-            else:
-                current_content = ""
+            current_content = file_path.read_text() if file_path.exists() else ""
 
             # Sort changes by line_start in reverse order to apply from bottom to top
             # This prevents line number shifts from affecting later changes
@@ -461,6 +455,9 @@ If unsure, set replacement to null and explain in notes.
 
                 for change in partial_changes:
                     # Apply each change to the current lines
+                    # Note: line_start/end are guaranteed non-None from filter
+                    assert change.line_start is not None
+                    assert change.line_end is not None
                     new_lines = (
                         lines[: change.line_start - 1]
                         + [change.new_content + "\n"]

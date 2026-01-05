@@ -4,14 +4,14 @@ Tests for the validator that executes test suites and converts
 failures to ValidationIssues.
 """
 
+import subprocess
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
-import subprocess
 
 import pytest
 
 from adw.models import RunContext
-from adw.validation.models import IssueSeverity, ValidationIssue, ValidationSource
+from adw.validation.models import IssueSeverity, ValidationSource
 from adw.validation.validators.test_validator import TestValidator
 
 
