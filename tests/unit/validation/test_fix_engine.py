@@ -236,6 +236,155 @@ class TestFixEngine:
         assert affected[0].name == "review"
 
 
+class TestFixPromptGeneration:
+    """Tests for fix prompt generation."""
+
+    def test_includes_issue_details(
+        self,
+        mock_llm_executor: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
+        """Prompt includes issue description and source."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        issue = ValidationIssue(
+            id="VI-TESTID001",
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failed: test_login_validation",
+            triage_decision="FIX",
+        )
+
+        prompt = engine._build_fix_prompt([issue], mock_context)
+
+        assert "VI-TESTID001" in prompt
+        assert "TEST" in prompt
+        assert "Test failed: test_login_validation" in prompt
+
+    def test_includes_location_info(
+        self,
+        mock_llm_executor: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
+        """Prompt includes file path and line number when available."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failed",
+            location=IssueLocation(
+                file_path="tests/test_auth.py",
+                line_start=42,
+            ),
+            triage_decision="FIX",
+        )
+
+        prompt = engine._build_fix_prompt([issue], mock_context)
+
+        assert "tests/test_auth.py" in prompt
+        assert "42" in prompt
+
+    def test_includes_code_context(
+        self,
+        mock_llm_executor: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
+        """Prompt includes code snippets when available."""
+        from adw.validation.models import IssueContext
+
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        issue = ValidationIssue(
+            source=IssueSource.REVIEW,
+            severity=IssueSeverity.ERROR,
+            description="Missing null check",
+            context=IssueContext(
+                code_snippet="def process(data):\n    return data['key']",
+            ),
+            triage_decision="FIX",
+        )
+
+        prompt = engine._build_fix_prompt([issue], mock_context)
+
+        assert "def process(data)" in prompt
+        assert "data['key']" in prompt
+
+    def test_batches_multiple_issues(
+        self,
+        mock_llm_executor: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
+        """Multiple issues included in single prompt."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        issues = [
+            ValidationIssue(
+                id="VI-001",
+                source=IssueSource.TEST,
+                severity=IssueSeverity.ERROR,
+                description="First test failure",
+                triage_decision="FIX",
+            ),
+            ValidationIssue(
+                id="VI-002",
+                source=IssueSource.REVIEW,
+                severity=IssueSeverity.ERROR,
+                description="Second code issue",
+                triage_decision="FIX",
+            ),
+        ]
+
+        prompt = engine._build_fix_prompt(issues, mock_context)
+
+        assert "VI-001" in prompt
+        assert "VI-002" in prompt
+        assert "First test failure" in prompt
+        assert "Second code issue" in prompt
+
+    def test_requests_json_response(
+        self,
+        mock_llm_executor: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
+        """Prompt requests structured JSON fix response."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failed",
+            triage_decision="FIX",
+        )
+
+        prompt = engine._build_fix_prompt([issue], mock_context)
+
+        assert "JSON" in prompt
+        assert "fixes" in prompt
+        assert "file_path" in prompt
+        assert "replacement" in prompt
+
+
 class TestFixIterationResult:
     """Tests for FixIterationResult model."""
 

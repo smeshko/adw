@@ -44,10 +44,10 @@ so that issues are resolved automatically when possible.
 - [x] Track which validators need re-running per issue
 
 ### Task 2: Build Fix Prompt Generator
-- [ ] Create `_build_fix_prompt(issues: list[ValidationIssue]) -> str`
-- [ ] Include issue details, location, and context
-- [ ] Provide code snippets for reference
-- [ ] Request structured fix response from LLM
+- [x] Create `_build_fix_prompt(issues: list[ValidationIssue]) -> str`
+- [x] Include issue details, location, and context
+- [x] Provide code snippets for reference
+- [x] Request structured fix response from LLM
 
 ### Task 3: Implement Fix Application
 - [ ] Parse LLM fix response for file modifications
