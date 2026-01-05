@@ -231,6 +231,110 @@ class TestCheckProgress:
         assert controller.state.last_progress_iteration == 3
 
 
+class TestUpdateCounts:
+    """Tests for update_counts() state tracking."""
+
+    def test_update_counts_tracks_resolved_issues(self) -> None:
+        """update_counts correctly counts resolved issues."""
+        from adw.validation.models import FixResult, IssueSource, ValidationIssue
+
+        controller = ValidationLoopController(ValidationConfig())
+
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description="Issue 1",
+            ),
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description="Issue 2",
+            ),
+        ]
+        # One resolved, one not
+        issues[0].last_fix_result = FixResult.RESOLVED
+        issues[1].triage_decision = "FIX"
+
+        controller.update_counts(issues)
+
+        assert controller.state.issues_resolved == 1
+        assert controller.state.issues_remaining == 1
+
+    def test_update_counts_tracks_all_categories(self) -> None:
+        """update_counts tracks resolved, dismissed, deferred, remaining."""
+        from adw.validation.models import FixResult, IssueSource, ValidationIssue
+
+        controller = ValidationLoopController(ValidationConfig())
+
+        issues = []
+
+        # 2 resolved
+        for i in range(2):
+            issue = ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description=f"Resolved {i}",
+            )
+            issue.last_fix_result = FixResult.RESOLVED
+            issues.append(issue)
+
+        # 3 dismissed
+        for i in range(3):
+            issue = ValidationIssue(
+                source=IssueSource.TEST,
+                severity="INFO",
+                description=f"Dismissed {i}",
+            )
+            issue.triage_decision = "DISMISS"
+            issues.append(issue)
+
+        # 1 deferred
+        issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity="WARNING",
+            description="Deferred",
+        )
+        issue.triage_decision = "DEFER"
+        issues.append(issue)
+
+        # 4 remaining (FIX)
+        for i in range(4):
+            issue = ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description=f"Fix {i}",
+            )
+            issue.triage_decision = "FIX"
+            issues.append(issue)
+
+        controller.update_counts(issues)
+
+        assert controller.state.issues_resolved == 2
+        assert controller.state.issues_dismissed == 3
+        assert controller.state.issues_deferred == 1
+        assert controller.state.issues_remaining == 4
+
+    def test_update_counts_sets_total_issues_found(self) -> None:
+        """update_counts tracks total issues found."""
+        from adw.validation.models import IssueSource, ValidationIssue
+
+        controller = ValidationLoopController(ValidationConfig())
+
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description=f"Issue {i}",
+            )
+            for i in range(5)
+        ]
+
+        controller.update_counts(issues)
+
+        assert controller.state.total_issues_found == 5
+
+
 class TestAutoDeferRemaining:
     """Tests for auto_defer_remaining() functionality."""
 

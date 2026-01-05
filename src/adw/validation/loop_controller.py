@@ -210,6 +210,46 @@ class ValidationLoopController:
             if issue.triage_decision == "FIX"
         }
 
+    def update_counts(self, issues: list[ValidationIssue]) -> None:
+        """Update issue counts in state from current issues.
+
+        Counts issues by their status and updates the state:
+        - resolved: Issues with last_fix_result == RESOLVED
+        - dismissed: Issues with triage_decision == DISMISS
+        - deferred: Issues with triage_decision == DEFER
+        - remaining: Issues with triage_decision == FIX
+
+        Also updates total_issues_found.
+
+        Args:
+            issues: Current list of validation issues.
+        """
+        # Import here to avoid circular import
+        from adw.validation.models import FixResult
+
+        self.state.total_issues_found = len(issues)
+
+        self.state.issues_resolved = sum(
+            1 for i in issues if i.last_fix_result == FixResult.RESOLVED
+        )
+        self.state.issues_dismissed = sum(
+            1 for i in issues if i.triage_decision == "DISMISS"
+        )
+        self.state.issues_deferred = sum(
+            1 for i in issues if i.triage_decision == "DEFER"
+        )
+        self.state.issues_remaining = sum(
+            1 for i in issues if i.triage_decision == "FIX"
+        )
+
+        logger.debug(
+            "Updated counts: %d resolved, %d dismissed, %d deferred, %d remaining",
+            self.state.issues_resolved,
+            self.state.issues_dismissed,
+            self.state.issues_deferred,
+            self.state.issues_remaining,
+        )
+
     def auto_defer_remaining(
         self,
         issues: list[ValidationIssue],
