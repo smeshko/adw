@@ -56,10 +56,10 @@ so that issues are resolved automatically when possible.
 - [x] Rollback on partial failure
 
 ### Task 4: Implement Selective Re-validation
-- [ ] Track which validators are affected by each issue
-- [ ] Only re-run affected validators after fix
-- [ ] Map issue source to validator: TEST→TestValidator, etc.
-- [ ] Aggregate new issues from re-validation
+- [x] Track which validators are affected by each issue
+- [x] Only re-run affected validators after fix
+- [x] Map issue source to validator: TEST→TestValidator, etc.
+- [x] Aggregate new issues from re-validation
 
 ### Task 5: Add Fix Attempt Tracking
 - [ ] Update `ValidationIssue.fix_attempted` to True

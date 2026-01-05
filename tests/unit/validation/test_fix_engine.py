@@ -590,6 +590,178 @@ class TestFixApplication:
         assert "line4" in result
 
 
+class TestSelectiveRevalidation:
+    """Tests for selective re-validation after fixes."""
+
+    def test_get_affected_validators_test_source(
+        self,
+        mock_llm_executor: MagicMock,
+    ) -> None:
+        """TEST source maps to test validator."""
+        test_validator = MockValidator("test")
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[test_validator],
+        )
+
+        issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failed",
+            triage_decision="FIX",
+        )
+
+        affected = engine._get_affected_validators([issue])
+
+        assert len(affected) == 1
+        assert affected[0].name == "test"
+
+    def test_get_affected_validators_review_source(
+        self,
+        mock_llm_executor: MagicMock,
+    ) -> None:
+        """REVIEW source maps to review validator."""
+        review_validator = MockValidator("review")
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[review_validator],
+        )
+
+        issue = ValidationIssue(
+            source=IssueSource.REVIEW,
+            severity=IssueSeverity.ERROR,
+            description="Code issue",
+            triage_decision="FIX",
+        )
+
+        affected = engine._get_affected_validators([issue])
+
+        assert len(affected) == 1
+        assert affected[0].name == "review"
+
+    def test_get_affected_validators_evidence_source(
+        self,
+        mock_llm_executor: MagicMock,
+    ) -> None:
+        """EVIDENCE source maps to evidence validator."""
+        evidence_validator = MockValidator("evidence")
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[evidence_validator],
+        )
+
+        issue = ValidationIssue(
+            source=IssueSource.EVIDENCE,
+            severity=IssueSeverity.ERROR,
+            description="Evidence mismatch",
+            triage_decision="FIX",
+        )
+
+        affected = engine._get_affected_validators([issue])
+
+        assert len(affected) == 1
+        assert affected[0].name == "evidence"
+
+    def test_get_affected_validators_multiple_sources(
+        self,
+        mock_llm_executor: MagicMock,
+    ) -> None:
+        """Multiple issues with different sources get all affected validators."""
+        test_validator = MockValidator("test")
+        review_validator = MockValidator("review")
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[test_validator, review_validator],
+        )
+
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity=IssueSeverity.ERROR,
+                description="Test failed",
+                triage_decision="FIX",
+            ),
+            ValidationIssue(
+                source=IssueSource.REVIEW,
+                severity=IssueSeverity.ERROR,
+                description="Code issue",
+                triage_decision="FIX",
+            ),
+        ]
+
+        affected = engine._get_affected_validators(issues)
+
+        assert len(affected) == 2
+        names = {v.name for v in affected}
+        assert names == {"test", "review"}
+
+    def test_check_resolution_detects_resolved(
+        self,
+        mock_llm_executor: MagicMock,
+    ) -> None:
+        """Issues no longer in new_issues are marked resolved."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        original = ValidationIssue(
+            id="VI-001",
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failed: test_login",
+            triage_decision="FIX",
+        )
+
+        # No issues after re-validation
+        new_issues: list[ValidationIssue] = []
+
+        resolved, remaining = engine._check_resolution([original], new_issues)
+
+        assert len(resolved) == 1
+        assert resolved[0].id == "VI-001"
+        assert len(remaining) == 0
+
+    def test_check_resolution_detects_remaining(
+        self,
+        mock_llm_executor: MagicMock,
+    ) -> None:
+        """Issues still in new_issues remain unresolved."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        original = ValidationIssue(
+            id="VI-001",
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failed: test_login",
+            location=IssueLocation(file_path="tests/test_auth.py"),
+            triage_decision="FIX",
+        )
+
+        # Same issue still present
+        new_issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failed: test_login",
+            location=IssueLocation(file_path="tests/test_auth.py"),
+        )
+
+        resolved, remaining = engine._check_resolution([original], [new_issue])
+
+        assert len(resolved) == 0
+        assert len(remaining) == 1
+        assert remaining[0].id == "VI-001"
+
+
 class TestFixIterationResult:
     """Tests for FixIterationResult model."""
 
