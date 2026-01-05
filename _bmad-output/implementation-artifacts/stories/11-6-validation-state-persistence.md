@@ -50,10 +50,10 @@ so that I can resume validation after interruption.
 - [x] Ensure all nested models are serializable
 
 ### Task 3: Implement Issues Persistence
-- [ ] Create `save_issues(issues: list[ValidationIssue]) -> None`
-- [ ] Create `load_issues() -> list[ValidationIssue]`
-- [ ] Store at `.adw/runs/<id>/validation/issues.json`
-- [ ] Handle empty issues list gracefully
+- [x] Create `save_issues(issues: list[ValidationIssue]) -> None`
+- [x] Create `load_issues() -> list[ValidationIssue]`
+- [x] Store at `.adw/runs/<id>/validation/issues.json`
+- [x] Handle empty issues list gracefully
 
 ### Task 4: Implement Triage Persistence
 - [ ] Create `save_triage(decisions: list[TriageResult]) -> None`

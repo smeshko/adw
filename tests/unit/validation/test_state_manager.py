@@ -74,6 +74,26 @@ class TestAtomicWrite:
 class TestIssuesPersistence:
     """Tests for issues save/load."""
 
+    def test_issues_stored_at_correct_path(self, tmp_path: Path) -> None:
+        """Issues are stored at .adw/runs/<id>/validation/issues.json."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity=IssueSeverity.ERROR,
+                description="Test failed",
+            ),
+        ]
+
+        manager.save_issues(issues)
+
+        expected_path = base_path / "validation" / "issues.json"
+        assert expected_path.exists()
+        assert manager.issues_file == expected_path
+
     def test_save_and_load_issues(self, tmp_path: Path) -> None:
         """Issues round-trip correctly through save and load."""
         base_path = tmp_path / "run-123"
