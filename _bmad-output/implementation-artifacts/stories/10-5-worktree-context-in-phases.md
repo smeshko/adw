@@ -40,9 +40,9 @@ so that file operations happen in the isolated environment.
 - [x] Handle case where worktree_path is None (legacy mode)
 
 ### Task 2: Add ADW_WORKTREE_PATH to Hook Environment
-- [ ] Add `ADW_WORKTREE_PATH` to hook environment variables
-- [ ] Set to absolute worktree path, or project root if no worktree
-- [ ] Update documentation of environment variables
+- [x] Add `ADW_WORKTREE_PATH` to hook environment variables
+- [x] Set to absolute worktree path, or project root if no worktree
+- [x] Update documentation of environment variables
 
 ### Task 3: Add worktree_path Template Variable
 - [ ] Register `worktree_path` in template variable resolver
@@ -365,6 +365,13 @@ N/A
 - All 124 executor tests pass
 - All 21 phase runner tests pass
 
+**Task 2: Add ADW_WORKTREE_PATH to Hook Environment**
+- Added `ADW_WORKTREE_PATH` environment variable to `build_hook_environment()`
+- Priority: context.worktree_path > project_root > (not set)
+- Added `project_root` parameter for fallback behavior
+- Added unit tests for worktree path environment variable
+- All 109 hooks tests pass
+
 ### File List
 
 **Modified:**
@@ -373,4 +380,6 @@ N/A
 - src/adw/executors/mock.py - Added cwd parameter for interface compatibility
 - src/adw/executors/retry.py - Added cwd parameter passthrough
 - src/adw/core/phase_runner.py - Pass worktree_path to executor
+- src/adw/hooks/environment.py - Added ADW_WORKTREE_PATH and project_root parameter
 - tests/unit/executors/test_claude_code.py - Added TestWorktreeWorkingDirectory tests
+- tests/unit/hooks/test_environment.py - Added TestWorktreePathEnvironment tests

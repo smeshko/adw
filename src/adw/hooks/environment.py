@@ -23,6 +23,7 @@ def build_hook_environment(
     artifacts_dir: Path | None = None,
     context_file: Path | None = None,
     port_allocation: PortAllocation | None = None,
+    project_root: Path | None = None,
 ) -> dict[str, str]:
     """Build environment variables for hook script execution.
 
@@ -35,6 +36,8 @@ def build_hook_environment(
         artifacts_dir: Optional path to the artifacts directory
         context_file: Optional path to the context JSON file
         port_allocation: Optional port allocation for the run
+        project_root: Optional project root path, used as fallback for
+                     ADW_WORKTREE_PATH when context.worktree_path is None
 
     Returns:
         A dictionary of environment variables (all string keys and values)
@@ -62,6 +65,14 @@ def build_hook_environment(
 
     if context_file is not None:
         adw_vars["ADW_CONTEXT_FILE"] = str(context_file)
+
+    # Add worktree path variable (Story 10.5)
+    # Priority: context.worktree_path > project_root > (not set)
+    if context.worktree_path is not None:
+        adw_vars["ADW_WORKTREE_PATH"] = str(context.worktree_path)
+    elif project_root is not None:
+        adw_vars["ADW_WORKTREE_PATH"] = str(project_root)
+    # If both are None, ADW_WORKTREE_PATH is not set (backward compatible)
 
     # Add port allocation variables if provided
     if port_allocation is not None:
