@@ -175,3 +175,133 @@ class TestTriageSystem:
         # With auto_dismiss_info=True, INFO issues should be auto-dismissed
         assert len(result) == 1
         assert result[0].decision == TriageDecision.DISMISS
+
+
+class TestAutoTriage:
+    """Tests for auto triage functionality."""
+
+    @pytest.fixture
+    def config(self) -> ValidationConfig:
+        """Create a ValidationConfig for auto triage testing."""
+        return ValidationConfig(triage_mode="auto", auto_dismiss_info=True)
+
+    def test_auto_triage_info_severity_dismissed(
+        self, config: ValidationConfig
+    ) -> None:
+        """INFO severity issues are auto-dismissed when configured."""
+        system = TriageSystem(config=config)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.EVIDENCE,
+                severity=IssueSeverity.INFO,
+                description="Minor visual difference",
+            )
+        ]
+
+        result = system.triage(issues, mode="auto")
+
+        assert len(result) == 1
+        assert result[0].decision == TriageDecision.DISMISS
+        assert "INFO" in result[0].reason
+        assert result[0].auto_decided is True
+
+    def test_auto_triage_with_llm_executor(
+        self, config: ValidationConfig
+    ) -> None:
+        """Auto triage uses LLM for non-INFO severity issues."""
+        from adw.executors.mock import MockExecutor
+
+        executor = MockExecutor()
+        # Configure mock to return a valid triage response
+        executor.configure_responses([
+            {"content": '{"decision": "FIX", "reason": "Test failure blocks functionality"}'}
+        ])
+        system = TriageSystem(config=config, llm_executor=executor)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity=IssueSeverity.ERROR,
+                description="Test failed: test_login",
+            )
+        ]
+
+        result = system.triage(issues, mode="auto")
+
+        assert len(result) == 1
+        assert result[0].decision == TriageDecision.FIX
+        assert result[0].auto_decided is True
+
+    def test_auto_triage_parses_defer_decision(
+        self, config: ValidationConfig
+    ) -> None:
+        """Auto triage correctly parses DEFER decisions from LLM."""
+        from adw.executors.mock import MockExecutor
+
+        executor = MockExecutor()
+        executor.configure_responses([
+            {"content": '{"decision": "DEFER", "reason": "Low priority, can address later"}'}
+        ])
+        system = TriageSystem(config=config, llm_executor=executor)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.REVIEW,
+                severity=IssueSeverity.WARNING,
+                description="Unused variable x",
+            )
+        ]
+
+        result = system.triage(issues, mode="auto")
+
+        assert len(result) == 1
+        assert result[0].decision == TriageDecision.DEFER
+        assert "Low priority" in result[0].reason
+
+    def test_auto_triage_fallback_on_llm_error(
+        self, config: ValidationConfig
+    ) -> None:
+        """Auto triage falls back to FIX when LLM fails."""
+        from adw.executors.mock import MockExecutor
+
+        executor = MockExecutor()
+        executor.configure_responses([
+            {"content": "Invalid JSON response - not valid JSON!"}
+        ])
+        system = TriageSystem(config=config, llm_executor=executor)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity=IssueSeverity.ERROR,
+                description="Test failed",
+            )
+        ]
+
+        result = system.triage(issues, mode="auto")
+
+        assert len(result) == 1
+        assert result[0].decision == TriageDecision.FIX
+        assert result[0].auto_decided is True
+
+    def test_auto_triage_without_executor_uses_defaults(
+        self, config: ValidationConfig
+    ) -> None:
+        """Auto triage without LLM executor uses severity-based defaults."""
+        system = TriageSystem(config=config)  # No executor
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity=IssueSeverity.ERROR,
+                description="Error issue",
+            ),
+            ValidationIssue(
+                source=IssueSource.REVIEW,
+                severity=IssueSeverity.WARNING,
+                description="Warning issue",
+            ),
+        ]
+
+        result = system.triage(issues, mode="auto")
+
+        # Without LLM, ERROR defaults to FIX
+        assert result[0].decision == TriageDecision.FIX
+        # WARNING also defaults to FIX without LLM
+        assert result[1].decision == TriageDecision.FIX

@@ -55,11 +55,11 @@ so that I control which issues block the pipeline.
 - [x] Handle empty issues list gracefully
 
 ### Task 3: Implement Auto Triage
-- [ ] Create `_auto_triage(issue: ValidationIssue) -> TriageDecision`
-- [ ] Build prompt with issue details and severity context
-- [ ] Parse LLM response for FIX/DISMISS/DEFER decision
-- [ ] Extract reasoning from LLM response
-- [ ] Apply `auto_dismiss_info` config (auto-dismiss INFO severity)
+- [x] Create `_auto_triage(issue: ValidationIssue) -> TriageDecision`
+- [x] Build prompt with issue details and severity context
+- [x] Parse LLM response for FIX/DISMISS/DEFER decision
+- [x] Extract reasoning from LLM response
+- [x] Apply `auto_dismiss_info` config (auto-dismiss INFO severity)
 
 ### Task 4: Implement Manual Triage
 - [ ] Create `_manual_triage(issue: ValidationIssue) -> TriageDecision`
