@@ -379,6 +379,11 @@ Respond with JSON only:
     ) -> list[TriagedIssue]:
         """Auto-triage low severity, manual for errors.
 
+        Hybrid mode combines automatic and manual triage:
+        - INFO severity: Auto-dismissed (if auto_dismiss_info enabled)
+        - WARNING severity: Auto-triaged (rules/LLM or default to FIX)
+        - ERROR severity: Manual prompt required
+
         Args:
             issues: List of issues to triage.
 
@@ -387,21 +392,22 @@ Respond with JSON only:
         """
         results: list[TriagedIssue] = []
 
+        # Track ERROR issues for manual triage
+        error_count = sum(
+            1 for issue in issues if issue.severity == IssueSeverity.ERROR
+        )
+        error_index = 0
+
         for issue in issues:
-            # TODO: Implement hybrid logic (Task 5)
-            # For now, use auto triage for all
             if issue.severity == IssueSeverity.ERROR:
-                # Will be manual in Task 5
-                results.append(
-                    TriagedIssue(
-                        issue=issue,
-                        decision=TriageDecision.FIX,
-                        reason="Error severity requires fix",
-                        auto_decided=False,
-                    )
+                # Manual triage for ERROR severity
+                error_index += 1
+                triaged = self._prompt_triage_decision(
+                    issue, error_index, error_count
                 )
+                results.append(triaged)
             else:
-                # Auto-triage for non-errors
+                # Auto-triage for non-errors (INFO and WARNING)
                 auto_result = self._auto_triage_all([issue])
                 results.extend(auto_result)
 

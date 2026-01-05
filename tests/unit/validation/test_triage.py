@@ -423,3 +423,122 @@ class TestManualTriage:
             result = system.triage(issues, mode="manual")
 
             assert result[0].reason == "Critical bug that must be fixed"
+
+
+class TestHybridTriage:
+    """Tests for hybrid triage functionality."""
+
+    @pytest.fixture
+    def config(self) -> ValidationConfig:
+        """Create a ValidationConfig for hybrid triage testing."""
+        return ValidationConfig(triage_mode="hybrid", auto_dismiss_info=True)
+
+    def test_hybrid_auto_for_info_severity(
+        self, config: ValidationConfig
+    ) -> None:
+        """Hybrid mode auto-dismisses INFO severity issues."""
+        system = TriageSystem(config=config)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.EVIDENCE,
+                severity=IssueSeverity.INFO,
+                description="Minor visual difference",
+            )
+        ]
+
+        result = system.triage(issues, mode="hybrid")
+
+        assert len(result) == 1
+        assert result[0].decision == TriageDecision.DISMISS
+        assert result[0].auto_decided is True
+
+    def test_hybrid_auto_for_warning_severity(
+        self, config: ValidationConfig
+    ) -> None:
+        """Hybrid mode auto-triages WARNING severity issues."""
+        system = TriageSystem(config=config)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.REVIEW,
+                severity=IssueSeverity.WARNING,
+                description="Unused import",
+            )
+        ]
+
+        result = system.triage(issues, mode="hybrid")
+
+        assert len(result) == 1
+        # WARNING defaults to FIX without LLM
+        assert result[0].decision == TriageDecision.FIX
+        assert result[0].auto_decided is True
+
+    def test_hybrid_manual_for_error_severity(
+        self, config: ValidationConfig
+    ) -> None:
+        """Hybrid mode prompts user for ERROR severity issues."""
+        from io import StringIO
+        from rich.console import Console
+        from unittest.mock import patch
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+
+        with patch(
+            "adw.validation.triage.Prompt.ask",
+            side_effect=["f", "Must fix this bug"],
+        ):
+            system = TriageSystem(config=config, console=console)
+            issues = [
+                ValidationIssue(
+                    source=IssueSource.TEST,
+                    severity=IssueSeverity.ERROR,
+                    description="Test failed: test_login",
+                )
+            ]
+
+            result = system.triage(issues, mode="hybrid")
+
+            assert len(result) == 1
+            assert result[0].decision == TriageDecision.FIX
+            assert result[0].auto_decided is False
+            assert result[0].reason == "Must fix this bug"
+
+    def test_hybrid_mixed_severities(
+        self, config: ValidationConfig
+    ) -> None:
+        """Hybrid mode correctly handles mixed severity issues."""
+        from io import StringIO
+        from rich.console import Console
+        from unittest.mock import patch
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+
+        # Only ERROR will prompt, INFO is auto-dismissed
+        with patch(
+            "adw.validation.triage.Prompt.ask",
+            side_effect=["d", "False positive"],  # Only for ERROR
+        ):
+            system = TriageSystem(config=config, console=console)
+            issues = [
+                ValidationIssue(
+                    source=IssueSource.EVIDENCE,
+                    severity=IssueSeverity.INFO,
+                    description="Info issue",
+                ),
+                ValidationIssue(
+                    source=IssueSource.TEST,
+                    severity=IssueSeverity.ERROR,
+                    description="Error issue",
+                ),
+            ]
+
+            result = system.triage(issues, mode="hybrid")
+
+            assert len(result) == 2
+            # INFO auto-dismissed
+            assert result[0].decision == TriageDecision.DISMISS
+            assert result[0].auto_decided is True
+            # ERROR manually dismissed
+            assert result[1].decision == TriageDecision.DISMISS
+            assert result[1].auto_decided is False

@@ -69,11 +69,11 @@ so that I control which issues block the pipeline.
 - [x] Capture user's reasoning for audit trail
 
 ### Task 5: Implement Hybrid Triage
-- [ ] Create `_hybrid_triage(issues: list[ValidationIssue]) -> list[TriagedIssue]`
-- [ ] Auto-triage INFO and WARNING severity
-- [ ] Manual triage for ERROR severity
-- [ ] Allow user to override auto decisions
-- [ ] Provide summary before committing decisions
+- [x] Create `_hybrid_triage(issues: list[ValidationIssue]) -> list[TriagedIssue]`
+- [x] Auto-triage INFO and WARNING severity
+- [x] Manual triage for ERROR severity
+- [x] Allow user to override auto decisions
+- [x] Provide summary before committing decisions
 
 ### Task 6: Add Triage Rules Engine
 - [ ] Create `TriageRules` class for configurable rules
