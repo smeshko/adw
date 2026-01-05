@@ -173,6 +173,146 @@ class WorktreeManager:
         except FileNotFoundError:
             return False
 
+    def remove_worktree(
+        self,
+        run_id: str,
+        *,
+        force: bool = False,
+        cleanup_branch: bool = False,
+    ) -> bool:
+        """Remove an existing worktree for the given run.
+
+        Args:
+            run_id: ULID identifier for this run.
+            force: If True, remove even if there are uncommitted changes.
+            cleanup_branch: If True, also delete the `adw/<run_id>` branch.
+
+        Returns:
+            True if the worktree was successfully removed.
+
+        Raises:
+            WorktreeError: If the worktree doesn't exist or has uncommitted changes
+                and force=False.
+        """
+        worktree_path = self.worktree_base_path / run_id
+        branch_name = f"adw/{run_id}"
+
+        # Check if worktree exists
+        if not worktree_path.exists():
+            raise WorktreeError(
+                code="WORKTREE_NOT_FOUND",
+                message=f"Worktree not found at: {worktree_path}",
+                suggestion=f"Check if the run ID '{run_id}' is correct",
+            )
+
+        # Check for uncommitted changes if not forcing
+        if not force and self._has_uncommitted_changes(worktree_path):
+            raise WorktreeError(
+                code="WORKTREE_HAS_CHANGES",
+                message=f"Worktree has uncommitted changes: {worktree_path}",
+                suggestion="Commit or discard changes, or use force=True",
+            )
+
+        logger.info(
+            "Removing worktree",
+            extra={
+                "run_id": run_id,
+                "path": str(worktree_path),
+                "force": force,
+                "cleanup_branch": cleanup_branch,
+            },
+        )
+
+        # Build the git worktree remove command
+        cmd = ["git", "worktree", "remove", str(worktree_path)]
+        if force:
+            cmd.insert(3, "--force")
+
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=self.project_root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                raise WorktreeError(
+                    code="WORKTREE_REMOVE_FAILED",
+                    message=f"Failed to remove worktree: {result.stderr.strip()}",
+                    suggestion="Check git status and try again",
+                )
+
+            logger.info(
+                "Worktree removed successfully",
+                extra={"run_id": run_id},
+            )
+
+            # Optionally clean up the branch
+            if cleanup_branch:
+                self._delete_branch(branch_name)
+
+            return True
+
+        except FileNotFoundError as e:
+            raise WorktreeError(
+                code="GIT_NOT_FOUND",
+                message="Git is not installed or not in PATH",
+                suggestion="Install git and ensure it's in your PATH",
+            ) from e
+
+    def _has_uncommitted_changes(self, worktree_path: Path) -> bool:
+        """Check if the worktree has uncommitted changes.
+
+        Args:
+            worktree_path: Path to the worktree directory.
+
+        Returns:
+            True if there are uncommitted changes, False otherwise.
+        """
+        try:
+            result = subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=worktree_path,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            return bool(result.stdout.strip())
+        except (FileNotFoundError, OSError):
+            return False
+
+    def _delete_branch(self, branch_name: str) -> None:
+        """Delete a branch.
+
+        Args:
+            branch_name: Name of the branch to delete.
+        """
+        try:
+            result = subprocess.run(
+                ["git", "branch", "-D", branch_name],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0:
+                logger.info(
+                    "Branch deleted",
+                    extra={"branch": branch_name},
+                )
+            else:
+                logger.warning(
+                    "Failed to delete branch",
+                    extra={"branch": branch_name, "error": result.stderr.strip()},
+                )
+        except OSError as e:
+            logger.warning(
+                "Failed to delete branch",
+                extra={"branch": branch_name, "error": str(e)},
+            )
+
     def _cleanup_partial_worktree(
         self,
         worktree_path: Path,

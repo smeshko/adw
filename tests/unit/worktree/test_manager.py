@@ -2,6 +2,7 @@
 
 Tests cover:
 - Worktree creation with branch naming
+- Worktree removal with cleanup options
 - Error handling for existing branches/worktrees
 - Git not available error handling
 """
@@ -204,3 +205,152 @@ class TestWorktreeManagerCreation:
 
         assert (git_repo / "new" / "nested" / "dir").exists()
         assert worktree_path.exists()
+
+
+class TestWorktreeManagerRemoval:
+    """Tests for WorktreeManager.remove_worktree()."""
+
+    @pytest.fixture
+    def git_repo(self, tmp_path: Path) -> Path:
+        """Create a temporary git repository for testing."""
+        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@test.com"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        # Create initial commit
+        readme = tmp_path / "README.md"
+        readme.write_text("# Test")
+        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Initial commit"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        return tmp_path
+
+    def test_remove_worktree_success(self, git_repo: Path) -> None:
+        """Worktree is removed successfully."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQ1234567890ABCDEFGHIJK"
+
+        # Create a worktree first
+        worktree_path = manager.create_worktree(run_id)
+        assert worktree_path.exists()
+
+        # Remove it
+        result = manager.remove_worktree(run_id)
+
+        assert result is True
+        assert not worktree_path.exists()
+
+    def test_remove_worktree_not_found(self, git_repo: Path) -> None:
+        """Raises WorktreeError when worktree doesn't exist."""
+        from adw.exceptions import WorktreeError
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+
+        with pytest.raises(WorktreeError) as exc_info:
+            manager.remove_worktree("nonexistent-run-id")
+
+        assert exc_info.value.code == "WORKTREE_NOT_FOUND"
+
+    def test_remove_worktree_uncommitted_changes_without_force(self, git_repo: Path) -> None:
+        """Raises WorktreeError when worktree has uncommitted changes and force=False."""
+        from adw.exceptions import WorktreeError
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQ1234567890ABCDEFGHIJK"
+
+        # Create a worktree and make uncommitted changes
+        worktree_path = manager.create_worktree(run_id)
+        (worktree_path / "new_file.txt").write_text("uncommitted content")
+
+        with pytest.raises(WorktreeError) as exc_info:
+            manager.remove_worktree(run_id, force=False)
+
+        assert exc_info.value.code == "WORKTREE_HAS_CHANGES"
+        assert worktree_path.exists()  # Worktree should be preserved
+
+    def test_remove_worktree_uncommitted_changes_with_force(self, git_repo: Path) -> None:
+        """Worktree is removed when force=True despite uncommitted changes."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQ1234567890ABCDEFGHIJK"
+
+        # Create a worktree and make uncommitted changes
+        worktree_path = manager.create_worktree(run_id)
+        (worktree_path / "new_file.txt").write_text("uncommitted content")
+
+        # Force remove should succeed
+        result = manager.remove_worktree(run_id, force=True)
+
+        assert result is True
+        assert not worktree_path.exists()
+
+    def test_remove_worktree_cleanup_branch(self, git_repo: Path) -> None:
+        """Branch is deleted when cleanup_branch=True."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQ1234567890ABCDEFGHIJK"
+        branch_name = f"adw/{run_id}"
+
+        # Create a worktree
+        manager.create_worktree(run_id)
+
+        # Verify branch exists
+        result = subprocess.run(
+            ["git", "branch", "--list", branch_name],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+        )
+        assert branch_name in result.stdout
+
+        # Remove with cleanup_branch=True
+        manager.remove_worktree(run_id, cleanup_branch=True)
+
+        # Verify branch is deleted
+        result = subprocess.run(
+            ["git", "branch", "--list", branch_name],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+        )
+        assert branch_name not in result.stdout
+
+    def test_remove_worktree_preserve_branch_by_default(self, git_repo: Path) -> None:
+        """Branch is preserved by default when removing worktree."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQ1234567890ABCDEFGHIJK"
+        branch_name = f"adw/{run_id}"
+
+        # Create and remove worktree
+        manager.create_worktree(run_id)
+        manager.remove_worktree(run_id)
+
+        # Branch should still exist
+        result = subprocess.run(
+            ["git", "branch", "--list", branch_name],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+        )
+        assert branch_name in result.stdout
