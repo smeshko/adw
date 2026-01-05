@@ -108,12 +108,16 @@ class ValidationPhase:
         if not self._state_manager:
             return
 
-        # Update or create state
-        loop_state = LoopState(
-            issues_remaining=len(issues),
-        )
-
         if self._state:
+            # Preserve existing loop_state counters, update issues_remaining
+            existing_loop = self._state.loop_state
+            loop_state = LoopState(
+                issues_resolved=existing_loop.issues_resolved,
+                issues_dismissed=existing_loop.issues_dismissed,
+                issues_deferred=existing_loop.issues_deferred,
+                issues_remaining=len(issues),
+                stall_count=existing_loop.stall_count,
+            )
             # Update existing state
             self._state = ValidationState(
                 run_id=self._state.run_id,
@@ -123,7 +127,10 @@ class ValidationPhase:
                 started_at=self._state.started_at,
             )
         else:
-            # Create new state
+            # Create new state with fresh loop_state
+            loop_state = LoopState(
+                issues_remaining=len(issues),
+            )
             self._state = ValidationState(
                 run_id=self._state_manager.run_id,
                 current_iteration=self._iteration,

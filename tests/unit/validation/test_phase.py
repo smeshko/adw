@@ -405,3 +405,62 @@ class TestValidationPhaseStatePersistence:
         # Verify it works
         assert result.passed is True
         assert phase.state_manager is None
+
+    def test_phase_preserves_loop_state_counters(
+        self, tmp_path: Path, mock_context: RunContext
+    ) -> None:
+        """Phase preserves loop state counters when saving state."""
+        from adw.validation.models import LoopState, ValidationState
+        from adw.validation.state_manager import ValidationStateManager
+
+        # Create runs directory structure
+        run_id = "run-counters"
+        runs_dir = tmp_path / ".adw" / "runs"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+
+        # Pre-create saved state with non-zero counters
+        state_manager = ValidationStateManager(run_id, run_dir)
+        saved_state = ValidationState(
+            run_id=run_id,
+            current_iteration=2,
+            total_iterations=5,
+            loop_state=LoopState(
+                issues_resolved=5,
+                issues_dismissed=2,
+                issues_deferred=1,
+                issues_remaining=3,
+                stall_count=1,
+            ),
+        )
+        state_manager.save_state(saved_state)
+
+        # Create phase - should resume with existing state
+        phase = ValidationPhase(run_id=run_id, runs_dir=runs_dir)
+
+        # Mock validators to return 2 issues (updating issues_remaining)
+        mock_issues = [
+            ValidationIssue(
+                source=ValidationSource.TEST,
+                message="Issue 1",
+                severity="high",
+            ),
+            ValidationIssue(
+                source=ValidationSource.TEST,
+                message="Issue 2",
+                severity="medium",
+            ),
+        ]
+        with patch.object(phase, "_run_validators", return_value=mock_issues):
+            phase.run(mock_context)
+
+        # Load the saved state and verify counters were preserved
+        loaded_state = state_manager.load_state_model()
+        assert loaded_state is not None
+        # Existing counters should be preserved
+        assert loaded_state.loop_state.issues_resolved == 5
+        assert loaded_state.loop_state.issues_dismissed == 2
+        assert loaded_state.loop_state.issues_deferred == 1
+        assert loaded_state.loop_state.stall_count == 1
+        # issues_remaining should be updated to current issue count
+        assert loaded_state.loop_state.issues_remaining == 2
