@@ -199,7 +199,7 @@ development_status:
   10-3-port-allocation-system: done
   10-4-concurrent-run-management: ready-for-dev
   10-5-worktree-context-in-phases: ready-for-dev
-  10-6-worktree-branch-management: in-progress
+  10-6-worktree-branch-management: done
   epic-10-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
