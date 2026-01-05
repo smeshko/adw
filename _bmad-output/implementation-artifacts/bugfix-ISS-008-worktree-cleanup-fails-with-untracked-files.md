@@ -1,6 +1,6 @@
 # Story: Bugfix ISS-008 - Worktree Cleanup Fails with Untracked Files
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-05
@@ -15,11 +15,11 @@ so that **I don't accumulate orphan worktrees consuming disk space**.
 
 ## Acceptance Criteria
 
-- [ ] When a run completes successfully, the worktree is removed even if untracked files exist
-- [ ] The cleanup uses `force=True` for successful runs to handle LLM-created files
-- [ ] The cleanup logs what action was taken (forced removal vs normal removal)
-- [ ] Failed runs preserve the worktree for debugging (existing behavior)
-- [ ] Integration test verifies worktree cleanup after successful run with new files
+- [x] When a run completes successfully, the worktree is removed even if untracked files exist
+- [x] The cleanup uses `force=True` for successful runs to handle LLM-created files
+- [x] The cleanup logs what action was taken (forced removal vs normal removal)
+- [x] Failed runs preserve the worktree for debugging (existing behavior)
+- [x] Integration test verifies worktree cleanup after successful run with new files
 
 ## Tasks / Subtasks
 
