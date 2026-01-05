@@ -36,9 +36,9 @@ so that **I don't accumulate orphan worktrees consuming disk space**.
 - [x] Add structured logging for cleanup action taken
 
 ### Task 3: Add User Feedback
-- [ ] On successful cleanup: log info with worktree path
-- [ ] On forced cleanup: log info indicating files were discarded
-- [ ] Ensure "Failed to cleanup worktree" message doesn't show for successful force cleanup
+- [x] On successful cleanup: log info with worktree path
+- [x] On forced cleanup: log info indicating files were discarded
+- [x] Ensure "Failed to cleanup worktree" message doesn't show for successful force cleanup
 
 ### Task 4: Write Tests
 - [ ] Unit test: `test_cleanup_worktree_forces_on_success`
@@ -240,6 +240,11 @@ N/A
 - Added `forced: True` to structured log for successful cleanup
 - Verified failure path: `preserve_on_failure=True` (default) preserves worktree for debugging
 - Success path: `force=True` ensures cleanup even with untracked files
+
+**Task 3 - User Feedback (2026-01-05):**
+- Enhanced success log: "Cleaned up worktree (force=True, uncommitted changes discarded)"
+- Added worktree_path to both success and failure logs for clarity
+- "Failed to cleanup worktree" warning only appears on actual exceptions, not on force cleanup
 
 ### File List
 
