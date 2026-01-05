@@ -45,10 +45,10 @@ so that file operations happen in the isolated environment.
 - [x] Update documentation of environment variables
 
 ### Task 3: Add worktree_path Template Variable
-- [ ] Register `worktree_path` in template variable resolver
-- [ ] Resolve to absolute path of worktree
-- [ ] Resolve to project root if no worktree (backward compatibility)
-- [ ] Add to variable documentation
+- [x] Register `worktree_path` in template variable resolver
+- [x] Resolve to absolute path of worktree
+- [x] Resolve to project root if no worktree (backward compatibility)
+- [x] Add to variable documentation
 
 ### Task 4: Implement Relative Artifact Paths
 - [ ] Modify artifact storage to use relative paths
@@ -372,6 +372,12 @@ N/A
 - Added unit tests for worktree path environment variable
 - All 109 hooks tests pass
 
+**Task 3: Add worktree_path Template Variable**
+- Added `worktree_path` to template variables in `PhaseRunner._load_and_render_prompt()`
+- Resolves to absolute path string when set, empty string when None
+- Added unit tests for worktree_path template variable
+- All 23 phase runner tests pass
+
 ### File List
 
 **Modified:**
@@ -379,7 +385,8 @@ N/A
 - src/adw/executors/claude_code.py - Added cwd parameter to execute() and _stream_subprocess()
 - src/adw/executors/mock.py - Added cwd parameter for interface compatibility
 - src/adw/executors/retry.py - Added cwd parameter passthrough
-- src/adw/core/phase_runner.py - Pass worktree_path to executor
+- src/adw/core/phase_runner.py - Pass worktree_path to executor, added worktree_path template variable
 - src/adw/hooks/environment.py - Added ADW_WORKTREE_PATH and project_root parameter
 - tests/unit/executors/test_claude_code.py - Added TestWorktreeWorkingDirectory tests
 - tests/unit/hooks/test_environment.py - Added TestWorktreePathEnvironment tests
+- tests/unit/core/test_phase_runner.py - Added TestPhaseRunnerWorktreeContext tests

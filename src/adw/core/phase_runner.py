@@ -324,6 +324,8 @@ class PhaseRunner:
             "phase": phase,
             "feature": context.feature_description,
             "feature_description": context.feature_description,  # Alias for templates
+            # Story 10.5: worktree path for templates (empty string if None for backward compat)
+            "worktree_path": str(context.worktree_path) if context.worktree_path else "",
         }
 
         # Add convenience aliases for common artifact references
