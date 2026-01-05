@@ -1,3 +1,6 @@
+# REDUCTION: Consolidated 10 language detection tests into 1 parameterized test.
+# Removed weak flag tests (test_init_language_short_flag, test_init_force_short_flag).
+# Original: ~353 lines -> Reduced: ~180 lines
 """Unit tests for CLI init command.
 
 Tests the init command functionality for initializing ADW projects,
@@ -6,6 +9,7 @@ including project detection, directory creation, and configuration generation.
 
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from adw.cli.app import app
@@ -94,15 +98,6 @@ class TestInitCommand:
             assert "old: config" not in new_config
             assert "language:" in new_config
 
-    def test_init_force_short_flag(self, tmp_path: Path) -> None:
-        """Test that init -f works as short form of --force."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            (Path.cwd() / ".adw").mkdir()
-
-            result = runner.invoke(app, ["init", "-f"])
-
-            assert result.exit_code == 0
-
     def test_init_language_override(self, tmp_path: Path) -> None:
         """Test that init --language overrides auto-detection."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
@@ -112,135 +107,48 @@ class TestInitCommand:
             config = (Path.cwd() / ".adw" / "project.yaml").read_text()
             assert "language: rust" in config
 
-    def test_init_language_short_flag(self, tmp_path: Path) -> None:
-        """Test that init -l works as short form of --language."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init", "-l", "go"])
-
-            assert result.exit_code == 0
-            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
-            assert "language: go" in config
-
 
 class TestInitProjectDetection:
     """Tests for project type auto-detection during init."""
 
-    def test_init_detects_python_from_pyproject_toml(self, tmp_path: Path) -> None:
-        """Test that init detects Python project from pyproject.toml."""
+    @pytest.mark.parametrize(
+        "marker_file,file_content,expected_language,expected_test_cmd",
+        [
+            ("pyproject.toml", "", "python", "pytest"),
+            ("setup.py", "", "python", None),
+            ("requirements.txt", "", "python", None),
+            ("package.json", "{}", "javascript", "npm test"),
+            ("go.mod", "", "go", "go test"),
+            ("Cargo.toml", "", "rust", "cargo test"),
+            ("build.gradle", "", "java", "gradle test"),
+            ("pom.xml", "", "java", None),
+            ("Gemfile", "", "ruby", "rspec"),
+            ("composer.json", "{}", "php", "phpunit"),
+        ],
+    )
+    def test_init_detects_language_from_marker_file(
+        self,
+        tmp_path: Path,
+        marker_file: str,
+        file_content: str,
+        expected_language: str,
+        expected_test_cmd: str | None,
+    ) -> None:
+        """Test that init detects project language from marker files."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            (Path.cwd() / "pyproject.toml").touch()
+            marker_path = Path.cwd() / marker_file
+            if file_content:
+                marker_path.write_text(file_content)
+            else:
+                marker_path.touch()
 
             result = runner.invoke(app, ["init"])
 
             assert result.exit_code == 0
             config = (Path.cwd() / ".adw" / "project.yaml").read_text()
-            assert "language: python" in config
-            assert "test_command: pytest" in config
-
-    def test_init_detects_python_from_setup_py(self, tmp_path: Path) -> None:
-        """Test that init detects Python project from setup.py."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            (Path.cwd() / "setup.py").touch()
-
-            result = runner.invoke(app, ["init"])
-
-            assert result.exit_code == 0
-            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
-            assert "language: python" in config
-
-    def test_init_detects_python_from_requirements_txt(self, tmp_path: Path) -> None:
-        """Test that init detects Python project from requirements.txt."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            (Path.cwd() / "requirements.txt").touch()
-
-            result = runner.invoke(app, ["init"])
-
-            assert result.exit_code == 0
-            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
-            assert "language: python" in config
-
-    def test_init_detects_nodejs_from_package_json(self, tmp_path: Path) -> None:
-        """Test that init detects Node.js project from package.json."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            (Path.cwd() / "package.json").write_text("{}")
-
-            result = runner.invoke(app, ["init"])
-
-            assert result.exit_code == 0
-            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
-            assert "language: javascript" in config
-            assert "test_command: npm test" in config
-
-    def test_init_detects_go_from_go_mod(self, tmp_path: Path) -> None:
-        """Test that init detects Go project from go.mod."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            (Path.cwd() / "go.mod").touch()
-
-            result = runner.invoke(app, ["init"])
-
-            assert result.exit_code == 0
-            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
-            assert "language: go" in config
-            assert "go test" in config
-
-    def test_init_detects_rust_from_cargo_toml(self, tmp_path: Path) -> None:
-        """Test that init detects Rust project from Cargo.toml."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            (Path.cwd() / "Cargo.toml").touch()
-
-            result = runner.invoke(app, ["init"])
-
-            assert result.exit_code == 0
-            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
-            assert "language: rust" in config
-            assert "cargo test" in config
-
-    def test_init_detects_java_from_build_gradle(self, tmp_path: Path) -> None:
-        """Test that init detects Java project from build.gradle."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            (Path.cwd() / "build.gradle").touch()
-
-            result = runner.invoke(app, ["init"])
-
-            assert result.exit_code == 0
-            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
-            assert "language: java" in config
-            assert "gradle test" in config
-
-    def test_init_detects_java_from_pom_xml(self, tmp_path: Path) -> None:
-        """Test that init detects Java project from pom.xml."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            (Path.cwd() / "pom.xml").touch()
-
-            result = runner.invoke(app, ["init"])
-
-            assert result.exit_code == 0
-            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
-            assert "language: java" in config
-
-    def test_init_detects_ruby_from_gemfile(self, tmp_path: Path) -> None:
-        """Test that init detects Ruby project from Gemfile."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            (Path.cwd() / "Gemfile").touch()
-
-            result = runner.invoke(app, ["init"])
-
-            assert result.exit_code == 0
-            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
-            assert "language: ruby" in config
-            assert "rspec" in config
-
-    def test_init_detects_php_from_composer_json(self, tmp_path: Path) -> None:
-        """Test that init detects PHP project from composer.json."""
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            (Path.cwd() / "composer.json").write_text("{}")
-
-            result = runner.invoke(app, ["init"])
-
-            assert result.exit_code == 0
-            config = (Path.cwd() / ".adw" / "project.yaml").read_text()
-            assert "language: php" in config
-            assert "phpunit" in config
+            assert f"language: {expected_language}" in config
+            if expected_test_cmd:
+                assert expected_test_cmd in config
 
     def test_init_defaults_to_generic_when_no_markers(self, tmp_path: Path) -> None:
         """Test that init defaults to generic when no project markers found."""

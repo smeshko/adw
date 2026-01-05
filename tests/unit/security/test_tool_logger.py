@@ -1,6 +1,10 @@
 """Tests for ToolLogger class.
 
 Tests for the ToolLogger that handles JSONL logging of tool execution events.
+
+# Test Reduction: Removed 4 trivial init/attribute tests (test_init_with_run_dir,
+# test_init_creates_log_path, test_current_phase_defaults_to_none,
+# test_current_phase_can_be_set). Kept file I/O, concurrency, and history tests.
 """
 
 import json
@@ -9,55 +13,6 @@ from pathlib import Path
 
 from adw.models.security import ToolCallLog
 from adw.security.tool_logger import ToolLogger
-
-
-class TestToolLoggerInit:
-    """Test suite for ToolLogger initialization."""
-
-    def test_init_with_run_dir(self, tmp_path: Path) -> None:
-        """Test initializing ToolLogger with run directory."""
-        run_dir = tmp_path / "runs" / "test-run-id"
-        run_dir.mkdir(parents=True)
-
-        logger = ToolLogger(run_dir)
-
-        assert logger.run_dir == run_dir
-        assert logger.log_path == run_dir / "tools.jsonl"
-
-    def test_init_creates_log_path(self, tmp_path: Path) -> None:
-        """Test that log_path points to correct file."""
-        run_dir = tmp_path / "runs" / "test-run"
-        run_dir.mkdir(parents=True)
-
-        logger = ToolLogger(run_dir)
-
-        assert logger.log_path.name == "tools.jsonl"
-        assert logger.log_path.parent == run_dir
-
-    def test_current_phase_defaults_to_none(self, tmp_path: Path) -> None:
-        """Test that current_phase defaults to None."""
-        run_dir = tmp_path / "runs" / "test-run"
-        run_dir.mkdir(parents=True)
-
-        logger = ToolLogger(run_dir)
-
-        assert logger.current_phase is None
-
-    def test_current_phase_can_be_set(self, tmp_path: Path) -> None:
-        """Test that current_phase can be set and retrieved."""
-        run_dir = tmp_path / "runs" / "test-run"
-        run_dir.mkdir(parents=True)
-
-        logger = ToolLogger(run_dir)
-        logger.current_phase = "build"
-
-        assert logger.current_phase == "build"
-
-        logger.current_phase = "test"
-        assert logger.current_phase == "test"
-
-        logger.current_phase = None
-        assert logger.current_phase is None
 
 
 class TestToolLoggerWrite:

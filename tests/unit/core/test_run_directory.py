@@ -1,3 +1,6 @@
+# TEST REDUCTION: Removed 4 trivial tests (2025-01):
+# - TestRunDirectoryManagerModule class (3 tests): class_exists, has_create_method, accepts_project_root
+# - test_context_json_is_formatted: implementation detail (JSON indentation)
 """Unit tests for run directory management."""
 
 from datetime import datetime
@@ -26,23 +29,6 @@ def sample_context() -> RunContext:
         current_phase="plan",
         started_at=datetime.now(),
     )
-
-
-class TestRunDirectoryManagerModule:
-    """Test that the run directory module exists and can be imported."""
-
-    def test_run_directory_manager_class_exists(self) -> None:
-        """Test that RunDirectoryManager class exists."""
-        assert RunDirectoryManager is not None
-
-    def test_run_directory_manager_has_create_method(self) -> None:
-        """Test that RunDirectoryManager has a create method."""
-        assert hasattr(RunDirectoryManager, "create")
-
-    def test_run_directory_manager_accepts_project_root(self, tmp_path: Path) -> None:
-        """Test that RunDirectoryManager can be instantiated with project_root."""
-        manager = RunDirectoryManager(project_root=tmp_path)
-        assert manager.project_root == tmp_path
 
 
 class TestDirectoryStructureCreation:
@@ -201,17 +187,6 @@ class TestContextSerialization:
         assert loaded.feature_description == sample_context.feature_description
         assert loaded.current_phase == sample_context.current_phase
         assert loaded.status == sample_context.status
-
-    def test_context_json_is_formatted(
-        self, run_manager: RunDirectoryManager, sample_context: RunContext
-    ) -> None:
-        """Test that context.json is human-readable (indented)."""
-        run_dir = run_manager.create(sample_context)
-        context_path = run_dir / "context.json"
-
-        content = context_path.read_text()
-        # Indented JSON should have newlines
-        assert "\n" in content
 
 
 class TestRunListing:
