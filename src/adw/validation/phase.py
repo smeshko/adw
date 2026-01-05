@@ -11,9 +11,16 @@ import logging
 from typing import TYPE_CHECKING
 
 from adw.validation.config import ValidationConfig
-from adw.validation.models import ValidationIssue, ValidationResult
+from adw.validation.models import ValidationIssue, ValidationResult, ValidationSource
 
 from adw.validation.validators.base import Validator, ValidatorRegistry
+
+# Mapping from validator names to ValidationSource
+_VALIDATOR_SOURCE_MAP: dict[str, ValidationSource] = {
+    "test": ValidationSource.TEST,
+    "review": ValidationSource.REVIEW,
+    "evidence": ValidationSource.EVIDENCE,
+}
 
 if TYPE_CHECKING:
     from adw.models import RunContext
@@ -124,8 +131,18 @@ class ValidationPhase:
                     f"Validator {validator.name} failed with error: {e}",
                     exc_info=True,
                 )
-                # Optionally add an issue for the validator error
-                # This ensures we track that a validator failed
+                # Create an issue for the validator error so the phase fails
+                # and the error is surfaced for triage
+                source = _VALIDATOR_SOURCE_MAP.get(
+                    validator.name, ValidationSource.TEST
+                )
+                all_issues.append(
+                    ValidationIssue(
+                        source=source,
+                        message=f"Validator '{validator.name}' crashed: {e}",
+                        severity="critical",
+                    )
+                )
 
         return all_issues
 

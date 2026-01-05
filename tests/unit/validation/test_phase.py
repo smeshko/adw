@@ -142,29 +142,50 @@ class TestValidationPhase:
         assert result.issues[0].source == ValidationSource.TEST
 
     def test_run_continues_after_validator_error(
-        self, validation_phase: ValidationPhase, mock_context: RunContext
+        self, mock_context: RunContext
     ) -> None:
-        """Phase continues to next validator on error."""
-        # Arrange - mock validators to return issues (simulating continuation after error)
-        def side_effect_validators(context: RunContext) -> list[ValidationIssue]:
-            # Simulate one validator error handled internally, but phase continues
-            return [
-                ValidationIssue(
-                    source=ValidationSource.TEST,
-                    message="Test validator succeeded",
-                    severity="low",
-                )
-            ]
+        """Phase continues to next validator on error and creates issue for crash."""
+        # Create a validator that crashes
+        crashing_validator = MagicMock()
+        crashing_validator.name = "test"
+        crashing_validator.validate.side_effect = RuntimeError("Validator crashed!")
 
-        with patch.object(
-            validation_phase, "_run_validators", side_effect=side_effect_validators
-        ):
-            # Act
-            result = validation_phase.run(mock_context)
+        # Create a validator that succeeds
+        working_validator = MagicMock()
+        working_validator.name = "review"
+        working_validator.validate.return_value = [
+            ValidationIssue(
+                source=ValidationSource.REVIEW,
+                message="Found a review issue",
+                severity="medium",
+            )
+        ]
 
-            # Assert
-            assert isinstance(result, ValidationResult)
-            # Phase should still complete even with validator errors
+        phase = ValidationPhase()
+        phase.register_validator(crashing_validator)
+        phase.register_validator(working_validator)
+
+        # Act
+        result = phase.run(mock_context)
+
+        # Assert - both validators were called
+        crashing_validator.validate.assert_called_once_with(mock_context)
+        working_validator.validate.assert_called_once_with(mock_context)
+
+        # Assert - phase returned issues from both
+        assert isinstance(result, ValidationResult)
+        assert result.passed is False  # Has issues, so should fail
+        assert len(result.issues) == 2
+
+        # Check that crash created an issue
+        crash_issues = [i for i in result.issues if "crashed" in i.message.lower()]
+        assert len(crash_issues) == 1
+        assert crash_issues[0].severity == "critical"
+        assert crash_issues[0].source == ValidationSource.TEST
+
+        # Check working validator issue was also collected
+        review_issues = [i for i in result.issues if i.source == ValidationSource.REVIEW]
+        assert len(review_issues) == 1
 
     def test_run_returns_validation_result(
         self, validation_phase: ValidationPhase, mock_context: RunContext
