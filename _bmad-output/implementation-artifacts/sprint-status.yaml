@@ -193,8 +193,8 @@ development_status:
   # Goal: Enable concurrent workflow execution via git worktrees with
   #       deterministic port allocation
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-10: backlog
-  10-1-worktree-creation-and-lifecycle: backlog
+  epic-10: in-progress
+  10-1-worktree-creation-and-lifecycle: in-progress
   10-2-worktree-directory-structure: backlog
   10-3-port-allocation-system: backlog
   10-4-concurrent-run-management: backlog
