@@ -1799,17 +1799,23 @@ class Orchestrator:
             )
             return
 
+        worktree_path = self._worktree_manager.worktree_base_path / run_id
+
         try:
             self._worktree_manager.remove_worktree(
                 run_id,
                 force=True,
-                cleanup_branch=self.worktree_config.cleanup_branch_on_remove,
+                delete_branch=self.worktree_config.cleanup_branch_on_remove,
+                preserve=True,  # Preserve artifacts to main project before removal
             )
+            # Log successful cleanup with path and force indication (ISS-008)
             logger.info(
-                "Cleaned up worktree",
+                "Cleaned up worktree (force=True, uncommitted changes discarded)",
                 extra={
                     "run_id": run_id,
-                    "cleanup_branch": self.worktree_config.cleanup_branch_on_remove,
+                    "worktree_path": str(worktree_path),
+                    "forced": True,
+                    "delete_branch": self.worktree_config.cleanup_branch_on_remove,
                 },
             )
 
@@ -1819,6 +1825,7 @@ class Orchestrator:
                 "Failed to cleanup worktree",
                 extra={
                     "run_id": run_id,
+                    "worktree_path": str(worktree_path),
                     "error": str(e),
                 },
             )
