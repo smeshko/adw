@@ -5,9 +5,9 @@ Enhanced in Story 11.2 with structured issue tracking, fix history,
 and triage support.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import yaml
 from pydantic import BaseModel, Field, field_validator
@@ -143,7 +143,7 @@ class FixAttempt(BaseModel):
         changes_made: List of files modified during the fix.
     """
 
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     result: FixResult
     notes: str | None = None
     changes_made: list[str] = Field(default_factory=list)
@@ -236,7 +236,7 @@ class ValidationIssue(BaseModel):
     triage_reason: str | None = None
 
     # Timestamps
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     resolved_at: datetime | None = None
 
     # Backward compatibility fields
@@ -254,7 +254,9 @@ class ValidationIssue(BaseModel):
 
         # Normalize severity (handle legacy string values)
         if "severity" in data:
-            data["severity"] = _normalize_severity(data["severity"])
+            data["severity"] = _normalize_severity(
+                cast("str | IssueSeverity", data["severity"])
+            )
 
         super().__init__(**data)
 
@@ -334,9 +336,12 @@ class ValidationIssue(BaseModel):
             return False
 
         # Same file required (if both have locations)
-        if self.location and other.location:
-            if self.location.file_path != other.location.file_path:
-                return False
+        if (
+            self.location
+            and other.location
+            and self.location.file_path != other.location.file_path
+        ):
+            return False
 
         # Check description similarity (exact match or first 50 chars)
         return (

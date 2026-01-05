@@ -10,8 +10,6 @@ Tests cover:
 - Serialization methods
 """
 
-import pytest
-
 from adw.validation.models import (
     FixAttempt,
     FixResult,

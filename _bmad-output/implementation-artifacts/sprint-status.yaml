@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 7
+issue_counter: 11
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -51,6 +51,10 @@ issues:
   ISS-005-feature-description-not-captured: reported
   ISS-006-logmanager-not-connected-to-python-logging: reported
   ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: in-progress
+  ISS-008-worktree-cleanup-fails-with-untracked-files: reported
+  ISS-009-git-diff-capture-fails-no-commits: reported
+  ISS-010-evidence-gathering-not-integrated: reported
+  ISS-011-adw-run-should-auto-create-pr: reported
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -177,6 +181,8 @@ development_status:
   8-6-compress-and-optimize-evidence: done
   # UX Fix (from ISS-001)
   ux-fix-ISS-001-llm-output-too-verbose-in-terminal: done
+  # Bugfix (from ISS-010)
+  bugfix-ISS-010-evidence-gathering-not-integrated: backlog
   epic-8-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -189,6 +195,10 @@ development_status:
   9-3-capture-git-diff-as-artifact: done
   9-4-generate-pr-description: done
   9-5-support-pr-creation-command: done
+  # Bugfix (from ISS-009)
+  bugfix-ISS-009-git-diff-capture-fails-no-commits: backlog
+  # UX Fix (from ISS-011)
+  ux-fix-ISS-011-adw-run-should-auto-create-pr: backlog
   epic-9-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -203,6 +213,8 @@ development_status:
   10-4-concurrent-run-management: done
   10-5-worktree-context-in-phases: done
   10-6-worktree-branch-management: done
+  # Bugfix (from ISS-008)
+  bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: backlog
   epic-10-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
