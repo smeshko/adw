@@ -24,10 +24,26 @@ from adw.core.index_manager import IndexManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
-from adw.evidence import detect_platform, optimize_evidence
+from adw.evidence import (
+    CLIEvidenceGatherer,
+    EvidenceSummary,
+    WebCaptureStrategy,
+    capture_configured_screens,
+    check_android_emulator_available,
+    check_ios_simulator_available,
+    detect_platform,
+    generate_evidence_manifest,
+    get_evidence_strategy,
+    load_routes_from_config,
+    optimize_evidence,
+)
 from adw.exceptions import ADWError, ConfigError
 from adw.models import RunContext, WorktreeConfig
-from adw.models.evidence import PlatformType
+from adw.models.evidence import (
+    EvidenceStrategy,
+    MobileDeviceType,
+    PlatformType,
+)
 from adw.models.phase import PhaseResult
 from adw.worktree import ConcurrentRunManager
 from adw.worktree.manager import WorktreeManager
@@ -1128,6 +1144,10 @@ class Orchestrator:
                 context, phase, artifacts_override=artifacts_override
             )
 
+            # Gather evidence after verify phase LLM execution (Story ISS-010)
+            if phase == "verify":
+                self._gather_evidence_after_verify(context)
+
             # Run evidence optimization after verify phase (Story 8.6)
             if phase == "verify":
                 self._optimize_evidence_after_verify(context)
@@ -1287,6 +1307,213 @@ class Orchestrator:
         self.context_manager.save(context)
 
         return context
+
+    def _gather_evidence_after_verify(
+        self, context: RunContext
+    ) -> list[EvidenceSummary]:
+        """Gather evidence based on detected platform type (Story ISS-010).
+
+        This method is called after the LLM verify phase completes and before
+        evidence optimization. It gathers platform-appropriate evidence:
+        - CLI: Command outputs captured
+        - WEB: Browser screenshots via Playwright
+        - MOBILE: Simulator/emulator screenshots
+        - BACKEND: API request/response pairs (if configured)
+
+        Evidence is stored in .adw/runs/<run_id>/evidence/ and a manifest
+        is generated.
+
+        Args:
+            context: Current run context with platform detected.
+
+        Returns:
+            List of EvidenceSummary objects from gathered evidence.
+        """
+        # Get platform from context (set by _detect_and_store_platform)
+        platform_str = getattr(context, "platform", "cli")
+        try:
+            platform = PlatformType(platform_str)
+        except ValueError:
+            platform = PlatformType.CLI
+            logger.warning(
+                "Invalid platform value, defaulting to CLI",
+                extra={"run_id": context.run_id, "platform": platform_str},
+            )
+
+        # Determine evidence strategy
+        strategy = get_evidence_strategy(platform)
+
+        # Set up evidence directory
+        run_dir = self.runs_dir / context.run_id
+        evidence_dir = run_dir / "evidence"
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+
+        summaries: list[EvidenceSummary] = []
+
+        logger.info(
+            "Starting evidence gathering",
+            extra={
+                "run_id": context.run_id,
+                "platform": platform.value,
+                "strategy": strategy.value,
+            },
+        )
+
+        try:
+            if strategy == EvidenceStrategy.TERMINAL_OUTPUT:
+                # CLI evidence gathering
+                cli_evidence_dir = evidence_dir / "cli"
+                cli_evidence_dir.mkdir(parents=True, exist_ok=True)
+
+                gatherer = CLIEvidenceGatherer(
+                    project_root=self._project_path,
+                    evidence_dir=cli_evidence_dir,
+                )
+
+                if gatherer.should_gather(platform):
+                    summary = gatherer.gather()
+                    summaries.append(summary)
+                    logger.info(
+                        "CLI evidence gathered",
+                        extra={
+                            "run_id": context.run_id,
+                            "total_commands": summary.total_commands,
+                            "passed": summary.passed,
+                            "failed": summary.failed,
+                        },
+                    )
+
+            elif strategy == EvidenceStrategy.SCREENSHOT:
+                if platform == PlatformType.WEB:
+                    # Web screenshot capture
+                    web_evidence_dir = evidence_dir / "screenshots"
+                    web_evidence_dir.mkdir(parents=True, exist_ok=True)
+
+                    # Load routes from config
+                    config_result = load_routes_from_config(self._project_path)
+                    if config_result:
+                        routes, base_url, viewports = config_result
+                        capture = WebCaptureStrategy(
+                            output_dir=web_evidence_dir,
+                            base_url=base_url,
+                            viewports=viewports,
+                        )
+
+                        if capture.is_available:
+                            results = []
+                            for route in routes:
+                                all_viewports = capture.capture_route_all_viewports(
+                                    route
+                                )
+                                results.extend(all_viewports)
+
+                            # Create summary from results
+                            from adw.models.evidence import WebEvidenceSummary
+
+                            web_summary = WebEvidenceSummary(
+                                total_screenshots=len(results),
+                                successful=sum(1 for r in results if r.success),
+                                failed=sum(1 for r in results if not r.success),
+                                results=results,
+                            )
+                            summaries.append(web_summary)
+                            logger.info(
+                                "Web evidence gathered",
+                                extra={
+                                    "run_id": context.run_id,
+                                    "total_screenshots": web_summary.total_screenshots,
+                                    "successful": web_summary.successful,
+                                },
+                            )
+                        else:
+                            logger.warning(
+                                "Playwright not available, skipping web screenshots",
+                                extra={
+                                    "run_id": context.run_id,
+                                    "reason": capture.unavailable_reason,
+                                },
+                            )
+                    else:
+                        logger.debug(
+                            "No web routes configured, skipping web evidence",
+                            extra={"run_id": context.run_id},
+                        )
+
+                elif platform == PlatformType.MOBILE:
+                    # Mobile screenshot capture
+                    mobile_evidence_dir = evidence_dir / "mobile"
+                    mobile_evidence_dir.mkdir(parents=True, exist_ok=True)
+
+                    # Detect available device
+                    device_type = None
+                    if check_ios_simulator_available():
+                        device_type = MobileDeviceType.IOS
+                    elif check_android_emulator_available():
+                        device_type = MobileDeviceType.ANDROID
+
+                    if device_type:
+                        mobile_summary = capture_configured_screens(
+                            project_root=self._project_path,
+                            output_dir=mobile_evidence_dir,
+                            device_type=device_type,
+                        )
+                        summaries.append(mobile_summary)
+                        logger.info(
+                            "Mobile evidence gathered",
+                            extra={
+                                "run_id": context.run_id,
+                                "device_type": device_type.value,
+                                "total_screenshots": mobile_summary.total_screenshots,
+                                "successful": mobile_summary.successful,
+                            },
+                        )
+                    else:
+                        logger.warning(
+                            "No mobile device available, skipping mobile screenshots",
+                            extra={"run_id": context.run_id},
+                        )
+
+            elif strategy == EvidenceStrategy.API_CAPTURE:
+                # API capture - requires httpx and configured endpoints
+                # This is a nice-to-have; log and continue if not available
+                logger.debug(
+                    "API capture not yet integrated in orchestrator",
+                    extra={"run_id": context.run_id},
+                )
+
+            # Generate evidence manifest if any evidence was gathered
+            if summaries:
+                plan_path = run_dir / "artifacts" / "plan" / "plan_output.md"
+                manifest = generate_evidence_manifest(
+                    run_id=context.run_id,
+                    platform=platform.value,
+                    evidence_directory=evidence_dir,
+                    summaries=summaries,
+                    plan_path=plan_path if plan_path.exists() else None,
+                )
+                logger.info(
+                    "Evidence manifest generated",
+                    extra={
+                        "run_id": context.run_id,
+                        "total_items": manifest.total_items,
+                        "passed": manifest.passed,
+                        "failed": manifest.failed,
+                    },
+                )
+            else:
+                logger.debug(
+                    "No evidence gathered, skipping manifest generation",
+                    extra={"run_id": context.run_id},
+                )
+
+        except Exception as e:
+            # Evidence gathering failures should NOT fail the run
+            logger.warning(
+                "Evidence gathering failed",
+                extra={"run_id": context.run_id, "error": str(e)},
+            )
+
+        return summaries
 
     def _optimize_evidence_after_verify(self, context: RunContext) -> None:
         """Optimize evidence files after verify phase completes (Story 8.6).
