@@ -78,10 +78,10 @@ validation:
 - [x] Update state after each iteration
 
 ### Task 6: Integrate with ValidationPhase
-- [ ] Modify ValidationPhase to use LoopController
-- [ ] Main loop: validate → triage → fix → repeat
-- [ ] Check exit conditions after each iteration
-- [ ] Handle graceful exit with summary
+- [x] Modify ValidationPhase to use LoopController
+- [x] Main loop: validate → triage → fix → repeat
+- [x] Check exit conditions after each iteration
+- [x] Handle graceful exit with summary
 
 ### Task 7: Add Loop Progress Display
 - [ ] Display iteration progress: "Iteration 2/5"

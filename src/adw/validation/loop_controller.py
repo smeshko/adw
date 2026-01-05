@@ -299,5 +299,31 @@ class ValidationLoopController:
 
         return issues
 
+    def get_summary(self) -> dict:
+        """Get summary of loop execution.
+
+        Returns a dictionary with all loop statistics for reporting
+        and logging purposes.
+
+        Returns:
+            Dictionary containing:
+            - iterations_run: Number of iterations completed
+            - total_issues: Total issues found across all iterations
+            - resolved: Number of resolved issues
+            - dismissed: Number of dismissed issues
+            - deferred: Number of deferred issues
+            - remaining: Number of remaining FIX issues
+            - stalls_detected: Number of stalls detected
+        """
+        return {
+            "iterations_run": self.state.current_iteration,
+            "total_issues": self.state.total_issues_found,
+            "resolved": self.state.issues_resolved,
+            "dismissed": self.state.issues_dismissed,
+            "deferred": self.state.issues_deferred,
+            "remaining": self.state.issues_remaining,
+            "stalls_detected": self.state.stall_count,
+        }
+
 
 __all__ = ["ExitReason", "LoopState", "ValidationLoopController"]

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from adw.validation.config import ValidationConfig
+from adw.validation.loop_controller import ValidationLoopController
 from adw.validation.models import (
     LoopState,
     ValidationIssue,
@@ -75,6 +76,7 @@ class ValidationPhase:
         self._iteration = 1
         self._state_manager: ValidationStateManager | None = None
         self._state: ValidationState | None = None
+        self._loop_controller = ValidationLoopController(self.config)
 
         # Initialize state manager if run_id is provided
         if run_id and runs_dir:
@@ -160,6 +162,9 @@ class ValidationPhase:
         Runs all enabled validators in sequence (Evidence → Review → Tests),
         collects all issues, and returns an aggregated result.
 
+        Uses ValidationLoopController for iteration tracking and updates
+        issue counts for exit condition evaluation.
+
         State is saved after each iteration for resume capability.
         State is cleared on successful completion (no issues).
 
@@ -169,10 +174,15 @@ class ValidationPhase:
         Returns:
             ValidationResult with pass/fail status and collected issues.
         """
+        # Use loop controller to track iterations
+        iteration = self._loop_controller.start_iteration()
+        self._iteration = iteration  # Keep in sync for backward compatibility
+
         logger.info(
             "Starting validation phase",
             extra={
-                "iteration": self._iteration,
+                "iteration": iteration,
+                "max_iterations": self.config.max_iterations,
                 "evidence_enabled": self.config.enable_evidence,
                 "review_enabled": self.config.enable_review,
                 "tests_enabled": self.config.enable_tests,
@@ -182,13 +192,16 @@ class ValidationPhase:
         # Run all validators and collect issues
         all_issues = self._run_validators(context)
 
+        # Update loop controller counts from issues
+        self._loop_controller.update_counts(all_issues)
+
         # Determine pass/fail based on issues
         passed = len(all_issues) == 0
 
         result = ValidationResult(
             passed=passed,
             issues=all_issues,
-            iteration=self._iteration,
+            iteration=iteration,
         )
 
         # Save state after each iteration
@@ -199,7 +212,8 @@ class ValidationPhase:
             extra={
                 "passed": passed,
                 "issue_count": len(all_issues),
-                "iteration": self._iteration,
+                "iteration": iteration,
+                "issues_remaining": self._loop_controller.state.issues_remaining,
             },
         )
 
@@ -207,15 +221,35 @@ class ValidationPhase:
         if passed:
             self._clear_state()
 
-        # Increment iteration for next run
-        self._iteration += 1
-
         return result
 
     @property
     def state_manager(self) -> ValidationStateManager | None:
         """Get the state manager (for testing/integration)."""
         return self._state_manager
+
+    @property
+    def loop_controller(self) -> ValidationLoopController:
+        """Get the loop controller for exit condition checking.
+
+        The loop controller provides:
+        - Iteration tracking
+        - Exit condition evaluation (max iterations, stall, all resolved)
+        - Progress detection
+        - Auto-defer functionality
+
+        Returns:
+            ValidationLoopController instance managing loop state.
+        """
+        return self._loop_controller
+
+    def get_summary(self) -> dict:
+        """Get summary of loop execution from the controller.
+
+        Returns:
+            Dictionary with iteration stats, issue counts, and stall info.
+        """
+        return self._loop_controller.get_summary()
 
     def _run_validators(self, context: RunContext) -> list[ValidationIssue]:
         """Run all enabled validators and collect issues.

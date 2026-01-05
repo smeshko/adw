@@ -499,3 +499,117 @@ class TestValidationPhaseStatePersistence:
         assert loaded_state is not None
         # total_iterations should match config, not default 5
         assert loaded_state.total_iterations == 3
+
+
+class TestValidationPhaseLoopControllerIntegration:
+    """Tests for ValidationLoopController integration with ValidationPhase."""
+
+    @pytest.fixture
+    def mock_context(self) -> RunContext:
+        """Create a mock RunContext for testing."""
+        return RunContext(
+            run_id="01HQ0000000000000000000000",
+            feature_description="Test feature",
+            current_phase="validation",
+            phase_history=["plan", "build"],
+            started_at=datetime.now(UTC),
+            completed_at=None,
+            status="running",
+            artifacts={},
+            phase_tokens={},
+            worktree_path=None,
+            use_worktree=False,
+            branch_name=None,
+        )
+
+    def test_phase_has_loop_controller(self) -> None:
+        """ValidationPhase has a loop_controller property."""
+        from adw.validation.loop_controller import ValidationLoopController
+
+        phase = ValidationPhase()
+        assert hasattr(phase, "loop_controller")
+        assert isinstance(phase.loop_controller, ValidationLoopController)
+
+    def test_phase_loop_controller_uses_config(self) -> None:
+        """Loop controller uses the phase's config."""
+        from adw.validation.config import ValidationConfig
+
+        config = ValidationConfig(max_iterations=7, stall_threshold=4)
+        phase = ValidationPhase(config=config)
+
+        assert phase.loop_controller.config.max_iterations == 7
+        assert phase.loop_controller.config.stall_threshold == 4
+
+    def test_phase_run_uses_loop_controller_iteration(
+        self, mock_context: RunContext
+    ) -> None:
+        """run() uses loop controller for iteration tracking."""
+        phase = ValidationPhase()
+
+        # Initial state
+        assert phase.loop_controller.state.current_iteration == 0
+
+        with patch.object(phase, "_run_validators", return_value=[]):
+            phase.run(mock_context)
+
+        # After first run
+        assert phase.loop_controller.state.current_iteration == 1
+
+        with patch.object(phase, "_run_validators", return_value=[]):
+            phase.run(mock_context)
+
+        # After second run
+        assert phase.loop_controller.state.current_iteration == 2
+
+    def test_phase_get_summary_returns_controller_summary(
+        self, mock_context: RunContext
+    ) -> None:
+        """get_summary() returns loop controller's summary."""
+        phase = ValidationPhase()
+
+        # Run once with some issues
+        issues = [
+            ValidationIssue(
+                source=ValidationSource.TEST,
+                severity="ERROR",
+                description="Test failure",
+            )
+        ]
+        with patch.object(phase, "_run_validators", return_value=issues):
+            phase.run(mock_context)
+
+        summary = phase.get_summary()
+
+        assert "iterations_run" in summary
+        assert summary["iterations_run"] == 1
+
+    def test_phase_run_updates_controller_counts(
+        self, mock_context: RunContext
+    ) -> None:
+        """run() updates loop controller issue counts."""
+        phase = ValidationPhase()
+
+        # Create issues with different triage states
+        issues = [
+            ValidationIssue(
+                source=ValidationSource.TEST,
+                severity="ERROR",
+                description="Fix me",
+            ),
+            ValidationIssue(
+                source=ValidationSource.REVIEW,
+                severity="INFO",
+                description="Dismissed",
+            ),
+        ]
+        issues[0].triage_decision = "FIX"
+        issues[1].triage_decision = "DISMISS"
+
+        with patch.object(phase, "_run_validators", return_value=issues):
+            phase.run(mock_context)
+
+        # Check that counts were updated
+        state = phase.loop_controller.state
+        assert state.issues_remaining == 1
+        assert state.issues_dismissed == 1
+        assert state.total_issues_found == 2
