@@ -1,6 +1,6 @@
 # Story 11.5: Iteration Limits and Exit Conditions
 
-Status: review
+Status: done
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
