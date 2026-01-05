@@ -86,12 +86,12 @@ so that I can resume validation after interruption.
 - [x] Clear state on successful completion
 
 ### Task 9: Write Tests
-- [ ] Unit tests for ValidationStateManager (6 tests)
-- [ ] Unit tests for issues persistence (4 tests)
-- [ ] Unit tests for triage persistence (3 tests)
-- [ ] Unit tests for fix history persistence (3 tests)
-- [ ] Unit tests for resume support (4 tests)
-- [ ] Integration test for save→resume cycle (2 tests)
+- [x] Unit tests for ValidationStateManager (6 tests) - 27+ tests
+- [x] Unit tests for issues persistence (4 tests) - 4 tests
+- [x] Unit tests for triage persistence (3 tests) - 4 tests
+- [x] Unit tests for fix history persistence (3 tests) - 4 tests
+- [x] Unit tests for resume support (4 tests) - 7 tests
+- [x] Integration test for save→resume cycle (2 tests) - 4 tests
 
 ---
 
