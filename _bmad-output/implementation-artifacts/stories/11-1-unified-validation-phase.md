@@ -1,6 +1,6 @@
 # Story 11.1: Unified Validation Phase
 
-Status: draft
+Status: review
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
@@ -40,42 +40,42 @@ validation:
 ## Tasks / Subtasks
 
 ### Task 1: Create ValidationPhase Class
-- [ ] Create `src/adw/validation/__init__.py` package
-- [ ] Create `src/adw/validation/phase.py` with `ValidationPhase` class
-- [ ] Implement `run(context: RunContext) -> ValidationResult` method
-- [ ] Define `ValidationResult` model with `passed: bool`, `issues: list[ValidationIssue]`, `iteration: int`
-- [ ] Add phase to PHASE_SEQUENCE in pipeline orchestrator
+- [x] Create `src/adw/validation/__init__.py` package
+- [x] Create `src/adw/validation/phase.py` with `ValidationPhase` class
+- [x] Implement `run(context: RunContext) -> ValidationResult` method
+- [x] Define `ValidationResult` model with `passed: bool`, `issues: list[ValidationIssue]`, `iteration: int`
+- [x] Add phase to PHASE_SEQUENCE in pipeline orchestrator (validate already exists)
 
 ### Task 2: Create Validator Protocol
-- [ ] Define `Validator` Protocol in `src/adw/validation/validators/base.py`
-- [ ] Protocol methods: `validate(context: RunContext) -> list[ValidationIssue]`, `name: str`
-- [ ] Create `ValidatorRegistry` to manage enabled validators
-- [ ] Support dynamic validator loading based on configuration
+- [x] Define `Validator` Protocol in `src/adw/validation/validators/base.py`
+- [x] Protocol methods: `validate(context: RunContext) -> list[ValidationIssue]`, `name: str`
+- [x] Create `ValidatorRegistry` to manage enabled validators
+- [x] Support dynamic validator loading based on configuration
 
 ### Task 3: Implement TestValidator
-- [ ] Create `src/adw/validation/validators/test_validator.py`
-- [ ] Execute configured test command (default: `pytest` or `npm test` based on platform)
-- [ ] Parse test output for failures using regex patterns
-- [ ] Convert each failing test to a `ValidationIssue` with source=TEST
-- [ ] Handle test timeout and test command not found errors
+- [x] Create `src/adw/validation/validators/test_validator.py`
+- [x] Execute configured test command (default: `pytest` or `npm test` based on platform)
+- [x] Parse test output for failures using regex patterns
+- [x] Convert each failing test to a `ValidationIssue` with source=TEST
+- [x] Handle test timeout and test command not found errors
 
 ### Task 4: Implement ReviewValidator
-- [ ] Create `src/adw/validation/validators/review_validator.py`
-- [ ] Use LLM executor to run code review prompt against changes
-- [ ] Parse LLM response for structured issues
-- [ ] Convert review findings to `ValidationIssue` with source=REVIEW
-- [ ] Support configurable review focus areas (security, error_handling, edge_cases)
+- [x] Create `src/adw/validation/validators/review_validator.py`
+- [x] Use LLM executor to run code review prompt against changes
+- [x] Parse LLM response for structured issues
+- [x] Convert review findings to `ValidationIssue` with source=REVIEW
+- [x] Support configurable review focus areas (security, error_handling, edge_cases)
 
 ### Task 5: Implement EvidenceValidator
-- [ ] Create `src/adw/validation/validators/evidence_validator.py`
-- [ ] Call evidence gathering system (Epic 8 integration)
-- [ ] Compare gathered evidence against plan requirements
-- [ ] Convert missing evidence to `ValidationIssue` with source=EVIDENCE
-- [ ] Handle platform detection for evidence type requirements
+- [x] Create `src/adw/validation/validators/evidence_validator.py`
+- [x] Call evidence gathering system (Epic 8 integration)
+- [x] Compare gathered evidence against plan requirements
+- [x] Convert missing evidence to `ValidationIssue` with source=EVIDENCE
+- [x] Handle platform detection for evidence type requirements
 
 ### Task 6: Add Validation Configuration
-- [ ] Add `validation` section to `ProjectConfig` model
-- [ ] Configuration fields:
+- [x] Add `validation` section to `ProjectConfig` model
+- [x] Configuration fields:
   - `enable_evidence: bool = True`
   - `enable_review: bool = True`
   - `enable_tests: bool = True`
@@ -85,11 +85,11 @@ validation:
   - `review_focus: list[str] = ["security", "error_handling", "edge_cases"]`
 
 ### Task 7: Write Tests
-- [ ] Unit tests for `ValidationPhase.run()` (5 tests)
-- [ ] Unit tests for each Validator implementation (4 tests each = 12 tests)
-- [ ] Unit tests for `ValidatorRegistry` (4 tests)
-- [ ] Integration test for full validation phase with all validators (3 tests)
-- [ ] Test configuration-based validator enabling/disabling (3 tests)
+- [x] Unit tests for `ValidationPhase.run()` (5 tests) - Have 12 tests in test_phase.py
+- [x] Unit tests for each Validator implementation (4 tests each = 12 tests) - Have 19 tests total
+- [x] Unit tests for `ValidatorRegistry` (4 tests) - Have 8 tests in test_base.py
+- [x] Integration test for full validation phase with all validators (3 tests) - Have 3 tests
+- [x] Test configuration-based validator enabling/disabling (3 tests) - Have 3 tests
 
 ---
 
@@ -337,10 +337,40 @@ Epic 11: Validation Loop - Story 11.1
 
 ### Agent Model Used
 
-<!-- To be filled during implementation -->
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created ValidationPhase class with run() method, ValidationResult and ValidationIssue models, ValidationConfig. The "validate" phase already exists in PHASE_SEQUENCE so no modification needed.
+- Task 2: Created Validator Protocol in validators/base.py with name property and validate() method. Implemented ValidatorRegistry with register(), get_all(), get_enabled(), run_all(), run_enabled(), and clear() methods. Supports dynamic filtering based on ValidationConfig enable flags.
+- Task 3: Implemented TestValidator that runs test commands (pytest, npm test) and parses output for failures. Supports timeout handling, command not found errors, and regex-based parsing of pytest and npm/jest output formats.
+- Task 4: Implemented ReviewValidator that uses LLM executor for code review. Parses review response for issues with severity levels, supports configurable focus areas, handles LLM errors gracefully.
+- Task 5: Implemented EvidenceValidator that loads evidence manifest from Verify phase and reports failed, errored, or skipped evidence items as issues.
+- Task 6: Added validation field to ProjectConfig model that references ValidationConfig. Fixed circular import issues by using TYPE_CHECKING for RunContext imports in phase.py and base.py.
+- Task 7: Added 6 integration tests covering full validation phase with all validators and configuration-based validator enabling/disabling. Total: 45 tests.
+
 ### File List
+
+**New Files:**
+- `src/adw/validation/__init__.py` - Package exports
+- `src/adw/validation/config.py` - ValidationConfig model
+- `src/adw/validation/models.py` - ValidationResult, ValidationIssue, ValidationSource
+- `src/adw/validation/phase.py` - ValidationPhase class
+- `src/adw/validation/validators/__init__.py` - Validators package exports
+- `src/adw/validation/validators/base.py` - Validator Protocol and ValidatorRegistry
+- `src/adw/validation/validators/test_validator.py` - TestValidator implementation
+- `tests/unit/validation/__init__.py` - Test package
+- `tests/unit/validation/test_phase.py` - 12 unit tests for ValidationPhase and models
+- `tests/unit/validation/validators/__init__.py` - Validator tests package
+- `tests/unit/validation/validators/test_base.py` - 8 unit tests for ValidatorRegistry
+- `tests/unit/validation/validators/test_test_validator.py` - 7 unit tests for TestValidator
+- `src/adw/validation/validators/review_validator.py` - ReviewValidator implementation
+- `tests/unit/validation/validators/test_review_validator.py` - 6 unit tests for ReviewValidator
+- `src/adw/validation/validators/evidence_validator.py` - EvidenceValidator implementation
+- `tests/unit/validation/validators/test_evidence_validator.py` - 6 unit tests for EvidenceValidator
+- `tests/unit/validation/test_integration.py` - 6 integration tests
+
+**Modified Files:**
+- `src/adw/models/config.py` - Added validation field to ProjectConfig
