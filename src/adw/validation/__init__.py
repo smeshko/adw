@@ -17,9 +17,11 @@ from adw.validation.models import (
     IssueLocation,
     IssueSeverity,
     IssueSource,
+    LoopState,
     ValidationIssue,
     ValidationResult,
     ValidationSource,
+    ValidationState,
 )
 from adw.validation.phase import ValidationPhase
 from adw.validation.state_manager import ValidationStateManager
@@ -32,11 +34,13 @@ __all__ = [
     "IssueLocation",
     "IssueSeverity",
     "IssueSource",
+    "LoopState",
     "ValidationConfig",
     "ValidationIssue",
     "ValidationPhase",
     "ValidationResult",
     "ValidationSource",
+    "ValidationState",
     "ValidationStateManager",
     "Validator",
     "ValidatorRegistry",

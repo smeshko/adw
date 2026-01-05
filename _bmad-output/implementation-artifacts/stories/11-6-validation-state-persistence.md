@@ -40,14 +40,14 @@ so that I can resume validation after interruption.
 - [x] Support atomic writes for state files
 
 ### Task 2: Define Persistable State Models
-- [ ] Create `ValidationState` model with:
+- [x] Create `ValidationState` model with:
   - `run_id: str`
   - `current_iteration: int`
   - `total_iterations: int`
   - `loop_state: LoopState`
   - `started_at: datetime`
   - `last_updated: datetime`
-- [ ] Ensure all nested models are serializable
+- [x] Ensure all nested models are serializable
 
 ### Task 3: Implement Issues Persistence
 - [ ] Create `save_issues(issues: list[ValidationIssue]) -> None`
