@@ -48,11 +48,11 @@ so that I control which issues block the pipeline.
 - [x] Create `TriagedIssue` wrapper with decision metadata
 
 ### Task 2: Create TriageSystem Class
-- [ ] Create `src/adw/validation/triage.py` with `TriageSystem` class
-- [ ] Implement `triage(issues: list[ValidationIssue], mode: str) -> list[TriagedIssue]`
-- [ ] Support modes: "auto", "manual", "hybrid"
-- [ ] Inject LLM executor for auto mode
-- [ ] Handle empty issues list gracefully
+- [x] Create `src/adw/validation/triage.py` with `TriageSystem` class
+- [x] Implement `triage(issues: list[ValidationIssue], mode: str) -> list[TriagedIssue]`
+- [x] Support modes: "auto", "manual", "hybrid"
+- [x] Inject LLM executor for auto mode
+- [x] Handle empty issues list gracefully
 
 ### Task 3: Implement Auto Triage
 - [ ] Create `_auto_triage(issue: ValidationIssue) -> TriageDecision`
