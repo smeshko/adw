@@ -675,8 +675,9 @@ def logs_tools(
         if "T" in timestamp:
             timestamp = timestamp.split("T")[1].split(".")[0]
 
-        # Format duration
-        duration = f"{entry.duration_ms}ms"
+        # Format duration with tilde to indicate estimate
+        # (Individual tool timing is distributed evenly from total duration)
+        duration = f"~{entry.duration_ms}ms"
 
         # Format status
         status = "[red]✗ Blocked[/]" if entry.blocked else "[green]✓ Success[/]"
@@ -724,7 +725,8 @@ def _display_tool_summary(
     console.print(f"  Total calls:  {total_calls}")
     console.print(f"  Successful:   [green]{successful_calls}[/]")
     console.print(f"  Blocked:      [red]{blocked_calls}[/]")
-    console.print(f"  Total time:   {total_duration}ms")
+    console.print(f"  Total time:   ~{total_duration}ms")
+    console.print("  [dim](Durations are estimates, evenly distributed)[/]")
 
     if top_tools and not blocked_only:
         most_used = ", ".join(f"{name} ({count})" for name, count in top_tools)
