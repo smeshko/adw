@@ -56,9 +56,9 @@ so that my git history stays clean.
 - [x] Check for PR before allowing branch deletion (optional via gh CLI)
 
 ### Task 5: Add --delete-branch CLI Flag
-- [ ] Add `--delete-branch` flag to `adw cleanup` command
-- [ ] Add flag to abort/failure cleanup operations
-- [ ] Warn user about data loss before branch deletion
+- [x] Add `--delete-branch` flag to `adw cleanup` command
+- [x] Add flag to abort/failure cleanup operations
+- [x] Warn user about data loss before branch deletion
 
 ### Task 6: Track Branch State in Context
 - [ ] Add `branch_name: str | None` to RunContext model
