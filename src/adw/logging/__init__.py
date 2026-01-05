@@ -24,6 +24,7 @@ import logging
 
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
+from adw.logging.handler import LogManagerHandler
 from adw.logging.llm_capture import LLMCaptureManager
 from adw.logging.manager import LogManager, Transport
 from adw.logging.redactor import (
@@ -172,6 +173,7 @@ def configure_default_logger(
 __all__ = [
     # Core classes
     "LogManager",
+    "LogManagerHandler",
     "Transport",
     "StreamLogger",
     "LLMCaptureManager",

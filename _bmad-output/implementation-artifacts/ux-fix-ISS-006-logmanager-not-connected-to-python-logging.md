@@ -41,11 +41,11 @@ Feature: LogManager connected to Python logging
 ## Tasks / Subtasks
 
 ### Task 1: Create Python Logging Handler Bridge
-- [ ] Create `LogManagerHandler` class extending `logging.Handler` in `src/adw/logging/handler.py`
-- [ ] Implement `emit()` method to translate Python LogRecords to ADW LogEvents
-- [ ] Map Python log levels to ADW LogLevels (DEBUG→DEBUG, INFO→INFO, WARNING→WARN, ERROR→ERROR, CRITICAL→FATAL)
-- [ ] Extract and translate Python logger name to ADW LogCategory (heuristic mapping)
-- [ ] Preserve extra context from Python LogRecords
+- [x] Create `LogManagerHandler` class extending `logging.Handler` in `src/adw/logging/handler.py`
+- [x] Implement `emit()` method to translate Python LogRecords to ADW LogEvents
+- [x] Map Python log levels to ADW LogLevels (DEBUG→DEBUG, INFO→INFO, WARNING→WARN, ERROR→ERROR, CRITICAL→FATAL)
+- [x] Extract and translate Python logger name to ADW LogCategory (heuristic mapping)
+- [x] Preserve extra context from Python LogRecords
 
 ### Task 2: Wire Handler in Bootstrap
 - [ ] In `create_log_manager()`, create the LogManagerHandler and attach it to Python's root logger
@@ -249,10 +249,16 @@ Key patterns and rules:
 
 ### Agent Model Used
 
-_To be filled by dev agent_
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created LogManagerHandler in src/adw/logging/handler.py that bridges Python logging to ADW LogManager. Implemented level mapping (DEBUG→DEBUG, INFO→INFO, WARNING→WARN, ERROR→ERROR, CRITICAL→FATAL) and category inference from logger names (executor/llm→LLM, hook→HOOK, state→STATE, default→PHASE). All 16 unit tests pass.
+
 ### File List
+
+- src/adw/logging/handler.py (NEW)
+- src/adw/logging/__init__.py (MODIFIED - added LogManagerHandler export)
+- tests/unit/logging/test_handler.py (NEW)
