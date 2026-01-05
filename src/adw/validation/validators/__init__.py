@@ -7,5 +7,6 @@ This package contains:
 - evidence_validator: EvidenceValidator for evidence gathering
 """
 
-# Validators will be added in Tasks 2-5
-__all__: list[str] = []
+from adw.validation.validators.base import Validator, ValidatorRegistry
+
+__all__ = ["Validator", "ValidatorRegistry"]

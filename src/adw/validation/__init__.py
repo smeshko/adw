@@ -11,7 +11,8 @@ a single ValidationResult for triage and fix iteration.
 
 from adw.validation.config import ValidationConfig
 from adw.validation.models import ValidationIssue, ValidationResult, ValidationSource
-from adw.validation.phase import ValidationPhase, Validator
+from adw.validation.phase import ValidationPhase
+from adw.validation.validators.base import Validator, ValidatorRegistry
 
 __all__ = [
     "ValidationConfig",
@@ -20,4 +21,5 @@ __all__ = [
     "ValidationResult",
     "ValidationSource",
     "Validator",
+    "ValidatorRegistry",
 ]

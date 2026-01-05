@@ -5,41 +5,19 @@ evidence gathering, code review, and test execution into a single
 validation phase.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
 
 from adw.models import RunContext
 from adw.validation.config import ValidationConfig
 from adw.validation.models import ValidationIssue, ValidationResult
 
 if TYPE_CHECKING:
-    pass
+    from adw.validation.validators.base import Validator
 
 logger = logging.getLogger(__name__)
-
-
-class Validator(Protocol):
-    """Protocol for validation implementations.
-
-    Each validator must implement validate() to check for issues
-    and return a list of ValidationIssues found.
-    """
-
-    @property
-    def name(self) -> str:
-        """Return the validator's name."""
-        ...
-
-    def validate(self, context: RunContext) -> list[ValidationIssue]:
-        """Execute validation and return any issues found.
-
-        Args:
-            context: Current run context.
-
-        Returns:
-            List of validation issues found, empty if validation passed.
-        """
-        ...
 
 
 class ValidationPhase:
@@ -163,4 +141,4 @@ class ValidationPhase:
         logger.debug(f"Registered validator: {validator.name}")
 
 
-__all__ = ["ValidationPhase", "Validator"]
+__all__ = ["ValidationPhase"]

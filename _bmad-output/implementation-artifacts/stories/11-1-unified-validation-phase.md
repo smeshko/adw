@@ -47,10 +47,10 @@ validation:
 - [x] Add phase to PHASE_SEQUENCE in pipeline orchestrator (validate already exists)
 
 ### Task 2: Create Validator Protocol
-- [ ] Define `Validator` Protocol in `src/adw/validation/validators/base.py`
-- [ ] Protocol methods: `validate(context: RunContext) -> list[ValidationIssue]`, `name: str`
-- [ ] Create `ValidatorRegistry` to manage enabled validators
-- [ ] Support dynamic validator loading based on configuration
+- [x] Define `Validator` Protocol in `src/adw/validation/validators/base.py`
+- [x] Protocol methods: `validate(context: RunContext) -> list[ValidationIssue]`, `name: str`
+- [x] Create `ValidatorRegistry` to manage enabled validators
+- [x] Support dynamic validator loading based on configuration
 
 ### Task 3: Implement TestValidator
 - [ ] Create `src/adw/validation/validators/test_validator.py`
@@ -343,7 +343,8 @@ claude-opus-4-5-20251101
 
 ### Completion Notes List
 
-- Task 1: Created ValidationPhase class with run() method, ValidationResult and ValidationIssue models, ValidationConfig. The "validate" phase already exists in PHASE_SEQUENCE so no modification needed. Implemented Validator Protocol in phase.py for future validator implementations.
+- Task 1: Created ValidationPhase class with run() method, ValidationResult and ValidationIssue models, ValidationConfig. The "validate" phase already exists in PHASE_SEQUENCE so no modification needed.
+- Task 2: Created Validator Protocol in validators/base.py with name property and validate() method. Implemented ValidatorRegistry with register(), get_all(), get_enabled(), run_all(), run_enabled(), and clear() methods. Supports dynamic filtering based on ValidationConfig enable flags.
 
 ### File List
 
@@ -351,7 +352,10 @@ claude-opus-4-5-20251101
 - `src/adw/validation/__init__.py` - Package exports
 - `src/adw/validation/config.py` - ValidationConfig model
 - `src/adw/validation/models.py` - ValidationResult, ValidationIssue, ValidationSource
-- `src/adw/validation/phase.py` - ValidationPhase class with Validator Protocol
-- `src/adw/validation/validators/__init__.py` - Validators package (empty, for Tasks 3-5)
+- `src/adw/validation/phase.py` - ValidationPhase class
+- `src/adw/validation/validators/__init__.py` - Validators package exports
+- `src/adw/validation/validators/base.py` - Validator Protocol and ValidatorRegistry
 - `tests/unit/validation/__init__.py` - Test package
 - `tests/unit/validation/test_phase.py` - 12 unit tests for ValidationPhase and models
+- `tests/unit/validation/validators/__init__.py` - Validator tests package
+- `tests/unit/validation/validators/test_base.py` - 8 unit tests for ValidatorRegistry
