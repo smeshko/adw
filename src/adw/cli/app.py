@@ -144,6 +144,11 @@ def run(
         "--show-llm-output",
         help="Stream LLM output to terminal in real-time (verbose, for debugging)",
     ),
+    no_worktree: bool = typer.Option(
+        False,
+        "--no-worktree",
+        help="Run in current directory instead of isolated worktree (Story 10.1)",
+    ),
 ) -> None:
     """Run the agentic development workflow.
 
@@ -164,6 +169,9 @@ def run(
 
         # Allow dangerous operations (log warnings instead of blocking)
         adw run "Add login" --allow-dangerous
+
+        # Run without worktree isolation (in current directory)
+        adw run "Quick fix" --no-worktree
     """
     # Validate feature description is not empty (Story 6.1)
     if not feature.strip():
@@ -251,8 +259,10 @@ def run(
                 f"[green]✓[/] Single phase '{phase}' completed: {context.run_id}"
             )
         else:
-            # Full pipeline execution
-            context = orchestrator.run(feature, run_id=run_id)
+            # Full pipeline execution (Story 10.1: pass use_worktree flag)
+            context = orchestrator.run(
+                feature, run_id=run_id, use_worktree=not no_worktree
+            )
             console.print(f"[green]✓[/] Run completed: {context.run_id}")
 
     except ConfigError as e:
