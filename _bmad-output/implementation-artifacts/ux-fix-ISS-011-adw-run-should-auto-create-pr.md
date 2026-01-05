@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-011 - ADW Run Should Auto-Create PR
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 9 - Git Integration & Documentation
 Created: 2026-01-05
@@ -26,9 +26,9 @@ so that **I don't need to run a separate command and can immediately see my work
 ## Tasks / Subtasks
 
 ### Task 1: Add Remote and GH CLI Detection
-- [ ] Create utility function to check if git remote exists: `git remote -v`
-- [ ] Create utility function to check if `gh` CLI is available: `which gh`
-- [ ] Cache results to avoid repeated subprocess calls
+- [x] Create utility function to check if git remote exists: `git remote -v`
+- [x] Create utility function to check if `gh` CLI is available: `which gh`
+- [x] Cache results to avoid repeated subprocess calls
 
 ### Task 2: Implement Auto-PR Creation
 - [ ] After document phase completes successfully:

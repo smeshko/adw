@@ -9,6 +9,7 @@ Examples:
     adw pr 01HQXK5P3Z... --draft      # Create as draft PR
 """
 
+import logging
 import shutil
 import subprocess
 from pathlib import Path
@@ -23,6 +24,8 @@ from adw.core.context_manager import ContextManager
 from adw.core.run_lookup import RunLookup
 from adw.exceptions import ConfigError
 from adw.models import PRDescription, RunContext
+
+logger = logging.getLogger(__name__)
 
 console = Console()
 
@@ -40,6 +43,44 @@ def check_gh_available() -> bool:
         ...     print("gh CLI ready")
     """
     return shutil.which("gh") is not None
+
+
+def check_git_remote() -> tuple[bool, str]:
+    """Check if git remote exists for the current repository.
+
+    Runs `git remote -v` to check for configured remotes.
+
+    Returns:
+        Tuple of (has_remote, remote_url).
+        If has_remote is True, remote_url contains the origin URL.
+        If has_remote is False, remote_url is empty.
+
+    Example:
+        >>> has_remote, url = check_git_remote()
+        >>> if has_remote:
+        ...     print(f"Remote: {url}")
+    """
+    try:
+        result = subprocess.run(
+            ["git", "remote", "-v"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return False, ""
+
+        # Parse first remote URL (format: "origin  git@... (fetch)")
+        for line in result.stdout.strip().split("\n"):
+            if line.strip():
+                parts = line.split()
+                if len(parts) >= 2:
+                    return True, parts[1]
+        return False, ""
+    except subprocess.TimeoutExpired:
+        return False, ""
+    except Exception:
+        return False, ""
 
 
 def check_gh_authenticated() -> tuple[bool, str]:
@@ -176,6 +217,161 @@ def create_pr_via_gh(
             suggestion="Check network connection and try again",
             recoverable=True,
         ) from e
+
+
+class AutoPRResult:
+    """Result of automatic PR creation attempt.
+
+    Attributes:
+        success: Whether PR was successfully created.
+        pr_url: URL of created PR (if success).
+        reason: Reason for skipping/failure (if not success).
+        suggestion: Suggestion for user (if not success).
+    """
+
+    def __init__(
+        self,
+        *,
+        success: bool,
+        pr_url: str = "",
+        reason: str = "",
+        suggestion: str = "",
+    ) -> None:
+        """Initialize AutoPRResult.
+
+        Args:
+            success: Whether PR was created.
+            pr_url: URL of created PR.
+            reason: Reason for failure.
+            suggestion: Suggestion for user.
+        """
+        self.success = success
+        self.pr_url = pr_url
+        self.reason = reason
+        self.suggestion = suggestion
+
+
+def can_auto_create_pr() -> tuple[bool, str]:
+    """Check if automatic PR creation is possible.
+
+    Verifies all prerequisites for automatic PR creation:
+    1. Git remote exists
+    2. gh CLI is available
+    3. gh CLI is authenticated
+
+    Returns:
+        Tuple of (can_create, reason).
+        If can_create is True, reason is empty.
+        If can_create is False, reason explains why.
+
+    Example:
+        >>> can_create, reason = can_auto_create_pr()
+        >>> if not can_create:
+        ...     print(f"Cannot auto-create PR: {reason}")
+    """
+    # Check git remote
+    has_remote, _ = check_git_remote()
+    if not has_remote:
+        return False, "No git remote configured"
+
+    # Check gh CLI
+    if not check_gh_available():
+        return False, "GitHub CLI (gh) not installed"
+
+    # Check gh authentication
+    authenticated, auth_error = check_gh_authenticated()
+    if not authenticated:
+        return False, f"GitHub CLI not authenticated: {auth_error}"
+
+    return True, ""
+
+
+def auto_create_pr(
+    run_id: str,
+    context: "RunContext",
+    runs_dir: Path,
+    base_branch: str = "main",
+) -> AutoPRResult:
+    """Automatically create a PR after successful run completion.
+
+    This function attempts to create a PR using the generated PR description.
+    It does not raise exceptions for failures - instead returns an AutoPRResult
+    indicating what happened. This allows the run to complete even if PR
+    creation fails.
+
+    Args:
+        run_id: ID of the completed run.
+        context: RunContext with feature description.
+        runs_dir: Path to runs directory.
+        base_branch: Base branch for PR (default: "main").
+
+    Returns:
+        AutoPRResult indicating success/failure and details.
+
+    Example:
+        >>> result = auto_create_pr(run_id, context, runs_dir)
+        >>> if result.success:
+        ...     print(f"PR created: {result.pr_url}")
+        ... else:
+        ...     print(f"Skipped: {result.reason}")
+    """
+    # Check prerequisites
+    can_create, reason = can_auto_create_pr()
+    if not can_create:
+        suggestion = ""
+        if "remote" in reason.lower():
+            suggestion = "Push to a remote repository first"
+        elif "installed" in reason.lower():
+            suggestion = "Install GitHub CLI: brew install gh"
+        elif "authenticated" in reason.lower():
+            suggestion = "Run 'gh auth login' to authenticate"
+
+        return AutoPRResult(
+            success=False,
+            reason=reason,
+            suggestion=suggestion,
+        )
+
+    # Load PR description
+    run_dir = runs_dir / run_id
+    try:
+        pr_desc = _load_pr_description(run_dir)
+    except ConfigError as e:
+        return AutoPRResult(
+            success=False,
+            reason=e.message,
+            suggestion=e.suggestion or "Ensure document phase completed",
+        )
+
+    # Generate PR title from feature description
+    pr_title = context.feature_description
+    if len(pr_title) > 72:
+        pr_title = pr_title[:69] + "..."
+
+    # Convert to markdown
+    pr_body = pr_desc.to_markdown()
+
+    # Create the PR
+    try:
+        pr_url = create_pr_via_gh(
+            pr_title,
+            pr_body,
+            base_branch,
+            draft=False,
+            no_open=True,
+        )
+
+        # Store PR URL in run artifacts
+        _store_pr_url(context, pr_url, runs_dir)
+
+        return AutoPRResult(success=True, pr_url=pr_url)
+
+    except ConfigError as e:
+        return AutoPRResult(
+            success=False,
+            reason=e.message,
+            suggestion=e.suggestion or "Check gh CLI output for details",
+        )
 
 
 def display_manual_instructions(
