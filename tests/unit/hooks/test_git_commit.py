@@ -98,6 +98,24 @@ class TestStageChanges:
             result = stage_changes()
             assert result == ["file1.py", "file2.py"]
             assert mock_run.call_count == 2
+            # Verify git add -A command was called (stages ALL changes including untracked)
+            add_call = mock_run.call_args_list[0]
+            assert add_call[0][0] == ["git", "add", "-A"]
+
+    def test_stage_with_working_dir(self) -> None:
+        """Should pass working_dir to subprocess.run cwd."""
+        from pathlib import Path
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                MagicMock(returncode=0),
+                MagicMock(stdout="file.py\n", returncode=0),
+            ]
+            worktree = Path("/my/worktree")
+            stage_changes(working_dir=worktree)
+            # Both subprocess calls should use cwd=worktree
+            for call in mock_run.call_args_list:
+                assert call.kwargs.get("cwd") == worktree
 
     def test_no_changes_to_stage(self) -> None:
         """Should return empty list when no changes."""
@@ -282,3 +300,40 @@ class TestCreateCommit:
             commit_call = mock_run.call_args_list[1]
             commit_cmd = commit_call[0][0]
             assert "--no-verify" in commit_cmd
+
+    def test_creates_commit_with_working_dir(self) -> None:
+        """Should pass working_dir to all subprocess calls for worktree support."""
+        from pathlib import Path
+
+        worktree = Path("/my/worktree")
+        with patch("subprocess.run") as mock_run:
+            # staged files before commit, commit, unstaged mods, rev-parse HEAD
+            mock_run.side_effect = [
+                MagicMock(returncode=0, stdout="file.py\n"),  # staged files before
+                MagicMock(returncode=0, stdout=""),  # commit
+                MagicMock(returncode=0, stdout="abc123def456\n"),  # rev-parse HEAD
+            ]
+            with patch(
+                "adw.hooks.git_commit.has_staged_changes", return_value=True
+            ) as mock_has_staged:
+                with patch(
+                    "adw.hooks.git_commit.get_unstaged_modifications", return_value=[]
+                ) as mock_unstaged:
+                    result = create_commit(
+                        phase="build",
+                        feature="Add auth",
+                        run_id="01HQ123",
+                        working_dir=worktree,
+                    )
+
+                    # Verify working_dir passed to has_staged_changes
+                    mock_has_staged.assert_called_once_with(working_dir=worktree)
+
+                    # Verify working_dir passed to get_unstaged_modifications
+                    mock_unstaged.assert_called_once_with(working_dir=worktree)
+
+                    assert result == "abc123def456"
+
+                    # Verify cwd passed to all subprocess.run calls
+                    for call in mock_run.call_args_list:
+                        assert call.kwargs.get("cwd") == worktree
