@@ -26,15 +26,19 @@ from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
 from adw.evidence import (
+    APICaptureStrategy,
     CLIEvidenceGatherer,
     EvidenceSummary,
+    HTTPX_AVAILABLE,
     WebCaptureStrategy,
     capture_configured_screens,
     check_android_emulator_available,
     check_ios_simulator_available,
     detect_platform,
     generate_evidence_manifest,
+    generate_summary as generate_api_summary,
     get_evidence_strategy,
+    load_evidence_config,
     load_routes_from_config,
     optimize_evidence,
 )
@@ -1475,12 +1479,57 @@ class Orchestrator:
                         )
 
             elif strategy == EvidenceStrategy.API_CAPTURE:
-                # API capture - requires httpx and configured endpoints
-                # This is a nice-to-have; log and continue if not available
-                logger.debug(
-                    "API capture not yet integrated in orchestrator",
-                    extra={"run_id": context.run_id},
-                )
+                # API capture for BACKEND projects
+                if not HTTPX_AVAILABLE or APICaptureStrategy is None:
+                    logger.warning(
+                        "httpx not available, skipping API evidence capture",
+                        extra={"run_id": context.run_id},
+                    )
+                else:
+                    api_evidence_dir = evidence_dir / "api"
+                    api_evidence_dir.mkdir(parents=True, exist_ok=True)
+
+                    # Load API endpoints from project config
+                    api_config = load_evidence_config(self._project_path)
+                    if api_config and api_config.endpoints:
+                        capture = APICaptureStrategy(
+                            base_url=api_config.base_url,
+                            auth=api_config.auth,
+                        )
+
+                        # Capture all configured endpoints
+                        results = []
+                        for endpoint in api_config.endpoints:
+                            result = capture.call_endpoint(endpoint)
+                            results.append(result)
+
+                            # Write individual result to file
+                            result_path = (
+                                api_evidence_dir / f"{endpoint.name}.json"
+                            )
+                            result_path.write_text(result.model_dump_json(indent=2))
+
+                        # Generate and store summary
+                        api_summary = generate_api_summary(
+                            base_url=api_config.base_url,
+                            results=results,
+                        )
+                        summaries.append(api_summary)
+
+                        logger.info(
+                            "API evidence gathered",
+                            extra={
+                                "run_id": context.run_id,
+                                "total_endpoints": api_summary.total_endpoints,
+                                "successful": api_summary.successful,
+                                "failed": api_summary.failed,
+                            },
+                        )
+                    else:
+                        logger.debug(
+                            "No API endpoints configured, skipping API evidence",
+                            extra={"run_id": context.run_id},
+                        )
 
             # Generate evidence manifest if any evidence was gathered
             if summaries:

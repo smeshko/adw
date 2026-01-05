@@ -5,9 +5,13 @@ verify phase and that evidence is correctly copied to artifacts.
 """
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+if TYPE_CHECKING:
+    from adw.core.orchestrator import Orchestrator
 
 from adw.evidence import EvidenceSummary, get_evidence_strategy
 from adw.models.evidence import (
@@ -211,6 +215,101 @@ class TestEvidenceManifestGeneration:
         manifest_file = evidence_dir / "manifest.json"
         assert manifest_file.exists()
         assert manifest.total_items >= 0
+
+
+class TestAPICaptureIntegration:
+    """Tests for API evidence capture integration."""
+
+    @pytest.fixture
+    def orchestrator_with_mocks(self, tmp_path: Path) -> "Orchestrator":
+        """Create a minimal orchestrator for testing."""
+        from adw.core.orchestrator import Orchestrator
+
+        mock_context_manager = MagicMock()
+        mock_snapshot_manager = MagicMock()
+        mock_artifact_manager = MagicMock()
+        mock_run_dir_manager = MagicMock()
+        mock_index_manager = MagicMock()
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        return Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_dir_manager,
+            index_manager=mock_index_manager,
+        )
+
+    def test_api_capture_called_for_backend_platform(
+        self, orchestrator_with_mocks: "Orchestrator", tmp_path: Path
+    ) -> None:
+        """API capture should be called for BACKEND platform when configured."""
+        from adw.evidence import HTTPX_AVAILABLE
+
+        if not HTTPX_AVAILABLE:
+            pytest.skip("httpx not available")
+
+        orchestrator = orchestrator_with_mocks
+
+        mock_context = MagicMock()
+        mock_context.run_id = "01TEST00000000000000000001"
+        mock_context.platform = "backend"
+
+        with (
+            patch("adw.core.orchestrator.load_evidence_config") as mock_config,
+            patch("adw.core.orchestrator.APICaptureStrategy") as mock_strategy,
+        ):
+            # Set up mock config with endpoints
+            from adw.models.evidence import EndpointConfig
+
+            mock_config.return_value = MagicMock(
+                base_url="http://localhost:8000",
+                auth=None,
+                endpoints=[
+                    EndpointConfig(name="health", path="/health"),
+                ],
+            )
+
+            # Set up mock capture result
+            mock_result = MagicMock()
+            mock_result.success = True
+            mock_result.model_dump_json.return_value = "{}"
+            mock_strategy.return_value.call_endpoint.return_value = mock_result
+
+            # Run evidence gathering
+            orchestrator._gather_evidence_after_verify(mock_context)
+
+            # Verify APICaptureStrategy was instantiated with config
+            mock_strategy.assert_called_once_with(
+                base_url="http://localhost:8000",
+                auth=None,
+            )
+
+    def test_api_capture_skipped_without_config(
+        self, orchestrator_with_mocks: "Orchestrator"
+    ) -> None:
+        """API capture should be skipped when no config present."""
+        orchestrator = orchestrator_with_mocks
+
+        mock_context = MagicMock()
+        mock_context.run_id = "01TEST00000000000000000001"
+        mock_context.platform = "backend"
+
+        with (
+            patch("adw.core.orchestrator.load_evidence_config") as mock_config,
+            patch("adw.core.orchestrator.APICaptureStrategy") as mock_strategy,
+        ):
+            # No config available
+            mock_config.return_value = None
+
+            # Run evidence gathering
+            orchestrator._gather_evidence_after_verify(mock_context)
+
+            # APICaptureStrategy should not be instantiated
+            mock_strategy.assert_not_called()
 
 
 class TestRunContextPlatformField:
