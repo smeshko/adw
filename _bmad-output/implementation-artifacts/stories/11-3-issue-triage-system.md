@@ -1,6 +1,6 @@
 # Story 11.3: Issue Triage System
 
-Status: in-progress
+Status: done
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
@@ -89,12 +89,12 @@ so that I control which issues block the pipeline.
 - [x] Support `--dry-run` mode to preview decisions
 
 ### Task 8: Write Tests
-- [ ] Unit tests for TriageSystem (6 tests)
-- [ ] Unit tests for auto triage (5 tests)
-- [ ] Unit tests for manual triage - mocked input (4 tests)
-- [ ] Unit tests for hybrid triage (4 tests)
-- [ ] Unit tests for triage rules (4 tests)
-- [ ] Integration test for full triage flow (2 tests)
+- [x] Unit tests for TriageSystem (6 tests)
+- [x] Unit tests for auto triage (5 tests)
+- [x] Unit tests for manual triage - mocked input (4 tests)
+- [x] Unit tests for hybrid triage (4 tests)
+- [x] Unit tests for triage rules (4 tests)
+- [x] Integration test for full triage flow (2 tests)
 
 ---
 

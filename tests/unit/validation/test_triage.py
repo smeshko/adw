@@ -761,3 +761,120 @@ class TestTriageResult:
         assert "triaged_issues" in data
         assert "stats" in data
         assert data["stats"]["dismiss_count"] == 1
+
+
+class TestTriageRuleMatching:
+    """Edge case tests for TriageRule matching logic."""
+
+    def test_rule_no_criteria_matches_all(self) -> None:
+        """Rule with no criteria matches all issues."""
+        from adw.validation.triage import TriageRule
+
+        rule = TriageRule(
+            action=TriageDecision.DISMISS,
+            reason="Dismiss everything",
+        )
+        issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Any issue",
+        )
+
+        assert rule.matches(issue) is True
+
+    def test_rule_description_pattern_case_insensitive(self) -> None:
+        """Description pattern matching is case insensitive."""
+        from adw.validation.triage import TriageRule
+
+        rule = TriageRule(
+            action=TriageDecision.DISMISS,
+            description_pattern="UNUSED.*IMPORT",
+            reason="Dismiss imports",
+        )
+        issue = ValidationIssue(
+            source=IssueSource.REVIEW,
+            severity=IssueSeverity.WARNING,
+            description="unused variable import found",
+        )
+
+        assert rule.matches(issue) is True
+
+    def test_rule_all_criteria_must_match(self) -> None:
+        """All specified criteria must match for rule to apply."""
+        from adw.validation.triage import TriageRule
+
+        rule = TriageRule(
+            action=TriageDecision.FIX,
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description_pattern="login",
+            reason="Fix login tests",
+        )
+        # Wrong severity
+        wrong_severity = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.WARNING,
+            description="login failed",
+        )
+        # Wrong source
+        wrong_source = ValidationIssue(
+            source=IssueSource.REVIEW,
+            severity=IssueSeverity.ERROR,
+            description="login issue",
+        )
+        # Matching issue
+        matching = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failed: login",
+        )
+
+        assert rule.matches(wrong_severity) is False
+        assert rule.matches(wrong_source) is False
+        assert rule.matches(matching) is True
+
+
+class TestTriageStatsHelpers:
+    """Tests for TriageStats helper methods."""
+
+    def test_triage_result_get_issues_to_fix(self) -> None:
+        """get_issues_to_fix returns only FIX issues."""
+        from adw.validation.triage import TriageResult, TriageStats
+
+        fix_issue = TriagedIssue(
+            issue=ValidationIssue(
+                source=IssueSource.TEST,
+                severity=IssueSeverity.ERROR,
+                description="Error",
+            ),
+            decision=TriageDecision.FIX,
+            reason="Fix it",
+            auto_decided=True,
+        )
+        dismiss_issue = TriagedIssue(
+            issue=ValidationIssue(
+                source=IssueSource.REVIEW,
+                severity=IssueSeverity.INFO,
+                description="Info",
+            ),
+            decision=TriageDecision.DISMISS,
+            reason="Dismiss it",
+            auto_decided=True,
+        )
+
+        result = TriageResult(
+            triaged_issues=[fix_issue, dismiss_issue],
+            stats=TriageStats(fix_count=1, dismiss_count=1),
+        )
+
+        fix_issues = result.get_issues_to_fix()
+        assert len(fix_issues) == 1
+        assert fix_issues[0] == fix_issue
+
+    def test_triage_stats_total(self) -> None:
+        """TriageStats.total sums all decision counts."""
+        from adw.validation.triage import TriageStats
+
+        stats = TriageStats(fix_count=3, dismiss_count=2, defer_count=1)
+
+        assert stats.total == 6
