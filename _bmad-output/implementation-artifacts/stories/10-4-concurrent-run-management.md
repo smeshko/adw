@@ -34,11 +34,11 @@ so that I can process multiple features in parallel.
 ## Tasks / Subtasks
 
 ### Task 1: Create ConcurrentRunManager
-- [ ] Create `src/adw/worktree/concurrent.py` with `ConcurrentRunManager` class
-- [ ] Track active runs via lock files in `trees/.locks/`
-- [ ] Implement `can_start_run() -> bool` to check slot availability
-- [ ] Implement `register_run(run_id: str) -> None` to claim a slot
-- [ ] Implement `unregister_run(run_id: str) -> None` to release slot
+- [x] Create `src/adw/worktree/concurrent.py` with `ConcurrentRunManager` class
+- [x] Track active runs via lock files in `trees/.locks/`
+- [x] Implement `can_start_run() -> bool` to check slot availability
+- [x] Implement `register_run(run_id: str) -> None` to claim a slot
+- [x] Implement `unregister_run(run_id: str) -> None` to release slot
 
 ### Task 2: Implement Run Slot Tracking
 - [ ] Create lock file per active run: `trees/.locks/<run_id>.lock`
