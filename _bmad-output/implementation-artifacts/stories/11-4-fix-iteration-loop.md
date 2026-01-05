@@ -38,10 +38,10 @@ so that issues are resolved automatically when possible.
 ## Tasks / Subtasks
 
 ### Task 1: Create FixEngine Class
-- [ ] Create `src/adw/validation/fix_engine.py` with `FixEngine` class
-- [ ] Implement `attempt_fixes(issues: list[ValidationIssue]) -> FixResult`
-- [ ] Inject LLM executor for fix prompt generation
-- [ ] Track which validators need re-running per issue
+- [x] Create `src/adw/validation/fix_engine.py` with `FixEngine` class
+- [x] Implement `attempt_fixes(issues: list[ValidationIssue]) -> FixResult`
+- [x] Inject LLM executor for fix prompt generation
+- [x] Track which validators need re-running per issue
 
 ### Task 2: Build Fix Prompt Generator
 - [ ] Create `_build_fix_prompt(issues: list[ValidationIssue]) -> str`
