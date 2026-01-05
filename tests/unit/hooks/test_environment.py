@@ -85,3 +85,45 @@ class TestBuildHookEnvironment:
         for key, value in env.items():
             assert isinstance(key, str), f"Key {key} is not a string"
             assert isinstance(value, str), f"Value for {key} is not a string"
+
+    def test_includes_port_variables_when_allocation_provided(
+        self, run_context: RunContext
+    ) -> None:
+        """Test that port variables are included when port_allocation is provided."""
+        from adw.models.worktree import PortAllocation
+
+        allocation = PortAllocation(
+            slot=3,
+            backend_port=9103,
+            frontend_port=9203,
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+        )
+        env = build_hook_environment(run_context, "plan", port_allocation=allocation)
+        assert env["ADW_BACKEND_PORT"] == "9103"
+        assert env["ADW_FRONTEND_PORT"] == "9203"
+        assert env["ADW_SLOT"] == "3"
+
+    def test_no_port_variables_without_allocation(
+        self, run_context: RunContext
+    ) -> None:
+        """Test that port variables are not set when no allocation is provided."""
+        env = build_hook_environment(run_context, "plan")
+        assert "ADW_BACKEND_PORT" not in env
+        assert "ADW_FRONTEND_PORT" not in env
+        assert "ADW_SLOT" not in env
+
+    def test_port_variables_are_strings(self, run_context: RunContext) -> None:
+        """Test that port values are converted to strings."""
+        from adw.models.worktree import PortAllocation
+
+        allocation = PortAllocation(
+            slot=0,
+            backend_port=9100,
+            frontend_port=9200,
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+        )
+        env = build_hook_environment(run_context, "plan", port_allocation=allocation)
+        # Environment variables must be strings
+        assert isinstance(env["ADW_BACKEND_PORT"], str)
+        assert isinstance(env["ADW_FRONTEND_PORT"], str)
+        assert isinstance(env["ADW_SLOT"], str)

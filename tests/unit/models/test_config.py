@@ -204,6 +204,64 @@ class TestWorktreeConfig:
         config = WorktreeConfig(artifact_manifest_file="custom-manifest.json")
         assert config.artifact_manifest_file == "custom-manifest.json"
 
+    def test_port_range_defaults(self) -> None:
+        """WorktreeConfig has default port range settings."""
+        config = WorktreeConfig()
+        assert config.port_range.backend_start == 9100
+        assert config.port_range.frontend_start == 9200
+        assert config.max_concurrent == 15
+
+    def test_custom_port_range(self) -> None:
+        """WorktreeConfig accepts custom port range."""
+        from adw.models.config import PortRangeConfig
+
+        config = WorktreeConfig(
+            port_range=PortRangeConfig(
+                backend_start=8000,
+                frontend_start=8100,
+            ),
+            max_concurrent=10,
+        )
+        assert config.port_range.backend_start == 8000
+        assert config.port_range.frontend_start == 8100
+        assert config.max_concurrent == 10
+
+    def test_port_range_validation_backend_overflow(self) -> None:
+        """WorktreeConfig rejects port ranges that would exceed 65535."""
+        from adw.models.config import PortRangeConfig
+
+        with pytest.raises(ValueError) as exc_info:
+            WorktreeConfig(
+                port_range=PortRangeConfig(backend_start=65530),
+                max_concurrent=15,
+            )
+        assert "Backend port range exceeds valid ports" in str(exc_info.value)
+
+    def test_port_range_validation_frontend_overflow(self) -> None:
+        """WorktreeConfig rejects frontend port ranges that would exceed 65535."""
+        from adw.models.config import PortRangeConfig
+
+        with pytest.raises(ValueError) as exc_info:
+            WorktreeConfig(
+                port_range=PortRangeConfig(frontend_start=65530),
+                max_concurrent=15,
+            )
+        assert "Frontend port range exceeds valid ports" in str(exc_info.value)
+
+    def test_port_range_validation_edge_case_valid(self) -> None:
+        """WorktreeConfig accepts port ranges at the edge of valid range."""
+        from adw.models.config import PortRangeConfig
+
+        # 65521 + 15 - 1 = 65535, which is the max valid port
+        config = WorktreeConfig(
+            port_range=PortRangeConfig(
+                backend_start=65521,
+                frontend_start=65521,
+            ),
+            max_concurrent=15,
+        )
+        assert config.port_range.backend_start == 65521
+
 
 class TestProjectConfig:
     """Tests for ProjectConfig model."""
