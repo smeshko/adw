@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 from adw.core.constants import PHASE_SEQUENCE
 from adw.exceptions import ADWError, ConfigError, HookError, LLMError
+from adw.hooks.git_commit import create_commit, stage_changes
 from adw.hooks.git_diff import (
     capture_diff,
     capture_staged_diff,
@@ -163,7 +164,10 @@ class PhaseRunner:
             # Step 4: Run post-hook
             self._run_post_hook(phase, context, llm_result.content, command)
 
-            # Step 5: Capture artifacts
+            # Step 5: Auto-commit changes (ISS-009 fix)
+            self._auto_commit_changes(phase, context)
+
+            # Step 6: Capture artifacts
             artifacts = self._capture_artifacts(phase, context, llm_result)
 
             # Build successful result
@@ -648,6 +652,101 @@ class PhaseRunner:
                 os.environ.pop("ADW_LLM_OUTPUT", None)
             else:
                 os.environ["ADW_LLM_OUTPUT"] = original_env
+
+    def _auto_commit_changes(
+        self,
+        phase: str,
+        context: RunContext,
+    ) -> str | None:
+        """Automatically stage and commit changes after phase execution.
+
+        Stages all changes (including untracked files) and creates a commit
+        with a descriptive message. This ensures git diff capture can work
+        properly by having a commit to diff against.
+
+        The commit is created in the worktree context if applicable.
+
+        Args:
+            phase: Current phase name (e.g., "build", "verify").
+            context: Run context with run_id and feature_description.
+
+        Returns:
+            Commit SHA if commit was created, None if no changes to commit.
+
+        Note:
+            This method logs errors but does not raise exceptions to avoid
+            failing the phase due to git issues. Commits are best-effort.
+        """
+        logger.debug("Auto-committing changes", extra={"phase": phase})
+
+        try:
+            # Stage all changes including untracked files
+            # Use worktree path for worktree-isolated runs
+            staged_files = stage_changes(working_dir=context.worktree_path)
+
+            if not staged_files:
+                logger.debug(
+                    "No changes to commit",
+                    extra={"phase": phase, "run_id": context.run_id},
+                )
+                return None
+
+            logger.info(
+                "Staged changes for commit",
+                extra={
+                    "phase": phase,
+                    "run_id": context.run_id,
+                    "file_count": len(staged_files),
+                    "files": staged_files[:10],  # Log first 10 files
+                },
+            )
+
+            # Create commit with descriptive message
+            # Use worktree path for worktree-isolated runs
+            sha = create_commit(
+                phase=phase,
+                feature=context.feature_description,
+                run_id=context.run_id,
+                working_dir=context.worktree_path,
+            )
+
+            if sha:
+                logger.info(
+                    "Committed phase changes",
+                    extra={
+                        "phase": phase,
+                        "run_id": context.run_id,
+                        "sha": sha[:8],
+                        "file_count": len(staged_files),
+                    },
+                )
+
+            return sha
+
+        except HookError as e:
+            # Log but don't fail - commits are best-effort
+            logger.warning(
+                "Failed to auto-commit changes",
+                extra={
+                    "phase": phase,
+                    "run_id": context.run_id,
+                    "error_code": e.code,
+                    "error": str(e),
+                },
+            )
+            return None
+
+        except Exception as e:
+            # Catch-all for unexpected errors
+            logger.warning(
+                "Unexpected error during auto-commit",
+                extra={
+                    "phase": phase,
+                    "run_id": context.run_id,
+                    "error": str(e),
+                },
+            )
+            return None
 
     def _capture_artifacts(
         self,
