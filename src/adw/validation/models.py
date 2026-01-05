@@ -61,6 +61,19 @@ class FixResult(str, Enum):
     NOT_ATTEMPTED = "NOT_ATTEMPTED"
 
 
+class TriageDecision(str, Enum):
+    """Decision for how to handle a validation issue.
+
+    - FIX: Issue must be fixed before proceeding
+    - DISMISS: Issue is a false positive or not relevant
+    - DEFER: Issue is valid but can be addressed later
+    """
+
+    FIX = "FIX"
+    DISMISS = "DISMISS"
+    DEFER = "DEFER"
+
+
 class IssueLocation(BaseModel):
     """Location information for a validation issue.
 
@@ -455,6 +468,45 @@ class ValidationIssue(BaseModel):
     }
 
 
+class TriagedIssue(BaseModel):
+    """Wrapper for a ValidationIssue with triage decision metadata.
+
+    Contains the original issue plus the triage decision, reason,
+    and whether the decision was made automatically.
+
+    Attributes:
+        issue: The original validation issue.
+        decision: Triage decision (FIX, DISMISS, DEFER).
+        reason: Explanation for the triage decision.
+        auto_decided: Whether decision was made by LLM/rules (True) or user (False).
+    """
+
+    issue: ValidationIssue = Field(..., description="The original validation issue")
+    decision: TriageDecision = Field(..., description="Triage decision")
+    reason: str = Field(..., description="Explanation for the decision")
+    auto_decided: bool = Field(
+        default=False, description="Whether decision was made automatically"
+    )
+
+    model_config = {
+        "frozen": False,
+        "validate_assignment": True,
+        "json_schema_extra": {
+            "example": {
+                "issue": {
+                    "id": "VI-01HQ123456789ABCDEFGHJKMNP",
+                    "source": "TEST",
+                    "severity": "ERROR",
+                    "description": "Test failed",
+                },
+                "decision": "FIX",
+                "reason": "Critical test failure must be fixed",
+                "auto_decided": False,
+            }
+        },
+    }
+
+
 class ValidationResult(BaseModel):
     """Result of the unified validation phase.
 
@@ -587,6 +639,8 @@ __all__ = [
     "IssueSeverity",
     "IssueSource",
     "LoopState",
+    "TriageDecision",
+    "TriagedIssue",
     "ValidationIssue",
     "ValidationResult",
     "ValidationSource",  # Backward compatibility

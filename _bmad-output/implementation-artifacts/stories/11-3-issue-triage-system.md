@@ -1,6 +1,6 @@
 # Story 11.3: Issue Triage System
 
-Status: draft
+Status: in-progress
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
@@ -42,10 +42,10 @@ so that I control which issues block the pipeline.
 ## Tasks / Subtasks
 
 ### Task 1: Create TriageDecision Enum
-- [ ] Add to `src/adw/validation/models.py`:
+- [x] Add to `src/adw/validation/models.py`:
   - `TriageDecision` enum: FIX, DISMISS, DEFER
-- [ ] Add `triage_decision` and `triage_reason` fields to ValidationIssue (if not already present)
-- [ ] Create `TriagedIssue` wrapper with decision metadata
+- [x] Add `triage_decision` and `triage_reason` fields to ValidationIssue (if not already present)
+- [x] Create `TriagedIssue` wrapper with decision metadata
 
 ### Task 2: Create TriageSystem Class
 - [ ] Create `src/adw/validation/triage.py` with `TriageSystem` class
