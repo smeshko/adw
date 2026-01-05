@@ -74,8 +74,8 @@ validation:
 - [x] Handle platform detection for evidence type requirements
 
 ### Task 6: Add Validation Configuration
-- [ ] Add `validation` section to `ProjectConfig` model
-- [ ] Configuration fields:
+- [x] Add `validation` section to `ProjectConfig` model
+- [x] Configuration fields:
   - `enable_evidence: bool = True`
   - `enable_review: bool = True`
   - `enable_tests: bool = True`
@@ -348,6 +348,7 @@ claude-opus-4-5-20251101
 - Task 3: Implemented TestValidator that runs test commands (pytest, npm test) and parses output for failures. Supports timeout handling, command not found errors, and regex-based parsing of pytest and npm/jest output formats.
 - Task 4: Implemented ReviewValidator that uses LLM executor for code review. Parses review response for issues with severity levels, supports configurable focus areas, handles LLM errors gracefully.
 - Task 5: Implemented EvidenceValidator that loads evidence manifest from Verify phase and reports failed, errored, or skipped evidence items as issues.
+- Task 6: Added validation field to ProjectConfig model that references ValidationConfig. Fixed circular import issues by using TYPE_CHECKING for RunContext imports in phase.py and base.py.
 
 ### File List
 

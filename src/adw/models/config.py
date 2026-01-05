@@ -11,6 +11,7 @@ import yaml
 from pydantic import BaseModel, Field, model_validator
 
 from adw.models.security import SecurityConfig
+from adw.validation.config import ValidationConfig
 
 
 class RetryConfig(BaseModel):
@@ -455,6 +456,10 @@ class ProjectConfig(BaseModel):
     )
     worktree: WorktreeConfig = Field(
         default_factory=WorktreeConfig, description="Worktree isolation configuration"
+    )
+    validation: ValidationConfig = Field(
+        default_factory=ValidationConfig,
+        description="Validation phase configuration (validators, settings)",
     )
 
     @model_validator(mode="before")

@@ -10,11 +10,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from adw.models import RunContext
 from adw.validation.config import ValidationConfig
 from adw.validation.models import ValidationIssue, ValidationResult
 
 if TYPE_CHECKING:
+    from adw.models import RunContext
     from adw.validation.validators.base import Validator
 
 logger = logging.getLogger(__name__)

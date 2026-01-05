@@ -4,12 +4,16 @@ This module contains the Validator Protocol and ValidatorRegistry
 for managing and executing validators in the unified validation phase.
 """
 
-import logging
-from typing import Protocol, runtime_checkable
+from __future__ import annotations
 
-from adw.models import RunContext
+import logging
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
+
 from adw.validation.config import ValidationConfig
 from adw.validation.models import ValidationIssue
+
+if TYPE_CHECKING:
+    from adw.models import RunContext
 
 logger = logging.getLogger(__name__)
 
