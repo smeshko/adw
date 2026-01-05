@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from adw.validation.config import ValidationConfig
 from adw.validation.loop_controller import ExitReason, ValidationLoopController
@@ -252,7 +252,7 @@ class ValidationPhase:
         """
         return self._loop_controller
 
-    def get_summary(self) -> dict:
+    def get_summary(self) -> dict[str, Any]:
         """Get summary of loop execution from the controller.
 
         Returns:

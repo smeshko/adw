@@ -21,7 +21,7 @@ import logging
 from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
@@ -275,7 +275,7 @@ class ValidationReportGenerator:
 
     def generate(
         self,
-        loop_summary: dict,
+        loop_summary: dict[str, Any],
         issues: list[ValidationIssue],
         start_time: datetime,
     ) -> ValidationReport:
@@ -358,17 +358,26 @@ class ValidationReportGenerator:
                 f"All {issues_found} issues resolved or appropriately handled.",
             )
 
-        if deferred_ratio < 0.3:
+        # LOW: many deferred (>= 30%) OR many dismissed (>= 50%)
+        if deferred_ratio >= 0.3:
             return (
-                ConfidenceLevel.MEDIUM,
+                ConfidenceLevel.LOW,
                 f"{issues_deferred} issues deferred ({deferred_ratio:.0%}). "
-                "Review recommended.",
+                "Manual review required.",
             )
 
+        if dismissed_ratio >= 0.5:
+            return (
+                ConfidenceLevel.LOW,
+                f"{issues_dismissed} issues dismissed ({dismissed_ratio:.0%}). "
+                "Manual review required.",
+            )
+
+        # MEDIUM: some deferred (< 30%) and not many dismissed
         return (
-            ConfidenceLevel.LOW,
+            ConfidenceLevel.MEDIUM,
             f"{issues_deferred} issues deferred ({deferred_ratio:.0%}). "
-            "Manual review required.",
+            "Review recommended.",
         )
 
     def save(self, report: ValidationReport) -> Path:

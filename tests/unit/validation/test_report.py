@@ -10,7 +10,6 @@ Tests focus on:
 
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -232,20 +231,6 @@ class TestConfidenceCalculation:
 
     def test_high_all_resolved(self) -> None:
         """HIGH when all issues resolved."""
-        report = ValidationReport(
-            run_id="01TEST",
-            duration_seconds=30.0,
-            iterations_run=2,
-            max_iterations=5,
-            exit_reason="ALL_RESOLVED",
-            issues_found=5,
-            issues_fixed=5,
-            issues_dismissed=0,
-            issues_deferred=0,
-            confidence=ConfidenceLevel.HIGH,
-            confidence_explanation="All issues resolved",
-        )
-
         # Verify calculation via generator helper
         generator = ValidationReportGenerator.__new__(ValidationReportGenerator)
         conf, explanation = generator._calculate_confidence(
@@ -286,6 +271,17 @@ class TestConfidenceCalculation:
 
         assert conf == ConfidenceLevel.LOW
         assert "deferred" in explanation.lower()
+
+    def test_low_many_dismissed(self) -> None:
+        """LOW when >= 50% dismissed (even with no deferred)."""
+        generator = ValidationReportGenerator.__new__(ValidationReportGenerator)
+        # 6 dismissed out of 10 = 60% >= 50%, 0 deferred
+        conf, explanation = generator._calculate_confidence(
+            issues_found=10, issues_fixed=4, issues_dismissed=6, issues_deferred=0
+        )
+
+        assert conf == ConfidenceLevel.LOW
+        assert "dismissed" in explanation.lower()
 
 
 class TestMarkdownGeneration:

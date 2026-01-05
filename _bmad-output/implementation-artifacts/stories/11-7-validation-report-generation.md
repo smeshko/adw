@@ -85,10 +85,10 @@ so that I understand what was checked and decided.
 
 ### Task 8: Write Tests
 - [x] Unit tests for ValidationReportGenerator (5 tests)
-- [x] Unit tests for confidence calculation (4 tests)
+- [x] Unit tests for confidence calculation (5 tests)
 - [x] Unit tests for markdown generation (4 tests)
 - [x] Unit tests for PR section generation (3 tests)
-- [x] Integration test for full report cycle (2 tests)
+- [x] Integration test for full report cycle (5 tests)
 
 ---
 
@@ -567,3 +567,4 @@ None required - clean implementation.
 **Modified Files:**
 - `src/adw/validation/__init__.py`
 - `src/adw/validation/phase.py`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
