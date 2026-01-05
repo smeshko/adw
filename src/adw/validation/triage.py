@@ -11,6 +11,8 @@ Supports three triage modes:
 
 import json
 import logging
+import re
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
 from rich.console import Console
@@ -21,6 +23,7 @@ from rich.table import Table
 from adw.validation.config import ValidationConfig
 from adw.validation.models import (
     IssueSeverity,
+    IssueSource,
     TriageDecision,
     TriagedIssue,
     ValidationIssue,
@@ -30,6 +33,54 @@ if TYPE_CHECKING:
     from adw.executors.base import LLMExecutor
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class TriageRule:
+    """A configurable rule for automatic triage decisions.
+
+    Rules can match on source, severity, and/or description pattern.
+    All specified criteria must match for the rule to apply.
+
+    Attributes:
+        action: The TriageDecision to apply when rule matches.
+        reason: Explanation for the triage decision.
+        source: Match issues from this source (optional).
+        severity: Match issues with this severity (optional).
+        description_pattern: Regex pattern to match description (optional).
+    """
+
+    action: TriageDecision
+    reason: str
+    source: IssueSource | None = None
+    severity: IssueSeverity | None = None
+    description_pattern: str | None = None
+
+    def matches(self, issue: ValidationIssue) -> bool:
+        """Check if this rule matches the given issue.
+
+        Args:
+            issue: The issue to check against.
+
+        Returns:
+            True if all specified criteria match.
+        """
+        # Check source if specified
+        if self.source is not None and issue.source != self.source:
+            return False
+
+        # Check severity if specified
+        if self.severity is not None and issue.severity != self.severity:
+            return False
+
+        # Check description pattern if specified
+        if self.description_pattern is not None:
+            if not re.search(
+                self.description_pattern, issue.description, re.IGNORECASE
+            ):
+                return False
+
+        return True
 
 
 class TriageSystem:
@@ -42,6 +93,7 @@ class TriageSystem:
         config: Validation configuration with triage settings.
         llm_executor: Optional LLM executor for auto triage mode.
         console: Rich console for user interaction.
+        rules: List of triage rules to apply before LLM.
     """
 
     def __init__(
@@ -49,6 +101,7 @@ class TriageSystem:
         config: ValidationConfig,
         llm_executor: "LLMExecutor | None" = None,
         console: Console | None = None,
+        rules: list[TriageRule] | None = None,
     ) -> None:
         """Initialize the triage system.
 
@@ -56,10 +109,12 @@ class TriageSystem:
             config: Validation configuration with triage settings.
             llm_executor: Optional LLM executor for auto triage decisions.
             console: Optional Rich console for user interaction.
+            rules: Optional list of rules to apply before LLM fallback.
         """
         self.config = config
         self.llm_executor = llm_executor
         self.console = console or Console()
+        self.rules = rules or []
 
     def triage(
         self,
@@ -117,7 +172,11 @@ class TriageSystem:
                 )
                 continue
 
-            # TODO: Check triage rules (Task 6)
+            # Check triage rules (first match wins)
+            rule_result = self._apply_rules(issue)
+            if rule_result is not None:
+                results.append(rule_result)
+                continue
 
             # Try LLM triage if executor available
             if self.llm_executor is not None:
@@ -169,6 +228,27 @@ class TriageSystem:
             reason="LLM triage failed, defaulting to FIX",
             auto_decided=True,
         )
+
+    def _apply_rules(self, issue: ValidationIssue) -> TriagedIssue | None:
+        """Apply triage rules to an issue.
+
+        Checks each rule in order; first matching rule wins.
+
+        Args:
+            issue: The issue to check against rules.
+
+        Returns:
+            TriagedIssue if a rule matched, None otherwise.
+        """
+        for rule in self.rules:
+            if rule.matches(issue):
+                return TriagedIssue(
+                    issue=issue,
+                    decision=rule.action,
+                    reason=rule.reason,
+                    auto_decided=True,
+                )
+        return None
 
     def _build_triage_prompt(self, issue: ValidationIssue) -> str:
         """Build the LLM prompt for triage decision.
@@ -414,4 +494,4 @@ Respond with JSON only:
         return results
 
 
-__all__ = ["TriageSystem"]
+__all__ = ["TriageRule", "TriageSystem"]

@@ -542,3 +542,138 @@ class TestHybridTriage:
             # ERROR manually dismissed
             assert result[1].decision == TriageDecision.DISMISS
             assert result[1].auto_decided is False
+
+
+class TestTriageRules:
+    """Tests for configurable triage rules."""
+
+    @pytest.fixture
+    def config(self) -> ValidationConfig:
+        """Create a ValidationConfig for rules testing."""
+        return ValidationConfig(triage_mode="auto", auto_dismiss_info=False)
+
+    def test_rule_always_dismiss_by_description(
+        self, config: ValidationConfig
+    ) -> None:
+        """Rules can dismiss issues by description pattern."""
+        from adw.validation.triage import TriageRule
+
+        rules = [
+            TriageRule(
+                action=TriageDecision.DISMISS,
+                description_pattern="unused.*import",
+                reason="Linting warning - auto-dismissed",
+            )
+        ]
+        system = TriageSystem(config=config, rules=rules)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.REVIEW,
+                severity=IssueSeverity.WARNING,
+                description="Unused import: os",
+            )
+        ]
+
+        result = system.triage(issues, mode="auto")
+
+        assert len(result) == 1
+        assert result[0].decision == TriageDecision.DISMISS
+        assert "Linting warning" in result[0].reason
+        assert result[0].auto_decided is True
+
+    def test_rule_always_fix_test_failures(
+        self, config: ValidationConfig
+    ) -> None:
+        """Rules can require FIX for test failures."""
+        from adw.validation.triage import TriageRule
+
+        rules = [
+            TriageRule(
+                action=TriageDecision.FIX,
+                source=IssueSource.TEST,
+                severity=IssueSeverity.ERROR,
+                reason="Test failures must always be fixed",
+            )
+        ]
+        system = TriageSystem(config=config, rules=rules)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity=IssueSeverity.ERROR,
+                description="Test failed: test_login",
+            )
+        ]
+
+        result = system.triage(issues, mode="auto")
+
+        assert len(result) == 1
+        assert result[0].decision == TriageDecision.FIX
+        assert "Test failures" in result[0].reason
+
+    def test_rules_applied_before_llm(
+        self, config: ValidationConfig
+    ) -> None:
+        """Rules are applied before falling back to LLM."""
+        from adw.executors.mock import MockExecutor
+        from adw.validation.triage import TriageRule
+
+        # Mock would return DEFER, but rule should override
+        executor = MockExecutor()
+        executor.configure_responses([
+            {"content": '{"decision": "DEFER", "reason": "Can wait"}'}
+        ])
+
+        rules = [
+            TriageRule(
+                action=TriageDecision.DISMISS,
+                source=IssueSource.REVIEW,
+                reason="All review issues dismissed by rule",
+            )
+        ]
+        system = TriageSystem(config=config, llm_executor=executor, rules=rules)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.REVIEW,
+                severity=IssueSeverity.WARNING,
+                description="Consider using const",
+            )
+        ]
+
+        result = system.triage(issues, mode="auto")
+
+        assert result[0].decision == TriageDecision.DISMISS
+        # LLM should not have been called
+        assert executor.call_count == 0
+
+    def test_multiple_rules_first_match_wins(
+        self, config: ValidationConfig
+    ) -> None:
+        """First matching rule is applied."""
+        from adw.validation.triage import TriageRule
+
+        rules = [
+            TriageRule(
+                action=TriageDecision.DISMISS,
+                description_pattern=".*import.*",
+                reason="Import issues dismissed",
+            ),
+            TriageRule(
+                action=TriageDecision.FIX,
+                source=IssueSource.REVIEW,
+                reason="Review issues fixed",
+            ),
+        ]
+        system = TriageSystem(config=config, rules=rules)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.REVIEW,
+                severity=IssueSeverity.WARNING,
+                description="Unused import: json",
+            )
+        ]
+
+        result = system.triage(issues, mode="auto")
+
+        # First rule (import pattern) should match
+        assert result[0].decision == TriageDecision.DISMISS
+        assert "Import issues" in result[0].reason

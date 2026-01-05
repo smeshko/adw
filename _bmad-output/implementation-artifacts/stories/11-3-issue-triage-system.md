@@ -76,11 +76,11 @@ so that I control which issues block the pipeline.
 - [x] Provide summary before committing decisions
 
 ### Task 6: Add Triage Rules Engine
-- [ ] Create `TriageRules` class for configurable rules
-- [ ] Support rules like: "always dismiss linting warnings"
-- [ ] Support patterns: "auto-fix test failures in {path}"
-- [ ] Load rules from `.adw/triage-rules.yaml`
-- [ ] Apply rules before LLM/manual triage
+- [x] Create `TriageRules` class for configurable rules
+- [x] Support rules like: "always dismiss linting warnings"
+- [x] Support patterns: "auto-fix test failures in {path}"
+- [x] Load rules from `.adw/triage-rules.yaml`
+- [x] Apply rules before LLM/manual triage
 
 ### Task 7: Implement Triage Logging
 - [ ] Log each triage decision with reasoning
