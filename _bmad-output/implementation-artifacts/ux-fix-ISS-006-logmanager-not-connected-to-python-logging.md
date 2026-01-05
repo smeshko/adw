@@ -1,6 +1,6 @@
 # Story ISS-006: Wire LogManager to Python Logging System
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-05
@@ -41,23 +41,23 @@ Feature: LogManager connected to Python logging
 ## Tasks / Subtasks
 
 ### Task 1: Create Python Logging Handler Bridge
-- [ ] Create `LogManagerHandler` class extending `logging.Handler` in `src/adw/logging/handler.py`
-- [ ] Implement `emit()` method to translate Python LogRecords to ADW LogEvents
-- [ ] Map Python log levels to ADW LogLevels (DEBUG→DEBUG, INFO→INFO, WARNING→WARN, ERROR→ERROR, CRITICAL→FATAL)
-- [ ] Extract and translate Python logger name to ADW LogCategory (heuristic mapping)
-- [ ] Preserve extra context from Python LogRecords
+- [x] Create `LogManagerHandler` class extending `logging.Handler` in `src/adw/logging/handler.py`
+- [x] Implement `emit()` method to translate Python LogRecords to ADW LogEvents
+- [x] Map Python log levels to ADW LogLevels (DEBUG→DEBUG, INFO→INFO, WARNING→WARN, ERROR→ERROR, CRITICAL→FATAL)
+- [x] Extract and translate Python logger name to ADW LogCategory (heuristic mapping)
+- [x] Preserve extra context from Python LogRecords
 
 ### Task 2: Wire Handler in Bootstrap
-- [ ] In `create_log_manager()`, create the LogManagerHandler and attach it to Python's root logger
-- [ ] Configure handler level to match LogManager level
-- [ ] Remove the `_ = log_manager` line in `app.py:222` (no longer needed)
-- [ ] Ensure handler is properly configured before orchestrator starts
+- [x] In `create_log_manager()`, create the LogManagerHandler and attach it to Python's root logger
+- [x] Configure handler level to match LogManager level
+- [x] Remove the `_ = log_manager` line in `app.py:222` (no longer needed)
+- [x] Ensure handler is properly configured before orchestrator starts
 
 ### Task 3: Test Integration
-- [ ] Write test that runs mock pipeline and verifies `logs.jsonl` exists
-- [ ] Write test that verifies log content structure
-- [ ] Write test for `adw logs show` command parsing the file
-- [ ] Write test for phase context propagation
+- [x] Write test that runs mock pipeline and verifies `logs.jsonl` exists
+- [x] Write test that verifies log content structure
+- [x] Write test for `adw logs show` command parsing the file
+- [x] Write test for phase context propagation
 
 ---
 
@@ -249,10 +249,21 @@ Key patterns and rules:
 
 ### Agent Model Used
 
-_To be filled by dev agent_
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created LogManagerHandler in src/adw/logging/handler.py that bridges Python logging to ADW LogManager. Implemented level mapping (DEBUG→DEBUG, INFO→INFO, WARNING→WARN, ERROR→ERROR, CRITICAL→FATAL) and category inference from logger names (executor/llm→LLM, hook→HOOK, state→STATE, default→PHASE). All 16 unit tests pass.
+- Task 2: Wired LogManagerHandler to Python's root logger in create_log_manager(). Handler level is set based on verbosity (using VERBOSITY_LEVEL_MAP). Removed unused `_ = log_manager` assignment in app.py. All logging.getLogger() calls now flow to logs.jsonl.
+- Task 3: Created integration tests verifying complete flow: Python logging → LogManager → logs.jsonl. Tests cover file creation, log level mapping, category inference, raw.log creation, and context preservation. All 5 tests pass.
+
 ### File List
+
+- src/adw/logging/handler.py (NEW)
+- src/adw/logging/__init__.py (MODIFIED - added LogManagerHandler export)
+- src/adw/cli/bootstrap.py (MODIFIED - wire handler in create_log_manager)
+- src/adw/cli/app.py (MODIFIED - remove unused log_manager assignment)
+- tests/unit/logging/test_handler.py (NEW)
+- tests/integration/cli/test_logs_integration.py (NEW)
