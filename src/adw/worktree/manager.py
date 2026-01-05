@@ -649,8 +649,6 @@ class WorktreeManager:
         # Try to remove the directory if it was created
         if worktree_path.exists():
             try:
-                import shutil
-
                 shutil.rmtree(worktree_path)
                 logger.debug(
                     "Cleaned up partial worktree directory",
