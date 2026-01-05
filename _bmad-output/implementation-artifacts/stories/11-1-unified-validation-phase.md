@@ -53,11 +53,11 @@ validation:
 - [x] Support dynamic validator loading based on configuration
 
 ### Task 3: Implement TestValidator
-- [ ] Create `src/adw/validation/validators/test_validator.py`
-- [ ] Execute configured test command (default: `pytest` or `npm test` based on platform)
-- [ ] Parse test output for failures using regex patterns
-- [ ] Convert each failing test to a `ValidationIssue` with source=TEST
-- [ ] Handle test timeout and test command not found errors
+- [x] Create `src/adw/validation/validators/test_validator.py`
+- [x] Execute configured test command (default: `pytest` or `npm test` based on platform)
+- [x] Parse test output for failures using regex patterns
+- [x] Convert each failing test to a `ValidationIssue` with source=TEST
+- [x] Handle test timeout and test command not found errors
 
 ### Task 4: Implement ReviewValidator
 - [ ] Create `src/adw/validation/validators/review_validator.py`
@@ -345,6 +345,7 @@ claude-opus-4-5-20251101
 
 - Task 1: Created ValidationPhase class with run() method, ValidationResult and ValidationIssue models, ValidationConfig. The "validate" phase already exists in PHASE_SEQUENCE so no modification needed.
 - Task 2: Created Validator Protocol in validators/base.py with name property and validate() method. Implemented ValidatorRegistry with register(), get_all(), get_enabled(), run_all(), run_enabled(), and clear() methods. Supports dynamic filtering based on ValidationConfig enable flags.
+- Task 3: Implemented TestValidator that runs test commands (pytest, npm test) and parses output for failures. Supports timeout handling, command not found errors, and regex-based parsing of pytest and npm/jest output formats.
 
 ### File List
 
@@ -355,7 +356,9 @@ claude-opus-4-5-20251101
 - `src/adw/validation/phase.py` - ValidationPhase class
 - `src/adw/validation/validators/__init__.py` - Validators package exports
 - `src/adw/validation/validators/base.py` - Validator Protocol and ValidatorRegistry
+- `src/adw/validation/validators/test_validator.py` - TestValidator implementation
 - `tests/unit/validation/__init__.py` - Test package
 - `tests/unit/validation/test_phase.py` - 12 unit tests for ValidationPhase and models
 - `tests/unit/validation/validators/__init__.py` - Validator tests package
 - `tests/unit/validation/validators/test_base.py` - 8 unit tests for ValidatorRegistry
+- `tests/unit/validation/validators/test_test_validator.py` - 7 unit tests for TestValidator
