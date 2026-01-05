@@ -1,6 +1,6 @@
 # Story 11.3: Issue Triage System
 
-Status: draft
+Status: done
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
@@ -42,59 +42,59 @@ so that I control which issues block the pipeline.
 ## Tasks / Subtasks
 
 ### Task 1: Create TriageDecision Enum
-- [ ] Add to `src/adw/validation/models.py`:
+- [x] Add to `src/adw/validation/models.py`:
   - `TriageDecision` enum: FIX, DISMISS, DEFER
-- [ ] Add `triage_decision` and `triage_reason` fields to ValidationIssue (if not already present)
-- [ ] Create `TriagedIssue` wrapper with decision metadata
+- [x] Add `triage_decision` and `triage_reason` fields to ValidationIssue (if not already present)
+- [x] Create `TriagedIssue` wrapper with decision metadata
 
 ### Task 2: Create TriageSystem Class
-- [ ] Create `src/adw/validation/triage.py` with `TriageSystem` class
-- [ ] Implement `triage(issues: list[ValidationIssue], mode: str) -> list[TriagedIssue]`
-- [ ] Support modes: "auto", "manual", "hybrid"
-- [ ] Inject LLM executor for auto mode
-- [ ] Handle empty issues list gracefully
+- [x] Create `src/adw/validation/triage.py` with `TriageSystem` class
+- [x] Implement `triage(issues: list[ValidationIssue], mode: str) -> list[TriagedIssue]`
+- [x] Support modes: "auto", "manual", "hybrid"
+- [x] Inject LLM executor for auto mode
+- [x] Handle empty issues list gracefully
 
 ### Task 3: Implement Auto Triage
-- [ ] Create `_auto_triage(issue: ValidationIssue) -> TriageDecision`
-- [ ] Build prompt with issue details and severity context
-- [ ] Parse LLM response for FIX/DISMISS/DEFER decision
-- [ ] Extract reasoning from LLM response
-- [ ] Apply `auto_dismiss_info` config (auto-dismiss INFO severity)
+- [x] Create `_auto_triage(issue: ValidationIssue) -> TriageDecision`
+- [x] Build prompt with issue details and severity context
+- [x] Parse LLM response for FIX/DISMISS/DEFER decision
+- [x] Extract reasoning from LLM response
+- [x] Apply `auto_dismiss_info` config (auto-dismiss INFO severity)
 
 ### Task 4: Implement Manual Triage
-- [ ] Create `_manual_triage(issue: ValidationIssue) -> TriageDecision`
-- [ ] Display issue details using Rich formatting
-- [ ] Prompt user with options: [F]ix, [D]ismiss, de[F]er, [S]kip
-- [ ] Support batch selection for multiple similar issues
-- [ ] Capture user's reasoning for audit trail
+- [x] Create `_manual_triage(issue: ValidationIssue) -> TriageDecision`
+- [x] Display issue details using Rich formatting
+- [x] Prompt user with options: [F]ix, [D]ismiss, de[F]er, [S]kip
+- [x] Support batch selection for multiple similar issues
+- [x] Capture user's reasoning for audit trail
 
 ### Task 5: Implement Hybrid Triage
-- [ ] Create `_hybrid_triage(issues: list[ValidationIssue]) -> list[TriagedIssue]`
-- [ ] Auto-triage INFO and WARNING severity
-- [ ] Manual triage for ERROR severity
-- [ ] Allow user to override auto decisions
-- [ ] Provide summary before committing decisions
+- [x] Create `_hybrid_triage(issues: list[ValidationIssue]) -> list[TriagedIssue]`
+- [x] Auto-triage INFO and WARNING severity
+- [x] Manual triage for ERROR severity
+- [x] Allow user to override auto decisions
+- [x] Provide summary before committing decisions
 
 ### Task 6: Add Triage Rules Engine
-- [ ] Create `TriageRules` class for configurable rules
-- [ ] Support rules like: "always dismiss linting warnings"
-- [ ] Support patterns: "auto-fix test failures in {path}"
-- [ ] Load rules from `.adw/triage-rules.yaml`
-- [ ] Apply rules before LLM/manual triage
+- [x] Create `TriageRules` class for configurable rules
+- [x] Support rules like: "always dismiss linting warnings"
+- [x] Support patterns: "auto-fix test failures in {path}"
+- [x] Load rules from `.adw/triage-rules.yaml`
+- [x] Apply rules before LLM/manual triage
 
 ### Task 7: Implement Triage Logging
-- [ ] Log each triage decision with reasoning
-- [ ] Create triage audit trail in run artifacts
-- [ ] Store triage statistics (counts by decision type)
-- [ ] Support `--dry-run` mode to preview decisions
+- [x] Log each triage decision with reasoning
+- [x] Create triage audit trail in run artifacts
+- [x] Store triage statistics (counts by decision type)
+- [x] Support `--dry-run` mode to preview decisions
 
 ### Task 8: Write Tests
-- [ ] Unit tests for TriageSystem (6 tests)
-- [ ] Unit tests for auto triage (5 tests)
-- [ ] Unit tests for manual triage - mocked input (4 tests)
-- [ ] Unit tests for hybrid triage (4 tests)
-- [ ] Unit tests for triage rules (4 tests)
-- [ ] Integration test for full triage flow (2 tests)
+- [x] Unit tests for TriageSystem (6 tests)
+- [x] Unit tests for auto triage (5 tests)
+- [x] Unit tests for manual triage - mocked input (4 tests)
+- [x] Unit tests for hybrid triage (4 tests)
+- [x] Unit tests for triage rules (4 tests)
+- [x] Integration test for full triage flow (2 tests)
 
 ---
 
