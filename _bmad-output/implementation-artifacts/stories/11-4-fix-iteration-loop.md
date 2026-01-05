@@ -1,6 +1,6 @@
 # Story 11.4: Fix Iteration Loop
 
-Status: draft
+Status: complete
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
@@ -38,57 +38,60 @@ so that issues are resolved automatically when possible.
 ## Tasks / Subtasks
 
 ### Task 1: Create FixEngine Class
-- [ ] Create `src/adw/validation/fix_engine.py` with `FixEngine` class
-- [ ] Implement `attempt_fixes(issues: list[ValidationIssue]) -> FixResult`
-- [ ] Inject LLM executor for fix prompt generation
-- [ ] Track which validators need re-running per issue
+- [x] Create `src/adw/validation/fix_engine.py` with `FixEngine` class
+- [x] Implement `attempt_fixes(issues: list[ValidationIssue]) -> FixResult`
+- [x] Inject LLM executor for fix prompt generation
+- [x] Track which validators need re-running per issue
 
 ### Task 2: Build Fix Prompt Generator
-- [ ] Create `_build_fix_prompt(issues: list[ValidationIssue]) -> str`
-- [ ] Include issue details, location, and context
-- [ ] Provide code snippets for reference
-- [ ] Request structured fix response from LLM
+- [x] Create `_build_fix_prompt(issues: list[ValidationIssue]) -> str`
+- [x] Include issue details, location, and context
+- [x] Provide code snippets for reference
+- [x] Request structured fix response from LLM
 
 ### Task 3: Implement Fix Application
-- [ ] Parse LLM fix response for file modifications
-- [ ] Apply fixes to files using existing file utilities
-- [ ] Create backup before applying fixes (atomic operation)
-- [ ] Rollback on partial failure
+- [x] Parse LLM fix response for file modifications
+- [x] Apply fixes to files using existing file utilities
+- [x] Create backup before applying fixes (atomic operation)
+- [x] Rollback on partial failure
 
 ### Task 4: Implement Selective Re-validation
-- [ ] Track which validators are affected by each issue
-- [ ] Only re-run affected validators after fix
-- [ ] Map issue source to validator: TEST→TestValidator, etc.
-- [ ] Aggregate new issues from re-validation
+- [x] Track which validators are affected by each issue
+- [x] Only re-run affected validators after fix
+- [x] Map issue source to validator: TEST→TestValidator, etc.
+- [x] Aggregate new issues from re-validation
 
 ### Task 5: Add Fix Attempt Tracking
-- [ ] Update `ValidationIssue.fix_attempted` to True
-- [ ] Increment `ValidationIssue.fix_attempt_count`
-- [ ] Create `FixAttempt` record with result
-- [ ] Store in `ValidationIssue.fix_history`
+- [x] Update `ValidationIssue.fix_attempted` to True
+- [x] Increment `ValidationIssue.fix_attempt_count`
+- [x] Create `FixAttempt` record with result
+- [x] Store in `ValidationIssue.fix_history`
 
 ### Task 6: Implement Auto-Defer on Max Attempts
-- [ ] Check `fix_attempt_count >= max_fix_attempts_per_issue`
-- [ ] Auto-change triage decision to DEFER
-- [ ] Set reason: "Max fix attempts reached ({count})"
-- [ ] Log auto-defer decision for audit
+- [x] Check `fix_attempt_count >= max_fix_attempts_per_issue`
+- [x] Auto-change triage decision to DEFER
+- [x] Set reason: "Max fix attempts reached ({count})"
+- [x] Log auto-defer decision for audit
 
 ### Task 7: Create Fix Result Model
-- [ ] Create `FixIterationResult` model with:
+- [x] Create `FixIterationResult` model with:
   - `issues_fixed: list[str]` (issue IDs)
   - `issues_remaining: list[str]`
   - `issues_deferred: list[str]`
   - `files_modified: list[str]`
   - `validation_rerun: bool`
-- [ ] Support serialization for state persistence
+- [x] Support serialization for state persistence
 
 ### Task 8: Write Tests
-- [ ] Unit tests for FixEngine (6 tests)
-- [ ] Unit tests for fix prompt generation (4 tests)
-- [ ] Unit tests for fix application (5 tests)
-- [ ] Unit tests for selective re-validation (4 tests)
-- [ ] Unit tests for auto-defer logic (3 tests)
-- [ ] Integration test for fix→validate cycle (2 tests)
+- [x] Unit tests for FixEngine (5 tests)
+- [x] Unit tests for fix prompt generation (5 tests)
+- [x] Unit tests for fix application (7 tests)
+- [x] Unit tests for selective re-validation (6 tests)
+- [x] Unit tests for auto-defer logic (3 tests)
+- [x] Unit tests for FixIterationResult (4 tests)
+- [x] Unit tests for fix attempt tracking (4 tests)
+- [x] Integration test for fix→validate cycle (2 tests)
+- **Total: 36 tests, 93% coverage on fix_engine.py**
 
 ---
 
