@@ -1,6 +1,6 @@
 # Story 10.5: Worktree Context in Phases
 
-Status: review
+Status: done
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-05
