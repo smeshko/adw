@@ -40,10 +40,10 @@ validation:
 ## Tasks / Subtasks
 
 ### Task 1: Create ValidationLoopController
-- [ ] Create `src/adw/validation/loop_controller.py`
-- [ ] Define `ValidationLoopController` class
-- [ ] Track iteration count, stall count
-- [ ] Inject ValidationConfig for limits
+- [x] Create `src/adw/validation/loop_controller.py`
+- [x] Define `ValidationLoopController` class
+- [x] Track iteration count, stall count
+- [x] Inject ValidationConfig for limits
 
 ### Task 2: Implement Exit Condition Checks
 - [ ] Create `should_exit() -> tuple[bool, str]` method
