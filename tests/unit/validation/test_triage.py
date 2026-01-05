@@ -677,3 +677,87 @@ class TestTriageRules:
         # First rule (import pattern) should match
         assert result[0].decision == TriageDecision.DISMISS
         assert "Import issues" in result[0].reason
+
+
+class TestTriageResult:
+    """Tests for triage result summary and logging."""
+
+    @pytest.fixture
+    def config(self) -> ValidationConfig:
+        """Create a ValidationConfig for result testing."""
+        return ValidationConfig(triage_mode="auto", auto_dismiss_info=True)
+
+    def test_triage_result_statistics(
+        self, config: ValidationConfig
+    ) -> None:
+        """Triage returns statistics about decisions made."""
+        from adw.validation.triage import TriageResult
+
+        system = TriageSystem(config=config)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.EVIDENCE,
+                severity=IssueSeverity.INFO,
+                description="Info 1",
+            ),
+            ValidationIssue(
+                source=IssueSource.EVIDENCE,
+                severity=IssueSeverity.INFO,
+                description="Info 2",
+            ),
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity=IssueSeverity.ERROR,
+                description="Error 1",
+            ),
+        ]
+
+        result = system.triage_with_result(issues, mode="auto")
+
+        assert isinstance(result, TriageResult)
+        assert len(result.triaged_issues) == 3
+        assert result.stats.fix_count == 1
+        assert result.stats.dismiss_count == 2
+        assert result.stats.defer_count == 0
+
+    def test_triage_result_summary(
+        self, config: ValidationConfig
+    ) -> None:
+        """TriageResult can generate a summary string."""
+        from adw.validation.triage import TriageResult
+
+        system = TriageSystem(config=config)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity=IssueSeverity.ERROR,
+                description="Error",
+            ),
+        ]
+
+        result = system.triage_with_result(issues, mode="auto")
+
+        summary = result.summary()
+        assert "1 FIX" in summary
+
+    def test_triage_result_to_dict(
+        self, config: ValidationConfig
+    ) -> None:
+        """TriageResult can be serialized for logging."""
+        from adw.validation.triage import TriageResult
+
+        system = TriageSystem(config=config)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.EVIDENCE,
+                severity=IssueSeverity.INFO,
+                description="Info issue",
+            ),
+        ]
+
+        result = system.triage_with_result(issues, mode="auto")
+
+        data = result.to_dict()
+        assert "triaged_issues" in data
+        assert "stats" in data
+        assert data["stats"]["dismiss_count"] == 1

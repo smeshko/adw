@@ -83,10 +83,10 @@ so that I control which issues block the pipeline.
 - [x] Apply rules before LLM/manual triage
 
 ### Task 7: Implement Triage Logging
-- [ ] Log each triage decision with reasoning
-- [ ] Create triage audit trail in run artifacts
-- [ ] Store triage statistics (counts by decision type)
-- [ ] Support `--dry-run` mode to preview decisions
+- [x] Log each triage decision with reasoning
+- [x] Create triage audit trail in run artifacts
+- [x] Store triage statistics (counts by decision type)
+- [x] Support `--dry-run` mode to preview decisions
 
 ### Task 8: Write Tests
 - [ ] Unit tests for TriageSystem (6 tests)

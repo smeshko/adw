@@ -36,6 +36,88 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
+class TriageStats:
+    """Statistics about triage decisions.
+
+    Attributes:
+        fix_count: Number of issues marked for fixing.
+        dismiss_count: Number of issues dismissed.
+        defer_count: Number of issues deferred.
+        auto_decided_count: Number of auto-decided issues.
+        manual_decided_count: Number of manually decided issues.
+    """
+
+    fix_count: int = 0
+    dismiss_count: int = 0
+    defer_count: int = 0
+    auto_decided_count: int = 0
+    manual_decided_count: int = 0
+
+    @property
+    def total(self) -> int:
+        """Total number of triaged issues."""
+        return self.fix_count + self.dismiss_count + self.defer_count
+
+    def to_dict(self) -> dict[str, int]:
+        """Convert stats to dictionary for serialization."""
+        return {
+            "fix_count": self.fix_count,
+            "dismiss_count": self.dismiss_count,
+            "defer_count": self.defer_count,
+            "auto_decided_count": self.auto_decided_count,
+            "manual_decided_count": self.manual_decided_count,
+            "total": self.total,
+        }
+
+
+@dataclass
+class TriageResult:
+    """Result of a triage operation with statistics.
+
+    Attributes:
+        triaged_issues: List of triaged issues with decisions.
+        stats: Statistics about the decisions made.
+    """
+
+    triaged_issues: list["TriagedIssue"]
+    stats: TriageStats
+
+    def summary(self) -> str:
+        """Generate a human-readable summary of triage results."""
+        parts = []
+        if self.stats.fix_count:
+            parts.append(f"{self.stats.fix_count} FIX")
+        if self.stats.dismiss_count:
+            parts.append(f"{self.stats.dismiss_count} DISMISS")
+        if self.stats.defer_count:
+            parts.append(f"{self.stats.defer_count} DEFER")
+
+        if not parts:
+            return "No issues triaged"
+
+        return f"Triage: {', '.join(parts)} ({self.stats.total} total)"
+
+    def to_dict(self) -> dict:
+        """Convert result to dictionary for logging/serialization."""
+        return {
+            "triaged_issues": [
+                {
+                    "issue_id": ti.issue.id,
+                    "decision": ti.decision.value,
+                    "reason": ti.reason,
+                    "auto_decided": ti.auto_decided,
+                }
+                for ti in self.triaged_issues
+            ],
+            "stats": self.stats.to_dict(),
+        }
+
+    def get_issues_to_fix(self) -> list["TriagedIssue"]:
+        """Return only issues marked for fixing."""
+        return [ti for ti in self.triaged_issues if ti.decision == TriageDecision.FIX]
+
+
+@dataclass
 class TriageRule:
     """A configurable rule for automatic triage decisions.
 
@@ -141,6 +223,49 @@ class TriageSystem:
             return self._manual_triage_all(issues)
         else:  # hybrid
             return self._hybrid_triage_all(issues)
+
+    def triage_with_result(
+        self,
+        issues: list[ValidationIssue],
+        mode: Literal["auto", "manual", "hybrid"] | None = None,
+    ) -> TriageResult:
+        """Triage all issues and return structured result with statistics.
+
+        Like triage(), but returns a TriageResult with statistics for logging
+        and audit trail purposes.
+
+        Args:
+            issues: List of validation issues to triage.
+            mode: Triage mode override. If None, uses config.triage_mode.
+
+        Returns:
+            TriageResult with triaged issues and statistics.
+        """
+        triaged_issues = self.triage(issues, mode)
+
+        # Compute statistics
+        stats = TriageStats()
+        for ti in triaged_issues:
+            if ti.decision == TriageDecision.FIX:
+                stats.fix_count += 1
+            elif ti.decision == TriageDecision.DISMISS:
+                stats.dismiss_count += 1
+            else:
+                stats.defer_count += 1
+
+            if ti.auto_decided:
+                stats.auto_decided_count += 1
+            else:
+                stats.manual_decided_count += 1
+
+        logger.info(
+            "Triage complete: %d FIX, %d DISMISS, %d DEFER",
+            stats.fix_count,
+            stats.dismiss_count,
+            stats.defer_count,
+        )
+
+        return TriageResult(triaged_issues=triaged_issues, stats=stats)
 
     def _auto_triage_all(
         self,
@@ -494,4 +619,4 @@ Respond with JSON only:
         return results
 
 
-__all__ = ["TriageRule", "TriageSystem"]
+__all__ = ["TriageResult", "TriageRule", "TriageStats", "TriageSystem"]
