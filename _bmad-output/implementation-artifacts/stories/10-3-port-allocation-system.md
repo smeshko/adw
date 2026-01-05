@@ -1,6 +1,6 @@
 # Story 10.3: Port Allocation System
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-05
@@ -85,11 +85,11 @@ so that concurrent runs don't have port conflicts.
 - [x] Add `ADW_BACKEND_PORT`, `ADW_FRONTEND_PORT` to hook environment
 
 ### Task 7: Write Tests
-- [ ] Test slot calculation is deterministic for same run_id
-- [ ] Test port availability checking
-- [ ] Test fallback to next slot when port in use
-- [ ] Test .ports.env file generation
-- [ ] Test integration with hook environment
+- [x] Test slot calculation is deterministic for same run_id
+- [x] Test port availability checking
+- [x] Test fallback to next slot when port in use
+- [x] Test .ports.env file generation
+- [x] Test integration with hook environment
 
 ---
 
@@ -394,6 +394,7 @@ N/A
 - Added unit tests covering slot calculation, port calculation, and allocation
 - Task 5: Added PortRangeConfig and extended WorktreeConfig with port_range and max_concurrent fields
 - Task 6: Integrated port allocation with hook environment (ADW_BACKEND_PORT, ADW_FRONTEND_PORT, ADW_SLOT)
+- Task 7: Added comprehensive tests for port availability, allocation retry, .ports.env generation, and shell sourcing
 
 ### File List
 

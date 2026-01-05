@@ -5,7 +5,6 @@ allocation for concurrent ADW runs.
 """
 
 import socket
-import threading
 
 import pytest
 
@@ -127,3 +126,152 @@ class TestPortAllocation:
         result = allocator.allocate("01HQTEST123456789ABCD")
         assert result.backend_port == 9100 + result.slot
         assert result.frontend_port == 9200 + result.slot
+
+
+class TestPortAvailability:
+    """Tests for port availability checking."""
+
+    def test_available_port_returns_true(self) -> None:
+        """Unused port returns True."""
+        allocator = PortAllocator()
+        # Use a high port that's unlikely to be in use
+        assert allocator.is_port_available(59999) is True
+
+    def test_used_port_returns_false(self) -> None:
+        """Port with active listener returns False."""
+        allocator = PortAllocator()
+        # Create a listening server on a test port
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            server.bind(("127.0.0.1", 19999))
+            server.listen(1)
+            # The port should now be in use
+            assert allocator.is_port_available(19999) is False
+        finally:
+            server.close()
+
+
+class TestAllocationRetry:
+    """Tests for allocation retry behavior."""
+
+    def test_allocate_retries_on_conflict(self) -> None:
+        """Tries next slot when port is in use."""
+        # Use high ports to avoid conflicts
+        allocator = PortAllocator(
+            backend_start=19100,
+            frontend_start=19200,
+            max_concurrent=5,
+        )
+        run_id = "01HQTEST123456789ABCD"
+        base_slot = allocator.calculate_slot(run_id)
+        base_backend = 19100 + base_slot
+
+        # Block the base slot's backend port
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            server.bind(("127.0.0.1", base_backend))
+            server.listen(1)
+
+            # Allocation should succeed with the next slot
+            result = allocator.allocate(run_id, max_attempts=3)
+            # Result should be from a different slot
+            assert result.slot != base_slot or result.backend_port != base_backend
+        finally:
+            server.close()
+
+    def test_allocate_raises_after_max_attempts(self) -> None:
+        """Raises PortAllocationError when all attempts exhausted."""
+        # Use high ports to avoid conflicts
+        allocator = PortAllocator(
+            backend_start=18100,
+            frontend_start=18200,
+            max_concurrent=3,
+        )
+        run_id = "01HQTEST_EXHAUST"
+        base_slot = allocator.calculate_slot(run_id)
+
+        # Block all 3 slots
+        servers = []
+        try:
+            for i in range(3):
+                slot = (base_slot + i) % 3
+                port = 18100 + slot
+                server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                server.bind(("127.0.0.1", port))
+                server.listen(1)
+                servers.append(server)
+
+            # Should raise after trying all 3 slots
+            with pytest.raises(PortAllocationError) as exc_info:
+                allocator.allocate(run_id, max_attempts=3)
+
+            assert exc_info.value.code == "PORT_ALLOCATION_FAILED"
+            assert "3 attempts" in exc_info.value.message
+        finally:
+            for server in servers:
+                server.close()
+
+
+class TestPortsEnv:
+    """Tests for .ports.env file generation."""
+
+    def test_writes_correct_format(self, tmp_path) -> None:
+        """Generated .ports.env has correct content."""
+        allocator = PortAllocator()
+        allocation = PortAllocation(
+            slot=5,
+            backend_port=9105,
+            frontend_port=9205,
+            run_id="01HQTEST123456789ABCD",
+        )
+
+        ports_file = allocator.write_ports_env(allocation, tmp_path)
+
+        assert ports_file.exists()
+        content = ports_file.read_text()
+        assert "BACKEND_PORT=9105" in content
+        assert "FRONTEND_PORT=9205" in content
+        assert "ADW_SLOT=5" in content
+        assert "ADW_RUN_ID=01HQTEST123456789ABCD" in content
+
+    def test_file_is_shell_sourceable(self, tmp_path) -> None:
+        """File can be sourced by shell (no syntax errors)."""
+        import subprocess
+
+        allocator = PortAllocator()
+        allocation = PortAllocation(
+            slot=0,
+            backend_port=9100,
+            frontend_port=9200,
+            run_id="01HQTEST",
+        )
+
+        ports_file = allocator.write_ports_env(allocation, tmp_path)
+
+        # Try to source the file with bash
+        result = subprocess.run(
+            ["bash", "-c", f"source {ports_file} && echo $BACKEND_PORT"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0
+        assert result.stdout.strip() == "9100"
+
+    def test_returns_path_to_file(self, tmp_path) -> None:
+        """Returns the path to the generated file."""
+        allocator = PortAllocator()
+        allocation = PortAllocation(
+            slot=0,
+            backend_port=9100,
+            frontend_port=9200,
+            run_id="01HQTEST",
+        )
+
+        result = allocator.write_ports_env(allocation, tmp_path)
+
+        assert result == tmp_path / ".ports.env"
+        assert result.is_file()
