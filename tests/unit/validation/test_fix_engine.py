@@ -589,6 +589,88 @@ class TestFixApplication:
         assert "fixed_line" in result
         assert "line4" in result
 
+    def test_apply_changes_multiple_changes_same_file(
+        self,
+        mock_llm_executor: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Multiple partial changes to same file both persist."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        test_file = tmp_path / "test.py"
+        test_file.write_text("line1\nline2\nline3\nline4\nline5\n")
+
+        from adw.validation.fix_engine import FileChange
+
+        # Two changes to the same file at different lines
+        changes = [
+            FileChange(
+                file_path=test_file,
+                original_content="line1\nline2\nline3\nline4\nline5\n",
+                new_content="fixed_line2",
+                line_start=2,
+                line_end=2,
+            ),
+            FileChange(
+                file_path=test_file,
+                original_content="line1\nline2\nline3\nline4\nline5\n",
+                new_content="fixed_line4",
+                line_start=4,
+                line_end=4,
+            ),
+        ]
+
+        engine._apply_changes(changes)
+
+        result = test_file.read_text()
+        # Both changes should be present
+        assert "line1" in result
+        assert "fixed_line2" in result
+        assert "line3" in result
+        assert "fixed_line4" in result
+        assert "line5" in result
+
+    def test_rollback_deletes_newly_created_files(
+        self,
+        mock_llm_executor: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Rollback deletes files that were newly created during fix."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        # File that doesn't exist yet
+        new_file = tmp_path / "new_file.py"
+        assert not new_file.exists()
+
+        from adw.validation.fix_engine import FileChange
+
+        changes = [
+            FileChange(
+                file_path=new_file,
+                original_content="",
+                new_content="new file content",
+            )
+        ]
+
+        # Backup tracks it as a new file
+        engine._backup_files(changes)
+        # Apply creates the file
+        engine._apply_changes(changes)
+        assert new_file.exists()
+        assert new_file.read_text() == "new file content"
+
+        # Rollback should delete the newly created file
+        engine._rollback()
+        assert not new_file.exists()
+
 
 class TestSelectiveRevalidation:
     """Tests for selective re-validation after fixes."""

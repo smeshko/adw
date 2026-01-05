@@ -152,6 +152,7 @@ class FixEngine:
         self.config = config
         self.validators: dict[str, ValidatorProtocol] = {v.name: v for v in validators}
         self._file_backups: dict[Path, str] = {}
+        self._files_created: set[Path] = set()  # Track newly created files for rollback
         self._iteration = 0
 
     def attempt_fixes(
@@ -377,15 +378,20 @@ If unsure, set replacement to null and explain in notes.
     def _backup_files(self, changes: list[FileChange]) -> None:
         """Backup files before modification.
 
-        Stores original content in memory for rollback.
+        Stores original content in memory for rollback. Also tracks
+        files that will be newly created so they can be deleted on rollback.
 
         Args:
             changes: List of changes to backup.
         """
         self._file_backups.clear()
+        self._files_created.clear()
         for change in changes:
             if change.file_path.exists():
                 self._file_backups[change.file_path] = change.file_path.read_text()
+            else:
+                # Track files that will be newly created
+                self._files_created.add(change.file_path)
 
     def _apply_changes(self, changes: list[FileChange]) -> None:
         """Apply file changes atomically.
@@ -393,37 +399,82 @@ If unsure, set replacement to null and explain in notes.
         Writes new content to files. If any write fails,
         should be followed by rollback.
 
+        Groups changes by file to handle multiple changes to the same file
+        correctly, ensuring cumulative edits are preserved.
+
         Args:
             changes: List of changes to apply.
 
         Raises:
             IOError: If file write fails.
         """
+        # Group changes by file path to handle multiple changes to same file
+        changes_by_file: dict[Path, list[FileChange]] = {}
         for change in changes:
-            if change.line_start is not None and change.line_end is not None:
-                # Partial line replacement
-                lines = change.original_content.splitlines(keepends=True)
-                new_lines = (
-                    lines[: change.line_start - 1]
-                    + [change.new_content + "\n"]
-                    + lines[change.line_end :]
-                )
-                change.file_path.write_text("".join(new_lines))
+            if change.file_path not in changes_by_file:
+                changes_by_file[change.file_path] = []
+            changes_by_file[change.file_path].append(change)
+
+        for file_path, file_changes in changes_by_file.items():
+            # Read current file content (may have been modified by earlier changes)
+            if file_path.exists():
+                current_content = file_path.read_text()
             else:
-                # Full file replacement
-                change.file_path.write_text(change.new_content)
+                current_content = ""
+
+            # Sort changes by line_start in reverse order to apply from bottom to top
+            # This prevents line number shifts from affecting later changes
+            partial_changes = [
+                c for c in file_changes
+                if c.line_start is not None and c.line_end is not None
+            ]
+            full_replacement = [
+                c for c in file_changes
+                if c.line_start is None or c.line_end is None
+            ]
+
+            # If there's a full replacement, it takes precedence
+            if full_replacement:
+                # Use the last full replacement
+                file_path.write_text(full_replacement[-1].new_content)
+            elif partial_changes:
+                # Sort by line_start descending to apply from bottom to top
+                partial_changes.sort(key=lambda c: c.line_start or 0, reverse=True)
+                lines = current_content.splitlines(keepends=True)
+
+                for change in partial_changes:
+                    # Apply each change to the current lines
+                    new_lines = (
+                        lines[: change.line_start - 1]
+                        + [change.new_content + "\n"]
+                        + lines[change.line_end :]
+                    )
+                    lines = new_lines
+
+                file_path.write_text("".join(lines))
 
     def _rollback(self) -> None:
         """Restore files from backup.
 
         Reverts all changes made during the current fix attempt.
+        Also deletes any newly created files to ensure atomic rollback.
         """
+        # Restore existing files from backup
         for path, content in self._file_backups.items():
             try:
                 path.write_text(content)
             except Exception as e:
                 logger.error(f"Failed to rollback {path}: {e}")
         self._file_backups.clear()
+
+        # Delete newly created files
+        for path in self._files_created:
+            try:
+                if path.exists():
+                    path.unlink()
+            except Exception as e:
+                logger.error(f"Failed to delete newly created file {path}: {e}")
+        self._files_created.clear()
 
     def _get_affected_validators(
         self,
