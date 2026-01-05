@@ -34,10 +34,10 @@ so that I can resume validation after interruption.
 ## Tasks / Subtasks
 
 ### Task 1: Create ValidationStateManager
-- [ ] Create `src/adw/validation/state_manager.py`
-- [ ] Define `ValidationStateManager` class
-- [ ] Inject run_id and base path for state storage
-- [ ] Support atomic writes for state files
+- [x] Create `src/adw/validation/state_manager.py`
+- [x] Define `ValidationStateManager` class
+- [x] Inject run_id and base path for state storage
+- [x] Support atomic writes for state files
 
 ### Task 2: Define Persistable State Models
 - [ ] Create `ValidationState` model with:

@@ -22,6 +22,7 @@ from adw.validation.models import (
     ValidationSource,
 )
 from adw.validation.phase import ValidationPhase
+from adw.validation.state_manager import ValidationStateManager
 from adw.validation.validators.base import Validator, ValidatorRegistry
 
 __all__ = [
@@ -36,6 +37,7 @@ __all__ = [
     "ValidationPhase",
     "ValidationResult",
     "ValidationSource",
+    "ValidationStateManager",
     "Validator",
     "ValidatorRegistry",
 ]
