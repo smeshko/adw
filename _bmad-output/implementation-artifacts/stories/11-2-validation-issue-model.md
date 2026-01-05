@@ -1,6 +1,6 @@
 # Story 11.2: Validation Issue Model
 
-Status: draft
+Status: complete
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
@@ -34,62 +34,62 @@ so that triage and fix tracking work reliably.
 ## Tasks / Subtasks
 
 ### Task 1: Create ValidationIssue Model
-- [ ] Create `src/adw/validation/models.py` for validation-specific models
-- [ ] Define `IssueSource` enum: TEST, REVIEW, EVIDENCE
-- [ ] Define `IssueSeverity` enum: ERROR, WARNING, INFO
-- [ ] Define `FixResult` enum: RESOLVED, PARTIAL, FAILED, NOT_ATTEMPTED
-- [ ] Create `ValidationIssue` Pydantic model with all required fields
+- [x] Create `src/adw/validation/models.py` for validation-specific models
+- [x] Define `IssueSource` enum: TEST, REVIEW, EVIDENCE
+- [x] Define `IssueSeverity` enum: ERROR, WARNING, INFO
+- [x] Define `FixResult` enum: RESOLVED, PARTIAL, FAILED, NOT_ATTEMPTED
+- [x] Create `ValidationIssue` Pydantic model with all required fields
 
 ### Task 2: Implement Issue ID Generation
-- [ ] Use ULID for unique issue IDs (reuse existing ULID utility)
-- [ ] Format: `VI-{ulid}` for human-readable prefix
-- [ ] Ensure IDs are stable across serialization/deserialization
+- [x] Use ULID for unique issue IDs (reuse existing ULID utility)
+- [x] Format: `VI-{ulid}` for human-readable prefix
+- [x] Ensure IDs are stable across serialization/deserialization
 
 ### Task 3: Define Issue Location Model
-- [ ] Create `IssueLocation` model with:
+- [x] Create `IssueLocation` model with:
   - `file_path: str | None`
   - `line_start: int | None`
   - `line_end: int | None`
   - `function_name: str | None`
   - `test_name: str | None`
-- [ ] Support multiple locations per issue (for cross-file issues)
+- [x] Support multiple locations per issue (for cross-file issues)
 
 ### Task 4: Add Issue Context
-- [ ] Create `IssueContext` model with:
+- [x] Create `IssueContext` model with:
   - `code_snippet: str | None`
   - `error_message: str | None`
   - `stack_trace: str | None`
   - `related_files: list[str]`
   - `suggestion: str | None`
-- [ ] Limit context fields to prevent excessive storage
+- [x] Limit context fields to prevent excessive storage
 
 ### Task 5: Implement Fix Tracking Fields
-- [ ] Add to ValidationIssue:
+- [x] Add to ValidationIssue:
   - `fix_attempted: bool = False`
   - `fix_attempt_count: int = 0`
   - `last_fix_result: FixResult = FixResult.NOT_ATTEMPTED`
   - `fix_history: list[FixAttempt]`
-- [ ] Create `FixAttempt` model with timestamp, result, and notes
+- [x] Create `FixAttempt` model with timestamp, result, and notes
 
 ### Task 6: Add Issue Comparison and Hashing
-- [ ] Implement `__eq__` for issue comparison
-- [ ] Implement `__hash__` for set operations
-- [ ] Create `is_same_issue(other: ValidationIssue)` for fuzzy matching
-- [ ] Support detecting if an issue was fixed vs still present
+- [x] Implement `__eq__` for issue comparison
+- [x] Implement `__hash__` for set operations
+- [x] Create `is_same_issue(other: ValidationIssue)` for fuzzy matching
+- [x] Support detecting if an issue was fixed vs still present
 
 ### Task 7: Add Serialization Methods
-- [ ] Implement `to_dict()` for JSON serialization
-- [ ] Implement `from_dict()` class method for deserialization
-- [ ] Implement `to_markdown()` for human-readable format
-- [ ] Support YAML serialization for persistence
+- [x] Implement `to_dict()` for JSON serialization
+- [x] Implement `from_dict()` class method for deserialization
+- [x] Implement `to_markdown()` for human-readable format
+- [x] Support YAML serialization for persistence
 
 ### Task 8: Write Tests
-- [ ] Unit tests for ValidationIssue model (8 tests)
-- [ ] Unit tests for IssueLocation model (4 tests)
-- [ ] Unit tests for IssueContext model (4 tests)
-- [ ] Unit tests for FixAttempt tracking (4 tests)
-- [ ] Unit tests for issue comparison/hashing (4 tests)
-- [ ] Unit tests for serialization (4 tests)
+- [x] Unit tests for ValidationIssue model (8 tests)
+- [x] Unit tests for IssueLocation model (4 tests)
+- [x] Unit tests for IssueContext model (4 tests)
+- [x] Unit tests for FixAttempt tracking (4 tests)
+- [x] Unit tests for issue comparison/hashing (4 tests)
+- [x] Unit tests for serialization (4 tests)
 
 ---
 
@@ -365,10 +365,30 @@ Epic 11: Validation Loop - Story 11.2
 
 ### Agent Model Used
 
-<!-- To be filled during implementation -->
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+None - implementation completed without issues.
+
 ### Completion Notes List
 
+- All enums (IssueSource, IssueSeverity, FixResult) implemented with str base for JSON compatibility
+- ValidationIssue model includes backward compatibility for legacy severity strings (critical, high, medium, low)
+- YAML serialization added via to_yaml()/from_yaml() methods
+- Validation models re-exported from src/adw/models/__init__.py for consistent import patterns
+- 36 unit tests covering all model functionality
+
 ### File List
+
+**New Files:**
+- `src/adw/validation/models.py` - ValidationIssue, IssueSource, IssueSeverity, FixResult, IssueLocation, IssueContext, FixAttempt models
+- `tests/unit/validation/test_models.py` - 36 comprehensive unit tests for validation models
+
+**Modified Files:**
+- `src/adw/validation/__init__.py` - Export new validation models
+- `src/adw/models/__init__.py` - Re-export validation models for consistent import patterns
+- `tests/unit/validation/test_phase.py` - Updated to use new IssueSeverity enum
+- `tests/unit/validation/validators/test_evidence_validator.py` - Updated severity assertions
+- `tests/unit/validation/validators/test_review_validator.py` - Updated severity assertions
+- `tests/unit/validation/validators/test_test_validator.py` - Updated severity assertions

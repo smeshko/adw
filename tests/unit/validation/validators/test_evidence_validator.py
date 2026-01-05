@@ -17,7 +17,7 @@ from adw.models.evidence import (
     EvidenceStatus,
     EvidenceType,
 )
-from adw.validation.models import ValidationIssue, ValidationSource
+from adw.validation.models import IssueSeverity, ValidationIssue, ValidationSource
 from adw.validation.validators.evidence_validator import EvidenceValidator
 
 
@@ -165,7 +165,8 @@ class TestEvidenceValidator:
             assert len(issues) == 1
             assert issues[0].source == ValidationSource.EVIDENCE
             assert "manifest" in issues[0].message.lower()
-            assert issues[0].severity in ["high", "medium"]
+            # high maps to ERROR, medium maps to WARNING
+            assert issues[0].severity in [IssueSeverity.ERROR, IssueSeverity.WARNING]
 
     def test_validate_skipped_evidence(
         self, mock_context: RunContext
@@ -240,4 +241,4 @@ class TestEvidenceValidator:
 
             assert len(issues) == 1
             assert issues[0].source == ValidationSource.EVIDENCE
-            assert issues[0].severity == "high"
+            assert issues[0].severity == IssueSeverity.ERROR  # high maps to ERROR

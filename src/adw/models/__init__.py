@@ -21,6 +21,8 @@ This package contains all Pydantic models used throughout ADW:
             CoverageSummary, EvidenceManifest,
             OptimizationConfig, FileOptimization, OptimizationReport
 - pr: PRDescription
+- validation: ValidationIssue, ValidationResult, IssueSource, IssueSeverity,
+              IssueLocation, IssueContext, FixAttempt, FixResult
 """
 
 from adw.models.artifacts import DiffStats
@@ -100,6 +102,16 @@ from adw.models.security import (
     ToolCallLog,
 )
 from adw.models.worktree import PortAllocation
+from adw.validation.models import (
+    FixAttempt,
+    FixResult,
+    IssueContext,
+    IssueLocation,
+    IssueSeverity,
+    IssueSource,
+    ValidationIssue,
+    ValidationResult,
+)
 
 # Rebuild StateSnapshot to resolve forward references to PhaseResult
 # This must happen after all models are imported
@@ -189,4 +201,13 @@ __all__: list[str] = [
     "ToolCallLog",
     # Worktree models
     "PortAllocation",
+    # Validation models
+    "FixAttempt",
+    "FixResult",
+    "IssueContext",
+    "IssueLocation",
+    "IssueSeverity",
+    "IssueSource",
+    "ValidationIssue",
+    "ValidationResult",
 ]
