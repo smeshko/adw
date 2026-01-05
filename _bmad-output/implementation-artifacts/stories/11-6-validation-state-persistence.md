@@ -1,6 +1,6 @@
 # Story 11.6: Validation State Persistence
 
-Status: draft
+Status: done
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
