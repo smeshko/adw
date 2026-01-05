@@ -795,16 +795,19 @@ class PhaseRunner:
 
         try:
             # Check if repository has commits (handles initial commit edge case)
-            if not has_commits():
+            # Pass worktree_path to git operations (Story 10.5)
+            if not has_commits(working_dir=context.worktree_path):
                 logger.debug(
                     "No commits in repository, trying staged changes",
                     extra={"run_id": context.run_id},
                 )
-                diff_content = capture_staged_diff()
+                diff_content = capture_staged_diff(working_dir=context.worktree_path)
                 diff_reference = "--cached"
             else:
                 # Try to capture diff since last commit
-                diff_content = capture_diff(since="HEAD~1")
+                diff_content = capture_diff(
+                    since="HEAD~1", working_dir=context.worktree_path
+                )
 
                 # If no diff found, try staged changes
                 if not diff_content.strip():
@@ -812,7 +815,9 @@ class PhaseRunner:
                         "No commit diff found, trying staged changes",
                         extra={"run_id": context.run_id},
                     )
-                    diff_content = capture_staged_diff()
+                    diff_content = capture_staged_diff(
+                        working_dir=context.worktree_path
+                    )
                     diff_reference = "--cached"
 
             # Handle empty diff case
