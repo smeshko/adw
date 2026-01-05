@@ -70,11 +70,11 @@ so that I can process multiple features in parallel.
 - [x] Call `unregister_run()` in cleanup method (covers finally block)
 
 ### Task 7: Write Tests
-- [ ] Test concurrent run limit enforcement
-- [ ] Test lock file creation and cleanup
-- [ ] Test stale lock detection
-- [ ] Test --running filter for list command
-- [ ] Test cleanup command identifies orphaned worktrees
+- [x] Test concurrent run limit enforcement
+- [x] Test lock file creation and cleanup
+- [x] Test stale lock detection
+- [x] Test --running filter for list command
+- [x] Test cleanup command identifies orphaned worktrees
 
 ---
 
