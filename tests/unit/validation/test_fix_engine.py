@@ -1087,3 +1087,42 @@ class TestFixIterationResult:
         restored = FixIterationResult.model_validate(data)
 
         assert restored == result
+
+    def test_json_serialization(self) -> None:
+        """FixIterationResult serializes to JSON for persistence."""
+        import json
+
+        result = FixIterationResult(
+            issues_fixed=["VI-001"],
+            issues_remaining=["VI-002"],
+            issues_deferred=["VI-003"],
+            files_modified=["src/foo.py", "src/bar.py"],
+            validation_rerun=True,
+            iteration_number=3,
+        )
+
+        # Serialize to JSON
+        json_str = result.model_dump_json()
+        data = json.loads(json_str)
+
+        assert data["issues_fixed"] == ["VI-001"]
+        assert data["issues_remaining"] == ["VI-002"]
+        assert data["issues_deferred"] == ["VI-003"]
+        assert data["files_modified"] == ["src/foo.py", "src/bar.py"]
+        assert data["validation_rerun"] is True
+        assert data["iteration_number"] == 3
+
+        # Deserialize from JSON
+        restored = FixIterationResult.model_validate_json(json_str)
+        assert restored == result
+
+    def test_default_values(self) -> None:
+        """FixIterationResult has sensible defaults."""
+        result = FixIterationResult()
+
+        assert result.issues_fixed == []
+        assert result.issues_remaining == []
+        assert result.issues_deferred == []
+        assert result.files_modified == []
+        assert result.validation_rerun is False
+        assert result.iteration_number == 0

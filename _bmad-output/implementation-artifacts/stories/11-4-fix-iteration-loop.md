@@ -74,13 +74,13 @@ so that issues are resolved automatically when possible.
 - [x] Log auto-defer decision for audit
 
 ### Task 7: Create Fix Result Model
-- [ ] Create `FixIterationResult` model with:
+- [x] Create `FixIterationResult` model with:
   - `issues_fixed: list[str]` (issue IDs)
   - `issues_remaining: list[str]`
   - `issues_deferred: list[str]`
   - `files_modified: list[str]`
   - `validation_rerun: bool`
-- [ ] Support serialization for state persistence
+- [x] Support serialization for state persistence
 
 ### Task 8: Write Tests
 - [ ] Unit tests for FixEngine (6 tests)
