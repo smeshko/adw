@@ -195,6 +195,53 @@ class LoggingConfig(BaseModel):
     )
 
 
+class WorktreeConfig(BaseModel):
+    """Configuration for git worktree isolation.
+
+    Controls how ADW manages git worktrees for isolated concurrent
+    run execution. When enabled, each run executes in its own worktree,
+    preventing concurrent runs from interfering with each other.
+
+    Attributes:
+        enabled: Whether worktree isolation is enabled (default: True)
+        base_dir: Directory for storing worktrees, relative to project root
+        preserve_on_failure: Keep worktree on failure for debugging (default: True)
+        cleanup_branch_on_remove: Delete the adw/<run_id> branch when removing
+            the worktree (default: False)
+
+    Example:
+        >>> config = WorktreeConfig(enabled=True, base_dir=".worktrees")
+        >>> config.enabled
+        True
+        >>> config.base_dir
+        '.worktrees'
+
+    YAML example:
+        worktree:
+          enabled: true
+          base_dir: "trees"
+          preserve_on_failure: true
+          cleanup_branch_on_remove: false
+    """
+
+    enabled: bool = Field(
+        default=True,
+        description="Whether worktree isolation is enabled",
+    )
+    base_dir: str = Field(
+        default="trees",
+        description="Directory for storing worktrees (relative to project root)",
+    )
+    preserve_on_failure: bool = Field(
+        default=True,
+        description="Keep worktree on failure for debugging",
+    )
+    cleanup_branch_on_remove: bool = Field(
+        default=False,
+        description="Delete the adw/<run_id> branch when removing worktree",
+    )
+
+
 class GitConfig(BaseModel):
     """Configuration for git integration.
 
@@ -306,6 +353,9 @@ class ProjectConfig(BaseModel):
     )
     git: GitConfig = Field(
         default_factory=GitConfig, description="Git integration configuration"
+    )
+    worktree: WorktreeConfig = Field(
+        default_factory=WorktreeConfig, description="Worktree isolation configuration"
     )
 
     @model_validator(mode="before")

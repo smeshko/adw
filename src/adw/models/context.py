@@ -78,6 +78,14 @@ class RunContext(BaseModel):
         default_factory=list,
         description="Git commit SHAs created during this run (for audit)",
     )
+    worktree_path: Path | None = Field(
+        default=None,
+        description="Path to the git worktree for this run (None if not using worktree)",
+    )
+    use_worktree: bool = Field(
+        default=True,
+        description="Whether this run uses worktree isolation",
+    )
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -139,6 +147,8 @@ class RunContext(BaseModel):
                 "artifacts": {"plan": ["plan.md"]},
                 "phase_tokens": {"plan": 500, "code": 1200},
                 "commit_shas": ["abc123def456789..."],
+                "worktree_path": "/project/trees/01KDSG2VDHNK0W4HSCZWJZXWSQ",
+                "use_worktree": True,
             }
         },
     }

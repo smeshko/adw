@@ -13,6 +13,7 @@ from rich.console import Console
 from adw.cli.progress import ProgressDisplay
 from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
+from adw.config.loader import ConfigLoader
 from adw.core import (
     ArtifactManager,
     ContextManager,
@@ -22,12 +23,13 @@ from adw.core import (
     SnapshotManager,
 )
 from adw.core.phase_runner import PhaseRunner
+from adw.exceptions import ConfigError
 from adw.executors.claude_code import ClaudeCodeExecutor
 from adw.hooks.runner import HookRunner
 from adw.logging import LLMCaptureManager, LogManager
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
-from adw.models.config import HookConfig, LLMConfig
+from adw.models.config import HookConfig, LLMConfig, WorktreeConfig
 from adw.models.logging import Verbosity
 from adw.security import SecurityInterceptor, ToolLogger
 
@@ -149,6 +151,15 @@ def create_orchestrator(
     runs_dir = get_runs_dir(project_root)
     console = console or Console()
 
+    # Load project configuration for worktree settings (Story 10.1)
+    worktree_config: WorktreeConfig | None = None
+    try:
+        config = ConfigLoader(project_root).load()
+        worktree_config = config.worktree
+    except ConfigError:
+        # No config file or invalid config - use defaults
+        worktree_config = WorktreeConfig()
+
     # Create managers
     context_manager = ContextManager(runs_dir)
     snapshot_manager = SnapshotManager(runs_dir)
@@ -205,6 +216,7 @@ def create_orchestrator(
         run_directory_manager=run_directory_manager,
         interruption_handler=interruption_handler,
         progress_display=progress_display,
+        worktree_config=worktree_config,
     )
 
     # Wire up the PhaseRunner

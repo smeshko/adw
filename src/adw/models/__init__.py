@@ -33,6 +33,7 @@ from adw.models.config import (
     PipelineConfig,
     ProjectConfig,
     RetryConfig,
+    WorktreeConfig,
 )
 from adw.models.context import (
     ProjectContext,
@@ -116,6 +117,7 @@ __all__: list[str] = [
     "PipelineConfig",
     "ProjectConfig",
     "RetryConfig",
+    "WorktreeConfig",
     # Context models
     "ProjectContext",
     "RunContext",
