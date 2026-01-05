@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 5
+issue_counter: 6
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -49,6 +49,7 @@ issues:
   ISS-003-run-id-not-found-by-logs-command: in-progress
   ISS-004-run-id-truncated-in-list-output: fixed
   ISS-005-feature-description-not-captured: reported
+  ISS-006-logmanager-not-connected-to-python-logging: reported
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -155,6 +156,8 @@ development_status:
   7-6-implement-secret-redaction: done
   # UX Fix (from ISS-003)
   ux-fix-ISS-003-run-id-not-found-by-logs-command: ready-for-dev
+  # UX Fix (from ISS-006)
+  ux-fix-ISS-006-logmanager-not-connected-to-python-logging: backlog
   epic-7-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
