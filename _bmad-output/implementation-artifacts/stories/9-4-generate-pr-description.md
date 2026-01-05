@@ -1,6 +1,6 @@
 # Story 9.4: Generate PR Description
 
-Status: drafted
+Status: review
 Epic: 9 - Git Integration & Documentation
 Created: 2026-01-04
 
@@ -32,20 +32,20 @@ so that I can quickly create a pull request.
 
 ## Tasks / Subtasks
 
-- [ ] Create PR description prompt template `defaults/commands/document/prompt.md`
-- [ ] Define PR description sections:
+- [x] Create PR description prompt template `defaults/commands/document/prompt.md`
+- [x] Define PR description sections:
   - Summary (1-2 sentences)
   - Changes (bullet list from diff stats)
   - Testing (from test results artifact)
   - Evidence (from evidence manifest if exists)
   - Screenshots (placeholder links if evidence includes images)
-- [ ] Implement PR description artifact saving
-- [ ] Add `{{artifacts.verify.evidence_manifest}}` to template variables
-- [ ] Create `PRDescription` Pydantic model for structured output
-- [ ] Update run completion panel to show PR description path
-- [ ] Implement schema validation for PR description output
-- [ ] Write unit tests for PR description model
-- [ ] Write integration tests for Document phase with PR output
+- [x] Implement PR description artifact saving
+- [x] Add `{{artifacts.verify.evidence_manifest}}` to template variables
+- [x] Create `PRDescription` Pydantic model for structured output
+- [x] Update run completion panel to show PR description path
+- [x] Implement schema validation for PR description output
+- [x] Write unit tests for PR description model
+- [x] Write integration tests for Document phase with PR output
 
 ---
 

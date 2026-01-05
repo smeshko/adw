@@ -276,6 +276,7 @@ class Orchestrator:
                         status="completed",
                         total_duration_ms=duration_ms,
                         total_tokens=total_tokens,
+                        run_id=context.run_id,
                     )
 
                 logger.info("Run completed", extra={"run_id": run_id})
@@ -328,6 +329,7 @@ class Orchestrator:
                     status="failed",
                     total_duration_ms=duration_ms,
                     total_tokens=total_tokens,
+                    run_id=context.run_id,
                 )
 
             logger.error(
@@ -374,6 +376,7 @@ class Orchestrator:
                     status="failed",
                     total_duration_ms=duration_ms,
                     total_tokens=total_tokens,
+                    run_id=context.run_id,
                 )
 
             logger.error(
@@ -663,6 +666,7 @@ class Orchestrator:
                         status="completed",
                         total_duration_ms=duration_ms,
                         total_tokens=total_tokens,
+                        run_id=context.run_id,
                     )
 
                 logger.info("Resume completed", extra={"run_id": run_id})
@@ -715,6 +719,7 @@ class Orchestrator:
                     status="failed",
                     total_duration_ms=duration_ms,
                     total_tokens=total_tokens,
+                    run_id=context.run_id,
                 )
 
             logger.error(
@@ -760,6 +765,7 @@ class Orchestrator:
                     status="failed",
                     total_duration_ms=duration_ms,
                     total_tokens=total_tokens,
+                    run_id=context.run_id,
                 )
 
             logger.error(

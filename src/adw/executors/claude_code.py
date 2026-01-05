@@ -163,7 +163,7 @@ class ClaudeCodeExecutor:
                 stats=LLMStats(
                     input_tokens=0,  # Not tracked by CLI currently
                     output_tokens=result.tokens_used,
-                    duration_ms=int(result.duration_seconds * 1000),
+                    duration_ms=result.duration_ms,
                 ),
                 tool_calls=[
                     {"id": tc.id, "name": tc.name, "input": tc.input}

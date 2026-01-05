@@ -20,6 +20,7 @@ This package contains all Pydantic models used throughout ADW:
             EvidenceType, EvidenceStatus, EvidenceItem, PlanStepCoverage,
             CoverageSummary, EvidenceManifest,
             OptimizationConfig, FileOptimization, OptimizationReport
+- pr: PRDescription
 """
 
 from adw.models.artifacts import DiffStats
@@ -90,6 +91,7 @@ from adw.models.phase import (
     PhaseResult,
     PhaseStatus,
 )
+from adw.models.pr import PRDescription
 from adw.models.security import (
     BlockedPattern,
     SecurityConfig,
@@ -174,6 +176,8 @@ __all__: list[str] = [
     "ArtifactType",
     "PhaseResult",
     "PhaseStatus",
+    # PR models
+    "PRDescription",
     # Security models
     "BlockedPattern",
     "SecurityConfig",

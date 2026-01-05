@@ -15,3 +15,7 @@ PHASE_SEQUENCE: tuple[str, ...] = (
     "validate",
     "document",
 )
+
+# Artifact path patterns for consistent path construction
+# Format: .adw/runs/{run_id}/artifacts/{phase}/{artifact_name}
+PR_DESCRIPTION_ARTIFACT = "artifacts/document/pr_description.md"

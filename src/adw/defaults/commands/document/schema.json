@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PRDescription",
+  "description": "Schema for structured PR description output from the document phase",
+  "type": "object",
+  "required": ["summary", "changes", "testing"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "1-2 sentence summary of what the PR accomplishes",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "changes": {
+      "type": "array",
+      "description": "List of key changes made in this PR",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "testing": {
+      "type": "string",
+      "description": "Description of how the changes were verified",
+      "minLength": 5
+    },
+    "evidence": {
+      "type": "string",
+      "description": "Links to evidence items or note about lack of evidence",
+      "default": "No visual evidence captured"
+    }
+  },
+  "additionalProperties": false
+}

@@ -179,9 +179,9 @@ development_status:
   # ═══════════════════════════════════════════════════════════════════════════
   epic-9: in-progress
   9-1-create-feature-branch-via-pre-hook: done
-  9-2-stage-and-commit-changes-via-post-hook: review
-  9-3-capture-git-diff-as-artifact: review
-  9-4-generate-pr-description: ready-for-dev
+  9-2-stage-and-commit-changes-via-post-hook: done
+  9-3-capture-git-diff-as-artifact: done
+  9-4-generate-pr-description: review
   9-5-support-pr-creation-command: ready-for-dev
   epic-9-retrospective: optional
 
