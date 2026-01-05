@@ -186,9 +186,7 @@ class TestCreatePrViaGh:
                 stderr="",
             )
             # no_open should be accepted and work (no-op since gh default is no-open)
-            url = create_pr_via_gh(
-                "Test PR", "## Summary\nTest", "main", no_open=True
-            )
+            url = create_pr_via_gh("Test PR", "## Summary\nTest", "main", no_open=True)
             assert url == "https://github.com/user/repo/pull/123"
 
 
@@ -526,7 +524,7 @@ class TestPrCommand:
                             with patch("adw.cli.pr._store_pr_url") as mock_store:
                                 mock_store.return_value = sample_context
 
-                                result = runner.invoke(
+                                runner.invoke(
                                     app, ["pr", sample_context.run_id, "--draft"]
                                 )
 
@@ -572,7 +570,7 @@ class TestPrCommand:
                             with patch("adw.cli.pr._store_pr_url") as mock_store:
                                 mock_store.return_value = sample_context
 
-                                result = runner.invoke(
+                                runner.invoke(
                                     app,
                                     [
                                         "pr",
@@ -624,7 +622,7 @@ class TestPrCommand:
                             with patch("adw.cli.pr._store_pr_url") as mock_store:
                                 mock_store.return_value = sample_context
 
-                                result = runner.invoke(
+                                runner.invoke(
                                     app,
                                     ["pr", sample_context.run_id, "--no-open"],
                                 )

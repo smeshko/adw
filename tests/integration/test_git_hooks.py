@@ -79,7 +79,9 @@ def git_repo(tmp_path: Path) -> Path:
 class TestGitBranchIntegration:
     """Integration tests for git branch operations."""
 
-    def test_create_new_branch(self, git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_create_new_branch(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should create a new branch when it doesn't exist."""
         monkeypatch.chdir(git_repo)
 
@@ -94,7 +96,9 @@ class TestGitBranchIntegration:
         )
         assert result.stdout.strip() == "feature/test-branch"
 
-    def test_switch_to_existing_branch(self, git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_switch_to_existing_branch(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should switch to an existing branch."""
         monkeypatch.chdir(git_repo)
 
@@ -122,7 +126,9 @@ class TestGitBranchIntegration:
         )
         assert result.stdout.strip() == "feature/existing"
 
-    def test_idempotent_creation(self, git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_idempotent_creation(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should be safe to call multiple times (idempotent)."""
         monkeypatch.chdir(git_repo)
 
@@ -138,7 +144,9 @@ class TestGitBranchIntegration:
         )
         assert result.stdout.strip() == "feature/idempotent"
 
-    def test_sanitized_branch_names(self, git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_sanitized_branch_names(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should work with sanitized branch names."""
         monkeypatch.chdir(git_repo)
 
@@ -158,13 +166,17 @@ class TestGitBranchIntegration:
 class TestUncommittedChangesIntegration:
     """Integration tests for uncommitted changes detection."""
 
-    def test_clean_repo_returns_false(self, git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_clean_repo_returns_false(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should return False for a clean working tree."""
         monkeypatch.chdir(git_repo)
 
         assert check_uncommitted_changes() is False
 
-    def test_modified_file_returns_true(self, git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_modified_file_returns_true(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should return True when a file is modified."""
         monkeypatch.chdir(git_repo)
 
@@ -173,7 +185,9 @@ class TestUncommittedChangesIntegration:
 
         assert check_uncommitted_changes() is True
 
-    def test_new_untracked_file_returns_true(self, git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_new_untracked_file_returns_true(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should return True for untracked files."""
         monkeypatch.chdir(git_repo)
 
@@ -182,7 +196,9 @@ class TestUncommittedChangesIntegration:
 
         assert check_uncommitted_changes() is True
 
-    def test_staged_changes_returns_true(self, git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_staged_changes_returns_true(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should return True for staged changes."""
         monkeypatch.chdir(git_repo)
 
@@ -196,7 +212,9 @@ class TestUncommittedChangesIntegration:
 
         assert check_uncommitted_changes() is True
 
-    def test_committed_changes_returns_false(self, git_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_committed_changes_returns_false(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should return False after committing changes."""
         monkeypatch.chdir(git_repo)
 
@@ -219,7 +237,9 @@ class TestUncommittedChangesIntegration:
 class TestGitHookErrorHandling:
     """Integration tests for error handling in git operations."""
 
-    def test_error_in_non_git_directory(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_error_in_non_git_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should raise HookError when not in a git repository."""
         monkeypatch.chdir(tmp_path)
 
@@ -227,7 +247,10 @@ class TestGitHookErrorHandling:
             create_or_switch_branch("feature/test")
 
         assert exc_info.value.code == "GIT_BRANCH_FAILED"
-        assert "not a git repository" in exc_info.value.stderr.lower() or "not a git repository" in exc_info.value.message.lower()
+        assert (
+            "not a git repository" in exc_info.value.stderr.lower()
+            or "not a git repository" in exc_info.value.message.lower()
+        )
 
     def test_check_uncommitted_changes_in_non_git_directory(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -239,7 +262,10 @@ class TestGitHookErrorHandling:
             check_uncommitted_changes()
 
         assert exc_info.value.code == "GIT_STATUS_FAILED"
-        assert "not a git repository" in exc_info.value.stderr.lower() or "not a git repository" in exc_info.value.message.lower()
+        assert (
+            "not a git repository" in exc_info.value.stderr.lower()
+            or "not a git repository" in exc_info.value.message.lower()
+        )
 
 
 class TestStageChangesIntegration:
@@ -507,9 +533,7 @@ class TestPreCommitHookIntegration:
         hooks_dir.mkdir(parents=True, exist_ok=True)
         pre_commit = hooks_dir / "pre-commit"
         pre_commit.write_text(
-            "#!/bin/bash\n"
-            "echo 'Pre-commit hook rejected' >&2\n"
-            "exit 1\n"
+            "#!/bin/bash\necho 'Pre-commit hook rejected' >&2\nexit 1\n"
         )
         pre_commit.chmod(0o755)
 
@@ -541,7 +565,7 @@ class TestPreCommitHookIntegration:
             "#!/bin/bash\n"
             "# Simulate a formatter that adds a trailing newline\n"
             "for file in $(git diff --cached --name-only); do\n"
-            "    if [[ -f \"$file\" ]]; then\n"
+            '    if [[ -f "$file" ]]; then\n'
             "        echo '' >> \"$file\"\n"
             "    fi\n"
             "done\n"
@@ -583,9 +607,7 @@ class TestPreCommitHookIntegration:
         hooks_dir.mkdir(parents=True, exist_ok=True)
         pre_commit = hooks_dir / "pre-commit"
         pre_commit.write_text(
-            "#!/bin/bash\n"
-            "echo 'Pre-commit hook rejected' >&2\n"
-            "exit 1\n"
+            "#!/bin/bash\necho 'Pre-commit hook rejected' >&2\nexit 1\n"
         )
         pre_commit.chmod(0o755)
 

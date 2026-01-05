@@ -39,7 +39,9 @@ class DiffStats(BaseModel):
             Summary string in format: '3 files changed, +42, -13'
             If binary files present, appends: ' (2 binary)'
         """
-        base = f"{self.files_changed} files changed, +{self.insertions}, -{self.deletions}"
+        base = (
+            f"{self.files_changed} files changed, +{self.insertions}, -{self.deletions}"
+        )
         if self.binary_files > 0:
             return f"{base} ({self.binary_files} binary)"
         return base

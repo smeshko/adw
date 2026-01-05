@@ -100,7 +100,7 @@ class TestDryRunDisplayWithConfig:
 
     def test_show_phases_with_hooks(self) -> None:
         """Test phase display shows pre and post hooks when configured."""
-        from adw.models import ProjectConfig, PhaseConfig
+        from adw.models import PhaseConfig
 
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=100)
@@ -147,7 +147,6 @@ class TestDryRunDisplayWithConfig:
 
     def test_show_config_display(self) -> None:
         """Test configuration display shows project settings."""
-        from adw.models import ProjectConfig
 
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=100)
@@ -179,7 +178,7 @@ class TestDryRunDisplayWithConfig:
 
     def test_show_config_with_git_settings(self) -> None:
         """Test configuration display shows git integration settings."""
-        from adw.models import ProjectConfig, GitConfig
+        from adw.models import GitConfig
 
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=100)
@@ -207,7 +206,9 @@ class TestDryRunDisplayWithConfig:
 class TestDryRunArtifactPreview:
     """Tests for artifact preview display."""
 
-    def test_show_artifact_preview_with_from_run(self, tmp_path: pytest.TempPathFactory) -> None:
+    def test_show_artifact_preview_with_from_run(
+        self, tmp_path: pytest.TempPathFactory
+    ) -> None:
         """Test artifact preview shows source run info."""
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=100)
@@ -225,7 +226,6 @@ class TestDryRunArtifactPreview:
 
     def test_show_artifact_preview_with_artifacts(self, tmp_path) -> None:
         """Test artifact preview lists actual artifacts."""
-        from pathlib import Path
         from adw.core.artifact_manager import ArtifactManager
 
         # Create test artifacts
@@ -295,7 +295,6 @@ class TestDryRunEdgeCases:
 
     def test_config_without_optional_fields(self) -> None:
         """Test config display with minimal configuration."""
-        from adw.models import ProjectConfig
 
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=100)

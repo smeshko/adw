@@ -8,8 +8,6 @@ This module tests:
 """
 
 import json
-import tempfile
-from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -27,19 +25,11 @@ from adw.models.evidence import (
     APIResponse,
     CLIEvidenceSummary,
     CommandResult,
-    CoverageSummary,
     EvidenceItem,
     EvidenceManifest,
     EvidenceStatus,
     EvidenceType,
-    MobileDeviceType,
-    MobileEvidenceSummary,
-    MobileScreenshotResult,
-    PlanStepCoverage,
-    ScreenshotResult,
-    WebEvidenceSummary,
 )
-
 
 # =============================================================================
 # ManifestGenerator Tests
@@ -110,9 +100,7 @@ class TestManifestGenerator:
                 ),
                 APIEvidenceResult(
                     endpoint_name="users",
-                    request=APIRequest(
-                        method="GET", url="http://localhost:8000/users"
-                    ),
+                    request=APIRequest(method="GET", url="http://localhost:8000/users"),
                     response=APIResponse(
                         status_code=200,
                         body={"users": []},  # Must be dict or string, not list
@@ -478,7 +466,9 @@ class TestManifestWriter:
             ],
         )
 
-    def test_write_creates_file(self, tmp_path: Path, sample_manifest: EvidenceManifest):
+    def test_write_creates_file(
+        self, tmp_path: Path, sample_manifest: EvidenceManifest
+    ):
         """Test writing manifest creates file."""
         writer = ManifestWriter(tmp_path)
         output_path = writer.write(sample_manifest)

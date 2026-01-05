@@ -38,31 +38,34 @@ so that concurrent runs don't interfere with each other or my working directory.
 ## Tasks / Subtasks
 
 ### Task 1: Create WorktreeManager Class
-- [ ] Create `src/adw/worktree/manager.py` with `WorktreeManager` class
-- [ ] Implement `create_worktree(run_id: str, source_branch: str | None) -> Path` method
-- [ ] Use `git worktree add trees/<run_id> -b adw/<run_id>` subprocess call
-- [ ] Handle errors: branch already exists, worktree already exists, git not available
-- [ ] Return the absolute path to the created worktree
+- [x] Create `src/adw/worktree/manager.py` with `WorktreeManager` class
+- [x] Implement `create_worktree(run_id: str, source_branch: str | None) -> Path` method
+- [x] Use `git worktree add trees/<run_id> -b adw/<run_id>` subprocess call
+- [x] Handle errors: branch already exists, worktree already exists, git not available
+- [x] Return the absolute path to the created worktree
 
 ### Task 2: Implement Worktree Cleanup
-- [ ] Implement `remove_worktree(run_id: str, force: bool = False) -> bool` method
-- [ ] Use `git worktree remove trees/<run_id>` subprocess call
-- [ ] Handle case where worktree has uncommitted changes (require force or preserve)
-- [ ] Clean up the `adw/<run_id>` branch after worktree removal (optional via config)
+- [x] Implement `remove_worktree(run_id: str, force: bool = False) -> bool` method
+- [x] Use `git worktree remove trees/<run_id>` subprocess call
+- [x] Handle case where worktree has uncommitted changes (require force or preserve)
+- [x] Clean up the `adw/<run_id>` branch after worktree removal (optional via config)
 
 ### Task 3: Add Worktree Configuration
-- [ ] Add `worktree` section to `ProjectConfig` model in `src/adw/models/config.py`
-- [ ] Configuration fields:
+- [x] Add `worktree` section to `ProjectConfig` model in `src/adw/models/config.py`
+- [x] Configuration fields:
   - `enabled: bool = True` - Enable worktree isolation
   - `base_dir: str = "trees"` - Relative to project root
   - `preserve_on_failure: bool = True` - Keep worktree on failure for debugging
   - `cleanup_branch_on_remove: bool = False` - Delete branch when removing worktree
 
 ### Task 4: Integrate with Orchestrator
-- [ ] Modify `Orchestrator.start_run()` to create worktree when enabled
-- [ ] Store worktree path in `RunContext.worktree_path: Path | None`
-- [ ] Modify `Orchestrator.complete_run()` to cleanup worktree based on config
-- [ ] Modify `Orchestrator.abort_run()` to preserve worktree for debugging
+- [x] Modify `Orchestrator.run()` to create worktree when enabled
+- [x] Store worktree path in `RunContext.worktree_path: Path | None`
+- [x] Add `use_worktree` flag to `RunContext`
+- [x] Modify `Orchestrator.run()` completion to cleanup worktree based on config
+- [x] Modify `Orchestrator.abort()` to preserve worktree for debugging
+- [x] Add `worktree_config` parameter to Orchestrator.__init__()
+- [x] Add `_create_worktree_for_run()` and `_cleanup_worktree()` helper methods
 
 ### Task 5: Add --no-worktree CLI Flag
 - [ ] Add `--no-worktree` option to `adw run` command in `src/adw/cli/run.py`
@@ -335,16 +338,52 @@ Epic 10: Worktree Isolation - Story 10.1
 
 ### Agent Model Used
 
-<!-- To be filled by dev agent -->
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
-<!-- To be filled during implementation -->
+- All 8 unit tests for WorktreeManager.create_worktree() pass
+- 308 total unit tests pass (no regressions)
 
 ### Completion Notes List
 
-<!-- To be filled during implementation -->
+- Task 1: Created WorktreeManager class with create_worktree() method
+  - Added WorktreeError exception to exceptions.py
+  - Created src/adw/worktree/ package with __init__.py and manager.py
+  - Implemented create_worktree() with branch/path conflict detection
+  - Added cleanup for partial failures during worktree creation
+  - All 8 creation tests pass
+
+- Task 2: Implemented remove_worktree() method
+  - Added remove_worktree(run_id, force, cleanup_branch) method
+  - Added _has_uncommitted_changes() helper for change detection
+  - Added _delete_branch() helper for optional branch cleanup
+  - All 6 removal tests pass (14 total tests)
+
+- Task 3: Added WorktreeConfig model
+  - Created WorktreeConfig class with enabled, base_dir, preserve_on_failure, cleanup_branch_on_remove
+  - Added worktree field to ProjectConfig
+  - Exported WorktreeConfig from models/__init__.py
+  - All 8 new config tests pass (33 total config tests)
+
+- Task 4: Full Orchestrator integration
+  - Added worktree_path: Path | None field to RunContext
+  - Added use_worktree: bool field to RunContext
+  - Added worktree_config parameter to Orchestrator.__init__()
+  - Added _create_worktree_for_run() and _cleanup_worktree() helper methods
+  - Modified run() to create worktree when enabled and use_worktree=True
+  - Added cleanup on successful completion
+  - Added preservation on failure (based on preserve_on_failure config)
+  - Added preservation on abort for debugging
+  - All 61 orchestrator tests pass
 
 ### File List
 
-<!-- To be filled during implementation -->
+**New Files:**
+- src/adw/worktree/__init__.py
+- src/adw/worktree/manager.py
+- tests/unit/worktree/__init__.py
+- tests/unit/worktree/test_manager.py
+
+**Modified Files:**
+- src/adw/exceptions.py (added WorktreeError class)

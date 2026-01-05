@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field
 
@@ -158,9 +158,7 @@ class PRDescription(BaseModel):
         changes: list[str] = []
         for line in changes_text.split("\n"):
             line = line.strip()
-            if line.startswith("- "):
-                changes.append(line[2:].strip())
-            elif line.startswith("* "):
+            if line.startswith("- ") or line.startswith("* "):
                 changes.append(line[2:].strip())
             elif line and not line.startswith("#"):
                 # Non-bullet line, treat as single change
@@ -207,13 +205,14 @@ class PRDescription(BaseModel):
         )
 
         if schema_path.exists():
-            return json.loads(schema_path.read_text(encoding="utf-8"))
+            schema_json = schema_path.read_text(encoding="utf-8")
+            return cast(dict[str, Any], json.loads(schema_json))
 
         # Fallback to Pydantic's built-in schema generation
         return cls.model_json_schema()
 
     @classmethod
-    def validate_json(cls, json_data: str | dict[str, Any]) -> "PRDescription":
+    def validate_json(cls, json_data: str | dict[str, Any]) -> PRDescription:
         """Validate JSON data against PR description schema.
 
         Parses JSON string or dict and validates against the PRDescription model.
@@ -229,16 +228,12 @@ class PRDescription(BaseModel):
             json.JSONDecodeError: If string is not valid JSON.
 
         Example:
-            >>> data = {"summary": "Fix bug", "changes": ["Fix auth"], "testing": "Tests pass"}
+            >>> data = {"summary": "Fix bug", "changes": ["Fix auth"]}
             >>> pr = PRDescription.validate_json(data)
             >>> pr.summary
             'Fix bug'
         """
-        if isinstance(json_data, str):
-            data = json.loads(json_data)
-        else:
-            data = json_data
-
+        data = json.loads(json_data) if isinstance(json_data, str) else json_data
         return cls.model_validate(data)
 
 

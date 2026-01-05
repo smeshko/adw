@@ -1074,7 +1074,9 @@ class TestRunIdValidation:
         result = runner.invoke(app, ["logs", "show", "not-a-valid-ulid"])
         assert result.exit_code == 1
         assert "Invalid run ID format" in result.output
-        assert "26-character" in result.output.lower() or "ulid" in result.output.lower()
+        assert (
+            "26-character" in result.output.lower() or "ulid" in result.output.lower()
+        )
 
     def test_truncated_ulid_shows_error(
         self, runner: CliRunner, mock_adw_dir: Path
@@ -1110,13 +1112,18 @@ class TestRunIdValidation:
         # Create a run with a known ID
         run_dir = mock_adw_dir / "runs" / "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
         run_dir.mkdir(parents=True)
-        (run_dir / "context.json").write_text('{"run_id": "01HQXK5P3Z7V8R2M4N6T9W1Y3C"}')
+        (run_dir / "context.json").write_text(
+            '{"run_id": "01HQXK5P3Z7V8R2M4N6T9W1Y3C"}'
+        )
 
         # Search with similar but wrong ID (same prefix)
         result = runner.invoke(app, ["logs", "show", "01HQXK5P3Z7V8R2M4N6T9W1Y3D"])
         assert result.exit_code == 1
         # Should suggest the similar run
-        assert "Did you mean" in result.output or "01HQXK5P3Z7V8R2M4N6T9W1Y3C" in result.output
+        assert (
+            "Did you mean" in result.output
+            or "01HQXK5P3Z7V8R2M4N6T9W1Y3C" in result.output
+        )
 
     def test_run_exists_but_no_logs_shows_helpful_message(
         self, runner: CliRunner, mock_adw_dir: Path
@@ -1167,7 +1174,9 @@ class TestIssueISS003Scenario:
         result = runner.invoke(app, ["logs", "show", "01HQXK5P3Z..."])
         assert result.exit_code == 1
         assert "Invalid run ID format" in result.output
-        assert "26-character" in result.output.lower() or "ulid" in result.output.lower()
+        assert (
+            "26-character" in result.output.lower() or "ulid" in result.output.lower()
+        )
 
     def test_partial_run_id_with_typo_suggests_correct_id(
         self, runner: CliRunner, mock_adw_dir: Path
@@ -1223,6 +1232,7 @@ class TestIssueISS003Scenario:
         This tests the happy path after ISS-003 fixes.
         """
         import json
+
         from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
 
         run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
@@ -1231,11 +1241,13 @@ class TestIssueISS003Scenario:
 
         # Create complete run structure
         (run_dir / "context.json").write_text(
-            json.dumps({
-                "run_id": run_id,
-                "status": "completed",
-                "current_phase": "build",
-            })
+            json.dumps(
+                {
+                    "run_id": run_id,
+                    "status": "completed",
+                    "current_phase": "build",
+                }
+            )
         )
 
         logs_dir = run_dir / "logs"

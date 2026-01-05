@@ -19,7 +19,6 @@ from adw.models.evidence import (
     AuthType,
     CommandConfig,
     EndpointConfig,
-    OptimizationConfig,
 )
 
 # =============================================================================
@@ -454,9 +453,7 @@ evidence:
         assert config.enabled is True
         assert config.max_image_size_kb == 500
 
-    def test_load_optimization_config_no_evidence_section(
-        self, tmp_path: Path
-    ) -> None:
+    def test_load_optimization_config_no_evidence_section(self, tmp_path: Path) -> None:
         """Test that defaults are returned when no evidence section exists."""
         config_file = tmp_path / ".adw" / "project.yaml"
         config_file.parent.mkdir(parents=True)

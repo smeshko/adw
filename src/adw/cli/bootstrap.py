@@ -24,7 +24,7 @@ from adw.core import (
 from adw.core.phase_runner import PhaseRunner
 from adw.executors.claude_code import ClaudeCodeExecutor
 from adw.hooks.runner import HookRunner
-from adw.logging import LogManager, LLMCaptureManager
+from adw.logging import LLMCaptureManager, LogManager
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
 from adw.models.config import HookConfig, LLMConfig

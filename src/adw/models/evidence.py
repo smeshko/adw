@@ -946,7 +946,11 @@ class EvidenceItem(BaseModel):
                 "path": "api/health.json",
                 "status": "pass",
                 "plan_step": "step_1",
-                "details": {"method": "GET", "status_code": 200, "duration_seconds": 0.012},
+                "details": {
+                    "method": "GET",
+                    "status_code": 200,
+                    "duration_seconds": 0.012,
+                },
             }
         }
     }

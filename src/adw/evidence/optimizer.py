@@ -23,7 +23,7 @@ from adw.models.evidence import (
 
 # Check if Pillow is available
 try:
-    from PIL import Image
+    from PIL import Image  # type: ignore[import-not-found]
 
     PILLOW_AVAILABLE = True
 except ImportError:
@@ -454,9 +454,7 @@ class EvidenceOptimizer:
                 total_size += file_path.stat().st_size
         return total_size
 
-    def calculate_type_breakdown(
-        self, directory: Path
-    ) -> dict[str, int]:
+    def calculate_type_breakdown(self, directory: Path) -> dict[str, int]:
         """Calculate size breakdown by file type.
 
         Groups files by extension and calculates total size for each type.
@@ -474,17 +472,14 @@ class EvidenceOptimizer:
                 continue
 
             suffix = file_path.suffix.lower()
-            if not suffix:
-                suffix = "no_extension"
-            else:
-                suffix = suffix.lstrip(".")
+            suffix = "no_extension" if not suffix else suffix.lstrip(".")
 
             size = file_path.stat().st_size
             breakdown[suffix] = breakdown.get(suffix, 0) + size
 
         return breakdown
 
-    def _format_size(self, size_bytes: int) -> str:
+    def _format_size(self, size_bytes: int | float) -> str:
         """Format bytes as human-readable string.
 
         Args:

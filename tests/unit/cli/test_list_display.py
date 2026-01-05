@@ -80,7 +80,9 @@ class TestShowRuns:
         output = console.file.getvalue()
         # Should show full run ID (not truncated) for copy/paste
         assert "01HQXK5P3Z7V8R2M4N6T9W1Y3A" in output
-        assert "..." not in output.replace("...", "", 1)  # Only feature truncation, not run ID
+        assert "..." not in output.replace(
+            "...", "", 1
+        )  # Only feature truncation, not run ID
 
     def test_show_runs_includes_feature(
         self, display: ListDisplay, console: Console

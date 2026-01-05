@@ -6,16 +6,13 @@ This module tests the Pydantic models used for evidence optimization:
 - OptimizationReport: Complete optimization report for a run
 """
 
-from datetime import UTC, datetime
-
-import pytest
+from datetime import datetime
 
 from adw.models.evidence import (
     FileOptimization,
     OptimizationConfig,
     OptimizationReport,
 )
-
 
 # =============================================================================
 # OptimizationConfig Tests

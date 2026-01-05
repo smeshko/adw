@@ -106,9 +106,7 @@ class DryRunDisplay:
 
         # Show dry-run notice
         self.console.print()
-        self.console.print(
-            "[yellow]Dry run mode - no execution will occur[/]"
-        )
+        self.console.print("[yellow]Dry run mode - no execution will occur[/]")
         self.console.print()
 
     def _show_phases_table(

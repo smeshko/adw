@@ -162,9 +162,10 @@ def create_or_switch_branch(branch_name: str) -> None:
 
     if checkout_result.returncode != 0:
         action = "switch to" if branch_exists else "create"
+        err_msg = checkout_result.stderr.strip()
         raise HookError(
             code="GIT_BRANCH_FAILED",
-            message=f"Failed to {action} branch '{branch_name}': {checkout_result.stderr.strip()}",
+            message=f"Failed to {action} branch '{branch_name}': {err_msg}",
             phase="pre-hook",
             exit_code=checkout_result.returncode,
             stderr=checkout_result.stderr,

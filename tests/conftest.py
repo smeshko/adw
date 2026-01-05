@@ -9,7 +9,6 @@ This module provides common fixtures for testing ADW components:
 - isolated_global_index: Redirects global index to temp directory (autouse)
 """
 
-import os
 from datetime import datetime
 from pathlib import Path
 

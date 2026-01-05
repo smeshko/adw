@@ -348,7 +348,10 @@ No visual evidence captured
 
     @pytest.fixture
     def phase_runner_no_evidence(
-        self, project_root: Path, runs_dir: Path, mock_executor_no_evidence: MockExecutor
+        self,
+        project_root: Path,
+        runs_dir: Path,
+        mock_executor_no_evidence: MockExecutor,
     ) -> PhaseRunner:
         """Create phase runner for no-evidence test."""
         command_resolver = CommandResolver(project_root=project_root)

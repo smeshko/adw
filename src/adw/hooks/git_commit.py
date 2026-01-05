@@ -267,7 +267,9 @@ def create_commit(
                 capture_output=True,
                 text=True,
                 check=False,
-            ).stdout.strip().split("\n")
+            )
+            .stdout.strip()
+            .split("\n")
         )
 
         # Create the commit

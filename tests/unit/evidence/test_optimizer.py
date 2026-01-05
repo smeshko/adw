@@ -9,16 +9,13 @@ This module tests the EvidenceOptimizer class:
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from adw.models.evidence import (
     FileOptimization,
     OptimizationConfig,
     OptimizationReport,
 )
-
 
 # =============================================================================
 # EvidenceOptimizer Tests
@@ -57,9 +54,7 @@ class TestEvidenceOptimizer:
 class TestImageCompression:
     """Tests for image compression functionality."""
 
-    def test_compress_image_returns_file_optimization(
-        self, tmp_path: Path
-    ) -> None:
+    def test_compress_image_returns_file_optimization(self, tmp_path: Path) -> None:
         """Test that compress_image returns FileOptimization."""
         from adw.evidence.optimizer import EvidenceOptimizer
 
@@ -151,9 +146,7 @@ class TestImageCompression:
 class TestTextTruncation:
     """Tests for text file truncation."""
 
-    def test_truncate_text_returns_file_optimization(
-        self, tmp_path: Path
-    ) -> None:
+    def test_truncate_text_returns_file_optimization(self, tmp_path: Path) -> None:
         """Test that truncate_text returns FileOptimization."""
         from adw.evidence.optimizer import EvidenceOptimizer
 
@@ -180,9 +173,7 @@ class TestTextTruncation:
         assert result.optimized is False
         assert "Under size threshold" in str(result.reason)
 
-    def test_truncate_text_preserves_head_and_tail(
-        self, tmp_path: Path
-    ) -> None:
+    def test_truncate_text_preserves_head_and_tail(self, tmp_path: Path) -> None:
         """Test that truncation preserves head and tail lines."""
         from adw.evidence.optimizer import EvidenceOptimizer
 
@@ -204,9 +195,7 @@ class TestTextTruncation:
             # Should contain truncation marker
             assert "truncated" in content.lower()
 
-    def test_truncate_text_records_truncated_lines(
-        self, tmp_path: Path
-    ) -> None:
+    def test_truncate_text_records_truncated_lines(self, tmp_path: Path) -> None:
         """Test that truncated line count is recorded."""
         from adw.evidence.optimizer import EvidenceOptimizer
 
@@ -233,9 +222,7 @@ class TestTextTruncation:
 class TestJsonMinification:
     """Tests for JSON file minification."""
 
-    def test_minify_json_returns_file_optimization(
-        self, tmp_path: Path
-    ) -> None:
+    def test_minify_json_returns_file_optimization(self, tmp_path: Path) -> None:
         """Test that minify_json returns FileOptimization."""
         from adw.evidence.optimizer import EvidenceOptimizer
 
@@ -439,9 +426,7 @@ class TestOptimizeEvidenceFunction:
         # Should skip all files when disabled
         assert report.files_optimized == 0
 
-    def test_optimize_evidence_loads_project_config(
-        self, tmp_path: Path
-    ) -> None:
+    def test_optimize_evidence_loads_project_config(self, tmp_path: Path) -> None:
         """Test that optimize_evidence loads config from project.yaml."""
         from adw.evidence import optimize_evidence
 

@@ -137,7 +137,7 @@ class ClaudeCodeExecutor:
         Raises:
             LLMError: If Claude Code is not found, execution fails, or timeout.
         """
-        from adw.models.logging import LLMRequest, LLMResponse
+        from adw.models.logging import LLMRequest, LLMResponse, LLMToolCall
 
         effective_timeout = self._resolve_timeout(timeout)
         current_phase = phase or "unknown"
@@ -166,7 +166,7 @@ class ClaudeCodeExecutor:
                     duration_ms=result.duration_ms,
                 ),
                 tool_calls=[
-                    {"id": f"call_{i}", "name": tc.tool_name, "input": tc.arguments}
+                    LLMToolCall(id=f"call_{i}", name=tc.tool_name, input=tc.arguments)
                     for i, tc in enumerate(result.tool_calls)
                 ],
             )

@@ -10,9 +10,7 @@ of feature description handling.
 
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
 from typer.testing import CliRunner
 from ulid import ULID
 
@@ -131,9 +129,7 @@ class TestFeatureDescriptionInRunContext:
 class TestFeatureDescriptionInContextManager:
     """Tests for feature description persistence via ContextManager."""
 
-    def test_context_manager_persists_feature_description(
-        self, tmp_path: Path
-    ) -> None:
+    def test_context_manager_persists_feature_description(self, tmp_path: Path) -> None:
         """Test that ContextManager saves and loads feature_description correctly."""
         runs_dir = tmp_path / ".adw" / "runs"
         runs_dir.mkdir(parents=True)
@@ -215,9 +211,7 @@ class TestFeatureDescriptionInGlobalIndex:
 class TestEndToEndFeatureDescription:
     """End-to-end tests for feature description flow."""
 
-    def test_feature_description_not_generic_placeholder(
-        self, tmp_path: Path
-    ) -> None:
+    def test_feature_description_not_generic_placeholder(self, tmp_path: Path) -> None:
         """Test that feature description is NOT the generic 'Add feature' placeholder."""
         (tmp_path / "pyproject.toml").touch()
 

@@ -4,7 +4,6 @@ Tests for capturing git diffs, parsing diff statistics,
 and truncating large diffs.
 """
 
-import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 

@@ -24,7 +24,9 @@ class TestSanitizeBranchName:
 
     def test_spaces_to_hyphens(self) -> None:
         """Should replace spaces with hyphens."""
-        assert sanitize_branch_name("add user authentication") == "add-user-authentication"
+        assert (
+            sanitize_branch_name("add user authentication") == "add-user-authentication"
+        )
 
     def test_multiple_spaces_to_single_hyphen(self) -> None:
         """Should collapse multiple spaces to single hyphen."""
@@ -55,7 +57,9 @@ class TestSanitizeBranchName:
 
     def test_real_world_example(self) -> None:
         """Should handle realistic feature names."""
-        assert sanitize_branch_name("Add user authentication") == "add-user-authentication"
+        assert (
+            sanitize_branch_name("Add user authentication") == "add-user-authentication"
+        )
         assert sanitize_branch_name("Fix bug #123 in login") == "fix-bug-123-in-login"
 
     def test_empty_string(self) -> None:
@@ -94,7 +98,9 @@ class TestCheckUncommittedChanges:
     def test_only_staged_changes(self) -> None:
         """Should detect staged changes."""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(stdout="A  staged_file.py\n", returncode=0)
+            mock_run.return_value = MagicMock(
+                stdout="A  staged_file.py\n", returncode=0
+            )
             assert check_uncommitted_changes() is True
 
     def test_raises_on_git_error(self) -> None:

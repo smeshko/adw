@@ -8,7 +8,6 @@ and coverage analysis.
 import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Union
 
 from adw.logging import LogCategory, get_logger
 from adw.models.evidence import (
@@ -29,12 +28,9 @@ from adw.models.evidence import (
 )
 
 # Union type for all evidence summary types
-EvidenceSummary = Union[
-    CLIEvidenceSummary,
-    WebEvidenceSummary,
-    APIEvidenceSummary,
-    MobileEvidenceSummary,
-]
+EvidenceSummary = (
+    CLIEvidenceSummary | WebEvidenceSummary | APIEvidenceSummary | MobileEvidenceSummary
+)
 
 
 class ManifestGenerator:
@@ -213,7 +209,10 @@ class ManifestGenerator:
             status = self._web_status(result)
             # Generate relative path from result
             name = f"{result.route}_{result.viewport.replace('x', '_')}"
-            path = f"screenshots/{result.path.name}" if result.path else f"screenshots/{name}.png"
+            if result.path:
+                path = f"screenshots/{result.path.name}"
+            else:
+                path = f"screenshots/{name}.png"
 
             items.append(
                 EvidenceItem(
@@ -363,9 +362,7 @@ class ManifestGenerator:
         """
         if result.error:
             return EvidenceStatus.ERROR
-        elif not result.success:
-            return EvidenceStatus.FAIL
-        elif not result.status_match:
+        elif not result.success or not result.status_match:
             return EvidenceStatus.FAIL
         else:
             return EvidenceStatus.PASS
@@ -628,9 +625,7 @@ class PlanStepLinker:
         step_coverage = None
 
         if plan_steps:
-            coverage, step_coverage = self._calculate_coverage(
-                plan_steps, linked_items
-            )
+            coverage, step_coverage = self._calculate_coverage(plan_steps, linked_items)
 
         # Return updated manifest
         return EvidenceManifest(
@@ -663,9 +658,7 @@ class PlanStepLinker:
             Tuple of (CoverageSummary, list[PlanStepCoverage])
         """
         # Build step coverage map
-        step_items: dict[str, list[str]] = {
-            step_id: [] for step_id, _ in plan_steps
-        }
+        step_items: dict[str, list[str]] = {step_id: [] for step_id, _ in plan_steps}
 
         for item in items:
             if item.plan_step and item.plan_step in step_items:
@@ -963,7 +956,13 @@ class EvidenceDirectoryScanner:
                 content = json.loads(file_path.read_text(encoding="utf-8"))
                 if isinstance(content, dict):
                     # Extract common fields
-                    for key in ["status_code", "method", "exit_code", "duration_seconds"]:
+                    common_keys = [
+                        "status_code",
+                        "method",
+                        "exit_code",
+                        "duration_seconds",
+                    ]
+                    for key in common_keys:
                         if key in content:
                             details[key] = content[key]
             except (json.JSONDecodeError, OSError):
@@ -1084,8 +1083,8 @@ class ManifestWriter:
         if len(manifest.items) != manifest.total_items:
             self._logger.warn(
                 LogCategory.STATE,
-                f"Manifest item count inconsistent: items list has {len(manifest.items)} "
-                f"but total_items={manifest.total_items}",
+                f"Manifest item count inconsistent: items list has "
+                f"{len(manifest.items)} but total_items={manifest.total_items}",
             )
 
         # Validate coverage if present

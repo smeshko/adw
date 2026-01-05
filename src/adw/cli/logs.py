@@ -70,11 +70,15 @@ def _find_similar_runs(runs_dir: Path, target: str) -> list[str]:
         if run_path.is_dir() and not run_path.name.startswith("."):
             run_id = run_path.name
             # Prefix match (common copy/paste truncation)
-            if len(target) >= min_prefix_len and len(run_id) >= min_prefix_len:
-                if run_id[:min_prefix_len] == target[:min_prefix_len]:
-                    similar.append(run_id)
+            if (
+                len(target) >= min_prefix_len
+                and len(run_id) >= min_prefix_len
+                and run_id[:min_prefix_len] == target[:min_prefix_len]
+            ):
+                similar.append(run_id)
 
     return similar
+
 
 logs_app = typer.Typer(
     name="logs",
@@ -123,8 +127,7 @@ def _get_run_dir(run_id: str, *, debug: bool = False) -> Path:
     if not _validate_ulid(run_id):
         console.print(f"[red]Error:[/] Invalid run ID format: {run_id}")
         console.print(
-            "[dim]Run IDs are 26-character ULIDs "
-            "(e.g., 01HQXK5P3Z7V8R2M4N6T9W1Y3C)[/]"
+            "[dim]Run IDs are 26-character ULIDs (e.g., 01HQXK5P3Z7V8R2M4N6T9W1Y3C)[/]"
         )
         raise typer.Exit(1)
 

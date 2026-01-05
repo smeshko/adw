@@ -19,17 +19,18 @@ from adw.evidence.config_loader import (
     load_evidence_config,
     load_optimization_config,
 )
-from adw.evidence.optimizer import (
-    PILLOW_AVAILABLE,
-    EvidenceOptimizer,
-)
 from adw.evidence.detector import PlatformDetector
 from adw.evidence.file_writer import EvidenceFileWriter
 from adw.evidence.manifest import (
     EvidenceDirectoryScanner,
+    EvidenceSummary,
     ManifestGenerator,
     ManifestWriter,
     PlanStepLinker,
+)
+from adw.evidence.optimizer import (
+    PILLOW_AVAILABLE,
+    EvidenceOptimizer,
 )
 
 # API capture requires httpx (optional dependency)
@@ -170,7 +171,7 @@ def generate_evidence_manifest(
     run_id: str,
     platform: str,
     evidence_directory: Path,
-    summaries: list = None,
+    summaries: list[EvidenceSummary] | None = None,
     plan_path: Path | None = None,
     explicit_links: dict[str, str] | None = None,
 ) -> "EvidenceManifest":
@@ -333,8 +334,9 @@ def optimize_evidence(
 
     logger.info(
         LogCategory.STATE,
-        f"Evidence optimization complete: {report.files_optimized}/{report.total_files} files optimized, "
-        f"saved {report.total_savings_bytes:,} bytes ({report.total_savings_percent:.1f}%)",
+        f"Evidence optimization complete: {report.files_optimized}/"
+        f"{report.total_files} files optimized, saved {report.total_savings_bytes:,} "
+        f"bytes ({report.total_savings_percent:.1f}%)",
     )
 
     return report
