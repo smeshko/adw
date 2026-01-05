@@ -90,11 +90,11 @@ validation:
 - [x] Show exit reason when loop completes
 
 ### Task 8: Write Tests
-- [ ] Unit tests for ValidationLoopController (6 tests)
-- [ ] Unit tests for exit condition checks (5 tests)
-- [ ] Unit tests for stall detection (4 tests)
-- [ ] Unit tests for auto-defer logic (3 tests)
-- [ ] Integration test for full loop execution (2 tests)
+- [x] Unit tests for ValidationLoopController (6 tests)
+- [x] Unit tests for exit condition checks (5 tests)
+- [x] Unit tests for stall detection (4 tests)
+- [x] Unit tests for auto-defer logic (4 tests)
+- [x] Integration test for full loop execution (2 tests)
 
 ---
 

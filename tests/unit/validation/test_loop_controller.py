@@ -81,6 +81,31 @@ class TestLoopState:
         assert state.previous_issue_fingerprints == set()
 
 
+class TestGetSummary:
+    """Tests for get_summary() method."""
+
+    def test_get_summary_returns_all_stats(self) -> None:
+        """get_summary returns dictionary with all stats."""
+        controller = ValidationLoopController(ValidationConfig())
+        controller.start_iteration()
+        controller.state.total_issues_found = 10
+        controller.state.issues_resolved = 5
+        controller.state.issues_dismissed = 2
+        controller.state.issues_deferred = 1
+        controller.state.issues_remaining = 2
+        controller.state.stall_count = 1
+
+        summary = controller.get_summary()
+
+        assert summary["iterations_run"] == 1
+        assert summary["total_issues"] == 10
+        assert summary["resolved"] == 5
+        assert summary["dismissed"] == 2
+        assert summary["deferred"] == 1
+        assert summary["remaining"] == 2
+        assert summary["stalls_detected"] == 1
+
+
 class TestExitReason:
     """Tests for ExitReason enum."""
 
@@ -592,3 +617,88 @@ class TestShouldExit:
         assert should_exit is True
         # Max iterations should be checked first
         assert reason == ExitReason.MAX_ITERATIONS
+
+
+class TestLoopControllerIntegration:
+    """Integration tests for full loop execution."""
+
+    def test_full_loop_resolves_all_issues(self) -> None:
+        """Complete loop execution resolving all issues."""
+        from adw.validation.models import FixResult, IssueSource, ValidationIssue
+
+        config = ValidationConfig(max_iterations=5, stall_threshold=2)
+        controller = ValidationLoopController(config)
+
+        # Simulate a loop that resolves issues
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description=f"Issue {i}",
+            )
+            for i in range(3)
+        ]
+        for issue in issues:
+            issue.triage_decision = "FIX"
+            issue.fix_attempt_count = 0
+
+        iteration_count = 0
+        while True:
+            iteration = controller.start_iteration()
+            iteration_count = iteration
+
+            # Simulate fixing one issue per iteration
+            if issues:
+                issues[0].last_fix_result = FixResult.RESOLVED
+                issues[0].triage_decision = "RESOLVED"
+                issues = issues[1:]
+
+            # Update state and check exit
+            controller.update_counts(issues)
+            controller.check_progress(issues)
+
+            should_exit, reason = controller.should_exit()
+            if should_exit:
+                break
+
+        # Should have exited with ALL_RESOLVED after 3 iterations
+        assert reason == ExitReason.ALL_RESOLVED
+        assert iteration_count == 3
+
+    def test_full_loop_hits_max_iterations(self) -> None:
+        """Complete loop execution hitting max iterations."""
+        from adw.validation.models import IssueSource, ValidationIssue
+
+        config = ValidationConfig(max_iterations=3, stall_threshold=5)
+        controller = ValidationLoopController(config)
+
+        # Create issues that never get resolved
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description="Unfixable issue",
+            )
+        ]
+        issues[0].triage_decision = "FIX"
+        issues[0].fix_attempt_count = 0
+
+        while True:
+            controller.start_iteration()
+            controller.update_counts(issues)
+
+            # Simulate attempted fix (increment fix_attempt_count)
+            issues[0].fix_attempt_count += 1
+            controller.check_progress(issues)
+
+            should_exit, reason = controller.should_exit()
+            if should_exit:
+                break
+
+        # Should have exited with MAX_ITERATIONS
+        assert reason == ExitReason.MAX_ITERATIONS
+        assert controller.state.current_iteration == 3
+
+        # Auto-defer remaining
+        controller.auto_defer_remaining(issues, reason)
+        assert issues[0].triage_decision == "DEFER"
