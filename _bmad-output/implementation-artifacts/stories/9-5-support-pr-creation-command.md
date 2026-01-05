@@ -1,6 +1,6 @@
 # Story 9.5: Support PR Creation Command
 
-Status: Ready for Review
+Status: Done
 Epic: 9 - Git Integration & Documentation
 Created: 2026-01-04
 
