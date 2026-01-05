@@ -26,9 +26,10 @@ from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
 from adw.evidence import detect_platform, optimize_evidence
 from adw.exceptions import ADWError, ConfigError
-from adw.models import RunContext
+from adw.models import RunContext, WorktreeConfig
 from adw.models.evidence import PlatformType
 from adw.models.phase import PhaseResult
+from adw.worktree.manager import WorktreeManager
 
 if TYPE_CHECKING:
     from adw.cli.progress import ProgressDisplay
@@ -115,6 +116,7 @@ class Orchestrator:
         *,
         progress_display: "ProgressDisplay | None" = None,
         max_retries: int = 3,
+        worktree_config: WorktreeConfig | None = None,
     ) -> None:
         """Initialize the Orchestrator.
 
@@ -128,6 +130,7 @@ class Orchestrator:
             index_manager: Manager for global execution index (optional).
             progress_display: Display for phase progress (optional, Story 5.5).
             max_retries: Maximum retry attempts for recoverable errors (default: 3).
+            worktree_config: Configuration for worktree isolation (optional, Story 10.1).
         """
         self.runs_dir = runs_dir
         # Derive project path from runs_dir (runs_dir is typically .adw/runs)
@@ -143,6 +146,15 @@ class Orchestrator:
         self.progress_display = progress_display
         self.max_retries = max_retries
         self._phase_runner: PhaseRunnerProtocol | None = None
+
+        # Worktree isolation (Story 10.1)
+        self.worktree_config = worktree_config or WorktreeConfig()
+        self._worktree_manager: WorktreeManager | None = None
+        if self.worktree_config.enabled:
+            self._worktree_manager = WorktreeManager(
+                project_root=self._project_path,
+                base_dir=self.worktree_config.base_dir,
+            )
 
     def set_phase_runner(self, phase_runner: PhaseRunnerProtocol) -> None:
         """Set the phase runner for executing individual phases.
@@ -183,19 +195,25 @@ class Orchestrator:
         self,
         feature_description: str,
         run_id: str | None = None,
+        *,
+        use_worktree: bool = True,
     ) -> RunContext:
         """Execute the full pipeline for a feature.
 
         This method orchestrates the complete execution flow:
         1. Generate a new run ID (ULID) if not provided
-        2. Create initial context and run directory
-        3. Execute each phase in sequence with interruption checking
-        4. Handle errors, retries, and graceful shutdown
-        5. Mark run as completed, failed, or interrupted
+        2. Create worktree for isolation (if enabled)
+        3. Create initial context and run directory
+        4. Execute each phase in sequence with interruption checking
+        5. Handle errors, retries, and graceful shutdown
+        6. Clean up worktree on success, preserve on failure
+        7. Mark run as completed, failed, or interrupted
 
         Args:
             feature_description: Description of the feature to implement.
             run_id: Optional run ID. If not provided, a new ULID is generated.
+            use_worktree: Whether to use worktree isolation for this run.
+                Defaults to True. Set to False to run in current directory.
 
         Returns:
             Final RunContext with status and artifacts.
@@ -208,9 +226,23 @@ class Orchestrator:
         Example:
             >>> context = orchestrator.run("Add user authentication")
             >>> print(context.status)  # "completed" or "failed"
+            >>> # Run without worktree isolation
+            >>> context = orchestrator.run("Quick fix", use_worktree=False)
         """
         # Use provided run_id or generate new one
         run_id = run_id or str(ULID())
+
+        # Determine if we should use worktree for this run
+        should_use_worktree = (
+            use_worktree
+            and self.worktree_config.enabled
+            and self._worktree_manager is not None
+        )
+
+        # Create worktree if enabled (Story 10.1)
+        worktree_path: Path | None = None
+        if should_use_worktree:
+            worktree_path = self._create_worktree_for_run(run_id)
 
         # Create initial context
         context = RunContext(
@@ -219,6 +251,8 @@ class Orchestrator:
             current_phase=PHASE_SEQUENCE[0],
             started_at=datetime.now(UTC),
             status="running",
+            worktree_path=worktree_path,
+            use_worktree=should_use_worktree,
         )
 
         # Create run directory structure
@@ -279,6 +313,10 @@ class Orchestrator:
                         run_id=context.run_id,
                     )
 
+                # Clean up worktree on successful completion (Story 10.1)
+                if context.use_worktree and context.worktree_path:
+                    self._cleanup_worktree(context.run_id, preserve=False)
+
                 logger.info("Run completed", extra={"run_id": run_id})
 
         except ShutdownRequested as e:
@@ -332,6 +370,13 @@ class Orchestrator:
                     run_id=context.run_id,
                 )
 
+            # Handle worktree on failure (Story 10.1)
+            if context.use_worktree and context.worktree_path:
+                self._cleanup_worktree(
+                    context.run_id,
+                    preserve=self.worktree_config.preserve_on_failure,
+                )
+
             logger.error(
                 "Run failed",
                 extra={
@@ -377,6 +422,13 @@ class Orchestrator:
                     total_duration_ms=duration_ms,
                     total_tokens=total_tokens,
                     run_id=context.run_id,
+                )
+
+            # Handle worktree on failure (Story 10.1)
+            if context.use_worktree and context.worktree_path:
+                self._cleanup_worktree(
+                    context.run_id,
+                    preserve=self.worktree_config.preserve_on_failure,
                 )
 
             logger.error(
@@ -1248,9 +1300,102 @@ class Orchestrator:
             context, reason=reason
         )
 
+        # Preserve worktree on abort for debugging (Story 10.1)
+        if context.use_worktree and context.worktree_path:
+            # Always preserve on abort - user may want to debug
+            logger.info(
+                "Preserving worktree for debugging after abort",
+                extra={
+                    "run_id": run_id,
+                    "worktree_path": str(context.worktree_path),
+                },
+            )
+
         logger.info(
             "Run aborted",
             extra={"run_id": run_id, "reason": reason},
         )
 
         return updated_context
+
+    def _create_worktree_for_run(self, run_id: str) -> Path | None:
+        """Create a worktree for the given run.
+
+        Creates a git worktree in the configured base directory for isolated
+        execution of this run.
+
+        Args:
+            run_id: ULID identifier for this run.
+
+        Returns:
+            Path to the created worktree, or None if creation failed.
+        """
+        if self._worktree_manager is None:
+            return None
+
+        try:
+            worktree_path = self._worktree_manager.create_worktree(run_id)
+            logger.info(
+                "Created worktree for run",
+                extra={
+                    "run_id": run_id,
+                    "worktree_path": str(worktree_path),
+                },
+            )
+            return worktree_path
+
+        except Exception as e:
+            # Log but don't fail the run - fall back to running in current directory
+            logger.warning(
+                "Failed to create worktree, running in current directory",
+                extra={
+                    "run_id": run_id,
+                    "error": str(e),
+                },
+            )
+            return None
+
+    def _cleanup_worktree(self, run_id: str, *, preserve: bool = False) -> None:
+        """Clean up or preserve the worktree for a run.
+
+        Args:
+            run_id: ULID identifier for this run.
+            preserve: If True, log but don't remove the worktree.
+        """
+        if self._worktree_manager is None:
+            return
+
+        if preserve:
+            worktree_path = self._worktree_manager.worktree_base_path / run_id
+            logger.info(
+                "Preserving worktree for debugging",
+                extra={
+                    "run_id": run_id,
+                    "worktree_path": str(worktree_path),
+                },
+            )
+            return
+
+        try:
+            self._worktree_manager.remove_worktree(
+                run_id,
+                force=True,
+                cleanup_branch=self.worktree_config.cleanup_branch_on_remove,
+            )
+            logger.info(
+                "Cleaned up worktree",
+                extra={
+                    "run_id": run_id,
+                    "cleanup_branch": self.worktree_config.cleanup_branch_on_remove,
+                },
+            )
+
+        except Exception as e:
+            # Log but don't fail - worktree cleanup is not critical
+            logger.warning(
+                "Failed to cleanup worktree",
+                extra={
+                    "run_id": run_id,
+                    "error": str(e),
+                },
+            )
