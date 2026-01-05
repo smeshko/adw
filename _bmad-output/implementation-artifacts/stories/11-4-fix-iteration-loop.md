@@ -62,10 +62,10 @@ so that issues are resolved automatically when possible.
 - [x] Aggregate new issues from re-validation
 
 ### Task 5: Add Fix Attempt Tracking
-- [ ] Update `ValidationIssue.fix_attempted` to True
-- [ ] Increment `ValidationIssue.fix_attempt_count`
-- [ ] Create `FixAttempt` record with result
-- [ ] Store in `ValidationIssue.fix_history`
+- [x] Update `ValidationIssue.fix_attempted` to True
+- [x] Increment `ValidationIssue.fix_attempt_count`
+- [x] Create `FixAttempt` record with result
+- [x] Store in `ValidationIssue.fix_history`
 
 ### Task 6: Implement Auto-Defer on Max Attempts
 - [ ] Check `fix_attempt_count >= max_fix_attempts_per_issue`
