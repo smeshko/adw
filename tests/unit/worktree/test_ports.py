@@ -139,8 +139,13 @@ class TestPortAvailability:
     def test_available_port_returns_true(self) -> None:
         """Unused port returns True."""
         allocator = PortAllocator()
-        # Use a high port that's unlikely to be in use
-        assert allocator.is_port_available(59999) is True
+        # Discover a guaranteed-free port by binding to port 0
+        temp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        temp_sock.bind(("127.0.0.1", 0))
+        free_port = temp_sock.getsockname()[1]
+        temp_sock.close()
+        # Now the port is free, test availability
+        assert allocator.is_port_available(free_port) is True
 
     def test_used_port_returns_false(self) -> None:
         """Port with active listener returns False."""

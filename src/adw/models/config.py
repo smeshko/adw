@@ -308,6 +308,38 @@ class WorktreeConfig(BaseModel):
         description="Maximum number of concurrent runs (slot count)",
     )
 
+    @model_validator(mode="after")
+    def validate_port_ranges(self) -> Self:
+        """Validate that port ranges don't exceed valid port numbers.
+
+        Ensures that backend_start + max_concurrent - 1 and
+        frontend_start + max_concurrent - 1 don't exceed 65535.
+
+        Returns:
+            Self if validation passes.
+
+        Raises:
+            ValueError: If port range would exceed valid port numbers.
+        """
+        max_backend = self.port_range.backend_start + self.max_concurrent - 1
+        max_frontend = self.port_range.frontend_start + self.max_concurrent - 1
+
+        if max_backend > 65535:
+            msg = (
+                f"Backend port range exceeds valid ports: "
+                f"{self.port_range.backend_start} + {self.max_concurrent} - 1 = {max_backend} > 65535"
+            )
+            raise ValueError(msg)
+
+        if max_frontend > 65535:
+            msg = (
+                f"Frontend port range exceeds valid ports: "
+                f"{self.port_range.frontend_start} + {self.max_concurrent} - 1 = {max_frontend} > 65535"
+            )
+            raise ValueError(msg)
+
+        return self
+
 
 class GitConfig(BaseModel):
     """Configuration for git integration.
