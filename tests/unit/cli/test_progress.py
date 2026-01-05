@@ -7,6 +7,7 @@ and overall progress bar.
 
 from datetime import UTC
 from io import StringIO
+from pathlib import Path
 
 from rich.console import Console
 
@@ -590,3 +591,202 @@ class TestErrorDisplay:
         # Live display should be stopped
         assert progress._live is None
         assert progress._progress is None
+
+
+class TestPipelineSummaryWithPRResult:
+    """Tests for pipeline summary with PR result (Story ISS-011)."""
+
+    def test_shows_pr_url_when_success(self) -> None:
+        """Test displays PR URL when PR creation succeeds."""
+        from adw.cli.pr import AutoPRResult
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        progress = ProgressDisplay(console)
+
+        pr_result = AutoPRResult(
+            success=True,
+            pr_url="https://github.com/user/repo/pull/123",
+        )
+
+        progress.show_pipeline_summary(
+            completed_phases=["plan", "build", "verify", "validate", "document"],
+            status="completed",
+            total_duration_ms=10000,
+            total_tokens=5000,
+            run_id="01JFTEST000000000000000001",
+            pr_result=pr_result,
+        )
+
+        output_text = output.getvalue()
+        assert "PR Created" in output_text
+        assert "pull/123" in output_text
+
+    def test_shows_description_path_when_no_remote(self) -> None:
+        """Test displays description path with hint when no remote."""
+        from adw.cli.pr import AutoPRResult
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        progress = ProgressDisplay(console)
+
+        pr_result = AutoPRResult(
+            success=False,
+            reason="No git remote configured",
+        )
+
+        progress.show_pipeline_summary(
+            completed_phases=["plan", "build", "verify", "validate", "document"],
+            status="completed",
+            total_duration_ms=10000,
+            total_tokens=5000,
+            run_id="01JFTEST000000000000000001",
+            pr_result=pr_result,
+        )
+
+        output_text = output.getvalue()
+        assert "PR Description" in output_text
+        assert "remote" in output_text.lower()
+
+    def test_shows_gh_install_hint_when_not_installed(self) -> None:
+        """Test displays gh CLI install hint when gh not installed."""
+        from adw.cli.pr import AutoPRResult
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        progress = ProgressDisplay(console)
+
+        pr_result = AutoPRResult(
+            success=False,
+            reason="GitHub CLI (gh) not installed",
+        )
+
+        progress.show_pipeline_summary(
+            completed_phases=["plan", "build", "verify", "validate", "document"],
+            status="completed",
+            total_duration_ms=10000,
+            total_tokens=5000,
+            run_id="01JFTEST000000000000000001",
+            pr_result=pr_result,
+        )
+
+        output_text = output.getvalue()
+        assert "PR Description" in output_text
+        assert "Install GitHub CLI" in output_text
+
+    def test_backward_compatible_without_pr_result(self) -> None:
+        """Test works without pr_result (backward compatibility)."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        progress = ProgressDisplay(console)
+
+        # Call without pr_result (old behavior)
+        progress.show_pipeline_summary(
+            completed_phases=["plan", "build", "verify", "validate", "document"],
+            status="completed",
+            total_duration_ms=10000,
+            total_tokens=5000,
+            run_id="01JFTEST000000000000000001",
+        )
+
+        output_text = output.getvalue()
+        assert "PR Description" in output_text
+        assert "pr_description.md" in output_text
+
+
+class TestTryAutoCreatePr:
+    """Tests for try_auto_create_pr method (Story ISS-011)."""
+
+    def test_returns_none_when_disabled(self, tmp_path: Path) -> None:
+        """Test returns None when auto-PR is disabled."""
+        from datetime import datetime, UTC
+        from adw.models import RunContext
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        progress = ProgressDisplay(console)
+
+        context = RunContext(
+            run_id="01JFTEST000000000000000001",
+            feature_description="Test feature",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            status="completed",
+        )
+
+        result = progress.try_auto_create_pr(
+            run_id=context.run_id,
+            context=context,
+            runs_dir=tmp_path,
+            auto_create_pr_enabled=False,
+        )
+
+        assert result is None
+
+    def test_returns_result_when_enabled(self, tmp_path: Path) -> None:
+        """Test returns AutoPRResult when enabled."""
+        from datetime import datetime, UTC
+        from unittest.mock import patch
+        from adw.cli.pr import AutoPRResult
+        from adw.models import RunContext
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        progress = ProgressDisplay(console)
+
+        context = RunContext(
+            run_id="01JFTEST000000000000000001",
+            feature_description="Test feature",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            status="completed",
+        )
+
+        with patch("adw.cli.pr.auto_create_pr") as mock_create:
+            mock_create.return_value = AutoPRResult(
+                success=True,
+                pr_url="https://github.com/user/repo/pull/123",
+            )
+
+            result = progress.try_auto_create_pr(
+                run_id=context.run_id,
+                context=context,
+                runs_dir=tmp_path,
+                auto_create_pr_enabled=True,
+            )
+
+            assert result is not None
+            assert result.success is True
+            assert result.pr_url == "https://github.com/user/repo/pull/123"
+
+    def test_handles_exception_gracefully(self, tmp_path: Path) -> None:
+        """Test handles exceptions without crashing."""
+        from datetime import datetime, UTC
+        from unittest.mock import patch
+        from adw.models import RunContext
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=100)
+        progress = ProgressDisplay(console)
+
+        context = RunContext(
+            run_id="01JFTEST000000000000000001",
+            feature_description="Test feature",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            status="completed",
+        )
+
+        with patch("adw.cli.pr.auto_create_pr") as mock_create:
+            mock_create.side_effect = Exception("Unexpected error")
+
+            result = progress.try_auto_create_pr(
+                run_id=context.run_id,
+                context=context,
+                runs_dir=tmp_path,
+                auto_create_pr_enabled=True,
+            )
+
+            assert result is not None
+            assert result.success is False
+            assert "Unexpected error" in result.reason

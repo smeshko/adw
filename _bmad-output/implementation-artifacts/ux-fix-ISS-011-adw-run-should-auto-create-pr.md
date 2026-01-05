@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-011 - ADW Run Should Auto-Create PR
 
-Status: in-progress
+Status: completed
 Linear Issue: not-configured
 Epic: 9 - Git Integration & Documentation
 Created: 2026-01-05
@@ -15,13 +15,13 @@ so that **I don't need to run a separate command and can immediately see my work
 
 ## Acceptance Criteria
 
-- [ ] After successful run completion, check if git remote exists
-- [ ] Check if `gh` CLI is available in PATH
-- [ ] If both conditions met: automatically create PR using generated description
-- [ ] Display PR URL in completion summary
-- [ ] If conditions not met: show current behavior (path to PR description)
-- [ ] Add optional hint: "Run 'adw pr <run_id>' to create PR manually"
-- [ ] Add config option: `git.auto_create_pr` (default: true if remote exists)
+- [x] After successful run completion, check if git remote exists
+- [x] Check if `gh` CLI is available in PATH
+- [x] If both conditions met: automatically create PR using generated description
+- [x] Display PR URL in completion summary
+- [x] If conditions not met: show current behavior (path to PR description)
+- [x] Add optional hint: "Run 'adw pr <run_id>' to create PR manually"
+- [x] Add config option: `git.auto_create_pr` (default: true if remote exists)
 
 ## Tasks / Subtasks
 
@@ -51,11 +51,11 @@ so that **I don't need to run a separate command and can immediately see my work
 - [x] Allow users to disable auto-PR creation
 
 ### Task 5: Write Tests
-- [ ] Unit test: Remote detection works correctly
-- [ ] Unit test: GH CLI detection works correctly
-- [ ] Unit test: PR is created when conditions met
-- [ ] Unit test: Graceful fallback when conditions not met
-- [ ] Integration test: End-to-end run → PR creation flow
+- [x] Unit test: Remote detection works correctly
+- [x] Unit test: GH CLI detection works correctly
+- [x] Unit test: PR is created when conditions met
+- [x] Unit test: Graceful fallback when conditions not met
+- [x] Integration test: End-to-end run → PR creation flow (covered by progress display tests)
 
 ---
 
