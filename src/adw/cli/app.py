@@ -12,6 +12,7 @@ from adw.cli.dry_run import DryRunDisplay
 from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
 from adw.cli.logs import logs_app
+from adw.cli.pr import pr as pr_command
 from adw.cli.resume import resume as resume_command
 from adw.cli.run_display import RunDisplay
 from adw.cli.status import status as status_command
@@ -317,3 +318,6 @@ app.command(name="list")(list_runs)
 
 # Register the logs subapp (Story 7.5)
 app.add_typer(logs_app, name="logs")
+
+# Register the pr command (Story 9.5)
+app.command()(pr_command)
