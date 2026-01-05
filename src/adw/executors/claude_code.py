@@ -166,8 +166,8 @@ class ClaudeCodeExecutor:
                     duration_ms=result.duration_ms,
                 ),
                 tool_calls=[
-                    {"id": tc.id, "name": tc.name, "input": tc.input}
-                    for tc in result.tool_calls
+                    {"id": f"call_{i}", "name": tc.tool_name, "input": tc.arguments}
+                    for i, tc in enumerate(result.tool_calls)
                 ],
             )
             self.llm_capture.capture_response(response)
