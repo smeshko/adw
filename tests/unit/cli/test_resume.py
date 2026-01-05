@@ -1,11 +1,12 @@
 """Tests for CLI resume command.
 
 Tests for the `adw resume [RUN_ID]` command including:
-- Argument parsing
-- Flag handling (--from-phase, --verbose)
+- Phase validation
 - Resume header display
 - Error handling for non-existent runs
 - StateError for corrupted context (AC4)
+
+Help text verification tests removed per TEST_REDUCTION_PLAN.md
 """
 
 from pathlib import Path
@@ -23,32 +24,6 @@ runner = CliRunner()
 def cli_runner() -> CliRunner:
     """Create a CLI test runner."""
     return CliRunner()
-
-
-class TestResumeCommand:
-    """Tests for the resume command basic functionality."""
-
-    def test_resume_help(self) -> None:
-        """Test that resume command shows help."""
-        result = runner.invoke(app, ["resume", "--help"])
-        assert result.exit_code == 0
-        assert "Resume a failed or interrupted run" in result.output
-
-    def test_resume_accepts_run_id_argument(self) -> None:
-        """Test that resume command accepts run_id as positional argument."""
-        result = runner.invoke(app, ["resume", "--help"])
-        assert "RUN_ID" in result.output
-
-    def test_resume_from_phase_flag_accepted(self, cli_runner: CliRunner) -> None:
-        """Test that --from-phase flag is recognized."""
-        result = cli_runner.invoke(app, ["resume", "--help"])
-        # Check for "from-phase" to handle ANSI escape codes splitting the dashes
-        assert "from-phase" in result.output
-
-    def test_resume_help_flag_accepted(self, cli_runner: CliRunner) -> None:
-        """Test that --help flag shows command usage."""
-        result = cli_runner.invoke(app, ["resume", "--help"])
-        assert "Resume" in result.output or "resume" in result.output
 
 
 class TestFromPhaseValidation:
