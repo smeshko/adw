@@ -385,6 +385,211 @@ class TestFixPromptGeneration:
         assert "replacement" in prompt
 
 
+class TestFixApplication:
+    """Tests for fix application (backup, apply, rollback)."""
+
+    def test_parse_fix_response_extracts_fixes(
+        self,
+        mock_llm_executor: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Valid JSON response parsed into FileChange objects."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        # Create a test file
+        test_file = tmp_path / "test.py"
+        test_file.write_text("original content")
+
+        response = f'''
+        {{
+            "fixes": [
+                {{
+                    "issue_id": "VI-001",
+                    "file_path": "{test_file}",
+                    "replacement": "fixed content"
+                }}
+            ]
+        }}
+        '''
+
+        changes = engine._parse_fix_response(response)
+
+        assert len(changes) == 1
+        assert changes[0].file_path == test_file
+        assert changes[0].new_content == "fixed content"
+        assert changes[0].original_content == "original content"
+
+    def test_parse_fix_response_handles_invalid_json(
+        self,
+        mock_llm_executor: MagicMock,
+    ) -> None:
+        """Invalid JSON returns empty list, doesn't crash."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        changes = engine._parse_fix_response("not valid json at all")
+        assert changes == []
+
+    def test_parse_fix_response_skips_null_replacement(
+        self,
+        mock_llm_executor: MagicMock,
+    ) -> None:
+        """Fixes with null replacement are skipped (uncertain fixes)."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        response = '''
+        {
+            "fixes": [
+                {
+                    "issue_id": "VI-001",
+                    "file_path": "src/test.py",
+                    "replacement": null
+                }
+            ]
+        }
+        '''
+
+        changes = engine._parse_fix_response(response)
+        assert changes == []
+
+    def test_backup_files_stores_original_content(
+        self,
+        mock_llm_executor: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Backup stores file content before modification."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        # Create test files
+        file1 = tmp_path / "file1.py"
+        file1.write_text("content 1")
+        file2 = tmp_path / "file2.py"
+        file2.write_text("content 2")
+
+        from adw.validation.fix_engine import FileChange
+
+        changes = [
+            FileChange(file_path=file1, original_content="", new_content="new1"),
+            FileChange(file_path=file2, original_content="", new_content="new2"),
+        ]
+
+        engine._backup_files(changes)
+
+        assert engine._file_backups[file1] == "content 1"
+        assert engine._file_backups[file2] == "content 2"
+
+    def test_apply_changes_writes_files(
+        self,
+        mock_llm_executor: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Apply changes writes new content to files."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        test_file = tmp_path / "test.py"
+        test_file.write_text("original")
+
+        from adw.validation.fix_engine import FileChange
+
+        changes = [
+            FileChange(
+                file_path=test_file,
+                original_content="original",
+                new_content="fixed",
+            )
+        ]
+
+        engine._apply_changes(changes)
+
+        assert test_file.read_text() == "fixed"
+
+    def test_rollback_restores_original_content(
+        self,
+        mock_llm_executor: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Rollback restores files from backup."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        test_file = tmp_path / "test.py"
+        test_file.write_text("original")
+
+        from adw.validation.fix_engine import FileChange
+
+        changes = [
+            FileChange(
+                file_path=test_file,
+                original_content="original",
+                new_content="broken",
+            )
+        ]
+
+        # Backup, apply, then rollback
+        engine._backup_files(changes)
+        engine._apply_changes(changes)
+        assert test_file.read_text() == "broken"
+
+        engine._rollback()
+        assert test_file.read_text() == "original"
+
+    def test_apply_changes_partial_line_replacement(
+        self,
+        mock_llm_executor: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Partial line replacement modifies specific lines."""
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(),
+            validators=[],
+        )
+
+        test_file = tmp_path / "test.py"
+        test_file.write_text("line1\nline2\nline3\nline4\n")
+
+        from adw.validation.fix_engine import FileChange
+
+        changes = [
+            FileChange(
+                file_path=test_file,
+                original_content="line1\nline2\nline3\nline4\n",
+                new_content="fixed_line",
+                line_start=2,
+                line_end=3,
+            )
+        ]
+
+        engine._apply_changes(changes)
+
+        result = test_file.read_text()
+        assert "line1" in result
+        assert "fixed_line" in result
+        assert "line4" in result
+
+
 class TestFixIterationResult:
     """Tests for FixIterationResult model."""
 
