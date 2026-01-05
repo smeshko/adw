@@ -46,9 +46,9 @@ so that my git history stays clean.
 - [x] Return True if deleted, False if preserved
 
 ### Task 3: Integrate with Worktree Creation
-- [ ] Modify `WorktreeManager.create_worktree()` to use branch manager
-- [ ] Create `adw/<run_id>` branch from base ref before worktree add
-- [ ] Store branch_name in RunContext
+- [x] Modify `WorktreeManager.create_worktree()` to use branch manager
+- [x] Create `adw/<run_id>` branch from base ref before worktree add
+- [x] Store branch_name in RunContext
 
 ### Task 4: Implement Cleanup Integration
 - [ ] Add `delete_branch` parameter to `WorktreeManager.remove_worktree()`

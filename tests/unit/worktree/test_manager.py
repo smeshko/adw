@@ -354,3 +354,77 @@ class TestWorktreeManagerRemoval:
             text=True,
         )
         assert branch_name in result.stdout
+
+
+class TestWorktreeManagerBranchIntegration:
+    """Tests for WorktreeManager branch manager integration."""
+
+    @pytest.fixture
+    def git_repo(self, tmp_path: Path) -> Path:
+        """Create a temporary git repository for testing."""
+        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@test.com"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        readme = tmp_path / "README.md"
+        readme.write_text("# Test")
+        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Initial commit"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        return tmp_path
+
+    def test_branch_manager_property_returns_manager(self, git_repo: Path) -> None:
+        """branch_manager property returns WorktreeBranchManager instance."""
+        from adw.worktree.branch import WorktreeBranchManager
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+
+        assert isinstance(manager.branch_manager, WorktreeBranchManager)
+
+    def test_get_branch_name_returns_expected_format(self, git_repo: Path) -> None:
+        """get_branch_name returns adw/<run_id> format."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQTEST12345678901234567"
+
+        branch_name = manager.get_branch_name(run_id)
+
+        assert branch_name == f"adw/{run_id}"
+
+    def test_get_branch_name_matches_created_worktree_branch(
+        self, git_repo: Path
+    ) -> None:
+        """get_branch_name returns the same name as the worktree branch."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQTEST12345678901234567"
+
+        # Create worktree
+        manager.create_worktree(run_id)
+
+        # Branch name should match
+        branch_name = manager.get_branch_name(run_id)
+
+        result = subprocess.run(
+            ["git", "branch", "--list", branch_name],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+        )
+        assert branch_name in result.stdout

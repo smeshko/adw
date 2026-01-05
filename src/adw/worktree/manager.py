@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 
 from adw.exceptions import ConfigError, WorktreeError
+from adw.worktree.branch import WorktreeBranchManager
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,27 @@ class WorktreeManager:
         """
         self.project_root = project_root.resolve()
         self.base_dir = base_dir
+        self._branch_manager = WorktreeBranchManager(self.project_root)
+
+    @property
+    def branch_manager(self) -> WorktreeBranchManager:
+        """Get the branch manager for this worktree manager.
+
+        Returns:
+            The WorktreeBranchManager instance used by this manager.
+        """
+        return self._branch_manager
+
+    def get_branch_name(self, run_id: str) -> str:
+        """Get the branch name for a given run ID.
+
+        Args:
+            run_id: ULID identifier for the run.
+
+        Returns:
+            Branch name in format `adw/<run_id>`.
+        """
+        return self._branch_manager.get_branch_name(run_id)
 
     @property
     def worktree_base_path(self) -> Path:
@@ -89,8 +111,8 @@ class WorktreeManager:
                 suggestion=f"Remove the directory or use a different run ID: rm -rf {worktree_path}",
             )
 
-        # Check if branch already exists
-        if self._branch_exists(branch_name):
+        # Check if branch already exists (using branch manager for consistency)
+        if self._branch_manager.branch_exists(branch_name):
             raise WorktreeError(
                 code="BRANCH_EXISTS",
                 message=f"Branch '{branch_name}' already exists for run '{run_id}'",
@@ -151,27 +173,6 @@ class WorktreeManager:
                 message="Git is not installed or not in PATH",
                 suggestion="Install git and ensure it's in your PATH",
             ) from e
-
-    def _branch_exists(self, branch_name: str) -> bool:
-        """Check if a branch already exists.
-
-        Args:
-            branch_name: Name of the branch to check.
-
-        Returns:
-            True if the branch exists, False otherwise.
-        """
-        try:
-            result = subprocess.run(
-                ["git", "branch", "--list", branch_name],
-                cwd=self.project_root,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            return bool(result.stdout.strip())
-        except FileNotFoundError:
-            return False
 
     def remove_worktree(
         self,
