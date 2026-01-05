@@ -130,7 +130,7 @@ class Orchestrator:
             index_manager: Manager for global execution index (optional).
             progress_display: Display for phase progress (optional, Story 5.5).
             max_retries: Maximum retry attempts for recoverable errors (default: 3).
-            worktree_config: Configuration for worktree isolation (optional, Story 10.1).
+            worktree_config: Worktree isolation config (optional, Story 10.1).
         """
         self.runs_dir = runs_dir
         # Derive project path from runs_dir (runs_dir is typically .adw/runs)
@@ -243,6 +243,13 @@ class Orchestrator:
         worktree_path: Path | None = None
         if should_use_worktree:
             worktree_path = self._create_worktree_for_run(run_id)
+            # If worktree creation failed, update flag to reflect reality
+            if worktree_path is None:
+                should_use_worktree = False
+                logger.warning(
+                    "Worktree creation failed, running in current directory",
+                    extra={"run_id": run_id},
+                )
 
         # Create initial context
         context = RunContext(
@@ -449,6 +456,8 @@ class Orchestrator:
         feature_description: str,
         from_run_id: str | None = None,
         run_id: str | None = None,
+        *,
+        use_worktree: bool = True,
     ) -> RunContext:
         """Execute a single phase in isolation.
 
@@ -461,6 +470,8 @@ class Orchestrator:
             feature_description: Description of the feature to implement.
             from_run_id: Source run ID for loading artifacts (optional for plan).
             run_id: Optional run ID. If not provided, a new ULID is generated.
+            use_worktree: Whether to use worktree isolation for this run.
+                Defaults to True. Set to False to run in current directory.
 
         Returns:
             RunContext for this single-phase execution.
@@ -474,9 +485,32 @@ class Orchestrator:
             >>> context = orchestrator.run_single_phase(
             ...     "build", "Add login", from_run_id="01HQTEST123"
             ... )
+            >>> # Run without worktree isolation
+            >>> context = orchestrator.run_single_phase(
+            ...     "plan", "Quick fix", use_worktree=False
+            ... )
         """
         # Use provided run_id or generate new one
         run_id = run_id or str(ULID())
+
+        # Determine if we should use worktree for this run (Story 10.1)
+        should_use_worktree = (
+            use_worktree
+            and self.worktree_config.enabled
+            and self._worktree_manager is not None
+        )
+
+        # Create worktree if enabled
+        worktree_path: Path | None = None
+        if should_use_worktree:
+            worktree_path = self._create_worktree_for_run(run_id)
+            # If worktree creation failed, update flag to reflect reality
+            if worktree_path is None:
+                should_use_worktree = False
+                logger.warning(
+                    "Worktree creation failed, running in current directory",
+                    extra={"run_id": run_id},
+                )
 
         # Create initial context
         context = RunContext(
@@ -485,6 +519,8 @@ class Orchestrator:
             current_phase=phase,
             started_at=datetime.now(UTC),
             status="running",
+            worktree_path=worktree_path,
+            use_worktree=should_use_worktree,
         )
 
         # Create run directory structure
@@ -542,6 +578,10 @@ class Orchestrator:
                 extra={"run_id": run_id, "phase": phase},
             )
 
+            # Clean up worktree on success (Story 10.1)
+            if should_use_worktree and worktree_path is not None:
+                self._cleanup_worktree(run_id, preserve=False)
+
         except ADWError as e:
             # Mark as failed
             context = context.model_copy(
@@ -569,6 +609,13 @@ class Orchestrator:
                     "error_code": e.code,
                 },
             )
+
+            # Cleanup or preserve worktree based on config (Story 10.1)
+            if should_use_worktree and worktree_path is not None:
+                self._cleanup_worktree(
+                    run_id,
+                    preserve=self.worktree_config.preserve_on_failure,
+                )
             raise
 
         except Exception as e:
@@ -598,6 +645,13 @@ class Orchestrator:
                     "error": str(e),
                 },
             )
+
+            # Cleanup or preserve worktree based on config (Story 10.1)
+            if should_use_worktree and worktree_path is not None:
+                self._cleanup_worktree(
+                    run_id,
+                    preserve=self.worktree_config.preserve_on_failure,
+                )
             raise
 
         return context
