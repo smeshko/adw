@@ -228,11 +228,13 @@ class ClaudeCodeExecutor:
             },
         )
 
-        # Create subprocess
+        # Create subprocess with increased buffer limit for large JSON outputs
+        # Default is 64KB which can be exceeded by tool results with large file contents
         process = await asyncio.create_subprocess_exec(
             *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            limit=1024 * 1024,  # 1MB buffer limit
         )
 
         try:

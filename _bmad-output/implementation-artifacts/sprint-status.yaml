@@ -182,7 +182,7 @@ development_status:
   9-2-stage-and-commit-changes-via-post-hook: done
   9-3-capture-git-diff-as-artifact: done
   9-4-generate-pr-description: done
-  9-5-support-pr-creation-command: ready-for-dev
+  9-5-support-pr-creation-command: in-progress
   epic-9-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
