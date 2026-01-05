@@ -926,6 +926,129 @@ class TestFixAttemptTracking:
         assert issue.last_fix_result == FixResult.FAILED
 
 
+class TestAutoDeferLogic:
+    """Tests for auto-defer on max attempts."""
+
+    def test_auto_defer_after_max_attempts(
+        self,
+        mock_llm_executor: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
+        """Issue auto-deferred after max fix attempts reached."""
+        mock_llm_executor.execute.return_value = MagicMock(
+            success=True,
+            content='{"fixes": []}',
+        )
+
+        issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Persistent failure",
+            location=IssueLocation(file_path="tests/test.py"),
+            triage_decision="FIX",
+            fix_attempt_count=1,  # Already tried once
+        )
+
+        # Validator returns same issue
+        same_issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Persistent failure",
+            location=IssueLocation(file_path="tests/test.py"),
+        )
+        validator = MockValidator("test", [same_issue])
+
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(max_fix_attempts_per_issue=2),
+            validators=[validator],
+        )
+
+        result = engine.attempt_fixes([issue], mock_context)
+
+        assert issue.triage_decision == "DEFER"
+        assert issue.id in result.issues_deferred
+
+    def test_auto_defer_sets_reason(
+        self,
+        mock_llm_executor: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
+        """Auto-defer sets appropriate reason message."""
+        mock_llm_executor.execute.return_value = MagicMock(
+            success=True,
+            content='{"fixes": []}',
+        )
+
+        issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failure",
+            location=IssueLocation(file_path="tests/test.py"),
+            triage_decision="FIX",
+            fix_attempt_count=1,
+        )
+
+        same_issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failure",
+            location=IssueLocation(file_path="tests/test.py"),
+        )
+        validator = MockValidator("test", [same_issue])
+
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(max_fix_attempts_per_issue=2),
+            validators=[validator],
+        )
+
+        engine.attempt_fixes([issue], mock_context)
+
+        assert "Max fix attempts reached" in (issue.triage_reason or "")
+        assert "2" in (issue.triage_reason or "")
+
+    def test_no_defer_under_max_attempts(
+        self,
+        mock_llm_executor: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
+        """Issue not deferred when under max attempts."""
+        mock_llm_executor.execute.return_value = MagicMock(
+            success=True,
+            content='{"fixes": []}',
+        )
+
+        issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failure",
+            location=IssueLocation(file_path="tests/test.py"),
+            triage_decision="FIX",
+            fix_attempt_count=0,  # First attempt
+        )
+
+        same_issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity=IssueSeverity.ERROR,
+            description="Test failure",
+            location=IssueLocation(file_path="tests/test.py"),
+        )
+        validator = MockValidator("test", [same_issue])
+
+        engine = FixEngine(
+            llm_executor=mock_llm_executor,
+            config=ValidationConfig(max_fix_attempts_per_issue=3),
+            validators=[validator],
+        )
+
+        result = engine.attempt_fixes([issue], mock_context)
+
+        # Still FIX, not deferred yet
+        assert issue.triage_decision == "FIX"
+        assert issue.id in result.issues_remaining
+
+
 class TestFixIterationResult:
     """Tests for FixIterationResult model."""
 

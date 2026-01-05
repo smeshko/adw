@@ -68,10 +68,10 @@ so that issues are resolved automatically when possible.
 - [x] Store in `ValidationIssue.fix_history`
 
 ### Task 6: Implement Auto-Defer on Max Attempts
-- [ ] Check `fix_attempt_count >= max_fix_attempts_per_issue`
-- [ ] Auto-change triage decision to DEFER
-- [ ] Set reason: "Max fix attempts reached ({count})"
-- [ ] Log auto-defer decision for audit
+- [x] Check `fix_attempt_count >= max_fix_attempts_per_issue`
+- [x] Auto-change triage decision to DEFER
+- [x] Set reason: "Max fix attempts reached ({count})"
+- [x] Log auto-defer decision for audit
 
 ### Task 7: Create Fix Result Model
 - [ ] Create `FixIterationResult` model with:
