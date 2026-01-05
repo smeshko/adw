@@ -158,7 +158,7 @@ development_status:
   # UX Fix (from ISS-003)
   ux-fix-ISS-003-run-id-not-found-by-logs-command: ready-for-dev
   # UX Fix (from ISS-006)
-  ux-fix-ISS-006-logmanager-not-connected-to-python-logging: ready-for-dev
+  ux-fix-ISS-006-logmanager-not-connected-to-python-logging: review
   # UX Fix (from ISS-007)
   ux-fix-ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: review
   epic-7-retrospective: optional
