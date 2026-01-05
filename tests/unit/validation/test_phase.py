@@ -96,9 +96,30 @@ class TestValidationPhase:
         self, mock_context: RunContext
     ) -> None:
         """Disabled validators are not executed."""
-        # Arrange - create phase with disabled validators
         from adw.validation.config import ValidationConfig
 
+        # Create mock validators
+        test_validator = MagicMock()
+        test_validator.name = "test"
+        test_validator.validate.return_value = [
+            ValidationIssue(
+                source=ValidationSource.TEST,
+                message="Test issue",
+                severity="low",
+            )
+        ]
+
+        review_validator = MagicMock()
+        review_validator.name = "review"
+        review_validator.validate.return_value = [
+            ValidationIssue(
+                source=ValidationSource.REVIEW,
+                message="Review issue",
+                severity="medium",
+            )
+        ]
+
+        # Config disables evidence and review, enables tests
         config = ValidationConfig(
             enable_evidence=False,
             enable_review=False,
@@ -106,15 +127,19 @@ class TestValidationPhase:
         )
         phase = ValidationPhase(config=config)
 
-        with patch.object(phase, "_get_enabled_validators") as mock_get:
-            mock_get.return_value = []  # Only test validator would be enabled
+        # Register both validators
+        phase.register_validator(test_validator)
+        phase.register_validator(review_validator)
 
-            # Act
-            result = phase.run(mock_context)
+        # Act
+        result = phase.run(mock_context)
 
-            # Assert
-            mock_get.assert_called_once()
-            assert isinstance(result, ValidationResult)
+        # Assert - only test validator should have been called
+        test_validator.validate.assert_called_once_with(mock_context)
+        review_validator.validate.assert_not_called()
+        assert isinstance(result, ValidationResult)
+        assert len(result.issues) == 1
+        assert result.issues[0].source == ValidationSource.TEST
 
     def test_run_continues_after_validator_error(
         self, validation_phase: ValidationPhase, mock_context: RunContext

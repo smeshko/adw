@@ -13,9 +13,10 @@ from typing import TYPE_CHECKING
 from adw.validation.config import ValidationConfig
 from adw.validation.models import ValidationIssue, ValidationResult
 
+from adw.validation.validators.base import Validator, ValidatorRegistry
+
 if TYPE_CHECKING:
     from adw.models import RunContext
-    from adw.validation.validators.base import Validator
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class ValidationPhase:
 
     Attributes:
         config: ValidationConfig controlling which validators are enabled.
-        _validators: List of enabled validator instances.
+        _registry: ValidatorRegistry managing validator instances.
     """
 
     def __init__(self, config: ValidationConfig | None = None) -> None:
@@ -43,7 +44,7 @@ class ValidationPhase:
             config: Optional configuration. Uses defaults if not provided.
         """
         self.config = config or ValidationConfig()
-        self._validators: list[Validator] = []
+        self._registry = ValidatorRegistry()
         self._iteration = 1
 
     def run(self, context: RunContext) -> ValidationResult:
@@ -60,10 +61,12 @@ class ValidationPhase:
         """
         logger.info(
             "Starting validation phase",
-            iteration=self._iteration,
-            evidence_enabled=self.config.enable_evidence,
-            review_enabled=self.config.enable_review,
-            tests_enabled=self.config.enable_tests,
+            extra={
+                "iteration": self._iteration,
+                "evidence_enabled": self.config.enable_evidence,
+                "review_enabled": self.config.enable_review,
+                "tests_enabled": self.config.enable_tests,
+            },
         )
 
         # Run all validators and collect issues
@@ -80,10 +83,15 @@ class ValidationPhase:
 
         logger.info(
             "Validation phase completed",
-            passed=passed,
-            issue_count=len(all_issues),
-            iteration=self._iteration,
+            extra={
+                "passed": passed,
+                "issue_count": len(all_issues),
+                "iteration": self._iteration,
+            },
         )
+
+        # Increment iteration for next run
+        self._iteration += 1
 
         return result
 
@@ -127,9 +135,7 @@ class ValidationPhase:
         Returns:
             List of enabled validator instances.
         """
-        # This will be populated by Task 2 (Validator Protocol) and Tasks 3-5
-        # For now, return an empty list or the manually registered validators
-        return self._validators
+        return self._registry.get_enabled(self.config)
 
     def register_validator(self, validator: Validator) -> None:
         """Register a validator to be run during validation.
@@ -137,8 +143,7 @@ class ValidationPhase:
         Args:
             validator: Validator instance implementing the Validator protocol.
         """
-        self._validators.append(validator)
-        logger.debug(f"Registered validator: {validator.name}")
+        self._registry.register(validator)
 
 
 __all__ = ["ValidationPhase"]
