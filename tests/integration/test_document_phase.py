@@ -378,3 +378,85 @@ No visual evidence captured
 
         # Should complete even without evidence manifest
         assert result.status == PhaseStatus.COMPLETED
+
+
+class TestDocumentPhaseWithoutBuildArtifacts:
+    """Tests for Document phase when build artifacts are not available."""
+
+    @pytest.fixture
+    def setup_artifacts_no_build(self, runs_dir: Path, run_id: str) -> None:
+        """Set up artifacts without build phase artifacts."""
+        # Create verify phase artifacts only
+        verify_dir = runs_dir / run_id / "artifacts" / "verify"
+        verify_dir.mkdir(parents=True)
+        (verify_dir / "verify_output.md").write_text("Tests pass")
+
+        # Create validate phase artifacts
+        validate_dir = runs_dir / run_id / "artifacts" / "validate"
+        validate_dir.mkdir(parents=True)
+        (validate_dir / "validate_output.md").write_text("Validation passed")
+
+        # Note: Intentionally NOT creating build artifacts
+
+    @pytest.fixture
+    def mock_executor_no_build(self) -> MockExecutor:
+        """Create mock executor for no-build-artifacts test."""
+        executor = MockExecutor()
+        executor.configure_responses(
+            [
+                {
+                    "content": """## Summary
+
+Add feature without build artifacts context.
+
+## Changes
+
+- Add new feature
+
+## Testing
+
+Tests pass
+
+## Evidence
+
+No visual evidence captured
+""",
+                    "tokens_used": 100,
+                }
+            ]
+        )
+        return executor
+
+    @pytest.fixture
+    def phase_runner_no_build(
+        self, project_root: Path, runs_dir: Path, mock_executor_no_build: MockExecutor
+    ) -> PhaseRunner:
+        """Create phase runner for no-build-artifacts test."""
+        command_resolver = CommandResolver(project_root=project_root)
+        template_engine = TemplateEngine(project_root=project_root)
+        hook_runner = HookRunner(
+            config=HookConfig(shell="/bin/bash", timeout_seconds=30)
+        )
+        artifact_manager = ArtifactManager(runs_dir=runs_dir)
+
+        return PhaseRunner(
+            command_resolver=command_resolver,
+            template_engine=template_engine,
+            hook_runner=hook_runner,
+            executor=mock_executor_no_build,
+            artifact_manager=artifact_manager,
+            strict_artifacts=False,
+        )
+
+    def test_document_phase_handles_missing_build_artifacts(
+        self,
+        phase_runner_no_build: PhaseRunner,
+        sample_context: RunContext,
+        setup_artifacts_no_build: None,
+    ):
+        """Test that document phase handles missing build artifacts gracefully."""
+        result = phase_runner_no_build.run("document", sample_context)
+
+        # Should complete even without build artifacts
+        assert result.status == PhaseStatus.COMPLETED
+        assert "pr_description.md" in result.artifacts

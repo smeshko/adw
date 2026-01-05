@@ -25,7 +25,7 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-from adw.core.constants import PHASE_SEQUENCE
+from adw.core.constants import PHASE_SEQUENCE, PR_DESCRIPTION_ARTIFACT
 
 if TYPE_CHECKING:
     from adw.exceptions import ADWError
@@ -275,9 +275,9 @@ class ProgressDisplay:
             f"[bold]Tokens:[/] {total_tokens:,}",
         ]
 
-        # Add PR description path if document phase completed
+        # Add PR description path if document phase completed (Story 9.4)
         if run_id and "document" in completed_phases:
-            pr_path = f".adw/runs/{run_id}/artifacts/document/pr_description.md"
+            pr_path = f".adw/runs/{run_id}/{PR_DESCRIPTION_ARTIFACT}"
             content_lines.append("")
             content_lines.append(f"[bold]PR Description:[/] [cyan]{pr_path}[/]")
 

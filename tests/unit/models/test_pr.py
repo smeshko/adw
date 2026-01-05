@@ -72,6 +72,19 @@ class TestPRDescriptionModel:
         errors = exc_info.value.errors()
         assert any("testing" in str(e) for e in errors)
 
+    def test_summary_max_length_validation(self):
+        """Test that summary enforces maximum length of 500 chars."""
+        long_summary = "A" * 501  # Exceeds 500 char limit
+        with pytest.raises(ValidationError) as exc_info:
+            PRDescription(
+                summary=long_summary,
+                changes=["Change 1"],
+                testing="Tests pass",
+            )
+
+        errors = exc_info.value.errors()
+        assert any("summary" in str(e) for e in errors)
+
 
 class TestPRDescriptionToMarkdown:
     """Tests for to_markdown() method."""
@@ -264,3 +277,53 @@ class TestPRDescriptionSchema:
 
         with pytest.raises(ValidationError):
             PRDescription.validate_json(data)
+
+
+class TestPRDescriptionLengthConstraints:
+    """Tests for PR description length constraints (GitHub ~4000 char limit)."""
+
+    def test_markdown_output_within_github_limit(self):
+        """Test that typical PR description stays within GitHub's ~4000 char limit."""
+        # Create a reasonably sized PR description
+        pr = PRDescription(
+            summary="Add comprehensive user authentication system with OAuth2 support, "
+            "JWT token handling, and session management for improved security.",
+            changes=[
+                "Add OAuth2 authentication endpoints for Google and GitHub providers",
+                "Implement JWT token generation and validation with refresh tokens",
+                "Create user session management with secure cookie handling",
+                "Add password reset flow with email verification",
+                "Implement rate limiting for authentication endpoints",
+                "Add comprehensive logging for authentication events",
+                "Create user profile management endpoints",
+                "Add two-factor authentication support with TOTP",
+            ],
+            testing="All 47 unit tests pass. Integration tests verify OAuth flow "
+            "end-to-end with mocked providers. Security tests validate token "
+            "expiration, refresh logic, and CSRF protection. Load tests confirm "
+            "rate limiting works under high traffic conditions.",
+            evidence="See evidence items:\n- unit_tests (pass)\n- integration_tests (pass)\n"
+            "- security_scan (pass)\n- Screenshots: login_page.png, oauth_flow.png",
+        )
+
+        markdown = pr.to_markdown()
+
+        # GitHub PR body limit is ~65536 chars, but ~4000 is recommended for readability
+        # Verify our typical output is well under the limit
+        assert len(markdown) < 4000, f"PR description too long: {len(markdown)} chars"
+
+    def test_maximum_field_lengths_within_limit(self):
+        """Test that PR description at max field lengths stays reasonable."""
+        # Use maximum allowed lengths for fields
+        pr = PRDescription(
+            summary="A" * 500,  # Max summary length
+            changes=["Change " + str(i) for i in range(50)],  # Many changes
+            testing="T" * 500,  # Long testing description
+            evidence="E" * 500,  # Long evidence section
+        )
+
+        markdown = pr.to_markdown()
+
+        # Even with max field lengths, should stay under a reasonable limit
+        # The combined max would be around 500 + (50*10) + 500 + 500 + headers = ~2000
+        assert len(markdown) < 4000, f"PR description too long: {len(markdown)} chars"
