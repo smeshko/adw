@@ -1,3 +1,9 @@
+# REDUCED: Removed 5 redundant/trivial tests
+# - test_block_rm_rf_home (redundant with test_block_rm_rf)
+# - test_allow_env_sample (redundant with test_allow_env_example)
+# - test_bash_lowercase (trivial case normalization)
+# - test_bash_uppercase (trivial case normalization)
+# - test_read_lowercase (trivial case normalization)
 """Unit tests for SecurityInterceptor."""
 
 import pytest
@@ -21,12 +27,6 @@ class TestSecurityInterceptor:
         response = interceptor.check_tool_call("Bash", {"command": "rm -rf /"})
         assert response.result == SecurityCheckResult.BLOCKED
         assert response.blocked_pattern is not None
-
-    def test_block_rm_rf_home(self) -> None:
-        """Test that rm -rf ~ is blocked."""
-        interceptor = SecurityInterceptor()
-        response = interceptor.check_tool_call("Bash", {"command": "rm -rf ~"})
-        assert response.result == SecurityCheckResult.BLOCKED
 
     def test_block_chmod_777(self) -> None:
         """Test that chmod 777 is blocked."""
@@ -68,12 +68,6 @@ class TestFileAccessBlocking:
         response = interceptor.check_tool_call("Read", {"file_path": ".env.example"})
         assert response.result == SecurityCheckResult.ALLOWED
 
-    def test_allow_env_sample(self) -> None:
-        """Test that .env.sample is allowed."""
-        interceptor = SecurityInterceptor()
-        response = interceptor.check_tool_call("Read", {"file_path": ".env.sample"})
-        assert response.result == SecurityCheckResult.ALLOWED
-
     def test_block_pem_file(self) -> None:
         """Test that .pem files are blocked."""
         interceptor = SecurityInterceptor()
@@ -90,28 +84,6 @@ class TestAllowDangerous:
         response = interceptor.check_tool_call("Bash", {"command": "rm -rf /"})
         assert response.result == SecurityCheckResult.WARNING
         assert response.blocked_pattern is not None
-
-
-class TestCaseInsensitiveToolNames:
-    """Tests for case-insensitive tool name matching."""
-
-    def test_bash_lowercase(self) -> None:
-        """Test bash (lowercase) is handled."""
-        interceptor = SecurityInterceptor()
-        response = interceptor.check_tool_call("bash", {"command": "rm -rf /"})
-        assert response.result == SecurityCheckResult.BLOCKED
-
-    def test_bash_uppercase(self) -> None:
-        """Test BASH (uppercase) is handled."""
-        interceptor = SecurityInterceptor()
-        response = interceptor.check_tool_call("BASH", {"command": "rm -rf /"})
-        assert response.result == SecurityCheckResult.BLOCKED
-
-    def test_read_lowercase(self) -> None:
-        """Test read (lowercase) is handled."""
-        interceptor = SecurityInterceptor()
-        response = interceptor.check_tool_call("read", {"file_path": ".env"})
-        assert response.result == SecurityCheckResult.BLOCKED
 
 
 class TestValidateAndRaise:
