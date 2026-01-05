@@ -61,8 +61,8 @@ so that my git history stays clean.
 - [x] Warn user about data loss before branch deletion
 
 ### Task 6: Track Branch State in Context
-- [ ] Add `branch_name: str | None` to RunContext model
-- [ ] Add `branch_deleted: bool = False` for tracking
+- [x] Add `branch_name: str | None` to RunContext model
+- [x] Add `branch_deleted: bool = False` for tracking
 
 ### Task 7: Write Tests
 - [ ] Test branch name generation
