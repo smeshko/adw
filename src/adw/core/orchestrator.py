@@ -11,6 +11,7 @@ Key responsibilities:
 """
 
 import logging
+import shutil
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -1498,6 +1499,23 @@ class Orchestrator:
                         "total_items": manifest.total_items,
                         "passed": manifest.passed,
                         "failed": manifest.failed,
+                    },
+                )
+
+                # Copy evidence to verify artifacts for Document phase access
+                verify_evidence_dir = (
+                    run_dir / "artifacts" / "verify" / "evidence"
+                )
+                verify_evidence_dir.parent.mkdir(parents=True, exist_ok=True)
+                if verify_evidence_dir.exists():
+                    shutil.rmtree(verify_evidence_dir)
+                shutil.copytree(evidence_dir, verify_evidence_dir)
+                logger.info(
+                    "Evidence copied to verify artifacts",
+                    extra={
+                        "run_id": context.run_id,
+                        "source": str(evidence_dir),
+                        "dest": str(verify_evidence_dir),
                     },
                 )
             else:

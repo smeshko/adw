@@ -48,9 +48,9 @@ so that **my PR descriptions include screenshots, command outputs, and API respo
 - [x] Make platform_type available to Document phase for PR description
 
 ### Task 4: Copy Evidence to Verify Artifacts
-- [ ] After evidence gathering, copy/link evidence to `artifacts/verify/evidence/`
-- [ ] Include `evidence_manifest.json` in verify artifacts
-- [ ] Update artifact manifest to reference evidence
+- [x] After evidence gathering, copy/link evidence to `artifacts/verify/evidence/`
+- [x] Include `evidence_manifest.json` in verify artifacts
+- [x] Update artifact manifest to reference evidence
 
 ### Task 5: Write Tests
 - [ ] Unit test: Evidence gathering is called for each platform type
@@ -346,6 +346,13 @@ N/A
 - Updated `_gather_evidence_after_verify` to use `context.platform` directly
 - Platform is now properly persisted to `context.json`
 - 49 context model tests pass, 64 orchestrator tests pass
+
+**Task 4 - Copy Evidence to Verify Artifacts (2026-01-05):**
+- Added `import shutil` to orchestrator.py
+- After manifest generation, copy evidence directory to `artifacts/verify/evidence/`
+- Uses `shutil.copytree()` with automatic cleanup of existing directory
+- Evidence manifest.json is included in the copy (part of evidence directory)
+- 64 orchestrator tests pass
 
 ### File List
 
