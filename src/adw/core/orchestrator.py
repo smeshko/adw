@@ -1484,13 +1484,14 @@ class Orchestrator:
             self._worktree_manager.remove_worktree(
                 run_id,
                 force=True,
-                cleanup_branch=self.worktree_config.cleanup_branch_on_remove,
+                delete_branch=self.worktree_config.cleanup_branch_on_remove,
             )
             logger.info(
                 "Cleaned up worktree",
                 extra={
                     "run_id": run_id,
-                    "cleanup_branch": self.worktree_config.cleanup_branch_on_remove,
+                    "forced": True,
+                    "delete_branch": self.worktree_config.cleanup_branch_on_remove,
                 },
             )
 

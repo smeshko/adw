@@ -30,10 +30,10 @@ so that **I don't accumulate orphan worktrees consuming disk space**.
 - [x] Document current flow and identify fix point
 
 ### Task 2: Implement Force Cleanup for Successful Runs
-- [ ] Modify `_cleanup_worktree()` to accept success status parameter
-- [ ] When run succeeds: use `force=True` for worktree removal
-- [ ] When run fails: preserve worktree (keep `force=False`)
-- [ ] Add structured logging for cleanup action taken
+- [x] Modify `_cleanup_worktree()` to accept success status parameter
+- [x] When run succeeds: use `force=True` for worktree removal
+- [x] When run fails: preserve worktree (keep `force=False`)
+- [x] Add structured logging for cleanup action taken
 
 ### Task 3: Add User Feedback
 - [ ] On successful cleanup: log info with worktree path
@@ -234,6 +234,12 @@ N/A
 - The error is caught by `except Exception` at line 1497, warning logged, worktree NOT removed
 - The `force=True` was already being passed correctly - it just never reaches the method
 - **FIX:** Change `cleanup_branch=` to `delete_branch=` in orchestrator.py:1487
+
+**Task 2 - Implementation (2026-01-05):**
+- Fixed parameter name mismatch: `cleanup_branch` → `delete_branch` in orchestrator.py:1487
+- Added `forced: True` to structured log for successful cleanup
+- Verified failure path: `preserve_on_failure=True` (default) preserves worktree for debugging
+- Success path: `force=True` ensures cleanup even with untracked files
 
 ### File List
 
