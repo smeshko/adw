@@ -30,6 +30,7 @@ class RunContext(BaseModel):
         completed_at: When this run completed (None if still running)
         status: Current run status (running, completed, failed)
         artifacts: Mapping of phase names to lists of artifact paths
+        platform: Detected platform type (cli, web, mobile, backend) for evidence
 
     Example:
         >>> from datetime import datetime
@@ -93,6 +94,11 @@ class RunContext(BaseModel):
     branch_deleted: bool = Field(
         default=False,
         description="Whether the branch has been deleted during cleanup",
+    )
+    platform: str | None = Field(
+        default=None,
+        description="Detected platform type (cli, web, mobile, backend). "
+        "Set during verify phase by platform detection.",
     )
 
     @computed_field  # type: ignore[prop-decorator]
@@ -207,6 +213,7 @@ class RunContext(BaseModel):
                 "use_worktree": True,
                 "branch_name": "adw/01KDSG2VDHNK0W4HSCZWJZXWSQ",
                 "branch_deleted": False,
+                "platform": "cli",
             }
         },
     }

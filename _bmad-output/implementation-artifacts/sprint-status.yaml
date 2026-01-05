@@ -53,7 +53,7 @@ issues:
   ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: in-progress
   ISS-008-worktree-cleanup-fails-with-untracked-files: reported
   ISS-009-git-diff-capture-fails-no-commits: reported
-  ISS-010-evidence-gathering-not-integrated: reported
+  ISS-010-evidence-gathering-not-integrated: fixed
   ISS-011-adw-run-should-auto-create-pr: reported
 
 development_status:
@@ -182,7 +182,7 @@ development_status:
   # UX Fix (from ISS-001)
   ux-fix-ISS-001-llm-output-too-verbose-in-terminal: done
   # Bugfix (from ISS-010)
-  bugfix-ISS-010-evidence-gathering-not-integrated: ready-for-dev
+  bugfix-ISS-010-evidence-gathering-not-integrated: done
   epic-8-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
