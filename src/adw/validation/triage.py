@@ -343,10 +343,12 @@ class TriageSystem:
                     reason=reason,
                     auto_decided=True,
                 )
+            else:
+                logger.warning("LLM triage returned unsuccessful result")
         except Exception as e:
             logger.warning("LLM triage failed: %s", e)
 
-        # Fallback to FIX on any error
+        # Fallback to FIX on any error or unsuccessful result
         return TriagedIssue(
             issue=issue,
             decision=TriageDecision.FIX,

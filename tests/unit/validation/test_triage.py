@@ -306,6 +306,31 @@ class TestAutoTriage:
         # WARNING also defaults to FIX without LLM
         assert result[1].decision == TriageDecision.FIX
 
+    def test_auto_triage_fallback_on_llm_success_false(
+        self, config: ValidationConfig
+    ) -> None:
+        """Auto triage falls back to FIX when LLM returns success=False."""
+        from adw.executors.mock import MockExecutor
+
+        executor = MockExecutor()
+        # Configure mock to return success=False
+        executor.configure_responses([{"success": False, "content": ""}])
+        system = TriageSystem(config=config, llm_executor=executor)
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity=IssueSeverity.ERROR,
+                description="Test failed",
+            )
+        ]
+
+        result = system.triage(issues, mode="auto")
+
+        assert len(result) == 1
+        assert result[0].decision == TriageDecision.FIX
+        assert result[0].auto_decided is True
+        assert "failed" in result[0].reason.lower()
+
 
 class TestManualTriage:
     """Tests for manual triage functionality."""
@@ -326,10 +351,10 @@ class TestManualTriage:
         output = StringIO()
         console = Console(file=output, force_terminal=True)
 
-        # Mock Rich Prompt to return "f" for FIX
+        # Mock Rich Prompt - first call returns decision, second returns empty reason
         from unittest.mock import patch
 
-        with patch("adw.validation.triage.Prompt.ask", return_value="f"):
+        with patch("adw.validation.triage.Prompt.ask", side_effect=["f", ""]):
             system = TriageSystem(config=config, console=console)
             issues = [
                 ValidationIssue(
@@ -344,6 +369,7 @@ class TestManualTriage:
             assert len(result) == 1
             assert result[0].decision == TriageDecision.FIX
             assert result[0].auto_decided is False
+            assert result[0].reason == "User selected FIX"
 
     def test_manual_triage_dismiss_option(
         self, config: ValidationConfig
