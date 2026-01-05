@@ -46,11 +46,11 @@ validation:
 - [x] Inject ValidationConfig for limits
 
 ### Task 2: Implement Exit Condition Checks
-- [ ] Create `should_exit() -> tuple[bool, str]` method
-- [ ] Check `iteration_count >= max_iterations`
-- [ ] Check `all_issues_resolved_or_deferred()`
-- [ ] Check `stall_count >= stall_threshold`
-- [ ] Return (should_exit, reason)
+- [x] Create `should_exit() -> tuple[bool, str]` method
+- [x] Check `iteration_count >= max_iterations`
+- [x] Check `all_issues_resolved_or_deferred()`
+- [x] Check `stall_count >= stall_threshold`
+- [x] Return (should_exit, reason)
 
 ### Task 3: Implement Stall Detection
 - [ ] Create `check_progress(prev_issues, curr_issues) -> bool`
