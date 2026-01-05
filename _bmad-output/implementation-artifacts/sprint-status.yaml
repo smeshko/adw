@@ -210,8 +210,8 @@ development_status:
   # Goal: Replace single-pass Verify/Validate phases with iterative
   #       review-fix-review cycle
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-11: ready-for-dev
-  11-1-unified-validation-phase: ready-for-dev
+  epic-11: in-progress
+  11-1-unified-validation-phase: in-progress
   11-2-validation-issue-model: ready-for-dev
   11-3-issue-triage-system: ready-for-dev
   11-4-fix-iteration-loop: ready-for-dev
