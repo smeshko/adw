@@ -1,3 +1,8 @@
+# REDUCTION: Removed 4 trivial/redundant tests:
+# - test_init_with_valid_path (trivial init verification)
+# - test_init_sequence_cache_empty (trivial init verification)
+# - test_sequence_uses_zero_padding (covered by test_snapshots_numbered_sequentially)
+# - test_get_next_sequence_nonexistent_dir (internal implementation test)
 """Tests for SnapshotManager (Story 4.3).
 
 SnapshotManager creates, lists, and loads state snapshots at phase boundaries for:
@@ -15,21 +20,6 @@ import pytest
 from adw.core import SnapshotManager
 from adw.exceptions import StateError
 from adw.models import PhaseResult, PhaseStatus, RunContext, StateSnapshot
-
-
-class TestSnapshotManagerInit:
-    """Tests for SnapshotManager initialization."""
-
-    def test_init_with_valid_path(self, tmp_path: Path) -> None:
-        """SnapshotManager initializes with valid path."""
-        runs_dir = tmp_path / ".adw" / "runs"
-        manager = SnapshotManager(runs_dir)
-        assert manager.runs_dir == runs_dir
-
-    def test_init_sequence_cache_empty(self, tmp_path: Path) -> None:
-        """Sequence cache is empty on init."""
-        manager = SnapshotManager(tmp_path)
-        assert manager._sequence_cache == {}
 
 
 class TestPrePhaseSnapshot:
@@ -196,15 +186,6 @@ class TestSequentialNumbering:
             "002_post_plan.json",
             "003_pre_build.json",
         ]
-
-    def test_sequence_uses_zero_padding(
-        self, setup_run_dir: Path, sample_context: RunContext
-    ) -> None:
-        """Sequence numbers are zero-padded to 3 digits."""
-        manager = SnapshotManager(setup_run_dir)
-        path = manager.create_pre_phase_snapshot(sample_context, "plan")
-
-        assert "001_" in path.name
 
 
 class TestSnapshotListing:
@@ -463,14 +444,3 @@ class TestSequenceCache:
 
         manager.create_pre_phase_snapshot(sample_context, "test")
         assert manager._sequence_cache[sample_context.run_id] == 3
-
-    def test_get_next_sequence_nonexistent_dir(self, tmp_path: Path) -> None:
-        """_get_next_sequence returns 1 for nonexistent snapshots dir."""
-        manager = SnapshotManager(tmp_path)
-        nonexistent_dir = tmp_path / "nonexistent" / "snapshots"
-
-        # Directly test the internal method for defensive code path
-        sequence = manager._get_next_sequence("test-run", nonexistent_dir)
-
-        assert sequence == 1
-        assert manager._sequence_cache["test-run"] == 1

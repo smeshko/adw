@@ -620,3 +620,95 @@ class TestStateSnapshot:
         json_str = snapshot.model_dump_json()
         assert "post_plan" in json_str
         assert "01KDSG2VDHNK0W4HSCZWJZXWSQ" in json_str
+
+
+class TestRunContextArtifactPathResolution:
+    """Tests for RunContext artifact path resolution (Story 10.5)."""
+
+    @pytest.fixture
+    def context(self) -> RunContext:
+        """Create a sample RunContext for testing."""
+        return RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test feature",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+
+    def test_resolve_artifact_path_with_worktree(
+        self, context: RunContext, tmp_path: Path
+    ) -> None:
+        """resolve_artifact_path uses worktree_path when set."""
+        worktree_path = tmp_path / "worktree"
+        context = context.model_copy(update={"worktree_path": worktree_path})
+
+        result = context.resolve_artifact_path(".adw/runs/01RUN/artifacts/plan/out.md")
+
+        expected = worktree_path / ".adw/runs/01RUN/artifacts/plan/out.md"
+        assert result == expected
+
+    def test_resolve_artifact_path_without_worktree_uses_project_root(
+        self, context: RunContext, tmp_path: Path
+    ) -> None:
+        """resolve_artifact_path falls back to project_root when no worktree."""
+        assert context.worktree_path is None
+
+        result = context.resolve_artifact_path(
+            ".adw/runs/01RUN/artifacts/plan/out.md",
+            project_root=tmp_path / "project",
+        )
+
+        expected = tmp_path / "project" / ".adw/runs/01RUN/artifacts/plan/out.md"
+        assert result == expected
+
+    def test_resolve_artifact_path_worktree_takes_precedence(
+        self, context: RunContext, tmp_path: Path
+    ) -> None:
+        """resolve_artifact_path prefers worktree_path over project_root."""
+        worktree_path = tmp_path / "worktree"
+        context = context.model_copy(update={"worktree_path": worktree_path})
+
+        result = context.resolve_artifact_path(
+            ".adw/runs/01RUN/artifacts/plan/out.md",
+            project_root=tmp_path / "project",
+        )
+
+        # Should use worktree_path, not project_root
+        expected = worktree_path / ".adw/runs/01RUN/artifacts/plan/out.md"
+        assert result == expected
+
+    def test_get_runs_dir_with_worktree(
+        self, context: RunContext, tmp_path: Path
+    ) -> None:
+        """get_runs_dir returns worktree-based path when worktree set."""
+        worktree_path = tmp_path / "worktree"
+        context = context.model_copy(update={"worktree_path": worktree_path})
+
+        result = context.get_runs_dir()
+
+        expected = worktree_path / ".adw" / "runs"
+        assert result == expected
+
+    def test_get_runs_dir_without_worktree(
+        self, context: RunContext, tmp_path: Path
+    ) -> None:
+        """get_runs_dir uses project_root when no worktree."""
+        assert context.worktree_path is None
+
+        result = context.get_runs_dir(project_root=tmp_path / "project")
+
+        expected = tmp_path / "project" / ".adw" / "runs"
+        assert result == expected
+
+    def test_get_runs_dir_worktree_takes_precedence(
+        self, context: RunContext, tmp_path: Path
+    ) -> None:
+        """get_runs_dir prefers worktree_path over project_root."""
+        worktree_path = tmp_path / "worktree"
+        context = context.model_copy(update={"worktree_path": worktree_path})
+
+        result = context.get_runs_dir(project_root=tmp_path / "project")
+
+        # Should use worktree_path, not project_root
+        expected = worktree_path / ".adw" / "runs"
+        assert result == expected

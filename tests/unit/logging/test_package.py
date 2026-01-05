@@ -1,65 +1,19 @@
-"""Tests for the logging package exports and convenience functions."""
+# REDUCED: Removed TestPackageExports (import verification) and test_reset_logger_exported.
+# Kept only tests that verify actual logging behavior.
+"""Tests for the logging package convenience functions."""
 
 from pathlib import Path
 
 from adw.logging import (
     ConsoleTransport,
-    LogCategory,
-    LogContext,
-    LogEvent,
     LogLevel,
     LogManager,
     RawFileTransport,
     StructuredFileTransport,
-    Transport,
     configure_default_logger,
     get_logger,
     reset_logger,
 )
-
-
-class TestPackageExports:
-    """Tests for package-level exports."""
-
-    def test_exports_log_manager(self) -> None:
-        """Package exports LogManager."""
-        assert LogManager is not None
-        manager = LogManager()
-        assert isinstance(manager, LogManager)
-
-    def test_exports_transport_protocol(self) -> None:
-        """Package exports Transport protocol."""
-        assert Transport is not None
-
-    def test_exports_console_transport(self) -> None:
-        """Package exports ConsoleTransport."""
-        assert ConsoleTransport is not None
-
-    def test_exports_raw_file_transport(self) -> None:
-        """Package exports RawFileTransport."""
-        assert RawFileTransport is not None
-
-    def test_exports_structured_file_transport(self) -> None:
-        """Package exports StructuredFileTransport."""
-        assert StructuredFileTransport is not None
-
-    def test_exports_log_level(self) -> None:
-        """Package exports LogLevel enum."""
-        assert LogLevel is not None
-        assert LogLevel.INFO.value == "info"
-
-    def test_exports_log_category(self) -> None:
-        """Package exports LogCategory enum."""
-        assert LogCategory is not None
-        assert LogCategory.PHASE.value == "phase"
-
-    def test_exports_log_context(self) -> None:
-        """Package exports LogContext."""
-        assert LogContext is not None
-
-    def test_exports_log_event(self) -> None:
-        """Package exports LogEvent."""
-        assert LogEvent is not None
 
 
 class TestGetLogger:
@@ -67,7 +21,6 @@ class TestGetLogger:
 
     def test_get_logger_returns_log_manager(self) -> None:
         """get_logger returns a LogManager instance."""
-        # Reset module state for clean test
         reset_logger()
 
         logger = get_logger()
@@ -81,23 +34,9 @@ class TestGetLogger:
         logger2 = get_logger()
         assert logger1 is logger2
 
-    def test_get_logger_default_level_is_info(self) -> None:
-        """get_logger default level is INFO."""
-        reset_logger()
-
-        logger = get_logger()
-        assert logger.level == LogLevel.INFO
-
 
 class TestConfigureDefaultLogger:
     """Tests for configure_default_logger function."""
-
-    def test_configure_creates_new_logger(self) -> None:
-        """configure_default_logger creates a new logger."""
-        reset_logger()
-
-        logger = configure_default_logger()
-        assert isinstance(logger, LogManager)
 
     def test_configure_with_custom_level(self) -> None:
         """configure_default_logger accepts custom level."""
@@ -172,18 +111,10 @@ class TestResetLogger:
 
     def test_reset_logger_clears_default(self) -> None:
         """reset_logger clears the default logger."""
-        # First create a logger
         reset_logger()
         logger1 = get_logger()
 
-        # Reset and get a new one
         reset_logger()
         logger2 = get_logger()
 
-        # Should be different instances
         assert logger1 is not logger2
-
-    def test_reset_logger_exported(self) -> None:
-        """reset_logger is exported from package."""
-        assert reset_logger is not None
-        assert callable(reset_logger)

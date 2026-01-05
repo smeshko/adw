@@ -1,6 +1,6 @@
 # Story: UX Fix - Tool Execution Log Incorrect Timestamps & Lacks Context
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-05
@@ -40,20 +40,20 @@ so that I can effectively debug tool execution order, identify slow operations, 
 ## Tasks / Subtasks
 
 ### Task 1: Fix Timestamp Capture in Tool Logging (claude_code.py)
-- [ ] Modify `_log_tool_calls()` to generate individual timestamps per tool call
-- [ ] Modify `_check_and_log_tool_calls()` similarly
-- [ ] Ensure timestamps reflect actual logging time, not batch time
+- [x] Modify `_log_tool_calls()` to generate individual timestamps per tool call
+- [x] Modify `_check_and_log_tool_calls()` similarly
+- [x] Ensure timestamps reflect actual logging time, not batch time
 
 ### Task 2: Improve Duration Handling
-- [ ] Since individual tool durations aren't available from Claude Code CLI, change approach:
+- [x] Since individual tool durations aren't available from Claude Code CLI, change approach:
   - Option A: Show "N/A" or "-" for individual durations, show total only in summary
-  - Option B: Keep approximation but clearly label as "~{duration}ms (est.)"
-- [ ] Update display to communicate duration limitations clearly
-- [ ] Consider capturing elapsed time between tool calls for rough timing
+  - Option B: Keep approximation but clearly label as "~{duration}ms (est.)" ✓ (Implemented)
+- [x] Update display to communicate duration limitations clearly
+- [x] Consider capturing elapsed time between tool calls for rough timing
 
 ### Task 3: Add Context Column to Tool Display (logs.py)
-- [ ] Add new "Context" column to the tools table
-- [ ] Extract meaningful context from tool arguments:
+- [x] Add new "Context" column to the tools table
+- [x] Extract meaningful context from tool arguments:
   - `Read`: Show `file_path` (truncated to ~40 chars)
   - `Write`: Show `file_path` (truncated)
   - `Bash`: Show `command` (truncated to ~40 chars)
@@ -62,17 +62,17 @@ so that I can effectively debug tool execution order, identify slow operations, 
   - `Task`: Show `subagent_type` or `description`
   - `Edit`: Show `file_path`
   - Default: Show first argument key/value or "-"
-- [ ] Create helper function `_extract_tool_context(tool_name: str, arguments: dict) -> str`
+- [x] Create helper function `_extract_tool_context(tool_name: str, arguments: dict) -> str`
 
 ### Task 4: Update Table Layout
-- [ ] Adjust column widths to accommodate new Context column
-- [ ] Ensure table is readable at standard terminal widths (80-120 chars)
-- [ ] Consider making Context column optional with `--context` flag or default on
+- [x] Adjust column widths to accommodate new Context column
+- [x] Ensure table is readable at standard terminal widths (80-120 chars)
+- [x] Consider making Context column optional with `--context` flag or default on
 
 ### Task 5: Update Unit Tests
-- [ ] Update existing tests for new timestamp behavior
-- [ ] Add tests for context extraction for each tool type
-- [ ] Verify duration display changes
+- [x] Update existing tests for new timestamp behavior
+- [x] Add tests for context extraction for each tool type
+- [x] Verify duration display changes
 
 ---
 
@@ -312,9 +312,29 @@ Key patterns:
 - claude_code.py tool logging code
 
 ### Agent Model Used
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
+N/A - no debugging required
 
 ### Completion Notes List
+1. **Task 1 (Timestamp Fix):** Moved `timestamp = datetime.now(UTC).isoformat()` inside the for loop in both `_log_tool_calls()` and `_check_and_log_tool_calls()` methods. Each tool call now gets its own unique timestamp.
+
+2. **Task 2 (Duration Display):** Implemented Option B - duration now shows with tilde prefix (~Xms) to indicate estimates. Added informational note in summary: "(Durations are estimates, evenly distributed)".
+
+3. **Task 3 (Context Column):** Added `_extract_tool_context()` helper function with support for Read, Write, Bash, Glob, Grep, Task, Edit tools. Falls back to first argument value for unknown tools.
+
+4. **Task 4 (Table Layout):** Updated table with explicit column widths - Timestamp(10), Tool(8), Context(40), Duration(10), Status(12) - to ensure readability at standard terminal widths.
+
+5. **Task 5 (Unit Tests):** Added 18 new tests in 3 test classes:
+   - TestToolContextExtraction (13 tests)
+   - TestTruncateHelper (4 tests)
+   - TestDurationDisplay (1 test)
 
 ### File List
+- `src/adw/executors/claude_code.py` (modified) - Fixed timestamp generation per tool call
+- `src/adw/cli/logs.py` (modified) - Added context column, duration estimate indicators, helper functions
+- `tests/unit/cli/test_logs.py` (modified) - Added 18 new tests for context extraction and duration display
+
+### Change Log
+- 2026-01-05: Implemented ISS-007 fix - individual timestamps, duration estimates, context column

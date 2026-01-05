@@ -612,6 +612,78 @@ def diff(
     _display_diff(changes, from_label, to_label)
 
 
+def _truncate(text: str, max_len: int) -> str:
+    """Truncate text with ellipsis if too long.
+
+    Args:
+        text: Text to truncate.
+        max_len: Maximum length including ellipsis.
+
+    Returns:
+        Truncated text with ellipsis if it exceeded max_len.
+    """
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 3] + "..."
+
+
+def _extract_tool_context(tool_name: str, arguments: dict[str, Any]) -> str:
+    """Extract meaningful context from tool arguments for display.
+
+    Provides a concise summary of what the tool is operating on,
+    making the tools table more informative at a glance.
+
+    Args:
+        tool_name: Name of the tool (e.g., "Read", "Bash", "Grep").
+        arguments: Tool call arguments dictionary.
+
+    Returns:
+        A human-readable context string (max 40 chars).
+    """
+    max_len = 40
+
+    if tool_name == "Read":
+        path = arguments.get("file_path", "")
+        return _truncate(path, max_len)
+
+    if tool_name == "Write":
+        path = arguments.get("file_path", "")
+        return _truncate(path, max_len)
+
+    if tool_name == "Bash":
+        cmd = arguments.get("command", "")
+        return _truncate(cmd, max_len)
+
+    if tool_name == "Glob":
+        return _truncate(arguments.get("pattern", "-"), max_len)
+
+    if tool_name == "Grep":
+        pattern = arguments.get("pattern", "")
+        path = arguments.get("path", "")
+        if path:
+            return f"{_truncate(pattern, 20)} in {_truncate(path, 18)}"
+        return _truncate(pattern, max_len)
+
+    if tool_name == "Task":
+        # Show subagent_type or description for Task tool
+        subagent = arguments.get("subagent_type", "")
+        if subagent:
+            return _truncate(subagent, max_len)
+        desc = arguments.get("description", "")
+        return _truncate(desc, max_len) if desc else "-"
+
+    if tool_name == "Edit":
+        return _truncate(arguments.get("file_path", ""), max_len)
+
+    # Generic fallback: show first argument value
+    if arguments:
+        first_key = next(iter(arguments))
+        first_val = str(arguments[first_key])
+        return _truncate(first_val, max_len)
+
+    return "-"
+
+
 @logs_app.command("tools")
 def logs_tools(
     run_id: str = typer.Argument(..., help="Run ID to view tool history for"),
@@ -659,12 +731,13 @@ def logs_tools(
     # Display header
     console.print(f"\n[bold]Tool Execution History for run {run_id}[/]\n")
 
-    # Build table
+    # Build table with context column for better debugging
     table = Table(show_header=True, header_style="bold cyan")
-    table.add_column("Timestamp", style="dim")
-    table.add_column("Tool")
-    table.add_column("Duration", justify="right")
-    table.add_column("Status")
+    table.add_column("Timestamp", style="dim", width=10)
+    table.add_column("Tool", width=8)
+    table.add_column("Context", style="dim", width=40)
+    table.add_column("Duration", justify="right", width=10)
+    table.add_column("Status", width=12)
 
     if verbose:
         table.add_column("Arguments", style="dim")
@@ -675,8 +748,12 @@ def logs_tools(
         if "T" in timestamp:
             timestamp = timestamp.split("T")[1].split(".")[0]
 
-        # Format duration
-        duration = f"{entry.duration_ms}ms"
+        # Extract context from tool arguments
+        context = _extract_tool_context(entry.tool_name, entry.arguments)
+
+        # Format duration with tilde to indicate estimate
+        # (Individual tool timing is distributed evenly from total duration)
+        duration = f"~{entry.duration_ms}ms"
 
         # Format status
         status = "[red]✗ Blocked[/]" if entry.blocked else "[green]✓ Success[/]"
@@ -686,9 +763,9 @@ def logs_tools(
             args_str = json.dumps(entry.arguments, indent=None)
             if len(args_str) > 60:
                 args_str = args_str[:57] + "..."
-            table.add_row(timestamp, entry.tool_name, duration, status, args_str)
+            table.add_row(timestamp, entry.tool_name, context, duration, status, args_str)
         else:
-            table.add_row(timestamp, entry.tool_name, duration, status)
+            table.add_row(timestamp, entry.tool_name, context, duration, status)
 
     console.print(table)
 
@@ -724,7 +801,8 @@ def _display_tool_summary(
     console.print(f"  Total calls:  {total_calls}")
     console.print(f"  Successful:   [green]{successful_calls}[/]")
     console.print(f"  Blocked:      [red]{blocked_calls}[/]")
-    console.print(f"  Total time:   {total_duration}ms")
+    console.print(f"  Total time:   ~{total_duration}ms")
+    console.print("  [dim](Durations are estimates, evenly distributed)[/]")
 
     if top_tools and not blocked_only:
         most_used = ", ".join(f"{name} ({count})" for name, count in top_tools)

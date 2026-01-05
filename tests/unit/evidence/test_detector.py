@@ -1,10 +1,20 @@
 """Tests for platform detection.
 
+# TEST REDUCTION: Consolidated 31 individual tests into 3 parameterized tests.
+# Removed: test_config_platform_is_case_insensitive (trivial Pydantic behavior)
+# Consolidated: 7 web framework tests -> 1 parameterized test
+# Consolidated: 8 backend framework tests -> 1 parameterized test
+# Consolidated: 9 mobile platform tests -> 1 parameterized test
+# Net reduction: ~23 tests
+
 This module tests the PlatformDetector class for detecting project platform
 types from configuration and file markers.
 """
 
 from pathlib import Path
+from typing import Any
+
+import pytest
 
 from adw.evidence import detect_platform, get_evidence_strategy
 from adw.evidence.detector import PlatformDetector
@@ -14,88 +24,37 @@ from adw.models.evidence import Confidence, EvidenceStrategy, PlatformType
 class TestConfigurationBasedDetection:
     """Tests for configuration-based platform detection (Task 2)."""
 
-    def test_detect_cli_from_config(self, tmp_path: Path) -> None:
-        """Test detecting CLI platform from explicit config."""
+    @pytest.mark.parametrize(
+        "platform,expected_type",
+        [
+            ("cli", PlatformType.CLI),
+            ("web", PlatformType.WEB),
+            ("backend", PlatformType.BACKEND),
+            ("mobile", PlatformType.MOBILE),
+        ],
+    )
+    def test_detect_platform_from_config(
+        self, tmp_path: Path, platform: str, expected_type: PlatformType
+    ) -> None:
+        """Test detecting platform types from explicit config."""
         config_file = tmp_path / ".adw" / "project.yaml"
-        config_file.parent.mkdir(parents=True)
-        config_file.write_text("""
-name: my-cli-app
-language: python
-platform: cli
-""")
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.CLI
-        assert result.confidence == Confidence.HIGH
-        assert result.source == "config"
-
-    def test_detect_web_from_config(self, tmp_path: Path) -> None:
-        """Test detecting WEB platform from explicit config."""
-        config_file = tmp_path / ".adw" / "project.yaml"
-        config_file.parent.mkdir(parents=True)
-        config_file.write_text("""
-name: my-web-app
-language: typescript
-platform: web
-""")
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.WEB
-        assert result.confidence == Confidence.HIGH
-        assert result.source == "config"
-
-    def test_detect_backend_from_config(self, tmp_path: Path) -> None:
-        """Test detecting BACKEND platform from explicit config."""
-        config_file = tmp_path / ".adw" / "project.yaml"
-        config_file.parent.mkdir(parents=True)
-        config_file.write_text("""
-name: my-api
-language: python
-platform: backend
-""")
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.BACKEND
-        assert result.confidence == Confidence.HIGH
-        assert result.source == "config"
-
-    def test_detect_mobile_from_config(self, tmp_path: Path) -> None:
-        """Test detecting MOBILE platform from explicit config."""
-        config_file = tmp_path / ".adw" / "project.yaml"
-        config_file.parent.mkdir(parents=True)
-        config_file.write_text("""
-name: my-ios-app
-language: swift
-platform: mobile
-""")
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.MOBILE
-        assert result.confidence == Confidence.HIGH
-        assert result.source == "config"
-
-    def test_config_platform_is_case_insensitive(self, tmp_path: Path) -> None:
-        """Test that platform value in config is case insensitive."""
-        config_file = tmp_path / ".adw" / "project.yaml"
-        config_file.parent.mkdir(parents=True)
-        config_file.write_text("""
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+        config_file.write_text(f"""
 name: my-app
 language: python
-platform: WEB
+platform: {platform}
 """)
         detector = PlatformDetector(tmp_path)
         result = detector.detect()
 
-        assert result.platform == PlatformType.WEB
+        assert result.platform == expected_type
+        assert result.confidence == Confidence.HIGH
+        assert result.source == "config"
 
     def test_invalid_platform_in_config_falls_through(self, tmp_path: Path) -> None:
         """Test that invalid platform value falls through to marker detection."""
         config_file = tmp_path / ".adw" / "project.yaml"
-        config_file.parent.mkdir(parents=True)
+        config_file.parent.mkdir(parents=True, exist_ok=True)
         config_file.write_text("""
 name: my-app
 language: python
@@ -118,7 +77,7 @@ platform: invalid-platform
     def test_config_without_platform_falls_through(self, tmp_path: Path) -> None:
         """Test that config without platform key falls through."""
         config_file = tmp_path / ".adw" / "project.yaml"
-        config_file.parent.mkdir(parents=True)
+        config_file.parent.mkdir(parents=True, exist_ok=True)
         config_file.write_text("""
 name: my-app
 language: python
@@ -132,7 +91,7 @@ language: python
     def test_config_detection_returns_early(self, tmp_path: Path) -> None:
         """Test that explicit config returns immediately without checking markers."""
         config_file = tmp_path / ".adw" / "project.yaml"
-        config_file.parent.mkdir(parents=True)
+        config_file.parent.mkdir(parents=True, exist_ok=True)
         config_file.write_text("""
 name: my-cli-app
 language: python
@@ -153,151 +112,100 @@ platform: cli
 class TestWebMarkerDetection:
     """Tests for web project marker detection (Task 3)."""
 
-    def test_detect_react_from_package_json(self, tmp_path: Path) -> None:
-        """Test detecting WEB platform from React in package.json."""
-        package_json = tmp_path / "package.json"
-        package_json.write_text('{"dependencies": {"react": "^18.0.0"}}')
+    @pytest.mark.parametrize(
+        "setup,expected_marker",
+        [
+            pytest.param(
+                {"file": "package.json", "content": '{"dependencies": {"react": "^18.0.0"}}'},
+                "package.json:react",
+                id="react",
+            ),
+            pytest.param(
+                {"file": "package.json", "content": '{"dependencies": {"vue": "^3.0.0"}}'},
+                "package.json:vue",
+                id="vue",
+            ),
+            pytest.param(
+                {"file": "package.json", "content": '{"dependencies": {"@angular/core": "^17.0.0"}}'},
+                "package.json:angular",
+                id="angular",
+            ),
+            pytest.param(
+                {"file": "package.json", "content": '{"dependencies": {"svelte": "^4.0.0"}}'},
+                "package.json:svelte",
+                id="svelte",
+            ),
+            pytest.param(
+                {"file": "next.config.js", "content": "module.exports = {}"},
+                "next.config.js",
+                id="next-config",
+            ),
+            pytest.param(
+                {"file": "nuxt.config.ts", "content": "export default {}"},
+                "nuxt.config.ts",
+                id="nuxt-config",
+            ),
+            pytest.param(
+                {"file": "index.html", "content": "<!DOCTYPE html>"},
+                "index.html",
+                id="index-html",
+            ),
+        ],
+    )
+    def test_detect_web_from_markers(
+        self, tmp_path: Path, setup: dict[str, Any], expected_marker: str
+    ) -> None:
+        """Test detecting WEB platform from various file markers."""
+        (tmp_path / setup["file"]).write_text(setup["content"])
 
         detector = PlatformDetector(tmp_path)
         result = detector.detect()
 
         assert result.platform == PlatformType.WEB
         assert result.source == "markers"
-        assert "package.json:react" in result.markers
-
-    def test_detect_vue_from_package_json(self, tmp_path: Path) -> None:
-        """Test detecting WEB platform from Vue in package.json."""
-        package_json = tmp_path / "package.json"
-        package_json.write_text('{"dependencies": {"vue": "^3.0.0"}}')
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.WEB
-        assert "package.json:vue" in result.markers
-
-    def test_detect_angular_from_package_json(self, tmp_path: Path) -> None:
-        """Test detecting WEB platform from Angular in package.json."""
-        package_json = tmp_path / "package.json"
-        package_json.write_text('{"dependencies": {"@angular/core": "^17.0.0"}}')
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.WEB
-        assert "package.json:angular" in result.markers
-
-    def test_detect_svelte_from_package_json(self, tmp_path: Path) -> None:
-        """Test detecting WEB platform from Svelte in package.json."""
-        package_json = tmp_path / "package.json"
-        package_json.write_text('{"dependencies": {"svelte": "^4.0.0"}}')
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.WEB
-        assert "package.json:svelte" in result.markers
-
-    def test_detect_next_config(self, tmp_path: Path) -> None:
-        """Test detecting WEB platform from next.config.js."""
-        (tmp_path / "next.config.js").write_text("module.exports = {}")
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.WEB
-        assert "next.config.js" in result.markers
-
-    def test_detect_nuxt_config(self, tmp_path: Path) -> None:
-        """Test detecting WEB platform from nuxt.config.ts."""
-        (tmp_path / "nuxt.config.ts").write_text("export default {}")
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.WEB
-        assert "nuxt.config.ts" in result.markers
-
-    def test_detect_index_html(self, tmp_path: Path) -> None:
-        """Test detecting WEB platform from index.html at root."""
-        (tmp_path / "index.html").write_text("<!DOCTYPE html>")
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.WEB
-        assert "index.html" in result.markers
+        assert expected_marker in result.markers
 
 
 class TestBackendMarkerDetection:
     """Tests for backend project marker detection (Task 3)."""
 
-    def test_detect_fastapi_from_main_py(self, tmp_path: Path) -> None:
-        """Test detecting BACKEND from FastAPI in main.py."""
-        content = "from fastapi import FastAPI\napp = FastAPI()"
-        (tmp_path / "main.py").write_text(content)
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.BACKEND
-        assert "main.py:fastapi" in result.markers
-
-    def test_detect_flask_from_main_py(self, tmp_path: Path) -> None:
-        """Test detecting BACKEND from Flask in main.py."""
-        content = "from flask import Flask\napp = Flask(__name__)"
-        (tmp_path / "main.py").write_text(content)
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.BACKEND
-        assert "main.py:flask" in result.markers
-
-    def test_detect_django_from_main_py(self, tmp_path: Path) -> None:
-        """Test detecting BACKEND from Django in main.py."""
-        (tmp_path / "main.py").write_text("import django\ndjango.setup()")
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.BACKEND
-        assert "main.py:django" in result.markers
-
-    def test_detect_api_from_app_py(self, tmp_path: Path) -> None:
-        """Test detecting BACKEND from API patterns in app.py."""
-        (tmp_path / "app.py").write_text('@app.route("/api")\ndef get_data(): pass')
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.BACKEND
-        assert "app.py:api-pattern" in result.markers
-
-    def test_detect_fastapi_from_requirements(self, tmp_path: Path) -> None:
-        """Test detecting BACKEND from FastAPI in requirements.txt."""
-        (tmp_path / "requirements.txt").write_text("fastapi==0.100.0\nuvicorn")
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.BACKEND
-        assert "requirements.txt:fastapi" in result.markers
-
-    def test_detect_expose_from_dockerfile(self, tmp_path: Path) -> None:
-        """Test detecting BACKEND from EXPOSE in Dockerfile."""
-        (tmp_path / "Dockerfile").write_text("FROM python:3.11\nEXPOSE 8000")
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.BACKEND
-        assert "Dockerfile:EXPOSE" in result.markers
-
-    def test_detect_vapor_from_package_swift(self, tmp_path: Path) -> None:
-        """Test detecting BACKEND from Vapor in Package.swift."""
-        package_swift = tmp_path / "Package.swift"
-        package_swift.write_text("""
+    @pytest.mark.parametrize(
+        "setup,expected_marker",
+        [
+            pytest.param(
+                {"file": "main.py", "content": "from fastapi import FastAPI\napp = FastAPI()"},
+                "main.py:fastapi",
+                id="fastapi-main",
+            ),
+            pytest.param(
+                {"file": "main.py", "content": "from flask import Flask\napp = Flask(__name__)"},
+                "main.py:flask",
+                id="flask-main",
+            ),
+            pytest.param(
+                {"file": "main.py", "content": "import django\ndjango.setup()"},
+                "main.py:django",
+                id="django-main",
+            ),
+            pytest.param(
+                {"file": "app.py", "content": '@app.route("/api")\ndef get_data(): pass'},
+                "app.py:api-pattern",
+                id="api-pattern",
+            ),
+            pytest.param(
+                {"file": "requirements.txt", "content": "fastapi==0.100.0\nuvicorn"},
+                "requirements.txt:fastapi",
+                id="fastapi-requirements",
+            ),
+            pytest.param(
+                {"file": "Dockerfile", "content": "FROM python:3.11\nEXPOSE 8000"},
+                "Dockerfile:EXPOSE",
+                id="dockerfile-expose",
+            ),
+            pytest.param(
+                {
+                    "file": "Package.swift",
+                    "content": """
 // swift-tools-version:5.9
 import PackageDescription
 
@@ -310,125 +218,101 @@ let package = Package(
         .executableTarget(name: "App", dependencies: ["Vapor"])
     ]
 )
-""")
+""",
+                },
+                "Package.swift:vapor",
+                id="vapor-package-swift",
+            ),
+            pytest.param(
+                {
+                    "file": "Package.swift",
+                    "content": 'let package = Package(\n    dependencies: [.package(name: "vapor", url: "...")]\n)',
+                },
+                "Package.swift:vapor",
+                id="vapor-quoted-name",
+            ),
+        ],
+    )
+    def test_detect_backend_from_markers(
+        self, tmp_path: Path, setup: dict[str, Any], expected_marker: str
+    ) -> None:
+        """Test detecting BACKEND platform from various file markers."""
+        (tmp_path / setup["file"]).write_text(setup["content"])
+
         detector = PlatformDetector(tmp_path)
         result = detector.detect()
 
         assert result.platform == PlatformType.BACKEND
-        assert "Package.swift:vapor" in result.markers
-
-    def test_detect_vapor_with_quoted_name(self, tmp_path: Path) -> None:
-        """Test detecting BACKEND from Vapor with quoted dependency name."""
-        package_swift = tmp_path / "Package.swift"
-        package_swift.write_text("""
-let package = Package(
-    dependencies: [.package(name: "vapor", url: "...")]
-)
-""")
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.BACKEND
-        assert "Package.swift:vapor" in result.markers
+        assert result.source == "markers"
+        assert expected_marker in result.markers
 
 
 class TestMobileMarkerDetection:
     """Tests for mobile project marker detection."""
 
-    def test_detect_ios_from_xcodeproj(self, tmp_path: Path) -> None:
-        """Test detecting MOBILE from .xcodeproj directory."""
-        xcodeproj = tmp_path / "MyApp.xcodeproj"
-        xcodeproj.mkdir()
-        (xcodeproj / "project.pbxproj").write_text("// project file")
+    @pytest.mark.parametrize(
+        "setup_fn,expected_marker",
+        [
+            pytest.param(
+                lambda p: (p / "MyApp.xcodeproj").mkdir() or (p / "MyApp.xcodeproj" / "project.pbxproj").write_text("// project file"),
+                "MyApp.xcodeproj:ios",
+                id="ios-xcodeproj",
+            ),
+            pytest.param(
+                lambda p: (p / "MyApp.xcworkspace").mkdir(),
+                "MyApp.xcworkspace:ios",
+                id="ios-xcworkspace",
+            ),
+            pytest.param(
+                lambda p: (p / "Info.plist").write_text(
+                    '<?xml version="1.0"?>\n<plist><dict><key>CFBundleIdentifier</key><string>com.example</string></dict></plist>'
+                ),
+                "Info.plist:ios",
+                id="ios-info-plist-root",
+            ),
+            pytest.param(
+                lambda p: (p / "MyApp").mkdir() or (p / "MyApp" / "Info.plist").write_text("<plist><dict></dict></plist>"),
+                "Info.plist:ios",
+                id="ios-info-plist-subdir",
+            ),
+            pytest.param(
+                lambda p: (
+                    (p / "app" / "src" / "main").mkdir(parents=True),
+                    (p / "app" / "src" / "main" / "AndroidManifest.xml").write_text("<manifest />"),
+                    (p / "build.gradle").write_text("plugins { id 'android' }"),
+                ),
+                "AndroidManifest.xml:android",
+                id="android-manifest-gradle",
+            ),
+            pytest.param(
+                lambda p: (
+                    (p / "AndroidManifest.xml").write_text("<manifest />"),
+                    (p / "build.gradle.kts").write_text("plugins { kotlin('android') }"),
+                ),
+                "AndroidManifest.xml:android",
+                id="android-gradle-kts",
+            ),
+            pytest.param(
+                lambda p: (p / "pubspec.yaml").write_text(
+                    "name: my_flutter_app\ndependencies:\n  flutter:\n    sdk: flutter\n"
+                ),
+                "pubspec.yaml:flutter",
+                id="flutter-pubspec",
+            ),
+        ],
+    )
+    def test_detect_mobile_from_markers(
+        self, tmp_path: Path, setup_fn: Any, expected_marker: str
+    ) -> None:
+        """Test detecting MOBILE platform from various file markers."""
+        setup_fn(tmp_path)
 
         detector = PlatformDetector(tmp_path)
         result = detector.detect()
 
         assert result.platform == PlatformType.MOBILE
-        assert "MyApp.xcodeproj:ios" in result.markers
-
-    def test_detect_ios_from_xcworkspace(self, tmp_path: Path) -> None:
-        """Test detecting MOBILE from .xcworkspace directory."""
-        xcworkspace = tmp_path / "MyApp.xcworkspace"
-        xcworkspace.mkdir()
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.MOBILE
-        assert "MyApp.xcworkspace:ios" in result.markers
-
-    def test_detect_ios_from_info_plist_at_root(self, tmp_path: Path) -> None:
-        """Test detecting MOBILE from Info.plist at project root."""
-        info_plist = tmp_path / "Info.plist"
-        info_plist.write_text("""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN">
-<plist version="1.0">
-<dict>
-    <key>CFBundleIdentifier</key>
-    <string>com.example.myapp</string>
-</dict>
-</plist>
-""")
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.MOBILE
-        assert "Info.plist:ios" in result.markers
-
-    def test_detect_ios_from_info_plist_in_subdirectory(self, tmp_path: Path) -> None:
-        """Test detecting MOBILE from Info.plist in app subdirectory."""
-        app_dir = tmp_path / "MyApp"
-        app_dir.mkdir()
-        info_plist = app_dir / "Info.plist"
-        info_plist.write_text("<plist><dict></dict></plist>")
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.MOBILE
-        assert "Info.plist:ios" in result.markers
-
-    def test_detect_android_from_manifest_and_gradle(self, tmp_path: Path) -> None:
-        """Test detecting MOBILE from AndroidManifest.xml and build.gradle."""
-        # Create Android project structure
-        app_dir = tmp_path / "app" / "src" / "main"
-        app_dir.mkdir(parents=True)
-        (app_dir / "AndroidManifest.xml").write_text("<manifest />")
-        (tmp_path / "build.gradle").write_text("plugins { id 'android' }")
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.MOBILE
-        assert "AndroidManifest.xml:android" in result.markers
-
-    def test_detect_android_with_gradle_kts(self, tmp_path: Path) -> None:
-        """Test detecting MOBILE with build.gradle.kts."""
-        (tmp_path / "AndroidManifest.xml").write_text("<manifest />")
-        (tmp_path / "build.gradle.kts").write_text("plugins { kotlin('android') }")
-
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.MOBILE
-        assert "AndroidManifest.xml:android" in result.markers
-
-    def test_detect_flutter_from_pubspec(self, tmp_path: Path) -> None:
-        """Test detecting MOBILE from pubspec.yaml with flutter SDK."""
-        pubspec = tmp_path / "pubspec.yaml"
-        pubspec.write_text("""
-name: my_flutter_app
-dependencies:
-  flutter:
-    sdk: flutter
-  cupertino_icons: ^1.0.2
-""")
-        detector = PlatformDetector(tmp_path)
-        result = detector.detect()
-
-        assert result.platform == PlatformType.MOBILE
-        assert "pubspec.yaml:flutter" in result.markers
+        assert result.source == "markers"
+        assert expected_marker in result.markers
 
     def test_pure_dart_pubspec_not_detected_as_mobile(self, tmp_path: Path) -> None:
         """Test that pubspec.yaml without flutter SDK is not detected as MOBILE."""
@@ -533,7 +417,7 @@ class TestConfidenceScoring:
     def test_config_always_high_confidence(self, tmp_path: Path) -> None:
         """Test that config-based detection always has HIGH confidence."""
         config_file = tmp_path / ".adw" / "project.yaml"
-        config_file.parent.mkdir(parents=True)
+        config_file.parent.mkdir(parents=True, exist_ok=True)
         config_file.write_text("name: test\nlanguage: python\nplatform: backend")
 
         detector = PlatformDetector(tmp_path)
@@ -569,30 +453,22 @@ class TestConfidenceScoring:
 class TestEvidenceStrategyFactory:
     """Tests for get_evidence_strategy factory function (Task 5)."""
 
-    def test_cli_maps_to_terminal_output(self) -> None:
-        """Test that CLI platform maps to TERMINAL_OUTPUT strategy."""
-        strategy = get_evidence_strategy(PlatformType.CLI)
-        assert strategy == EvidenceStrategy.TERMINAL_OUTPUT
-
-    def test_web_maps_to_screenshot(self) -> None:
-        """Test that WEB platform maps to SCREENSHOT strategy."""
-        strategy = get_evidence_strategy(PlatformType.WEB)
-        assert strategy == EvidenceStrategy.SCREENSHOT
-
-    def test_backend_maps_to_api_capture(self) -> None:
-        """Test that BACKEND platform maps to API_CAPTURE strategy."""
-        strategy = get_evidence_strategy(PlatformType.BACKEND)
-        assert strategy == EvidenceStrategy.API_CAPTURE
-
-    def test_mobile_maps_to_screenshot(self) -> None:
-        """Test that MOBILE platform maps to SCREENSHOT strategy."""
-        strategy = get_evidence_strategy(PlatformType.MOBILE)
-        assert strategy == EvidenceStrategy.SCREENSHOT
-
-    def test_unknown_maps_to_terminal_output(self) -> None:
-        """Test that UNKNOWN platform maps to TERMINAL_OUTPUT strategy."""
-        strategy = get_evidence_strategy(PlatformType.UNKNOWN)
-        assert strategy == EvidenceStrategy.TERMINAL_OUTPUT
+    @pytest.mark.parametrize(
+        "platform,expected_strategy",
+        [
+            (PlatformType.CLI, EvidenceStrategy.TERMINAL_OUTPUT),
+            (PlatformType.WEB, EvidenceStrategy.SCREENSHOT),
+            (PlatformType.BACKEND, EvidenceStrategy.API_CAPTURE),
+            (PlatformType.MOBILE, EvidenceStrategy.SCREENSHOT),
+            (PlatformType.UNKNOWN, EvidenceStrategy.TERMINAL_OUTPUT),
+        ],
+    )
+    def test_platform_maps_to_strategy(
+        self, platform: PlatformType, expected_strategy: EvidenceStrategy
+    ) -> None:
+        """Test that each platform maps to correct evidence strategy."""
+        strategy = get_evidence_strategy(platform)
+        assert strategy == expected_strategy
 
 
 class TestDetectPlatformConvenience:
@@ -607,7 +483,7 @@ class TestDetectPlatformConvenience:
     def test_detect_platform_with_config(self, tmp_path: Path) -> None:
         """Test detect_platform with explicit config."""
         config_file = tmp_path / ".adw" / "project.yaml"
-        config_file.parent.mkdir(parents=True)
+        config_file.parent.mkdir(parents=True, exist_ok=True)
         config_file.write_text("name: test\nlanguage: python\nplatform: web")
 
         result = detect_platform(tmp_path)

@@ -1,7 +1,10 @@
-"""Integration tests for ProgressDisplay with Orchestrator and PhaseRunner.
+# REDUCTION: Removed 3 tests that mocked core components (test_phase_runner_calls_llm_progress_methods,
+# test_phase_runner_completes_llm_progress_on_error) or were trivial display tests (test_full_pipeline_progress_output).
+# Kept 5 tests verifying Orchestrator-ProgressDisplay integration without mocking the integration points.
+"""Integration tests for ProgressDisplay with Orchestrator.
 
-Tests that ProgressDisplay correctly integrates with the pipeline
-components to display real-time progress during execution.
+Tests that ProgressDisplay correctly integrates with the Orchestrator
+to display real-time progress during pipeline execution.
 """
 
 from datetime import UTC, datetime
@@ -11,17 +14,15 @@ from unittest.mock import Mock
 
 import pytest
 from rich.console import Console
-from ulid import ULID
 
 from adw.cli.progress import ProgressDisplay
 from adw.core.artifact_manager import ArtifactManager
 from adw.core.context_manager import ContextManager
 from adw.core.orchestrator import Orchestrator
-from adw.core.phase_runner import PhaseRunner
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
 from adw.exceptions import LLMError
-from adw.models import LLMResult, PhaseResult, PhaseStatus, ResolvedCommand, RunContext
+from adw.models import PhaseResult, PhaseStatus, RunContext
 
 
 class MockPhaseRunner:
@@ -271,210 +272,3 @@ class TestOrchestratorProgressIntegration:
         output_text = output.getvalue()
         assert "Pipeline Summary" in output_text
         assert "failed" in output_text
-
-
-class TestPhaseRunnerProgressIntegration:
-    """Integration tests for PhaseRunner with ProgressDisplay."""
-
-    @pytest.fixture
-    def mock_executor(self) -> Mock:
-        """Create mock executor that returns LLM result."""
-        executor = Mock()
-        executor.execute.return_value = LLMResult(
-            success=True,
-            content="Test output",
-            tokens_used=500,
-            tool_calls=[],
-        )
-        return executor
-
-    @pytest.fixture
-    def mock_command_resolver(self, tmp_path: Path) -> Mock:
-        """Create mock command resolver."""
-        # Create a prompt file
-        command_path = tmp_path / "commands" / "plan"
-        command_path.mkdir(parents=True)
-        (command_path / "prompt.md").write_text("Test prompt {{ feature }}")
-
-        resolver = Mock()
-        resolver.resolve.return_value = ResolvedCommand(
-            name="plan",
-            path=command_path,
-            tier="project",
-            has_pre_hook=False,
-            has_post_hook=False,
-        )
-        return resolver
-
-    def test_phase_runner_calls_llm_progress_methods(
-        self,
-        tmp_path: Path,
-        mock_executor: Mock,
-        mock_command_resolver: Mock,
-    ) -> None:
-        """Test that PhaseRunner calls LLM progress methods."""
-        output = StringIO()
-        console = Console(file=output, force_terminal=True, width=80)
-        progress = ProgressDisplay(console)
-
-        # Track method calls
-        llm_start_called = False
-        llm_progress_called = False
-        llm_complete_called = False
-
-        original_start = progress.on_llm_start
-        original_progress = progress.on_llm_progress
-        original_complete = progress.on_llm_complete
-
-        def track_start() -> None:
-            nonlocal llm_start_called
-            llm_start_called = True
-            original_start()
-
-        def track_progress(tokens: int) -> None:
-            nonlocal llm_progress_called
-            llm_progress_called = True
-            original_progress(tokens)
-
-        def track_complete() -> None:
-            nonlocal llm_complete_called
-            llm_complete_called = True
-            original_complete()
-
-        progress.on_llm_start = track_start
-        progress.on_llm_progress = track_progress
-        progress.on_llm_complete = track_complete
-
-        template_engine = Mock()
-        template_engine.render.return_value = "Rendered prompt"
-
-        hook_runner = Mock()
-
-        artifact_manager = Mock()
-        artifact_manager.get_artifact_paths.return_value = {}
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=template_engine,
-            hook_runner=hook_runner,
-            executor=mock_executor,
-            artifact_manager=artifact_manager,
-            progress_display=progress,
-        )
-
-        context = RunContext(
-            run_id=str(ULID()),
-            feature_description="Test",
-            current_phase="plan",
-            started_at=datetime.now(UTC),
-            status="running",
-        )
-
-        runner.run("plan", context)
-
-        assert llm_start_called, "on_llm_start was not called"
-        assert llm_progress_called, "on_llm_progress was not called"
-        assert llm_complete_called, "on_llm_complete was not called"
-
-    def test_phase_runner_completes_llm_progress_on_error(
-        self,
-        tmp_path: Path,
-        mock_command_resolver: Mock,
-    ) -> None:
-        """Test that PhaseRunner completes LLM progress display on error."""
-        output = StringIO()
-        console = Console(file=output, force_terminal=True, width=80)
-        progress = ProgressDisplay(console)
-
-        # Create executor that fails
-        failing_executor = Mock()
-        failing_executor.execute.side_effect = LLMError(
-            code="LLM_ERROR",
-            message="Execution failed",
-            suggestion="Try again",
-            recoverable=True,
-        )
-
-        template_engine = Mock()
-        template_engine.render.return_value = "Rendered prompt"
-
-        hook_runner = Mock()
-
-        artifact_manager = Mock()
-        artifact_manager.get_artifact_paths.return_value = {}
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=template_engine,
-            hook_runner=hook_runner,
-            executor=failing_executor,
-            artifact_manager=artifact_manager,
-            progress_display=progress,
-        )
-
-        context = RunContext(
-            run_id=str(ULID()),
-            feature_description="Test",
-            current_phase="plan",
-            started_at=datetime.now(UTC),
-            status="running",
-        )
-
-        with pytest.raises(LLMError):
-            runner.run("plan", context)
-
-        # Progress display should be cleaned up
-        assert progress._live is None
-        assert progress._progress is None
-
-
-class TestProgressDisplayWithRealConsole:
-    """Tests that verify ProgressDisplay output format."""
-
-    def test_full_pipeline_progress_output(self) -> None:
-        """Test that full pipeline produces expected output."""
-        output = StringIO()
-        console = Console(file=output, force_terminal=True, width=80)
-        progress = ProgressDisplay(console)
-
-        # Simulate full pipeline execution
-        for phase in ["plan", "build", "verify", "validate", "document"]:
-            progress.on_phase_start(phase)
-
-            progress.on_llm_start()
-            progress.on_llm_progress(100)
-            progress.on_llm_progress(250)
-            progress.on_llm_progress(500)
-            progress.on_llm_complete()
-
-            result = PhaseResult(
-                phase=phase,
-                status=PhaseStatus.COMPLETED,
-                started_at=datetime.now(UTC),
-                completed_at=datetime.now(UTC),
-                artifacts=[f"{phase}_output.md"],
-                tokens_used=500,
-            )
-            progress.on_phase_complete(phase, result)
-
-        progress.show_pipeline_summary(
-            completed_phases=["plan", "build", "verify", "validate", "document"],
-            status="completed",
-            total_duration_ms=30000,
-            total_tokens=2500,
-        )
-
-        output_text = output.getvalue()
-
-        # Verify all phases are mentioned
-        assert "PLAN" in output_text
-        assert "BUILD" in output_text
-        assert "VERIFY" in output_text
-        assert "VALIDATE" in output_text
-        assert "DOCUMENT" in output_text
-
-        # Verify completion indicators
-        assert "completed" in output_text
-
-        # Verify summary
-        assert "2,500" in output_text  # Total tokens formatted

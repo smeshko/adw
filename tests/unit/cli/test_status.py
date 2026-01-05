@@ -1,10 +1,11 @@
 """Tests for CLI status command.
 
 Tests for the `adw status [RUN_ID]` command including:
-- Argument parsing (optional run_id)
-- Flag handling (--json, --verbose)
 - Error handling for non-existent runs
 - Default to most recent run when no run_id provided
+- JSON and verbose output modes
+
+Help text verification tests removed per TEST_REDUCTION_PLAN.md
 """
 
 import pytest
@@ -19,31 +20,6 @@ runner = CliRunner()
 def cli_runner() -> CliRunner:
     """Create a CLI test runner."""
     return CliRunner()
-
-
-class TestStatusCommand:
-    """Tests for the status command basic functionality."""
-
-    def test_status_help(self) -> None:
-        """Test that status command shows help."""
-        result = runner.invoke(app, ["status", "--help"])
-        assert result.exit_code == 0
-        assert "status" in result.output.lower()
-
-    def test_status_accepts_run_id_argument(self) -> None:
-        """Test that status command accepts run_id as optional positional argument."""
-        result = runner.invoke(app, ["status", "--help"])
-        assert "RUN_ID" in result.output
-
-    def test_status_json_flag_accepted(self, cli_runner: CliRunner) -> None:
-        """Test that --json flag is recognized."""
-        result = cli_runner.invoke(app, ["status", "--help"])
-        assert "--json" in result.output
-
-    def test_status_verbose_flag_accepted(self, cli_runner: CliRunner) -> None:
-        """Test that --verbose/-v flag is recognized."""
-        result = cli_runner.invoke(app, ["status", "--help"])
-        assert "--verbose" in result.output or "-v" in result.output
 
 
 class TestStatusNoRuns:
