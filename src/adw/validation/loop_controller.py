@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from adw.validation.config import ValidationConfig
+    from adw.validation.models import ValidationIssue
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +150,65 @@ class ValidationLoopController:
             return True, ExitReason.STALL_DETECTED
 
         return False, None
+
+    def check_progress(self, issues: list[ValidationIssue]) -> bool:
+        """Check if progress was made since the last iteration.
+
+        Compares issue fingerprints to detect if the state has changed.
+        Progress is determined by changes to FIX-triaged issues only.
+
+        If the same issues remain in the same state (same fingerprints),
+        this is considered a stall and the stall counter is incremented.
+        If progress is made, the stall counter is reset to 0.
+
+        Args:
+            issues: Current list of validation issues.
+
+        Returns:
+            True if progress was made, False if stalled.
+        """
+        current_fingerprints = self._compute_fingerprints(issues)
+
+        if current_fingerprints == self.state.previous_issue_fingerprints:
+            # No change - stall detected
+            self.state.stall_count += 1
+            logger.debug(
+                "Stall detected (count: %d): fingerprints unchanged",
+                self.state.stall_count,
+            )
+            return False
+        else:
+            # Progress made - reset stall counter
+            self.state.stall_count = 0
+            self.state.last_progress_iteration = self.state.current_iteration
+            self.state.previous_issue_fingerprints = current_fingerprints
+            logger.debug(
+                "Progress made at iteration %d",
+                self.state.current_iteration,
+            )
+            return True
+
+    def _compute_fingerprints(
+        self,
+        issues: list[ValidationIssue],
+    ) -> set[str]:
+        """Compute fingerprints for stall detection.
+
+        Only FIX-triaged issues are included in the fingerprint.
+        The fingerprint includes the issue ID, triage decision, and
+        fix attempt count to detect meaningful state changes.
+
+        Args:
+            issues: List of validation issues.
+
+        Returns:
+            Set of fingerprint strings for FIX issues.
+        """
+        return {
+            f"{issue.id}:{issue.triage_decision}:{issue.fix_attempt_count}"
+            for issue in issues
+            if issue.triage_decision == "FIX"
+        }
 
 
 __all__ = ["ExitReason", "LoopState", "ValidationLoopController"]

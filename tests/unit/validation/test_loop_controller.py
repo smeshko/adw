@@ -92,6 +92,145 @@ class TestExitReason:
         assert ExitReason.USER_CANCELLED.value == "USER_CANCELLED"
 
 
+class TestCheckProgress:
+    """Tests for check_progress() stall detection."""
+
+    def test_check_progress_detects_stall_same_issues(self) -> None:
+        """Stall detected when issue fingerprints unchanged."""
+        from adw.validation.models import IssueSource, ValidationIssue
+
+        controller = ValidationLoopController(ValidationConfig())
+        controller.start_iteration()
+
+        # Create issues with FIX triage decision
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description="Test failure 1",
+            ),
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description="Test failure 2",
+            ),
+        ]
+        # Mark as FIX for progress tracking
+        for issue in issues:
+            issue.triage_decision = "FIX"
+            issue.fix_attempt_count = 0
+
+        # First check - establishes baseline
+        progress_made = controller.check_progress(issues)
+        assert progress_made is True
+        assert controller.state.stall_count == 0
+
+        # Second check with same issues - stall detected
+        progress_made = controller.check_progress(issues)
+        assert progress_made is False
+        assert controller.state.stall_count == 1
+
+    def test_check_progress_resets_on_change(self) -> None:
+        """Stall counter resets when progress is made."""
+        from adw.validation.models import IssueSource, ValidationIssue
+
+        controller = ValidationLoopController(ValidationConfig())
+        controller.start_iteration()
+
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description="Test failure 1",
+            ),
+        ]
+        issues[0].triage_decision = "FIX"
+        issues[0].fix_attempt_count = 0
+
+        # Establish baseline
+        controller.check_progress(issues)
+
+        # Same issues - stall
+        controller.check_progress(issues)
+        assert controller.state.stall_count == 1
+
+        # Same issues again - 2 stalls
+        controller.check_progress(issues)
+        assert controller.state.stall_count == 2
+
+        # Now change fix_attempt_count - progress!
+        issues[0].fix_attempt_count = 1
+        progress_made = controller.check_progress(issues)
+        assert progress_made is True
+        assert controller.state.stall_count == 0  # Reset
+
+    def test_check_progress_only_tracks_fix_issues(self) -> None:
+        """Only FIX-triaged issues contribute to fingerprint."""
+        from adw.validation.models import IssueSource, ValidationIssue
+
+        controller = ValidationLoopController(ValidationConfig())
+        controller.start_iteration()
+
+        # One FIX, one DEFER
+        fix_issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity="ERROR",
+            description="Must fix",
+        )
+        fix_issue.triage_decision = "FIX"
+        fix_issue.fix_attempt_count = 0
+
+        defer_issue = ValidationIssue(
+            source=IssueSource.TEST,
+            severity="WARNING",
+            description="Deferred",
+        )
+        defer_issue.triage_decision = "DEFER"
+
+        issues = [fix_issue, defer_issue]
+
+        # Establish baseline
+        controller.check_progress(issues)
+
+        # Change defer issue - should not affect progress (it's not FIX)
+        defer_issue.description = "Changed description"
+        progress_made = controller.check_progress(issues)
+        assert progress_made is False  # Stall - only FIX issue matters
+
+    def test_check_progress_updates_last_progress_iteration(self) -> None:
+        """last_progress_iteration updated when progress made."""
+        from adw.validation.models import IssueSource, ValidationIssue
+
+        controller = ValidationLoopController(ValidationConfig())
+        controller.start_iteration()
+        assert controller.state.current_iteration == 1
+
+        issues = [
+            ValidationIssue(
+                source=IssueSource.TEST,
+                severity="ERROR",
+                description="Issue",
+            ),
+        ]
+        issues[0].triage_decision = "FIX"
+        issues[0].fix_attempt_count = 0
+
+        # First progress
+        controller.check_progress(issues)
+        assert controller.state.last_progress_iteration == 1
+
+        # Stall
+        controller.start_iteration()
+        controller.check_progress(issues)
+        assert controller.state.last_progress_iteration == 1  # Unchanged
+
+        # Progress again
+        controller.start_iteration()
+        issues[0].fix_attempt_count = 1
+        controller.check_progress(issues)
+        assert controller.state.last_progress_iteration == 3
+
+
 class TestShouldExit:
     """Tests for should_exit() exit condition checks."""
 

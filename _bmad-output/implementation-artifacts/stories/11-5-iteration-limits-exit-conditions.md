@@ -53,10 +53,10 @@ validation:
 - [x] Return (should_exit, reason)
 
 ### Task 3: Implement Stall Detection
-- [ ] Create `check_progress(prev_issues, curr_issues) -> bool`
-- [ ] Compare issue counts and states
-- [ ] Detect "same issues, same state" stall
-- [ ] Increment stall counter when no progress
+- [x] Create `check_progress(prev_issues, curr_issues) -> bool`
+- [x] Compare issue counts and states
+- [x] Detect "same issues, same state" stall
+- [x] Increment stall counter when no progress
 
 ### Task 4: Implement Auto-Defer on Exit
 - [ ] When loop exits with remaining FIX issues
