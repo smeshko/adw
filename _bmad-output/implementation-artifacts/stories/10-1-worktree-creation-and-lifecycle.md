@@ -68,9 +68,9 @@ so that concurrent runs don't interfere with each other or my working directory.
 - [x] Add `_create_worktree_for_run()` and `_cleanup_worktree()` helper methods
 
 ### Task 5: Add --no-worktree CLI Flag
-- [ ] Add `--no-worktree` option to `adw run` command in `src/adw/cli/run.py`
-- [ ] When flag is set, skip worktree creation and run in current directory
-- [ ] Store `use_worktree: bool` in RunContext for later reference
+- [x] Add `--no-worktree` option to `adw run` command in `src/adw/cli/app.py`
+- [x] When flag is set, skip worktree creation and run in current directory
+- [x] Pass `use_worktree=not no_worktree` to orchestrator.run()
 
 ### Task 6: Write Tests
 - [ ] Unit tests for `WorktreeManager.create_worktree()`
@@ -376,6 +376,11 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
   - Added preservation on failure (based on preserve_on_failure config)
   - Added preservation on abort for debugging
   - All 61 orchestrator tests pass
+
+- Task 5: Added --no-worktree CLI flag
+  - Added --no-worktree option to `adw run` command
+  - Updated help text with example usage
+  - Passed use_worktree=not no_worktree to orchestrator.run()
 
 ### File List
 
