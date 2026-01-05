@@ -31,19 +31,19 @@ so that **I don't need to run a separate command and can immediately see my work
 - [x] Cache results to avoid repeated subprocess calls
 
 ### Task 2: Implement Auto-PR Creation
-- [ ] After document phase completes successfully:
+- [x] After document phase completes successfully:
   - Check remote exists
   - Check gh CLI available
   - If both true: call existing `adw pr` logic
   - Capture PR URL from gh output
-- [ ] Handle errors gracefully (network issues, auth problems)
-- [ ] Don't fail the run if PR creation fails
+- [x] Handle errors gracefully (network issues, auth problems)
+- [x] Don't fail the run if PR creation fails
 
 ### Task 3: Update Completion Summary
-- [ ] If PR created: display `PR Created: <url>`
-- [ ] If PR not created (no remote): display `PR Description: <path>`
-- [ ] If PR not created (no gh): display `PR Description: <path>` + hint about `gh` CLI
-- [ ] If PR creation failed: display error + fallback to description path
+- [x] If PR created: display `PR Created: <url>`
+- [x] If PR not created (no remote): display `PR Description: <path>`
+- [x] If PR not created (no gh): display `PR Description: <path>` + hint about `gh` CLI
+- [x] If PR creation failed: display error + fallback to description path
 
 ### Task 4: Add Configuration Option
 - [x] Add `git.auto_create_pr: bool` to project config schema

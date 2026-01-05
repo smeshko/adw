@@ -30,7 +30,7 @@ from adw.hooks.runner import HookRunner
 from adw.logging import LLMCaptureManager, LogManager, LogManagerHandler
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
-from adw.models.config import HookConfig, LLMConfig, WorktreeConfig
+from adw.models.config import GitConfig, HookConfig, LLMConfig, WorktreeConfig
 from adw.models.logging import LogLevel, Verbosity, VERBOSITY_LEVEL_MAP
 from adw.security import SecurityInterceptor, ToolLogger
 
@@ -183,14 +183,17 @@ def create_orchestrator(
     runs_dir = get_runs_dir(project_root)
     console = console or Console()
 
-    # Load project configuration for worktree settings (Story 10.1)
+    # Load project configuration for worktree and git settings (Story 10.1, ISS-011)
     worktree_config: WorktreeConfig | None = None
+    git_config: GitConfig | None = None
     try:
         config = ConfigLoader(project_root).load()
         worktree_config = config.worktree
+        git_config = config.git
     except ConfigError:
         # No config file or invalid config - use defaults
         worktree_config = WorktreeConfig()
+        git_config = GitConfig()
 
     # Create managers
     context_manager = ContextManager(runs_dir)
@@ -249,6 +252,7 @@ def create_orchestrator(
         interruption_handler=interruption_handler,
         progress_display=progress_display,
         worktree_config=worktree_config,
+        git_config=git_config,
     )
 
     # Wire up the PhaseRunner

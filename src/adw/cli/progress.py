@@ -12,6 +12,7 @@ Features:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from rich.console import Console
@@ -28,8 +29,9 @@ from rich.progress import (
 from adw.core.constants import PHASE_SEQUENCE, PR_DESCRIPTION_ARTIFACT
 
 if TYPE_CHECKING:
+    from adw.cli.pr import AutoPRResult
     from adw.exceptions import ADWError
-    from adw.models import PhaseResult
+    from adw.models import PhaseResult, RunContext
 
 __all__ = ["ProgressDisplay"]
 
@@ -230,6 +232,7 @@ class ProgressDisplay:
         total_duration_ms: int,
         total_tokens: int,
         run_id: str | None = None,
+        pr_result: "AutoPRResult | None" = None,
     ) -> None:
         """Show pipeline summary at end of run.
 
@@ -239,6 +242,7 @@ class ProgressDisplay:
             total_duration_ms: Total run duration in milliseconds.
             total_tokens: Total tokens used.
             run_id: Optional run ID for displaying artifact paths.
+            pr_result: Optional result of automatic PR creation attempt (Story ISS-011).
         """
         self.console.print()
 
@@ -275,11 +279,42 @@ class ProgressDisplay:
             f"[bold]Tokens:[/] {total_tokens:,}",
         ]
 
-        # Add PR description path if document phase completed (Story 9.4)
+        # Add PR info if document phase completed (Story 9.4, enhanced by ISS-011)
         if run_id and "document" in completed_phases:
-            pr_path = f".adw/runs/{run_id}/{PR_DESCRIPTION_ARTIFACT}"
             content_lines.append("")
-            content_lines.append(f"[bold]PR Description:[/] [cyan]{pr_path}[/]")
+
+            if pr_result and pr_result.success:
+                # PR was created successfully
+                content_lines.append(
+                    f"[bold]PR Created:[/] [green]{pr_result.pr_url}[/]"
+                )
+            elif pr_result and not pr_result.success:
+                # PR creation was attempted but failed/skipped
+                pr_path = f".adw/runs/{run_id}/{PR_DESCRIPTION_ARTIFACT}"
+                content_lines.append(f"[bold]PR Description:[/] [cyan]{pr_path}[/]")
+
+                # Add contextual hint based on failure reason
+                if "remote" in pr_result.reason.lower():
+                    content_lines.append(
+                        "[dim]ℹ No git remote - push to create PR manually[/]"
+                    )
+                elif "installed" in pr_result.reason.lower():
+                    content_lines.append(
+                        "[dim]ℹ Install GitHub CLI (gh) for automatic PR creation[/]"
+                    )
+                elif "authenticated" in pr_result.reason.lower():
+                    content_lines.append(
+                        "[dim]ℹ Run 'gh auth login' to enable auto PR creation[/]"
+                    )
+                else:
+                    # Generic hint for other failures
+                    content_lines.append(
+                        f"[dim]ℹ Run 'adw pr {run_id}' to create PR manually[/]"
+                    )
+            else:
+                # No PR result provided (backward compatibility)
+                pr_path = f".adw/runs/{run_id}/{PR_DESCRIPTION_ARTIFACT}"
+                content_lines.append(f"[bold]PR Description:[/] [cyan]{pr_path}[/]")
 
         self.console.print(
             Panel(
@@ -288,3 +323,53 @@ class ProgressDisplay:
                 border_style=status_color,
             )
         )
+
+    def try_auto_create_pr(
+        self,
+        run_id: str,
+        context: "RunContext",
+        runs_dir: Path,
+        auto_create_pr_enabled: bool = True,
+    ) -> "AutoPRResult | None":
+        """Attempt automatic PR creation after successful run.
+
+        This method attempts to create a PR using the generated PR description.
+        It handles all prerequisites checking and error handling gracefully.
+
+        Args:
+            run_id: ID of the completed run.
+            context: RunContext with feature description.
+            runs_dir: Path to runs directory.
+            auto_create_pr_enabled: Whether auto-PR is enabled in config.
+
+        Returns:
+            AutoPRResult with outcome, or None if auto-PR is disabled.
+        """
+        if not auto_create_pr_enabled:
+            return None
+
+        # Import here to avoid circular imports
+        from adw.cli.pr import AutoPRResult, auto_create_pr
+
+        try:
+            result = auto_create_pr(run_id, context, runs_dir)
+
+            if result.success:
+                self.console.print(
+                    f"[bold green]✓[/] PR created: [cyan]{result.pr_url}[/]"
+                )
+            else:
+                self.console.print(
+                    f"[dim]ℹ Auto-PR skipped: {result.reason}[/]"
+                )
+
+            return result
+
+        except Exception as e:
+            # Don't fail the run if PR creation fails
+            self.console.print(f"[dim]ℹ Auto-PR failed: {e}[/]")
+            return AutoPRResult(
+                success=False,
+                reason=str(e),
+                suggestion="Run 'adw pr' manually",
+            )
