@@ -13,7 +13,13 @@ from pathlib import Path
 
 import pytest
 
-from adw.validation.models import IssueSource, IssueSeverity, ValidationIssue
+from adw.validation.models import (
+    IssueSource,
+    IssueSeverity,
+    LoopState,
+    ValidationIssue,
+    ValidationState,
+)
 from adw.validation.state_manager import ValidationStateManager
 
 
@@ -314,6 +320,33 @@ class TestFixHistoryPersistence:
 class TestStatePersistence:
     """Tests for state save/load."""
 
+    def test_state_stored_at_correct_path(self, tmp_path: Path) -> None:
+        """State is stored at .adw/runs/<id>/validation/state.json."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        state = {"current_iteration": 1}
+        manager.save_state(state)
+
+        expected_path = base_path / "validation" / "state.json"
+        assert expected_path.exists()
+        assert manager.state_file == expected_path
+
+    def test_save_state_uses_atomic_write(self, tmp_path: Path) -> None:
+        """State save uses atomic write (no temp file remains)."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        state = {"current_iteration": 1}
+        manager.save_state(state)
+
+        # Verify no temp file remains
+        temp_file = manager.state_file.with_suffix(".tmp")
+        assert not temp_file.exists()
+        assert manager.state_file.exists()
+
     def test_save_and_load_state(self, tmp_path: Path) -> None:
         """State round-trips correctly."""
         base_path = tmp_path / "run-123"
@@ -334,6 +367,49 @@ class TestStatePersistence:
         assert loaded["run_id"] == "run-123"  # Auto-set
         assert "last_updated" in loaded  # Auto-set
 
+    def test_save_state_accepts_validation_state_model(self, tmp_path: Path) -> None:
+        """save_state accepts ValidationState model."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        loop_state = LoopState(issues_resolved=5, issues_remaining=2)
+        state = ValidationState(
+            run_id="run-123",
+            current_iteration=3,
+            total_iterations=5,
+            loop_state=loop_state,
+        )
+
+        manager.save_state(state)
+        loaded = manager.load_state()
+
+        assert loaded is not None
+        assert loaded["current_iteration"] == 3
+        assert loaded["loop_state"]["issues_resolved"] == 5
+        assert loaded["loop_state"]["issues_remaining"] == 2
+
+    def test_load_state_model_returns_validation_state(self, tmp_path: Path) -> None:
+        """load_state_model returns ValidationState model."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        loop_state = LoopState(issues_resolved=5)
+        state = ValidationState(
+            run_id="run-123",
+            current_iteration=3,
+            loop_state=loop_state,
+        )
+        manager.save_state(state)
+
+        loaded = manager.load_state_model()
+
+        assert loaded is not None
+        assert isinstance(loaded, ValidationState)
+        assert loaded.current_iteration == 3
+        assert loaded.loop_state.issues_resolved == 5
+
     def test_load_state_missing_file(self, tmp_path: Path) -> None:
         """Load returns None when no state file exists."""
         base_path = tmp_path / "run-123"
@@ -341,6 +417,16 @@ class TestStatePersistence:
         manager = ValidationStateManager("run-123", base_path)
 
         loaded = manager.load_state()
+
+        assert loaded is None
+
+    def test_load_state_model_missing_file(self, tmp_path: Path) -> None:
+        """load_state_model returns None when no state file exists."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        loaded = manager.load_state_model()
 
         assert loaded is None
 

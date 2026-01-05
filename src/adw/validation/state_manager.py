@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from adw.validation.models import ValidationIssue
+    from adw.validation.models import ValidationIssue, ValidationState
 
 __all__ = ["ValidationStateManager"]
 
@@ -256,13 +256,14 @@ class ValidationStateManager:
             )
             return []
 
-    def save_state(self, state: dict[str, Any]) -> None:
+    def save_state(self, state: "dict[str, Any] | ValidationState") -> None:
         """Save validation loop state to state.json.
 
-        Automatically updates last_updated timestamp.
+        Automatically updates last_updated timestamp. Uses atomic write
+        (write to temp file, then rename) for crash safety.
 
         Args:
-            state: State dictionary containing:
+            state: Either a ValidationState model or a dict containing:
                 - run_id: The run ID
                 - current_iteration: Current iteration number
                 - total_iterations: Max iterations configured
@@ -270,16 +271,24 @@ class ValidationStateManager:
                 - started_at: When validation started
                 - last_updated: (auto-set) When state was saved
         """
-        # Ensure run_id matches
-        state["run_id"] = self.run_id
-        state["last_updated"] = datetime.now(UTC).isoformat()
+        from adw.validation.models import ValidationState
 
-        content = json.dumps(state, indent=2, default=str)
+        # Convert ValidationState to dict if needed
+        if isinstance(state, ValidationState):
+            state_dict = state.to_dict()
+        else:
+            state_dict = state
+
+        # Ensure run_id matches and update timestamp
+        state_dict["run_id"] = self.run_id
+        state_dict["last_updated"] = datetime.now(UTC).isoformat()
+
+        content = json.dumps(state_dict, indent=2, default=str)
         self._atomic_write(self.state_file, content)
         logger.info(
             "State saved",
             extra={
-                "iteration": state.get("current_iteration"),
+                "iteration": state_dict.get("current_iteration"),
                 "path": str(self.state_file),
             },
         )
@@ -307,6 +316,27 @@ class ValidationStateManager:
         except json.JSONDecodeError as e:
             logger.warning(
                 "Failed to load state",
+                extra={"error": str(e), "path": str(self.state_file)},
+            )
+            return None
+
+    def load_state_model(self) -> "ValidationState | None":
+        """Load validation loop state as a ValidationState model.
+
+        Returns:
+            ValidationState model or None if file doesn't exist or is corrupted.
+        """
+        from adw.validation.models import ValidationState
+
+        data = self.load_state()
+        if data is None:
+            return None
+
+        try:
+            return ValidationState.from_dict(data)
+        except (ValueError, KeyError) as e:
+            logger.warning(
+                "Failed to parse state as ValidationState",
                 extra={"error": str(e), "path": str(self.state_file)},
             )
             return None

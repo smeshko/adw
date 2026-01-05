@@ -68,10 +68,10 @@ so that I can resume validation after interruption.
 - [x] Include file modifications for each iteration
 
 ### Task 6: Implement State Snapshot
-- [ ] Create `save_state(state: ValidationState) -> None`
-- [ ] Create `load_state() -> ValidationState | None`
-- [ ] Store at `.adw/runs/<id>/validation/state.json`
-- [ ] Use atomic write (write to temp, then rename)
+- [x] Create `save_state(state: ValidationState) -> None`
+- [x] Create `load_state() -> ValidationState | None`
+- [x] Store at `.adw/runs/<id>/validation/state.json`
+- [x] Use atomic write (write to temp, then rename)
 
 ### Task 7: Add Resume Support
 - [ ] Create `can_resume() -> bool` method
