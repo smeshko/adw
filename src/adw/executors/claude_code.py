@@ -615,9 +615,9 @@ class ClaudeCodeExecutor:
         # Distribute duration evenly across tools (approximation)
         per_tool_duration = total_duration_ms // len(tool_calls) if tool_calls else 0
 
-        timestamp = datetime.now(UTC).isoformat()
-
         for tool_call in tool_calls:
+            # Generate individual timestamp per tool call for accurate logging
+            timestamp = datetime.now(UTC).isoformat()
             # Truncate result summary if present
             result_summary = tool_call.result_summary
             if result_summary and len(result_summary) > 200:
@@ -740,10 +740,11 @@ class ClaudeCodeExecutor:
         if not tool_calls:
             return
 
-        timestamp = datetime.now(UTC).isoformat()
         per_tool_duration = total_duration_ms // len(tool_calls)
 
         for tool_call in tool_calls:
+            # Generate individual timestamp per tool call for accurate logging
+            timestamp = datetime.now(UTC).isoformat()
             blocked = False
             block_reason: str | None = None
 
