@@ -60,11 +60,11 @@ validation:
 - [x] Handle test timeout and test command not found errors
 
 ### Task 4: Implement ReviewValidator
-- [ ] Create `src/adw/validation/validators/review_validator.py`
-- [ ] Use LLM executor to run code review prompt against changes
-- [ ] Parse LLM response for structured issues
-- [ ] Convert review findings to `ValidationIssue` with source=REVIEW
-- [ ] Support configurable review focus areas (security, error_handling, edge_cases)
+- [x] Create `src/adw/validation/validators/review_validator.py`
+- [x] Use LLM executor to run code review prompt against changes
+- [x] Parse LLM response for structured issues
+- [x] Convert review findings to `ValidationIssue` with source=REVIEW
+- [x] Support configurable review focus areas (security, error_handling, edge_cases)
 
 ### Task 5: Implement EvidenceValidator
 - [ ] Create `src/adw/validation/validators/evidence_validator.py`
@@ -346,6 +346,7 @@ claude-opus-4-5-20251101
 - Task 1: Created ValidationPhase class with run() method, ValidationResult and ValidationIssue models, ValidationConfig. The "validate" phase already exists in PHASE_SEQUENCE so no modification needed.
 - Task 2: Created Validator Protocol in validators/base.py with name property and validate() method. Implemented ValidatorRegistry with register(), get_all(), get_enabled(), run_all(), run_enabled(), and clear() methods. Supports dynamic filtering based on ValidationConfig enable flags.
 - Task 3: Implemented TestValidator that runs test commands (pytest, npm test) and parses output for failures. Supports timeout handling, command not found errors, and regex-based parsing of pytest and npm/jest output formats.
+- Task 4: Implemented ReviewValidator that uses LLM executor for code review. Parses review response for issues with severity levels, supports configurable focus areas, handles LLM errors gracefully.
 
 ### File List
 
@@ -362,3 +363,5 @@ claude-opus-4-5-20251101
 - `tests/unit/validation/validators/__init__.py` - Validator tests package
 - `tests/unit/validation/validators/test_base.py` - 8 unit tests for ValidatorRegistry
 - `tests/unit/validation/validators/test_test_validator.py` - 7 unit tests for TestValidator
+- `src/adw/validation/validators/review_validator.py` - ReviewValidator implementation
+- `tests/unit/validation/validators/test_review_validator.py` - 6 unit tests for ReviewValidator
