@@ -634,3 +634,231 @@ class TestPreCommitHookIntegration:
             check=True,
         )
         assert "[adw] Build: Skip hooks test" in result.stdout
+
+
+class TestBuildCommitDiffFlowIntegration:
+    """Integration tests for the full BUILD → commit → diff capture flow (ISS-009).
+
+    Tests the end-to-end workflow where:
+    1. BUILD phase creates files
+    2. Auto-commit stages and commits all changes
+    3. Git diff captures the changes from the commit
+    """
+
+    def test_full_build_commit_diff_flow(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should create files, commit them, and capture diff correctly."""
+        monkeypatch.chdir(git_repo)
+
+        # Simulate BUILD phase creating new files (as LLM would)
+        (git_repo / "src").mkdir()
+        (git_repo / "src" / "main.py").write_text("def main():\n    print('Hello')\n")
+        (git_repo / "src" / "utils.py").write_text("def helper():\n    pass\n")
+        (git_repo / "tests").mkdir()
+        (git_repo / "tests" / "test_main.py").write_text("def test_main():\n    pass\n")
+
+        # Step 1: Stage all changes (including untracked files)
+        files = stage_changes()
+
+        assert len(files) == 3
+        assert "src/main.py" in files
+        assert "src/utils.py" in files
+        assert "tests/test_main.py" in files
+
+        # Step 2: Create commit
+        sha = create_commit(
+            phase="build",
+            feature="Add main application",
+            run_id="01HQ123456",
+        )
+
+        assert sha is not None
+        assert len(sha) == 40
+
+        # Step 3: Verify git diff HEAD~1 captures the changes
+        diff_result = subprocess.run(
+            ["git", "diff", "HEAD~1", "--name-only"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        diff_files = diff_result.stdout.strip().split("\n")
+
+        assert "src/main.py" in diff_files
+        assert "src/utils.py" in diff_files
+        assert "tests/test_main.py" in diff_files
+
+        # Verify full diff content is available
+        full_diff = subprocess.run(
+            ["git", "diff", "HEAD~1"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "def main():" in full_diff.stdout
+        assert "def helper():" in full_diff.stdout
+        assert "def test_main():" in full_diff.stdout
+
+    def test_subsequent_phases_create_commits(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should create commits for VERIFY, VALIDATE, DOCUMENT phases too."""
+        monkeypatch.chdir(git_repo)
+
+        # BUILD phase: create initial code
+        (git_repo / "app.py").write_text("# App code\n")
+        stage_changes()
+        build_sha = create_commit(
+            phase="build", feature="Add app", run_id="01HQ001"
+        )
+        assert build_sha is not None
+
+        # VERIFY phase: add tests
+        (git_repo / "test_app.py").write_text("# Tests\n")
+        stage_changes()
+        verify_sha = create_commit(
+            phase="verify", feature="Add app", run_id="01HQ001"
+        )
+        assert verify_sha is not None
+        assert verify_sha != build_sha
+
+        # VALIDATE phase: modify code based on validation
+        (git_repo / "app.py").write_text("# App code - validated\n")
+        stage_changes()
+        validate_sha = create_commit(
+            phase="validate", feature="Add app", run_id="01HQ001"
+        )
+        assert validate_sha is not None
+        assert validate_sha != verify_sha
+
+        # DOCUMENT phase: add docs
+        (git_repo / "README.md").write_text("# Documentation\n")
+        stage_changes()
+        doc_sha = create_commit(
+            phase="document", feature="Add app", run_id="01HQ001"
+        )
+        assert doc_sha is not None
+        assert doc_sha != validate_sha
+
+        # Verify all commits exist with correct messages
+        log_result = subprocess.run(
+            ["git", "log", "--oneline", "-4"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "[adw] Build:" in log_result.stdout
+        assert "[adw] Verify:" in log_result.stdout
+        assert "[adw] Validate:" in log_result.stdout
+        assert "[adw] Document:" in log_result.stdout
+
+    def test_untracked_files_are_staged(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should stage untracked files (new files created by LLM)."""
+        monkeypatch.chdir(git_repo)
+
+        # Create new files (simulating LLM output)
+        (git_repo / "new_module.py").write_text("# New module\n")
+        (git_repo / "new_test.py").write_text("# New test\n")
+
+        # Verify files are untracked before staging
+        status_result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "?? new_module.py" in status_result.stdout
+        assert "?? new_test.py" in status_result.stdout
+
+        # Stage changes - should stage untracked files with git add -A
+        files = stage_changes()
+
+        assert "new_module.py" in files
+        assert "new_test.py" in files
+
+        # Verify files are now staged
+        assert has_staged_changes() is True
+
+        # Commit and verify
+        sha = create_commit(
+            phase="build",
+            feature="Add modules",
+            run_id="01HQ789",
+        )
+        assert sha is not None
+
+        # Verify commit includes the new files
+        diff_result = subprocess.run(
+            ["git", "diff", "HEAD~1", "--name-only"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "new_module.py" in diff_result.stdout
+        assert "new_test.py" in diff_result.stdout
+
+    def test_no_changes_returns_none(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should return None when no changes to commit (empty phase)."""
+        monkeypatch.chdir(git_repo)
+
+        # Stage with no changes
+        files = stage_changes()
+        assert files == []
+
+        # Commit should return None
+        sha = create_commit(
+            phase="build",
+            feature="Empty build",
+            run_id="01HQ000",
+        )
+        assert sha is None
+
+    def test_worktree_support(
+        self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Should work correctly with worktree paths (ISS-009 worktree fix)."""
+        # Create a worktree
+        worktree_path = git_repo.parent / "worktree"
+        subprocess.run(
+            ["git", "worktree", "add", str(worktree_path), "-b", "feature/test"],
+            cwd=git_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Create files in worktree (not the main repo)
+        (worktree_path / "worktree_file.py").write_text("# Worktree code\n")
+
+        # Stage and commit using working_dir parameter
+        files = stage_changes(working_dir=worktree_path)
+        assert "worktree_file.py" in files
+
+        sha = create_commit(
+            phase="build",
+            feature="Worktree feature",
+            run_id="01HQWT1",
+            working_dir=worktree_path,
+        )
+        assert sha is not None
+
+        # Verify commit exists in worktree
+        log_result = subprocess.run(
+            ["git", "log", "-1", "--format=%s"],
+            cwd=worktree_path,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "[adw] Build: Worktree feature" in log_result.stdout
+
+        # Cleanup worktree
+        subprocess.run(
+            ["git", "worktree", "remove", str(worktree_path)],
+            cwd=git_repo,
+            capture_output=True,
+        )

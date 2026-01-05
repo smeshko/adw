@@ -5,6 +5,7 @@ the ADW pipeline. This module provides factory functions that handle
 the complexity of instantiating the orchestrator and its dependencies.
 """
 
+import logging
 from pathlib import Path
 from typing import TextIO, cast
 
@@ -26,11 +27,11 @@ from adw.core.phase_runner import PhaseRunner
 from adw.exceptions import ConfigError
 from adw.executors.claude_code import ClaudeCodeExecutor
 from adw.hooks.runner import HookRunner
-from adw.logging import LLMCaptureManager, LogManager
+from adw.logging import LLMCaptureManager, LogManager, LogManagerHandler
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
-from adw.models.config import HookConfig, LLMConfig, WorktreeConfig
-from adw.models.logging import Verbosity
+from adw.models.config import GitConfig, HookConfig, LLMConfig, WorktreeConfig
+from adw.models.logging import LogLevel, Verbosity, VERBOSITY_LEVEL_MAP
 from adw.security import SecurityInterceptor, ToolLogger
 
 
@@ -71,6 +72,10 @@ def create_log_manager(
     Sets up console transport with the specified verbosity. When run_dir is
     provided, also sets up file transports for persistent logging.
 
+    IMPORTANT: This function also wires up Python's standard logging to flow
+    through the LogManager, so calls to logging.getLogger().info() will write
+    to logs.jsonl (Story ISS-006 fix).
+
     Args:
         console: Rich console for output. If None, creates a new one.
         verbosity: Verbosity level for console output (default: NORMAL)
@@ -108,6 +113,33 @@ def create_log_manager(
         # Human-readable raw log
         raw_transport = RawFileTransport(logs_dir / "raw.log")
         log_manager.register(raw_transport)
+
+    # Wire Python's standard logging to flow through LogManager (ISS-006 fix)
+    # This ensures all logging.getLogger(__name__).info() calls in ADW modules
+    # are captured in logs.jsonl for debugging via `adw logs show`
+    handler = LogManagerHandler(log_manager)
+
+    # Set handler level based on verbosity - file transports log everything,
+    # but we filter at the handler level based on CLI verbosity
+    log_level = VERBOSITY_LEVEL_MAP.get(verbosity, LogLevel.INFO)
+    python_level_map = {
+        LogLevel.TRACE: logging.DEBUG,  # Python has no TRACE, use DEBUG
+        LogLevel.DEBUG: logging.DEBUG,
+        LogLevel.INFO: logging.INFO,
+        LogLevel.WARN: logging.WARNING,
+        LogLevel.ERROR: logging.ERROR,
+        LogLevel.FATAL: logging.CRITICAL,
+    }
+    handler.setLevel(python_level_map.get(log_level, logging.INFO))
+
+    # Attach to root logger to capture all ADW module logs
+    root_logger = logging.getLogger()
+    root_logger.addHandler(handler)
+
+    # Ensure root logger level allows messages through
+    # (handlers filter further, but root must let them through first)
+    if root_logger.level == logging.NOTSET or root_logger.level > logging.DEBUG:
+        root_logger.setLevel(logging.DEBUG)
 
     return log_manager
 
@@ -151,14 +183,17 @@ def create_orchestrator(
     runs_dir = get_runs_dir(project_root)
     console = console or Console()
 
-    # Load project configuration for worktree settings (Story 10.1)
+    # Load project configuration for worktree and git settings (Story 10.1, ISS-011)
     worktree_config: WorktreeConfig | None = None
+    git_config: GitConfig | None = None
     try:
         config = ConfigLoader(project_root).load()
         worktree_config = config.worktree
+        git_config = config.git
     except ConfigError:
         # No config file or invalid config - use defaults
         worktree_config = WorktreeConfig()
+        git_config = GitConfig()
 
     # Create managers
     context_manager = ContextManager(runs_dir)
@@ -217,6 +252,7 @@ def create_orchestrator(
         interruption_handler=interruption_handler,
         progress_display=progress_display,
         worktree_config=worktree_config,
+        git_config=git_config,
     )
 
     # Wire up the PhaseRunner

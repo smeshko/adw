@@ -225,9 +225,10 @@ def run(
     runs_dir = Path.cwd() / ".adw" / "runs"
     run_dir = runs_dir / run_id
 
-    # Create log manager with file transports (Story 7.2, ISS-003 fix)
-    log_manager = create_log_manager(console, verbosity=verbosity, run_dir=run_dir)
-    _ = log_manager  # Log manager created for file logging
+    # Create log manager with file transports (Story 7.2, ISS-003, ISS-006 fix)
+    # This wires up Python logging to LogManager, so all logging.getLogger() calls
+    # in ADW modules flow through to logs.jsonl for debugging via `adw logs show`
+    create_log_manager(console, verbosity=verbosity, run_dir=run_dir)
 
     # Enable LLM output if flag is set OR verbosity is TRACE (Story UX-FIX-ISS-001)
     effective_show_llm_output = show_llm_output or verbosity == Verbosity.TRACE

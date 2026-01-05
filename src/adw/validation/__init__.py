@@ -10,6 +10,7 @@ a single ValidationResult for triage and fix iteration.
 """
 
 from adw.validation.config import ValidationConfig
+from adw.validation.fix_engine import FileChange, FixEngine, FixIterationResult
 from adw.validation.models import (
     FixAttempt,
     FixResult,
@@ -28,7 +29,10 @@ from adw.validation.state_manager import ValidationStateManager
 from adw.validation.validators.base import Validator, ValidatorRegistry
 
 __all__ = [
+    "FileChange",
     "FixAttempt",
+    "FixEngine",
+    "FixIterationResult",
     "FixResult",
     "IssueContext",
     "IssueLocation",

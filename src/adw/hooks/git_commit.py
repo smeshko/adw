@@ -12,6 +12,7 @@ avoid external dependencies like gitpython.
 """
 
 import subprocess
+from pathlib import Path
 
 from adw.exceptions import HookError
 
@@ -66,11 +67,15 @@ def format_commit_message(
     return template.format(**format_dict)
 
 
-def stage_changes() -> list[str]:
+def stage_changes(*, working_dir: Path | None = None) -> list[str]:
     """Stage all changes in the working tree.
 
     Uses `git add -A` to stage all changes including new files,
     modifications, and deletions.
+
+    Args:
+        working_dir: Directory to run git commands in (default: current dir).
+            Essential for worktree support.
 
     Returns:
         List of staged file paths.
@@ -82,13 +87,17 @@ def stage_changes() -> list[str]:
         >>> files = stage_changes()
         >>> print(files)
         ['src/main.py', 'tests/test_main.py']
+        >>> files = stage_changes(working_dir=Path("/my/worktree"))
     """
+    cwd = working_dir if working_dir is not None else None
+
     # Stage all changes
     add_result = subprocess.run(
         ["git", "add", "-A"],
         capture_output=True,
         text=True,
         check=False,
+        cwd=cwd,
     )
 
     if add_result.returncode != 0:
@@ -107,6 +116,7 @@ def stage_changes() -> list[str]:
         capture_output=True,
         text=True,
         check=False,
+        cwd=cwd,
     )
 
     if diff_result.returncode != 0:
@@ -124,12 +134,15 @@ def stage_changes() -> list[str]:
     return files
 
 
-def has_staged_changes() -> bool:
+def has_staged_changes(*, working_dir: Path | None = None) -> bool:
     """Check if there are staged changes ready to commit.
 
     Uses `git diff --cached --quiet` which exits with:
     - 0 if no staged changes
     - 1 if there are staged changes
+
+    Args:
+        working_dir: Directory to run git commands in (default: current dir).
 
     Returns:
         True if staged changes exist, False otherwise.
@@ -146,6 +159,7 @@ def has_staged_changes() -> bool:
         capture_output=True,
         text=True,
         check=False,
+        cwd=working_dir,
     )
 
     # Exit code 0 = no changes, 1 = has changes, >1 = error
@@ -164,12 +178,15 @@ def has_staged_changes() -> bool:
         )
 
 
-def get_unstaged_modifications() -> list[str]:
+def get_unstaged_modifications(*, working_dir: Path | None = None) -> list[str]:
     """Get list of files with unstaged modifications.
 
     Uses `git diff --name-only` to find files that have been modified
     but not yet staged. This is useful for detecting when pre-commit
     hooks have modified files after staging.
+
+    Args:
+        working_dir: Directory to run git commands in (default: current dir).
 
     Returns:
         List of file paths with unstaged modifications.
@@ -187,6 +204,7 @@ def get_unstaged_modifications() -> list[str]:
         capture_output=True,
         text=True,
         check=False,
+        cwd=working_dir,
     )
 
     if result.returncode != 0:
@@ -211,6 +229,7 @@ def create_commit(
     *,
     template: str | None = None,
     skip_hooks: bool = False,
+    working_dir: Path | None = None,
 ) -> str | None:
     """Create a commit with the staged changes.
 
@@ -227,6 +246,8 @@ def create_commit(
         run_id: The unique run identifier.
         template: Optional custom commit message template.
         skip_hooks: If True, use --no-verify to skip pre-commit hooks.
+        working_dir: Directory to run git commands in (default: current dir).
+            Essential for worktree support.
 
     Returns:
         Commit SHA if commit was created, None if no changes to commit.
@@ -240,9 +261,13 @@ def create_commit(
         ...     print(f"Created commit: {sha}")
         ... else:
         ...     print("No changes to commit")
+        >>> sha = create_commit("build", "Add auth", "01HQ123",
+        ...                     working_dir=Path("/my/worktree"))
     """
+    cwd = working_dir if working_dir is not None else None
+
     # Check if there are staged changes first
-    if not has_staged_changes():
+    if not has_staged_changes(working_dir=working_dir):
         return None
 
     # Format the commit message
@@ -267,6 +292,7 @@ def create_commit(
                 capture_output=True,
                 text=True,
                 check=False,
+                cwd=cwd,
             )
             .stdout.strip()
             .split("\n")
@@ -278,22 +304,24 @@ def create_commit(
             capture_output=True,
             text=True,
             check=False,
+            cwd=cwd,
         )
 
         if commit_result.returncode == 0:
             # Commit succeeded - check if hooks modified any files
-            modified = get_unstaged_modifications()
+            modified = get_unstaged_modifications(working_dir=working_dir)
             hook_modified = [f for f in modified if f in staged_before]
 
             if hook_modified and attempt < MAX_HOOK_RETRIES - 1:
                 # Pre-commit hook modified files - re-stage and amend
-                stage_changes()
+                stage_changes(working_dir=working_dir)
                 # Amend the commit with the hook-modified files
                 amend_result = subprocess.run(
                     ["git", "commit", "--amend", "--no-edit"],
                     capture_output=True,
                     text=True,
                     check=False,
+                    cwd=cwd,
                 )
                 if amend_result.returncode != 0:
                     stderr = amend_result.stderr.strip()
@@ -312,6 +340,7 @@ def create_commit(
                 capture_output=True,
                 text=True,
                 check=False,
+                cwd=cwd,
             )
 
             if sha_result.returncode != 0:
@@ -328,12 +357,12 @@ def create_commit(
             return sha_result.stdout.strip()
 
         # Commit failed - check if it's due to hook modifying files
-        modified = get_unstaged_modifications()
+        modified = get_unstaged_modifications(working_dir=working_dir)
         hook_modified = [f for f in modified if f in staged_before]
 
         if hook_modified and attempt < MAX_HOOK_RETRIES - 1:
             # Re-stage modified files and retry
-            stage_changes()
+            stage_changes(working_dir=working_dir)
             continue
 
         # Not a hook modification issue or out of retries

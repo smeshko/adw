@@ -12,12 +12,16 @@ from typer.testing import CliRunner
 
 from adw.cli.app import app
 from adw.cli.pr import (
+    AutoPRResult,
     _get_base_branch,
     _get_pr_description_path,
     _load_pr_description,
     _store_pr_url,
+    auto_create_pr,
+    can_auto_create_pr,
     check_gh_authenticated,
     check_gh_available,
+    check_git_remote,
     create_pr_via_gh,
     display_manual_instructions,
 )
@@ -631,3 +635,233 @@ class TestPrCommand:
                                 mock_create.assert_called_once()
                                 _, kwargs = mock_create.call_args
                                 assert kwargs.get("no_open") is True
+
+
+class TestCheckGitRemote:
+    """Tests for check_git_remote function (Story ISS-011)."""
+
+    def test_has_remote_returns_true_with_url(self) -> None:
+        """Test returns (True, url) when remote exists."""
+        with patch("adw.cli.pr.subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="origin\tgit@github.com:user/repo.git (fetch)\n"
+                "origin\tgit@github.com:user/repo.git (push)\n",
+            )
+
+            has_remote, url = check_git_remote()
+
+            assert has_remote is True
+            assert url == "git@github.com:user/repo.git"
+
+    def test_no_remote_returns_false(self) -> None:
+        """Test returns (False, '') when no remote configured."""
+        with patch("adw.cli.pr.subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout="")
+
+            has_remote, url = check_git_remote()
+
+            assert has_remote is False
+            assert url == ""
+
+    def test_git_error_returns_false(self) -> None:
+        """Test returns (False, '') when git command fails."""
+        with patch("adw.cli.pr.subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=1, stdout="")
+
+            has_remote, url = check_git_remote()
+
+            assert has_remote is False
+            assert url == ""
+
+    def test_timeout_returns_false(self) -> None:
+        """Test returns (False, '') on timeout."""
+        import subprocess
+
+        with patch("adw.cli.pr.subprocess.run") as mock_run:
+            mock_run.side_effect = subprocess.TimeoutExpired("git", 30)
+
+            has_remote, url = check_git_remote()
+
+            assert has_remote is False
+            assert url == ""
+
+
+class TestCanAutoCreatePr:
+    """Tests for can_auto_create_pr function (Story ISS-011)."""
+
+    def test_all_prerequisites_met(self) -> None:
+        """Test returns (True, '') when all conditions met."""
+        with patch("adw.cli.pr.check_git_remote") as mock_remote:
+            mock_remote.return_value = (True, "git@github.com:user/repo.git")
+
+            with patch("adw.cli.pr.check_gh_available") as mock_gh:
+                mock_gh.return_value = True
+
+                with patch("adw.cli.pr.check_gh_authenticated") as mock_auth:
+                    mock_auth.return_value = (True, "")
+
+                    can_create, reason = can_auto_create_pr()
+
+                    assert can_create is True
+                    assert reason == ""
+
+    def test_no_remote_returns_false(self) -> None:
+        """Test returns (False, reason) when no remote."""
+        with patch("adw.cli.pr.check_git_remote") as mock_remote:
+            mock_remote.return_value = (False, "")
+
+            can_create, reason = can_auto_create_pr()
+
+            assert can_create is False
+            assert "remote" in reason.lower()
+
+    def test_no_gh_returns_false(self) -> None:
+        """Test returns (False, reason) when gh not installed."""
+        with patch("adw.cli.pr.check_git_remote") as mock_remote:
+            mock_remote.return_value = (True, "git@github.com:user/repo.git")
+
+            with patch("adw.cli.pr.check_gh_available") as mock_gh:
+                mock_gh.return_value = False
+
+                can_create, reason = can_auto_create_pr()
+
+                assert can_create is False
+                assert "installed" in reason.lower()
+
+    def test_not_authenticated_returns_false(self) -> None:
+        """Test returns (False, reason) when gh not authenticated."""
+        with patch("adw.cli.pr.check_git_remote") as mock_remote:
+            mock_remote.return_value = (True, "git@github.com:user/repo.git")
+
+            with patch("adw.cli.pr.check_gh_available") as mock_gh:
+                mock_gh.return_value = True
+
+                with patch("adw.cli.pr.check_gh_authenticated") as mock_auth:
+                    mock_auth.return_value = (False, "auth error")
+
+                    can_create, reason = can_auto_create_pr()
+
+                    assert can_create is False
+                    assert "authenticated" in reason.lower()
+
+
+class TestAutoPRResult:
+    """Tests for AutoPRResult class (Story ISS-011)."""
+
+    def test_success_result(self) -> None:
+        """Test successful result creation."""
+        result = AutoPRResult(
+            success=True,
+            pr_url="https://github.com/user/repo/pull/123",
+        )
+
+        assert result.success is True
+        assert result.pr_url == "https://github.com/user/repo/pull/123"
+        assert result.reason == ""
+
+    def test_failure_result(self) -> None:
+        """Test failure result creation."""
+        result = AutoPRResult(
+            success=False,
+            reason="No git remote configured",
+            suggestion="Push to a remote repository first",
+        )
+
+        assert result.success is False
+        assert result.pr_url == ""
+        assert result.reason == "No git remote configured"
+        assert result.suggestion == "Push to a remote repository first"
+
+
+class TestAutoCreatePr:
+    """Tests for auto_create_pr function (Story ISS-011)."""
+
+    def test_returns_failure_when_cant_create(
+        self, sample_context: RunContext, tmp_path: Path
+    ) -> None:
+        """Test returns failure result when prerequisites not met."""
+        runs_dir = tmp_path
+
+        with patch("adw.cli.pr.can_auto_create_pr") as mock_can:
+            mock_can.return_value = (False, "No git remote configured")
+
+            result = auto_create_pr(
+                run_id=sample_context.run_id,
+                context=sample_context,
+                runs_dir=runs_dir,
+            )
+
+            assert result.success is False
+            assert "remote" in result.reason.lower()
+            assert result.suggestion  # Should have a suggestion
+
+    def test_success_creates_pr(
+        self,
+        sample_context: RunContext,
+        sample_pr_description: PRDescription,
+        tmp_path: Path,
+    ) -> None:
+        """Test creates PR when all conditions met."""
+        runs_dir = tmp_path
+        run_dir = runs_dir / sample_context.run_id
+        doc_dir = run_dir / "artifacts" / "document"
+        doc_dir.mkdir(parents=True)
+
+        # Write PR description
+        pr_file = doc_dir / "pr_description.md"
+        pr_file.write_text(sample_pr_description.to_markdown())
+
+        with patch("adw.cli.pr.can_auto_create_pr") as mock_can:
+            mock_can.return_value = (True, "")
+
+            with patch("adw.cli.pr.create_pr_via_gh") as mock_create:
+                mock_create.return_value = "https://github.com/user/repo/pull/123"
+
+                with patch("adw.cli.pr._store_pr_url") as mock_store:
+                    mock_store.return_value = sample_context
+
+                    result = auto_create_pr(
+                        run_id=sample_context.run_id,
+                        context=sample_context,
+                        runs_dir=runs_dir,
+                    )
+
+                    assert result.success is True
+                    assert result.pr_url == "https://github.com/user/repo/pull/123"
+
+    def test_handles_pr_creation_error(
+        self,
+        sample_context: RunContext,
+        sample_pr_description: PRDescription,
+        tmp_path: Path,
+    ) -> None:
+        """Test handles PR creation error gracefully."""
+        runs_dir = tmp_path
+        run_dir = runs_dir / sample_context.run_id
+        doc_dir = run_dir / "artifacts" / "document"
+        doc_dir.mkdir(parents=True)
+
+        # Write PR description
+        pr_file = doc_dir / "pr_description.md"
+        pr_file.write_text(sample_pr_description.to_markdown())
+
+        with patch("adw.cli.pr.can_auto_create_pr") as mock_can:
+            mock_can.return_value = (True, "")
+
+            with patch("adw.cli.pr.create_pr_via_gh") as mock_create:
+                mock_create.side_effect = ConfigError(
+                    code="GH_PR_FAILED",
+                    message="Failed to create PR",
+                    suggestion="Check gh CLI output",
+                    recoverable=False,
+                )
+
+                result = auto_create_pr(
+                    run_id=sample_context.run_id,
+                    context=sample_context,
+                    runs_dir=runs_dir,
+                )
+
+                assert result.success is False
+                assert "Failed to create PR" in result.reason

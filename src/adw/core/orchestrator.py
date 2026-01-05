@@ -11,6 +11,7 @@ Key responsibilities:
 """
 
 import logging
+import shutil
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -24,10 +25,30 @@ from adw.core.index_manager import IndexManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
-from adw.evidence import detect_platform, optimize_evidence
+from adw.evidence import (
+    APICaptureStrategy,
+    CLIEvidenceGatherer,
+    EvidenceSummary,
+    HTTPX_AVAILABLE,
+    WebCaptureStrategy,
+    capture_configured_screens,
+    check_android_emulator_available,
+    check_ios_simulator_available,
+    detect_platform,
+    generate_evidence_manifest,
+    generate_summary as generate_api_summary,
+    get_evidence_strategy,
+    load_evidence_config,
+    load_routes_from_config,
+    optimize_evidence,
+)
 from adw.exceptions import ADWError, ConfigError
-from adw.models import RunContext, WorktreeConfig
-from adw.models.evidence import PlatformType
+from adw.models import GitConfig, RunContext, WorktreeConfig
+from adw.models.evidence import (
+    EvidenceStrategy,
+    MobileDeviceType,
+    PlatformType,
+)
 from adw.models.phase import PhaseResult
 from adw.worktree import ConcurrentRunManager
 from adw.worktree.manager import WorktreeManager
@@ -118,6 +139,7 @@ class Orchestrator:
         progress_display: "ProgressDisplay | None" = None,
         max_retries: int = 3,
         worktree_config: WorktreeConfig | None = None,
+        git_config: GitConfig | None = None,
     ) -> None:
         """Initialize the Orchestrator.
 
@@ -132,6 +154,7 @@ class Orchestrator:
             progress_display: Display for phase progress (optional, Story 5.5).
             max_retries: Maximum retry attempts for recoverable errors (default: 3).
             worktree_config: Worktree isolation config (optional, Story 10.1).
+            git_config: Git configuration for auto-PR creation (optional, ISS-011).
         """
         self.runs_dir = runs_dir
         # Derive project path from runs_dir (runs_dir is typically .adw/runs)
@@ -147,6 +170,9 @@ class Orchestrator:
         self.progress_display = progress_display
         self.max_retries = max_retries
         self._phase_runner: PhaseRunnerProtocol | None = None
+
+        # Git config for auto-PR (Story ISS-011)
+        self.git_config = git_config or GitConfig()
 
         # Worktree isolation (Story 10.1)
         self.worktree_config = worktree_config or WorktreeConfig()
@@ -320,12 +346,22 @@ class Orchestrator:
                             (context.completed_at - context.started_at).total_seconds()
                             * 1000
                         )
+
+                    # Attempt auto-PR creation if enabled (Story ISS-011)
+                    pr_result = self.progress_display.try_auto_create_pr(
+                        run_id=context.run_id,
+                        context=context,
+                        runs_dir=self.runs_dir,
+                        auto_create_pr_enabled=self.git_config.auto_create_pr,
+                    )
+
                     self.progress_display.show_pipeline_summary(
                         completed_phases=context.phase_history,
                         status="completed",
                         total_duration_ms=duration_ms,
                         total_tokens=total_tokens,
                         run_id=context.run_id,
+                        pr_result=pr_result,
                     )
 
                 # Clean up worktree on successful completion (Story 10.1)
@@ -775,12 +811,22 @@ class Orchestrator:
                             (context.completed_at - context.started_at).total_seconds()
                             * 1000
                         )
+
+                    # Attempt auto-PR creation if enabled (Story ISS-011)
+                    pr_result = self.progress_display.try_auto_create_pr(
+                        run_id=context.run_id,
+                        context=context,
+                        runs_dir=self.runs_dir,
+                        auto_create_pr_enabled=self.git_config.auto_create_pr,
+                    )
+
                     self.progress_display.show_pipeline_summary(
                         completed_phases=context.phase_history,
                         status="completed",
                         total_duration_ms=duration_ms,
                         total_tokens=total_tokens,
                         run_id=context.run_id,
+                        pr_result=pr_result,
                     )
 
                 logger.info("Resume completed", extra={"run_id": run_id})
@@ -1128,6 +1174,10 @@ class Orchestrator:
                 context, phase, artifacts_override=artifacts_override
             )
 
+            # Gather evidence after verify phase LLM execution (Story ISS-010)
+            if phase == "verify":
+                self._gather_evidence_after_verify(context)
+
             # Run evidence optimization after verify phase (Story 8.6)
             if phase == "verify":
                 self._optimize_evidence_after_verify(context)
@@ -1287,6 +1337,275 @@ class Orchestrator:
         self.context_manager.save(context)
 
         return context
+
+    def _gather_evidence_after_verify(
+        self, context: RunContext
+    ) -> list[EvidenceSummary]:
+        """Gather evidence based on detected platform type (Story ISS-010).
+
+        This method is called after the LLM verify phase completes and before
+        evidence optimization. It gathers platform-appropriate evidence:
+        - CLI: Command outputs captured
+        - WEB: Browser screenshots via Playwright
+        - MOBILE: Simulator/emulator screenshots
+        - BACKEND: API request/response pairs (if configured)
+
+        Evidence is stored in .adw/runs/<run_id>/evidence/ and a manifest
+        is generated.
+
+        Args:
+            context: Current run context with platform detected.
+
+        Returns:
+            List of EvidenceSummary objects from gathered evidence.
+        """
+        # Get platform from context (set by _detect_and_store_platform)
+        platform_str = context.platform or "cli"
+        try:
+            platform = PlatformType(platform_str)
+        except ValueError:
+            platform = PlatformType.CLI
+            logger.warning(
+                "Invalid platform value, defaulting to CLI",
+                extra={"run_id": context.run_id, "platform": platform_str},
+            )
+
+        # Determine evidence strategy
+        strategy = get_evidence_strategy(platform)
+
+        # Set up evidence directory
+        run_dir = self.runs_dir / context.run_id
+        evidence_dir = run_dir / "evidence"
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+
+        summaries: list[EvidenceSummary] = []
+
+        logger.info(
+            "Starting evidence gathering",
+            extra={
+                "run_id": context.run_id,
+                "platform": platform.value,
+                "strategy": strategy.value,
+            },
+        )
+
+        try:
+            if strategy == EvidenceStrategy.TERMINAL_OUTPUT:
+                # CLI evidence gathering
+                cli_evidence_dir = evidence_dir / "cli"
+                cli_evidence_dir.mkdir(parents=True, exist_ok=True)
+
+                gatherer = CLIEvidenceGatherer(
+                    project_root=self._project_path,
+                    evidence_dir=cli_evidence_dir,
+                )
+
+                if gatherer.should_gather(platform):
+                    summary = gatherer.gather()
+                    summaries.append(summary)
+                    logger.info(
+                        "CLI evidence gathered",
+                        extra={
+                            "run_id": context.run_id,
+                            "total_commands": summary.total_commands,
+                            "passed": summary.passed,
+                            "failed": summary.failed,
+                        },
+                    )
+
+            elif strategy == EvidenceStrategy.SCREENSHOT:
+                if platform == PlatformType.WEB:
+                    # Web screenshot capture
+                    web_evidence_dir = evidence_dir / "screenshots"
+                    web_evidence_dir.mkdir(parents=True, exist_ok=True)
+
+                    # Load routes from config
+                    config_result = load_routes_from_config(self._project_path)
+                    if config_result:
+                        routes, base_url, viewports = config_result
+                        capture = WebCaptureStrategy(
+                            output_dir=web_evidence_dir,
+                            base_url=base_url,
+                            viewports=viewports,
+                        )
+
+                        if capture.is_available:
+                            results = []
+                            for route in routes:
+                                all_viewports = capture.capture_route_all_viewports(
+                                    route
+                                )
+                                results.extend(all_viewports)
+
+                            # Create summary from results
+                            from adw.models.evidence import WebEvidenceSummary
+
+                            web_summary = WebEvidenceSummary(
+                                total_screenshots=len(results),
+                                successful=sum(1 for r in results if r.success),
+                                failed=sum(1 for r in results if not r.success),
+                                results=results,
+                            )
+                            summaries.append(web_summary)
+                            logger.info(
+                                "Web evidence gathered",
+                                extra={
+                                    "run_id": context.run_id,
+                                    "total_screenshots": web_summary.total_screenshots,
+                                    "successful": web_summary.successful,
+                                },
+                            )
+                        else:
+                            logger.warning(
+                                "Playwright not available, skipping web screenshots",
+                                extra={
+                                    "run_id": context.run_id,
+                                    "reason": capture.unavailable_reason,
+                                },
+                            )
+                    else:
+                        logger.debug(
+                            "No web routes configured, skipping web evidence",
+                            extra={"run_id": context.run_id},
+                        )
+
+                elif platform == PlatformType.MOBILE:
+                    # Mobile screenshot capture
+                    mobile_evidence_dir = evidence_dir / "mobile"
+                    mobile_evidence_dir.mkdir(parents=True, exist_ok=True)
+
+                    # Detect available device
+                    device_type = None
+                    if check_ios_simulator_available():
+                        device_type = MobileDeviceType.IOS
+                    elif check_android_emulator_available():
+                        device_type = MobileDeviceType.ANDROID
+
+                    if device_type:
+                        mobile_summary = capture_configured_screens(
+                            project_root=self._project_path,
+                            output_dir=mobile_evidence_dir,
+                            device_type=device_type,
+                        )
+                        summaries.append(mobile_summary)
+                        logger.info(
+                            "Mobile evidence gathered",
+                            extra={
+                                "run_id": context.run_id,
+                                "device_type": device_type.value,
+                                "total_screenshots": mobile_summary.total_screenshots,
+                                "successful": mobile_summary.successful,
+                            },
+                        )
+                    else:
+                        logger.warning(
+                            "No mobile device available, skipping mobile screenshots",
+                            extra={"run_id": context.run_id},
+                        )
+
+            elif strategy == EvidenceStrategy.API_CAPTURE:
+                # API capture for BACKEND projects
+                if not HTTPX_AVAILABLE or APICaptureStrategy is None:
+                    logger.warning(
+                        "httpx not available, skipping API evidence capture",
+                        extra={"run_id": context.run_id},
+                    )
+                else:
+                    api_evidence_dir = evidence_dir / "api"
+                    api_evidence_dir.mkdir(parents=True, exist_ok=True)
+
+                    # Load API endpoints from project config
+                    api_config = load_evidence_config(self._project_path)
+                    if api_config and api_config.endpoints:
+                        capture = APICaptureStrategy(
+                            base_url=api_config.base_url,
+                            auth=api_config.auth,
+                        )
+
+                        # Capture all configured endpoints
+                        results = []
+                        for endpoint in api_config.endpoints:
+                            result = capture.call_endpoint(endpoint)
+                            results.append(result)
+
+                            # Write individual result to file
+                            result_path = (
+                                api_evidence_dir / f"{endpoint.name}.json"
+                            )
+                            result_path.write_text(result.model_dump_json(indent=2))
+
+                        # Generate and store summary
+                        api_summary = generate_api_summary(
+                            base_url=api_config.base_url,
+                            results=results,
+                        )
+                        summaries.append(api_summary)
+
+                        logger.info(
+                            "API evidence gathered",
+                            extra={
+                                "run_id": context.run_id,
+                                "total_endpoints": api_summary.total_endpoints,
+                                "successful": api_summary.successful,
+                                "failed": api_summary.failed,
+                            },
+                        )
+                    else:
+                        logger.debug(
+                            "No API endpoints configured, skipping API evidence",
+                            extra={"run_id": context.run_id},
+                        )
+
+            # Generate evidence manifest if any evidence was gathered
+            if summaries:
+                plan_path = run_dir / "artifacts" / "plan" / "plan_output.md"
+                manifest = generate_evidence_manifest(
+                    run_id=context.run_id,
+                    platform=platform.value,
+                    evidence_directory=evidence_dir,
+                    summaries=summaries,
+                    plan_path=plan_path if plan_path.exists() else None,
+                )
+                logger.info(
+                    "Evidence manifest generated",
+                    extra={
+                        "run_id": context.run_id,
+                        "total_items": manifest.total_items,
+                        "passed": manifest.passed,
+                        "failed": manifest.failed,
+                    },
+                )
+
+                # Copy evidence to verify artifacts for Document phase access
+                verify_evidence_dir = (
+                    run_dir / "artifacts" / "verify" / "evidence"
+                )
+                verify_evidence_dir.parent.mkdir(parents=True, exist_ok=True)
+                if verify_evidence_dir.exists():
+                    shutil.rmtree(verify_evidence_dir)
+                shutil.copytree(evidence_dir, verify_evidence_dir)
+                logger.info(
+                    "Evidence copied to verify artifacts",
+                    extra={
+                        "run_id": context.run_id,
+                        "source": str(evidence_dir),
+                        "dest": str(verify_evidence_dir),
+                    },
+                )
+            else:
+                logger.debug(
+                    "No evidence gathered, skipping manifest generation",
+                    extra={"run_id": context.run_id},
+                )
+
+        except Exception as e:
+            # Evidence gathering failures should NOT fail the run
+            logger.warning(
+                "Evidence gathering failed",
+                extra={"run_id": context.run_id, "error": str(e)},
+            )
+
+        return summaries
 
     def _optimize_evidence_after_verify(self, context: RunContext) -> None:
         """Optimize evidence files after verify phase completes (Story 8.6).
@@ -1480,17 +1799,23 @@ class Orchestrator:
             )
             return
 
+        worktree_path = self._worktree_manager.worktree_base_path / run_id
+
         try:
             self._worktree_manager.remove_worktree(
                 run_id,
                 force=True,
-                cleanup_branch=self.worktree_config.cleanup_branch_on_remove,
+                delete_branch=self.worktree_config.cleanup_branch_on_remove,
+                preserve=True,  # Preserve artifacts to main project before removal
             )
+            # Log successful cleanup with path and force indication (ISS-008)
             logger.info(
-                "Cleaned up worktree",
+                "Cleaned up worktree (force=True, uncommitted changes discarded)",
                 extra={
                     "run_id": run_id,
-                    "cleanup_branch": self.worktree_config.cleanup_branch_on_remove,
+                    "worktree_path": str(worktree_path),
+                    "forced": True,
+                    "delete_branch": self.worktree_config.cleanup_branch_on_remove,
                 },
             )
 
@@ -1500,6 +1825,7 @@ class Orchestrator:
                 "Failed to cleanup worktree",
                 extra={
                     "run_id": run_id,
+                    "worktree_path": str(worktree_path),
                     "error": str(e),
                 },
             )

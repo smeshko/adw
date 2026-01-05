@@ -356,12 +356,15 @@ class GitConfig(BaseModel):
         auto_commit: Whether to auto-commit after phases (default: True)
         commit_template: Custom commit message template (optional)
         skip_hooks: Skip pre-commit hooks with --no-verify (default: False)
+        auto_create_pr: Whether to auto-create PR after successful run (default: True)
 
     Example:
         >>> config = GitConfig(enabled=True, branch_prefix="feat/")
         >>> config.branch_prefix
         'feat/'
         >>> config.auto_commit
+        True
+        >>> config.auto_create_pr
         True
 
     YAML example:
@@ -371,6 +374,7 @@ class GitConfig(BaseModel):
           auto_commit: true
           commit_template: "{phase}: {feature}"
           skip_hooks: false
+          auto_create_pr: true
     """
 
     enabled: bool = Field(
@@ -392,6 +396,10 @@ class GitConfig(BaseModel):
     skip_hooks: bool = Field(
         default=False,
         description="Skip pre-commit hooks with --no-verify (use with caution)",
+    )
+    auto_create_pr: bool = Field(
+        default=True,
+        description="Whether to auto-create PR after successful run (requires gh CLI)",
     )
 
 
@@ -546,6 +554,7 @@ class ProjectConfig(BaseModel):
                     "auto_commit": True,
                     "commit_template": None,
                     "skip_hooks": False,
+                    "auto_create_pr": True,
                 },
             }
         },

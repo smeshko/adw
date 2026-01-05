@@ -51,9 +51,9 @@ issues:
   ISS-005-feature-description-not-captured: reported
   ISS-006-logmanager-not-connected-to-python-logging: reported
   ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: in-progress
-  ISS-008-worktree-cleanup-fails-with-untracked-files: reported
+  ISS-008-worktree-cleanup-fails-with-untracked-files: fixed
   ISS-009-git-diff-capture-fails-no-commits: reported
-  ISS-010-evidence-gathering-not-integrated: reported
+  ISS-010-evidence-gathering-not-integrated: fixed
   ISS-011-adw-run-should-auto-create-pr: reported
 
 development_status:
@@ -162,7 +162,7 @@ development_status:
   # UX Fix (from ISS-003)
   ux-fix-ISS-003-run-id-not-found-by-logs-command: ready-for-dev
   # UX Fix (from ISS-006)
-  ux-fix-ISS-006-logmanager-not-connected-to-python-logging: ready-for-dev
+  ux-fix-ISS-006-logmanager-not-connected-to-python-logging: review
   # UX Fix (from ISS-007)
   ux-fix-ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: review
   epic-7-retrospective: optional
@@ -182,7 +182,7 @@ development_status:
   # UX Fix (from ISS-001)
   ux-fix-ISS-001-llm-output-too-verbose-in-terminal: done
   # Bugfix (from ISS-010)
-  bugfix-ISS-010-evidence-gathering-not-integrated: backlog
+  bugfix-ISS-010-evidence-gathering-not-integrated: done
   epic-8-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -196,9 +196,9 @@ development_status:
   9-4-generate-pr-description: done
   9-5-support-pr-creation-command: done
   # Bugfix (from ISS-009)
-  bugfix-ISS-009-git-diff-capture-fails-no-commits: backlog
+  bugfix-ISS-009-git-diff-capture-fails-no-commits: ready-for-dev
   # UX Fix (from ISS-011)
-  ux-fix-ISS-011-adw-run-should-auto-create-pr: backlog
+  ux-fix-ISS-011-adw-run-should-auto-create-pr: ready-for-dev
   epic-9-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -214,7 +214,7 @@ development_status:
   10-5-worktree-context-in-phases: done
   10-6-worktree-branch-management: done
   # Bugfix (from ISS-008)
-  bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: backlog
+  bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: ready-for-dev
   epic-10-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -225,16 +225,11 @@ development_status:
   epic-11: in-progress
   11-1-unified-validation-phase: done
   11-2-validation-issue-model: done
-  11-3-issue-triage-system: ready-for-dev
-  11-4-fix-iteration-loop: ready-for-dev
+  11-3-issue-triage-system: in-progress
+  11-4-fix-iteration-loop: in-progress
   11-5-iteration-limits-and-exit-conditions: ready-for-dev
   11-6-validation-state-persistence: done
   11-7-validation-report-generation: ready-for-dev
-  # Bugfixes (from manual testing)
-  bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: backlog
-  bugfix-ISS-009-git-diff-capture-fails-no-commits: backlog
-  bugfix-ISS-010-evidence-gathering-not-integrated: backlog
-  ux-fix-ISS-011-adw-run-should-auto-create-pr: backlog
   epic-11-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
