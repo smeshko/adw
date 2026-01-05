@@ -852,7 +852,7 @@ class PhaseRunner:
                     stat_cmd,
                     capture_output=True,
                     text=True,
-                    cwd=Path.cwd(),
+                    cwd=context.worktree_path if context.worktree_path else None,
                 )
                 if stat_result.returncode == 0:
                     # Pass raw diff for binary file detection
