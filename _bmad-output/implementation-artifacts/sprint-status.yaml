@@ -50,7 +50,7 @@ issues:
   ISS-004-run-id-truncated-in-list-output: fixed
   ISS-005-feature-description-not-captured: reported
   ISS-006-logmanager-not-connected-to-python-logging: reported
-  ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: reported
+  ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: in-progress
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -160,7 +160,7 @@ development_status:
   # UX Fix (from ISS-006)
   ux-fix-ISS-006-logmanager-not-connected-to-python-logging: ready-for-dev
   # UX Fix (from ISS-007)
-  ux-fix-ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: ready-for-dev
+  ux-fix-ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: in-progress
   epic-7-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
