@@ -375,6 +375,44 @@ class ValidationStateManager:
 
         return True
 
+    def resume(self) -> "ValidationState":
+        """Resume validation from saved state.
+
+        Validates state integrity and returns the ValidationState model.
+        Should only be called after can_resume() returns True.
+
+        Returns:
+            ValidationState model with the resumed state.
+
+        Raises:
+            ValueError: If state cannot be resumed (use can_resume() first).
+        """
+        from adw.validation.models import ValidationState
+
+        if not self.can_resume():
+            raise ValueError(
+                f"Cannot resume validation for run {self.run_id}: "
+                "state file missing, corrupted, or run_id mismatch"
+            )
+
+        state = self.load_state_model()
+        if state is None:
+            raise ValueError(
+                f"Cannot resume validation for run {self.run_id}: "
+                "failed to parse state as ValidationState"
+            )
+
+        logger.info(
+            "Resuming validation from saved state",
+            extra={
+                "run_id": self.run_id,
+                "iteration": state.current_iteration,
+                "issues_remaining": state.loop_state.issues_remaining,
+            },
+        )
+
+        return state
+
     def clear(self) -> None:
         """Clear all validation state files.
 

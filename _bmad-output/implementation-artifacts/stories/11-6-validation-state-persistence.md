@@ -74,10 +74,10 @@ so that I can resume validation after interruption.
 - [x] Use atomic write (write to temp, then rename)
 
 ### Task 7: Add Resume Support
-- [ ] Create `can_resume() -> bool` method
-- [ ] Check if state file exists and is valid
-- [ ] Create `resume() -> ValidationState` method
-- [ ] Validate state integrity before resume
+- [x] Create `can_resume() -> bool` method
+- [x] Check if state file exists and is valid
+- [x] Create `resume() -> ValidationState` method
+- [x] Validate state integrity before resume
 
 ### Task 8: Integrate with ValidationPhase
 - [ ] Save state after each iteration

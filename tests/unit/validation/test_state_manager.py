@@ -490,6 +490,56 @@ class TestResumeCapability:
 
         assert manager.can_resume() is False
 
+    def test_resume_returns_validation_state(self, tmp_path: Path) -> None:
+        """resume returns ValidationState model when state is valid."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        loop_state = LoopState(issues_resolved=3, issues_remaining=2)
+        state = ValidationState(
+            run_id="run-123",
+            current_iteration=2,
+            total_iterations=5,
+            loop_state=loop_state,
+        )
+        manager.save_state(state)
+
+        resumed = manager.resume()
+
+        assert isinstance(resumed, ValidationState)
+        assert resumed.current_iteration == 2
+        assert resumed.loop_state.issues_resolved == 3
+        assert resumed.loop_state.issues_remaining == 2
+
+    def test_resume_raises_when_cannot_resume(self, tmp_path: Path) -> None:
+        """resume raises ValueError when state cannot be resumed."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        with pytest.raises(ValueError, match="Cannot resume validation"):
+            manager.resume()
+
+    def test_resume_validates_state_integrity(self, tmp_path: Path) -> None:
+        """resume validates that state is properly structured."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        # Save minimal valid state for can_resume to pass
+        loop_state = LoopState(issues_resolved=0, issues_remaining=5)
+        state = ValidationState(
+            run_id="run-123",
+            current_iteration=1,
+            loop_state=loop_state,
+        )
+        manager.save_state(state)
+
+        # resume should work with valid state
+        resumed = manager.resume()
+        assert resumed.current_iteration == 1
+
 
 class TestClear:
     """Tests for state clearing."""
