@@ -47,9 +47,9 @@ so that I can process multiple features in parallel.
 - [x] Implement `get_active_runs() -> list[ActiveRun]`
 
 ### Task 3: Add Maximum Concurrent Limit
-- [ ] Check `len(get_active_runs()) < max_concurrent` before starting
-- [ ] Raise `MaxConcurrentRunsError` with actionable message
-- [ ] Include list of active runs in error for context
+- [x] Check `len(get_active_runs()) < max_concurrent` before starting
+- [x] Raise `MaxConcurrentRunsError` with actionable message
+- [x] Include list of active runs in error for context
 
 ### Task 4: Implement --running Flag for List Command
 - [ ] Add `--running` / `-r` flag to `adw list` command
