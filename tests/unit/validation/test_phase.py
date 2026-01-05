@@ -12,7 +12,12 @@ import pytest
 from adw.models import RunContext
 from adw.models.phase import PhaseResult, PhaseStatus
 from adw.validation import ValidationPhase
-from adw.validation.models import ValidationIssue, ValidationResult, ValidationSource
+from adw.validation.models import (
+    IssueSeverity,
+    ValidationIssue,
+    ValidationResult,
+    ValidationSource,
+)
 
 
 class TestValidationPhase:
@@ -180,7 +185,7 @@ class TestValidationPhase:
         # Check that crash created an issue
         crash_issues = [i for i in result.issues if "crashed" in i.message.lower()]
         assert len(crash_issues) == 1
-        assert crash_issues[0].severity == "critical"
+        assert crash_issues[0].severity == IssueSeverity.ERROR  # critical maps to ERROR
         assert crash_issues[0].source == ValidationSource.TEST
 
         # Check working validator issue was also collected
@@ -241,24 +246,24 @@ class TestValidationIssue:
         issue = ValidationIssue(
             source=ValidationSource.TEST,
             message="Test failed: test_something",
-            severity="high",
+            severity="high",  # Legacy string, normalized to ERROR
             file_path="tests/test_something.py",
             line_number=42,
         )
         assert issue.source == ValidationSource.TEST
-        assert issue.severity == "high"
-        assert issue.file_path == "tests/test_something.py"
-        assert issue.line_number == 42
+        assert issue.severity == IssueSeverity.ERROR  # high maps to ERROR
+        assert issue.location.file_path == "tests/test_something.py"
+        assert issue.location.line_start == 42
 
     def test_validation_issue_review_source(self) -> None:
         """ValidationIssue can have REVIEW source."""
         issue = ValidationIssue(
             source=ValidationSource.REVIEW,
             message="Security vulnerability detected",
-            severity="critical",
+            severity="critical",  # Legacy string, normalized to ERROR
         )
         assert issue.source == ValidationSource.REVIEW
-        assert issue.severity == "critical"
+        assert issue.severity == IssueSeverity.ERROR  # critical maps to ERROR
 
     def test_validation_issue_evidence_source(self) -> None:
         """ValidationIssue can have EVIDENCE source."""

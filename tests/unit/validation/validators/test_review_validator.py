@@ -12,7 +12,7 @@ import pytest
 from adw.models import RunContext
 from adw.models.llm import LLMResult
 from adw.validation.config import ValidationConfig
-from adw.validation.models import ValidationIssue, ValidationSource
+from adw.validation.models import IssueSeverity, ValidationIssue, ValidationSource
 from adw.validation.validators.review_validator import ReviewValidator
 
 
@@ -93,7 +93,8 @@ Variable names don't follow project conventions.
         assert len(issues) >= 2  # At least HIGH and MEDIUM issues
         assert all(i.source == ValidationSource.REVIEW for i in issues)
         severities = [i.severity for i in issues]
-        assert "high" in severities or "medium" in severities
+        # high maps to ERROR, medium maps to WARNING
+        assert IssueSeverity.ERROR in severities or IssueSeverity.WARNING in severities
 
     def test_validate_with_custom_focus_areas(
         self, mock_context: RunContext, mock_executor: MagicMock
@@ -129,7 +130,8 @@ Variable names don't follow project conventions.
         assert len(issues) == 1
         assert issues[0].source == ValidationSource.REVIEW
         assert "error" in issues[0].message.lower() or "failed" in issues[0].message.lower()
-        assert issues[0].severity in ["critical", "high"]
+        # critical and high map to ERROR
+        assert issues[0].severity == IssueSeverity.ERROR
 
     def test_name_property(self, mock_executor: MagicMock) -> None:
         """ReviewValidator returns correct name."""
@@ -144,4 +146,4 @@ Variable names don't follow project conventions.
 
         assert len(issues) == 1
         assert issues[0].source == ValidationSource.REVIEW
-        assert issues[0].severity == "critical"
+        assert issues[0].severity == IssueSeverity.ERROR  # critical maps to ERROR

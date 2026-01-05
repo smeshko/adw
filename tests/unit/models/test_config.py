@@ -12,6 +12,11 @@ import pytest
 from pydantic import ValidationError
 
 from adw.models import ProjectConfig
+from adw.models.config import WorktreeConfig
+
+
+class TestWorktreeConfig:
+    """Tests for WorktreeConfig validation rules."""
 
     def test_preserve_artifacts_defaults(self) -> None:
         """WorktreeConfig has default preserve_artifacts list."""

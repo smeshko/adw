@@ -11,7 +11,7 @@ import subprocess
 import pytest
 
 from adw.models import RunContext
-from adw.validation.models import ValidationIssue, ValidationSource
+from adw.validation.models import IssueSeverity, ValidationIssue, ValidationSource
 from adw.validation.validators.test_validator import TestValidator
 
 
@@ -165,7 +165,7 @@ Tests:       1 failed, 3 passed, 4 total
             assert len(issues) == 1
             assert issues[0].source == ValidationSource.TEST
             assert "timed out" in issues[0].message.lower()
-            assert issues[0].severity == "high"
+            assert issues[0].severity == IssueSeverity.ERROR  # high maps to ERROR
 
     def test_validate_command_not_found(
         self, mock_context: RunContext
@@ -181,7 +181,7 @@ Tests:       1 failed, 3 passed, 4 total
             assert len(issues) == 1
             assert issues[0].source == ValidationSource.TEST
             assert "not found" in issues[0].message.lower() or "error" in issues[0].message.lower()
-            assert issues[0].severity == "critical"
+            assert issues[0].severity == IssueSeverity.ERROR  # critical maps to ERROR
 
     def test_name_property(self) -> None:
         """TestValidator returns correct name."""
