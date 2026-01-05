@@ -29,6 +29,7 @@ from adw.exceptions import ADWError, ConfigError
 from adw.models import RunContext, WorktreeConfig
 from adw.models.evidence import PlatformType
 from adw.models.phase import PhaseResult
+from adw.worktree import ConcurrentRunManager
 from adw.worktree.manager import WorktreeManager
 
 if TYPE_CHECKING:
@@ -150,9 +151,16 @@ class Orchestrator:
         # Worktree isolation (Story 10.1)
         self.worktree_config = worktree_config or WorktreeConfig()
         self._worktree_manager: WorktreeManager | None = None
+        self._concurrent_run_manager: ConcurrentRunManager | None = None
         if self.worktree_config.enabled:
             self._worktree_manager = WorktreeManager(
                 project_root=self._project_path,
+                base_dir=self.worktree_config.base_dir,
+            )
+            # Concurrent run tracking (Story 10.4)
+            self._concurrent_run_manager = ConcurrentRunManager(
+                project_root=self._project_path,
+                max_concurrent=self.worktree_config.max_concurrent,
                 base_dir=self.worktree_config.base_dir,
             )
 
@@ -1394,16 +1402,25 @@ class Orchestrator:
         """Create a worktree for the given run.
 
         Creates a git worktree in the configured base directory for isolated
-        execution of this run.
+        execution of this run. Checks concurrent run limits before creation
+        and registers the run after successful creation.
 
         Args:
             run_id: ULID identifier for this run.
 
         Returns:
             Path to the created worktree, or None if creation failed.
+
+        Raises:
+            MaxConcurrentRunsError: If the maximum concurrent runs limit is reached.
         """
         if self._worktree_manager is None:
             return None
+
+        # Check concurrent run limit before creating worktree (Story 10.4)
+        if self._concurrent_run_manager is not None:
+            # This will raise MaxConcurrentRunsError if at limit
+            self._concurrent_run_manager.check_can_start_or_raise()
 
         try:
             worktree_path = self._worktree_manager.create_worktree(run_id)
@@ -1414,6 +1431,14 @@ class Orchestrator:
                     "worktree_path": str(worktree_path),
                 },
             )
+
+            # Register the run after successful worktree creation (Story 10.4)
+            if self._concurrent_run_manager is not None:
+                self._concurrent_run_manager.register_run(
+                    run_id=run_id,
+                    worktree_path=worktree_path,
+                )
+
             return worktree_path
 
         except Exception as e:
@@ -1430,10 +1455,17 @@ class Orchestrator:
     def _cleanup_worktree(self, run_id: str, *, preserve: bool = False) -> None:
         """Clean up or preserve the worktree for a run.
 
+        Always unregisters the run from concurrent run tracking (Story 10.4)
+        regardless of whether the worktree is preserved or removed.
+
         Args:
             run_id: ULID identifier for this run.
             preserve: If True, log but don't remove the worktree.
         """
+        # Always unregister the run from concurrent tracking (Story 10.4)
+        if self._concurrent_run_manager is not None:
+            self._concurrent_run_manager.unregister_run(run_id)
+
         if self._worktree_manager is None:
             return
 

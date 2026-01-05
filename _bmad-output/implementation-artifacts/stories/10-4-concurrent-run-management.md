@@ -65,9 +65,9 @@ so that I can process multiple features in parallel.
 - [x] Add `--force` flag to skip confirmation
 
 ### Task 6: Integrate with Orchestrator
-- [ ] Call `can_start_run()` before worktree creation
-- [ ] Call `register_run()` after successful worktree creation
-- [ ] Call `unregister_run()` in finally block of run execution
+- [x] Call `check_can_start_or_raise()` before worktree creation
+- [x] Call `register_run()` after successful worktree creation
+- [x] Call `unregister_run()` in cleanup method (covers finally block)
 
 ### Task 7: Write Tests
 - [ ] Test concurrent run limit enforcement
