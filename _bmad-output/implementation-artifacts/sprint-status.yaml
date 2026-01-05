@@ -225,7 +225,7 @@ development_status:
   epic-11: in-progress
   11-1-unified-validation-phase: done
   11-2-validation-issue-model: done
-  11-3-issue-triage-system: in-progress
+  11-3-issue-triage-system: review
   11-4-fix-iteration-loop: in-progress
   11-5-iteration-limits-and-exit-conditions: ready-for-dev
   11-6-validation-state-persistence: done
