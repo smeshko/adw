@@ -129,6 +129,65 @@ class TestRunContext:
         assert "use_worktree" in data
         assert data["use_worktree"] is True
 
+    def test_branch_name_defaults_to_none(self) -> None:
+        """branch_name defaults to None."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+        assert context.branch_name is None
+
+    def test_branch_name_can_be_set(self) -> None:
+        """branch_name can be set during creation."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            branch_name="adw/01KDSG2VDHNK0W4HSCZWJZXWSQ",
+        )
+        assert context.branch_name == "adw/01KDSG2VDHNK0W4HSCZWJZXWSQ"
+
+    def test_branch_deleted_defaults_to_false(self) -> None:
+        """branch_deleted defaults to False."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+        assert context.branch_deleted is False
+
+    def test_branch_deleted_can_be_set(self) -> None:
+        """branch_deleted can be set to True."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            branch_deleted=True,
+        )
+        assert context.branch_deleted is True
+
+    def test_branch_fields_in_serialization(self) -> None:
+        """branch fields are included in JSON serialization."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            branch_name="adw/01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            branch_deleted=False,
+        )
+        json_str = context.model_dump_json()
+        data = json.loads(json_str)
+        assert "branch_name" in data
+        assert data["branch_name"] == "adw/01KDSG2VDHNK0W4HSCZWJZXWSQ"
+        assert "branch_deleted" in data
+        assert data["branch_deleted"] is False
+
     def test_creation_with_all_fields(self) -> None:
         """RunContext creates with all optional fields."""
         now = datetime.now()

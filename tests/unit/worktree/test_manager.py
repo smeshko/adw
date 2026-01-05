@@ -676,9 +676,10 @@ class TestWorktreeManagerRemoval:
         assert worktree_path.exists()
 
         # Remove it
-        result = manager.remove_worktree(run_id)
+        worktree_removed, branch_deleted = manager.remove_worktree(run_id)
 
-        assert result is True
+        assert worktree_removed is True
+        assert branch_deleted is False  # Branch preserved by default
         assert not worktree_path.exists()
 
     def test_remove_worktree_not_found(self, git_repo: Path) -> None:
@@ -723,13 +724,14 @@ class TestWorktreeManagerRemoval:
         (worktree_path / "new_file.txt").write_text("uncommitted content")
 
         # Force remove should succeed
-        result = manager.remove_worktree(run_id, force=True)
+        worktree_removed, branch_deleted = manager.remove_worktree(run_id, force=True)
 
-        assert result is True
+        assert worktree_removed is True
+        assert branch_deleted is False  # Branch preserved by default
         assert not worktree_path.exists()
 
-    def test_remove_worktree_cleanup_branch(self, git_repo: Path) -> None:
-        """Branch is deleted when cleanup_branch=True."""
+    def test_remove_worktree_delete_branch(self, git_repo: Path) -> None:
+        """Branch is deleted when delete_branch=True and no PR exists."""
         from adw.worktree.manager import WorktreeManager
 
         manager = WorktreeManager(project_root=git_repo)
@@ -748,8 +750,87 @@ class TestWorktreeManagerRemoval:
         )
         assert branch_name in result.stdout
 
-        # Remove with cleanup_branch=True
-        manager.remove_worktree(run_id, cleanup_branch=True)
+        # Mock check_pr_exists to return False (no PR)
+        # Without this mock, gh CLI being unavailable returns None,
+        # which preserves the branch as a safety measure
+        with patch.object(
+            manager._branch_manager, "check_pr_exists", return_value=False
+        ):
+            # Remove with delete_branch=True
+            worktree_removed, branch_deleted = manager.remove_worktree(
+                run_id, delete_branch=True
+            )
+
+        assert worktree_removed is True
+        assert branch_deleted is True
+
+        # Verify branch is deleted
+        result = subprocess.run(
+            ["git", "branch", "--list", branch_name],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+        )
+        assert branch_name not in result.stdout
+
+    def test_remove_worktree_preserve_branch_when_gh_unavailable(
+        self, git_repo: Path
+    ) -> None:
+        """Branch is preserved when gh CLI is unavailable (check_pr_exists returns None)."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQ1234567890ABCDEFGHIJK"
+        branch_name = f"adw/{run_id}"
+
+        # Create a worktree
+        manager.create_worktree(run_id)
+
+        # Mock check_pr_exists to return None (gh CLI unavailable)
+        with patch.object(
+            manager._branch_manager, "check_pr_exists", return_value=None
+        ):
+            # Remove with delete_branch=True but gh unavailable
+            worktree_removed, branch_deleted = manager.remove_worktree(
+                run_id, delete_branch=True
+            )
+
+        assert worktree_removed is True
+        assert branch_deleted is False  # Branch preserved when gh unavailable
+
+        # Verify branch still exists
+        result = subprocess.run(
+            ["git", "branch", "--list", branch_name],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+        )
+        assert branch_name in result.stdout
+
+    def test_remove_worktree_force_delete_branch_when_gh_unavailable(
+        self, git_repo: Path
+    ) -> None:
+        """Branch is deleted with force=True even when gh CLI is unavailable."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQ1234567890ABCDEFGHIJK"
+        branch_name = f"adw/{run_id}"
+
+        # Create a worktree
+        manager.create_worktree(run_id)
+
+        # Mock check_pr_exists to return None (gh CLI unavailable)
+        with patch.object(
+            manager._branch_manager, "check_pr_exists", return_value=None
+        ):
+            # Remove with delete_branch=True and force=True
+            worktree_removed, branch_deleted = manager.remove_worktree(
+                run_id, delete_branch=True, force=True
+            )
+
+        assert worktree_removed is True
+        assert branch_deleted is True
 
         # Verify branch is deleted
         result = subprocess.run(
@@ -773,6 +854,80 @@ class TestWorktreeManagerRemoval:
         manager.remove_worktree(run_id)
 
         # Branch should still exist
+        result = subprocess.run(
+            ["git", "branch", "--list", branch_name],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+        )
+        assert branch_name in result.stdout
+
+
+class TestWorktreeManagerBranchIntegration:
+    """Tests for WorktreeManager branch manager integration."""
+
+    @pytest.fixture
+    def git_repo(self, tmp_path: Path) -> Path:
+        """Create a temporary git repository for testing."""
+        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@test.com"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        readme = tmp_path / "README.md"
+        readme.write_text("# Test")
+        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Initial commit"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        return tmp_path
+
+    def test_branch_manager_property_returns_manager(self, git_repo: Path) -> None:
+        """branch_manager property returns WorktreeBranchManager instance."""
+        from adw.worktree.branch import WorktreeBranchManager
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+
+        assert isinstance(manager.branch_manager, WorktreeBranchManager)
+
+    def test_get_branch_name_returns_expected_format(self, git_repo: Path) -> None:
+        """get_branch_name returns adw/<run_id> format."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQTEST12345678901234567"
+
+        branch_name = manager.get_branch_name(run_id)
+
+        assert branch_name == f"adw/{run_id}"
+
+    def test_get_branch_name_matches_created_worktree_branch(
+        self, git_repo: Path
+    ) -> None:
+        """get_branch_name returns the same name as the worktree branch."""
+        from adw.worktree.manager import WorktreeManager
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQTEST12345678901234567"
+
+        # Create worktree
+        manager.create_worktree(run_id)
+
+        # Branch name should match
+        branch_name = manager.get_branch_name(run_id)
+
         result = subprocess.run(
             ["git", "branch", "--list", branch_name],
             cwd=git_repo,
