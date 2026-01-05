@@ -43,9 +43,9 @@ so that **my PR descriptions include screenshots, command outputs, and API respo
 - [x] Generate manifest: `manifest.generate(evidence_dir)`
 
 ### Task 3: Update RunContext with Platform Type
-- [ ] Ensure `platform_type` is stored in RunContext after detection
-- [ ] Persist to `context.json` for later reference
-- [ ] Make platform_type available to Document phase for PR description
+- [x] Ensure `platform_type` is stored in RunContext after detection
+- [x] Persist to `context.json` for later reference
+- [x] Make platform_type available to Document phase for PR description
 
 ### Task 4: Copy Evidence to Verify Artifacts
 - [ ] After evidence gathering, copy/link evidence to `artifacts/verify/evidence/`
@@ -338,6 +338,14 @@ N/A
 - Calls `generate_evidence_manifest()` after gathering
 - Evidence failures are logged but don't fail the run (graceful degradation)
 - All 64 existing orchestrator tests pass
+
+**Task 3 - RunContext Platform Field (2026-01-05):**
+- Added `platform: str | None` field to RunContext model
+- Default value is None (not yet detected)
+- Updated docstring and example in model_config
+- Updated `_gather_evidence_after_verify` to use `context.platform` directly
+- Platform is now properly persisted to `context.json`
+- 49 context model tests pass, 64 orchestrator tests pass
 
 ### File List
 

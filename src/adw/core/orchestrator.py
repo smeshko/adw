@@ -1330,7 +1330,7 @@ class Orchestrator:
             List of EvidenceSummary objects from gathered evidence.
         """
         # Get platform from context (set by _detect_and_store_platform)
-        platform_str = getattr(context, "platform", "cli")
+        platform_str = context.platform or "cli"
         try:
             platform = PlatformType(platform_str)
         except ValueError:
