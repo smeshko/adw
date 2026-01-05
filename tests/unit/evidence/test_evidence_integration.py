@@ -113,6 +113,7 @@ class TestOrchestratorEvidenceIntegration:
         mock_artifact_manager = MagicMock()
         mock_run_dir_manager = MagicMock()
         mock_index_manager = MagicMock()
+        mock_phase_runner = MagicMock()
 
         # Create runs directory (orchestrator derives project_path from this)
         runs_dir = tmp_path / ".adw" / "runs"
@@ -124,6 +125,7 @@ class TestOrchestratorEvidenceIntegration:
             snapshot_manager=mock_snapshot_manager,
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_dir_manager,
+            phase_runner=mock_phase_runner,
             index_manager=mock_index_manager,
         )
 
@@ -228,6 +230,7 @@ class TestAPICaptureIntegration:
         mock_artifact_manager = MagicMock()
         mock_run_dir_manager = MagicMock()
         mock_index_manager = MagicMock()
+        mock_phase_runner = MagicMock()
 
         runs_dir = tmp_path / ".adw" / "runs"
         runs_dir.mkdir(parents=True)
@@ -238,6 +241,7 @@ class TestAPICaptureIntegration:
             snapshot_manager=mock_snapshot_manager,
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_dir_manager,
+            phase_runner=mock_phase_runner,
             index_manager=mock_index_manager,
         )
 
