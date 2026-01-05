@@ -56,10 +56,10 @@ so that I can resume validation after interruption.
 - [x] Handle empty issues list gracefully
 
 ### Task 4: Implement Triage Persistence
-- [ ] Create `save_triage(decisions: list[TriageResult]) -> None`
-- [ ] Create `load_triage() -> list[TriageResult]`
-- [ ] Store at `.adw/runs/<id>/validation/triage.json`
-- [ ] Preserve triage reasoning for audit
+- [x] Create `save_triage(decisions: list[TriageResult]) -> None`
+- [x] Create `load_triage() -> list[TriageResult]`
+- [x] Store at `.adw/runs/<id>/validation/triage.json`
+- [x] Preserve triage reasoning for audit
 
 ### Task 5: Implement Fix History Persistence
 - [ ] Create `save_fix_history(history: list[FixIterationResult]) -> None`

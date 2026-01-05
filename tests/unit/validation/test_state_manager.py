@@ -147,6 +147,19 @@ class TestIssuesPersistence:
 class TestTriagePersistence:
     """Tests for triage decision save/load."""
 
+    def test_triage_stored_at_correct_path(self, tmp_path: Path) -> None:
+        """Triage decisions are stored at .adw/runs/<id>/validation/triage.json."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        decisions = [{"issue_id": "VI-001", "decision": "FIX", "reason": "Test"}]
+        manager.save_triage(decisions)
+
+        expected_path = base_path / "validation" / "triage.json"
+        assert expected_path.exists()
+        assert manager.triage_file == expected_path
+
     def test_save_and_load_triage(self, tmp_path: Path) -> None:
         """Triage decisions round-trip correctly."""
         base_path = tmp_path / "run-123"
@@ -175,6 +188,28 @@ class TestTriagePersistence:
         assert "VI-001" in loaded
         assert loaded["VI-001"]["decision"] == "FIX"
         assert "timestamp" in loaded["VI-001"]  # Auto-added
+
+    def test_triage_preserves_reasoning_for_audit(self, tmp_path: Path) -> None:
+        """Triage reasoning is preserved for audit trail."""
+        base_path = tmp_path / "run-123"
+        base_path.mkdir()
+        manager = ValidationStateManager("run-123", base_path)
+
+        decisions = [
+            {
+                "issue_id": "VI-001",
+                "decision": "DISMISS",
+                "reason": "False positive - test expects old behavior",
+                "auto_decided": False,
+            },
+        ]
+
+        manager.save_triage(decisions)
+        loaded = manager.load_triage()
+
+        # Verify reasoning is preserved for audit
+        assert loaded["VI-001"]["reason"] == "False positive - test expects old behavior"
+        assert loaded["VI-001"]["auto_decided"] is False
 
     def test_load_triage_empty(self, tmp_path: Path) -> None:
         """Load returns empty dict when no triage file exists."""
