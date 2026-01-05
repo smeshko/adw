@@ -1,6 +1,6 @@
 # Story 10.5: Worktree Context in Phases
 
-Status: in-progress
+Status: review
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-05
@@ -67,10 +67,10 @@ so that file operations happen in the isolated environment.
 - [x] Add `ADW_PORTS_FILE` environment variable
 
 ### Task 7: Integration Testing
-- [ ] Test phase execution in worktree context
-- [ ] Test hook receives correct environment variables
-- [ ] Test template variables resolve correctly
-- [ ] Test artifact paths work across worktree lifecycle
+- [x] Test phase execution in worktree context
+- [x] Test hook receives correct environment variables
+- [x] Test template variables resolve correctly
+- [x] Test artifact paths work across worktree lifecycle
 
 ---
 
@@ -392,6 +392,15 @@ N/A
 - Adds `ADW_PORTS_FILE` env var and sources all variables from the file
 - Added 6 unit tests for ports env auto-sourcing
 - All 115 hooks tests pass
+
+**Task 7: Integration Testing**
+- Ran comprehensive test suite covering all worktree context functionality
+- All 625 tests pass across core, hooks, models, and executors modules
+- Tests cover:
+  - Phase execution with worktree cwd parameter
+  - Hook environment with ADW_WORKTREE_PATH and ADW_PORTS_FILE
+  - Template variable resolution with worktree_path
+  - Artifact path resolution with resolve_artifact_path() and get_runs_dir()
 
 ### File List
 
