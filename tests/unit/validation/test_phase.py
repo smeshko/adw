@@ -5,6 +5,7 @@ code review, and test execution.
 """
 
 from datetime import UTC, datetime
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -283,3 +284,124 @@ class TestValidationIssue:
         )
         assert issue.file_path is None
         assert issue.line_number is None
+
+
+class TestValidationPhaseStatePersistence:
+    """Tests for ValidationPhase state persistence integration."""
+
+    @pytest.fixture
+    def mock_context(self) -> RunContext:
+        """Create a mock RunContext for testing."""
+        return RunContext(
+            run_id="01HQ0000000000000000000000",
+            feature_description="Test feature",
+            current_phase="validation",
+            phase_history=["plan", "build"],
+            started_at=datetime.now(UTC),
+            completed_at=None,
+            status="running",
+            artifacts={},
+            phase_tokens={},
+            worktree_path=None,
+            use_worktree=False,
+            branch_name=None,
+        )
+
+    def test_phase_saves_state_after_iteration(
+        self, tmp_path: Path, mock_context: RunContext
+    ) -> None:
+        """Phase saves state after each iteration when state manager configured."""
+        from pathlib import Path
+
+        # Create runs directory structure
+        run_id = "run-123"
+        runs_dir = tmp_path / ".adw" / "runs"
+        (runs_dir / run_id).mkdir(parents=True)
+
+        # Create phase with state manager
+        phase = ValidationPhase(run_id=run_id, runs_dir=runs_dir)
+
+        # Mock validators to return some issues
+        mock_issues = [
+            ValidationIssue(
+                source=ValidationSource.TEST,
+                message="Test failed",
+                severity="high",
+            )
+        ]
+        with patch.object(phase, "_run_validators", return_value=mock_issues):
+            phase.run(mock_context)
+
+        # Verify state was saved
+        assert phase.state_manager is not None
+        assert phase.state_manager.state_file.exists()
+        assert phase.state_manager.issues_file.exists()
+
+    def test_phase_clears_state_on_success(
+        self, tmp_path: Path, mock_context: RunContext
+    ) -> None:
+        """Phase clears state when validation passes (no issues)."""
+        from pathlib import Path
+
+        # Create runs directory structure
+        run_id = "run-456"
+        runs_dir = tmp_path / ".adw" / "runs"
+        (runs_dir / run_id).mkdir(parents=True)
+
+        # Create phase with state manager
+        phase = ValidationPhase(run_id=run_id, runs_dir=runs_dir)
+
+        # Mock validators to return no issues (pass)
+        with patch.object(phase, "_run_validators", return_value=[]):
+            result = phase.run(mock_context)
+
+        # Verify validation passed
+        assert result.passed is True
+
+        # Verify state was cleared
+        assert phase.state_manager is not None
+        assert not phase.state_manager.state_file.exists()
+        assert not phase.state_manager.issues_file.exists()
+
+    def test_phase_resumes_from_saved_state(
+        self, tmp_path: Path, mock_context: RunContext
+    ) -> None:
+        """Phase resumes from saved state when available."""
+        from adw.validation.models import LoopState, ValidationState
+        from adw.validation.state_manager import ValidationStateManager
+
+        # Create runs directory structure
+        run_id = "run-789"
+        runs_dir = tmp_path / ".adw" / "runs"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+
+        # Pre-create saved state at iteration 3
+        state_manager = ValidationStateManager(run_id, run_dir)
+        saved_state = ValidationState(
+            run_id=run_id,
+            current_iteration=3,
+            total_iterations=5,
+            loop_state=LoopState(issues_remaining=2),
+        )
+        state_manager.save_state(saved_state)
+
+        # Create phase - should resume
+        phase = ValidationPhase(run_id=run_id, runs_dir=runs_dir)
+
+        # Verify iteration was restored
+        assert phase._iteration == 3
+
+    def test_phase_without_state_manager_still_works(
+        self, mock_context: RunContext
+    ) -> None:
+        """Phase works normally without state manager (no run_id)."""
+        phase = ValidationPhase()
+
+        # Mock validators
+        with patch.object(phase, "_run_validators", return_value=[]):
+            result = phase.run(mock_context)
+
+        # Verify it works
+        assert result.passed is True
+        assert phase.state_manager is None

@@ -3,16 +3,25 @@
 This module contains the ValidationPhase class that coordinates
 evidence gathering, code review, and test execution into a single
 validation phase.
+
+State persistence is handled via ValidationStateManager for resume support.
 """
 
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from adw.validation.config import ValidationConfig
-from adw.validation.models import ValidationIssue, ValidationResult, ValidationSource
-
+from adw.validation.models import (
+    LoopState,
+    ValidationIssue,
+    ValidationResult,
+    ValidationSource,
+    ValidationState,
+)
+from adw.validation.state_manager import ValidationStateManager
 from adw.validation.validators.base import Validator, ValidatorRegistry
 
 # Mapping from validator names to ValidationSource
@@ -39,26 +48,112 @@ class ValidationPhase:
     All validators run regardless of individual failures (no short-circuit).
     Issues from all validators are aggregated into a single ValidationResult.
 
+    State is persisted after each iteration for resume capability.
+
     Attributes:
         config: ValidationConfig controlling which validators are enabled.
         _registry: ValidatorRegistry managing validator instances.
+        _state_manager: Optional state manager for persistence.
+        _state: Current validation state (if state manager is set).
     """
 
-    def __init__(self, config: ValidationConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: ValidationConfig | None = None,
+        run_id: str | None = None,
+        runs_dir: Path | None = None,
+    ) -> None:
         """Initialize the validation phase.
 
         Args:
             config: Optional configuration. Uses defaults if not provided.
+            run_id: Run ID for state persistence. If None, state is not persisted.
+            runs_dir: Path to .adw/runs directory. Required if run_id is provided.
         """
         self.config = config or ValidationConfig()
         self._registry = ValidatorRegistry()
         self._iteration = 1
+        self._state_manager: ValidationStateManager | None = None
+        self._state: ValidationState | None = None
+
+        # Initialize state manager if run_id is provided
+        if run_id and runs_dir:
+            base_path = runs_dir / run_id
+            self._state_manager = ValidationStateManager(run_id, base_path)
+            self._check_resume()
+
+    def _check_resume(self) -> None:
+        """Check for resumable state at phase start.
+
+        If state can be resumed, loads the saved state and sets iteration.
+        """
+        if self._state_manager and self._state_manager.can_resume():
+            logger.info("Resumable validation state found, loading...")
+            self._state = self._state_manager.resume()
+            self._iteration = self._state.current_iteration
+            logger.info(
+                "Resumed validation from saved state",
+                extra={
+                    "iteration": self._iteration,
+                    "issues_remaining": self._state.loop_state.issues_remaining,
+                },
+            )
+
+    def _save_state(self, issues: list[ValidationIssue]) -> None:
+        """Save state after each iteration.
+
+        Args:
+            issues: Current list of issues to persist.
+        """
+        if not self._state_manager:
+            return
+
+        # Update or create state
+        loop_state = LoopState(
+            issues_remaining=len(issues),
+        )
+
+        if self._state:
+            # Update existing state
+            self._state = ValidationState(
+                run_id=self._state.run_id,
+                current_iteration=self._iteration,
+                total_iterations=self._state.total_iterations,
+                loop_state=loop_state,
+                started_at=self._state.started_at,
+            )
+        else:
+            # Create new state
+            self._state = ValidationState(
+                run_id=self._state_manager.run_id,
+                current_iteration=self._iteration,
+                loop_state=loop_state,
+            )
+
+        # Save state and issues
+        self._state_manager.save_state(self._state)
+        self._state_manager.save_issues(issues)
+
+        logger.debug(
+            "Validation state saved",
+            extra={"iteration": self._iteration, "issue_count": len(issues)},
+        )
+
+    def _clear_state(self) -> None:
+        """Clear state on successful completion."""
+        if self._state_manager:
+            self._state_manager.clear()
+            self._state = None
+            logger.info("Validation state cleared on successful completion")
 
     def run(self, context: RunContext) -> ValidationResult:
         """Execute the unified validation phase.
 
         Runs all enabled validators in sequence (Evidence → Review → Tests),
         collects all issues, and returns an aggregated result.
+
+        State is saved after each iteration for resume capability.
+        State is cleared on successful completion (no issues).
 
         Args:
             context: Current run context with phase history and artifacts.
@@ -88,6 +183,9 @@ class ValidationPhase:
             iteration=self._iteration,
         )
 
+        # Save state after each iteration
+        self._save_state(all_issues)
+
         logger.info(
             "Validation phase completed",
             extra={
@@ -97,10 +195,19 @@ class ValidationPhase:
             },
         )
 
+        # Clear state on successful completion
+        if passed:
+            self._clear_state()
+
         # Increment iteration for next run
         self._iteration += 1
 
         return result
+
+    @property
+    def state_manager(self) -> ValidationStateManager | None:
+        """Get the state manager (for testing/integration)."""
+        return self._state_manager
 
     def _run_validators(self, context: RunContext) -> list[ValidationIssue]:
         """Run all enabled validators and collect issues.
