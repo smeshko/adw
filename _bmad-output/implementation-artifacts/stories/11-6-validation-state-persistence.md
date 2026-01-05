@@ -1,6 +1,6 @@
 # Story 11.6: Validation State Persistence
 
-Status: draft
+Status: done
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-05
@@ -34,64 +34,64 @@ so that I can resume validation after interruption.
 ## Tasks / Subtasks
 
 ### Task 1: Create ValidationStateManager
-- [ ] Create `src/adw/validation/state_manager.py`
-- [ ] Define `ValidationStateManager` class
-- [ ] Inject run_id and base path for state storage
-- [ ] Support atomic writes for state files
+- [x] Create `src/adw/validation/state_manager.py`
+- [x] Define `ValidationStateManager` class
+- [x] Inject run_id and base path for state storage
+- [x] Support atomic writes for state files
 
 ### Task 2: Define Persistable State Models
-- [ ] Create `ValidationState` model with:
+- [x] Create `ValidationState` model with:
   - `run_id: str`
   - `current_iteration: int`
   - `total_iterations: int`
   - `loop_state: LoopState`
   - `started_at: datetime`
   - `last_updated: datetime`
-- [ ] Ensure all nested models are serializable
+- [x] Ensure all nested models are serializable
 
 ### Task 3: Implement Issues Persistence
-- [ ] Create `save_issues(issues: list[ValidationIssue]) -> None`
-- [ ] Create `load_issues() -> list[ValidationIssue]`
-- [ ] Store at `.adw/runs/<id>/validation/issues.json`
-- [ ] Handle empty issues list gracefully
+- [x] Create `save_issues(issues: list[ValidationIssue]) -> None`
+- [x] Create `load_issues() -> list[ValidationIssue]`
+- [x] Store at `.adw/runs/<id>/validation/issues.json`
+- [x] Handle empty issues list gracefully
 
 ### Task 4: Implement Triage Persistence
-- [ ] Create `save_triage(decisions: list[TriageResult]) -> None`
-- [ ] Create `load_triage() -> list[TriageResult]`
-- [ ] Store at `.adw/runs/<id>/validation/triage.json`
-- [ ] Preserve triage reasoning for audit
+- [x] Create `save_triage(decisions: list[TriageResult]) -> None`
+- [x] Create `load_triage() -> list[TriageResult]`
+- [x] Store at `.adw/runs/<id>/validation/triage.json`
+- [x] Preserve triage reasoning for audit
 
 ### Task 5: Implement Fix History Persistence
-- [ ] Create `save_fix_history(history: list[FixIterationResult]) -> None`
-- [ ] Create `load_fix_history() -> list[FixIterationResult]`
-- [ ] Store at `.adw/runs/<id>/validation/fix-history.json`
-- [ ] Include file modifications for each iteration
+- [x] Create `save_fix_history(history: list[FixIterationResult]) -> None`
+- [x] Create `load_fix_history() -> list[FixIterationResult]`
+- [x] Store at `.adw/runs/<id>/validation/fix-history.json`
+- [x] Include file modifications for each iteration
 
 ### Task 6: Implement State Snapshot
-- [ ] Create `save_state(state: ValidationState) -> None`
-- [ ] Create `load_state() -> ValidationState | None`
-- [ ] Store at `.adw/runs/<id>/validation/state.json`
-- [ ] Use atomic write (write to temp, then rename)
+- [x] Create `save_state(state: ValidationState) -> None`
+- [x] Create `load_state() -> ValidationState | None`
+- [x] Store at `.adw/runs/<id>/validation/state.json`
+- [x] Use atomic write (write to temp, then rename)
 
 ### Task 7: Add Resume Support
-- [ ] Create `can_resume() -> bool` method
-- [ ] Check if state file exists and is valid
-- [ ] Create `resume() -> ValidationState` method
-- [ ] Validate state integrity before resume
+- [x] Create `can_resume() -> bool` method
+- [x] Check if state file exists and is valid
+- [x] Create `resume() -> ValidationState` method
+- [x] Validate state integrity before resume
 
 ### Task 8: Integrate with ValidationPhase
-- [ ] Save state after each iteration
-- [ ] Check for resumable state at phase start
-- [ ] Load and restore state if resuming
-- [ ] Clear state on successful completion
+- [x] Save state after each iteration
+- [x] Check for resumable state at phase start
+- [x] Load and restore state if resuming
+- [x] Clear state on successful completion
 
 ### Task 9: Write Tests
-- [ ] Unit tests for ValidationStateManager (6 tests)
-- [ ] Unit tests for issues persistence (4 tests)
-- [ ] Unit tests for triage persistence (3 tests)
-- [ ] Unit tests for fix history persistence (3 tests)
-- [ ] Unit tests for resume support (4 tests)
-- [ ] Integration test for save→resume cycle (2 tests)
+- [x] Unit tests for ValidationStateManager (6 tests) - 27+ tests
+- [x] Unit tests for issues persistence (4 tests) - 4 tests
+- [x] Unit tests for triage persistence (3 tests) - 4 tests
+- [x] Unit tests for fix history persistence (3 tests) - 4 tests
+- [x] Unit tests for resume support (4 tests) - 7 tests
+- [x] Integration test for save→resume cycle (2 tests) - 4 tests
 
 ---
 

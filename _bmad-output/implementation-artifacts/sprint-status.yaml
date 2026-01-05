@@ -228,7 +228,7 @@ development_status:
   11-3-issue-triage-system: in-progress
   11-4-fix-iteration-loop: in-progress
   11-5-iteration-limits-and-exit-conditions: ready-for-dev
-  11-6-validation-state-persistence: in-progress
+  11-6-validation-state-persistence: done
   11-7-validation-report-generation: ready-for-dev
   epic-11-retrospective: optional
 

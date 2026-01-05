@@ -495,6 +495,90 @@ class ValidationResult(BaseModel):
     }
 
 
+class LoopState(BaseModel):
+    """State of the validation loop for tracking progress.
+
+    Tracks issue counts and stall detection for the fix iteration loop.
+
+    Attributes:
+        issues_resolved: Number of issues successfully fixed.
+        issues_dismissed: Number of issues triaged as dismiss.
+        issues_deferred: Number of issues deferred for later.
+        issues_remaining: Number of issues still to address.
+        stall_count: Consecutive iterations with no progress.
+    """
+
+    issues_resolved: int = Field(default=0, ge=0)
+    issues_dismissed: int = Field(default=0, ge=0)
+    issues_deferred: int = Field(default=0, ge=0)
+    issues_remaining: int = Field(default=0, ge=0)
+    stall_count: int = Field(default=0, ge=0)
+
+    model_config = {"frozen": False, "validate_assignment": True}
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize to dictionary for JSON persistence."""
+        return self.model_dump(mode="json")
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "LoopState":
+        """Deserialize from dictionary."""
+        return cls.model_validate(data)
+
+
+class ValidationState(BaseModel):
+    """Persistable state for the validation loop.
+
+    Captures all information needed to resume validation after interruption.
+    Stored at .adw/runs/<run_id>/validation/state.json.
+
+    Attributes:
+        run_id: The run ID this state belongs to.
+        current_iteration: Current iteration number (1-based).
+        total_iterations: Maximum iterations configured.
+        loop_state: Detailed loop progress tracking.
+        started_at: When validation phase started.
+        last_updated: When state was last persisted.
+    """
+
+    run_id: str = Field(..., description="Run ID for state association")
+    current_iteration: int = Field(default=1, ge=1)
+    total_iterations: int = Field(default=5, ge=1)
+    loop_state: LoopState = Field(default_factory=LoopState)
+    started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+    model_config = {
+        "frozen": False,
+        "validate_assignment": True,
+        "json_schema_extra": {
+            "example": {
+                "run_id": "01HQ123456789ABCDEFGHJKMNP",
+                "current_iteration": 3,
+                "total_iterations": 5,
+                "loop_state": {
+                    "issues_resolved": 5,
+                    "issues_dismissed": 2,
+                    "issues_deferred": 1,
+                    "issues_remaining": 3,
+                    "stall_count": 0,
+                },
+                "started_at": "2026-01-05T10:00:00Z",
+                "last_updated": "2026-01-05T10:15:00Z",
+            }
+        },
+    }
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize to dictionary for JSON persistence."""
+        return self.model_dump(mode="json")
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ValidationState":
+        """Deserialize from dictionary."""
+        return cls.model_validate(data)
+
+
 __all__ = [
     "FixAttempt",
     "FixResult",
@@ -502,7 +586,9 @@ __all__ = [
     "IssueLocation",
     "IssueSeverity",
     "IssueSource",
+    "LoopState",
     "ValidationIssue",
     "ValidationResult",
     "ValidationSource",  # Backward compatibility
+    "ValidationState",
 ]
