@@ -5,6 +5,7 @@ for deterministic testing without calling Claude Code.
 """
 
 from collections import deque
+from pathlib import Path
 from typing import Any
 
 from adw.exceptions import LLMError
@@ -90,7 +91,12 @@ class MockExecutor:
         self._failures.extend(failures)
 
     def execute(
-        self, prompt: str, *, timeout: int | None = None, phase: str | None = None
+        self,
+        prompt: str,
+        *,
+        timeout: int | None = None,
+        phase: str | None = None,
+        cwd: Path | None = None,
     ) -> LLMResult:
         """Execute a mock prompt.
 
@@ -98,6 +104,8 @@ class MockExecutor:
             prompt: The prompt being "sent" (stored for tracking).
             timeout: Ignored in mock (for interface compatibility).
             phase: Ignored in mock (for interface compatibility).
+            cwd: Ignored in mock (for interface compatibility).
+                 Added for worktree support (Story 10.5).
 
         Returns:
             LLMResult from configured responses or a default.

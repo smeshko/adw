@@ -1956,3 +1956,130 @@ class TestToolLogging:
         # Should still capture tool calls in result
         assert len(result.tool_calls) == 1
         assert executor.tool_logger is None
+
+
+class TestWorktreeWorkingDirectory:
+    """Tests for worktree working directory support (Story 10.5)."""
+
+    @pytest.fixture
+    def executor(self) -> ClaudeCodeExecutor:
+        """Create executor with default config."""
+        config = LLMConfig(path="claude")
+        return ClaudeCodeExecutor(config)
+
+    def test_execute_accepts_cwd_parameter(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """execute() should accept optional cwd parameter."""
+        from pathlib import Path
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                result = executor.execute(
+                    "Test prompt",
+                    cwd=Path("/tmp/worktree"),
+                )
+
+            assert isinstance(result, LLMResult)
+
+    def test_execute_passes_cwd_to_subprocess(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """execute() should pass cwd to subprocess when provided."""
+        from pathlib import Path
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            worktree_path = Path("/tmp/worktree")
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt", cwd=worktree_path)
+
+            # Verify cwd was passed to create_subprocess_exec
+            call_kwargs = mock_asyncio.create_subprocess_exec.call_args.kwargs
+            assert "cwd" in call_kwargs
+            assert call_kwargs["cwd"] == worktree_path
+
+    def test_execute_without_cwd_uses_no_cwd(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """execute() should not set cwd when not provided (legacy mode)."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt")
+
+            # Verify cwd is not set (or is None)
+            call_kwargs = mock_asyncio.create_subprocess_exec.call_args.kwargs
+            # cwd should either not be in kwargs or be None
+            assert call_kwargs.get("cwd") is None
+
+    def test_execute_with_none_cwd(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """execute() with cwd=None should behave like legacy mode."""
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+            process.stdout.readline = AsyncMock(side_effect=[b""])
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                executor.execute("Test prompt", cwd=None)
+
+            # Verify cwd is None
+            call_kwargs = mock_asyncio.create_subprocess_exec.call_args.kwargs
+            assert call_kwargs.get("cwd") is None

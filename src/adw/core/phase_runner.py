@@ -548,14 +548,21 @@ class PhaseRunner:
         Raises:
             LLMError: If execution fails.
         """
-        logger.debug("Executing LLM", extra={"phase": phase})
+        logger.debug(
+            "Executing LLM",
+            extra={
+                "phase": phase,
+                "worktree_path": str(context.worktree_path) if context.worktree_path else None,
+            },
+        )
 
         # Start LLM progress display (Story 5.5)
         if self.progress_display:
             self.progress_display.on_llm_start()
 
         try:
-            result = self.executor.execute(prompt, phase=phase)
+            # Pass worktree_path for isolated execution (Story 10.5)
+            result = self.executor.execute(prompt, phase=phase, cwd=context.worktree_path)
 
             logger.debug(
                 "LLM execution completed",

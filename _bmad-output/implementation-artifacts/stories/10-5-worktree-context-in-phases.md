@@ -1,6 +1,6 @@
 # Story 10.5: Worktree Context in Phases
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-05
@@ -34,10 +34,10 @@ so that file operations happen in the isolated environment.
 ## Tasks / Subtasks
 
 ### Task 1: Set Working Directory for LLM Execution
-- [ ] Modify `ClaudeCodeExecutor.execute()` to accept `cwd: Path | None`
-- [ ] Pass `worktree_path` from RunContext when executing LLM
-- [ ] Ensure all subprocess calls use worktree as working directory
-- [ ] Handle case where worktree_path is None (legacy mode)
+- [x] Modify `ClaudeCodeExecutor.execute()` to accept `cwd: Path | None`
+- [x] Pass `worktree_path` from RunContext when executing LLM
+- [x] Ensure all subprocess calls use worktree as working directory
+- [x] Handle case where worktree_path is None (legacy mode)
 
 ### Task 2: Add ADW_WORKTREE_PATH to Hook Environment
 - [ ] Add `ADW_WORKTREE_PATH` to hook environment variables
@@ -347,16 +347,30 @@ Epic 10: Worktree Isolation - Story 10.5
 
 ### Agent Model Used
 
-<!-- To be filled by dev agent -->
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
-<!-- To be filled during implementation -->
+N/A
 
 ### Completion Notes List
 
-<!-- To be filled during implementation -->
+**Task 1: Set Working Directory for LLM Execution**
+- Added `cwd: Path | None` parameter to LLMExecutor Protocol in `src/adw/executors/base.py`
+- Updated `ClaudeCodeExecutor.execute()` and `_stream_subprocess()` to accept and pass cwd to subprocess
+- Updated `MockExecutor.execute()` for interface compatibility
+- Updated `RetryExecutor` to pass through cwd parameter
+- Updated `PhaseRunner._execute_llm()` to pass `context.worktree_path` to executor
+- Added unit tests for worktree working directory support
+- All 124 executor tests pass
+- All 21 phase runner tests pass
 
 ### File List
 
-<!-- To be filled during implementation -->
+**Modified:**
+- src/adw/executors/base.py - Added cwd parameter to Protocol
+- src/adw/executors/claude_code.py - Added cwd parameter to execute() and _stream_subprocess()
+- src/adw/executors/mock.py - Added cwd parameter for interface compatibility
+- src/adw/executors/retry.py - Added cwd parameter passthrough
+- src/adw/core/phase_runner.py - Pass worktree_path to executor
+- tests/unit/executors/test_claude_code.py - Added TestWorktreeWorkingDirectory tests
