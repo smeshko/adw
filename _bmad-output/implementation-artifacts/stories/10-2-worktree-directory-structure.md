@@ -38,41 +38,41 @@ so that I can find and inspect them easily.
 ## Tasks / Subtasks
 
 ### Task 1: Create Trees Directory Management
-- [ ] Add `ensure_trees_directory(project_root: Path) -> Path` to WorktreeManager
-- [ ] Create `trees/` directory if it doesn't exist
-- [ ] Create `trees/.gitignore` with `*` to ignore all worktree contents
-- [ ] Add `trees/` entry to project's root `.gitignore` if not present
+- [x] Add `ensure_trees_directory(project_root: Path) -> Path` to WorktreeManager
+- [x] Create `trees/` directory if it doesn't exist
+- [x] Create `trees/.gitignore` with `*` to ignore all worktree contents
+- [x] Add `trees/` entry to project's root `.gitignore` if not present
 
 ### Task 2: Define Worktree Internal Structure
-- [ ] Document standard worktree structure in code comments
-- [ ] Ensure `.adw/` directory exists in worktree after creation
-- [ ] Create `runs/<run_id>/` directory structure matching main project
+- [x] Document standard worktree structure in code comments
+- [x] Ensure `.adw/` directory exists in worktree after creation
+- [x] Create `runs/<run_id>/` directory structure matching main project
 
 ### Task 3: Implement Artifact Preservation
-- [ ] Add `preserve_artifacts(worktree_path: Path, run_id: str, main_project: Path) -> list[Path]`
-- [ ] Define list of artifacts to preserve:
+- [x] Add `preserve_artifacts(worktree_path: Path, run_id: str, main_project: Path) -> list[Path]`
+- [x] Define list of artifacts to preserve:
   - `context.json` - run state
   - `logs/` - all log files
   - `artifacts/` - phase outputs
   - `llm/` - LLM interaction logs
-- [ ] Copy artifacts to `main_project/.adw/runs/<run_id>/` before worktree removal
-- [ ] Create manifest of preserved artifacts
+- [x] Copy artifacts to `main_project/.adw/runs/<run_id>/` before worktree removal
+- [x] Create manifest of preserved artifacts
 
 ### Task 4: Add Configuration for Artifact Preservation
-- [ ] Add `preserve_artifacts: list[str]` to WorktreeConfig with defaults
-- [ ] Add `artifact_manifest_file: str = "worktree-artifacts.json"` to config
-- [ ] Allow users to specify additional files to preserve
+- [x] Add `preserve_artifacts: list[str]` to WorktreeConfig with defaults
+- [x] Add `artifact_manifest_file: str = "worktree-artifacts.json"` to config
+- [x] Allow users to specify additional files to preserve
 
 ### Task 5: Integrate with Worktree Lifecycle
-- [ ] Call `ensure_trees_directory()` in `WorktreeManager.create_worktree()`
-- [ ] Call `preserve_artifacts()` in `WorktreeManager.remove_worktree()` before removal
-- [ ] Log artifact preservation operations
+- [x] Call `ensure_trees_directory()` in `WorktreeManager.create_worktree()`
+- [x] Call `preserve_artifacts()` in `WorktreeManager.remove_worktree()` before removal
+- [x] Log artifact preservation operations
 
 ### Task 6: Write Tests
-- [ ] Test trees directory creation and gitignore setup
-- [ ] Test artifact preservation copies correct files
-- [ ] Test artifact manifest is created correctly
-- [ ] Test integration with full worktree lifecycle
+- [x] Test trees directory creation and gitignore setup
+- [x] Test artifact preservation copies correct files
+- [x] Test artifact manifest is created correctly
+- [x] Test integration with full worktree lifecycle
 
 ---
 

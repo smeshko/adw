@@ -601,6 +601,103 @@ class WorktreeError(ADWError):
         )
 
 
+class PortAllocationError(ADWError):
+    """Exception for port allocation failures.
+
+    Used when port allocation fails due to all ports being in use
+    or other allocation issues.
+
+    Common error codes:
+    - PORT_ALLOCATION_FAILED: Could not find available ports after max attempts
+    - PORT_IN_USE: Specific port is already in use
+
+    Example:
+        >>> raise PortAllocationError(
+        ...     code="PORT_ALLOCATION_FAILED",
+        ...     message="Could not find available ports after 3 attempts",
+        ...     suggestion="Check for orphaned processes or increase max_concurrent",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        suggestion: str | None = None,
+        recoverable: bool = False,
+    ) -> None:
+        """Initialize a PortAllocationError.
+
+        Args:
+            code: Unique error code (e.g., "PORT_ALLOCATION_FAILED").
+            message: Human-readable error message.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default False).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
+
+
+class MaxConcurrentRunsError(ADWError):
+    """Exception raised when maximum concurrent runs limit is reached.
+
+    Used when a new run cannot be started because the system is already
+    at the maximum allowed concurrent runs.
+
+    Common error codes:
+    - MAX_CONCURRENT_REACHED: Maximum number of concurrent runs reached
+
+    Example:
+        >>> raise MaxConcurrentRunsError(
+        ...     code="MAX_CONCURRENT_REACHED",
+        ...     message="Maximum concurrent runs reached (15)",
+        ...     suggestion="Use `adw list --running` to see active runs",
+        ...     context={"max_concurrent": 15, "active_count": 15},
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        suggestion: str | None = None,
+        recoverable: bool = False,
+        context: dict[str, Any] | None = None,
+    ) -> None:
+        """Initialize a MaxConcurrentRunsError.
+
+        Args:
+            code: Unique error code (e.g., "MAX_CONCURRENT_REACHED").
+            message: Human-readable error message.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default False).
+            context: Additional context about the limit (max, active count, etc.).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
+        self.context = context if context is not None else {}
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize error to dictionary for structured logging.
+
+        Returns:
+            Dictionary containing all error attributes including context.
+        """
+        d = super().to_dict()
+        d["context"] = self.context
+        return d
+
+
 class SecurityError(ADWError):
     """Exception for security-related blocking.
 

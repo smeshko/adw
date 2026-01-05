@@ -1,4 +1,4 @@
-# ADW Manual Testing Checklist (Sprints 1-8)
+# ADW Manual Testing Checklist (Sprints 1-10)
 
 Quick reference for testing main workflows and error states.
 
@@ -13,7 +13,7 @@ adw --version
 
 # Help output
 adw --help
-# Expected: Shows all commands (run, resume, status, list, abort, logs, init)
+# Expected: Shows all commands (run, resume, status, list, abort, logs, init, pr, cleanup)
 ```
 
 ---
@@ -22,7 +22,7 @@ adw --help
 
 ```bash
 # Init in clean directory
-mkdir /tmp/test-adw && cd /tmp/test-adw
+mkdir /tmp/test-adw && cd /tmp/test-adw && git init
 adw init
 # Expected: Creates .adw/ directory with config, shows success message
 
@@ -48,17 +48,21 @@ adw run "Add login button" --dry-run
 adw run "Add login button" --phase plan
 # Expected: Only executes plan phase, stops after
 
+# Run without worktree isolation (legacy mode)
+adw run "Quick fix" --no-worktree
+# Expected: Executes in current directory instead of worktree
+
 # Check status of latest run
 adw status
-# Expected: Shows run ID, status, phases, duration
+# Expected: Shows run ID, status, phases, duration, worktree path
 
 # List recent runs
 adw list
 # Expected: Table of up to 10 runs with ID, feature, status
 
-# List with filters
-adw list --limit 5 --status failed
-# Expected: Only failed runs, max 5
+# List running only
+adw list --running
+# Expected: Active runs with worktree paths and ports
 
 # Status as JSON
 adw status --json
@@ -85,10 +89,6 @@ adw resume --from-phase build
 # Abort active run
 adw abort <run_id>
 # Expected: Stops execution, marks as aborted
-
-# Error: Abort non-existent run
-adw abort 01NONEXISTENT
-# Expected: Error message "Run not found"
 ```
 
 ---
@@ -100,25 +100,13 @@ adw abort 01NONEXISTENT
 adw logs show <run_id>
 # Expected: Recent log entries with timestamps
 
-# View with tail limit
-adw logs show <run_id> --tail 50
-# Expected: Last 50 entries
-
 # Filter by log level
 adw logs show <run_id> --level error
 # Expected: Only ERROR level entries
 
-# Search logs
-adw logs search "failed" --run <run_id>
-# Expected: Matching log entries highlighted
-
 # View LLM interactions
 adw logs llm <run_id>
 # Expected: Shows prompts sent to Claude
-
-# View only responses
-adw logs llm <run_id> --response
-# Expected: Shows Claude's responses
 
 # Export debug bundle
 adw logs export <run_id> --format json
@@ -164,9 +152,12 @@ adw status INVALIDID
 adw abort <completed_run_id>
 # Expected: Error "Cannot abort completed run"
 
-# Resume non-existent phase
-adw resume --from-phase nonexistent
-# Expected: Error about invalid phase name
+# PR for incomplete run
+adw pr <incomplete_run_id>
+# Expected: Error "Run must be complete to create PR"
+
+# Max concurrent runs exceeded (15)
+# Expected: Error "Maximum concurrent runs reached..."
 ```
 
 ---
@@ -187,11 +178,49 @@ ls .adw/runs/<run_id>/artifacts/
 
 ---
 
+## 9. Git Integration & Worktrees
+
+```bash
+# Verify worktree created during run
+git worktree list
+# Expected: Shows entry for trees/<run_id>/
+
+# Verify feature branch created
+git branch --list "adw/*"
+# Expected: adw/<run_id> branch exists
+
+# Check port allocation
+cat trees/<run_id>/.ports.env
+# Expected: BACKEND_PORT=91XX, FRONTEND_PORT=92XX
+
+# After build phase - check auto-commit
+git log --oneline -1
+# Expected: Commit message like "[adw] Build: <feature-name>"
+
+# Check generated PR description
+cat .adw/runs/<run_id>/artifacts/document/pr_description.md
+# Expected: Structured markdown with Summary, Changes, Testing
+
+# Create PR for completed run
+adw pr <run_id>
+# Expected: Creates PR via gh CLI or outputs manual instructions
+
+# Cleanup worktrees
+adw cleanup
+# Expected: Lists stale worktrees, prompts for confirmation
+
+# Cleanup specific run with branch deletion
+adw cleanup <run_id> --delete-branch
+# Expected: Removes worktree and branch
+```
+
+---
+
 ## Quick Smoke Test Sequence
 
 ```bash
 # 1. Setup
-mkdir /tmp/adw-test && cd /tmp/adw-test
+mkdir /tmp/adw-test && cd /tmp/adw-test && git init
 adw init
 
 # 2. Verify init
@@ -200,15 +229,24 @@ ls -la .adw/
 # 3. Check version/help
 adw --version && adw --help
 
-# 4. Dry run
+# 4. Dry run (verify worktree would be created)
 adw run "Test feature" --dry-run
 
-# 5. List (should be empty or show dry run)
+# 5. List runs
 adw list
 
-# 6. Status (latest)
+# 6. Status
 adw status
 
-# 7. Logs help
+# 7. Verify worktree setup
+ls trees/ 2>/dev/null || echo "trees/ created on actual run"
+
+# 8. Check git branches
+git branch --list "adw/*"
+
+# 9. Logs help
 adw logs --help
+
+# 10. Cleanup help
+adw cleanup --help
 ```

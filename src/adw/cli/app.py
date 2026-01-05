@@ -331,3 +331,76 @@ app.add_typer(logs_app, name="logs")
 
 # Register the pr command (Story 9.5)
 app.command()(pr_command)
+
+
+@app.command()
+def cleanup(
+    run_id: str = typer.Argument(
+        ...,
+        help="Run ID to clean up",
+    ),
+    delete_branch: bool = typer.Option(
+        False,
+        "--delete-branch",
+        "-b",
+        help="Also delete the adw/<run_id> branch after removing worktree",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Force cleanup without confirmation (required if worktree has changes)",
+    ),
+) -> None:
+    """Clean up worktree and optionally branch for a run.
+
+    Removes the worktree directory created for a run. By default, preserves
+    the branch for debugging or later PR creation.
+
+    Use --delete-branch to also remove the branch. Branches with existing
+    PRs or unpushed commits will be preserved unless --force is used.
+
+    Examples:
+        adw cleanup 01HQXK5P3Z7V8R2M4N6T9W1Y3C
+        adw cleanup 01HQXK5P3Z7V8R2M4N6T9W1Y3C --delete-branch
+        adw cleanup 01HQXK5P3Z7V8R2M4N6T9W1Y3C --force --delete-branch
+    """
+    from adw.cli.cleanup import cleanup_command
+
+    try:
+        cleanup_command(run_id=run_id, delete_branch=delete_branch, force=force)
+    except ConfigError as e:
+        console.print(f"[red]Error:[/] {e.message}")
+        if e.suggestion:
+            console.print(f"[dim]Suggestion:[/] {e.suggestion}")
+        raise typer.Exit(1) from None
+
+
+@app.command(name="cleanup-orphans")
+def cleanup_orphans(
+    delete_branch: bool = typer.Option(
+        False,
+        "--delete-branch",
+        "-b",
+        help="Also delete the adw/<run_id> branch for each orphaned worktree",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Skip confirmation prompt and force remove even with uncommitted changes",
+    ),
+) -> None:
+    """Find and remove orphaned worktrees.
+
+    Scans for worktrees that don't have corresponding active lock files
+    (from crashed or killed runs) and removes them after confirmation.
+
+    Examples:
+        adw cleanup-orphans
+        adw cleanup-orphans --delete-branch
+        adw cleanup-orphans --force
+    """
+    from adw.cli.cleanup import cleanup_orphans_command
+
+    cleanup_orphans_command(delete_branch=delete_branch, force=force)

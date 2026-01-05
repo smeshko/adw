@@ -31,6 +31,7 @@ from adw.models.config import (
     LLMConfig,
     PhaseConfig,
     PipelineConfig,
+    PortRangeConfig,
     ProjectConfig,
     RetryConfig,
     WorktreeConfig,
@@ -98,6 +99,7 @@ from adw.models.security import (
     SecurityConfig,
     ToolCallLog,
 )
+from adw.models.worktree import PortAllocation
 
 # Rebuild StateSnapshot to resolve forward references to PhaseResult
 # This must happen after all models are imported
@@ -115,6 +117,7 @@ __all__: list[str] = [
     "LLMConfig",
     "PhaseConfig",
     "PipelineConfig",
+    "PortRangeConfig",
     "ProjectConfig",
     "RetryConfig",
     "WorktreeConfig",
@@ -184,4 +187,6 @@ __all__: list[str] = [
     "BlockedPattern",
     "SecurityConfig",
     "ToolCallLog",
+    # Worktree models
+    "PortAllocation",
 ]

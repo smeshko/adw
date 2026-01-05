@@ -415,3 +415,194 @@ class TestLogsIntegration:
         result = runner.invoke(app, ["logs", "show", run_id])
         assert result.exit_code == 0
         assert "plan" in result.output.lower()
+
+
+# =============================================================================
+# Story ISS-007: Tool Execution Log Context and Duration
+# =============================================================================
+
+
+class TestToolContextExtraction:
+    """Tests for _extract_tool_context helper function."""
+
+    def test_extract_tool_context_read(self) -> None:
+        """Test context extraction for Read tool."""
+        from adw.cli.logs import _extract_tool_context
+
+        args = {"file_path": "/very/long/path/to/some/file.py"}
+        ctx = _extract_tool_context("Read", args)
+        assert "/very/long/path/to/some/file.py" == ctx
+
+    def test_extract_tool_context_read_truncates_long_path(self) -> None:
+        """Test context extraction truncates long file paths."""
+        from adw.cli.logs import _extract_tool_context
+
+        long_path = "/a" * 50 + "/file.py"
+        args = {"file_path": long_path}
+        ctx = _extract_tool_context("Read", args)
+        assert len(ctx) <= 40
+        assert ctx.endswith("...")
+
+    def test_extract_tool_context_write(self) -> None:
+        """Test context extraction for Write tool."""
+        from adw.cli.logs import _extract_tool_context
+
+        args = {"file_path": "/src/main.py"}
+        ctx = _extract_tool_context("Write", args)
+        assert ctx == "/src/main.py"
+
+    def test_extract_tool_context_bash(self) -> None:
+        """Test context extraction for Bash tool."""
+        from adw.cli.logs import _extract_tool_context
+
+        args = {"command": "npm run build && npm test"}
+        ctx = _extract_tool_context("Bash", args)
+        assert "npm run build" in ctx
+
+    def test_extract_tool_context_bash_truncates_long_command(self) -> None:
+        """Test context extraction truncates long bash commands."""
+        from adw.cli.logs import _extract_tool_context
+
+        long_cmd = "npm run build && npm test && npm lint && npm format"
+        args = {"command": long_cmd}
+        ctx = _extract_tool_context("Bash", args)
+        assert len(ctx) <= 40
+        assert ctx.endswith("...")
+
+    def test_extract_tool_context_glob(self) -> None:
+        """Test context extraction for Glob tool."""
+        from adw.cli.logs import _extract_tool_context
+
+        args = {"pattern": "**/*.py"}
+        ctx = _extract_tool_context("Glob", args)
+        assert ctx == "**/*.py"
+
+    def test_extract_tool_context_grep_with_path(self) -> None:
+        """Test context extraction for Grep tool with path."""
+        from adw.cli.logs import _extract_tool_context
+
+        args = {"pattern": "def test_", "path": "tests/"}
+        ctx = _extract_tool_context("Grep", args)
+        assert "def test_" in ctx
+        assert "tests/" in ctx
+
+    def test_extract_tool_context_grep_without_path(self) -> None:
+        """Test context extraction for Grep tool without path."""
+        from adw.cli.logs import _extract_tool_context
+
+        args = {"pattern": "class MyClass"}
+        ctx = _extract_tool_context("Grep", args)
+        assert ctx == "class MyClass"
+
+    def test_extract_tool_context_task_with_subagent(self) -> None:
+        """Test context extraction for Task tool with subagent_type."""
+        from adw.cli.logs import _extract_tool_context
+
+        args = {"subagent_type": "Explore", "prompt": "Find auth code"}
+        ctx = _extract_tool_context("Task", args)
+        assert ctx == "Explore"
+
+    def test_extract_tool_context_task_with_description(self) -> None:
+        """Test context extraction for Task tool with description only."""
+        from adw.cli.logs import _extract_tool_context
+
+        args = {"description": "Search for patterns"}
+        ctx = _extract_tool_context("Task", args)
+        assert ctx == "Search for patterns"
+
+    def test_extract_tool_context_edit(self) -> None:
+        """Test context extraction for Edit tool."""
+        from adw.cli.logs import _extract_tool_context
+
+        args = {"file_path": "/src/models/user.py"}
+        ctx = _extract_tool_context("Edit", args)
+        assert ctx == "/src/models/user.py"
+
+    def test_extract_tool_context_unknown_tool(self) -> None:
+        """Test context extraction falls back for unknown tools."""
+        from adw.cli.logs import _extract_tool_context
+
+        args = {"some_key": "some_value"}
+        ctx = _extract_tool_context("UnknownTool", args)
+        assert ctx == "some_value"
+
+    def test_extract_tool_context_empty_args(self) -> None:
+        """Test context extraction returns dash for empty args."""
+        from adw.cli.logs import _extract_tool_context
+
+        ctx = _extract_tool_context("Read", {})
+        # Returns empty string for file_path when not present
+        assert ctx == ""
+
+
+class TestTruncateHelper:
+    """Tests for _truncate helper function."""
+
+    def test_truncate_short_text(self) -> None:
+        """Test truncate doesn't modify short text."""
+        from adw.cli.logs import _truncate
+
+        result = _truncate("short", 10)
+        assert result == "short"
+
+    def test_truncate_exact_length(self) -> None:
+        """Test truncate doesn't modify text at exact length."""
+        from adw.cli.logs import _truncate
+
+        result = _truncate("exactly10c", 10)
+        assert result == "exactly10c"
+
+    def test_truncate_long_text(self) -> None:
+        """Test truncate adds ellipsis for long text."""
+        from adw.cli.logs import _truncate
+
+        result = _truncate("this is a very long string", 20)
+        assert result == "this is a very lo..."
+        assert len(result) == 20
+
+    def test_truncate_preserves_max_length(self) -> None:
+        """Test truncated text never exceeds max_len."""
+        from adw.cli.logs import _truncate
+
+        for max_len in [10, 20, 40]:
+            result = _truncate("x" * 100, max_len)
+            assert len(result) <= max_len
+
+
+class TestDurationDisplay:
+    """Tests for duration display with tilde prefix."""
+
+    def test_duration_estimate_indicator_in_display(self) -> None:
+        """Verify duration display includes tilde to indicate estimate."""
+        from adw.cli.logs import _display_tool_summary
+        from adw.models.security import ToolCallLog
+        from io import StringIO
+        from rich.console import Console
+
+        # Capture console output
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+
+        # Mock console.print temporarily
+        import adw.cli.logs as logs_module
+        original_console = logs_module.console
+        logs_module.console = console
+
+        try:
+            entry = ToolCallLog(
+                timestamp="2024-01-01T10:00:00.000000+00:00",
+                tool_name="Read",
+                arguments={"file_path": "/test.py"},
+                result_summary="Success",
+                duration_ms=100,
+                blocked=False,
+                block_reason=None,
+                phase="plan",
+            )
+            _display_tool_summary([entry])
+        finally:
+            logs_module.console = original_console
+
+        output_text = output.getvalue()
+        assert "~100ms" in output_text
+        assert "estimates" in output_text.lower()

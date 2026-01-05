@@ -195,6 +195,36 @@ class LoggingConfig(BaseModel):
     )
 
 
+class PortRangeConfig(BaseModel):
+    """Configuration for port ranges used in concurrent run isolation.
+
+    Defines the starting port numbers for backend and frontend services
+    in each concurrent run. Ports are allocated as base + slot_number.
+
+    Attributes:
+        backend_start: Starting port for backend services (default: 9100)
+        frontend_start: Starting port for frontend services (default: 9200)
+
+    Example:
+        >>> config = PortRangeConfig(backend_start=8000, frontend_start=8100)
+        >>> config.backend_start
+        8000
+    """
+
+    backend_start: int = Field(
+        default=9100,
+        gt=0,
+        lt=65536,
+        description="Starting port for backend services",
+    )
+    frontend_start: int = Field(
+        default=9200,
+        gt=0,
+        lt=65536,
+        description="Starting port for frontend services",
+    )
+
+
 class WorktreeConfig(BaseModel):
     """Configuration for git worktree isolation.
 
@@ -208,6 +238,12 @@ class WorktreeConfig(BaseModel):
         preserve_on_failure: Keep worktree on failure for debugging (default: True)
         cleanup_branch_on_remove: Delete the adw/<run_id> branch when removing
             the worktree (default: False)
+        preserve_artifacts: List of artifact names to preserve when cleaning up
+            worktrees (default: ["context.json", "logs", "artifacts", "llm"])
+        artifact_manifest_file: Name of manifest file created during preservation
+            (default: "worktree-artifacts.json")
+        port_range: Configuration for port allocation ranges
+        max_concurrent: Maximum number of concurrent runs (determines slot count)
 
     Example:
         >>> config = WorktreeConfig(enabled=True, base_dir=".worktrees")
@@ -215,6 +251,8 @@ class WorktreeConfig(BaseModel):
         True
         >>> config.base_dir
         '.worktrees'
+        >>> config.preserve_artifacts
+        ['context.json', 'logs', 'artifacts', 'llm']
 
     YAML example:
         worktree:
@@ -222,6 +260,17 @@ class WorktreeConfig(BaseModel):
           base_dir: "trees"
           preserve_on_failure: true
           cleanup_branch_on_remove: false
+          preserve_artifacts:
+            - context.json
+            - logs
+            - artifacts
+            - llm
+            - custom-output.json
+          artifact_manifest_file: "worktree-artifacts.json"
+          port_range:
+            backend_start: 9100
+            frontend_start: 9200
+          max_concurrent: 15
     """
 
     enabled: bool = Field(
@@ -240,6 +289,56 @@ class WorktreeConfig(BaseModel):
         default=False,
         description="Delete the adw/<run_id> branch when removing worktree",
     )
+    preserve_artifacts: list[str] = Field(
+        default=["context.json", "logs", "artifacts", "llm"],
+        description="List of artifact names to preserve when cleaning up worktrees",
+    )
+    artifact_manifest_file: str = Field(
+        default="worktree-artifacts.json",
+        description="Name of manifest file created during artifact preservation",
+    )
+    port_range: PortRangeConfig = Field(
+        default_factory=PortRangeConfig,
+        description="Port range configuration for concurrent runs",
+    )
+    max_concurrent: int = Field(
+        default=15,
+        gt=0,
+        le=100,
+        description="Maximum number of concurrent runs (slot count)",
+    )
+
+    @model_validator(mode="after")
+    def validate_port_ranges(self) -> Self:
+        """Validate that port ranges don't exceed valid port numbers.
+
+        Ensures that backend_start + max_concurrent - 1 and
+        frontend_start + max_concurrent - 1 don't exceed 65535.
+
+        Returns:
+            Self if validation passes.
+
+        Raises:
+            ValueError: If port range would exceed valid port numbers.
+        """
+        max_backend = self.port_range.backend_start + self.max_concurrent - 1
+        max_frontend = self.port_range.frontend_start + self.max_concurrent - 1
+
+        if max_backend > 65535:
+            msg = (
+                f"Backend port range exceeds valid ports: "
+                f"{self.port_range.backend_start} + {self.max_concurrent} - 1 = {max_backend} > 65535"
+            )
+            raise ValueError(msg)
+
+        if max_frontend > 65535:
+            msg = (
+                f"Frontend port range exceeds valid ports: "
+                f"{self.port_range.frontend_start} + {self.max_concurrent} - 1 = {max_frontend} > 65535"
+            )
+            raise ValueError(msg)
+
+        return self
 
 
 class GitConfig(BaseModel):

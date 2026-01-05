@@ -86,6 +86,14 @@ class RunContext(BaseModel):
         default=True,
         description="Whether this run uses worktree isolation",
     )
+    branch_name: str | None = Field(
+        default=None,
+        description="Git branch name for this run (e.g., 'adw/01HQXK5P3Z7V8R2M4N6T9W1Y3C')",
+    )
+    branch_deleted: bool = Field(
+        default=False,
+        description="Whether the branch has been deleted during cleanup",
+    )
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -149,6 +157,8 @@ class RunContext(BaseModel):
                 "commit_shas": ["abc123def456789..."],
                 "worktree_path": "/project/trees/01KDSG2VDHNK0W4HSCZWJZXWSQ",
                 "use_worktree": True,
+                "branch_name": "adw/01KDSG2VDHNK0W4HSCZWJZXWSQ",
+                "branch_deleted": False,
             }
         },
     }

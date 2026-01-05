@@ -1,6 +1,6 @@
 # Story 10.6: Worktree Branch Management
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-05
@@ -34,41 +34,41 @@ so that my git history stays clean.
 ## Tasks / Subtasks
 
 ### Task 1: Create WorktreeBranchManager Class
-- [ ] Create `src/adw/worktree/branch.py` with `WorktreeBranchManager` class
-- [ ] Implement `get_branch_name(run_id: str) -> str` returning `adw/<run_id>`
-- [ ] Implement `branch_exists(branch_name: str) -> bool`
-- [ ] Implement `create_branch(run_id: str, base_ref: str) -> str`
+- [x] Create `src/adw/worktree/branch.py` with `WorktreeBranchManager` class
+- [x] Implement `get_branch_name(run_id: str) -> str` returning `adw/<run_id>`
+- [x] Implement `branch_exists(branch_name: str) -> bool`
+- [x] Implement `create_branch(run_id: str, base_ref: str) -> str`
 
 ### Task 2: Implement Branch Deletion Logic
-- [ ] Implement `delete_branch(run_id: str, force: bool = False) -> bool`
-- [ ] Check for unpushed commits before deletion
-- [ ] Warn user if branch has work that would be lost
-- [ ] Return True if deleted, False if preserved
+- [x] Implement `delete_branch(run_id: str, force: bool = False) -> bool`
+- [x] Check for unpushed commits before deletion
+- [x] Warn user if branch has work that would be lost
+- [x] Return True if deleted, False if preserved
 
 ### Task 3: Integrate with Worktree Creation
-- [ ] Modify `WorktreeManager.create_worktree()` to use branch manager
-- [ ] Create `adw/<run_id>` branch from base ref before worktree add
-- [ ] Store branch_name in RunContext
+- [x] Modify `WorktreeManager.create_worktree()` to use branch manager
+- [x] Create `adw/<run_id>` branch from base ref before worktree add
+- [x] Store branch_name in RunContext
 
 ### Task 4: Implement Cleanup Integration
-- [ ] Add `delete_branch` parameter to `WorktreeManager.remove_worktree()`
-- [ ] Delete branch only when explicitly requested
-- [ ] Check for PR before allowing branch deletion (optional via gh CLI)
+- [x] Add `delete_branch` parameter to `WorktreeManager.remove_worktree()`
+- [x] Delete branch only when explicitly requested
+- [x] Check for PR before allowing branch deletion (optional via gh CLI)
 
 ### Task 5: Add --delete-branch CLI Flag
-- [ ] Add `--delete-branch` flag to `adw cleanup` command
-- [ ] Add flag to abort/failure cleanup operations
-- [ ] Warn user about data loss before branch deletion
+- [x] Add `--delete-branch` flag to `adw cleanup` command
+- [x] Add flag to abort/failure cleanup operations
+- [x] Warn user about data loss before branch deletion
 
 ### Task 6: Track Branch State in Context
-- [ ] Add `branch_name: str | None` to RunContext model
-- [ ] Add `branch_deleted: bool = False` for tracking
+- [x] Add `branch_name: str | None` to RunContext model
+- [x] Add `branch_deleted: bool = False` for tracking
 
 ### Task 7: Write Tests
-- [ ] Test branch name generation
-- [ ] Test branch creation from different base refs
-- [ ] Test deletion with unpushed commits handling
-- [ ] Test integration with worktree lifecycle
+- [x] Test branch name generation
+- [x] Test branch creation from different base refs
+- [x] Test deletion with unpushed commits handling
+- [x] Test integration with worktree lifecycle
 
 ---
 
