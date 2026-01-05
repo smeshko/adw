@@ -756,3 +756,172 @@ class TestPhaseRunnerWithMockExecutor:
         assert result.status == PhaseStatus.COMPLETED
         assert result.tokens_used > 0
         assert len(result.artifacts) > 0
+
+
+class TestAutoCommitChanges:
+    """Tests for _auto_commit_changes method (ISS-009 fix)."""
+
+    def test_auto_commit_stages_and_commits_changes(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: MagicMock,
+        sample_context: RunContext,
+    ) -> None:
+        """Should stage and commit changes when files exist."""
+        from unittest.mock import patch
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        with patch("adw.core.phase_runner.stage_changes") as mock_stage:
+            with patch("adw.core.phase_runner.create_commit") as mock_commit:
+                mock_stage.return_value = ["file1.py", "file2.py"]
+                mock_commit.return_value = "abc123def"
+
+                sha = runner._auto_commit_changes("build", sample_context)
+
+                mock_stage.assert_called_once_with(working_dir=None)
+                mock_commit.assert_called_once()
+                # Verify commit args
+                call_kwargs = mock_commit.call_args.kwargs
+                assert call_kwargs["phase"] == "build"
+                assert call_kwargs["feature"] == sample_context.feature_description
+                assert call_kwargs["run_id"] == sample_context.run_id
+                assert call_kwargs["working_dir"] is None
+                assert sha == "abc123def"
+
+    def test_auto_commit_returns_none_when_no_changes(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: MagicMock,
+        sample_context: RunContext,
+    ) -> None:
+        """Should return None when no files to commit."""
+        from unittest.mock import patch
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        with patch("adw.core.phase_runner.stage_changes") as mock_stage:
+            with patch("adw.core.phase_runner.create_commit") as mock_commit:
+                mock_stage.return_value = []  # No files to stage
+
+                sha = runner._auto_commit_changes("build", sample_context)
+
+                mock_stage.assert_called_once()
+                mock_commit.assert_not_called()
+                assert sha is None
+
+    def test_auto_commit_uses_worktree_path(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Should pass worktree_path to git functions for worktree isolation."""
+        from unittest.mock import patch
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        worktree = Path("/my/worktree")
+        context = RunContext(
+            run_id="01HQXH9Z8G2K4M5N6P7R8S9T0V",
+            feature_description="Add feature",
+            current_phase="build",
+            started_at=datetime.now(UTC),
+            worktree_path=worktree,
+            use_worktree=True,
+        )
+
+        with patch("adw.core.phase_runner.stage_changes") as mock_stage:
+            with patch("adw.core.phase_runner.create_commit") as mock_commit:
+                mock_stage.return_value = ["file.py"]
+                mock_commit.return_value = "abc123"
+
+                runner._auto_commit_changes("build", context)
+
+                mock_stage.assert_called_once_with(working_dir=worktree)
+                mock_commit.assert_called_once()
+                assert mock_commit.call_args.kwargs["working_dir"] == worktree
+
+    def test_auto_commit_catches_hook_errors(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: MagicMock,
+        sample_context: RunContext,
+    ) -> None:
+        """Should catch HookError and return None (best effort)."""
+        from unittest.mock import patch
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        with patch("adw.core.phase_runner.stage_changes") as mock_stage:
+            mock_stage.side_effect = HookError(
+                code="GIT_STAGE_FAILED",
+                message="Not a git repo",
+                phase="post-hook",
+            )
+
+            # Should not raise, just return None
+            sha = runner._auto_commit_changes("build", sample_context)
+            assert sha is None
+
+    def test_auto_commit_catches_unexpected_errors(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: MagicMock,
+        sample_context: RunContext,
+    ) -> None:
+        """Should catch unexpected errors and return None (best effort)."""
+        from unittest.mock import patch
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        with patch("adw.core.phase_runner.stage_changes") as mock_stage:
+            mock_stage.side_effect = RuntimeError("Unexpected error")
+
+            # Should not raise, just return None
+            sha = runner._auto_commit_changes("build", sample_context)
+            assert sha is None
