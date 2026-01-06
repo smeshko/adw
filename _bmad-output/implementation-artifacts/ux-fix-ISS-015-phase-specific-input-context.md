@@ -47,9 +47,9 @@ so that I can inject PRD, architecture, or other documentation into specific pha
 - [x] Ensure inputs are available alongside existing `artifacts` map
 
 ### Task 4: Update adw.yaml Schema Documentation
-- [ ] Add `input_files` to phase config examples
-- [ ] Document file path resolution behavior
-- [ ] Add example showing PRD/architecture injection
+- [x] Add `input_files` to phase config examples
+- [x] Document file path resolution behavior
+- [x] Add example showing PRD/architecture injection
 
 ### Task 5: Testing
 - [ ] Unit tests for PhaseConfig.input_files validation

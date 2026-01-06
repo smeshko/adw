@@ -14,6 +14,10 @@ phases:
   plan:
     enabled: true
     timeout_seconds: 600
+    # ISS-015: Input files are loaded at phase start and available as {{ inputs.name }}
+    input_files:
+      prd: docs/prd.md
+      architecture: docs/architecture.md
   build:
     enabled: true
     pre_hook: "echo 'Starting build'"
