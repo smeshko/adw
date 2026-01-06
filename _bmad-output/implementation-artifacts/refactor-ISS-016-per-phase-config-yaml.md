@@ -48,10 +48,10 @@ so that commands can be self-contained packages with bundled configuration that 
 - [x] Add config to `LoadedCommand` model
 
 ### Task 4: Implement Config Merging in PhaseRunner
-- [ ] Add `_merge_configs()` method to PhaseRunner
-- [ ] Merge command config with project PhaseConfig (project overrides command defaults)
-- [ ] Apply merged config to: timeout, input_files, llm settings
-- [ ] Integrate with existing `_load_input_files()` (ISS-015)
+- [x] Add `_merge_configs()` method to PhaseRunner
+- [x] Merge command config with project PhaseConfig (project overrides command defaults)
+- [x] Apply merged config to: timeout, input_files, llm settings
+- [x] Integrate with existing `_load_input_files()` (ISS-015)
 
 ### Task 5: Create Default Config Files
 - [ ] Create `src/adw/defaults/commands/plan/config.yaml`
