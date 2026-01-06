@@ -445,9 +445,9 @@ class PhaseRunner:
                 logger.debug(
                     "Loaded input file",
                     extra={
-                        "name": name,
-                        "path": str(file_path),
-                        "size": len(content),
+                        "input_name": name,
+                        "input_path": str(file_path),
+                        "input_size": len(content),
                     },
                 )
             except UnicodeDecodeError as e:
