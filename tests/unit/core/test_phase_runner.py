@@ -1097,3 +1097,116 @@ class TestLoadInputFiles:
         )
 
         assert result == {"spec": "Spec in worktree"}
+
+
+class TestInputFilesTemplateIntegration:
+    """Tests for input files integration with template rendering (ISS-015)."""
+
+    def test_inputs_available_as_template_variable(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+        sample_context: RunContext,
+        tmp_path: Path,
+    ) -> None:
+        """Inputs should be available as {{ inputs.name }} in template."""
+        from adw.models.config import PhaseConfig, ProjectConfig
+
+        # Create test input file
+        (tmp_path / "docs").mkdir(parents=True)
+        (tmp_path / "docs" / "prd.md").write_text("# Product Requirements")
+
+        # Create project config with input_files
+        project_config = ProjectConfig(
+            name="test-project",
+            language="python",
+            phases={
+                "plan": PhaseConfig(input_files={"prd": "docs/prd.md"})
+            },
+        )
+
+        # Update context to use tmp_path as worktree
+        context = sample_context.model_copy(update={"worktree_path": tmp_path})
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+            project_config=project_config,
+        )
+
+        runner.run("plan", context)
+
+        # Verify template_engine.render was called with inputs variable
+        call_args = mock_template_engine.render.call_args
+        variables = call_args[0][1]  # Second positional argument
+        assert "inputs" in variables
+        assert "prd" in variables["inputs"]
+        assert variables["inputs"]["prd"] == "# Product Requirements"
+
+    def test_inputs_empty_when_no_project_config(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+        sample_context: RunContext,
+    ) -> None:
+        """Inputs should be empty dict when no project_config provided."""
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+            # No project_config
+        )
+
+        runner.run("plan", sample_context)
+
+        call_args = mock_template_engine.render.call_args
+        variables = call_args[0][1]
+        assert "inputs" in variables
+        assert variables["inputs"] == {}
+
+    def test_inputs_empty_when_phase_has_no_input_files(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+        sample_context: RunContext,
+    ) -> None:
+        """Inputs should be empty when phase config has no input_files."""
+        from adw.models.config import PhaseConfig, ProjectConfig
+
+        project_config = ProjectConfig(
+            name="test-project",
+            language="python",
+            phases={
+                "plan": PhaseConfig(enabled=True)  # No input_files
+            },
+        )
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+            project_config=project_config,
+        )
+
+        runner.run("plan", sample_context)
+
+        call_args = mock_template_engine.render.call_args
+        variables = call_args[0][1]
+        assert "inputs" in variables
+        assert variables["inputs"] == {}

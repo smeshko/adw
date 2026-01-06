@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from adw.core.constants import PHASE_SEQUENCE
 from adw.exceptions import ADWError, ConfigError, HookError, LLMError
 from adw.hooks.git_commit import create_commit, stage_changes
+from adw.models.config import ProjectConfig
 from adw.hooks.git_diff import (
     capture_diff,
     capture_staged_diff,
@@ -93,6 +94,7 @@ class PhaseRunner:
         *,
         strict_artifacts: bool = False,
         progress_display: "ProgressDisplay | None" = None,
+        project_config: ProjectConfig | None = None,
     ) -> None:
         """Initialize the PhaseRunner.
 
@@ -106,6 +108,8 @@ class PhaseRunner:
                 references a missing artifact. If False (default), missing
                 artifacts are replaced with empty strings.
             progress_display: Display for LLM progress (optional, Story 5.5).
+            project_config: Project configuration containing phase-specific
+                settings like input_files. Optional for backward compatibility.
         """
         self.command_resolver = command_resolver
         self.template_engine = template_engine
@@ -114,6 +118,7 @@ class PhaseRunner:
         self.artifact_manager = artifact_manager
         self.strict_artifacts = strict_artifacts
         self.progress_display = progress_display
+        self.project_config = project_config
 
     def run(
         self,
@@ -319,11 +324,30 @@ class PhaseRunner:
         # Raises ConfigError if strict_artifacts=True and artifact missing
         self._validate_artifact_references(prompt_template, artifacts_map)
 
+        # Load input files from phase config (ISS-015)
+        # Get the phase-specific config if available
+        input_files_map: dict[str, str] = {}
+        if self.project_config and phase in self.project_config.phases:
+            phase_config = self.project_config.phases[phase]
+            if phase_config.input_files:
+                # Determine project root for file resolution
+                project_root = context.worktree_path or Path.cwd()
+                input_files_map = self._load_input_files(
+                    phase_config.input_files,
+                    project_root=project_root,
+                    worktree_path=context.worktree_path,
+                )
+                logger.debug(
+                    "Loaded input files",
+                    extra={"phase": phase, "inputs": list(input_files_map.keys())},
+                )
+
         # Build template variables
         variables = {
             "context": context,  # Pass the model directly for nested access
             "pre_hook_output": pre_hook_output,
             "artifacts": artifacts_map,  # Nested: {phase: {name: content}}
+            "inputs": input_files_map,  # ISS-015: {name: content} from input_files
             "run_id": context.run_id,
             "phase": phase,
             "feature": context.feature_description,
