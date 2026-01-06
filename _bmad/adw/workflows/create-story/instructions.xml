@@ -26,7 +26,7 @@
     analyze different artifacts simultaneously and thoroughly</critical>
   <critical>❓ SAVE QUESTIONS: If you think of questions or clarifications during analysis, save them for the end after the complete story is
     written</critical>
-  <critical>🎯 ZERO USER INTERVENTION: Process should be fully automated except for initial epic/story selection or missing documents</critical>
+  <critical>🎯 ZERO USER INTERVENTION: Process is fully automated - context is injected, output goes to stdout</critical>
 
   <step n="1" goal="Parse context and load input files">
     <critical>Parse the full injected context object</critical>
@@ -140,26 +140,32 @@
     <action>Combine all extracted requirements into {{requirements_analysis}}</action>
   </step>
 
-  <step n="4" goal="Architecture analysis for developer guardrails">
+  <step n="4" goal="Synthesize developer guardrails">
     <!-- Role Reinforcement: You are a technical architect ensuring developer compliance with system design -->
-    <critical>🏗️ ARCHITECTURE INTELLIGENCE - Extract everything the developer MUST follow!</critical> **ARCHITECTURE DOCUMENT ANALYSIS:** <action>Systematically
-    analyze architecture content for story-relevant requirements:</action>
+    <critical>🏗️ ARCHITECTURE INTELLIGENCE - Extract everything the developer MUST follow!</critical>
 
-    <!-- Load architecture - single file or sharded -->
-    <check if="architecture file is single file">
-      <action>Load complete {architecture_content}</action>
-    </check>
-    <check if="architecture is sharded to folder">
-      <action>Load architecture index and scan all architecture files</action>
-    </check> **CRITICAL ARCHITECTURE EXTRACTION:** <action>For
-    each architecture section, determine if relevant to this story:</action> - **Technical Stack:** Languages, frameworks, libraries with
-    versions - **Code Structure:** Folder organization, naming conventions, file patterns - **API Patterns:** Service structure, endpoint
-    patterns, data contracts - **Database Schemas:** Tables, relationships, constraints relevant to story - **Security Requirements:**
-    Authentication patterns, authorization rules - **Performance Requirements:** Caching strategies, optimization patterns - **Testing
-    Standards:** Testing frameworks, coverage expectations, test patterns - **Deployment Patterns:** Environment configurations, build
-    processes - **Integration Patterns:** External service integrations, data flows <action>Extract any story-specific requirements that the
-    developer MUST follow</action>
-    <action>Identify any architectural decisions that override previous patterns</action>
+    <!-- Synthesize from all gathered information -->
+    <action>Combine analysis from:
+      - {{requirements_analysis}} from Step 3
+      - {{codebase_patterns}} from Step 2
+      - {{git_intelligence}} from Step 2
+    </action>
+
+    **CRITICAL ARCHITECTURE EXTRACTION:**
+    <action>For each area, extract requirements the developer MUST follow:</action>
+    - **Technical Stack:** Languages, frameworks, libraries with versions
+    - **Code Structure:** Folder organization, naming conventions, file patterns
+    - **API Patterns:** Service structure, endpoint patterns, data contracts
+    - **Database Schemas:** Tables, relationships, constraints if relevant
+    - **Security Requirements:** Authentication patterns, authorization rules
+    - **Performance Requirements:** Caching strategies, optimization patterns
+    - **Testing Standards:** Testing frameworks, coverage expectations, test patterns
+    - **Deployment Patterns:** Environment configurations, build processes
+    - **Integration Patterns:** External service integrations, data flows
+
+    <action>Extract feature-specific requirements the developer MUST follow</action>
+    <action>Identify existing patterns that should be reused</action>
+    <action>Store as {{developer_guardrails}}</action>
   </step>
 
   <step n="5" goal="Web research for latest technical specifics">
@@ -184,96 +190,89 @@
     </action>
   </step>
 
-  <step n="6" goal="Create comprehensive story file">
+  <step n="6" goal="Generate comprehensive implementation plan">
     <!-- Role Reinforcement: You are a technical writer creating the definitive developer implementation guide -->
-    <critical>📝 CREATE ULTIMATE STORY FILE - The developer's master implementation guide!</critical>
+    <critical>📝 CREATE ULTIMATE IMPLEMENTATION PLAN - The developer's master guide!</critical>
 
-    <action>Initialize from template.md:
-    {default_output_file}</action>
-    <template-output file="{default_output_file}">story_header</template-output>
+    <!-- Generate the implementation plan document -->
+    <action>Generate implementation plan with the following structure:</action>
 
-    <!-- Story foundation from epics analysis -->
-    <template-output
-      file="{default_output_file}">story_requirements</template-output>
+    **# {{title derived from feature_description}}**
 
-    <!-- Conditional docs content - existing feature knowledge -->
-    <check if="{{conditional_docs_content}} is not empty">
-      <template-output file="{default_output_file}">conditional_docs_section</template-output>
-      <action>Include {{conditional_docs_content}} in the story under "## Relevant Feature Documentation" section</action>
-      <note>This gives the dev agent access to existing patterns and knowledge that matched this story's context</note>
-    </check>
+    **## Feature Description**
+    - Include {{feature_description}} as provided
 
-    <!-- Developer context section - MOST IMPORTANT PART -->
-    <template-output file="{default_output_file}">
-    developer_context_section</template-output> **DEV AGENT GUARDRAILS:** <template-output file="{default_output_file}">
-    technical_requirements</template-output>
-    <template-output file="{default_output_file}">architecture_compliance</template-output>
-    <template-output
-      file="{default_output_file}">library_framework_requirements</template-output>
-    <template-output file="{default_output_file}">
-    file_structure_requirements</template-output>
-    <template-output file="{default_output_file}">testing_requirements</template-output>
+    **## Requirements Analysis**
+    - Include extracted requirements from {{requirements_analysis}}
+    - Business objectives and user value
+    - Functional and non-functional requirements
+    - Acceptance criteria
 
-    <!-- Previous story intelligence -->
-    <check
-      if="previous story learnings available">
-      <template-output file="{default_output_file}">previous_story_intelligence</template-output>
-    </check>
+    **## Developer Context**
 
-    <!-- Git intelligence -->
-    <check
-      if="git analysis completed">
-      <template-output file="{default_output_file}">git_intelligence_summary</template-output>
-    </check>
+    **### Technical Requirements**
+    - From {{developer_guardrails}}: stack, patterns, constraints
 
-    <!-- Latest technical specifics -->
-    <check if="web research completed">
-      <template-output file="{default_output_file}">latest_tech_information</template-output>
-    </check>
+    **### Architecture Compliance**
+    - Required patterns and conventions from codebase analysis
+    - Integration points and dependencies
 
-    <!-- Project context reference -->
-    <template-output
-      file="{default_output_file}">project_context_reference</template-output>
+    **### File Structure Requirements**
+    - Where files should be created/modified
+    - Naming conventions to follow
 
-    <!-- Final status update -->
-    <template-output file="{default_output_file}">
-    story_completion_status</template-output>
+    **### Testing Requirements**
+    - Testing standards and frameworks
+    - Coverage expectations
 
-    <!-- CRITICAL: Set status to ready-for-dev -->
-    <action>Set story Status to: "ready-for-dev"</action>
-    <action>Add completion note: "Ultimate
-    context engine analysis completed - comprehensive developer guide created"</action>
+    **## Codebase Intelligence**
+
+    **### Existing Patterns to Reuse**
+    - From {{codebase_patterns}}: similar implementations found
+
+    **### Git History Insights**
+    - From {{git_intelligence}}: recent relevant changes
+
+    **## Latest Technical Information**
+    - From web research: library versions, API updates, best practices
+
+    **## Implementation Tasks**
+    - Break down into specific, actionable tasks
+    - Include file paths and code locations
+    - Order by dependency
+
+    <action>Compile all sections into {{implementation_plan}}</action>
   </step>
 
-  <step n="7" goal="Update sprint status, Linear integration, and finalize">
-    <invoke-task>Validate against checklist at {installed_path}/checklist.md using _bmad/core/tasks/validate-workflow.xml</invoke-task>
-    <!-- Output story to stdout -->
-    <action>Output the complete story/plan content to stdout as pure markdown</action>
-    <critical>The final LLM message MUST be the story content only - no wrapper, no status messages</critical>
+  <step n="7" goal="Output implementation plan to stdout">
+    <!-- Output plan to stdout for CI pipeline consumption -->
+    <action>Output the complete {{implementation_plan}} to stdout as pure markdown</action>
+    <critical>The final LLM message MUST be the implementation plan content only - no wrapper, no status messages, no commentary</critical>
+    <critical>This output will be consumed by the next stage of the CI pipeline</critical>
   </step>
 
   <!-- SUCCESS/FAILURE METRICS (per BMAD standards) -->
   <metrics>
     <success>
-      <item>Story file created at {story_dir}/{{story_key}}.md with all required sections</item>
-      <item>Exhaustive artifact analysis completed (epics, architecture, previous stories, git history)</item>
+      <item>Context parsed successfully (feature_description, input_files, metadata)</item>
+      <item>All input_files read and analyzed</item>
+      <item>Codebase discovery completed (existing patterns, git history)</item>
+      <item>Exhaustive artifact analysis completed</item>
       <item>Developer guardrails extracted and documented</item>
-      <item>Sprint status updated from "backlog" to "ready-for-dev"</item>
-      <item>Linear issue created OR updated to Todo status (if .linear config exists)</item>
-      <item>ADW state updated with story_id and plan_file (if ADW environment)</item>
-      <item>Validation checklist passed via validate-workflow.xml</item>
+      <item>Web research completed for relevant technologies</item>
+      <item>Implementation plan generated with all required sections</item>
+      <item>Pure markdown output to stdout as final message</item>
     </success>
     <failure>
-      <item>No epic/story found in source files or sprint status</item>
+      <item>Missing or invalid feature_description in context</item>
+      <item>Failed to read files from input_files list</item>
       <item>Incomplete or superficial artifact analysis (skimming instead of exhaustive review)</item>
-      <item>Missing critical developer context (architecture constraints, previous learnings)</item>
-      <item>Story file created without required sections or with placeholder content</item>
-      <item>Sprint status not updated after story creation</item>
-      <item>Linear integration failed without graceful fallback messaging</item>
-      <item>Proceeding without user input when story selection is ambiguous</item>
+      <item>Missing critical developer context (architecture constraints, codebase patterns)</item>
+      <item>Implementation plan missing required sections</item>
+      <item>Output includes wrapper text, status messages, or commentary instead of pure plan</item>
     </failure>
   </metrics>
 
-  <master-rule>Skipping artifact analysis, optimizing sequences, or creating superficial story context is FORBIDDEN and constitutes SYSTEM FAILURE.</master-rule>
+  <master-rule>Skipping artifact analysis, optimizing sequences, or creating superficial implementation plans is FORBIDDEN and constitutes SYSTEM FAILURE.</master-rule>
 
 </workflow>

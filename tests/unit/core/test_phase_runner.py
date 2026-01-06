@@ -15,7 +15,7 @@ from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
 from adw.core.artifact_manager import ArtifactManager
 from adw.core.phase_runner import PhaseRunner
-from adw.exceptions import CommandError, HookError, LLMError
+from adw.exceptions import CommandError, ConfigError, HookError, LLMError
 from adw.hooks.runner import HookRunner
 from adw.models import (
     HookResult,
@@ -931,3 +931,169 @@ class TestAutoCommitChanges:
             # Should not raise, just return None
             sha = runner._auto_commit_changes("build", sample_context)
             assert sha is None
+
+
+class TestLoadInputFiles:
+    """Tests for _load_input_files method (ISS-015)."""
+
+    def test_load_input_files_success(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+        tmp_path: Path,
+    ) -> None:
+        """_load_input_files reads and returns file contents."""
+        # Create test file
+        prd_file = tmp_path / "docs" / "prd.md"
+        prd_file.parent.mkdir(parents=True)
+        prd_file.write_text("# PRD Content\nThis is the PRD.")
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        result = runner._load_input_files(
+            {"prd": "docs/prd.md"},
+            project_root=tmp_path,
+        )
+
+        assert result == {"prd": "# PRD Content\nThis is the PRD."}
+
+    def test_load_input_files_multiple_files(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+        tmp_path: Path,
+    ) -> None:
+        """_load_input_files loads multiple files."""
+        # Create test files
+        (tmp_path / "docs").mkdir(parents=True)
+        (tmp_path / "docs" / "prd.md").write_text("PRD content")
+        (tmp_path / "docs" / "arch.md").write_text("Architecture content")
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        result = runner._load_input_files(
+            {"prd": "docs/prd.md", "arch": "docs/arch.md"},
+            project_root=tmp_path,
+        )
+
+        assert result == {"prd": "PRD content", "arch": "Architecture content"}
+
+    def test_load_input_files_missing_file_raises_config_error(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+        tmp_path: Path,
+    ) -> None:
+        """_load_input_files raises ConfigError for missing files."""
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        with pytest.raises(ConfigError) as exc_info:
+            runner._load_input_files(
+                {"prd": "nonexistent.md"},
+                project_root=tmp_path,
+            )
+
+        assert exc_info.value.code == "INPUT_FILE_NOT_FOUND"
+        assert "nonexistent.md" in exc_info.value.message
+
+    def test_load_input_files_empty_dict_returns_empty(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+        tmp_path: Path,
+    ) -> None:
+        """_load_input_files returns empty dict for empty input_files."""
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        result = runner._load_input_files({}, project_root=tmp_path)
+
+        assert result == {}
+
+    def test_load_input_files_none_returns_empty(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+        tmp_path: Path,
+    ) -> None:
+        """_load_input_files returns empty dict for None input_files."""
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        result = runner._load_input_files(None, project_root=tmp_path)
+
+        assert result == {}
+
+    def test_load_input_files_uses_worktree_path(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+        tmp_path: Path,
+    ) -> None:
+        """_load_input_files uses worktree_path when provided."""
+        # Create file only in worktree
+        worktree = tmp_path / "worktree"
+        (worktree / "docs").mkdir(parents=True)
+        (worktree / "docs" / "spec.md").write_text("Spec in worktree")
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        result = runner._load_input_files(
+            {"spec": "docs/spec.md"},
+            project_root=tmp_path,
+            worktree_path=worktree,
+        )
+
+        assert result == {"spec": "Spec in worktree"}

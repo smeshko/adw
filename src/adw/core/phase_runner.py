@@ -363,6 +363,78 @@ class PhaseRunner:
         )
         return rendered
 
+    def _load_input_files(
+        self,
+        input_files: dict[str, str] | None,
+        project_root: Path,
+        worktree_path: Path | None = None,
+    ) -> dict[str, str]:
+        """Load input files specified in PhaseConfig.input_files.
+
+        Reads files from the project root (or worktree if specified) and
+        returns their contents mapped by variable name.
+
+        Args:
+            input_files: Mapping of variable names to relative file paths.
+                None or empty dict is allowed and returns empty dict.
+            project_root: Base path for resolving relative file paths.
+            worktree_path: If provided, use this instead of project_root
+                for file resolution (for worktree-isolated runs).
+
+        Returns:
+            Dict mapping variable names to file contents.
+
+        Raises:
+            ConfigError: If a specified file does not exist.
+
+        Example:
+            >>> files = runner._load_input_files(
+            ...     {"prd": "docs/prd.md"},
+            ...     project_root=Path("/project"),
+            ... )
+            >>> files["prd"]
+            '# Product Requirements...'
+        """
+        if not input_files:
+            return {}
+
+        # Determine base path for resolution
+        base_path = worktree_path if worktree_path else project_root
+
+        loaded: dict[str, str] = {}
+        for name, relative_path in input_files.items():
+            file_path = base_path / relative_path
+
+            if not file_path.exists():
+                raise ConfigError(
+                    code="INPUT_FILE_NOT_FOUND",
+                    message=f"Input file not found: {relative_path}",
+                    suggestion=(
+                        f"Ensure the file '{relative_path}' exists relative to "
+                        f"'{base_path}'. Check the path in your phase configuration."
+                    ),
+                )
+
+            try:
+                content = file_path.read_text(encoding="utf-8")
+                loaded[name] = content
+                logger.debug(
+                    "Loaded input file",
+                    extra={
+                        "name": name,
+                        "path": str(file_path),
+                        "size": len(content),
+                    },
+                )
+            except UnicodeDecodeError as e:
+                raise ConfigError(
+                    code="INPUT_FILE_ENCODING_ERROR",
+                    message=f"Failed to decode input file '{relative_path}': {e}",
+                    suggestion="Ensure the file is UTF-8 encoded.",
+                ) from e
+
+        return loaded
+
     def _validate_artifact_references(
         self,
         template: str,
