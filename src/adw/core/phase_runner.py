@@ -14,10 +14,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import yaml
+
 from adw.core.constants import PHASE_SEQUENCE
 from adw.exceptions import ADWError, ConfigError, HookError, LLMError
 from adw.hooks.git_commit import create_commit, stage_changes
-from adw.models.config import ProjectConfig
+from adw.models.command import CommandConfig
+from adw.models.config import PhaseConfig, ProjectConfig
 from adw.hooks.git_diff import (
     capture_diff,
     capture_staged_diff,
@@ -324,23 +327,32 @@ class PhaseRunner:
         # Raises ConfigError if strict_artifacts=True and artifact missing
         self._validate_artifact_references(prompt_template, artifacts_map)
 
-        # Load input files from phase config (ISS-015)
-        # Get the phase-specific config if available
-        input_files_map: dict[str, str] = {}
+        # Load and merge configs (ISS-016: per-phase config.yaml)
+        # 1. Load command config from config.yaml (if exists)
+        command_config = self._load_command_config(command) if command.has_config else None
+
+        # 2. Get project phase config (if exists)
+        project_phase_config = None
         if self.project_config and phase in self.project_config.phases:
-            phase_config = self.project_config.phases[phase]
-            if phase_config.input_files:
-                # Determine project root for file resolution
-                project_root = context.worktree_path or Path.cwd()
-                input_files_map = self._load_input_files(
-                    phase_config.input_files,
-                    project_root=project_root,
-                    worktree_path=context.worktree_path,
-                )
-                logger.debug(
-                    "Loaded input files",
-                    extra={"phase": phase, "inputs": list(input_files_map.keys())},
-                )
+            project_phase_config = self.project_config.phases[phase]
+
+        # 3. Merge configs (project overrides command defaults)
+        merged_config = self._merge_configs(command_config, project_phase_config)
+
+        # Load input files from merged config (ISS-015 + ISS-016)
+        input_files_map: dict[str, str] = {}
+        if merged_config.input_files:
+            # Determine project root for file resolution
+            project_root = context.worktree_path or Path.cwd()
+            input_files_map = self._load_input_files(
+                merged_config.input_files,
+                project_root=project_root,
+                worktree_path=context.worktree_path,
+            )
+            logger.debug(
+                "Loaded input files from merged config",
+                extra={"phase": phase, "inputs": list(input_files_map.keys())},
+            )
 
         # Build template variables
         variables = {
@@ -458,6 +470,119 @@ class PhaseRunner:
                 ) from e
 
         return loaded
+
+    def _merge_configs(
+        self,
+        command_config: CommandConfig | None,
+        project_phase_config: PhaseConfig | None,
+    ) -> PhaseConfig:
+        """Merge command config with project phase config.
+
+        Combines defaults from command's config.yaml with project-level
+        PhaseConfig from adw.yaml. Project settings take precedence
+        (override command defaults).
+
+        Args:
+            command_config: Configuration from command's config.yaml.
+                May be None if no config.yaml exists.
+            project_phase_config: Phase configuration from project's adw.yaml.
+                May be None if phase not configured in project.
+
+        Returns:
+            Merged PhaseConfig with combined settings.
+            Returns empty PhaseConfig if both inputs are None.
+
+        Merge Rules:
+            - Scalar values (timeout_seconds, pre_hook, post_hook): project wins
+            - input_files: merged dict, project values override command values
+            - llm settings: project values override command values
+
+        Example:
+            >>> command_config = CommandConfig(
+            ...     timeout_seconds=600,
+            ...     input_files={"prd": "defaults/prd.md"},
+            ... )
+            >>> project_config = PhaseConfig(
+            ...     input_files={"prd": "docs/prd.md", "arch": "docs/arch.md"},
+            ... )
+            >>> merged = runner._merge_configs(command_config, project_config)
+            >>> merged.timeout_seconds  # From command (project didn't override)
+            600
+            >>> merged.input_files["prd"]  # Project overrides command
+            'docs/prd.md'
+        """
+        # Start with empty config
+        merged_data: dict = {}
+
+        # First, apply command defaults (if any)
+        if command_config:
+            if command_config.timeout_seconds is not None:
+                merged_data["timeout_seconds"] = command_config.timeout_seconds
+            if command_config.input_files is not None:
+                merged_data["input_files"] = dict(command_config.input_files)
+            if command_config.pre_hook is not None:
+                merged_data["pre_hook"] = command_config.pre_hook
+            if command_config.post_hook is not None:
+                merged_data["post_hook"] = command_config.post_hook
+            # Note: llm settings from command config would go here when supported
+
+        # Then, apply project settings (override command defaults)
+        if project_phase_config:
+            if project_phase_config.timeout_seconds is not None:
+                merged_data["timeout_seconds"] = project_phase_config.timeout_seconds
+            if project_phase_config.input_files is not None:
+                # Merge input_files: project values override command values
+                if "input_files" not in merged_data:
+                    merged_data["input_files"] = {}
+                merged_data["input_files"].update(project_phase_config.input_files)
+            if project_phase_config.pre_hook is not None:
+                merged_data["pre_hook"] = project_phase_config.pre_hook
+            if project_phase_config.post_hook is not None:
+                merged_data["post_hook"] = project_phase_config.post_hook
+
+        # Return merged PhaseConfig
+        return PhaseConfig(**merged_data) if merged_data else PhaseConfig()
+
+    def _load_command_config(self, command: ResolvedCommand) -> CommandConfig | None:
+        """Load optional config.yaml from command directory.
+
+        Args:
+            command: The resolved command with path information.
+
+        Returns:
+            Parsed CommandConfig if config.yaml exists, None otherwise.
+
+        Raises:
+            ConfigError: If config.yaml exists but contains invalid YAML or
+                        fails Pydantic validation.
+        """
+        config_path = command.path / "config.yaml"
+
+        if not config_path.exists():
+            return None
+
+        try:
+            config_content = config_path.read_text(encoding="utf-8")
+            data = yaml.safe_load(config_content)
+
+            # Handle empty config file
+            if data is None:
+                data = {}
+
+            return CommandConfig.model_validate(data)
+        except yaml.YAMLError as e:
+            raise ConfigError(
+                code="INVALID_CONFIG",
+                message=f"Invalid YAML in config.yaml at {config_path}: {e}",
+            ) from e
+        except Exception as e:
+            # Catch Pydantic validation errors and re-raise as ConfigError
+            if "ValidationError" in type(e).__name__:
+                raise ConfigError(
+                    code="INVALID_CONFIG",
+                    message=f"Invalid config in config.yaml at {config_path}: {e}",
+                ) from e
+            raise
 
     def _validate_artifact_references(
         self,
