@@ -42,9 +42,9 @@ so that I can inject PRD, architecture, or other documentation into specific pha
 - [x] Handle encoding errors gracefully
 
 ### Task 3: Integrate with Template Rendering
-- [ ] Pass loaded input files to `_load_and_render_prompt()`
-- [ ] Add `inputs` key to template variables dict
-- [ ] Ensure inputs are available alongside existing `artifacts` map
+- [x] Pass loaded input files to `_load_and_render_prompt()`
+- [x] Add `inputs` key to template variables dict
+- [x] Ensure inputs are available alongside existing `artifacts` map
 
 ### Task 4: Update adw.yaml Schema Documentation
 - [ ] Add `input_files` to phase config examples
