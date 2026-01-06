@@ -205,6 +205,7 @@ class ResolvedCommand(BaseModel):
         has_schema: Whether schema.json exists in the command directory.
         has_pre_hook: Whether pre.sh or pre-hook.sh exists.
         has_post_hook: Whether post.sh or post-hook.sh exists.
+        has_config: Whether config.yaml exists in the command directory.
 
     Example:
         >>> cmd = ResolvedCommand(
@@ -225,6 +226,7 @@ class ResolvedCommand(BaseModel):
     has_schema: bool = False
     has_pre_hook: bool = False
     has_post_hook: bool = False
+    has_config: bool = False
 
 
 class LoadedCommand(BaseModel):

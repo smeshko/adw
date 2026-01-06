@@ -37,9 +37,9 @@ so that commands can be self-contained packages with bundled configuration that 
 - [x] Add model validation and docstrings
 
 ### Task 2: Update CommandResolver
-- [ ] Add `has_config` detection to `_create_resolved_command()` method
-- [ ] Check for `config.yaml` presence in command directory
-- [ ] Update `ResolvedCommand` model with `has_config: bool = False` field
+- [x] Add `has_config` detection to `_create_resolved_command()` method
+- [x] Check for `config.yaml` presence in command directory
+- [x] Update `ResolvedCommand` model with `has_config: bool = False` field
 
 ### Task 3: Implement Config Loading in CommandLoader
 - [ ] Add `_load_config()` method to load and parse `config.yaml`

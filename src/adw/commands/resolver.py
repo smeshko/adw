@@ -124,7 +124,7 @@ class CommandResolver:
     ) -> ResolvedCommand:
         """Create a ResolvedCommand from a command directory.
 
-        Detects presence of optional files (schema, hooks).
+        Detects presence of optional files (schema, hooks, config).
 
         Args:
             name: The command name.
@@ -139,6 +139,7 @@ class CommandResolver:
         has_post_hook = (path / "post.sh").is_file() or (
             path / "post-hook.sh"
         ).is_file()
+        has_config = (path / "config.yaml").is_file()
 
         return ResolvedCommand(
             name=name,
@@ -147,4 +148,5 @@ class CommandResolver:
             has_schema=has_schema,
             has_pre_hook=has_pre_hook,
             has_post_hook=has_post_hook,
+            has_config=has_config,
         )
