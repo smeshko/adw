@@ -107,6 +107,24 @@ class PhaseConfig(BaseModel):
         timeout_seconds: Phase-specific timeout override
         pre_hook: Shell command to run before phase
         post_hook: Shell command to run after phase
+        input_files: Optional mapping of variable names to file paths for template
+            injection. Files are loaded at phase start and made available as
+            {{ inputs.name }} in prompt templates.
+
+    Example:
+        >>> config = PhaseConfig(
+        ...     input_files={"prd": "docs/prd.md", "arch": "docs/architecture.md"}
+        ... )
+        >>> config.input_files
+        {'prd': 'docs/prd.md', 'arch': 'docs/architecture.md'}
+
+    YAML example:
+        phases:
+          plan:
+            enabled: true
+            input_files:
+              prd: docs/prd.md
+              architecture: docs/architecture.md
     """
 
     enabled: bool = Field(default=True, description="Whether this phase is enabled")
@@ -118,6 +136,10 @@ class PhaseConfig(BaseModel):
     )
     post_hook: str | None = Field(
         default=None, description="Shell command to run after phase"
+    )
+    input_files: dict[str, str] | None = Field(
+        default=None,
+        description="Mapping of variable names to file paths for template injection",
     )
 
 

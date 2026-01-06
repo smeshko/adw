@@ -30,9 +30,9 @@ so that I can inject PRD, architecture, or other documentation into specific pha
 ## Tasks / Subtasks
 
 ### Task 1: Extend PhaseConfig Model
-- [ ] Add `input_files: dict[str, str] | None = None` field to `PhaseConfig` in `src/adw/models/config.py`
-- [ ] Add field validator for path validation (non-empty keys, relative paths)
-- [ ] Update model docstring with usage example
+- [x] Add `input_files: dict[str, str] | None = None` field to `PhaseConfig` in `src/adw/models/config.py`
+- [x] Add field validator for path validation (non-empty keys, relative paths)
+- [x] Update model docstring with usage example
 
 ### Task 2: Implement Input File Loading in PhaseRunner
 - [ ] Add `_load_input_files()` method to `PhaseRunner` in `src/adw/core/phase_runner.py`

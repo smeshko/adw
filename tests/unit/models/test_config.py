@@ -12,7 +12,57 @@ import pytest
 from pydantic import ValidationError
 
 from adw.models import ProjectConfig
-from adw.models.config import WorktreeConfig
+from adw.models.config import PhaseConfig, WorktreeConfig
+
+
+class TestPhaseConfigInputFiles:
+    """Tests for PhaseConfig.input_files field (ISS-015)."""
+
+    def test_input_files_none_by_default(self) -> None:
+        """PhaseConfig.input_files should be None by default."""
+        config = PhaseConfig()
+        assert config.input_files is None
+
+    def test_input_files_valid_mapping(self) -> None:
+        """PhaseConfig accepts valid input_files mapping."""
+        config = PhaseConfig(input_files={"prd": "docs/prd.md", "arch": "docs/arch.md"})
+        assert config.input_files == {"prd": "docs/prd.md", "arch": "docs/arch.md"}
+
+    def test_input_files_empty_dict(self) -> None:
+        """PhaseConfig accepts empty input_files dict."""
+        config = PhaseConfig(input_files={})
+        assert config.input_files == {}
+
+    def test_input_files_single_entry(self) -> None:
+        """PhaseConfig accepts single-entry input_files."""
+        config = PhaseConfig(input_files={"context": "README.md"})
+        assert config.input_files == {"context": "README.md"}
+
+    def test_input_files_with_nested_paths(self) -> None:
+        """PhaseConfig accepts input_files with deeply nested paths."""
+        config = PhaseConfig(
+            input_files={"spec": "docs/specs/api/v2/openapi.yaml"}
+        )
+        assert config.input_files["spec"] == "docs/specs/api/v2/openapi.yaml"
+
+    def test_input_files_in_yaml_parsing(self) -> None:
+        """PhaseConfig.input_files loads correctly from YAML."""
+        yaml_content = """
+name: test-project
+language: python
+phases:
+  plan:
+    enabled: true
+    input_files:
+      prd: docs/prd.md
+      architecture: docs/architecture.md
+"""
+        config = ProjectConfig.from_yaml(yaml_content)
+        assert "plan" in config.phases
+        assert config.phases["plan"].input_files == {
+            "prd": "docs/prd.md",
+            "architecture": "docs/architecture.md",
+        }
 
 
 class TestWorktreeConfig:
