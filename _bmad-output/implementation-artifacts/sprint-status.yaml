@@ -260,7 +260,7 @@ development_status:
   # UX Fix (from ISS-015)
   ux-fix-ISS-015-phase-specific-input-context: done
   # Refactor (from ISS-016)
-  refactor-ISS-016-per-phase-config-yaml: ready-for-dev
+  refactor-ISS-016-per-phase-config-yaml: in-progress
   epic-12-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
