@@ -1,0 +1,21 @@
+# Default configuration for the validate phase
+# These defaults can be overridden in project's adw.yaml
+
+# Timeout for the validate phase (5 minutes default - quick validation)
+timeout_seconds: 300
+
+# Input files for validate phase
+# input_files:
+#   output: artifacts/verify/verify_output.md
+
+# LLM settings for this phase
+# llm:
+#   model: claude-sonnet-4-20250514
+#   temperature: 0.0  # Zero temperature for deterministic validation
+
+# Artifacts to capture from this phase
+artifacts:
+  - name: validate_output
+    pattern: "validate_output.md"
+    required: true
+    description: "Validation results"

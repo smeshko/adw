@@ -1,0 +1,23 @@
+# Default configuration for the plan phase
+# These defaults can be overridden in project's adw.yaml
+
+# Timeout for the plan phase (10 minutes default)
+timeout_seconds: 600
+
+# Input files to load and inject into templates
+# Projects should override these paths to point to actual project docs
+# input_files:
+#   prd: docs/prd.md
+#   architecture: docs/architecture.md
+
+# LLM settings for this phase
+# llm:
+#   model: claude-sonnet-4-20250514
+#   temperature: 0.7
+
+# Artifacts to capture from this phase
+artifacts:
+  - name: plan
+    pattern: "plan_output.md"
+    required: true
+    description: "Generated implementation plan"

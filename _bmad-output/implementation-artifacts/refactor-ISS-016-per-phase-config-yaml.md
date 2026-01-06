@@ -54,11 +54,11 @@ so that commands can be self-contained packages with bundled configuration that 
 - [x] Integrate with existing `_load_input_files()` (ISS-015)
 
 ### Task 5: Create Default Config Files
-- [ ] Create `src/adw/defaults/commands/plan/config.yaml`
-- [ ] Create `src/adw/defaults/commands/build/config.yaml`
-- [ ] Create `src/adw/defaults/commands/verify/config.yaml`
-- [ ] Create `src/adw/defaults/commands/validate/config.yaml`
-- [ ] Create `src/adw/defaults/commands/document/config.yaml`
+- [x] Create `src/adw/defaults/commands/plan/config.yaml`
+- [x] Create `src/adw/defaults/commands/build/config.yaml`
+- [x] Create `src/adw/defaults/commands/verify/config.yaml`
+- [x] Create `src/adw/defaults/commands/validate/config.yaml`
+- [x] Create `src/adw/defaults/commands/document/config.yaml`
 
 ### Task 6: Testing
 - [ ] Unit tests for `CommandConfig` model validation

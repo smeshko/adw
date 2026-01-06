@@ -1,0 +1,26 @@
+# Default configuration for the document phase
+# These defaults can be overridden in project's adw.yaml
+
+# Timeout for the document phase (5 minutes default - PR description generation)
+timeout_seconds: 300
+
+# Input files for document phase come from previous phase artifacts
+# These are typically auto-loaded via artifact references in the prompt
+# input_files:
+#   implementation: artifacts/build/build_output.md
+
+# LLM settings for this phase
+# llm:
+#   model: claude-sonnet-4-20250514
+#   temperature: 0.5  # Moderate temperature for documentation
+
+# Artifacts to capture from this phase
+artifacts:
+  - name: document_output
+    pattern: "document_output.md"
+    required: true
+    description: "Document phase output"
+  - name: pr_description
+    pattern: "pr_description.md"
+    required: true
+    description: "Generated PR description"
