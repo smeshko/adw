@@ -1,7 +1,7 @@
 # Story: Per-Phase Config.yaml Loading
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration / Tech Debt
 Created: 2026-01-06
@@ -30,11 +30,11 @@ so that commands can be self-contained packages with bundled configuration that 
 ## Tasks / Subtasks
 
 ### Task 1: Create CommandConfig Model
-- [ ] Add `CommandConfig` model to `src/adw/models/command.py`
-- [ ] Support fields: `timeout_seconds`, `input_files`, `llm`, `artifacts`, `pre_hook`, `post_hook`
-- [ ] Add `LLMConfig` nested model for phase-specific LLM settings (model, temperature)
-- [ ] Add `ArtifactConfig` for artifact capture rules (unifies with ISS-012)
-- [ ] Add model validation and docstrings
+- [x] Add `CommandConfig` model to `src/adw/models/command.py`
+- [x] Support fields: `timeout_seconds`, `input_files`, `llm`, `artifacts`, `pre_hook`, `post_hook`
+- [x] Add `LLMConfig` nested model for phase-specific LLM settings (model, temperature)
+- [x] Add `ArtifactConfig` for artifact capture rules (unifies with ISS-012)
+- [x] Add model validation and docstrings
 
 ### Task 2: Update CommandResolver
 - [ ] Add `has_config` detection to `_create_resolved_command()` method
