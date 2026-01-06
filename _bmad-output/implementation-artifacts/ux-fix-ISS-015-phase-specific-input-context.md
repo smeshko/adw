@@ -1,7 +1,7 @@
 # Story: Phase-Specific Input Context Injection
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration / Tech Debt
 Created: 2026-01-06
@@ -17,15 +17,15 @@ so that I can inject PRD, architecture, or other documentation into specific pha
 
 ## Acceptance Criteria
 
-- [ ] PhaseConfig model supports optional `input_files: dict[str, str]` field
-- [ ] PhaseRunner loads files specified in `input_files` at phase start
-- [ ] Loaded file contents are available as `{{ inputs.name }}` in prompt templates
-- [ ] File paths are resolved relative to project root
-- [ ] Missing files raise `ConfigError` with helpful suggestion
-- [ ] Empty `input_files` (default) preserves existing behavior
-- [ ] Configuration works in both `adw.yaml` project config and command-level config
-- [ ] All existing tests pass
-- [ ] New tests cover input file loading, error handling, and template access
+- [x] PhaseConfig model supports optional `input_files: dict[str, str]` field
+- [x] PhaseRunner loads files specified in `input_files` at phase start
+- [x] Loaded file contents are available as `{{ inputs.name }}` in prompt templates
+- [x] File paths are resolved relative to project root
+- [x] Missing files raise `ConfigError` with helpful suggestion
+- [x] Empty `input_files` (default) preserves existing behavior
+- [x] Configuration works in both `adw.yaml` project config and command-level config
+- [x] All existing tests pass
+- [x] New tests cover input file loading, error handling, and template access
 
 ## Tasks / Subtasks
 
@@ -52,11 +52,11 @@ so that I can inject PRD, architecture, or other documentation into specific pha
 - [x] Add example showing PRD/architecture injection
 
 ### Task 5: Testing
-- [ ] Unit tests for PhaseConfig.input_files validation
-- [ ] Unit tests for _load_input_files() method
-- [ ] Integration tests for template variable access
-- [ ] Error handling tests for missing files
-- [ ] Regression tests ensuring existing behavior unchanged
+- [x] Unit tests for PhaseConfig.input_files validation
+- [x] Unit tests for _load_input_files() method
+- [x] Integration tests for template variable access
+- [x] Error handling tests for missing files
+- [x] Regression tests ensuring existing behavior unchanged
 
 ---
 

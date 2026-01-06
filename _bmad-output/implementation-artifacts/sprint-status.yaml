@@ -257,7 +257,7 @@ development_status:
   refactor-ISS-013-remove-template-aliases: ready-for-dev
   refactor-ISS-014-centralize-resume-logic: ready-for-dev
   # UX Fix (from ISS-015)
-  ux-fix-ISS-015-phase-specific-input-context: in-progress
+  ux-fix-ISS-015-phase-specific-input-context: done
   epic-12-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

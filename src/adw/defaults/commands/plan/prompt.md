@@ -12,15 +12,12 @@ Generate a detailed implementation plan for the feature.
 
 ## Instructions
 
-1. Analyze the feature requirements
-2. Break down into implementation tasks
-3. Identify dependencies and potential risks
-4. Propose an implementation approach
+IT IS CRITICAL THAT YOU FOLLOW THESE STEPS - while staying in character as the current agent persona you may have loaded:
 
-## Output
-
-Provide a structured plan with:
-- Task breakdown
-- File changes required
-- Testing strategy
-- Risk assessment
+<steps CRITICAL="TRUE">
+1. Always LOAD the FULL @_bmad/core/tasks/workflow.xml
+2. READ its entire contents - this is the CORE OS for EXECUTING the specific workflow-config @_bmad/adw/workflows/create-story/workflow.yaml
+3. Pass the yaml path _bmad/adw/workflows/create-story/workflow.yaml as 'workflow-config' parameter to the workflow.xml instructions
+4. Follow workflow.xml instructions EXACTLY as written to process and follow the specific workflow config and its instructions
+5. Save outputs after EACH section when generating any documents from templates
+</steps>

@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1, 2]
+stepsCompleted: [1, 2, 3]
 target_workflow: _bmad/adw/workflows/create-story
 target_workflow_name: create-story
 date: 2026-01-06
