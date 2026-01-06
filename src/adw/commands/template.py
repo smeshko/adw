@@ -60,8 +60,12 @@ def escape_feature_description(description: str) -> str:
 # Compile patterns once at module level for efficiency
 # Matches {{variable}} or {{variable.nested.path}} or {{variable.*}} for wildcards
 VARIABLE_PATTERN = re.compile(r"\{\{([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
-# Matches {{file:path/to/file.txt}}
+# Matches {{file:path/to/file.txt}} - resolves relative to project root
 FILE_PATTERN = re.compile(r"\{\{file:([^}]+)\}\}")
+# Matches {{include:filename}} - resolves relative to command directory
+INCLUDE_PATTERN = re.compile(r"\{\{include:([^}]+)\}\}")
+# Matches {{shared:filename}} - resolves relative to shared commands directory
+SHARED_PATTERN = re.compile(r"\{\{shared:([^}]+)\}\}")
 
 
 class TemplateEngine:
@@ -81,14 +85,27 @@ class TemplateEngine:
         >>> result = engine.render(template, context)
     """
 
-    def __init__(self, project_root: Path | None = None) -> None:
+    def __init__(
+        self,
+        project_root: Path | None = None,
+        command_root: Path | None = None,
+        shared_root: Path | None = None,
+    ) -> None:
         """Initialize the template engine.
 
         Args:
-            project_root: Root directory for resolving file inclusions.
+            project_root: Root directory for resolving {{file:...}} inclusions.
                          Defaults to current working directory if not provided.
+            command_root: Directory for resolving {{include:...}} inclusions.
+                         Used for files bundled with the command (e.g., SDK defaults).
+                         If not provided, {{include:...}} patterns will error.
+            shared_root: Directory for resolving {{shared:...}} inclusions.
+                        Used for files shared across all commands (e.g., commands/).
+                        If not provided, {{shared:...}} patterns will error.
         """
         self.project_root = project_root or Path.cwd()
+        self.command_root = command_root
+        self.shared_root = shared_root
 
     def render(
         self,
@@ -122,7 +139,13 @@ class TemplateEngine:
         # Process variables first (single pass, no recursion)
         result = self._process_variables(template, context_dict, strict=strict)
 
-        # Process file inclusions
+        # Process command-local includes ({{include:...}})
+        result = self._process_includes(result)
+
+        # Process shared includes ({{shared:...}})
+        result = self._process_shared_inclusions(result)
+
+        # Process project file inclusions ({{file:...}})
         result = self._process_file_inclusions(result)
 
         return result
@@ -368,3 +391,157 @@ class TemplateEngine:
                 ) from err
 
         return FILE_PATTERN.sub(replace_file, template)
+
+    def _process_includes(self, template: str) -> str:
+        """Process command-local include patterns in the template.
+
+        Resolves {{include:filename}} relative to command_root (the command directory).
+        This is used for files bundled with commands (e.g., SDK defaults).
+
+        Args:
+            template: Template string to process.
+
+        Returns:
+            Template with included file contents.
+
+        Raises:
+            ConfigError: If command_root is not set, file doesn't exist,
+                        or path traversal is attempted.
+        """
+        if not INCLUDE_PATTERN.search(template):
+            return template  # No includes, skip processing
+
+        if self.command_root is None:
+            raise ConfigError(
+                code="INCLUDE_NO_COMMAND_ROOT",
+                message="Cannot process {{include:...}} without command_root",
+                suggestion="Set command_root when initializing TemplateEngine",
+            )
+
+        def replace_include(match: re.Match[str]) -> str:
+            file_path = match.group(1).strip()
+            full_path = self.command_root / file_path  # type: ignore[operator]
+
+            # Security: Prevent path traversal attacks
+            try:
+                resolved_path = full_path.resolve()
+                command_resolved = self.command_root.resolve()  # type: ignore[union-attr]
+                if not resolved_path.is_relative_to(command_resolved):
+                    raise ConfigError(
+                        code="INCLUDE_PATH_TRAVERSAL",
+                        message=f"Path traversal not allowed: {file_path}",
+                        suggestion="Use paths relative to command directory, not '..'",
+                    )
+            except ValueError:
+                raise ConfigError(
+                    code="INCLUDE_PATH_TRAVERSAL",
+                    message=f"Invalid include path: {file_path}",
+                    suggestion="Use valid paths relative to the command directory",
+                ) from None
+
+            if not resolved_path.exists():
+                raise ConfigError(
+                    code="INCLUDE_FILE_NOT_FOUND",
+                    message=f"Include file not found: {file_path}",
+                    suggestion=f"Create the file at {full_path} or fix the path",
+                )
+
+            try:
+                return resolved_path.read_text(encoding="utf-8")
+            except PermissionError as err:
+                raise ConfigError(
+                    code="INCLUDE_FILE_PERMISSION",
+                    message=f"Permission denied reading file: {file_path}",
+                    suggestion="Check file permissions and ownership",
+                ) from err
+            except IsADirectoryError as err:
+                raise ConfigError(
+                    code="INCLUDE_FILE_IS_DIRECTORY",
+                    message=f"Path is a directory, not a file: {file_path}",
+                    suggestion="Provide a path to a file, not a directory",
+                ) from err
+            except UnicodeDecodeError as err:
+                raise ConfigError(
+                    code="INCLUDE_FILE_ENCODING",
+                    message=f"File is not valid UTF-8: {file_path}",
+                    suggestion="Ensure the file is saved with UTF-8 encoding",
+                ) from err
+
+        return INCLUDE_PATTERN.sub(replace_include, template)
+
+    def _process_shared_inclusions(self, template: str) -> str:
+        """Process shared include patterns in the template.
+
+        Resolves {{shared:filename}} relative to shared_root (the commands directory).
+        This is used for files shared across all commands.
+
+        Args:
+            template: Template string to process.
+
+        Returns:
+            Template with included file contents.
+
+        Raises:
+            ConfigError: If shared_root is not set, file doesn't exist,
+                        or path traversal is attempted.
+        """
+        if not SHARED_PATTERN.search(template):
+            return template  # No shared includes, skip processing
+
+        if self.shared_root is None:
+            raise ConfigError(
+                code="SHARED_NO_ROOT",
+                message="Cannot process {{shared:...}} without shared_root",
+                suggestion="Set shared_root when initializing TemplateEngine",
+            )
+
+        def replace_shared(match: re.Match[str]) -> str:
+            file_path = match.group(1).strip()
+            full_path = self.shared_root / file_path  # type: ignore[operator]
+
+            # Security: Prevent path traversal attacks
+            try:
+                resolved_path = full_path.resolve()
+                shared_resolved = self.shared_root.resolve()  # type: ignore[union-attr]
+                if not resolved_path.is_relative_to(shared_resolved):
+                    raise ConfigError(
+                        code="SHARED_PATH_TRAVERSAL",
+                        message=f"Path traversal not allowed: {file_path}",
+                        suggestion="Use paths relative to shared directory, not '..'",
+                    )
+            except ValueError:
+                raise ConfigError(
+                    code="SHARED_PATH_TRAVERSAL",
+                    message=f"Invalid shared path: {file_path}",
+                    suggestion="Use valid paths relative to the shared directory",
+                ) from None
+
+            if not resolved_path.exists():
+                raise ConfigError(
+                    code="SHARED_FILE_NOT_FOUND",
+                    message=f"Shared file not found: {file_path}",
+                    suggestion=f"Create the file at {full_path} or fix the path",
+                )
+
+            try:
+                return resolved_path.read_text(encoding="utf-8")
+            except PermissionError as err:
+                raise ConfigError(
+                    code="SHARED_FILE_PERMISSION",
+                    message=f"Permission denied reading file: {file_path}",
+                    suggestion="Check file permissions and ownership",
+                ) from err
+            except IsADirectoryError as err:
+                raise ConfigError(
+                    code="SHARED_FILE_IS_DIRECTORY",
+                    message=f"Path is a directory, not a file: {file_path}",
+                    suggestion="Provide a path to a file, not a directory",
+                ) from err
+            except UnicodeDecodeError as err:
+                raise ConfigError(
+                    code="SHARED_FILE_ENCODING",
+                    message=f"File is not valid UTF-8: {file_path}",
+                    suggestion="Ensure the file is saved with UTF-8 encoding",
+                ) from err
+
+        return SHARED_PATTERN.sub(replace_shared, template)

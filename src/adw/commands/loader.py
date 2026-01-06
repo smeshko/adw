@@ -97,6 +97,11 @@ class CommandLoader:
         # Build template context from RunContext
         template_context = self._build_context(context, pre_hook_output=pre_hook_output)
 
+        # Set command_root for {{include:...}} resolution
+        self.template_engine.command_root = resolved.path
+        # Set shared_root for {{shared:...}} resolution (parent commands/ directory)
+        self.template_engine.shared_root = resolved.path.parent
+
         # Render the prompt using TemplateEngine
         rendered = self.template_engine.render(
             prompt_content, template_context, strict=strict
