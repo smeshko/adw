@@ -59,7 +59,7 @@ issues:
   ISS-013-phaserunner-template-aliases-inconsistent: story-created
   ISS-014-resume-logic-scattered-across-codebase: story-created
   ISS-015-no-mechanism-to-inject-phase-specific-input-context: fixed
-  ISS-016-per-phase-config-yaml-not-implemented: reported
+  ISS-016-per-phase-config-yaml-not-implemented: story-created
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -259,6 +259,8 @@ development_status:
   refactor-ISS-014-centralize-resume-logic: ready-for-dev
   # UX Fix (from ISS-015)
   ux-fix-ISS-015-phase-specific-input-context: done
+  # Refactor (from ISS-016)
+  refactor-ISS-016-per-phase-config-yaml: ready-for-dev
   epic-12-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
