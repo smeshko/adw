@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 15
+issue_counter: 16
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -58,7 +58,8 @@ issues:
   ISS-012-hardcoded-artifact-capture-per-phase: story-created
   ISS-013-phaserunner-template-aliases-inconsistent: story-created
   ISS-014-resume-logic-scattered-across-codebase: story-created
-  ISS-015-no-mechanism-to-inject-phase-specific-input-context: story-created
+  ISS-015-no-mechanism-to-inject-phase-specific-input-context: fixed
+  ISS-016-per-phase-config-yaml-not-implemented: reported
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -257,7 +258,7 @@ development_status:
   refactor-ISS-013-remove-template-aliases: ready-for-dev
   refactor-ISS-014-centralize-resume-logic: ready-for-dev
   # UX Fix (from ISS-015)
-  ux-fix-ISS-015-phase-specific-input-context: ready-for-dev
+  ux-fix-ISS-015-phase-specific-input-context: done
   epic-12-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from adw.core.constants import PHASE_SEQUENCE
 from adw.exceptions import ADWError, ConfigError, HookError, LLMError
 from adw.hooks.git_commit import create_commit, stage_changes
+from adw.models.config import ProjectConfig
 from adw.hooks.git_diff import (
     capture_diff,
     capture_staged_diff,
@@ -93,6 +94,7 @@ class PhaseRunner:
         *,
         strict_artifacts: bool = False,
         progress_display: "ProgressDisplay | None" = None,
+        project_config: ProjectConfig | None = None,
     ) -> None:
         """Initialize the PhaseRunner.
 
@@ -106,6 +108,8 @@ class PhaseRunner:
                 references a missing artifact. If False (default), missing
                 artifacts are replaced with empty strings.
             progress_display: Display for LLM progress (optional, Story 5.5).
+            project_config: Project configuration containing phase-specific
+                settings like input_files. Optional for backward compatibility.
         """
         self.command_resolver = command_resolver
         self.template_engine = template_engine
@@ -114,6 +118,7 @@ class PhaseRunner:
         self.artifact_manager = artifact_manager
         self.strict_artifacts = strict_artifacts
         self.progress_display = progress_display
+        self.project_config = project_config
 
     def run(
         self,
@@ -319,11 +324,30 @@ class PhaseRunner:
         # Raises ConfigError if strict_artifacts=True and artifact missing
         self._validate_artifact_references(prompt_template, artifacts_map)
 
+        # Load input files from phase config (ISS-015)
+        # Get the phase-specific config if available
+        input_files_map: dict[str, str] = {}
+        if self.project_config and phase in self.project_config.phases:
+            phase_config = self.project_config.phases[phase]
+            if phase_config.input_files:
+                # Determine project root for file resolution
+                project_root = context.worktree_path or Path.cwd()
+                input_files_map = self._load_input_files(
+                    phase_config.input_files,
+                    project_root=project_root,
+                    worktree_path=context.worktree_path,
+                )
+                logger.debug(
+                    "Loaded input files",
+                    extra={"phase": phase, "inputs": list(input_files_map.keys())},
+                )
+
         # Build template variables
         variables = {
             "context": context,  # Pass the model directly for nested access
             "pre_hook_output": pre_hook_output,
             "artifacts": artifacts_map,  # Nested: {phase: {name: content}}
+            "inputs": input_files_map,  # ISS-015: {name: content} from input_files
             "run_id": context.run_id,
             "phase": phase,
             "feature": context.feature_description,
@@ -362,6 +386,78 @@ class PhaseRunner:
             "Prompt rendered", extra={"phase": phase, "prompt_len": len(rendered)}
         )
         return rendered
+
+    def _load_input_files(
+        self,
+        input_files: dict[str, str] | None,
+        project_root: Path,
+        worktree_path: Path | None = None,
+    ) -> dict[str, str]:
+        """Load input files specified in PhaseConfig.input_files.
+
+        Reads files from the project root (or worktree if specified) and
+        returns their contents mapped by variable name.
+
+        Args:
+            input_files: Mapping of variable names to relative file paths.
+                None or empty dict is allowed and returns empty dict.
+            project_root: Base path for resolving relative file paths.
+            worktree_path: If provided, use this instead of project_root
+                for file resolution (for worktree-isolated runs).
+
+        Returns:
+            Dict mapping variable names to file contents.
+
+        Raises:
+            ConfigError: If a specified file does not exist.
+
+        Example:
+            >>> files = runner._load_input_files(
+            ...     {"prd": "docs/prd.md"},
+            ...     project_root=Path("/project"),
+            ... )
+            >>> files["prd"]
+            '# Product Requirements...'
+        """
+        if not input_files:
+            return {}
+
+        # Determine base path for resolution
+        base_path = worktree_path if worktree_path else project_root
+
+        loaded: dict[str, str] = {}
+        for name, relative_path in input_files.items():
+            file_path = base_path / relative_path
+
+            if not file_path.exists():
+                raise ConfigError(
+                    code="INPUT_FILE_NOT_FOUND",
+                    message=f"Input file not found: {relative_path}",
+                    suggestion=(
+                        f"Ensure the file '{relative_path}' exists relative to "
+                        f"'{base_path}'. Check the path in your phase configuration."
+                    ),
+                )
+
+            try:
+                content = file_path.read_text(encoding="utf-8")
+                loaded[name] = content
+                logger.debug(
+                    "Loaded input file",
+                    extra={
+                        "input_name": name,
+                        "input_path": str(file_path),
+                        "input_size": len(content),
+                    },
+                )
+            except UnicodeDecodeError as e:
+                raise ConfigError(
+                    code="INPUT_FILE_ENCODING_ERROR",
+                    message=f"Failed to decode input file '{relative_path}': {e}",
+                    suggestion="Ensure the file is UTF-8 encoded.",
+                ) from e
+
+        return loaded
 
     def _validate_artifact_references(
         self,

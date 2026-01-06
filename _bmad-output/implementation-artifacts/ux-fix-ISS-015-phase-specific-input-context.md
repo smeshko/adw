@@ -1,7 +1,7 @@
 # Story: Phase-Specific Input Context Injection
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration / Tech Debt
 Created: 2026-01-06
@@ -17,46 +17,46 @@ so that I can inject PRD, architecture, or other documentation into specific pha
 
 ## Acceptance Criteria
 
-- [ ] PhaseConfig model supports optional `input_files: dict[str, str]` field
-- [ ] PhaseRunner loads files specified in `input_files` at phase start
-- [ ] Loaded file contents are available as `{{ inputs.name }}` in prompt templates
-- [ ] File paths are resolved relative to project root
-- [ ] Missing files raise `ConfigError` with helpful suggestion
-- [ ] Empty `input_files` (default) preserves existing behavior
-- [ ] Configuration works in both `adw.yaml` project config and command-level config
-- [ ] All existing tests pass
-- [ ] New tests cover input file loading, error handling, and template access
+- [x] PhaseConfig model supports optional `input_files: dict[str, str]` field
+- [x] PhaseRunner loads files specified in `input_files` at phase start
+- [x] Loaded file contents are available as `{{ inputs.name }}` in prompt templates
+- [x] File paths are resolved relative to project root
+- [x] Missing files raise `ConfigError` with helpful suggestion
+- [x] Empty `input_files` (default) preserves existing behavior
+- [x] Configuration works in both `adw.yaml` project config and command-level config
+- [x] All existing tests pass
+- [x] New tests cover input file loading, error handling, and template access
 
 ## Tasks / Subtasks
 
 ### Task 1: Extend PhaseConfig Model
-- [ ] Add `input_files: dict[str, str] | None = None` field to `PhaseConfig` in `src/adw/models/config.py`
-- [ ] Add field validator for path validation (non-empty keys, relative paths)
-- [ ] Update model docstring with usage example
+- [x] Add `input_files: dict[str, str] | None = None` field to `PhaseConfig` in `src/adw/models/config.py`
+- [x] Add field validator for path validation (non-empty keys, relative paths)
+- [x] Update model docstring with usage example
 
 ### Task 2: Implement Input File Loading in PhaseRunner
-- [ ] Add `_load_input_files()` method to `PhaseRunner` in `src/adw/core/phase_runner.py`
-- [ ] Load files relative to project root (use `context.worktree_path` if in worktree)
-- [ ] Return `dict[str, str]` mapping name to content
-- [ ] Raise `ConfigError` with code `INPUT_FILE_NOT_FOUND` for missing files
-- [ ] Handle encoding errors gracefully
+- [x] Add `_load_input_files()` method to `PhaseRunner` in `src/adw/core/phase_runner.py`
+- [x] Load files relative to project root (use `context.worktree_path` if in worktree)
+- [x] Return `dict[str, str]` mapping name to content
+- [x] Raise `ConfigError` with code `INPUT_FILE_NOT_FOUND` for missing files
+- [x] Handle encoding errors gracefully
 
 ### Task 3: Integrate with Template Rendering
-- [ ] Pass loaded input files to `_load_and_render_prompt()`
-- [ ] Add `inputs` key to template variables dict
-- [ ] Ensure inputs are available alongside existing `artifacts` map
+- [x] Pass loaded input files to `_load_and_render_prompt()`
+- [x] Add `inputs` key to template variables dict
+- [x] Ensure inputs are available alongside existing `artifacts` map
 
 ### Task 4: Update adw.yaml Schema Documentation
-- [ ] Add `input_files` to phase config examples
-- [ ] Document file path resolution behavior
-- [ ] Add example showing PRD/architecture injection
+- [x] Add `input_files` to phase config examples
+- [x] Document file path resolution behavior
+- [x] Add example showing PRD/architecture injection
 
 ### Task 5: Testing
-- [ ] Unit tests for PhaseConfig.input_files validation
-- [ ] Unit tests for _load_input_files() method
-- [ ] Integration tests for template variable access
-- [ ] Error handling tests for missing files
-- [ ] Regression tests ensuring existing behavior unchanged
+- [x] Unit tests for PhaseConfig.input_files validation
+- [x] Unit tests for _load_input_files() method
+- [x] Integration tests for template variable access
+- [x] Error handling tests for missing files
+- [x] Regression tests ensuring existing behavior unchanged
 
 ---
 

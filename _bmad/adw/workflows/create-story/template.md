@@ -1,106 +1,89 @@
-# Story {{epic_num}}.{{story_num}}: {{story_title}}
+# {{title}}
 
-<!-- TEMPLATE SECTION: story_header -->
-Status: {{status}}
-Linear Issue: {{linear_issue_id}}
-Epic: {{epic_num}} - {{epic_title}}
-Created: {{date}}
+## Feature Description
+
+{{feature_description}}
 
 ---
 
-## Story
+## Requirements Analysis
 
-<!-- TEMPLATE SECTION: story_requirements -->
-As a {{role}},
-I want {{action}},
-so that {{benefit}}.
+<!-- Extracted from input documents and feature analysis -->
 
-## Acceptance Criteria
+### Business Objectives
+
+{{business_objectives}}
+
+### Functional Requirements
+
+{{functional_requirements}}
+
+### Non-Functional Requirements
+
+{{non_functional_requirements}}
+
+### Acceptance Criteria
 
 {{acceptance_criteria}}
-
-## Tasks / Subtasks
-
-{{tasks_subtasks}}
-
----
-
-## Relevant Feature Documentation
-
-<!-- TEMPLATE SECTION: conditional_docs_section -->
-<!-- Populated from CONDITIONAL_DOCS.md matches - existing patterns and knowledge -->
-{{conditional_docs_content}}
 
 ---
 
 ## Developer Context
 
-<!-- TEMPLATE SECTION: developer_context_section -->
 <!-- Critical context extracted from exhaustive artifact analysis -->
 
 ### Technical Requirements
 
-<!-- TEMPLATE SECTION: technical_requirements -->
 {{technical_requirements}}
 
 ### Architecture Compliance
 
-<!-- TEMPLATE SECTION: architecture_compliance -->
-<!-- Constraints the developer MUST follow from architecture docs -->
+<!-- Constraints the developer MUST follow -->
 {{architecture_compliance}}
 
 ### Library & Framework Requirements
 
-<!-- TEMPLATE SECTION: library_framework_requirements -->
 <!-- Specific versions, APIs, and usage patterns -->
 {{library_framework_requirements}}
 
 ### File Structure Requirements
 
-<!-- TEMPLATE SECTION: file_structure_requirements -->
 <!-- Where files should be created/modified, naming conventions -->
 {{file_structure_requirements}}
 
 ### Testing Requirements
 
-<!-- TEMPLATE SECTION: testing_requirements -->
 <!-- Testing standards, frameworks, coverage expectations -->
 {{testing_requirements}}
 
 ---
 
-## Previous Story Intelligence
+## Codebase Intelligence
 
-<!-- TEMPLATE SECTION: previous_story_intelligence -->
-<!-- Learnings from previous story implementation (if story_num > 1) -->
-{{previous_story_intelligence}}
+### Existing Patterns to Reuse
 
----
+<!-- Similar implementations found in codebase -->
+{{codebase_patterns}}
 
-## Git Intelligence
+### Git History Insights
 
-<!-- TEMPLATE SECTION: git_intelligence_summary -->
-<!-- Recent commit patterns, files modified, conventions observed -->
-{{git_intelligence_summary}}
+<!-- Recent relevant changes and patterns -->
+{{git_intelligence}}
 
 ---
 
 ## Latest Technical Information
 
-<!-- TEMPLATE SECTION: latest_tech_information -->
 <!-- Web research results for current library versions, API changes, best practices -->
 {{latest_tech_information}}
 
 ---
 
-## Project Context Reference
+## Implementation Tasks
 
-<!-- TEMPLATE SECTION: project_context_reference -->
-<!-- Reference to project-context.md for additional implementation guidance -->
-See: {{project_context_path}}
+<!-- Ordered by dependency, with specific file paths and code locations -->
 
-Key patterns and rules from project context:
-{{project_context_summary}}
+{{implementation_tasks}}
 
 ---
 
@@ -110,32 +93,6 @@ Key patterns and rules from project context:
 - Source tree components to touch
 - Testing standards summary
 
-### Project Structure Notes
-
-- Alignment with unified project structure (paths, modules, naming)
-- Detected conflicts or variances (with rationale)
-
 ### References
 
-- Cite all technical details with source paths and sections, e.g. [Source: docs/<file>.md#Section]
-
----
-
-## Dev Agent Record
-
-<!-- TEMPLATE SECTION: story_completion_status -->
-
-### Context Reference
-
-<!-- Path(s) to story context XML will be added here by context workflow -->
-
-### Agent Model Used
-
-{{agent_model_name_version}}
-
-### Debug Log References
-
-### Completion Notes List
-
-### File List
-
+- Cite all technical details with source paths and sections
