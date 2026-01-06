@@ -35,11 +35,11 @@ so that I can inject PRD, architecture, or other documentation into specific pha
 - [x] Update model docstring with usage example
 
 ### Task 2: Implement Input File Loading in PhaseRunner
-- [ ] Add `_load_input_files()` method to `PhaseRunner` in `src/adw/core/phase_runner.py`
-- [ ] Load files relative to project root (use `context.worktree_path` if in worktree)
-- [ ] Return `dict[str, str]` mapping name to content
-- [ ] Raise `ConfigError` with code `INPUT_FILE_NOT_FOUND` for missing files
-- [ ] Handle encoding errors gracefully
+- [x] Add `_load_input_files()` method to `PhaseRunner` in `src/adw/core/phase_runner.py`
+- [x] Load files relative to project root (use `context.worktree_path` if in worktree)
+- [x] Return `dict[str, str]` mapping name to content
+- [x] Raise `ConfigError` with code `INPUT_FILE_NOT_FOUND` for missing files
+- [x] Handle encoding errors gracefully
 
 ### Task 3: Integrate with Template Rendering
 - [ ] Pass loaded input files to `_load_and_render_prompt()`
