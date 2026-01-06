@@ -1,7 +1,7 @@
 # Story: Per-Phase Config.yaml Loading
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: in-progress
+Status: completed
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration / Tech Debt
 Created: 2026-01-06
@@ -17,15 +17,15 @@ so that commands can be self-contained packages with bundled configuration that 
 
 ## Acceptance Criteria
 
-- [ ] Each phase command folder can have an optional `config.yaml`
-- [ ] `CommandResolver` detects presence of `config.yaml` in command directories
-- [ ] `CommandLoader` loads and parses `config.yaml` using Pydantic model
-- [ ] `CommandConfig` model supports: `timeout_seconds`, `input_files`, `llm`, `artifacts`
-- [ ] Config is merged with project `adw.yaml` PhaseConfig (project takes precedence)
-- [ ] Default `config.yaml` files created for bundled phases (plan, build, verify, validate, document)
-- [ ] Existing behavior preserved when no `config.yaml` exists (backward compatible)
-- [ ] All existing tests pass
-- [ ] New tests cover config loading and merging
+- [x] Each phase command folder can have an optional `config.yaml`
+- [x] `CommandResolver` detects presence of `config.yaml` in command directories
+- [x] `CommandLoader` loads and parses `config.yaml` using Pydantic model
+- [x] `CommandConfig` model supports: `timeout_seconds`, `input_files`, `llm`, `artifacts`
+- [x] Config is merged with project `adw.yaml` PhaseConfig (project takes precedence)
+- [x] Default `config.yaml` files created for bundled phases (plan, build, verify, validate, document)
+- [x] Existing behavior preserved when no `config.yaml` exists (backward compatible)
+- [x] All existing tests pass
+- [x] New tests cover config loading and merging
 
 ## Tasks / Subtasks
 
@@ -61,11 +61,11 @@ so that commands can be self-contained packages with bundled configuration that 
 - [x] Create `src/adw/defaults/commands/document/config.yaml`
 
 ### Task 6: Testing
-- [ ] Unit tests for `CommandConfig` model validation
-- [ ] Unit tests for config loading in CommandLoader
-- [ ] Unit tests for config merging in PhaseRunner
-- [ ] Integration tests for end-to-end config flow
-- [ ] Regression tests ensuring existing behavior unchanged
+- [x] Unit tests for `CommandConfig` model validation
+- [x] Unit tests for config loading in CommandLoader
+- [x] Unit tests for config merging in PhaseRunner
+- [x] Integration tests for end-to-end config flow
+- [x] Regression tests ensuring existing behavior unchanged
 
 ---
 
