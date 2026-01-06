@@ -387,6 +387,10 @@ class PhaseRunner:
         else:
             variables["schema"] = ""  # Empty string if no schema defined
 
+        # Set command_root and shared_root for {{include:...}} and {{shared:...}} resolution
+        self.template_engine.command_root = command.path
+        self.template_engine.shared_root = command.path.parent
+
         # Render template with strict matching artifact mode:
         # - strict_artifacts=True: We validated artifacts, use strict=True for all vars
         # - strict_artifacts=False: Lenient mode, allow missing refs to pass through
