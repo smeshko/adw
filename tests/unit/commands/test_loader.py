@@ -500,3 +500,114 @@ class TestSchemaLoading:
         with pytest.raises(ConfigError) as exc_info:
             loader._load_schema(resolved)
         assert exc_info.value.code == "INVALID_SCHEMA"
+
+
+class TestConfigLoading:
+    """Tests for optional config.yaml loading."""
+
+    def test_load_config_returns_none_when_missing(self, tmp_path: Path) -> None:
+        """_load_config returns None when config.yaml doesn't exist."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+
+        loader = CommandLoader(project_root=tmp_path)
+        resolved = loader.resolver.resolve("plan")
+        config = loader._load_config(resolved)
+
+        assert config is None
+
+    def test_load_config_returns_parsed_config(self, tmp_path: Path) -> None:
+        """_load_config returns parsed CommandConfig when config.yaml exists."""
+        from adw.models.command import CommandConfig
+
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+        (cmd_dir / "config.yaml").write_text(
+            "timeout_seconds: 600\ninput_files:\n  prd: docs/prd.md",
+            encoding="utf-8",
+        )
+
+        loader = CommandLoader(project_root=tmp_path)
+        resolved = loader.resolver.resolve("plan")
+        config = loader._load_config(resolved)
+
+        assert config is not None
+        assert isinstance(config, CommandConfig)
+        assert config.timeout_seconds == 600
+        assert config.input_files == {"prd": "docs/prd.md"}
+
+    def test_load_config_handles_empty_config_file(self, tmp_path: Path) -> None:
+        """_load_config returns empty CommandConfig for empty config.yaml."""
+        from adw.models.command import CommandConfig
+
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+        (cmd_dir / "config.yaml").write_text("", encoding="utf-8")
+
+        loader = CommandLoader(project_root=tmp_path)
+        resolved = loader.resolver.resolve("plan")
+        config = loader._load_config(resolved)
+
+        assert config is not None
+        assert isinstance(config, CommandConfig)
+        assert config.timeout_seconds is None
+
+    def test_load_config_raises_on_invalid_yaml(self, tmp_path: Path) -> None:
+        """_load_config raises ConfigError for invalid YAML."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+        (cmd_dir / "config.yaml").write_text("invalid: yaml: syntax:", encoding="utf-8")
+
+        loader = CommandLoader(project_root=tmp_path)
+        resolved = loader.resolver.resolve("plan")
+
+        with pytest.raises(ConfigError) as exc_info:
+            loader._load_config(resolved)
+        assert exc_info.value.code == "INVALID_CONFIG"
+
+    def test_load_config_raises_on_validation_error(self, tmp_path: Path) -> None:
+        """_load_config raises ConfigError for Pydantic validation failures."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+        # timeout_seconds must be > 0, so 0 should fail
+        (cmd_dir / "config.yaml").write_text("timeout_seconds: 0", encoding="utf-8")
+
+        loader = CommandLoader(project_root=tmp_path)
+        resolved = loader.resolver.resolve("plan")
+
+        with pytest.raises(ConfigError) as exc_info:
+            loader._load_config(resolved)
+        assert exc_info.value.code == "INVALID_CONFIG"
+
+    def test_load_command_includes_config(
+        self, tmp_path: Path, run_context: RunContext
+    ) -> None:
+        """load_command includes config when config.yaml exists."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+        (cmd_dir / "config.yaml").write_text("timeout_seconds: 300", encoding="utf-8")
+
+        loader = CommandLoader(project_root=tmp_path)
+        result = loader.load_command("plan", run_context)
+
+        assert result.config is not None
+        assert result.config.timeout_seconds == 300
+
+    def test_load_command_config_is_none_when_missing(
+        self, tmp_path: Path, run_context: RunContext
+    ) -> None:
+        """load_command sets config to None when config.yaml doesn't exist."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
+
+        loader = CommandLoader(project_root=tmp_path)
+        result = loader.load_command("plan", run_context)
+
+        assert result.config is None

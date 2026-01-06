@@ -242,6 +242,7 @@ class LoadedCommand(BaseModel):
         output_schema: Optional JSON Schema for output validation.
         has_pre_hook: Whether this command has a pre-execution hook.
         has_post_hook: Whether this command has a post-execution hook.
+        config: Optional CommandConfig loaded from config.yaml.
 
     Example:
         >>> loaded = LoadedCommand(
@@ -262,3 +263,4 @@ class LoadedCommand(BaseModel):
     output_schema: dict[str, Any] | None = None
     has_pre_hook: bool = False
     has_post_hook: bool = False
+    config: CommandConfig | None = None

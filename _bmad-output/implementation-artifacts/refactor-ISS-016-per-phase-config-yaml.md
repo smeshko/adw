@@ -42,10 +42,10 @@ so that commands can be self-contained packages with bundled configuration that 
 - [x] Update `ResolvedCommand` model with `has_config: bool = False` field
 
 ### Task 3: Implement Config Loading in CommandLoader
-- [ ] Add `_load_config()` method to load and parse `config.yaml`
-- [ ] Return `CommandConfig | None` (None if no config.yaml exists)
-- [ ] Handle YAML parsing errors with `ConfigError`
-- [ ] Add config to `LoadedCommand` model
+- [x] Add `_load_config()` method to load and parse `config.yaml`
+- [x] Return `CommandConfig | None` (None if no config.yaml exists)
+- [x] Handle YAML parsing errors with `ConfigError`
+- [x] Add config to `LoadedCommand` model
 
 ### Task 4: Implement Config Merging in PhaseRunner
 - [ ] Add `_merge_configs()` method to PhaseRunner
