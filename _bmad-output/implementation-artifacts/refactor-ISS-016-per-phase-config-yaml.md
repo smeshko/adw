@@ -1,7 +1,7 @@
 # Story: Per-Phase Config.yaml Loading
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: completed
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration / Tech Debt
 Created: 2026-01-06
@@ -17,55 +17,55 @@ so that commands can be self-contained packages with bundled configuration that 
 
 ## Acceptance Criteria
 
-- [ ] Each phase command folder can have an optional `config.yaml`
-- [ ] `CommandResolver` detects presence of `config.yaml` in command directories
-- [ ] `CommandLoader` loads and parses `config.yaml` using Pydantic model
-- [ ] `CommandConfig` model supports: `timeout_seconds`, `input_files`, `llm`, `artifacts`
-- [ ] Config is merged with project `adw.yaml` PhaseConfig (project takes precedence)
-- [ ] Default `config.yaml` files created for bundled phases (plan, build, verify, validate, document)
-- [ ] Existing behavior preserved when no `config.yaml` exists (backward compatible)
-- [ ] All existing tests pass
-- [ ] New tests cover config loading and merging
+- [x] Each phase command folder can have an optional `config.yaml`
+- [x] `CommandResolver` detects presence of `config.yaml` in command directories
+- [x] `CommandLoader` loads and parses `config.yaml` using Pydantic model
+- [x] `CommandConfig` model supports: `timeout_seconds`, `input_files`, `llm`, `artifacts`
+- [x] Config is merged with project `adw.yaml` PhaseConfig (project takes precedence)
+- [x] Default `config.yaml` files created for bundled phases (plan, build, verify, validate, document)
+- [x] Existing behavior preserved when no `config.yaml` exists (backward compatible)
+- [x] All existing tests pass
+- [x] New tests cover config loading and merging
 
 ## Tasks / Subtasks
 
 ### Task 1: Create CommandConfig Model
-- [ ] Add `CommandConfig` model to `src/adw/models/command.py`
-- [ ] Support fields: `timeout_seconds`, `input_files`, `llm`, `artifacts`, `pre_hook`, `post_hook`
-- [ ] Add `LLMConfig` nested model for phase-specific LLM settings (model, temperature)
-- [ ] Add `ArtifactConfig` for artifact capture rules (unifies with ISS-012)
-- [ ] Add model validation and docstrings
+- [x] Add `CommandConfig` model to `src/adw/models/command.py`
+- [x] Support fields: `timeout_seconds`, `input_files`, `llm`, `artifacts`, `pre_hook`, `post_hook`
+- [x] Add `LLMConfig` nested model for phase-specific LLM settings (model, temperature)
+- [x] Add `ArtifactConfig` for artifact capture rules (unifies with ISS-012)
+- [x] Add model validation and docstrings
 
 ### Task 2: Update CommandResolver
-- [ ] Add `has_config` detection to `_create_resolved_command()` method
-- [ ] Check for `config.yaml` presence in command directory
-- [ ] Update `ResolvedCommand` model with `has_config: bool = False` field
+- [x] Add `has_config` detection to `_create_resolved_command()` method
+- [x] Check for `config.yaml` presence in command directory
+- [x] Update `ResolvedCommand` model with `has_config: bool = False` field
 
 ### Task 3: Implement Config Loading in CommandLoader
-- [ ] Add `_load_config()` method to load and parse `config.yaml`
-- [ ] Return `CommandConfig | None` (None if no config.yaml exists)
-- [ ] Handle YAML parsing errors with `ConfigError`
-- [ ] Add config to `LoadedCommand` model
+- [x] Add `_load_config()` method to load and parse `config.yaml`
+- [x] Return `CommandConfig | None` (None if no config.yaml exists)
+- [x] Handle YAML parsing errors with `ConfigError`
+- [x] Add config to `LoadedCommand` model
 
 ### Task 4: Implement Config Merging in PhaseRunner
-- [ ] Add `_merge_configs()` method to PhaseRunner
-- [ ] Merge command config with project PhaseConfig (project overrides command defaults)
-- [ ] Apply merged config to: timeout, input_files, llm settings
-- [ ] Integrate with existing `_load_input_files()` (ISS-015)
+- [x] Add `_merge_configs()` method to PhaseRunner
+- [x] Merge command config with project PhaseConfig (project overrides command defaults)
+- [x] Apply merged config to: timeout, input_files, llm settings
+- [x] Integrate with existing `_load_input_files()` (ISS-015)
 
 ### Task 5: Create Default Config Files
-- [ ] Create `src/adw/defaults/commands/plan/config.yaml`
-- [ ] Create `src/adw/defaults/commands/build/config.yaml`
-- [ ] Create `src/adw/defaults/commands/verify/config.yaml`
-- [ ] Create `src/adw/defaults/commands/validate/config.yaml`
-- [ ] Create `src/adw/defaults/commands/document/config.yaml`
+- [x] Create `src/adw/defaults/commands/plan/config.yaml`
+- [x] Create `src/adw/defaults/commands/build/config.yaml`
+- [x] Create `src/adw/defaults/commands/verify/config.yaml`
+- [x] Create `src/adw/defaults/commands/validate/config.yaml`
+- [x] Create `src/adw/defaults/commands/document/config.yaml`
 
 ### Task 6: Testing
-- [ ] Unit tests for `CommandConfig` model validation
-- [ ] Unit tests for config loading in CommandLoader
-- [ ] Unit tests for config merging in PhaseRunner
-- [ ] Integration tests for end-to-end config flow
-- [ ] Regression tests ensuring existing behavior unchanged
+- [x] Unit tests for `CommandConfig` model validation
+- [x] Unit tests for config loading in CommandLoader
+- [x] Unit tests for config merging in PhaseRunner
+- [x] Integration tests for end-to-end config flow
+- [x] Regression tests ensuring existing behavior unchanged
 
 ---
 

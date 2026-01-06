@@ -103,29 +103,32 @@ class RunDirectoryManager:
         run_dir = self.runs_dir / run_id
 
         try:
-            # Create parent directories and run directory atomically
-            # exist_ok=False ensures we fail if the directory already exists
-            run_dir.mkdir(parents=True, exist_ok=False)
+            # Check if this is a true duplicate (context.json already exists)
+            # vs. a directory created by early logging (only logs/ subdirectory)
+            context_path = run_dir / "context.json"
+            if run_dir.exists() and context_path.exists():
+                raise StateError(
+                    code="RUN_ALREADY_EXISTS",
+                    message=f"Run directory already exists: {run_id}",
+                    suggestion="Use a different run ID or delete existing run",
+                    recoverable=False,
+                )
 
-            # Create all subdirectories
+            # Create parent directories and run directory
+            # exist_ok=True because logging may have created the directory early
+            run_dir.mkdir(parents=True, exist_ok=True)
+
+            # Create all subdirectories (exist_ok=True for same reason)
             for subdir in _SUBDIRECTORIES:
-                (run_dir / subdir).mkdir()
+                (run_dir / subdir).mkdir(exist_ok=True)
 
             # Acquire lock and write context.json atomically
             lock_path = run_dir / ".lock"
             with filelock.FileLock(lock_path, timeout=_DEFAULT_LOCK_TIMEOUT):
-                context_path = run_dir / "context.json"
                 context_path.write_text(context.model_dump_json(indent=2))
 
             return run_dir
 
-        except FileExistsError as e:
-            raise StateError(
-                code="RUN_ALREADY_EXISTS",
-                message=f"Run directory already exists: {run_id}",
-                suggestion="Use a different run ID or delete existing run",
-                recoverable=False,
-            ) from e
         except OSError as e:
             raise StateError(
                 code="DIR_CREATION_FAILED",

@@ -12,10 +12,12 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+import yaml
+
 from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
 from adw.exceptions import ConfigError
-from adw.models.command import LoadedCommand
+from adw.models.command import CommandConfig, LoadedCommand
 
 if TYPE_CHECKING:
     from adw.models import ResolvedCommand, RunContext
@@ -141,6 +143,9 @@ class CommandLoader:
         # Load optional schema
         schema = self._load_schema(resolved)
 
+        # Load optional config
+        config = self._load_config(resolved)
+
         return LoadedCommand(
             name=phase,
             resolved=resolved,
@@ -148,6 +153,7 @@ class CommandLoader:
             output_schema=schema,
             has_pre_hook=resolved.has_pre_hook,
             has_post_hook=resolved.has_post_hook,
+            config=config,
         )
 
     def _build_context(
@@ -205,3 +211,44 @@ class CommandLoader:
                 code="INVALID_SCHEMA",
                 message=f"Invalid JSON in schema.json at {schema_path}: {e}",
             ) from e
+
+    def _load_config(self, resolved: "ResolvedCommand") -> CommandConfig | None:
+        """Load optional config.yaml from command directory.
+
+        Args:
+            resolved: The resolved command with path information.
+
+        Returns:
+            Parsed CommandConfig if config.yaml exists, None otherwise.
+
+        Raises:
+            ConfigError: If config.yaml exists but contains invalid YAML or
+                        fails Pydantic validation.
+        """
+        config_path = resolved.path / "config.yaml"
+
+        if not config_path.exists():
+            return None
+
+        try:
+            config_content = config_path.read_text(encoding="utf-8")
+            data = yaml.safe_load(config_content)
+
+            # Handle empty config file
+            if data is None:
+                data = {}
+
+            return CommandConfig.model_validate(data)
+        except yaml.YAMLError as e:
+            raise ConfigError(
+                code="INVALID_CONFIG",
+                message=f"Invalid YAML in config.yaml at {config_path}: {e}",
+            ) from e
+        except Exception as e:
+            # Catch Pydantic validation errors and re-raise as ConfigError
+            if "ValidationError" in type(e).__name__:
+                raise ConfigError(
+                    code="INVALID_CONFIG",
+                    message=f"Invalid config in config.yaml at {config_path}: {e}",
+                ) from e
+            raise

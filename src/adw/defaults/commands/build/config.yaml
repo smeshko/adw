@@ -1,0 +1,29 @@
+# Default configuration for the build phase
+# These defaults can be overridden in project's adw.yaml
+
+# Timeout for the build phase (20 minutes default - longer for implementation)
+timeout_seconds: 1200
+
+# Input files for build phase typically come from previous phase artifacts
+# input_files:
+#   plan: artifacts/plan/plan_output.md
+
+# LLM settings for this phase
+# llm:
+#   model: claude-sonnet-4-20250514
+#   temperature: 0.3  # Lower temperature for code generation
+
+# Artifacts to capture from this phase
+artifacts:
+  - name: build_output
+    pattern: "build_output.md"
+    required: true
+    description: "Build phase LLM output"
+  - name: diff
+    pattern: "diff.txt"
+    required: false
+    description: "Git diff of changes made during build"
+  - name: diff_stats
+    pattern: "diff_stats.json"
+    required: false
+    description: "Statistics about the git diff"

@@ -76,6 +76,27 @@ class TestDirectoryStructureCreation:
         assert exc_info.value.code == "RUN_ALREADY_EXISTS"
         assert not exc_info.value.recoverable
 
+    def test_create_succeeds_when_dir_precreated_by_logging(
+        self, run_manager: RunDirectoryManager, sample_context: RunContext
+    ) -> None:
+        """Test that create succeeds when directory was pre-created by logging.
+
+        This simulates the case where the file logging transport creates
+        the run directory (via logs/ subdirectory creation) before
+        run_directory_manager.create() is called.
+        """
+        # Simulate early logging creating the logs directory
+        run_dir = run_manager.runs_dir / sample_context.run_id
+        logs_dir = run_dir / "logs"
+        logs_dir.mkdir(parents=True)
+
+        # create() should succeed because context.json doesn't exist
+        result = run_manager.create(sample_context)
+
+        assert result.exists()
+        assert (result / "context.json").exists()
+        assert (result / "artifacts").exists()
+
     def test_create_multiple_runs(self, run_manager: RunDirectoryManager) -> None:
         """Test that multiple runs can be created."""
         contexts = [

@@ -176,7 +176,7 @@ class TestCommandResolverOptionalFileDetection:
         project_cmd = tmp_path / ".adw" / "commands" / "plan"
         project_cmd.mkdir(parents=True)
         (project_cmd / "prompt.md").write_text("# Plan")
-        # No schema or hooks
+        # No schema, hooks, or config
 
         resolver = CommandResolver(project_root=tmp_path)
         result = resolver.resolve("plan")
@@ -184,3 +184,16 @@ class TestCommandResolverOptionalFileDetection:
         assert result.has_schema is False
         assert result.has_pre_hook is False
         assert result.has_post_hook is False
+        assert result.has_config is False
+
+    def test_detects_config_yaml(self, tmp_path: Path) -> None:
+        """Should detect config.yaml in command directory."""
+        project_cmd = tmp_path / ".adw" / "commands" / "plan"
+        project_cmd.mkdir(parents=True)
+        (project_cmd / "prompt.md").write_text("# Plan")
+        (project_cmd / "config.yaml").write_text("timeout_seconds: 600")
+
+        resolver = CommandResolver(project_root=tmp_path)
+        result = resolver.resolve("plan")
+
+        assert result.has_config is True
