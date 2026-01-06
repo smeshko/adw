@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 14
+issue_counter: 15
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -58,6 +58,7 @@ issues:
   ISS-012-hardcoded-artifact-capture-per-phase: story-created
   ISS-013-phaserunner-template-aliases-inconsistent: story-created
   ISS-014-resume-logic-scattered-across-codebase: story-created
+  ISS-015-no-mechanism-to-inject-phase-specific-input-context: story-created
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -251,6 +252,12 @@ development_status:
   12-8-issue-closing: ready-for-dev
   12-9-issue-assignment: ready-for-dev
   12-10-github-issues-provider: ready-for-dev
+  # Tech Debt (from ISS-012, ISS-013, ISS-014)
+  refactor-ISS-012-config-driven-artifact-capture: ready-for-dev
+  refactor-ISS-013-remove-template-aliases: ready-for-dev
+  refactor-ISS-014-centralize-resume-logic: ready-for-dev
+  # UX Fix (from ISS-015)
+  ux-fix-ISS-015-phase-specific-input-context: ready-for-dev
   epic-12-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -293,11 +300,3 @@ development_status:
   15-6-run-context-enhancements: backlog
   15-7-export-and-reporting: backlog
   epic-15-retrospective: optional
-
-  # ═══════════════════════════════════════════════════════════════════════════
-  # TECH DEBT: Refactoring Stories (from ISS-012, ISS-013, ISS-014)
-  # Goal: Improve code maintainability and extensibility
-  # ═══════════════════════════════════════════════════════════════════════════
-  refactor-ISS-012-config-driven-artifact-capture: ready-for-dev
-  refactor-ISS-013-remove-template-aliases: ready-for-dev
-  refactor-ISS-014-centralize-resume-logic: ready-for-dev
