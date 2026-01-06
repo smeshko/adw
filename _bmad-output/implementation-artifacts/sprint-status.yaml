@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 15
+issue_counter: 16
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -58,7 +58,8 @@ issues:
   ISS-012-hardcoded-artifact-capture-per-phase: story-created
   ISS-013-phaserunner-template-aliases-inconsistent: story-created
   ISS-014-resume-logic-scattered-across-codebase: story-created
-  ISS-015-no-mechanism-to-inject-phase-specific-input-context: story-created
+  ISS-015-no-mechanism-to-inject-phase-specific-input-context: fixed
+  ISS-016-per-phase-config-yaml-not-implemented: reported
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
