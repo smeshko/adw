@@ -420,7 +420,7 @@ class TestCreateCommitIntegration:
         stage_changes()
 
         sha = create_commit(
-            phase="verify",
+            phase="validate",
             feature="Custom template",
             run_id="01HQ789",
             template="{phase}: {feature}",
@@ -435,7 +435,7 @@ class TestCreateCommitIntegration:
             text=True,
             check=True,
         )
-        assert result.stdout.strip() == "verify: Custom template"
+        assert result.stdout.strip() == "validate: Custom template"
 
     def test_create_commit_includes_run_id(
         self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
@@ -718,7 +718,7 @@ class TestBuildCommitDiffFlowIntegration:
         (git_repo / "test_app.py").write_text("# Tests\n")
         stage_changes()
         verify_sha = create_commit(
-            phase="verify", feature="Add app", run_id="01HQ001"
+            phase="validate", feature="Add app", run_id="01HQ001"
         )
         assert verify_sha is not None
         assert verify_sha != build_sha

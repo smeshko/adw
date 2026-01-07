@@ -465,8 +465,8 @@ class TestGetResumePhase:
             }
         )
 
-        # Next phase after build is verify
-        assert get_resume_phase(context) == "verify"
+        # Next phase after build is validate (ISS-019: verify removed)
+        assert get_resume_phase(context) == "validate"
 
     def test_returns_first_phase_when_none_completed(
         self,
@@ -494,7 +494,7 @@ class TestGetResumePhase:
         context = sample_context.model_copy(
             update={
                 "status": "running",
-                "phase_history": ["plan", "build", "verify", "validate", "document"],
+                "phase_history": ["plan", "build", "validate", "document"],
             }
         )
 

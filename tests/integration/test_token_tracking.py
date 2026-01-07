@@ -127,13 +127,13 @@ class TestTokenTrackingIntegration:
             "plan": 500,
             "code": 1200,
             "test": 800,
-            "verify": 300,
+            "validate": 300,
         }
 
         context = RunContext(
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Add user authentication",
-            current_phase="verify",
+            current_phase="validate",
             phase_history=["plan", "code", "test", "verify"],
             started_at=datetime.now(),
             phase_tokens=phase_tokens,

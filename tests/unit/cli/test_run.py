@@ -138,7 +138,7 @@ class TestFromRunFlag:
 
     def test_from_run_required_for_verify_phase(self, cli_runner: CliRunner) -> None:
         """Test that --from-run is required for verify phase."""
-        result = cli_runner.invoke(app, ["run", "--phase", "verify", "Add feature"])
+        result = cli_runner.invoke(app, ["run", "--phase", "validate", "Add feature"])
 
         assert result.exit_code != 0
         assert "--from-run" in result.output

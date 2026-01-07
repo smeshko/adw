@@ -443,13 +443,13 @@ class TestContextObjectRendering:
         engine = TemplateEngine()
         context = SessionContext(
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            current_phase="verify",
+            current_phase="validate",
             is_resuming=True,
         )
 
         template = "Phase: {{current_phase}}, Resuming: {{is_resuming}}"
         result = engine.render(template, context)
-        assert result == "Phase: verify, Resuming: True"
+        assert result == "Phase: validate, Resuming: True"
 
     def test_dict_and_model_produce_same_result(self) -> None:
         """Dict and Pydantic model should render identically."""

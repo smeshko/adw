@@ -43,11 +43,11 @@ def completed_context() -> RunContext:
         run_id="01HQXK5P3Z7V8R2M4N6T9W1Y3C",
         feature_description="Add user authentication",
         current_phase="document",
-        phase_history=["plan", "build", "verify", "validate", "document"],
+        phase_history=["plan", "build", "validate", "document"],
         started_at=datetime(2026, 1, 3, 10, 30, 45, tzinfo=UTC),
         completed_at=datetime(2026, 1, 3, 10, 35, 12, tzinfo=UTC),
         status="completed",
-        phase_tokens={"plan": 500, "build": 1200, "verify": 300},
+        phase_tokens={"plan": 500, "build": 1200, "validate": 300},
         artifacts={"plan": ["plan.md"], "build": ["code.py", "tests.py"]},
     )
 

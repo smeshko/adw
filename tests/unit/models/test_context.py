@@ -464,9 +464,9 @@ class TestTokenAggregation:
         context = RunContext(
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Test",
-            current_phase="verify",
+            current_phase="validate",
             started_at=datetime.now(),
-            phase_tokens={"plan": 500, "code": 1200, "test": 800, "verify": 300},
+            phase_tokens={"plan": 500, "code": 1200, "test": 800, "validate": 300},
         )
         assert context.total_tokens == 2800  # 500 + 1200 + 800 + 300
 

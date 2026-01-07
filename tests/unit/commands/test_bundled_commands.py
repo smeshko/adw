@@ -40,12 +40,7 @@ class TestBundledCommands:
         build_path = files("adw") / "defaults" / "commands" / "build"
         assert (Path(str(build_path)) / "prompt.md").exists()
 
-    def test_bundled_verify_exists(self) -> None:
-        """Bundled verify command should exist."""
-        from importlib.resources import files
-
-        verify_path = files("adw") / "defaults" / "commands" / "verify"
-        assert (Path(str(verify_path)) / "prompt.md").exists()
+    # ISS-019: test_bundled_verify_exists removed - verify phase no longer exists
 
     def test_bundled_validate_exists(self) -> None:
         """Bundled validate command should exist."""

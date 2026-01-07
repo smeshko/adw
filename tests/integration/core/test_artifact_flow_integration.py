@@ -52,11 +52,11 @@ class TestArtifactContentIntegrity:
 
         json_content = '{"key": "value", "nested": {"inner": true}}'
         integration_artifact_manager.store(
-            run_id, "verify", "evidence.json", json_content
+            run_id, "validate", "evidence.json", json_content
         )
 
         # Retrieve and verify content preserved
-        retrieved = integration_artifact_manager.get(run_id, "verify", "evidence.json")
+        retrieved = integration_artifact_manager.get(run_id, "validate", "evidence.json")
         assert retrieved == json_content
         assert isinstance(retrieved, str)
 

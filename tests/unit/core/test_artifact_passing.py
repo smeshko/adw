@@ -189,7 +189,7 @@ class TestBuildArtifactsMap:
         artifact_manager.store(run_id, "build", "diff.txt", "git diff output")
         artifact_manager.store(run_id, "build", "build_output.md", "Build summary")
 
-        result = phase_runner._build_artifacts_map(run_id, "verify")
+        result = phase_runner._build_artifacts_map(run_id, "validate")
 
         assert "build" in result
         assert "diff" in result["build"]  # Extension stripped
@@ -225,14 +225,14 @@ class TestBuildArtifactsMap:
         # Store artifacts for multiple phases
         artifact_manager.store(run_id, "plan", "plan.md", "Plan content")
         artifact_manager.store(run_id, "build", "diff.txt", "Diff content")
-        artifact_manager.store(run_id, "verify", "evidence.json", '{"passed": true}')
+        artifact_manager.store(run_id, "validate", "evidence.json", '{"passed": true}')
 
         # When running validate phase, should have plan, build, verify
         result = phase_runner._build_artifacts_map(run_id, "validate")
 
         assert "plan" in result
         assert "build" in result
-        assert "verify" in result
+        assert "validate" in result
         assert "validate" not in result  # Current phase not included
 
     def test_skips_empty_phases(
@@ -246,7 +246,7 @@ class TestBuildArtifactsMap:
         # Only store plan artifact (no build)
         artifact_manager.store(run_id, "plan", "plan.md", "Plan content")
 
-        result = phase_runner._build_artifacts_map(run_id, "verify")
+        result = phase_runner._build_artifacts_map(run_id, "validate")
 
         assert "plan" in result
         assert "build" not in result  # Empty phase not included
@@ -473,7 +473,7 @@ class TestNamedArtifactConventions:
         run_id = make_run_id()
         artifact_manager.store(run_id, "build", "build_output.md", "Build summary")
 
-        result = phase_runner._build_artifacts_map(run_id, "verify")
+        result = phase_runner._build_artifacts_map(run_id, "validate")
 
         assert "build" in result
         assert "build_output" in result["build"]  # build_output.md -> build_output
@@ -488,7 +488,7 @@ class TestNamedArtifactConventions:
         run_id = make_run_id()
         artifact_manager.store(run_id, "build", "diff.txt", "git diff output")
 
-        result = phase_runner._build_artifacts_map(run_id, "verify")
+        result = phase_runner._build_artifacts_map(run_id, "validate")
 
         assert "diff" in result["build"]  # diff.txt -> diff
         assert result["build"]["diff"] == "git diff output"
@@ -500,12 +500,12 @@ class TestNamedArtifactConventions:
     ) -> None:
         """Test that evidence.json is accessible as artifacts.verify.evidence."""
         run_id = make_run_id()
-        artifact_manager.store(run_id, "verify", "evidence.json", '{"passed": true}')
+        artifact_manager.store(run_id, "validate", "evidence.json", '{"passed": true}')
 
         result = phase_runner._build_artifacts_map(run_id, "validate")
 
-        assert "evidence" in result["verify"]  # evidence.json -> evidence
-        assert result["verify"]["evidence"] == '{"passed": true}'
+        assert "evidence" in result["validate"]  # evidence.json -> evidence
+        assert result["validate"]["evidence"] == '{"passed": true}'
 
 
 class TestArtifactDiscoveryInTemplate:

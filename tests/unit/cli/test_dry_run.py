@@ -43,7 +43,7 @@ class TestDryRunDisplay:
 
         result = output.getvalue()
         # Should show all phases
-        for phase in ["plan", "build", "verify", "validate", "document"]:
+        for phase in ["plan", "build", "validate", "document"]:
             assert phase in result.lower(), f"Phase '{phase}' not found in output"
 
     def test_show_execution_preview_single_phase(self) -> None:
@@ -142,7 +142,7 @@ class TestDryRunDisplayWithConfig:
 
         result = output.getvalue()
         # Should still show phases
-        for phase in ["plan", "build", "verify", "validate", "document"]:
+        for phase in ["plan", "build", "validate", "document"]:
             assert phase in result.lower()
 
     def test_show_config_display(self) -> None:

@@ -81,12 +81,12 @@ diff --git a/src/main.py b/src/main.py
 
         # Phase 3: Verify - store evidence
         evidence = {"test_results": {"passed": 5, "failed": 0}, "coverage": 85.5}
-        artifact_manager.store_json(run_id, "verify", "evidence.json", evidence)
+        artifact_manager.store_json(run_id, "validate", "evidence.json", evidence)
 
         # Verify all artifacts exist
         all_artifacts = artifact_manager.list_artifacts(run_id)
         phases = {a["phase"] for a in all_artifacts}
-        assert phases == {"plan", "build", "verify"}
+        assert phases == {"plan", "build", "validate"}
 
     def test_artifact_access_from_subsequent_phase(
         self,
@@ -271,9 +271,9 @@ class TestContentIntegrity:
             },
         }
 
-        artifact_manager.store_json(run_id, "verify", "complex.json", complex_data)
+        artifact_manager.store_json(run_id, "validate", "complex.json", complex_data)
 
-        retrieved = artifact_manager.get_json(run_id, "verify", "complex.json")
+        retrieved = artifact_manager.get_json(run_id, "validate", "complex.json")
         assert retrieved == complex_data
 
 
@@ -337,7 +337,7 @@ class TestRunContextIntegration:
         context = RunContext(
             run_id=run_id,
             feature_description="Serialization test",
-            current_phase="verify",
+            current_phase="validate",
             started_at=datetime.now(),
             artifacts=artifact_manager.get_artifact_paths(run_id),
         )

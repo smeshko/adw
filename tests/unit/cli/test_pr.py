@@ -42,7 +42,7 @@ def sample_context() -> RunContext:
         run_id="01JFTEST000000000000000001",
         feature_description="Add user authentication",
         current_phase="document",
-        phase_history=["plan", "build", "verify", "validate", "document"],
+        phase_history=["plan", "build", "validate", "document"],
         started_at=datetime.now(UTC),
         completed_at=datetime.now(UTC),
         status="completed",

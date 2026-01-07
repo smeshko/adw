@@ -104,7 +104,7 @@ class TestPhaseLifecycleWithSnapshots:
 
         # Create a snapshot with specific content
         phase_result = PhaseResult(
-            phase="verify",
+            phase="validate",
             status=PhaseStatus.COMPLETED,
             started_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC),
             completed_at=datetime(2024, 1, 15, 10, 35, 0, tzinfo=UTC),
@@ -121,7 +121,7 @@ class TestPhaseLifecycleWithSnapshots:
 
         assert snapshot.context.run_id == sample_context.run_id
         assert snapshot.context.feature_description == "Add user authentication"
-        assert snapshot.label == "post_verify"
+        assert snapshot.label == "post_validate"
         assert snapshot.sequence == 1
 
         assert snapshot.phase_result is not None
@@ -158,7 +158,7 @@ class TestSnapshotListingAcrossPhases:
         snapshot_manager = SnapshotManager(run_dir_manager.runs_dir)
 
         # Create snapshots for multiple phases
-        phases = ["plan", "build", "test", "verify"]
+        phases = ["plan", "build", "test", "validate"]
         for phase in phases:
             context = sample_context.model_copy(update={"current_phase": phase})
             snapshot_manager.create_pre_phase_snapshot(context, phase)
@@ -189,7 +189,7 @@ class TestSnapshotListingAcrossPhases:
             "pre_test",
             "post_test",
             "pre_verify",
-            "post_verify",
+            "post_validate",
         ]
         actual_labels = [f"{s['timing']}_{s['phase']}" for s in snapshots]
         assert actual_labels == expected_labels

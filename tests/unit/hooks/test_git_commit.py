@@ -33,7 +33,7 @@ class TestFormatCommitMessage:
     def test_phase_capitalization(self) -> None:
         """Should capitalize the phase name."""
         result = format_commit_message(
-            phase="verify",
+            phase="validate",
             feature="Test login",
             run_id="01HQ789",
         )

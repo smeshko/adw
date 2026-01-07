@@ -74,11 +74,11 @@ class TestArtifactManagerStore:
         run_dir.mkdir(parents=True)
 
         # Act
-        path = artifact_manager.store(run_id, "verify", "evidence.json", "{}")
+        path = artifact_manager.store(run_id, "validate", "evidence.json", "{}")
 
         # Assert
         assert path.exists()
-        assert path.parent.name == "verify"
+        assert path.parent.name == "validate"
 
     def test_store_binary_content(
         self,
@@ -245,7 +245,7 @@ class TestArtifactManagerList:
         run_dir = runs_dir / run_id
         run_dir.mkdir(parents=True)
         artifact_manager.store(run_id, "build", "diff.txt", "diff content")
-        artifact_manager.store(run_id, "verify", "evidence.json", "{}")
+        artifact_manager.store(run_id, "validate", "evidence.json", "{}")
 
         # Act
         all_artifacts = artifact_manager.list_artifacts(run_id)
@@ -253,7 +253,7 @@ class TestArtifactManagerList:
         # Assert
         assert len(all_artifacts) == 2
         phases = {a["phase"] for a in all_artifacts}
-        assert phases == {"build", "verify"}
+        assert phases == {"build", "validate"}
 
     def test_list_artifacts_by_phase(
         self,
@@ -266,7 +266,7 @@ class TestArtifactManagerList:
         run_dir = runs_dir / run_id
         run_dir.mkdir(parents=True)
         artifact_manager.store(run_id, "build", "diff.txt", "diff content")
-        artifact_manager.store(run_id, "verify", "evidence.json", "{}")
+        artifact_manager.store(run_id, "validate", "evidence.json", "{}")
 
         # Act
         build_only = artifact_manager.list_artifacts(run_id, phase="build")
@@ -354,8 +354,8 @@ class TestArtifactManagerJSON:
         data = {"key": "value", "count": 42, "nested": {"a": 1}}
 
         # Act
-        artifact_manager.store_json(run_id, "verify", "result.json", data)
-        loaded = artifact_manager.get_json(run_id, "verify", "result.json")
+        artifact_manager.store_json(run_id, "validate", "result.json", data)
+        loaded = artifact_manager.get_json(run_id, "validate", "result.json")
 
         # Assert
         assert loaded == data
@@ -366,7 +366,7 @@ class TestArtifactManagerJSON:
         run_id: str,
     ) -> None:
         """Test that get_json returns None for missing artifact."""
-        result = artifact_manager.get_json(run_id, "verify", "missing.json")
+        result = artifact_manager.get_json(run_id, "validate", "missing.json")
         assert result is None
 
     def test_get_json_returns_none_for_invalid_json(
@@ -377,12 +377,12 @@ class TestArtifactManagerJSON:
     ) -> None:
         """Test that get_json returns None for invalid JSON content."""
         # Arrange
-        artifacts_dir = runs_dir / run_id / "artifacts" / "verify"
+        artifacts_dir = runs_dir / run_id / "artifacts" / "validate"
         artifacts_dir.mkdir(parents=True)
         (artifacts_dir / "invalid.json").write_text("not valid json {")
 
         # Act
-        result = artifact_manager.get_json(run_id, "verify", "invalid.json")
+        result = artifact_manager.get_json(run_id, "validate", "invalid.json")
 
         # Assert
         assert result is None
@@ -425,10 +425,10 @@ class TestArtifactManagerAutoDetect:
         # Arrange
         run_dir = runs_dir / run_id
         run_dir.mkdir(parents=True)
-        artifact_manager.store_json(run_id, "verify", "result.json", {"key": "value"})
+        artifact_manager.store_json(run_id, "validate", "result.json", {"key": "value"})
 
         # Act
-        result = artifact_manager.get_auto(run_id, "verify", "result.json")
+        result = artifact_manager.get_auto(run_id, "validate", "result.json")
 
         # Assert
         assert result == {"key": "value"}
@@ -537,16 +537,16 @@ class TestArtifactPaths:
         run_dir.mkdir(parents=True)
         artifact_manager.store(run_id, "build", "diff.txt", "diff")
         artifact_manager.store(run_id, "build", "log.txt", "log")
-        artifact_manager.store(run_id, "verify", "evidence.json", "{}")
+        artifact_manager.store(run_id, "validate", "evidence.json", "{}")
 
         # Act
         paths = artifact_manager.get_artifact_paths(run_id)
 
         # Assert
         assert "build" in paths
-        assert "verify" in paths
+        assert "validate" in paths
         assert set(paths["build"]) == {"diff.txt", "log.txt"}
-        assert paths["verify"] == ["evidence.json"]
+        assert paths["validate"] == ["evidence.json"]
 
     def test_get_artifact_paths_empty(
         self,
@@ -576,7 +576,7 @@ class TestArtifactPathsRunContextIntegration:
         run_dir = runs_dir / run_id
         run_dir.mkdir(parents=True)
         artifact_manager.store(run_id, "build", "diff.txt", "diff")
-        artifact_manager.store(run_id, "verify", "evidence.json", "{}")
+        artifact_manager.store(run_id, "validate", "evidence.json", "{}")
 
         # Act - get paths and use to update RunContext
         paths = artifact_manager.get_artifact_paths(run_id)
@@ -590,7 +590,7 @@ class TestArtifactPathsRunContextIntegration:
         )
 
         # Assert - paths are correctly stored in context
-        assert context.artifacts == {"build": ["diff.txt"], "verify": ["evidence.json"]}
+        assert context.artifacts == {"build": ["diff.txt"], "validate": ["evidence.json"]}
 
     def test_artifact_paths_serializable_in_context(
         self,

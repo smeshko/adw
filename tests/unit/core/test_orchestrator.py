@@ -252,12 +252,8 @@ class TestGetNextPhase:
         assert orchestrator.get_next_phase("plan") == "build"
 
     def test_get_next_phase_build(self, orchestrator: "Orchestrator") -> None:
-        """Test getting next phase after build."""
-        assert orchestrator.get_next_phase("build") == "verify"
-
-    def test_get_next_phase_verify(self, orchestrator: "Orchestrator") -> None:
-        """Test getting next phase after verify."""
-        assert orchestrator.get_next_phase("verify") == "validate"
+        """Test getting next phase after build (ISS-019: now validate, not verify)."""
+        assert orchestrator.get_next_phase("build") == "validate"
 
     def test_get_next_phase_validate(self, orchestrator: "Orchestrator") -> None:
         """Test getting next phase after validate."""
@@ -1182,13 +1178,13 @@ class TestPhaseRequirementsValidation:
 
         assert "plan" in str(exc_info.value).lower()
 
-    def test_verify_phase_requires_build_artifacts(
+    def test_validate_phase_requires_build_artifacts(
         self,
         orchestrator: "Orchestrator",
         mock_phase_runner: MagicMock,
         mock_artifact_manager: MagicMock,
     ) -> None:
-        """Test that verify phase requires build artifacts."""
+        """Test that validate phase requires build artifacts (ISS-019: renamed from verify)."""
 
         # Source run has plan but no build artifacts
         def list_artifacts_side_effect(run_id: str, phase: str):
@@ -1200,7 +1196,7 @@ class TestPhaseRequirementsValidation:
 
         with pytest.raises(ConfigError) as exc_info:
             orchestrator.run_single_phase(
-                "verify", "Test feature", from_run_id="01HQSOURCE123"
+                "validate", "Test feature", from_run_id="01HQSOURCE123"
             )
 
         assert "build" in str(exc_info.value).lower()
@@ -1524,7 +1520,7 @@ class TestSinglePhaseWorktreeRetention:
         mock_context.use_worktree = True
         mock_context.worktree_path = tmp_path / "trees" / "test-run"
         mock_context.run_id = "test-run-id"
-        mock_context.phase_history = ["plan", "build", "verify", "validate", "document"]
+        mock_context.phase_history = ["plan", "build", "validate", "document"]
 
         # Patch to return our mock context
         with patch.object(orchestrator, "run") as mock_run:

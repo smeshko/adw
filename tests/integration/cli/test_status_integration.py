@@ -117,7 +117,7 @@ class TestStatusCommandIntegration:
             run_id=run_id,
             feature_description="Add feature",
             current_phase="document",
-            phase_history=["plan", "build", "verify", "validate", "document"],
+            phase_history=["plan", "build", "validate", "document"],
             started_at=started,
             completed_at=completed,
             status="completed",

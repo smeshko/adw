@@ -89,11 +89,10 @@ class TestOrchestratorProgressIntegration:
         # Run
         orchestrator.run("Test feature")
 
-        # Verify all phases were displayed
+        # Verify all phases were displayed (ISS-019: verify phase removed)
         output_text = output.getvalue()
         assert "PLAN" in output_text
         assert "BUILD" in output_text
-        assert "VERIFY" in output_text
         assert "VALIDATE" in output_text
         assert "DOCUMENT" in output_text
 
@@ -228,7 +227,7 @@ class TestOrchestratorProgressIntegration:
         artifact_manager = Mock(spec=ArtifactManager)
         run_directory_manager = Mock(spec=RunDirectoryManager)
 
-        # Create runner that fails on verify phase
+        # Create runner that fails on validate phase (ISS-019: was verify)
         class FailingPhaseRunner:
             def run(
                 self,
@@ -237,10 +236,10 @@ class TestOrchestratorProgressIntegration:
                 *,
                 artifacts_override: dict[str, dict[str, str]] | None = None,
             ) -> PhaseResult:
-                if phase == "verify":
+                if phase == "validate":
                     raise LLMError(
                         code="LLM_ERROR",
-                        message="Verification failed",
+                        message="Validation failed",
                         suggestion="Check tests",
                         recoverable=False,
                     )

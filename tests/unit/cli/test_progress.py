@@ -105,7 +105,7 @@ class TestPhaseStart:
         console = Console(file=output, force_terminal=True, width=80)
         progress = ProgressDisplay(console)
 
-        progress.on_phase_start("verify")
+        progress.on_phase_start("validate")
 
         output_text = output.getvalue()
         # verify is the 3rd phase (index 2), so "Phase 3/5"
@@ -267,7 +267,7 @@ class TestPhaseComplete:
         progress = ProgressDisplay(console)
 
         result = PhaseResult(
-            phase="verify",
+            phase="validate",
             status=PhaseStatus.COMPLETED,
             started_at=datetime.now(UTC),
             completed_at=datetime.now(UTC),
@@ -275,7 +275,7 @@ class TestPhaseComplete:
             tokens_used=250,
         )
 
-        progress.on_phase_complete("verify", result)
+        progress.on_phase_complete("validate", result)
 
         output_text = output.getvalue()
         # Rich adds escape codes; check that '3' and 'artifacts' are present
@@ -338,7 +338,7 @@ class TestPipelineSummary:
         progress = ProgressDisplay(console)
 
         progress.show_pipeline_summary(
-            completed_phases=["plan", "build", "verify", "validate", "document"],
+            completed_phases=["plan", "build", "validate", "document"],
             status="completed",
             total_duration_ms=10000,
             total_tokens=5000,
@@ -562,7 +562,7 @@ class TestErrorDisplay:
             recoverable=False,
         )
 
-        progress.on_phase_error("verify", error)
+        progress.on_phase_error("validate", error)
 
         output_text = output.getvalue()
         assert "VERIFY" in output_text
@@ -610,7 +610,7 @@ class TestPipelineSummaryWithPRResult:
         )
 
         progress.show_pipeline_summary(
-            completed_phases=["plan", "build", "verify", "validate", "document"],
+            completed_phases=["plan", "build", "validate", "document"],
             status="completed",
             total_duration_ms=10000,
             total_tokens=5000,
@@ -636,7 +636,7 @@ class TestPipelineSummaryWithPRResult:
         )
 
         progress.show_pipeline_summary(
-            completed_phases=["plan", "build", "verify", "validate", "document"],
+            completed_phases=["plan", "build", "validate", "document"],
             status="completed",
             total_duration_ms=10000,
             total_tokens=5000,
@@ -662,7 +662,7 @@ class TestPipelineSummaryWithPRResult:
         )
 
         progress.show_pipeline_summary(
-            completed_phases=["plan", "build", "verify", "validate", "document"],
+            completed_phases=["plan", "build", "validate", "document"],
             status="completed",
             total_duration_ms=10000,
             total_tokens=5000,
@@ -682,7 +682,7 @@ class TestPipelineSummaryWithPRResult:
 
         # Call without pr_result (old behavior)
         progress.show_pipeline_summary(
-            completed_phases=["plan", "build", "verify", "validate", "document"],
+            completed_phases=["plan", "build", "validate", "document"],
             status="completed",
             total_duration_ms=10000,
             total_tokens=5000,

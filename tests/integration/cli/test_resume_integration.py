@@ -105,7 +105,7 @@ class TestResumeCommandIntegration:
             mock_runs_dir,
             run_id,
             status="failed",
-            current_phase="verify",
+            current_phase="validate",
             phase_history=["plan", "build"],
             feature="Add user authentication",
         )
@@ -172,7 +172,7 @@ class TestResumeErrorHandling:
             run_id,
             status="completed",
             current_phase="document",
-            phase_history=["plan", "build", "verify", "validate", "document"],
+            phase_history=["plan", "build", "validate", "document"],
         )
 
         result = runner.invoke(app, ["resume", run_id])

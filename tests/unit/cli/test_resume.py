@@ -164,7 +164,7 @@ class TestResumeHeaderDisplay:
             run_id="01HQXK5P3Z7V8R2M4N6T9W1Y3C",
             feature="Add feature",
             completed_phases=["plan", "build"],
-            resume_phase="verify",
+            resume_phase="validate",
         )
 
         result = output.getvalue()

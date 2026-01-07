@@ -223,14 +223,14 @@ class TestUpdateRun:
             status="completed",
             completed_at=completed_at,
             phase_reached="validate",
-            phases_completed=["plan", "build", "verify", "validate"],
+            phases_completed=["plan", "build", "validate"],
         )
 
         entries = manager.get_recent_runs(limit=10)
         assert entries[0].status == "completed"
         assert entries[0].completed_at is not None
         assert entries[0].phase_reached == "validate"
-        assert entries[0].phases_completed == ["plan", "build", "verify", "validate"]
+        assert entries[0].phases_completed == ["plan", "build", "validate"]
 
 
 class TestGetRecentRuns:

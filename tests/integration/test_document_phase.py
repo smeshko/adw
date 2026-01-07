@@ -116,7 +116,7 @@ def sample_context(run_id: str) -> RunContext:
         run_id=run_id,
         feature_description="Add user authentication with OAuth2",
         current_phase="document",
-        phase_history=["plan", "build", "verify", "validate"],
+        phase_history=["plan", "build", "validate"],
         started_at=datetime.now(UTC),
     )
 
@@ -142,9 +142,9 @@ def setup_previous_artifacts(runs_dir: Path, run_id: str) -> None:
     )
 
     # Create verify phase artifacts
-    verify_dir = runs_dir / run_id / "artifacts" / "verify"
-    verify_dir.mkdir(parents=True)
-    (verify_dir / "verify_output.md").write_text("All tests pass")
+    validate_dir = runs_dir / run_id / "artifacts" / "validate"
+    validate_dir.mkdir(parents=True)
+    (validate_dir / "verify_output.md").write_text("All tests pass")
 
     # Create evidence manifest
     evidence_manifest = {
@@ -169,7 +169,7 @@ def setup_previous_artifacts(runs_dir: Path, run_id: str) -> None:
             },
         ],
     }
-    (verify_dir / "evidence_manifest.json").write_text(
+    (validate_dir / "evidence_manifest.json").write_text(
         json.dumps(evidence_manifest, indent=2)
     )
 
@@ -313,9 +313,9 @@ class TestDocumentPhaseWithoutEvidence:
         (build_dir / "build_output.md").write_text("Build completed")
 
         # Create verify phase artifacts WITHOUT evidence manifest
-        verify_dir = runs_dir / run_id / "artifacts" / "verify"
-        verify_dir.mkdir(parents=True)
-        (verify_dir / "verify_output.md").write_text("Tests pass")
+        validate_dir = runs_dir / run_id / "artifacts" / "validate"
+        validate_dir.mkdir(parents=True)
+        (validate_dir / "verify_output.md").write_text("Tests pass")
 
     @pytest.fixture
     def mock_executor_no_evidence(self) -> MockExecutor:
@@ -390,9 +390,9 @@ class TestDocumentPhaseWithoutBuildArtifacts:
     def setup_artifacts_no_build(self, runs_dir: Path, run_id: str) -> None:
         """Set up artifacts without build phase artifacts."""
         # Create verify phase artifacts only
-        verify_dir = runs_dir / run_id / "artifacts" / "verify"
-        verify_dir.mkdir(parents=True)
-        (verify_dir / "verify_output.md").write_text("Tests pass")
+        validate_dir = runs_dir / run_id / "artifacts" / "validate"
+        validate_dir.mkdir(parents=True)
+        (validate_dir / "verify_output.md").write_text("Tests pass")
 
         # Create validate phase artifacts
         validate_dir = runs_dir / run_id / "artifacts" / "validate"
