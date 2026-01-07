@@ -232,7 +232,6 @@ class TestBuildArtifactsMap:
 
         assert "plan" in result
         assert "build" in result
-        assert "validate" in result
         assert "validate" not in result  # Current phase not included
 
     def test_skips_empty_phases(
@@ -502,7 +501,8 @@ class TestNamedArtifactConventions:
         run_id = make_run_id()
         artifact_manager.store(run_id, "validate", "evidence.json", '{"passed": true}')
 
-        result = phase_runner._build_artifacts_map(run_id, "validate")
+        # Run from document phase so validate artifacts are included
+        result = phase_runner._build_artifacts_map(run_id, "document")
 
         assert "evidence" in result["validate"]  # evidence.json -> evidence
         assert result["validate"]["evidence"] == '{"passed": true}'

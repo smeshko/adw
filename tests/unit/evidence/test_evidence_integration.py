@@ -185,7 +185,7 @@ class TestOrchestratorEvidenceIntegration:
             mock_gatherer.side_effect = Exception("Gathering failed")
 
             # Should not raise
-            summaries = orchestrator._gather_evidence_after_verify(mock_run_context)
+            summaries = orchestrator._gather_evidence(mock_run_context)
 
             # Should return empty list on error
             assert summaries == []
