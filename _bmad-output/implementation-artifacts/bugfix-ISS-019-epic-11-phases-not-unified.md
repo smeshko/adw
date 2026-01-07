@@ -74,8 +74,8 @@ so that I don't experience duplicate work, wasted tokens, and confusing UX from 
 - [x] Verify no imports reference this directory
 
 ### Task 5: Update evidence validator paths
-- [ ] Edit `src/adw/validation/validators/evidence_validator.py`
-- [ ] Update fallback path from `artifacts/verify/` to `artifacts/validation/`
+- [x] Edit `src/adw/validation/validators/evidence_validator.py`
+- [x] Update primary path to `artifacts/validate/`, keep `artifacts/verify/` for backwards compat
 
 ### Task 6: Update other source files with verify references
 Files to check and update:

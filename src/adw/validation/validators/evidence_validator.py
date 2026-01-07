@@ -1,6 +1,6 @@
 """EvidenceValidator - Validates evidence gathering results.
 
-This validator checks the evidence manifest from the Verify phase
+This validator checks the evidence manifest from the Validate phase
 and reports any failed or missing evidence.
 """
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class EvidenceValidator:
     """Validator that checks evidence gathering results.
 
-    Loads the evidence manifest from the Verify phase and reports
+    Loads the evidence manifest from the Validate phase and reports
     issues for any failed, errored, or skipped evidence items.
 
     Attributes:
@@ -62,7 +62,7 @@ class EvidenceValidator:
             return [
                 ValidationIssue(
                     source=ValidationSource.EVIDENCE,
-                    message="Evidence manifest not found - verify may not have run",
+                    message="Evidence manifest not found - evidence gathering may not have run",
                     severity="high",
                 )
             ]
@@ -128,10 +128,12 @@ class EvidenceValidator:
         # Try to find manifest in artifacts (default to cwd if no worktree)
         base_path = context.worktree_path or Path.cwd()
 
-        # Try common manifest locations
+        # Try common manifest locations (ISS-019: validate replaces verify)
         run_dir = base_path / ".adw" / "runs" / context.run_id
         potential_paths = [
             run_dir / "evidence" / "evidence_manifest.json",
+            run_dir / "artifacts" / "validate" / "evidence_manifest.json",
+            # Backwards compatibility: support legacy runs with verify artifacts
             run_dir / "artifacts" / "verify" / "evidence_manifest.json",
         ]
 
