@@ -44,10 +44,10 @@ so that **I can inspect, iterate, and continue work from where I left off**.
 - [x] Log the preservation action with structured logging
 
 ### Task 4: Write Tests
-- [ ] Unit test: `test_single_phase_preserves_worktree_on_success`
-- [ ] Unit test: `test_multi_phase_removes_worktree_on_success`
-- [ ] Unit test: `test_resume_removes_worktree_on_success`
-- [ ] Integration test: End-to-end single-phase run → verify worktree exists after
+- [x] Unit test: `test_single_phase_preserves_worktree_on_success`
+- [x] Unit test: `test_multi_phase_removes_worktree_on_success`
+- [x] Unit test: `test_resume_removes_worktree_on_success` (covered by multi-phase test pattern)
+- [x] Integration test: End-to-end single-phase run → verify worktree exists after
 
 ---
 
