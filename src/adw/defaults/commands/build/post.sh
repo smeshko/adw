@@ -1,14 +1,16 @@
 #!/bin/bash
-# ADW Post-Hook: Git Commit Changes
+# ADW Post-Hook: Extract Story Output & Git Commit Changes
 #
-# This hook automatically stages and commits changes after phase completion.
-# It integrates with ADW's git configuration to provide automatic commit
-# functionality with configurable message templates.
+# This hook:
+# 1. Extracts content between story output markers from LLM output
+# 2. Automatically stages and commits changes after phase completion
 #
 # Environment variables provided by ADW:
-#   ADW_FEATURE    - The feature description for this run
-#   ADW_RUN_ID     - The unique run identifier
-#   ADW_PHASE      - Current phase (e.g., "build", "verify")
+#   ADW_FEATURE      - The feature description for this run
+#   ADW_RUN_ID       - The unique run identifier
+#   ADW_PHASE        - Current phase (e.g., "build", "verify")
+#   ADW_LLM_OUTPUT   - Full LLM output (post-hook only)
+#   ADW_ARTIFACTS_DIR - Artifacts directory for this phase
 #
 # Exit codes:
 #   0 - Success (commit created, no changes, or auto-commit disabled)
@@ -18,6 +20,36 @@
 # It respects the git.auto_commit and git.skip_hooks configuration settings.
 
 set -e
+
+# =============================================================================
+# STEP 1: Extract story output from LLM response (if markers present)
+# =============================================================================
+# Markers: "# UPDATED STORY OUTPUT" ... "# END STORY OUTPUT"
+
+if [[ -n "$ADW_LLM_OUTPUT" ]] && [[ -n "$ADW_ARTIFACTS_DIR" ]]; then
+    # Check if markers exist in the output
+    if echo "$ADW_LLM_OUTPUT" | grep -q "# UPDATED STORY OUTPUT"; then
+        echo "Extracting story output from LLM response..."
+
+        # Extract content between markers using sed
+        # - Find line with "# UPDATED STORY OUTPUT", start printing from next line
+        # - Stop when we hit "# END STORY OUTPUT"
+        extracted=$(echo "$ADW_LLM_OUTPUT" | sed -n '/^# UPDATED STORY OUTPUT$/,/^# END STORY OUTPUT$/p' | sed '1d;$d')
+
+        if [[ -n "$extracted" ]]; then
+            # Write extracted content to build_output.md
+            output_file="$ADW_ARTIFACTS_DIR/build_output.md"
+            echo "$extracted" > "$output_file"
+            echo "Story output extracted to: $output_file"
+        else
+            echo "Warning: Markers found but no content extracted"
+        fi
+    fi
+fi
+
+# =============================================================================
+# STEP 2: Git auto-commit (existing functionality)
+# =============================================================================
 
 # Check if ADW_FEATURE and ADW_RUN_ID are set
 if [[ -z "$ADW_FEATURE" ]] || [[ -z "$ADW_RUN_ID" ]]; then
