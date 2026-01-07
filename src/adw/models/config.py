@@ -258,7 +258,8 @@ class WorktreeConfig(BaseModel):
     Attributes:
         enabled: Whether worktree isolation is enabled (default: True)
         base_dir: Directory for storing worktrees, relative to project root
-        preserve_on_failure: Keep worktree on failure for debugging (default: True)
+        preserve_on_failure: DEPRECATED (ISS-020). Worktrees are now always
+            preserved. Use 'adw cleanup <run_id>' to remove worktrees.
         cleanup_branch_on_remove: Delete the adw/<run_id> branch when removing
             the worktree (default: False)
         preserve_artifacts: List of artifact names to preserve when cleaning up
@@ -281,7 +282,7 @@ class WorktreeConfig(BaseModel):
         worktree:
           enabled: true
           base_dir: "trees"
-          preserve_on_failure: true
+          # preserve_on_failure is deprecated - worktrees are always preserved
           cleanup_branch_on_remove: false
           preserve_artifacts:
             - context.json
@@ -306,7 +307,8 @@ class WorktreeConfig(BaseModel):
     )
     preserve_on_failure: bool = Field(
         default=True,
-        description="Keep worktree on failure for debugging",
+        description="DEPRECATED (ISS-020): This option is ignored. Worktrees are "
+        "now always preserved. Use 'adw cleanup <run_id>' to remove worktrees.",
     )
     cleanup_branch_on_remove: bool = Field(
         default=False,
