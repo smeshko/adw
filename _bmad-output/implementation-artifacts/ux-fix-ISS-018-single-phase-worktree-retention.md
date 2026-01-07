@@ -32,10 +32,10 @@ so that **I can inspect, iterate, and continue work from where I left off**.
 - [x] Document the difference in behavior we need
 
 ### Task 2: Modify Single-Phase Cleanup Logic
-- [ ] In `run_single_phase()`, change success path to preserve worktree
-- [ ] Change `self._cleanup_worktree(run_id, preserve=False)` to `preserve=True` for single-phase
-- [ ] Keep `preserve=False` for multi-phase in `run()` method
-- [ ] Keep `preserve=False` for resume in `resume()` method
+- [x] In `run_single_phase()`, change success path to preserve worktree
+- [x] Change `self._cleanup_worktree(run_id, preserve=False)` to `preserve=True` for single-phase
+- [x] Keep `preserve=False` for multi-phase in `run()` method
+- [x] Keep `preserve=False` for resume in `resume()` method
 
 ### Task 3: Add User-Facing Output
 - [ ] After single-phase completes, print worktree location to console
