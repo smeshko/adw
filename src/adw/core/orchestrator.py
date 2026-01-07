@@ -684,7 +684,7 @@ class Orchestrator:
                         f"[blue]Worktree:[/blue] {worktree_path}"
                     )
                     self.progress_display.console.print(
-                        f"Run [yellow]adw cleanup {run_id}[/yellow] when done"
+                        f"Run [yellow]adw cleanup {run_id}[/yellow] to remove"
                     )
                     self.progress_display.console.print()
 
