@@ -263,11 +263,25 @@ class WorktreeManager:
                     artifact_type = "file"
                 else:
                     # Copy directory recursively
-                    if target_path.exists():
-                        shutil.rmtree(target_path)
-                    shutil.copytree(source_path, target_path)
-                    size = self._get_directory_size(target_path)
-                    artifact_type = "directory"
+                    # Check if source has content - if empty, skip to preserve
+                    # any existing content in target (artifacts may have been
+                    # written directly to main project, not worktree)
+                    source_has_content = any(source_path.iterdir()) if source_path.exists() else False
+                    if not source_has_content and target_path.exists():
+                        # Source is empty but target has content - preserve target
+                        size = self._get_directory_size(target_path)
+                        artifact_type = "directory"
+                        logger.debug(
+                            "Preserving existing target (source empty)",
+                            extra={"artifact": artifact_name, "target": str(target_path)},
+                        )
+                    else:
+                        # Normal case: copy source to target
+                        if target_path.exists():
+                            shutil.rmtree(target_path)
+                        shutil.copytree(source_path, target_path)
+                        size = self._get_directory_size(target_path)
+                        artifact_type = "directory"
 
                 preserved_paths.append(target_path)
                 manifest_entries.append(

@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 16
+issue_counter: 17
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -60,6 +60,7 @@ issues:
   ISS-014-resume-logic-scattered-across-codebase: story-created
   ISS-015-no-mechanism-to-inject-phase-specific-input-context: fixed
   ISS-016-per-phase-config-yaml-not-implemented: fixed
+  ISS-017-template-logic-scattered-between-modules: reported
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
