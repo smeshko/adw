@@ -357,9 +357,27 @@ class Orchestrator:
                         pr_result=pr_result,
                     )
 
-                # Clean up worktree on successful completion (Story 10.1)
+                # Preserve worktree for user inspection (ISS-020)
+                # Worktrees are NEVER auto-deleted - only via explicit cleanup command
                 if context.use_worktree and context.worktree_path:
-                    self._cleanup_worktree(context.run_id, preserve=False)
+                    logger.info(
+                        "Worktree preserved for user inspection",
+                        extra={
+                            "run_id": context.run_id,
+                            "worktree_path": str(context.worktree_path),
+                            "outcome": "success",
+                            "reason": "user_control_policy",
+                        },
+                    )
+                    if self.progress_display:
+                        self.progress_display.console.print()
+                        self.progress_display.console.print(
+                            f"[blue]Worktree:[/blue] {context.worktree_path}"
+                        )
+                        self.progress_display.console.print(
+                            f"Run [yellow]adw cleanup {context.run_id}[/yellow] to remove"
+                        )
+                        self.progress_display.console.print()
 
                 logger.info("Run completed", extra={"run_id": run_id})
 
@@ -844,9 +862,27 @@ class Orchestrator:
 
                 logger.info("Resume completed", extra={"run_id": run_id})
 
-                # Clean up worktree on successful resume (Story 10.1)
+                # Preserve worktree for user inspection (ISS-020)
+                # Worktrees are NEVER auto-deleted - only via explicit cleanup command
                 if context.use_worktree and context.worktree_path is not None:
-                    self._cleanup_worktree(context.run_id, preserve=False)
+                    logger.info(
+                        "Worktree preserved for user inspection",
+                        extra={
+                            "run_id": context.run_id,
+                            "worktree_path": str(context.worktree_path),
+                            "outcome": "success",
+                            "reason": "user_control_policy",
+                        },
+                    )
+                    if self.progress_display:
+                        self.progress_display.console.print()
+                        self.progress_display.console.print(
+                            f"[blue]Worktree:[/blue] {context.worktree_path}"
+                        )
+                        self.progress_display.console.print(
+                            f"Run [yellow]adw cleanup {context.run_id}[/yellow] to remove"
+                        )
+                        self.progress_display.console.print()
 
         except ShutdownRequested as e:
             # Graceful shutdown - state already saved by handler
