@@ -1,0 +1,336 @@
+<workflow>
+  <!-- ================================================================== -->
+  <!-- PRIME DIRECTIVE - READ THIS FIRST BEFORE ANY OTHER INSTRUCTION    -->
+  <!-- ================================================================== -->
+  <critical>🚨 PRIME DIRECTIVE: Execute ALL tasks in a SINGLE CONTINUOUS RUN.
+    Do NOT stop, pause, check in, ask permission, or offer to break into sessions.
+    Continue until story is COMPLETE or explicit HALT condition.
+    STOPPING TO ASK PERMISSION IS A SYSTEM FAILURE.</critical>
+
+  <critical>WORKTREE SUPPORT: {project-root} = current working directory (pwd). NEVER use 'cd' to navigate to a different directory. All file paths and git commands must operate in cwd. This is critical for git worktree environments.</critical>
+
+  <critical>The workflow execution engine (workflow.xml) is included above</critical>
+  <critical>The workflow config (workflow.yaml) is included above</critical>
+  <critical>Communicate all responses in English and generate all documents in English</critical>
+  <critical>Only modify the story file in these areas: Tasks/Subtasks checkboxes, Dev Agent Record (Debug Log, Completion Notes), File List,
+    Change Log, and Status</critical>
+  <critical>Execute ALL steps in exact order; do NOT skip steps</critical>
+  <critical>🚨 AUTONOMOUS EXECUTION REQUIRED: Do NOT stop for "milestones", "significant progress", "complexity", or "session boundaries".
+    Do NOT "check in", "ask if you should proceed", "verify before continuing", or offer to pause.
+    Do NOT show "Progress Summary" then wait for permission.
+    After EVERY task completion, IMMEDIATELY proceed to the next task.
+    STOPPING WITHOUT A HALT CONDITION IS A SYSTEM FAILURE.</critical>
+  <critical>Do NOT schedule a "next session" or request review pauses. Only Step 9 decides completion. Only explicit HALT conditions can stop execution.</critical>
+  <critical>COMMIT CONTRACT: You MUST commit after completing each task. This is non-negotiable.</critical>
+
+  <!-- ================================================================== -->
+  <!-- UNIVERSAL RULES - ADW Standard Compliance                         -->
+  <!-- ================================================================== -->
+  <universal-rules>
+    <rule emoji="🛑">Execute ALL tasks continuously - do NOT pause for permission or check-ins</rule>
+    <rule emoji="📖">Read complete step instructions before taking any action</rule>
+    <rule emoji="🔄">Process steps sequentially - never skip or optimize the sequence</rule>
+    <rule emoji="🔒">Honor commit contract after every task - no batching allowed</rule>
+    <rule emoji="🎯">Follow story Tasks/Subtasks exactly as written - no deviation</rule>
+    <rule emoji="📋">You are an IMPLEMENTER executing the story, not a facilitator asking for permission</rule>
+  </universal-rules>
+
+  <step n="1" goal="Load story and validate inputs">
+    <critical>The story content is in the ## Plan section of the initial user prompt.</critical>
+    <critical>You MUST track all modifications you make to the story IN-MEMORY and output the complete updated story contents in the final step.</critical>
+
+    <anchor id="task_check" />
+
+    <action>Parse sections: Story, Acceptance Criteria, Tasks/Subtasks, Dev Notes, Dev Agent Record, File List, Change Log, Status</action>
+    <action>Identify first incomplete task (unchecked [ ]) in Tasks/Subtasks</action>
+
+    <action if="no incomplete tasks">
+      <goto step="9">Completion sequence</goto>
+    </action>
+    <action if="incomplete task or subtask requirements ambiguous">ASK user to clarify or HALT</action>
+  </step>
+
+  <step n="2" goal="Establish commit contract">
+
+    <action>Load comprehensive context from story file's Dev Notes section</action>
+    <action>Extract developer guidance from Dev Notes: architecture requirements, previous learnings, technical specifications</action>
+    <action>Use enhanced story context to inform implementation decisions and approaches</action>
+
+    <!-- ================================================================== -->
+    <!-- COMMIT CONTRACT - Agent MUST verbally acknowledge this commitment  -->
+    <!-- ================================================================== -->
+    <critical>COMMIT CONTRACT ACKNOWLEDGMENT REQUIRED - MUST BE VERBALIZED EXACTLY AS WRITTEN</critical>
+    <critical>🚨 FAILURE TO COMMIT AFTER EACH TASK IS A SYSTEM FAILURE - NO EXCEPTIONS</critical>
+    <output>📋 **COMMIT CONTRACT - I SHALL HONOR THIS**
+
+      Before proceeding with implementation, I solemnly acknowledge and commit to the following:
+
+      **🔒 I SHALL COMMIT AFTER EVERY SINGLE TASK COMPLETION.**
+
+      This means:
+      - After EACH task passes validation, I SHALL immediately run `git add -A` and `git commit`
+      - I SHALL use conventional commit format: `&lt;type&gt;(story-{{story_key}}): &lt;description&gt;`
+      - I SHALL NOT proceed to the next task until the commit is verified
+      - I SHALL NOT batch multiple tasks into one commit
+      - I SHALL NOT skip commits under any circumstances
+      - After each commit, I SHALL explicitly state: "✅ COMMIT CONTRACT HONORED - Task N committed"
+
+      **This contract is NON-NEGOTIABLE. Batching tasks or skipping commits is a SYSTEM FAILURE.**
+
+      I understand that after completing Task 1, I must commit before starting Task 2.
+      I understand that after completing Task 2, I must commit before starting Task 3.
+      And so on for every task in this story.
+    </output>
+
+    <!-- ================================================================== -->
+    <!-- CONTINUOUS EXECUTION CONTRACT - Agent MUST verbally acknowledge  -->
+    <!-- ================================================================== -->
+    <critical>CONTINUOUS EXECUTION CONTRACT ACKNOWLEDGMENT REQUIRED</critical>
+    <output>🚀 **Continuous Execution Contract**
+
+      I also acknowledge and commit to the following:
+
+      **⚡ I WILL NOT STOP until the story is COMPLETE or a HALT condition is triggered.**
+
+      This means:
+      - I will NOT pause to "check in" or ask permission to continue
+      - I will NOT offer to stop after completing tasks
+      - I will NOT suggest breaking the work into sessions
+      - After each task, I will IMMEDIATELY proceed to the next task
+      - Only explicit HALT conditions in the workflow can stop me
+
+      This contract is non-negotiable and I am bound by it for this entire session.
+    </output>
+
+    <!-- Initialize commit tracking -->
+    <action>Initialize {{tasks_committed}} = 0</action>
+    <action>Initialize {{current_task_number}} = 0</action>
+
+    <output>✅ **Context Loaded**
+      Story and project context available for implementation
+      Commit contract acknowledged and active
+      Continuous execution contract acknowledged and active
+      Commit counter initialized: 0 tasks committed
+    </output>
+  </step>
+
+  <step n="3" goal="Implement task following red-green-refactor cycle">
+    <critical>FOLLOW THE STORY FILE TASKS/SUBTASKS SEQUENCE EXACTLY AS WRITTEN - NO DEVIATION</critical>
+
+    <!-- Track current task number -->
+    <action>Increment {{current_task_number}} by 1</action>
+    <output>📌 **Starting Task {{current_task_number}}** (Commits so far: {{tasks_committed}})</output>
+
+    <action>Review the current task/subtask from the story file - this is your authoritative implementation guide</action>
+    <action>Plan implementation following red-green-refactor cycle</action>
+
+    <!-- RED PHASE -->
+    <action>Write FAILING tests first for the task/subtask functionality</action>
+    <action>Confirm tests fail before implementation - this validates test correctness</action>
+
+    <!-- GREEN PHASE -->
+    <action>Implement MINIMAL code to make tests pass</action>
+    <action>Run tests to confirm they now pass</action>
+    <action>Handle error conditions and edge cases as specified in task/subtask</action>
+
+    <!-- REFACTOR PHASE -->
+    <action>Improve code structure while keeping tests green</action>
+    <action>Ensure code follows architecture patterns and coding standards from Dev Notes</action>
+
+    <action>Document technical approach and decisions in Dev Agent Record → Implementation Plan</action>
+
+    <action if="new dependencies required beyond story specifications">HALT: "Additional dependencies need user approval"</action>
+    <action if="3 consecutive implementation failures occur">HALT and request guidance</action>
+    <action if="required configuration is missing">HALT: "Cannot proceed without necessary configuration files"</action>
+
+    <critical>NEVER implement anything not mapped to a specific task/subtask in the story file</critical>
+    <critical>NEVER proceed to next task until current task/subtask is complete AND tests pass</critical>
+    <critical>🚨 CONTINUOUS EXECUTION CONTRACT: Execute continuously without pausing. After each task, IMMEDIATELY start the next.
+      Do NOT summarize progress and wait. Do NOT ask "should I continue?". Do NOT offer to pause.
+      VIOLATION OF THIS CONTRACT IS A SYSTEM FAILURE.</critical>
+  </step>
+
+  <step n="4" goal="Author comprehensive tests">
+    <action>Create unit tests for business logic and core functionality introduced/changed by the task</action>
+    <action>Add integration tests for component interactions specified in story requirements</action>
+    <action>Include end-to-end tests for critical user flows when story requirements demand them</action>
+    <action>Cover edge cases and error handling scenarios identified in story Dev Notes</action>
+  </step>
+
+  <step n="5" goal="Run validations and tests">
+    <action>Determine how to run tests for this repo (infer test framework from project structure)</action>
+    <action>Run all existing tests to ensure no regressions</action>
+    <action>Run the new tests to verify implementation correctness</action>
+    <action>Run linting and code quality checks if configured in project</action>
+    <action>Validate implementation meets ALL story acceptance criteria; enforce quantitative thresholds explicitly</action>
+    <action if="regression tests fail">STOP and fix before continuing - identify breaking changes immediately</action>
+    <action if="new tests fail">STOP and fix before continuing - ensure implementation correctness</action>
+  </step>
+
+  <step n="6" goal="Validate and mark task complete ONLY when fully done">
+    <critical>NEVER mark a task complete unless ALL conditions are met - NO LYING OR CHEATING</critical>
+    <critical>REMEMBER YOUR COMMIT CONTRACT - You MUST commit after this task completes</critical>
+
+    <!-- VALIDATION GATES -->
+    <action>Verify ALL tests for this task/subtask ACTUALLY EXIST and PASS 100%</action>
+    <action>Confirm implementation matches EXACTLY what the task/subtask specifies - no extra features</action>
+    <action>Validate that ALL acceptance criteria related to this task are satisfied</action>
+    <action>Run full test suite to ensure NO regressions introduced</action>
+
+    <!-- ONLY MARK COMPLETE IF ALL VALIDATION PASS -->
+    <check if="ALL validation gates pass AND tests ACTUALLY exist and pass">
+      <action>ONLY THEN mark the task (and subtasks) checkbox with [x]</action>
+      <action>Update File List section with ALL new, modified, or deleted files (paths relative to repo root)</action>
+      <action>Add completion notes to Dev Agent Record summarizing what was ACTUALLY implemented and tested</action>
+
+      <check if="review_continuation == true and {{resolved_review_items}} is not empty">
+        <action>Count total resolved review items in this session</action>
+        <action>Add Change Log entry: "Addressed code review findings - {{resolved_count}} items resolved (Date: {{date}})"</action>
+      </check>
+
+      <action>Set {{task_validated}} = true</action>
+    </check>
+
+    <check if="ANY validation fails">
+      <action>DO NOT mark task complete - fix issues first</action>
+      <action>Set {{task_validated}} = false</action>
+      <action>HALT if unable to fix validation failures</action>
+    </check>
+
+    <!-- ============================================================== -->
+    <!-- MANDATORY COMMIT SEQUENCE - HONORING THE COMMIT CONTRACT       -->
+    <!-- ============================================================== -->
+    <critical>🔒 COMMIT CONTRACT ENFORCEMENT - This is your binding commitment from Step 2</critical>
+    <critical>COMMIT IS MANDATORY - Agent MUST NOT proceed to next task without completing this entire sequence</critical>
+
+    <check if="{{task_validated}} == true">
+      <!-- Determine commit type based on task nature -->
+      <action>Determine commit type from task description:
+        - If task mentions "fix", "bug", "resolve", "address" → type = "fix"
+        - If task mentions "test", "spec", "coverage" → type = "test"
+        - If task mentions "refactor", "restructure", "reorganize" → type = "refactor"
+        - If task mentions "docs", "documentation", "readme" → type = "docs"
+        - If task is [AI-Review] follow-up → type = "fix"
+        - Otherwise → type = "feat"
+      </action>
+      <action>Store commit type as {{commit_type}}</action>
+
+      <!-- Generate conventional commit message -->
+      <action>Generate commit message in conventional format:
+        Line 1: {{commit_type}}(story-{{story_key}}): {{task_summary_lowercase}}
+        Line 2: (blank)
+        Line 3+: Brief description of what was implemented (1-2 sentences max)
+      </action>
+
+      <action>Stage all changes: git add -A</action>
+      <action>Commit with conventional message format using HEREDOC:
+        git commit -m "$(cat &lt;&lt;'EOF'
+        {{commit_type}}(story-{{story_key}}): {{task_summary_lowercase}}
+
+        {{brief_implementation_description}}
+        EOF
+        )"
+      </action>
+      <action>Run: git rev-parse HEAD</action>
+      <action>Store result as {{last_commit_sha}}</action>
+      <action>Increment {{tasks_committed}} counter</action>
+
+      <!-- MANDATORY: Verbalize contract honored -->
+      <critical>MUST explicitly state the contract honored message - this is NOT optional</critical>
+      <output>✅ **COMMIT CONTRACT HONORED - Task {{current_task_number}} committed**
+
+        ```
+        {{commit_type}}(story-{{story_key}}): {{task_summary_lowercase}}
+        ```
+        SHA: {{last_commit_sha}}
+
+        Tasks committed this session: {{tasks_committed}}
+        Contract Status: HONORED ✓
+      </output>
+
+      <!-- CONTINUOUS EXECUTION CONTRACT ENFORCEMENT -->
+      <critical>⚡ CONTINUOUS EXECUTION CONTRACT - Proceeding immediately to next task without pause</critical>
+    </check>
+
+    <action>Determine if more incomplete tasks remain</action>
+    <check if="more tasks remain">
+      <action>Clear {{last_commit_sha}} for next task cycle</action>
+      <action>Clear {{task_validated}} for next task cycle</action>
+      <output>➡️ **Continuing** (Execution Contract Honored) - Moving to next task</output>
+      <goto step="3">Next task</goto>
+    </check>
+    <check if="no tasks remain">
+      <goto step="9">Completion</goto>
+    </check>
+  </step>
+
+  <step n="6" goal="Story completion and mark for review" tag="sprint-status">
+    <!-- COMMIT CONTRACT FINAL VALIDATION -->
+    <critical>Verify commit contract was honored throughout the session</critical>
+    <action>Compare {{tasks_committed}} against {{current_task_number}}</action>
+    <check if="{{tasks_committed}} != {{current_task_number}}">
+      <output>🚨 **COMMIT CONTRACT VIOLATION DETECTED**
+        Tasks completed: {{current_task_number}}
+        Tasks committed: {{tasks_committed}}
+        Missing commits: {{current_task_number - tasks_committed}}
+
+        The commit contract was NOT honored. Some tasks were batched together.
+      </output>
+      <action>HALT: "Commit contract violation - tasks were not committed individually"</action>
+    </check>
+    <check if="{{tasks_committed}} == {{current_task_number}}">
+      <output>✅ **COMMIT CONTRACT FULLY HONORED**
+        All {{tasks_committed}} tasks were committed individually as required.
+      </output>
+    </check>
+
+    <action>Verify ALL tasks and subtasks are marked [x] (re-scan the story document now)</action>
+    <action>Run the full regression suite (do not skip)</action>
+    <action>Confirm File List includes every changed file</action>
+    <action>Load and execute definition-of-done checklist from {validation}</action>
+    <action>Execute enhanced definition-of-done validation per checklist criteria</action>
+    <action>Update the story Status to: "Ready for Review"</action>
+
+    <!-- Enhanced Definition of Done Validation -->
+    <action>Validate definition-of-done checklist with essential requirements:
+      - All tasks/subtasks marked complete with [x]
+      - Implementation satisfies every Acceptance Criterion
+      - Unit tests for core functionality added/updated
+      - Integration tests for component interactions added when required
+      - End-to-end tests for critical flows added when story demands them
+      - All tests pass (no regressions, new tests successful)
+      - Code quality checks pass (linting, static analysis if configured)
+      - File List includes every new/modified/deleted file (relative paths)
+      - Dev Agent Record contains implementation notes
+      - Change Log includes summary of changes
+      - Only permitted story sections were modified
+    </action>
+
+    <!-- Final validation gates -->
+    <action if="any task is incomplete">HALT - Complete remaining tasks before marking ready for review</action>
+    <action if="regression failures exist">HALT - Fix regression issues before completing</action>
+    <action if="File List is incomplete">HALT - Update File List with all changed files</action>
+    <action if="definition-of-done validation fails">HALT - Address DoD failures before completing</action>
+  </step>
+
+  <step n="7" goal="Completion communication and user support">
+    <action>Execute the enhanced definition-of-done checklist using the validation framework</action>
+    <action>Prepare a concise summary in Dev Agent Record → Completion Notes</action>
+
+    <action>Communicate to the user that story implementation is complete and ready for review</action>
+    <action>Summarize key accomplishments: story ID, story key, title, key changes made, tests added, files modified</action>
+  </step>
+
+  <step n="8" goal="Output completed story">
+    <critical>OUTPUT REQUIREMENT: Your response MUST end with the complete
+    updated story document, including all modifications made during
+    implementation (marked tasks, file list, dev notes, etc.)</critical>
+
+    <action>Output the complete story markdown with:
+      - Header: "# UPDATED STORY OUTPUT"
+      - Full story content with all [x] marks, file lists, dev notes
+      - Footer: "# END STORY OUTPUT"
+    </action>
+  </step>
+
+</workflow>

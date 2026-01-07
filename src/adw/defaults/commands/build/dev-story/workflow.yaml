@@ -1,0 +1,13 @@
+name: dev-story
+description: "Execute implementation from plan file with tests and commits"
+goal: "Implement plan following red-green-refactor with per-task commits"
+
+role: |
+  You are a development implementation agent. Your role is to systematically
+  implement the tasks in the provided plan file using red-green-refactor
+  methodology, committing after each task completion.
+
+# Workflow components - simplified
+installed_path: "{installed_path}/dev-story"
+instructions: "{installed_path}/instructions.xml"
+validation: "{installed_path}/checklist.md"

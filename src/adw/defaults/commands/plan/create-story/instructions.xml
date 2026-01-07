@@ -1,7 +1,7 @@
 <workflow>
   <critical>The workflow execution engine (workflow.xml) is included above</critical>
   <critical>The workflow config (workflow.yaml) is included above</critical>
-  <critical>Communicate all responses in {communication_language} and generate all documents in {document_output_language}</critical>
+  <critical>Communicate all responses in English and generate all documents in English</critical>
   <critical>WORKTREE SUPPORT: {project-root} = current working directory (pwd). NEVER use 'cd' to navigate elsewhere. All paths are relative to cwd.</critical>
 
   <!-- CONTEXT BOUNDARIES (per BMAD standards) -->
