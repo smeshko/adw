@@ -28,7 +28,6 @@ from adw.hooks.git_diff import (
     has_commits,
     truncate_diff,
 )
-from adw.hooks.runner import find_hook
 from adw.models import (
     LLMResult,
     PhaseResult,
@@ -247,18 +246,13 @@ class PhaseRunner:
         """
         logger.debug("Running pre-hook", extra={"phase": phase})
 
-        if not command.has_pre_hook:
+        if command.pre_hook_path is None:
             logger.debug("No pre-hook for phase", extra={"phase": phase})
-            return ""
-
-        # Find and run pre-hook
-        hook_path = find_hook(command.path, "pre")
-        if hook_path is None:
             return ""
 
         try:
             result = self.hook_runner.run_hook(
-                hook_path=hook_path,
+                hook_path=command.pre_hook_path,
                 context=context,
                 phase=phase,
                 hook_type="pre",
@@ -844,13 +838,8 @@ class PhaseRunner:
         """
         logger.debug("Running post-hook", extra={"phase": phase})
 
-        if not command.has_post_hook:
+        if command.post_hook_path is None:
             logger.debug("No post-hook for phase", extra={"phase": phase})
-            return
-
-        # Find hook
-        hook_path = find_hook(command.path, "post")
-        if hook_path is None:
             return
 
         # Set LLM output in environment for post-hook
@@ -863,7 +852,7 @@ class PhaseRunner:
             os.environ["ADW_LLM_OUTPUT"] = llm_output
 
             result = self.hook_runner.run_hook(
-                hook_path=hook_path,
+                hook_path=command.post_hook_path,
                 context=context,
                 phase=phase,
                 hook_type="post",

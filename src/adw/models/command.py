@@ -6,7 +6,7 @@ This module defines models for command resolution, representation, and configura
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 
 class PhaseLLMConfig(BaseModel):
@@ -203,8 +203,10 @@ class ResolvedCommand(BaseModel):
         path: The resolved directory path containing command files.
         tier: Which tier the command was resolved from.
         has_schema: Whether schema.json exists in the command directory.
-        has_pre_hook: Whether pre.sh or pre-hook.sh exists.
-        has_post_hook: Whether post.sh or post-hook.sh exists.
+        pre_hook_path: Path to pre-hook script if found, None otherwise.
+        post_hook_path: Path to post-hook script if found, None otherwise.
+        has_pre_hook: Computed property - True if pre_hook_path is set.
+        has_post_hook: Computed property - True if post_hook_path is set.
         has_config: Whether config.yaml exists in the command directory.
 
     Example:
@@ -224,9 +226,21 @@ class ResolvedCommand(BaseModel):
     path: Path
     tier: Literal["project", "user", "bundled"]
     has_schema: bool = False
-    has_pre_hook: bool = False
-    has_post_hook: bool = False
+    pre_hook_path: Path | None = None
+    post_hook_path: Path | None = None
     has_config: bool = False
+
+    @computed_field
+    @property
+    def has_pre_hook(self) -> bool:
+        """Whether a pre-hook script exists."""
+        return self.pre_hook_path is not None
+
+    @computed_field
+    @property
+    def has_post_hook(self) -> bool:
+        """Whether a post-hook script exists."""
+        return self.post_hook_path is not None
 
 
 class LoadedCommand(BaseModel):

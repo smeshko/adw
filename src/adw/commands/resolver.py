@@ -116,6 +116,34 @@ class CommandResolver:
             pass
         return None
 
+    def _find_hook_path(
+        self, command_dir: Path, hook_type: str
+    ) -> Path | None:
+        """Find a hook script in the command directory.
+
+        Searches for hook scripts with various naming patterns:
+        - {hook_type}.sh (e.g., pre.sh, post.sh)
+        - {hook_type}-hook.sh (e.g., pre-hook.sh, post-hook.sh)
+        - {hook_type}-hook (e.g., pre-hook, post-hook)
+
+        Args:
+            command_dir: Directory to search for hooks.
+            hook_type: Type of hook to find ("pre" or "post").
+
+        Returns:
+            Path to the hook script if found, None otherwise.
+        """
+        patterns = [
+            f"{hook_type}.sh",
+            f"{hook_type}-hook.sh",
+            f"{hook_type}-hook",
+        ]
+        for pattern in patterns:
+            hook_path = command_dir / pattern
+            if hook_path.is_file():
+                return hook_path
+        return None
+
     def _create_resolved_command(
         self,
         name: str,
@@ -135,10 +163,8 @@ class CommandResolver:
             ResolvedCommand with detected optional files.
         """
         has_schema = (path / "schema.json").is_file()
-        has_pre_hook = (path / "pre.sh").is_file() or (path / "pre-hook.sh").is_file()
-        has_post_hook = (path / "post.sh").is_file() or (
-            path / "post-hook.sh"
-        ).is_file()
+        pre_hook_path = self._find_hook_path(path, "pre")
+        post_hook_path = self._find_hook_path(path, "post")
         has_config = (path / "config.yaml").is_file()
 
         return ResolvedCommand(
@@ -146,7 +172,7 @@ class CommandResolver:
             path=path,
             tier=tier,
             has_schema=has_schema,
-            has_pre_hook=has_pre_hook,
-            has_post_hook=has_post_hook,
+            pre_hook_path=pre_hook_path,
+            post_hook_path=post_hook_path,
             has_config=has_config,
         )
