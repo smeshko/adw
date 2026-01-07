@@ -626,17 +626,19 @@ class Orchestrator:
                         "reason": "single_phase_execution",
                     },
                 )
-                self.progress_display.console.print()
-                self.progress_display.console.print(
-                    f"[green]✓[/green] Phase '{phase}' complete"
-                )
-                self.progress_display.console.print(
-                    f"[blue]Worktree:[/blue] {worktree_path}"
-                )
-                self.progress_display.console.print(
-                    f"Run [yellow]adw cleanup {run_id}[/yellow] when done"
-                )
-                self.progress_display.console.print()
+                # Display worktree preservation message if progress display available
+                if self.progress_display:
+                    self.progress_display.console.print()
+                    self.progress_display.console.print(
+                        f"[green]✓[/green] Phase '{phase}' complete"
+                    )
+                    self.progress_display.console.print(
+                        f"[blue]Worktree:[/blue] {worktree_path}"
+                    )
+                    self.progress_display.console.print(
+                        f"Run [yellow]adw cleanup {run_id}[/yellow] when done"
+                    )
+                    self.progress_display.console.print()
 
         except ADWError as e:
             # Mark as failed

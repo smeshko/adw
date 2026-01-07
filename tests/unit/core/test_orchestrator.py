@@ -1585,12 +1585,70 @@ class TestSinglePhaseWorktreeRetention:
         # Run single phase (signature: phase, feature_description)
         context = orchestrator.run_single_phase("plan", "Test feature")
 
-        # Verify console.print was called with worktree info
-        # Look for calls containing the worktree path
+        # Verify console.print was called with specific worktree info
         print_calls = [str(c) for c in mock_console.print.call_args_list]
-        worktree_mentioned = any("Worktree" in str(c) for c in print_calls)
-        cleanup_mentioned = any("cleanup" in str(c) for c in print_calls)
 
-        assert worktree_mentioned or len(print_calls) > 0, (
-            "Expected console output about worktree preservation"
+        # Must have worktree path mentioned
+        worktree_mentioned = any("Worktree" in str(c) for c in print_calls)
+        assert worktree_mentioned, (
+            f"Expected 'Worktree' in console output, got: {print_calls}"
         )
+
+        # Must have cleanup command mentioned
+        cleanup_mentioned = any("cleanup" in str(c) for c in print_calls)
+        assert cleanup_mentioned, (
+            f"Expected 'cleanup' instruction in console output, got: {print_calls}"
+        )
+
+        # Must have phase completion message
+        phase_complete = any("complete" in str(c).lower() for c in print_calls)
+        assert phase_complete, (
+            f"Expected phase completion message in console output, got: {print_calls}"
+        )
+
+    def test_single_phase_works_without_progress_display(
+        self,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Single-phase run works correctly when progress_display is None.
+
+        The orchestrator should not crash when progress_display is not set,
+        even when preserving a worktree (ISS-018 fix).
+        """
+        from adw.core.orchestrator import Orchestrator
+        from adw.models import WorktreeConfig
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        worktree_config = WorktreeConfig(enabled=True, base_dir="trees")
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            worktree_config=worktree_config,
+            # progress_display is intentionally NOT set (None)
+        )
+
+        # Ensure progress_display is None
+        assert orchestrator.progress_display is None
+
+        # Mock worktree creation to return a path
+        worktree_path = tmp_path / "trees" / "test-run"
+        orchestrator._create_worktree_for_run = MagicMock(return_value=worktree_path)
+
+        # This should NOT raise AttributeError even without progress_display
+        context = orchestrator.run_single_phase("plan", "Test feature")
+
+        # Verify the run completed successfully
+        assert context.status == "completed"
+        assert "plan" in context.phase_history
