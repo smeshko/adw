@@ -108,8 +108,8 @@ class TestPhaseStart:
         progress.on_phase_start("validate")
 
         output_text = output.getvalue()
-        # verify is the 3rd phase (index 2), so "Phase 3/5"
-        assert "3/5" in output_text
+        # ISS-019: validate is the 3rd phase (index 2), so "Phase 3/4"
+        assert "3/4" in output_text
 
     def test_on_phase_start_uses_phase_color(self) -> None:
         """Test that phase start uses correct color."""
@@ -393,8 +393,7 @@ class TestPipelineSummary:
         )
 
         output_text = output.getvalue()
-        # Should have pending indicator for uncompleted phases
-        assert "verify" in output_text
+        # Should have pending indicator for uncompleted phases (ISS-019: verify removed)
         assert "validate" in output_text
         assert "document" in output_text
 
@@ -452,8 +451,8 @@ class TestProgressBar:
         progress.on_phase_complete("plan", result)
 
         output_text = output.getvalue()
-        # Rich adds escape codes around percentage
-        assert "20" in output_text and "%" in output_text  # 1 of 5 phases = 20%
+        # Rich adds escape codes around percentage (ISS-019: 1 of 4 phases = 25%)
+        assert "25" in output_text and "%" in output_text  # 1 of 4 phases = 25%
 
     def test_show_progress_bar_shows_current_phase_indicator(self) -> None:
         """Test that progress bar shows ► for current phase."""

@@ -691,10 +691,10 @@ class TestRetryLogic:
         context = orchestrator.run("Test feature")
 
         # Should succeed after retries
-        # (2 failures + success on plan = 3, then 4 more phases)
+        # ISS-019: (2 failures + success on plan = 3, then 3 more phases)
         assert context.status == "completed"
-        # Plan: 3 attempts (2 failures + 1 success) + 4 other phases = 7 calls
-        assert call_count == 7
+        # Plan: 3 attempts (2 failures + 1 success) + 3 other phases = 6 calls
+        assert call_count == 6
 
     def test_retry_exhaustion_raises_error(
         self,
@@ -825,8 +825,8 @@ class TestRetryLogic:
         context = orchestrator.run("Test feature")
 
         assert context.status == "completed"
-        # 1 failure + 5 successes = 6 calls
-        assert call_count == 6
+        # ISS-019: 1 failure + 4 successes = 5 calls (verify phase removed)
+        assert call_count == 5
 
 
 class TestTransitionPerformance:
@@ -861,12 +861,13 @@ class TestTransitionPerformance:
             orchestrator.run("Test feature")
 
             # Should have logged phase completed with duration
+            # ISS-019: 4 phases now (verify removed)
             completed_calls = [
                 call
                 for call in mock_logger.info.call_args_list
                 if "Phase completed" in str(call)
             ]
-            assert len(completed_calls) == 5  # One per phase
+            assert len(completed_calls) == 4  # One per phase (plan, build, validate, document)
 
     def test_slow_transition_logs_debug(
         self,
