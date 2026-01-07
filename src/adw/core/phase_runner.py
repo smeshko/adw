@@ -1022,7 +1022,7 @@ class PhaseRunner:
                 extra={"run_id": context.run_id, "artifact": pr_desc_name},
             )
 
-        # Validate phase: copy evidence manifest to artifacts if it exists (Story 9.4, ISS-019)
+        # Validate phase: copy evidence manifest to artifacts (Story 9.4, ISS-019)
         if phase == "validate":
             evidence_artifacts = self._capture_evidence_manifest(context)
             artifacts.extend(evidence_artifacts)
@@ -1052,7 +1052,7 @@ class PhaseRunner:
         self,
         context: RunContext,
     ) -> list[str]:
-        """Copy evidence manifest to validate artifacts if it exists (Story 9.4, ISS-019).
+        """Copy evidence manifest to validate artifacts (Story 9.4, ISS-019).
 
         Makes the evidence manifest available to the document phase template
         via {{artifacts.validate.evidence_manifest}}.

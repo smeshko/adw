@@ -62,7 +62,7 @@ class EvidenceValidator:
             return [
                 ValidationIssue(
                     source=ValidationSource.EVIDENCE,
-                    message="Evidence manifest not found - evidence gathering may not have run",
+                    message="Evidence manifest not found - evidence gathering may have failed",
                     severity="high",
                 )
             ]

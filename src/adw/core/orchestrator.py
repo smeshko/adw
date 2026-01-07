@@ -1186,7 +1186,7 @@ class Orchestrator:
                 context, phase, artifacts_override=artifacts_override
             )
 
-            # Gather evidence after validate phase LLM execution (Story ISS-010, ISS-019)
+            # Gather evidence after validate phase LLM execution (ISS-010, ISS-019)
             if phase == "validate":
                 self._gather_evidence(context)
 
@@ -1589,7 +1589,7 @@ class Orchestrator:
                     },
                 )
 
-                # Copy evidence to validate artifacts for Document phase access (ISS-019)
+                # Copy evidence to validate artifacts for Document phase (ISS-019)
                 validate_evidence_dir = (
                     run_dir / "artifacts" / "validate" / "evidence"
                 )

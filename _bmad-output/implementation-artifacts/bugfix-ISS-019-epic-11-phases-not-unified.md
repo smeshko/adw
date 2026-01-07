@@ -118,7 +118,10 @@ Test files updated to remove verify phase references:
 - [x] Many other test files with verify references (batch sed updates)
 
 ### Task 8: Run tests and fix failures
-- [ ] Run `pytest` and fix all failures
+- [x] Run `pytest` and fix all failures
+  - Fixed test_orchestrator.py: retry tests (7->6 and 6->5 calls, 5->4 phase completed)
+  - Fixed test_progress.py: phase number assertions (3/5->3/4, 20%->25%)
+  - Fixed pipeline summary test to remove verify phase references
 - [ ] Run `mypy src/adw` and fix type errors
 - [ ] Run `ruff check src/adw` and fix linting errors
 
