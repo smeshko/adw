@@ -65,9 +65,9 @@ so that I don't experience duplicate work, wasted tokens, and confusing UX from 
 - [x] Renamed methods: `_gather_evidence_after_verify` → `_gather_evidence`, `_optimize_evidence_after_verify` → `_optimize_evidence`
 
 ### Task 3: Update phase runner
-- [ ] Edit `src/adw/core/phase_runner.py`
-- [ ] Change `if phase == "verify"` to `if phase == "validation"` at line ~1026
-- [ ] Update `_capture_evidence_manifest` method phase check
+- [x] Edit `src/adw/core/phase_runner.py`
+- [x] Change `if phase == "verify"` to `if phase == "validate"` at line ~1026
+- [x] Update `_capture_evidence_manifest` method phase check and artifact storage
 
 ### Task 4: Delete verify defaults
 - [ ] Delete directory `src/adw/defaults/commands/verify/`

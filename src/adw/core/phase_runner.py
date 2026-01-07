@@ -133,7 +133,7 @@ class PhaseRunner:
         """Execute a single phase.
 
         Args:
-            phase: Phase name (plan, build, verify, validate, document).
+            phase: Phase name (plan, build, validate, document).
             context: Current run context.
             artifacts_override: Pre-loaded artifacts to use instead of loading
                 from the current run. Used for single-phase execution with
@@ -377,8 +377,8 @@ class PhaseRunner:
             variables["plan"] = artifacts_map["plan"]["plan_output"]
         if "build" in artifacts_map and "build_output" in artifacts_map["build"]:
             variables["implementation"] = artifacts_map["build"]["build_output"]
-        if "verify" in artifacts_map and "verify_output" in artifacts_map["verify"]:
-            variables["output"] = artifacts_map["verify"]["verify_output"]
+        if "validate" in artifacts_map and "validate_output" in artifacts_map["validate"]:
+            variables["output"] = artifacts_map["validate"]["validate_output"]
 
         # Load schema from command directory if exists (for validate phase)
         schema_path = command.path / "schema.json"
@@ -898,7 +898,7 @@ class PhaseRunner:
         The commit is created in the worktree context if applicable.
 
         Args:
-            phase: Current phase name (e.g., "build", "verify").
+            phase: Current phase name (e.g., "build", "validate").
             context: Run context with run_id and feature_description.
 
         Returns:
@@ -1022,8 +1022,8 @@ class PhaseRunner:
                 extra={"run_id": context.run_id, "artifact": pr_desc_name},
             )
 
-        # Verify phase: copy evidence manifest to artifacts if it exists (Story 9.4)
-        if phase == "verify":
+        # Validate phase: copy evidence manifest to artifacts if it exists (Story 9.4, ISS-019)
+        if phase == "validate":
             evidence_artifacts = self._capture_evidence_manifest(context)
             artifacts.extend(evidence_artifacts)
 
@@ -1052,10 +1052,10 @@ class PhaseRunner:
         self,
         context: RunContext,
     ) -> list[str]:
-        """Copy evidence manifest to verify artifacts if it exists (Story 9.4).
+        """Copy evidence manifest to validate artifacts if it exists (Story 9.4, ISS-019).
 
         Makes the evidence manifest available to the document phase template
-        via {{artifacts.verify.evidence_manifest}}.
+        via {{artifacts.validate.evidence_manifest}}.
 
         Args:
             context: Run context.
@@ -1085,14 +1085,14 @@ class PhaseRunner:
 
             self.artifact_manager.store(
                 context.run_id,
-                "verify",
+                "validate",
                 "evidence_manifest.json",
                 manifest_content,
             )
             artifacts.append("evidence_manifest.json")
 
             logger.info(
-                "Evidence manifest copied to verify artifacts",
+                "Evidence manifest copied to validate artifacts",
                 extra={"run_id": context.run_id},
             )
         except OSError as e:
