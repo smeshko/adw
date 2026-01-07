@@ -614,9 +614,31 @@ class Orchestrator:
                 extra={"run_id": run_id, "phase": phase},
             )
 
-            # Clean up worktree on success (Story 10.1)
+            # Preserve worktree for single-phase runs (ISS-018)
+            # User intent: single-phase = stop and inspect before deciding next steps
             if should_use_worktree and worktree_path is not None:
-                self._cleanup_worktree(run_id, preserve=False)
+                logger.info(
+                    "Worktree preserved for inspection",
+                    extra={
+                        "run_id": run_id,
+                        "worktree_path": str(worktree_path),
+                        "phase": phase,
+                        "reason": "single_phase_execution",
+                    },
+                )
+                # Display worktree preservation message if progress display available
+                if self.progress_display:
+                    self.progress_display.console.print()
+                    self.progress_display.console.print(
+                        f"[green]✓[/green] Phase '{phase}' complete"
+                    )
+                    self.progress_display.console.print(
+                        f"[blue]Worktree:[/blue] {worktree_path}"
+                    )
+                    self.progress_display.console.print(
+                        f"Run [yellow]adw cleanup {run_id}[/yellow] when done"
+                    )
+                    self.progress_display.console.print()
 
         except ADWError as e:
             # Mark as failed
