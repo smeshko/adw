@@ -1,7 +1,7 @@
 """CLI evidence capture for terminal output.
 
 This module provides the CLICaptureStrategy class for executing CLI commands
-and capturing their output during the Verify phase of evidence gathering.
+and capturing their output during the Validate phase of evidence gathering.
 """
 
 import subprocess
@@ -15,7 +15,7 @@ class CLICaptureStrategy:
     """Strategy for capturing CLI terminal output as evidence.
 
     Executes commands and captures stdout, stderr, exit code, and timing
-    information for evidence gathering during the Verify phase.
+    information for evidence gathering during the Validate phase.
 
     Example:
         >>> strategy = CLICaptureStrategy()

@@ -144,20 +144,17 @@ class StatusDisplay:
 
         phase_specific = {
             "plan": [
-                "Verify the feature description is clear and actionable",
+                "Check the feature description is clear and actionable",
                 "Check if required context files exist",
             ],
             "build": [
                 "Review code changes for syntax or type errors",
                 "Ensure all dependencies are installed",
             ],
-            "verify": [
-                "Check test output for specific failures",
-                "Verify test fixtures and mock data are correct",
-            ],
             "validate": [
                 "Review validation criteria in the plan",
                 "Check if all acceptance criteria are testable",
+                "Check test output for specific failures",
             ],
             "document": [
                 "Ensure documentation templates exist",

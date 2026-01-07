@@ -1,7 +1,7 @@
 """Evidence-related models for ADW evidence gathering.
 
 This module contains models for platform detection and evidence gathering
-strategy selection during the Verify phase. Also includes API, CLI, and
+strategy selection during the Validate phase. Also includes API, CLI, and
 web screenshot models for capturing evidence.
 
 Includes:
@@ -28,7 +28,7 @@ class PlatformType(str, Enum):
     """Type of project platform for evidence gathering.
 
     The platform type determines which evidence gathering strategy
-    to use during the Verify phase:
+    to use during the Validate phase:
     - CLI: Capture terminal output from CLI commands
     - WEB: Capture browser screenshots
     - MOBILE: Capture device/simulator screenshots
@@ -58,7 +58,7 @@ class Confidence(str, Enum):
 
 
 class EvidenceStrategy(str, Enum):
-    """Strategy for gathering evidence during Verify phase.
+    """Strategy for gathering evidence during Validate phase.
 
     Each strategy determines how evidence is captured:
     - TERMINAL_OUTPUT: Capture stdout/stderr from CLI commands
@@ -359,7 +359,7 @@ class CommandConfig(BaseModel):
     """Configuration for a CLI command to execute during evidence gathering.
 
     This model represents a single command that will be executed to gather
-    evidence during the Verify phase for CLI projects.
+    evidence during the Validate phase for CLI projects.
 
     Attributes:
         name: Unique identifier for the command (used in output filenames)
@@ -465,7 +465,7 @@ class CLIEvidenceSummary(BaseModel):
     """Summary of CLI evidence gathering results.
 
     Aggregates the results of executing multiple CLI commands during
-    the Verify phase, providing counts and detailed results.
+    the Validate phase, providing counts and detailed results.
 
     Attributes:
         total_commands: Total number of commands executed
@@ -870,7 +870,7 @@ class MobileEvidenceSummary(BaseModel):
 
 
 class EvidenceType(str, Enum):
-    """Type of evidence captured during the Verify phase.
+    """Type of evidence captured during the Validate phase.
 
     Used to categorize evidence items in the manifest:
     - CLI: Terminal/command output captures
@@ -905,7 +905,7 @@ class EvidenceStatus(str, Enum):
 class EvidenceItem(BaseModel):
     """Single piece of captured evidence.
 
-    Represents one evidence item captured during the Verify phase,
+    Represents one evidence item captured during the Validate phase,
     linking it to the plan step it verifies (if determinable).
 
     Attributes:

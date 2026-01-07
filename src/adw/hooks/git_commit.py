@@ -37,7 +37,7 @@ def format_commit_message(
     that need different commit message formats.
 
     Args:
-        phase: The phase name (e.g., "build", "verify").
+        phase: The phase name (e.g., "build", "validate").
         feature: The feature description for this run.
         run_id: The unique run identifier.
         template: Optional custom template. Supports placeholders:
@@ -241,7 +241,7 @@ def create_commit(
     up to MAX_HOOK_RETRIES times.
 
     Args:
-        phase: The phase name (e.g., "build", "verify").
+        phase: The phase name (e.g., "build", "validate").
         feature: The feature description for this run.
         run_id: The unique run identifier.
         template: Optional custom commit message template.

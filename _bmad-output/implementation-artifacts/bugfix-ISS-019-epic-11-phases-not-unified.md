@@ -78,15 +78,24 @@ so that I don't experience duplicate work, wasted tokens, and confusing UX from 
 - [x] Update primary path to `artifacts/validate/`, keep `artifacts/verify/` for backwards compat
 
 ### Task 6: Update other source files with verify references
-Files to check and update:
-- [ ] `src/adw/core/artifact_manager.py`
-- [ ] `src/adw/core/index_manager.py`
-- [ ] `src/adw/core/interruption.py`
-- [ ] `src/adw/cli/progress.py`
-- [ ] `src/adw/cli/dry_run.py`
-- [ ] `src/adw/cli/status_display.py`
-- [ ] `src/adw/hooks/git_commit.py`
-- [ ] `src/adw/exceptions.py`
+Files checked and updated:
+- [x] `src/adw/core/artifact_manager.py`
+- [x] `src/adw/core/index_manager.py`
+- [x] `src/adw/core/interruption.py` (fixed _PHASE_ORDER)
+- [x] `src/adw/core/orchestrator.py` (docstrings)
+- [x] `src/adw/cli/progress.py` (PHASE_COLORS)
+- [x] `src/adw/cli/status_display.py`
+- [x] `src/adw/cli/app.py`
+- [x] `src/adw/hooks/git_commit.py`
+- [x] `src/adw/exceptions.py`
+- [x] `src/adw/models/context.py`
+- [x] `src/adw/models/evidence.py`
+- [x] `src/adw/evidence/__init__.py`
+- [x] `src/adw/evidence/cli_capture.py`
+- [x] `src/adw/evidence/cli_gatherer.py`
+- [x] `src/adw/evidence/api_capture.py`
+- [x] `src/adw/defaults/commands/validate/config.yaml`
+- [x] `src/adw/defaults/commands/document/prompt.md`
 
 ### Task 7: Update test files
 Key test files to update (30 files reference "verify"):

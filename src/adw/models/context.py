@@ -98,7 +98,7 @@ class RunContext(BaseModel):
     platform: str | None = Field(
         default=None,
         description="Detected platform type (cli, web, mobile, backend). "
-        "Set during verify phase by platform detection.",
+        "Set during validate phase by platform detection.",
     )
 
     @computed_field  # type: ignore[prop-decorator]

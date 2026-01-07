@@ -17,8 +17,8 @@ Generate a structured Pull Request description for the implemented feature.
 
 ## Evidence
 
-**Available Verify Artifacts:**
-{{artifacts.verify.*}}
+**Available Validate Artifacts:**
+{{artifacts.validate.*}}
 
 ## Instructions
 
@@ -26,7 +26,7 @@ Generate a GitHub-flavored Markdown PR description with the following structure:
 
 1. **Summary** (1-2 sentences): Concise description of what this PR accomplishes
 2. **Changes**: Bullet list of key changes made (derived from the build artifacts above)
-3. **Testing**: How the changes were verified (from verify artifacts/evidence)
+3. **Testing**: How the changes were verified (from validate artifacts/evidence)
 4. **Evidence**: Links to relevant evidence items if available (screenshots, API responses, etc.)
 
 Use the artifact information above to construct the PR description:

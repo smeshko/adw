@@ -2,7 +2,7 @@
 
 This module provides the APICaptureStrategy class that handles
 HTTP requests to configured endpoints and captures request/response
-pairs for evidence gathering during the Verify phase.
+pairs for evidence gathering during the Validate phase.
 """
 
 from __future__ import annotations

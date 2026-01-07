@@ -6,7 +6,7 @@ timeout_seconds: 300
 
 # Input files for validate phase
 # input_files:
-#   output: artifacts/verify/verify_output.md
+#   output: artifacts/validate/validate_output.md
 
 # LLM settings for this phase
 # llm:

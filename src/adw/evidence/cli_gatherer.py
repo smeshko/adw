@@ -1,7 +1,7 @@
-"""CLI evidence gatherer for the Verify phase.
+"""CLI evidence gatherer for the Validate phase.
 
 This module provides the CLIEvidenceGatherer class that orchestrates
-CLI terminal output evidence gathering during the Verify phase.
+CLI terminal output evidence gathering during the Validate phase.
 """
 
 from pathlib import Path

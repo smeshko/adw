@@ -178,7 +178,7 @@ def generate_evidence_manifest(
     """Generate a complete evidence manifest for a run.
 
     This is the main integration point for manifest generation during
-    the Verify phase. It combines:
+    the Validate phase. It combines:
     - ManifestGenerator for creating the manifest from summaries
     - PlanStepLinker for linking evidence to plan steps
     - ManifestWriter for persisting to disk
@@ -266,7 +266,7 @@ def optimize_evidence(
     """Optimize evidence files for storage and transfer.
 
     This is the main integration point for evidence optimization during
-    the Verify phase. It should be called BEFORE manifest generation
+    the Validate phase. It should be called BEFORE manifest generation
     to ensure optimized file sizes are reflected in the manifest.
 
     Optimization includes:

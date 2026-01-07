@@ -121,7 +121,7 @@ def run(
         None,
         "--phase",
         "-p",
-        help="Execute single phase only (plan, build, verify, validate, document)",
+        help="Execute single phase only (plan, build, validate, document)",
         callback=validate_phase,
     ),
     from_run: str | None = typer.Option(

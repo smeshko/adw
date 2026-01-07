@@ -36,8 +36,8 @@ __all__ = [
     "prepare_resume",
 ]
 
-# Default phase order for ADW workflow
-_PHASE_ORDER: list[str] = ["plan", "build", "verify", "validate", "document"]
+# Default phase order for ADW workflow (ISS-019: verify removed)
+_PHASE_ORDER: list[str] = ["plan", "build", "validate", "document"]
 
 
 class ShutdownRequested(BaseException):

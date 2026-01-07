@@ -1,7 +1,7 @@
 """Main orchestrator for ADW pipeline execution.
 
 This module provides the Orchestrator class that coordinates phase execution
-in the fixed order: Plan → Build → Verify → Validate → Document.
+in the fixed order: Plan → Build → Validate → Document.
 
 Key responsibilities:
 - Phase sequencing and transitions
@@ -98,7 +98,7 @@ class Orchestrator:
     """Main orchestrator for ADW pipeline execution.
 
     Coordinates phase execution in fixed order:
-    Plan → Build → Verify → Validate → Document
+    Plan → Build → Validate → Document
 
     Handles:
     - Phase sequencing and transitions

@@ -135,7 +135,7 @@ class IndexManager:
             StateError: If run_id is not found in the index (INDEX_ENTRY_NOT_FOUND).
 
         Example:
-            >>> manager.update_run(run_id, status="completed", phase_reached="verify")
+            >>> manager.update_run(run_id, status="completed", phase_reached="validate")
         """
         if not self.index_path.exists():
             raise StateError(

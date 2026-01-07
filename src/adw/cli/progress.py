@@ -60,7 +60,6 @@ class ProgressDisplay:
     PHASE_COLORS: dict[str, str] = {
         "plan": "blue",
         "build": "cyan",
-        "verify": "yellow",
         "validate": "magenta",
         "document": "green",
     }
@@ -93,7 +92,7 @@ class ProgressDisplay:
         """Display phase starting message.
 
         Args:
-            phase: Phase name starting (plan, build, verify, validate, document).
+            phase: Phase name starting (plan, build, validate, document).
         """
         self._current_phase = phase
         color = self.PHASE_COLORS.get(phase, "white")
@@ -120,7 +119,7 @@ class ProgressDisplay:
     def _show_progress_bar(self, current_phase: str | None = None) -> None:
         """Display the overall pipeline progress bar.
 
-        Shows: [Plan] ✓ [Build] ► [Verify] · [Validate] · [Document]
+        Shows: [Plan] ✓ [Build] ► [Validate] · [Document]
         with percentage complete.
 
         Args:

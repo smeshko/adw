@@ -425,7 +425,7 @@ class PhaseError(ADWError):
         Args:
             code: Unique error code (e.g., "PHASE_FAILED").
             message: Human-readable error message.
-            phase: The phase that failed (e.g., "build", "verify").
+            phase: The phase that failed (e.g., "build", "validate").
             suggestion: Optional actionable next step.
             recoverable: Whether the operation can be retried (default False).
         """

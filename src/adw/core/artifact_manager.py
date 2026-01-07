@@ -7,7 +7,7 @@ of phase artifacts:
 
 Example:
     - artifacts/build/diff.txt
-    - artifacts/verify/evidence.json
+    - artifacts/validate/evidence.json
 """
 
 import json
@@ -56,7 +56,7 @@ class ArtifactManager:
 
         Args:
             run_id: The run ID.
-            phase: Phase that produced the artifact (e.g., "build", "verify").
+            phase: Phase that produced the artifact (e.g., "build", "validate").
             name: Artifact filename.
             content: Artifact content (text or binary).
 
