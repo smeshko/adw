@@ -1436,8 +1436,12 @@ class TestOrchestratorWorktree:
         assert orchestrator._worktree_manager.base_dir == "trees"
 
 
-class TestSinglePhaseWorktreeRetention:
-    """Tests for single-phase worktree preservation (ISS-018)."""
+class TestWorktreeNoAutoDelete:
+    """Tests for worktree preservation - worktrees should never be auto-deleted (ISS-020).
+
+    ISS-020 extends ISS-018 to ensure worktrees are NEVER automatically deleted.
+    Only the explicit 'adw cleanup <run_id>' command should delete worktrees.
+    """
 
     def test_single_phase_preserves_worktree_on_success(
         self,
@@ -1481,7 +1485,7 @@ class TestSinglePhaseWorktreeRetention:
         # Verify _cleanup_worktree was NOT called for single-phase success
         orchestrator._cleanup_worktree.assert_not_called()
 
-    def test_multi_phase_removes_worktree_on_success(
+    def test_multi_phase_preserves_worktree_on_success(
         self,
         mock_context_manager: MagicMock,
         mock_snapshot_manager: MagicMock,
@@ -1490,10 +1494,10 @@ class TestSinglePhaseWorktreeRetention:
         mock_phase_runner: MagicMock,
         tmp_path: Path,
     ) -> None:
-        """Multi-phase run removes worktree after success.
+        """Multi-phase run preserves worktree after success (ISS-020).
 
-        Full pipeline runs should clean up the worktree on successful
-        completion, as the work is complete.
+        Worktrees are NEVER automatically deleted. Users must explicitly
+        use 'adw cleanup <run_id>' to remove worktrees.
         """
         from adw.core.orchestrator import Orchestrator
         from adw.models import WorktreeConfig
@@ -1516,23 +1520,11 @@ class TestSinglePhaseWorktreeRetention:
         # Mock the cleanup method to track calls
         orchestrator._cleanup_worktree = MagicMock()
 
-        # Create a mock context that uses worktree
-        mock_context = MagicMock()
-        mock_context.use_worktree = True
-        mock_context.worktree_path = tmp_path / "trees" / "test-run"
-        mock_context.run_id = "test-run-id"
-        mock_context.phase_history = ["plan", "build", "validate", "document"]
+        # Run full pipeline (signature: feature_description)
+        orchestrator.run("Test feature")
 
-        # Patch to return our mock context
-        with patch.object(orchestrator, "run") as mock_run:
-            # Call the original run method's cleanup logic manually
-            # by simulating what happens after successful completion
-            orchestrator._cleanup_worktree(mock_context.run_id, preserve=False)
-
-        # Verify _cleanup_worktree was called with preserve=False
-        orchestrator._cleanup_worktree.assert_called_once_with(
-            mock_context.run_id, preserve=False
-        )
+        # Verify _cleanup_worktree was NOT called (ISS-020: no auto-delete)
+        orchestrator._cleanup_worktree.assert_not_called()
 
     def test_single_phase_prints_worktree_location(
         self,
@@ -1649,3 +1641,123 @@ class TestSinglePhaseWorktreeRetention:
         # Verify the run completed successfully
         assert context.status == "completed"
         assert "plan" in context.phase_history
+
+    def test_failed_run_preserves_worktree(
+        self,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Failed runs preserve worktree regardless of preserve_on_failure config (ISS-020).
+
+        Worktrees are NEVER automatically deleted, even on failure.
+        The preserve_on_failure config option is deprecated and ignored.
+        """
+        from adw.core.orchestrator import Orchestrator
+        from adw.exceptions import PhaseError
+        from adw.models import WorktreeConfig
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        # Explicitly set preserve_on_failure=False to verify it's ignored
+        worktree_config = WorktreeConfig(
+            enabled=True,
+            base_dir="trees",
+            preserve_on_failure=False,  # This should be ignored per ISS-020
+        )
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            worktree_config=worktree_config,
+        )
+
+        # Mock the cleanup method to track calls
+        orchestrator._cleanup_worktree = MagicMock()
+
+        # Make phase runner fail
+        mock_phase_runner.run.side_effect = PhaseError(
+            code="PHASE_FAILED",
+            message="Test failure",
+            phase="plan",
+            recoverable=False,
+        )
+
+        # Run should raise the error
+        import pytest
+
+        with pytest.raises(PhaseError):
+            orchestrator.run("Test feature")
+
+        # Verify _cleanup_worktree was NOT called (ISS-020: no auto-delete)
+        orchestrator._cleanup_worktree.assert_not_called()
+
+    def test_worktree_info_message_on_multi_phase_success(
+        self,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Multi-phase success shows worktree path and cleanup instructions (ISS-020).
+
+        After successful completion, user should see worktree location
+        and how to clean it up.
+        """
+        from adw.core.orchestrator import Orchestrator
+        from adw.models import WorktreeConfig
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        worktree_config = WorktreeConfig(enabled=True, base_dir="trees")
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            worktree_config=worktree_config,
+        )
+
+        # Mock the progress display with a real mock console
+        from adw.cli.progress import ProgressDisplay
+
+        mock_console = MagicMock()
+        mock_progress_display = MagicMock(spec=ProgressDisplay)
+        mock_progress_display.console = mock_console
+        orchestrator.progress_display = mock_progress_display
+
+        # Mock worktree creation to return a path
+        worktree_path = tmp_path / "trees" / "test-run"
+        orchestrator._create_worktree_for_run = MagicMock(return_value=worktree_path)
+
+        # Run full pipeline
+        orchestrator.run("Test feature")
+
+        # Verify console.print was called with worktree info
+        print_calls = [str(c) for c in mock_console.print.call_args_list]
+
+        # Must have worktree path mentioned
+        worktree_mentioned = any("Worktree" in str(c) for c in print_calls)
+        assert worktree_mentioned, (
+            f"Expected 'Worktree' in console output, got: {print_calls}"
+        )
+
+        # Must have cleanup command mentioned
+        cleanup_mentioned = any("cleanup" in str(c) for c in print_calls)
+        assert cleanup_mentioned, (
+            f"Expected 'cleanup' instruction in console output, got: {print_calls}"
+        )
