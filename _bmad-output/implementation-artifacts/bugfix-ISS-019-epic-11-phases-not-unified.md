@@ -98,16 +98,24 @@ Files checked and updated:
 - [x] `src/adw/defaults/commands/document/prompt.md`
 
 ### Task 7: Update test files
-Key test files to update (30 files reference "verify"):
-- [ ] `tests/unit/core/test_orchestrator.py`
-- [ ] `tests/unit/core/test_constants.py`
-- [ ] `tests/unit/core/test_phase_runner.py`
-- [ ] `tests/unit/validation/test_integration.py`
-- [ ] `tests/unit/validation/validators/test_evidence_validator.py`
-- [ ] `tests/unit/cli/test_progress.py`
-- [ ] `tests/integration/core/test_artifact_flow_integration.py`
-- [ ] `tests/fixtures/runs/completed_run/context.json`
-- [ ] All other test files with "verify" references
+Test files updated to remove verify phase references:
+- [x] `tests/unit/core/test_orchestrator.py` - Fixed phase sequence and renamed test
+- [x] `tests/unit/core/test_constants.py` - Removed per ADR-001 (enum existence test)
+- [x] `tests/unit/core/test_interruption.py` - Fixed _PHASE_ORDER and resume tests
+- [x] `tests/unit/core/test_artifact_passing.py` - Changed verify to validate
+- [x] `tests/unit/core/test_artifact_manager.py` - Changed verify to validate
+- [x] `tests/unit/validation/test_integration.py` - Fixed phase_history
+- [x] `tests/unit/validation/validators/test_evidence_validator.py`
+- [x] `tests/unit/cli/test_progress.py` - Removed verify from PHASE_COLORS
+- [x] `tests/unit/cli/test_dry_run.py` - Fixed phase sequences
+- [x] `tests/unit/cli/test_run.py` - Fixed --phase verify to validate
+- [x] `tests/unit/commands/test_bundled_commands.py` - Removed verify test
+- [x] `tests/integration/cli/test_progress_integration.py` - Fixed phase checks
+- [x] `tests/integration/core/test_artifact_flow_integration.py`
+- [x] `tests/integration/core/test_artifact_manager_integration.py`
+- [x] `tests/integration/test_document_phase.py` - Fixed verify_dir to validate_dir
+- [x] `tests/fixtures/runs/completed_run/context.json`
+- [x] Many other test files with verify references (batch sed updates)
 
 ### Task 8: Run tests and fix failures
 - [ ] Run `pytest` and fix all failures
