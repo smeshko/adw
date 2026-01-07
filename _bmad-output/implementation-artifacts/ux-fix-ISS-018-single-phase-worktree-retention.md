@@ -27,9 +27,9 @@ so that **I can inspect, iterate, and continue work from where I left off**.
 ## Tasks / Subtasks
 
 ### Task 1: Identify Cleanup Call Points
-- [ ] Examine `orchestrator.py:619` - single-phase success cleanup
-- [ ] Compare with `orchestrator.py:362` - multi-phase success cleanup
-- [ ] Document the difference in behavior we need
+- [x] Examine `orchestrator.py:619` - single-phase success cleanup
+- [x] Compare with `orchestrator.py:362` - multi-phase success cleanup
+- [x] Document the difference in behavior we need
 
 ### Task 2: Modify Single-Phase Cleanup Logic
 - [ ] In `run_single_phase()`, change success path to preserve worktree
