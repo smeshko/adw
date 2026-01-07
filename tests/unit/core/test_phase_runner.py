@@ -58,8 +58,8 @@ def mock_command_resolver(command_dir: Path) -> MagicMock:
         name="plan",
         path=command_dir,
         tier="project",
-        has_pre_hook=True,
-        has_post_hook=True,
+        pre_hook_path=command_dir / "pre-hook.sh",
+        post_hook_path=command_dir / "post-hook.sh",
     )
     resolver.resolve.return_value = resolved
     return resolver
