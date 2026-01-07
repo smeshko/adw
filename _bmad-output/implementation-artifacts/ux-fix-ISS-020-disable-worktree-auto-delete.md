@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-020 - Disable Worktree Auto-Delete
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-07
@@ -15,54 +15,54 @@ So that **I always have full control over worktree lifecycle and can inspect, de
 
 ## Acceptance Criteria
 
-- [ ] Worktrees are NEVER deleted automatically after successful run completion (multi-phase or single-phase)
-- [ ] Worktrees are NEVER deleted automatically after resume completion
-- [ ] Worktrees are NEVER deleted automatically after failed runs
-- [ ] The only way to delete a worktree is via explicit `adw cleanup <run_id>` command
-- [ ] After any run completes (success or failure), a message is displayed showing worktree location and cleanup instructions
-- [ ] The `cleanup_on_success` config option is removed or ignored (breaking change documented)
-- [ ] All existing tests updated to reflect new behavior
-- [ ] New tests verify no auto-deletion occurs in any scenario
+- [x] Worktrees are NEVER deleted automatically after successful run completion (multi-phase or single-phase)
+- [x] Worktrees are NEVER deleted automatically after resume completion
+- [x] Worktrees are NEVER deleted automatically after failed runs
+- [x] The only way to delete a worktree is via explicit `adw cleanup <run_id>` command
+- [x] After any run completes (success or failure), a message is displayed showing worktree location and cleanup instructions
+- [x] The `cleanup_on_success` config option is removed or ignored (breaking change documented)
+- [x] All existing tests updated to reflect new behavior
+- [x] New tests verify no auto-deletion occurs in any scenario
 
 ## Tasks / Subtasks
 
 ### Task 1: Remove Auto-Cleanup from Orchestrator Success Paths
-- [ ] Remove `_cleanup_worktree(preserve=False)` call from `run()` method (line ~362)
-- [ ] Remove `_cleanup_worktree(preserve=False)` call from `resume()` method (line ~827)
-- [ ] Verify single-phase path already preserves (ISS-018 fix in review)
-- [ ] Add worktree info message to all completion paths
+- [x] Remove `_cleanup_worktree(preserve=False)` call from `run()` method (line ~362)
+- [x] Remove `_cleanup_worktree(preserve=False)` call from `resume()` method (line ~827)
+- [x] Verify single-phase path already preserves (ISS-018 fix in review)
+- [x] Add worktree info message to all completion paths
 
 ### Task 2: Remove Auto-Cleanup from Failure Paths
-- [ ] Change `preserve_on_failure` behavior - worktree always preserved regardless of config
-- [ ] Remove conditional cleanup based on `preserve_on_failure` config
-- [ ] Update failure paths to show worktree location and cleanup instructions
+- [x] Change `preserve_on_failure` behavior - worktree always preserved regardless of config
+- [x] Remove conditional cleanup based on `preserve_on_failure` config
+- [x] Update failure paths to show worktree location and cleanup instructions
 
 ### Task 3: Deprecate/Remove cleanup_on_success Config
-- [ ] Mark `cleanup_on_success` as deprecated or remove entirely
-- [ ] Update `WorktreeConfig` model in `src/adw/models/config.py`
-- [ ] Document breaking change in migration notes
+- [x] Mark `cleanup_on_success` as deprecated or remove entirely
+- [x] Update `WorktreeConfig` model in `src/adw/models/config.py`
+- [x] Document breaking change in migration notes
 
 ### Task 4: Standardize Completion Messages
-- [ ] Create consistent message format for all run completion scenarios:
+- [x] Create consistent message format for all run completion scenarios:
   ```
   ✓ Run complete (or ✗ Run failed)
   Worktree: <path>
   Run 'adw cleanup <run_id>' to remove
   ```
-- [ ] Use Rich console for styled output
-- [ ] Log worktree preservation with structured logging
+- [x] Use Rich console for styled output
+- [x] Log worktree preservation with structured logging
 
 ### Task 5: Update Tests
-- [ ] Update `test_multi_phase_removes_worktree_on_success` → `test_multi_phase_preserves_worktree_on_success`
-- [ ] Update `test_resume_removes_worktree_on_success` → `test_resume_preserves_worktree_on_success`
-- [ ] Add `test_failed_run_preserves_worktree`
-- [ ] Add `test_cleanup_is_only_deletion_method`
-- [ ] Remove/update tests for `cleanup_on_success` config
+- [x] Update `test_multi_phase_removes_worktree_on_success` → `test_multi_phase_preserves_worktree_on_success`
+- [x] Update `test_resume_removes_worktree_on_success` → `test_resume_preserves_worktree_on_success`
+- [x] Add `test_failed_run_preserves_worktree`
+- [x] Add `test_cleanup_is_only_deletion_method`
+- [x] Remove/update tests for `cleanup_on_success` config
 
 ### Task 6: Update Documentation
-- [ ] Update CLI help text if needed
-- [ ] Document new worktree lifecycle behavior
-- [ ] Add migration note for users relying on auto-cleanup
+- [x] Update CLI help text if needed
+- [x] Document new worktree lifecycle behavior
+- [x] Add migration note for users relying on auto-cleanup
 
 ---
 

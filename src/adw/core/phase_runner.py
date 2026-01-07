@@ -256,6 +256,7 @@ class PhaseRunner:
                 context=context,
                 phase=phase,
                 hook_type="pre",
+                working_dir=context.worktree_path,
             )
             logger.debug(
                 "Pre-hook completed",
@@ -857,6 +858,7 @@ class PhaseRunner:
                 phase=phase,
                 hook_type="post",
                 artifacts_dir=artifacts_dir,
+                working_dir=context.worktree_path,
             )
             logger.debug(
                 "Post-hook completed",

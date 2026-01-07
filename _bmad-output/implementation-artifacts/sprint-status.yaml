@@ -227,7 +227,7 @@ development_status:
   # UX Fix (from ISS-018)
   ux-fix-ISS-018-single-phase-worktree-retention: review
   # UX Fix (from ISS-020)
-  ux-fix-ISS-020-disable-worktree-auto-delete: ready-for-dev
+  ux-fix-ISS-020-disable-worktree-auto-delete: done
   epic-10-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
