@@ -265,7 +265,7 @@ class TestIndexEntryOptionalFields:
             update={
                 "status": "completed",
                 "completed_at": completed_at,
-                "phase_reached": "verify",
+                "phase_reached": "validate",
             }
         )
 
@@ -276,4 +276,4 @@ class TestIndexEntryOptionalFields:
         # Updated has new values
         assert updated.status == "completed"
         assert updated.completed_at == completed_at
-        assert updated.phase_reached == "verify"
+        assert updated.phase_reached == "validate"

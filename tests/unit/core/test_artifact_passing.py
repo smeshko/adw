@@ -227,7 +227,7 @@ class TestBuildArtifactsMap:
         artifact_manager.store(run_id, "build", "diff.txt", "Diff content")
         artifact_manager.store(run_id, "validate", "evidence.json", '{"passed": true}')
 
-        # When running validate phase, should have plan, build, verify
+        # When running validate phase, should have plan, build (not current phase)
         result = phase_runner._build_artifacts_map(run_id, "validate")
 
         assert "plan" in result
@@ -498,7 +498,7 @@ class TestNamedArtifactConventions:
         phase_runner: PhaseRunner,
         artifact_manager: ArtifactManager,
     ) -> None:
-        """Test that evidence.json is accessible as artifacts.verify.evidence."""
+        """Test that evidence.json is accessible as artifacts.validate.evidence."""
         run_id = make_run_id()
         artifact_manager.store(run_id, "validate", "evidence.json", '{"passed": true}')
 

@@ -465,7 +465,7 @@ class TestContextManagerDurability:
                     return FailingFile()
             return original_open(path, mode, *args, **kwargs)
 
-        modified = sample_context.model_copy(update={"current_phase": "verify"})
+        modified = sample_context.model_copy(update={"current_phase": "validate"})
 
         with patch("builtins.open", partial_write_open), pytest.raises(StateError):
             context_manager.save(modified)
@@ -532,7 +532,7 @@ class TestContextManagerDurability:
         (run_dir / ".lock").touch()
 
         # Perform multiple rapid saves
-        phases = ["plan", "build", "verify", "document"]
+        phases = ["plan", "build", "validate", "document"]
         for phase in phases:
             updated = sample_context.model_copy(update={"current_phase": phase})
             context_manager.save(updated)

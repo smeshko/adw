@@ -1,7 +1,7 @@
 """Tests for evidence gathering integration into orchestrator (Story ISS-010).
 
 This module tests that evidence gathering is properly called during the
-verify phase and that evidence is correctly copied to artifacts.
+validate phase and that evidence is correctly copied to artifacts.
 """
 
 from pathlib import Path
@@ -90,7 +90,7 @@ class TestCLIEvidenceGathererIntegration:
 class TestOrchestratorEvidenceIntegration:
     """Tests for evidence gathering integration in orchestrator.
 
-    These tests verify that _gather_evidence_after_verify is correctly
+    These tests verify that _gather_evidence is correctly
     integrated and calls the appropriate evidence gathering modules.
     """
 
@@ -147,7 +147,7 @@ class TestOrchestratorEvidenceIntegration:
             mock_gatherer.return_value = mock_instance
 
             # Run evidence gathering
-            orchestrator._gather_evidence_after_verify(mock_run_context)
+            orchestrator._gather_evidence(mock_run_context)
 
             # Check evidence directory was created
             evidence_dir = (
@@ -170,7 +170,7 @@ class TestOrchestratorEvidenceIntegration:
             )
             mock_gatherer.return_value = mock_instance
 
-            orchestrator._gather_evidence_after_verify(mock_run_context)
+            orchestrator._gather_evidence(mock_run_context)
 
             # Verify CLIEvidenceGatherer was instantiated
             mock_gatherer.assert_called_once()
@@ -282,7 +282,7 @@ class TestAPICaptureIntegration:
             mock_strategy.return_value.call_endpoint.return_value = mock_result
 
             # Run evidence gathering
-            orchestrator._gather_evidence_after_verify(mock_context)
+            orchestrator._gather_evidence(mock_context)
 
             # Verify APICaptureStrategy was instantiated with config
             mock_strategy.assert_called_once_with(
@@ -308,7 +308,7 @@ class TestAPICaptureIntegration:
             mock_config.return_value = None
 
             # Run evidence gathering
-            orchestrator._gather_evidence_after_verify(mock_context)
+            orchestrator._gather_evidence(mock_context)
 
             # APICaptureStrategy should not be instantiated
             mock_strategy.assert_not_called()
