@@ -1,30 +1,29 @@
 # {{title}}
 
-## Feature Description
-
-{{feature_description}}
+Created: {{date}}
 
 ---
 
-## Requirements Analysis
+## Story
 
-<!-- Extracted from input documents and feature analysis -->
+As a {{role}},
+I want {{action}},
+so that {{benefit}}.
 
-### Business Objectives
-
-{{business_objectives}}
-
-### Functional Requirements
-
-{{functional_requirements}}
-
-### Non-Functional Requirements
-
-{{non_functional_requirements}}
-
-### Acceptance Criteria
+## Acceptance Criteria
 
 {{acceptance_criteria}}
+
+## Tasks / Subtasks
+
+{{tasks_subtasks}}
+
+---
+
+## Relevant Feature Documentation
+
+<!-- Populated from analysis - existing patterns and knowledge -->
+{{conditional_docs_content}}
 
 ---
 
@@ -58,17 +57,17 @@
 
 ---
 
-## Codebase Intelligence
+## Previous Story Intelligence
 
-### Existing Patterns to Reuse
+<!-- Learnings from codebase patterns and git history -->
+{{previous_story_intelligence}}
 
-<!-- Similar implementations found in codebase -->
-{{codebase_patterns}}
+---
 
-### Git History Insights
+## Git Intelligence
 
-<!-- Recent relevant changes and patterns -->
-{{git_intelligence}}
+<!-- Recent commit patterns, files modified, conventions observed -->
+{{git_intelligence_summary}}
 
 ---
 
@@ -79,20 +78,40 @@
 
 ---
 
-## Implementation Tasks
-
-<!-- Ordered by dependency, with specific file paths and code locations -->
-
-{{implementation_tasks}}
-
----
-
 ## Dev Notes
 
-- Relevant architecture patterns and constraints
-- Source tree components to touch
-- Testing standards summary
+### Key Implementation Decisions
+
+{{dev_notes}}
+
+### Project Structure Notes
+
+{{project_structure_notes}}
 
 ### References
 
-- Cite all technical details with source paths and sections
+{{references}}
+
+---
+
+## Dev Agent Record
+
+### Context Reference
+
+{{context_reference}}
+
+### Agent Model Used
+
+{{agent_model}}
+
+### Debug Log References
+
+{{debug_logs}}
+
+### Completion Notes List
+
+{{completion_notes}}
+
+### File List
+
+{{file_list}}

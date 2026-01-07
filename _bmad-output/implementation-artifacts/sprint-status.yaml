@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 17
+issue_counter: 18
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -61,6 +61,7 @@ issues:
   ISS-015-no-mechanism-to-inject-phase-specific-input-context: fixed
   ISS-016-per-phase-config-yaml-not-implemented: fixed
   ISS-017-template-logic-scattered-between-modules: reported
+  ISS-018-single-phase-runs-delete-worktree-unexpectedly: reported
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -221,6 +222,8 @@ development_status:
   10-6-worktree-branch-management: done
   # Bugfix (from ISS-008)
   bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: done
+  # UX Fix (from ISS-018)
+  ux-fix-ISS-018-single-phase-worktree-retention: ready-for-dev
   epic-10-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

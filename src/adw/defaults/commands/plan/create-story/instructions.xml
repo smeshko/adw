@@ -7,7 +7,7 @@
   <!-- CONTEXT BOUNDARIES (per BMAD standards) -->
   <context-boundaries>
     <available>Injected context with feature_description, input_files (docs), run metadata; codebase for discovery; git history</available>
-    <focus>Creating comprehensive, implementation-ready plans with exhaustive developer guidance</focus>
+    <focus>Creating comprehensive, implementation-ready story files with exhaustive developer guidance</focus>
     <limits>Do not implement the feature; do not skip artifact analysis; output pure markdown to stdout</limits>
     <dependencies>Context must include feature_description; input_files optional but recommended</dependencies>
   </context-boundaries>
@@ -169,19 +169,22 @@
   </step>
 
   <step n="5" goal="Web research for latest technical specifics">
-    <critical>🌐 ENSURE LATEST TECH KNOWLEDGE - Prevent outdated implementations!</critical> **WEB INTELLIGENCE:** <action>Identify specific
-    technical areas that require latest version knowledge:</action>
+    <critical>🌐 ENSURE LATEST TECH KNOWLEDGE - Prevent outdated implementations!</critical>
+
+    **WEB INTELLIGENCE:**
+    <action>Identify specific technical areas that require latest version knowledge:</action>
 
     <!-- Check for libraries/frameworks mentioned in architecture -->
-    <action>From architecture analysis, identify specific libraries, APIs, or
-    frameworks</action>
+    <action>From architecture analysis, identify specific libraries, APIs, or frameworks</action>
     <action>For each critical technology, research latest stable version and key changes:
       - Latest API documentation and breaking changes
       - Security vulnerabilities or updates
       - Performance improvements or deprecations
       - Best practices for current version
     </action>
-    **EXTERNAL CONTEXT INCLUSION:** <action>Include in story any critical latest information the developer needs:
+
+    **EXTERNAL CONTEXT INCLUSION:**
+    <action>Include in story any critical latest information the developer needs:
       - Specific library versions and why chosen
       - API endpoints with parameters and authentication
       - Recent security patches or considerations
@@ -190,23 +193,66 @@
     </action>
   </step>
 
-  <step n="6" goal="Generate comprehensive implementation plan">
+  <step n="6" goal="Generate comprehensive story document">
     <!-- Role Reinforcement: You are a technical writer creating the definitive developer implementation guide -->
-    <critical>📝 CREATE ULTIMATE IMPLEMENTATION PLAN - The developer's master guide!</critical>
+    <critical>📝 CREATE ULTIMATE STORY DOCUMENT - The developer's master guide!</critical>
+    <critical>🎯 TASK FORMAT: Use "### Task N: Title" with "- [ ]" checkbox subtasks - NOT tables!</critical>
 
-    <!-- Generate the implementation plan document -->
-    <action>Generate implementation plan with the following structure:</action>
+    <!-- Generate the story document following the template structure -->
+    <action>Generate story document with the following structure:</action>
 
     **# {{title derived from feature_description}}**
 
-    **## Feature Description**
-    - Include {{feature_description}} as provided
+    **Created:** {{current date in YYYY-MM-DD format}}
 
-    **## Requirements Analysis**
-    - Include extracted requirements from {{requirements_analysis}}
-    - Business objectives and user value
-    - Functional and non-functional requirements
-    - Acceptance criteria
+    ---
+
+    **## Story**
+
+    <critical>Generate a proper user story statement:</critical>
+    <action>Create story statement in format:
+      As a {{role - identify the user type from context}},
+      I want {{action - the core capability being requested}},
+      so that {{benefit - the value this provides}}.
+    </action>
+
+    **## Acceptance Criteria**
+
+    <action>Generate acceptance criteria in Given/When/Then format:
+      **Given** [precondition]
+      **When** [action]
+      **Then** [expected result]
+    </action>
+    <note>Include 3-6 acceptance criteria covering main scenarios and edge cases</note>
+
+    **## Tasks / Subtasks**
+
+    <critical>🚨 CRITICAL FORMAT - Use this exact structure:</critical>
+    <format>
+    ### Task 1: [Task Title]
+    - [ ] Subtask description with specific file path or action
+    - [ ] Another subtask with concrete deliverable
+    - [ ] Additional subtask as needed
+
+    ### Task 2: [Next Task Title]
+    - [ ] Subtask description
+    - [ ] Another subtask
+    </format>
+
+    <action>Break down implementation into 3-8 logical tasks</action>
+    <action>Each task should have 2-5 specific, actionable subtasks</action>
+    <action>Subtasks must include file paths where applicable</action>
+    <action>Order tasks by dependency (what must be done first)</action>
+    <note>DO NOT use tables for tasks - use the ### Task N format with checkbox subtasks</note>
+
+    ---
+
+    **## Relevant Feature Documentation**
+
+    <action>Include any relevant patterns, examples, or documentation discovered during analysis</action>
+    <note>If no relevant docs found, state: "_No relevant documentation matched for this feature._"</note>
+
+    ---
 
     **## Developer Context**
 
@@ -217,6 +263,9 @@
     - Required patterns and conventions from codebase analysis
     - Integration points and dependencies
 
+    **### Library &amp; Framework Requirements**
+    - Specific versions, APIs, and usage patterns
+
     **### File Structure Requirements**
     - Where files should be created/modified
     - Naming conventions to follow
@@ -225,30 +274,68 @@
     - Testing standards and frameworks
     - Coverage expectations
 
-    **## Codebase Intelligence**
+    ---
 
-    **### Existing Patterns to Reuse**
-    - From {{codebase_patterns}}: similar implementations found
+    **## Previous Story Intelligence**
 
-    **### Git History Insights**
-    - From {{git_intelligence}}: recent relevant changes
+    <action>Include insights from codebase patterns and similar implementations</action>
+    <note>If first story or no relevant previous work: "_This is a new feature area._"</note>
+
+    ---
+
+    **## Git Intelligence**
+
+    - From {{git_intelligence}}: recent relevant changes and patterns
+
+    ---
 
     **## Latest Technical Information**
+
     - From web research: library versions, API updates, best practices
 
-    **## Implementation Tasks**
-    - Break down into specific, actionable tasks
-    - Include file paths and code locations
-    - Order by dependency
+    ---
 
-    <action>Compile all sections into {{implementation_plan}}</action>
+    **## Dev Notes**
+
+    **### Key Implementation Decisions**
+    - Critical architectural choices for this feature
+    - Trade-offs considered
+
+    **### Project Structure Notes**
+    - Alignment with existing project structure
+    - Any detected conflicts or considerations
+
+    **### References**
+    - Cite all technical details with source paths, e.g. [Source: path/to/file.md#Section]
+
+    ---
+
+    **## Dev Agent Record**
+
+    **### Context Reference**
+    - Story file path (to be filled by dev agent)
+
+    **### Agent Model Used**
+    - (To be filled by dev agent upon implementation)
+
+    **### Debug Log References**
+    - N/A (populated during implementation)
+
+    **### Completion Notes List**
+    - (To be filled upon story completion)
+
+    **### File List**
+    - **Created:** (list files created)
+    - **Modified:** (list files modified)
+
+    <action>Compile all sections into {{story_document}}</action>
   </step>
 
-  <step n="7" goal="Output implementation plan to stdout">
-    <!-- Output plan to stdout for CI pipeline consumption -->
-    <action>Output the complete {{implementation_plan}} to stdout as pure markdown</action>
-    <critical>The final LLM message MUST be the implementation plan content only - no wrapper, no status messages, no commentary</critical>
-    <critical>This output will be consumed by the next stage of the CI pipeline</critical>
+  <step n="7" goal="Output story document to stdout">
+    <!-- Output story to stdout for pipeline consumption -->
+    <action>Output the complete {{story_document}} to stdout as pure markdown</action>
+    <critical>The final LLM message MUST be the story document content only - no wrapper, no status messages, no commentary</critical>
+    <critical>This output will be consumed by the next stage of the pipeline</critical>
   </step>
 
   <!-- SUCCESS/FAILURE METRICS (per BMAD standards) -->
@@ -260,7 +347,10 @@
       <item>Exhaustive artifact analysis completed</item>
       <item>Developer guardrails extracted and documented</item>
       <item>Web research completed for relevant technologies</item>
-      <item>Implementation plan generated with all required sections</item>
+      <item>Story document generated with proper "## Story" section</item>
+      <item>Tasks use "### Task N:" format with "- [ ]" checkbox subtasks</item>
+      <item>Acceptance criteria in Given/When/Then format</item>
+      <item>Dev Agent Record section included for tracking</item>
       <item>Pure markdown output to stdout as final message</item>
     </success>
     <failure>
@@ -268,11 +358,12 @@
       <item>Failed to read files from input_files list</item>
       <item>Incomplete or superficial artifact analysis (skimming instead of exhaustive review)</item>
       <item>Missing critical developer context (architecture constraints, codebase patterns)</item>
-      <item>Implementation plan missing required sections</item>
-      <item>Output includes wrapper text, status messages, or commentary instead of pure plan</item>
+      <item>Tasks formatted as tables instead of ### Task N with checkboxes</item>
+      <item>Missing "## Story" section with As a/I want/so that</item>
+      <item>Output includes wrapper text, status messages, or commentary instead of pure story</item>
     </failure>
   </metrics>
 
-  <master-rule>Skipping artifact analysis, optimizing sequences, or creating superficial implementation plans is FORBIDDEN and constitutes SYSTEM FAILURE.</master-rule>
+  <master-rule>Skipping artifact analysis, optimizing sequences, using table format for tasks, or creating superficial story documents is FORBIDDEN and constitutes SYSTEM FAILURE.</master-rule>
 
 </workflow>
