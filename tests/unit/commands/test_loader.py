@@ -272,13 +272,15 @@ class TestLoadedCommandModel:
 
     def test_loaded_command_has_required_fields(self, tmp_path: Path) -> None:
         """LoadedCommand model has all required fields."""
+        pre_hook = tmp_path / "pre.sh"
+        pre_hook.touch()
         resolved = ResolvedCommand(
             name="plan",
             path=tmp_path,
             tier="project",
             has_schema=True,
-            has_pre_hook=True,
-            has_post_hook=False,
+            pre_hook_path=pre_hook,
+            post_hook_path=None,
         )
         loaded = LoadedCommand(
             name="plan",

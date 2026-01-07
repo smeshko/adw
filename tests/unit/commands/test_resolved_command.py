@@ -117,8 +117,8 @@ class TestResolvedCommandModel:
             name="plan",
             path=command_dir,
             tier="project",
-            has_pre_hook=True,
-            has_post_hook=True,
+            pre_hook_path=command_dir / "pre.sh",
+            post_hook_path=command_dir / "post.sh",
         )
 
         assert cmd.has_pre_hook is True
