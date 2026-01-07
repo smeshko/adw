@@ -1,6 +1,6 @@
 # Bugfix ISS-019: Epic 11 Phases Not Unified
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 11 - Validation Loop
 Created: 2026-01-07
@@ -122,8 +122,8 @@ Test files updated to remove verify phase references:
   - Fixed test_orchestrator.py: retry tests (7->6 and 6->5 calls, 5->4 phase completed)
   - Fixed test_progress.py: phase number assertions (3/5->3/4, 20%->25%)
   - Fixed pipeline summary test to remove verify phase references
-- [ ] Run `mypy src/adw` and fix type errors
-- [ ] Run `ruff check src/adw` and fix linting errors
+- [x] Run `mypy src/adw` - no new type errors introduced (1 pre-existing error unrelated to ISS-019)
+- [x] Run `ruff check src/adw` - fixed line-length violations in modified files
 
 ---
 
