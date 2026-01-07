@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 19
+issue_counter: 20
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -63,6 +63,7 @@ issues:
   ISS-017-template-logic-scattered-between-modules: reported
   ISS-018-single-phase-runs-delete-worktree-unexpectedly: reported
   ISS-019-epic-11-phases-not-unified: reported
+  ISS-020-worktrees-should-not-auto-delete: reported
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -225,6 +226,8 @@ development_status:
   bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: done
   # UX Fix (from ISS-018)
   ux-fix-ISS-018-single-phase-worktree-retention: review
+  # UX Fix (from ISS-020)
+  ux-fix-ISS-020-disable-worktree-auto-delete: ready-for-dev
   epic-10-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
