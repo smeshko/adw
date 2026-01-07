@@ -58,11 +58,11 @@ so that I don't experience duplicate work, wasted tokens, and confusing UX from 
 - [x] Update comment to reflect new sequence
 
 ### Task 2: Update orchestrator phase hooks
-- [ ] Edit `src/adw/core/orchestrator.py`
-- [ ] Change `if phase == "verify"` to `if phase == "validation"` at line ~1179-1181
-- [ ] Change evidence gathering hook at line ~1189-1191
-- [ ] Change evidence optimization hook at line ~1193-1195
-- [ ] Consider renaming methods: `_gather_evidence_after_verify` → `_gather_evidence_after_validation`
+- [x] Edit `src/adw/core/orchestrator.py`
+- [x] Change `if phase == "verify"` to `if phase == "validate"` at line ~1179-1181
+- [x] Change evidence gathering hook at line ~1189-1191
+- [x] Change evidence optimization hook at line ~1193-1195
+- [x] Renamed methods: `_gather_evidence_after_verify` → `_gather_evidence`, `_optimize_evidence_after_verify` → `_optimize_evidence`
 
 ### Task 3: Update phase runner
 - [ ] Edit `src/adw/core/phase_runner.py`

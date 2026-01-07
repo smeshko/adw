@@ -1176,8 +1176,8 @@ class Orchestrator:
             extra={"phase": phase, "run_id": context.run_id},
         )
 
-        # Detect platform at verify phase startup (Story 8.1)
-        if phase == "verify":
+        # Detect platform at validate phase startup (Story 8.1, ISS-019)
+        if phase == "validate":
             context = self._detect_and_store_platform(context)
 
         try:
@@ -1186,13 +1186,13 @@ class Orchestrator:
                 context, phase, artifacts_override=artifacts_override
             )
 
-            # Gather evidence after verify phase LLM execution (Story ISS-010)
-            if phase == "verify":
-                self._gather_evidence_after_verify(context)
+            # Gather evidence after validate phase LLM execution (Story ISS-010, ISS-019)
+            if phase == "validate":
+                self._gather_evidence(context)
 
-            # Run evidence optimization after verify phase (Story 8.6)
-            if phase == "verify":
-                self._optimize_evidence_after_verify(context)
+            # Run evidence optimization after validate phase (Story 8.6, ISS-019)
+            if phase == "validate":
+                self._optimize_evidence(context)
 
             # Post-phase snapshot
             self.snapshot_manager.create_post_phase_snapshot(context, phase, result)
@@ -1311,7 +1311,7 @@ class Orchestrator:
     def _detect_and_store_platform(self, context: RunContext) -> RunContext:
         """Detect platform type and store in RunContext (Story 8.1).
 
-        Runs platform detection at the start of the verify phase to determine
+        Runs platform detection at the start of the validate phase to determine
         which evidence gathering strategy to use. The detected platform is
         stored in the context for downstream use.
 
@@ -1350,12 +1350,12 @@ class Orchestrator:
 
         return context
 
-    def _gather_evidence_after_verify(
+    def _gather_evidence(
         self, context: RunContext
     ) -> list[EvidenceSummary]:
-        """Gather evidence based on detected platform type (Story ISS-010).
+        """Gather evidence based on detected platform type (Story ISS-010, ISS-019).
 
-        This method is called after the LLM verify phase completes and before
+        This method is called after the LLM validate phase completes and before
         evidence optimization. It gathers platform-appropriate evidence:
         - CLI: Command outputs captured
         - WEB: Browser screenshots via Playwright
@@ -1589,20 +1589,20 @@ class Orchestrator:
                     },
                 )
 
-                # Copy evidence to verify artifacts for Document phase access
-                verify_evidence_dir = (
-                    run_dir / "artifacts" / "verify" / "evidence"
+                # Copy evidence to validate artifacts for Document phase access (ISS-019)
+                validate_evidence_dir = (
+                    run_dir / "artifacts" / "validate" / "evidence"
                 )
-                verify_evidence_dir.parent.mkdir(parents=True, exist_ok=True)
-                if verify_evidence_dir.exists():
-                    shutil.rmtree(verify_evidence_dir)
-                shutil.copytree(evidence_dir, verify_evidence_dir)
+                validate_evidence_dir.parent.mkdir(parents=True, exist_ok=True)
+                if validate_evidence_dir.exists():
+                    shutil.rmtree(validate_evidence_dir)
+                shutil.copytree(evidence_dir, validate_evidence_dir)
                 logger.info(
-                    "Evidence copied to verify artifacts",
+                    "Evidence copied to validate artifacts",
                     extra={
                         "run_id": context.run_id,
                         "source": str(evidence_dir),
-                        "dest": str(verify_evidence_dir),
+                        "dest": str(validate_evidence_dir),
                     },
                 )
             else:
@@ -1620,8 +1620,8 @@ class Orchestrator:
 
         return summaries
 
-    def _optimize_evidence_after_verify(self, context: RunContext) -> None:
-        """Optimize evidence files after verify phase completes (Story 8.6).
+    def _optimize_evidence(self, context: RunContext) -> None:
+        """Optimize evidence files after validate phase completes (Story 8.6, ISS-019).
 
         Runs evidence optimization on the evidence directory to:
         - Compress images to reduce size
