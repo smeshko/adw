@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-018 - Single-Phase Worktree Retention
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-07
@@ -15,14 +15,14 @@ so that **I can inspect, iterate, and continue work from where I left off**.
 
 ## Acceptance Criteria
 
-- [ ] When running `adw run "desc" --phase <phase>`, the worktree is preserved after phase completion
-- [ ] A clear message is printed showing the worktree path and cleanup instructions
-- [ ] The message format is: `Phase '<phase>' complete. Worktree: <path>. Run 'adw cleanup <run_id>' when done.`
-- [ ] Multi-phase runs continue to clean up worktrees on success (existing behavior)
-- [ ] Resume runs continue to clean up worktrees on completion (existing behavior)
-- [ ] Failed runs preserve worktrees for debugging (existing behavior unchanged)
-- [ ] Unit tests verify single-phase vs multi-phase cleanup behavior
-- [ ] Integration test verifies worktree preserved after single-phase run
+- [x] When running `adw run "desc" --phase <phase>`, the worktree is preserved after phase completion
+- [x] A clear message is printed showing the worktree path and cleanup instructions
+- [x] The message format is: `Phase '<phase>' complete. Worktree: <path>. Run 'adw cleanup <run_id>' when done.`
+- [x] Multi-phase runs continue to clean up worktrees on success (existing behavior)
+- [x] Resume runs continue to clean up worktrees on completion (existing behavior)
+- [x] Failed runs preserve worktrees for debugging (existing behavior unchanged)
+- [x] Unit tests verify single-phase vs multi-phase cleanup behavior
+- [x] Integration test verifies worktree preserved after single-phase run
 
 ## Tasks / Subtasks
 
@@ -311,7 +311,7 @@ Key patterns and rules from project context:
 
 ### Agent Model Used
 
-TBD (to be filled by dev agent)
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
@@ -319,8 +319,32 @@ N/A
 
 ### Completion Notes List
 
-_To be filled by implementing developer_
+**Task 1 - Identify Cleanup Call Points (2026-01-07):**
+- Examined orchestrator.py cleanup locations
+- Line 619: single-phase success path (modified)
+- Line 362: multi-phase success path (unchanged)
+- Line 827: resume success path (unchanged)
+
+**Task 2 - Modify Single-Phase Cleanup Logic (2026-01-07):**
+- Removed `_cleanup_worktree()` call from single-phase success path
+- Added structured logging for worktree preservation
+- Added Rich console output with worktree path and cleanup command
+
+**Task 3 - Add User-Facing Output (2026-01-07):**
+- Completed as part of Task 2
+- Output format: `[green]✓[/green] Phase '<phase>' complete`
+- Shows worktree path and cleanup instruction
+
+**Task 4 - Write Tests (2026-01-07):**
+- Added `TestSinglePhaseWorktreeRetention` class with 3 unit tests
+- Added integration tests for worktree preservation concept
+- All 70 tests pass with no regressions
 
 ### File List
 
-_To be filled by implementing developer_
+**Modified:**
+- `src/adw/core/orchestrator.py` - Single-phase success path now preserves worktree
+- `tests/unit/core/test_orchestrator.py` - Added TestSinglePhaseWorktreeRetention tests
+
+**Added:**
+- `tests/integration/worktree/test_single_phase_preservation.py` - Integration tests

@@ -223,7 +223,7 @@ development_status:
   # Bugfix (from ISS-008)
   bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: done
   # UX Fix (from ISS-018)
-  ux-fix-ISS-018-single-phase-worktree-retention: in-progress
+  ux-fix-ISS-018-single-phase-worktree-retention: review
   epic-10-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
