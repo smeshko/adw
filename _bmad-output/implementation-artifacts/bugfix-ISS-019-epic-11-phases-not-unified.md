@@ -70,8 +70,8 @@ so that I don't experience duplicate work, wasted tokens, and confusing UX from 
 - [x] Update `_capture_evidence_manifest` method phase check and artifact storage
 
 ### Task 4: Delete verify defaults
-- [ ] Delete directory `src/adw/defaults/commands/verify/`
-- [ ] Verify no imports reference this directory
+- [x] Delete directory `src/adw/defaults/commands/verify/`
+- [x] Verify no imports reference this directory
 
 ### Task 5: Update evidence validator paths
 - [ ] Edit `src/adw/validation/validators/evidence_validator.py`
