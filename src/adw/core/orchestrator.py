@@ -432,12 +432,27 @@ class Orchestrator:
                     run_id=context.run_id,
                 )
 
-            # Handle worktree on failure (Story 10.1)
+            # Preserve worktree for debugging (ISS-020)
+            # Worktrees are NEVER auto-deleted - only via explicit cleanup command
             if context.use_worktree and context.worktree_path:
-                self._cleanup_worktree(
-                    context.run_id,
-                    preserve=self.worktree_config.preserve_on_failure,
+                logger.info(
+                    "Worktree preserved for debugging",
+                    extra={
+                        "run_id": context.run_id,
+                        "worktree_path": str(context.worktree_path),
+                        "outcome": "failure",
+                        "reason": "user_control_policy",
+                    },
                 )
+                if self.progress_display:
+                    self.progress_display.console.print()
+                    self.progress_display.console.print(
+                        f"[blue]Worktree:[/blue] {context.worktree_path}"
+                    )
+                    self.progress_display.console.print(
+                        f"Run [yellow]adw cleanup {context.run_id}[/yellow] to remove"
+                    )
+                    self.progress_display.console.print()
 
             logger.error(
                 "Run failed",
@@ -486,12 +501,27 @@ class Orchestrator:
                     run_id=context.run_id,
                 )
 
-            # Handle worktree on failure (Story 10.1)
+            # Preserve worktree for debugging (ISS-020)
+            # Worktrees are NEVER auto-deleted - only via explicit cleanup command
             if context.use_worktree and context.worktree_path:
-                self._cleanup_worktree(
-                    context.run_id,
-                    preserve=self.worktree_config.preserve_on_failure,
+                logger.info(
+                    "Worktree preserved for debugging",
+                    extra={
+                        "run_id": context.run_id,
+                        "worktree_path": str(context.worktree_path),
+                        "outcome": "failure",
+                        "reason": "user_control_policy",
+                    },
                 )
+                if self.progress_display:
+                    self.progress_display.console.print()
+                    self.progress_display.console.print(
+                        f"[blue]Worktree:[/blue] {context.worktree_path}"
+                    )
+                    self.progress_display.console.print(
+                        f"Run [yellow]adw cleanup {context.run_id}[/yellow] to remove"
+                    )
+                    self.progress_display.console.print()
 
             logger.error(
                 "Run failed with unexpected error",
@@ -686,12 +716,27 @@ class Orchestrator:
                 },
             )
 
-            # Cleanup or preserve worktree based on config (Story 10.1)
+            # Preserve worktree for debugging (ISS-020)
+            # Worktrees are NEVER auto-deleted - only via explicit cleanup command
             if should_use_worktree and worktree_path is not None:
-                self._cleanup_worktree(
-                    run_id,
-                    preserve=self.worktree_config.preserve_on_failure,
+                logger.info(
+                    "Worktree preserved for debugging",
+                    extra={
+                        "run_id": run_id,
+                        "worktree_path": str(worktree_path),
+                        "outcome": "failure",
+                        "reason": "user_control_policy",
+                    },
                 )
+                if self.progress_display:
+                    self.progress_display.console.print()
+                    self.progress_display.console.print(
+                        f"[blue]Worktree:[/blue] {worktree_path}"
+                    )
+                    self.progress_display.console.print(
+                        f"Run [yellow]adw cleanup {run_id}[/yellow] to remove"
+                    )
+                    self.progress_display.console.print()
             raise
 
         except Exception as e:
@@ -722,12 +767,27 @@ class Orchestrator:
                 },
             )
 
-            # Cleanup or preserve worktree based on config (Story 10.1)
+            # Preserve worktree for debugging (ISS-020)
+            # Worktrees are NEVER auto-deleted - only via explicit cleanup command
             if should_use_worktree and worktree_path is not None:
-                self._cleanup_worktree(
-                    run_id,
-                    preserve=self.worktree_config.preserve_on_failure,
+                logger.info(
+                    "Worktree preserved for debugging",
+                    extra={
+                        "run_id": run_id,
+                        "worktree_path": str(worktree_path),
+                        "outcome": "failure",
+                        "reason": "user_control_policy",
+                    },
                 )
+                if self.progress_display:
+                    self.progress_display.console.print()
+                    self.progress_display.console.print(
+                        f"[blue]Worktree:[/blue] {worktree_path}"
+                    )
+                    self.progress_display.console.print(
+                        f"Run [yellow]adw cleanup {run_id}[/yellow] to remove"
+                    )
+                    self.progress_display.console.print()
             raise
 
         return context
@@ -944,12 +1004,27 @@ class Orchestrator:
                 },
             )
 
-            # Cleanup or preserve worktree based on config (Story 10.1)
+            # Preserve worktree for debugging (ISS-020)
+            # Worktrees are NEVER auto-deleted - only via explicit cleanup command
             if context.use_worktree and context.worktree_path is not None:
-                self._cleanup_worktree(
-                    context.run_id,
-                    preserve=self.worktree_config.preserve_on_failure,
+                logger.info(
+                    "Worktree preserved for debugging",
+                    extra={
+                        "run_id": context.run_id,
+                        "worktree_path": str(context.worktree_path),
+                        "outcome": "failure",
+                        "reason": "user_control_policy",
+                    },
                 )
+                if self.progress_display:
+                    self.progress_display.console.print()
+                    self.progress_display.console.print(
+                        f"[blue]Worktree:[/blue] {context.worktree_path}"
+                    )
+                    self.progress_display.console.print(
+                        f"Run [yellow]adw cleanup {context.run_id}[/yellow] to remove"
+                    )
+                    self.progress_display.console.print()
             raise
 
         except Exception as e:
@@ -997,12 +1072,27 @@ class Orchestrator:
                 },
             )
 
-            # Cleanup or preserve worktree based on config (Story 10.1)
+            # Preserve worktree for debugging (ISS-020)
+            # Worktrees are NEVER auto-deleted - only via explicit cleanup command
             if context.use_worktree and context.worktree_path is not None:
-                self._cleanup_worktree(
-                    context.run_id,
-                    preserve=self.worktree_config.preserve_on_failure,
+                logger.info(
+                    "Worktree preserved for debugging",
+                    extra={
+                        "run_id": context.run_id,
+                        "worktree_path": str(context.worktree_path),
+                        "outcome": "failure",
+                        "reason": "user_control_policy",
+                    },
                 )
+                if self.progress_display:
+                    self.progress_display.console.print()
+                    self.progress_display.console.print(
+                        f"[blue]Worktree:[/blue] {context.worktree_path}"
+                    )
+                    self.progress_display.console.print(
+                        f"Run [yellow]adw cleanup {context.run_id}[/yellow] to remove"
+                    )
+                    self.progress_display.console.print()
             raise
 
         return context
