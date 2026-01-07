@@ -6,12 +6,13 @@ order of phase execution.
 """
 
 # Fixed phase sequence - order is critical
-# Phases execute in this exact order: Plan → Build → Verify → Validate → Document
+# Phases execute in this exact order: Plan → Build → Validate → Document
 # Using a tuple ensures the sequence cannot be accidentally modified.
+# NOTE: The "verify" phase was removed in ISS-019 - evidence gathering and
+# platform detection now occur at the start of the validate phase.
 PHASE_SEQUENCE: tuple[str, ...] = (
     "plan",
     "build",
-    "verify",
     "validate",
     "document",
 )
