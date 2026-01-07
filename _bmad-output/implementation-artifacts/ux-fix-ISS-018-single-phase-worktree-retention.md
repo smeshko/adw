@@ -38,10 +38,10 @@ so that **I can inspect, iterate, and continue work from where I left off**.
 - [x] Keep `preserve=False` for resume in `resume()` method
 
 ### Task 3: Add User-Facing Output
-- [ ] After single-phase completes, print worktree location to console
-- [ ] Include cleanup instruction: `adw cleanup <run_id>`
-- [ ] Use Rich console for styled output consistent with rest of CLI
-- [ ] Log the preservation action with structured logging
+- [x] After single-phase completes, print worktree location to console
+- [x] Include cleanup instruction: `adw cleanup <run_id>`
+- [x] Use Rich console for styled output consistent with rest of CLI
+- [x] Log the preservation action with structured logging
 
 ### Task 4: Write Tests
 - [ ] Unit test: `test_single_phase_preserves_worktree_on_success`
