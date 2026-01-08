@@ -4,12 +4,19 @@ This module provides a factory for creating task manager instances
 based on configuration.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from adw.exceptions import ConfigError
 from adw.task_managers.base import TaskManager
 from adw.task_managers.null import NullTaskManager
 
+if TYPE_CHECKING:
+    from adw.models.config import TaskManagerConfig
+    from adw.task_managers.linear import LinearTaskManager
+
 # Registry of available task manager types
-# "linear" is registered but not yet implemented (Story 12.2)
 _AVAILABLE_TYPES = {"none", "linear"}
 
 
@@ -21,25 +28,38 @@ class TaskManagerFactory:
     in the _AVAILABLE_TYPES set and implementing the corresponding branch
     in the create method.
 
+    Linear imports are lazy to avoid httpx dependency when not using Linear.
+
     Example:
         >>> factory = TaskManagerFactory()
         >>> manager = factory.create(task_type="none")
         >>> manager.name
         'none'
+
+        >>> from adw.models.config import TaskManagerConfig
+        >>> config = TaskManagerConfig(type="linear", team_key="RULE")
+        >>> manager = factory.create(task_type="linear", config=config)
     """
 
-    def create(self, task_type: str = "none") -> TaskManager:
+    def create(
+        self,
+        task_type: str = "none",
+        config: "TaskManagerConfig | None" = None,
+    ) -> TaskManager:
         """Create a TaskManager instance based on the specified type.
 
         Args:
             task_type: The type of task manager to create. Defaults to "none".
-                Supported values: "none", "linear" (not yet implemented).
+                Supported values: "none", "linear".
+            config: Optional TaskManagerConfig for task managers that require
+                configuration (like Linear). If not provided for "linear",
+                a default config will be used.
 
         Returns:
             A TaskManager implementation.
 
         Raises:
-            ConfigError: If the task_type is not recognized or not implemented.
+            ConfigError: If the task_type is not recognized.
         """
         if task_type not in _AVAILABLE_TYPES:
             available = ", ".join(sorted(_AVAILABLE_TYPES))
@@ -53,10 +73,38 @@ class TaskManagerFactory:
         if task_type == "none":
             return NullTaskManager()
 
-        # task_type == "linear" - implementation coming in Story 12.2
+        if task_type == "linear":
+            return self._create_linear(config)
+
+        # Should be unreachable
         raise ConfigError(
             code="TASK_MANAGER_NOT_IMPLEMENTED",
-            message="Linear task manager is not yet implemented",
-            suggestion="Use 'none' or wait for Story 12.2",
+            message=f"Task manager type '{task_type}' is not implemented",
+            suggestion="Use 'none' as a fallback",
             recoverable=False,
         )
+
+    def _create_linear(
+        self, config: "TaskManagerConfig | None" = None
+    ) -> "LinearTaskManager":
+        """Create LinearTaskManager with lazy import.
+
+        Lazy import avoids loading httpx when Linear is not used.
+
+        Args:
+            config: Optional TaskManagerConfig. If not provided, a default
+                config will be created. For production use, provide a config
+                with team_key and state_mapping from project.yaml.
+
+        Returns:
+            A configured LinearTaskManager instance.
+        """
+        # Lazy import to avoid httpx dependency if not using Linear
+        from adw.models.config import TaskManagerConfig
+        from adw.task_managers.linear import LinearTaskManager
+
+        # Use provided config or create default
+        if config is None:
+            config = TaskManagerConfig(type="linear")
+
+        return LinearTaskManager(config)

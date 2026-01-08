@@ -8,6 +8,7 @@ from rich.console import Console
 from ulid import ULID
 
 from adw.cli.bootstrap import create_log_manager, create_orchestrator
+from adw.task_managers import InputResolver, InputType, TaskManagerFactory
 from adw.cli.dry_run import DryRunDisplay
 from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
@@ -150,6 +151,16 @@ def run(
         "--no-worktree",
         help="Run in current directory instead of isolated worktree (Story 10.1)",
     ),
+    task_id: bool = typer.Option(
+        False,
+        "--task-id",
+        help="Force input to be interpreted as task ID (error if not recognized)",
+    ),
+    no_task_manager: bool = typer.Option(
+        False,
+        "--no-task-manager",
+        help="Ignore task manager, treat input as literal feature string",
+    ),
 ) -> None:
     """Run the agentic development workflow.
 
@@ -173,11 +184,51 @@ def run(
 
         # Run without worktree isolation (in current directory)
         adw run "Quick fix" --no-worktree
+
+        # Task manager integration (Story 12.4)
+        adw run RULE-123                    # Auto-detect as task ID
+        adw run RULE-123 --task-id          # Force task ID interpretation
+        adw run RULE-123 --no-task-manager  # Force feature string
     """
     # Validate feature description is not empty (Story 6.1)
     if not feature.strip():
         console.print("[red]Error:[/] Feature description cannot be empty")
         raise typer.Exit(code=1)
+
+    # Validate mutually exclusive task manager flags (Story 12.4)
+    if task_id and no_task_manager:
+        console.print(
+            "[red]Error:[/] --task-id and --no-task-manager are mutually exclusive"
+        )
+        raise typer.Exit(code=1)
+
+    # Resolve input: task ID vs feature string (Story 12.4 Task 4)
+    # Creates a task manager and uses InputResolver to auto-detect or force interpretation
+    task_manager = TaskManagerFactory().create()
+    resolver = InputResolver(task_manager)
+    try:
+        resolved = resolver.resolve(
+            feature,
+            force_task_id=task_id,
+            force_feature=no_task_manager,
+        )
+    except ValueError as e:
+        # --task-id was used but input doesn't match pattern
+        console.print(f"[red]Error:[/] {e}")
+        console.print(
+            "[dim]Suggestion:[/] Remove --task-id to treat as feature description, "
+            "or use a valid task ID"
+        )
+        raise typer.Exit(code=1) from None
+
+    # Log resolution result for transparency (Story 12.4 Task 5)
+    if resolved.type == InputType.TASK_ID:
+        console.print(f"[dim]Resolved as task ID:[/] {resolved.task_id}")
+        if not task_id:  # Auto-detected, not forced
+            console.print(
+                "[dim]Tip:[/] Use --no-task-manager if you meant this as a feature description"
+            )
+    # Note: Feature strings don't need logging - that's the default expectation
 
     # Escape special characters for template safety (Story 6.1 Task 5)
     # Note: safe_feature will be used when templates need the escaped version

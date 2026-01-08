@@ -6,16 +6,29 @@ task management systems like Linear, Jira, or GitHub Issues.
 Example:
     >>> from adw.task_managers import TaskManager, TaskManagerFactory
     >>> factory = TaskManagerFactory()
-    >>> manager = factory.create(config)
+    >>> manager = factory.create(task_type="linear")
     >>> task_info = manager.fetch_task("RULE-123")
+
+    >>> from adw.task_managers import InputResolver, InputType, ResolvedInput
+    >>> resolver = InputResolver(manager)
+    >>> result = resolver.resolve("RULE-123")
+    >>> result.type == InputType.TASK_ID
+    True
 """
 
 from adw.task_managers.base import TaskManager
 from adw.task_managers.factory import TaskManagerFactory
 from adw.task_managers.null import NullTaskManager
+from adw.task_managers.resolver import InputResolver, InputType, ResolvedInput
+
+# LinearTaskManager is lazily imported to avoid httpx dependency
+# when not using Linear. Use factory.create("linear") instead of direct import.
 
 __all__ = [
+    "InputResolver",
+    "InputType",
     "NullTaskManager",
+    "ResolvedInput",
     "TaskManager",
     "TaskManagerFactory",
 ]
