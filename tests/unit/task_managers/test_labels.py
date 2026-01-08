@@ -284,3 +284,88 @@ class TestLabelManagerLifecycle:
         # Phase label should NOT be removed (kept for debugging)
         for call in mock_task_manager.remove_label.call_args_list:
             assert call[0] != ("task-uuid", "ci:phase:build")
+
+
+class TestLabelManagerErrorResilience:
+    """Tests for non-blocking error handling (Story 12.7 Task 6)."""
+
+    def test_set_phase_still_adds_label_when_remove_fails(self) -> None:
+        """set_phase adds new label even when remove_label fails."""
+        mock_task_manager = MagicMock()
+        mock_task_manager.remove_label.side_effect = Exception("API error")
+        config = TaskManagerLabelsConfig()
+
+        manager = LabelManager(mock_task_manager, config, "task-uuid")
+        manager._current_phase_label = "adw:phase:plan"
+
+        # Should not raise, and should still add new label
+        manager.set_phase("build")
+
+        # remove_label was attempted and failed
+        mock_task_manager.remove_label.assert_called_once_with(
+            "task-uuid", "adw:phase:plan"
+        )
+        # add_label should still be called
+        mock_task_manager.add_label.assert_called_once_with(
+            "task-uuid", "adw:phase:build"
+        )
+
+    def test_set_completed_still_adds_label_when_remove_fails(self) -> None:
+        """set_completed adds completed label even when remove_label fails."""
+        mock_task_manager = MagicMock()
+        mock_task_manager.remove_label.side_effect = Exception("API error")
+        config = TaskManagerLabelsConfig()
+
+        manager = LabelManager(mock_task_manager, config, "task-uuid")
+
+        # Should not raise, and should still add completed label
+        manager.set_completed()
+
+        # remove_label was attempted and failed
+        mock_task_manager.remove_label.assert_called_once_with(
+            "task-uuid", "adw:running"
+        )
+        # add_label should still be called
+        mock_task_manager.add_label.assert_called_once_with(
+            "task-uuid", "adw:completed"
+        )
+
+    def test_set_failed_still_adds_label_when_remove_fails(self) -> None:
+        """set_failed adds failed label even when remove_label fails."""
+        mock_task_manager = MagicMock()
+        mock_task_manager.remove_label.side_effect = Exception("API error")
+        config = TaskManagerLabelsConfig()
+
+        manager = LabelManager(mock_task_manager, config, "task-uuid")
+
+        # Should not raise, and should still add failed label
+        manager.set_failed()
+
+        # remove_label was attempted and failed
+        mock_task_manager.remove_label.assert_called_once_with(
+            "task-uuid", "adw:running"
+        )
+        # add_label should still be called
+        mock_task_manager.add_label.assert_called_once_with(
+            "task-uuid", "adw:failed"
+        )
+
+    def test_operations_continue_on_partial_failure(self) -> None:
+        """Operations continue even when some calls fail."""
+        mock_task_manager = MagicMock()
+        # First remove succeeds, second remove fails
+        mock_task_manager.remove_label.side_effect = [None, Exception("API error")]
+        config = TaskManagerLabelsConfig()
+
+        manager = LabelManager(mock_task_manager, config, "task-uuid")
+        manager._current_phase_label = "adw:phase:validate"
+
+        # Should not raise
+        manager.set_completed()
+
+        # Both removes were attempted
+        assert mock_task_manager.remove_label.call_count == 2
+        # add_label should still be called for completed
+        mock_task_manager.add_label.assert_called_once_with(
+            "task-uuid", "adw:completed"
+        )

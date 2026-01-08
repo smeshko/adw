@@ -95,6 +95,7 @@ class LabelManager:
         """Set the current phase label.
 
         Removes the previous phase label (if any) and adds the new phase label.
+        Operations are isolated - failure to remove doesn't block adding new label.
 
         Args:
             phase_name: The phase name (e.g., "plan", "build", "validate").
@@ -104,9 +105,9 @@ class LabelManager:
 
         new_phase_label = self._get_phase_label(phase_name)
 
-        try:
-            # Remove previous phase label if exists
-            if self._current_phase_label:
+        # Remove previous phase label if exists (isolated try/except)
+        if self._current_phase_label:
+            try:
                 self._task_manager.remove_label(
                     self._task_id, self._current_phase_label
                 )
@@ -115,8 +116,16 @@ class LabelManager:
                     self._current_phase_label,
                     self._task_id,
                 )
+            except Exception as e:
+                logger.warning(
+                    "Failed to remove phase label '%s' from task %s: %s",
+                    self._current_phase_label,
+                    self._task_id,
+                    str(e),
+                )
 
-            # Add new phase label
+        # Add new phase label (isolated try/except)
+        try:
             self._task_manager.add_label(self._task_id, new_phase_label)
             self._current_phase_label = new_phase_label
             logger.debug(
@@ -126,8 +135,8 @@ class LabelManager:
             )
         except Exception as e:
             logger.warning(
-                "Failed to set phase label '%s' for task %s: %s",
-                phase_name,
+                "Failed to add phase label '%s' to task %s: %s",
+                new_phase_label,
                 self._task_id,
                 str(e),
             )
@@ -137,6 +146,7 @@ class LabelManager:
 
         Removes the running label and current phase label (if any),
         then adds the completed label.
+        Operations are isolated - failures don't block subsequent operations.
         """
         if not self._config.enabled:
             return
@@ -144,15 +154,22 @@ class LabelManager:
         running_label = self._get_label("running")
         completed_label = self._get_label("completed")
 
+        # Remove running label (isolated try/except)
         try:
-            # Remove running label
             self._task_manager.remove_label(self._task_id, running_label)
             logger.debug(
                 "Removed label '%s' from task %s", running_label, self._task_id
             )
+        except Exception as e:
+            logger.warning(
+                "Failed to remove running label from task %s: %s",
+                self._task_id,
+                str(e),
+            )
 
-            # Remove current phase label if exists
-            if self._current_phase_label:
+        # Remove current phase label if exists (isolated try/except)
+        if self._current_phase_label:
+            try:
                 self._task_manager.remove_label(
                     self._task_id, self._current_phase_label
                 )
@@ -162,15 +179,23 @@ class LabelManager:
                     self._task_id,
                 )
                 self._current_phase_label = None
+            except Exception as e:
+                logger.warning(
+                    "Failed to remove phase label '%s' from task %s: %s",
+                    self._current_phase_label,
+                    self._task_id,
+                    str(e),
+                )
 
-            # Add completed label
+        # Add completed label (isolated try/except)
+        try:
             self._task_manager.add_label(self._task_id, completed_label)
             logger.debug(
                 "Added label '%s' to task %s", completed_label, self._task_id
             )
         except Exception as e:
             logger.warning(
-                "Failed to set completed labels for task %s: %s",
+                "Failed to add completed label to task %s: %s",
                 self._task_id,
                 str(e),
             )
@@ -180,6 +205,7 @@ class LabelManager:
 
         Removes the running label and adds the failed label.
         Note: The phase label is kept for debugging purposes.
+        Operations are isolated - failures don't block subsequent operations.
         """
         if not self._config.enabled:
             return
@@ -187,21 +213,28 @@ class LabelManager:
         running_label = self._get_label("running")
         failed_label = self._get_label("failed")
 
+        # Remove running label (isolated try/except)
         try:
-            # Remove running label
             self._task_manager.remove_label(self._task_id, running_label)
             logger.debug(
                 "Removed label '%s' from task %s", running_label, self._task_id
             )
+        except Exception as e:
+            logger.warning(
+                "Failed to remove running label from task %s: %s",
+                self._task_id,
+                str(e),
+            )
 
-            # Note: Phase label is intentionally kept for debugging
+        # Note: Phase label is intentionally kept for debugging
 
-            # Add failed label
+        # Add failed label (isolated try/except)
+        try:
             self._task_manager.add_label(self._task_id, failed_label)
             logger.debug("Added label '%s' to task %s", failed_label, self._task_id)
         except Exception as e:
             logger.warning(
-                "Failed to set failed labels for task %s: %s",
+                "Failed to add failed label to task %s: %s",
                 self._task_id,
                 str(e),
             )
