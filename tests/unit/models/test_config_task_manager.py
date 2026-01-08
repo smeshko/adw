@@ -70,6 +70,21 @@ class TestTaskManagerConfig:
         assert config.labels.enabled is False
         assert config.labels.prefix == "workflow:"
 
+    def test_invalid_type_raises_validation_error(self) -> None:
+        """Invalid task manager type raises ValidationError.
+
+        Per AC: Given invalid task_manager value, When config is loaded,
+        Then ConfigError raised with available options.
+        """
+        with pytest.raises(PydanticValidationError) as exc_info:
+            TaskManagerConfig(type="invalid_type")
+
+        errors = exc_info.value.errors()
+        assert len(errors) == 1
+        assert "type" in str(errors[0]["loc"])
+        assert "'none'" in errors[0]["msg"]
+        assert "'linear'" in errors[0]["msg"]
+
 
 class TestProjectConfigTaskManager:
     """Tests for task_manager field in ProjectConfig."""

@@ -5,7 +5,7 @@ and phase-specific configuration loaded from YAML files.
 """
 
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, Literal, Self
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
@@ -445,7 +445,7 @@ class TaskManagerConfig(BaseModel):
           auto_close: true
     """
 
-    type: str = Field(
+    type: Literal["none", "linear"] = Field(
         default="none",
         description="Task manager type (none, linear)",
     )
