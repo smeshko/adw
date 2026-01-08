@@ -56,3 +56,22 @@ class TestRunCommandHelp:
         result = runner.invoke(app, ["run", "--help"])
         assert "--no-task-manager" in result.output
         assert "task manager" in result.output.lower()
+
+
+class TestAmbiguityHandling:
+    """Test ambiguity handling in task ID detection."""
+
+    def test_force_task_id_error_suggests_removal(self) -> None:
+        """--task-id error suggests removing the flag."""
+        result = runner.invoke(app, ["run", "RULE-123", "--task-id"])
+        assert result.exit_code == 1
+        assert "Remove --task-id" in result.output
+
+    def test_no_task_manager_bypasses_resolution(self) -> None:
+        """--no-task-manager skips task ID resolution entirely."""
+        result = runner.invoke(
+            app, ["run", "Add user auth", "--no-task-manager", "--dry-run"]
+        )
+        # Should not mention task ID resolution at all
+        assert "Resolved as task ID" not in result.output
+        assert "does not match task ID pattern" not in result.output

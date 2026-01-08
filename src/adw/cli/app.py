@@ -224,6 +224,10 @@ def run(
     # Log resolution result for transparency (Story 12.4 Task 5)
     if resolved.type == InputType.TASK_ID:
         console.print(f"[dim]Resolved as task ID:[/] {resolved.task_id}")
+        if not task_id:  # Auto-detected, not forced
+            console.print(
+                "[dim]Tip:[/] Use --no-task-manager if you meant this as a feature description"
+            )
     # Note: Feature strings don't need logging - that's the default expectation
 
     # Escape special characters for template safety (Story 6.1 Task 5)
