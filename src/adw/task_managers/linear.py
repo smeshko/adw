@@ -132,7 +132,24 @@ class LinearTaskManager:
 
         Returns:
             TaskInfo with mapped fields.
+
+        Raises:
+            TaskError: If required fields are missing from the API response.
         """
+        # Validate required fields exist
+        issue_id = issue.get("id")
+        identifier = issue.get("identifier")
+        title = issue.get("title")
+
+        if not issue_id or not identifier or not title:
+            raise TaskError(
+                code="TASK_INVALID_RESPONSE",
+                message="Linear API response missing required fields (id, identifier, or title)",
+                suggestion="Check if the Linear API schema has changed",
+                task_id=identifier or "unknown",
+                recoverable=False,
+            )
+
         # Extract labels from nested structure
         labels_data = issue.get("labels", {}) or {}
         labels_nodes = labels_data.get("nodes", []) or []
@@ -152,9 +169,9 @@ class LinearTaskManager:
         assignee = assignee_data.get("name") if assignee_data else None
 
         return TaskInfo(
-            id=issue["id"],
-            identifier=issue["identifier"],
-            title=issue["title"],
+            id=issue_id,
+            identifier=identifier,
+            title=title,
             description=issue.get("description"),
             status=status,
             priority=issue.get("priority"),
@@ -176,7 +193,8 @@ class LinearTaskManager:
         raise exceptions to avoid failing the ADW run.
 
         Args:
-            task_id: The task identifier (internal UUID, not identifier like RULE-123).
+            task_id: The internal Linear issue UUID (from TaskInfo.id, NOT the
+                identifier like RULE-123). Use the UUID returned by fetch_task().
             status: The ADW status to map to Linear state (e.g., "running", "completed").
             metadata: Optional additional metadata (currently unused).
         """
@@ -254,6 +272,22 @@ class LinearTaskManager:
                 "Failed to fetch team workflow states: %s",
                 str(e),
             )
+
+    def close(self) -> None:
+        """Close the underlying HTTP client.
+
+        Should be called when the task manager is no longer needed
+        to release resources.
+        """
+        self._client.close()
+
+    def __enter__(self) -> "LinearTaskManager":
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        """Context manager exit - close client."""
+        self.close()
 
     def resolve_task_id(self, input_str: str) -> str | None:
         """Attempt to extract a task ID from an input string.

@@ -63,3 +63,19 @@ class TestTaskManagerFactory:
 
         assert manager.name == "linear"
         assert isinstance(manager, TaskManager)
+
+    def test_create_linear_with_config(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Creating Linear manager with explicit config uses that config."""
+        from adw.models.config import TaskManagerConfig
+
+        monkeypatch.setenv("LINEAR_API_KEY", "lin_api_test123")
+        monkeypatch.setenv("LINEAR_TEAM_ID", "team-uuid-123")
+
+        config = TaskManagerConfig(type="linear", team_key="TEST")
+        factory = TaskManagerFactory()
+        manager = factory.create(task_type="linear", config=config)
+
+        assert manager.name == "linear"
+        assert manager._config.team_key == "TEST"

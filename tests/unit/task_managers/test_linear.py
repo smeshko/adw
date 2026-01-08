@@ -170,6 +170,26 @@ class TestLinearTaskManagerFetchTask:
 
         assert result.labels == ["bug", "urgent", "backend"]
 
+    def test_fetch_task_invalid_response_raises_error(
+        self, manager: LinearTaskManager
+    ) -> None:
+        """fetch_task raises TaskError when API response is missing required fields."""
+        # Missing title field
+        mock_issue = {
+            "id": "abc123",
+            "identifier": "RULE-999",
+            "title": None,  # Missing required field
+        }
+
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.fetch_issue.return_value = mock_issue
+
+            with pytest.raises(TaskError) as exc_info:
+                manager.fetch_task("RULE-999")
+
+        assert exc_info.value.code == "TASK_INVALID_RESPONSE"
+        assert "missing required fields" in exc_info.value.message.lower()
+
 
 class TestLinearTaskManagerUpdateStatus:
     """Tests for LinearTaskManager.update_status."""

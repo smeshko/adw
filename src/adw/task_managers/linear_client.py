@@ -200,12 +200,15 @@ class LinearClient:
 
         Returns:
             Update result if successful, None otherwise.
+
+        Raises:
+            TaskError: If the API request fails.
         """
         response = self._request(
             UPDATE_ISSUE_MUTATION,
             variables={"id": issue_id, "input": input_data},
         )
-        response.raise_for_status()
+        self._handle_response_errors(response, issue_id)
 
         data = response.json()
         result = data.get("data", {}).get("issueUpdate")
@@ -221,12 +224,15 @@ class LinearClient:
 
         Returns:
             List of state dicts with id, name, and type.
+
+        Raises:
+            TaskError: If the API request fails.
         """
         response = self._request(
             GET_TEAM_STATES_QUERY,
             variables={"teamId": team_id},
         )
-        response.raise_for_status()
+        self._handle_response_errors(response, team_id)
 
         data = response.json()
         team = data.get("data", {}).get("team")

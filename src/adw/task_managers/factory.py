@@ -13,6 +13,7 @@ from adw.task_managers.base import TaskManager
 from adw.task_managers.null import NullTaskManager
 
 if TYPE_CHECKING:
+    from adw.models.config import TaskManagerConfig
     from adw.task_managers.linear import LinearTaskManager
 
 # Registry of available task manager types
@@ -34,14 +35,25 @@ class TaskManagerFactory:
         >>> manager = factory.create(task_type="none")
         >>> manager.name
         'none'
+
+        >>> from adw.models.config import TaskManagerConfig
+        >>> config = TaskManagerConfig(type="linear", team_key="RULE")
+        >>> manager = factory.create(task_type="linear", config=config)
     """
 
-    def create(self, task_type: str = "none") -> TaskManager:
+    def create(
+        self,
+        task_type: str = "none",
+        config: "TaskManagerConfig | None" = None,
+    ) -> TaskManager:
         """Create a TaskManager instance based on the specified type.
 
         Args:
             task_type: The type of task manager to create. Defaults to "none".
                 Supported values: "none", "linear".
+            config: Optional TaskManagerConfig for task managers that require
+                configuration (like Linear). If not provided for "linear",
+                a default config will be used.
 
         Returns:
             A TaskManager implementation.
@@ -62,7 +74,7 @@ class TaskManagerFactory:
             return NullTaskManager()
 
         if task_type == "linear":
-            return self._create_linear()
+            return self._create_linear(config)
 
         # Should be unreachable
         raise ConfigError(
@@ -72,10 +84,17 @@ class TaskManagerFactory:
             recoverable=False,
         )
 
-    def _create_linear(self) -> "LinearTaskManager":
+    def _create_linear(
+        self, config: "TaskManagerConfig | None" = None
+    ) -> "LinearTaskManager":
         """Create LinearTaskManager with lazy import.
 
         Lazy import avoids loading httpx when Linear is not used.
+
+        Args:
+            config: Optional TaskManagerConfig. If not provided, a default
+                config will be created. For production use, provide a config
+                with team_key and state_mapping from project.yaml.
 
         Returns:
             A configured LinearTaskManager instance.
@@ -84,8 +103,8 @@ class TaskManagerFactory:
         from adw.models.config import TaskManagerConfig
         from adw.task_managers.linear import LinearTaskManager
 
-        # Create with default config - actual config comes from project.yaml
-        # This factory is a simple creator; config is typically provided
-        # by the orchestrator based on project settings
-        config = TaskManagerConfig(type="linear")
+        # Use provided config or create default
+        if config is None:
+            config = TaskManagerConfig(type="linear")
+
         return LinearTaskManager(config)
