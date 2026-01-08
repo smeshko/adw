@@ -406,10 +406,10 @@ class Orchestrator:
 
         except ADWError as e:
             # Sync failure status with task manager (Story 12.3)
+            # Use error's phase if available (more accurate), else fall back to context
+            failed_phase = getattr(e, "phase", None) or context.current_phase
             if self._status_sync_service:
-                self._status_sync_service.sync_run_failed(
-                    context, context.current_phase, str(e)
-                )
+                self._status_sync_service.sync_run_failed(context, failed_phase, str(e))
 
             # Mark as failed and persist
             context = context.model_copy(
@@ -458,7 +458,7 @@ class Orchestrator:
                 "Run failed",
                 extra={
                     "run_id": run_id,
-                    "phase": getattr(e, "phase", None),
+                    "phase": failed_phase,
                     "error_code": e.code,
                 },
             )
