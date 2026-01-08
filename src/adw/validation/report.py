@@ -207,13 +207,14 @@ class ValidationReportGenerator:
 
         # Save markdown
         md_path = self.output_dir / "validation_report.md"
-        md_path.write_text(report.to_markdown())
+        md_path.write_text(report.to_markdown(), encoding="utf-8")
         logger.info("Saved markdown report", extra={"path": str(md_path)})
 
         # Save JSON
         json_path = self.output_dir / "validation_report.json"
         json_path.write_text(
-            json.dumps(report.model_dump(mode="json"), indent=2, default=str)
+            json.dumps(report.model_dump(mode="json"), indent=2, default=str),
+            encoding="utf-8",
         )
         logger.info("Saved JSON report", extra={"path": str(json_path)})
 
