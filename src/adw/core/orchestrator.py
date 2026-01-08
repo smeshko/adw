@@ -407,9 +407,22 @@ class Orchestrator:
         except ADWError as e:
             # Sync failure status with task manager (Story 12.3)
             # Use error's phase if available (more accurate), else fall back to context
+            # Non-blocking: catch and log any sync errors, never fail the run
             failed_phase = getattr(e, "phase", None) or context.current_phase
             if self._status_sync_service:
-                self._status_sync_service.sync_run_failed(context, failed_phase, str(e))
+                try:
+                    self._status_sync_service.sync_run_failed(
+                        context, failed_phase, str(e)
+                    )
+                except Exception as sync_error:
+                    logger.warning(
+                        "Status sync failed (non-blocking)",
+                        extra={
+                            "run_id": context.run_id,
+                            "phase": failed_phase,
+                            "error": str(sync_error),
+                        },
+                    )
 
             # Mark as failed and persist
             context = context.model_copy(
@@ -466,10 +479,21 @@ class Orchestrator:
 
         except Exception as e:
             # Sync failure status with task manager (Story 12.3)
+            # Non-blocking: catch and log any sync errors, never fail the run
             if self._status_sync_service:
-                self._status_sync_service.sync_run_failed(
-                    context, context.current_phase, str(e)
-                )
+                try:
+                    self._status_sync_service.sync_run_failed(
+                        context, context.current_phase, str(e)
+                    )
+                except Exception as sync_error:
+                    logger.warning(
+                        "Status sync failed (non-blocking)",
+                        extra={
+                            "run_id": context.run_id,
+                            "phase": context.current_phase,
+                            "error": str(sync_error),
+                        },
+                    )
 
             # Catch-all for unexpected errors (RuntimeError, etc.)
             # Ensures run status is updated even for infrastructure errors
@@ -674,8 +698,19 @@ class Orchestrator:
 
         except ADWError as e:
             # Sync failure status with task manager (Story 12.3)
+            # Non-blocking: catch and log any sync errors, never fail the run
             if self._status_sync_service:
-                self._status_sync_service.sync_run_failed(context, phase, str(e))
+                try:
+                    self._status_sync_service.sync_run_failed(context, phase, str(e))
+                except Exception as sync_error:
+                    logger.warning(
+                        "Status sync failed (non-blocking)",
+                        extra={
+                            "run_id": context.run_id,
+                            "phase": phase,
+                            "error": str(sync_error),
+                        },
+                    )
 
             # Mark as failed
             context = context.model_copy(
@@ -715,8 +750,19 @@ class Orchestrator:
 
         except Exception as e:
             # Sync failure status with task manager (Story 12.3)
+            # Non-blocking: catch and log any sync errors, never fail the run
             if self._status_sync_service:
-                self._status_sync_service.sync_run_failed(context, phase, str(e))
+                try:
+                    self._status_sync_service.sync_run_failed(context, phase, str(e))
+                except Exception as sync_error:
+                    logger.warning(
+                        "Status sync failed (non-blocking)",
+                        extra={
+                            "run_id": context.run_id,
+                            "phase": phase,
+                            "error": str(sync_error),
+                        },
+                    )
 
             # Catch-all for unexpected errors (RuntimeError, etc.)
             context = context.model_copy(
@@ -919,10 +965,21 @@ class Orchestrator:
 
         except ADWError as e:
             # Sync failure status with task manager (Story 12.3)
+            # Non-blocking: catch and log any sync errors, never fail the run
             if self._status_sync_service:
-                self._status_sync_service.sync_run_failed(
-                    context, context.current_phase, str(e)
-                )
+                try:
+                    self._status_sync_service.sync_run_failed(
+                        context, context.current_phase, str(e)
+                    )
+                except Exception as sync_error:
+                    logger.warning(
+                        "Status sync failed (non-blocking)",
+                        extra={
+                            "run_id": context.run_id,
+                            "phase": context.current_phase,
+                            "error": str(sync_error),
+                        },
+                    )
 
             # Mark as failed and persist
             context = context.model_copy(
@@ -979,10 +1036,21 @@ class Orchestrator:
 
         except Exception as e:
             # Sync failure status with task manager (Story 12.3)
+            # Non-blocking: catch and log any sync errors, never fail the run
             if self._status_sync_service:
-                self._status_sync_service.sync_run_failed(
-                    context, context.current_phase, str(e)
-                )
+                try:
+                    self._status_sync_service.sync_run_failed(
+                        context, context.current_phase, str(e)
+                    )
+                except Exception as sync_error:
+                    logger.warning(
+                        "Status sync failed (non-blocking)",
+                        extra={
+                            "run_id": context.run_id,
+                            "phase": context.current_phase,
+                            "error": str(sync_error),
+                        },
+                    )
 
             # Catch-all for unexpected errors (RuntimeError, etc.)
             context = context.model_copy(
