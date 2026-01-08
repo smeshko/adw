@@ -37,6 +37,8 @@ from adw.models.config import (
     PortRangeConfig,
     ProjectConfig,
     RetryConfig,
+    TaskManagerConfig,
+    TaskManagerLabelsConfig,
     WorktreeConfig,
 )
 from adw.models.context import (
@@ -134,6 +136,8 @@ __all__: list[str] = [
     "PortRangeConfig",
     "ProjectConfig",
     "RetryConfig",
+    "TaskManagerConfig",
+    "TaskManagerLabelsConfig",
     "WorktreeConfig",
     # Context models
     "ProjectContext",

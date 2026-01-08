@@ -75,8 +75,8 @@ So that different task management systems can be supported.
 - [x] Raise `ConfigError` for unknown task_manager values with available options
 
 ### Task 5: Add TaskManager Configuration
-- [ ] Add `TaskManagerConfig` model to `src/adw/models/config.py`
-- [ ] Configuration fields:
+- [x] Add `TaskManagerConfig` model to `src/adw/models/config.py`
+- [x] Configuration fields:
   - `type: str = "none"` - Task manager type (none, linear)
   - `team_key: str | None` - Team prefix for ID detection
   - `state_mapping: dict[str, str]` - ADW state to external state mapping
@@ -86,8 +86,8 @@ So that different task management systems can be supported.
   - `auto_close: bool = False` - Close task when PR merged
   - `include_labels: bool = True` - Include labels in context
   - `include_parent: bool = True` - Include parent context
-- [ ] Add `task_manager` field to `ProjectConfig`
-- [ ] Default state_mapping: `{"pending": "Todo", "running": "In Progress", "completed": "Done", "failed": "In Progress"}`
+- [x] Add `task_manager` field to `ProjectConfig`
+- [x] Default state_mapping: `{"pending": "Todo", "running": "In Progress", "completed": "Done", "failed": "In Progress"}`
 
 ### Task 6: Add TaskError Exception
 - [ ] Add `TaskError` to `src/adw/exceptions.py`
@@ -384,6 +384,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 2: TaskInfo model was created in Task 1 since Protocol depends on it. Added 4 validation tests.
 - Task 3: Created NullTaskManager with no-op implementation. Also added TaskError exception to exceptions.py. Added 5 tests.
 - Task 4: Created TaskManagerFactory with registry pattern. Returns NullTaskManager for "none", raises ConfigError for "linear" (not yet implemented) and unknown types. Added 5 tests.
+- Task 5: Added TaskManagerConfig and TaskManagerLabelsConfig to config.py. Added task_manager field to ProjectConfig. Exported from models __init__.py. Added 8 tests.
 
 ### File List
 
@@ -400,6 +401,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - `tests/unit/models/test_task.py` - TaskInfo model validation tests (4 tests)
 
 **Modified Files:**
-- `src/adw/models/__init__.py` - Added TaskInfo export
+- `src/adw/models/__init__.py` - Added TaskInfo, TaskManagerConfig, TaskManagerLabelsConfig exports
+- `src/adw/models/config.py` - Added TaskManagerConfig, TaskManagerLabelsConfig, task_manager field in ProjectConfig
 - `src/adw/exceptions.py` - Added TaskError exception class
 - `tests/unit/cli/test_progress.py` - Fixed pre-existing ISS-019 test bug (VERIFY -> VALIDATE)
+- `tests/unit/models/test_config_task_manager.py` - TaskManagerConfig tests (8 tests)
