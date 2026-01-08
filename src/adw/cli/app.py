@@ -215,9 +215,14 @@ def run(
 
     # Resolve input: task ID vs feature string (Story 12.4 Task 4)
     # Creates a task manager with config and uses InputResolver to auto-detect
+    # When --no-task-manager is used, bypass config entirely to avoid initialization
+    # errors (e.g., missing LINEAR_API_KEY) even when user doesn't want task manager
+    task_type_to_use = "none" if no_task_manager else (
+        task_manager_config.type if task_manager_config else "none"
+    )
     task_manager = TaskManagerFactory().create(
-        task_type=task_manager_config.type if task_manager_config else "none",
-        config=task_manager_config,
+        task_type=task_type_to_use,
+        config=task_manager_config if not no_task_manager else None,
     )
     resolver = InputResolver(task_manager)
     try:

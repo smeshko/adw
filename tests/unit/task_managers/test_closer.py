@@ -129,6 +129,8 @@ class TestIssueCloserLabelIntegration:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Logs intent to add pr-ready label when PR not merged."""
+        import logging
+
         config = TaskManagerConfig(
             type="linear",
             auto_close=True,
@@ -137,10 +139,11 @@ class TestIssueCloserLabelIntegration:
         mock_github_client.is_pr_merged.return_value = False
         closer = IssueCloser(mock_task_manager, config, mock_github_client)
 
-        closer.maybe_close("task-uuid", "https://github.com/owner/repo/pull/123")
+        with caplog.at_level(logging.INFO, logger="adw.task_managers.closer"):
+            closer.maybe_close("task-uuid", "https://github.com/owner/repo/pull/123")
 
-        # Label functionality logs intent (placeholder)
-        assert "pr-ready" in caplog.text or True  # Placeholder logs info
+        # Label functionality logs intent (placeholder until LabelManager integration)
+        assert "pr-ready" in caplog.text
 
     def test_skips_label_when_labels_disabled(
         self,

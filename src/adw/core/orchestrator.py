@@ -340,6 +340,24 @@ class Orchestrator:
                     phases_completed=list(context.phase_history),
                 )
 
+                # Attempt auto-PR creation if enabled (Story ISS-011)
+                # This runs regardless of progress_display to ensure PR is created
+                pr_result = None
+                if self.progress_display:
+                    pr_result = self.progress_display.try_auto_create_pr(
+                        run_id=context.run_id,
+                        context=context,
+                        runs_dir=self.runs_dir,
+                        auto_create_pr_enabled=self.git_config.auto_create_pr,
+                    )
+
+                # Attempt to close task if auto_close enabled (Story 12.8)
+                # This must run regardless of progress_display
+                self._maybe_close_task(
+                    task_uuid=task_uuid,
+                    pr_url=pr_result.pr_url if pr_result else None,
+                )
+
                 # Show pipeline summary (Story 5.5)
                 if self.progress_display:
                     total_tokens = sum(context.phase_tokens.values())
@@ -349,20 +367,6 @@ class Orchestrator:
                             (context.completed_at - context.started_at).total_seconds()
                             * 1000
                         )
-
-                    # Attempt auto-PR creation if enabled (Story ISS-011)
-                    pr_result = self.progress_display.try_auto_create_pr(
-                        run_id=context.run_id,
-                        context=context,
-                        runs_dir=self.runs_dir,
-                        auto_create_pr_enabled=self.git_config.auto_create_pr,
-                    )
-
-                    # Attempt to close task if auto_close enabled (Story 12.8)
-                    self._maybe_close_task(
-                        task_uuid=task_uuid,
-                        pr_url=pr_result.pr_url if pr_result else None,
-                    )
 
                     self.progress_display.show_pipeline_summary(
                         completed_phases=context.phase_history,
