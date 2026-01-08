@@ -78,3 +78,23 @@ class NullTaskManager:
             Always None - no task ID detection without a task manager.
         """
         return None
+
+    def close_task(self, task_id: str) -> None:
+        """No-op - silently ignores close requests.
+
+        Args:
+            task_id: The task identifier (ignored).
+        """
+        # No-op - nothing to close
+        pass
+
+    def is_pr_merged(self, pr_url: str) -> bool:
+        """Return False since no task manager is configured.
+
+        Args:
+            pr_url: The pull request URL (ignored).
+
+        Returns:
+            Always False - no PR detection without a task manager.
+        """
+        return False

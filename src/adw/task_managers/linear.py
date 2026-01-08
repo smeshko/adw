@@ -320,3 +320,107 @@ class LinearTaskManager:
             return match.group(1).upper()
 
         return None
+
+    def close_task(self, task_id: str) -> None:
+        """Close a task by moving it to the Done state.
+
+        This operation:
+        1. Finds the "Done" state ID from the team workflow
+        2. Updates the issue to the Done state
+        3. Sets the completedAt timestamp
+
+        Args:
+            task_id: The internal Linear issue UUID (from TaskInfo.id).
+
+        Raises:
+            TaskError: If the task cannot be closed.
+        """
+        # Get done state ID (handles custom state mapping via config)
+        done_state_id = self._get_done_state_id()
+        if not done_state_id:
+            raise TaskError(
+                code="DONE_STATE_NOT_FOUND",
+                message="Could not find 'Done' or 'Completed' state in team workflow",
+                suggestion="Verify your Linear team has a 'Done' workflow state, or configure state_mapping in project.yaml",
+                task_id=task_id,
+                recoverable=False,
+            )
+
+        # Update issue with done state and completedAt timestamp
+        from datetime import UTC, datetime
+
+        completed_at = datetime.now(UTC).isoformat()
+
+        try:
+            result = self._client.update_issue(
+                task_id,
+                {
+                    "stateId": done_state_id,
+                    "completedAt": completed_at,
+                },
+            )
+            if result:
+                logger.info(
+                    "Closed Linear issue %s (set to Done with completedAt)",
+                    task_id,
+                )
+            else:
+                raise TaskError(
+                    code="TASK_CLOSE_FAILED",
+                    message=f"Failed to close Linear issue '{task_id}'",
+                    suggestion="Check Linear API connectivity and permissions",
+                    task_id=task_id,
+                    recoverable=True,
+                )
+        except TaskError:
+            raise
+        except Exception as e:
+            raise TaskError(
+                code="TASK_CLOSE_ERROR",
+                message=f"Error closing Linear issue '{task_id}': {e}",
+                suggestion="Check Linear API connectivity and try again",
+                task_id=task_id,
+                recoverable=True,
+            ) from e
+
+    def _get_done_state_id(self) -> str | None:
+        """Get the Done state ID for closing tasks.
+
+        Checks state_mapping config first, then falls back to looking
+        for 'Done' or 'Completed' states in the team workflow.
+
+        Returns:
+            The state ID for the done state, or None if not found.
+        """
+        # Check if there's a custom mapping for 'done' or 'completed' status
+        done_state_name = self._config.state_mapping.get("done")
+        if not done_state_name:
+            done_state_name = self._config.state_mapping.get("completed")
+
+        # If no mapping, use default state names
+        if not done_state_name:
+            # Try common done state names
+            for name in ["Done", "Completed", "Complete", "Closed"]:
+                state_id = self._get_state_id(name)
+                if state_id:
+                    return state_id
+            return None
+
+        return self._get_state_id(done_state_name)
+
+    def is_pr_merged(self, pr_url: str) -> bool:
+        """Check if a pull request has been merged.
+
+        Note: Linear does not natively track PR merge status. This method
+        returns False by default. PR merge detection is handled separately
+        via GitHub API in the IssueCloser service.
+
+        Args:
+            pr_url: The full URL to the pull request.
+
+        Returns:
+            Always False - PR detection is handled by IssueCloser.
+        """
+        # Linear doesn't track PR merge status natively
+        # This is handled by IssueCloser using GitHub API
+        return False
