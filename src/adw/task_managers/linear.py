@@ -4,6 +4,7 @@ This module provides the Linear task manager for integrating ADW with
 Linear issue tracking system.
 """
 
+import logging
 import os
 from typing import Any
 
@@ -11,6 +12,8 @@ from adw.exceptions import ConfigError, TaskError
 from adw.models.config import TaskManagerConfig
 from adw.models.task import TaskInfo
 from adw.task_managers.linear_client import LinearClient
+
+logger = logging.getLogger(__name__)
 
 
 class LinearTaskManager:
@@ -168,16 +171,88 @@ class LinearTaskManager:
     ) -> None:
         """Update task status in Linear.
 
-        Args:
-            task_id: The task identifier.
-            status: The new status (mapped via config state_mapping).
-            metadata: Optional additional metadata to include in the update.
+        This is a non-blocking operation - errors are logged but do not
+        raise exceptions to avoid failing the ADW run.
 
-        Raises:
-            TaskError: If the status update fails.
+        Args:
+            task_id: The task identifier (internal UUID, not identifier like RULE-123).
+            status: The ADW status to map to Linear state (e.g., "running", "completed").
+            metadata: Optional additional metadata (currently unused).
         """
-        # TODO: Implement in Task 4
-        pass  # Non-blocking - log and continue on failure
+        # Map ADW status to Linear state name
+        linear_state_name = self._config.state_mapping.get(status)
+        if not linear_state_name:
+            logger.warning(
+                "No state mapping found for ADW status '%s'",
+                status,
+            )
+            return
+
+        # Get state ID from cache or fetch
+        state_id = self._get_state_id(linear_state_name)
+        if not state_id:
+            logger.warning(
+                "Linear state '%s' not found in team workflow states",
+                linear_state_name,
+            )
+            return
+
+        # Update issue
+        try:
+            result = self._client.update_issue(task_id, {"stateId": state_id})
+            if result:
+                logger.info(
+                    "Updated Linear issue %s to state '%s'",
+                    task_id,
+                    linear_state_name,
+                )
+            else:
+                logger.warning(
+                    "Failed to update Linear issue %s to state '%s'",
+                    task_id,
+                    linear_state_name,
+                )
+        except Exception as e:
+            logger.warning(
+                "Error updating Linear issue %s: %s",
+                task_id,
+                str(e),
+            )
+
+    def _get_state_id(self, state_name: str) -> str | None:
+        """Get Linear state ID by name, using cache.
+
+        Args:
+            state_name: The state name to look up.
+
+        Returns:
+            The state ID if found, None otherwise.
+        """
+        # Populate cache if empty
+        if not self._state_cache:
+            self._populate_state_cache()
+
+        return self._state_cache.get(state_name)
+
+    def _populate_state_cache(self) -> None:
+        """Fetch and cache team workflow states."""
+        try:
+            states = self._client.get_team_states(self._team_id)
+            for state in states:
+                name = state.get("name")
+                state_id = state.get("id")
+                if name and state_id:
+                    self._state_cache[name] = state_id
+            logger.debug(
+                "Cached %d workflow states for team %s",
+                len(self._state_cache),
+                self._team_id,
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to fetch team workflow states: %s",
+                str(e),
+            )
 
     def resolve_task_id(self, input_str: str) -> str | None:
         """Attempt to extract a task ID from an input string.

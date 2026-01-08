@@ -169,3 +169,90 @@ class TestLinearTaskManagerFetchTask:
             result = manager.fetch_task("RULE-789")
 
         assert result.labels == ["bug", "urgent", "backend"]
+
+
+class TestLinearTaskManagerUpdateStatus:
+    """Tests for LinearTaskManager.update_status."""
+
+    @pytest.fixture
+    def manager(self, monkeypatch: pytest.MonkeyPatch) -> LinearTaskManager:
+        """Create a LinearTaskManager with mocked env vars."""
+        monkeypatch.setenv("LINEAR_API_KEY", "lin_api_test123")
+        monkeypatch.setenv("LINEAR_TEAM_ID", "team-uuid-123")
+        config = TaskManagerConfig(
+            type="linear",
+            team_key="RULE",
+            state_mapping={
+                "pending": "Todo",
+                "running": "In Progress",
+                "completed": "Done",
+                "failed": "In Progress",
+            },
+        )
+        return LinearTaskManager(config)
+
+    def test_update_status_maps_adw_status_to_linear_state(
+        self, manager: LinearTaskManager
+    ) -> None:
+        """update_status maps ADW status to Linear state name."""
+        mock_states = [
+            {"id": "state-1", "name": "Todo", "type": "started"},
+            {"id": "state-2", "name": "In Progress", "type": "started"},
+            {"id": "state-3", "name": "Done", "type": "completed"},
+        ]
+
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.get_team_states.return_value = mock_states
+            mock_client.update_issue.return_value = {"success": True}
+
+            manager.update_status("abc123", "running")
+
+            # Should call update_issue with state ID for "In Progress"
+            mock_client.update_issue.assert_called_once()
+            call_args = mock_client.update_issue.call_args
+            assert call_args[0][1]["stateId"] == "state-2"
+
+    def test_update_status_caches_workflow_states(
+        self, manager: LinearTaskManager
+    ) -> None:
+        """update_status caches team workflow states."""
+        mock_states = [{"id": "state-1", "name": "Done", "type": "completed"}]
+
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.get_team_states.return_value = mock_states
+            mock_client.update_issue.return_value = {"success": True}
+
+            # Call twice
+            manager.update_status("abc123", "completed")
+            manager.update_status("abc456", "completed")
+
+            # Should only fetch states once
+            mock_client.get_team_states.assert_called_once()
+
+    def test_update_status_unknown_state_logs_warning(
+        self, manager: LinearTaskManager, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """update_status logs warning for unknown state, doesn't fail."""
+        mock_states = [{"id": "state-1", "name": "Todo", "type": "started"}]
+
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.get_team_states.return_value = mock_states
+
+            # "running" maps to "In Progress" but it's not in mock_states
+            manager.update_status("abc123", "running")
+
+            # Should NOT call update_issue since state not found
+            mock_client.update_issue.assert_not_called()
+
+    def test_update_status_api_error_does_not_fail(
+        self, manager: LinearTaskManager
+    ) -> None:
+        """update_status handles API errors gracefully without raising."""
+        mock_states = [{"id": "state-1", "name": "Done", "type": "completed"}]
+
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.get_team_states.return_value = mock_states
+            mock_client.update_issue.return_value = None  # Indicates failure
+
+            # Should NOT raise
+            manager.update_status("abc123", "completed")
