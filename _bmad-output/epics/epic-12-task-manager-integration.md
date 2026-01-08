@@ -249,59 +249,7 @@ So that completed work is automatically tracked.
 
 ---
 
-## Story 12.9: Issue Assignment (Course Correction 2026-01-03)
-
-As a user,
-I want ADW to assign the task to me when a run starts,
-So that ownership is clear during automated work.
-
-**Acceptance Criteria:**
-
-**Given** a run starts from a task
-**When** `auto_assign: true` in config
-**Then** task is assigned to the configured user (from API key owner or explicit config)
-
-**Given** task is already assigned
-**When** run starts
-**Then** assignment is not changed
-
-**Given** `auto_assign: false` or not specified
-**When** run starts
-**Then** no assignment change occurs
-
----
-
-## Story 12.10: GitHub Issues Provider (Course Correction 2026-01-03)
-
-As a user,
-I want to run `adw run #123` to fetch my GitHub issue,
-So that I can use ADW with GitHub Issues as my task manager.
-
-**Acceptance Criteria:**
-
-**Given** `task_manager: github_issues` in config
-**When** `adw run #123` is executed
-**Then** issue title and body are fetched via `gh` CLI
-
-**Given** GitHub issue with labels
-**When** fetched
-**Then** labels are available as `{{task.labels}}` in prompts
-
-**Given** `GITHUB_TOKEN` not set and `gh` not authenticated
-**When** GitHub task manager is configured
-**Then** ConfigError raised with authentication instructions
-
-**Given** issue doesn't exist
-**When** fetch attempted
-**Then** TaskError raised: "Issue #123 not found"
-
-**Given** status sync
-**When** phase transitions
-**Then** issue labels are updated (using Story 12.7 patterns)
-
----
-
-## Updated Configuration Schema (Course Correction 2026-01-03)
+## Configuration Schema
 
 ```yaml
 # Full task_manager_config schema (updated)
