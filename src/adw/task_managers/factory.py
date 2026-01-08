@@ -53,19 +53,10 @@ class TaskManagerFactory:
         if task_type == "none":
             return NullTaskManager()
 
-        if task_type == "linear":
-            # Linear implementation coming in Story 12.2
-            raise ConfigError(
-                code="TASK_MANAGER_NOT_IMPLEMENTED",
-                message="Linear task manager is not yet implemented",
-                suggestion="Use 'none' or wait for Story 12.2",
-                recoverable=False,
-            )
-
-        # Should not reach here, but satisfy type checker
+        # task_type == "linear" - implementation coming in Story 12.2
         raise ConfigError(
-            code="INVALID_TASK_MANAGER",
-            message=f"Unknown task manager type: '{task_type}'",
-            suggestion=f"Available types: {', '.join(sorted(_AVAILABLE_TYPES))}",
+            code="TASK_MANAGER_NOT_IMPLEMENTED",
+            message="Linear task manager is not yet implemented",
+            suggestion="Use 'none' or wait for Story 12.2",
             recoverable=False,
         )
