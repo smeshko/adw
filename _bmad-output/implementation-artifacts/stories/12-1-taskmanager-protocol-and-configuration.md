@@ -67,12 +67,12 @@ So that different task management systems can be supported.
 - [x] Used when `task_manager: none` or not configured
 
 ### Task 4: Create TaskManager Factory
-- [ ] Create `src/adw/task_managers/factory.py` with `TaskManagerFactory`
-- [ ] Implement `create(config: TaskManagerConfig) -> TaskManager`
-- [ ] Registry pattern for available task managers:
+- [x] Create `src/adw/task_managers/factory.py` with `TaskManagerFactory`
+- [x] Implement `create(config: TaskManagerConfig) -> TaskManager`
+- [x] Registry pattern for available task managers:
   - `"none"` -> `NullTaskManager`
   - `"linear"` -> `LinearTaskManager` (stub for now, implemented in 12.2)
-- [ ] Raise `ConfigError` for unknown task_manager values with available options
+- [x] Raise `ConfigError` for unknown task_manager values with available options
 
 ### Task 5: Add TaskManager Configuration
 - [ ] Add `TaskManagerConfig` model to `src/adw/models/config.py`
@@ -383,17 +383,20 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 1: Created TaskManager Protocol with runtime_checkable decorator, fetch_task, update_status, resolve_task_id methods, and name property. Created TaskInfo model (needed by Protocol) and tests.
 - Task 2: TaskInfo model was created in Task 1 since Protocol depends on it. Added 4 validation tests.
 - Task 3: Created NullTaskManager with no-op implementation. Also added TaskError exception to exceptions.py. Added 5 tests.
+- Task 4: Created TaskManagerFactory with registry pattern. Returns NullTaskManager for "none", raises ConfigError for "linear" (not yet implemented) and unknown types. Added 5 tests.
 
 ### File List
 
 **New Files:**
-- `src/adw/task_managers/__init__.py` - Package init with TaskManager, NullTaskManager exports
+- `src/adw/task_managers/__init__.py` - Package init with TaskManager, NullTaskManager, TaskManagerFactory exports
 - `src/adw/task_managers/base.py` - TaskManager Protocol definition
 - `src/adw/task_managers/null.py` - NullTaskManager no-op implementation
+- `src/adw/task_managers/factory.py` - TaskManagerFactory with registry pattern
 - `src/adw/models/task.py` - TaskInfo model
 - `tests/unit/task_managers/__init__.py` - Test package init
 - `tests/unit/task_managers/test_base.py` - Protocol tests (3 tests)
 - `tests/unit/task_managers/test_null.py` - NullTaskManager tests (5 tests)
+- `tests/unit/task_managers/test_factory.py` - Factory tests (5 tests)
 - `tests/unit/models/test_task.py` - TaskInfo model validation tests (4 tests)
 
 **Modified Files:**
