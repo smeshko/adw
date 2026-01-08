@@ -1,7 +1,7 @@
 # Story 16.1: Remove SDK Validation Loop
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: dev-complete
 Linear Issue: not-configured
 Epic: 16 - Validation Phase Simplification
 Created: 2026-01-08
@@ -31,27 +31,27 @@ so that the codebase is simpler and the LLM handles iteration.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Remove ValidationLoopController class**
+- [x] **Task 1: Remove ValidationLoopController class**
   - Delete `src/adw/validation/loop_controller.py` entirely
   - Remove `ValidationLoopController` from `__init__.py` exports
   - Remove `ExitReason` enum (no longer needed)
 
-- [ ] **Task 2: Remove TriageSystem class**
+- [x] **Task 2: Remove TriageSystem class**
   - Delete `src/adw/validation/triage.py` entirely
   - Remove `TriageSystem` from `__init__.py` exports
   - Remove `TriageDecision` enum from models.py
 
-- [ ] **Task 3: Remove FixEngine class**
+- [x] **Task 3: Remove FixEngine class**
   - Delete `src/adw/validation/fix_engine.py` entirely
   - Remove `FixEngine`, `FixIterationResult`, `FileChange` from exports
 
-- [ ] **Task 4: Remove ValidationStateManager iteration logic**
+- [x] **Task 4: Remove ValidationStateManager iteration logic**
   - Simplify `src/adw/validation/state_manager.py`
   - Remove `save_iteration_state()` method
   - Remove `load_iteration_state()` method
   - Remove mid-loop state persistence
 
-- [ ] **Task 5: Simplify ValidationPhase**
+- [x] **Task 5: Simplify ValidationPhase**
   - Rewrite `src/adw/validation/phase.py` to single executor call
   - Remove all loop orchestration logic
   - Target: ~5 lines of code for phase execution:
@@ -65,7 +65,7 @@ so that the codebase is simpler and the LLM handles iteration.
         )
     ```
 
-- [ ] **Task 6: Update tests**
+- [x] **Task 6: Update tests**
   - Remove tests for deleted classes
   - Add tests for simplified single-call validation
   - Ensure coverage >80% for remaining validation code
