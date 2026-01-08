@@ -6,15 +6,10 @@ This package provides the ValidationPhase which combines:
 - Test suite execution
 
 All validators run in sequence and issues are aggregated into
-a single ValidationResult for triage and fix iteration.
+a single ValidationResult. The LLM handles any iteration through prompts.
 """
 
 from adw.validation.config import ValidationConfig
-from adw.validation.fix_engine import FileChange, FixEngine, FixIterationResult
-from adw.validation.loop_controller import (
-    ExitReason,
-    ValidationLoopController,
-)
 from adw.validation.models import (
     FixAttempt,
     FixResult,
@@ -23,8 +18,6 @@ from adw.validation.models import (
     IssueSeverity,
     IssueSource,
     LoopState,
-    TriageDecision,
-    TriagedIssue,
     ValidationIssue,
     ValidationResult,
     ValidationSource,
@@ -38,29 +31,20 @@ from adw.validation.report import (
     ValidationReportGenerator,
 )
 from adw.validation.state_manager import ValidationStateManager
-from adw.validation.triage import TriageSystem
 from adw.validation.validators.base import Validator, ValidatorRegistry
 
 __all__ = [
     "ConfidenceLevel",
     "DeferredIssueSummary",
-    "ExitReason",
-    "FileChange",
     "FixAttempt",
-    "FixEngine",
-    "FixIterationResult",
     "FixResult",
     "IssueContext",
     "IssueLocation",
     "IssueSeverity",
     "IssueSource",
     "LoopState",
-    "TriageDecision",
-    "TriagedIssue",
-    "TriageSystem",
     "ValidationConfig",
     "ValidationIssue",
-    "ValidationLoopController",
     "ValidationPhase",
     "ValidationReport",
     "ValidationReportGenerator",

@@ -137,8 +137,8 @@ class TestFullRunIntegration:
         snapshots_dir = runs_dir / context.run_id / "snapshots"
         snapshot_files = list(snapshots_dir.glob("*.json"))
 
-        # Should have pre and post snapshot for each of 5 phases = 10 snapshots
-        assert len(snapshot_files) == 10
+        # Should have pre and post snapshot for each of 4 phases = 8 snapshots
+        assert len(snapshot_files) == 8
 
         # Verify naming pattern
         for phase in PHASE_SEQUENCE:

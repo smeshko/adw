@@ -61,19 +61,6 @@ class FixResult(str, Enum):
     NOT_ATTEMPTED = "NOT_ATTEMPTED"
 
 
-class TriageDecision(str, Enum):
-    """Decision for how to handle a validation issue.
-
-    - FIX: Issue must be fixed before proceeding
-    - DISMISS: Issue is a false positive or not relevant
-    - DEFER: Issue is valid but can be addressed later
-    """
-
-    FIX = "FIX"
-    DISMISS = "DISMISS"
-    DEFER = "DEFER"
-
-
 class IssueLocation(BaseModel):
     """Location information for a validation issue.
 
@@ -257,7 +244,7 @@ class ValidationIssue(BaseModel):
     line_number: int | None = Field(default=None, exclude=True)
     suggestion: str | None = Field(default=None, exclude=True)
 
-    def __init__(self, **data: object) -> None:
+    def __init__(self, **data: Any) -> None:
         """Initialize with backward compatibility for message and legacy severity."""
         # Handle 'message' as alias for 'description'
         if "message" in data and "description" not in data:
@@ -307,14 +294,14 @@ class ValidationIssue(BaseModel):
     def __eq__(self, other: object) -> bool:
         """Compare issues based on source, description, and location.
 
-        Two issues are equal if they have the same source, description,
-        and location (file_path and line_start).
+        Two issues are equal if they have the same source, description
+        (first 100 chars for consistency with hash), and location.
         """
         if not isinstance(other, ValidationIssue):
             return NotImplemented
         return (
             self.source == other.source
-            and self.description == other.description
+            and self.description[:100] == other.description[:100]
             and self._location_key() == other._location_key()
         )
 
@@ -322,6 +309,7 @@ class ValidationIssue(BaseModel):
         """Hash based on immutable identifying characteristics.
 
         Uses source, truncated description (first 100 chars), and location key.
+        Must be consistent with __eq__ to maintain hash/equality contract.
         """
         return hash(
             (
@@ -468,45 +456,6 @@ class ValidationIssue(BaseModel):
     }
 
 
-class TriagedIssue(BaseModel):
-    """Wrapper for a ValidationIssue with triage decision metadata.
-
-    Contains the original issue plus the triage decision, reason,
-    and whether the decision was made automatically.
-
-    Attributes:
-        issue: The original validation issue.
-        decision: Triage decision (FIX, DISMISS, DEFER).
-        reason: Explanation for the triage decision.
-        auto_decided: Whether decision was made by LLM/rules (True) or user (False).
-    """
-
-    issue: ValidationIssue = Field(..., description="The original validation issue")
-    decision: TriageDecision = Field(..., description="Triage decision")
-    reason: str = Field(..., description="Explanation for the decision")
-    auto_decided: bool = Field(
-        default=False, description="Whether decision was made automatically"
-    )
-
-    model_config = {
-        "frozen": False,
-        "validate_assignment": True,
-        "json_schema_extra": {
-            "example": {
-                "issue": {
-                    "id": "VI-01HQ123456789ABCDEFGHJKMNP",
-                    "source": "TEST",
-                    "severity": "ERROR",
-                    "description": "Test failed",
-                },
-                "decision": "FIX",
-                "reason": "Critical test failure must be fixed",
-                "auto_decided": False,
-            }
-        },
-    }
-
-
 class ValidationResult(BaseModel):
     """Result of the unified validation phase.
 
@@ -516,15 +465,11 @@ class ValidationResult(BaseModel):
     Attributes:
         passed: Whether all validators passed with no issues.
         issues: List of issues found by validators.
-        iteration: Current iteration number in the validation loop.
     """
 
     passed: bool = Field(..., description="Whether validation passed")
     issues: list[ValidationIssue] = Field(
         default_factory=list, description="Issues found during validation"
-    )
-    iteration: int = Field(
-        default=1, description="Current iteration number in validation loop"
     )
 
     model_config = {
@@ -541,7 +486,6 @@ class ValidationResult(BaseModel):
                         "description": "Test failed",
                     }
                 ],
-                "iteration": 1,
             }
         },
     }
@@ -639,8 +583,6 @@ __all__ = [
     "IssueSeverity",
     "IssueSource",
     "LoopState",
-    "TriageDecision",
-    "TriagedIssue",
     "ValidationIssue",
     "ValidationResult",
     "ValidationSource",  # Backward compatibility

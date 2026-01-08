@@ -1,7 +1,7 @@
 """Unit tests for ValidationPhase class.
 
-Tests for the unified validation phase that combines evidence gathering,
-code review, and test execution.
+Tests for the simplified validation phase that combines evidence gathering,
+code review, and test execution into a single pass.
 """
 
 from datetime import UTC, datetime
@@ -61,7 +61,6 @@ class TestValidationPhase:
             assert isinstance(result, ValidationResult)
             assert result.passed is True
             assert result.issues == []
-            assert result.iteration == 1
 
     def test_run_collects_all_issues(
         self, validation_phase: ValidationPhase, mock_context: RunContext
@@ -204,10 +203,8 @@ class TestValidationPhase:
             assert isinstance(result, ValidationResult)
             assert hasattr(result, "passed")
             assert hasattr(result, "issues")
-            assert hasattr(result, "iteration")
             assert isinstance(result.passed, bool)
             assert isinstance(result.issues, list)
-            assert isinstance(result.iteration, int)
 
 
 class TestValidationResult:
@@ -215,7 +212,7 @@ class TestValidationResult:
 
     def test_validation_result_passed_when_no_issues(self) -> None:
         """ValidationResult.passed is True when issues list is empty."""
-        result = ValidationResult(passed=True, issues=[], iteration=1)
+        result = ValidationResult(passed=True, issues=[])
         assert result.passed is True
         assert len(result.issues) == 0
 
@@ -228,14 +225,9 @@ class TestValidationResult:
                 severity="high",
             )
         ]
-        result = ValidationResult(passed=False, issues=issues, iteration=1)
+        result = ValidationResult(passed=False, issues=issues)
         assert result.passed is False
         assert len(result.issues) == 1
-
-    def test_validation_result_tracks_iteration(self) -> None:
-        """ValidationResult tracks iteration number."""
-        result = ValidationResult(passed=True, issues=[], iteration=3)
-        assert result.iteration == 3
 
 
 class TestValidationIssue:
@@ -306,10 +298,10 @@ class TestValidationPhaseStatePersistence:
             branch_name=None,
         )
 
-    def test_phase_saves_state_after_iteration(
+    def test_phase_saves_issues_when_state_manager_configured(
         self, tmp_path: Path, mock_context: RunContext
     ) -> None:
-        """Phase saves state after each iteration when state manager configured."""
+        """Phase saves issues when state manager is configured."""
 
         # Create runs directory structure
         run_id = "run-123"
@@ -330,9 +322,8 @@ class TestValidationPhaseStatePersistence:
         with patch.object(phase, "_run_validators", return_value=mock_issues):
             phase.run(mock_context)
 
-        # Verify state was saved
+        # Verify issues were saved
         assert phase.state_manager is not None
-        assert phase.state_manager.state_file.exists()
         assert phase.state_manager.issues_file.exists()
 
     def test_phase_clears_state_on_success(
@@ -360,35 +351,6 @@ class TestValidationPhaseStatePersistence:
         assert not phase.state_manager.state_file.exists()
         assert not phase.state_manager.issues_file.exists()
 
-    def test_phase_resumes_from_saved_state(
-        self, tmp_path: Path, mock_context: RunContext
-    ) -> None:
-        """Phase resumes from saved state when available."""
-        from adw.validation.models import LoopState, ValidationState
-        from adw.validation.state_manager import ValidationStateManager
-
-        # Create runs directory structure
-        run_id = "run-789"
-        runs_dir = tmp_path / ".adw" / "runs"
-        run_dir = runs_dir / run_id
-        run_dir.mkdir(parents=True)
-
-        # Pre-create saved state at iteration 3
-        state_manager = ValidationStateManager(run_id, run_dir)
-        saved_state = ValidationState(
-            run_id=run_id,
-            current_iteration=3,
-            total_iterations=5,
-            loop_state=LoopState(issues_remaining=2),
-        )
-        state_manager.save_state(saved_state)
-
-        # Create phase - should resume
-        phase = ValidationPhase(run_id=run_id, runs_dir=runs_dir)
-
-        # Verify iteration was restored
-        assert phase._iteration == 3
-
     def test_phase_without_state_manager_still_works(
         self, mock_context: RunContext
     ) -> None:
@@ -402,211 +364,3 @@ class TestValidationPhaseStatePersistence:
         # Verify it works
         assert result.passed is True
         assert phase.state_manager is None
-
-    def test_phase_preserves_loop_state_counters(
-        self, tmp_path: Path, mock_context: RunContext
-    ) -> None:
-        """Phase preserves loop state counters when saving state."""
-        from adw.validation.models import LoopState, ValidationState
-        from adw.validation.state_manager import ValidationStateManager
-
-        # Create runs directory structure
-        run_id = "run-counters"
-        runs_dir = tmp_path / ".adw" / "runs"
-        run_dir = runs_dir / run_id
-        run_dir.mkdir(parents=True)
-
-        # Pre-create saved state with non-zero counters
-        state_manager = ValidationStateManager(run_id, run_dir)
-        saved_state = ValidationState(
-            run_id=run_id,
-            current_iteration=2,
-            total_iterations=5,
-            loop_state=LoopState(
-                issues_resolved=5,
-                issues_dismissed=2,
-                issues_deferred=1,
-                issues_remaining=3,
-                stall_count=1,
-            ),
-        )
-        state_manager.save_state(saved_state)
-
-        # Create phase - should resume with existing state
-        phase = ValidationPhase(run_id=run_id, runs_dir=runs_dir)
-
-        # Mock validators to return 2 issues (updating issues_remaining)
-        mock_issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                message="Issue 1",
-                severity="high",
-            ),
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                message="Issue 2",
-                severity="medium",
-            ),
-        ]
-        with patch.object(phase, "_run_validators", return_value=mock_issues):
-            phase.run(mock_context)
-
-        # Load the saved state and verify counters were preserved
-        loaded_state = state_manager.load_state_model()
-        assert loaded_state is not None
-        # Existing counters should be preserved
-        assert loaded_state.loop_state.issues_resolved == 5
-        assert loaded_state.loop_state.issues_dismissed == 2
-        assert loaded_state.loop_state.issues_deferred == 1
-        assert loaded_state.loop_state.stall_count == 1
-        # issues_remaining should be updated to current issue count
-        assert loaded_state.loop_state.issues_remaining == 2
-
-    def test_phase_uses_config_max_iterations_for_total(
-        self, tmp_path: Path, mock_context: RunContext
-    ) -> None:
-        """Phase uses config.max_iterations for total_iterations in state."""
-        from adw.validation.config import ValidationConfig
-        from adw.validation.state_manager import ValidationStateManager
-
-        # Create runs directory structure
-        run_id = "run-max-iter"
-        runs_dir = tmp_path / ".adw" / "runs"
-        run_dir = runs_dir / run_id
-        run_dir.mkdir(parents=True)
-
-        # Create config with custom max_iterations (not the default 5)
-        config = ValidationConfig(max_iterations=3)
-        phase = ValidationPhase(config=config, run_id=run_id, runs_dir=runs_dir)
-
-        # Mock validators to return one issue
-        mock_issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                message="Test issue",
-                severity="medium",
-            )
-        ]
-        with patch.object(phase, "_run_validators", return_value=mock_issues):
-            phase.run(mock_context)
-
-        # Load the saved state and verify total_iterations matches config
-        state_manager = ValidationStateManager(run_id, run_dir)
-        loaded_state = state_manager.load_state_model()
-        assert loaded_state is not None
-        # total_iterations should match config, not default 5
-        assert loaded_state.total_iterations == 3
-
-
-class TestValidationPhaseLoopControllerIntegration:
-    """Tests for ValidationLoopController integration with ValidationPhase."""
-
-    @pytest.fixture
-    def mock_context(self) -> RunContext:
-        """Create a mock RunContext for testing."""
-        return RunContext(
-            run_id="01HQ0000000000000000000000",
-            feature_description="Test feature",
-            current_phase="validation",
-            phase_history=["plan", "build"],
-            started_at=datetime.now(UTC),
-            completed_at=None,
-            status="running",
-            artifacts={},
-            phase_tokens={},
-            worktree_path=None,
-            use_worktree=False,
-            branch_name=None,
-        )
-
-    def test_phase_has_loop_controller(self) -> None:
-        """ValidationPhase has a loop_controller property."""
-        from adw.validation.loop_controller import ValidationLoopController
-
-        phase = ValidationPhase()
-        assert hasattr(phase, "loop_controller")
-        assert isinstance(phase.loop_controller, ValidationLoopController)
-
-    def test_phase_loop_controller_uses_config(self) -> None:
-        """Loop controller uses the phase's config."""
-        from adw.validation.config import ValidationConfig
-
-        config = ValidationConfig(max_iterations=7, stall_threshold=4)
-        phase = ValidationPhase(config=config)
-
-        assert phase.loop_controller.config.max_iterations == 7
-        assert phase.loop_controller.config.stall_threshold == 4
-
-    def test_phase_run_uses_loop_controller_iteration(
-        self, mock_context: RunContext
-    ) -> None:
-        """run() uses loop controller for iteration tracking."""
-        phase = ValidationPhase()
-
-        # Initial state
-        assert phase.loop_controller.state.current_iteration == 0
-
-        with patch.object(phase, "_run_validators", return_value=[]):
-            phase.run(mock_context)
-
-        # After first run
-        assert phase.loop_controller.state.current_iteration == 1
-
-        with patch.object(phase, "_run_validators", return_value=[]):
-            phase.run(mock_context)
-
-        # After second run
-        assert phase.loop_controller.state.current_iteration == 2
-
-    def test_phase_get_summary_returns_controller_summary(
-        self, mock_context: RunContext
-    ) -> None:
-        """get_summary() returns loop controller's summary."""
-        phase = ValidationPhase()
-
-        # Run once with some issues
-        issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                severity="ERROR",
-                description="Test failure",
-            )
-        ]
-        with patch.object(phase, "_run_validators", return_value=issues):
-            phase.run(mock_context)
-
-        summary = phase.get_summary()
-
-        assert "iterations_run" in summary
-        assert summary["iterations_run"] == 1
-
-    def test_phase_run_updates_controller_counts(
-        self, mock_context: RunContext
-    ) -> None:
-        """run() updates loop controller issue counts."""
-        phase = ValidationPhase()
-
-        # Create issues with different triage states
-        issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                severity="ERROR",
-                description="Fix me",
-            ),
-            ValidationIssue(
-                source=ValidationSource.REVIEW,
-                severity="INFO",
-                description="Dismissed",
-            ),
-        ]
-        issues[0].triage_decision = "FIX"
-        issues[1].triage_decision = "DISMISS"
-
-        with patch.object(phase, "_run_validators", return_value=issues):
-            phase.run(mock_context)
-
-        # Check that counts were updated
-        state = phase.loop_controller.state
-        assert state.issues_remaining == 1
-        assert state.issues_dismissed == 1
-        assert state.total_issues_found == 2
