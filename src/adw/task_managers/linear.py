@@ -6,6 +6,7 @@ Linear issue tracking system.
 
 import logging
 import os
+import re
 from typing import Any
 
 from adw.exceptions import ConfigError, TaskError
@@ -267,7 +268,21 @@ class LinearTaskManager:
             input_str: The input string that may contain a task ID.
 
         Returns:
-            The extracted task ID if found, None otherwise.
+            The extracted task ID (uppercase) if found, None otherwise.
         """
-        # TODO: Implement in Task 5
+        team_key = self._config.team_key
+        if not team_key:
+            return None
+
+        if not input_str:
+            return None
+
+        # Build pattern: {team_key}-\d+ (case insensitive)
+        pattern = rf"({re.escape(team_key)}-\d+)"
+        match = re.search(pattern, input_str, re.IGNORECASE)
+
+        if match:
+            # Return normalized (uppercase) task ID
+            return match.group(1).upper()
+
         return None

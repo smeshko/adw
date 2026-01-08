@@ -256,3 +256,67 @@ class TestLinearTaskManagerUpdateStatus:
 
             # Should NOT raise
             manager.update_status("abc123", "completed")
+
+
+class TestLinearTaskManagerResolveTaskId:
+    """Tests for LinearTaskManager.resolve_task_id."""
+
+    @pytest.fixture
+    def manager(self, monkeypatch: pytest.MonkeyPatch) -> LinearTaskManager:
+        """Create a LinearTaskManager with mocked env vars."""
+        monkeypatch.setenv("LINEAR_API_KEY", "lin_api_test123")
+        monkeypatch.setenv("LINEAR_TEAM_ID", "team-uuid-123")
+        config = TaskManagerConfig(type="linear", team_key="RULE")
+        return LinearTaskManager(config)
+
+    def test_resolve_direct_task_id(self, manager: LinearTaskManager) -> None:
+        """resolve_task_id extracts direct task IDs."""
+        assert manager.resolve_task_id("RULE-123") == "RULE-123"
+        assert manager.resolve_task_id("RULE-1") == "RULE-1"
+        assert manager.resolve_task_id("RULE-99999") == "RULE-99999"
+
+    def test_resolve_case_insensitive(self, manager: LinearTaskManager) -> None:
+        """resolve_task_id is case insensitive but normalizes to uppercase."""
+        assert manager.resolve_task_id("rule-123") == "RULE-123"
+        assert manager.resolve_task_id("Rule-456") == "RULE-456"
+        assert manager.resolve_task_id("RuLe-789") == "RULE-789"
+
+    def test_resolve_from_branch_name(self, manager: LinearTaskManager) -> None:
+        """resolve_task_id extracts task ID from branch names."""
+        assert manager.resolve_task_id("feature/RULE-123-add-auth") == "RULE-123"
+        assert manager.resolve_task_id("fix/RULE-456") == "RULE-456"
+        assert manager.resolve_task_id("story/RULE-789-implement-feature") == "RULE-789"
+
+    def test_resolve_from_linear_url(self, manager: LinearTaskManager) -> None:
+        """resolve_task_id extracts task ID from Linear URLs."""
+        url = "https://linear.app/team/issue/RULE-123/some-slug"
+        assert manager.resolve_task_id(url) == "RULE-123"
+
+    def test_resolve_from_free_text(self, manager: LinearTaskManager) -> None:
+        """resolve_task_id extracts task ID from free text."""
+        assert manager.resolve_task_id("Working on RULE-123") == "RULE-123"
+        assert manager.resolve_task_id("Fix for RULE-456 in progress") == "RULE-456"
+
+    def test_resolve_returns_none_for_no_match(
+        self, manager: LinearTaskManager
+    ) -> None:
+        """resolve_task_id returns None when no task ID found."""
+        assert manager.resolve_task_id("no task here") is None
+        assert manager.resolve_task_id("OTHER-123") is None
+        assert manager.resolve_task_id("RULE-") is None
+        assert manager.resolve_task_id("") is None
+
+    def test_resolve_returns_first_match(self, manager: LinearTaskManager) -> None:
+        """resolve_task_id returns first match when multiple present."""
+        assert manager.resolve_task_id("RULE-123 and RULE-456") == "RULE-123"
+
+    def test_resolve_no_team_key_returns_none(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """resolve_task_id returns None when team_key not configured."""
+        monkeypatch.setenv("LINEAR_API_KEY", "lin_api_test123")
+        monkeypatch.setenv("LINEAR_TEAM_ID", "team-uuid-123")
+        config = TaskManagerConfig(type="linear", team_key=None)
+        manager = LinearTaskManager(config)
+
+        assert manager.resolve_task_id("RULE-123") is None
