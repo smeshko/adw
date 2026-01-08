@@ -40,6 +40,7 @@ class TestValidatePromptStructure:
         assert "## Context" in prompt_content
         assert "{{feature_description}}" in prompt_content
         assert "{{git_diff}}" in prompt_content
+        assert "{{project_config}}" in prompt_content
 
     def test_prompt_has_your_task_section(self, prompt_content: str) -> None:
         """Prompt should have a 'Your Task' section."""
@@ -167,16 +168,19 @@ class TestValidatePromptVariableSubstitution:
         context = {
             "feature_description": "Add user authentication",
             "git_diff": "diff --git a/src/auth.py b/src/auth.py\n+def login(user):\n+    pass",
+            "project_config": '{"validation": {"test_command": "pytest"}}',
         }
         rendered = engine.render(prompt_content, context)
 
         # Variables should be substituted
         assert "Add user authentication" in rendered
         assert "diff --git" in rendered
+        assert "test_command" in rendered
 
         # No unsubstituted template variables for the ones we provided
         assert "{{feature_description}}" not in rendered
         assert "{{git_diff}}" not in rendered
+        assert "{{project_config}}" not in rendered
 
     def test_renders_empty_values_gracefully(self, prompt_content: str) -> None:
         """Template engine should handle empty values."""
@@ -184,6 +188,7 @@ class TestValidatePromptVariableSubstitution:
         context = {
             "feature_description": "",
             "git_diff": "",
+            "project_config": "",
         }
         rendered = engine.render(prompt_content, context)
 
@@ -191,6 +196,7 @@ class TestValidatePromptVariableSubstitution:
         assert "# Validation Phase" in rendered
         # Empty values become empty strings
         assert "{{feature_description}}" not in rendered
+        assert "{{project_config}}" not in rendered
 
 
 class TestValidatePromptExamples:

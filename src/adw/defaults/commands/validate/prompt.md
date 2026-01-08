@@ -4,6 +4,7 @@
 
 Feature: {{feature_description}}
 Diff: {{git_diff}}
+Project Config: {{project_config}}
 
 ## Your Task
 
@@ -11,7 +12,9 @@ You are validating code changes. Complete the following steps in order:
 
 ### 1. Run Tests
 
-- Determine the appropriate test command for this project:
+- First, check if `project_config` specifies a test command (e.g., `validation.test_command`)
+  - If configured, use that command
+- Otherwise, determine the appropriate test command for this project:
   - Look for `pytest.ini`, `pyproject.toml` with pytest config, `setup.cfg` with pytest section → use `pytest`
   - Look for `package.json` with test script → use `npm test` or `yarn test`
   - Look for `Cargo.toml` → use `cargo test`
@@ -22,7 +25,9 @@ You are validating code changes. Complete the following steps in order:
 
 ### 2. Run Linters (if configured)
 
-- Check for linting configuration:
+- First, check if `project_config` specifies lint commands
+  - If configured, use those commands
+- Otherwise, check for linting configuration:
   - Python: `ruff`, `mypy`, `flake8`, `pylint`
   - JavaScript/TypeScript: `eslint`, `tsc --noEmit`
   - Rust: `cargo clippy`
