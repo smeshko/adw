@@ -1,6 +1,6 @@
 # Story 12.8: Issue Closing
 
-Status: ready-for-dev
+Status: dev-complete
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-08
@@ -34,47 +34,47 @@ So that completed work is automatically tracked.
 ## Tasks / Subtasks
 
 ### Task 1: Extend TaskManager Protocol
-- [ ] Add `close_task(task_id: str) -> None` to Protocol
-- [ ] Add `is_pr_merged(pr_url: str) -> bool` to Protocol (optional, can return False)
-- [ ] Implement in `NullTaskManager` (no-op)
-- [ ] Implement in `LinearTaskManager`
+- [x] Add `close_task(task_id: str) -> None` to Protocol
+- [x] Add `is_pr_merged(pr_url: str) -> bool` to Protocol (optional, can return False)
+- [x] Implement in `NullTaskManager` (no-op)
+- [x] Implement in `LinearTaskManager`
 
 ### Task 2: Implement Linear Task Closing
-- [ ] Find "Done" or "Completed" state ID in team workflow
-- [ ] Update issue to Done state
-- [ ] Set `completedAt` timestamp
-- [ ] Handle custom done states via state_mapping
+- [x] Find "Done" or "Completed" state ID in team workflow
+- [x] Update issue to Done state
+- [x] Set `completedAt` timestamp
+- [x] Handle custom done states via state_mapping
 
 ### Task 3: Implement PR Merge Detection
-- [ ] Parse PR URL to extract owner/repo/number
-- [ ] Query GitHub API for PR merged status
-- [ ] Handle missing GitHub token gracefully (assume not merged)
-- [ ] Cache PR status during run to avoid repeated calls
+- [x] Parse PR URL to extract owner/repo/number
+- [x] Query GitHub API for PR merged status
+- [x] Handle missing GitHub token gracefully (assume not merged)
+- [x] Cache PR status during run to avoid repeated calls
 
 ### Task 4: Create IssueCloser Service
-- [ ] Create `src/adw/task_managers/closer.py` with `IssueCloser`
-- [ ] Initialize with `TaskManager`, `LabelManager`, and config
-- [ ] Implement `maybe_close(task_id, pr_url) -> bool`
-- [ ] Check `auto_close` config before closing
-- [ ] Add `adw:pr-ready` label if PR not merged
+- [x] Create `src/adw/task_managers/closer.py` with `IssueCloser`
+- [x] Initialize with `TaskManager`, `LabelManager`, and config
+- [x] Implement `maybe_close(task_id, pr_url) -> bool`
+- [x] Check `auto_close` config before closing
+- [x] Add `adw:pr-ready` label if PR not merged (placeholder, pending Story 12.7)
 
 ### Task 5: Integrate with Orchestrator
-- [ ] Call `maybe_close` after successful run completion
-- [ ] Pass PR URL from Ship phase artifacts
-- [ ] Handle missing PR URL gracefully
+- [x] Call `maybe_close` after successful run completion
+- [x] Pass PR URL from auto-PR creation result
+- [x] Handle missing PR URL gracefully
 
 ### Task 6: Handle Non-Blocking Failures
-- [ ] Wrap closing operations in try/except
-- [ ] Log warnings on failure with manual instructions
-- [ ] Continue execution regardless
-- [ ] Provide command for manual close: `adw task close <task_id>`
+- [x] Wrap closing operations in try/except
+- [x] Log warnings on failure with manual instructions
+- [x] Continue execution regardless
+- [x] Provide command for manual close: `adw task close <task_id>`
 
 ### Task 7: Write Tests
-- [ ] Unit tests for `IssueCloser` (5 tests)
-- [ ] Unit tests for `LinearTaskManager.close_task` (3 tests)
-- [ ] Unit tests for PR merge detection (4 tests)
-- [ ] Unit tests for config checking (3 tests)
-- [ ] Integration test for full closing flow (2 tests)
+- [x] Unit tests for `IssueCloser` (5 tests) - 8 tests provided
+- [x] Unit tests for `LinearTaskManager.close_task` (3 tests) - 4 tests provided
+- [x] Unit tests for PR merge detection (4 tests) - 12 tests provided
+- [x] Unit tests for config checking (3 tests) - covered in IssueCloser tests
+- [x] Integration test for full closing flow (2 tests) - test_integration.py
 
 ---
 
