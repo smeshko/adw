@@ -1,6 +1,6 @@
 # Story 12.4: Task ID Pattern Detection
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-08
@@ -38,41 +38,41 @@ So that I don't need special flags.
 ## Tasks / Subtasks
 
 ### Task 1: Create InputResolver
-- [ ] Create `src/adw/task_managers/resolver.py` with `InputResolver`
-- [ ] Initialize with `TaskManager` instance
-- [ ] Implement `resolve(input_str: str, force_task_id: bool = False) -> ResolvedInput`
-- [ ] `ResolvedInput` enum: `TASK_ID`, `FEATURE_STRING`
+- [x] Create `src/adw/task_managers/resolver.py` with `InputResolver`
+- [x] Initialize with `TaskManager` instance
+- [x] Implement `resolve(input_str: str, force_task_id: bool = False) -> ResolvedInput`
+- [x] `ResolvedInput` enum: `TASK_ID`, `FEATURE_STRING`
 
 ### Task 2: Implement Pattern Detection Logic
-- [ ] Call `task_manager.resolve_task_id(input_str)`
-- [ ] If returns task ID -> `TASK_ID`
-- [ ] If returns None -> `FEATURE_STRING`
-- [ ] If `force_task_id=True` and resolve fails -> raise error
+- [x] Call `task_manager.resolve_task_id(input_str)`
+- [x] If returns task ID -> `TASK_ID`
+- [x] If returns None -> `FEATURE_STRING`
+- [x] If `force_task_id=True` and resolve fails -> raise error
 
 ### Task 3: Add CLI Flags
-- [ ] Add `--task-id` flag to `adw run` command
-- [ ] Add `--no-task-manager` flag to `adw run` command
-- [ ] Update CLI help text with flag descriptions
-- [ ] Flags are mutually exclusive
+- [x] Add `--task-id` flag to `adw run` command
+- [x] Add `--no-task-manager` flag to `adw run` command
+- [x] Update CLI help text with flag descriptions
+- [x] Flags are mutually exclusive
 
 ### Task 4: Integrate with Run Command
-- [ ] Pass flags to InputResolver
-- [ ] `--task-id`: Force task ID interpretation
-- [ ] `--no-task-manager`: Force feature string interpretation
-- [ ] Neither: Auto-detect based on pattern
+- [x] Pass flags to InputResolver
+- [x] `--task-id`: Force task ID interpretation
+- [x] `--no-task-manager`: Force feature string interpretation
+- [x] Neither: Auto-detect based on pattern
 
 ### Task 5: Add Ambiguity Handling
-- [ ] Define ambiguity criteria (e.g., short strings that match pattern)
-- [ ] If ambiguous, prefer task ID if pattern matches
-- [ ] Log info message about interpretation for transparency
-- [ ] Suggest `--task-id` or `--no-task-manager` for explicit control
+- [x] Define ambiguity criteria (e.g., short strings that match pattern)
+- [x] If ambiguous, prefer task ID if pattern matches
+- [x] Log info message about interpretation for transparency
+- [x] Suggest `--task-id` or `--no-task-manager` for explicit control
 
 ### Task 6: Write Tests
-- [ ] Unit tests for `InputResolver.resolve` (6 tests)
-- [ ] Unit tests for pattern matching edge cases (5 tests)
-- [ ] CLI tests for `--task-id` flag (3 tests)
-- [ ] CLI tests for `--no-task-manager` flag (3 tests)
-- [ ] Integration test for full detection flow (2 tests)
+- [x] Unit tests for `InputResolver.resolve` (6 tests)
+- [x] Unit tests for pattern matching edge cases (5 tests)
+- [x] CLI tests for `--task-id` flag (3 tests)
+- [x] CLI tests for `--no-task-manager` flag (3 tests)
+- [x] Integration test for full detection flow (2 tests)
 
 ---
 
@@ -370,8 +370,23 @@ Epic 12: Task Manager Integration - Story 12.4
 
 ### Agent Model Used
 
+Claude Opus 4.5
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created InputResolver class with InputType enum and ResolvedInput dataclass. Implements pattern detection by delegating to TaskManager.resolve_task_id(). Supports force_task_id and force_feature flags for explicit control.
+- Task 2: Pattern detection logic already implemented in Task 1's resolve() method. Verified by test_resolve_task_id_match, test_resolve_feature_string, and test_resolve_force_task_id_error.
+- Task 3: Added --task-id and --no-task-manager flags to run command. Flags are mutually exclusive with error handling. Updated docstring examples. Added 5 CLI tests.
+- Task 4: Integrated InputResolver into run command. Creates TaskManager via factory, resolves input with flags, handles ValueError for invalid --task-id. Logs task ID resolution for transparency.
+- Task 5: Enhanced ambiguity handling with tip suggesting --no-task-manager when task ID is auto-detected. Error messages suggest removing --task-id flag. Added 2 ambiguity handling tests.
+- Task 6: Comprehensive test suite complete with 26 tests total. Covers InputResolver.resolve (6), edge cases (5), --task-id CLI (3), --no-task-manager CLI (3), integration (2), plus additional coverage tests.
+
 ### File List
+
+- src/adw/task_managers/resolver.py (new)
+- src/adw/task_managers/__init__.py (modified - exported InputResolver, InputType, ResolvedInput)
+- tests/unit/task_managers/test_resolver.py (new)
+- src/adw/cli/app.py (modified - added --task-id and --no-task-manager flags)
+- tests/unit/cli/test_run_flags.py (new)

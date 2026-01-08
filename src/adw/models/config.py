@@ -412,11 +412,12 @@ class TaskManagerConfig(BaseModel):
     Attributes:
         type: Task manager type ("none", "linear")
         team_key: Team prefix for ID detection (e.g., "RULE" for RULE-123)
-        state_mapping: Mapping from ADW states to external system states
+        state_mapping: Phase-based mapping from ADW phases to external system states
         sync_comments: Whether to post comments on status transitions
         comment_on_failure_only: Only post comments when runs fail
+        pr_title_format: Format for PR titles when task ID is present
         labels: Label management configuration
-        auto_close: Whether to close task when PR is merged
+        auto_close: Whether to close task when PR is merged (default: false)
         include_labels: Include task labels in context
         include_parent: Include parent task info in context
 
@@ -434,15 +435,17 @@ class TaskManagerConfig(BaseModel):
           type: linear
           team_key: RULE
           state_mapping:
-            pending: "Todo"
-            running: "In Progress"
-            completed: "Done"
+            plan: "In Progress"
+            build: "In Progress"
+            validate: "In Review"
+            document: "In Review"
             failed: "In Progress"
           sync_comments: true
+          pr_title_format: "{task_id}: {description}"
           labels:
             enabled: true
             prefix: "adw:"
-          auto_close: true
+          auto_close: false
     """
 
     type: Literal["none", "linear"] = Field(
@@ -455,12 +458,13 @@ class TaskManagerConfig(BaseModel):
     )
     state_mapping: dict[str, str] = Field(
         default_factory=lambda: {
-            "pending": "Todo",
-            "running": "In Progress",
-            "completed": "Done",
+            "plan": "In Progress",
+            "build": "In Progress",
+            "validate": "In Review",
+            "document": "In Review",
             "failed": "In Progress",
         },
-        description="Mapping from ADW states to external system states",
+        description="Phase-based mapping from ADW phases to external system states",
     )
     sync_comments: bool = Field(
         default=False,
@@ -469,6 +473,10 @@ class TaskManagerConfig(BaseModel):
     comment_on_failure_only: bool = Field(
         default=False,
         description="Only post comments when runs fail",
+    )
+    pr_title_format: str = Field(
+        default="{task_id}: {description}",
+        description="Format for PR titles when task ID is present",
     )
     labels: TaskManagerLabelsConfig = Field(
         default_factory=TaskManagerLabelsConfig,

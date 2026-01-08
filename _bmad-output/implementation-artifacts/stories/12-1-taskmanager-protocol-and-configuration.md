@@ -87,7 +87,7 @@ So that different task management systems can be supported.
   - `include_labels: bool = True` - Include labels in context
   - `include_parent: bool = True` - Include parent context
 - [x] Add `task_manager` field to `ProjectConfig`
-- [x] Default state_mapping: `{"pending": "Todo", "running": "In Progress", "completed": "Done", "failed": "In Progress"}`
+- [x] Default state_mapping (phase-based): `{"plan": "In Progress", "build": "In Progress", "validate": "In Review", "document": "In Review", "failed": "In Progress"}`
 
 ### Task 6: Add TaskError Exception
 - [x] Add `TaskError` to `src/adw/exceptions.py`
@@ -175,16 +175,19 @@ class TaskManagerLabelsConfig(BaseModel):
 class TaskManagerConfig(BaseModel):
     type: str = "none"
     team_key: str | None = None
+    # Phase-based status mapping (ADW phase → external system state)
     state_mapping: dict[str, str] = Field(default_factory=lambda: {
-        "pending": "Todo",
-        "running": "In Progress",
-        "completed": "Done",
-        "failed": "In Progress"
+        "plan": "In Progress",
+        "build": "In Progress",
+        "validate": "In Review",
+        "document": "In Review",
+        "failed": "In Progress",
     })
     sync_comments: bool = False
     comment_on_failure_only: bool = False
+    pr_title_format: str = "{task_id}: {description}"  # PR title format with task ID
     labels: TaskManagerLabelsConfig = Field(default_factory=TaskManagerLabelsConfig)
-    auto_close: bool = False
+    auto_close: bool = False  # Default false - issue stays open after run completes
     include_labels: bool = True
     include_parent: bool = True
 ```
@@ -346,16 +349,19 @@ Key patterns and rules from project context:
 task_manager:
   type: linear
   team_key: RULE
+  # Phase-based status mapping (status updates when phase starts)
   state_mapping:
-    pending: "Todo"
-    running: "In Progress"
-    completed: "Done"
+    plan: "In Progress"
+    build: "In Progress"
+    validate: "In Review"
+    document: "In Review"
     failed: "In Progress"
   sync_comments: true
+  pr_title_format: "{task_id}: {description}"
   labels:
     enabled: true
     prefix: "adw:"
-  auto_close: true
+  auto_close: false  # Issue stays open after run completes (default)
 ```
 
 ### References

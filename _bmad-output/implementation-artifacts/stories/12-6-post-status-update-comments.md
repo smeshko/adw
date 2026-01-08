@@ -35,6 +35,20 @@ So that my team can follow progress without checking CLI output.
 **When** the failure occurs
 **Then** warning is logged, run continues (non-blocking)
 
+### PR-Task Linking
+
+**Given** a task manager is configured with a task ID
+**When** a PR is created during the document phase
+**Then** PR title follows format: `TASK-ID: description` (e.g., "RULE-123: Add user authentication")
+
+**Given** a PR is created with task ID
+**When** PR body is generated
+**Then** PR body includes link to Linear task (e.g., "Linear: https://linear.app/team/issue/RULE-123")
+
+**Given** a PR is created and `sync_comments: true`
+**When** PR creation completes
+**Then** Linear task receives comment with PR URL for bidirectional linking
+
 ## Tasks / Subtasks
 
 ### Task 1: Extend TaskManager Protocol
@@ -71,12 +85,23 @@ So that my team can follow progress without checking CLI output.
 - [ ] Support template variables for run context
 - [ ] Default templates with good formatting
 
-### Task 7: Write Tests
+### Task 7: Implement PR-Task Linking
+- [ ] Create `PRTitleFormatter` to generate PR titles with task ID
+- [ ] Format: `TASK-ID: description` (e.g., "RULE-123: Add user authentication")
+- [ ] Add task link to PR body when task_id is present
+- [ ] Include Linear URL format: `https://linear.app/{team}/issue/{task_id}`
+- [ ] Post PR URL as comment to Linear task after PR creation
+- [ ] Make PR title format configurable (default: `{task_id}: {description}`)
+
+### Task 8: Write Tests
 - [ ] Unit tests for `CommentFormatter` (5 tests)
 - [ ] Unit tests for `LinearTaskManager.post_comment` (3 tests)
 - [ ] Unit tests for `StatusSyncService` comment methods (4 tests)
 - [ ] Unit tests for config checking (3 tests)
+- [ ] Unit tests for `PRTitleFormatter` (4 tests)
+- [ ] Unit tests for PR body with task link (2 tests)
 - [ ] Integration test for full comment flow (2 tests)
+- [ ] Integration test for PR-task linking (2 tests)
 
 ---
 
@@ -111,6 +136,12 @@ So that my team can follow progress without checking CLI output.
    - Comment failures don't stop the run
    - Log warnings on failure
    - Continue execution regardless
+
+4. **PR-Task Linking**
+   - PR title format: `{task_id}: {description}` (e.g., "RULE-123: Add user authentication")
+   - PR body includes Linear task URL for traceability
+   - Linear task receives PR URL comment for bidirectional linking
+   - Configurable via `pr_title_format` in task_manager_config
 
 ### Architecture Compliance
 
@@ -183,6 +214,32 @@ def post_comment(self, task_id: str, body: str) -> None:
     }
     """
     self._client.execute(mutation, {"issueId": task_id, "body": body})
+
+
+# src/adw/task_managers/pr_linking.py
+class PRTitleFormatter:
+    """Formats PR titles with task ID."""
+
+    def __init__(self, config: TaskManagerConfig) -> None:
+        self._config = config
+
+    def format_title(self, task_id: str | None, description: str) -> str:
+        """Format PR title with task ID prefix if available."""
+        if not task_id:
+            return description
+        # Default format: "RULE-123: description"
+        format_template = self._config.pr_title_format or "{task_id}: {description}"
+        return format_template.format(task_id=task_id, description=description)
+
+    def format_body_with_task_link(
+        self,
+        body: str,
+        task_id: str,
+        team_key: str,
+    ) -> str:
+        """Add Linear task link to PR body."""
+        task_url = f"https://linear.app/{team_key.lower()}/issue/{task_id}"
+        return f"{body}\n\n---\nLinear: {task_url}"
 ```
 
 ### Library & Framework Requirements
@@ -195,16 +252,19 @@ def post_comment(self, task_id: str, body: str) -> None:
 
 **New Files:**
 - `src/adw/task_managers/comments.py`
+- `src/adw/task_managers/pr_linking.py`
 
 **Modified Files:**
 - `src/adw/task_managers/base.py` - Add post_comment to Protocol
 - `src/adw/task_managers/null.py` - Implement no-op post_comment
 - `src/adw/task_managers/linear.py` - Implement post_comment
 - `src/adw/task_managers/sync.py` - Add comment posting methods
+- `src/adw/models/config.py` - Add pr_title_format to TaskManagerConfig
 
 **Test Files:**
 - `tests/unit/task_managers/test_comments.py`
 - `tests/unit/task_managers/test_linear_comments.py`
+- `tests/unit/task_managers/test_pr_linking.py`
 
 ### Testing Requirements
 
@@ -239,6 +299,27 @@ class TestStatusSyncServiceComments:
 
     def test_comment_failure_non_blocking(self, failing_task_manager):
         """Logs warning but doesn't raise on comment failure."""
+
+# tests/unit/task_managers/test_pr_linking.py
+class TestPRTitleFormatter:
+    def test_format_title_with_task_id(self):
+        """Formats title as 'RULE-123: description'."""
+
+    def test_format_title_without_task_id(self):
+        """Returns plain description when no task_id."""
+
+    def test_format_title_custom_format(self):
+        """Uses custom pr_title_format from config."""
+
+    def test_format_body_adds_linear_link(self):
+        """Adds Linear task URL to PR body."""
+
+class TestPRTaskLinkingIntegration:
+    def test_pr_created_with_task_link(self, mock_task_manager):
+        """PR includes task link when task_id present."""
+
+    def test_linear_receives_pr_comment(self, mock_task_manager):
+        """Linear task receives comment with PR URL."""
 ```
 
 ---

@@ -73,20 +73,22 @@ So that my team sees real-time progress.
 **Acceptance Criteria:**
 
 **Given** a run initiated from Linear task
-**When** the run starts
-**Then** Linear status updated per state_mapping (e.g., "In Progress")
+**When** the plan phase starts
+**Then** Linear status updated per state_mapping (default: "In Progress")
 
 **Given** a phase completes
 **When** transitioning to next phase
-**Then** Linear comment added with phase completion info (optional, configurable)
+**Then** Linear status updated per state_mapping for the new phase
+**And** Linear comment added with phase completion info (optional, configurable)
 
-**Given** the run completes successfully
+**Given** the document phase completes successfully
 **When** all phases done
-**Then** Linear status set to mapped "completed" state (e.g., "Done")
+**Then** Linear status remains at mapped "document" state (default: "In Review")
+**And** issue is NOT closed (closing handled separately by 12.8 if auto_close=true)
 
-**Given** the run fails
+**Given** the run fails at any phase
 **When** error occurs
-**Then** Linear status set to mapped "failed" state
+**Then** Linear status set to mapped "failed" state (default: "In Progress")
 **And** error summary added as comment (configurable)
 
 **Given** status update fails (API error)
@@ -159,7 +161,7 @@ So that I can customize prompts based on task properties.
 
 ---
 
-## Story 12.6: Post Status Update Comments (Course Correction 2026-01-03)
+## Story 12.6: Post Status Update Comments and PR-Task Linking (Course Correction 2026-01-03)
 
 As a user,
 I want ADW to post comments to my task when significant events occur,
@@ -186,6 +188,20 @@ So that my team can follow progress without checking CLI output.
 **Given** comment posting fails (API error)
 **When** the failure occurs
 **Then** warning is logged, run continues (non-blocking)
+
+**PR-Task Linking:**
+
+**Given** a task manager is configured with a task ID
+**When** a PR is created during the document phase
+**Then** PR title follows format: `TASK-ID: description` (e.g., "RULE-123: Add user authentication")
+
+**Given** a PR is created with task ID
+**When** PR body is generated
+**Then** PR body includes link to Linear task
+
+**Given** a PR is created and `sync_comments: true`
+**When** PR creation completes
+**Then** Linear task receives comment with PR URL for bidirectional linking
 
 ---
 
@@ -258,16 +274,21 @@ task_manager: linear  # or: jira, none
 task_manager_config:
   team_key: RULE                  # Team prefix for ID detection (e.g., RULE-123)
 
-  # Status mapping (ADW state → Linear state)
+  # Phase-based status mapping (ADW phase → Linear state)
+  # Status is updated when each phase STARTS
   state_mapping:
-    pending: "Todo"
-    running: "In Progress"
-    completed: "Done"
-    failed: "In Progress"
+    plan: "In Progress"           # Plan phase starts
+    build: "In Progress"          # Build phase starts
+    validate: "In Review"         # Validate phase starts
+    document: "In Review"         # Document phase starts
+    failed: "In Progress"         # Any phase fails
 
   # Comment sync
   sync_comments: true             # Post comments on phase transitions
   comment_on_failure_only: false  # Only comment when things fail
+
+  # PR-Task linking
+  pr_title_format: "{task_id}: {description}"  # Format for PR titles
 
   # Label management
   labels:
@@ -275,7 +296,7 @@ task_manager_config:
     prefix: "adw:"                # Label prefix
 
   # Issue lifecycle
-  auto_close: true                # Close task when PR merged
+  auto_close: false               # Close task when PR merged (default: false)
 
   # Context enrichment
   include_labels: true            # Include task labels in context

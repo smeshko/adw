@@ -16,20 +16,22 @@ So that my team sees real-time progress.
 ## Acceptance Criteria
 
 **Given** a run initiated from Linear task
-**When** the run starts
-**Then** Linear status updated per state_mapping (e.g., "In Progress")
+**When** the plan phase starts
+**Then** Linear status updated per state_mapping (default: "In Progress")
 
 **Given** a phase completes
 **When** transitioning to next phase
-**Then** Linear comment added with phase completion info (optional, configurable)
+**Then** Linear status updated per state_mapping for the new phase
+**And** Linear comment added with phase completion info (optional, configurable)
 
-**Given** the run completes successfully
+**Given** the document phase completes successfully
 **When** all phases done
-**Then** Linear status set to mapped "completed" state (e.g., "Done")
+**Then** Linear status remains at mapped "document" state (default: "In Review")
+**And** issue is NOT closed (closing is a separate concern handled by 12.8)
 
-**Given** the run fails
+**Given** the run fails at any phase
 **When** error occurs
-**Then** Linear status set to mapped "failed" state
+**Then** Linear status set to mapped "failed" state (default: "In Progress")
 **And** error summary added as comment (configurable)
 
 **Given** status update fails (API error)
@@ -39,6 +41,10 @@ So that my team sees real-time progress.
 **Given** `sync_comments: false` in config
 **When** phases transition
 **Then** only status is updated, no comments added
+
+**Given** custom state_mapping in config
+**When** phase transitions occur
+**Then** custom mapping is used instead of defaults
 
 ## Tasks / Subtasks
 
@@ -62,11 +68,18 @@ So that my team sees real-time progress.
 - [ ] Call `sync_run_complete` on run completion or failure
 - [ ] Ensure sync calls are non-blocking (catch and log errors)
 
-### Task 4: Implement Status Mapping
+### Task 4: Implement Phase-Based Status Mapping
 - [ ] Read `state_mapping` from config
-- [ ] Map ADW states: `pending`, `running`, `completed`, `failed`
-- [ ] Handle missing mapping gracefully (use current state)
-- [ ] Support custom mappings per project
+- [ ] Map ADW phases: `plan`, `build`, `validate`, `document`
+- [ ] Map error state: `failed`
+- [ ] Default mapping for Linear:
+  - `plan`: "In Progress"
+  - `build`: "In Progress"
+  - `validate`: "In Review"
+  - `document`: "In Review"
+  - `failed`: "In Progress"
+- [ ] Handle missing mapping gracefully (use phase name as status)
+- [ ] Support custom mappings per project (config override)
 
 ### Task 5: Add Phase Transition Metadata
 - [ ] Include metadata in update_status calls:
@@ -84,10 +97,10 @@ So that my team sees real-time progress.
 
 ### Task 7: Write Tests
 - [ ] Unit tests for `StatusSyncService` (6 tests)
-- [ ] Unit tests for status mapping (4 tests)
+- [ ] Unit tests for phase-to-status mapping (4 tests)
 - [ ] Unit tests for orchestrator integration (4 tests)
 - [ ] Unit tests for error handling (3 tests)
-- [ ] Integration test for full run with sync (2 tests)
+- [ ] Integration test for full run with phase sync (2 tests)
 
 ---
 
@@ -113,12 +126,16 @@ So that my team sees real-time progress.
    - Sync calls happen at specific lifecycle points
    - All sync calls must be non-blocking
 
-2. **Status State Machine**
+2. **Phase-Based Status State Machine**
    ```
-   Run Start -> "running"
-   Phase Complete -> "running" (no change)
-   Run Complete (success) -> "completed"
-   Run Complete (failure) -> "failed"
+   Plan Start     -> state_mapping["plan"]     (default: "In Progress")
+   Build Start    -> state_mapping["build"]    (default: "In Progress")
+   Validate Start -> state_mapping["validate"] (default: "In Review")
+   Document Start -> state_mapping["document"] (default: "In Review")
+   Any Failure    -> state_mapping["failed"]   (default: "In Progress")
+
+   Note: Run completion does NOT change status or close issue.
+         Issue closing is handled separately by Story 12.8 if auto_close=true.
    ```
 
 3. **Error Handling**
@@ -147,6 +164,15 @@ from adw.models.context import RunContext
 
 logger = logging.getLogger(__name__)
 
+# Default phase-to-status mapping for Linear
+DEFAULT_STATE_MAPPING = {
+    "plan": "In Progress",
+    "build": "In Progress",
+    "validate": "In Review",
+    "document": "In Review",
+    "failed": "In Progress",
+}
+
 class StatusSyncService:
     def __init__(
         self,
@@ -156,13 +182,13 @@ class StatusSyncService:
         self._task_manager = task_manager
         self._config = config
 
-    def sync_run_start(self, context: RunContext) -> None:
-        """Sync status when run starts."""
+    def sync_phase_start(self, context: RunContext, phase: str) -> None:
+        """Sync status when a phase starts."""
         if not context.task_id:
             return
-        self._safe_update_status(context.task_id, "running", {
+        self._safe_update_status(context.task_id, phase, {
             "run_id": context.run_id,
-            "phase": "start",
+            "phase": phase,
         })
 
     def sync_phase_transition(
@@ -171,33 +197,47 @@ class StatusSyncService:
         from_phase: str,
         to_phase: str,
     ) -> None:
-        """Sync status on phase transition (optional comment)."""
-        ...
+        """Sync status on phase transition."""
+        if not context.task_id:
+            return
+        self._safe_update_status(context.task_id, to_phase, {
+            "run_id": context.run_id,
+            "from_phase": from_phase,
+            "to_phase": to_phase,
+        })
 
-    def sync_run_complete(
+    def sync_run_failed(
         self,
         context: RunContext,
-        success: bool,
-        error: str | None = None,
+        phase: str,
+        error: str,
     ) -> None:
-        """Sync final status when run completes."""
-        ...
+        """Sync status when run fails."""
+        if not context.task_id:
+            return
+        self._safe_update_status(context.task_id, "failed", {
+            "run_id": context.run_id,
+            "failed_phase": phase,
+            "error": error,
+        })
 
     def _safe_update_status(
         self,
         task_id: str,
-        status: str,
+        phase_or_state: str,
         metadata: dict[str, Any],
     ) -> None:
         """Update status, catching and logging any errors."""
         try:
-            mapped_status = self._config.state_mapping.get(status, status)
+            # Use config mapping, fall back to defaults, then to phase name
+            mapping = self._config.state_mapping or DEFAULT_STATE_MAPPING
+            mapped_status = mapping.get(phase_or_state, phase_or_state)
             self._task_manager.update_status(task_id, mapped_status, metadata)
         except Exception as e:
             logger.warning(
                 "Failed to sync status to task manager",
                 task_id=task_id,
-                status=status,
+                phase=phase_or_state,
                 error=str(e),
             )
 ```
@@ -229,30 +269,43 @@ class StatusSyncService:
 ```python
 # tests/unit/task_managers/test_sync.py
 class TestStatusSyncService:
-    def test_sync_run_start_updates_status(self, mock_task_manager):
-        """Calls update_status with 'running' on run start."""
+    def test_sync_phase_start_updates_status(self, mock_task_manager):
+        """Calls update_status with mapped phase status on phase start."""
 
-    def test_sync_run_start_skipped_without_task_id(self, mock_task_manager):
+    def test_sync_phase_start_skipped_without_task_id(self, mock_task_manager):
         """Does nothing when context has no task_id."""
 
     def test_sync_phase_transition(self, mock_task_manager):
-        """Calls update_status with phase metadata."""
+        """Calls update_status with next phase mapping on transition."""
 
-    def test_sync_run_complete_success(self, mock_task_manager):
-        """Updates to 'completed' state on success."""
+    def test_sync_run_failed_updates_to_failed_status(self, mock_task_manager):
+        """Updates to 'failed' mapped state on run failure."""
 
-    def test_sync_run_complete_failure(self, mock_task_manager):
-        """Updates to 'failed' state on failure."""
+    def test_sync_uses_default_state_mapping(self, mock_task_manager):
+        """Uses default mapping (plan->In Progress, validate->In Review, etc.)."""
 
-    def test_sync_uses_state_mapping(self, mock_task_manager, config):
-        """Maps ADW status to external system status."""
+    def test_sync_uses_custom_state_mapping(self, mock_task_manager, config):
+        """Uses custom mapping from config when provided."""
+
+class TestPhaseStatusMapping:
+    def test_plan_maps_to_in_progress(self, mock_task_manager):
+        """'plan' phase maps to 'In Progress' by default."""
+
+    def test_build_maps_to_in_progress(self, mock_task_manager):
+        """'build' phase maps to 'In Progress' by default."""
+
+    def test_validate_maps_to_in_review(self, mock_task_manager):
+        """'validate' phase maps to 'In Review' by default."""
+
+    def test_document_maps_to_in_review(self, mock_task_manager):
+        """'document' phase maps to 'In Review' by default."""
 
 class TestStatusSyncServiceErrorHandling:
     def test_sync_continues_on_api_error(self, failing_task_manager):
         """Logs warning but doesn't raise on API failure."""
 
     def test_sync_logs_error_details(self, failing_task_manager, caplog):
-        """Logs task_id, status, and error message."""
+        """Logs task_id, phase, and error message."""
 
     def test_sync_doesnt_block_run(self, slow_task_manager):
         """Sync operations don't block main execution."""
@@ -334,24 +387,24 @@ Key patterns and rules from project context:
 def run(self, feature_request: str, task_id: str | None = None) -> RunResult:
     context = self._create_context(feature_request, task_id)
 
-    # Sync run start
-    self._sync_service.sync_run_start(context)
-
     try:
-        for phase in self._phase_sequence:
+        for phase in self._phase_sequence:  # ["plan", "build", "validate", "document"]
+            # Sync phase start (updates Linear status)
+            self._sync_service.sync_phase_start(context, phase)
+
             result = self._run_phase(phase, context)
 
-            # Sync phase transition
+            # Sync phase transition (if there's a next phase)
             next_phase = self._get_next_phase(phase)
             if next_phase:
                 self._sync_service.sync_phase_transition(context, phase, next_phase)
 
-        # Sync run complete (success)
-        self._sync_service.sync_run_complete(context, success=True)
+        # Run complete - status stays at "document" mapping (e.g., "In Review")
+        # Issue is NOT closed here - that's handled by Story 12.8 if auto_close=true
 
     except Exception as e:
-        # Sync run complete (failure)
-        self._sync_service.sync_run_complete(context, success=False, error=str(e))
+        # Sync failure status
+        self._sync_service.sync_run_failed(context, phase=current_phase, error=str(e))
         raise
 ```
 

@@ -33,6 +33,7 @@ class TestTaskManagerConfig:
         assert config.team_key is None
         assert config.sync_comments is False
         assert config.comment_on_failure_only is False
+        assert config.pr_title_format == "{task_id}: {description}"
         assert config.auto_close is False
         assert config.include_labels is True
         assert config.include_parent is True
@@ -40,26 +41,29 @@ class TestTaskManagerConfig:
         assert config.labels.prefix == "adw:"
 
     def test_default_state_mapping(self) -> None:
-        """Default state mapping is provided."""
+        """Default phase-based state mapping is provided."""
         config = TaskManagerConfig()
         assert config.state_mapping == {
-            "pending": "Todo",
-            "running": "In Progress",
-            "completed": "Done",
+            "plan": "In Progress",
+            "build": "In Progress",
+            "validate": "In Review",
+            "document": "In Review",
             "failed": "In Progress",
         }
 
     def test_custom_state_mapping(self) -> None:
-        """Custom state mapping can be provided."""
+        """Custom phase-based state mapping can be provided."""
         config = TaskManagerConfig(
             state_mapping={
-                "pending": "Backlog",
-                "running": "In Dev",
-                "completed": "Done",
+                "plan": "Backlog",
+                "build": "In Dev",
+                "validate": "QA Review",
+                "document": "Doc Review",
                 "failed": "Blocked",
             }
         )
-        assert config.state_mapping["pending"] == "Backlog"
+        assert config.state_mapping["plan"] == "Backlog"
+        assert config.state_mapping["validate"] == "QA Review"
         assert config.state_mapping["failed"] == "Blocked"
 
     def test_labels_nested_config(self) -> None:
@@ -109,20 +113,24 @@ task_manager:
   type: linear
   team_key: RULE
   state_mapping:
-    pending: "Backlog"
-    running: "In Progress"
-    completed: "Done"
+    plan: "Backlog"
+    build: "In Progress"
+    validate: "QA Review"
+    document: "Doc Review"
     failed: "Blocked"
   sync_comments: true
+  pr_title_format: "[{task_id}] {description}"
   labels:
     enabled: true
     prefix: "ci:"
-  auto_close: true
+  auto_close: false
 """
         config = ProjectConfig.from_yaml(yaml_content)
         assert config.task_manager.type == "linear"
         assert config.task_manager.team_key == "RULE"
-        assert config.task_manager.state_mapping["pending"] == "Backlog"
+        assert config.task_manager.state_mapping["plan"] == "Backlog"
+        assert config.task_manager.state_mapping["validate"] == "QA Review"
         assert config.task_manager.sync_comments is True
+        assert config.task_manager.pr_title_format == "[{task_id}] {description}"
         assert config.task_manager.labels.prefix == "ci:"
-        assert config.task_manager.auto_close is True
+        assert config.task_manager.auto_close is False
