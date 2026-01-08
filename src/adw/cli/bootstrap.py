@@ -30,7 +30,13 @@ from adw.hooks.runner import HookRunner
 from adw.logging import LLMCaptureManager, LogManager, LogManagerHandler
 from adw.logging.console import ConsoleTransport
 from adw.logging.file import RawFileTransport, StructuredFileTransport
-from adw.models.config import GitConfig, HookConfig, LLMConfig, WorktreeConfig
+from adw.models.config import (
+    GitConfig,
+    HookConfig,
+    LLMConfig,
+    TaskManagerConfig,
+    WorktreeConfig,
+)
 from adw.models.logging import VERBOSITY_LEVEL_MAP, LogLevel, Verbosity
 from adw.security import SecurityInterceptor, ToolLogger
 
@@ -183,17 +189,21 @@ def create_orchestrator(
     runs_dir = get_runs_dir(project_root)
     console = console or Console()
 
-    # Load project configuration for worktree and git settings (Story 10.1, ISS-011)
+    # Load project configuration for worktree, git, and task manager settings
+    # (Story 10.1, ISS-011, Story 12.8)
     worktree_config: WorktreeConfig | None = None
     git_config: GitConfig | None = None
+    task_manager_config: TaskManagerConfig | None = None
     try:
         config = ConfigLoader(project_root).load()
         worktree_config = config.worktree
         git_config = config.git
+        task_manager_config = config.task_manager
     except ConfigError:
         # No config file or invalid config - use defaults
         worktree_config = WorktreeConfig()
         git_config = GitConfig()
+        task_manager_config = TaskManagerConfig()
 
     # Create managers
     context_manager = ContextManager(runs_dir)
@@ -254,6 +264,7 @@ def create_orchestrator(
         progress_display=progress_display,
         worktree_config=worktree_config,
         git_config=git_config,
+        task_manager_config=task_manager_config,
     )
 
     return orchestrator
