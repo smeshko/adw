@@ -217,3 +217,70 @@ class TestLabelManagerSetFailed:
 
         mock_task_manager.add_label.assert_not_called()
         mock_task_manager.remove_label.assert_not_called()
+
+
+class TestLabelManagerLifecycle:
+    """Integration tests for full label lifecycle (Story 12.7 Task 7)."""
+
+    def test_successful_run_lifecycle(self) -> None:
+        """Test label lifecycle for a successful run: running -> phases -> completed."""
+        mock_task_manager = MagicMock()
+        config = TaskManagerLabelsConfig(enabled=True, prefix="adw:")
+
+        manager = LabelManager(mock_task_manager, config, "task-uuid")
+
+        # Run starts
+        manager.set_running()
+        mock_task_manager.add_label.assert_called_with("task-uuid", "adw:running")
+
+        # Phase 1: plan
+        manager.set_phase("plan")
+        mock_task_manager.add_label.assert_called_with("task-uuid", "adw:phase:plan")
+
+        # Phase 2: build (removes plan, adds build)
+        manager.set_phase("build")
+        mock_task_manager.remove_label.assert_called_with("task-uuid", "adw:phase:plan")
+        mock_task_manager.add_label.assert_called_with("task-uuid", "adw:phase:build")
+
+        # Run completes (removes running, removes build phase, adds completed)
+        mock_task_manager.reset_mock()
+        manager.set_completed()
+
+        # Verify running removed
+        remove_calls = mock_task_manager.remove_label.call_args_list
+        assert any(call[0] == ("task-uuid", "adw:running") for call in remove_calls)
+        # Verify build phase removed
+        assert any(call[0] == ("task-uuid", "adw:phase:build") for call in remove_calls)
+        # Verify completed added
+        mock_task_manager.add_label.assert_called_with("task-uuid", "adw:completed")
+
+    def test_failed_run_lifecycle(self) -> None:
+        """Test label lifecycle for a failed run: running -> phases -> failed."""
+        mock_task_manager = MagicMock()
+        config = TaskManagerLabelsConfig(enabled=True, prefix="ci:")
+
+        manager = LabelManager(mock_task_manager, config, "task-uuid")
+
+        # Run starts
+        manager.set_running()
+        mock_task_manager.add_label.assert_called_with("task-uuid", "ci:running")
+
+        # Phase 1: plan
+        manager.set_phase("plan")
+        mock_task_manager.add_label.assert_called_with("task-uuid", "ci:phase:plan")
+
+        # Phase 2: build
+        manager.set_phase("build")
+        mock_task_manager.add_label.assert_called_with("task-uuid", "ci:phase:build")
+
+        # Run fails (removes running, keeps build phase, adds failed)
+        mock_task_manager.reset_mock()
+        manager.set_failed()
+
+        # Verify running removed
+        mock_task_manager.remove_label.assert_called_with("task-uuid", "ci:running")
+        # Verify failed added
+        mock_task_manager.add_label.assert_called_with("task-uuid", "ci:failed")
+        # Phase label should NOT be removed (kept for debugging)
+        for call in mock_task_manager.remove_label.call_args_list:
+            assert call[0] != ("task-uuid", "ci:phase:build")

@@ -1,6 +1,6 @@
 # Story 12.7: Label Management
 
-Status: ready-for-dev
+Status: dev-complete
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-08
@@ -81,11 +81,11 @@ So that my task board reflects current progress.
 - [x] Track label operation failures for debugging
 
 ### Task 7: Write Tests
-- [ ] Unit tests for `LabelManager` (6 tests)
-- [ ] Unit tests for `LinearTaskManager` label operations (4 tests)
-- [ ] Unit tests for label prefix handling (3 tests)
-- [ ] Unit tests for config checking (3 tests)
-- [ ] Integration test for full label lifecycle (2 tests)
+- [x] Unit tests for `LabelManager` (6 tests) - 19 tests written (exceeds requirement)
+- [x] Unit tests for `LinearTaskManager` label operations (4 tests) - 15 tests written
+- [x] Unit tests for label prefix handling (3 tests) - included in LabelManager tests
+- [x] Unit tests for config checking (3 tests) - included in LabelManager tests
+- [x] Integration test for full label lifecycle (2 tests) - TestLabelManagerLifecycle
 
 ---
 
@@ -421,6 +421,7 @@ Claude Opus 4.5
 - Task 2: Implemented full Linear label operations in linear_client.py. Added GraphQL queries/mutations for labels (GET_TEAM_LABELS_QUERY, CREATE_LABEL_MUTATION, ADD_LABEL_MUTATION, REMOVE_LABEL_MUTATION). Implemented get_team_labels, create_label, add_label_to_issue, remove_label_from_issue methods. Added label caching (_label_cache) to reduce API calls. Full add_label/remove_label now use get-or-create pattern.
 - Task 3+4+6: Created LabelManager service in labels.py with set_running(), set_phase(), set_completed(), set_failed() methods. Uses config.prefix for label names (default "adw:"). All operations are non-blocking with try/except and logging. 17 unit tests added.
 - Task 5: Integrated LabelManager with Orchestrator. Added label_manager parameter to Orchestrator.__init__. Added set_running() call at run start, set_phase() at phase transitions, set_completed()/set_failed() at run end. Updated bootstrap.py to create LabelManager when task_manager and task_id are provided.
+- Task 7: Comprehensive test coverage added. 19 LabelManager tests, 15 LinearClient label tests, plus 2 lifecycle integration tests. Total: 97 passing tests in task_managers module.
 
 ### File List
 
@@ -433,5 +434,5 @@ Claude Opus 4.5
 - `src/adw/cli/bootstrap.py` - Added LabelManager creation in create_orchestrator
 - `tests/unit/task_managers/test_base.py` - Added tests for new Protocol methods
 - `tests/unit/task_managers/test_null.py` - Added tests for no-op implementations
-- `tests/unit/task_managers/test_linear_client.py` - Added tests for label operations
-- `tests/unit/task_managers/test_labels.py` - New LabelManager tests (17 tests)
+- `tests/unit/task_managers/test_linear_client.py` - Added tests for label operations (15 tests)
+- `tests/unit/task_managers/test_labels.py` - LabelManager tests (19 tests)
