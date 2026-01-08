@@ -464,15 +464,11 @@ class ValidationResult(BaseModel):
     Attributes:
         passed: Whether all validators passed with no issues.
         issues: List of issues found by validators.
-        iteration: Current iteration number in the validation loop.
     """
 
     passed: bool = Field(..., description="Whether validation passed")
     issues: list[ValidationIssue] = Field(
         default_factory=list, description="Issues found during validation"
-    )
-    iteration: int = Field(
-        default=1, description="Current iteration number in validation loop"
     )
 
     model_config = {
@@ -489,7 +485,6 @@ class ValidationResult(BaseModel):
                         "description": "Test failed",
                     }
                 ],
-                "iteration": 1,
             }
         },
     }

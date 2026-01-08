@@ -6,7 +6,7 @@ This package provides the ValidationPhase which combines:
 - Test suite execution
 
 All validators run in sequence and issues are aggregated into
-a single ValidationResult for triage and fix iteration.
+a single ValidationResult. The LLM handles any iteration through prompts.
 """
 
 from adw.validation.config import ValidationConfig
