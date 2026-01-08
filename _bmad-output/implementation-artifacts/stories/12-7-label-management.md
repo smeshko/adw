@@ -55,17 +55,17 @@ So that my task board reflects current progress.
 - [x] Cache label IDs to reduce API calls
 
 ### Task 3: Create LabelManager Service
-- [ ] Create `src/adw/task_managers/labels.py` with `LabelManager`
-- [ ] Initialize with `TaskManager` and `TaskManagerLabelsConfig`
-- [ ] Implement `set_running(task_id)` - add running label
-- [ ] Implement `set_phase(task_id, phase)` - swap phase labels
-- [ ] Implement `set_completed(task_id)` - remove running, add completed
-- [ ] Implement `set_failed(task_id)` - remove running, add failed
+- [x] Create `src/adw/task_managers/labels.py` with `LabelManager`
+- [x] Initialize with `TaskManager` and `TaskManagerLabelsConfig`
+- [x] Implement `set_running(task_id)` - add running label
+- [x] Implement `set_phase(task_id, phase)` - swap phase labels
+- [x] Implement `set_completed(task_id)` - remove running, add completed
+- [x] Implement `set_failed(task_id)` - remove running, add failed
 
 ### Task 4: Handle Label Prefix
-- [ ] Use `labels.prefix` from config (default: `adw:`)
-- [ ] Construct full label names: `{prefix}running`, `{prefix}phase:{phase}`
-- [ ] Support custom prefixes for multi-project boards
+- [x] Use `labels.prefix` from config (default: `adw:`)
+- [x] Construct full label names: `{prefix}running`, `{prefix}phase:{phase}`
+- [x] Support custom prefixes for multi-project boards
 
 ### Task 5: Integrate with Orchestrator
 - [ ] Inject `LabelManager` into Orchestrator
@@ -75,10 +75,10 @@ So that my task board reflects current progress.
 - [ ] Check `labels.enabled` config before operations
 
 ### Task 6: Handle Non-Blocking Failures
-- [ ] Wrap all label operations in try/except
-- [ ] Log warnings on failure, don't raise
-- [ ] Continue run execution regardless of label status
-- [ ] Track label operation failures for debugging
+- [x] Wrap all label operations in try/except
+- [x] Log warnings on failure, don't raise
+- [x] Continue run execution regardless of label status
+- [x] Track label operation failures for debugging
 
 ### Task 7: Write Tests
 - [ ] Unit tests for `LabelManager` (6 tests)
@@ -419,6 +419,7 @@ Claude Opus 4.5
 
 - Task 1: Extended TaskManager Protocol with add_label/remove_label methods. Added to base.py Protocol, implemented no-op in null.py, added stub implementations in linear.py that delegate to linear_client.py (stub methods added for Task 2).
 - Task 2: Implemented full Linear label operations in linear_client.py. Added GraphQL queries/mutations for labels (GET_TEAM_LABELS_QUERY, CREATE_LABEL_MUTATION, ADD_LABEL_MUTATION, REMOVE_LABEL_MUTATION). Implemented get_team_labels, create_label, add_label_to_issue, remove_label_from_issue methods. Added label caching (_label_cache) to reduce API calls. Full add_label/remove_label now use get-or-create pattern.
+- Task 3+4+6: Created LabelManager service in labels.py with set_running(), set_phase(), set_completed(), set_failed() methods. Uses config.prefix for label names (default "adw:"). All operations are non-blocking with try/except and logging. 17 unit tests added.
 
 ### File List
 
@@ -426,6 +427,8 @@ Claude Opus 4.5
 - `src/adw/task_managers/null.py` - Added no-op implementations
 - `src/adw/task_managers/linear.py` - Added implementations delegating to client
 - `src/adw/task_managers/linear_client.py` - Full label operations with GraphQL, caching
+- `src/adw/task_managers/labels.py` - New LabelManager service
 - `tests/unit/task_managers/test_base.py` - Added tests for new Protocol methods
 - `tests/unit/task_managers/test_null.py` - Added tests for no-op implementations
 - `tests/unit/task_managers/test_linear_client.py` - Added tests for label operations
+- `tests/unit/task_managers/test_labels.py` - New LabelManager tests (17 tests)
