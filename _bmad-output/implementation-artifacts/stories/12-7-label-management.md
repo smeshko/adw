@@ -48,11 +48,11 @@ So that my task board reflects current progress.
 - [x] Implement in `LinearTaskManager`
 
 ### Task 2: Implement Linear Label Operations
-- [ ] Add label query to get label ID by name
-- [ ] Create label if it doesn't exist (with prefix color)
-- [ ] Implement `issueAddLabel` mutation
-- [ ] Implement `issueRemoveLabel` mutation
-- [ ] Cache label IDs to reduce API calls
+- [x] Add label query to get label ID by name
+- [x] Create label if it doesn't exist (with prefix color)
+- [x] Implement `issueAddLabel` mutation
+- [x] Implement `issueRemoveLabel` mutation
+- [x] Cache label IDs to reduce API calls
 
 ### Task 3: Create LabelManager Service
 - [ ] Create `src/adw/task_managers/labels.py` with `LabelManager`
@@ -418,12 +418,14 @@ Claude Opus 4.5
 ### Completion Notes List
 
 - Task 1: Extended TaskManager Protocol with add_label/remove_label methods. Added to base.py Protocol, implemented no-op in null.py, added stub implementations in linear.py that delegate to linear_client.py (stub methods added for Task 2).
+- Task 2: Implemented full Linear label operations in linear_client.py. Added GraphQL queries/mutations for labels (GET_TEAM_LABELS_QUERY, CREATE_LABEL_MUTATION, ADD_LABEL_MUTATION, REMOVE_LABEL_MUTATION). Implemented get_team_labels, create_label, add_label_to_issue, remove_label_from_issue methods. Added label caching (_label_cache) to reduce API calls. Full add_label/remove_label now use get-or-create pattern.
 
 ### File List
 
 - `src/adw/task_managers/base.py` - Added add_label/remove_label to Protocol
 - `src/adw/task_managers/null.py` - Added no-op implementations
 - `src/adw/task_managers/linear.py` - Added implementations delegating to client
-- `src/adw/task_managers/linear_client.py` - Added stub methods for add_label/remove_label
+- `src/adw/task_managers/linear_client.py` - Full label operations with GraphQL, caching
 - `tests/unit/task_managers/test_base.py` - Added tests for new Protocol methods
 - `tests/unit/task_managers/test_null.py` - Added tests for no-op implementations
+- `tests/unit/task_managers/test_linear_client.py` - Added tests for label operations
