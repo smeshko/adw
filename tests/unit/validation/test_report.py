@@ -262,7 +262,7 @@ class TestValidationReportMarkdown:
         md = passing_report.to_markdown()
 
         # Should not have "Issues Remaining" section
-        assert "Issues Remaining" not in md or "issues_remaining" not in md.lower()
+        assert "Issues Remaining" not in md
 
 
 class TestValidationReportSerialization:
