@@ -849,6 +849,8 @@ class PhaseRunner:
         artifacts_dir = (
             self.artifact_manager.runs_dir / context.run_id / "artifacts" / phase
         )
+        # Create artifacts directory before post-hook so hooks can write to it
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
         try:
             os.environ["ADW_LLM_OUTPUT"] = llm_output
 
@@ -865,7 +867,12 @@ class PhaseRunner:
                 extra={"phase": phase, "stdout_len": len(result.stdout)},
             )
 
-        except HookError:
+        except HookError as e:
+            # Log hook output for debugging
+            if e.stderr:
+                logger.error(f"Post-hook stderr: {e.stderr[:1000]}")
+            if e.stdout:
+                logger.debug(f"Post-hook stdout: {e.stdout[:1000]}")
             logger.error("Post-hook failed", extra={"phase": phase})
             raise
         finally:

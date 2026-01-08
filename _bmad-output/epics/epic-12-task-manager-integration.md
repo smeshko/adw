@@ -159,77 +159,6 @@ So that I can customize prompts based on task properties.
 
 ---
 
-## Dependency Analysis
-
-| Story | Depends On | Blocks |
-|-------|------------|--------|
-| 11.1 | Epic 6 complete | 11.2, 11.3, 11.4, 11.5 |
-| 11.2 | 11.1 | 11.3, 11.5 |
-| 11.3 | 11.1, 11.2 | None |
-| 11.4 | 11.1 | None |
-| 11.5 | 11.2 | None |
-
-### Execution Waves
-
-```
-Wave 1: [11.1] TaskManager Protocol + Config
-           │
-           ▼
-Wave 2: [11.2] Linear Implementation
-           │
-     ┌─────┴─────┬──────────┐
-     ▼           ▼          ▼
-Wave 3: [11.3]  [11.4]   [11.5]
-        Status   Pattern   Context
-        Sync     Detect    in Prompts
-```
-
-### Parallelization Flowchart
-
-```
-                    ┌─────────────────────────────────────┐
-                    │              [11.1]                 │
-                    │    TaskManager Protocol and        │
-                    │         Configuration              │
-                    │     (Foundation - Abstraction)     │
-                    └─────────────────┬───────────────────┘
-                                      │
-                                      ▼
-                    ┌─────────────────────────────────────┐
-                    │              [11.2]                 │
-                    │    Linear Task Manager             │
-                    │       Implementation               │
-                    │   (First concrete adapter)         │
-                    └─────────────────┬───────────────────┘
-                                      │
-                         ┌────────────┼────────────┐
-                         │            │            │
-                         ▼            ▼            ▼
-        ┌────────────────────┐ ┌────────────────────┐ ┌────────────────────┐
-        │       [11.3]       │ │       [11.4]       │ │       [11.5]       │
-        │  Status Sync at    │ │   Task ID Pattern  │ │  Task Context in   │
-        │ Phase Transitions  │ │     Detection      │ │      Prompts       │
-        └────────────────────┘ └────────────────────┘ └────────────────────┘
-```
-
-### Critical Path
-
-**Minimum Sequential Path:** 11.1 → 11.2 → (11.3 | 11.4 | 11.5)
-
-**Parallelizable:** Stories 11.3, 11.4, and 11.5 can be developed in parallel after 11.2
-
-### Estimated Story Points
-
-| Story | Complexity | Notes |
-|-------|------------|-------|
-| 11.1 | Small | Protocol definition, config loading |
-| 11.2 | Medium | Linear API integration, error handling |
-| 11.3 | Medium | Orchestrator hooks, state mapping |
-| 11.4 | Small | Regex pattern matching |
-| 11.5 | Small | Template variable extension |
-
----
-
 ## Story 12.6: Post Status Update Comments (Course Correction 2026-01-03)
 
 As a user,
@@ -408,6 +337,38 @@ task_manager_config:
 
 ---
 
+## Dependency Analysis
+
+| Story | Depends On | Blocks |
+|-------|------------|--------|
+| 12.1 | Epic 6 complete | 12.2, 12.3, 12.4, 12.5, 12.7, 12.8, 12.9, 12.10 |
+| 12.2 | 12.1 | 12.3, 12.5, 12.6, 12.7, 12.8, 12.9 |
+| 12.3 | 12.1, 12.2 | 12.6 |
+| 12.4 | 12.1 | None |
+| 12.5 | 12.1, 12.2 | None |
+| 12.6 | 12.3 | None |
+| 12.7 | 12.1, 12.2 | None |
+| 12.8 | 12.1, 12.2 | None |
+| 12.9 | 12.1, 12.2 | None |
+| 12.10 | 12.1 | 12.3, 12.5, 12.7, 12.8, 12.9 |
+
+### Estimated Story Points
+
+| Story | Complexity | Notes |
+|-------|------------|-------|
+| 12.1 | Small | Protocol definition, config loading |
+| 12.2 | Medium | Linear API integration, error handling |
+| 12.3 | Medium | Orchestrator hooks, state mapping |
+| 12.4 | Small | Regex pattern matching |
+| 12.5 | Small | Template variable extension |
+| 12.6 | Small | Extends 12.3 with comment posting |
+| 12.7 | Medium | Label lifecycle management |
+| 12.8 | Small | Issue closing logic |
+| 12.9 | Small | Assignment logic |
+| 12.10 | Medium | GitHub API integration via gh CLI |
+
+---
+
 ## Epic 12: Dependency Flowchart (Updated 2026-01-05)
 
 ```
@@ -490,23 +451,6 @@ query($id: String!) {
   }
 }
 """
-```
-
-### Configuration Schema
-
-```yaml
-# Full task_manager_config schema
-task_manager_config:
-  api_key_env: LINEAR_API_KEY      # Env var for API key
-  team_key: RULE                    # Team prefix for ID detection
-  state_mapping:                    # ADW state → Linear state
-    pending: "Todo"
-    running: "In Progress"
-    completed: "Done"
-    failed: "In Progress"
-  sync_comments: true               # Add comments on phase transitions
-  include_labels: true              # Include labels in task context
-  include_parent: true              # Include parent issue context
 ```
 
 ### Error Handling
