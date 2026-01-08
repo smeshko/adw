@@ -8,6 +8,7 @@ from rich.console import Console
 from ulid import ULID
 
 from adw.cli.bootstrap import create_log_manager, create_orchestrator
+from adw.task_managers import InputResolver, InputType, TaskManagerFactory
 from adw.cli.dry_run import DryRunDisplay
 from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
@@ -200,6 +201,30 @@ def run(
             "[red]Error:[/] --task-id and --no-task-manager are mutually exclusive"
         )
         raise typer.Exit(code=1)
+
+    # Resolve input: task ID vs feature string (Story 12.4 Task 4)
+    # Creates a task manager and uses InputResolver to auto-detect or force interpretation
+    task_manager = TaskManagerFactory().create()
+    resolver = InputResolver(task_manager)
+    try:
+        resolved = resolver.resolve(
+            feature,
+            force_task_id=task_id,
+            force_feature=no_task_manager,
+        )
+    except ValueError as e:
+        # --task-id was used but input doesn't match pattern
+        console.print(f"[red]Error:[/] {e}")
+        console.print(
+            "[dim]Suggestion:[/] Remove --task-id to treat as feature description, "
+            "or use a valid task ID"
+        )
+        raise typer.Exit(code=1) from None
+
+    # Log resolution result for transparency (Story 12.4 Task 5)
+    if resolved.type == InputType.TASK_ID:
+        console.print(f"[dim]Resolved as task ID:[/] {resolved.task_id}")
+    # Note: Feature strings don't need logging - that's the default expectation
 
     # Escape special characters for template safety (Story 6.1 Task 5)
     # Note: safe_feature will be used when templates need the escaped version

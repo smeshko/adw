@@ -13,22 +13,25 @@ runner = CliRunner()
 class TestRunCommandFlags:
     """Test --task-id and --no-task-manager flags."""
 
-    def test_task_id_flag_accepted(self) -> None:
-        """--task-id flag is accepted by the run command."""
-        # Use --dry-run to avoid actually running the workflow
+    def test_task_id_flag_error_with_null_task_manager(self) -> None:
+        """--task-id flag errors when NullTaskManager can't resolve ID.
+
+        NullTaskManager always returns None from resolve_task_id,
+        so --task-id will always error until a real task manager is configured.
+        """
         result = runner.invoke(app, ["run", "RULE-123", "--task-id", "--dry-run"])
-        # Should not error on the flag itself (may error on other things like no config)
-        assert "--task-id" not in result.output or "Error" not in result.output[:50]
+        # NullTaskManager doesn't resolve any IDs, so this correctly errors
+        assert result.exit_code == 1
+        assert "does not match task ID pattern" in result.output
 
     def test_no_task_manager_flag_accepted(self) -> None:
-        """--no-task-manager flag is accepted by the run command."""
+        """--no-task-manager flag is accepted and skips task manager resolution."""
         result = runner.invoke(
             app, ["run", "RULE-123", "--no-task-manager", "--dry-run"]
         )
-        # Should not error on the flag itself
-        assert (
-            "--no-task-manager" not in result.output or "Error" not in result.output[:50]
-        )
+        # Should proceed past resolution (may still fail on other things like no config)
+        # The key is it should NOT error on task ID resolution
+        assert "does not match task ID pattern" not in result.output
 
     def test_flags_mutually_exclusive(self) -> None:
         """Error when both --task-id and --no-task-manager provided."""
