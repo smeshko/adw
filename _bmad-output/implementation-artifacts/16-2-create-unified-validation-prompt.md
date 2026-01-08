@@ -53,7 +53,7 @@ so that the LLM manages the validate-fix-re-validate cycle.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Create validate/prompt.md**
+- [x] **Task 1: Create validate/prompt.md**
   - Create `.adw/phases/validate/prompt.md` template
   - Include comprehensive instructions for the LLM
   - Define clear success/failure criteria
@@ -354,7 +354,15 @@ Return ONLY this JSON:
 
 ### Completion Notes List
 
+- Task 1: Created comprehensive validation prompt at `src/adw/defaults/commands/validate/prompt.md` (6181 bytes)
+  - Includes 5-step validation process: run tests, run linters, code review, assess/fix, return result
+  - Defines JSON output schema with all required fields
+  - Includes comprehensive auto-fix determination rules
+  - Added 5 examples covering various validation scenarios
+
 ### File List
+
+- `src/adw/defaults/commands/validate/prompt.md` (modified)
 
 ---
 
