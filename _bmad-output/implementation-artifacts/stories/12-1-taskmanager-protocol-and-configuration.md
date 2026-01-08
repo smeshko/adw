@@ -43,8 +43,8 @@ So that different task management systems can be supported.
 - [x] Add `@property name: str` to Protocol for identification
 
 ### Task 2: Create TaskInfo Model
-- [ ] Create `src/adw/models/task.py` with `TaskInfo` model
-- [ ] Define fields:
+- [x] Create `src/adw/models/task.py` with `TaskInfo` model
+- [x] Define fields:
   - `id: str` - Task ID (e.g., "RULE-123")
   - `identifier: str` - Full identifier from system
   - `title: str` - Task title/summary
@@ -56,7 +56,7 @@ So that different task management systems can be supported.
   - `parent_id: str | None` - Parent issue ID if exists
   - `parent_title: str | None` - Parent issue title
   - `custom_fields: dict[str, Any]` - Custom fields from system
-- [ ] Export from `src/adw/models/__init__.py`
+- [x] Export from `src/adw/models/__init__.py`
 
 ### Task 3: Implement NullTaskManager
 - [ ] Create `src/adw/task_managers/null.py` with `NullTaskManager`
@@ -381,6 +381,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Completion Notes List
 
 - Task 1: Created TaskManager Protocol with runtime_checkable decorator, fetch_task, update_status, resolve_task_id methods, and name property. Created TaskInfo model (needed by Protocol) and tests.
+- Task 2: TaskInfo model was created in Task 1 since Protocol depends on it. Added 4 validation tests.
 
 ### File List
 
@@ -394,3 +395,4 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 **Modified Files:**
 - `src/adw/models/__init__.py` - Added TaskInfo export
 - `tests/unit/cli/test_progress.py` - Fixed pre-existing ISS-019 test bug (VERIFY -> VALIDATE)
+- `tests/unit/models/test_task.py` - TaskInfo model validation tests (4 tests)
