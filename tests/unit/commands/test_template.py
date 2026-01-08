@@ -564,8 +564,9 @@ class TestBuildTaskContext:
         assert result["assignee"] == ""
         assert result["parent_id"] == ""
         assert result["parent_title"] == ""
-        # Custom should be empty dict
-        assert result["custom"] == {}
+        # Custom should be a GracefulDict (empty but returns "" for any key)
+        assert result["custom"]["any_missing_field"] == ""
+        assert result["custom"]["nested"] == ""
 
     def test_build_task_context_maps_all_fields(self) -> None:
         """build_task_context maps all TaskInfo fields correctly."""
@@ -746,6 +747,17 @@ class TestTaskContextTemplateRendering:
 
         result = engine.render(template, variables)
         assert result == "Task:  - "
+
+    def test_graceful_degradation_custom_fields_with_no_task_context(self) -> None:
+        """Custom task fields should render as empty strings when task_info is None."""
+        from adw.commands.template import build_task_context
+
+        engine = TemplateEngine()
+        variables = {"task": build_task_context(None)}
+        template = "Sprint: {{task.custom.sprint}}, Team: {{task.custom.team}}"
+
+        result = engine.render(template, variables)
+        assert result == "Sprint: , Team: "
 
 
 class TestTaskContextIntegration:

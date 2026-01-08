@@ -26,6 +26,30 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["TemplateEngine", "escape_feature_description", "build_task_context"]
 
+
+class GracefulDict(dict[str, Any]):
+    """A dict subclass that returns empty string for missing keys.
+
+    Used for task.custom field access when task_info is None.
+    Ensures {{task.custom.<field>}} resolves to empty string
+    instead of raising KeyError or staying as placeholder.
+    """
+
+    def __missing__(self, _key: str) -> str:
+        """Return empty string for any missing key."""
+        return ""
+
+    def __getitem__(self, key: str) -> Any:
+        """Return value for key, or empty string if missing."""
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            return ""
+
+    def get(self, key: str, default: Any = "") -> Any:
+        """Return value for key with default of empty string."""
+        return super().get(key, default)
+
 # Priority label mapping (1=Urgent, 2=High, 3=Medium, 4=Low)
 PRIORITY_LABELS: dict[int, str] = {
     1: "Urgent",
@@ -108,6 +132,7 @@ def build_task_context(task_info: "TaskInfo | None") -> dict[str, Any]:
         logger.debug("No task_info available, task context will use empty strings")
         # Return dict with all keys as empty strings for graceful degradation
         # This ensures {{task.*}} variables resolve to empty string, not stay as-is
+        # Use GracefulDict for custom so {{task.custom.<field>}} also resolves to ""
         return {
             "id": "",
             "identifier": "",
@@ -120,7 +145,7 @@ def build_task_context(task_info: "TaskInfo | None") -> dict[str, Any]:
             "assignee": "",
             "parent_id": "",
             "parent_title": "",
-            "custom": {},
+            "custom": GracefulDict(),
         }
 
     return {
@@ -276,9 +301,14 @@ class TemplateEngine:
 
         for part in parts:
             if isinstance(value, dict):
-                if part not in value:
+                # For GracefulDict (used for task.custom when no task_info),
+                # use __getitem__ directly to get empty string default
+                if isinstance(value, GracefulDict):
+                    value = value[part]
+                elif part not in value:
                     raise KeyError(path)
-                value = value[part]
+                else:
+                    value = value[part]
             else:
                 # Try attribute access for objects
                 if not hasattr(value, part):
