@@ -53,8 +53,8 @@ So that I don't have to copy-paste task descriptions.
 - [x] Base URL: `https://api.linear.app/graphql`
 
 ### Task 3: Implement fetch_task Method
-- [ ] Build GraphQL query for issue fetch (see Technical Notes)
-- [ ] Map Linear response to `TaskInfo` model:
+- [x] Build GraphQL query for issue fetch (see Technical Notes)
+- [x] Map Linear response to `TaskInfo` model:
   - `id` <- `issue.id`
   - `identifier` <- `issue.identifier`
   - `title` <- `issue.title`
@@ -65,8 +65,8 @@ So that I don't have to copy-paste task descriptions.
   - `assignee` <- `issue.assignee.name`
   - `parent_id` <- `issue.parent.identifier`
   - `parent_title` <- `issue.parent.title`
-- [ ] Handle not found error (issue returns null)
-- [ ] Handle API errors with proper error wrapping
+- [x] Handle not found error (issue returns null)
+- [x] Handle API errors with proper error wrapping
 
 ### Task 4: Implement update_status Method
 - [ ] Accept ADW status and map to Linear state using `state_mapping`
@@ -431,6 +431,7 @@ claude-opus-4-5-20251101
 
 - **Task 1**: Created LinearTaskManager class in `src/adw/task_managers/linear.py`. Implements TaskManager Protocol with name property, validates LINEAR_API_KEY and LINEAR_TEAM_ID environment variables on initialization. Raises ConfigError with clear messages if env vars missing. Added 4 unit tests for init and env var validation.
 - **Task 2**: Created LinearClient in `src/adw/task_managers/linear_client.py`. Uses httpx for GraphQL requests. Implements fetch_issue and update_issue methods with proper authentication headers. Added 6 unit tests for client functionality.
+- **Task 3**: Implemented fetch_task method that uses LinearClient to fetch issues and maps the response to TaskInfo model. Handles all field mappings including nested labels, parent, state, and assignee. Raises TaskError when issue not found. Added 4 unit tests.
 
 ### File List
 

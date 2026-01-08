@@ -4,12 +4,13 @@ Tests for the Linear task manager implementation.
 """
 
 import os
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from adw.exceptions import ConfigError
+from adw.exceptions import ConfigError, TaskError
 from adw.models.config import TaskManagerConfig
+from adw.models.task import TaskInfo
 from adw.task_managers.linear import LinearTaskManager
 
 
@@ -68,3 +69,103 @@ class TestLinearTaskManagerInit:
         manager = LinearTaskManager(config)
 
         assert manager.name == "linear"
+
+
+class TestLinearTaskManagerFetchTask:
+    """Tests for LinearTaskManager.fetch_task."""
+
+    @pytest.fixture
+    def manager(self, monkeypatch: pytest.MonkeyPatch) -> LinearTaskManager:
+        """Create a LinearTaskManager with mocked env vars."""
+        monkeypatch.setenv("LINEAR_API_KEY", "lin_api_test123")
+        monkeypatch.setenv("LINEAR_TEAM_ID", "team-uuid-123")
+        config = TaskManagerConfig(type="linear", team_key="RULE")
+        return LinearTaskManager(config)
+
+    def test_fetch_task_returns_task_info(self, manager: LinearTaskManager) -> None:
+        """fetch_task returns TaskInfo with mapped fields."""
+        mock_issue = {
+            "id": "abc123",
+            "identifier": "RULE-123",
+            "title": "Add user authentication",
+            "description": "Implement OAuth2 login flow",
+            "state": {"name": "In Progress"},
+            "priority": 2,
+            "labels": {"nodes": [{"name": "feature"}, {"name": "auth"}]},
+            "assignee": {"name": "Alex Dev"},
+            "parent": {"identifier": "RULE-100", "title": "Epic: Auth System"},
+        }
+
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.fetch_issue.return_value = mock_issue
+            result = manager.fetch_task("RULE-123")
+
+        assert isinstance(result, TaskInfo)
+        assert result.id == "abc123"
+        assert result.identifier == "RULE-123"
+        assert result.title == "Add user authentication"
+        assert result.description == "Implement OAuth2 login flow"
+        assert result.status == "In Progress"
+        assert result.priority == 2
+        assert result.labels == ["feature", "auth"]
+        assert result.assignee == "Alex Dev"
+        assert result.parent_id == "RULE-100"
+        assert result.parent_title == "Epic: Auth System"
+
+    def test_fetch_task_not_found_raises_error(self, manager: LinearTaskManager) -> None:
+        """fetch_task raises TaskError when task not found."""
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.fetch_issue.return_value = None
+
+            with pytest.raises(TaskError) as exc_info:
+                manager.fetch_task("NONEXISTENT-999")
+
+        assert exc_info.value.code == "TASK_NOT_FOUND"
+        assert "NONEXISTENT-999" in exc_info.value.message
+
+    def test_fetch_task_with_minimal_fields(self, manager: LinearTaskManager) -> None:
+        """fetch_task handles minimal issue data gracefully."""
+        mock_issue = {
+            "id": "abc123",
+            "identifier": "RULE-456",
+            "title": "Simple task",
+            "description": None,
+            "state": None,
+            "priority": None,
+            "labels": {"nodes": []},
+            "assignee": None,
+            "parent": None,
+        }
+
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.fetch_issue.return_value = mock_issue
+            result = manager.fetch_task("RULE-456")
+
+        assert result.id == "abc123"
+        assert result.title == "Simple task"
+        assert result.description is None
+        assert result.status is None
+        assert result.priority is None
+        assert result.labels == []
+        assert result.assignee is None
+        assert result.parent_id is None
+
+    def test_fetch_task_with_labels(self, manager: LinearTaskManager) -> None:
+        """fetch_task includes labels in TaskInfo."""
+        mock_issue = {
+            "id": "abc123",
+            "identifier": "RULE-789",
+            "title": "Task with labels",
+            "description": None,
+            "state": None,
+            "priority": None,
+            "labels": {"nodes": [{"name": "bug"}, {"name": "urgent"}, {"name": "backend"}]},
+            "assignee": None,
+            "parent": None,
+        }
+
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.fetch_issue.return_value = mock_issue
+            result = manager.fetch_task("RULE-789")
+
+        assert result.labels == ["bug", "urgent", "backend"]

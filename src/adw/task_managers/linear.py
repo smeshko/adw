@@ -10,6 +10,7 @@ from typing import Any
 from adw.exceptions import ConfigError, TaskError
 from adw.models.config import TaskManagerConfig
 from adw.models.task import TaskInfo
+from adw.task_managers.linear_client import LinearClient
 
 
 class LinearTaskManager:
@@ -44,6 +45,7 @@ class LinearTaskManager:
         self._config = config
         self._api_key = self._get_api_key()
         self._team_id = self._get_team_id()
+        self._client = LinearClient(api_key=self._api_key)
         self._state_cache: dict[str, str] = {}  # state_name -> state_id
 
     @property
@@ -105,8 +107,58 @@ class LinearTaskManager:
         Raises:
             TaskError: If the task cannot be fetched.
         """
-        # TODO: Implement in Task 3
-        raise NotImplementedError("fetch_task will be implemented in Task 3")
+        issue = self._client.fetch_issue(task_id)
+
+        if issue is None:
+            raise TaskError(
+                code="TASK_NOT_FOUND",
+                message=f"Task '{task_id}' not found in Linear",
+                suggestion="Verify the task ID is correct",
+                task_id=task_id,
+                recoverable=False,
+            )
+
+        return self._map_issue_to_task_info(issue)
+
+    def _map_issue_to_task_info(self, issue: dict[str, Any]) -> TaskInfo:
+        """Map Linear issue response to TaskInfo model.
+
+        Args:
+            issue: Raw issue data from Linear API.
+
+        Returns:
+            TaskInfo with mapped fields.
+        """
+        # Extract labels from nested structure
+        labels_data = issue.get("labels", {}) or {}
+        labels_nodes = labels_data.get("nodes", []) or []
+        labels = [label["name"] for label in labels_nodes if label and "name" in label]
+
+        # Extract parent info if present
+        parent = issue.get("parent")
+        parent_id = parent.get("identifier") if parent else None
+        parent_title = parent.get("title") if parent else None
+
+        # Extract state name if present
+        state = issue.get("state")
+        status = state.get("name") if state else None
+
+        # Extract assignee name if present
+        assignee_data = issue.get("assignee")
+        assignee = assignee_data.get("name") if assignee_data else None
+
+        return TaskInfo(
+            id=issue["id"],
+            identifier=issue["identifier"],
+            title=issue["title"],
+            description=issue.get("description"),
+            status=status,
+            priority=issue.get("priority"),
+            labels=labels,
+            assignee=assignee,
+            parent_id=parent_id,
+            parent_title=parent_title,
+        )
 
     def update_status(
         self,
