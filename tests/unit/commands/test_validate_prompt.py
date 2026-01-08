@@ -66,6 +66,18 @@ class TestValidatePromptStructure:
         """Prompt should have a Rules section."""
         assert "## Rules" in prompt_content
 
+    def test_prompt_has_single_fix_attempt_rule(self, prompt_content: str) -> None:
+        """Prompt should enforce single fix attempt (AC: max one fix attempt)."""
+        assert "Single Fix Attempt" in prompt_content
+
+    def test_prompt_has_no_looping_rule(self, prompt_content: str) -> None:
+        """Prompt should forbid looping (AC: no fix-test-fix loops)."""
+        assert "No Looping" in prompt_content
+
+    def test_prompt_has_all_or_nothing_rule(self, prompt_content: str) -> None:
+        """Prompt should enforce all-or-nothing fixes (AC: non-fixable = no fixes)."""
+        assert "All or Nothing" in prompt_content
+
     def test_prompt_has_examples_section(self, prompt_content: str) -> None:
         """Prompt should have an Examples section."""
         assert "## Examples" in prompt_content
