@@ -320,3 +320,28 @@ class TestLinearTaskManagerResolveTaskId:
         manager = LinearTaskManager(config)
 
         assert manager.resolve_task_id("RULE-123") is None
+
+
+class TestLinearTaskManagerProtocol:
+    """Tests for LinearTaskManager Protocol satisfaction."""
+
+    def test_linear_manager_satisfies_task_manager_protocol(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """LinearTaskManager satisfies TaskManager Protocol."""
+        from adw.task_managers.base import TaskManager
+
+        monkeypatch.setenv("LINEAR_API_KEY", "lin_api_test123")
+        monkeypatch.setenv("LINEAR_TEAM_ID", "team-uuid-123")
+
+        config = TaskManagerConfig(type="linear", team_key="RULE")
+        manager = LinearTaskManager(config)
+
+        # isinstance check with runtime_checkable Protocol
+        assert isinstance(manager, TaskManager)
+
+        # Verify all protocol methods exist
+        assert hasattr(manager, "name")
+        assert hasattr(manager, "fetch_task")
+        assert hasattr(manager, "update_status")
+        assert hasattr(manager, "resolve_task_id")
