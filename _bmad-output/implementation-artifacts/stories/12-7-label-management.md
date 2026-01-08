@@ -68,11 +68,11 @@ So that my task board reflects current progress.
 - [x] Support custom prefixes for multi-project boards
 
 ### Task 5: Integrate with Orchestrator
-- [ ] Inject `LabelManager` into Orchestrator
-- [ ] Call `set_running` on run start
-- [ ] Call `set_phase` on phase transitions
-- [ ] Call `set_completed` or `set_failed` on run end
-- [ ] Check `labels.enabled` config before operations
+- [x] Inject `LabelManager` into Orchestrator
+- [x] Call `set_running` on run start
+- [x] Call `set_phase` on phase transitions
+- [x] Call `set_completed` or `set_failed` on run end
+- [x] Check `labels.enabled` config before operations
 
 ### Task 6: Handle Non-Blocking Failures
 - [x] Wrap all label operations in try/except
@@ -420,6 +420,7 @@ Claude Opus 4.5
 - Task 1: Extended TaskManager Protocol with add_label/remove_label methods. Added to base.py Protocol, implemented no-op in null.py, added stub implementations in linear.py that delegate to linear_client.py (stub methods added for Task 2).
 - Task 2: Implemented full Linear label operations in linear_client.py. Added GraphQL queries/mutations for labels (GET_TEAM_LABELS_QUERY, CREATE_LABEL_MUTATION, ADD_LABEL_MUTATION, REMOVE_LABEL_MUTATION). Implemented get_team_labels, create_label, add_label_to_issue, remove_label_from_issue methods. Added label caching (_label_cache) to reduce API calls. Full add_label/remove_label now use get-or-create pattern.
 - Task 3+4+6: Created LabelManager service in labels.py with set_running(), set_phase(), set_completed(), set_failed() methods. Uses config.prefix for label names (default "adw:"). All operations are non-blocking with try/except and logging. 17 unit tests added.
+- Task 5: Integrated LabelManager with Orchestrator. Added label_manager parameter to Orchestrator.__init__. Added set_running() call at run start, set_phase() at phase transitions, set_completed()/set_failed() at run end. Updated bootstrap.py to create LabelManager when task_manager and task_id are provided.
 
 ### File List
 
@@ -428,6 +429,8 @@ Claude Opus 4.5
 - `src/adw/task_managers/linear.py` - Added implementations delegating to client
 - `src/adw/task_managers/linear_client.py` - Full label operations with GraphQL, caching
 - `src/adw/task_managers/labels.py` - New LabelManager service
+- `src/adw/core/orchestrator.py` - Added label_manager parameter and label calls
+- `src/adw/cli/bootstrap.py` - Added LabelManager creation in create_orchestrator
 - `tests/unit/task_managers/test_base.py` - Added tests for new Protocol methods
 - `tests/unit/task_managers/test_null.py` - Added tests for no-op implementations
 - `tests/unit/task_managers/test_linear_client.py` - Added tests for label operations

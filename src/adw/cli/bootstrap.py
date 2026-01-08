@@ -33,6 +33,8 @@ from adw.logging.file import RawFileTransport, StructuredFileTransport
 from adw.models.config import GitConfig, HookConfig, LLMConfig, WorktreeConfig
 from adw.models.logging import VERBOSITY_LEVEL_MAP, LogLevel, Verbosity
 from adw.security import SecurityInterceptor, ToolLogger
+from adw.task_managers.base import TaskManager
+from adw.task_managers.labels import LabelManager
 
 
 def get_project_root() -> Path:
@@ -151,6 +153,8 @@ def create_orchestrator(
     allow_dangerous: bool = False,
     run_id: str | None = None,
     show_llm_output: bool = False,
+    task_manager: TaskManager | None = None,
+    task_id: str | None = None,
 ) -> Orchestrator:
     """Create a fully configured Orchestrator instance.
 
@@ -164,6 +168,7 @@ def create_orchestrator(
     - SecurityInterceptor for tool call validation
     - ToolLogger for tool call audit trail
     - PhaseRunner with CommandResolver, TemplateEngine, HookRunner, LLMExecutor
+    - LabelManager for task label operations (optional, Story 12.7)
 
     Args:
         console: Rich console for output. If None, creates a new one.
@@ -171,6 +176,8 @@ def create_orchestrator(
         allow_dangerous: If True, log warnings instead of blocking dangerous operations.
         run_id: Optional run ID for tool logging. If None, tool logging is disabled.
         show_llm_output: If True, stream LLM output to terminal (Story UX-FIX-ISS-001).
+        task_manager: Optional task manager for label operations (Story 12.7).
+        task_id: Optional task ID (internal UUID) for label operations (Story 12.7).
 
     Returns:
         Configured Orchestrator ready for use.
@@ -183,9 +190,11 @@ def create_orchestrator(
     runs_dir = get_runs_dir(project_root)
     console = console or Console()
 
-    # Load project configuration for worktree and git settings (Story 10.1, ISS-011)
+    # Load project configuration for worktree, git, and task manager settings
+    # (Story 10.1, ISS-011, Story 12.7)
     worktree_config: WorktreeConfig | None = None
     git_config: GitConfig | None = None
+    config = None  # May be needed for task manager labels
     try:
         config = ConfigLoader(project_root).load()
         worktree_config = config.worktree
@@ -242,6 +251,13 @@ def create_orchestrator(
         progress_display=progress_display,
     )
 
+    # Create LabelManager if task manager and task ID are provided (Story 12.7)
+    label_manager: LabelManager | None = None
+    if task_manager is not None and task_id is not None and config is not None:
+        labels_config = config.task_manager.labels if config.task_manager else None
+        if labels_config and labels_config.enabled:
+            label_manager = LabelManager(task_manager, labels_config, task_id)
+
     # Create orchestrator
     orchestrator = Orchestrator(
         runs_dir=runs_dir,
@@ -254,6 +270,7 @@ def create_orchestrator(
         progress_display=progress_display,
         worktree_config=worktree_config,
         git_config=git_config,
+        label_manager=label_manager,
     )
 
     return orchestrator
