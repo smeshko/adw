@@ -55,11 +55,11 @@ So that my team sees real-time progress.
 - [x] Populate fields when run is initiated from task ID
 
 ### Task 2: Create StatusSyncService
-- [ ] Create `src/adw/task_managers/sync.py` with `StatusSyncService`
-- [ ] Initialize with `TaskManager` instance and `TaskManagerConfig`
-- [ ] Implement `sync_run_start(context: RunContext) -> None`
-- [ ] Implement `sync_phase_transition(context: RunContext, from_phase: str, to_phase: str) -> None`
-- [ ] Implement `sync_run_complete(context: RunContext, success: bool, error: str | None) -> None`
+- [x] Create `src/adw/task_managers/sync.py` with `StatusSyncService`
+- [x] Initialize with `TaskManager` instance and `TaskManagerConfig`
+- [x] Implement `sync_run_start(context: RunContext) -> None`
+- [x] Implement `sync_phase_transition(context: RunContext, from_phase: str, to_phase: str) -> None`
+- [x] Implement `sync_run_complete(context: RunContext, success: bool, error: str | None) -> None`
 
 ### Task 3: Integrate with Orchestrator
 - [ ] Inject `StatusSyncService` into Orchestrator
