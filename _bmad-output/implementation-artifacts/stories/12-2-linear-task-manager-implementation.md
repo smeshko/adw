@@ -39,10 +39,10 @@ So that I don't have to copy-paste task descriptions.
 ## Tasks / Subtasks
 
 ### Task 1: Create LinearTaskManager Class
-- [ ] Create `src/adw/task_managers/linear.py` with `LinearTaskManager`
-- [ ] Implement `TaskManager` Protocol
-- [ ] Initialize with `TaskManagerConfig` and environment variables
-- [ ] Validate required env vars on instantiation: `LINEAR_API_KEY` and `LINEAR_TEAM_ID`
+- [x] Create `src/adw/task_managers/linear.py` with `LinearTaskManager`
+- [x] Implement `TaskManager` Protocol
+- [x] Initialize with `TaskManagerConfig` and environment variables
+- [x] Validate required env vars on instantiation: `LINEAR_API_KEY` and `LINEAR_TEAM_ID`
 
 ### Task 2: Implement Linear API Client
 - [ ] Create `src/adw/task_managers/linear_client.py` with `LinearClient`
@@ -423,8 +423,16 @@ Epic 12: Task Manager Integration - Story 12.2
 
 ### Agent Model Used
 
+claude-opus-4-5-20251101
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- **Task 1**: Created LinearTaskManager class in `src/adw/task_managers/linear.py`. Implements TaskManager Protocol with name property, validates LINEAR_API_KEY and LINEAR_TEAM_ID environment variables on initialization. Raises ConfigError with clear messages if env vars missing. Added 4 unit tests for init and env var validation.
+
 ### File List
+
+**New Files:**
+- `src/adw/task_managers/linear.py` - LinearTaskManager class implementation
+- `tests/unit/task_managers/test_linear.py` - Unit tests for LinearTaskManager
