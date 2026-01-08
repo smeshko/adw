@@ -60,6 +60,7 @@ if TYPE_CHECKING:
     from adw.cli.progress import ProgressDisplay
     from adw.core.artifact_manager import ArtifactManager
     from adw.task_managers.labels import LabelManager
+    from adw.task_managers.sync import StatusSyncService
 
 
 class PhaseRunnerProtocol(Protocol):
@@ -147,6 +148,7 @@ class Orchestrator:
         worktree_config: WorktreeConfig | None = None,
         git_config: GitConfig | None = None,
         label_manager: "LabelManager | None" = None,
+        status_sync_service: "StatusSyncService | None" = None,
     ) -> None:
         """Initialize the Orchestrator.
 
@@ -164,6 +166,9 @@ class Orchestrator:
             worktree_config: Worktree isolation config (optional, Story 10.1).
             git_config: Git configuration for auto-PR creation (optional, ISS-011).
             label_manager: Manager for task labels (optional, Story 12.7).
+            status_sync_service: Service for syncing status with task managers
+                (optional, Story 12.3). When provided, sync calls are made at
+                phase transitions.
         """
         self.runs_dir = runs_dir
         # Derive project path from runs_dir (runs_dir is typically .adw/runs)
@@ -185,6 +190,9 @@ class Orchestrator:
 
         # Label manager for task label operations (Story 12.7)
         self._label_manager = label_manager
+
+        # Status sync service for task manager integration (Story 12.3)
+        self._status_sync_service = status_sync_service
 
         # Worktree isolation (Story 10.1)
         self.worktree_config = worktree_config or WorktreeConfig()
@@ -397,6 +405,12 @@ class Orchestrator:
             raise
 
         except ADWError as e:
+            # Sync failure status with task manager (Story 12.3)
+            if self._status_sync_service:
+                self._status_sync_service.sync_run_failed(
+                    context, context.current_phase, str(e)
+                )
+
             # Mark as failed and persist
             context = context.model_copy(
                 update={
@@ -451,6 +465,12 @@ class Orchestrator:
             raise
 
         except Exception as e:
+            # Sync failure status with task manager (Story 12.3)
+            if self._status_sync_service:
+                self._status_sync_service.sync_run_failed(
+                    context, context.current_phase, str(e)
+                )
+
             # Catch-all for unexpected errors (RuntimeError, etc.)
             # Ensures run status is updated even for infrastructure errors
             context = context.model_copy(
@@ -653,6 +673,10 @@ class Orchestrator:
                 self._show_worktree_preserved(context, outcome="success")
 
         except ADWError as e:
+            # Sync failure status with task manager (Story 12.3)
+            if self._status_sync_service:
+                self._status_sync_service.sync_run_failed(context, phase, str(e))
+
             # Mark as failed
             context = context.model_copy(
                 update={
@@ -690,6 +714,10 @@ class Orchestrator:
             raise
 
         except Exception as e:
+            # Sync failure status with task manager (Story 12.3)
+            if self._status_sync_service:
+                self._status_sync_service.sync_run_failed(context, phase, str(e))
+
             # Catch-all for unexpected errors (RuntimeError, etc.)
             context = context.model_copy(
                 update={
@@ -890,6 +918,12 @@ class Orchestrator:
             raise
 
         except ADWError as e:
+            # Sync failure status with task manager (Story 12.3)
+            if self._status_sync_service:
+                self._status_sync_service.sync_run_failed(
+                    context, context.current_phase, str(e)
+                )
+
             # Mark as failed and persist
             context = context.model_copy(
                 update={
@@ -944,6 +978,12 @@ class Orchestrator:
             raise
 
         except Exception as e:
+            # Sync failure status with task manager (Story 12.3)
+            if self._status_sync_service:
+                self._status_sync_service.sync_run_failed(
+                    context, context.current_phase, str(e)
+                )
+
             # Catch-all for unexpected errors (RuntimeError, etc.)
             context = context.model_copy(
                 update={
@@ -1202,6 +1242,21 @@ class Orchestrator:
         # Set phase label (Story 12.7)
         if self._label_manager:
             self._label_manager.set_phase(phase)
+
+        # Sync status with task manager (Story 12.3)
+        # Non-blocking: catch and log any sync errors, never fail the phase
+        if self._status_sync_service:
+            try:
+                self._status_sync_service.sync_phase_start(context, phase)
+            except Exception as sync_error:
+                logger.warning(
+                    "Status sync failed (non-blocking)",
+                    extra={
+                        "run_id": context.run_id,
+                        "phase": phase,
+                        "error": str(sync_error),
+                    },
+                )
 
         logger.info(
             "Starting phase",
