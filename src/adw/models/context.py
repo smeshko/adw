@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field, computed_field, field_validator
 
+from adw.models.task import TaskInfo
+
 if TYPE_CHECKING:
     from adw.models.phase import PhaseResult
 
@@ -99,6 +101,11 @@ class RunContext(BaseModel):
         default=None,
         description="Detected platform type (cli, web, mobile, backend). "
         "Set during validate phase by platform detection.",
+    )
+    task_info: TaskInfo | None = Field(
+        default=None,
+        description="Task information from external task manager (Linear, Jira, etc.). "
+        "Populated when run is initiated from a task ID. Available in templates via {{task.*}} variables.",
     )
 
     @computed_field  # type: ignore[prop-decorator]

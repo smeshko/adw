@@ -257,7 +257,7 @@ development_status:
   12-2-linear-task-manager-implementation: done
   12-3-status-synchronization-at-phase-transitions: in-progress
   12-4-task-id-pattern-detection: done
-  12-5-task-context-in-prompts: in-progress
+  12-5-task-context-in-prompts: done
   12-6-post-status-update-comments: ready-for-dev
   12-7-label-management: in-progress
   12-8-issue-closing: in-progress
