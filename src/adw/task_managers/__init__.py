@@ -11,7 +11,9 @@ Example:
 """
 
 from adw.task_managers.base import TaskManager
+from adw.task_managers.null import NullTaskManager
 
 __all__ = [
+    "NullTaskManager",
     "TaskManager",
 ]
