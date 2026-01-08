@@ -63,7 +63,7 @@ issues:
   ISS-017-template-logic-scattered-between-modules: reported
   ISS-018-single-phase-runs-delete-worktree-unexpectedly: reported
   ISS-019-epic-11-phases-not-unified: reported
-  ISS-020-worktrees-should-not-auto-delete: reported
+  ISS-020-worktrees-should-not-auto-delete: fixed
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
