@@ -5,8 +5,10 @@ Tests for the Linear GraphQL API client.
 
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
+from adw.exceptions import TaskError
 from adw.task_managers.linear_client import LinearClient
 
 
@@ -110,3 +112,73 @@ class TestLinearClientUpdateIssue:
             result = client.update_issue("abc123", {"stateId": "invalid-state"})
 
         assert result is None or result.get("success") is False
+
+
+class TestLinearClientErrorHandling:
+    """Tests for LinearClient error handling."""
+
+    def test_fetch_issue_raises_task_error_on_network_error(self) -> None:
+        """fetch_issue raises TaskError on network errors."""
+        client = LinearClient(api_key="lin_api_test123")
+
+        with patch.object(
+            client._client,
+            "post",
+            side_effect=httpx.ConnectError("Connection refused"),
+        ):
+            with pytest.raises(TaskError) as exc_info:
+                client.fetch_issue("RULE-123")
+
+            assert exc_info.value.code == "TASK_API_ERROR"
+            assert "Connection" in exc_info.value.message
+
+    def test_fetch_issue_raises_task_error_on_timeout(self) -> None:
+        """fetch_issue raises TaskError on timeout."""
+        client = LinearClient(api_key="lin_api_test123")
+
+        with patch.object(
+            client._client,
+            "post",
+            side_effect=httpx.TimeoutException("Request timed out"),
+        ):
+            with pytest.raises(TaskError) as exc_info:
+                client.fetch_issue("RULE-123")
+
+            assert exc_info.value.code == "TASK_API_TIMEOUT"
+
+    def test_fetch_issue_raises_task_error_on_http_error(self) -> None:
+        """fetch_issue raises TaskError on HTTP errors."""
+        client = LinearClient(api_key="lin_api_test123")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Internal Server Error",
+            request=MagicMock(),
+            response=mock_response,
+        )
+
+        with patch.object(client._client, "post", return_value=mock_response):
+            with pytest.raises(TaskError) as exc_info:
+                client.fetch_issue("RULE-123")
+
+            assert exc_info.value.code == "TASK_API_ERROR"
+
+    def test_fetch_issue_raises_task_error_on_rate_limit(self) -> None:
+        """fetch_issue raises TaskError with recoverable=True on rate limit."""
+        client = LinearClient(api_key="lin_api_test123")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 429
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Rate Limited",
+            request=MagicMock(),
+            response=mock_response,
+        )
+
+        with patch.object(client._client, "post", return_value=mock_response):
+            with pytest.raises(TaskError) as exc_info:
+                client.fetch_issue("RULE-123")
+
+            assert exc_info.value.code == "TASK_RATE_LIMITED"
+            assert exc_info.value.recoverable is True

@@ -4,9 +4,14 @@ This module provides a low-level client for interacting with
 Linear's GraphQL API.
 """
 
+import logging
 from typing import Any
 
 import httpx
+
+from adw.exceptions import TaskError
+
+logger = logging.getLogger(__name__)
 
 
 # GraphQL Queries and Mutations
@@ -111,16 +116,76 @@ class LinearClient:
 
         Returns:
             Issue data dict if found, None otherwise.
-        """
-        response = self._request(
-            FETCH_ISSUE_QUERY,
-            variables={"identifier": identifier},
-        )
-        response.raise_for_status()
 
-        data = response.json()
-        issue = data.get("data", {}).get("issue")
-        return issue
+        Raises:
+            TaskError: If the API request fails.
+        """
+        try:
+            response = self._request(
+                FETCH_ISSUE_QUERY,
+                variables={"identifier": identifier},
+            )
+            self._handle_response_errors(response, identifier)
+
+            data = response.json()
+            issue = data.get("data", {}).get("issue")
+            return issue
+        except TaskError:
+            raise
+        except httpx.TimeoutException as e:
+            raise TaskError(
+                code="TASK_API_TIMEOUT",
+                message=f"Linear API request timed out for '{identifier}'",
+                suggestion="Try again or check your network connection",
+                task_id=identifier,
+                recoverable=True,
+            ) from e
+        except httpx.ConnectError as e:
+            raise TaskError(
+                code="TASK_API_ERROR",
+                message=f"Connection error to Linear API: {e}",
+                suggestion="Check your network connection",
+                task_id=identifier,
+                recoverable=True,
+            ) from e
+        except httpx.HTTPError as e:
+            raise TaskError(
+                code="TASK_API_ERROR",
+                message=f"HTTP error from Linear API: {e}",
+                suggestion="Try again later",
+                task_id=identifier,
+                recoverable=True,
+            ) from e
+
+    def _handle_response_errors(self, response: httpx.Response, task_id: str) -> None:
+        """Check response for errors and raise appropriate TaskError.
+
+        Args:
+            response: The HTTP response to check.
+            task_id: The task ID for error context.
+
+        Raises:
+            TaskError: If the response indicates an error.
+        """
+        if response.status_code == 429:
+            raise TaskError(
+                code="TASK_RATE_LIMITED",
+                message="Linear API rate limit exceeded",
+                suggestion="Wait a moment and try again",
+                task_id=task_id,
+                recoverable=True,
+            )
+
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            raise TaskError(
+                code="TASK_API_ERROR",
+                message=f"Linear API returned error {response.status_code}",
+                suggestion="Check Linear API status or try again later",
+                task_id=task_id,
+                recoverable=response.status_code >= 500,
+            ) from e
 
     def update_issue(
         self,

@@ -82,11 +82,11 @@ So that I don't have to copy-paste task descriptions.
 - [x] Support common variations: "RULE-123", "rule-123", "RULE123"
 
 ### Task 6: Add Error Handling
-- [ ] Handle network errors with retry logic (3 attempts, exponential backoff)
-- [ ] Handle rate limiting (429) with appropriate wait
-- [ ] Handle authentication errors (401) with clear message
-- [ ] Handle API errors (400, 500) with context
-- [ ] All errors wrapped as `TaskError` with appropriate code
+- [x] Handle network errors with retry logic (3 attempts, exponential backoff)
+- [x] Handle rate limiting (429) with appropriate wait
+- [x] Handle authentication errors (401) with clear message
+- [x] Handle API errors (400, 500) with context
+- [x] All errors wrapped as `TaskError` with appropriate code
 
 ### Task 7: Register in Factory
 - [ ] Add `"linear"` -> `LinearTaskManager` to factory registry
@@ -434,6 +434,7 @@ claude-opus-4-5-20251101
 - **Task 3**: Implemented fetch_task method that uses LinearClient to fetch issues and maps the response to TaskInfo model. Handles all field mappings including nested labels, parent, state, and assignee. Raises TaskError when issue not found. Added 4 unit tests.
 - **Task 4**: Implemented update_status method with state mapping, caching, and graceful error handling. Maps ADW status to Linear state via config, caches team workflow states, and logs warnings instead of failing on errors. Added 4 unit tests.
 - **Task 5**: Implemented resolve_task_id method using regex pattern based on team_key config. Supports case-insensitive matching, extracts from branch names/URLs/free text, and normalizes to uppercase. Added 8 unit tests.
+- **Task 6**: Added comprehensive error handling to LinearClient. Handles network errors, timeouts, rate limiting (429), and HTTP errors. All errors wrapped as TaskError with appropriate codes and recoverable flags. Added 4 unit tests.
 
 ### File List
 
