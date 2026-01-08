@@ -313,3 +313,15 @@ development_status:
   15-6-run-context-enhancements: backlog
   15-7-export-and-reporting: backlog
   epic-15-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EPIC 16: Validation Phase Simplification (Post-MVP)
+  # Goal: Rework Epic 11's validation loop so SDK orchestrates a single prompt
+  #       execution and LLM handles validate→fix→re-validate cycle internally
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-16: backlog
+  16-1-remove-sdk-validation-loop: ready-for-dev
+  16-2-create-unified-validation-prompt: ready-for-dev
+  16-3-simplify-configuration: ready-for-dev
+  16-4-update-phase-result-model: ready-for-dev
+  epic-16-retrospective: optional

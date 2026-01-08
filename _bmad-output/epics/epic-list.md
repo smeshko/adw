@@ -24,6 +24,24 @@
 | 13 | Webhook Infrastructure | Generic webhook server with Linear provider first, GitHub later | Post-MVP | Integration |
 | 14 | Ship Phase & Deployment | Automate PR approval, merge, and project-specific deployment hooks | Post-MVP | Integration |
 | 15 | Cross-Project Dashboard | Aggregate runs across projects with analytics, token tracking, and dashboard views | Post-MVP | Integration |
+| 16 | Validation Simplification | Rework Epic 11 to single-call validation with LLM handling iteration | Post-MVP | Integration |
+
+---
+
+## Course Correction Summary (2026-01-08)
+
+**Epic 16: Validation Simplification** — Created to rework Epic 11's over-engineered validation loop:
+- SDK makes single executor call (~5 lines of code)
+- LLM handles entire validate→fix→re-validate cycle in one prompt
+- Remove triage system, loop controller, fix engine (~850 lines deleted)
+- Simplify configuration from 13+ fields to 3 fields
+- 4 stories to implement the simplification:
+  - 16.1: Remove SDK Validation Loop (WAVE 1)
+  - 16.2: Create Unified Validation Prompt (WAVE 1)
+  - 16.3: Simplify Configuration (WAVE 2)
+  - 16.4: Update Phase Result Model (WAVE 2)
+
+See: `sprint-change-proposal-2026-01-08.md` for full rationale.
 
 ---
 
