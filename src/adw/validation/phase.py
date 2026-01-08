@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from adw.validation.config import ValidationConfig
 from adw.validation.models import (
+    IssueSeverity,
     ValidationIssue,
     ValidationResult,
     ValidationSource,
@@ -170,8 +171,8 @@ class ValidationPhase:
                 all_issues.append(
                     ValidationIssue(
                         source=source,
-                        message=f"Validator '{validator.name}' crashed: {e}",
-                        severity="critical",
+                        description=f"Validator '{validator.name}' crashed: {e}",
+                        severity=IssueSeverity.ERROR,
                     )
                 )
 

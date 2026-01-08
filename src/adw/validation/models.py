@@ -294,14 +294,14 @@ class ValidationIssue(BaseModel):
     def __eq__(self, other: object) -> bool:
         """Compare issues based on source, description, and location.
 
-        Two issues are equal if they have the same source, description,
-        and location (file_path and line_start).
+        Two issues are equal if they have the same source, description
+        (first 100 chars for consistency with hash), and location.
         """
         if not isinstance(other, ValidationIssue):
             return NotImplemented
         return (
             self.source == other.source
-            and self.description == other.description
+            and self.description[:100] == other.description[:100]
             and self._location_key() == other._location_key()
         )
 
@@ -309,6 +309,7 @@ class ValidationIssue(BaseModel):
         """Hash based on immutable identifying characteristics.
 
         Uses source, truncated description (first 100 chars), and location key.
+        Must be consistent with __eq__ to maintain hash/equality contract.
         """
         return hash(
             (
