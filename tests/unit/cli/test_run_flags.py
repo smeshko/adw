@@ -3,6 +3,8 @@
 Story 12.4: Task ID Pattern Detection - CLI flag tests.
 """
 
+from unittest.mock import Mock, patch
+
 from typer.testing import CliRunner
 
 from adw.cli.app import app
@@ -123,3 +125,71 @@ class TestIntegrationFlow:
         # Should skip task manager entirely and proceed to dry-run
         assert "does not match task ID pattern" not in result.output
         assert "Resolved as task ID" not in result.output
+
+
+class TestTaskIdSuccessPath:
+    """Test successful task ID detection with mocked task manager."""
+
+    def test_successful_task_id_detection(self) -> None:
+        """When task manager resolves ID, CLI shows 'Resolved as task ID' message."""
+        # Create a mock task manager that recognizes RULE-123
+        mock_manager = Mock()
+        mock_manager.resolve_task_id.return_value = "RULE-123"
+        mock_manager.name = "mock"
+
+        # Patch the factory to return our mock manager
+        with patch(
+            "adw.cli.app.TaskManagerFactory"
+        ) as mock_factory_cls:
+            mock_factory = Mock()
+            mock_factory.create.return_value = mock_manager
+            mock_factory_cls.return_value = mock_factory
+
+            result = runner.invoke(app, ["run", "RULE-123", "--dry-run"])
+
+            # Should show task ID was resolved (transparency logging)
+            assert "Resolved as task ID" in result.output
+            assert "RULE-123" in result.output
+            # Should also show the tip about --no-task-manager
+            assert "--no-task-manager" in result.output
+
+    def test_task_id_flag_with_matching_manager(self) -> None:
+        """--task-id succeeds when task manager recognizes the ID."""
+        mock_manager = Mock()
+        mock_manager.resolve_task_id.return_value = "PROJ-456"
+        mock_manager.name = "mock"
+
+        with patch(
+            "adw.cli.app.TaskManagerFactory"
+        ) as mock_factory_cls:
+            mock_factory = Mock()
+            mock_factory.create.return_value = mock_manager
+            mock_factory_cls.return_value = mock_factory
+
+            result = runner.invoke(app, ["run", "PROJ-456", "--task-id", "--dry-run"])
+
+            # Should succeed without error
+            assert "does not match task ID pattern" not in result.output
+            assert "Resolved as task ID" in result.output
+            # --task-id was explicit, so no tip needed
+            assert result.exit_code != 1 or "mutually exclusive" not in result.output
+
+    def test_normalized_task_id_displayed(self) -> None:
+        """When task manager normalizes ID (e.g., lowercase to uppercase), normalized form is shown."""
+        mock_manager = Mock()
+        # Manager normalizes to uppercase
+        mock_manager.resolve_task_id.return_value = "RULE-123"
+        mock_manager.name = "mock"
+
+        with patch(
+            "adw.cli.app.TaskManagerFactory"
+        ) as mock_factory_cls:
+            mock_factory = Mock()
+            mock_factory.create.return_value = mock_manager
+            mock_factory_cls.return_value = mock_factory
+
+            result = runner.invoke(app, ["run", "rule-123", "--dry-run"])
+
+            # Should show normalized (uppercase) task ID
+            assert "RULE-123" in result.output
+            assert "Resolved as task ID" in result.output
