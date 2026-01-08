@@ -1,7 +1,7 @@
 # Story 16.2: Create Unified Validation Prompt
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: review
+Status: done
 Linear Issue: not-configured
 Epic: 16 - Validation Phase Simplification
 Created: 2026-01-08

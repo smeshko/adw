@@ -321,7 +321,7 @@ development_status:
   # ═══════════════════════════════════════════════════════════════════════════
   epic-16: backlog
   16-1-remove-sdk-validation-loop: ready-for-dev
-  16-2-create-unified-validation-prompt: review
+  16-2-create-unified-validation-prompt: done
   16-3-simplify-configuration: ready-for-dev
   16-4-update-phase-result-model: ready-for-dev
   epic-16-retrospective: optional
