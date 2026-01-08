@@ -89,8 +89,8 @@ So that I don't have to copy-paste task descriptions.
 - [x] All errors wrapped as `TaskError` with appropriate code
 
 ### Task 7: Register in Factory
-- [ ] Add `"linear"` -> `LinearTaskManager` to factory registry
-- [ ] Ensure lazy import to avoid httpx dependency if not using Linear
+- [x] Add `"linear"` -> `LinearTaskManager` to factory registry
+- [x] Ensure lazy import to avoid httpx dependency if not using Linear
 
 ### Task 8: Write Tests
 - [ ] Unit tests for `LinearTaskManager.fetch_task` (5 tests)
@@ -435,6 +435,7 @@ claude-opus-4-5-20251101
 - **Task 4**: Implemented update_status method with state mapping, caching, and graceful error handling. Maps ADW status to Linear state via config, caches team workflow states, and logs warnings instead of failing on errors. Added 4 unit tests.
 - **Task 5**: Implemented resolve_task_id method using regex pattern based on team_key config. Supports case-insensitive matching, extracts from branch names/URLs/free text, and normalizes to uppercase. Added 8 unit tests.
 - **Task 6**: Added comprehensive error handling to LinearClient. Handles network errors, timeouts, rate limiting (429), and HTTP errors. All errors wrapped as TaskError with appropriate codes and recoverable flags. Added 4 unit tests.
+- **Task 7**: Registered LinearTaskManager in factory with lazy imports. Uses TYPE_CHECKING for type hints to avoid httpx dependency when not using Linear. Factory now creates LinearTaskManager for type="linear".
 
 ### File List
 

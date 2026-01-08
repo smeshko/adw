@@ -51,13 +51,15 @@ class TestTaskManagerFactory:
         assert "none" in error_str.lower()
         assert "linear" in error_str.lower()
 
-    def test_create_linear_raises_not_implemented(self) -> None:
-        """Creating with type='linear' raises ConfigError until implemented."""
+    def test_create_linear_returns_linear_manager(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Creating with type='linear' returns LinearTaskManager."""
+        monkeypatch.setenv("LINEAR_API_KEY", "lin_api_test123")
+        monkeypatch.setenv("LINEAR_TEAM_ID", "team-uuid-123")
+
         factory = TaskManagerFactory()
+        manager = factory.create(task_type="linear")
 
-        # Linear is registered but not implemented yet (story 12.2)
-        with pytest.raises(ConfigError) as exc_info:
-            factory.create(task_type="linear")
-
-        assert exc_info.value.code == "TASK_MANAGER_NOT_IMPLEMENTED"
-        assert "linear" in exc_info.value.message.lower()
+        assert manager.name == "linear"
+        assert isinstance(manager, TaskManager)
