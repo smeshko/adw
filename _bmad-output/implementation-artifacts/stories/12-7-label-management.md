@@ -42,10 +42,10 @@ So that my task board reflects current progress.
 ## Tasks / Subtasks
 
 ### Task 1: Extend TaskManager Protocol
-- [ ] Add `add_label(task_id: str, label: str) -> None` to Protocol
-- [ ] Add `remove_label(task_id: str, label: str) -> None` to Protocol
-- [ ] Implement in `NullTaskManager` (no-op)
-- [ ] Implement in `LinearTaskManager`
+- [x] Add `add_label(task_id: str, label: str) -> None` to Protocol
+- [x] Add `remove_label(task_id: str, label: str) -> None` to Protocol
+- [x] Implement in `NullTaskManager` (no-op)
+- [x] Implement in `LinearTaskManager`
 
 ### Task 2: Implement Linear Label Operations
 - [ ] Add label query to get label ID by name
@@ -411,8 +411,19 @@ Epic 12: Task Manager Integration - Story 12.7
 
 ### Agent Model Used
 
+Claude Opus 4.5
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Extended TaskManager Protocol with add_label/remove_label methods. Added to base.py Protocol, implemented no-op in null.py, added stub implementations in linear.py that delegate to linear_client.py (stub methods added for Task 2).
+
 ### File List
+
+- `src/adw/task_managers/base.py` - Added add_label/remove_label to Protocol
+- `src/adw/task_managers/null.py` - Added no-op implementations
+- `src/adw/task_managers/linear.py` - Added implementations delegating to client
+- `src/adw/task_managers/linear_client.py` - Added stub methods for add_label/remove_label
+- `tests/unit/task_managers/test_base.py` - Added tests for new Protocol methods
+- `tests/unit/task_managers/test_null.py` - Added tests for no-op implementations

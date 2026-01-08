@@ -14,11 +14,13 @@ class TestTaskManagerProtocol:
     """Tests for TaskManager Protocol."""
 
     def test_protocol_defines_required_methods(self) -> None:
-        """Protocol requires fetch_task, update_status, resolve_task_id."""
+        """Protocol requires fetch_task, update_status, resolve_task_id, add_label, remove_label."""
         # Check Protocol has the required methods
         assert hasattr(TaskManager, "fetch_task")
         assert hasattr(TaskManager, "update_status")
         assert hasattr(TaskManager, "resolve_task_id")
+        assert hasattr(TaskManager, "add_label")
+        assert hasattr(TaskManager, "remove_label")
 
     def test_protocol_defines_name_property(self) -> None:
         """Protocol requires name property."""
@@ -52,6 +54,12 @@ class TestTaskManagerProtocol:
 
             def resolve_task_id(self, input_str: str) -> str | None:
                 return None
+
+            def add_label(self, task_id: str, label: str) -> None:
+                pass
+
+            def remove_label(self, task_id: str, label: str) -> None:
+                pass
 
         # This should type-check as TaskManager
         manager: TaskManager = MinimalTaskManager()

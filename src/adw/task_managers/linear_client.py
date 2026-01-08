@@ -240,6 +240,38 @@ class LinearClient:
             return team.get("states", {}).get("nodes", [])
         return []
 
+    def add_label(self, issue_id: str, label_name: str, team_id: str) -> None:
+        """Add a label to an issue.
+
+        Gets or creates the label, then adds it to the issue.
+
+        Args:
+            issue_id: The internal issue UUID.
+            label_name: The label name to add.
+            team_id: The team UUID for label creation.
+
+        Note:
+            Full implementation in Story 12.7 Task 2.
+        """
+        # TODO: Implement in Task 2 - get or create label, then add to issue
+        pass
+
+    def remove_label(self, issue_id: str, label_name: str, team_id: str) -> None:
+        """Remove a label from an issue.
+
+        Looks up the label ID and removes it from the issue.
+
+        Args:
+            issue_id: The internal issue UUID.
+            label_name: The label name to remove.
+            team_id: The team UUID for label lookup.
+
+        Note:
+            Full implementation in Story 12.7 Task 2.
+        """
+        # TODO: Implement in Task 2 - lookup label ID, then remove from issue
+        pass
+
     def close(self) -> None:
         """Close the HTTP client."""
         self._client.close()
