@@ -244,7 +244,7 @@ class ValidationIssue(BaseModel):
     line_number: int | None = Field(default=None, exclude=True)
     suggestion: str | None = Field(default=None, exclude=True)
 
-    def __init__(self, **data: object) -> None:
+    def __init__(self, **data: Any) -> None:
         """Initialize with backward compatibility for message and legacy severity."""
         # Handle 'message' as alias for 'description'
         if "message" in data and "description" not in data:
