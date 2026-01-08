@@ -3,8 +3,6 @@
 Tests the validation state persistence manager including:
 - State save/load operations
 - Issues persistence
-- Triage persistence
-- Fix history persistence
 - Resume capability
 - Atomic writes
 """
@@ -45,8 +43,6 @@ class TestValidationStateManagerInit:
 
         assert manager.state_file == base_path / "validation" / "state.json"
         assert manager.issues_file == base_path / "validation" / "issues.json"
-        assert manager.triage_file == base_path / "validation" / "triage.json"
-        assert manager.fix_history_file == base_path / "validation" / "fix-history.json"
 
 
 class TestAtomicWrite:
@@ -150,186 +146,6 @@ class TestIssuesPersistence:
         assert loaded == []
 
 
-class TestTriagePersistence:
-    """Tests for triage decision save/load."""
-
-    def test_triage_stored_at_correct_path(self, tmp_path: Path) -> None:
-        """Triage decisions are stored at .adw/runs/<id>/validation/triage.json."""
-        base_path = tmp_path / "run-123"
-        base_path.mkdir()
-        manager = ValidationStateManager("run-123", base_path)
-
-        decisions = [{"issue_id": "VI-001", "decision": "FIX", "reason": "Test"}]
-        manager.save_triage(decisions)
-
-        expected_path = base_path / "validation" / "triage.json"
-        assert expected_path.exists()
-        assert manager.triage_file == expected_path
-
-    def test_save_and_load_triage(self, tmp_path: Path) -> None:
-        """Triage decisions round-trip correctly."""
-        base_path = tmp_path / "run-123"
-        base_path.mkdir()
-        manager = ValidationStateManager("run-123", base_path)
-
-        decisions = [
-            {
-                "issue_id": "VI-001",
-                "decision": "FIX",
-                "reason": "Critical test failure",
-                "auto_decided": False,
-            },
-            {
-                "issue_id": "VI-002",
-                "decision": "DEFER",
-                "reason": "Low priority",
-                "auto_decided": True,
-            },
-        ]
-
-        manager.save_triage(decisions)
-        loaded = manager.load_triage()
-
-        assert len(loaded) == 2
-        assert "VI-001" in loaded
-        assert loaded["VI-001"]["decision"] == "FIX"
-        assert "timestamp" in loaded["VI-001"]  # Auto-added
-
-    def test_triage_preserves_reasoning_for_audit(self, tmp_path: Path) -> None:
-        """Triage reasoning is preserved for audit trail."""
-        base_path = tmp_path / "run-123"
-        base_path.mkdir()
-        manager = ValidationStateManager("run-123", base_path)
-
-        decisions = [
-            {
-                "issue_id": "VI-001",
-                "decision": "DISMISS",
-                "reason": "False positive - test expects old behavior",
-                "auto_decided": False,
-            },
-        ]
-
-        manager.save_triage(decisions)
-        loaded = manager.load_triage()
-
-        # Verify reasoning is preserved for audit
-        assert loaded["VI-001"]["reason"] == "False positive - test expects old behavior"
-        assert loaded["VI-001"]["auto_decided"] is False
-
-    def test_load_triage_empty(self, tmp_path: Path) -> None:
-        """Load returns empty dict when no triage file exists."""
-        base_path = tmp_path / "run-123"
-        base_path.mkdir()
-        manager = ValidationStateManager("run-123", base_path)
-
-        loaded = manager.load_triage()
-
-        assert loaded == {}
-
-    def test_load_triage_non_list_json(self, tmp_path: Path) -> None:
-        """Load returns empty dict when triage.json contains non-list JSON."""
-        base_path = tmp_path / "run-123"
-        base_path.mkdir()
-        manager = ValidationStateManager("run-123", base_path)
-        # Write valid JSON but wrong type (number instead of list)
-        manager.triage_file.write_text("42")
-
-        loaded = manager.load_triage()
-
-        # Should gracefully return empty dict, not crash with TypeError
-        assert loaded == {}
-
-
-class TestFixHistoryPersistence:
-    """Tests for fix history save/load."""
-
-    def test_fix_history_stored_at_correct_path(self, tmp_path: Path) -> None:
-        """Fix history is stored at .adw/runs/<id>/validation/fix-history.json."""
-        base_path = tmp_path / "run-123"
-        base_path.mkdir()
-        manager = ValidationStateManager("run-123", base_path)
-
-        history = [{"iteration": 1, "issues_fixed": 1, "files_modified": []}]
-        manager.save_fix_history(history)
-
-        expected_path = base_path / "validation" / "fix-history.json"
-        assert expected_path.exists()
-        assert manager.fix_history_file == expected_path
-
-    def test_save_and_load_fix_history(self, tmp_path: Path) -> None:
-        """Fix history round-trips correctly."""
-        base_path = tmp_path / "run-123"
-        base_path.mkdir()
-        manager = ValidationStateManager("run-123", base_path)
-
-        history = [
-            {
-                "iteration": 1,
-                "issues_fixed": 3,
-                "issues_remaining": 2,
-                "issues_deferred": 1,
-                "files_modified": ["src/auth.py", "tests/test_auth.py"],
-            },
-        ]
-
-        manager.save_fix_history(history)
-        loaded = manager.load_fix_history()
-
-        assert len(loaded) == 1
-        assert loaded[0]["iteration"] == 1
-        assert loaded[0]["issues_fixed"] == 3
-        assert "timestamp" in loaded[0]  # Auto-added
-
-    def test_fix_history_includes_file_modifications(self, tmp_path: Path) -> None:
-        """Fix history preserves file modifications for each iteration."""
-        base_path = tmp_path / "run-123"
-        base_path.mkdir()
-        manager = ValidationStateManager("run-123", base_path)
-
-        history = [
-            {
-                "iteration": 1,
-                "issues_fixed": 2,
-                "issues_remaining": 3,
-                "issues_deferred": 0,
-                "files_modified": [
-                    "src/adw/validation/models.py",
-                    "src/adw/validation/phase.py",
-                    "tests/unit/validation/test_models.py",
-                ],
-            },
-            {
-                "iteration": 2,
-                "issues_fixed": 3,
-                "issues_remaining": 0,
-                "issues_deferred": 0,
-                "files_modified": ["src/adw/validation/phase.py"],
-            },
-        ]
-
-        manager.save_fix_history(history)
-        loaded = manager.load_fix_history()
-
-        assert len(loaded) == 2
-        assert loaded[0]["files_modified"] == [
-            "src/adw/validation/models.py",
-            "src/adw/validation/phase.py",
-            "tests/unit/validation/test_models.py",
-        ]
-        assert loaded[1]["files_modified"] == ["src/adw/validation/phase.py"]
-
-    def test_load_fix_history_empty(self, tmp_path: Path) -> None:
-        """Load returns empty list when no fix history file exists."""
-        base_path = tmp_path / "run-123"
-        base_path.mkdir()
-        manager = ValidationStateManager("run-123", base_path)
-
-        loaded = manager.load_fix_history()
-
-        assert loaded == []
-
-
 class TestStatePersistence:
     """Tests for state save/load."""
 
@@ -339,7 +155,7 @@ class TestStatePersistence:
         base_path.mkdir()
         manager = ValidationStateManager("run-123", base_path)
 
-        state = {"current_iteration": 1}
+        state = {"status": "running"}
         manager.save_state(state)
 
         expected_path = base_path / "validation" / "state.json"
@@ -352,7 +168,7 @@ class TestStatePersistence:
         base_path.mkdir()
         manager = ValidationStateManager("run-123", base_path)
 
-        state = {"current_iteration": 1}
+        state = {"status": "running"}
         manager.save_state(state)
 
         # Verify no temp file remains
@@ -367,8 +183,7 @@ class TestStatePersistence:
         manager = ValidationStateManager("run-123", base_path)
 
         state = {
-            "current_iteration": 2,
-            "total_iterations": 5,
+            "status": "running",
             "started_at": "2026-01-05T10:00:00Z",
         }
 
@@ -376,7 +191,7 @@ class TestStatePersistence:
         loaded = manager.load_state()
 
         assert loaded is not None
-        assert loaded["current_iteration"] == 2
+        assert loaded["status"] == "running"
         assert loaded["run_id"] == "run-123"  # Auto-set
         assert "last_updated" in loaded  # Auto-set
 
@@ -398,7 +213,6 @@ class TestStatePersistence:
         loaded = manager.load_state()
 
         assert loaded is not None
-        assert loaded["current_iteration"] == 3
         assert loaded["loop_state"]["issues_resolved"] == 5
         assert loaded["loop_state"]["issues_remaining"] == 2
 
@@ -420,7 +234,6 @@ class TestStatePersistence:
 
         assert loaded is not None
         assert isinstance(loaded, ValidationState)
-        assert loaded.current_iteration == 3
         assert loaded.loop_state.issues_resolved == 5
 
     def test_load_state_missing_file(self, tmp_path: Path) -> None:
@@ -459,12 +272,12 @@ class TestResumeCapability:
     """Tests for resume functionality."""
 
     def test_can_resume_true(self, tmp_path: Path) -> None:
-        """can_resume returns True with valid resumable state."""
+        """can_resume returns True with valid state."""
         base_path = tmp_path / "run-123"
         base_path.mkdir()
         manager = ValidationStateManager("run-123", base_path)
 
-        state = {"current_iteration": 2, "total_iterations": 5}
+        state = {"status": "running"}
         manager.save_state(state)
 
         assert manager.can_resume() is True
@@ -484,23 +297,12 @@ class TestResumeCapability:
 
         # Create state with different run_id
         manager1 = ValidationStateManager("run-123", base_path)
-        manager1.state_file.write_text('{"run_id": "different-run", "current_iteration": 2}')
+        manager1.state_file.write_text('{"run_id": "different-run"}')
 
         # Try to resume with different run_id
         manager2 = ValidationStateManager("run-123", base_path)
 
         assert manager2.can_resume() is False
-
-    def test_can_resume_false_zero_iteration(self, tmp_path: Path) -> None:
-        """can_resume returns False when iteration is 0."""
-        base_path = tmp_path / "run-123"
-        base_path.mkdir()
-        manager = ValidationStateManager("run-123", base_path)
-
-        state = {"current_iteration": 0}
-        manager.save_state(state)
-
-        assert manager.can_resume() is False
 
     def test_resume_returns_validation_state(self, tmp_path: Path) -> None:
         """resume returns ValidationState model when state is valid."""
@@ -520,7 +322,6 @@ class TestResumeCapability:
         resumed = manager.resume()
 
         assert isinstance(resumed, ValidationState)
-        assert resumed.current_iteration == 2
         assert resumed.loop_state.issues_resolved == 3
         assert resumed.loop_state.issues_remaining == 2
 
@@ -533,25 +334,6 @@ class TestResumeCapability:
         with pytest.raises(ValueError, match="Cannot resume validation"):
             manager.resume()
 
-    def test_resume_validates_state_integrity(self, tmp_path: Path) -> None:
-        """resume validates that state is properly structured."""
-        base_path = tmp_path / "run-123"
-        base_path.mkdir()
-        manager = ValidationStateManager("run-123", base_path)
-
-        # Save minimal valid state for can_resume to pass
-        loop_state = LoopState(issues_resolved=0, issues_remaining=5)
-        state = ValidationState(
-            run_id="run-123",
-            current_iteration=1,
-            loop_state=loop_state,
-        )
-        manager.save_state(state)
-
-        # resume should work with valid state
-        resumed = manager.resume()
-        assert resumed.current_iteration == 1
-
 
 class TestClear:
     """Tests for state clearing."""
@@ -562,17 +344,13 @@ class TestClear:
         base_path.mkdir()
         manager = ValidationStateManager("run-123", base_path)
 
-        # Create all state files
-        manager.save_state({"current_iteration": 1})
+        # Create state files
+        manager.save_state({"status": "running"})
         manager.save_issues([])
-        manager.save_triage([])
-        manager.save_fix_history([])
 
         # Verify files exist
         assert manager.state_file.exists()
         assert manager.issues_file.exists()
-        assert manager.triage_file.exists()
-        assert manager.fix_history_file.exists()
 
         # Clear
         manager.clear()
@@ -580,5 +358,3 @@ class TestClear:
         # Verify all removed
         assert not manager.state_file.exists()
         assert not manager.issues_file.exists()
-        assert not manager.triage_file.exists()
-        assert not manager.fix_history_file.exists()
