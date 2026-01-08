@@ -64,7 +64,7 @@ so that the LLM manages the validate-fix-re-validate cycle.
   - Include all required fields: passed, tests_passed, code_review_passed, issues_fixed, issues_remaining, summary
   - Document schema in prompt file
 
-- [ ] **Task 3: Include rules for can_auto_fix determination**
+- [x] **Task 3: Include rules for can_auto_fix determination**
   - Document what makes an issue auto-fixable
   - Examples of fixable: missing null check, error handling, type annotations
   - Examples of non-fixable: design decisions, architecture changes, unclear requirements
@@ -363,6 +363,10 @@ Return ONLY this JSON:
   - Field Definitions section documents all 6 required fields
   - JSON examples demonstrate schema in various scenarios
   - Schema matches the simplified result model specified in Epic 16
+- Task 3: Auto-fix determination rules included in prompt
+  - 7 categories of auto-fixable issues (null checks, error handling, types, imports, linter fixes, logic errors, returns)
+  - 6 categories of non-auto-fixable issues (design, architecture, requirements, performance, security, breaking changes)
+  - Clear "All or Nothing" rule: if ANY issue is non-fixable, fix NOTHING
 
 ### File List
 
