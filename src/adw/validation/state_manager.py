@@ -1,13 +1,11 @@
 """Validation state persistence manager.
 
 This module provides the ValidationStateManager class that handles
-persistence of validation loop state for resume capability.
+persistence of validation state for resume capability.
 
 State is stored in the .adw/runs/<run_id>/validation/ directory:
-- state.json: Current loop state (iteration, status, timestamps)
+- state.json: Current state (status, timestamps)
 - issues.json: All issues with current status
-- triage.json: All triage decisions with reasons
-- fix-history.json: Fix attempt history
 
 Key features:
 - Atomic writes using temp file + rename pattern
@@ -39,10 +37,8 @@ class ValidationStateManager:
     .adw/runs/<run_id>/validation/
 
     Files:
-    - state.json: Loop state (iteration, status, timestamps)
+    - state.json: State (status, timestamps)
     - issues.json: All issues with their current status
-    - triage.json: Triage decisions with reasons
-    - fix-history.json: History of fix attempts
 
     Attributes:
         run_id: The run ID this manager is associated with.
@@ -76,16 +72,6 @@ class ValidationStateManager:
     def issues_file(self) -> Path:
         """Path to the issues.json file."""
         return self.validation_dir / "issues.json"
-
-    @property
-    def triage_file(self) -> Path:
-        """Path to the triage.json file."""
-        return self.validation_dir / "triage.json"
-
-    @property
-    def fix_history_file(self) -> Path:
-        """Path to the fix-history.json file."""
-        return self.validation_dir / "fix-history.json"
 
     def _atomic_write(self, path: Path, content: str) -> None:
         """Write file atomically using temp file + rename pattern.
@@ -160,109 +146,8 @@ class ValidationStateManager:
             )
             return []
 
-    def save_triage(self, decisions: list[dict[str, Any]]) -> None:
-        """Save triage decisions to triage.json.
-
-        Args:
-            decisions: List of triage decision dictionaries containing:
-                - issue_id: The issue ID
-                - decision: FIX, DISMISS, or DEFER
-                - reason: Reason for the decision
-                - auto_decided: Whether decision was automatic
-                - timestamp: When the decision was made
-        """
-        # Add timestamp to each decision if not present
-        for decision in decisions:
-            if "timestamp" not in decision:
-                decision["timestamp"] = datetime.now(UTC).isoformat()
-
-        content = json.dumps(decisions, indent=2)
-        self._atomic_write(self.triage_file, content)
-        logger.info(
-            "Triage decisions saved",
-            extra={"count": len(decisions), "path": str(self.triage_file)},
-        )
-
-    def load_triage(self) -> dict[str, dict[str, Any]]:
-        """Load triage decisions as issue_id -> decision mapping.
-
-        Returns:
-            Dictionary mapping issue IDs to their triage decisions,
-            or empty dict if file doesn't exist or is corrupted.
-        """
-        if not self.triage_file.exists():
-            logger.debug("Triage file not found, returning empty dict")
-            return {}
-
-        try:
-            data = json.loads(self.triage_file.read_text())
-            # Validate that data is a list of dicts with issue_id
-            if not isinstance(data, list):
-                raise TypeError(f"Expected list, got {type(data).__name__}")
-            result = {d["issue_id"]: d for d in data}
-            logger.info(
-                "Triage decisions loaded",
-                extra={"count": len(result), "path": str(self.triage_file)},
-            )
-            return result
-        except (json.JSONDecodeError, KeyError, TypeError) as e:
-            logger.warning(
-                "Failed to load triage decisions",
-                extra={"error": str(e), "path": str(self.triage_file)},
-            )
-            return {}
-
-    def save_fix_history(self, history: list[dict[str, Any]]) -> None:
-        """Save fix iteration history to fix-history.json.
-
-        Args:
-            history: List of fix iteration records containing:
-                - iteration: Iteration number
-                - issues_fixed: Number of issues fixed
-                - issues_remaining: Number of issues remaining
-                - issues_deferred: Number of issues deferred
-                - files_modified: List of modified files
-                - timestamp: When the iteration completed
-        """
-        # Add timestamp to each record if not present
-        for record in history:
-            if "timestamp" not in record:
-                record["timestamp"] = datetime.now(UTC).isoformat()
-
-        content = json.dumps(history, indent=2)
-        self._atomic_write(self.fix_history_file, content)
-        logger.info(
-            "Fix history saved",
-            extra={"count": len(history), "path": str(self.fix_history_file)},
-        )
-
-    def load_fix_history(self) -> list[dict[str, Any]]:
-        """Load fix iteration history from fix-history.json.
-
-        Returns:
-            List of fix iteration records, or empty list if file
-            doesn't exist or is corrupted.
-        """
-        if not self.fix_history_file.exists():
-            logger.debug("Fix history file not found, returning empty list")
-            return []
-
-        try:
-            data = json.loads(self.fix_history_file.read_text())
-            logger.info(
-                "Fix history loaded",
-                extra={"count": len(data), "path": str(self.fix_history_file)},
-            )
-            return list(data)
-        except json.JSONDecodeError as e:
-            logger.warning(
-                "Failed to load fix history",
-                extra={"error": str(e), "path": str(self.fix_history_file)},
-            )
-            return []
-
     def save_state(self, state: dict[str, Any] | ValidationState) -> None:
-        """Save validation loop state to state.json.
+        """Save validation state to state.json.
 
         Automatically updates last_updated timestamp. Uses atomic write
         (write to temp file, then rename) for crash safety.
@@ -270,9 +155,6 @@ class ValidationStateManager:
         Args:
             state: Either a ValidationState model or a dict containing:
                 - run_id: The run ID
-                - current_iteration: Current iteration number
-                - total_iterations: Max iterations configured
-                - loop_state: Loop status information
                 - started_at: When validation started
                 - last_updated: (auto-set) When state was saved
         """
@@ -296,7 +178,7 @@ class ValidationStateManager:
         )
 
     def load_state(self) -> dict[str, Any] | None:
-        """Load validation loop state from state.json.
+        """Load validation state from state.json.
 
         Returns:
             State dictionary or None if file doesn't exist or is corrupted.
@@ -323,7 +205,7 @@ class ValidationStateManager:
             return None
 
     def load_state_model(self) -> ValidationState | None:
-        """Load validation loop state as a ValidationState model.
+        """Load validation state as a ValidationState model.
 
         Returns:
             ValidationState model or None if file doesn't exist or is corrupted.
@@ -349,7 +231,6 @@ class ValidationStateManager:
         Validates:
         - State file exists and is valid JSON
         - run_id matches current run
-        - current_iteration > 0 (some progress made)
 
         Returns:
             True if validation can be resumed, False otherwise.
@@ -367,12 +248,6 @@ class ValidationStateManager:
                     "current_run_id": self.run_id,
                 },
             )
-            return False
-
-        # Verify some progress was made
-        current_iteration = state.get("current_iteration", 0)
-        if current_iteration <= 0:
-            logger.debug("No progress to resume (iteration <= 0)")
             return False
 
         return True
@@ -405,11 +280,7 @@ class ValidationStateManager:
 
         logger.info(
             "Resuming validation from saved state",
-            extra={
-                "run_id": self.run_id,
-                "iteration": state.current_iteration,
-                "issues_remaining": state.loop_state.issues_remaining,
-            },
+            extra={"run_id": self.run_id},
         )
 
         return state
@@ -422,8 +293,6 @@ class ValidationStateManager:
         files = [
             self.state_file,
             self.issues_file,
-            self.triage_file,
-            self.fix_history_file,
         ]
         for file_path in files:
             if file_path.exists():
