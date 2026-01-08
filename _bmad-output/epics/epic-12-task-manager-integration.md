@@ -46,9 +46,9 @@ So that I don't have to copy-paste task descriptions.
 **Then** task title and description are fetched via Linear API
 **And** used as the feature_request in RunContext
 
-**Given** LINEAR_API_KEY not set
+**Given** LINEAR_API_KEY or LINEAR_TEAM_ID not set in .env
 **When** Linear task manager is configured
-**Then** ConfigError raised with suggestion to set env var
+**Then** ConfigError raised with instruction to add credentials to .env file
 
 **Given** task ID doesn't exist in Linear
 **When** fetch attempted
@@ -252,13 +252,13 @@ So that completed work is automatically tracked.
 ## Configuration Schema
 
 ```yaml
-# Full task_manager_config schema (updated)
-task_manager: linear  # or: github_issues, jira, none
-task_manager_config:
-  api_key_env: LINEAR_API_KEY
-  team_key: RULE
+# project.yaml configuration
+task_manager: linear  # or: jira, none
 
-  # Status mapping
+task_manager_config:
+  team_key: RULE                  # Team prefix for ID detection (e.g., RULE-123)
+
+  # Status mapping (ADW state → Linear state)
   state_mapping:
     pending: "Todo"
     running: "In Progress"
@@ -266,21 +266,26 @@ task_manager_config:
     failed: "In Progress"
 
   # Comment sync
-  sync_comments: true           # Post comments on phase transitions
-  comment_on_failure_only: false # Only comment when things fail
+  sync_comments: true             # Post comments on phase transitions
+  comment_on_failure_only: false  # Only comment when things fail
 
   # Label management
   labels:
     enabled: true
-    prefix: "adw:"              # Label prefix
+    prefix: "adw:"                # Label prefix
 
   # Issue lifecycle
-  auto_assign: true             # Assign task on run start
-  auto_close: true              # Close task when PR merged
+  auto_close: true                # Close task when PR merged
 
-  # Existing
-  include_labels: true
-  include_parent: true
+  # Context enrichment
+  include_labels: true            # Include task labels in context
+  include_parent: true            # Include parent issue context
+```
+
+```bash
+# .env file (required for Linear integration)
+LINEAR_API_KEY=lin_api_xxxxxxxxxxxxx
+LINEAR_TEAM_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
 ---
@@ -289,16 +294,14 @@ task_manager_config:
 
 | Story | Depends On | Blocks |
 |-------|------------|--------|
-| 12.1 | Epic 6 complete | 12.2, 12.3, 12.4, 12.5, 12.7, 12.8, 12.9, 12.10 |
-| 12.2 | 12.1 | 12.3, 12.5, 12.6, 12.7, 12.8, 12.9 |
+| 12.1 | Epic 6 complete | 12.2, 12.3, 12.4, 12.5, 12.7, 12.8 |
+| 12.2 | 12.1 | 12.3, 12.5, 12.6, 12.7, 12.8 |
 | 12.3 | 12.1, 12.2 | 12.6 |
 | 12.4 | 12.1 | None |
 | 12.5 | 12.1, 12.2 | None |
 | 12.6 | 12.3 | None |
 | 12.7 | 12.1, 12.2 | None |
 | 12.8 | 12.1, 12.2 | None |
-| 12.9 | 12.1, 12.2 | None |
-| 12.10 | 12.1 | 12.3, 12.5, 12.7, 12.8, 12.9 |
 
 ### Estimated Story Points
 
@@ -312,12 +315,10 @@ task_manager_config:
 | 12.6 | Small | Extends 12.3 with comment posting |
 | 12.7 | Medium | Label lifecycle management |
 | 12.8 | Small | Issue closing logic |
-| 12.9 | Small | Assignment logic |
-| 12.10 | Medium | GitHub API integration via gh CLI |
 
 ---
 
-## Epic 12: Dependency Flowchart (Updated 2026-01-05)
+## Epic 12: Dependency Flowchart
 
 ```
 ╔═══════════════════════════════════════════════════════════════════════════════╗
@@ -331,35 +332,34 @@ task_manager_config:
                                     │
                                     ▼
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║  WAVE 2: After 12.1 (PARALLEL x3)                                             ║
+║  WAVE 2: After 12.1 (PARALLEL x2)                                             ║
 ╠═══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                               ║
-║  [12.2] Linear Task Manager  ║  [12.4] Task ID Pattern  ║  [12.10] GitHub    ║
-║         Implementation       ║         Detection        ║          Issues    ║
+║        [12.2] Linear Task Manager       ║      [12.4] Task ID Pattern         ║
+║               Implementation            ║           Detection                 ║
 ║                                                                               ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
-                    │                       │                      │
-                    ▼                       │                      │
-╔═══════════════════════════════════════════╗                      │
-║  WAVE 3: After 12.2 (PARALLEL x6)         ║◄─────────────────────┘
-╠═══════════════════════════════════════════╣
-║                                           ║
-║  [12.3] Status Sync    [12.5] Task Context║
-║  [12.7] Label Mgmt     [12.8] Issue Close ║
-║  [12.9] Issue Assign                      ║
-║                                           ║
-╚═══════════════════════════════════════════╝
+                    │                                    │
+                    ▼                                    │
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 3: After 12.2 (PARALLEL x4)                                             ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║    [12.3] Status Sync       [12.5] Task Context       [12.7] Label Mgmt       ║
+║    at Phase Transitions     in Prompts                                        ║
+║                                                       [12.8] Issue Close      ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
                     │
                     ▼
-╔═══════════════════════════════════════════╗
-║  WAVE 4: After 12.3                       ║
-╠═══════════════════════════════════════════╣
-║                                           ║
-║  [12.6] Post Status Update Comments       ║
-║         (Extends status sync with comment ║
-║          posting at phase transitions)    ║
-║                                           ║
-╚═══════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 4: After 12.3                                                           ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [12.6] Post Status Update Comments                                           ║
+║         (Extends status sync with comment posting at phase transitions)       ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 ```
 
 ### Execution Summary
@@ -367,19 +367,23 @@ task_manager_config:
 | Wave | Stories | Description | Parallelizable |
 |------|---------|-------------|----------------|
 | 1 | 12.1 | Protocol + Models | No (foundation) |
-| 2 | 12.2, 12.4, 12.10 | Providers + Pattern Detection | Yes (3 parallel) |
-| 3 | 12.3, 12.5, 12.7, 12.8, 12.9 | Features | Yes (5 parallel) |
+| 2 | 12.2, 12.4 | Linear Provider + Pattern Detection | Yes (2 parallel) |
+| 3 | 12.3, 12.5, 12.7, 12.8 | Features | Yes (4 parallel) |
 | 4 | 12.6 | Comments | No (depends on 12.3) |
 
 **Critical Path:** 12.1 → 12.2 → 12.3 → 12.6
 
-**Maximum Parallelization:** Up to 5 stories can be worked simultaneously in Wave 3
+**Maximum Parallelization:** Up to 4 stories can be worked simultaneously in Wave 3
 
 ---
 
 ## Technical Notes
 
 ### Linear API Integration
+
+Required environment variables (from `.env`):
+- `LINEAR_API_KEY` - API key for authentication
+- `LINEAR_TEAM_ID` - Team UUID for API context
 
 ```python
 # Linear GraphQL query for task fetch
@@ -405,7 +409,8 @@ query($id: String!) {
 
 | Error | ADW Exception | User Message |
 |-------|---------------|--------------|
-| API key missing | ConfigError | "LINEAR_API_KEY environment variable not set" |
+| API key missing | ConfigError | "LINEAR_API_KEY not found in .env file" |
+| Team ID missing | ConfigError | "LINEAR_TEAM_ID not found in .env file" |
 | Task not found | TaskError | "Task not found: RULE-123" |
 | API rate limit | TaskError (recoverable) | "Linear API rate limited, retrying..." |
 | Network error | TaskError (recoverable) | "Failed to connect to Linear, retrying..." |

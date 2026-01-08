@@ -168,14 +168,14 @@ class PhaseRunner:
             # Step 3: Execute LLM
             llm_result = self._execute_llm(phase, context, rendered_prompt)
 
-            # Step 4: Run post-hook
+            # Step 4: Capture artifacts
+            artifacts = self._capture_artifacts(phase, context, llm_result)
+
+            # Step 5: Run post-hook (after artifacts exist)
             self._run_post_hook(phase, context, llm_result.content, command)
 
-            # Step 5: Auto-commit changes (ISS-009 fix)
+            # Step 6: Auto-commit changes (after post-hook modifications)
             self._auto_commit_changes(phase, context)
-
-            # Step 6: Capture artifacts
-            artifacts = self._capture_artifacts(phase, context, llm_result)
 
             # Build successful result
             completed_at = datetime.now(UTC)
@@ -845,12 +845,10 @@ class PhaseRunner:
 
         # Set LLM output in environment for post-hook
         original_env = os.environ.get("ADW_LLM_OUTPUT")
-        # Get artifacts directory for this run/phase
+        # Get artifacts directory for this run/phase (already exists from artifact capture)
         artifacts_dir = (
             self.artifact_manager.runs_dir / context.run_id / "artifacts" / phase
         )
-        # Create artifacts directory before post-hook so hooks can write to it
-        artifacts_dir.mkdir(parents=True, exist_ok=True)
         try:
             os.environ["ADW_LLM_OUTPUT"] = llm_output
 
