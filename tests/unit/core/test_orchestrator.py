@@ -1720,7 +1720,8 @@ class TestWorktreeNoAutoDelete:
         runs_dir = tmp_path / ".adw" / "runs"
         runs_dir.mkdir(parents=True)
 
-        worktree_config = WorktreeConfig(enabled=True, base_dir="trees")
+        # Create orchestrator with worktree disabled initially
+        worktree_config = WorktreeConfig(enabled=False)
 
         orchestrator = Orchestrator(
             runs_dir=runs_dir,
@@ -1739,6 +1740,10 @@ class TestWorktreeNoAutoDelete:
         mock_progress_display = MagicMock(spec=ProgressDisplay)
         mock_progress_display.console = mock_console
         orchestrator.progress_display = mock_progress_display
+
+        # Enable worktree and mock the manager
+        orchestrator.worktree_config = WorktreeConfig(enabled=True, base_dir="trees")
+        orchestrator._worktree_manager = MagicMock()
 
         # Mock worktree creation to return a path
         worktree_path = tmp_path / "trees" / "test-run"
@@ -1761,3 +1766,142 @@ class TestWorktreeNoAutoDelete:
         assert cleanup_mentioned, (
             f"Expected 'cleanup' instruction in console output, got: {print_calls}"
         )
+
+    def test_resume_preserves_worktree_on_success(
+        self,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_interruption_handler: MagicMock,
+        mock_index_manager: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Resume success preserves worktree for user inspection (ISS-020).
+
+        Worktrees are NEVER automatically deleted after resume completes.
+        Users must explicitly use 'adw cleanup <run_id>' to remove worktrees.
+        """
+        from adw.core.orchestrator import Orchestrator
+        from adw.models import WorktreeConfig
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        # Create orchestrator with worktree disabled initially to avoid git ops
+        worktree_config = WorktreeConfig(enabled=False)
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            interruption_handler=mock_interruption_handler,
+            index_manager=mock_index_manager,
+            worktree_config=worktree_config,
+        )
+
+        # Mock the cleanup method to track calls
+        orchestrator._cleanup_worktree = MagicMock()
+
+        # Create a context that can be resumed (failed/interrupted state)
+        worktree_path = tmp_path / "trees" / "test-run"
+        existing_context = RunContext(
+            run_id="01JFTEST000000000000000001",
+            feature_description="Test feature",
+            current_phase="build",
+            phase_history=["plan"],
+            phase_tokens={"plan": 100},
+            started_at=datetime.now(UTC),
+            status="failed",
+            use_worktree=True,
+            worktree_path=worktree_path,
+        )
+        mock_context_manager.load.return_value = existing_context
+
+        # Resume the run
+        orchestrator.resume("01JFTEST000000000000000001")
+
+        # Verify _cleanup_worktree was NOT called (ISS-020: no auto-delete)
+        orchestrator._cleanup_worktree.assert_not_called()
+
+    def test_cleanup_command_is_only_deletion_method(
+        self,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_interruption_handler: MagicMock,
+        mock_index_manager: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Only adw cleanup command should delete worktrees (ISS-020).
+
+        Verifies that _cleanup_worktree is never called automatically by
+        run(), run_single_phase(), or resume(). The only caller should be
+        the explicit cleanup CLI command.
+        """
+        from adw.core.orchestrator import Orchestrator
+        from adw.models import WorktreeConfig
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        # Create orchestrator with worktree disabled initially to avoid git ops
+        worktree_config = WorktreeConfig(enabled=False)
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            interruption_handler=mock_interruption_handler,
+            index_manager=mock_index_manager,
+            worktree_config=worktree_config,
+        )
+
+        # Enable worktree and mock the manager
+        orchestrator.worktree_config = WorktreeConfig(enabled=True, base_dir="trees")
+        orchestrator._worktree_manager = MagicMock()
+
+        # Mock _cleanup_worktree to track ALL calls
+        cleanup_mock = MagicMock()
+        orchestrator._cleanup_worktree = cleanup_mock
+
+        # Mock worktree creation
+        worktree_path = tmp_path / "trees" / "test-run"
+        orchestrator._create_worktree_for_run = MagicMock(return_value=worktree_path)
+
+        # Test 1: run() should NOT call _cleanup_worktree
+        orchestrator.run("Test feature 1")
+        assert cleanup_mock.call_count == 0, "run() should not auto-cleanup worktree"
+
+        # Test 2: run_single_phase() should NOT call _cleanup_worktree
+        cleanup_mock.reset_mock()
+        orchestrator.run_single_phase("plan", "Test feature 2")
+        assert cleanup_mock.call_count == 0, (
+            "run_single_phase() should not auto-cleanup worktree"
+        )
+
+        # Test 3: resume() should NOT call _cleanup_worktree
+        cleanup_mock.reset_mock()
+        existing_context = RunContext(
+            run_id="01JFTEST000000000000000002",
+            feature_description="Test feature",
+            current_phase="build",
+            phase_history=["plan"],
+            phase_tokens={"plan": 100},
+            started_at=datetime.now(UTC),
+            status="failed",
+            use_worktree=True,
+            worktree_path=worktree_path,
+        )
+        mock_context_manager.load.return_value = existing_context
+        orchestrator.resume("01JFTEST000000000000000002")
+        assert cleanup_mock.call_count == 0, "resume() should not auto-cleanup worktree"
