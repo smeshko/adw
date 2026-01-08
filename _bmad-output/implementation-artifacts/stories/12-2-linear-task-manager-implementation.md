@@ -45,12 +45,12 @@ So that I don't have to copy-paste task descriptions.
 - [x] Validate required env vars on instantiation: `LINEAR_API_KEY` and `LINEAR_TEAM_ID`
 
 ### Task 2: Implement Linear API Client
-- [ ] Create `src/adw/task_managers/linear_client.py` with `LinearClient`
-- [ ] Use `httpx` or `requests` for GraphQL requests
-- [ ] Implement `fetch_issue(identifier: str) -> dict`
-- [ ] Implement `update_issue(id: str, input: dict) -> dict`
-- [ ] Handle authentication via `LINEAR_API_KEY` header
-- [ ] Base URL: `https://api.linear.app/graphql`
+- [x] Create `src/adw/task_managers/linear_client.py` with `LinearClient`
+- [x] Use `httpx` or `requests` for GraphQL requests
+- [x] Implement `fetch_issue(identifier: str) -> dict`
+- [x] Implement `update_issue(id: str, input: dict) -> dict`
+- [x] Handle authentication via `LINEAR_API_KEY` header
+- [x] Base URL: `https://api.linear.app/graphql`
 
 ### Task 3: Implement fetch_task Method
 - [ ] Build GraphQL query for issue fetch (see Technical Notes)
@@ -430,9 +430,12 @@ claude-opus-4-5-20251101
 ### Completion Notes List
 
 - **Task 1**: Created LinearTaskManager class in `src/adw/task_managers/linear.py`. Implements TaskManager Protocol with name property, validates LINEAR_API_KEY and LINEAR_TEAM_ID environment variables on initialization. Raises ConfigError with clear messages if env vars missing. Added 4 unit tests for init and env var validation.
+- **Task 2**: Created LinearClient in `src/adw/task_managers/linear_client.py`. Uses httpx for GraphQL requests. Implements fetch_issue and update_issue methods with proper authentication headers. Added 6 unit tests for client functionality.
 
 ### File List
 
 **New Files:**
 - `src/adw/task_managers/linear.py` - LinearTaskManager class implementation
+- `src/adw/task_managers/linear_client.py` - Linear GraphQL API client
 - `tests/unit/task_managers/test_linear.py` - Unit tests for LinearTaskManager
+- `tests/unit/task_managers/test_linear_client.py` - Unit tests for LinearClient
