@@ -1,7 +1,7 @@
 # Story 16.1: Remove SDK Validation Loop
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: dev-complete
+Status: done
 Linear Issue: not-configured
 Epic: 16 - Validation Phase Simplification
 Created: 2026-01-08

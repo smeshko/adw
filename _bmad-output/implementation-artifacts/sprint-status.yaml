@@ -320,7 +320,7 @@ development_status:
   #       execution and LLM handles validate→fix→re-validate cycle internally
   # ═══════════════════════════════════════════════════════════════════════════
   epic-16: in-progress
-  16-1-remove-sdk-validation-loop: dev-complete
+  16-1-remove-sdk-validation-loop: done
   16-2-create-unified-validation-prompt: in-progress
   16-3-simplify-configuration: ready-for-dev
   16-4-update-phase-result-model: ready-for-dev
