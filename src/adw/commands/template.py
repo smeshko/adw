@@ -28,27 +28,48 @@ __all__ = ["TemplateEngine", "escape_feature_description", "build_task_context"]
 
 
 class GracefulDict(dict[str, Any]):
-    """A dict subclass that returns empty string for missing keys.
+    """A dict subclass that returns a chainable placeholder for missing keys.
 
     Used for task.custom field access when task_info is None.
-    Ensures {{task.custom.<field>}} resolves to empty string
+    Ensures {{task.custom.<field>}} and nested paths like
+    {{task.custom.metadata.details.component}} resolve to empty string
     instead of raising KeyError or staying as placeholder.
+
+    For missing keys, returns another GracefulDict instance (allowing
+    infinite nesting), which converts to empty string when used as str.
     """
 
-    def __missing__(self, _key: str) -> str:
-        """Return empty string for any missing key."""
-        return ""
+    def __missing__(self, _key: str) -> "GracefulDict":
+        """Return a new GracefulDict for any missing key, allowing nested access."""
+        return GracefulDict()
 
     def __getitem__(self, key: str) -> Any:
-        """Return value for key, or empty string if missing."""
+        """Return value for key, or new GracefulDict if missing."""
         try:
             return super().__getitem__(key)
         except KeyError:
-            return ""
+            return GracefulDict()
 
-    def get(self, key: str, default: Any = "") -> Any:
-        """Return value for key with default of empty string."""
-        return super().get(key, default)
+    def get(self, key: str, default: Any = None) -> Any:
+        """Return value for key with default."""
+        result = super().get(key)
+        if result is None:
+            return default if default is not None else GracefulDict()
+        return result
+
+    def __str__(self) -> str:
+        """Return empty string when converted to string (for template output)."""
+        return ""
+
+    def __repr__(self) -> str:
+        """Return empty string for repr (used in f-strings and str() calls)."""
+        if not self:
+            return ""
+        return super().__repr__()
+
+    def __bool__(self) -> bool:
+        """Return False when empty (for conditional checks)."""
+        return bool(super().keys())
 
 # Priority label mapping (1=Urgent, 2=High, 3=Medium, 4=Low)
 PRIORITY_LABELS: dict[int, str] = {
