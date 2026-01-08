@@ -1,7 +1,7 @@
 # Story 16.2: Create Unified Validation Prompt
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: review
 Linear Issue: not-configured
 Epic: 16 - Validation Phase Simplification
 Created: 2026-01-08
@@ -347,6 +347,8 @@ Return ONLY this JSON:
 <!-- Path(s) to story context XML will be added here by context workflow -->
 
 ### Agent Model Used
+
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 
 
