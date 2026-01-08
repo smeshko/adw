@@ -698,6 +698,68 @@ class MaxConcurrentRunsError(ADWError):
         return d
 
 
+class TaskError(ADWError):
+    """Exception for task management errors.
+
+    Used when interactions with external task management systems fail,
+    such as fetching task info, updating status, or resolving task IDs.
+
+    Common error codes:
+    - TASK_NOT_FOUND: Requested task doesn't exist
+    - TASK_FETCH_FAILED: Failed to fetch task information
+    - TASK_UPDATE_FAILED: Failed to update task status
+    - NO_TASK_MANAGER: No task manager is configured
+
+    Example:
+        >>> raise TaskError(
+        ...     code="TASK_NOT_FOUND",
+        ...     message="Task 'RULE-123' not found",
+        ...     suggestion="Verify the task ID is correct",
+        ...     task_id="RULE-123",
+        ... )
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        task_id: str | None = None,
+        suggestion: str | None = None,
+        recoverable: bool = False,
+    ) -> None:
+        """Initialize a TaskError.
+
+        Args:
+            code: Unique error code (e.g., "TASK_NOT_FOUND").
+            message: Human-readable error message.
+            task_id: The task ID related to the error, if applicable.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried (default False).
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
+        self.task_id = task_id
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize error to dictionary for structured logging.
+
+        Returns:
+            Dictionary containing all error attributes including task_id.
+        """
+        d = super().to_dict()
+        d.update(
+            {
+                "task_id": self.task_id,
+            }
+        )
+        return d
+
+
 class SecurityError(ADWError):
     """Exception for security-related blocking.
 

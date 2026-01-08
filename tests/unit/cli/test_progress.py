@@ -564,7 +564,7 @@ class TestErrorDisplay:
         progress.on_phase_error("validate", error)
 
         output_text = output.getvalue()
-        assert "VERIFY" in output_text
+        assert "VALIDATE" in output_text
 
     def test_on_phase_error_stops_live_display(self) -> None:
         """Test that error display stops any active live display."""

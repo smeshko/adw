@@ -23,6 +23,7 @@ This package contains all Pydantic models used throughout ADW:
 - pr: PRDescription
 - validation: ValidationIssue, ValidationResult, IssueSource, IssueSeverity,
               IssueLocation, IssueContext, FixAttempt, FixResult
+- task: TaskInfo
 """
 
 from adw.models.artifacts import DiffStats
@@ -36,6 +37,8 @@ from adw.models.config import (
     PortRangeConfig,
     ProjectConfig,
     RetryConfig,
+    TaskManagerConfig,
+    TaskManagerLabelsConfig,
     WorktreeConfig,
 )
 from adw.models.context import (
@@ -101,6 +104,7 @@ from adw.models.security import (
     SecurityConfig,
     ToolCallLog,
 )
+from adw.models.task import TaskInfo
 from adw.models.worktree import PortAllocation
 from adw.validation.models import (
     FixAttempt,
@@ -132,6 +136,8 @@ __all__: list[str] = [
     "PortRangeConfig",
     "ProjectConfig",
     "RetryConfig",
+    "TaskManagerConfig",
+    "TaskManagerLabelsConfig",
     "WorktreeConfig",
     # Context models
     "ProjectContext",
@@ -199,6 +205,8 @@ __all__: list[str] = [
     "BlockedPattern",
     "SecurityConfig",
     "ToolCallLog",
+    # Task models
+    "TaskInfo",
     # Worktree models
     "PortAllocation",
     # Validation models

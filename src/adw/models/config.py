@@ -5,7 +5,7 @@ and phase-specific configuration loaded from YAML files.
 """
 
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, Literal, Self
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
@@ -368,6 +368,126 @@ class WorktreeConfig(BaseModel):
         return self
 
 
+class TaskManagerLabelsConfig(BaseModel):
+    """Configuration for label management in task managers.
+
+    Controls how ADW manages labels on tasks in external task management
+    systems like Linear, Jira, or GitHub Issues.
+
+    Attributes:
+        enabled: Whether label management is enabled (default: True)
+        prefix: Prefix for ADW-managed labels (default: "adw:")
+
+    Example:
+        >>> config = TaskManagerLabelsConfig(enabled=True, prefix="ci:")
+        >>> config.enabled
+        True
+        >>> config.prefix
+        'ci:'
+
+    YAML example:
+        task_manager:
+          labels:
+            enabled: true
+            prefix: "adw:"
+    """
+
+    enabled: bool = Field(
+        default=True,
+        description="Whether label management is enabled",
+    )
+    prefix: str = Field(
+        default="adw:",
+        description="Prefix for ADW-managed labels",
+    )
+
+
+class TaskManagerConfig(BaseModel):
+    """Configuration for external task management integration.
+
+    Controls how ADW integrates with external task management systems
+    like Linear, Jira, or GitHub Issues. This includes fetching task
+    information, updating status, and syncing comments.
+
+    Attributes:
+        type: Task manager type ("none", "linear")
+        team_key: Team prefix for ID detection (e.g., "RULE" for RULE-123)
+        state_mapping: Mapping from ADW states to external system states
+        sync_comments: Whether to post comments on status transitions
+        comment_on_failure_only: Only post comments when runs fail
+        labels: Label management configuration
+        auto_close: Whether to close task when PR is merged
+        include_labels: Include task labels in context
+        include_parent: Include parent task info in context
+
+    Example:
+        >>> config = TaskManagerConfig(
+        ...     type="linear",
+        ...     team_key="RULE",
+        ...     sync_comments=True,
+        ... )
+        >>> config.type
+        'linear'
+
+    YAML example:
+        task_manager:
+          type: linear
+          team_key: RULE
+          state_mapping:
+            pending: "Todo"
+            running: "In Progress"
+            completed: "Done"
+            failed: "In Progress"
+          sync_comments: true
+          labels:
+            enabled: true
+            prefix: "adw:"
+          auto_close: true
+    """
+
+    type: Literal["none", "linear"] = Field(
+        default="none",
+        description="Task manager type (none, linear)",
+    )
+    team_key: str | None = Field(
+        default=None,
+        description="Team prefix for ID detection (e.g., 'RULE' for RULE-123)",
+    )
+    state_mapping: dict[str, str] = Field(
+        default_factory=lambda: {
+            "pending": "Todo",
+            "running": "In Progress",
+            "completed": "Done",
+            "failed": "In Progress",
+        },
+        description="Mapping from ADW states to external system states",
+    )
+    sync_comments: bool = Field(
+        default=False,
+        description="Whether to post comments on status transitions",
+    )
+    comment_on_failure_only: bool = Field(
+        default=False,
+        description="Only post comments when runs fail",
+    )
+    labels: TaskManagerLabelsConfig = Field(
+        default_factory=TaskManagerLabelsConfig,
+        description="Label management configuration",
+    )
+    auto_close: bool = Field(
+        default=False,
+        description="Whether to close task when PR is merged",
+    )
+    include_labels: bool = Field(
+        default=True,
+        description="Include task labels in context",
+    )
+    include_parent: bool = Field(
+        default=True,
+        description="Include parent task info in context",
+    )
+
+
 class GitConfig(BaseModel):
     """Configuration for git integration.
 
@@ -449,6 +569,7 @@ class ProjectConfig(BaseModel):
         logging: Logging configuration (includes redaction settings)
         security: Security configuration (blocked patterns, allow_dangerous)
         git: Git integration configuration (branch management)
+        task_manager: Task manager integration configuration (Linear, Jira, etc.)
 
     Example:
         >>> config = ProjectConfig.from_yaml('''
@@ -494,6 +615,10 @@ class ProjectConfig(BaseModel):
     validation: ValidationConfig = Field(
         default_factory=ValidationConfig,
         description="Validation phase configuration (validators, settings)",
+    )
+    task_manager: TaskManagerConfig = Field(
+        default_factory=TaskManagerConfig,
+        description="Task manager integration configuration",
     )
 
     @model_validator(mode="before")

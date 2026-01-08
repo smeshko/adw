@@ -1,6 +1,6 @@
 # Story 12.1: TaskManager Protocol and Configuration
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-08
@@ -34,17 +34,17 @@ So that different task management systems can be supported.
 ## Tasks / Subtasks
 
 ### Task 1: Create TaskManager Protocol
-- [ ] Create `src/adw/task_managers/__init__.py` package
-- [ ] Create `src/adw/task_managers/base.py` with `TaskManager` Protocol
-- [ ] Define Protocol methods:
+- [x] Create `src/adw/task_managers/__init__.py` package
+- [x] Create `src/adw/task_managers/base.py` with `TaskManager` Protocol
+- [x] Define Protocol methods:
   - `fetch_task(task_id: str) -> TaskInfo`
   - `update_status(task_id: str, status: str, metadata: dict[str, Any]) -> None`
   - `resolve_task_id(input_str: str) -> str | None`
-- [ ] Add `@property name: str` to Protocol for identification
+- [x] Add `@property name: str` to Protocol for identification
 
 ### Task 2: Create TaskInfo Model
-- [ ] Create `src/adw/models/task.py` with `TaskInfo` model
-- [ ] Define fields:
+- [x] Create `src/adw/models/task.py` with `TaskInfo` model
+- [x] Define fields:
   - `id: str` - Task ID (e.g., "RULE-123")
   - `identifier: str` - Full identifier from system
   - `title: str` - Task title/summary
@@ -56,27 +56,27 @@ So that different task management systems can be supported.
   - `parent_id: str | None` - Parent issue ID if exists
   - `parent_title: str | None` - Parent issue title
   - `custom_fields: dict[str, Any]` - Custom fields from system
-- [ ] Export from `src/adw/models/__init__.py`
+- [x] Export from `src/adw/models/__init__.py`
 
 ### Task 3: Implement NullTaskManager
-- [ ] Create `src/adw/task_managers/null.py` with `NullTaskManager`
-- [ ] Implement as no-op for all methods
-- [ ] `fetch_task` raises `TaskError("No task manager configured")`
-- [ ] `update_status` does nothing (no-op)
-- [ ] `resolve_task_id` returns `None`
-- [ ] Used when `task_manager: none` or not configured
+- [x] Create `src/adw/task_managers/null.py` with `NullTaskManager`
+- [x] Implement as no-op for all methods
+- [x] `fetch_task` raises `TaskError("No task manager configured")`
+- [x] `update_status` does nothing (no-op)
+- [x] `resolve_task_id` returns `None`
+- [x] Used when `task_manager: none` or not configured
 
 ### Task 4: Create TaskManager Factory
-- [ ] Create `src/adw/task_managers/factory.py` with `TaskManagerFactory`
-- [ ] Implement `create(config: TaskManagerConfig) -> TaskManager`
-- [ ] Registry pattern for available task managers:
+- [x] Create `src/adw/task_managers/factory.py` with `TaskManagerFactory`
+- [x] Implement `create(config: TaskManagerConfig) -> TaskManager`
+- [x] Registry pattern for available task managers:
   - `"none"` -> `NullTaskManager`
   - `"linear"` -> `LinearTaskManager` (stub for now, implemented in 12.2)
-- [ ] Raise `ConfigError` for unknown task_manager values with available options
+- [x] Raise `ConfigError` for unknown task_manager values with available options
 
 ### Task 5: Add TaskManager Configuration
-- [ ] Add `TaskManagerConfig` model to `src/adw/models/config.py`
-- [ ] Configuration fields:
+- [x] Add `TaskManagerConfig` model to `src/adw/models/config.py`
+- [x] Configuration fields:
   - `type: str = "none"` - Task manager type (none, linear)
   - `team_key: str | None` - Team prefix for ID detection
   - `state_mapping: dict[str, str]` - ADW state to external state mapping
@@ -86,21 +86,21 @@ So that different task management systems can be supported.
   - `auto_close: bool = False` - Close task when PR merged
   - `include_labels: bool = True` - Include labels in context
   - `include_parent: bool = True` - Include parent context
-- [ ] Add `task_manager` field to `ProjectConfig`
-- [ ] Default state_mapping: `{"pending": "Todo", "running": "In Progress", "completed": "Done", "failed": "In Progress"}`
+- [x] Add `task_manager` field to `ProjectConfig`
+- [x] Default state_mapping: `{"pending": "Todo", "running": "In Progress", "completed": "Done", "failed": "In Progress"}`
 
 ### Task 6: Add TaskError Exception
-- [ ] Add `TaskError` to `src/adw/exceptions.py`
-- [ ] Include fields: `code`, `message`, `suggestion`, `recoverable`, `task_id`
-- [ ] Error codes: `TASK_NOT_FOUND`, `TASK_FETCH_FAILED`, `TASK_UPDATE_FAILED`, `NO_TASK_MANAGER`
+- [x] Add `TaskError` to `src/adw/exceptions.py`
+- [x] Include fields: `code`, `message`, `suggestion`, `recoverable`, `task_id`
+- [x] Error codes: `TASK_NOT_FOUND`, `TASK_FETCH_FAILED`, `TASK_UPDATE_FAILED`, `NO_TASK_MANAGER`
 
 ### Task 7: Write Tests
-- [ ] Unit tests for `TaskManager` Protocol compliance (3 tests)
-- [ ] Unit tests for `TaskInfo` model (4 tests)
-- [ ] Unit tests for `NullTaskManager` (4 tests)
-- [ ] Unit tests for `TaskManagerFactory` (5 tests)
-- [ ] Unit tests for `TaskManagerConfig` validation (4 tests)
-- [ ] Integration test for factory creation flow (2 tests)
+- [x] Unit tests for `TaskManager` Protocol compliance (3 tests)
+- [x] Unit tests for `TaskInfo` model (4 tests)
+- [x] Unit tests for `NullTaskManager` (5 tests)
+- [x] Unit tests for `TaskManagerFactory` (5 tests)
+- [x] Unit tests for `TaskManagerConfig` validation (8 tests)
+- [x] Integration test for factory creation flow (2 tests)
 
 ---
 
@@ -374,8 +374,38 @@ Epic 12: Task Manager Integration - Story 12.1
 
 ### Agent Model Used
 
+Claude Opus 4.5 (claude-opus-4-5-20251101)
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created TaskManager Protocol with runtime_checkable decorator, fetch_task, update_status, resolve_task_id methods, and name property. Created TaskInfo model (needed by Protocol) and tests.
+- Task 2: TaskInfo model was created in Task 1 since Protocol depends on it. Added 4 validation tests.
+- Task 3: Created NullTaskManager with no-op implementation. Also added TaskError exception to exceptions.py. Added 5 tests.
+- Task 4: Created TaskManagerFactory with registry pattern. Returns NullTaskManager for "none", raises ConfigError for "linear" (not yet implemented) and unknown types. Added 5 tests.
+- Task 5: Added TaskManagerConfig and TaskManagerLabelsConfig to config.py. Added task_manager field to ProjectConfig. Exported from models __init__.py. Added 8 tests.
+- Task 6: TaskError was already implemented in Task 3. Verified all required fields (code, message, suggestion, recoverable, task_id) and documented error codes (TASK_NOT_FOUND, TASK_FETCH_FAILED, TASK_UPDATE_FAILED, NO_TASK_MANAGER).
+- Task 7: All tests verified. 27 total tests across test files: 3 protocol, 4 taskinfo, 5 null, 5 factory, 8 config, 2 integration.
+
 ### File List
+
+**New Files:**
+- `src/adw/task_managers/__init__.py` - Package init with TaskManager, NullTaskManager, TaskManagerFactory exports
+- `src/adw/task_managers/base.py` - TaskManager Protocol definition
+- `src/adw/task_managers/null.py` - NullTaskManager no-op implementation
+- `src/adw/task_managers/factory.py` - TaskManagerFactory with registry pattern
+- `src/adw/models/task.py` - TaskInfo model
+- `tests/unit/task_managers/__init__.py` - Test package init
+- `tests/unit/task_managers/test_base.py` - Protocol tests (3 tests)
+- `tests/unit/task_managers/test_null.py` - NullTaskManager tests (5 tests)
+- `tests/unit/task_managers/test_factory.py` - Factory tests (5 tests)
+- `tests/unit/models/test_task.py` - TaskInfo model validation tests (4 tests)
+- `tests/unit/task_managers/test_integration.py` - Integration tests (2 tests)
+
+**Modified Files:**
+- `src/adw/models/__init__.py` - Added TaskInfo, TaskManagerConfig, TaskManagerLabelsConfig exports
+- `src/adw/models/config.py` - Added TaskManagerConfig, TaskManagerLabelsConfig, task_manager field in ProjectConfig
+- `src/adw/exceptions.py` - Added TaskError exception class
+- `tests/unit/cli/test_progress.py` - Fixed pre-existing ISS-019 test bug (VERIFY -> VALIDATE)
+- `tests/unit/models/test_config_task_manager.py` - TaskManagerConfig tests (8 tests)

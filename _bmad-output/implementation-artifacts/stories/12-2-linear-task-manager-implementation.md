@@ -42,8 +42,7 @@ So that I don't have to copy-paste task descriptions.
 - [ ] Create `src/adw/task_managers/linear.py` with `LinearTaskManager`
 - [ ] Implement `TaskManager` Protocol
 - [ ] Initialize with `TaskManagerConfig` and environment variables
-- [ ] Validate required env vars on instantiation: `LINEAR_API_KEY`
-- [ ] Optional env var: `LINEAR_TEAM_ID` (can be derived from team_key)
+- [ ] Validate required env vars on instantiation: `LINEAR_API_KEY` and `LINEAR_TEAM_ID`
 
 ### Task 2: Implement Linear API Client
 - [ ] Create `src/adw/task_managers/linear_client.py` with `LinearClient`
@@ -127,7 +126,7 @@ So that I don't have to copy-paste task descriptions.
 
 2. **Environment Variables**
    - `LINEAR_API_KEY` - Required, API key from Linear settings
-   - `LINEAR_TEAM_ID` - Optional, team UUID (can derive from identifier)
+   - `LINEAR_TEAM_ID` - Required, team UUID
 
 3. **State Mapping**
    - Linear uses workflow states (e.g., "Todo", "In Progress", "Done")
@@ -411,6 +410,8 @@ mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
 - [Source: _bmad-output/epics/epic-12-task-manager-integration.md#Story 12.2]
 - [Source: _bmad-output/architecture.md#Task Manager Integration]
 - [Linear API Docs: https://developers.linear.app/docs/graphql/working-with-the-graphql-api]
+- [Linear API implementation reference: ~/.claude/skills/linear]
+- [Linear local API Docs: ~/.claude/docs/external/linear]
 
 ---
 
