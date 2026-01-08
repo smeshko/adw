@@ -377,6 +377,21 @@ LINEAR_TEAM_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 ---
 
+## Story File References
+
+| Story | File Path |
+|-------|-----------|
+| 12.1 | `_bmad-output/implementation-artifacts/stories/12-1-taskmanager-protocol-and-configuration.md` |
+| 12.2 | `_bmad-output/implementation-artifacts/stories/12-2-linear-task-manager-implementation.md` |
+| 12.3 | `_bmad-output/implementation-artifacts/stories/12-3-status-synchronization-at-phase-transitions.md` |
+| 12.4 | `_bmad-output/implementation-artifacts/stories/12-4-task-id-pattern-detection.md` |
+| 12.5 | `_bmad-output/implementation-artifacts/stories/12-5-task-context-in-prompts.md` |
+| 12.6 | `_bmad-output/implementation-artifacts/stories/12-6-post-status-update-comments.md` |
+| 12.7 | `_bmad-output/implementation-artifacts/stories/12-7-label-management.md` |
+| 12.8 | `_bmad-output/implementation-artifacts/stories/12-8-issue-closing.md` |
+
+---
+
 ## Technical Notes
 
 ### Linear API Integration
