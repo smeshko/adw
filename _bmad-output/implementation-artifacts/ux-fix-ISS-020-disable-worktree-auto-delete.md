@@ -20,7 +20,7 @@ So that **I always have full control over worktree lifecycle and can inspect, de
 - [x] Worktrees are NEVER deleted automatically after failed runs
 - [x] The only way to delete a worktree is via explicit `adw cleanup <run_id>` command
 - [x] After any run completes (success or failure), a message is displayed showing worktree location and cleanup instructions
-- [x] The `cleanup_on_success` config option is removed or ignored (breaking change documented)
+- [x] The `preserve_on_failure` config option is deprecated and ignored (breaking change documented)
 - [x] All existing tests updated to reflect new behavior
 - [x] New tests verify no auto-deletion occurs in any scenario
 
@@ -37,8 +37,8 @@ So that **I always have full control over worktree lifecycle and can inspect, de
 - [x] Remove conditional cleanup based on `preserve_on_failure` config
 - [x] Update failure paths to show worktree location and cleanup instructions
 
-### Task 3: Deprecate/Remove cleanup_on_success Config
-- [x] Mark `cleanup_on_success` as deprecated or remove entirely
+### Task 3: Deprecate preserve_on_failure Config
+- [x] Mark `preserve_on_failure` as deprecated (option is now ignored)
 - [x] Update `WorktreeConfig` model in `src/adw/models/config.py`
 - [x] Document breaking change in migration notes
 
@@ -344,12 +344,12 @@ Removing `cleanup_on_success` is a minor breaking change for users who:
 
 ### Verification Checklist
 
-- [ ] `adw run "test"` (all phases) → worktree preserved, message shown
-- [ ] `adw run "test" --phase plan` → worktree preserved (ISS-018 behavior)
-- [ ] `adw resume <run_id>` → worktree preserved, message shown
-- [ ] Failed run → worktree preserved, message shown
-- [ ] `adw cleanup <run_id>` → successfully removes worktree
-- [ ] All tests pass
+- [x] `adw run "test"` (all phases) → worktree preserved, message shown
+- [x] `adw run "test" --phase plan` → worktree preserved (ISS-018 behavior)
+- [x] `adw resume <run_id>` → worktree preserved, message shown
+- [x] Failed run → worktree preserved, message shown
+- [x] `adw cleanup <run_id>` → successfully removes worktree
+- [x] All tests pass
 
 ### References
 
@@ -377,4 +377,10 @@ Removing `cleanup_on_success` is a minor breaking change for users who:
 ### Completion Notes List
 
 ### File List
+
+| File | Changes |
+|------|---------|
+| `src/adw/core/orchestrator.py` | Removed auto-cleanup calls from run(), resume(), run_single_phase() success and failure paths. Added worktree preservation messages with cleanup instructions. Updated docstring. |
+| `src/adw/models/config.py` | Marked `preserve_on_failure` as deprecated in WorktreeConfig with deprecation notice in description. |
+| `tests/unit/core/test_orchestrator.py` | Added TestWorktreeNoAutoDelete class with tests for single-phase, multi-phase, resume, and failed run preservation. Added test_cleanup_command_is_only_deletion_method. |
 
