@@ -1,6 +1,6 @@
 # Story 12.1: TaskManager Protocol and Configuration
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-08
@@ -90,17 +90,17 @@ So that different task management systems can be supported.
 - [x] Default state_mapping: `{"pending": "Todo", "running": "In Progress", "completed": "Done", "failed": "In Progress"}`
 
 ### Task 6: Add TaskError Exception
-- [ ] Add `TaskError` to `src/adw/exceptions.py`
-- [ ] Include fields: `code`, `message`, `suggestion`, `recoverable`, `task_id`
-- [ ] Error codes: `TASK_NOT_FOUND`, `TASK_FETCH_FAILED`, `TASK_UPDATE_FAILED`, `NO_TASK_MANAGER`
+- [x] Add `TaskError` to `src/adw/exceptions.py`
+- [x] Include fields: `code`, `message`, `suggestion`, `recoverable`, `task_id`
+- [x] Error codes: `TASK_NOT_FOUND`, `TASK_FETCH_FAILED`, `TASK_UPDATE_FAILED`, `NO_TASK_MANAGER`
 
 ### Task 7: Write Tests
-- [ ] Unit tests for `TaskManager` Protocol compliance (3 tests)
-- [ ] Unit tests for `TaskInfo` model (4 tests)
-- [ ] Unit tests for `NullTaskManager` (4 tests)
-- [ ] Unit tests for `TaskManagerFactory` (5 tests)
-- [ ] Unit tests for `TaskManagerConfig` validation (4 tests)
-- [ ] Integration test for factory creation flow (2 tests)
+- [x] Unit tests for `TaskManager` Protocol compliance (3 tests)
+- [x] Unit tests for `TaskInfo` model (4 tests)
+- [x] Unit tests for `NullTaskManager` (5 tests)
+- [x] Unit tests for `TaskManagerFactory` (5 tests)
+- [x] Unit tests for `TaskManagerConfig` validation (8 tests)
+- [x] Integration test for factory creation flow (2 tests)
 
 ---
 
@@ -385,6 +385,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 3: Created NullTaskManager with no-op implementation. Also added TaskError exception to exceptions.py. Added 5 tests.
 - Task 4: Created TaskManagerFactory with registry pattern. Returns NullTaskManager for "none", raises ConfigError for "linear" (not yet implemented) and unknown types. Added 5 tests.
 - Task 5: Added TaskManagerConfig and TaskManagerLabelsConfig to config.py. Added task_manager field to ProjectConfig. Exported from models __init__.py. Added 8 tests.
+- Task 6: TaskError was already implemented in Task 3. Verified all required fields (code, message, suggestion, recoverable, task_id) and documented error codes (TASK_NOT_FOUND, TASK_FETCH_FAILED, TASK_UPDATE_FAILED, NO_TASK_MANAGER).
+- Task 7: All tests verified. 27 total tests across test files: 3 protocol, 4 taskinfo, 5 null, 5 factory, 8 config, 2 integration.
 
 ### File List
 
@@ -399,6 +401,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - `tests/unit/task_managers/test_null.py` - NullTaskManager tests (5 tests)
 - `tests/unit/task_managers/test_factory.py` - Factory tests (5 tests)
 - `tests/unit/models/test_task.py` - TaskInfo model validation tests (4 tests)
+- `tests/unit/task_managers/test_integration.py` - Integration tests (2 tests)
 
 **Modified Files:**
 - `src/adw/models/__init__.py` - Added TaskInfo, TaskManagerConfig, TaskManagerLabelsConfig exports

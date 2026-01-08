@@ -253,7 +253,7 @@ development_status:
   #       (Linear, Jira, GitHub Issues) with bidirectional status sync
   # ═══════════════════════════════════════════════════════════════════════════
   epic-12: in-progress
-  12-1-taskmanager-protocol-and-configuration: in-progress
+  12-1-taskmanager-protocol-and-configuration: done
   12-2-linear-task-manager-implementation: ready-for-dev
   12-3-status-synchronization-at-phase-transitions: ready-for-dev
   12-4-task-id-pattern-detection: ready-for-dev
