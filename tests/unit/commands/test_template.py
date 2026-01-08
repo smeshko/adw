@@ -541,3 +541,296 @@ class TestEdgeCases:
         context = {"items": [1, 2, 3]}
         result = engine.render(template, context)
         assert result == "Items: [1, 2, 3]"
+
+
+class TestBuildTaskContext:
+    """Tests for Story 12.5: Task Context Building (build_task_context)."""
+
+    def test_build_task_context_with_none_returns_empty_string_values(self) -> None:
+        """build_task_context(None) returns dict with empty string values for graceful degradation."""
+        from adw.commands.template import build_task_context
+
+        result = build_task_context(None)
+
+        # All standard fields should be empty strings
+        assert result["id"] == ""
+        assert result["identifier"] == ""
+        assert result["title"] == ""
+        assert result["description"] == ""
+        assert result["status"] == ""
+        assert result["priority"] == ""
+        assert result["priority_label"] == ""
+        assert result["labels"] == ""
+        assert result["assignee"] == ""
+        assert result["parent_id"] == ""
+        assert result["parent_title"] == ""
+        # Custom should be empty dict
+        assert result["custom"] == {}
+
+    def test_build_task_context_maps_all_fields(self) -> None:
+        """build_task_context maps all TaskInfo fields correctly."""
+        from adw.commands.template import build_task_context
+        from adw.models.task import TaskInfo
+
+        task = TaskInfo(
+            id="uuid-123",
+            identifier="RULE-456",
+            title="Fix critical bug",
+            description="Bug causes crash on login",
+            status="In Progress",
+            priority=1,
+            labels=["bug", "critical"],
+            assignee="john.doe",
+            parent_id="RULE-100",
+            parent_title="Authentication Epic",
+            custom_fields={"sprint": "2024-Q1"},
+        )
+
+        result = build_task_context(task)
+
+        assert result["id"] == "uuid-123"
+        assert result["identifier"] == "RULE-456"
+        assert result["title"] == "Fix critical bug"
+        assert result["description"] == "Bug causes crash on login"
+        assert result["status"] == "In Progress"
+        assert result["priority"] == "1"
+        assert result["priority_label"] == "Urgent"
+        assert result["labels"] == "bug, critical"
+        assert result["assignee"] == "john.doe"
+        assert result["parent_id"] == "RULE-100"
+        assert result["parent_title"] == "Authentication Epic"
+        assert result["custom"] == {"sprint": "2024-Q1"}
+
+    def test_build_task_context_priority_labels(self) -> None:
+        """build_task_context maps priority numbers to correct labels."""
+        from adw.commands.template import build_task_context
+        from adw.models.task import TaskInfo
+
+        priorities = {
+            1: "Urgent",
+            2: "High",
+            3: "Medium",
+            4: "Low",
+        }
+
+        for priority, expected_label in priorities.items():
+            task = TaskInfo(
+                id="test",
+                identifier="TEST-1",
+                title="Test",
+                priority=priority,
+            )
+            result = build_task_context(task)
+            assert result["priority_label"] == expected_label, f"Priority {priority} should map to {expected_label}"
+
+    def test_build_task_context_handles_none_fields(self) -> None:
+        """build_task_context handles None/missing optional fields as empty strings."""
+        from adw.commands.template import build_task_context
+        from adw.models.task import TaskInfo
+
+        # Minimal task with only required fields
+        task = TaskInfo(
+            id="test-id",
+            identifier="TEST-1",
+            title="Test task",
+        )
+
+        result = build_task_context(task)
+
+        assert result["id"] == "test-id"
+        assert result["identifier"] == "TEST-1"
+        assert result["title"] == "Test task"
+        assert result["description"] == ""
+        assert result["status"] == ""
+        assert result["priority"] == ""
+        assert result["priority_label"] == ""
+        assert result["labels"] == ""
+        assert result["assignee"] == ""
+        assert result["parent_id"] == ""
+        assert result["parent_title"] == ""
+        assert result["custom"] == {}
+
+    def test_build_task_context_labels_joined_with_comma(self) -> None:
+        """build_task_context joins labels with comma and space."""
+        from adw.commands.template import build_task_context
+        from adw.models.task import TaskInfo
+
+        task = TaskInfo(
+            id="test",
+            identifier="TEST-1",
+            title="Test",
+            labels=["bug", "urgent", "P1"],
+        )
+
+        result = build_task_context(task)
+        assert result["labels"] == "bug, urgent, P1"
+
+
+class TestTaskContextTemplateRendering:
+    """Tests for Story 12.5: Task Variables in Template Rendering."""
+
+    def test_task_variables_render_correctly(self) -> None:
+        """Task variables should be accessible in templates via {{task.*}} syntax."""
+        from adw.commands.template import build_task_context
+        from adw.models.task import TaskInfo
+
+        engine = TemplateEngine()
+        task = TaskInfo(
+            id="uuid-123",
+            identifier="RULE-456",
+            title="Fix bug",
+            priority=2,
+        )
+
+        variables = {"task": build_task_context(task)}
+        template = "Task: {{task.identifier}} - {{task.title}} ({{task.priority_label}})"
+
+        result = engine.render(template, variables)
+        assert result == "Task: RULE-456 - Fix bug (High)"
+
+    def test_task_custom_fields_render_correctly(self) -> None:
+        """Custom task fields should be accessible via {{task.custom.<field>}} syntax."""
+        from adw.commands.template import build_task_context
+        from adw.models.task import TaskInfo
+
+        engine = TemplateEngine()
+        task = TaskInfo(
+            id="test",
+            identifier="TEST-1",
+            title="Test",
+            custom_fields={
+                "sprint": "2024-Q1",
+                "team": "backend",
+            },
+        )
+
+        variables = {"task": build_task_context(task)}
+        template = "Sprint: {{task.custom.sprint}}, Team: {{task.custom.team}}"
+
+        result = engine.render(template, variables)
+        assert result == "Sprint: 2024-Q1, Team: backend"
+
+    def test_task_nested_custom_fields_render_correctly(self) -> None:
+        """Nested custom fields should be accessible with dot notation."""
+        from adw.commands.template import build_task_context
+        from adw.models.task import TaskInfo
+
+        engine = TemplateEngine()
+        task = TaskInfo(
+            id="test",
+            identifier="TEST-1",
+            title="Test",
+            custom_fields={
+                "metadata": {
+                    "category": "infrastructure",
+                    "details": {
+                        "component": "auth",
+                    },
+                },
+            },
+        )
+
+        variables = {"task": build_task_context(task)}
+        template = "Category: {{task.custom.metadata.category}}, Component: {{task.custom.metadata.details.component}}"
+
+        result = engine.render(template, variables)
+        assert result == "Category: infrastructure, Component: auth"
+
+    def test_graceful_degradation_with_no_task_context(self) -> None:
+        """Task variables should render as empty strings when task_info is None."""
+        from adw.commands.template import build_task_context
+
+        engine = TemplateEngine()
+        variables = {"task": build_task_context(None)}
+        template = "Task: {{task.identifier}} - {{task.title}}"
+
+        result = engine.render(template, variables)
+        assert result == "Task:  - "
+
+
+class TestTaskContextIntegration:
+    """Integration tests for Story 12.5: End-to-End Task Context in Templates."""
+
+    def test_run_context_with_task_info_renders_in_template(self) -> None:
+        """RunContext with task_info should provide task variables in templates."""
+        from datetime import datetime, UTC
+        from adw.commands.template import build_task_context
+        from adw.models.context import RunContext
+        from adw.models.task import TaskInfo
+
+        engine = TemplateEngine()
+
+        task = TaskInfo(
+            id="uuid-123",
+            identifier="RULE-789",
+            title="Implement feature",
+            priority=3,
+            labels=["feature", "backend"],
+        )
+
+        context = RunContext(
+            run_id="01KEF734DWWB1JVAHSEEPX5EKC",  # Valid 26-char ULID
+            feature_description="Add new API endpoint",
+            current_phase="plan",
+            started_at=datetime.now(UTC),
+            status="running",
+            task_info=task,
+        )
+
+        # Build variables like PhaseRunner does
+        variables = {
+            "context": context,
+            "run_id": context.run_id,
+            "feature": context.feature_description,
+            "task": build_task_context(context.task_info),
+        }
+
+        template = """Run: {{run_id}}
+Feature: {{feature}}
+Task: {{task.identifier}} - {{task.title}}
+Priority: {{task.priority_label}}
+Labels: {{task.labels}}"""
+
+        result = engine.render(template, variables)
+
+        assert "Run: 01KEF734DWWB1JVAHSEEPX5EKC" in result
+        assert "Feature: Add new API endpoint" in result
+        assert "Task: RULE-789 - Implement feature" in result
+        assert "Priority: Medium" in result
+        assert "Labels: feature, backend" in result
+
+    def test_run_context_without_task_info_renders_gracefully(self) -> None:
+        """RunContext without task_info should render task variables as empty strings."""
+        from datetime import datetime, UTC
+        from adw.commands.template import build_task_context
+        from adw.models.context import RunContext
+
+        engine = TemplateEngine()
+
+        context = RunContext(
+            run_id="01KEF734DWWB2JVAHSEEPX6FKD",  # Valid 26-char ULID
+            feature_description="Quick fix for login",
+            current_phase="build",
+            started_at=datetime.now(UTC),
+            status="running",
+            # task_info is None by default
+        )
+
+        variables = {
+            "context": context,
+            "run_id": context.run_id,
+            "feature": context.feature_description,
+            "task": build_task_context(context.task_info),
+        }
+
+        template = """Run: {{run_id}}
+Feature: {{feature}}
+Task: {{task.identifier}}
+Title: {{task.title}}"""
+
+        result = engine.render(template, variables)
+
+        assert "Run: 01KEF734DWWB2JVAHSEEPX6FKD" in result
+        assert "Feature: Quick fix for login" in result
+        assert "Task: \n" in result  # Empty identifier
+        assert "Title: " in result  # Empty title
