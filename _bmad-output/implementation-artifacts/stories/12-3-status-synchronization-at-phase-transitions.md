@@ -49,10 +49,10 @@ So that my team sees real-time progress.
 ## Tasks / Subtasks
 
 ### Task 1: Add Task Context to RunContext
-- [ ] Add `task_id: str | None` field to `RunContext` model
-- [ ] Add `task_info: TaskInfo | None` field to `RunContext` model
-- [ ] Add `task_manager: str | None` field (e.g., "linear", "none")
-- [ ] Populate fields when run is initiated from task ID
+- [x] Add `task_id: str | None` field to `RunContext` model
+- [x] Add `task_info: TaskInfo | None` field to `RunContext` model
+- [x] Add `task_manager: str | None` field (e.g., "linear", "none")
+- [x] Populate fields when run is initiated from task ID
 
 ### Task 2: Create StatusSyncService
 - [ ] Create `src/adw/task_managers/sync.py` with `StatusSyncService`

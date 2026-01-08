@@ -622,6 +622,108 @@ class TestStateSnapshot:
         assert "01KDSG2VDHNK0W4HSCZWJZXWSQ" in json_str
 
 
+class TestRunContextTaskIntegration:
+    """Tests for RunContext task manager integration (Story 12.3).
+
+    These tests verify that task context is properly tracked and serialized
+    for status synchronization with external task managers.
+    """
+
+    def test_task_context_defaults_to_none(self) -> None:
+        """Task context fields default to None when no task manager configured."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+        assert context.task_id is None
+        assert context.task_info is None
+        assert context.task_manager is None
+
+    def test_task_context_can_be_set(self) -> None:
+        """Task context fields can be set when run is initiated from task."""
+        from adw.models.task import TaskInfo
+
+        task_info = TaskInfo(
+            id="RULE-123",
+            identifier="RULE-123",
+            title="Implement auth",
+            description="Add OAuth support",
+            status="In Progress",
+        )
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            task_id="RULE-123",
+            task_info=task_info,
+            task_manager="linear",
+        )
+        assert context.task_id == "RULE-123"
+        assert context.task_info is not None
+        assert context.task_info.title == "Implement auth"
+        assert context.task_manager == "linear"
+
+    def test_task_context_serialization(self) -> None:
+        """Task context is included in JSON for state persistence."""
+        from adw.models.task import TaskInfo
+
+        task_info = TaskInfo(
+            id="RULE-123",
+            identifier="RULE-123",
+            title="Implement auth",
+        )
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+            task_id="RULE-123",
+            task_info=task_info,
+            task_manager="linear",
+        )
+        json_str = context.model_dump_json()
+        data = json.loads(json_str)
+
+        assert data["task_id"] == "RULE-123"
+        assert data["task_manager"] == "linear"
+        assert data["task_info"]["id"] == "RULE-123"
+        assert data["task_info"]["title"] == "Implement auth"
+
+    def test_task_context_via_model_copy(self) -> None:
+        """Task context can be added via model_copy (immutable update pattern)."""
+        from adw.models.task import TaskInfo
+
+        original = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+        assert original.task_id is None
+
+        task_info = TaskInfo(
+            id="RULE-456",
+            identifier="RULE-456",
+            title="New task",
+        )
+        updated = original.model_copy(
+            update={
+                "task_id": "RULE-456",
+                "task_info": task_info,
+                "task_manager": "linear",
+            }
+        )
+
+        # Original unchanged
+        assert original.task_id is None
+        # Updated has new values
+        assert updated.task_id == "RULE-456"
+        assert updated.task_manager == "linear"
+
+
 class TestRunContextArtifactPathResolution:
     """Tests for RunContext artifact path resolution (Story 10.5)."""
 
