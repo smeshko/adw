@@ -69,7 +69,7 @@ so that the LLM manages the validate-fix-re-validate cycle.
   - Examples of fixable: missing null check, error handling, type annotations
   - Examples of non-fixable: design decisions, architecture changes, unclear requirements
 
-- [ ] **Task 4: Test prompt with various scenarios**
+- [x] **Task 4: Test prompt with various scenarios**
   - Test with passing code (no issues)
   - Test with fixable issues
   - Test with non-fixable issues
@@ -367,10 +367,17 @@ Return ONLY this JSON:
   - 7 categories of auto-fixable issues (null checks, error handling, types, imports, linter fixes, logic errors, returns)
   - 6 categories of non-auto-fixable issues (design, architecture, requirements, performance, security, breaking changes)
   - Clear "All or Nothing" rule: if ANY issue is non-fixable, fix NOTHING
+- Task 4: Created comprehensive test suite with 30 test cases
+  - TestValidatePromptStructure: 11 tests verifying prompt sections
+  - TestValidatePromptOutputSchema: 6 tests for schema fields
+  - TestValidatePromptAutoFixRules: 8 tests for fix determination rules
+  - TestValidatePromptVariableSubstitution: 2 tests for template rendering
+  - TestValidatePromptExamples: 4 tests for scenario examples
 
 ### File List
 
 - `src/adw/defaults/commands/validate/prompt.md` (modified)
+- `tests/unit/commands/test_validate_prompt.py` (created)
 
 ---
 
