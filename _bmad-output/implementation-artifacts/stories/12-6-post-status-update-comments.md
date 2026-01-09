@@ -75,9 +75,10 @@ So that my team can follow progress without checking CLI output.
 - [x] Wrap in non-blocking try/except (via `_safe_post_comment`)
 
 ### Task 5: Integrate with Orchestrator
-- [ ] Call `post_phase_comment` after phase completes
-- [ ] Call `post_completion_comment` after run completes
-- [ ] Pass PR URL if available from Ship phase
+- [x] Call `post_phase_comment` after phase completes
+- [x] Call `post_completion_comment` after run completes
+- [x] Call `post_failure_comment` on run failure
+- [x] Pass PR URL if available from auto-PR creation
 
 ### Task 6: Add Comment Templates
 - [ ] Create configurable comment templates
