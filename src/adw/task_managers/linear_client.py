@@ -85,6 +85,15 @@ mutation RemoveLabelFromIssue($issueId: String!, $labelId: String!) {
 }
 """
 
+CREATE_COMMENT_MUTATION = """
+mutation CreateComment($issueId: String!, $body: String!) {
+  commentCreate(input: {issueId: $issueId, body: $body}) {
+    success
+    comment { id }
+  }
+}
+"""
+
 
 class LinearClient:
     """Low-level client for Linear's GraphQL API.
@@ -456,6 +465,26 @@ class LinearClient:
         label_id = self._get_label_id(team_id, label_name)
         if label_id:
             self.remove_label_from_issue(issue_id, label_id)
+
+    def post_comment(self, issue_id: str, body: str) -> bool:
+        """Post a comment to an issue.
+
+        Args:
+            issue_id: The internal issue UUID.
+            body: The comment body (supports markdown).
+
+        Returns:
+            True if successful, False otherwise.
+        """
+        response = self._request(
+            CREATE_COMMENT_MUTATION,
+            variables={"issueId": issue_id, "body": body},
+        )
+        self._handle_response_errors(response, issue_id)
+
+        data = response.json()
+        result = data.get("data", {}).get("commentCreate")
+        return result.get("success", False) if result else False
 
     def close(self) -> None:
         """Close the HTTP client."""

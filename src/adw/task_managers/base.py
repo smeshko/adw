@@ -155,3 +155,17 @@ class TaskManager(Protocol):
             catch and log errors rather than raising exceptions.
         """
         ...
+
+    def post_comment(self, task_id: str, body: str) -> None:
+        """Post a comment to a task.
+
+        Args:
+            task_id: The task identifier (internal ID, e.g., UUID).
+            body: The comment body (supports markdown).
+
+        Note:
+            This operation should be non-blocking. Implementations should
+            catch and log errors rather than raising exceptions to avoid
+            failing the ADW run.
+        """
+        ...

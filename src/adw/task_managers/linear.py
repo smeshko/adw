@@ -474,3 +474,26 @@ class LinearTaskManager:
                 task_id,
                 str(e),
             )
+
+    def post_comment(self, task_id: str, body: str) -> None:
+        """Post a comment to a Linear issue.
+
+        This is a non-blocking operation - errors are logged but do not
+        raise exceptions to avoid failing the ADW run.
+
+        Args:
+            task_id: The internal Linear issue UUID (from TaskInfo.id).
+            body: The comment body (supports markdown).
+        """
+        try:
+            self._client.post_comment(task_id, body)
+            logger.info(
+                "Posted comment to issue %s",
+                task_id,
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to post comment to issue %s: %s",
+                task_id,
+                str(e),
+            )
