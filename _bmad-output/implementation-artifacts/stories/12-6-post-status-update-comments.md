@@ -97,7 +97,7 @@ So that my team can follow progress without checking CLI output.
 - [x] Unit tests for `StatusSyncService` comment methods (9 tests in test_sync.py)
 - [x] Unit tests for config checking (`sync_comments`, `comment_on_failure_only`)
 - [x] Unit tests for PR-Task linking (2 tests in test_pr.py)
-- [x] All 166 task_manager tests pass
+- [x] All 210 task_manager tests pass
 
 ---
 
@@ -452,8 +452,38 @@ Epic 12: Task Manager Integration - Story 12.6
 
 ### Agent Model Used
 
+Claude Opus 4.5
+
 ### Debug Log References
+
+N/A
 
 ### Completion Notes List
 
+1. **Architectural Deviation - PR Linking**: The story specified creating `src/adw/task_managers/pr_linking.py` with `PRTitleFormatter` class. Instead, PR-Task linking was implemented inline in `src/adw/cli/pr.py` (lines 351-365). This simpler approach avoids an extra abstraction layer since the logic is only used in one place.
+
+2. **Test File Consolidation**: The story specified separate test files (`test_linear_comments.py`, `test_pr_linking.py`). Instead, tests were consolidated into `test_comments.py` and `test_pr.py` respectively, following the existing test organization pattern.
+
+3. **Config Model Unchanged**: The `pr_title_format` config option mentioned in the story was not added to `TaskManagerConfig`. The format is currently hard-coded as `{task_id}: {description}`. This can be made configurable in a future story if needed.
+
+4. **Test Count**: Story claims 166 tests pass. Actual test count in task_managers module: 210 tests collected.
+
 ### File List
+
+**New Files:**
+- `src/adw/task_managers/comments.py` - CommentFormatter class for formatting task comments
+
+**Modified Files:**
+- `src/adw/task_managers/base.py` - Added post_comment to TaskManager Protocol
+- `src/adw/task_managers/null.py` - Implemented no-op post_comment method
+- `src/adw/task_managers/linear.py` - Implemented post_comment with GraphQL mutation
+- `src/adw/task_managers/linear_client.py` - Added post_comment GraphQL mutation
+- `src/adw/task_managers/sync.py` - Added comment posting methods (post_phase_comment, post_failure_comment, post_completion_comment)
+- `src/adw/core/orchestrator.py` - Integrated comment posting on phase/run completion
+- `src/adw/cli/pr.py` - Added PR-Task linking (title prefix, Linear URL in body)
+
+**Test Files:**
+- `tests/unit/task_managers/test_comments.py` - Tests for CommentFormatter, post_comment implementations
+- `tests/unit/task_managers/test_sync.py` - Tests for StatusSyncService comment methods
+- `tests/unit/task_managers/test_base.py` - Updated Protocol tests for post_comment
+- `tests/unit/cli/test_pr.py` - Tests for PR-Task linking
