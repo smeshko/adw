@@ -69,6 +69,9 @@ class TestTaskManagerProtocol:
             def remove_label(self, task_id: str, label: str) -> None:
                 pass
 
+            def post_comment(self, task_id: str, body: str) -> None:
+                pass
+
         # This should type-check as TaskManager
         manager: TaskManager = MinimalTaskManager()
         assert isinstance(manager, TaskManager)
