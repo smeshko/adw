@@ -1,43 +1,31 @@
 ---
 name: code-review-loop
-description: Automated code review loop using GLM subagent in background. Default uses GLM subagent (fast, ~2-3 min/cycle). Use --thorough for GLM+Codex parallel (better coverage). Use --codex-only for legacy Codex mode. Returns structured JSON findings for validation.
+description: Autonomous code review loop for CI pipelines. Runs Codex adversarial review, validates findings, fixes valid issues, and commits. Repeats up to 2 cycles until clean.
 web_bundle: true
 
-# Input Parameters (all optional)
-# story_id - Story ID to review (e.g., "3-1"). If provided and not on correct
-#            branch, workflow will find and switch to matching worktree.
-# --thorough - Run both GLM and Codex in parallel for maximum coverage
-# --codex-only - Force Codex-only mode (legacy behavior)
+# Input Parameters
+# Context is provided externally - no parameters required
+# The workflow expects full context (diff, files to review) to be provided in the prompt
 #
-# Review Mode (auto-selected based on flags):
-# - "fast" (default): GLM subagent in background, ~2-3 min per cycle
-# - "thorough": GLM subagent + Codex in parallel, ~10 min but better coverage
-# - "codex": Codex-only (legacy), ~10 min per cycle
-#
-# Subagent Usage:
-# - Fast mode: Spawns 'glm' subagent with run_in_background: true
-# - Thorough mode: Spawns 'glm' subagent + Codex in parallel
-# - Uses TaskOutput to retrieve results with 5-10 min timeout
-# - Expects structured JSON output from subagent
+# Exit Codes:
+# - 0: Clean (no issues found or all resolved)
+# - 1: Issues remain after max cycles
 ---
 
-<!-- AUTONOMOUS WORKFLOW PATTERN
-This workflow intentionally deviates from the standard interactive template:
-- Universal Rules: Modified for autonomous execution (no user input required)
-- Role Reinforcement: Simplified (no partnership language - fully autonomous)
-- Menu Patterns: Replaced with auto-proceed and exit conditions
-- Critical Rules: Adapted for autonomous operation (no menu halts)
-- Step Processing: Uses AUTO-PROCEED instead of WAIT FOR INPUT
-
-These deviations are intentional and appropriate for this workflow type.
-Standard BMAD workflows are interactive; this is an AUTONOMOUS variant.
+<!-- AUTONOMOUS CI WORKFLOW
+This workflow is designed for CI pipeline integration:
+- Fully autonomous execution (no user input)
+- Context provided externally (git diff, files, etc.)
+- Codex-only review (no GLM)
+- Commits fixes after each cycle
+- Returns exit code for CI integration
 -->
 
-# Code Review Loop
+# Code Review Loop (CI)
 
-**Goal:** Automate the code review and fix cycle using background subagents. Default "fast" mode spawns GLM subagent in background (~2-3 min/cycle). "Thorough" mode runs GLM subagent + Codex in parallel for maximum coverage. Validates JSON findings, fixes valid issues, and repeats until clean or max cycles reached.
+**Goal:** Automate adversarial code review in CI pipelines. Run Codex review on provided context, validate JSON findings, fix valid issues, commit, and repeat until clean or max 2 cycles reached.
 
-**Your Role:** You are a senior developer and code quality guardian. You orchestrate the review process by spawning GLM subagent in background (Task tool with run_in_background: true), then retrieving structured JSON results via TaskOutput, validating findings, and fixing issues yourself. You ensure only real issues are addressed, avoiding hallucinated problems. Work autonomously to deliver clean, reviewed code.
+**Your Role:** You are a senior developer and code quality guardian. You orchestrate the review process by running Codex in report-only mode, validating findings against the provided context, and fixing genuine issues yourself. Work autonomously to deliver clean, reviewed code.
 
 ---
 
@@ -69,22 +57,10 @@ This uses **step-file architecture** for disciplined execution:
 - 🎯 **ALWAYS** follow the exact instructions in the step file
 - 📋 **NEVER** create mental todo lists from future steps
 
-<!-- AUTONOMOUS WORKFLOW: Standard rules adapted for autonomous operation:
-- "halt at menus" → replaced by auto-proceed (no user interaction)
-- "update frontmatter" → uses in-memory state tracking instead
-- "wait for user input" → N/A for autonomous workflows
--->
-
 ---
 
 ## INITIALIZATION SEQUENCE
 
-### 1. Configuration Loading
+### 1. First Step Execution
 
-Load config from {project-root}/_bmad/bmm/config.yaml and resolve:
-
-- `project_name`, `output_folder`, `user_name`, `sprint_artifacts`
-
-### 2. First Step Execution
-
-Load, read the full file, and execute `{project-root}/_bmad/bmm/workflows/4-implementation/code-review-loop/steps/step-01-init.md` to begin the workflow.
+Load, read the full file, and execute `{workflow_path}/steps/step-01-init.md` to begin the workflow.

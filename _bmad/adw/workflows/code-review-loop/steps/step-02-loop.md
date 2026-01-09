@@ -1,30 +1,21 @@
 ---
 name: 'step-02-loop'
-description: 'Execute the review-validate-fix-commit cycle up to 2 times'
+description: 'Execute the review-validate-fix-commit cycle up to 2 times using Codex'
 
 # Path Definitions
-workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/code-review-loop'
+workflow_path: '{project-root}/_bmad/adw/workflows/code-review-loop'
 
 # File References
 thisStepFile: '{workflow_path}/steps/step-02-loop.md'
 nextStepFile: '{workflow_path}/steps/step-03-finalize.md'
 workflowFile: '{workflow_path}/workflow.md'
-
-# External Commands
-codex_review_command: '/codex-review'
-
-# Template References
-# (none required for this step)
-
-# Task References
-# (none required for this step)
 ---
 
 # Step 2: Review Loop
 
 ## STEP GOAL:
 
-To execute the review-validate-fix-commit cycle. Spawn Codex for adversarial review, validate findings against codebase and story requirements, fix valid issues, commit, and repeat until clean or max 2 cycles reached.
+To execute the review-validate-fix-commit cycle. Run Codex for adversarial review, validate findings against provided context, fix valid issues, commit, and repeat until clean or max 2 cycles reached.
 
 ## MANDATORY EXECUTION RULES (READ FIRST):
 
@@ -61,12 +52,11 @@ To execute the review-validate-fix-commit cycle. Spawn Codex for adversarial rev
 Available in memory from initialization:
 - `cycle_count` - current cycle number
 - `max_cycles` - maximum cycles (2)
-- `review_mode` - "fast" (GLM), "thorough" (GLM+Codex), or "codex" (legacy)
 - `issues_fixed` - array of fixed issues
 - `issues_skipped` - array of skipped issues
-- Story file content with acceptance criteria
-- List of changed files
-- Architecture context
+- `files_to_review` - list of files from provided context
+- `diff_content` - the code changes to review
+- `requirements` - any provided requirements
 
 ---
 
@@ -85,26 +75,23 @@ Display:
 ───────────────────────────────────────────────────────────────
 ```
 
-### 2. Run Adversarial Review (Tiered by review_mode)
-
-Execute review based on `review_mode` setting from step 1.
-
-#### 2a. Build the Review Prompt
+### 2. Build the Review Prompt
 
 Construct the review prompt with exact output format specification.
 
-**Base prompt structure:**
+**Prompt structure:**
 ```
-You are an adversarial code reviewer. Analyze the code changes on this branch and find issues.
+You are an adversarial code reviewer. Analyze the code changes and find issues.
 
 ## Files to Review
-{List of changed_files from step 1}
+{files_to_review from provided context}
 
-## Story Context
-{Story acceptance criteria and dev notes}
+## Code Changes
+{diff_content from provided context}
 
-## Architecture Context
-{Relevant architecture patterns}
+{If requirements provided:}
+## Requirements
+{requirements}
 
 ## Your Task
 Find code quality issues: bugs, security vulnerabilities, logic errors, missing error handling,
@@ -165,47 +152,9 @@ DO NOT report these issues - they were validated and dismissed in previous cycle
 Focus only on NEW issues not listed above.
 ```
 
-#### 2b. Execute Review Based on Mode
+### 3. Run Codex Review
 
----
-
-##### MODE: "fast" (GLM-only via subagent, default)
-
-Display: "⚡ Running GLM review in background..."
-
-**Spawn GLM subagent in background:**
-
-Use the Task tool with:
-- `subagent_type`: "glm"
-- `run_in_background`: true
-- `description`: "GLM code review cycle {cycle_count}"
-- `prompt`: The constructed review prompt from 2a
-
-Example invocation pattern:
-```
-Task(
-  subagent_type: "glm",
-  run_in_background: true,
-  description: "GLM code review cycle {cycle_count}",
-  prompt: "{constructed_prompt with JSON output format}"
-)
-```
-
-**While GLM runs:** You may continue with other lightweight checks or simply wait.
-
-**Retrieve results:** Use `TaskOutput(task_id: {glm_task_id}, block: true, timeout: 300000)` to get results.
-
-**Parse the JSON response** into the findings structure.
-
-**If GLM fails (error, timeout, or API unavailable):**
-- Display: "⚠️ GLM review failed, falling back to Codex..."
-- Fall through to Codex execution below
-
----
-
-##### MODE: "codex" (Codex-only, legacy)
-
-Display: "🐌 Running Codex review..."
+Display: "Running Codex review..."
 
 Execute via Codex:
 ```bash
@@ -219,55 +168,14 @@ codex exec --full-auto \
 
 **IMPORTANT:** Do NOT use the `-m` flag. Always use Codex's configured default model.
 
----
+**If Codex fails:**
+- Set `exit_reason = "review_failed"`
+- Set `exit_code = 1`
+- Proceed to step 3 (finalize)
 
-##### MODE: "thorough" (GLM + Codex in parallel via subagents)
+### 4. Parse Review Findings
 
-Display: "🔍 Running thorough review (GLM + Codex in parallel)..."
-
-**Spawn BOTH reviewers as background subagents simultaneously:**
-
-1. **Start GLM review (background subagent):**
-   ```
-   Task(
-     subagent_type: "glm",
-     run_in_background: true,
-     description: "GLM review cycle {cycle_count}",
-     prompt: "{constructed_prompt with JSON output format}"
-   )
-   ```
-   Store the returned `task_id` as `glm_task_id`.
-
-2. **Start Codex review (background):**
-   ```bash
-   codex exec --full-auto \
-     -c 'headless=true' \
-     -c 'auto_fix_mode="report-only"' \
-     "{constructed_prompt}" &
-   ```
-   Run in background shell, capture process for later.
-
-3. **Wait for both to complete:**
-   - `TaskOutput(task_id: glm_task_id, block: true, timeout: 600000)`
-   - Wait for Codex background process
-
-4. **Merge findings:**
-   - Parse JSON from GLM subagent response
-   - Parse Codex output (may need flexible parsing)
-   - Deduplicate by file+line+issue similarity
-   - If both find same issue → mark `found_by: "both"` (higher confidence)
-   - If only one finds issue → mark `found_by: "glm"` or `found_by: "codex"`
-
-**If one reviewer fails:** Continue with the other's findings.
-**If both fail:** Set `exit_reason = "review_failed"` and proceed to step 3.
-
----
-
-Capture the output (merged if thorough mode). Parse JSON into findings array.
-
-### 3. Parse Review Findings
-
-Parse the JSON response from the reviewer(s).
+Parse the JSON response from Codex.
 
 **Expected JSON structure:**
 ```json
@@ -293,12 +201,12 @@ Parse the JSON response from the reviewer(s).
 
 **Parsing logic:**
 
-1. Extract JSON from the subagent response (may be wrapped in markdown code blocks)
+1. Extract JSON from the Codex response (may be wrapped in markdown code blocks)
 2. Parse into structured `findings` array
-3. In thorough mode, add `found_by` field to each finding during merge
 
 **If `findings` array is empty:**
 - Set `exit_reason = "clean"`
+- Set `exit_code = 0`
 - Display: "✅ No issues found - code is clean"
 - Proceed to step 3 (finalize)
 
@@ -310,58 +218,41 @@ Parse the JSON response from the reviewer(s).
     LOW: {low_count}
 ```
 
-**In thorough mode, also display source breakdown:**
-```
-  Source breakdown:
-    GLM only: {glm_only_count}
-    Codex only: {codex_only_count}
-    Both (high confidence): {both_count}
-```
+### 5. Validate Each Finding
 
-### 4. Validate Each Finding
+For EACH finding from Codex:
 
-For EACH finding from the reviewer(s):
-
-#### 4a. Read the Relevant Code
+#### 5a. Read the Relevant Code
 
 Read the file and surrounding context (10 lines before/after the reported line).
 
-#### 4b. Check Against Codebase
+#### 5b. Check Against Provided Context
 
 Ask yourself:
 - Does this issue actually exist in the code?
 - Is the code actually problematic, or is Codex misunderstanding?
-- Does the code follow project patterns and architecture?
+- Does the suggested fix make sense?
 
-#### 4c. Check Against Story Requirements
+#### 5c. Check Against Requirements (if provided)
 
-Ask yourself:
-- Is this relevant to the story's acceptance criteria?
-- Does fixing this align with the story's goals?
-- Is this within scope of the current work?
+If requirements were provided, ask yourself:
+- Is this relevant to the stated requirements?
+- Does fixing this align with the goals?
 
-#### 4d. Classify the Finding
+#### 5d. Classify the Finding
 
 **VALID** if:
 - The issue genuinely exists in the code
 - Fixing it improves code quality, security, or correctness
-- It's relevant to the current story
-- **In thorough mode:** Issues found by BOTH reviewers have higher confidence
 
 **FALSE_POSITIVE** if:
 - The code is actually correct
-- The reviewer misunderstood the pattern or intent
-- The issue is out of scope for this story
+- Codex misunderstood the pattern or intent
 - The "fix" would break other functionality
 
-**Note:** In thorough mode, if GLM and Codex disagree, lean toward trusting:
-- Issues found by BOTH (highest confidence)
-- Issues that match project patterns/architecture (medium)
-- Single-source findings that contradict project context (validate carefully)
+### 6. Process Validated Findings
 
-### 5. Process Validated Findings
-
-#### 5a. For VALID Issues
+#### 6a. For VALID Issues
 
 For each VALID issue:
 1. Fix the issue in the code
@@ -374,31 +265,29 @@ For each VALID issue:
      line: 42,
      issue: "Brief description",
      fix: "What was changed",
-     category: "bug|security|logic|...",
-     found_by: "glm|codex|both"  // only in thorough mode
+     category: "bug|security|logic|..."
    })
    ```
 
-#### 5b. For FALSE_POSITIVE Issues
+#### 6b. For FALSE_POSITIVE Issues
 
 For each FALSE_POSITIVE:
 1. Do NOT modify any code
-2. Add to tracking with FULL context (so reviewer won't report it again):
+2. Add to tracking with FULL context (so Codex won't report it again):
    ```
    issues_skipped.append({
      cycle: cycle_count,
      severity: "HIGH|MEDIUM|LOW",
      file: "path/to/file",
      line: 42,
-     issue: "Full issue description from reviewer",
+     issue: "Full issue description from Codex",
      suggested_fix: "The fix suggested",
      category: "bug|security|logic|...",
-     reason: "Why this was dismissed",
-     found_by: "glm|codex|both"  // only in thorough mode
+     reason: "Why this was dismissed"
    })
    ```
 
-### 6. Commit Fixes (If Any)
+### 7. Commit Fixes (If Any)
 
 If any issues were fixed in this cycle:
 
@@ -411,9 +300,10 @@ The commit message should briefly describe what was fixed.
 
 If NO issues were fixed (all were false positives):
 - Set `exit_reason = "all_false_positives"`
+- Set `exit_code = 0`
 - Proceed to step 3 (finalize)
 
-### 7. Check Exit Conditions
+### 8. Check Exit Conditions
 
 **EXIT to step 3 if:**
 - `exit_reason == "clean"` (Codex found no issues)
@@ -424,10 +314,12 @@ If NO issues were fixed (all were false positives):
 - Valid issues were fixed AND cycle_count < max_cycles
 - There may be more issues to find
 
-### 8. Loop or Exit
+### 9. Loop or Exit
 
 **If EXIT condition met:**
-- If `cycle_count >= max_cycles`, set `exit_reason = "max_cycles_reached"`
+- If `cycle_count >= max_cycles` and issues remain:
+  - Set `exit_reason = "max_cycles_reached"`
+  - Set `exit_code = 1`
 - Load and execute `{workflow_path}/steps/step-03-finalize.md`
 
 **If LOOP condition met:**
@@ -441,8 +333,8 @@ If NO issues were fixed (all were false positives):
 After each cycle, display:
 
 ```
-  Cycle {N} Complete ({review_mode} mode):
-    - Review findings: {total} {if thorough: "(GLM: X, Codex: Y, Both: Z)"}
+  Cycle {N} Complete:
+    - Review findings: {total}
     - Valid issues fixed: {fixed_count}
     - False positives skipped: {skipped_count}
 
@@ -465,12 +357,8 @@ This step contains an internal loop. Only proceed to step-03-finalize.md when an
 
 ### ✅ SUCCESS:
 
-- GLM subagent spawned in background correctly (fast/thorough modes)
-- TaskOutput used to retrieve subagent results with proper timeout
+- Codex review executed successfully
 - JSON response parsed correctly into findings structure
-- GLM fallback to Codex works when needed (fast mode)
-- Parallel subagent execution works correctly (thorough mode)
-- Findings properly merged and deduplicated (thorough mode)
 - Each finding validated before action
 - Valid issues fixed, false positives dismissed
 - Commits made after each fix cycle
@@ -479,15 +367,11 @@ This step contains an internal loop. Only proceed to step-03-finalize.md when an
 
 ### ❌ SYSTEM FAILURE:
 
-- Not using Task tool with run_in_background for GLM subagent
-- Not using TaskOutput to retrieve subagent results
-- Failing to parse JSON response from subagent
+- Failing to parse JSON response from Codex
 - Fixing issues without validation
 - Not committing after fixes
 - Exceeding 2 cycles
 - Stopping to ask user questions
 - Not tracking fixed/skipped issues
-- Not falling back to Codex when GLM fails (fast mode)
-- Not merging findings from both sources (thorough mode)
 
-**Master Rule:** This is an AUTONOMOUS workflow. Do not stop for user input. Validate findings yourself using codebase and story context.
+**Master Rule:** This is an AUTONOMOUS workflow. Do not stop for user input. Validate findings yourself using provided context.

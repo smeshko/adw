@@ -5,6 +5,7 @@ Generate a detailed implementation plan for the feature.
 ## Context
 
 {{context}}
+Provided file: {{inputs.*}}
 
 ## Feature Description
 
