@@ -1,611 +1,264 @@
-"""Tests for validation models (Story 11.2).
+"""Tests for simplified ValidationResult model (Story 16.4).
 
 Tests cover:
-- IssueSource, IssueSeverity, FixResult enums
-- ValidationIssue model with required fields
-- Issue ID generation with VI- prefix
-- IssueLocation and IssueContext models
-- Fix tracking with FixAttempt
-- Issue comparison and hashing
-- Serialization methods
+- ValidationResult model with all required fields
+- Default values for optional fields
+- Serialization to/from dict and JSON
+- Model validation
 """
 
-from adw.validation.models import (
-    FixAttempt,
-    FixResult,
-    IssueContext,
-    IssueLocation,
-    IssueSeverity,
-    IssueSource,
-    ValidationIssue,
-)
+import json
+
+import pytest
+
+from adw.validation.models import ValidationResult
 
 
-class TestIssueEnums:
-    """Tests for validation issue enums."""
-
-    def test_issue_source_has_required_values(self) -> None:
-        """IssueSource enum has TEST, REVIEW, EVIDENCE values."""
-        assert IssueSource.TEST == "TEST"
-        assert IssueSource.REVIEW == "REVIEW"
-        assert IssueSource.EVIDENCE == "EVIDENCE"
-
-    def test_issue_severity_has_required_values(self) -> None:
-        """IssueSeverity enum has ERROR, WARNING, INFO values."""
-        assert IssueSeverity.ERROR == "ERROR"
-        assert IssueSeverity.WARNING == "WARNING"
-        assert IssueSeverity.INFO == "INFO"
-
-    def test_fix_result_has_required_values(self) -> None:
-        """FixResult enum has RESOLVED, PARTIAL, FAILED, NOT_ATTEMPTED values."""
-        assert FixResult.RESOLVED == "RESOLVED"
-        assert FixResult.PARTIAL == "PARTIAL"
-        assert FixResult.FAILED == "FAILED"
-        assert FixResult.NOT_ATTEMPTED == "NOT_ATTEMPTED"
-
-
-class TestValidationIssue:
-    """Tests for ValidationIssue model core functionality."""
-
-    def test_create_with_required_fields(self) -> None:
-        """Issue created with id, source, severity, description."""
-        issue = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed: test_login",
-        )
-        assert issue.source == IssueSource.TEST
-        assert issue.severity == IssueSeverity.ERROR
-        assert issue.description == "Test failed: test_login"
-        assert issue.id.startswith("VI-")
-
-    def test_id_auto_generated_with_ulid(self) -> None:
-        """Issue ID is auto-generated with VI- prefix and ULID."""
-        issue = ValidationIssue(
-            source=IssueSource.REVIEW,
-            severity=IssueSeverity.WARNING,
-            description="Missing docstring",
-        )
-        assert issue.id.startswith("VI-")
-        # ULID portion is 26 characters
-        ulid_part = issue.id[3:]  # Remove "VI-"
-        assert len(ulid_part) == 26
-        assert ulid_part.isalnum()
-
-    def test_id_is_unique_across_instances(self) -> None:
-        """Each issue gets a unique ID."""
-        issue1 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Error 1",
-        )
-        issue2 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Error 2",
-        )
-        assert issue1.id != issue2.id
-
-    def test_id_stable_across_serialization(self) -> None:
-        """ID remains stable through serialization/deserialization."""
-        issue = ValidationIssue(
-            source=IssueSource.EVIDENCE,
-            severity=IssueSeverity.INFO,
-            description="Screenshot mismatch",
-        )
-        original_id = issue.id
-
-        data = issue.model_dump()
-        restored = ValidationIssue.model_validate(data)
-
-        assert restored.id == original_id
-
-
-class TestIssueLocation:
-    """Tests for IssueLocation model."""
+class TestValidationResult:
+    """Tests for ValidationResult model core functionality."""
 
     def test_create_with_all_fields(self) -> None:
-        """IssueLocation can be created with all location fields."""
-        location = IssueLocation(
-            file_path="src/auth.py",
-            line_start=42,
-            line_end=45,
-            function_name="login",
-            test_name="test_login_validation",
+        """ValidationResult can be created with all fields."""
+        result = ValidationResult(
+            passed=True,
+            tests_passed=True,
+            code_review_passed=True,
+            issues_fixed=["Fixed null check", "Added error handling"],
+            issues_remaining=[],
+            summary="All tests pass, code review clean",
         )
-        assert location.file_path == "src/auth.py"
-        assert location.line_start == 42
-        assert location.line_end == 45
-        assert location.function_name == "login"
-        assert location.test_name == "test_login_validation"
+        assert result.passed is True
+        assert result.tests_passed is True
+        assert result.code_review_passed is True
+        assert result.issues_fixed == ["Fixed null check", "Added error handling"]
+        assert result.issues_remaining == []
+        assert result.summary == "All tests pass, code review clean"
 
-    def test_create_with_minimal_fields(self) -> None:
-        """IssueLocation works with only some fields."""
-        location = IssueLocation(file_path="src/utils.py", line_start=10)
-        assert location.file_path == "src/utils.py"
-        assert location.line_start == 10
-        assert location.line_end is None
-        assert location.function_name is None
-
-    def test_issue_with_location(self) -> None:
-        """ValidationIssue can include location information."""
-        location = IssueLocation(
-            file_path="tests/test_api.py",
-            line_start=100,
-            function_name="test_endpoint",
+    def test_create_with_required_fields_only(self) -> None:
+        """ValidationResult uses defaults for optional fields."""
+        result = ValidationResult(
+            passed=False,
+            tests_passed=False,
+            code_review_passed=True,
         )
-        issue = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Assertion failed",
-            location=location,
+        assert result.passed is False
+        assert result.tests_passed is False
+        assert result.code_review_passed is True
+        assert result.issues_fixed == []
+        assert result.issues_remaining == []
+        assert result.summary == ""
+
+    def test_create_fails_without_required_fields(self) -> None:
+        """ValidationResult requires passed, tests_passed, code_review_passed."""
+        with pytest.raises(ValueError):
+            ValidationResult()  # type: ignore
+
+        with pytest.raises(ValueError):
+            ValidationResult(passed=True)  # type: ignore
+
+    def test_failed_validation_with_remaining_issues(self) -> None:
+        """ValidationResult handles failed validation with remaining issues."""
+        result = ValidationResult(
+            passed=False,
+            tests_passed=False,
+            code_review_passed=False,
+            issues_fixed=["Fixed typo in config"],
+            issues_remaining=[
+                "Test test_login_validation fails - database connection issue",
+                "Security: SQL injection vulnerability in user query",
+            ],
+            summary="Tests failing due to database issues, security concern found",
         )
-        assert issue.location is not None
-        assert issue.location.file_path == "tests/test_api.py"
+        assert result.passed is False
+        assert len(result.issues_fixed) == 1
+        assert len(result.issues_remaining) == 2
+        assert "SQL injection" in result.issues_remaining[1]
 
-    def test_issue_with_multiple_locations(self) -> None:
-        """ValidationIssue can have multiple affected locations."""
-        locations = [
-            IssueLocation(file_path="src/a.py", line_start=10),
-            IssueLocation(file_path="src/b.py", line_start=20),
-        ]
-        issue = ValidationIssue(
-            source=IssueSource.REVIEW,
-            severity=IssueSeverity.WARNING,
-            description="Duplicate code detected",
-            locations=locations,
+
+class TestValidationResultSerialization:
+    """Tests for ValidationResult serialization methods."""
+
+    def test_model_dump_returns_dict(self) -> None:
+        """model_dump returns a dictionary representation."""
+        result = ValidationResult(
+            passed=True,
+            tests_passed=True,
+            code_review_passed=True,
+            issues_fixed=["Fixed bug"],
+            issues_remaining=[],
+            summary="All good",
         )
-        assert len(issue.locations) == 2
-        assert issue.locations[0].file_path == "src/a.py"
-        assert issue.locations[1].file_path == "src/b.py"
-
-
-class TestIssueContext:
-    """Tests for IssueContext model."""
-
-    def test_create_with_all_context_fields(self) -> None:
-        """IssueContext can store full context information."""
-        context = IssueContext(
-            code_snippet="def login():\n    pass",
-            error_message="AssertionError: expected True",
-            stack_trace="Traceback...\n  File...",
-            related_files=["src/auth.py", "tests/test_auth.py"],
-            suggestion="Add return statement",
-        )
-        assert context.code_snippet == "def login():\n    pass"
-        assert context.error_message == "AssertionError: expected True"
-        assert len(context.related_files) == 2
-        assert context.suggestion == "Add return statement"
-
-    def test_context_truncates_long_fields(self) -> None:
-        """Context fields are truncated to prevent excessive storage."""
-        long_snippet = "x" * 3000  # Exceeds 2000 char limit
-        long_error = "e" * 1500   # Exceeds 1000 char limit
-        long_trace = "t" * 6000  # Exceeds 5000 char limit
-
-        context = IssueContext(
-            code_snippet=long_snippet,
-            error_message=long_error,
-            stack_trace=long_trace,
-        )
-
-        assert len(context.code_snippet) <= 2000
-        assert len(context.error_message) <= 1000
-        assert len(context.stack_trace) <= 5000
-
-    def test_issue_with_context(self) -> None:
-        """ValidationIssue can include context information."""
-        context = IssueContext(
-            error_message="TypeError: expected int",
-            suggestion="Cast value to int first",
-        )
-        issue = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Type error in calculation",
-            context=context,
-        )
-        assert issue.context is not None
-        assert issue.context.error_message == "TypeError: expected int"
-
-
-class TestFixTracking:
-    """Tests for fix attempt tracking."""
-
-    def test_fix_attempt_creation(self) -> None:
-        """FixAttempt records fix attempt details."""
-        attempt = FixAttempt(
-            result=FixResult.PARTIAL,
-            notes="Fixed main issue, side effect remains",
-            changes_made=["src/auth.py", "tests/test_auth.py"],
-        )
-        assert attempt.result == FixResult.PARTIAL
-        assert "side effect" in attempt.notes
-        assert len(attempt.changes_made) == 2
-        assert attempt.timestamp is not None
-
-    def test_issue_fix_tracking_defaults(self) -> None:
-        """ValidationIssue has correct fix tracking defaults."""
-        issue = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-        )
-        assert issue.fix_attempted is False
-        assert issue.fix_attempt_count == 0
-        assert issue.last_fix_result == FixResult.NOT_ATTEMPTED
-        assert issue.fix_history == []
-
-    def test_issue_records_fix_attempts(self) -> None:
-        """ValidationIssue can track multiple fix attempts."""
-        issue = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-        )
-
-        # Record first attempt
-        attempt1 = FixAttempt(
-            result=FixResult.FAILED,
-            notes="First attempt failed",
-        )
-        issue.fix_history.append(attempt1)
-        issue.fix_attempted = True
-        issue.fix_attempt_count = 1
-        issue.last_fix_result = FixResult.FAILED
-
-        # Record second attempt
-        attempt2 = FixAttempt(
-            result=FixResult.RESOLVED,
-            notes="Fixed by correcting assertion",
-        )
-        issue.fix_history.append(attempt2)
-        issue.fix_attempt_count = 2
-        issue.last_fix_result = FixResult.RESOLVED
-
-        assert len(issue.fix_history) == 2
-        assert issue.fix_attempt_count == 2
-        assert issue.last_fix_result == FixResult.RESOLVED
-
-
-class TestIssueComparisonHashing:
-    """Tests for issue comparison and hashing (Task 6)."""
-
-    def test_equal_issues_same_source_description_location(self) -> None:
-        """Issues with same source, description, and location are equal."""
-        location = IssueLocation(file_path="src/auth.py", line_start=42)
-        issue1 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-            location=location,
-        )
-        issue2 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-            location=IssueLocation(file_path="src/auth.py", line_start=42),
-        )
-        assert issue1 == issue2
-
-    def test_different_issues_not_equal(self) -> None:
-        """Issues with different source, description, or location are not equal."""
-        issue1 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-        )
-        issue2 = ValidationIssue(
-            source=IssueSource.REVIEW,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-        )
-        assert issue1 != issue2
-
-        issue3 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Different error",
-        )
-        assert issue1 != issue3
-
-    def test_hash_consistent_for_equal_issues(self) -> None:
-        """Equal issues have the same hash value."""
-        issue1 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-            location=IssueLocation(file_path="src/auth.py", line_start=42),
-        )
-        issue2 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-            location=IssueLocation(file_path="src/auth.py", line_start=42),
-        )
-        assert hash(issue1) == hash(issue2)
-
-    def test_issues_usable_in_sets(self) -> None:
-        """Issues can be added to sets and deduplicated."""
-        issue1 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-        )
-        issue2 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-        )
-        issue3 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Different error",
-        )
-
-        issue_set = {issue1, issue2, issue3}
-        assert len(issue_set) == 2  # issue1 and issue2 are duplicates
-
-    def test_is_same_issue_exact_match(self) -> None:
-        """is_same_issue returns True for exact matches."""
-        issue1 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed: test_login_validation",
-            location=IssueLocation(file_path="tests/test_auth.py"),
-        )
-        issue2 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.WARNING,  # Different severity is OK
-            description="Test failed: test_login_validation",
-            location=IssueLocation(file_path="tests/test_auth.py"),
-        )
-        assert issue1.is_same_issue(issue2)
-
-    def test_is_same_issue_fuzzy_match_description(self) -> None:
-        """is_same_issue matches when first 50 chars are the same."""
-        # Both descriptions share the same first 50+ characters
-        issue1 = ValidationIssue(
-            source=IssueSource.REVIEW,
-            severity=IssueSeverity.WARNING,
-            description="Missing docstring in function 'calculate_total_amount' - this is detailed extra info",
-            location=IssueLocation(file_path="src/calc.py"),
-        )
-        issue2 = ValidationIssue(
-            source=IssueSource.REVIEW,
-            severity=IssueSeverity.WARNING,
-            description="Missing docstring in function 'calculate_total_amount' - with different suffix",
-            location=IssueLocation(file_path="src/calc.py"),
-        )
-        assert issue1.is_same_issue(issue2)
-
-    def test_is_same_issue_different_source_no_match(self) -> None:
-        """is_same_issue returns False for different sources."""
-        issue1 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Same description",
-        )
-        issue2 = ValidationIssue(
-            source=IssueSource.REVIEW,
-            severity=IssueSeverity.ERROR,
-            description="Same description",
-        )
-        assert not issue1.is_same_issue(issue2)
-
-    def test_is_same_issue_different_file_no_match(self) -> None:
-        """is_same_issue returns False for different files."""
-        issue1 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-            location=IssueLocation(file_path="src/a.py"),
-        )
-        issue2 = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-            location=IssueLocation(file_path="src/b.py"),
-        )
-        assert not issue1.is_same_issue(issue2)
-
-    def test_comparison_with_non_issue_type(self) -> None:
-        """Comparison with non-ValidationIssue returns NotImplemented."""
-        issue = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-        )
-        # This should not raise, and should return False via NotImplemented
-        assert issue != "not an issue"
-        assert issue != 123
-        assert issue != {"source": "TEST"}
-
-
-class TestIssueSerialization:
-    """Tests for issue serialization methods (Task 7)."""
-
-    def test_to_dict_returns_json_serializable_dict(self) -> None:
-        """to_dict returns a JSON-serializable dictionary."""
-        issue = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-            location=IssueLocation(file_path="src/auth.py", line_start=42),
-        )
-        data = issue.to_dict()
+        data = result.model_dump()
 
         assert isinstance(data, dict)
-        assert data["source"] == "TEST"
-        assert data["severity"] == "ERROR"
-        assert data["description"] == "Test failed"
-        assert data["location"]["file_path"] == "src/auth.py"
-        assert data["location"]["line_start"] == 42
+        assert data["passed"] is True
+        assert data["tests_passed"] is True
+        assert data["code_review_passed"] is True
+        assert data["issues_fixed"] == ["Fixed bug"]
+        assert data["issues_remaining"] == []
+        assert data["summary"] == "All good"
 
-    def test_from_dict_creates_valid_issue(self) -> None:
-        """from_dict creates a valid ValidationIssue from dictionary."""
+    def test_model_validate_creates_from_dict(self) -> None:
+        """model_validate creates ValidationResult from dictionary."""
         data = {
-            "id": "VI-01HQ123456789ABCDEFGHJKMNP",
-            "source": "REVIEW",
-            "severity": "WARNING",
-            "description": "Missing docstring",
-            "location": {"file_path": "src/utils.py", "line_start": 10},
+            "passed": False,
+            "tests_passed": False,
+            "code_review_passed": True,
+            "issues_fixed": [],
+            "issues_remaining": ["Test failure"],
+            "summary": "One test failing",
         }
-        issue = ValidationIssue.from_dict(data)
+        result = ValidationResult.model_validate(data)
 
-        assert issue.id == "VI-01HQ123456789ABCDEFGHJKMNP"
-        assert issue.source == IssueSource.REVIEW
-        assert issue.severity == IssueSeverity.WARNING
-        assert issue.description == "Missing docstring"
-        assert issue.location.file_path == "src/utils.py"
+        assert result.passed is False
+        assert result.tests_passed is False
+        assert result.code_review_passed is True
+        assert result.issues_remaining == ["Test failure"]
+
+    def test_model_dump_json_returns_valid_json(self) -> None:
+        """model_dump_json returns valid JSON string."""
+        result = ValidationResult(
+            passed=True,
+            tests_passed=True,
+            code_review_passed=True,
+            summary="Validation complete",
+        )
+        json_str = result.model_dump_json()
+
+        assert isinstance(json_str, str)
+        # Verify it's valid JSON by parsing it
+        parsed = json.loads(json_str)
+        assert parsed["passed"] is True
+        assert parsed["summary"] == "Validation complete"
 
     def test_round_trip_serialization(self) -> None:
-        """Issue survives round-trip through to_dict/from_dict."""
-        original = ValidationIssue(
-            source=IssueSource.EVIDENCE,
-            severity=IssueSeverity.INFO,
-            description="Screenshot mismatch detected",
-            location=IssueLocation(
-                file_path="src/ui/button.py",
-                line_start=100,
-                function_name="render",
-            ),
-            context=IssueContext(
-                error_message="Visual diff > threshold",
-                suggestion="Update baseline screenshot",
-            ),
-            fix_attempted=True,
-            fix_attempt_count=1,
-            last_fix_result=FixResult.PARTIAL,
+        """ValidationResult survives round-trip through dict serialization."""
+        original = ValidationResult(
+            passed=True,
+            tests_passed=True,
+            code_review_passed=True,
+            issues_fixed=["Fixed issue 1", "Fixed issue 2"],
+            issues_remaining=[],
+            summary="All issues resolved, validation passed",
         )
 
-        data = original.to_dict()
-        restored = ValidationIssue.from_dict(data)
+        data = original.model_dump()
+        restored = ValidationResult.model_validate(data)
 
-        assert restored.id == original.id
-        assert restored.source == original.source
-        assert restored.severity == original.severity
-        assert restored.description == original.description
-        assert restored.location.file_path == original.location.file_path
-        assert restored.context.suggestion == original.context.suggestion
-        assert restored.fix_attempted == original.fix_attempted
+        assert restored.passed == original.passed
+        assert restored.tests_passed == original.tests_passed
+        assert restored.code_review_passed == original.code_review_passed
+        assert restored.issues_fixed == original.issues_fixed
+        assert restored.issues_remaining == original.issues_remaining
+        assert restored.summary == original.summary
 
-    def test_to_markdown_basic_issue(self) -> None:
-        """to_markdown produces readable markdown for basic issue."""
-        issue = ValidationIssue(
-            id="VI-TEST123",
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed: test_login_validation",
-        )
-        md = issue.to_markdown()
-
-        assert "## ERROR: Test failed: test_login_validation" in md
-        assert "**ID:** `VI-TEST123`" in md
-        assert "**Source:** TEST" in md
-
-    def test_to_markdown_with_location(self) -> None:
-        """to_markdown includes location information."""
-        issue = ValidationIssue(
-            id="VI-TEST456",
-            source=IssueSource.REVIEW,
-            severity=IssueSeverity.WARNING,
-            description="Missing error handling",
-            location=IssueLocation(file_path="src/api.py", line_start=42),
-        )
-        md = issue.to_markdown()
-
-        assert "**Location:** `src/api.py` (line 42)" in md
-
-    def test_to_markdown_with_suggestion(self) -> None:
-        """to_markdown includes suggestion from context."""
-        issue = ValidationIssue(
-            id="VI-TEST789",
-            source=IssueSource.REVIEW,
-            severity=IssueSeverity.INFO,
-            description="Could use list comprehension",
-            context=IssueContext(suggestion="Replace for loop with list comprehension"),
-        )
-        md = issue.to_markdown()
-
-        assert "**Suggestion:** Replace for loop with list comprehension" in md
-
-    def test_to_markdown_with_fix_status(self) -> None:
-        """to_markdown includes fix status when fix was attempted."""
-        issue = ValidationIssue(
-            id="VI-FIX001",
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-            fix_attempted=True,
-            fix_attempt_count=2,
-            last_fix_result=FixResult.PARTIAL,
-        )
-        md = issue.to_markdown()
-
-        assert "**Fix Status:** PARTIAL (2 attempts)" in md
-
-    def test_to_yaml_returns_valid_yaml_string(self) -> None:
-        """to_yaml returns a valid YAML string."""
-        issue = ValidationIssue(
-            source=IssueSource.TEST,
-            severity=IssueSeverity.ERROR,
-            description="Test failed",
-            location=IssueLocation(file_path="src/auth.py", line_start=42),
-        )
-        yaml_str = issue.to_yaml()
-
-        assert isinstance(yaml_str, str)
-        assert "source: TEST" in yaml_str
-        assert "severity: ERROR" in yaml_str
-        assert "description: Test failed" in yaml_str
-
-    def test_from_yaml_creates_valid_issue(self) -> None:
-        """from_yaml creates a valid ValidationIssue from YAML string."""
-        yaml_str = """
-id: VI-01HQ123456789ABCDEFGHJKMNP
-source: REVIEW
-severity: WARNING
-description: Missing docstring
-location:
-  file_path: src/utils.py
-  line_start: 10
-"""
-        issue = ValidationIssue.from_yaml(yaml_str)
-
-        assert issue.id == "VI-01HQ123456789ABCDEFGHJKMNP"
-        assert issue.source == IssueSource.REVIEW
-        assert issue.severity == IssueSeverity.WARNING
-        assert issue.description == "Missing docstring"
-        assert issue.location.file_path == "src/utils.py"
-
-    def test_yaml_round_trip_serialization(self) -> None:
-        """Issue survives round-trip through to_yaml/from_yaml."""
-        original = ValidationIssue(
-            source=IssueSource.EVIDENCE,
-            severity=IssueSeverity.INFO,
-            description="Screenshot mismatch detected",
-            location=IssueLocation(
-                file_path="src/ui/button.py",
-                line_start=100,
-                function_name="render",
-            ),
-            context=IssueContext(
-                error_message="Visual diff > threshold",
-                suggestion="Update baseline screenshot",
-            ),
-            fix_attempted=True,
-            fix_attempt_count=1,
-            last_fix_result=FixResult.PARTIAL,
+    def test_json_round_trip_serialization(self) -> None:
+        """ValidationResult survives round-trip through JSON serialization."""
+        original = ValidationResult(
+            passed=False,
+            tests_passed=True,
+            code_review_passed=False,
+            issues_fixed=[],
+            issues_remaining=["Code review found security issue"],
+            summary="Tests pass but security concern in review",
         )
 
-        yaml_str = original.to_yaml()
-        restored = ValidationIssue.from_yaml(yaml_str)
+        json_str = original.model_dump_json()
+        data = json.loads(json_str)
+        restored = ValidationResult.model_validate(data)
 
-        assert restored.id == original.id
-        assert restored.source == original.source
-        assert restored.severity == original.severity
-        assert restored.description == original.description
-        assert restored.location.file_path == original.location.file_path
-        assert restored.context.suggestion == original.context.suggestion
-        assert restored.fix_attempted == original.fix_attempted
+        assert restored.passed == original.passed
+        assert restored.tests_passed == original.tests_passed
+        assert restored.code_review_passed == original.code_review_passed
+        assert restored.issues_remaining == original.issues_remaining
+
+
+class TestValidationResultSchema:
+    """Tests for ValidationResult JSON schema compliance."""
+
+    def test_schema_has_example(self) -> None:
+        """JSON schema includes example from model_config."""
+        schema = ValidationResult.model_json_schema()
+        assert "example" in schema or "examples" in schema
+
+    def test_all_fields_documented(self) -> None:
+        """All fields have descriptions in the schema."""
+        schema = ValidationResult.model_json_schema()
+        properties = schema.get("properties", {})
+
+        expected_fields = [
+            "passed",
+            "tests_passed",
+            "code_review_passed",
+            "issues_fixed",
+            "issues_remaining",
+            "summary",
+        ]
+
+        for field in expected_fields:
+            assert field in properties, f"Missing field: {field}"
+            assert (
+                "description" in properties[field]
+            ), f"No description for field: {field}"
+
+    def test_required_fields_specified(self) -> None:
+        """Schema specifies required fields correctly."""
+        schema = ValidationResult.model_json_schema()
+        required = schema.get("required", [])
+
+        # Required fields (no defaults)
+        assert "passed" in required
+        assert "tests_passed" in required
+        assert "code_review_passed" in required
+
+        # Optional fields (have defaults) should NOT be in required
+        # Note: Pydantic may or may not include fields with default_factory
+        # in required, so we just verify the schema exists
+
+
+class TestValidationResultValidation:
+    """Tests for ValidationResult input validation."""
+
+    def test_validates_issues_fixed_is_list_of_strings(self) -> None:
+        """issues_fixed must be a list of strings."""
+        result = ValidationResult(
+            passed=True,
+            tests_passed=True,
+            code_review_passed=True,
+            issues_fixed=["string1", "string2"],
+        )
+        assert all(isinstance(s, str) for s in result.issues_fixed)
+
+    def test_validates_issues_remaining_is_list_of_strings(self) -> None:
+        """issues_remaining must be a list of strings."""
+        result = ValidationResult(
+            passed=False,
+            tests_passed=False,
+            code_review_passed=True,
+            issues_remaining=["issue1", "issue2"],
+        )
+        assert all(isinstance(s, str) for s in result.issues_remaining)
+
+    def test_rejects_non_string_issues(self) -> None:
+        """Non-string values in issues lists are rejected by Pydantic validation."""
+        # Pydantic should reject non-string values in list[str] fields
+        with pytest.raises(ValueError):
+            ValidationResult(
+                passed=True,
+                tests_passed=True,
+                code_review_passed=True,
+                issues_fixed=[123, True],  # type: ignore
+            )
+
+    def test_mutable_assignment(self) -> None:
+        """ValidationResult fields can be modified after creation."""
+        result = ValidationResult(
+            passed=True,
+            tests_passed=True,
+            code_review_passed=True,
+        )
+        result.passed = False
+        result.issues_remaining = ["New issue found"]
+
+        assert result.passed is False
+        assert result.issues_remaining == ["New issue found"]

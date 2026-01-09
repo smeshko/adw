@@ -1,7 +1,7 @@
 # Story 16.4: Update Phase Result Model
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: dev-complete
 Linear Issue: not-configured
 Epic: 16 - Validation Phase Simplification
 Created: 2026-01-08
@@ -32,17 +32,17 @@ class ValidationResult(BaseModel):
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Simplify ValidationResult model**
+- [x] **Task 1: Simplify ValidationResult model**
   - Update `src/adw/validation/models.py`
   - Replace complex model with simplified version
   - Remove all iteration/triage tracking fields
 
-- [ ] **Task 2: Remove ValidationIssue model**
+- [x] **Task 2: Remove ValidationIssue model**
   - Delete the detailed `ValidationIssue` model
   - Replace with simple string summaries
   - Update any code that creates ValidationIssue objects
 
-- [ ] **Task 3: Remove iteration/triage tracking models**
+- [x] **Task 3: Remove iteration/triage tracking models**
   - Remove `TriageDecision` enum
   - Remove `TriagedIssue` model
   - Remove `FixAttempt` model
@@ -50,17 +50,17 @@ class ValidationResult(BaseModel):
   - Remove `LoopState` model
   - Remove `ValidationState` model (iteration tracking)
 
-- [ ] **Task 4: Update serialization**
+- [x] **Task 4: Update serialization**
   - Ensure ValidationResult serializes correctly to JSON
   - Update any JSON schema files
   - Test round-trip serialization
 
-- [ ] **Task 5: Update all usages**
+- [x] **Task 5: Update all usages**
   - Update ValidationPhase to use new model
   - Update report generation
   - Update any CLI display code
 
-- [ ] **Task 6: Update tests**
+- [x] **Task 6: Update tests**
   - Update model tests for new structure
   - Remove tests for deleted models
 

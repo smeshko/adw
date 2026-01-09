@@ -28,6 +28,7 @@ from adw.hooks.git_diff import (
     has_commits,
     truncate_diff,
 )
+from adw.commands.template import build_task_context
 from adw.models import (
     LLMResult,
     PhaseResult,
@@ -363,6 +364,8 @@ class PhaseRunner:
             "worktree_path": (
                 str(context.worktree_path) if context.worktree_path else ""
             ),
+            # Story 12.5: task context for templates ({{task.*}} variables)
+            "task": build_task_context(context.task_info),
         }
 
         # Add convenience aliases for common artifact references

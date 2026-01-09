@@ -13,15 +13,71 @@ No recursive expansion is performed for security and simplicity.
 import logging
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
 from adw.exceptions import ConfigError
 
+if TYPE_CHECKING:
+    from adw.models.task import TaskInfo
+
 logger = logging.getLogger(__name__)
 
-__all__ = ["TemplateEngine", "escape_feature_description"]
+__all__ = ["TemplateEngine", "escape_feature_description", "build_task_context"]
+
+
+class GracefulDict(dict[str, Any]):
+    """A dict subclass that returns a chainable placeholder for missing keys.
+
+    Used for task.custom field access when task_info is None.
+    Ensures {{task.custom.<field>}} and nested paths like
+    {{task.custom.metadata.details.component}} resolve to empty string
+    instead of raising KeyError or staying as placeholder.
+
+    For missing keys, returns another GracefulDict instance (allowing
+    infinite nesting), which converts to empty string when used as str.
+    """
+
+    def __missing__(self, _key: str) -> "GracefulDict":
+        """Return a new GracefulDict for any missing key, allowing nested access."""
+        return GracefulDict()
+
+    def __getitem__(self, key: str) -> Any:
+        """Return value for key, or new GracefulDict if missing."""
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            return GracefulDict()
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Return value for key with default."""
+        result = super().get(key)
+        if result is None:
+            return default if default is not None else GracefulDict()
+        return result
+
+    def __str__(self) -> str:
+        """Return empty string when converted to string (for template output)."""
+        return ""
+
+    def __repr__(self) -> str:
+        """Return empty string for repr (used in f-strings and str() calls)."""
+        if not self:
+            return ""
+        return super().__repr__()
+
+    def __bool__(self) -> bool:
+        """Return False when empty (for conditional checks)."""
+        return bool(super().keys())
+
+# Priority label mapping (1=Urgent, 2=High, 3=Medium, 4=Low)
+PRIORITY_LABELS: dict[int, str] = {
+    1: "Urgent",
+    2: "High",
+    3: "Medium",
+    4: "Low",
+}
 
 
 def escape_feature_description(description: str) -> str:
@@ -55,6 +111,78 @@ def escape_feature_description(description: str) -> str:
     # Escape backticks (shell command substitution)
     result = result.replace("`", "\\`")
     return result
+
+
+def build_task_context(task_info: "TaskInfo | None") -> dict[str, Any]:
+    """Build task variable context from TaskInfo for template rendering.
+
+    Converts TaskInfo model fields into a flat dict structure suitable for
+    template variable substitution via {{task.*}} syntax.
+
+    The returned dict supports:
+    - Direct field access: {{task.id}}, {{task.title}}, etc.
+    - Priority label: {{task.priority_label}} -> "High"
+    - Labels as string: {{task.labels}} -> "bug, urgent"
+    - Custom fields: {{task.custom.field_name}}
+
+    Args:
+        task_info: TaskInfo model from task manager, or None if no task context.
+
+    Returns:
+        Dict mapping task variable names to string values. Returns empty dict
+        if task_info is None, allowing graceful degradation in templates.
+
+    Example:
+        >>> from adw.models.task import TaskInfo
+        >>> task = TaskInfo(
+        ...     id="abc123",
+        ...     identifier="RULE-123",
+        ...     title="Fix login bug",
+        ...     priority=2,
+        ...     labels=["bug", "urgent"],
+        ... )
+        >>> context = build_task_context(task)
+        >>> context["id"]
+        'abc123'
+        >>> context["priority_label"]
+        'High'
+        >>> context["labels"]
+        'bug, urgent'
+    """
+    if task_info is None:
+        logger.debug("No task_info available, task context will use empty strings")
+        # Return dict with all keys as empty strings for graceful degradation
+        # This ensures {{task.*}} variables resolve to empty string, not stay as-is
+        # Use GracefulDict for custom so {{task.custom.<field>}} also resolves to ""
+        return {
+            "id": "",
+            "identifier": "",
+            "title": "",
+            "description": "",
+            "status": "",
+            "priority": "",
+            "priority_label": "",
+            "labels": "",
+            "assignee": "",
+            "parent_id": "",
+            "parent_title": "",
+            "custom": GracefulDict(),
+        }
+
+    return {
+        "id": task_info.id or "",
+        "identifier": task_info.identifier or "",
+        "title": task_info.title or "",
+        "description": task_info.description or "",
+        "status": task_info.status or "",
+        "priority": str(task_info.priority) if task_info.priority else "",
+        "priority_label": PRIORITY_LABELS.get(task_info.priority or 0, ""),
+        "labels": ", ".join(task_info.labels) if task_info.labels else "",
+        "assignee": task_info.assignee or "",
+        "parent_id": task_info.parent_id or "",
+        "parent_title": task_info.parent_title or "",
+        "custom": task_info.custom_fields or {},
+    }
 
 
 # Compile patterns once at module level for efficiency
@@ -194,9 +322,14 @@ class TemplateEngine:
 
         for part in parts:
             if isinstance(value, dict):
-                if part not in value:
+                # For GracefulDict (used for task.custom when no task_info),
+                # use __getitem__ directly to get empty string default
+                if isinstance(value, GracefulDict):
+                    value = value[part]
+                elif part not in value:
                     raise KeyError(path)
-                value = value[part]
+                else:
+                    value = value[part]
             else:
                 # Try attribute access for objects
                 if not hasattr(value, part):
