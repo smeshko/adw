@@ -57,10 +57,10 @@ So that my team can follow progress without checking CLI output.
 - [x] Implement in `LinearTaskManager` (GraphQL mutation)
 
 ### Task 2: Implement Linear Comment Posting
-- [ ] Add `commentCreate` mutation to LinearClient
-- [ ] Format comment with markdown
-- [ ] Include run context (run_id, phase, duration)
-- [ ] Handle API errors gracefully
+- [x] Add `commentCreate` mutation to LinearClient
+- [x] Format comment with markdown
+- [x] Include run context (run_id, phase, duration)
+- [x] Handle API errors gracefully
 
 ### Task 3: Create CommentFormatter
 - [ ] Create `src/adw/task_managers/comments.py` with `CommentFormatter`
