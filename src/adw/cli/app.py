@@ -202,9 +202,28 @@ def run(
         )
         raise typer.Exit(code=1)
 
+    # Load config for task manager configuration (Story 12.8)
+    from adw.config.loader import ConfigLoader
+
+    task_manager_config = None
+    try:
+        config = ConfigLoader().load()
+        task_manager_config = config.task_manager
+    except ConfigError:
+        # No config or invalid - use default
+        pass
+
     # Resolve input: task ID vs feature string (Story 12.4 Task 4)
-    # Creates a task manager and uses InputResolver to auto-detect or force interpretation
-    task_manager = TaskManagerFactory().create()
+    # Creates a task manager with config and uses InputResolver to auto-detect
+    # When --no-task-manager is used, bypass config entirely to avoid initialization
+    # errors (e.g., missing LINEAR_API_KEY) even when user doesn't want task manager
+    task_type_to_use = "none" if no_task_manager else (
+        task_manager_config.type if task_manager_config else "none"
+    )
+    task_manager = TaskManagerFactory().create(
+        task_type=task_type_to_use,
+        config=task_manager_config if not no_task_manager else None,
+    )
     resolver = InputResolver(task_manager)
     try:
         resolved = resolver.resolve(
@@ -221,9 +240,17 @@ def run(
         )
         raise typer.Exit(code=1) from None
 
-    # Log resolution result for transparency (Story 12.4 Task 5)
-    if resolved.type == InputType.TASK_ID:
+    # Fetch task info to get internal UUID for issue closing (Story 12.8)
+    task_uuid: str | None = None
+    if resolved.type == InputType.TASK_ID and resolved.task_id:
         console.print(f"[dim]Resolved as task ID:[/] {resolved.task_id}")
+        try:
+            task_info = task_manager.fetch_task(resolved.task_id)
+            task_uuid = task_info.id  # Internal UUID for issue closing
+            console.print(f"[dim]Task:[/] {task_info.title}")
+        except Exception:
+            # Non-blocking - continue without task UUID
+            pass
         if not task_id:  # Auto-detected, not forced
             console.print(
                 "[dim]Tip:[/] Use --no-task-manager if you meant this as a feature description"
@@ -313,8 +340,12 @@ def run(
             )
         else:
             # Full pipeline execution (Story 10.1: pass use_worktree flag)
+            # (Story 12.8: pass task_uuid for issue closing)
             context = orchestrator.run(
-                feature, run_id=run_id, use_worktree=not no_worktree
+                feature,
+                run_id=run_id,
+                use_worktree=not no_worktree,
+                task_uuid=task_uuid,
             )
             console.print(f"[green]✓[/] Run completed: {context.run_id}")
 

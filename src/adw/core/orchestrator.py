@@ -45,7 +45,7 @@ from adw.evidence import (
     generate_summary as generate_api_summary,
 )
 from adw.exceptions import ADWError, ConfigError
-from adw.models import GitConfig, RunContext, WorktreeConfig
+from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
 from adw.models.evidence import (
     APIEvidenceResult,
     EvidenceStrategy,
@@ -147,6 +147,7 @@ class Orchestrator:
         max_retries: int = 3,
         worktree_config: WorktreeConfig | None = None,
         git_config: GitConfig | None = None,
+        task_manager_config: TaskManagerConfig | None = None,
         label_manager: "LabelManager | None" = None,
         status_sync_service: "StatusSyncService | None" = None,
     ) -> None:
@@ -165,6 +166,7 @@ class Orchestrator:
             max_retries: Maximum retry attempts for recoverable errors (default: 3).
             worktree_config: Worktree isolation config (optional, Story 10.1).
             git_config: Git configuration for auto-PR creation (optional, ISS-011).
+            task_manager_config: Task manager configuration for auto-close (Story 12.8).
             label_manager: Manager for task labels (optional, Story 12.7).
             status_sync_service: Service for syncing status with task managers
                 (optional, Story 12.3). When provided, sync calls are made at
@@ -187,6 +189,9 @@ class Orchestrator:
 
         # Git config for auto-PR (Story ISS-011)
         self.git_config = git_config or GitConfig()
+
+        # Task manager config for auto-close (Story 12.8)
+        self.task_manager_config = task_manager_config or TaskManagerConfig()
 
         # Label manager for task label operations (Story 12.7)
         self._label_manager = label_manager
@@ -239,6 +244,7 @@ class Orchestrator:
         run_id: str | None = None,
         *,
         use_worktree: bool = True,
+        task_uuid: str | None = None,
     ) -> RunContext:
         """Execute the full pipeline for a feature.
 
@@ -250,12 +256,16 @@ class Orchestrator:
         5. Handle errors, retries, and graceful shutdown
         6. Preserve worktree for user inspection (ISS-020: use 'adw cleanup' to remove)
         7. Mark run as completed, failed, or interrupted
+        8. Attempt to close task if auto_close enabled (Story 12.8)
 
         Args:
             feature_description: Description of the feature to implement.
             run_id: Optional run ID. If not provided, a new ULID is generated.
             use_worktree: Whether to use worktree isolation for this run.
                 Defaults to True. Set to False to run in current directory.
+            task_uuid: Internal task UUID (from TaskInfo.id) for issue closing.
+                If provided and auto_close is enabled, task will be closed when
+                PR is merged (Story 12.8).
 
         Returns:
             Final RunContext with status and artifacts.
@@ -352,6 +362,24 @@ class Orchestrator:
                     phases_completed=list(context.phase_history),
                 )
 
+                # Attempt auto-PR creation if enabled (Story ISS-011)
+                # This runs regardless of progress_display to ensure PR is created
+                pr_result = None
+                if self.progress_display:
+                    pr_result = self.progress_display.try_auto_create_pr(
+                        run_id=context.run_id,
+                        context=context,
+                        runs_dir=self.runs_dir,
+                        auto_create_pr_enabled=self.git_config.auto_create_pr,
+                    )
+
+                # Attempt to close task if auto_close enabled (Story 12.8)
+                # This must run regardless of progress_display
+                self._maybe_close_task(
+                    task_uuid=task_uuid,
+                    pr_url=pr_result.pr_url if pr_result else None,
+                )
+
                 # Show pipeline summary (Story 5.5)
                 if self.progress_display:
                     total_tokens = sum(context.phase_tokens.values())
@@ -361,14 +389,6 @@ class Orchestrator:
                             (context.completed_at - context.started_at).total_seconds()
                             * 1000
                         )
-
-                    # Attempt auto-PR creation if enabled (Story ISS-011)
-                    pr_result = self.progress_display.try_auto_create_pr(
-                        run_id=context.run_id,
-                        context=context,
-                        runs_dir=self.runs_dir,
-                        auto_create_pr_enabled=self.git_config.auto_create_pr,
-                    )
 
                     self.progress_display.show_pipeline_summary(
                         completed_phases=context.phase_history,
@@ -1884,6 +1904,56 @@ class Orchestrator:
         )
 
         return updated_context
+
+    def _maybe_close_task(
+        self,
+        task_uuid: str | None,
+        pr_url: str | None,
+    ) -> None:
+        """Attempt to close task if auto_close is enabled (Story 12.8).
+
+        This method is non-blocking - failures are logged but don't
+        affect the run outcome.
+
+        Args:
+            task_uuid: Internal task UUID (from TaskInfo.id). If None, does nothing.
+            pr_url: PR URL to check merge status. If None, closes without checking PR.
+        """
+        if not task_uuid:
+            logger.debug("No task_uuid provided, skipping issue closing")
+            return
+
+        if not self.task_manager_config.auto_close:
+            logger.debug("Auto-close disabled, skipping issue closing")
+            return
+
+        try:
+            from adw.task_managers import TaskManagerFactory
+            from adw.task_managers.closer import IssueCloser
+
+            task_manager = TaskManagerFactory().create(
+                task_type=self.task_manager_config.type,
+                config=self.task_manager_config,
+            )
+            with IssueCloser(task_manager, self.task_manager_config) as closer:
+                closed = closer.maybe_close(task_uuid, pr_url)
+                if closed:
+                    logger.info(
+                        "Task closed after run completion",
+                        extra={"task_uuid": task_uuid},
+                    )
+                else:
+                    logger.debug(
+                        "Task not closed (PR not merged or condition not met)",
+                        extra={"task_uuid": task_uuid, "pr_url": pr_url},
+                    )
+        except Exception as e:
+            # Non-blocking - log warning and continue
+            logger.warning(
+                "Failed to close task: %s. Close manually with: adw task close %s",
+                e,
+                task_uuid,
+            )
 
     def _show_worktree_preserved(
         self, context: RunContext, outcome: str = "success"
