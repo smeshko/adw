@@ -1,27 +1,46 @@
-"""Unit tests for ValidationPhase class.
+"""Tests for simplified ValidationPhase (Story 16.4).
 
-Tests for the unified validation phase that combines evidence gathering,
-code review, and test execution.
+Tests cover:
+- ValidationPhase initialization
+- ValidationPhase.run() method
+- ValidationPhase.from_llm_response() method
+- Integration with ValidationConfig
 """
 
 from datetime import UTC, datetime
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from adw.models import RunContext
-from adw.validation import ValidationPhase
-from adw.validation.models import (
-    IssueSeverity,
-    ValidationIssue,
-    ValidationResult,
-    ValidationSource,
-)
+from adw.validation.config import ValidationConfig
+from adw.validation.models import ValidationResult
+from adw.validation.phase import ValidationPhase
 
 
-class TestValidationPhase:
-    """Test cases for ValidationPhase class."""
+class TestValidationPhaseInit:
+    """Tests for ValidationPhase initialization."""
+
+    def test_default_config(self) -> None:
+        """ValidationPhase uses default config when none provided."""
+        phase = ValidationPhase()
+        assert phase.config is not None
+        assert isinstance(phase.config, ValidationConfig)
+
+    def test_custom_config(self) -> None:
+        """ValidationPhase accepts custom config."""
+        config = ValidationConfig(enable_tests=False)
+        phase = ValidationPhase(config=config)
+        assert phase.config.enable_tests is False
+
+    def test_run_id_stored(self) -> None:
+        """ValidationPhase stores run_id for logging."""
+        phase = ValidationPhase(run_id="test-run-123")
+        assert phase._run_id == "test-run-123"
+
+
+class TestValidationPhaseRun:
+    """Tests for ValidationPhase.run() method."""
 
     @pytest.fixture
     def mock_context(self) -> RunContext:
@@ -40,573 +59,197 @@ class TestValidationPhase:
             use_worktree=False,
             branch_name=None,
         )
-
-    @pytest.fixture
-    def validation_phase(self) -> ValidationPhase:
-        """Create a ValidationPhase instance for testing."""
-        return ValidationPhase()
-
-    def test_run_all_validators_pass(
-        self, validation_phase: ValidationPhase, mock_context: RunContext
-    ) -> None:
-        """Phase completes successfully when all validators pass."""
-        # Arrange - mock validators to return no issues
-        with patch.object(
-            validation_phase, "_run_validators", return_value=[]
-        ):
-            # Act
-            result = validation_phase.run(mock_context)
-
-            # Assert
-            assert isinstance(result, ValidationResult)
-            assert result.passed is True
-            assert result.issues == []
-            assert result.iteration == 1
-
-    def test_run_collects_all_issues(
-        self, validation_phase: ValidationPhase, mock_context: RunContext
-    ) -> None:
-        """Phase aggregates issues from all validators."""
-        # Arrange - mock validators to return issues
-        mock_issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                message="Test failed: test_example",
-                severity="high",
-                file_path="tests/test_example.py",
-                line_number=10,
-            ),
-            ValidationIssue(
-                source=ValidationSource.REVIEW,
-                message="Missing error handling",
-                severity="medium",
-                file_path="src/main.py",
-                line_number=25,
-            ),
-        ]
-        with patch.object(
-            validation_phase, "_run_validators", return_value=mock_issues
-        ):
-            # Act
-            result = validation_phase.run(mock_context)
-
-            # Assert
-            assert isinstance(result, ValidationResult)
-            assert result.passed is False
-            assert len(result.issues) == 2
-            assert result.issues[0].source == ValidationSource.TEST
-            assert result.issues[1].source == ValidationSource.REVIEW
-
-    def test_run_respects_config_disabled(
-        self, mock_context: RunContext
-    ) -> None:
-        """Disabled validators are not executed."""
-        from adw.validation.config import ValidationConfig
-
-        # Create mock validators
-        test_validator = MagicMock()
-        test_validator.name = "test"
-        test_validator.validate.return_value = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                message="Test issue",
-                severity="low",
-            )
-        ]
-
-        review_validator = MagicMock()
-        review_validator.name = "review"
-        review_validator.validate.return_value = [
-            ValidationIssue(
-                source=ValidationSource.REVIEW,
-                message="Review issue",
-                severity="medium",
-            )
-        ]
-
-        # Config disables evidence and review, enables tests
-        config = ValidationConfig(
-            enable_evidence=False,
-            enable_review=False,
-            enable_tests=True,
-        )
-        phase = ValidationPhase(config=config)
-
-        # Register both validators
-        phase.register_validator(test_validator)
-        phase.register_validator(review_validator)
-
-        # Act
-        result = phase.run(mock_context)
-
-        # Assert - only test validator should have been called
-        test_validator.validate.assert_called_once_with(mock_context)
-        review_validator.validate.assert_not_called()
-        assert isinstance(result, ValidationResult)
-        assert len(result.issues) == 1
-        assert result.issues[0].source == ValidationSource.TEST
-
-    def test_run_continues_after_validator_error(
-        self, mock_context: RunContext
-    ) -> None:
-        """Phase continues to next validator on error and creates issue for crash."""
-        # Create a validator that crashes
-        crashing_validator = MagicMock()
-        crashing_validator.name = "test"
-        crashing_validator.validate.side_effect = RuntimeError("Validator crashed!")
-
-        # Create a validator that succeeds
-        working_validator = MagicMock()
-        working_validator.name = "review"
-        working_validator.validate.return_value = [
-            ValidationIssue(
-                source=ValidationSource.REVIEW,
-                message="Found a review issue",
-                severity="medium",
-            )
-        ]
-
-        phase = ValidationPhase()
-        phase.register_validator(crashing_validator)
-        phase.register_validator(working_validator)
-
-        # Act
-        result = phase.run(mock_context)
-
-        # Assert - both validators were called
-        crashing_validator.validate.assert_called_once_with(mock_context)
-        working_validator.validate.assert_called_once_with(mock_context)
-
-        # Assert - phase returned issues from both
-        assert isinstance(result, ValidationResult)
-        assert result.passed is False  # Has issues, so should fail
-        assert len(result.issues) == 2
-
-        # Check that crash created an issue
-        crash_issues = [i for i in result.issues if "crashed" in i.message.lower()]
-        assert len(crash_issues) == 1
-        assert crash_issues[0].severity == IssueSeverity.ERROR  # critical maps to ERROR
-        assert crash_issues[0].source == ValidationSource.TEST
-
-        # Check working validator issue was also collected
-        review_issues = [i for i in result.issues if i.source == ValidationSource.REVIEW]
-        assert len(review_issues) == 1
 
     def test_run_returns_validation_result(
-        self, validation_phase: ValidationPhase, mock_context: RunContext
+        self, mock_context: RunContext
     ) -> None:
-        """Phase returns proper ValidationResult structure."""
-        with patch.object(validation_phase, "_run_validators", return_value=[]):
-            # Act
-            result = validation_phase.run(mock_context)
+        """run() returns a ValidationResult."""
+        phase = ValidationPhase()
+        result = phase.run(mock_context)
+        assert isinstance(result, ValidationResult)
 
-            # Assert
-            assert isinstance(result, ValidationResult)
-            assert hasattr(result, "passed")
-            assert hasattr(result, "issues")
-            assert hasattr(result, "iteration")
-            assert isinstance(result.passed, bool)
-            assert isinstance(result.issues, list)
-            assert isinstance(result.iteration, int)
+    def test_run_returns_default_failed_result(
+        self, mock_context: RunContext
+    ) -> None:
+        """run() returns failed result indicating LLM execution needed."""
+        phase = ValidationPhase()
+        result = phase.run(mock_context)
 
-
-class TestValidationResult:
-    """Test cases for ValidationResult model."""
-
-    def test_validation_result_passed_when_no_issues(self) -> None:
-        """ValidationResult.passed is True when issues list is empty."""
-        result = ValidationResult(passed=True, issues=[], iteration=1)
-        assert result.passed is True
-        assert len(result.issues) == 0
-
-    def test_validation_result_failed_with_issues(self) -> None:
-        """ValidationResult.passed is False when issues exist."""
-        issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                message="Test failed",
-                severity="high",
-            )
-        ]
-        result = ValidationResult(passed=False, issues=issues, iteration=1)
+        # Default result is failed since LLM hasn't run
         assert result.passed is False
-        assert len(result.issues) == 1
-
-    def test_validation_result_tracks_iteration(self) -> None:
-        """ValidationResult tracks iteration number."""
-        result = ValidationResult(passed=True, issues=[], iteration=3)
-        assert result.iteration == 3
-
-
-class TestValidationIssue:
-    """Test cases for ValidationIssue model."""
-
-    def test_validation_issue_test_source(self) -> None:
-        """ValidationIssue can have TEST source."""
-        issue = ValidationIssue(
-            source=ValidationSource.TEST,
-            message="Test failed: test_something",
-            severity="high",  # Legacy string, normalized to ERROR
-            file_path="tests/test_something.py",
-            line_number=42,
+        # Check that there's some indication about needing LLM execution
+        has_indicator = (
+            any("not yet executed" in issue.lower() for issue in result.issues_remaining)
+            or "not yet executed" in result.summary.lower()
+            or "requires" in result.summary.lower()
         )
-        assert issue.source == ValidationSource.TEST
-        assert issue.severity == IssueSeverity.ERROR  # high maps to ERROR
-        assert issue.location.file_path == "tests/test_something.py"
-        assert issue.location.line_start == 42
+        assert has_indicator
 
-    def test_validation_issue_review_source(self) -> None:
-        """ValidationIssue can have REVIEW source."""
-        issue = ValidationIssue(
-            source=ValidationSource.REVIEW,
-            message="Security vulnerability detected",
-            severity="critical",  # Legacy string, normalized to ERROR
+
+class TestFromLLMResponse:
+    """Tests for ValidationPhase.from_llm_response() method."""
+
+    def test_from_llm_response_valid_json(self) -> None:
+        """from_llm_response creates ValidationResult from valid JSON."""
+        response = {
+            "passed": True,
+            "tests_passed": True,
+            "code_review_passed": True,
+            "issues_fixed": ["Fixed null check"],
+            "issues_remaining": [],
+            "summary": "All tests pass",
+        }
+
+        result = ValidationPhase.from_llm_response(response)
+
+        assert result.passed is True
+        assert result.tests_passed is True
+        assert result.issues_fixed == ["Fixed null check"]
+
+    def test_from_llm_response_with_failures(self) -> None:
+        """from_llm_response handles failed validation JSON."""
+        response = {
+            "passed": False,
+            "tests_passed": False,
+            "code_review_passed": True,
+            "issues_fixed": [],
+            "issues_remaining": ["Test test_login fails"],
+            "summary": "Tests failing",
+        }
+
+        result = ValidationPhase.from_llm_response(response)
+
+        assert result.passed is False
+        assert result.tests_passed is False
+        assert result.code_review_passed is True
+        assert "test_login" in result.issues_remaining[0]
+
+    def test_from_llm_response_missing_required_fields(self) -> None:
+        """from_llm_response raises ValueError for missing required fields."""
+        response = {
+            "passed": True,
+            # Missing tests_passed and code_review_passed
+        }
+
+        with pytest.raises(ValueError):
+            ValidationPhase.from_llm_response(response)
+
+    def test_from_llm_response_with_defaults(self) -> None:
+        """from_llm_response uses defaults for optional fields."""
+        response = {
+            "passed": True,
+            "tests_passed": True,
+            "code_review_passed": True,
+            # No issues_fixed, issues_remaining, or summary
+        }
+
+        result = ValidationPhase.from_llm_response(response)
+
+        assert result.passed is True
+        assert result.issues_fixed == []
+        assert result.issues_remaining == []
+        assert result.summary == ""
+
+
+class TestValidationPhaseIntegration:
+    """Integration tests for ValidationPhase with other components."""
+
+    def test_phase_with_config_settings(self) -> None:
+        """ValidationPhase respects config settings."""
+        config = ValidationConfig(
+            enable_tests=True,
+            enable_review=False,
+            enable_evidence=True,
+            test_timeout_seconds=600,
         )
-        assert issue.source == ValidationSource.REVIEW
-        assert issue.severity == IssueSeverity.ERROR  # critical maps to ERROR
+        phase = ValidationPhase(config=config, run_id="int-test")
 
-    def test_validation_issue_evidence_source(self) -> None:
-        """ValidationIssue can have EVIDENCE source."""
-        issue = ValidationIssue(
-            source=ValidationSource.EVIDENCE,
-            message="Missing screenshot for login flow",
-            severity="medium",
+        assert phase.config.enable_tests is True
+        assert phase.config.enable_review is False
+        assert phase.config.enable_evidence is True
+        assert phase.config.test_timeout_seconds == 600
+
+    def test_full_validation_flow(self) -> None:
+        """Test full validation flow from LLM response to result."""
+        # Simulate what the orchestrator does:
+        # 1. Execute validation prompt via LLM executor
+        # 2. Parse JSON response
+        # 3. Create ValidationResult
+
+        llm_json_response = {
+            "passed": True,
+            "tests_passed": True,
+            "code_review_passed": True,
+            "issues_fixed": [
+                "Fixed missing error handling in auth module",
+                "Added null check in user validation",
+            ],
+            "issues_remaining": [],
+            "summary": "All tests pass. Fixed 2 minor issues during validation.",
+        }
+
+        # Parse response using the phase helper
+        result = ValidationPhase.from_llm_response(llm_json_response)
+
+        # Verify result
+        assert result.passed is True
+        assert len(result.issues_fixed) == 2
+        assert "auth module" in result.issues_fixed[0]
+        assert result.summary.startswith("All tests")
+
+
+class TestValidationResultCreation:
+    """Tests for creating ValidationResult from various sources."""
+
+    def test_create_from_dict(self) -> None:
+        """ValidationResult can be created from dict."""
+        data = {
+            "passed": False,
+            "tests_passed": True,
+            "code_review_passed": False,
+            "issues_fixed": [],
+            "issues_remaining": ["Security concern in user input handling"],
+            "summary": "Tests pass but code review found issues",
+        }
+
+        result = ValidationResult.model_validate(data)
+
+        assert result.passed is False
+        assert result.code_review_passed is False
+
+    def test_result_allows_mutation(self) -> None:
+        """ValidationResult allows mutation (frozen=False in config)."""
+        result = ValidationResult(
+            passed=True,
+            tests_passed=True,
+            code_review_passed=True,
         )
-        assert issue.source == ValidationSource.EVIDENCE
 
-    def test_validation_issue_optional_fields(self) -> None:
-        """ValidationIssue has optional file_path and line_number."""
-        issue = ValidationIssue(
-            source=ValidationSource.TEST,
-            message="Generic test failure",
-            severity="low",
+        # Should be able to mutate
+        result.passed = False
+        assert result.passed is False
+
+    def test_validation_result_passed_when_all_pass(self) -> None:
+        """ValidationResult.passed is True when tests and review pass."""
+        result = ValidationResult(
+            passed=True,
+            tests_passed=True,
+            code_review_passed=True,
+            issues_fixed=[],
+            issues_remaining=[],
+            summary="All good",
         )
-        assert issue.file_path is None
-        assert issue.line_number is None
-
-
-class TestValidationPhaseStatePersistence:
-    """Tests for ValidationPhase state persistence integration."""
-
-    @pytest.fixture
-    def mock_context(self) -> RunContext:
-        """Create a mock RunContext for testing."""
-        return RunContext(
-            run_id="01HQ0000000000000000000000",
-            feature_description="Test feature",
-            current_phase="validation",
-            phase_history=["plan", "build"],
-            started_at=datetime.now(UTC),
-            completed_at=None,
-            status="running",
-            artifacts={},
-            phase_tokens={},
-            worktree_path=None,
-            use_worktree=False,
-            branch_name=None,
-        )
-
-    def test_phase_saves_state_after_iteration(
-        self, tmp_path: Path, mock_context: RunContext
-    ) -> None:
-        """Phase saves state after each iteration when state manager configured."""
-
-        # Create runs directory structure
-        run_id = "run-123"
-        runs_dir = tmp_path / ".adw" / "runs"
-        (runs_dir / run_id).mkdir(parents=True)
-
-        # Create phase with state manager
-        phase = ValidationPhase(run_id=run_id, runs_dir=runs_dir)
-
-        # Mock validators to return some issues
-        mock_issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                message="Test failed",
-                severity="high",
-            )
-        ]
-        with patch.object(phase, "_run_validators", return_value=mock_issues):
-            phase.run(mock_context)
-
-        # Verify state was saved
-        assert phase.state_manager is not None
-        assert phase.state_manager.state_file.exists()
-        assert phase.state_manager.issues_file.exists()
-
-    def test_phase_clears_state_on_success(
-        self, tmp_path: Path, mock_context: RunContext
-    ) -> None:
-        """Phase clears state when validation passes (no issues)."""
-
-        # Create runs directory structure
-        run_id = "run-456"
-        runs_dir = tmp_path / ".adw" / "runs"
-        (runs_dir / run_id).mkdir(parents=True)
-
-        # Create phase with state manager
-        phase = ValidationPhase(run_id=run_id, runs_dir=runs_dir)
-
-        # Mock validators to return no issues (pass)
-        with patch.object(phase, "_run_validators", return_value=[]):
-            result = phase.run(mock_context)
-
-        # Verify validation passed
         assert result.passed is True
 
-        # Verify state was cleared
-        assert phase.state_manager is not None
-        assert not phase.state_manager.state_file.exists()
-        assert not phase.state_manager.issues_file.exists()
-
-    def test_phase_resumes_from_saved_state(
-        self, tmp_path: Path, mock_context: RunContext
-    ) -> None:
-        """Phase resumes from saved state when available."""
-        from adw.validation.models import LoopState, ValidationState
-        from adw.validation.state_manager import ValidationStateManager
-
-        # Create runs directory structure
-        run_id = "run-789"
-        runs_dir = tmp_path / ".adw" / "runs"
-        run_dir = runs_dir / run_id
-        run_dir.mkdir(parents=True)
-
-        # Pre-create saved state at iteration 3
-        state_manager = ValidationStateManager(run_id, run_dir)
-        saved_state = ValidationState(
-            run_id=run_id,
-            current_iteration=3,
-            total_iterations=5,
-            loop_state=LoopState(issues_remaining=2),
+    def test_validation_result_failed_with_remaining_issues(self) -> None:
+        """ValidationResult.passed is False when there are remaining issues."""
+        result = ValidationResult(
+            passed=False,
+            tests_passed=False,
+            code_review_passed=True,
+            issues_fixed=["Fixed one thing"],
+            issues_remaining=["This test still fails"],
+            summary="One test failing",
         )
-        state_manager.save_state(saved_state)
-
-        # Create phase - should resume
-        phase = ValidationPhase(run_id=run_id, runs_dir=runs_dir)
-
-        # Verify iteration was restored
-        assert phase._iteration == 3
-
-    def test_phase_without_state_manager_still_works(
-        self, mock_context: RunContext
-    ) -> None:
-        """Phase works normally without state manager (no run_id)."""
-        phase = ValidationPhase()
-
-        # Mock validators
-        with patch.object(phase, "_run_validators", return_value=[]):
-            result = phase.run(mock_context)
-
-        # Verify it works
-        assert result.passed is True
-        assert phase.state_manager is None
-
-    def test_phase_preserves_loop_state_counters(
-        self, tmp_path: Path, mock_context: RunContext
-    ) -> None:
-        """Phase preserves loop state counters when saving state."""
-        from adw.validation.models import LoopState, ValidationState
-        from adw.validation.state_manager import ValidationStateManager
-
-        # Create runs directory structure
-        run_id = "run-counters"
-        runs_dir = tmp_path / ".adw" / "runs"
-        run_dir = runs_dir / run_id
-        run_dir.mkdir(parents=True)
-
-        # Pre-create saved state with non-zero counters
-        state_manager = ValidationStateManager(run_id, run_dir)
-        saved_state = ValidationState(
-            run_id=run_id,
-            current_iteration=2,
-            total_iterations=5,
-            loop_state=LoopState(
-                issues_resolved=5,
-                issues_dismissed=2,
-                issues_deferred=1,
-                issues_remaining=3,
-                stall_count=1,
-            ),
-        )
-        state_manager.save_state(saved_state)
-
-        # Create phase - should resume with existing state
-        phase = ValidationPhase(run_id=run_id, runs_dir=runs_dir)
-
-        # Mock validators to return 2 issues (updating issues_remaining)
-        mock_issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                message="Issue 1",
-                severity="high",
-            ),
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                message="Issue 2",
-                severity="medium",
-            ),
-        ]
-        with patch.object(phase, "_run_validators", return_value=mock_issues):
-            phase.run(mock_context)
-
-        # Load the saved state and verify counters were preserved
-        loaded_state = state_manager.load_state_model()
-        assert loaded_state is not None
-        # Existing counters should be preserved
-        assert loaded_state.loop_state.issues_resolved == 5
-        assert loaded_state.loop_state.issues_dismissed == 2
-        assert loaded_state.loop_state.issues_deferred == 1
-        assert loaded_state.loop_state.stall_count == 1
-        # issues_remaining should be updated to current issue count
-        assert loaded_state.loop_state.issues_remaining == 2
-
-    def test_phase_uses_config_max_iterations_for_total(
-        self, tmp_path: Path, mock_context: RunContext
-    ) -> None:
-        """Phase uses config.max_iterations for total_iterations in state."""
-        from adw.validation.config import ValidationConfig
-        from adw.validation.state_manager import ValidationStateManager
-
-        # Create runs directory structure
-        run_id = "run-max-iter"
-        runs_dir = tmp_path / ".adw" / "runs"
-        run_dir = runs_dir / run_id
-        run_dir.mkdir(parents=True)
-
-        # Create config with custom max_iterations (not the default 5)
-        config = ValidationConfig(max_iterations=3)
-        phase = ValidationPhase(config=config, run_id=run_id, runs_dir=runs_dir)
-
-        # Mock validators to return one issue
-        mock_issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                message="Test issue",
-                severity="medium",
-            )
-        ]
-        with patch.object(phase, "_run_validators", return_value=mock_issues):
-            phase.run(mock_context)
-
-        # Load the saved state and verify total_iterations matches config
-        state_manager = ValidationStateManager(run_id, run_dir)
-        loaded_state = state_manager.load_state_model()
-        assert loaded_state is not None
-        # total_iterations should match config, not default 5
-        assert loaded_state.total_iterations == 3
-
-
-class TestValidationPhaseLoopControllerIntegration:
-    """Tests for ValidationLoopController integration with ValidationPhase."""
-
-    @pytest.fixture
-    def mock_context(self) -> RunContext:
-        """Create a mock RunContext for testing."""
-        return RunContext(
-            run_id="01HQ0000000000000000000000",
-            feature_description="Test feature",
-            current_phase="validation",
-            phase_history=["plan", "build"],
-            started_at=datetime.now(UTC),
-            completed_at=None,
-            status="running",
-            artifacts={},
-            phase_tokens={},
-            worktree_path=None,
-            use_worktree=False,
-            branch_name=None,
-        )
-
-    def test_phase_has_loop_controller(self) -> None:
-        """ValidationPhase has a loop_controller property."""
-        from adw.validation.loop_controller import ValidationLoopController
-
-        phase = ValidationPhase()
-        assert hasattr(phase, "loop_controller")
-        assert isinstance(phase.loop_controller, ValidationLoopController)
-
-    def test_phase_loop_controller_uses_config(self) -> None:
-        """Loop controller uses the phase's config."""
-        from adw.validation.config import ValidationConfig
-
-        config = ValidationConfig(max_iterations=7, stall_threshold=4)
-        phase = ValidationPhase(config=config)
-
-        assert phase.loop_controller.config.max_iterations == 7
-        assert phase.loop_controller.config.stall_threshold == 4
-
-    def test_phase_run_uses_loop_controller_iteration(
-        self, mock_context: RunContext
-    ) -> None:
-        """run() uses loop controller for iteration tracking."""
-        phase = ValidationPhase()
-
-        # Initial state
-        assert phase.loop_controller.state.current_iteration == 0
-
-        with patch.object(phase, "_run_validators", return_value=[]):
-            phase.run(mock_context)
-
-        # After first run
-        assert phase.loop_controller.state.current_iteration == 1
-
-        with patch.object(phase, "_run_validators", return_value=[]):
-            phase.run(mock_context)
-
-        # After second run
-        assert phase.loop_controller.state.current_iteration == 2
-
-    def test_phase_get_summary_returns_controller_summary(
-        self, mock_context: RunContext
-    ) -> None:
-        """get_summary() returns loop controller's summary."""
-        phase = ValidationPhase()
-
-        # Run once with some issues
-        issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                severity="ERROR",
-                description="Test failure",
-            )
-        ]
-        with patch.object(phase, "_run_validators", return_value=issues):
-            phase.run(mock_context)
-
-        summary = phase.get_summary()
-
-        assert "iterations_run" in summary
-        assert summary["iterations_run"] == 1
-
-    def test_phase_run_updates_controller_counts(
-        self, mock_context: RunContext
-    ) -> None:
-        """run() updates loop controller issue counts."""
-        phase = ValidationPhase()
-
-        # Create issues with different triage states
-        issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                severity="ERROR",
-                description="Fix me",
-            ),
-            ValidationIssue(
-                source=ValidationSource.REVIEW,
-                severity="INFO",
-                description="Dismissed",
-            ),
-        ]
-        issues[0].triage_decision = "FIX"
-        issues[1].triage_decision = "DISMISS"
-
-        with patch.object(phase, "_run_validators", return_value=issues):
-            phase.run(mock_context)
-
-        # Check that counts were updated
-        state = phase.loop_controller.state
-        assert state.issues_remaining == 1
-        assert state.issues_dismissed == 1
-        assert state.total_issues_found == 2
+        assert result.passed is False
+        assert len(result.issues_remaining) == 1

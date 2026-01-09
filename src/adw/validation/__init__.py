@@ -1,73 +1,18 @@
 """Unified validation phase for ADW pipeline.
 
-This package provides the ValidationPhase which combines:
-- Evidence gathering validation
-- LLM code review
-- Test suite execution
+This package provides the ValidationPhase which coordinates
+validation in a single LLM call. The LLM handles the entire
+validate-fix-re-validate cycle internally, returning a simplified result.
 
-All validators run in sequence and issues are aggregated into
-a single ValidationResult for triage and fix iteration.
+Simplified in Epic 16 to remove SDK-side iteration logic.
 """
 
 from adw.validation.config import ValidationConfig
-from adw.validation.fix_engine import FileChange, FixEngine, FixIterationResult
-from adw.validation.loop_controller import (
-    ExitReason,
-    ValidationLoopController,
-)
-from adw.validation.models import (
-    FixAttempt,
-    FixResult,
-    IssueContext,
-    IssueLocation,
-    IssueSeverity,
-    IssueSource,
-    LoopState,
-    TriageDecision,
-    TriagedIssue,
-    ValidationIssue,
-    ValidationResult,
-    ValidationSource,
-    ValidationState,
-)
+from adw.validation.models import ValidationResult
 from adw.validation.phase import ValidationPhase
-from adw.validation.report import (
-    ConfidenceLevel,
-    DeferredIssueSummary,
-    ValidationReport,
-    ValidationReportGenerator,
-)
-from adw.validation.state_manager import ValidationStateManager
-from adw.validation.triage import TriageSystem
-from adw.validation.validators.base import Validator, ValidatorRegistry
 
 __all__ = [
-    "ConfidenceLevel",
-    "DeferredIssueSummary",
-    "ExitReason",
-    "FileChange",
-    "FixAttempt",
-    "FixEngine",
-    "FixIterationResult",
-    "FixResult",
-    "IssueContext",
-    "IssueLocation",
-    "IssueSeverity",
-    "IssueSource",
-    "LoopState",
-    "TriageDecision",
-    "TriagedIssue",
-    "TriageSystem",
     "ValidationConfig",
-    "ValidationIssue",
-    "ValidationLoopController",
     "ValidationPhase",
-    "ValidationReport",
-    "ValidationReportGenerator",
     "ValidationResult",
-    "ValidationSource",
-    "ValidationState",
-    "ValidationStateManager",
-    "Validator",
-    "ValidatorRegistry",
 ]
