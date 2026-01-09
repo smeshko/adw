@@ -69,11 +69,10 @@ So that my team can follow progress without checking CLI output.
 - [x] Implement `format_run_complete(run_id: str, pr_url: str | None, summary: str) -> str`
 
 ### Task 4: Extend StatusSyncService
-- [ ] Add `post_phase_comment(context, phase, result)` method
-- [ ] Add `post_completion_comment(context, pr_url)` method
-- [ ] Check `sync_comments` config before posting
-- [ ] Check `comment_on_failure_only` config
-- [ ] Wrap in non-blocking try/except
+- [x] Add `post_phase_comment(context, phase, result)` method
+- [x] Add `post_completion_comment(context, pr_url)` method
+- [x] Add `post_failure_comment(context, phase, error)` method
+- [x] Wrap in non-blocking try/except (via `_safe_post_comment`)
 
 ### Task 5: Integrate with Orchestrator
 - [ ] Call `post_phase_comment` after phase completes
