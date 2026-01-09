@@ -102,10 +102,20 @@ class RunContext(BaseModel):
         description="Detected platform type (cli, web, mobile, backend). "
         "Set during validate phase by platform detection.",
     )
+    task_id: str | None = Field(
+        default=None,
+        description="Task ID from external task manager (e.g., 'RULE-123'). "
+        "Populated when run is initiated from a task.",
+    )
     task_info: TaskInfo | None = Field(
         default=None,
-        description="Task information from external task manager (Linear, Jira, etc.). "
-        "Populated when run is initiated from a task ID. Available in templates via {{task.*}} variables.",
+        description="Full task information from external task manager. "
+        "Contains title, description, status, labels, etc.",
+    )
+    task_manager: str | None = Field(
+        default=None,
+        description="Task manager type (e.g., 'linear', 'jira', 'github'). "
+        "None when run is not associated with a task manager.",
     )
 
     @computed_field  # type: ignore[prop-decorator]

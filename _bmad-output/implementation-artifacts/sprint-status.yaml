@@ -255,7 +255,7 @@ development_status:
   epic-12: in-progress
   12-1-taskmanager-protocol-and-configuration: done
   12-2-linear-task-manager-implementation: done
-  12-3-status-synchronization-at-phase-transitions: in-progress
+  12-3-status-synchronization-at-phase-transitions: done
   12-4-task-id-pattern-detection: done
   12-5-task-context-in-prompts: done
   12-6-post-status-update-comments: ready-for-dev

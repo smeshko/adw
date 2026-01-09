@@ -107,8 +107,11 @@ from adw.models.task import TaskInfo
 from adw.models.worktree import PortAllocation
 from adw.validation.models import ValidationResult
 
-# Rebuild StateSnapshot to resolve forward references to PhaseResult
+# Rebuild models to resolve forward references
 # This must happen after all models are imported
+# - RunContext references TaskInfo (Story 12.3)
+# - StateSnapshot references PhaseResult
+RunContext.model_rebuild()
 StateSnapshot.model_rebuild()
 
 __all__: list[str] = [
