@@ -1,6 +1,6 @@
 # Story 12.6: Post Status Update Comments
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-08
