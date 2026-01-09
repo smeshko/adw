@@ -1,6 +1,6 @@
 # Story 12.8: Issue Closing
 
-Status: dev-complete
+Status: done
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-08

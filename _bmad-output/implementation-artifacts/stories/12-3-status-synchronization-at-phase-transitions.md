@@ -1,6 +1,6 @@
 # Story 12.3: Status Synchronization at Phase Transitions
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-08

@@ -255,12 +255,12 @@ development_status:
   epic-12: in-progress
   12-1-taskmanager-protocol-and-configuration: done
   12-2-linear-task-manager-implementation: done
-  12-3-status-synchronization-at-phase-transitions: in-progress
+  12-3-status-synchronization-at-phase-transitions: done
   12-4-task-id-pattern-detection: done
   12-5-task-context-in-prompts: done
   12-6-post-status-update-comments: ready-for-dev
-  12-7-label-management: in-progress
-  12-8-issue-closing: in-progress
+  12-7-label-management: done
+  12-8-issue-closing: done
   12-9-issue-assignment: ready-for-dev
   12-10-github-issues-provider: ready-for-dev
   # Tech Debt (from ISS-012, ISS-013, ISS-014)
@@ -323,5 +323,5 @@ development_status:
   16-1-remove-sdk-validation-loop: done
   16-2-create-unified-validation-prompt: done
   16-3-simplify-configuration: in-progress
-  16-4-update-phase-result-model: dev-complete
+  16-4-update-phase-result-model: done
   epic-16-retrospective: optional

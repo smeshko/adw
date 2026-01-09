@@ -1,6 +1,6 @@
 # Story 12.7: Label Management
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-08
