@@ -343,8 +343,13 @@ def auto_create_pr(
             suggestion=e.suggestion or "Ensure document phase completed",
         )
 
-    # Generate PR title from feature description
+    # Generate PR title from feature description (Story 12.6: PR-Task Linking)
+    # If task_id is present, prefix with task ID
     pr_title = context.feature_description
+    if context.task_id:
+        # Format: "TASK-123: description"
+        pr_title = f"{context.task_id}: {context.feature_description}"
+
     if len(pr_title) > 72:
         pr_title = pr_title[:69] + "..."
 

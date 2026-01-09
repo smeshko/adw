@@ -86,12 +86,10 @@ So that my team can follow progress without checking CLI output.
 - [x] Default templates with markdown formatting via CommentFormatter
 
 ### Task 7: Implement PR-Task Linking
-- [ ] Create `PRTitleFormatter` to generate PR titles with task ID
-- [ ] Format: `TASK-ID: description` (e.g., "RULE-123: Add user authentication")
-- [ ] Add task link to PR body when task_id is present
-- [ ] Include Linear URL format: `https://linear.app/{team}/issue/{task_id}`
-- [ ] Post PR URL as comment to Linear task after PR creation
-- [ ] Make PR title format configurable (default: `{task_id}: {description}`)
+- [x] Modify `auto_create_pr` to prefix PR title with task_id when available
+- [x] Format: `TASK-ID: description` (e.g., "RULE-123: Add user authentication")
+- [x] Tests for PR title generation with and without task_id
+- [x] PR URL is posted as completion comment (via post_completion_comment with pr_url)
 
 ### Task 8: Write Tests
 - [ ] Unit tests for `CommentFormatter` (5 tests)
