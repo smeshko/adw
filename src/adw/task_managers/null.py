@@ -118,3 +118,13 @@ class NullTaskManager:
         """
         # No-op - nothing to remove labels from
         pass
+
+    def post_comment(self, task_id: str, body: str) -> None:
+        """No-op - silently ignores comment posting.
+
+        Args:
+            task_id: The task identifier.
+            body: The comment body (ignored).
+        """
+        # No-op - nothing to post comments to
+        pass

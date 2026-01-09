@@ -865,3 +865,95 @@ class TestAutoCreatePr:
 
                 assert result.success is False
                 assert "Failed to create PR" in result.reason
+
+    def test_pr_title_includes_task_id_when_present(
+        self,
+        sample_pr_description: PRDescription,
+        tmp_path: Path,
+    ) -> None:
+        """Test PR title is prefixed with task_id when available (Story 12.6)."""
+        from datetime import datetime
+
+        from adw.models.task import TaskInfo
+
+        # Create context with task_id
+        context_with_task = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Add user authentication",
+            current_phase="document",
+            started_at=datetime.now(),
+            task_id="RULE-123",
+            task_info=TaskInfo(
+                id="uuid-123",
+                identifier="RULE-123",
+                title="Add auth",
+            ),
+        )
+
+        runs_dir = tmp_path
+        run_dir = runs_dir / context_with_task.run_id
+        artifacts_dir = run_dir / "artifacts" / "document"
+        artifacts_dir.mkdir(parents=True)
+        pr_file = artifacts_dir / "pr_description.md"
+        pr_file.write_text(sample_pr_description.to_markdown())
+
+        with patch("adw.cli.pr.can_auto_create_pr") as mock_can:
+            mock_can.return_value = (True, "")
+
+            with patch("adw.cli.pr.create_pr_via_gh") as mock_create:
+                mock_create.return_value = "https://github.com/user/repo/pull/123"
+
+                with patch("adw.cli.pr._store_pr_url") as mock_store:
+                    mock_store.return_value = context_with_task
+
+                    result = auto_create_pr(
+                        run_id=context_with_task.run_id,
+                        context=context_with_task,
+                        runs_dir=runs_dir,
+                    )
+
+                    assert result.success is True
+                    # Check that create_pr_via_gh was called with task_id prefix
+                    call_args = mock_create.call_args
+                    pr_title = call_args[0][0]
+                    assert pr_title.startswith("RULE-123:")
+                    assert "Add user authentication" in pr_title
+
+    def test_pr_title_without_task_id(
+        self,
+        sample_context: RunContext,
+        sample_pr_description: PRDescription,
+        tmp_path: Path,
+    ) -> None:
+        """Test PR title uses feature_description when no task_id (Story 12.6)."""
+        runs_dir = tmp_path
+        run_dir = runs_dir / sample_context.run_id
+        artifacts_dir = run_dir / "artifacts" / "document"
+        artifacts_dir.mkdir(parents=True)
+        pr_file = artifacts_dir / "pr_description.md"
+        pr_file.write_text(sample_pr_description.to_markdown())
+
+        with patch("adw.cli.pr.can_auto_create_pr") as mock_can:
+            mock_can.return_value = (True, "")
+
+            with patch("adw.cli.pr.create_pr_via_gh") as mock_create:
+                mock_create.return_value = "https://github.com/user/repo/pull/123"
+
+                with patch("adw.cli.pr._store_pr_url") as mock_store:
+                    mock_store.return_value = sample_context
+
+                    result = auto_create_pr(
+                        run_id=sample_context.run_id,
+                        context=sample_context,
+                        runs_dir=runs_dir,
+                    )
+
+                    assert result.success is True
+                    # Check that create_pr_via_gh was called without task_id prefix
+                    call_args = mock_create.call_args
+                    pr_title = call_args[0][0]
+                    # Should just be the feature description, no task ID prefix
+                    assert pr_title == sample_context.feature_description or (
+                        not pr_title.startswith("RULE-")
+                        and not pr_title.startswith("JIRA-")
+                    )

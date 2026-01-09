@@ -5,6 +5,7 @@ of ADW run status with external task management systems (Linear, Jira, etc.)
 at phase transitions.
 
 Story 12.3: Status Synchronization at Phase Transitions
+Story 12.6: Post Status Update Comments
 """
 
 import logging
@@ -12,7 +13,9 @@ from typing import Any
 
 from adw.models.config import TaskManagerConfig
 from adw.models.context import RunContext
+from adw.models.phase import PhaseResult
 from adw.task_managers.base import TaskManager
+from adw.task_managers.comments import CommentFormatter
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +57,7 @@ class StatusSyncService:
         """
         self._task_manager = task_manager
         self._config = config
+        self._comment_formatter = CommentFormatter()
 
     def sync_phase_start(self, context: RunContext, phase: str) -> None:
         """Sync status when a phase starts.
@@ -195,4 +199,148 @@ class StatusSyncService:
                 str(e),
                 task_id,
                 phase_or_state,
+            )
+
+    def post_phase_comment(
+        self,
+        context: RunContext,
+        phase: str,
+        result: PhaseResult,
+    ) -> None:
+        """Post a comment about phase completion.
+
+        Posts a formatted comment to the task management system when a phase
+        completes. Does nothing if:
+        - context has no task_id
+        - sync_comments is False in config
+        - comment_on_failure_only is True (success comments skipped)
+
+        Args:
+            context: The current run context with task information.
+            phase: The phase that completed.
+            result: The phase result with duration and artifacts.
+        """
+        if not context.task_id or not context.task_info:
+            return
+
+        # Check sync_comments config (Story 12.6)
+        if not self._config.sync_comments:
+            return
+
+        # Check comment_on_failure_only config
+        if self._config.comment_on_failure_only:
+            return
+
+        # Determine artifacts count (count files in artifacts if available)
+        artifacts_count = 0
+        if result.artifacts:
+            artifacts_count = len(result.artifacts)
+
+        # Calculate duration
+        duration = result.duration_ms / 1000 if result.duration_ms else 0.0
+
+        comment = self._comment_formatter.format_phase_complete(
+            phase=phase,
+            duration=duration,
+            artifacts=artifacts_count,
+        )
+
+        self._safe_post_comment(context.task_info.id, comment)
+
+    def post_failure_comment(
+        self,
+        context: RunContext,
+        phase: str,
+        error: str,
+    ) -> None:
+        """Post a comment about phase failure.
+
+        Posts a formatted comment to the task management system when a phase
+        fails. Does nothing if:
+        - context has no task_id
+        - sync_comments is False in config
+
+        Note: Failure comments are ALWAYS posted (not affected by
+        comment_on_failure_only - that only skips success comments).
+
+        Args:
+            context: The current run context with task information.
+            phase: The phase where the failure occurred.
+            error: The error message.
+        """
+        if not context.task_id or not context.task_info:
+            return
+
+        # Check sync_comments config (Story 12.6)
+        if not self._config.sync_comments:
+            return
+
+        comment = self._comment_formatter.format_phase_failed(
+            phase=phase,
+            error=error,
+            run_id=context.run_id,
+        )
+
+        self._safe_post_comment(context.task_info.id, comment)
+
+    def post_completion_comment(
+        self,
+        context: RunContext,
+        pr_url: str | None = None,
+        summary: str = "All phases completed successfully",
+    ) -> None:
+        """Post a comment about run completion.
+
+        Posts a formatted comment to the task management system when the run
+        completes. Does nothing if:
+        - context has no task_id
+        - sync_comments is False in config
+        - comment_on_failure_only is True (success comments skipped)
+
+        Args:
+            context: The current run context with task information.
+            pr_url: The pull request URL if a PR was created.
+            summary: A summary of the run outcome.
+        """
+        if not context.task_id or not context.task_info:
+            return
+
+        # Check sync_comments config (Story 12.6)
+        if not self._config.sync_comments:
+            return
+
+        # Check comment_on_failure_only config
+        if self._config.comment_on_failure_only:
+            return
+
+        comment = self._comment_formatter.format_run_complete(
+            run_id=context.run_id,
+            pr_url=pr_url,
+            summary=summary,
+        )
+
+        self._safe_post_comment(context.task_info.id, comment)
+
+    def _safe_post_comment(self, task_id: str, body: str) -> None:
+        """Post comment, catching and logging any errors.
+
+        This method is non-blocking - it catches all exceptions and logs
+        warnings instead of raising. The ADW run continues regardless of
+        comment posting status.
+
+        Args:
+            task_id: The internal task ID (e.g., Linear UUID).
+            body: The comment body to post.
+        """
+        try:
+            self._task_manager.post_comment(task_id, body)
+            logger.info(
+                "Comment posted to task manager",
+                extra={"task_id": task_id},
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to post comment to task manager: %s (task_id=%s)",
+                str(e),
+                task_id,
             )

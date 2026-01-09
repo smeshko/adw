@@ -373,6 +373,24 @@ class Orchestrator:
                         auto_create_pr_enabled=self.git_config.auto_create_pr,
                     )
 
+                # Post run completion comment to task manager (Story 12.6)
+                # Non-blocking: catch and log any errors, never fail the run
+                if self._status_sync_service:
+                    try:
+                        self._status_sync_service.post_completion_comment(
+                            context,
+                            pr_url=pr_result.pr_url if pr_result else None,
+                            summary="All phases completed successfully",
+                        )
+                    except Exception as comment_error:
+                        logger.warning(
+                            "Failed to post completion comment (non-blocking)",
+                            extra={
+                                "run_id": context.run_id,
+                                "error": str(comment_error),
+                            },
+                        )
+
                 # Attempt to close task if auto_close enabled (Story 12.8)
                 # This must run regardless of progress_display
                 self._maybe_close_task(
@@ -444,6 +462,21 @@ class Orchestrator:
                         },
                     )
 
+                # Post failure comment to task manager (Story 12.6)
+                try:
+                    self._status_sync_service.post_failure_comment(
+                        context, failed_phase, str(e)
+                    )
+                except Exception as comment_error:
+                    logger.warning(
+                        "Failed to post failure comment (non-blocking)",
+                        extra={
+                            "run_id": context.run_id,
+                            "phase": failed_phase,
+                            "error": str(comment_error),
+                        },
+                    )
+
             # Mark as failed and persist
             context = context.model_copy(
                 update={
@@ -512,6 +545,21 @@ class Orchestrator:
                             "run_id": context.run_id,
                             "phase": context.current_phase,
                             "error": str(sync_error),
+                        },
+                    )
+
+                # Post failure comment to task manager (Story 12.6)
+                try:
+                    self._status_sync_service.post_failure_comment(
+                        context, context.current_phase, str(e)
+                    )
+                except Exception as comment_error:
+                    logger.warning(
+                        "Failed to post failure comment (non-blocking)",
+                        extra={
+                            "run_id": context.run_id,
+                            "phase": context.current_phase,
+                            "error": str(comment_error),
                         },
                     )
 
@@ -1375,6 +1423,21 @@ class Orchestrator:
             # Notify progress display of phase completion (Story 5.5)
             if self.progress_display:
                 self.progress_display.on_phase_complete(phase, result)
+
+            # Post phase completion comment to task manager (Story 12.6)
+            # Non-blocking: catch and log any errors, never fail the phase
+            if self._status_sync_service:
+                try:
+                    self._status_sync_service.post_phase_comment(context, phase, result)
+                except Exception as comment_error:
+                    logger.warning(
+                        "Failed to post phase comment (non-blocking)",
+                        extra={
+                            "run_id": context.run_id,
+                            "phase": phase,
+                            "error": str(comment_error),
+                        },
+                    )
 
             # Update context with phase completion
             context = context.model_copy(
