@@ -1,27 +1,15 @@
-"""Integration tests for the unified validation phase.
+"""Integration tests for the simplified validation phase (Story 16.4).
 
-Tests for the complete validation flow with all validators
-wired together.
+Tests for the complete validation flow with the simplified model.
 """
 
 from datetime import UTC, datetime
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from adw.models import RunContext
-from adw.models.llm import LLMResult
-from adw.validation import (
-    ValidationConfig,
-    ValidationPhase,
-    ValidatorRegistry,
-)
-from adw.validation.models import ValidationIssue, ValidationResult, ValidationSource
-from adw.validation.validators import (
-    EvidenceValidator,
-    ReviewValidator,
-    TestValidator,
-)
+from adw.validation import ValidationConfig, ValidationPhase
+from adw.validation.models import ValidationResult
 
 
 @pytest.fixture
@@ -46,20 +34,10 @@ def mock_context() -> RunContext:
 class TestValidationPhaseIntegration:
     """Integration tests for full validation phase execution."""
 
-    def test_phase_with_all_validators_passing(
+    def test_phase_returns_validation_result(
         self, mock_context: RunContext
     ) -> None:
-        """Phase passes when all validators find no issues."""
-        # Create mocks
-        mock_executor = MagicMock()
-        mock_executor.execute.return_value = LLMResult(
-            success=True,
-            content="No issues found. The code looks good!",
-            tool_calls=[],
-            tokens_used=100,
-        )
-
-        # Create validators
+        """Phase returns ValidationResult."""
         config = ValidationConfig(
             enable_tests=True,
             enable_review=True,
@@ -67,166 +45,132 @@ class TestValidationPhaseIntegration:
         )
         phase = ValidationPhase(config=config)
 
-        # Register validators with mocked behavior
-        test_validator = TestValidator(test_command="pytest")
-        review_validator = ReviewValidator(executor=mock_executor, config=config)
-        evidence_validator = EvidenceValidator()
+        result = phase.run(mock_context)
 
-        # Mock the individual validators to return no issues
-        with (
-            patch.object(test_validator, "validate", return_value=[]),
-            patch.object(review_validator, "validate", return_value=[]),
-            patch.object(evidence_validator, "validate", return_value=[]),
-        ):
-            phase.register_validator(test_validator)
-            phase.register_validator(review_validator)
-            phase.register_validator(evidence_validator)
+        assert isinstance(result, ValidationResult)
+        assert hasattr(result, "passed")
+        assert hasattr(result, "tests_passed")
+        assert hasattr(result, "code_review_passed")
+        assert hasattr(result, "issues_fixed")
+        assert hasattr(result, "issues_remaining")
+        assert hasattr(result, "summary")
 
-            result = phase.run(mock_context)
+    def test_from_llm_response_integration(self) -> None:
+        """ValidationPhase.from_llm_response creates valid result."""
+        # Simulate LLM validation response JSON
+        llm_response = {
+            "passed": True,
+            "tests_passed": True,
+            "code_review_passed": True,
+            "issues_fixed": [
+                "Fixed null check in authentication handler",
+                "Added error handling for network timeouts",
+            ],
+            "issues_remaining": [],
+            "summary": "All tests pass, code review clean, validation successful",
+        }
 
-            assert isinstance(result, ValidationResult)
-            assert result.passed is True
-            assert result.issues == []
+        result = ValidationPhase.from_llm_response(llm_response)
 
-    def test_phase_collects_issues_from_multiple_validators(
-        self, mock_context: RunContext
-    ) -> None:
-        """Phase aggregates issues from all validators."""
-        config = ValidationConfig()
-        phase = ValidationPhase(config=config)
+        assert isinstance(result, ValidationResult)
+        assert result.passed is True
+        assert result.tests_passed is True
+        assert result.code_review_passed is True
+        assert len(result.issues_fixed) == 2
+        assert result.issues_remaining == []
 
-        # Create mock validators with different issues
-        test_issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                message="test_login failed",
-                severity="high",
-            )
-        ]
-        review_issues = [
-            ValidationIssue(
-                source=ValidationSource.REVIEW,
-                message="Missing error handling",
-                severity="medium",
-            )
-        ]
-        evidence_issues = [
-            ValidationIssue(
-                source=ValidationSource.EVIDENCE,
-                message="Evidence missing for feature",
-                severity="high",
-            )
-        ]
+    def test_from_llm_response_with_failures(self) -> None:
+        """ValidationPhase.from_llm_response handles failed validation."""
+        llm_response = {
+            "passed": False,
+            "tests_passed": False,
+            "code_review_passed": True,
+            "issues_fixed": ["Fixed one minor issue"],
+            "issues_remaining": [
+                "Test test_user_authentication still fails",
+                "Database connection timeout in integration tests",
+            ],
+            "summary": "Some tests still failing after fixes",
+        }
 
-        test_validator = TestValidator()
-        mock_executor = MagicMock()
-        review_validator = ReviewValidator(executor=mock_executor)
-        evidence_validator = EvidenceValidator()
+        result = ValidationPhase.from_llm_response(llm_response)
 
-        with (
-            patch.object(test_validator, "validate", return_value=test_issues),
-            patch.object(review_validator, "validate", return_value=review_issues),
-            patch.object(evidence_validator, "validate", return_value=evidence_issues),
-        ):
-            phase.register_validator(test_validator)
-            phase.register_validator(review_validator)
-            phase.register_validator(evidence_validator)
-
-            result = phase.run(mock_context)
-
-            assert result.passed is False
-            assert len(result.issues) == 3
-            sources = {i.source for i in result.issues}
-            assert ValidationSource.TEST in sources
-            assert ValidationSource.REVIEW in sources
-            assert ValidationSource.EVIDENCE in sources
-
-    def test_phase_continues_after_validator_raises_exception(
-        self, mock_context: RunContext
-    ) -> None:
-        """Phase continues executing validators even if one raises."""
-        config = ValidationConfig()
-        phase = ValidationPhase(config=config)
-
-        # First validator raises, second returns issues
-        def raise_error(context):
-            raise RuntimeError("Validator crashed")
-
-        test_issues = [
-            ValidationIssue(
-                source=ValidationSource.TEST,
-                message="Test completed",
-                severity="low",
-            )
-        ]
-
-        failing_validator = MagicMock()
-        failing_validator.name = "failing"
-        failing_validator.validate.side_effect = raise_error
-
-        test_validator = TestValidator()
-        with patch.object(test_validator, "validate", return_value=test_issues):
-            phase.register_validator(failing_validator)
-            phase.register_validator(test_validator)
-
-            # Should not raise, should continue
-            result = phase.run(mock_context)
-
-            # Should have the issue from the working validator
-            assert isinstance(result, ValidationResult)
-            assert any(i.source == ValidationSource.TEST for i in result.issues)
+        assert result.passed is False
+        assert result.tests_passed is False
+        assert len(result.issues_remaining) == 2
 
 
-class TestConfigBasedValidatorEnabling:
-    """Tests for configuration-based validator enabling/disabling."""
+class TestConfigBasedBehavior:
+    """Tests for configuration-based validation behavior."""
 
-    def test_registry_filters_disabled_validators(self) -> None:
-        """Registry excludes disabled validators from execution."""
-        config = ValidationConfig(
-            enable_tests=True,
-            enable_review=False,
-            enable_evidence=False,
-        )
-
-        registry = ValidatorRegistry()
-        registry.register(TestValidator())
-        registry.register(ReviewValidator(executor=MagicMock()))
-        registry.register(EvidenceValidator())
-
-        enabled = registry.get_enabled(config)
-
-        assert len(enabled) == 1
-        assert enabled[0].name == "test"
-
-    def test_all_validators_enabled_by_default(self) -> None:
-        """All validators are enabled with default config."""
-        config = ValidationConfig()  # All defaults are True
-
-        registry = ValidatorRegistry()
-        registry.register(TestValidator())
-        registry.register(ReviewValidator(executor=MagicMock()))
-        registry.register(EvidenceValidator())
-
-        enabled = registry.get_enabled(config)
-
-        assert len(enabled) == 3
-        names = {v.name for v in enabled}
-        assert names == {"test", "review", "evidence"}
-
-    def test_single_validator_enabled(self) -> None:
-        """Can enable only one validator."""
+    def test_config_settings_preserved(self) -> None:
+        """ValidationPhase preserves config settings."""
         config = ValidationConfig(
             enable_tests=False,
             enable_review=True,
             enable_evidence=False,
         )
+        phase = ValidationPhase(config=config)
 
-        registry = ValidatorRegistry()
-        registry.register(TestValidator())
-        registry.register(ReviewValidator(executor=MagicMock()))
-        registry.register(EvidenceValidator())
+        assert phase.config.enable_tests is False
+        assert phase.config.enable_review is True
+        assert phase.config.enable_evidence is False
 
-        enabled = registry.get_enabled(config)
+    def test_default_config_enables_all(self) -> None:
+        """Default config enables all validation types."""
+        config = ValidationConfig()
+        phase = ValidationPhase(config=config)
 
-        assert len(enabled) == 1
-        assert enabled[0].name == "review"
+        assert phase.config.enable_tests is True
+        assert phase.config.enable_review is True
+        assert phase.config.enable_evidence is True
+
+
+class TestValidationResultCreation:
+    """Tests for creating ValidationResult objects."""
+
+    def test_create_passing_result(self) -> None:
+        """Create a passing validation result."""
+        result = ValidationResult(
+            passed=True,
+            tests_passed=True,
+            code_review_passed=True,
+            issues_fixed=[],
+            issues_remaining=[],
+            summary="All validation checks passed",
+        )
+
+        assert result.passed is True
+        assert len(result.issues_fixed) == 0
+        assert len(result.issues_remaining) == 0
+
+    def test_create_failing_result(self) -> None:
+        """Create a failing validation result."""
+        result = ValidationResult(
+            passed=False,
+            tests_passed=False,
+            code_review_passed=True,
+            issues_fixed=["Fixed typo"],
+            issues_remaining=["Test test_login still fails"],
+            summary="Tests failing",
+        )
+
+        assert result.passed is False
+        assert len(result.issues_remaining) == 1
+
+    def test_result_serialization(self) -> None:
+        """ValidationResult can be serialized to dict."""
+        result = ValidationResult(
+            passed=True,
+            tests_passed=True,
+            code_review_passed=True,
+            issues_fixed=["Fixed issue"],
+            issues_remaining=[],
+            summary="Done",
+        )
+
+        data = result.model_dump()
+
+        assert isinstance(data, dict)
+        assert data["passed"] is True
+        assert data["issues_fixed"] == ["Fixed issue"]
