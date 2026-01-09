@@ -52,9 +52,9 @@ So that my team can follow progress without checking CLI output.
 ## Tasks / Subtasks
 
 ### Task 1: Extend TaskManager Protocol
-- [ ] Add `post_comment(task_id: str, body: str) -> None` to Protocol
-- [ ] Implement in `NullTaskManager` (no-op)
-- [ ] Implement in `LinearTaskManager` (GraphQL mutation)
+- [x] Add `post_comment(task_id: str, body: str) -> None` to Protocol
+- [x] Implement in `NullTaskManager` (no-op)
+- [x] Implement in `LinearTaskManager` (GraphQL mutation)
 
 ### Task 2: Implement Linear Comment Posting
 - [ ] Add `commentCreate` mutation to LinearClient
