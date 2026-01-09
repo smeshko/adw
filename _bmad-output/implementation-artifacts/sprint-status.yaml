@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 20
+issue_counter: 23
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -64,6 +64,9 @@ issues:
   ISS-018-single-phase-runs-delete-worktree-unexpectedly: fixed  # PR #84
   ISS-019-epic-11-phases-not-unified: fixed  # Multiple fix commits merged
   ISS-020-worktrees-should-not-auto-delete: fixed
+  ISS-021-remove-evidence-gathering-completely: story-created  # Major - Remove dead code, Moved to Epic 13
+  ISS-022-validate-phase-not-verifying-codex-findings: story-created  # Critical - Claude not verifying Codex hallucinations
+  ISS-023-save-only-last-llm-message-as-output: story-created  # Major - SDK saves full conversation, not final output
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -286,6 +289,12 @@ development_status:
   refactor-ISS-013-remove-template-aliases: backlog
   refactor-ISS-014-centralize-resume-logic: backlog
   refactor-ISS-017-consolidate-template-logic: backlog
+  # Refactor (from ISS-021) - MAJOR
+  refactor-ISS-021-remove-evidence-gathering: ready-for-dev
+  # Bugfix (from ISS-022) - CRITICAL
+  bugfix-ISS-022-validate-codex-findings: ready-for-dev
+  # UX Fix (from ISS-023) - MAJOR
+  ux-fix-ISS-023-save-last-message-only: ready-for-dev
   epic-13-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
