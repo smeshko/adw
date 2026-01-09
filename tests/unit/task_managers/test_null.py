@@ -60,3 +60,17 @@ class TestNullTaskManager:
         assert manager.is_pr_merged("https://github.com/owner/repo/pull/123") is False
         assert manager.is_pr_merged("any-url") is False
         assert manager.is_pr_merged("") is False
+
+    def test_add_label_no_op(self) -> None:
+        """add_label does nothing and doesn't raise."""
+        manager = NullTaskManager()
+        # Should not raise - this is a no-op
+        manager.add_label("RULE-123", "adw:running")
+        manager.add_label("RULE-456", "adw:phase:build")
+
+    def test_remove_label_no_op(self) -> None:
+        """remove_label does nothing and doesn't raise."""
+        manager = NullTaskManager()
+        # Should not raise - this is a no-op
+        manager.remove_label("RULE-123", "adw:running")
+        manager.remove_label("RULE-456", "adw:phase:build")

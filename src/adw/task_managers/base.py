@@ -129,3 +129,29 @@ class TaskManager(Protocol):
             is not supported.
         """
         ...
+
+    def add_label(self, task_id: str, label: str) -> None:
+        """Add a label to a task.
+
+        Args:
+            task_id: The task identifier (internal ID, e.g., UUID).
+            label: The label to add (e.g., "adw:running").
+
+        Note:
+            This operation should be non-blocking. Implementations should
+            catch and log errors rather than raising exceptions.
+        """
+        ...
+
+    def remove_label(self, task_id: str, label: str) -> None:
+        """Remove a label from a task.
+
+        Args:
+            task_id: The task identifier (internal ID, e.g., UUID).
+            label: The label to remove (e.g., "adw:running").
+
+        Note:
+            This operation should be non-blocking. Implementations should
+            catch and log errors rather than raising exceptions.
+        """
+        ...

@@ -59,6 +59,7 @@ from adw.worktree.manager import WorktreeManager
 if TYPE_CHECKING:
     from adw.cli.progress import ProgressDisplay
     from adw.core.artifact_manager import ArtifactManager
+    from adw.task_managers.labels import LabelManager
 
 
 class PhaseRunnerProtocol(Protocol):
@@ -146,6 +147,7 @@ class Orchestrator:
         worktree_config: WorktreeConfig | None = None,
         git_config: GitConfig | None = None,
         task_manager_config: TaskManagerConfig | None = None,
+        label_manager: "LabelManager | None" = None,
     ) -> None:
         """Initialize the Orchestrator.
 
@@ -163,6 +165,7 @@ class Orchestrator:
             worktree_config: Worktree isolation config (optional, Story 10.1).
             git_config: Git configuration for auto-PR creation (optional, ISS-011).
             task_manager_config: Task manager configuration for auto-close (Story 12.8).
+            label_manager: Manager for task labels (optional, Story 12.7).
         """
         self.runs_dir = runs_dir
         # Derive project path from runs_dir (runs_dir is typically .adw/runs)
@@ -184,6 +187,9 @@ class Orchestrator:
 
         # Task manager config for auto-close (Story 12.8)
         self.task_manager_config = task_manager_config or TaskManagerConfig()
+
+        # Label manager for task label operations (Story 12.7)
+        self._label_manager = label_manager
 
         # Worktree isolation (Story 10.1)
         self.worktree_config = worktree_config or WorktreeConfig()
@@ -308,6 +314,10 @@ class Orchestrator:
         # Register run in global index (Story 7.0)
         self.index_manager.register_run(context, self._project_path)
 
+        # Set running label (Story 12.7)
+        if self._label_manager:
+            self._label_manager.set_running()
+
         logger.info(
             "Starting run",
             extra={"run_id": run_id, "feature": feature_description},
@@ -330,6 +340,10 @@ class Orchestrator:
                     }
                 )
                 self.context_manager.save(context)
+
+                # Set completed label (Story 12.7)
+                if self._label_manager:
+                    self._label_manager.set_completed()
 
                 # Update global index on completion (Story 7.0)
                 self.index_manager.update_run(
@@ -385,6 +399,10 @@ class Orchestrator:
 
         except ShutdownRequested as e:
             # Graceful shutdown - state already saved by handler
+            # Clear running label on interruption (Story 12.7)
+            if self._label_manager:
+                self._label_manager.set_failed()
+
             # Update global index on interruption (Story 7.0)
             self.index_manager.update_run(
                 context.run_id,
@@ -407,6 +425,10 @@ class Orchestrator:
                 }
             )
             self.context_manager.save(context)
+
+            # Set failed label (Story 12.7)
+            if self._label_manager:
+                self._label_manager.set_failed()
 
             # Update global index on failure (Story 7.0)
             self.index_manager.update_run(
@@ -458,6 +480,10 @@ class Orchestrator:
                 }
             )
             self.context_manager.save(context)
+
+            # Set failed label (Story 12.7)
+            if self._label_manager:
+                self._label_manager.set_failed()
 
             # Update global index on failure (Story 7.0)
             self.index_manager.update_run(
@@ -591,6 +617,10 @@ class Orchestrator:
             },
         )
 
+        # Set running label (Story 12.7)
+        if self._label_manager:
+            self._label_manager.set_running()
+
         # Load artifacts from source run if specified
         source_artifacts: dict[str, dict[str, str]] | None = None
         if from_run_id:
@@ -623,6 +653,10 @@ class Orchestrator:
                 phases_completed=list(context.phase_history),
             )
 
+            # Set completed label (Story 12.7)
+            if self._label_manager:
+                self._label_manager.set_completed()
+
             logger.info(
                 "Single-phase run completed",
                 extra={"run_id": run_id, "phase": phase},
@@ -647,6 +681,10 @@ class Orchestrator:
                 }
             )
             self.context_manager.save(context)
+
+            # Set failed label (Story 12.7)
+            if self._label_manager:
+                self._label_manager.set_failed()
 
             # Update global index on failure (Story 7.0)
             self.index_manager.update_run(
@@ -680,6 +718,10 @@ class Orchestrator:
                 }
             )
             self.context_manager.save(context)
+
+            # Set failed label (Story 12.7)
+            if self._label_manager:
+                self._label_manager.set_failed()
 
             # Update global index on failure (Story 7.0)
             self.index_manager.update_run(
@@ -769,6 +811,10 @@ class Orchestrator:
             },
         )
 
+        # Set running label (Story 12.7)
+        if self._label_manager:
+            self._label_manager.set_running()
+
         # Find the index of the resume phase
         start_idx = PHASE_SEQUENCE.index(resume_phase)
 
@@ -797,6 +843,10 @@ class Orchestrator:
                     }
                 )
                 self.context_manager.save(context)
+
+                # Set completed label (Story 12.7)
+                if self._label_manager:
+                    self._label_manager.set_completed()
 
                 # Update global index on resume completion (Story 7.0)
                 self.index_manager.update_run(
@@ -842,6 +892,10 @@ class Orchestrator:
 
         except ShutdownRequested as e:
             # Graceful shutdown - state already saved by handler
+            # Clear running label on interruption (Story 12.7)
+            if self._label_manager:
+                self._label_manager.set_failed()
+
             # Update global index on resume interruption (Story 7.0)
             self.index_manager.update_run(
                 context.run_id,
@@ -864,6 +918,10 @@ class Orchestrator:
                 }
             )
             self.context_manager.save(context)
+
+            # Set failed label (Story 12.7)
+            if self._label_manager:
+                self._label_manager.set_failed()
 
             # Update global index on resume failure (Story 7.0)
             self.index_manager.update_run(
@@ -914,6 +972,10 @@ class Orchestrator:
                 }
             )
             self.context_manager.save(context)
+
+            # Set failed label (Story 12.7)
+            if self._label_manager:
+                self._label_manager.set_failed()
 
             # Update global index on failure (Story 7.0)
             self.index_manager.update_run(
@@ -1156,6 +1218,10 @@ class Orchestrator:
         # Notify progress display of phase start (Story 5.5)
         if self.progress_display:
             self.progress_display.on_phase_start(phase)
+
+        # Set phase label (Story 12.7)
+        if self._label_manager:
+            self._label_manager.set_phase(phase)
 
         logger.info(
             "Starting phase",
