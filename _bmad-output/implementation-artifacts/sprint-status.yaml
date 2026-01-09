@@ -258,7 +258,7 @@ development_status:
   12-3-status-synchronization-at-phase-transitions: done
   12-4-task-id-pattern-detection: done
   12-5-task-context-in-prompts: done
-  12-6-post-status-update-comments: in-progress
+  12-6-post-status-update-comments: done
   12-7-label-management: done
   12-8-issue-closing: done
   12-9-issue-assignment: ready-for-dev
