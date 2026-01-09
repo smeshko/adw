@@ -320,3 +320,53 @@ class LinearTaskManager:
             return match.group(1).upper()
 
         return None
+
+    def add_label(self, task_id: str, label: str) -> None:
+        """Add a label to a Linear issue.
+
+        This is a non-blocking operation - errors are logged but do not
+        raise exceptions to avoid failing the ADW run.
+
+        Args:
+            task_id: The internal Linear issue UUID (from TaskInfo.id).
+            label: The label name to add (e.g., "adw:running").
+        """
+        try:
+            self._client.add_label(task_id, label, self._team_id)
+            logger.info(
+                "Added label '%s' to issue %s",
+                label,
+                task_id,
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to add label '%s' to issue %s: %s",
+                label,
+                task_id,
+                str(e),
+            )
+
+    def remove_label(self, task_id: str, label: str) -> None:
+        """Remove a label from a Linear issue.
+
+        This is a non-blocking operation - errors are logged but do not
+        raise exceptions to avoid failing the ADW run.
+
+        Args:
+            task_id: The internal Linear issue UUID (from TaskInfo.id).
+            label: The label name to remove (e.g., "adw:running").
+        """
+        try:
+            self._client.remove_label(task_id, label, self._team_id)
+            logger.info(
+                "Removed label '%s' from issue %s",
+                label,
+                task_id,
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to remove label '%s' from issue %s: %s",
+                label,
+                task_id,
+                str(e),
+            )

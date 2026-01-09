@@ -78,3 +78,23 @@ class NullTaskManager:
             Always None - no task ID detection without a task manager.
         """
         return None
+
+    def add_label(self, task_id: str, label: str) -> None:
+        """No-op - silently ignores label additions.
+
+        Args:
+            task_id: The task identifier.
+            label: The label to add (ignored).
+        """
+        # No-op - nothing to add labels to
+        pass
+
+    def remove_label(self, task_id: str, label: str) -> None:
+        """No-op - silently ignores label removals.
+
+        Args:
+            task_id: The task identifier.
+            label: The label to remove (ignored).
+        """
+        # No-op - nothing to remove labels from
+        pass

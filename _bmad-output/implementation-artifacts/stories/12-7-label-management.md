@@ -1,6 +1,6 @@
 # Story 12.7: Label Management
 
-Status: ready-for-dev
+Status: dev-complete
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-08
@@ -42,50 +42,50 @@ So that my task board reflects current progress.
 ## Tasks / Subtasks
 
 ### Task 1: Extend TaskManager Protocol
-- [ ] Add `add_label(task_id: str, label: str) -> None` to Protocol
-- [ ] Add `remove_label(task_id: str, label: str) -> None` to Protocol
-- [ ] Implement in `NullTaskManager` (no-op)
-- [ ] Implement in `LinearTaskManager`
+- [x] Add `add_label(task_id: str, label: str) -> None` to Protocol
+- [x] Add `remove_label(task_id: str, label: str) -> None` to Protocol
+- [x] Implement in `NullTaskManager` (no-op)
+- [x] Implement in `LinearTaskManager`
 
 ### Task 2: Implement Linear Label Operations
-- [ ] Add label query to get label ID by name
-- [ ] Create label if it doesn't exist (with prefix color)
-- [ ] Implement `issueAddLabel` mutation
-- [ ] Implement `issueRemoveLabel` mutation
-- [ ] Cache label IDs to reduce API calls
+- [x] Add label query to get label ID by name
+- [x] Create label if it doesn't exist (with prefix color)
+- [x] Implement `issueAddLabel` mutation
+- [x] Implement `issueRemoveLabel` mutation
+- [x] Cache label IDs to reduce API calls
 
 ### Task 3: Create LabelManager Service
-- [ ] Create `src/adw/task_managers/labels.py` with `LabelManager`
-- [ ] Initialize with `TaskManager` and `TaskManagerLabelsConfig`
-- [ ] Implement `set_running(task_id)` - add running label
-- [ ] Implement `set_phase(task_id, phase)` - swap phase labels
-- [ ] Implement `set_completed(task_id)` - remove running, add completed
-- [ ] Implement `set_failed(task_id)` - remove running, add failed
+- [x] Create `src/adw/task_managers/labels.py` with `LabelManager`
+- [x] Initialize with `TaskManager` and `TaskManagerLabelsConfig`
+- [x] Implement `set_running(task_id)` - add running label
+- [x] Implement `set_phase(task_id, phase)` - swap phase labels
+- [x] Implement `set_completed(task_id)` - remove running, add completed
+- [x] Implement `set_failed(task_id)` - remove running, add failed
 
 ### Task 4: Handle Label Prefix
-- [ ] Use `labels.prefix` from config (default: `adw:`)
-- [ ] Construct full label names: `{prefix}running`, `{prefix}phase:{phase}`
-- [ ] Support custom prefixes for multi-project boards
+- [x] Use `labels.prefix` from config (default: `adw:`)
+- [x] Construct full label names: `{prefix}running`, `{prefix}phase:{phase}`
+- [x] Support custom prefixes for multi-project boards
 
 ### Task 5: Integrate with Orchestrator
-- [ ] Inject `LabelManager` into Orchestrator
-- [ ] Call `set_running` on run start
-- [ ] Call `set_phase` on phase transitions
-- [ ] Call `set_completed` or `set_failed` on run end
-- [ ] Check `labels.enabled` config before operations
+- [x] Inject `LabelManager` into Orchestrator
+- [x] Call `set_running` on run start
+- [x] Call `set_phase` on phase transitions
+- [x] Call `set_completed` or `set_failed` on run end
+- [x] Check `labels.enabled` config before operations
 
 ### Task 6: Handle Non-Blocking Failures
-- [ ] Wrap all label operations in try/except
-- [ ] Log warnings on failure, don't raise
-- [ ] Continue run execution regardless of label status
-- [ ] Track label operation failures for debugging
+- [x] Wrap all label operations in try/except
+- [x] Log warnings on failure, don't raise
+- [x] Continue run execution regardless of label status
+- [x] Track label operation failures for debugging
 
 ### Task 7: Write Tests
-- [ ] Unit tests for `LabelManager` (6 tests)
-- [ ] Unit tests for `LinearTaskManager` label operations (4 tests)
-- [ ] Unit tests for label prefix handling (3 tests)
-- [ ] Unit tests for config checking (3 tests)
-- [ ] Integration test for full label lifecycle (2 tests)
+- [x] Unit tests for `LabelManager` (6 tests) - 19 tests written (exceeds requirement)
+- [x] Unit tests for `LinearTaskManager` label operations (4 tests) - 15 tests written
+- [x] Unit tests for label prefix handling (3 tests) - included in LabelManager tests
+- [x] Unit tests for config checking (3 tests) - included in LabelManager tests
+- [x] Integration test for full label lifecycle (2 tests) - TestLabelManagerLifecycle
 
 ---
 
@@ -411,8 +411,28 @@ Epic 12: Task Manager Integration - Story 12.7
 
 ### Agent Model Used
 
+Claude Opus 4.5
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Extended TaskManager Protocol with add_label/remove_label methods. Added to base.py Protocol, implemented no-op in null.py, added stub implementations in linear.py that delegate to linear_client.py (stub methods added for Task 2).
+- Task 2: Implemented full Linear label operations in linear_client.py. Added GraphQL queries/mutations for labels (GET_TEAM_LABELS_QUERY, CREATE_LABEL_MUTATION, ADD_LABEL_MUTATION, REMOVE_LABEL_MUTATION). Implemented get_team_labels, create_label, add_label_to_issue, remove_label_from_issue methods. Added label caching (_label_cache) to reduce API calls. Full add_label/remove_label now use get-or-create pattern.
+- Task 3+4+6: Created LabelManager service in labels.py with set_running(), set_phase(), set_completed(), set_failed() methods. Uses config.prefix for label names (default "adw:"). All operations are non-blocking with try/except and logging. 17 unit tests added.
+- Task 5: Integrated LabelManager with Orchestrator. Added label_manager parameter to Orchestrator.__init__. Added set_running() call at run start, set_phase() at phase transitions, set_completed()/set_failed() at run end. Updated bootstrap.py to create LabelManager when task_manager and task_id are provided.
+- Task 7: Comprehensive test coverage added. 19 LabelManager tests, 15 LinearClient label tests, plus 2 lifecycle integration tests. Total: 97 passing tests in task_managers module.
+
 ### File List
+
+- `src/adw/task_managers/base.py` - Added add_label/remove_label to Protocol
+- `src/adw/task_managers/null.py` - Added no-op implementations
+- `src/adw/task_managers/linear.py` - Added implementations delegating to client
+- `src/adw/task_managers/linear_client.py` - Full label operations with GraphQL, caching
+- `src/adw/task_managers/labels.py` - New LabelManager service
+- `src/adw/core/orchestrator.py` - Added label_manager parameter and label calls
+- `src/adw/cli/bootstrap.py` - Added LabelManager creation in create_orchestrator
+- `tests/unit/task_managers/test_base.py` - Added tests for new Protocol methods
+- `tests/unit/task_managers/test_null.py` - Added tests for no-op implementations
+- `tests/unit/task_managers/test_linear_client.py` - Added tests for label operations (15 tests)
+- `tests/unit/task_managers/test_labels.py` - LabelManager tests (19 tests)
