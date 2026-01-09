@@ -63,10 +63,10 @@ So that my team can follow progress without checking CLI output.
 - [x] Handle API errors gracefully
 
 ### Task 3: Create CommentFormatter
-- [ ] Create `src/adw/task_managers/comments.py` with `CommentFormatter`
-- [ ] Implement `format_phase_complete(phase: str, duration: float, artifacts: int) -> str`
-- [ ] Implement `format_phase_failed(phase: str, error: str, run_id: str) -> str`
-- [ ] Implement `format_run_complete(run_id: str, pr_url: str | None, summary: str) -> str`
+- [x] Create `src/adw/task_managers/comments.py` with `CommentFormatter`
+- [x] Implement `format_phase_complete(phase: str, duration: float, artifacts: int) -> str`
+- [x] Implement `format_phase_failed(phase: str, error: str, run_id: str) -> str`
+- [x] Implement `format_run_complete(run_id: str, pr_url: str | None, summary: str) -> str`
 
 ### Task 4: Extend StatusSyncService
 - [ ] Add `post_phase_comment(context, phase, result)` method

@@ -153,3 +153,78 @@ class TestLinearClientPostComment:
             result = client.post_comment("issue-uuid-123", "Test comment")
 
             assert result is False
+
+
+class TestCommentFormatter:
+    """Tests for CommentFormatter."""
+
+    def test_format_phase_complete_returns_markdown(self) -> None:
+        """format_phase_complete should return markdown string."""
+        from adw.task_managers.comments import CommentFormatter
+
+        formatter = CommentFormatter()
+        result = formatter.format_phase_complete(
+            phase="plan", duration=45.2, artifacts=3
+        )
+
+        assert "plan" in result.lower()
+        assert "45.2" in result or "45.20" in result
+        assert "3" in result
+        # Should be markdown
+        assert "**" in result or "#" in result
+
+    def test_format_phase_complete_shows_duration_formatted(self) -> None:
+        """format_phase_complete should format duration nicely."""
+        from adw.task_managers.comments import CommentFormatter
+
+        formatter = CommentFormatter()
+        result = formatter.format_phase_complete(
+            phase="build", duration=125.7, artifacts=5
+        )
+
+        # Duration should be formatted (could be seconds or minutes)
+        assert "125" in result or "2m" in result
+
+    def test_format_phase_failed_includes_error(self) -> None:
+        """format_phase_failed should include error message."""
+        from adw.task_managers.comments import CommentFormatter
+
+        formatter = CommentFormatter()
+        result = formatter.format_phase_failed(
+            phase="build",
+            error="Build failed: missing dependency",
+            run_id="01ABC123",
+        )
+
+        assert "build" in result.lower()
+        assert "missing dependency" in result.lower() or "Build failed" in result
+        assert "01ABC123" in result
+
+    def test_format_run_complete_with_pr_url(self) -> None:
+        """format_run_complete should include PR URL when provided."""
+        from adw.task_managers.comments import CommentFormatter
+
+        formatter = CommentFormatter()
+        result = formatter.format_run_complete(
+            run_id="01ABC123",
+            pr_url="https://github.com/org/repo/pull/42",
+            summary="All phases completed successfully",
+        )
+
+        assert "01ABC123" in result
+        assert "https://github.com/org/repo/pull/42" in result
+        assert "completed" in result.lower() or "success" in result.lower()
+
+    def test_format_run_complete_without_pr_url(self) -> None:
+        """format_run_complete should work without PR URL."""
+        from adw.task_managers.comments import CommentFormatter
+
+        formatter = CommentFormatter()
+        result = formatter.format_run_complete(
+            run_id="01ABC123",
+            pr_url=None,
+            summary="Run completed",
+        )
+
+        assert "01ABC123" in result
+        assert "completed" in result.lower() or "Run" in result
