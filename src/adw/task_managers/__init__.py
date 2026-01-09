@@ -14,21 +14,28 @@ Example:
     >>> result = resolver.resolve("RULE-123")
     >>> result.type == InputType.TASK_ID
     True
+
+    >>> from adw.task_managers import StatusSyncService
+    >>> sync = StatusSyncService(manager, config)
+    >>> sync.sync_phase_start(context, "plan")
 """
 
 from adw.task_managers.base import TaskManager
 from adw.task_managers.factory import TaskManagerFactory
 from adw.task_managers.null import NullTaskManager
 from adw.task_managers.resolver import InputResolver, InputType, ResolvedInput
+from adw.task_managers.sync import DEFAULT_STATE_MAPPING, StatusSyncService
 
 # LinearTaskManager is lazily imported to avoid httpx dependency
 # when not using Linear. Use factory.create("linear") instead of direct import.
 
 __all__ = [
+    "DEFAULT_STATE_MAPPING",
     "InputResolver",
     "InputType",
     "NullTaskManager",
     "ResolvedInput",
+    "StatusSyncService",
     "TaskManager",
     "TaskManagerFactory",
 ]

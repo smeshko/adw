@@ -342,6 +342,111 @@ class TestLinearTaskManagerResolveTaskId:
         assert manager.resolve_task_id("RULE-123") is None
 
 
+class TestLinearTaskManagerCloseTask:
+    """Tests for LinearTaskManager.close_task."""
+
+    @pytest.fixture
+    def manager(self, monkeypatch: pytest.MonkeyPatch) -> LinearTaskManager:
+        """Create a LinearTaskManager with mocked env vars."""
+        monkeypatch.setenv("LINEAR_API_KEY", "lin_api_test123")
+        monkeypatch.setenv("LINEAR_TEAM_ID", "team-uuid-123")
+        config = TaskManagerConfig(
+            type="linear",
+            team_key="RULE",
+            state_mapping={
+                "done": "Done",
+                "completed": "Done",
+            },
+        )
+        return LinearTaskManager(config)
+
+    def test_close_task_finds_done_state_and_updates(
+        self, manager: LinearTaskManager
+    ) -> None:
+        """close_task finds Done state and updates issue with completedAt."""
+        mock_states = [
+            {"id": "state-1", "name": "Todo", "type": "started"},
+            {"id": "state-2", "name": "In Progress", "type": "started"},
+            {"id": "state-3", "name": "Done", "type": "completed"},
+        ]
+
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.get_team_states.return_value = mock_states
+            mock_client.update_issue.return_value = {"success": True}
+
+            manager.close_task("task-uuid-123")
+
+            # Should call update_issue with Done state ID and completedAt
+            mock_client.update_issue.assert_called_once()
+            call_args = mock_client.update_issue.call_args
+            assert call_args[0][0] == "task-uuid-123"
+            assert call_args[0][1]["stateId"] == "state-3"
+            assert "completedAt" in call_args[0][1]
+
+    def test_close_task_uses_custom_state_mapping(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """close_task uses custom state mapping from config."""
+        monkeypatch.setenv("LINEAR_API_KEY", "lin_api_test123")
+        monkeypatch.setenv("LINEAR_TEAM_ID", "team-uuid-123")
+        config = TaskManagerConfig(
+            type="linear",
+            team_key="RULE",
+            state_mapping={"done": "Finished"},  # Custom state name
+        )
+        manager = LinearTaskManager(config)
+
+        mock_states = [
+            {"id": "state-1", "name": "Todo", "type": "started"},
+            {"id": "state-2", "name": "Finished", "type": "completed"},
+        ]
+
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.get_team_states.return_value = mock_states
+            mock_client.update_issue.return_value = {"success": True}
+
+            manager.close_task("task-uuid-123")
+
+            # Should use "Finished" state from custom mapping
+            call_args = mock_client.update_issue.call_args
+            assert call_args[0][1]["stateId"] == "state-2"
+
+    def test_close_task_raises_error_when_done_state_not_found(
+        self, manager: LinearTaskManager
+    ) -> None:
+        """close_task raises TaskError when Done state not found."""
+        mock_states = [
+            {"id": "state-1", "name": "Todo", "type": "started"},
+            {"id": "state-2", "name": "In Progress", "type": "started"},
+            # No Done/Completed state
+        ]
+
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.get_team_states.return_value = mock_states
+
+            with pytest.raises(TaskError) as exc_info:
+                manager.close_task("task-uuid-123")
+
+            assert exc_info.value.code == "DONE_STATE_NOT_FOUND"
+
+
+class TestLinearTaskManagerIsPrMerged:
+    """Tests for LinearTaskManager.is_pr_merged."""
+
+    def test_is_pr_merged_returns_false(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """is_pr_merged always returns False (handled by IssueCloser)."""
+        monkeypatch.setenv("LINEAR_API_KEY", "lin_api_test123")
+        monkeypatch.setenv("LINEAR_TEAM_ID", "team-uuid-123")
+        config = TaskManagerConfig(type="linear", team_key="RULE")
+        manager = LinearTaskManager(config)
+
+        # Linear doesn't track PR status natively
+        assert manager.is_pr_merged("https://github.com/owner/repo/pull/123") is False
+        assert manager.is_pr_merged("any-url") is False
+
+
 class TestLinearTaskManagerProtocol:
     """Tests for LinearTaskManager Protocol satisfaction."""
 
@@ -365,3 +470,5 @@ class TestLinearTaskManagerProtocol:
         assert hasattr(manager, "fetch_task")
         assert hasattr(manager, "update_status")
         assert hasattr(manager, "resolve_task_id")
+        assert hasattr(manager, "close_task")
+        assert hasattr(manager, "is_pr_merged")

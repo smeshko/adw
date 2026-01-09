@@ -100,3 +100,58 @@ class TaskManager(Protocol):
             The extracted task ID if found, None otherwise.
         """
         ...
+
+    def close_task(self, task_id: str) -> None:
+        """Close a task by moving it to a completed state.
+
+        This operation moves the task to the "Done" or equivalent completed
+        state in the external system, setting completion timestamps as needed.
+
+        Args:
+            task_id: The internal task UUID (e.g., from TaskInfo.id).
+
+        Raises:
+            TaskError: If the task cannot be closed.
+        """
+        ...
+
+    def is_pr_merged(self, pr_url: str) -> bool:
+        """Check if a pull request has been merged.
+
+        This is an optional capability. Task managers that don't support
+        PR merge detection should return False.
+
+        Args:
+            pr_url: The full URL to the pull request.
+
+        Returns:
+            True if the PR is merged, False otherwise or if detection
+            is not supported.
+        """
+        ...
+
+    def add_label(self, task_id: str, label: str) -> None:
+        """Add a label to a task.
+
+        Args:
+            task_id: The task identifier (internal ID, e.g., UUID).
+            label: The label to add (e.g., "adw:running").
+
+        Note:
+            This operation should be non-blocking. Implementations should
+            catch and log errors rather than raising exceptions.
+        """
+        ...
+
+    def remove_label(self, task_id: str, label: str) -> None:
+        """Remove a label from a task.
+
+        Args:
+            task_id: The task identifier (internal ID, e.g., UUID).
+            label: The label to remove (e.g., "adw:running").
+
+        Note:
+            This operation should be non-blocking. Implementations should
+            catch and log errors rather than raising exceptions.
+        """
+        ...

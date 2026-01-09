@@ -46,3 +46,31 @@ class TestNullTaskManager:
         assert manager.resolve_task_id("RULE-123") is None
         assert manager.resolve_task_id("feature/RULE-123-add-auth") is None
         assert manager.resolve_task_id("anything") is None
+
+    def test_close_task_no_op(self) -> None:
+        """close_task does nothing and doesn't raise."""
+        manager = NullTaskManager()
+        # Should not raise - this is a no-op
+        manager.close_task("task-uuid-123")
+        manager.close_task("another-task")
+
+    def test_is_pr_merged_returns_false(self) -> None:
+        """is_pr_merged always returns False."""
+        manager = NullTaskManager()
+        assert manager.is_pr_merged("https://github.com/owner/repo/pull/123") is False
+        assert manager.is_pr_merged("any-url") is False
+        assert manager.is_pr_merged("") is False
+
+    def test_add_label_no_op(self) -> None:
+        """add_label does nothing and doesn't raise."""
+        manager = NullTaskManager()
+        # Should not raise - this is a no-op
+        manager.add_label("RULE-123", "adw:running")
+        manager.add_label("RULE-456", "adw:phase:build")
+
+    def test_remove_label_no_op(self) -> None:
+        """remove_label does nothing and doesn't raise."""
+        manager = NullTaskManager()
+        # Should not raise - this is a no-op
+        manager.remove_label("RULE-123", "adw:running")
+        manager.remove_label("RULE-456", "adw:phase:build")

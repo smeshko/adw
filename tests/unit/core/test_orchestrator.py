@@ -1905,3 +1905,209 @@ class TestWorktreeNoAutoDelete:
         mock_context_manager.load.return_value = existing_context
         orchestrator.resume("01JFTEST000000000000000002")
         assert cleanup_mock.call_count == 0, "resume() should not auto-cleanup worktree"
+
+
+class TestStatusSyncServiceIntegration:
+    """Tests for StatusSyncService integration with Orchestrator (Story 12.3)."""
+
+    @pytest.fixture
+    def mock_status_sync_service(self) -> MagicMock:
+        """Create a mock StatusSyncService."""
+        service = MagicMock()
+        service.sync_phase_start = MagicMock()
+        service.sync_phase_transition = MagicMock()
+        service.sync_run_failed = MagicMock()
+        service.sync_run_complete = MagicMock()
+        return service
+
+    def test_sync_phase_start_called_for_each_phase(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_interruption_handler: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_status_sync_service: MagicMock,
+    ) -> None:
+        """Calls sync_phase_start at the beginning of each phase."""
+        from adw.core.orchestrator import Orchestrator
+        from adw.models.config import WorktreeConfig
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        worktree_config = WorktreeConfig(enabled=False)
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            interruption_handler=mock_interruption_handler,
+            index_manager=mock_index_manager,
+            worktree_config=worktree_config,
+            status_sync_service=mock_status_sync_service,
+        )
+
+        orchestrator.run("Test feature")
+
+        # Verify sync_phase_start was called for each phase
+        assert mock_status_sync_service.sync_phase_start.call_count == len(
+            PHASE_SEQUENCE
+        )
+
+        # Verify the phases were correct
+        call_args = [
+            call[0][1] for call in mock_status_sync_service.sync_phase_start.call_args_list
+        ]
+        assert call_args == list(PHASE_SEQUENCE)
+
+    def test_sync_run_failed_called_on_error(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_interruption_handler: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_status_sync_service: MagicMock,
+    ) -> None:
+        """Calls sync_run_failed when a phase fails."""
+        from adw.core.orchestrator import Orchestrator
+        from adw.models.config import WorktreeConfig
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        worktree_config = WorktreeConfig(enabled=False)
+
+        # Make phase runner fail on build phase
+        def fail_on_build(phase: str, context: RunContext, **kwargs):
+            if phase == "build":
+                raise PhaseError(
+                    code="BUILD_FAILED",
+                    message="Build failed",
+                    phase="build",
+                    recoverable=False,
+                )
+            return PhaseResult(
+                phase=phase,
+                status=PhaseStatus.COMPLETED,
+                started_at=datetime.now(UTC),
+                completed_at=datetime.now(UTC),
+                artifacts=[],
+                tokens_used=50,
+            )
+
+        mock_phase_runner.run.side_effect = fail_on_build
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            interruption_handler=mock_interruption_handler,
+            index_manager=mock_index_manager,
+            worktree_config=worktree_config,
+            status_sync_service=mock_status_sync_service,
+        )
+
+        with pytest.raises(PhaseError):
+            orchestrator.run("Test feature")
+
+        # Verify sync_run_failed was called
+        assert mock_status_sync_service.sync_run_failed.call_count == 1
+
+        # Verify it was called with the correct phase
+        call_args = mock_status_sync_service.sync_run_failed.call_args[0]
+        assert call_args[1] == "build"  # Failed phase
+        assert "BUILD_FAILED" in call_args[2]  # Error message
+
+    def test_no_sync_calls_without_service(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_interruption_handler: MagicMock,
+        mock_index_manager: MagicMock,
+    ) -> None:
+        """Runs without error when no StatusSyncService is provided."""
+        from adw.core.orchestrator import Orchestrator
+        from adw.models.config import WorktreeConfig
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        worktree_config = WorktreeConfig(enabled=False)
+
+        # No status_sync_service provided
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            interruption_handler=mock_interruption_handler,
+            index_manager=mock_index_manager,
+            worktree_config=worktree_config,
+        )
+
+        # Should complete without error
+        context = orchestrator.run("Test feature")
+        assert context.status == "completed"
+
+    def test_sync_errors_do_not_fail_run(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_interruption_handler: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_status_sync_service: MagicMock,
+    ) -> None:
+        """Run completes successfully even when sync calls fail."""
+        from adw.core.orchestrator import Orchestrator
+        from adw.models.config import WorktreeConfig
+
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        worktree_config = WorktreeConfig(enabled=False)
+
+        # Make sync service throw errors (these should be caught internally)
+        mock_status_sync_service.sync_phase_start.side_effect = Exception(
+            "API Error"
+        )
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            interruption_handler=mock_interruption_handler,
+            index_manager=mock_index_manager,
+            worktree_config=worktree_config,
+            status_sync_service=mock_status_sync_service,
+        )
+
+        # Should complete without error despite sync failures
+        context = orchestrator.run("Test feature")
+        assert context.status == "completed"
