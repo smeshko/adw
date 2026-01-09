@@ -81,9 +81,9 @@ So that my team can follow progress without checking CLI output.
 - [x] Pass PR URL if available from auto-PR creation
 
 ### Task 6: Add Comment Templates
-- [ ] Create configurable comment templates
-- [ ] Support template variables for run context
-- [ ] Default templates with good formatting
+- [x] Respect `sync_comments` config (default=False)
+- [x] Respect `comment_on_failure_only` config
+- [x] Default templates with markdown formatting via CommentFormatter
 
 ### Task 7: Implement PR-Task Linking
 - [ ] Create `PRTitleFormatter` to generate PR titles with task ID

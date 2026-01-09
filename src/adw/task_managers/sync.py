@@ -210,7 +210,10 @@ class StatusSyncService:
         """Post a comment about phase completion.
 
         Posts a formatted comment to the task management system when a phase
-        completes. Does nothing if context has no task_id.
+        completes. Does nothing if:
+        - context has no task_id
+        - sync_comments is False in config
+        - comment_on_failure_only is True (success comments skipped)
 
         Args:
             context: The current run context with task information.
@@ -218,6 +221,14 @@ class StatusSyncService:
             result: The phase result with duration and artifacts.
         """
         if not context.task_id or not context.task_info:
+            return
+
+        # Check sync_comments config (Story 12.6)
+        if not self._config.sync_comments:
+            return
+
+        # Check comment_on_failure_only config
+        if self._config.comment_on_failure_only:
             return
 
         # Determine artifacts count (count files in artifacts if available)
@@ -245,7 +256,12 @@ class StatusSyncService:
         """Post a comment about phase failure.
 
         Posts a formatted comment to the task management system when a phase
-        fails. Does nothing if context has no task_id.
+        fails. Does nothing if:
+        - context has no task_id
+        - sync_comments is False in config
+
+        Note: Failure comments are ALWAYS posted (not affected by
+        comment_on_failure_only - that only skips success comments).
 
         Args:
             context: The current run context with task information.
@@ -253,6 +269,10 @@ class StatusSyncService:
             error: The error message.
         """
         if not context.task_id or not context.task_info:
+            return
+
+        # Check sync_comments config (Story 12.6)
+        if not self._config.sync_comments:
             return
 
         comment = self._comment_formatter.format_phase_failed(
@@ -272,7 +292,10 @@ class StatusSyncService:
         """Post a comment about run completion.
 
         Posts a formatted comment to the task management system when the run
-        completes. Does nothing if context has no task_id.
+        completes. Does nothing if:
+        - context has no task_id
+        - sync_comments is False in config
+        - comment_on_failure_only is True (success comments skipped)
 
         Args:
             context: The current run context with task information.
@@ -280,6 +303,14 @@ class StatusSyncService:
             summary: A summary of the run outcome.
         """
         if not context.task_id or not context.task_info:
+            return
+
+        # Check sync_comments config (Story 12.6)
+        if not self._config.sync_comments:
+            return
+
+        # Check comment_on_failure_only config
+        if self._config.comment_on_failure_only:
             return
 
         comment = self._comment_formatter.format_run_complete(

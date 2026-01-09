@@ -324,8 +324,8 @@ class TestStatusSyncServiceComments:
 
     @pytest.fixture
     def config(self) -> TaskManagerConfig:
-        """Create a task manager config."""
-        return TaskManagerConfig(type="linear", team_key="RULE")
+        """Create a task manager config with sync_comments enabled."""
+        return TaskManagerConfig(type="linear", team_key="RULE", sync_comments=True)
 
     @pytest.fixture
     def context_with_task(self) -> RunContext:
@@ -462,14 +462,62 @@ class TestStatusSyncServiceComments:
 
     def test_safe_post_comment_handles_errors(
         self,
-        config: TaskManagerConfig,
         context_with_task: RunContext,
     ) -> None:
         """_safe_post_comment catches exceptions and logs warning."""
         failing_manager = MagicMock()
         failing_manager.post_comment = MagicMock(side_effect=Exception("API Error"))
 
-        service = StatusSyncService(failing_manager, config)
+        # Need sync_comments=True to test comment posting error handling
+        config_with_comments = TaskManagerConfig(
+            type="linear", team_key="RULE", sync_comments=True
+        )
+        service = StatusSyncService(failing_manager, config_with_comments)
 
         # Should not raise
         service.post_completion_comment(context_with_task, summary="Test")
+
+    def test_comments_not_posted_when_sync_comments_false(
+        self,
+        mock_task_manager: MagicMock,
+        context_with_task: RunContext,
+    ) -> None:
+        """Comments are not posted when sync_comments is False."""
+        config_no_comments = TaskManagerConfig(
+            type="linear", team_key="RULE", sync_comments=False
+        )
+        service = StatusSyncService(mock_task_manager, config_no_comments)
+
+        service.post_completion_comment(context_with_task, summary="Test")
+
+        mock_task_manager.post_comment.assert_not_called()
+
+    def test_success_comments_skipped_when_comment_on_failure_only(
+        self,
+        mock_task_manager: MagicMock,
+        context_with_task: RunContext,
+    ) -> None:
+        """Success comments are skipped when comment_on_failure_only is True."""
+        config_failure_only = TaskManagerConfig(
+            type="linear", team_key="RULE", sync_comments=True, comment_on_failure_only=True
+        )
+        service = StatusSyncService(mock_task_manager, config_failure_only)
+
+        # Success comments should be skipped
+        service.post_completion_comment(context_with_task, summary="Test")
+        mock_task_manager.post_comment.assert_not_called()
+
+    def test_failure_comments_posted_even_with_comment_on_failure_only(
+        self,
+        mock_task_manager: MagicMock,
+        context_with_task: RunContext,
+    ) -> None:
+        """Failure comments are still posted when comment_on_failure_only is True."""
+        config_failure_only = TaskManagerConfig(
+            type="linear", team_key="RULE", sync_comments=True, comment_on_failure_only=True
+        )
+        service = StatusSyncService(mock_task_manager, config_failure_only)
+
+        # Failure comments should be posted
+        service.post_failure_comment(context_with_task, "build", "Error")
+        mock_task_manager.post_comment.assert_called_once()
