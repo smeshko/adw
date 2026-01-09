@@ -356,6 +356,14 @@ def auto_create_pr(
     # Convert to markdown
     pr_body = pr_desc.to_markdown()
 
+    # Add Linear task link to PR body (Story 12.6: PR-Task Linking)
+    if context.task_id and context.task_info:
+        # Get team key from task_info.identifier (e.g., "RULE-123" -> "rule")
+        identifier = context.task_info.identifier
+        team_key = identifier.split("-")[0].lower() if "-" in identifier else "team"
+        task_url = f"https://linear.app/{team_key}/issue/{identifier}"
+        pr_body = f"{pr_body}\n\n---\nLinear: {task_url}"
+
     # Create the PR
     try:
         pr_url = create_pr_via_gh(
