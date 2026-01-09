@@ -3,14 +3,14 @@
 **ID:** ISS-018
 **Severity:** Major
 **Type:** UX Issue
-**Status:** reported
+**Status:** fixed
 **Reported:** 2026-01-07
 **Reporter:** Ivo
 
 ## Related
 
-- **Epic:** N/A
-- **Story:** N/A
+- **Epic:** 10 (Worktree Isolation)
+- **Story:** ux-fix-ISS-018-single-phase-worktree-retention
 - **Component:** Worktree Management
 
 ## Description
@@ -74,10 +74,10 @@ N/A
 
 ## Resolution
 
-- **Fix Story:** ux-fix-ISS-018-single-phase-runs-delete-worktree-unexpectedly.md
-- **Fixed In:** Pending
-- **Verified By:** Pending
-- **Verified Date:** Pending
+- **Fix Story:** ux-fix-ISS-018-single-phase-worktree-retention.md
+- **Fixed In:** PR #84
+- **Verified By:** Git history
+- **Verified Date:** 2026-01-07
 
 ## Notes
 

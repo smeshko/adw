@@ -3,7 +3,7 @@
 **ID:** ISS-020
 **Severity:** Major
 **Type:** UX Issue
-**Status:** reported
+**Status:** fixed
 **Reported:** 2026-01-07
 **Reporter:** Ivo
 
@@ -73,9 +73,9 @@ N/A
 ## Resolution
 
 - **Fix Story:** ux-fix-ISS-020-disable-worktree-auto-delete.md
-- **Fixed In:** Pending
-- **Verified By:** Pending
-- **Verified Date:** Pending
+- **Fixed In:** PR #85
+- **Verified By:** Git history
+- **Verified Date:** 2026-01-08
 
 ## Notes
 

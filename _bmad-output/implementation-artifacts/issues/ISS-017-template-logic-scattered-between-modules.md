@@ -3,14 +3,14 @@
 **ID:** ISS-017
 **Severity:** Minor
 **Type:** Tech Debt
-**Status:** reported
+**Status:** story-created
 **Reported:** 2026-01-06
 **Reporter:** Ivo
 
 ## Related
 
-- **Epic:** N/A
-- **Story:** N/A
+- **Epic:** 13 (Webhook Infrastructure / Tech Debt)
+- **Story:** refactor-ISS-017-consolidate-template-logic
 - **Component:** Template Engine / Phase Runner
 
 ## Description
@@ -104,7 +104,7 @@ N/A
 
 ## Resolution
 
-- **Fix Story:** N/A - Minor issue for backlog
+- **Fix Story:** refactor-ISS-017-consolidate-template-logic
 - **Fixed In:** Pending
 - **Verified By:** Pending
 - **Verified Date:** Pending

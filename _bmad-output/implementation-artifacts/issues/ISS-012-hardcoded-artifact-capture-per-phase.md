@@ -9,8 +9,8 @@
 
 ## Related
 
-- **Epic:** N/A
-- **Story:** N/A
+- **Epic:** 13 (Webhook Infrastructure / Tech Debt)
+- **Story:** refactor-ISS-012-config-driven-artifact-capture
 - **Component:** PhaseRunner
 
 ## Description

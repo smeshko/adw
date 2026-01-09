@@ -9,8 +9,8 @@
 
 ## Related
 
-- **Epic:** N/A
-- **Story:** N/A
+- **Epic:** 13 (Webhook Infrastructure / Tech Debt)
+- **Story:** refactor-ISS-013-remove-template-aliases
 - **Component:** PhaseRunner
 
 ## Description

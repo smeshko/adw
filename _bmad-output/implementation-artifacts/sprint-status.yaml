@@ -48,21 +48,21 @@ issues:
   ISS-002-dry-run-minimal-output: fixed
   ISS-003-run-id-not-found-by-logs-command: fixed
   ISS-004-run-id-truncated-in-list-output: fixed
-  ISS-005-feature-description-not-captured: reported
+  ISS-005-feature-description-not-captured: fixed  # Closed as NOT A BUG (PR #56)
   ISS-006-logmanager-not-connected-to-python-logging: fixed
   ISS-007-tool-execution-log-incorrect-timestamps-lacks-context: fixed
   ISS-008-worktree-cleanup-fails-with-untracked-files: fixed
   ISS-009-git-diff-capture-fails-no-commits: fixed
   ISS-010-evidence-gathering-not-integrated: fixed
   ISS-011-adw-run-should-auto-create-pr: fixed
-  ISS-012-hardcoded-artifact-capture-per-phase: story-created
-  ISS-013-phaserunner-template-aliases-inconsistent: story-created
-  ISS-014-resume-logic-scattered-across-codebase: story-created
+  ISS-012-hardcoded-artifact-capture-per-phase: story-created  # Moved to Epic 13
+  ISS-013-phaserunner-template-aliases-inconsistent: story-created  # Moved to Epic 13
+  ISS-014-resume-logic-scattered-across-codebase: story-created  # Moved to Epic 13
   ISS-015-no-mechanism-to-inject-phase-specific-input-context: fixed
   ISS-016-per-phase-config-yaml-not-implemented: fixed
-  ISS-017-template-logic-scattered-between-modules: reported
-  ISS-018-single-phase-runs-delete-worktree-unexpectedly: reported
-  ISS-019-epic-11-phases-not-unified: reported
+  ISS-017-template-logic-scattered-between-modules: story-created  # Moved to Epic 13
+  ISS-018-single-phase-runs-delete-worktree-unexpectedly: fixed  # PR #84
+  ISS-019-epic-11-phases-not-unified: fixed  # Multiple fix commits merged
   ISS-020-worktrees-should-not-auto-delete: fixed
 
 development_status:
@@ -225,7 +225,7 @@ development_status:
   # Bugfix (from ISS-008)
   bugfix-ISS-008-worktree-cleanup-fails-with-untracked-files: done
   # UX Fix (from ISS-018)
-  ux-fix-ISS-018-single-phase-worktree-retention: review
+  ux-fix-ISS-018-single-phase-worktree-retention: done
   # UX Fix (from ISS-020)
   ux-fix-ISS-020-disable-worktree-auto-delete: done
   epic-10-retrospective: optional
@@ -244,7 +244,7 @@ development_status:
   11-6-validation-state-persistence: done
   11-7-validation-report-generation: done
   # Bugfix (from ISS-019) - CRITICAL
-  bugfix-ISS-019-epic-11-phases-not-unified: ready-for-dev
+  bugfix-ISS-019-epic-11-phases-not-unified: done
   epic-11-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -263,10 +263,6 @@ development_status:
   12-8-issue-closing: done
   12-9-issue-assignment: ready-for-dev
   12-10-github-issues-provider: ready-for-dev
-  # Tech Debt (from ISS-012, ISS-013, ISS-014)
-  refactor-ISS-012-config-driven-artifact-capture: ready-for-dev
-  refactor-ISS-013-remove-template-aliases: ready-for-dev
-  refactor-ISS-014-centralize-resume-logic: ready-for-dev
   # UX Fix (from ISS-015)
   ux-fix-ISS-015-phase-specific-input-context: done
   # Refactor (from ISS-016)
@@ -285,6 +281,11 @@ development_status:
   13-5-bot-loop-prevention: backlog
   13-6-webhook-signature-verification: backlog
   13-7-github-webhook-provider: backlog
+  # Tech Debt (moved from Epic 12)
+  refactor-ISS-012-config-driven-artifact-capture: backlog
+  refactor-ISS-013-remove-template-aliases: backlog
+  refactor-ISS-014-centralize-resume-logic: backlog
+  refactor-ISS-017-consolidate-template-logic: backlog
   epic-13-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
