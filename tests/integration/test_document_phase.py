@@ -141,9 +141,9 @@ def setup_previous_artifacts(runs_dir: Path, run_id: str) -> None:
         )
     )
 
-    # Create verify phase artifacts
+    # Create validate phase artifacts (includes evidence and validation output)
     validate_dir = runs_dir / run_id / "artifacts" / "validate"
-    validate_dir.mkdir(parents=True)
+    validate_dir.mkdir(parents=True, exist_ok=True)
     (validate_dir / "verify_output.md").write_text("All tests pass")
 
     # Create evidence manifest
@@ -173,9 +173,9 @@ def setup_previous_artifacts(runs_dir: Path, run_id: str) -> None:
         json.dumps(evidence_manifest, indent=2)
     )
 
-    # Create validate phase artifacts
+    # Add validation output to validate directory
     validate_dir = runs_dir / run_id / "artifacts" / "validate"
-    validate_dir.mkdir(parents=True)
+    validate_dir.mkdir(parents=True, exist_ok=True)
     (validate_dir / "validate_output.md").write_text("Validation passed")
 
 
@@ -389,14 +389,10 @@ class TestDocumentPhaseWithoutBuildArtifacts:
     @pytest.fixture
     def setup_artifacts_no_build(self, runs_dir: Path, run_id: str) -> None:
         """Set up artifacts without build phase artifacts."""
-        # Create verify phase artifacts only
+        # Create validate phase artifacts only (no build artifacts)
         validate_dir = runs_dir / run_id / "artifacts" / "validate"
-        validate_dir.mkdir(parents=True)
+        validate_dir.mkdir(parents=True, exist_ok=True)
         (validate_dir / "verify_output.md").write_text("Tests pass")
-
-        # Create validate phase artifacts
-        validate_dir = runs_dir / run_id / "artifacts" / "validate"
-        validate_dir.mkdir(parents=True)
         (validate_dir / "validate_output.md").write_text("Validation passed")
 
         # Note: Intentionally NOT creating build artifacts
