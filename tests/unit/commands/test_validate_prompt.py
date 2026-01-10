@@ -220,10 +220,10 @@ class TestCodeReviewLoopHallucinationDetection:
 
         ISS-022: Output must summarize verified issues vs dismissed false positives.
         """
-        # Must track issues_dismissed in state
-        assert "issues_dismissed" in instructions_content
-        # Must output issues_dismissed in final JSON
-        assert "issues_dismissed" in instructions_content
+        # Must initialize issues_dismissed in state (in init-state block)
+        assert "issues_dismissed = []" in instructions_content
+        # Must output issues_dismissed in final JSON template
+        assert '"issues_dismissed":' in instructions_content
 
 
 class TestValidateConfigYaml:

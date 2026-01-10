@@ -84,10 +84,12 @@
         code_review_passed = false
         issues_fixed = []
         issues_dismissed = []
+        dismissed_issues = []
         issues_remaining = []
         exit_reason = null
         passed = false
         ```
+        <note>issues_dismissed = final output array; dismissed_issues = internal tracking for exclusions</note>
       </step>
 
       <step name="detect-test-command">
