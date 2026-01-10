@@ -65,7 +65,7 @@ issues:
   ISS-019-epic-11-phases-not-unified: fixed  # Multiple fix commits merged
   ISS-020-worktrees-should-not-auto-delete: fixed
   ISS-021-remove-evidence-gathering-completely: story-created  # Major - Remove dead code, Moved to Epic 13
-  ISS-022-validate-phase-not-verifying-codex-findings: story-created  # Critical - Claude not verifying Codex hallucinations
+  ISS-022-validate-phase-not-verifying-codex-findings: fixed  # Critical - Claude not verifying Codex hallucinations
   ISS-023-save-only-last-llm-message-as-output: done  # Major - SDK saves full conversation, not final output
   ISS-024-tests-not-cleaning-up-worktrees: reported  # Major - Worktrees with ULIDs left after test runs
 
@@ -291,10 +291,10 @@ development_status:
   # Refactor (from ISS-021) - MAJOR
   refactor-ISS-021-remove-evidence-gathering: done
   # Bugfix (from ISS-022) - CRITICAL
-  bugfix-ISS-022-validate-codex-findings: review
+  bugfix-ISS-022-validate-codex-findings: in-review
   # UX Fix (from ISS-023) - MAJOR
   ux-fix-ISS-023-save-last-message-only: done
-  refactor-ISS-024-remove-evidence-gathering: ready-for-dev
+  refactor-ISS-024-tests-not-cleaning-up-worktrees: ready-for-dev
   epic-13-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

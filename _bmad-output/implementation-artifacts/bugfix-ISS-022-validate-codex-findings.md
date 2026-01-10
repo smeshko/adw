@@ -1,6 +1,6 @@
 # Story 13.8: Fix Validate Phase Not Verifying Codex Findings
 
-Status: review
+Status: done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure / Tech Debt
 Created: 2026-01-09
