@@ -286,13 +286,13 @@ development_status:
   refactor-ISS-012-config-driven-artifact-capture: ready-for-dev
   refactor-ISS-013-remove-template-aliases: ready-for-dev
   refactor-ISS-014-centralize-resume-logic: ready-for-dev
-  refactor-ISS-017-consolidate-template-logic: ready-for-dev
+  refactor-ISS-017-consolidate-template-logic: in-progress
   # Refactor (from ISS-021) - MAJOR
-  refactor-ISS-021-remove-evidence-gathering: in-progress
+  refactor-ISS-021-remove-evidence-gathering: done
   # Bugfix (from ISS-022) - CRITICAL
-  bugfix-ISS-022-validate-codex-findings: ready-for-dev
+  bugfix-ISS-022-validate-codex-findings: in-progress
   # UX Fix (from ISS-023) - MAJOR
-  ux-fix-ISS-023-save-last-message-only: ready-for-dev
+  ux-fix-ISS-023-save-last-message-only: in-progress
   epic-13-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
