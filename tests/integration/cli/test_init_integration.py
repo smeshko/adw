@@ -288,13 +288,14 @@ class TestInitRunIntegration:
         assert init_result.returncode == 0
 
         # Run command - expect it to get past config loading
-        # It will fail because claude CLI is not available, but
-        # it should NOT fail with "not initialized" or config errors
+        # With ADW_MOCK_EXECUTOR set, this uses MockExecutor and exits quickly
+        # Timeout ensures we don't hang if something goes wrong
         run_result = subprocess.run(
             [sys.executable, "-m", "adw", "run", "test feature"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
+            timeout=10,  # Should complete quickly with mock executor
         )
 
         # Should not complain about missing config or initialization

@@ -7,7 +7,17 @@ This module provides common fixtures for testing ADW components:
 - sample_project_config: Returns a valid ProjectConfig
 - fixtures_path: Returns path to test fixtures directory
 - isolated_global_index: Redirects global index to temp directory (autouse)
+
+IMPORTANT: ADW_MOCK_EXECUTOR is set at module load time to ensure all tests
+(including subprocess-based integration tests) use MockExecutor instead of
+hitting the real Claude API.
 """
+
+import os
+
+# Force mock executor for ALL tests - prevents hitting real Claude API
+# This MUST be set before any test imports or runs
+os.environ["ADW_MOCK_EXECUTOR"] = "1"
 
 from datetime import datetime
 from pathlib import Path

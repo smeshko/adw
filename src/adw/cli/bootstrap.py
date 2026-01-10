@@ -6,6 +6,7 @@ the complexity of instantiating the orchestrator and its dependencies.
 """
 
 import logging
+import os
 from pathlib import Path
 from typing import TextIO, cast
 
@@ -240,15 +241,22 @@ def create_orchestrator(
         # Create LLM capture manager for debugging (ISS-003 fix)
         llm_capture = LLMCaptureManager(run_dir / "llm")
 
-    llm_executor = ClaudeCodeExecutor(
-        config=LLMConfig(),
-        console=console,
-        security_interceptor=security_interceptor,
-        tool_logger=tool_logger,
-        allow_dangerous=allow_dangerous,
-        show_llm_output=show_llm_output,
-        llm_capture=llm_capture,
-    )
+    # Use MockExecutor in test mode to avoid hitting real Claude API
+    # Set ADW_MOCK_EXECUTOR=1 to enable mock mode (used by tests)
+    if os.environ.get("ADW_MOCK_EXECUTOR"):
+        from adw.executors.mock import MockExecutor
+
+        llm_executor = MockExecutor()
+    else:
+        llm_executor = ClaudeCodeExecutor(
+            config=LLMConfig(),
+            console=console,
+            security_interceptor=security_interceptor,
+            tool_logger=tool_logger,
+            allow_dangerous=allow_dangerous,
+            show_llm_output=show_llm_output,
+            llm_capture=llm_capture,
+        )
 
     # Create PhaseRunner (Story 5.2)
     phase_runner = PhaseRunner(
