@@ -1065,6 +1065,149 @@ class TestModelConfiguration:
             assert "--model" not in args
 
 
+class TestFinalOutputParsing:
+    """Tests for final_output extraction (ISS-023).
+
+    The final_output field should contain only the last assistant message,
+    excluding intermediate reasoning and tool calls. This gives downstream
+    phases clean output to work with.
+    """
+
+    @pytest.fixture
+    def executor(self) -> ClaudeCodeExecutor:
+        """Create executor with default config."""
+        config = LLMConfig(path="claude")
+        return ClaudeCodeExecutor(config)
+
+    def test_final_output_contains_last_message_only(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """final_output should contain only the last assistant message."""
+        import json
+
+        # Simulate multiple assistant messages in a conversation
+        lines = [
+            # First assistant message (intermediate reasoning)
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {"type": "text", "text": "Let me think about this..."},
+                            {"type": "tool_use", "name": "Read", "input": {"path": "/a"}},
+                        ]
+                    },
+                }
+            ),
+            # Second assistant message (final result)
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {"type": "text", "text": "Here is the final result."},
+                        ]
+                    },
+                }
+            ),
+        ]
+        raw_output = "\n".join(lines)
+        parsed = executor._parse_output(raw_output)
+
+        # content should have all text
+        assert "Let me think about this..." in parsed["content"]
+        assert "Here is the final result." in parsed["content"]
+
+        # final_output should only have the last message
+        assert parsed["final_output"] == "Here is the final result."
+        assert "Let me think about this..." not in parsed["final_output"]
+
+    def test_final_output_single_message(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """final_output should work with single message."""
+        import json
+
+        raw_output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [{"type": "text", "text": "Single response"}]
+                },
+            }
+        )
+        parsed = executor._parse_output(raw_output)
+
+        assert parsed["content"] == "Single response"
+        assert parsed["final_output"] == "Single response"
+
+    def test_final_output_empty_when_no_assistant_messages(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """final_output should be empty when no assistant messages."""
+        parsed = executor._parse_output("Just plain text")
+
+        assert "Just plain text" in parsed["content"]
+        assert parsed["final_output"] == ""
+
+    def test_final_output_with_multiple_text_blocks(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """final_output should combine multiple text blocks in last message."""
+        import json
+
+        lines = [
+            # First message
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [{"type": "text", "text": "First message"}]
+                    },
+                }
+            ),
+            # Last message with multiple text blocks
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {"type": "text", "text": "Part 1. "},
+                            {"type": "text", "text": "Part 2."},
+                        ]
+                    },
+                }
+            ),
+        ]
+        raw_output = "\n".join(lines)
+        parsed = executor._parse_output(raw_output)
+
+        assert parsed["final_output"] == "Part 1. Part 2."
+
+    def test_final_output_excludes_tool_use_blocks(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """final_output should not include tool use blocks (just text)."""
+        import json
+
+        raw_output = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "Reading file..."},
+                        {"type": "tool_use", "name": "Read", "input": {"path": "/x"}},
+                        {"type": "text", "text": "Done reading."},
+                    ]
+                },
+            }
+        )
+        parsed = executor._parse_output(raw_output)
+
+        # Text should be combined, no tool_use content
+        assert parsed["final_output"] == "Reading file...Done reading."
+
+
 class TestAdditionalParsingCoverage:
     """Additional parsing tests for full coverage."""
 

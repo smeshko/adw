@@ -996,13 +996,18 @@ class PhaseRunner:
         """
         artifacts: list[str] = []
 
+        # ISS-023: Use final_output (last message only) for artifacts
+        # This gives downstream phases clean output without intermediate reasoning
+        # Falls back to full content if final_output is empty (backward compat)
+        artifact_content = llm_result.final_output or llm_result.content
+
         # Store LLM output as artifact
         output_name = f"{phase}_output.md"
         self.artifact_manager.store(
             context.run_id,
             phase,
             output_name,
-            llm_result.content,
+            artifact_content,
         )
         artifacts.append(output_name)
 
@@ -1013,7 +1018,7 @@ class PhaseRunner:
                 context.run_id,
                 phase,
                 pr_desc_name,
-                llm_result.content,
+                artifact_content,  # ISS-023: use final_output for PR description too
             )
             artifacts.append(pr_desc_name)
             logger.info(

@@ -37,10 +37,16 @@ class LLMResult(BaseModel):
     Captures all relevant information from an LLM call including
     success status, content, tool calls, and performance metrics.
 
+    The `content` field contains the full conversation text from the LLM,
+    while `final_output` contains only the last assistant message. Use
+    `final_output` when you need just the result (e.g., for artifacts),
+    and `content` when you need the full conversation trace for debugging.
+
     Example:
         >>> result = LLMResult(
         ...     success=True,
         ...     content="Generated code here...",
+        ...     final_output="The final result",
         ...     tool_calls=[],
         ...     tokens_used=500,
         ...     duration_ms=2500,
@@ -51,7 +57,15 @@ class LLMResult(BaseModel):
     """Whether the execution completed successfully."""
 
     content: str
-    """The text content returned by the LLM."""
+    """The full text content from the LLM conversation (all messages)."""
+
+    final_output: str = ""
+    """Only the last assistant message text (ISS-023).
+
+    This is the actual result/output of the phase, excluding intermediate
+    reasoning, tool calls, and verbose output. Use this for artifacts and
+    downstream phase input. Falls back to content if not explicitly set.
+    """
 
     tool_calls: list[ToolCall] = Field(default_factory=list)
     """List of tool calls made during execution."""

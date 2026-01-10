@@ -41,3 +41,21 @@ class TestLLMResult:
         assert isinstance(result.tokens_used, int)
         assert isinstance(result.duration_ms, int)
         assert result.error is None or isinstance(result.error, str)
+
+    def test_final_output_field_exists(self) -> None:
+        """LLMResult has final_output field for last message only (ISS-023)."""
+        result = LLMResult(
+            success=True,
+            content="Full conversation",
+            final_output="Last message only",
+        )
+        assert result.final_output == "Last message only"
+        assert result.content == "Full conversation"
+
+    def test_final_output_defaults_to_empty(self) -> None:
+        """final_output defaults to empty string if not provided."""
+        result = LLMResult(
+            success=True,
+            content="Full conversation",
+        )
+        assert result.final_output == ""
