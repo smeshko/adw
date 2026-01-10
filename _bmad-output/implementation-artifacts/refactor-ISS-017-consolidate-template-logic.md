@@ -26,9 +26,9 @@ so that **template logic changes only require updates in one place, improving ma
 ## Tasks / Subtasks
 
 ### Task 1: Move ARTIFACT_REF_PATTERN to TemplateEngine
-- [ ] Add `ARTIFACT_REF_PATTERN` constant to `template.py` (or create method `find_artifact_references()`)
-- [ ] Import/use the pattern from TemplateEngine in `phase_runner.py`
-- [ ] Remove duplicate pattern definition from `phase_runner.py:55`
+- [x] Add `ARTIFACT_REF_PATTERN` constant to `template.py` (or create method `find_artifact_references()`)
+- [x] Import/use the pattern from TemplateEngine in `phase_runner.py`
+- [x] Remove duplicate pattern definition from `phase_runner.py:55`
 
 ### Task 2: Move Artifact Validation to TemplateEngine
 - [ ] Create `validate_artifact_references()` method in TemplateEngine class
@@ -236,5 +236,11 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Task 1: Moved ARTIFACT_REF_PATTERN from phase_runner.py to template.py with proper import. Removed unused `re` import from phase_runner.py. Added 6 unit tests for pattern matching.
+
 ### File List
+
+- `src/adw/commands/template.py` - Added ARTIFACT_REF_PATTERN constant
+- `src/adw/core/phase_runner.py` - Removed ARTIFACT_REF_PATTERN, now imports from template.py, removed unused `re` import
+- `tests/unit/commands/test_template.py` - Added TestArtifactRefPattern test class with 6 tests
 
