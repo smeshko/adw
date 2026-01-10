@@ -485,6 +485,7 @@ class ClaudeCodeExecutor:
             return LLMResult(
                 success=True,
                 content=parsed["content"],
+                final_output=parsed.get("final_output", ""),
                 tool_calls=parsed["tool_calls"],
                 tokens_used=parsed["tokens_used"],
                 duration_ms=duration_ms,
@@ -497,6 +498,7 @@ class ClaudeCodeExecutor:
             return LLMResult(
                 success=False,
                 content=parsed["content"],
+                final_output=parsed.get("final_output", ""),
                 tool_calls=parsed["tool_calls"],
                 tokens_used=parsed["tokens_used"],
                 duration_ms=duration_ms,
@@ -511,19 +513,25 @@ class ClaudeCodeExecutor:
         - Text content from assistant messages
         - Tool calls from tool_use messages
         - Token usage from result message
+        - Final output (last assistant message text only) - ISS-023
 
         Args:
             raw_output: The raw output from Claude Code subprocess.
 
         Returns:
             Dictionary containing:
-            - content: str - extracted text content
+            - content: str - full extracted text content (all messages)
+            - final_output: str - only the last assistant message text
             - tool_calls: list[ToolCall] - extracted tool calls
             - tokens_used: int - token count if available
         """
         content_parts: list[str] = []
         tool_calls: list[ToolCall] = []
         tokens_used = 0
+        # Track the last assistant message text separately (ISS-023)
+        last_assistant_text: list[str] = []
+        current_message_text: list[str] = []
+        in_assistant_message = False
 
         for line in raw_output.strip().split("\n"):
             if not line.strip():
@@ -545,10 +553,18 @@ class ClaudeCodeExecutor:
             msg_type = data.get("type", "")
 
             if msg_type == "assistant":
+                # Start of a new assistant message - save previous if exists
+                if in_assistant_message and current_message_text:
+                    last_assistant_text = current_message_text.copy()
+                current_message_text = []
+                in_assistant_message = True
+
                 # Assistant message contains content blocks
                 for block in data.get("message", {}).get("content", []):
                     if block.get("type") == "text":
-                        content_parts.append(block.get("text", ""))
+                        text = block.get("text", "")
+                        content_parts.append(text)
+                        current_message_text.append(text)
                     elif block.get("type") == "tool_use":
                         tool_calls.append(
                             ToolCall(
@@ -566,13 +582,21 @@ class ClaudeCodeExecutor:
                 )
                 # Also extract final text if present
                 if "text" in data:
-                    content_parts.append(data["text"])
+                    text = data["text"]
+                    content_parts.append(text)
+                    # Result text is considered final output
+                    if in_assistant_message:
+                        current_message_text.append(text)
 
             elif msg_type == "content_block_delta":
                 # Streaming content delta
                 delta = data.get("delta", {})
                 if delta.get("type") == "text_delta":
-                    content_parts.append(delta.get("text", ""))
+                    text = delta.get("text", "")
+                    content_parts.append(text)
+                    # Track streaming deltas as part of current message
+                    if in_assistant_message:
+                        current_message_text.append(text)
 
             elif msg_type == "message_delta":
                 # Message delta with usage
@@ -582,8 +606,16 @@ class ClaudeCodeExecutor:
                         "output_tokens", 0
                     )
 
+        # Save the final assistant message text
+        if current_message_text:
+            last_assistant_text = current_message_text
+
+        # Build final output from last assistant message
+        final_output = "".join(last_assistant_text)
+
         return {
             "content": "".join(content_parts),
+            "final_output": final_output,
             "tool_calls": tool_calls,
             "tokens_used": tokens_used,
         }
