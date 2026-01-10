@@ -399,6 +399,65 @@ class TestPhaseRunnerArtifacts:
         assert artifact_content == "Generated plan content"
         assert "plan_output.md" in result.artifacts
 
+    def test_artifact_uses_final_output_over_content(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_artifact_manager: ArtifactManager,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that artifacts use final_output, not full content (ISS-023).
+
+        When LLMResult has both content (full conversation) and final_output
+        (last message only), the artifact should contain final_output.
+        """
+        # Set up LLMResult with different content and final_output
+        mock_executor.execute.return_value = LLMResult(
+            success=True,
+            content="Intermediate reasoning...\nTool calls...\nFinal result here",
+            final_output="Final result here",  # Only the last message
+            tokens_used=100,
+            duration_ms=1000,
+        )
+
+        result = phase_runner.run("plan", sample_context)
+
+        # Artifact should contain final_output, NOT full content
+        artifact_content = mock_artifact_manager.get(
+            sample_context.run_id, "plan", "plan_output.md"
+        )
+        assert artifact_content == "Final result here"
+        assert "Intermediate reasoning" not in artifact_content
+        assert "plan_output.md" in result.artifacts
+
+    def test_artifact_falls_back_to_content_when_final_output_empty(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_artifact_manager: ArtifactManager,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test backward compat: use content when final_output is empty.
+
+        For backward compatibility, if final_output is empty or not set,
+        the artifact should fall back to using content.
+        """
+        mock_executor.execute.return_value = LLMResult(
+            success=True,
+            content="Full content as fallback",
+            final_output="",  # Empty - should fall back to content
+            tokens_used=100,
+            duration_ms=1000,
+        )
+
+        result = phase_runner.run("plan", sample_context)
+
+        artifact_content = mock_artifact_manager.get(
+            sample_context.run_id, "plan", "plan_output.md"
+        )
+        assert artifact_content == "Full content as fallback"
+        assert "plan_output.md" in result.artifacts
+
     def test_captures_tool_calls_as_artifact_if_present(
         self,
         phase_runner: PhaseRunner,

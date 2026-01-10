@@ -1207,6 +1207,78 @@ class TestFinalOutputParsing:
         # Text should be combined, no tool_use content
         assert parsed["final_output"] == "Reading file...Done reading."
 
+    def test_execute_wires_final_output_to_llm_result(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """execute() should wire parsed final_output into LLMResult (ISS-023).
+
+        This test verifies the full call stack from subprocess output through
+        parsing to the returned LLMResult, ensuring final_output survives.
+        """
+        import json
+
+        # Simulate subprocess output with two assistant messages
+        subprocess_output = "\n".join([
+            # First assistant message (intermediate)
+            json.dumps({
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "Let me analyze this..."},
+                        {"type": "tool_use", "name": "Read", "input": {"path": "/x"}},
+                    ]
+                },
+            }),
+            # Second assistant message (final)
+            json.dumps({
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "The implementation is correct."},
+                    ]
+                },
+            }),
+            # Result with token counts
+            json.dumps({
+                "type": "result",
+                "usage": {"input_tokens": 100, "output_tokens": 50},
+            }),
+        ])
+
+        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
+            # Create mock process that returns our multi-message output
+            process = AsyncMock()
+            process.stdout = AsyncMock()
+            process.stderr = AsyncMock()
+
+            # Feed output lines one at a time, then EOF
+            lines = subprocess_output.encode().split(b"\n")
+            process.stdout.readline = AsyncMock(
+                side_effect=[line + b"\n" for line in lines] + [b""]
+            )
+            process.stderr.readline = AsyncMock(side_effect=[b""])
+            process.wait = AsyncMock(return_value=None)
+            process.returncode = 0
+
+            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
+            mock_asyncio.subprocess = asyncio.subprocess  # For PIPE constant
+            mock_asyncio.run = _run_async
+            mock_asyncio.create_task = asyncio.create_task
+            mock_asyncio.gather = asyncio.gather
+            mock_asyncio.wait_for = asyncio.wait_for
+            mock_asyncio.TimeoutError = asyncio.TimeoutError
+
+            with patch("shutil.which", return_value="/usr/bin/claude"):
+                result = executor.execute("Test prompt")
+
+        # content should have all text from all messages
+        assert "Let me analyze this..." in result.content
+        assert "The implementation is correct." in result.content
+
+        # final_output should have ONLY the last assistant message
+        assert result.final_output == "The implementation is correct."
+        assert "Let me analyze this..." not in result.final_output
+
 
 class TestAdditionalParsingCoverage:
     """Additional parsing tests for full coverage."""
