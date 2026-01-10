@@ -1,6 +1,6 @@
 # Story 13.ISS-017: Consolidate Template Logic
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure (Tech Debt)
 Created: 2026-01-10
@@ -15,13 +15,13 @@ so that **template logic changes only require updates in one place, improving ma
 
 ## Acceptance Criteria
 
-- [ ] `ARTIFACT_REF_PATTERN` in `phase_runner.py` is either:
+- [x] `ARTIFACT_REF_PATTERN` in `phase_runner.py` is either:
   - Moved to `template.py` and imported, OR
   - Delegated to TemplateEngine via a method call
-- [ ] `_validate_artifact_references()` logic is moved to TemplateEngine (or a validation hook/extension point in TemplateEngine)
-- [ ] State mutation pattern for `command_root`/`shared_root` is replaced with parameters passed to `render()` method
-- [ ] All existing tests pass
-- [ ] No behavioral changes - this is a pure refactoring story
+- [x] `_validate_artifact_references()` logic is moved to TemplateEngine (or a validation hook/extension point in TemplateEngine)
+- [x] State mutation pattern for `command_root`/`shared_root` is replaced with parameters passed to `render()` method
+- [x] All existing tests pass
+- [x] No behavioral changes - this is a pure refactoring story
 
 ## Tasks / Subtasks
 
@@ -48,9 +48,9 @@ so that **template logic changes only require updates in one place, improving ma
 - [x] Add tests for the new `validate_artifact_references()` method
 
 ### Task 5: Verify Integration
-- [ ] Run full test suite: `uv run pytest`
-- [ ] Verify no regressions in template rendering behavior
-- [ ] Verify artifact reference validation still works in strict mode
+- [x] Run full test suite: `uv run pytest`
+- [x] Verify no regressions in template rendering behavior
+- [x] Verify artifact reference validation still works in strict mode
 
 ---
 
@@ -240,6 +240,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 2: Created standalone `validate_artifact_references()` function in template.py. Removed `_validate_artifact_references()` method from PhaseRunner. Updated call site to use new function. Added 9 unit tests. Updated 4 existing tests in test_artifact_passing.py.
 - Task 3: Added `command_root` and `shared_root` parameters to `render()`, `_process_includes()`, and `_process_shared_inclusions()` methods. PhaseRunner now passes these as parameters instead of mutating instance state. Added 3 unit tests for parameter override behavior.
 - Task 4: All tests pass. Total new tests added: 18 (6 + 9 + 3). 4 existing tests updated. 42 phase_runner tests pass.
+- Task 5: Full test suite passes (2177 passed, 7 skipped). All acceptance criteria met. Story complete.
 
 ### File List
 
