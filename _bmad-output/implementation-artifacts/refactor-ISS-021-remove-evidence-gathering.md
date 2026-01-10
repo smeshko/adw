@@ -36,18 +36,18 @@ so that the codebase is simpler and dead code is eliminated.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Remove evidence module directory**
+- [x] **Task 1: Remove evidence module directory**
   - Delete `src/adw/evidence/` directory entirely (13 files)
   - Verify no dangling imports
 
-- [ ] **Task 2: Remove evidence models**
+- [x] **Task 2: Remove evidence models**
   - Delete `src/adw/models/evidence.py` entirely (~1350 lines)
   - Update `src/adw/models/__init__.py`:
     - Remove imports (lines 49-81)
     - Remove from `__all__` list (lines 140-176)
     - Remove `model_rebuild()` calls if only for evidence models
 
-- [ ] **Task 3: Remove orchestrator evidence integration**
+- [x] **Task 3: Remove orchestrator evidence integration**
   - In `src/adw/core/orchestrator.py`:
     - Remove evidence imports (lines 28-54)
     - Remove `_detect_and_store_platform()` method (lines 1486-1526)
@@ -58,11 +58,11 @@ so that the codebase is simpler and dead code is eliminated.
       - Line 1366: `self._gather_evidence(context)`
       - Line 1370: `self._optimize_evidence(context)`
 
-- [ ] **Task 4: Remove evidence test directory**
+- [x] **Task 4: Remove evidence test directory**
   - Delete `tests/unit/evidence/` directory entirely (16 test files)
   - Verify test suite still passes
 
-- [ ] **Task 5: Verify and clean up any remaining references**
+- [x] **Task 5: Verify and clean up any remaining references**
   - Search codebase for any remaining `evidence` imports
   - Search for `PlatformType`, `EvidenceStrategy`, etc. references
   - Clean up any configuration references in project.yaml templates

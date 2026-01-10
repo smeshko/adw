@@ -288,7 +288,7 @@ development_status:
   refactor-ISS-014-centralize-resume-logic: ready-for-dev
   refactor-ISS-017-consolidate-template-logic: ready-for-dev
   # Refactor (from ISS-021) - MAJOR
-  refactor-ISS-021-remove-evidence-gathering: ready-for-dev
+  refactor-ISS-021-remove-evidence-gathering: in-progress
   # Bugfix (from ISS-022) - CRITICAL
   bugfix-ISS-022-validate-codex-findings: ready-for-dev
   # UX Fix (from ISS-023) - MAJOR
