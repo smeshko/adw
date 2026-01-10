@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 23
+issue_counter: 24
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -67,6 +67,7 @@ issues:
   ISS-021-remove-evidence-gathering-completely: story-created  # Major - Remove dead code, Moved to Epic 13
   ISS-022-validate-phase-not-verifying-codex-findings: story-created  # Critical - Claude not verifying Codex hallucinations
   ISS-023-save-only-last-llm-message-as-output: story-created  # Major - SDK saves full conversation, not final output
+  ISS-024-tests-not-cleaning-up-worktrees: reported  # Major - Worktrees with ULIDs left after test runs
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -286,13 +287,14 @@ development_status:
   refactor-ISS-012-config-driven-artifact-capture: ready-for-dev
   refactor-ISS-013-remove-template-aliases: ready-for-dev
   refactor-ISS-014-centralize-resume-logic: ready-for-dev
-  refactor-ISS-017-consolidate-template-logic: in-progress
+  refactor-ISS-017-consolidate-template-logic: ready-for-dev
   # Refactor (from ISS-021) - MAJOR
   refactor-ISS-021-remove-evidence-gathering: done
   # Bugfix (from ISS-022) - CRITICAL
   bugfix-ISS-022-validate-codex-findings: in-progress
   # UX Fix (from ISS-023) - MAJOR
   ux-fix-ISS-023-save-last-message-only: in-progress
+  refactor-ISS-024-remove-evidence-gathering: ready-for-dev
   epic-13-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
