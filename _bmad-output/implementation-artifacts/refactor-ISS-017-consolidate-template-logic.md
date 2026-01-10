@@ -43,9 +43,9 @@ so that **template logic changes only require updates in one place, improving ma
 - [x] Update all callers of `render()` to pass the new parameters (if any other callers exist)
 
 ### Task 4: Update Tests
-- [ ] Ensure unit tests in `tests/unit/commands/test_template.py` cover new methods
-- [ ] Ensure unit tests in `tests/unit/core/test_phase_runner.py` still pass
-- [ ] Add tests for the new `validate_artifact_references()` method
+- [x] Ensure unit tests in `tests/unit/commands/test_template.py` cover new methods
+- [x] Ensure unit tests in `tests/unit/core/test_phase_runner.py` still pass
+- [x] Add tests for the new `validate_artifact_references()` method
 
 ### Task 5: Verify Integration
 - [ ] Run full test suite: `uv run pytest`
@@ -239,6 +239,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 1: Moved ARTIFACT_REF_PATTERN from phase_runner.py to template.py with proper import. Removed unused `re` import from phase_runner.py. Added 6 unit tests for pattern matching.
 - Task 2: Created standalone `validate_artifact_references()` function in template.py. Removed `_validate_artifact_references()` method from PhaseRunner. Updated call site to use new function. Added 9 unit tests. Updated 4 existing tests in test_artifact_passing.py.
 - Task 3: Added `command_root` and `shared_root` parameters to `render()`, `_process_includes()`, and `_process_shared_inclusions()` methods. PhaseRunner now passes these as parameters instead of mutating instance state. Added 3 unit tests for parameter override behavior.
+- Task 4: All tests pass. Total new tests added: 18 (6 + 9 + 3). 4 existing tests updated. 42 phase_runner tests pass.
 
 ### File List
 
