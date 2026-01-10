@@ -31,10 +31,10 @@ so that **template logic changes only require updates in one place, improving ma
 - [x] Remove duplicate pattern definition from `phase_runner.py:55`
 
 ### Task 2: Move Artifact Validation to TemplateEngine
-- [ ] Create `validate_artifact_references()` method in TemplateEngine class
-- [ ] Move logic from `phase_runner.py:589-661` to new method
-- [ ] Update PhaseRunner to call the new method instead of inline validation
-- [ ] Consider: Create optional `ArtifactValidator` protocol/hook for extensibility
+- [x] Create `validate_artifact_references()` method in TemplateEngine class
+- [x] Move logic from `phase_runner.py:589-661` to new method
+- [x] Update PhaseRunner to call the new method instead of inline validation
+- [x] Consider: Create optional `ArtifactValidator` protocol/hook for extensibility (not needed - simple function is sufficient)
 
 ### Task 3: Refactor State Mutation to Parameter Passing
 - [ ] Add `command_root` and `shared_root` parameters to `TemplateEngine.render()` method
@@ -237,10 +237,12 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Completion Notes List
 
 - Task 1: Moved ARTIFACT_REF_PATTERN from phase_runner.py to template.py with proper import. Removed unused `re` import from phase_runner.py. Added 6 unit tests for pattern matching.
+- Task 2: Created standalone `validate_artifact_references()` function in template.py. Removed `_validate_artifact_references()` method from PhaseRunner. Updated call site to use new function. Added 9 unit tests. Updated 4 existing tests in test_artifact_passing.py.
 
 ### File List
 
-- `src/adw/commands/template.py` - Added ARTIFACT_REF_PATTERN constant
-- `src/adw/core/phase_runner.py` - Removed ARTIFACT_REF_PATTERN, now imports from template.py, removed unused `re` import
-- `tests/unit/commands/test_template.py` - Added TestArtifactRefPattern test class with 6 tests
+- `src/adw/commands/template.py` - Added ARTIFACT_REF_PATTERN constant, added validate_artifact_references() function
+- `src/adw/core/phase_runner.py` - Removed ARTIFACT_REF_PATTERN, removed _validate_artifact_references(), now imports from template.py
+- `tests/unit/commands/test_template.py` - Added TestArtifactRefPattern (6 tests), TestValidateArtifactReferences (9 tests)
+- `tests/unit/core/test_artifact_passing.py` - Updated 4 tests to use standalone function
 
