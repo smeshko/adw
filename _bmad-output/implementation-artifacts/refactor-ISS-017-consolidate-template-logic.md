@@ -15,42 +15,42 @@ so that **template logic changes only require updates in one place, improving ma
 
 ## Acceptance Criteria
 
-- [ ] `ARTIFACT_REF_PATTERN` in `phase_runner.py` is either:
+- [x] `ARTIFACT_REF_PATTERN` in `phase_runner.py` is either:
   - Moved to `template.py` and imported, OR
   - Delegated to TemplateEngine via a method call
-- [ ] `_validate_artifact_references()` logic is moved to TemplateEngine (or a validation hook/extension point in TemplateEngine)
-- [ ] State mutation pattern for `command_root`/`shared_root` is replaced with parameters passed to `render()` method
-- [ ] All existing tests pass
-- [ ] No behavioral changes - this is a pure refactoring story
+- [x] `_validate_artifact_references()` logic is moved to TemplateEngine (or a validation hook/extension point in TemplateEngine)
+- [x] State mutation pattern for `command_root`/`shared_root` is replaced with parameters passed to `render()` method
+- [x] All existing tests pass
+- [x] No behavioral changes - this is a pure refactoring story
 
 ## Tasks / Subtasks
 
 ### Task 1: Move ARTIFACT_REF_PATTERN to TemplateEngine
-- [ ] Add `ARTIFACT_REF_PATTERN` constant to `template.py` (or create method `find_artifact_references()`)
-- [ ] Import/use the pattern from TemplateEngine in `phase_runner.py`
-- [ ] Remove duplicate pattern definition from `phase_runner.py:55`
+- [x] Add `ARTIFACT_REF_PATTERN` constant to `template.py` (or create method `find_artifact_references()`)
+- [x] Import/use the pattern from TemplateEngine in `phase_runner.py`
+- [x] Remove duplicate pattern definition from `phase_runner.py:55`
 
 ### Task 2: Move Artifact Validation to TemplateEngine
-- [ ] Create `validate_artifact_references()` method in TemplateEngine class
-- [ ] Move logic from `phase_runner.py:589-661` to new method
-- [ ] Update PhaseRunner to call the new method instead of inline validation
-- [ ] Consider: Create optional `ArtifactValidator` protocol/hook for extensibility
+- [x] Create `validate_artifact_references()` method in TemplateEngine class
+- [x] Move logic from `phase_runner.py:589-661` to new method
+- [x] Update PhaseRunner to call the new method instead of inline validation
+- [x] Consider: Create optional `ArtifactValidator` protocol/hook for extensibility (not needed - simple function is sufficient)
 
 ### Task 3: Refactor State Mutation to Parameter Passing
-- [ ] Add `command_root` and `shared_root` parameters to `TemplateEngine.render()` method
-- [ ] Remove lines 389-390 in `phase_runner.py` that mutate instance state
-- [ ] Pass roots as parameters in the `render()` call instead
-- [ ] Update all callers of `render()` to pass the new parameters (if any other callers exist)
+- [x] Add `command_root` and `shared_root` parameters to `TemplateEngine.render()` method
+- [x] Remove lines 389-390 in `phase_runner.py` that mutate instance state
+- [x] Pass roots as parameters in the `render()` call instead
+- [x] Update all callers of `render()` to pass the new parameters (if any other callers exist)
 
 ### Task 4: Update Tests
-- [ ] Ensure unit tests in `tests/unit/commands/test_template.py` cover new methods
-- [ ] Ensure unit tests in `tests/unit/core/test_phase_runner.py` still pass
-- [ ] Add tests for the new `validate_artifact_references()` method
+- [x] Ensure unit tests in `tests/unit/commands/test_template.py` cover new methods
+- [x] Ensure unit tests in `tests/unit/core/test_phase_runner.py` still pass
+- [x] Add tests for the new `validate_artifact_references()` method
 
 ### Task 5: Verify Integration
-- [ ] Run full test suite: `uv run pytest`
-- [ ] Verify no regressions in template rendering behavior
-- [ ] Verify artifact reference validation still works in strict mode
+- [x] Run full test suite: `uv run pytest`
+- [x] Verify no regressions in template rendering behavior
+- [x] Verify artifact reference validation still works in strict mode
 
 ---
 
@@ -236,5 +236,16 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Task 1: Moved ARTIFACT_REF_PATTERN from phase_runner.py to template.py with proper import. Removed unused `re` import from phase_runner.py. Added 6 unit tests for pattern matching.
+- Task 2: Created standalone `validate_artifact_references()` function in template.py. Removed `_validate_artifact_references()` method from PhaseRunner. Updated call site to use new function. Added 9 unit tests. Updated 4 existing tests in test_artifact_passing.py.
+- Task 3: Added `command_root` and `shared_root` parameters to `render()`, `_process_includes()`, and `_process_shared_inclusions()` methods. PhaseRunner now passes these as parameters instead of mutating instance state. Added 3 unit tests for parameter override behavior.
+- Task 4: All tests pass. Total new tests added: 18 (6 + 9 + 3). 4 existing tests updated. 42 phase_runner tests pass.
+- Task 5: Full test suite passes (2177 passed, 7 skipped). All acceptance criteria met. Story complete.
+
 ### File List
+
+- `src/adw/commands/template.py` - Added ARTIFACT_REF_PATTERN, validate_artifact_references(), render() parameters, _process_includes() parameter, _process_shared_inclusions() parameter
+- `src/adw/core/phase_runner.py` - Removed state mutation, now passes command_root/shared_root to render()
+- `tests/unit/commands/test_template.py` - Added TestArtifactRefPattern (6 tests), TestValidateArtifactReferences (9 tests), TestRenderWithRootParameters (3 tests)
+- `tests/unit/core/test_artifact_passing.py` - Updated 4 tests to use standalone function
 

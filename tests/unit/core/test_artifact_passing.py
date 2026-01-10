@@ -598,27 +598,18 @@ class TestPhaseRunnerStrictArtifacts:
         artifact_manager: ArtifactManager,
         template_engine: TemplateEngine,
     ) -> None:
-        """Test that strict mode raises ARTIFACT_NOT_FOUND for missing artifacts."""
+        """Test that strict mode raises ARTIFACT_NOT_FOUND for missing artifacts.
+
+        ISS-017: Now uses standalone validate_artifact_references function from template module.
+        """
+        from adw.commands.template import validate_artifact_references
         from adw.exceptions import ConfigError
-
-        mock_resolver = MagicMock()
-        mock_hook_runner = MagicMock()
-        mock_executor = MagicMock()
-
-        runner = PhaseRunner(
-            command_resolver=mock_resolver,
-            template_engine=template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=artifact_manager,
-            strict_artifacts=True,
-        )
 
         template = "Use plan: {{artifacts.plan.plan}}"
         artifacts_map: dict[str, dict[str, str]] = {}  # Empty - no artifacts
 
         with pytest.raises(ConfigError) as exc_info:
-            runner._validate_artifact_references(template, artifacts_map)
+            validate_artifact_references(template, artifacts_map, strict=True)
 
         assert exc_info.value.code == "ARTIFACT_NOT_FOUND"
         assert "plan/plan" in exc_info.value.message
@@ -627,37 +618,52 @@ class TestPhaseRunnerStrictArtifacts:
         self,
         phase_runner: PhaseRunner,
     ) -> None:
-        """Test that validation passes when artifacts exist."""
+        """Test that validation passes when artifacts exist.
+
+        ISS-017: Now uses standalone validate_artifact_references function from template module.
+        """
+        from adw.commands.template import validate_artifact_references
+
         template = "Use plan: {{artifacts.plan.plan}}"
         artifacts_map = {"plan": {"plan": "# My Plan"}}
 
         # Should not raise
-        phase_runner._validate_artifact_references(template, artifacts_map)
+        validate_artifact_references(template, artifacts_map, strict=True)
 
     def test_validate_artifact_references_skips_wildcards(
         self,
         phase_runner: PhaseRunner,
     ) -> None:
-        """Test that wildcard patterns are not validated as specific artifacts."""
+        """Test that wildcard patterns are not validated as specific artifacts.
+
+        ISS-017: Now uses standalone validate_artifact_references function from template module.
+        """
+        from adw.commands.template import validate_artifact_references
+
         template = "List: {{artifacts.plan.*}} and {{artifacts.*}}"
         artifacts_map: dict[str, dict[str, str]] = {}  # Empty
 
         # Should not raise - wildcards don't require specific artifacts
-        phase_runner._validate_artifact_references(template, artifacts_map)
+        validate_artifact_references(template, artifacts_map, strict=True)
 
     def test_lenient_mode_logs_warning_for_missing(
         self,
         phase_runner: PhaseRunner,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """Test that lenient mode logs warning for missing artifacts."""
+        """Test that lenient mode logs warning for missing artifacts.
+
+        ISS-017: Now uses standalone validate_artifact_references function from template module.
+        """
         import logging
+
+        from adw.commands.template import validate_artifact_references
 
         template = "Use plan: {{artifacts.plan.missing}}"
         artifacts_map = {"plan": {"plan": "content"}}  # 'missing' doesn't exist
 
         with caplog.at_level(logging.WARNING):
-            phase_runner._validate_artifact_references(template, artifacts_map)
+            validate_artifact_references(template, artifacts_map, strict=False)
 
         # Should log warning even in lenient mode
         assert "Missing artifact reference" in caplog.text

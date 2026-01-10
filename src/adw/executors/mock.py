@@ -42,6 +42,7 @@ class MockExecutor:
 
         Each response dict should contain fields matching LLMResult:
         - content: str (required)
+        - final_output: str (optional, defaults to content - ISS-023)
         - tool_calls: list[dict] (optional)
         - tokens_used: int (optional, default 100)
         - duration_ms: int (optional, default 1000)
@@ -61,10 +62,14 @@ class MockExecutor:
                 ToolCall(**tc) if isinstance(tc, dict) else tc
                 for tc in r.get("tool_calls", [])
             ]
+            content = r.get("content", "")
+            # ISS-023: Support final_output, default to content if not provided
+            final_output = r.get("final_output", content)
             self._responses.append(
                 LLMResult(
                     success=True,
-                    content=r.get("content", ""),
+                    content=content,
+                    final_output=final_output,
                     tool_calls=tool_calls,
                     tokens_used=r.get("tokens_used", 100),
                     duration_ms=r.get("duration_ms", 1000),
@@ -129,6 +134,7 @@ class MockExecutor:
         return LLMResult(
             success=True,
             content="Mock response",
+            final_output="Mock response",  # ISS-023
             tokens_used=50,
             duration_ms=100,
         )

@@ -24,7 +24,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["TemplateEngine", "escape_feature_description", "build_task_context"]
+__all__ = [
+    "TemplateEngine",
+    "escape_feature_description",
+    "build_task_context",
+    "validate_artifact_references",
+]
 
 
 class GracefulDict(dict[str, Any]):
@@ -188,12 +193,111 @@ def build_task_context(task_info: "TaskInfo | None") -> dict[str, Any]:
 # Compile patterns once at module level for efficiency
 # Matches {{variable}} or {{variable.nested.path}} or {{variable.*}} for wildcards
 VARIABLE_PATTERN = re.compile(r"\{\{([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
+# Pattern to match artifact references in templates: {{artifacts.phase.name}}
+# Also matches wildcards like {{artifacts.phase.*}} and {{artifacts.*}}
+# ISS-017: Consolidated from phase_runner.py to template.py
+ARTIFACT_REF_PATTERN = re.compile(r"\{\{artifacts\.([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
 # Matches {{file:path/to/file.txt}} - resolves relative to project root
 FILE_PATTERN = re.compile(r"\{\{file:([^}]+)\}\}")
 # Matches {{include:filename}} - resolves relative to command directory
 INCLUDE_PATTERN = re.compile(r"\{\{include:([^}]+)\}\}")
 # Matches {{shared:filename}} - resolves relative to shared commands directory
 SHARED_PATTERN = re.compile(r"\{\{shared:([^}]+)\}\}")
+
+
+def validate_artifact_references(
+    template: str,
+    artifacts_map: dict[str, dict[str, str]],
+    *,
+    strict: bool = True,
+) -> list[str]:
+    """Validate that all artifact references in template exist.
+
+    Scans the template for {{artifacts.phase.name}} patterns and validates
+    each reference exists in the artifacts map. In strict mode, raises
+    ConfigError for missing artifacts. In lenient mode, returns the list
+    of missing artifact references.
+
+    ISS-017: Consolidated from PhaseRunner._validate_artifact_references to
+    centralize all template-related validation in the template module.
+
+    Args:
+        template: The prompt template string to validate.
+        artifacts_map: Available artifacts as {phase: {name: content}}.
+        strict: If True, raise ConfigError for missing artifacts.
+                If False, return list of missing references.
+
+    Returns:
+        List of missing artifact references in "phase/name" format.
+        Empty list if all references are valid.
+
+    Raises:
+        ConfigError: If strict=True and any artifact reference is missing.
+
+    Example:
+        >>> artifacts = {"plan": {"output": "Plan content"}}
+        >>> validate_artifact_references("{{artifacts.plan.output}}", artifacts)
+        []
+        >>> validate_artifact_references("{{artifacts.build.diff}}", {}, strict=False)
+        ['build/diff']
+    """
+    # Find all artifact references in the template
+    matches = ARTIFACT_REF_PATTERN.findall(template)
+    if not matches:
+        return []
+
+    missing_artifacts: list[str] = []
+
+    for ref_path in matches:
+        # Skip wildcard patterns - they don't require specific artifacts
+        if ref_path.endswith(".*") or ref_path == "*":
+            continue
+
+        # Parse the reference path (e.g., "plan.plan" or "build.diff")
+        parts = ref_path.split(".")
+        if len(parts) < 2:
+            # Single part like "plan" - accesses phase dict, not artifact
+            continue
+
+        phase_name = parts[0]
+        artifact_name = parts[1]
+
+        # Check if artifact exists
+        if phase_name not in artifacts_map:
+            missing_artifacts.append(f"{phase_name}/{artifact_name}")
+            logger.warning(
+                "Missing artifact reference in template",
+                extra={
+                    "phase": phase_name,
+                    "artifact": artifact_name,
+                    "ref": f"artifacts.{ref_path}",
+                },
+            )
+        elif artifact_name not in artifacts_map[phase_name]:
+            missing_artifacts.append(f"{phase_name}/{artifact_name}")
+            logger.warning(
+                "Missing artifact reference in template",
+                extra={
+                    "phase": phase_name,
+                    "artifact": artifact_name,
+                    "ref": f"artifacts.{ref_path}",
+                    "available": list(artifacts_map[phase_name].keys()),
+                },
+            )
+
+    # Raise error if strict mode and artifacts missing
+    if strict and missing_artifacts:
+        raise ConfigError(
+            code="ARTIFACT_NOT_FOUND",
+            message=f"Artifact(s) not found: {', '.join(missing_artifacts)}",
+            suggestion=(
+                "Ensure the referenced phase(s) completed successfully and "
+                "produced the expected artifacts. Check artifact naming "
+                "(e.g., plan.md -> artifacts.plan.plan)."
+            ),
+        )
+
+    return missing_artifacts
 
 
 class TemplateEngine:
@@ -241,6 +345,8 @@ class TemplateEngine:
         context: dict[str, Any] | BaseModel,
         *,
         strict: bool = True,
+        command_root: Path | None = None,
+        shared_root: Path | None = None,
     ) -> str:
         """Render a template with variable substitution and file inclusion.
 
@@ -248,11 +354,18 @@ class TemplateEngine:
         expansion is performed - if a variable value contains template syntax,
         it is NOT expanded.
 
+        ISS-017: Added command_root and shared_root parameters to avoid instance
+        state mutation. Pass these to override instance attributes per-render.
+
         Args:
             template: The template string to render.
             context: Dictionary or Pydantic model providing variable values.
             strict: If True, raise ConfigError for unknown variables.
                    If False, leave unknown variables as-is in output.
+            command_root: Override for instance command_root. Used for
+                         resolving {{include:...}} inclusions.
+            shared_root: Override for instance shared_root. Used for
+                        resolving {{shared:...}} inclusions.
 
         Returns:
             The rendered template string.
@@ -261,6 +374,10 @@ class TemplateEngine:
             ConfigError: If strict=True and an unknown variable is found,
                         or if a file inclusion target doesn't exist.
         """
+        # Use parameter overrides if provided, otherwise fall back to instance attributes
+        effective_command_root = command_root if command_root is not None else self.command_root
+        effective_shared_root = shared_root if shared_root is not None else self.shared_root
+
         # Convert Pydantic models to dict for variable lookup
         context_dict = self._normalize_context(context)
 
@@ -268,10 +385,10 @@ class TemplateEngine:
         result = self._process_variables(template, context_dict, strict=strict)
 
         # Process command-local includes ({{include:...}})
-        result = self._process_includes(result)
+        result = self._process_includes(result, command_root=effective_command_root)
 
         # Process shared includes ({{shared:...}})
-        result = self._process_shared_inclusions(result)
+        result = self._process_shared_inclusions(result, shared_root=effective_shared_root)
 
         # Process project file inclusions ({{file:...}})
         result = self._process_file_inclusions(result)
@@ -525,14 +642,23 @@ class TemplateEngine:
 
         return FILE_PATTERN.sub(replace_file, template)
 
-    def _process_includes(self, template: str) -> str:
+    def _process_includes(
+        self,
+        template: str,
+        *,
+        command_root: Path | None = None,
+    ) -> str:
         """Process command-local include patterns in the template.
 
         Resolves {{include:filename}} relative to command_root (the command directory).
         This is used for files bundled with commands (e.g., SDK defaults).
 
+        ISS-017: Added command_root parameter to support per-render override.
+
         Args:
             template: Template string to process.
+            command_root: Root directory for resolving includes. Falls back to
+                         instance attribute if not provided.
 
         Returns:
             Template with included file contents.
@@ -544,22 +670,25 @@ class TemplateEngine:
         if not INCLUDE_PATTERN.search(template):
             return template  # No includes, skip processing
 
-        if self.command_root is None:
+        # Use provided command_root or fall back to instance attribute
+        effective_root = command_root if command_root is not None else self.command_root
+
+        if effective_root is None:
             raise ConfigError(
                 code="INCLUDE_NO_COMMAND_ROOT",
                 message="Cannot process {{include:...}} without command_root",
-                suggestion="Set command_root when initializing TemplateEngine",
+                suggestion="Set command_root when initializing TemplateEngine or pass to render()",
             )
 
         def replace_include(match: re.Match[str]) -> str:
             file_path = match.group(1).strip()
-            full_path = self.command_root / file_path  # type: ignore[operator]
+            full_path = effective_root / file_path  # type: ignore[operator]
 
             # Security: Prevent path traversal attacks
             try:
                 resolved_path = full_path.resolve()
-                command_resolved = self.command_root.resolve()  # type: ignore[union-attr]
-                if not resolved_path.is_relative_to(command_resolved):
+                root_resolved = effective_root.resolve()  # type: ignore[union-attr]
+                if not resolved_path.is_relative_to(root_resolved):
                     raise ConfigError(
                         code="INCLUDE_PATH_TRAVERSAL",
                         message=f"Path traversal not allowed: {file_path}",
@@ -602,14 +731,23 @@ class TemplateEngine:
 
         return INCLUDE_PATTERN.sub(replace_include, template)
 
-    def _process_shared_inclusions(self, template: str) -> str:
+    def _process_shared_inclusions(
+        self,
+        template: str,
+        *,
+        shared_root: Path | None = None,
+    ) -> str:
         """Process shared include patterns in the template.
 
         Resolves {{shared:filename}} relative to shared_root (the commands directory).
         This is used for files shared across all commands.
 
+        ISS-017: Added shared_root parameter to support per-render override.
+
         Args:
             template: Template string to process.
+            shared_root: Root directory for resolving shared includes. Falls back to
+                        instance attribute if not provided.
 
         Returns:
             Template with included file contents.
@@ -621,22 +759,25 @@ class TemplateEngine:
         if not SHARED_PATTERN.search(template):
             return template  # No shared includes, skip processing
 
-        if self.shared_root is None:
+        # Use provided shared_root or fall back to instance attribute
+        effective_root = shared_root if shared_root is not None else self.shared_root
+
+        if effective_root is None:
             raise ConfigError(
                 code="SHARED_NO_ROOT",
                 message="Cannot process {{shared:...}} without shared_root",
-                suggestion="Set shared_root when initializing TemplateEngine",
+                suggestion="Set shared_root when initializing TemplateEngine or pass to render()",
             )
 
         def replace_shared(match: re.Match[str]) -> str:
             file_path = match.group(1).strip()
-            full_path = self.shared_root / file_path  # type: ignore[operator]
+            full_path = effective_root / file_path  # type: ignore[operator]
 
             # Security: Prevent path traversal attacks
             try:
                 resolved_path = full_path.resolve()
-                shared_resolved = self.shared_root.resolve()  # type: ignore[union-attr]
-                if not resolved_path.is_relative_to(shared_resolved):
+                root_resolved = effective_root.resolve()  # type: ignore[union-attr]
+                if not resolved_path.is_relative_to(root_resolved):
                     raise ConfigError(
                         code="SHARED_PATH_TRAVERSAL",
                         message=f"Path traversal not allowed: {file_path}",
