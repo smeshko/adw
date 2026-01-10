@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from adw.commands import TemplateEngine
-from adw.commands.template import FILE_PATTERN, VARIABLE_PATTERN
+from adw.commands.template import ARTIFACT_REF_PATTERN, FILE_PATTERN, VARIABLE_PATTERN
 from adw.exceptions import ConfigError
 
 
@@ -34,6 +34,50 @@ class TestTemplateEngineModuleStructure:
         """TemplateEngine should default project_root to cwd."""
         engine = TemplateEngine()
         assert engine.project_root == Path.cwd()
+
+
+class TestArtifactRefPattern:
+    """Tests for ISS-017: ARTIFACT_REF_PATTERN consolidation."""
+
+    def test_artifact_ref_pattern_importable_from_template(self) -> None:
+        """ARTIFACT_REF_PATTERN should be importable from adw.commands.template."""
+        from adw.commands.template import ARTIFACT_REF_PATTERN
+
+        assert ARTIFACT_REF_PATTERN is not None
+
+    def test_artifact_ref_pattern_matches_simple_reference(self) -> None:
+        """ARTIFACT_REF_PATTERN should match {{artifacts.phase.name}}."""
+        match = ARTIFACT_REF_PATTERN.search("Content: {{artifacts.plan.output}}")
+        assert match is not None
+        assert match.group(1) == "plan.output"
+
+    def test_artifact_ref_pattern_matches_with_underscore(self) -> None:
+        """ARTIFACT_REF_PATTERN should match snake_case names."""
+        match = ARTIFACT_REF_PATTERN.search("{{artifacts.build.build_output}}")
+        assert match is not None
+        assert match.group(1) == "build.build_output"
+
+    def test_artifact_ref_pattern_matches_wildcard(self) -> None:
+        """ARTIFACT_REF_PATTERN should match wildcards like {{artifacts.phase.*}}."""
+        match = ARTIFACT_REF_PATTERN.search("{{artifacts.plan.*}}")
+        assert match is not None
+        assert match.group(1) == "plan.*"
+
+    def test_artifact_ref_pattern_does_not_match_root_wildcard(self) -> None:
+        """ARTIFACT_REF_PATTERN requires at least one identifier before wildcard.
+
+        Note: {{artifacts.*}} is intentionally NOT supported by the pattern.
+        Valid wildcards are {{artifacts.plan.*}} (phase-level wildcard).
+        """
+        match = ARTIFACT_REF_PATTERN.search("{{artifacts.*}}")
+        # Pattern requires at least one identifier segment
+        assert match is None
+
+    def test_artifact_ref_pattern_findall(self) -> None:
+        """ARTIFACT_REF_PATTERN.findall should find all artifact references."""
+        template = "{{artifacts.plan.output}} and {{artifacts.build.diff}}"
+        matches = ARTIFACT_REF_PATTERN.findall(template)
+        assert matches == ["plan.output", "build.diff"]
 
 
 class TestVariableSubstitution:

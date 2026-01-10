@@ -7,7 +7,6 @@ post-hook → artifact capture.
 
 import logging
 import os
-import re
 import subprocess
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -28,7 +27,7 @@ from adw.hooks.git_diff import (
     has_commits,
     truncate_diff,
 )
-from adw.commands.template import build_task_context
+from adw.commands.template import ARTIFACT_REF_PATTERN, build_task_context
 from adw.models import (
     LLMResult,
     PhaseResult,
@@ -49,10 +48,6 @@ if TYPE_CHECKING:
 ProgressCallback = Callable[[int], None]  # Callback receiving token count
 
 logger = logging.getLogger(__name__)
-
-# Pattern to match artifact references in templates: {{artifacts.phase.name}}
-# Also matches wildcards like {{artifacts.phase.*}} and {{artifacts.*}}
-ARTIFACT_REF_PATTERN = re.compile(r"\{\{artifacts\.([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
 
 
 class PhaseRunner:

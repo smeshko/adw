@@ -188,6 +188,10 @@ def build_task_context(task_info: "TaskInfo | None") -> dict[str, Any]:
 # Compile patterns once at module level for efficiency
 # Matches {{variable}} or {{variable.nested.path}} or {{variable.*}} for wildcards
 VARIABLE_PATTERN = re.compile(r"\{\{([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
+# Pattern to match artifact references in templates: {{artifacts.phase.name}}
+# Also matches wildcards like {{artifacts.phase.*}} and {{artifacts.*}}
+# ISS-017: Consolidated from phase_runner.py to template.py
+ARTIFACT_REF_PATTERN = re.compile(r"\{\{artifacts\.([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
 # Matches {{file:path/to/file.txt}} - resolves relative to project root
 FILE_PATTERN = re.compile(r"\{\{file:([^}]+)\}\}")
 # Matches {{include:filename}} - resolves relative to command directory
