@@ -83,6 +83,7 @@
         tests_passed = false
         code_review_passed = false
         issues_fixed = []
+        issues_dismissed = []
         issues_remaining = []
         exit_reason = null
         passed = false
@@ -381,6 +382,7 @@ Focus only on NEW issues not listed above.
           <action>For each FALSE_POSITIVE:
             1. Do NOT modify any code
             2. Track for exclusion in next cycle (dismissed_issues)
+            3. Add to issues_dismissed for final output summary
           </action>
         </substep>
       </step>
@@ -448,6 +450,11 @@ Focus only on NEW issues not listed above.
   "code_review_passed": {{code_review_passed}},
   "issues_fixed": [
     {{#each issues_fixed}}
+    "{{this}}"{{#unless @last}},{{/unless}}
+    {{/each}}
+  ],
+  "issues_dismissed": [
+    {{#each issues_dismissed}}
     "{{this}}"{{#unless @last}},{{/unless}}
     {{/each}}
   ],

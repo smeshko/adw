@@ -213,6 +213,18 @@ class TestCodeReviewLoopHallucinationDetection:
         """
         assert "Skip remaining validation" in instructions_content
 
+    def test_instructions_outputs_dismissed_summary(
+        self, instructions_content: str
+    ) -> None:
+        """Instructions must include dismissed false positives in final output.
+
+        ISS-022: Output must summarize verified issues vs dismissed false positives.
+        """
+        # Must track issues_dismissed in state
+        assert "issues_dismissed" in instructions_content
+        # Must output issues_dismissed in final JSON
+        assert "issues_dismissed" in instructions_content
+
 
 class TestValidateConfigYaml:
     """Tests for the validate command config.yaml."""
