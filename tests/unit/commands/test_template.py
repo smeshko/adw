@@ -905,3 +905,110 @@ Title: {{task.title}}"""
         assert "Feature: Quick fix for login" in result
         assert "Task: \n" in result  # Empty identifier
         assert "Title: " in result  # Empty title
+
+
+class TestValidateArtifactReferences:
+    """Tests for ISS-017: validate_artifact_references function."""
+
+    def test_validate_artifact_references_importable(self) -> None:
+        """validate_artifact_references should be importable from adw.commands.template."""
+        from adw.commands.template import validate_artifact_references
+
+        assert validate_artifact_references is not None
+
+    def test_validate_no_references_passes(self) -> None:
+        """Templates without artifact references should pass validation."""
+        from adw.commands.template import validate_artifact_references
+
+        template = "Hello {{name}}, welcome to {{project}}!"
+        artifacts_map: dict[str, dict[str, str]] = {}
+
+        # Should not raise
+        validate_artifact_references(template, artifacts_map, strict=True)
+
+    def test_validate_existing_artifact_passes(self) -> None:
+        """Valid artifact references should pass validation."""
+        from adw.commands.template import validate_artifact_references
+
+        template = "Plan: {{artifacts.plan.output}}"
+        artifacts_map = {"plan": {"output": "Plan content"}}
+
+        # Should not raise
+        validate_artifact_references(template, artifacts_map, strict=True)
+
+    def test_validate_missing_phase_strict_raises(self) -> None:
+        """Missing phase in strict mode should raise ConfigError."""
+        from adw.commands.template import validate_artifact_references
+        from adw.exceptions import ConfigError
+
+        template = "Plan: {{artifacts.plan.output}}"
+        artifacts_map: dict[str, dict[str, str]] = {}  # No plan phase
+
+        with pytest.raises(ConfigError) as exc:
+            validate_artifact_references(template, artifacts_map, strict=True)
+
+        assert exc.value.code == "ARTIFACT_NOT_FOUND"
+        assert "plan/output" in exc.value.message
+
+    def test_validate_missing_artifact_strict_raises(self) -> None:
+        """Missing artifact in strict mode should raise ConfigError."""
+        from adw.commands.template import validate_artifact_references
+        from adw.exceptions import ConfigError
+
+        template = "Diff: {{artifacts.build.diff}}"
+        artifacts_map = {"build": {"output": "Build output"}}  # Has output, not diff
+
+        with pytest.raises(ConfigError) as exc:
+            validate_artifact_references(template, artifacts_map, strict=True)
+
+        assert exc.value.code == "ARTIFACT_NOT_FOUND"
+        assert "build/diff" in exc.value.message
+
+    def test_validate_missing_lenient_returns_list(self) -> None:
+        """Missing artifacts in lenient mode should return list of missing refs."""
+        from adw.commands.template import validate_artifact_references
+
+        template = "{{artifacts.plan.output}} and {{artifacts.build.diff}}"
+        artifacts_map: dict[str, dict[str, str]] = {}
+
+        # Lenient mode should return missing list instead of raising
+        missing = validate_artifact_references(template, artifacts_map, strict=False)
+        assert missing == ["plan/output", "build/diff"]
+
+    def test_validate_wildcard_skipped(self) -> None:
+        """Wildcard patterns should be skipped in validation."""
+        from adw.commands.template import validate_artifact_references
+
+        template = "All artifacts: {{artifacts.plan.*}}"
+        artifacts_map: dict[str, dict[str, str]] = {}  # Empty, but wildcard should be skipped
+
+        # Should not raise even with empty artifacts
+        missing = validate_artifact_references(template, artifacts_map, strict=True)
+        assert missing == []
+
+    def test_validate_multiple_missing_reports_all(self) -> None:
+        """Validation should report all missing artifacts, not just the first."""
+        from adw.commands.template import validate_artifact_references
+        from adw.exceptions import ConfigError
+
+        template = "{{artifacts.plan.output}} {{artifacts.build.diff}} {{artifacts.validate.report}}"
+        artifacts_map: dict[str, dict[str, str]] = {}
+
+        with pytest.raises(ConfigError) as exc:
+            validate_artifact_references(template, artifacts_map, strict=True)
+
+        assert "plan/output" in exc.value.message
+        assert "build/diff" in exc.value.message
+        assert "validate/report" in exc.value.message
+
+    def test_validate_single_part_ref_skipped(self) -> None:
+        """Single-part refs like {{artifacts.plan}} should be skipped."""
+        from adw.commands.template import validate_artifact_references
+
+        # This accesses the phase dict, not a specific artifact
+        template = "Phase info: {{artifacts.plan}}"
+        artifacts_map: dict[str, dict[str, str]] = {}
+
+        # Should not raise - single-part refs don't require specific artifacts
+        missing = validate_artifact_references(template, artifacts_map, strict=True)
+        assert missing == []

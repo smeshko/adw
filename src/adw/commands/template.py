@@ -24,7 +24,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["TemplateEngine", "escape_feature_description", "build_task_context"]
+__all__ = [
+    "TemplateEngine",
+    "escape_feature_description",
+    "build_task_context",
+    "validate_artifact_references",
+]
 
 
 class GracefulDict(dict[str, Any]):
@@ -198,6 +203,101 @@ FILE_PATTERN = re.compile(r"\{\{file:([^}]+)\}\}")
 INCLUDE_PATTERN = re.compile(r"\{\{include:([^}]+)\}\}")
 # Matches {{shared:filename}} - resolves relative to shared commands directory
 SHARED_PATTERN = re.compile(r"\{\{shared:([^}]+)\}\}")
+
+
+def validate_artifact_references(
+    template: str,
+    artifacts_map: dict[str, dict[str, str]],
+    *,
+    strict: bool = True,
+) -> list[str]:
+    """Validate that all artifact references in template exist.
+
+    Scans the template for {{artifacts.phase.name}} patterns and validates
+    each reference exists in the artifacts map. In strict mode, raises
+    ConfigError for missing artifacts. In lenient mode, returns the list
+    of missing artifact references.
+
+    ISS-017: Consolidated from PhaseRunner._validate_artifact_references to
+    centralize all template-related validation in the template module.
+
+    Args:
+        template: The prompt template string to validate.
+        artifacts_map: Available artifacts as {phase: {name: content}}.
+        strict: If True, raise ConfigError for missing artifacts.
+                If False, return list of missing references.
+
+    Returns:
+        List of missing artifact references in "phase/name" format.
+        Empty list if all references are valid.
+
+    Raises:
+        ConfigError: If strict=True and any artifact reference is missing.
+
+    Example:
+        >>> artifacts = {"plan": {"output": "Plan content"}}
+        >>> validate_artifact_references("{{artifacts.plan.output}}", artifacts)
+        []
+        >>> validate_artifact_references("{{artifacts.build.diff}}", {}, strict=False)
+        ['build/diff']
+    """
+    # Find all artifact references in the template
+    matches = ARTIFACT_REF_PATTERN.findall(template)
+    if not matches:
+        return []
+
+    missing_artifacts: list[str] = []
+
+    for ref_path in matches:
+        # Skip wildcard patterns - they don't require specific artifacts
+        if ref_path.endswith(".*") or ref_path == "*":
+            continue
+
+        # Parse the reference path (e.g., "plan.plan" or "build.diff")
+        parts = ref_path.split(".")
+        if len(parts) < 2:
+            # Single part like "plan" - accesses phase dict, not artifact
+            continue
+
+        phase_name = parts[0]
+        artifact_name = parts[1]
+
+        # Check if artifact exists
+        if phase_name not in artifacts_map:
+            missing_artifacts.append(f"{phase_name}/{artifact_name}")
+            logger.warning(
+                "Missing artifact reference in template",
+                extra={
+                    "phase": phase_name,
+                    "artifact": artifact_name,
+                    "ref": f"artifacts.{ref_path}",
+                },
+            )
+        elif artifact_name not in artifacts_map[phase_name]:
+            missing_artifacts.append(f"{phase_name}/{artifact_name}")
+            logger.warning(
+                "Missing artifact reference in template",
+                extra={
+                    "phase": phase_name,
+                    "artifact": artifact_name,
+                    "ref": f"artifacts.{ref_path}",
+                    "available": list(artifacts_map[phase_name].keys()),
+                },
+            )
+
+    # Raise error if strict mode and artifacts missing
+    if strict and missing_artifacts:
+        raise ConfigError(
+            code="ARTIFACT_NOT_FOUND",
+            message=f"Artifact(s) not found: {', '.join(missing_artifacts)}",
+            suggestion=(
+                "Ensure the referenced phase(s) completed successfully and "
+                "produced the expected artifacts. Check artifact naming "
+                "(e.g., plan.md -> artifacts.plan.plan)."
+            ),
+        )
+
+    return missing_artifacts
 
 
 class TemplateEngine:

@@ -27,7 +27,10 @@ from adw.hooks.git_diff import (
     has_commits,
     truncate_diff,
 )
-from adw.commands.template import ARTIFACT_REF_PATTERN, build_task_context
+from adw.commands.template import (
+    build_task_context,
+    validate_artifact_references,
+)
 from adw.models import (
     LLMResult,
     PhaseResult,
@@ -314,9 +317,11 @@ class PhaseRunner:
         else:
             artifacts_map = self._build_artifacts_map(context.run_id, phase)
 
-        # Validate artifact references in template
+        # Validate artifact references in template (ISS-017: using template module function)
         # Raises ConfigError if strict_artifacts=True and artifact missing
-        self._validate_artifact_references(prompt_template, artifacts_map)
+        validate_artifact_references(
+            prompt_template, artifacts_map, strict=self.strict_artifacts
+        )
 
         # Load and merge configs (ISS-016: per-phase config.yaml)
         # 1. Load command config from config.yaml (if exists)
@@ -580,80 +585,6 @@ class PhaseRunner:
                     message=f"Invalid config in config.yaml at {config_path}: {e}",
                 ) from e
             raise
-
-    def _validate_artifact_references(
-        self,
-        template: str,
-        artifacts_map: dict[str, dict[str, str]],
-    ) -> None:
-        """Validate that all artifact references in template exist.
-
-        Scans the template for {{artifacts.phase.name}} patterns and validates
-        each reference exists in the artifacts map. Logs warnings for missing
-        artifacts regardless of strict mode.
-
-        Args:
-            template: The prompt template string.
-            artifacts_map: Available artifacts {phase: {name: content}}.
-
-        Raises:
-            ConfigError: If strict_artifacts=True and an artifact is missing.
-        """
-        # Find all artifact references in the template
-        matches = ARTIFACT_REF_PATTERN.findall(template)
-        if not matches:
-            return
-
-        missing_artifacts: list[str] = []
-
-        for ref_path in matches:
-            # Skip wildcard patterns - they don't require specific artifacts
-            if ref_path.endswith(".*") or ref_path == "*":
-                continue
-
-            # Parse the reference path (e.g., "plan.plan" or "build.diff")
-            parts = ref_path.split(".")
-            if len(parts) < 2:
-                # Single part like "plan" - accesses phase dict, not artifact
-                continue
-
-            phase_name = parts[0]
-            artifact_name = parts[1]
-
-            # Check if artifact exists
-            if phase_name not in artifacts_map:
-                missing_artifacts.append(f"{phase_name}/{artifact_name}")
-                logger.warning(
-                    "Missing artifact reference in template",
-                    extra={
-                        "phase": phase_name,
-                        "artifact": artifact_name,
-                        "ref": f"artifacts.{ref_path}",
-                    },
-                )
-            elif artifact_name not in artifacts_map[phase_name]:
-                missing_artifacts.append(f"{phase_name}/{artifact_name}")
-                logger.warning(
-                    "Missing artifact reference in template",
-                    extra={
-                        "phase": phase_name,
-                        "artifact": artifact_name,
-                        "ref": f"artifacts.{ref_path}",
-                        "available": list(artifacts_map[phase_name].keys()),
-                    },
-                )
-
-        # Raise error if strict mode and artifacts missing
-        if self.strict_artifacts and missing_artifacts:
-            raise ConfigError(
-                code="ARTIFACT_NOT_FOUND",
-                message=f"Artifact(s) not found: {', '.join(missing_artifacts)}",
-                suggestion=(
-                    "Ensure the referenced phase(s) completed successfully and "
-                    "produced the expected artifacts. Check artifact naming "
-                    "(e.g., plan.md -> artifacts.plan.plan)."
-                ),
-            )
 
     def _load_phase_artifacts(
         self,
