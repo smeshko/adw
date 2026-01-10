@@ -69,16 +69,6 @@ This file lists documentation that should be read under specific conditions. Whe
 
 ---
 
-## Evidence Collection
-
-- src/adw/evidence/README.md (if exists)
-  - Conditions:
-    - When adding new evidence capture methods
-    - When working with mobile screenshots
-    - When implementing API response capture
-
----
-
 ## Sprint and Planning
 
 - docs/planning/sprint-status.md

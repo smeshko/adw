@@ -11,15 +11,6 @@ This package contains all Pydantic models used throughout ADW:
 - logging: LogLevel, LogCategory, LogContext, LogEvent
 - index: IndexEntry
 - security: BlockedPattern, SecurityConfig, ToolCallLog
-- evidence: PlatformType, Confidence, EvidenceStrategy, PlatformDetectionResult,
-            APIRequest, APIResponse, APIEvidenceResult, APIEvidenceSummary,
-            EndpointConfig, AuthConfig, AuthType,
-            CommandConfig, CommandResult, CLIEvidenceSummary,
-            RouteConfig, ViewportConfig, ScreenshotResult, WebEvidenceSummary,
-            MobileDeviceType, MobileScreenConfig, MobileScreenshotResult, MobileEvidenceSummary,
-            EvidenceType, EvidenceStatus, EvidenceItem, PlanStepCoverage,
-            CoverageSummary, EvidenceManifest,
-            OptimizationConfig, FileOptimization, OptimizationReport
 - pr: PRDescription
 - validation: ValidationResult
 - task: TaskInfo
@@ -45,39 +36,6 @@ from adw.models.context import (
     RunContext,
     SessionContext,
     StateSnapshot,
-)
-from adw.models.evidence import (
-    APIEvidenceResult,
-    APIEvidenceSummary,
-    APIRequest,
-    APIResponse,
-    AuthConfig,
-    AuthType,
-    CLIEvidenceSummary,
-    CommandConfig,
-    CommandResult,
-    Confidence,
-    CoverageSummary,
-    EndpointConfig,
-    EvidenceItem,
-    EvidenceManifest,
-    EvidenceStatus,
-    EvidenceStrategy,
-    EvidenceType,
-    FileOptimization,
-    MobileDeviceType,
-    MobileEvidenceSummary,
-    MobileScreenConfig,
-    MobileScreenshotResult,
-    OptimizationConfig,
-    OptimizationReport,
-    PlanStepCoverage,
-    PlatformDetectionResult,
-    PlatformType,
-    RouteConfig,
-    ScreenshotResult,
-    ViewportConfig,
-    WebEvidenceSummary,
 )
 from adw.models.hook import HookResult
 from adw.models.index import IndexEntry
@@ -137,44 +95,6 @@ __all__: list[str] = [
     "RunContext",
     "SessionContext",
     "StateSnapshot",
-    # Evidence models - API
-    "APIEvidenceResult",
-    "APIEvidenceSummary",
-    "APIRequest",
-    "APIResponse",
-    "AuthConfig",
-    "AuthType",
-    "EndpointConfig",
-    # Evidence models - CLI
-    "CLIEvidenceSummary",
-    "CommandConfig",
-    "CommandResult",
-    # Evidence models - Manifest
-    "CoverageSummary",
-    "EvidenceItem",
-    "EvidenceManifest",
-    "EvidenceStatus",
-    "EvidenceType",
-    "PlanStepCoverage",
-    # Evidence models - Optimization
-    "FileOptimization",
-    "OptimizationConfig",
-    "OptimizationReport",
-    # Evidence models - Mobile
-    "MobileDeviceType",
-    "MobileEvidenceSummary",
-    "MobileScreenConfig",
-    "MobileScreenshotResult",
-    # Evidence models - Web
-    "RouteConfig",
-    "ScreenshotResult",
-    "ViewportConfig",
-    "WebEvidenceSummary",
-    # Evidence models - Common
-    "Confidence",
-    "EvidenceStrategy",
-    "PlatformDetectionResult",
-    "PlatformType",
     # Hook models
     "HookResult",
     # Index models
