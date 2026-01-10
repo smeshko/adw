@@ -703,7 +703,7 @@ class TestBuildCommitDiffFlowIntegration:
     def test_subsequent_phases_create_commits(
         self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Should create commits for VERIFY, VALIDATE, DOCUMENT phases too."""
+        """Should create commits for BUILD, VALIDATE, DOCUMENT phases."""
         monkeypatch.chdir(git_repo)
 
         # BUILD phase: create initial code
@@ -714,23 +714,15 @@ class TestBuildCommitDiffFlowIntegration:
         )
         assert build_sha is not None
 
-        # VERIFY phase: add tests
-        (git_repo / "test_app.py").write_text("# Tests\n")
-        stage_changes()
-        verify_sha = create_commit(
-            phase="validate", feature="Add app", run_id="01HQ001"
-        )
-        assert verify_sha is not None
-        assert verify_sha != build_sha
-
-        # VALIDATE phase: modify code based on validation
+        # VALIDATE phase: modify code and add tests based on validation
         (git_repo / "app.py").write_text("# App code - validated\n")
+        (git_repo / "test_app.py").write_text("# Tests\n")
         stage_changes()
         validate_sha = create_commit(
             phase="validate", feature="Add app", run_id="01HQ001"
         )
         assert validate_sha is not None
-        assert validate_sha != verify_sha
+        assert validate_sha != build_sha
 
         # DOCUMENT phase: add docs
         (git_repo / "README.md").write_text("# Documentation\n")
@@ -743,13 +735,12 @@ class TestBuildCommitDiffFlowIntegration:
 
         # Verify all commits exist with correct messages
         log_result = subprocess.run(
-            ["git", "log", "--oneline", "-4"],
+            ["git", "log", "--oneline", "-3"],
             capture_output=True,
             text=True,
             check=True,
         )
         assert "[adw] Build:" in log_result.stdout
-        assert "[adw] Verify:" in log_result.stdout
         assert "[adw] Validate:" in log_result.stdout
         assert "[adw] Document:" in log_result.stdout
 

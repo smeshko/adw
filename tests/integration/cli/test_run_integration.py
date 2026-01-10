@@ -207,7 +207,9 @@ class TestVerbosityIntegration:
     properly propagate through the CLI → bootstrap → executor chain.
     """
 
-    def test_show_llm_output_flag_propagates_to_orchestrator(self) -> None:
+    def test_show_llm_output_flag_propagates_to_orchestrator(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that --show-llm-output flag is properly wired through bootstrap.
 
         Verifies: CLI flag → create_orchestrator() → ClaudeCodeExecutor.show_llm_output
@@ -215,6 +217,9 @@ class TestVerbosityIntegration:
         from unittest.mock import patch
 
         from adw.cli.bootstrap import create_orchestrator
+
+        # Disable mock executor mode to test real ClaudeCodeExecutor path
+        monkeypatch.delenv("ADW_MOCK_EXECUTOR", raising=False)
 
         # Test with show_llm_output=True
         with patch("adw.cli.bootstrap.ClaudeCodeExecutor") as mock_executor_class:
@@ -226,11 +231,16 @@ class TestVerbosityIntegration:
             call_kwargs = mock_executor_class.call_args[1]
             assert call_kwargs.get("show_llm_output") is True
 
-    def test_show_llm_output_defaults_to_false_in_orchestrator(self) -> None:
+    def test_show_llm_output_defaults_to_false_in_orchestrator(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that show_llm_output defaults to False in create_orchestrator."""
         from unittest.mock import patch
 
         from adw.cli.bootstrap import create_orchestrator
+
+        # Disable mock executor mode to test real ClaudeCodeExecutor path
+        monkeypatch.delenv("ADW_MOCK_EXECUTOR", raising=False)
 
         with patch("adw.cli.bootstrap.ClaudeCodeExecutor") as mock_executor_class:
             mock_executor_class.return_value = mock_executor_class

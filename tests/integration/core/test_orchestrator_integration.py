@@ -179,7 +179,7 @@ class TestFullRunIntegration:
             assert phase in context.phase_tokens
             assert context.phase_tokens[phase] == 100
 
-        assert context.total_tokens == 500  # 100 tokens * 5 phases
+        assert context.total_tokens == 400  # 100 tokens * 4 phases
 
 
 class TestSnapshotIntegration:
@@ -196,9 +196,9 @@ class TestSnapshotIntegration:
 
         context = orchestrator.run("Test feature")
 
-        # Load and verify each snapshot
+        # Load and verify each snapshot (pre + post for each of 4 phases = 8)
         snapshots = snapshot_manager.list_snapshots(context.run_id)
-        assert len(snapshots) == 10
+        assert len(snapshots) == 8
 
         for snapshot_meta in snapshots:
             snapshot = snapshot_manager.load_snapshot(
@@ -279,8 +279,8 @@ class TestContextPersistenceIntegration:
 
         orchestrator.run("Test feature")
 
-        # Context should have been persisted multiple times
-        assert persist_count >= 5  # At least once per phase
+        # Context should have been persisted multiple times (4 phases)
+        assert persist_count >= 4  # At least once per phase
 
     def test_final_context_has_completed_status(
         self,

@@ -113,7 +113,7 @@ class TestPhaseLifecycleWithSnapshots:
         )
 
         snapshot_manager.create_post_phase_snapshot(
-            sample_context, "verify", phase_result
+            sample_context, "validate", phase_result
         )
 
         # Load and verify content
@@ -125,7 +125,7 @@ class TestPhaseLifecycleWithSnapshots:
         assert snapshot.sequence == 1
 
         assert snapshot.phase_result is not None
-        assert snapshot.phase_result.phase == "verify"
+        assert snapshot.phase_result.phase == "validate"
         assert snapshot.phase_result.tokens_used == 750
         assert snapshot.phase_result.artifacts == ["test_results.xml", "coverage.xml"]
 
@@ -157,8 +157,8 @@ class TestSnapshotListingAcrossPhases:
 
         snapshot_manager = SnapshotManager(run_dir_manager.runs_dir)
 
-        # Create snapshots for multiple phases
-        phases = ["plan", "build", "test", "validate"]
+        # Create snapshots for multiple phases (current phase sequence)
+        phases = ["plan", "build", "validate", "document"]
         for phase in phases:
             context = sample_context.model_copy(update={"current_phase": phase})
             snapshot_manager.create_pre_phase_snapshot(context, phase)
@@ -186,10 +186,10 @@ class TestSnapshotListingAcrossPhases:
             "post_plan",
             "pre_build",
             "post_build",
-            "pre_test",
-            "post_test",
-            "pre_verify",
+            "pre_validate",
             "post_validate",
+            "pre_document",
+            "post_document",
         ]
         actual_labels = [f"{s['timing']}_{s['phase']}" for s in snapshots]
         assert actual_labels == expected_labels

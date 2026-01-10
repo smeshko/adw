@@ -117,7 +117,6 @@ class TestJsonOutput:
         assert data["completed_phases"] == [
             "plan",
             "build",
-            "verify",
             "validate",
             "document",
         ]

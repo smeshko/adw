@@ -1,9 +1,15 @@
 """Integration tests for ClaudeCodeExecutor.
 
 These tests require Claude Code CLI to be installed and available.
-Tests are skipped if Claude Code is not found in PATH.
+Tests are skipped if Claude Code is not found in PATH or if running
+in mock mode (ADW_MOCK_EXECUTOR=1).
+
+WARNING: These tests make REAL API calls and incur costs!
+They are skipped by default in the test suite (ADW_MOCK_EXECUTOR is set
+in conftest.py). Only run manually when you need to test real integration.
 """
 
+import os
 import shutil
 
 import pytest
@@ -13,10 +19,17 @@ from adw.models.config import LLMConfig
 from adw.models.llm import LLMResult
 
 # Skip all tests in this module if Claude Code is not installed
-pytestmark = pytest.mark.skipif(
-    shutil.which("claude") is None,
-    reason="Claude Code CLI not installed",
-)
+# OR if we're in mock mode (to avoid hitting real API during test runs)
+pytestmark = [
+    pytest.mark.skipif(
+        shutil.which("claude") is None,
+        reason="Claude Code CLI not installed",
+    ),
+    pytest.mark.skipif(
+        os.environ.get("ADW_MOCK_EXECUTOR") == "1",
+        reason="Skipped in mock mode - these tests hit real Claude API",
+    ),
+]
 
 
 class TestClaudeCodeIntegration:

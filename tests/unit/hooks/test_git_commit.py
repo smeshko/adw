@@ -37,7 +37,7 @@ class TestFormatCommitMessage:
             feature="Test login",
             run_id="01HQ789",
         )
-        assert "[adw] Verify:" in result
+        assert "[adw] Validate:" in result
 
     def test_unicode_feature_description(self) -> None:
         """Should handle unicode in feature description."""
