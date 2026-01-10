@@ -60,13 +60,13 @@ issues:
   ISS-014-resume-logic-scattered-across-codebase: story-created  # Moved to Epic 13
   ISS-015-no-mechanism-to-inject-phase-specific-input-context: fixed
   ISS-016-per-phase-config-yaml-not-implemented: fixed
-  ISS-017-template-logic-scattered-between-modules: story-created  # Moved to Epic 13
+  ISS-017-template-logic-scattered-between-modules: fixed  # Moved to Epic 13
   ISS-018-single-phase-runs-delete-worktree-unexpectedly: fixed  # PR #84
   ISS-019-epic-11-phases-not-unified: fixed  # Multiple fix commits merged
   ISS-020-worktrees-should-not-auto-delete: fixed
   ISS-021-remove-evidence-gathering-completely: story-created  # Major - Remove dead code, Moved to Epic 13
   ISS-022-validate-phase-not-verifying-codex-findings: story-created  # Critical - Claude not verifying Codex hallucinations
-  ISS-023-save-only-last-llm-message-as-output: story-created  # Major - SDK saves full conversation, not final output
+  ISS-023-save-only-last-llm-message-as-output: done  # Major - SDK saves full conversation, not final output
   ISS-024-tests-not-cleaning-up-worktrees: reported  # Major - Worktrees with ULIDs left after test runs
 
 development_status:
@@ -287,13 +287,13 @@ development_status:
   refactor-ISS-012-config-driven-artifact-capture: ready-for-dev
   refactor-ISS-013-remove-template-aliases: ready-for-dev
   refactor-ISS-014-centralize-resume-logic: ready-for-dev
-  refactor-ISS-017-consolidate-template-logic: in-progress
+  refactor-ISS-017-consolidate-template-logic: done
   # Refactor (from ISS-021) - MAJOR
   refactor-ISS-021-remove-evidence-gathering: done
   # Bugfix (from ISS-022) - CRITICAL
   bugfix-ISS-022-validate-codex-findings: review
   # UX Fix (from ISS-023) - MAJOR
-  ux-fix-ISS-023-save-last-message-only: in-progress
+  ux-fix-ISS-023-save-last-message-only: done
   refactor-ISS-024-remove-evidence-gathering: ready-for-dev
   epic-13-retrospective: optional
 

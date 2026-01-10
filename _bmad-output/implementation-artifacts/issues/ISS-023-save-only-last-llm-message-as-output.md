@@ -3,7 +3,7 @@
 **ID:** ISS-023
 **Severity:** Major
 **Type:** UX Issue
-**Status:** reported
+**Status:** done
 **Reported:** 2026-01-09
 **Reporter:** Ivo
 
@@ -88,10 +88,10 @@ N/A
 
 ## Resolution
 
-- **Fix Story:** Pending
-- **Fixed In:** Pending
-- **Verified By:** Pending
-- **Verified Date:** Pending
+- **Fix Story:** ISS-023 (implemented in this branch)
+- **Fixed In:** 0.1.7
+- **Verified By:** Code Review Loop
+- **Verified Date:** 2026-01-10
 
 ## Suggested Implementation
 

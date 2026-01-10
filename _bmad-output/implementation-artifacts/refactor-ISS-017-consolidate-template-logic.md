@@ -1,6 +1,6 @@
 # Story 13.ISS-017: Consolidate Template Logic
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure (Tech Debt)
 Created: 2026-01-10

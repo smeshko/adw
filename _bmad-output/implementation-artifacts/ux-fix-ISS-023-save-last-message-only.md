@@ -1,7 +1,7 @@
 # Story 13.8: UX Fix - Save Only Last LLM Message as Output
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure (Tech Debt)
 Created: 2026-01-09
