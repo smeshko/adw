@@ -312,17 +312,33 @@ Focus only on NEW issues not listed above.
           <action>Read the file at {{finding.file}} using the Read tool</action>
           <action>Extract the actual code at lines {{finding.line - 5}} to {{finding.line + 5}}</action>
           <action>Store the actual code as {{actual_code}}</action>
+          <output>🔍 **Verifying:** {{finding.file}}:{{finding.line}}</output>
         </substep>
 
         <substep name="compare-code">
           <critical>Compare Codex's claimed code against the ACTUAL code you just read</critical>
           <action>Extract Codex's code_snippet from the finding</action>
           <action>Compare {{code_snippet}} against {{actual_code}}</action>
+          <output>
+            **Claimed code (from Codex):**
+            ```
+            {{code_snippet}}
+            ```
+
+            **Actual code (from file):**
+            ```
+            {{actual_code}}
+            ```
+          </output>
 
           <check if="code_snippet does NOT appear in actual_code">
+            <output>❌ **Match: NO → FALSE_POSITIVE (hallucination detected)**</output>
             <action>Classify as FALSE_POSITIVE immediately</action>
             <action>Reason: "Codex code_snippet doesn't match actual file content - hallucination detected"</action>
             <action>Skip remaining validation for this finding</action>
+          </check>
+          <check if="code_snippet appears in actual_code">
+            <output>✓ **Match: YES → Code verified, proceeding with issue validation**</output>
           </check>
         </substep>
 
@@ -346,6 +362,9 @@ Focus only on NEW issues not listed above.
             - Codex misunderstood the pattern or intent
             - The "fix" would break other functionality
           </action>
+          <output>
+            **Classification:** {{classification}} ({{reason}})
+          </output>
         </substep>
       </step>
 
