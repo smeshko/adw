@@ -302,29 +302,47 @@ Focus only on NEW issues not listed above.
       </step>
 
       <step name="validate-findings">
-        <critical>Validate EACH finding before taking action</critical>
+        <critical>Validate EACH finding before taking action - YOU MUST READ THE FILES</critical>
+        <critical>NEVER trust Codex blindly - LLMs hallucinate. ALWAYS verify against actual code.</critical>
 
         <action>For EACH finding from Codex:</action>
 
         <substep name="read-context">
-          <action>Read the file and surrounding context (10 lines before/after reported line)</action>
+          <critical>YOU MUST READ THE FILE - this is NOT optional</critical>
+          <action>Read the file at {{finding.file}} using the Read tool</action>
+          <action>Extract the actual code at lines {{finding.line - 5}} to {{finding.line + 5}}</action>
+          <action>Store the actual code as {{actual_code}}</action>
         </substep>
 
-        <substep name="validate-code">
-          <action>Ask yourself:
-            - Does this issue actually exist in the code?
+        <substep name="compare-code">
+          <critical>Compare Codex's claimed code against the ACTUAL code you just read</critical>
+          <action>Extract Codex's code_snippet from the finding</action>
+          <action>Compare {{code_snippet}} against {{actual_code}}</action>
+
+          <check if="code_snippet does NOT appear in actual_code">
+            <action>Classify as FALSE_POSITIVE immediately</action>
+            <action>Reason: "Codex code_snippet doesn't match actual file content - hallucination detected"</action>
+            <action>Skip remaining validation for this finding</action>
+          </check>
+        </substep>
+
+        <substep name="validate-issue">
+          <action>Only if code_snippet was verified to exist, ask yourself:
+            - Does this issue actually exist in the verified code?
             - Is the code actually problematic?
-            - Does the suggested fix make sense?
+            - Does the suggested fix make sense and improve the code?
           </action>
         </substep>
 
         <substep name="classify">
-          <action>Classify as VALID if:
-            - Issue genuinely exists in the code
+          <action>Classify as VALID only if ALL conditions are met:
+            - Code snippet was verified to exist in the file (from compare-code step)
+            - Issue genuinely exists in the actual code
             - Fixing it improves code quality, security, or correctness
           </action>
-          <action>Classify as FALSE_POSITIVE if:
-            - Code is actually correct
+          <action>Classify as FALSE_POSITIVE if ANY of these are true:
+            - Code snippet doesn't match actual file content (hallucination)
+            - Code is actually correct despite matching
             - Codex misunderstood the pattern or intent
             - The "fix" would break other functionality
           </action>
