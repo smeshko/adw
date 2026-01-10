@@ -907,6 +907,65 @@ Title: {{task.title}}"""
         assert "Title: " in result  # Empty title
 
 
+class TestRenderWithRootParameters:
+    """Tests for ISS-017: render() method with command_root and shared_root parameters."""
+
+    def test_render_accepts_command_root_parameter(self, tmp_path: Path) -> None:
+        """render() should accept command_root parameter for include resolution."""
+        # Create a test include file
+        command_dir = tmp_path / "commands" / "plan"
+        command_dir.mkdir(parents=True)
+        include_file = command_dir / "header.txt"
+        include_file.write_text("Plan Header Content")
+
+        engine = TemplateEngine(project_root=tmp_path)
+        template = "Header: {{include:header.txt}}"
+
+        # Pass command_root as parameter instead of setting instance attribute
+        result = engine.render(template, {}, command_root=command_dir)
+
+        assert result == "Header: Plan Header Content"
+
+    def test_render_accepts_shared_root_parameter(self, tmp_path: Path) -> None:
+        """render() should accept shared_root parameter for shared file resolution."""
+        # Create a shared file
+        commands_dir = tmp_path / "commands"
+        commands_dir.mkdir(parents=True)
+        shared_file = commands_dir / "common.txt"
+        shared_file.write_text("Shared Content")
+
+        engine = TemplateEngine(project_root=tmp_path)
+        template = "Common: {{shared:common.txt}}"
+
+        # Pass shared_root as parameter instead of setting instance attribute
+        result = engine.render(template, {}, shared_root=commands_dir)
+
+        assert result == "Common: Shared Content"
+
+    def test_render_parameters_override_instance_attributes(self, tmp_path: Path) -> None:
+        """render() parameters should override instance command_root/shared_root."""
+        # Create two different command directories with different content
+        default_dir = tmp_path / "default"
+        default_dir.mkdir()
+        (default_dir / "file.txt").write_text("Default Content")
+
+        override_dir = tmp_path / "override"
+        override_dir.mkdir()
+        (override_dir / "file.txt").write_text("Override Content")
+
+        # Engine with default command_root
+        engine = TemplateEngine(project_root=tmp_path, command_root=default_dir)
+        template = "{{include:file.txt}}"
+
+        # Without parameter, uses instance attribute
+        result_default = engine.render(template, {})
+        assert result_default == "Default Content"
+
+        # With parameter, overrides instance attribute
+        result_override = engine.render(template, {}, command_root=override_dir)
+        assert result_override == "Override Content"
+
+
 class TestValidateArtifactReferences:
     """Tests for ISS-017: validate_artifact_references function."""
 

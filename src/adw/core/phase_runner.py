@@ -385,15 +385,16 @@ class PhaseRunner:
         else:
             variables["schema"] = ""  # Empty string if no schema defined
 
-        # Set command_root and shared_root for {{include:...}} and {{shared:...}} resolution
-        self.template_engine.command_root = command.path
-        self.template_engine.shared_root = command.path.parent
-
+        # ISS-017: Pass command_root and shared_root as parameters instead of mutating state
         # Render template with strict matching artifact mode:
         # - strict_artifacts=True: We validated artifacts, use strict=True for all vars
         # - strict_artifacts=False: Lenient mode, allow missing refs to pass through
         rendered = self.template_engine.render(
-            prompt_template, variables, strict=self.strict_artifacts
+            prompt_template,
+            variables,
+            strict=self.strict_artifacts,
+            command_root=command.path,
+            shared_root=command.path.parent,
         )
 
         logger.debug(
