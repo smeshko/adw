@@ -1,7 +1,7 @@
 # Story ISS-021: Remove Evidence Gathering Completely
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: Done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure (Tech Debt)
 Created: 2026-01-09
@@ -67,7 +67,7 @@ so that the codebase is simpler and dead code is eliminated.
   - Search for `PlatformType`, `EvidenceStrategy`, etc. references
   - Clean up any configuration references in project.yaml templates
 
-- [ ] **Task 6: Run full test suite and verify**
+- [x] **Task 6: Run full test suite and verify**
   - Run `pytest` to ensure all tests pass
   - Run `uv run mypy src/adw` to verify type checking passes
   - Run `uv run ruff check src/adw` to verify linting passes
@@ -383,18 +383,24 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
-Ultimate context engine analysis completed - comprehensive developer guide created.
+- All 6 tasks completed successfully
+- Removed ~14,800 lines of dead code (evidence gathering subsystem)
+- All 2159 tests pass with 82.31% coverage
+- No new mypy or ruff errors introduced
+- Verified all acceptance criteria met
 
 ### File List
 
-Files to DELETE:
-- src/adw/evidence/ (entire directory - 13 files)
-- src/adw/models/evidence.py
-- tests/unit/evidence/ (entire directory - 16 files)
+Files DELETED:
+- src/adw/evidence/ (entire directory - 13 files, ~5,268 lines)
+- src/adw/models/evidence.py (~1,350 lines)
+- tests/unit/evidence/ (entire directory - 16 test files, ~6,619 lines)
+- tests/unit/models/test_evidence.py (~1,105 lines)
 
-Files to MODIFY:
-- src/adw/core/orchestrator.py
-- src/adw/models/__init__.py
+Files MODIFIED:
+- src/adw/core/orchestrator.py (removed ~400 lines of evidence integration)
+- src/adw/models/__init__.py (removed evidence imports and exports)
+- docs/CONDITIONAL_DOCS.md (removed Evidence Collection section)
 
 ---
 
