@@ -284,8 +284,8 @@ development_status:
   13-6-webhook-signature-verification: ready-for-dev
   13-7-github-webhook-provider: ready-for-dev
   # Tech Debt (moved from Epic 12)
-  refactor-ISS-012-config-driven-artifact-capture: in-review
-  refactor-ISS-013-remove-template-aliases: in-review
+  refactor-ISS-012-config-driven-artifact-capture: ready-for-dev
+  refactor-ISS-013-remove-template-aliases: ready-for-dev
   refactor-ISS-014-centralize-resume-logic: ready-for-dev
   refactor-ISS-017-consolidate-template-logic: done
   # Refactor (from ISS-021) - MAJOR
