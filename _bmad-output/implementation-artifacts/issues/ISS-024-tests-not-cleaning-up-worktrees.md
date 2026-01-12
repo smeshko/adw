@@ -3,14 +3,14 @@
 **ID:** ISS-024
 **Severity:** Major
 **Type:** Bug
-**Status:** reported
+**Status:** story-created
 **Reported:** 2026-01-10
 **Reporter:** Ivo
 
 ## Related
 
 - **Epic:** 10 (Worktree Isolation)
-- **Story:** N/A
+- **Story:** refactor-ISS-024-tests-not-cleaning-up-worktrees.md
 - **Component:** Test Infrastructure / Worktree Management
 
 ## Description
@@ -76,7 +76,7 @@ N/A
 
 ## Resolution
 
-- **Fix Story:** Pending
+- **Fix Story:** refactor-ISS-024-tests-not-cleaning-up-worktrees.md
 - **Fixed In:** Pending
 - **Verified By:** Pending
 - **Verified Date:** Pending
