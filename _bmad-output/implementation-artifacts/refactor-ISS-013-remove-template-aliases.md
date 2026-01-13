@@ -1,7 +1,7 @@
 # Story: Remove Inconsistent Template Aliases
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: review
 Linear Issue: not-configured
 Epic: Tech Debt - PhaseRunner Refactoring
 Created: 2026-01-05
@@ -207,12 +207,16 @@ N/A
 
 - Story created: 2026-01-05
 - Ultimate context engine analysis completed - comprehensive developer guide created
+- Task 1: Removed alias code block from phase_runner.py (lines 371-379, ~9 lines deleted)
+- Task 2: Updated build/prompt.md ({{plan}} -> {{artifacts.plan.plan_output}}) and document/prompt.md ({{implementation}} -> {{artifacts.build.build_output}})
+- Task 3: Updated test_document_phase.py fixture to use explicit artifact path
+- Task 4: Full test suite passed - 2187 tests, 82.53% coverage
+- Note: verify/prompt.md doesn't exist (only validate), validate/prompt.md doesn't use {{output}} alias
 
 ### File List
 
-Files to touch:
-- `src/adw/core/phase_runner.py` (delete ~8 lines)
-- `commands/build/prompt.md`
-- `commands/verify/prompt.md`
-- `commands/document/prompt.md`
-- `commands/validate/prompt.md`
+Files modified:
+- `src/adw/core/phase_runner.py` - Removed alias code block
+- `src/adw/defaults/commands/build/prompt.md` - Updated {{plan}} reference
+- `src/adw/defaults/commands/document/prompt.md` - Updated {{implementation}} reference
+- `tests/integration/test_document_phase.py` - Updated fixture prompt
