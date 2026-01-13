@@ -339,33 +339,7 @@ class TestArtifactPreservation:
 class TestWorktreeLifecycleIntegration:
     """Tests for worktree lifecycle integration."""
 
-    @pytest.fixture
-    def git_repo(self, tmp_path: Path) -> Path:
-        """Create a temporary git repository for testing."""
-        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@test.com"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        # Create initial commit
-        readme = tmp_path / "README.md"
-        readme.write_text("# Test")
-        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-m", "Initial commit"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        return tmp_path
+    # Uses shared git_repo fixture from conftest.py (ISS-024)
 
     def test_create_worktree_calls_ensure_trees_directory(self, git_repo: Path) -> None:
         """create_worktree sets up trees directory with gitignore."""
@@ -443,33 +417,7 @@ class TestWorktreeLifecycleIntegration:
 class TestWorktreeManagerCreation:
     """Tests for WorktreeManager.create_worktree()."""
 
-    @pytest.fixture
-    def git_repo(self, tmp_path: Path) -> Path:
-        """Create a temporary git repository for testing."""
-        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@test.com"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        # Create initial commit
-        readme = tmp_path / "README.md"
-        readme.write_text("# Test")
-        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-m", "Initial commit"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        return tmp_path
+    # Uses shared git_repo fixture from conftest.py (ISS-024)
 
     def test_create_worktree_success(self, git_repo: Path) -> None:
         """Worktree is created at expected path with correct branch."""
@@ -636,33 +584,7 @@ class TestWorktreeManagerCreation:
 class TestWorktreeManagerRemoval:
     """Tests for WorktreeManager.remove_worktree()."""
 
-    @pytest.fixture
-    def git_repo(self, tmp_path: Path) -> Path:
-        """Create a temporary git repository for testing."""
-        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@test.com"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        # Create initial commit
-        readme = tmp_path / "README.md"
-        readme.write_text("# Test")
-        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-m", "Initial commit"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        return tmp_path
+    # Uses shared git_repo fixture from conftest.py (ISS-024)
 
     def test_remove_worktree_success(self, git_repo: Path) -> None:
         """Worktree is removed successfully."""
@@ -866,32 +788,7 @@ class TestWorktreeManagerRemoval:
 class TestWorktreeManagerBranchIntegration:
     """Tests for WorktreeManager branch manager integration."""
 
-    @pytest.fixture
-    def git_repo(self, tmp_path: Path) -> Path:
-        """Create a temporary git repository for testing."""
-        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@test.com"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        readme = tmp_path / "README.md"
-        readme.write_text("# Test")
-        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-m", "Initial commit"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        return tmp_path
+    # Uses shared git_repo fixture from conftest.py (ISS-024)
 
     def test_branch_manager_property_returns_manager(self, git_repo: Path) -> None:
         """branch_manager property returns WorktreeBranchManager instance."""
@@ -944,33 +841,7 @@ class TestWorktreeForceCleanup:
     the worktree contains uncommitted changes.
     """
 
-    @pytest.fixture
-    def git_repo(self, tmp_path: Path) -> Path:
-        """Create a temporary git repository for testing."""
-        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@example.com"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        # Create initial commit
-        readme = tmp_path / "README.md"
-        readme.write_text("# Test")
-        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-m", "Initial commit"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        return tmp_path
+    # Uses shared git_repo fixture from conftest.py (ISS-024)
 
     def test_force_removes_worktree_with_untracked_files(self, git_repo: Path) -> None:
         """force=True removes worktree even with untracked files (ISS-008)."""
