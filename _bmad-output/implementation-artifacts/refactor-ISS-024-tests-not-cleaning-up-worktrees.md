@@ -34,10 +34,10 @@ so that I don't have disk space accumulation, git clutter, or confusing developm
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1:** Create shared `git_repo` fixture with yield-based cleanup in `tests/conftest.py`
-  - [ ] Move from class-local `git_repo` fixtures to shared fixture
-  - [ ] Add cleanup logic after `yield` using `try/finally` pattern
-  - [ ] Cleanup includes: remove worktree directories, delete `adw/*` branches
+- [x] **Task 1:** Create shared `git_repo` fixture with yield-based cleanup in `tests/conftest.py`
+  - [ ] Move from class-local `git_repo` fixtures to shared fixture (see Task 3)
+  - [x] Add cleanup logic after `yield` using `try/finally` pattern
+  - [x] Cleanup includes: remove worktree directories, delete `adw/*` branches
 
 - [ ] **Task 2:** Add session-scoped worktree cleanup finalizer
   - [ ] Create autouse session-scoped fixture `cleanup_orphaned_worktrees`
