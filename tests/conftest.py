@@ -335,56 +335,9 @@ def _cleanup_worktrees(repo_path: Path) -> None:
             )
 
 
-@pytest.fixture(autouse=True, scope="session")
-def cleanup_orphaned_worktrees() -> Generator[None]:
-    """Automatically clean up orphaned worktrees at test session end (ISS-024).
-
-    This session-scoped fixture acts as a safety net to catch any worktrees
-    that weren't cleaned up by individual test fixtures. It scans for
-    directories with ULID-like names (26 characters) in the project's trees/
-    directory and removes them.
-
-    The fixture runs automatically (autouse=True) at the session level,
-    executing its cleanup logic after all tests have completed.
-
-    Note:
-        This fixture targets the actual project's trees/ directory, not
-        temporary test directories. It's designed to catch worktrees that
-        may have been created by tests that incorrectly used the real
-        project root instead of tmp_path.
-
-    Yields:
-        None - cleanup happens after yield when session ends.
-    """
-    yield
-
-    # After all tests complete, scan for orphaned worktrees
-    project_root = Path.cwd()
-    trees_dir = project_root / "trees"
-
-    if not trees_dir.exists():
-        return
-
-    # Find and remove ULID-named directories (26 characters)
-    for item in trees_dir.iterdir():
-        if item.is_dir() and len(item.name) == 26 and item.name.isalnum():
-            # This looks like a ULID - likely an orphaned test worktree
-            # Try to remove via git worktree (ignore failures)
-            subprocess.run(
-                ["git", "worktree", "remove", str(item), "--force"],
-                cwd=project_root,
-                capture_output=True,
-                timeout=30,
-            )
-
-            # If directory still exists, force remove it
-            if item.exists():
-                shutil.rmtree(item, ignore_errors=True)
-
-            # Try to delete the associated branch
-            branch_name = f"adw/{item.name}"
-            subprocess.run(
-                ["git", "branch", "-D", branch_name],
-                cwd=project_root,
-                capture_output=True,
-            )
+# NOTE: Session-scoped cleanup_orphaned_worktrees was removed (ISS-024 review).
+# The git_repo fixture already cleans up worktrees via yield/finally.
+# A session-scoped cleanup that scans the real project's trees/ directory
+# is dangerous because it would delete legitimate developer worktrees
+# (ADW production also creates ULID-named worktrees in trees/).
+# Tests use tmp_path so they don't create orphans in the real project.
