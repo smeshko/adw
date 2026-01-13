@@ -326,6 +326,9 @@ class InterruptionHandler:
 def get_resume_phase(context: RunContext) -> str | None:
     """Determine which phase to resume from.
 
+    .. deprecated:: ISS-014
+        Use :meth:`ResumeManager.get_resume_phase` instead.
+
     Implements NFR8 resume semantics:
     - Completed runs cannot be resumed (returns None)
     - Interrupted runs re-execute from the interrupted phase
@@ -337,25 +340,27 @@ def get_resume_phase(context: RunContext) -> str | None:
     Returns:
         Phase to start from, or None if run is complete or no phases remain.
     """
+    # Inline implementation to avoid circular import
+    # This function is deprecated - prefer ResumeManager.get_resume_phase()
     if context.status == "completed":
         return None
 
     if context.status == "interrupted" and context.interrupted_phase:
-        # Resume from interrupted phase (re-execute from beginning)
         return context.interrupted_phase
 
-    # For running/failed, find next uncompleted phase
     completed = set(context.phase_history)
     for phase in _PHASE_ORDER:
         if phase not in completed:
             return phase
 
-    # All phases completed
     return None
 
 
 def can_resume(context: RunContext) -> bool:
     """Check if a run can be resumed.
+
+    .. deprecated:: ISS-014
+        Use :meth:`ResumeManager.can_resume` instead.
 
     Args:
         context: The run context to check.
@@ -368,6 +373,9 @@ def can_resume(context: RunContext) -> bool:
 
 def prepare_resume(context: RunContext) -> RunContext:
     """Prepare a context for resumption.
+
+    .. deprecated:: ISS-014
+        Use :meth:`ResumeManager.prepare_for_resume` instead.
 
     Updates the context to be ready for continued execution:
     - Sets status to "running"
@@ -405,6 +413,10 @@ def prepare_resume(context: RunContext) -> RunContext:
 def get_run_status(context: RunContext) -> dict[str, object]:
     """Get a summary of run status for display.
 
+    .. deprecated:: ISS-014
+        Use :meth:`ResumeManager.get_resume_status` instead, which returns
+        a :class:`ResumeStatus` dataclass.
+
     Returns a dictionary with status information suitable for
     command-line display or API responses.
 
@@ -426,7 +438,7 @@ def get_run_status(context: RunContext) -> dict[str, object]:
         "status": context.status,
         "current_phase": context.current_phase,
         "interrupted_phase": context.interrupted_phase,
-        "completed_phases": context.phase_history,
+        "completed_phases": list(context.phase_history),
         "can_resume": can_resume(context),
         "resume_phase": get_resume_phase(context),
     }
