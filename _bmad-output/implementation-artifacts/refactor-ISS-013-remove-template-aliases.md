@@ -29,8 +29,8 @@ so that I can understand exactly what data I'm referencing without ambiguity.
 ## Tasks / Subtasks
 
 ### Task 1: Remove Alias Code Block
-- [ ] Delete lines 335-343 in `phase_runner.py`
-- [ ] Verify no other code depends on these aliases
+- [x] Delete lines 335-343 in `phase_runner.py`
+- [x] Verify no other code depends on these aliases
 
 ### Task 2: Update Default Prompts
 - [ ] `commands/build/prompt.md`: `{{plan}}` -> `{{artifacts.plan.plan_output}}`
