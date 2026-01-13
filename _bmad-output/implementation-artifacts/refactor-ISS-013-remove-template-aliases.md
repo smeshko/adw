@@ -39,10 +39,10 @@ so that I can understand exactly what data I'm referencing without ambiguity.
 - [x] `commands/validate/prompt.md`: N/A - doesn't use `{{output}}` alias
 
 ### Task 3: Update Tests
-- [ ] Search for `variables["plan"]` assertions
-- [ ] Search for `variables["implementation"]` assertions
-- [ ] Search for `variables["output"]` assertions
-- [ ] Update any affected test expectations
+- [x] Search for `variables["plan"]` assertions - none found
+- [x] Search for `variables["implementation"]` assertions - none found
+- [x] Search for `variables["output"]` assertions - none found
+- [x] Update any affected test expectations - updated test_document_phase.py fixture
 
 ### Task 4: Verification
 - [ ] Run full test suite
