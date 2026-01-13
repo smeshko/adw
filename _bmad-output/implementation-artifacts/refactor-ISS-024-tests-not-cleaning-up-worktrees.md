@@ -44,13 +44,14 @@ so that I don't have disk space accumulation, git clutter, or confusing developm
   - [x] On session end, scan for any ULID-named directories in `trees/`
   - [x] Force-remove any remaining worktrees
 
-- [ ] **Task 3:** Update worktree test fixtures to use shared fixture
-  - [ ] Update `TestWorktreeManagerCreation` in `test_manager.py`
-  - [ ] Update `TestWorktreeManagerRemoval` in `test_manager.py`
-  - [ ] Update `TestWorktreeManagerBranchIntegration` in `test_manager.py`
-  - [ ] Update `TestWorktreeForceCleanup` in `test_manager.py`
-  - [ ] Update `TestWorktreeCleanupIntegration` in `test_worktree_cleanup_integration.py`
-  - [ ] Update `TestConcurrentRunManager` in `test_concurrent.py`
+- [x] **Task 3:** Update worktree test fixtures to use shared fixture
+  - [x] Update `TestWorktreeManagerCreation` in `test_manager.py`
+  - [x] Update `TestWorktreeManagerRemoval` in `test_manager.py`
+  - [x] Update `TestWorktreeManagerBranchIntegration` in `test_manager.py`
+  - [x] Update `TestWorktreeForceCleanup` in `test_manager.py`
+  - [x] Update `TestWorktreeCleanupIntegration` in `test_worktree_cleanup_integration.py`
+  - [x] Update `TestWorktreeLifecycleIntegration` in `test_manager.py`
+  - Note: `TestConcurrentRunManager` uses tmp_path directly, not git_repo (no changes needed)
 
 - [ ] **Task 4:** Add verification assertions to tests
   - [ ] After worktree removal, assert directory doesn't exist
