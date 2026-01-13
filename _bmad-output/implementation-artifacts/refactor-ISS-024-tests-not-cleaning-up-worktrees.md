@@ -39,10 +39,10 @@ so that I don't have disk space accumulation, git clutter, or confusing developm
   - [x] Add cleanup logic after `yield` using `try/finally` pattern
   - [x] Cleanup includes: remove worktree directories, delete `adw/*` branches
 
-- [ ] **Task 2:** Add session-scoped worktree cleanup finalizer
-  - [ ] Create autouse session-scoped fixture `cleanup_orphaned_worktrees`
-  - [ ] On session end, scan for any ULID-named directories in `trees/`
-  - [ ] Force-remove any remaining worktrees
+- [x] **Task 2:** Add session-scoped worktree cleanup finalizer
+  - [x] Create autouse session-scoped fixture `cleanup_orphaned_worktrees`
+  - [x] On session end, scan for any ULID-named directories in `trees/`
+  - [x] Force-remove any remaining worktrees
 
 - [ ] **Task 3:** Update worktree test fixtures to use shared fixture
   - [ ] Update `TestWorktreeManagerCreation` in `test_manager.py`
