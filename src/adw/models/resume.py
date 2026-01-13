@@ -30,12 +30,16 @@ class ResumeInfo:
         resume_phase: Phase to resume from.
         is_valid: Whether this resume info is valid for execution.
         validation_error: Error message if not valid, None otherwise.
+        error_code: ADW error code if not valid (e.g., "RUN_COMPLETED").
+        error_suggestion: Actionable suggestion if not valid.
     """
 
     context: RunContext
     resume_phase: str
     is_valid: bool = True
     validation_error: str | None = None
+    error_code: str | None = None
+    error_suggestion: str | None = None
 
     @property
     def run_id(self) -> str:

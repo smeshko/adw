@@ -332,6 +332,33 @@ class TestPrepareForResume:
             resume_manager.prepare_for_resume(sample_context, from_phase="bogus")
         assert exc_info.value.code == "INVALID_PHASE"
 
+    def test_from_phase_with_later_phases_completed(
+        self, resume_manager: ResumeManager, sample_context: RunContext
+    ) -> None:
+        """From_phase override works when later phases are already completed.
+
+        When resuming from an earlier phase, the run should still be able
+        to re-execute from that phase even if it was previously completed.
+        """
+        # Context with plan and build completed
+        context_with_history = sample_context.model_copy(
+            update={
+                "phase_history": ["plan", "build"],
+                "current_phase": "validate",
+                "status": "failed",
+            }
+        )
+
+        # Resume from "plan" even though it's already in phase_history
+        prepared = resume_manager.prepare_for_resume(
+            context_with_history, from_phase="plan"
+        )
+
+        # Should succeed - status set to running
+        assert prepared.status == "running"
+        # Phase history is preserved (orchestrator loop uses index, not history)
+        assert "plan" in prepared.phase_history
+
 
 class TestGetResumeStatus:
     """Tests for get_resume_status method."""

@@ -75,6 +75,21 @@ class TestResumeInfo:
         assert info.is_valid is False
         assert info.validation_error == "Test error"
 
+    def test_invalid_with_error_metadata(self, sample_context: RunContext) -> None:
+        """Invalid info preserves ADW error metadata for consistent UX."""
+        info = ResumeInfo(
+            context=sample_context,
+            resume_phase="build",
+            is_valid=False,
+            validation_error="Run already completed",
+            error_code="RUN_COMPLETED",
+            error_suggestion="Start a new run with 'adw run'",
+        )
+
+        assert info.is_valid is False
+        assert info.error_code == "RUN_COMPLETED"
+        assert info.error_suggestion == "Start a new run with 'adw run'"
+
 
 class TestResumeStatus:
     """Tests for ResumeStatus dataclass."""

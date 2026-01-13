@@ -173,6 +173,8 @@ class ResumeManager:
                 resume_phase=resume_phase or context.current_phase,
                 is_valid=False,
                 validation_error=e.message,
+                error_code=e.code,
+                error_suggestion=e.suggestion,
             )
 
         return ResumeInfo(
