@@ -14,6 +14,7 @@ This package contains all Pydantic models used throughout ADW:
 - pr: PRDescription
 - validation: ValidationResult
 - task: TaskInfo
+- resume: ResumeInfo, ResumeStatus
 """
 
 from adw.models.artifacts import DiffStats
@@ -56,6 +57,7 @@ from adw.models.phase import (
     PhaseStatus,
 )
 from adw.models.pr import PRDescription
+from adw.models.resume import ResumeInfo, ResumeStatus
 from adw.models.security import (
     BlockedPattern,
     SecurityConfig,
@@ -114,6 +116,9 @@ __all__: list[str] = [
     "PhaseStatus",
     # PR models
     "PRDescription",
+    # Resume models
+    "ResumeInfo",
+    "ResumeStatus",
     # Security models
     "BlockedPattern",
     "SecurityConfig",
