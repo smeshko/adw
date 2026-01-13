@@ -1,8 +1,10 @@
 # Validation Phase
 
+Test and review the implementation of the plan.
+
 ## Context
 
-Feature: {{feature_description}}
+Run Context: {{context}}
 Plan: {{artifacts.plan.plan_output}}
 Diff: {{artifacts.build.diff}}
 Project Config: {{project_config}}
@@ -11,7 +13,6 @@ Provided files: {{inputs.*}}
 ## Instructions
 
 ### Workflow Engine
-
 {{shared:workflow.xml}}
 
 ### Workflow Config
@@ -23,9 +24,8 @@ Provided files: {{inputs.*}}
 IT IS CRITICAL THAT YOU FOLLOW THESE STEPS - while staying in character as the current agent persona you may have loaded:
 
 <steps CRITICAL="TRUE">
-1. Always LOAD the FULL @{{shared:workflow.xml}}
-2. READ its entire contents - this is the CORE OS for EXECUTING the specific workflow-config @{{include:code-review-loop/workflow.yaml}}
-3. Pass the yaml path {{include:code-review-loop/workflow.yaml}} as 'workflow-config' parameter to the workflow.xml instructions
-4. Follow workflow.xml instructions EXACTLY as written to process and follow the specific workflow config and its instructions
-5. Save outputs after EACH section when generating any documents from templates
+1. The workflow execution engine (workflow.xml) is included above
+2. The workflow config (workflow.yaml) is included above
+3. Follow workflow.xml instructions EXACTLY as written to process and follow the specific workflow config and its instructions
+4. Save outputs after EACH section when generating any documents from templates
 </steps>

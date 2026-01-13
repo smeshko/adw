@@ -4,11 +4,10 @@ Implement the feature according to the plan.
 
 ## Context
 
-{{context}}
-
-## Plan
-
-{{artifacts.plan.plan_output}}
+Run Context: {{context}}
+Plan: {{artifacts.plan.plan_output}}
+Project Config: {{project_config}}
+Provided files: {{inputs.*}}
 
 ## Instructions
 
