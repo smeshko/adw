@@ -8,7 +8,7 @@ Generate a structured Pull Request description for the implemented feature.
 
 ## Implementation Summary
 
-{{implementation}}
+{{artifacts.build.build_output}}
 
 ## Git Changes
 

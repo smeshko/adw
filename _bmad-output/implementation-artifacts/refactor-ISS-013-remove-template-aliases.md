@@ -33,10 +33,10 @@ so that I can understand exactly what data I'm referencing without ambiguity.
 - [x] Verify no other code depends on these aliases
 
 ### Task 2: Update Default Prompts
-- [ ] `commands/build/prompt.md`: `{{plan}}` -> `{{artifacts.plan.plan_output}}`
-- [ ] `commands/verify/prompt.md`: `{{implementation}}` -> `{{artifacts.build.build_output}}`
-- [ ] `commands/document/prompt.md`: `{{implementation}}` -> `{{artifacts.build.build_output}}`
-- [ ] `commands/validate/prompt.md`: `{{output}}` -> `{{artifacts.verify.verify_output}}`
+- [x] `commands/build/prompt.md`: `{{plan}}` -> `{{artifacts.plan.plan_output}}`
+- [x] `commands/verify/prompt.md`: N/A - verify folder doesn't exist (only validate)
+- [x] `commands/document/prompt.md`: `{{implementation}}` -> `{{artifacts.build.build_output}}`
+- [x] `commands/validate/prompt.md`: N/A - doesn't use `{{output}}` alias
 
 ### Task 3: Update Tests
 - [ ] Search for `variables["plan"]` assertions
