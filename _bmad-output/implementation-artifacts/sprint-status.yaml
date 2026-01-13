@@ -57,7 +57,7 @@ issues:
   ISS-011-adw-run-should-auto-create-pr: fixed
   ISS-012-hardcoded-artifact-capture-per-phase: story-created  # Moved to Epic 13
   ISS-013-phaserunner-template-aliases-inconsistent: fixed  # Moved to Epic 13
-  ISS-014-resume-logic-scattered-across-codebase: story-created  # Moved to Epic 13
+  ISS-014-resume-logic-scattered-across-codebase: done  # Moved to Epic 13
   ISS-015-no-mechanism-to-inject-phase-specific-input-context: fixed
   ISS-016-per-phase-config-yaml-not-implemented: fixed
   ISS-017-template-logic-scattered-between-modules: fixed  # Moved to Epic 13

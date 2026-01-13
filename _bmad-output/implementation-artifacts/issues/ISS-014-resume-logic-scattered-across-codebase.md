@@ -3,7 +3,7 @@
 **ID:** ISS-014
 **Severity:** Minor
 **Type:** UX Issue
-**Status:** reported
+**Status:** done
 **Reported:** 2026-01-05
 **Reporter:** Ivo
 

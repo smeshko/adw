@@ -3,9 +3,10 @@
 ## Context
 
 Feature: {{feature_description}}
+Plan: {{artifacts.plan.plan_output}}
 Diff: {{git_diff}}
 Project Config: {{project_config}}
-Provided file: {{inputs.*}}
+Provided files: {{inputs.*}}
 
 ## Instructions
 
