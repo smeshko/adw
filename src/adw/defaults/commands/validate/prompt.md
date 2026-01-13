@@ -4,7 +4,7 @@
 
 Feature: {{feature_description}}
 Plan: {{artifacts.plan.plan_output}}
-Diff: {{git_diff}}
+Diff: {{artifacts.build.diff}}
 Project Config: {{project_config}}
 Provided files: {{inputs.*}}
 

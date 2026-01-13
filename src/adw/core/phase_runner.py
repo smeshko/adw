@@ -366,8 +366,6 @@ class PhaseRunner:
             ),
             # Story 12.5: task context for templates ({{task.*}} variables)
             "task": build_task_context(context.task_info),
-            # Convenience alias for git diff from build phase artifacts
-            "git_diff": artifacts_map.get("build", {}).get("diff", ""),
             # Project configuration for templates
             "project_config": (
                 self.project_config.model_dump() if self.project_config else {}
