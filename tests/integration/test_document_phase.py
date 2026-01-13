@@ -41,7 +41,7 @@ Generate a structured Pull Request description.
 
 ## Implementation Summary
 
-{{implementation}}
+{{artifacts.build.build_output}}
 
 ## Git Changes
 
