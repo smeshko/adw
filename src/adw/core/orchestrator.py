@@ -22,7 +22,9 @@ from adw.core.constants import PHASE_SEQUENCE
 from adw.core.context_manager import ContextManager
 from adw.core.index_manager import IndexManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
+from adw.core.resume_manager import ResumeManager
 from adw.core.run_directory import RunDirectoryManager
+from adw.core.run_lookup import RunLookup
 from adw.core.snapshot_manager import SnapshotManager
 from adw.exceptions import ADWError, ConfigError
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
@@ -124,6 +126,7 @@ class Orchestrator:
         task_manager_config: TaskManagerConfig | None = None,
         label_manager: "LabelManager | None" = None,
         status_sync_service: "StatusSyncService | None" = None,
+        resume_manager: ResumeManager | None = None,
     ) -> None:
         """Initialize the Orchestrator.
 
@@ -145,6 +148,8 @@ class Orchestrator:
             status_sync_service: Service for syncing status with task managers
                 (optional, Story 12.3). When provided, sync calls are made at
                 phase transitions.
+            resume_manager: Manager for resume operations (optional, Story ISS-014).
+                When provided, delegates resume validation and phase determination.
         """
         self.runs_dir = runs_dir
         # Derive project path from runs_dir (runs_dir is typically .adw/runs)
@@ -173,6 +178,10 @@ class Orchestrator:
         # Status sync service for task manager integration (Story 12.3)
         self._status_sync_service = status_sync_service
 
+        # Resume manager for centralized resume operations (Story ISS-014)
+        # Lazy initialization: create on first use if not provided
+        self._resume_manager = resume_manager
+
         # Worktree isolation (Story 10.1)
         self.worktree_config = worktree_config or WorktreeConfig()
         self._worktree_manager: WorktreeManager | None = None
@@ -188,6 +197,21 @@ class Orchestrator:
                 max_concurrent=self.worktree_config.max_concurrent,
                 base_dir=self.worktree_config.base_dir,
             )
+
+    @property
+    def resume_manager(self) -> ResumeManager:
+        """Get the resume manager, creating it lazily if needed.
+
+        Returns:
+            ResumeManager instance for resume operations.
+        """
+        if self._resume_manager is None:
+            self._resume_manager = ResumeManager(
+                runs_dir=self.runs_dir,
+                run_lookup=RunLookup(self.runs_dir),
+                context_manager=self.context_manager,
+            )
+        return self._resume_manager
 
     def get_next_phase(self, current_phase: str) -> str | None:
         """Get the next phase in the sequence.
@@ -874,28 +898,17 @@ class Orchestrator:
         # Load existing context
         context = self.context_manager.load(run_id)
 
-        # Validate run can be resumed
-        if context.status == "completed":
-            raise ConfigError(
-                code="RUN_COMPLETED",
-                message="Run already completed",
-                suggestion="Start a new run with 'adw run'",
-                recoverable=False,
-            )
+        # Use ResumeManager for validation and phase determination (Story ISS-014)
+        self.resume_manager.validate_resumable(context, from_phase=from_phase)
 
-        # Determine resume phase
-        resume_phase = from_phase or context.current_phase
-        if resume_phase not in PHASE_SEQUENCE:
-            valid_phases = ", ".join(PHASE_SEQUENCE)
-            raise ConfigError(
-                code="INVALID_PHASE",
-                message=f"Unknown phase: {resume_phase}",
-                suggestion=f"Valid phases: {valid_phases}",
-                recoverable=False,
-            )
+        # Determine resume phase using ResumeManager
+        resume_phase = from_phase or self.resume_manager.get_resume_phase(context)
+        if resume_phase is None:
+            # All phases completed but status not "completed" - use current
+            resume_phase = context.current_phase
 
-        # Update status to running
-        context = context.model_copy(update={"status": "running"})
+        # Prepare context for resume (clears interrupted state, sets running)
+        context = self.resume_manager.prepare_for_resume(context, from_phase=from_phase)
         self.context_manager.save(context)
 
         logger.info(

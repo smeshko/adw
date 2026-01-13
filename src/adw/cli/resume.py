@@ -18,13 +18,27 @@ from rich.panel import Panel
 from adw.cli.bootstrap import create_log_manager, create_orchestrator, get_runs_dir
 from adw.cli.run_display import RunDisplay
 from adw.cli.validators import validate_phase
+from adw.core import ContextManager, ResumeManager
 from adw.core.run_lookup import RunLookup
-from adw.exceptions import ADWError, ConfigError, StateError
-from adw.models import RunContext
+from adw.exceptions import ADWError
 from adw.models.logging import Verbosity
 
 console = Console()
 logger = logging.getLogger(__name__)
+
+
+def _create_resume_manager() -> ResumeManager:
+    """Create a ResumeManager with required dependencies.
+
+    Returns:
+        Configured ResumeManager instance.
+    """
+    runs_dir = get_runs_dir()
+    return ResumeManager(
+        runs_dir=runs_dir,
+        run_lookup=RunLookup(runs_dir),
+        context_manager=ContextManager(runs_dir),
+    )
 
 
 def resume(
@@ -59,8 +73,14 @@ def resume(
         logging.basicConfig(level=logging.DEBUG, format="%(name)s - %(message)s")
         logger.debug("Verbose mode enabled")
 
+    # Use ResumeManager to find and validate run
+    resume_manager = _create_resume_manager()
+
     try:
-        context = _find_run_to_resume(run_id)
+        resume_info = resume_manager.find_run_to_resume(
+            run_id=run_id,
+            from_phase=from_phase,
+        )
     except ADWError as e:
         console.print(
             Panel(
@@ -71,8 +91,25 @@ def resume(
         )
         raise typer.Exit(code=1) from None
 
-    # Determine resume phase
-    resume_phase = from_phase or context.current_phase
+    # Check if resume info is valid
+    if not resume_info.is_valid:
+        # Use error metadata for consistent ADW error UX
+        error_title = f"[red]{resume_info.error_code}[/]" if resume_info.error_code else "[red]Cannot Resume[/]"
+        error_body = f"[red]Error:[/] {resume_info.validation_error}"
+        if resume_info.error_suggestion:
+            error_body += f"\n\n[dim]Suggestion:[/] {resume_info.error_suggestion}"
+        console.print(
+            Panel(
+                error_body,
+                title=error_title,
+                border_style="red",
+            )
+        )
+        raise typer.Exit(code=1) from None
+
+    context = resume_info.context
+    resume_phase = resume_info.resume_phase
+
     logger.debug(
         "Resume phase: %s (from_phase=%s, context.current_phase=%s)",
         resume_phase,
@@ -85,7 +122,7 @@ def resume(
     run_display.show_resume_header(
         run_id=context.run_id,
         feature=context.feature_description,
-        completed_phases=context.phase_history,
+        completed_phases=list(context.phase_history),
         resume_phase=resume_phase,
     )
 
@@ -108,65 +145,3 @@ def resume(
             )
         )
         raise typer.Exit(code=1) from None
-
-
-def _find_run_to_resume(run_id: str | None) -> RunContext:
-    """Find the run to resume.
-
-    Args:
-        run_id: Specific run ID to resume, or None for most recent incomplete.
-
-    Returns:
-        RunContext of the run to resume.
-
-    Raises:
-        ConfigError: If run not found or already completed.
-        StateError: If run context is corrupted.
-        typer.Exit: If no incomplete runs found (user-friendly exit).
-    """
-    runs_dir = get_runs_dir()
-    lookup = RunLookup(runs_dir)
-
-    if run_id:
-        context = lookup.find_by_id(run_id)
-        if not context:
-            # Check if run directory exists but context is corrupted (AC4)
-            run_path = runs_dir / run_id
-            if run_path.exists():
-                # Directory exists but context couldn't be loaded - corrupted state
-                raise StateError(
-                    code="STATE_CORRUPTED",
-                    message=f"Run {run_id} has corrupted state",
-                    suggestion=(
-                        f"Check snapshots in .adw/runs/{run_id}/snapshots/ "
-                        "for recovery options"
-                    ),
-                    recoverable=False,
-                )
-            raise ConfigError(
-                code="RUN_NOT_FOUND",
-                message=f"Run {run_id} not found",
-                suggestion="Use 'adw list' to see available runs",
-                recoverable=False,
-            )
-    else:
-        logger.debug("No run_id provided, finding most recent incomplete run")
-        context = lookup.find_most_recent_incomplete()
-        if not context:
-            console.print("[yellow]No incomplete runs found[/]")
-            console.print("Use 'adw run \"feature\"' to start a new run")
-            raise typer.Exit()
-        logger.debug(
-            "Found incomplete run: %s (status=%s)", context.run_id, context.status
-        )
-
-    # Validate resumable
-    if context.status == "completed":
-        raise ConfigError(
-            code="RUN_COMPLETED",
-            message="Run already completed",
-            suggestion="Start a new run with 'adw run'",
-            recoverable=False,
-        )
-
-    return context

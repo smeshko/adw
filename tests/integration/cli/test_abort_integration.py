@@ -109,8 +109,8 @@ class TestAbortIntegration:
         running_context: RunContext,
     ) -> None:
         """Test that aborted runs can be resumed."""
-        from adw.core import InterruptionHandler
-        from adw.core.interruption import can_resume, prepare_resume
+        from adw.core import InterruptionHandler, ResumeManager
+        from adw.core.run_lookup import RunLookup
 
         context_manager = ContextManager(runs_dir)
         snapshot_manager = SnapshotManager(runs_dir)
@@ -120,15 +120,21 @@ class TestAbortIntegration:
             snapshot_manager=snapshot_manager,
         )
 
+        resume_manager = ResumeManager(
+            runs_dir=runs_dir,
+            run_lookup=RunLookup(runs_dir),
+            context_manager=context_manager,
+        )
+
         # Abort the run
         aborted = handler.abort_gracefully(running_context)
         assert aborted.status == "aborted"
 
         # Verify can resume
-        assert can_resume(aborted) is True
+        assert resume_manager.can_resume(aborted) is True
 
         # Prepare for resume
-        resumed = prepare_resume(aborted)
+        resumed = resume_manager.prepare_for_resume(aborted)
         assert resumed.status == "running"
         assert resumed.phase_history == running_context.phase_history
 

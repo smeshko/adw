@@ -314,11 +314,7 @@ class TestResumeIntegration:
         This validates that the interruption infrastructure supports resume,
         even though the Orchestrator.run() doesn't have a resume parameter yet.
         """
-        from adw.core.interruption import (
-            ShutdownRequested,
-            can_resume,
-            get_resume_phase,
-        )
+        from adw.core.interruption import ShutdownRequested
 
         # Simulate interruption during build phase
         call_count = 0
@@ -371,10 +367,10 @@ class TestResumeIntegration:
         if ctx_data.get("status") == "interrupted":
             assert ctx_data.get("interrupted_phase") == "build"
 
-            # Check resume functions work
+            # Check resume functions work via ResumeManager
             reloaded = context_manager.load(ctx_data["run_id"])
-            assert can_resume(reloaded)
-            assert get_resume_phase(reloaded) == "build"
+            assert orchestrator.resume_manager.can_resume(reloaded)
+            assert orchestrator.resume_manager.get_resume_phase(reloaded) == "build"
 
     def test_completed_run_cannot_resume(
         self,
@@ -383,14 +379,11 @@ class TestResumeIntegration:
         context_manager: ContextManager,
     ) -> None:
         """Test that completed runs correctly report they cannot be resumed."""
-        from adw.core.interruption import can_resume, get_resume_phase
-
-
         context = orchestrator.run("Test feature")
 
         # Reload from disk
         reloaded = context_manager.load(context.run_id)
 
-        # Completed runs cannot be resumed
-        assert not can_resume(reloaded)
-        assert get_resume_phase(reloaded) is None
+        # Completed runs cannot be resumed (via ResumeManager)
+        assert not orchestrator.resume_manager.can_resume(reloaded)
+        assert orchestrator.resume_manager.get_resume_phase(reloaded) is None
