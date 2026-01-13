@@ -20,33 +20,7 @@ class TestWorktreeCleanupIntegration:
     untracked files (simulating LLM-generated content).
     """
 
-    @pytest.fixture
-    def git_repo(self, tmp_path: Path) -> Path:
-        """Create a temporary git repository for testing."""
-        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@example.com"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test User"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        # Create initial commit
-        readme = tmp_path / "README.md"
-        readme.write_text("# Test Project")
-        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-m", "Initial commit"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        return tmp_path
+    # Uses shared git_repo fixture from conftest.py (ISS-024)
 
     def test_successful_run_cleans_up_worktree_with_llm_generated_files(
         self, git_repo: Path

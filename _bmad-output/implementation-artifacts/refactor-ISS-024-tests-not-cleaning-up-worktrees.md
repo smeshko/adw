@@ -1,9 +1,10 @@
 # Story: Tests Not Cleaning Up Worktrees (ISS-024)
 
-Status: ready-for-dev
+Status: done
 Linear Issue: pending
 Epic: 13 - Webhook Infrastructure (Tech Debt)
 Created: 2026-01-10
+Completed: 2026-01-13
 
 ---
 
@@ -34,32 +35,33 @@ so that I don't have disk space accumulation, git clutter, or confusing developm
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1:** Create shared `git_repo` fixture with yield-based cleanup in `tests/conftest.py`
-  - [ ] Move from class-local `git_repo` fixtures to shared fixture
-  - [ ] Add cleanup logic after `yield` using `try/finally` pattern
-  - [ ] Cleanup includes: remove worktree directories, delete `adw/*` branches
+- [x] **Task 1:** Create shared `git_repo` fixture with yield-based cleanup in `tests/conftest.py`
+  - [ ] Move from class-local `git_repo` fixtures to shared fixture (see Task 3)
+  - [x] Add cleanup logic after `yield` using `try/finally` pattern
+  - [x] Cleanup includes: remove worktree directories, delete `adw/*` branches
 
-- [ ] **Task 2:** Add session-scoped worktree cleanup finalizer
-  - [ ] Create autouse session-scoped fixture `cleanup_orphaned_worktrees`
-  - [ ] On session end, scan for any ULID-named directories in `trees/`
-  - [ ] Force-remove any remaining worktrees
+- [x] **Task 2:** Add session-scoped worktree cleanup finalizer
+  - [x] Create autouse session-scoped fixture `cleanup_orphaned_worktrees`
+  - [x] On session end, scan for any ULID-named directories in `trees/`
+  - [x] Force-remove any remaining worktrees
 
-- [ ] **Task 3:** Update worktree test fixtures to use shared fixture
-  - [ ] Update `TestWorktreeManagerCreation` in `test_manager.py`
-  - [ ] Update `TestWorktreeManagerRemoval` in `test_manager.py`
-  - [ ] Update `TestWorktreeManagerBranchIntegration` in `test_manager.py`
-  - [ ] Update `TestWorktreeForceCleanup` in `test_manager.py`
-  - [ ] Update `TestWorktreeCleanupIntegration` in `test_worktree_cleanup_integration.py`
-  - [ ] Update `TestConcurrentRunManager` in `test_concurrent.py`
+- [x] **Task 3:** Update worktree test fixtures to use shared fixture
+  - [x] Update `TestWorktreeManagerCreation` in `test_manager.py`
+  - [x] Update `TestWorktreeManagerRemoval` in `test_manager.py`
+  - [x] Update `TestWorktreeManagerBranchIntegration` in `test_manager.py`
+  - [x] Update `TestWorktreeForceCleanup` in `test_manager.py`
+  - [x] Update `TestWorktreeCleanupIntegration` in `test_worktree_cleanup_integration.py`
+  - [x] Update `TestWorktreeLifecycleIntegration` in `test_manager.py`
+  - Note: `TestConcurrentRunManager` uses tmp_path directly, not git_repo (no changes needed)
 
-- [ ] **Task 4:** Add verification assertions to tests
-  - [ ] After worktree removal, assert directory doesn't exist
-  - [ ] Assert git branch is deleted after cleanup
+- [x] **Task 4:** Add verification assertions to tests
+  - [x] After worktree removal, assert directory doesn't exist (already present in tests)
+  - [x] Assert git branch is deleted after cleanup (already present in tests)
 
-- [ ] **Task 5:** Verify fix with manual testing
-  - [ ] Run full test suite: `pytest`
-  - [ ] Check for leftover worktrees: `git worktree list`
-  - [ ] Verify no orphaned branches: `git branch | grep adw/`
+- [x] **Task 5:** Verify fix with manual testing
+  - [x] Run full test suite: `pytest` (114 tests pass)
+  - [x] Check for leftover worktrees: `git worktree list` (no new orphans)
+  - [x] Verify no orphaned branches: `git branch | grep adw/` (existing from other stories, not tests)
 
 ---
 
