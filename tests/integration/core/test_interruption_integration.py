@@ -14,7 +14,9 @@ from pathlib import Path
 import pytest
 
 from adw.core.context_manager import ContextManager
-from adw.core.interruption import InterruptionHandler, get_resume_phase, prepare_resume
+from adw.core.interruption import InterruptionHandler
+from adw.core.resume_manager import ResumeManager
+from adw.core.run_lookup import RunLookup
 from adw.core.snapshot_manager import SnapshotManager
 from adw.models import RunContext
 
@@ -122,11 +124,16 @@ class TestInterruptionHandlerIntegration:
         assert loaded.status == "interrupted"
         assert loaded.interrupted_phase == "build"
 
-        # 4. Prepare for resume
-        resume_phase = get_resume_phase(loaded)
+        # 4. Prepare for resume using ResumeManager
+        resume_manager = ResumeManager(
+            runs_dir=runs_dir,
+            run_lookup=RunLookup(runs_dir),
+            context_manager=context_manager,
+        )
+        resume_phase = resume_manager.get_resume_phase(loaded)
         assert resume_phase == "build"
 
-        resumed = prepare_resume(loaded)
+        resumed = resume_manager.prepare_for_resume(loaded)
         assert resumed.status == "running"
         assert resumed.interrupted_phase is None
         assert resumed.phase_history == ["plan"]
