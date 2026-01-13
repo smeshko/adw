@@ -1,7 +1,7 @@
 # Story: Remove Inconsistent Template Aliases
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: review
 Linear Issue: not-configured
 Epic: Tech Debt - PhaseRunner Refactoring
 Created: 2026-01-05
@@ -17,36 +17,36 @@ so that I can understand exactly what data I'm referencing without ambiguity.
 
 ## Acceptance Criteria
 
-- [ ] Remove hardcoded alias block from `phase_runner.py:335-343`
-- [ ] Update `commands/build/prompt.md` to use explicit path
-- [ ] Update `commands/verify/prompt.md` to use explicit path
-- [ ] Update `commands/document/prompt.md` to use explicit path
-- [ ] Update `commands/validate/prompt.md` to use explicit path
-- [ ] Update any tests that rely on alias variables
-- [ ] All existing tests pass
-- [ ] Documentation updated if applicable
+- [x] Remove hardcoded alias block from `phase_runner.py:335-343`
+- [x] Update `commands/build/prompt.md` to use explicit path
+- [x] Update `commands/verify/prompt.md` to use explicit path (N/A - doesn't exist)
+- [x] Update `commands/document/prompt.md` to use explicit path
+- [x] Update `commands/validate/prompt.md` to use explicit path (N/A - doesn't use alias)
+- [x] Update any tests that rely on alias variables
+- [x] All existing tests pass
+- [x] Documentation updated if applicable (N/A - removed code, not added)
 
 ## Tasks / Subtasks
 
 ### Task 1: Remove Alias Code Block
-- [ ] Delete lines 335-343 in `phase_runner.py`
-- [ ] Verify no other code depends on these aliases
+- [x] Delete lines 335-343 in `phase_runner.py`
+- [x] Verify no other code depends on these aliases
 
 ### Task 2: Update Default Prompts
-- [ ] `commands/build/prompt.md`: `{{plan}}` -> `{{artifacts.plan.plan_output}}`
-- [ ] `commands/verify/prompt.md`: `{{implementation}}` -> `{{artifacts.build.build_output}}`
-- [ ] `commands/document/prompt.md`: `{{implementation}}` -> `{{artifacts.build.build_output}}`
-- [ ] `commands/validate/prompt.md`: `{{output}}` -> `{{artifacts.verify.verify_output}}`
+- [x] `commands/build/prompt.md`: `{{plan}}` -> `{{artifacts.plan.plan_output}}`
+- [x] `commands/verify/prompt.md`: N/A - verify folder doesn't exist (only validate)
+- [x] `commands/document/prompt.md`: `{{implementation}}` -> `{{artifacts.build.build_output}}`
+- [x] `commands/validate/prompt.md`: N/A - doesn't use `{{output}}` alias
 
 ### Task 3: Update Tests
-- [ ] Search for `variables["plan"]` assertions
-- [ ] Search for `variables["implementation"]` assertions
-- [ ] Search for `variables["output"]` assertions
-- [ ] Update any affected test expectations
+- [x] Search for `variables["plan"]` assertions - none found
+- [x] Search for `variables["implementation"]` assertions - none found
+- [x] Search for `variables["output"]` assertions - none found
+- [x] Update any affected test expectations - updated test_document_phase.py fixture
 
 ### Task 4: Verification
-- [ ] Run full test suite
-- [ ] Manual verification with sample run
+- [x] Run full test suite - 2187 passed, 7 skipped (82.53% coverage)
+- [x] Manual verification with sample run - N/A (pure refactoring, tests verify behavior)
 
 ---
 
@@ -207,12 +207,16 @@ N/A
 
 - Story created: 2026-01-05
 - Ultimate context engine analysis completed - comprehensive developer guide created
+- Task 1: Removed alias code block from phase_runner.py (lines 371-379, ~9 lines deleted)
+- Task 2: Updated build/prompt.md ({{plan}} -> {{artifacts.plan.plan_output}}) and document/prompt.md ({{implementation}} -> {{artifacts.build.build_output}})
+- Task 3: Updated test_document_phase.py fixture to use explicit artifact path
+- Task 4: Full test suite passed - 2187 tests, 82.53% coverage
+- Note: verify/prompt.md doesn't exist (only validate), validate/prompt.md doesn't use {{output}} alias
 
 ### File List
 
-Files to touch:
-- `src/adw/core/phase_runner.py` (delete ~8 lines)
-- `commands/build/prompt.md`
-- `commands/verify/prompt.md`
-- `commands/document/prompt.md`
-- `commands/validate/prompt.md`
+Files modified:
+- `src/adw/core/phase_runner.py` - Removed alias code block
+- `src/adw/defaults/commands/build/prompt.md` - Updated {{plan}} reference
+- `src/adw/defaults/commands/document/prompt.md` - Updated {{implementation}} reference
+- `tests/integration/test_document_phase.py` - Updated fixture prompt

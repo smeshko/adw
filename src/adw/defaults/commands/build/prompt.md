@@ -8,7 +8,7 @@ Implement the feature according to the plan.
 
 ## Plan
 
-{{plan}}
+{{artifacts.plan.plan_output}}
 
 ## Instructions
 
