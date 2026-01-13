@@ -368,16 +368,6 @@ class PhaseRunner:
             "task": build_task_context(context.task_info),
         }
 
-        # Add convenience aliases for common artifact references
-        # e.g., {{plan}} instead of {{artifacts.plan.plan_output}}
-
-        if "plan" in artifacts_map and "plan_output" in artifacts_map["plan"]:
-            variables["plan"] = artifacts_map["plan"]["plan_output"]
-        if "build" in artifacts_map and "build_output" in artifacts_map["build"]:
-            variables["implementation"] = artifacts_map["build"]["build_output"]
-        if "validate" in artifacts_map and "validate_output" in artifacts_map["validate"]:
-            variables["output"] = artifacts_map["validate"]["validate_output"]
-
         # Load schema from command directory if exists (for validate phase)
         schema_path = command.path / "schema.json"
         if schema_path.exists():
