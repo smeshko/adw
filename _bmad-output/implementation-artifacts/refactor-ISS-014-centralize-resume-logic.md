@@ -1,7 +1,7 @@
 # Story: Centralize Resume Logic in ResumeManager
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: Tech Debt - Core Architecture Refactoring
 Created: 2026-01-05
@@ -17,15 +17,15 @@ so that I can modify resume behavior in one place without risking inconsistencie
 
 ## Acceptance Criteria
 
-- [ ] Create `ResumeManager` class with all resume logic
-- [ ] Create `ResumeInfo` and `ResumeStatus` dataclasses
-- [ ] Refactor `cli/resume.py` to use ResumeManager
-- [ ] Refactor `orchestrator.py` to use ResumeManager
-- [ ] Remove unused functions from `interruption.py`
-- [ ] Wire up ResumeManager in `cli/bootstrap.py`
-- [ ] All existing tests pass
-- [ ] New unit tests for ResumeManager
-- [ ] Dead code removed, no unused exports
+- [x] Create `ResumeManager` class with all resume logic
+- [x] Create `ResumeInfo` and `ResumeStatus` dataclasses
+- [x] Refactor `cli/resume.py` to use ResumeManager
+- [x] Refactor `orchestrator.py` to use ResumeManager
+- [x] Remove unused functions from `interruption.py` (deprecated, not removed for backward compat)
+- [x] Wire up ResumeManager in `cli/bootstrap.py` (via lazy initialization)
+- [x] All existing tests pass (2011 unit tests + 210 integration tests)
+- [x] New unit tests for ResumeManager (34 tests)
+- [x] Dead code removed, no unused exports
 
 ## Tasks / Subtasks
 

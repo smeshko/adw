@@ -1,7 +1,7 @@
 # Story: Remove Inconsistent Template Aliases
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: Tech Debt - PhaseRunner Refactoring
 Created: 2026-01-05
