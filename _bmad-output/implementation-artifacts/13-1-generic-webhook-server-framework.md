@@ -51,11 +51,11 @@ webhook:
 - [x] Verify dependencies are correctly installed
 
 ### Task 2: Create Webhook Package Structure
-- [ ] Create `src/adw/webhook/` package directory
-- [ ] Create `src/adw/webhook/__init__.py`
-- [ ] Create `src/adw/webhook/server.py` for FastAPI app
-- [ ] Create `src/adw/webhook/config.py` for webhook configuration model
-- [ ] Create `src/adw/webhook/routes.py` for route definitions
+- [x] Create `src/adw/webhook/` package directory
+- [x] Create `src/adw/webhook/__init__.py`
+- [x] Create `src/adw/webhook/server.py` for FastAPI app
+- [x] Create `src/adw/webhook/config.py` for webhook configuration model
+- [x] Create `src/adw/webhook/routes.py` for route definitions
 
 ### Task 3: Implement Configuration Models
 - [ ] Create `WebhookConfig` Pydantic model in `src/adw/models/webhook.py`
@@ -327,10 +327,15 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 ### Completion Notes List
 
 - Task 1: Added fastapi>=0.115.0 and uvicorn[standard]>=0.32.0 to pyproject.toml. Installed FastAPI 0.128.0 and Uvicorn 0.40.0.
+- Task 2: Created webhook package with __init__.py, server.py, config.py, and routes.py. Package exports app, create_app, and WebhookConfig.
 
 ### File List
 
 - Modified: pyproject.toml
+- New: src/adw/webhook/__init__.py
+- New: src/adw/webhook/server.py
+- New: src/adw/webhook/config.py
+- New: src/adw/webhook/routes.py
 
 ---
 
