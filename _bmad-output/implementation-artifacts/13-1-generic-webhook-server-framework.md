@@ -71,13 +71,13 @@ webhook:
 - [x] Add Rich console output for server startup/shutdown
 
 ### Task 5: Implement CLI Command
-- [ ] Create `src/adw/cli/webhook.py` with Typer subcommand group
-- [ ] Add `adw webhook start` command with options:
+- [x] Create `src/adw/cli/webhook.py` with Typer subcommand group
+- [x] Add `adw webhook start` command with options:
   - `--port` (default: 8000 or from config)
   - `--host` (default: 0.0.0.0 or from config)
   - `--reload` (development mode)
-- [ ] Add `adw webhook status` command (placeholder)
-- [ ] Register webhook commands in main app
+- [x] Add `adw webhook status` command (placeholder)
+- [x] Register webhook commands in main app
 
 ### Task 6: Add Logging Integration
 - [ ] Use ADW's structured logging for webhook events
@@ -330,6 +330,7 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 - Task 2: Created webhook package with __init__.py, server.py, config.py, and routes.py. Package exports app, create_app, and WebhookConfig.
 - Task 3: Created WebhookConfig and ProviderConfig models in models/webhook.py. Integrated into ProjectConfig. Supports secret_env for environment variable references.
 - Task 4: Implemented FastAPI server with lifespan for Rich startup/shutdown output. Added WebhookLoggingMiddleware for request logging. Health endpoint verified working.
+- Task 5: Created webhook CLI commands with Typer. Commands: `start` (with --port, --host, --reload) and `status` (placeholder). Registered in main app.
 
 ### File List
 
@@ -344,6 +345,8 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 - New: src/adw/webhook/middleware.py
 - Modified: src/adw/webhook/server.py
 - Modified: src/adw/webhook/__init__.py
+- New: src/adw/cli/webhook.py
+- Modified: src/adw/cli/app.py
 
 ---
 
