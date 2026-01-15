@@ -31,12 +31,13 @@ def _load_config_from_project() -> WebhookConfig:
     """
     try:
         from adw.config.loader import ConfigLoader
+        from adw.exceptions import ConfigError
 
         config = ConfigLoader().load()
         return config.webhook
-    except Exception:
-        # No config or error - use defaults
-        # Errors are logged by CLI, here we just fallback silently
+    except (ConfigError, FileNotFoundError):
+        # No config file or .adw directory - use defaults
+        # This is expected when running outside a project context
         return WebhookConfig()
 
 
