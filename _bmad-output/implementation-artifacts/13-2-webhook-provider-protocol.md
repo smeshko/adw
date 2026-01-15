@@ -45,10 +45,10 @@ class WebhookProvider(Protocol):
 - [x] Add comprehensive docstrings for each method
 
 ### Task 2: Create Event Models
-- [ ] Create `WebhookEvent` model in `src/adw/models/webhook.py`
-- [ ] Include fields: event_type, provider, payload, headers, timestamp
-- [ ] Create `RunParams` model for extracted run parameters
-- [ ] Include fields: feature_request, phases, source_info, metadata
+- [x] Create `WebhookEvent` model in `src/adw/models/webhook.py`
+- [x] Include fields: event_type, provider, payload, headers, timestamp
+- [x] Create `RunParams` model for extracted run parameters
+- [x] Include fields: feature_request, phases, source_info, metadata
 
 ### Task 3: Implement Provider Registry
 - [ ] Create `src/adw/webhook/providers/registry.py`
@@ -374,6 +374,8 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 **Task 1 (2026-01-15):** Implemented WebhookProvider Protocol following existing LLMExecutor pattern from executors/base.py. Added @runtime_checkable decorator for isinstance() checks. Also added WebhookEvent and RunParams models to src/adw/models/webhook.py as they are needed by the Protocol type hints. All 3 protocol compliance tests pass.
 
+**Task 2 (2026-01-15):** Added validation tests for WebhookEvent and RunParams models following ADR-001 (no trivial tests). Tests verify required fields, validation errors, default values. 10 model tests pass.
+
 ### File List
 
 **New Files:**
@@ -384,6 +386,7 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 **Modified Files:**
 - `src/adw/models/webhook.py` (added WebhookEvent, RunParams)
+- `tests/unit/models/test_webhook_events.py`
 
 ---
 
