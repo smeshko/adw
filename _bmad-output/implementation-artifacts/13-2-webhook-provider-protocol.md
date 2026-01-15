@@ -51,10 +51,10 @@ class WebhookProvider(Protocol):
 - [x] Include fields: feature_request, phases, source_info, metadata
 
 ### Task 3: Implement Provider Registry
-- [ ] Create `src/adw/webhook/providers/registry.py`
-- [ ] Implement `ProviderRegistry` class with register/get methods
-- [ ] Support auto-discovery of enabled providers from config
-- [ ] Implement `list_providers()` for showing available providers
+- [x] Create `src/adw/webhook/providers/registry.py`
+- [x] Implement `ProviderRegistry` class with register/get methods
+- [x] Support auto-discovery of enabled providers from config
+- [x] Implement `list_providers()` for showing available providers
 
 ### Task 4: Update Server Routes
 - [ ] Modify `/webhook/{provider}` route to use provider registry
@@ -376,6 +376,8 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 **Task 2 (2026-01-15):** Added validation tests for WebhookEvent and RunParams models following ADR-001 (no trivial tests). Tests verify required fields, validation errors, default values. 10 model tests pass.
 
+**Task 3 (2026-01-15):** Implemented ProviderRegistry class with register(), get(), and list_providers() methods. Follows registry pattern similar to existing command resolution pattern. All 6 registry tests pass.
+
 ### File List
 
 **New Files:**
@@ -387,6 +389,8 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 **Modified Files:**
 - `src/adw/models/webhook.py` (added WebhookEvent, RunParams)
 - `tests/unit/models/test_webhook_events.py`
+- `src/adw/webhook/providers/registry.py`
+- `tests/unit/webhook/providers/test_registry.py`
 
 ---
 
