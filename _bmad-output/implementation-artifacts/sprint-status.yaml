@@ -277,7 +277,7 @@ development_status:
   # ═══════════════════════════════════════════════════════════════════════════
   epic-13: ready-for-dev
   13-1-generic-webhook-server-framework: done
-  13-2-webhook-provider-protocol: ready-for-dev
+  13-2-webhook-provider-protocol: in-progress
   13-3-linear-webhook-provider: ready-for-dev
   13-4-event-to-workflow-mapping: ready-for-dev
   13-5-bot-loop-prevention: ready-for-dev
