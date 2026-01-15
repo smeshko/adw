@@ -86,11 +86,11 @@ webhook:
 - [x] Integrate with existing LogManager
 
 ### Task 7: Write Tests
-- [ ] Create `tests/unit/webhook/test_server.py`
-- [ ] Test health endpoint returns 200
-- [ ] Test webhook route returns 404 for unknown providers
-- [ ] Test request logging captures expected fields
-- [ ] Test configuration loading from project.yaml
+- [x] Create `tests/unit/webhook/test_server.py`
+- [x] Test health endpoint returns 200
+- [x] Test webhook route returns 404 for unknown providers
+- [x] Test request logging captures expected fields
+- [x] Test configuration loading from project.yaml
 
 ---
 
@@ -332,6 +332,7 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 - Task 4: Implemented FastAPI server with lifespan for Rich startup/shutdown output. Added WebhookLoggingMiddleware for request logging. Health endpoint verified working.
 - Task 5: Created webhook CLI commands with Typer. Commands: `start` (with --port, --host, --reload) and `status` (placeholder). Registered in main app.
 - Task 6: Added LogCategory.WEBHOOK. Middleware logs with structured data: request_id, provider, event_type, payload_size, timestamp. Request ID in response headers.
+- Task 7: Created comprehensive test suite with 18 tests covering health endpoint, webhook routes, logging middleware, and configuration. All tests pass.
 
 ### File List
 
@@ -350,6 +351,8 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 - Modified: src/adw/cli/app.py
 - Modified: src/adw/models/logging.py
 - Modified: src/adw/webhook/middleware.py
+- New: tests/unit/webhook/__init__.py
+- New: tests/unit/webhook/test_server.py
 
 ---
 
