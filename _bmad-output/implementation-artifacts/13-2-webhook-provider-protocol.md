@@ -70,10 +70,10 @@ class WebhookProvider(Protocol):
 - [x] Provide default implementations where sensible
 
 ### Task 6: Add Provider Loading
-- [ ] Load enabled providers from project.yaml on server start
-- [ ] Register providers in registry
-- [ ] Log which providers are available
-- [ ] Handle missing provider configuration gracefully
+- [x] Load enabled providers from project.yaml on server start
+- [x] Register providers in registry
+- [x] Log which providers are available
+- [x] Handle missing provider configuration gracefully
 
 ### Task 7: Write Tests
 - [ ] Create `tests/unit/webhook/providers/test_base.py`
@@ -382,6 +382,8 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 **Task 5 (2026-01-15):** Added BaseWebhookProvider helper class with static utility methods: get_header() for header lookup and parse_json_body() for JSON parsing with error handling. 4 additional tests pass.
 
+**Task 6 (2026-01-15):** Implemented loader.py with load_providers_from_config() and register_provider_factory(). Providers can now be loaded from config and registered dynamically. Graceful handling when provider implementation not available. 5 loader tests pass.
+
 ### File List
 
 **New Files:**
@@ -398,6 +400,8 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 - `tests/unit/models/test_webhook_events.py`
 - `src/adw/webhook/providers/registry.py`
 - `tests/unit/webhook/providers/test_registry.py`
+- `src/adw/webhook/providers/loader.py`
+- `tests/unit/webhook/providers/test_loader.py`
 
 ---
 
