@@ -57,11 +57,11 @@ class WebhookProvider(Protocol):
 - [x] Implement `list_providers()` for showing available providers
 
 ### Task 4: Update Server Routes
-- [ ] Modify `/webhook/{provider}` route to use provider registry
-- [ ] Return 404 with available providers when provider not found
-- [ ] Delegate signature verification to provider
-- [ ] Delegate event parsing to provider
-- [ ] Add error handling for provider method failures
+- [x] Modify `/webhook/{provider}` route to use provider registry
+- [x] Return 404 with available providers when provider not found
+- [x] Delegate signature verification to provider
+- [x] Delegate event parsing to provider
+- [x] Add error handling for provider method failures
 
 ### Task 5: Create Base Provider Implementation
 - [ ] Create `src/adw/webhook/providers/__init__.py`
@@ -378,6 +378,8 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 **Task 3 (2026-01-15):** Implemented ProviderRegistry class with register(), get(), and list_providers() methods. Follows registry pattern similar to existing command resolution pattern. All 6 registry tests pass.
 
+**Task 4 (2026-01-15):** Updated routes.py to use provider registry for routing. Added 404 with available providers list, 401 for signature failures, and legacy fallback for providers not yet in registry. server.py now accepts optional registry parameter. 8 route tests pass.
+
 ### File List
 
 **New Files:**
@@ -388,6 +390,9 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 **Modified Files:**
 - `src/adw/models/webhook.py` (added WebhookEvent, RunParams)
+- `src/adw/webhook/server.py` (added registry parameter)
+- `src/adw/webhook/routes.py` (updated to use provider registry)
+- `tests/unit/webhook/test_server.py` (added registry tests)
 - `tests/unit/models/test_webhook_events.py`
 - `src/adw/webhook/providers/registry.py`
 - `tests/unit/webhook/providers/test_registry.py`
