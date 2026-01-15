@@ -9,6 +9,7 @@ description = "Agentic Development Workflow SDK"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "fastapi>=0.115.0",
     "filelock>=3.20.1",
     "httpx>=0.28.1",
     "jsonschema>=4.20.0",
@@ -17,6 +18,7 @@ dependencies = [
     "pyyaml>=6.0.3",
     "rich>=14.2.0",
     "typer[all]>=0.21.0",
+    "uvicorn[standard]>=0.32.0",
 ]
 
 [project.scripts]

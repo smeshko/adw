@@ -1,6 +1,6 @@
 # Story 13.1: Generic Webhook Server Framework
 
-Status: ready-for-dev
+Status: Done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure
 Created: 2026-01-09
@@ -46,51 +46,51 @@ webhook:
 ## Tasks / Subtasks
 
 ### Task 1: Add FastAPI Dependency
-- [ ] Add `fastapi` and `uvicorn[standard]` to pyproject.toml dependencies
-- [ ] Run `uv sync` to install dependencies
-- [ ] Verify dependencies are correctly installed
+- [x] Add `fastapi` and `uvicorn[standard]` to pyproject.toml dependencies
+- [x] Run `uv sync` to install dependencies
+- [x] Verify dependencies are correctly installed
 
 ### Task 2: Create Webhook Package Structure
-- [ ] Create `src/adw/webhook/` package directory
-- [ ] Create `src/adw/webhook/__init__.py`
-- [ ] Create `src/adw/webhook/server.py` for FastAPI app
-- [ ] Create `src/adw/webhook/config.py` for webhook configuration model
-- [ ] Create `src/adw/webhook/routes.py` for route definitions
+- [x] Create `src/adw/webhook/` package directory
+- [x] Create `src/adw/webhook/__init__.py`
+- [x] Create `src/adw/webhook/server.py` for FastAPI app
+- [x] Create `src/adw/webhook/config.py` for webhook configuration model
+- [x] Create `src/adw/webhook/routes.py` for route definitions
 
 ### Task 3: Implement Configuration Models
-- [ ] Create `WebhookConfig` Pydantic model in `src/adw/models/webhook.py`
-- [ ] Create `ProviderConfig` model for provider-specific settings
-- [ ] Add webhook configuration to project config loading
-- [ ] Support env variable references for secrets (e.g., `secret_env: LINEAR_WEBHOOK_SECRET`)
+- [x] Create `WebhookConfig` Pydantic model in `src/adw/models/webhook.py`
+- [x] Create `ProviderConfig` model for provider-specific settings
+- [x] Add webhook configuration to project config loading
+- [x] Support env variable references for secrets (e.g., `secret_env: LINEAR_WEBHOOK_SECRET`)
 
 ### Task 4: Implement FastAPI Server
-- [ ] Create FastAPI app instance in `server.py`
-- [ ] Implement `/health` endpoint returning `{"status": "healthy"}`
-- [ ] Implement base `/webhook/{provider}` route skeleton
-- [ ] Add request logging middleware for all webhook requests
-- [ ] Add Rich console output for server startup/shutdown
+- [x] Create FastAPI app instance in `server.py`
+- [x] Implement `/health` endpoint returning `{"status": "healthy"}`
+- [x] Implement base `/webhook/{provider}` route skeleton
+- [x] Add request logging middleware for all webhook requests
+- [x] Add Rich console output for server startup/shutdown
 
 ### Task 5: Implement CLI Command
-- [ ] Create `src/adw/cli/webhook.py` with Typer subcommand group
-- [ ] Add `adw webhook start` command with options:
+- [x] Create `src/adw/cli/webhook.py` with Typer subcommand group
+- [x] Add `adw webhook start` command with options:
   - `--port` (default: 8000 or from config)
   - `--host` (default: 0.0.0.0 or from config)
   - `--reload` (development mode)
-- [ ] Add `adw webhook status` command (placeholder)
-- [ ] Register webhook commands in main app
+- [x] Add `adw webhook status` command (placeholder)
+- [x] Register webhook commands in main app
 
 ### Task 6: Add Logging Integration
-- [ ] Use ADW's structured logging for webhook events
-- [ ] Log webhook requests with: timestamp, provider, event_type, payload_size
-- [ ] Add request ID generation for tracing
-- [ ] Integrate with existing LogManager
+- [x] Use ADW's structured logging for webhook events
+- [x] Log webhook requests with: timestamp, provider, event_type, payload_size
+- [x] Add request ID generation for tracing
+- [x] Integrate with existing LogManager
 
 ### Task 7: Write Tests
-- [ ] Create `tests/unit/webhook/test_server.py`
-- [ ] Test health endpoint returns 200
-- [ ] Test webhook route returns 404 for unknown providers
-- [ ] Test request logging captures expected fields
-- [ ] Test configuration loading from project.yaml
+- [x] Create `tests/unit/webhook/test_server.py`
+- [x] Test health endpoint returns 200
+- [x] Test webhook route returns 404 for unknown providers
+- [x] Test request logging captures expected fields
+- [x] Test configuration loading from project.yaml
 
 ---
 
@@ -324,7 +324,35 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
+### Completion Notes List
+
+- Task 1: Added fastapi>=0.115.0 and uvicorn[standard]>=0.32.0 to pyproject.toml. Installed FastAPI 0.128.0 and Uvicorn 0.40.0.
+- Task 2: Created webhook package with __init__.py, server.py, config.py, and routes.py. Package exports app, create_app, and WebhookConfig.
+- Task 3: Created WebhookConfig and ProviderConfig models in models/webhook.py. Integrated into ProjectConfig. Supports secret_env for environment variable references.
+- Task 4: Implemented FastAPI server with lifespan for Rich startup/shutdown output. Added WebhookLoggingMiddleware for request logging. Health endpoint verified working.
+- Task 5: Created webhook CLI commands with Typer. Commands: `start` (with --port, --host, --reload) and `status` (placeholder). Registered in main app.
+- Task 6: Added LogCategory.WEBHOOK. Middleware logs with structured data: request_id, provider, event_type, payload_size, timestamp. Request ID in response headers.
+- Task 7: Created comprehensive test suite with 18 tests covering health endpoint, webhook routes, logging middleware, and configuration. All tests pass.
+
 ### File List
+
+- Modified: pyproject.toml
+- New: src/adw/webhook/__init__.py
+- New: src/adw/webhook/server.py
+- New: src/adw/webhook/config.py
+- New: src/adw/webhook/routes.py
+- New: src/adw/models/webhook.py
+- Modified: src/adw/models/__init__.py
+- Modified: src/adw/models/config.py
+- New: src/adw/webhook/middleware.py
+- Modified: src/adw/webhook/server.py
+- Modified: src/adw/webhook/__init__.py
+- New: src/adw/cli/webhook.py
+- Modified: src/adw/cli/app.py
+- Modified: src/adw/models/logging.py
+- Modified: src/adw/webhook/middleware.py
+- New: tests/unit/webhook/__init__.py
+- New: tests/unit/webhook/test_server.py
 
 ---
 

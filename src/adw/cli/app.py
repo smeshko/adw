@@ -18,6 +18,7 @@ from adw.cli.resume import resume as resume_command
 from adw.cli.run_display import RunDisplay
 from adw.cli.status import status as status_command
 from adw.cli.validators import validate_phase
+from adw.cli.webhook import webhook_app
 from adw.commands.template import escape_feature_description
 from adw.config.loader import ConfigLoader
 from adw.exceptions import ADWError, ConfigError
@@ -414,6 +415,9 @@ app.add_typer(logs_app, name="logs")
 
 # Register the pr command (Story 9.5)
 app.command()(pr_command)
+
+# Register the webhook subapp (Story 13.1)
+app.add_typer(webhook_app, name="webhook")
 
 
 @app.command()
