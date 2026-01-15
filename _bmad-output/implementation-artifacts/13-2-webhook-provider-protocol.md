@@ -64,10 +64,10 @@ class WebhookProvider(Protocol):
 - [x] Add error handling for provider method failures
 
 ### Task 5: Create Base Provider Implementation
-- [ ] Create `src/adw/webhook/providers/__init__.py`
-- [ ] Implement `BaseWebhookProvider` abstract class (optional helper)
-- [ ] Add common utilities (header parsing, logging)
-- [ ] Provide default implementations where sensible
+- [x] Create `src/adw/webhook/providers/__init__.py`
+- [x] Implement `BaseWebhookProvider` abstract class (optional helper)
+- [x] Add common utilities (header parsing, logging)
+- [x] Provide default implementations where sensible
 
 ### Task 6: Add Provider Loading
 - [ ] Load enabled providers from project.yaml on server start
@@ -379,6 +379,8 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 **Task 3 (2026-01-15):** Implemented ProviderRegistry class with register(), get(), and list_providers() methods. Follows registry pattern similar to existing command resolution pattern. All 6 registry tests pass.
 
 **Task 4 (2026-01-15):** Updated routes.py to use provider registry for routing. Added 404 with available providers list, 401 for signature failures, and legacy fallback for providers not yet in registry. server.py now accepts optional registry parameter. 8 route tests pass.
+
+**Task 5 (2026-01-15):** Added BaseWebhookProvider helper class with static utility methods: get_header() for header lookup and parse_json_body() for JSON parsing with error handling. 4 additional tests pass.
 
 ### File List
 
