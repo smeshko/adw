@@ -42,8 +42,9 @@ async def receive_webhook(
             detail=f"Provider '{provider}' is not configured or not enabled",
         )
 
-    # Generate request ID for tracing
-    request_id = str(uuid.uuid4())
+    # Reuse request ID from middleware for consistent tracing
+    # Falls back to new UUID if middleware hasn't set one
+    request_id = getattr(request.state, "request_id", None) or str(uuid.uuid4())
 
     # Get request body
     body = await request.body()

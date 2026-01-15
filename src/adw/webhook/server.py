@@ -19,6 +19,27 @@ if TYPE_CHECKING:
 console = Console()
 
 
+def _load_config_from_project() -> WebhookConfig:
+    """Load webhook config from project adw.yaml.
+
+    Returns:
+        WebhookConfig from project config, or default config if not available.
+
+    Note:
+        This function is used when creating the default app instance
+        (e.g., for uvicorn reload mode) to ensure project config is honored.
+    """
+    try:
+        from adw.config.loader import ConfigLoader
+
+        config = ConfigLoader().load()
+        return config.webhook
+    except Exception:
+        # No config or error - use defaults
+        # Errors are logged by CLI, here we just fallback silently
+        return WebhookConfig()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage server startup and shutdown events.
@@ -90,5 +111,6 @@ def create_app(
     return webhook_app
 
 
-# Default app instance for uvicorn
-app = create_app()
+# Default app instance for uvicorn (reload mode)
+# Loads config from project adw.yaml so reload mode honors project settings
+app = create_app(config=_load_config_from_project())
