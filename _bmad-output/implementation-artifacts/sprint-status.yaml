@@ -276,7 +276,7 @@ development_status:
   # Goal: Enable ADW runs to be triggered by external events via webhooks
   # ═══════════════════════════════════════════════════════════════════════════
   epic-13: ready-for-dev
-  13-1-generic-webhook-server-framework: ready-for-dev
+  13-1-generic-webhook-server-framework: in-progress
   13-2-webhook-provider-protocol: ready-for-dev
   13-3-linear-webhook-provider: ready-for-dev
   13-4-event-to-workflow-mapping: ready-for-dev

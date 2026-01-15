@@ -46,9 +46,9 @@ webhook:
 ## Tasks / Subtasks
 
 ### Task 1: Add FastAPI Dependency
-- [ ] Add `fastapi` and `uvicorn[standard]` to pyproject.toml dependencies
-- [ ] Run `uv sync` to install dependencies
-- [ ] Verify dependencies are correctly installed
+- [x] Add `fastapi` and `uvicorn[standard]` to pyproject.toml dependencies
+- [x] Run `uv sync` to install dependencies
+- [x] Verify dependencies are correctly installed
 
 ### Task 2: Create Webhook Package Structure
 - [ ] Create `src/adw/webhook/` package directory
@@ -324,7 +324,13 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
+### Completion Notes List
+
+- Task 1: Added fastapi>=0.115.0 and uvicorn[standard]>=0.32.0 to pyproject.toml. Installed FastAPI 0.128.0 and Uvicorn 0.40.0.
+
 ### File List
+
+- Modified: pyproject.toml
 
 ---
 
