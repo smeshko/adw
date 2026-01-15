@@ -64,11 +64,11 @@ webhook:
 - [x] Support env variable references for secrets (e.g., `secret_env: LINEAR_WEBHOOK_SECRET`)
 
 ### Task 4: Implement FastAPI Server
-- [ ] Create FastAPI app instance in `server.py`
-- [ ] Implement `/health` endpoint returning `{"status": "healthy"}`
-- [ ] Implement base `/webhook/{provider}` route skeleton
-- [ ] Add request logging middleware for all webhook requests
-- [ ] Add Rich console output for server startup/shutdown
+- [x] Create FastAPI app instance in `server.py`
+- [x] Implement `/health` endpoint returning `{"status": "healthy"}`
+- [x] Implement base `/webhook/{provider}` route skeleton
+- [x] Add request logging middleware for all webhook requests
+- [x] Add Rich console output for server startup/shutdown
 
 ### Task 5: Implement CLI Command
 - [ ] Create `src/adw/cli/webhook.py` with Typer subcommand group
@@ -329,6 +329,7 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 - Task 1: Added fastapi>=0.115.0 and uvicorn[standard]>=0.32.0 to pyproject.toml. Installed FastAPI 0.128.0 and Uvicorn 0.40.0.
 - Task 2: Created webhook package with __init__.py, server.py, config.py, and routes.py. Package exports app, create_app, and WebhookConfig.
 - Task 3: Created WebhookConfig and ProviderConfig models in models/webhook.py. Integrated into ProjectConfig. Supports secret_env for environment variable references.
+- Task 4: Implemented FastAPI server with lifespan for Rich startup/shutdown output. Added WebhookLoggingMiddleware for request logging. Health endpoint verified working.
 
 ### File List
 
@@ -340,6 +341,9 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 - New: src/adw/models/webhook.py
 - Modified: src/adw/models/__init__.py
 - Modified: src/adw/models/config.py
+- New: src/adw/webhook/middleware.py
+- Modified: src/adw/webhook/server.py
+- Modified: src/adw/webhook/__init__.py
 
 ---
 
