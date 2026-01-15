@@ -11,6 +11,7 @@ from rich.console import Console
 
 from adw.webhook.config import WebhookConfig
 from adw.webhook.middleware import WebhookLoggingMiddleware
+from adw.webhook.providers.registry import ProviderRegistry
 from adw.webhook.routes import router
 
 if TYPE_CHECKING:
@@ -81,6 +82,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 def create_app(
     config: WebhookConfig | None = None,
     log_func: Callable[..., None] | None = None,
+    registry: ProviderRegistry | None = None,
 ) -> FastAPI:
     """Create and configure the FastAPI application.
 
@@ -88,11 +90,13 @@ def create_app(
         config: Webhook configuration. If None, uses default config.
         log_func: Optional logging function for the middleware.
             If None, logging is disabled in middleware.
+        registry: Optional provider registry. If None, creates empty registry.
 
     Returns:
         Configured FastAPI application instance.
     """
     webhook_config = config or WebhookConfig()
+    provider_registry = registry or ProviderRegistry()
 
     webhook_app = FastAPI(
         title="ADW Webhook Server",
@@ -101,8 +105,9 @@ def create_app(
         lifespan=lifespan,
     )
 
-    # Store config in app state for access in routes
+    # Store config and registry in app state for access in routes
     webhook_app.state.webhook_config = webhook_config
+    webhook_app.state.provider_registry = provider_registry
 
     # Add request logging middleware
     webhook_app.add_middleware(WebhookLoggingMiddleware, log_func=log_func)
