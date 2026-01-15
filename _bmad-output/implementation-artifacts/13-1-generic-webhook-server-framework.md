@@ -58,10 +58,10 @@ webhook:
 - [x] Create `src/adw/webhook/routes.py` for route definitions
 
 ### Task 3: Implement Configuration Models
-- [ ] Create `WebhookConfig` Pydantic model in `src/adw/models/webhook.py`
-- [ ] Create `ProviderConfig` model for provider-specific settings
-- [ ] Add webhook configuration to project config loading
-- [ ] Support env variable references for secrets (e.g., `secret_env: LINEAR_WEBHOOK_SECRET`)
+- [x] Create `WebhookConfig` Pydantic model in `src/adw/models/webhook.py`
+- [x] Create `ProviderConfig` model for provider-specific settings
+- [x] Add webhook configuration to project config loading
+- [x] Support env variable references for secrets (e.g., `secret_env: LINEAR_WEBHOOK_SECRET`)
 
 ### Task 4: Implement FastAPI Server
 - [ ] Create FastAPI app instance in `server.py`
@@ -328,6 +328,7 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 - Task 1: Added fastapi>=0.115.0 and uvicorn[standard]>=0.32.0 to pyproject.toml. Installed FastAPI 0.128.0 and Uvicorn 0.40.0.
 - Task 2: Created webhook package with __init__.py, server.py, config.py, and routes.py. Package exports app, create_app, and WebhookConfig.
+- Task 3: Created WebhookConfig and ProviderConfig models in models/webhook.py. Integrated into ProjectConfig. Supports secret_env for environment variable references.
 
 ### File List
 
@@ -336,6 +337,9 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 - New: src/adw/webhook/server.py
 - New: src/adw/webhook/config.py
 - New: src/adw/webhook/routes.py
+- New: src/adw/models/webhook.py
+- Modified: src/adw/models/__init__.py
+- Modified: src/adw/models/config.py
 
 ---
 

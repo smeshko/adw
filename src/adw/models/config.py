@@ -11,6 +11,7 @@ import yaml
 from pydantic import BaseModel, Field, model_validator
 
 from adw.models.security import SecurityConfig
+from adw.models.webhook import WebhookConfig
 from adw.validation.config import ValidationConfig
 
 
@@ -627,6 +628,10 @@ class ProjectConfig(BaseModel):
     task_manager: TaskManagerConfig = Field(
         default_factory=TaskManagerConfig,
         description="Task manager integration configuration",
+    )
+    webhook: WebhookConfig = Field(
+        default_factory=WebhookConfig,
+        description="Webhook server configuration",
     )
 
     @model_validator(mode="before")
