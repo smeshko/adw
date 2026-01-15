@@ -37,12 +37,12 @@ class WebhookProvider(Protocol):
 ## Tasks / Subtasks
 
 ### Task 1: Define Provider Protocol
-- [ ] Create `src/adw/webhook/providers/base.py` with `WebhookProvider` Protocol
-- [ ] Define `verify_signature()` method signature
-- [ ] Define `parse_event()` method signature
-- [ ] Define `should_trigger_run()` method signature
-- [ ] Define `extract_run_params()` method signature
-- [ ] Add comprehensive docstrings for each method
+- [x] Create `src/adw/webhook/providers/base.py` with `WebhookProvider` Protocol
+- [x] Define `verify_signature()` method signature
+- [x] Define `parse_event()` method signature
+- [x] Define `should_trigger_run()` method signature
+- [x] Define `extract_run_params()` method signature
+- [x] Add comprehensive docstrings for each method
 
 ### Task 2: Create Event Models
 - [ ] Create `WebhookEvent` model in `src/adw/models/webhook.py`
@@ -372,7 +372,18 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
+**Task 1 (2026-01-15):** Implemented WebhookProvider Protocol following existing LLMExecutor pattern from executors/base.py. Added @runtime_checkable decorator for isinstance() checks. Also added WebhookEvent and RunParams models to src/adw/models/webhook.py as they are needed by the Protocol type hints. All 3 protocol compliance tests pass.
+
 ### File List
+
+**New Files:**
+- `src/adw/webhook/providers/__init__.py`
+- `src/adw/webhook/providers/base.py`
+- `tests/unit/webhook/providers/__init__.py`
+- `tests/unit/webhook/providers/test_base.py`
+
+**Modified Files:**
+- `src/adw/models/webhook.py` (added WebhookEvent, RunParams)
 
 ---
 
