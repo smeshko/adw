@@ -1,13 +1,13 @@
-"""WebhookProvider Protocol definition.
+"""WebhookProvider Protocol and base implementation.
 
-This module defines the Protocol for webhook provider implementations,
-providing a consistent interface for different webhook sources (Linear,
-GitHub, etc.).
+This module defines the Protocol for webhook provider implementations
+and provides a BaseWebhookProvider class with common utilities.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+import json
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from fastapi import Request
@@ -132,3 +132,63 @@ class WebhookProvider(Protocol):
             RunParams with feature_request, phases, and metadata.
         """
         ...
+
+
+class BaseWebhookProvider:
+    """Base class with common utilities for webhook providers.
+
+    This is an optional helper class providing static methods for
+    common operations like header parsing and JSON body parsing.
+    Providers can use these utilities without inheriting from this class.
+
+    Note:
+        This class is NOT required for implementing the WebhookProvider
+        protocol. It's simply a convenience for shared functionality.
+
+    Example:
+        >>> class MyProvider:
+        ...     def parse_event(self, request, body):
+        ...         # Use utility methods
+        ...         event_type = BaseWebhookProvider.get_header(request, "x-event-type")
+        ...         payload = BaseWebhookProvider.parse_json_body(body)
+        ...         ...
+    """
+
+    @staticmethod
+    def get_header(
+        request: Request,
+        name: str,
+        default: str | None = None,
+    ) -> str | None:
+        """Get a header value from the request, case-insensitive.
+
+        FastAPI's Headers object is case-insensitive by default,
+        but this method provides a consistent interface.
+
+        Args:
+            request: The FastAPI Request object.
+            name: The header name to look up.
+            default: Value to return if header not found.
+
+        Returns:
+            The header value if found, otherwise the default.
+        """
+        return request.headers.get(name, default)
+
+    @staticmethod
+    def parse_json_body(body: bytes) -> dict[str, Any]:
+        """Parse a JSON request body into a dictionary.
+
+        Args:
+            body: The raw request body bytes.
+
+        Returns:
+            Parsed JSON as a dictionary.
+
+        Raises:
+            ValueError: If the body is not valid JSON.
+        """
+        try:
+            return json.loads(body.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            raise ValueError(f"Invalid JSON body: {e}") from e

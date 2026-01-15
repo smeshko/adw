@@ -1,4 +1,4 @@
-"""Tests for WebhookProvider Protocol.
+"""Tests for WebhookProvider Protocol and BaseWebhookProvider.
 
 Following ADR-001: Tests focus on protocol compliance and validation,
 not trivial attribute access or import smoke tests.
@@ -6,7 +6,9 @@ not trivial attribute access or import smoke tests.
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -79,3 +81,45 @@ class TestWebhookProviderProtocol:
         # Should not raise TypeError - protocol is runtime_checkable
         result = isinstance(TestClass(), WebhookProvider)
         assert result is False  # Not a provider, but check should work
+
+
+class TestBaseWebhookProvider:
+    """Tests for BaseWebhookProvider helper class."""
+
+    def test_get_header_returns_value(self) -> None:
+        """get_header should return header value when found."""
+        from adw.webhook.providers.base import BaseWebhookProvider
+
+        request = MagicMock()
+        # Simulate FastAPI Headers behavior with dict
+        request.headers = {"x-custom-header": "test-value"}
+
+        result = BaseWebhookProvider.get_header(request, "x-custom-header")
+        assert result == "test-value"
+
+    def test_get_header_returns_default_when_missing(self) -> None:
+        """get_header should return default when header not found."""
+        from adw.webhook.providers.base import BaseWebhookProvider
+
+        request = MagicMock()
+        request.headers = {}
+
+        result = BaseWebhookProvider.get_header(request, "missing", default="fallback")
+        assert result == "fallback"
+
+    def test_parse_json_body_returns_dict(self) -> None:
+        """parse_json_body should parse JSON bytes to dict."""
+        from adw.webhook.providers.base import BaseWebhookProvider
+
+        body = b'{"key": "value", "number": 42}'
+        result = BaseWebhookProvider.parse_json_body(body)
+
+        assert result == {"key": "value", "number": 42}
+
+    def test_parse_json_body_raises_on_invalid_json(self) -> None:
+        """parse_json_body should raise ValueError on invalid JSON."""
+        from adw.webhook.providers.base import BaseWebhookProvider
+
+        body = b"not valid json"
+        with pytest.raises(ValueError, match="Invalid JSON"):
+            BaseWebhookProvider.parse_json_body(body)
