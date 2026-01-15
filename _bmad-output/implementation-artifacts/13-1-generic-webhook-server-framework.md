@@ -80,10 +80,10 @@ webhook:
 - [x] Register webhook commands in main app
 
 ### Task 6: Add Logging Integration
-- [ ] Use ADW's structured logging for webhook events
-- [ ] Log webhook requests with: timestamp, provider, event_type, payload_size
-- [ ] Add request ID generation for tracing
-- [ ] Integrate with existing LogManager
+- [x] Use ADW's structured logging for webhook events
+- [x] Log webhook requests with: timestamp, provider, event_type, payload_size
+- [x] Add request ID generation for tracing
+- [x] Integrate with existing LogManager
 
 ### Task 7: Write Tests
 - [ ] Create `tests/unit/webhook/test_server.py`
@@ -331,6 +331,7 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 - Task 3: Created WebhookConfig and ProviderConfig models in models/webhook.py. Integrated into ProjectConfig. Supports secret_env for environment variable references.
 - Task 4: Implemented FastAPI server with lifespan for Rich startup/shutdown output. Added WebhookLoggingMiddleware for request logging. Health endpoint verified working.
 - Task 5: Created webhook CLI commands with Typer. Commands: `start` (with --port, --host, --reload) and `status` (placeholder). Registered in main app.
+- Task 6: Added LogCategory.WEBHOOK. Middleware logs with structured data: request_id, provider, event_type, payload_size, timestamp. Request ID in response headers.
 
 ### File List
 
@@ -347,6 +348,8 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 - Modified: src/adw/webhook/__init__.py
 - New: src/adw/cli/webhook.py
 - Modified: src/adw/cli/app.py
+- Modified: src/adw/models/logging.py
+- Modified: src/adw/webhook/middleware.py
 
 ---
 
