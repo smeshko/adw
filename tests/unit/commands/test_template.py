@@ -824,7 +824,8 @@ class TestTaskContextIntegration:
 
     def test_run_context_with_task_info_renders_in_template(self) -> None:
         """RunContext with task_info should provide task variables in templates."""
-        from datetime import datetime, UTC
+        from datetime import UTC, datetime
+
         from adw.commands.template import build_task_context
         from adw.models.context import RunContext
         from adw.models.task import TaskInfo
@@ -872,7 +873,8 @@ Labels: {{task.labels}}"""
 
     def test_run_context_without_task_info_renders_gracefully(self) -> None:
         """RunContext without task_info should render task variables as empty strings."""
-        from datetime import datetime, UTC
+        from datetime import UTC, datetime
+
         from adw.commands.template import build_task_context
         from adw.models.context import RunContext
 

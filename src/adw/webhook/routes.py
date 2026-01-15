@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException, Request, status
@@ -73,7 +74,7 @@ async def receive_webhook(
     )
 
 
-def _get_event_type(provider: str, headers: dict) -> str | None:  # type: ignore[type-arg]
+def _get_event_type(provider: str, headers: Mapping[str, str]) -> str | None:
     """Extract event type from provider-specific headers."""
     # Common patterns for webhook event type headers
     header_mappings = {

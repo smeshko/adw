@@ -17,7 +17,7 @@ class PhaseLLMConfig(BaseModel):
 
     Attributes:
         model: Model identifier to use for this phase (e.g., "claude-3-opus").
-        temperature: Sampling temperature (0.0-1.0). Lower values are more deterministic.
+        temperature: Sampling temperature (0.0-1.0). Lower = more deterministic.
 
     Example:
         >>> llm_config = PhaseLLMConfig(model="claude-3-opus", temperature=0.7)
@@ -46,8 +46,8 @@ class ArtifactConfig(BaseModel):
     enabling config-driven artifact capture (unifies with ISS-012).
 
     Attributes:
-        name: Unique identifier for the artifact (used in templates as {{ artifacts.name }}).
-        pattern: Glob pattern or path to capture (e.g., "output/*.json", "plan.md").
+        name: Unique identifier for the artifact (used in templates).
+        pattern: Glob pattern or path to capture (e.g., "output/*.json").
         required: Whether the artifact must exist after phase completion.
         description: Human-readable description of the artifact purpose.
 
@@ -230,13 +230,13 @@ class ResolvedCommand(BaseModel):
     post_hook_path: Path | None = None
     has_config: bool = False
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def has_pre_hook(self) -> bool:
         """Whether a pre-hook script exists."""
         return self.pre_hook_path is not None
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def has_post_hook(self) -> bool:
         """Whether a post-hook script exists."""

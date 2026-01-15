@@ -10,7 +10,7 @@ Simplified in Epic 16 (Story 16.4) to use simplified ValidationResult model.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from adw.validation.config import ValidationConfig
 from adw.validation.models import ValidationResult
@@ -92,7 +92,7 @@ class ValidationPhase:
         )
 
     @staticmethod
-    def from_llm_response(response_json: dict) -> ValidationResult:
+    def from_llm_response(response_json: dict[str, Any]) -> ValidationResult:
         """Create ValidationResult from LLM JSON response.
 
         This method parses the JSON output from the validation prompt

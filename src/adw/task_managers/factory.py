@@ -44,7 +44,7 @@ class TaskManagerFactory:
     def create(
         self,
         task_type: str = "none",
-        config: "TaskManagerConfig | None" = None,
+        config: TaskManagerConfig | None = None,
     ) -> TaskManager:
         """Create a TaskManager instance based on the specified type.
 
@@ -85,8 +85,8 @@ class TaskManagerFactory:
         )
 
     def _create_linear(
-        self, config: "TaskManagerConfig | None" = None
-    ) -> "LinearTaskManager":
+        self, config: TaskManagerConfig | None = None
+    ) -> LinearTaskManager:
         """Create LinearTaskManager with lazy import.
 
         Lazy import avoids loading httpx when Linear is not used.

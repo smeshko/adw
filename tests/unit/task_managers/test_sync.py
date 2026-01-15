@@ -5,8 +5,7 @@ handles phase transitions, and provides non-blocking error handling.
 """
 
 from datetime import datetime
-from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -417,7 +416,7 @@ class TestStatusSyncServiceComments:
 
         mock_task_manager.post_comment.assert_called_once()
         call_args = mock_task_manager.post_comment.call_args
-        assert "uuid-123" == call_args[0][0]
+        assert call_args[0][0] == "uuid-123"
         assert "build" in call_args[0][1].lower()
         assert "missing dep" in call_args[0][1]
 
@@ -438,7 +437,7 @@ class TestStatusSyncServiceComments:
 
         mock_task_manager.post_comment.assert_called_once()
         call_args = mock_task_manager.post_comment.call_args
-        assert "uuid-123" == call_args[0][0]
+        assert call_args[0][0] == "uuid-123"
         assert "https://github.com/org/repo/pull/42" in call_args[0][1]
 
     def test_post_completion_comment_without_pr_url(

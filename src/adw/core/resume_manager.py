@@ -67,7 +67,7 @@ class ResumeManager:
         self,
         runs_dir: Path,
         run_lookup: RunLookup,
-        context_manager: "ContextManager",
+        context_manager: ContextManager,
     ) -> None:
         """Initialize the ResumeManager.
 
@@ -80,7 +80,7 @@ class ResumeManager:
         self.run_lookup = run_lookup
         self.context_manager = context_manager
 
-    def can_resume(self, context: "RunContext") -> bool:
+    def can_resume(self, context: RunContext) -> bool:
         """Check if a run can be resumed.
 
         A run can be resumed if it's not completed.
@@ -95,7 +95,7 @@ class ResumeManager:
 
     def validate_resumable(
         self,
-        context: "RunContext",
+        context: RunContext,
         *,
         from_phase: str | None = None,
     ) -> None:
@@ -183,7 +183,7 @@ class ResumeManager:
             is_valid=True,
         )
 
-    def _find_context(self, run_id: str | None) -> "RunContext":
+    def _find_context(self, run_id: str | None) -> RunContext:
         """Find the context for a run.
 
         Args:
@@ -236,7 +236,7 @@ class ResumeManager:
         )
         return context
 
-    def get_resume_phase(self, context: "RunContext") -> str | None:
+    def get_resume_phase(self, context: RunContext) -> str | None:
         """Determine which phase to resume from.
 
         Implements NFR8 resume semantics:
@@ -268,10 +268,10 @@ class ResumeManager:
 
     def prepare_for_resume(
         self,
-        context: "RunContext",
+        context: RunContext,
         *,
         from_phase: str | None = None,
-    ) -> "RunContext":
+    ) -> RunContext:
         """Prepare a context for resumption.
 
         Updates the context to be ready for continued execution:
@@ -301,7 +301,7 @@ class ResumeManager:
             }
         )
 
-    def get_resume_status(self, context: "RunContext") -> ResumeStatus:
+    def get_resume_status(self, context: RunContext) -> ResumeStatus:
         """Get a summary of run status for display.
 
         Returns a ResumeStatus dataclass with status information suitable for

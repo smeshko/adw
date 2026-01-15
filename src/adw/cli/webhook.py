@@ -7,7 +7,7 @@ from rich.console import Console
 
 from adw.config.loader import ConfigLoader
 from adw.exceptions import ConfigError
-from adw.models.webhook import ProviderConfig, WebhookConfig
+from adw.models.webhook import WebhookConfig
 
 console = Console()
 

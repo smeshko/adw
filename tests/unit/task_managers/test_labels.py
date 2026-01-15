@@ -3,7 +3,6 @@
 Story 12.7 Task 3: Tests for label management service.
 """
 
-import pytest
 from unittest.mock import MagicMock
 
 from adw.models.config import TaskManagerLabelsConfig

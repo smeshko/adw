@@ -3,8 +3,7 @@
 Tests for the Linear task manager implementation.
 """
 
-import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 

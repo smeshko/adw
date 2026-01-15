@@ -8,8 +8,6 @@ the orchestrator's cleanup path.
 import subprocess
 from pathlib import Path
 
-import pytest
-
 from adw.worktree.manager import WorktreeManager
 
 

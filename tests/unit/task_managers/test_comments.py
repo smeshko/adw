@@ -7,12 +7,16 @@ Tests for:
 - CommentFormatter for formatting comments
 """
 
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from adw.models.config import TaskManagerConfig
 from adw.task_managers.null import NullTaskManager
+
+if TYPE_CHECKING:
+    from adw.task_managers.linear import LinearTaskManager
 
 
 class TestNullTaskManagerPostComment:

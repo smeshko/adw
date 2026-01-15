@@ -11,25 +11,23 @@ import subprocess
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from adw.commands.template import (
+    build_task_context,
+    validate_artifact_references,
+)
 from adw.core.constants import PHASE_SEQUENCE
 from adw.exceptions import ADWError, ConfigError, HookError, LLMError
 from adw.hooks.git_commit import create_commit, stage_changes
-from adw.models.command import CommandConfig
-from adw.models.config import PhaseConfig, ProjectConfig
 from adw.hooks.git_diff import (
     capture_diff,
     capture_staged_diff,
     get_diff_stats,
     has_commits,
     truncate_diff,
-)
-from adw.commands.template import (
-    build_task_context,
-    validate_artifact_references,
 )
 from adw.models import (
     LLMResult,
@@ -38,6 +36,8 @@ from adw.models import (
     ResolvedCommand,
     RunContext,
 )
+from adw.models.command import CommandConfig
+from adw.models.config import PhaseConfig, ProjectConfig
 
 if TYPE_CHECKING:
     from adw.cli.progress import ProgressDisplay
@@ -317,7 +317,7 @@ class PhaseRunner:
         else:
             artifacts_map = self._build_artifacts_map(context.run_id, phase)
 
-        # Validate artifact references in template (ISS-017: using template module function)
+        # Validate artifact references in template (ISS-017: template module)
         # Raises ConfigError if strict_artifacts=True and artifact missing
         validate_artifact_references(
             prompt_template, artifacts_map, strict=self.strict_artifacts
@@ -325,7 +325,9 @@ class PhaseRunner:
 
         # Load and merge configs (ISS-016: per-phase config.yaml)
         # 1. Load command config from config.yaml (if exists)
-        command_config = self._load_command_config(command) if command.has_config else None
+        command_config = (
+            self._load_command_config(command) if command.has_config else None
+        )
 
         # 2. Get project phase config (if exists)
         project_phase_config = None
@@ -379,7 +381,7 @@ class PhaseRunner:
         else:
             variables["schema"] = ""  # Empty string if no schema defined
 
-        # ISS-017: Pass command_root and shared_root as parameters instead of mutating state
+        # ISS-017: Pass command_root and shared_root as params, not state
         # Render template with strict matching artifact mode:
         # - strict_artifacts=True: We validated artifacts, use strict=True for all vars
         # - strict_artifacts=False: Lenient mode, allow missing refs to pass through
@@ -509,7 +511,7 @@ class PhaseRunner:
             'docs/prd.md'
         """
         # Start with empty config
-        merged_data: dict = {}
+        merged_data: dict[str, Any] = {}
 
         # First, apply command defaults (if any)
         if command_config:
@@ -769,7 +771,7 @@ class PhaseRunner:
 
         # Set LLM output in environment for post-hook
         original_env = os.environ.get("ADW_LLM_OUTPUT")
-        # Get artifacts directory for this run/phase (already exists from artifact capture)
+        # Get artifacts dir for this run/phase (already exists from capture)
         artifacts_dir = (
             self.artifact_manager.runs_dir / context.run_id / "artifacts" / phase
         )

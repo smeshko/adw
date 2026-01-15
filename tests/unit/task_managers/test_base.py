@@ -5,8 +5,6 @@ Per ADR-001: Tests focus on Protocol compliance and required methods.
 
 from typing import Any
 
-import pytest
-
 from adw.task_managers.base import TaskManager
 
 

@@ -145,7 +145,7 @@ class LinearClient:
         Returns:
             The HTTP response from the API.
         """
-        payload = {"query": query}
+        payload: dict[str, Any] = {"query": query}
         if variables:
             payload["variables"] = variables
 
@@ -174,8 +174,8 @@ class LinearClient:
             )
             self._handle_response_errors(response, identifier)
 
-            data = response.json()
-            issue = data.get("data", {}).get("issue")
+            data: dict[str, Any] = response.json()
+            issue: dict[str, Any] | None = data.get("data", {}).get("issue")
             return issue
         except TaskError:
             raise
@@ -257,8 +257,8 @@ class LinearClient:
         )
         self._handle_response_errors(response, issue_id)
 
-        data = response.json()
-        result = data.get("data", {}).get("issueUpdate")
+        data: dict[str, Any] = response.json()
+        result: dict[str, Any] | None = data.get("data", {}).get("issueUpdate")
         if result and result.get("success"):
             return result
         return None
@@ -281,10 +281,11 @@ class LinearClient:
         )
         self._handle_response_errors(response, team_id)
 
-        data = response.json()
-        team = data.get("data", {}).get("team")
+        data: dict[str, Any] = response.json()
+        team: dict[str, Any] | None = data.get("data", {}).get("team")
         if team:
-            return team.get("states", {}).get("nodes", [])
+            states: list[dict[str, Any]] = team.get("states", {}).get("nodes", [])
+            return states
         return []
 
     def get_team_labels(self, team_id: str) -> list[dict[str, Any]]:
@@ -302,10 +303,11 @@ class LinearClient:
         )
         self._handle_response_errors(response, team_id)
 
-        data = response.json()
-        team = data.get("data", {}).get("team")
+        data: dict[str, Any] = response.json()
+        team: dict[str, Any] | None = data.get("data", {}).get("team")
         if team:
-            return team.get("labels", {}).get("nodes", [])
+            labels: list[dict[str, Any]] = team.get("labels", {}).get("nodes", [])
+            return labels
         return []
 
     def create_label(
@@ -327,12 +329,13 @@ class LinearClient:
         )
         self._handle_response_errors(response, team_id)
 
-        data = response.json()
-        result = data.get("data", {}).get("labelCreate")
+        data: dict[str, Any] = response.json()
+        result: dict[str, Any] | None = data.get("data", {}).get("labelCreate")
         if result and result.get("success"):
-            label = result.get("label")
+            label: dict[str, Any] | None = result.get("label")
             if label:
-                return label.get("id")
+                label_id: str | None = label.get("id")
+                return label_id
         return None
 
     def add_label_to_issue(self, issue_id: str, label_id: str) -> bool:

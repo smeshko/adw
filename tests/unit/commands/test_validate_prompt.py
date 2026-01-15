@@ -43,8 +43,8 @@ class TestValidatePromptStructure:
     def test_prompt_has_context_section(self, prompt_content: str) -> None:
         """Prompt should have a Context section with template variables."""
         assert "## Context" in prompt_content
-        assert "{{feature_description}}" in prompt_content
-        assert "{{git_diff}}" in prompt_content
+        assert "{{context}}" in prompt_content
+        assert "{{artifacts.build.diff}}" in prompt_content
         assert "{{project_config}}" in prompt_content
 
     def test_prompt_has_instructions_section(self, prompt_content: str) -> None:

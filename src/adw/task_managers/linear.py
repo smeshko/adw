@@ -144,7 +144,8 @@ class LinearTaskManager:
         if not issue_id or not identifier or not title:
             raise TaskError(
                 code="TASK_INVALID_RESPONSE",
-                message="Linear API response missing required fields (id, identifier, or title)",
+                message="Linear API response missing required fields "
+                "(id, identifier, or title)",
                 suggestion="Check if the Linear API schema has changed",
                 task_id=identifier or "unknown",
                 recoverable=False,
@@ -194,8 +195,8 @@ class LinearTaskManager:
 
         Args:
             task_id: The internal Linear issue UUID (from TaskInfo.id, NOT the
-                identifier like RULE-123). Use the UUID returned by fetch_task().
-            status: The ADW status to map to Linear state (e.g., "running", "completed").
+                identifier like RULE-123). Use the UUID from fetch_task().
+            status: The ADW status to map to Linear state (e.g., "running").
             metadata: Optional additional metadata (currently unused).
         """
         # Map ADW status to Linear state name
@@ -340,8 +341,9 @@ class LinearTaskManager:
         if not done_state_id:
             raise TaskError(
                 code="DONE_STATE_NOT_FOUND",
-                message="Could not find 'Done' or 'Completed' state in team workflow",
-                suggestion="Verify your Linear team has a 'Done' workflow state, or configure state_mapping in project.yaml",
+                message="Could not find 'Done' or 'Completed' state in workflow",
+                suggestion="Verify your Linear team has a 'Done' workflow state, "
+                "or configure state_mapping in project.yaml",
                 task_id=task_id,
                 recoverable=False,
             )

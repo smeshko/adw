@@ -8,7 +8,6 @@ from rich.console import Console
 from ulid import ULID
 
 from adw.cli.bootstrap import create_log_manager, create_orchestrator
-from adw.task_managers import InputResolver, InputType, TaskManagerFactory
 from adw.cli.dry_run import DryRunDisplay
 from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
@@ -22,7 +21,9 @@ from adw.cli.webhook import webhook_app
 from adw.commands.template import escape_feature_description
 from adw.config.loader import ConfigLoader
 from adw.exceptions import ADWError, ConfigError
+from adw.models.config import ProjectConfig
 from adw.models.logging import Verbosity
+from adw.task_managers import InputResolver, InputType, TaskManagerFactory
 
 console = Console()
 app = typer.Typer(
@@ -204,7 +205,6 @@ def run(
         raise typer.Exit(code=1)
 
     # Load config for task manager configuration (Story 12.8)
-    from adw.config.loader import ConfigLoader
 
     task_manager_config = None
     try:
@@ -254,7 +254,8 @@ def run(
             pass
         if not task_id:  # Auto-detected, not forced
             console.print(
-                "[dim]Tip:[/] Use --no-task-manager if you meant this as a feature description"
+                "[dim]Tip:[/] Use --no-task-manager if you meant this "
+                "as a feature description"
             )
     # Note: Feature strings don't need logging - that's the default expectation
 
@@ -276,10 +277,11 @@ def run(
 
     if dry_run:
         # Load config for dry-run preview (Story UX-FIX-ISS-002)
+        dry_run_config: ProjectConfig | None
         try:
-            config = ConfigLoader().load()
+            dry_run_config = ConfigLoader().load()
         except ConfigError:
-            config = None
+            dry_run_config = None
 
         # Determine runs directory for artifact lookup
         runs_dir = Path.cwd() / ".adw" / "runs"
@@ -290,7 +292,7 @@ def run(
             feature=feature,
             phase=phase,
             from_run=from_run,
-            config=config,
+            config=dry_run_config,
             runs_dir=runs_dir if runs_dir.exists() else None,
         )
         return

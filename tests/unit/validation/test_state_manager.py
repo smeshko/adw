@@ -8,8 +8,6 @@ Tests cover:
 
 from pathlib import Path
 
-import pytest
-
 from adw.validation.models import ValidationResult
 from adw.validation.state_manager import ValidationStateManager
 

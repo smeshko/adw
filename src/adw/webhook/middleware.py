@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -54,7 +54,7 @@ class WebhookLoggingMiddleware(BaseHTTPMiddleware):
         start_time = time.time()
 
         # Process the request
-        response = await call_next(request)
+        response: Response = await call_next(request)
 
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
@@ -112,7 +112,8 @@ class WebhookLoggingMiddleware(BaseHTTPMiddleware):
             # This integrates with ADW's LogManager when configured
             if webhook_metadata:
                 logger.info(
-                    "webhook request: %s %s provider=%s event=%s size=%d status=%d duration=%.2fms",
+                    "webhook: %s %s provider=%s event=%s size=%d "
+                    "status=%d duration=%.2fms",
                     log_data["method"],
                     log_data["path"],
                     log_data.get("provider"),

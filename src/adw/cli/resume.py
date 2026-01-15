@@ -94,7 +94,10 @@ def resume(
     # Check if resume info is valid
     if not resume_info.is_valid:
         # Use error metadata for consistent ADW error UX
-        error_title = f"[red]{resume_info.error_code}[/]" if resume_info.error_code else "[red]Cannot Resume[/]"
+        if resume_info.error_code:
+            error_title = f"[red]{resume_info.error_code}[/]"
+        else:
+            error_title = "[red]Cannot Resume[/]"
         error_body = f"[red]Error:[/] {resume_info.validation_error}"
         if resume_info.error_suggestion:
             error_body += f"\n\n[dim]Suggestion:[/] {resume_info.error_suggestion}"

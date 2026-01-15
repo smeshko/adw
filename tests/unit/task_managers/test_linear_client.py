@@ -339,14 +339,12 @@ class TestLinearClientAddLabelIntegration:
         # Mock add_label_to_issue to succeed
         with patch.object(
             client, "get_team_labels", return_value=[]
-        ) as mock_get_labels:
-            with patch.object(
-                client, "create_label", return_value="new-label-id"
-            ) as mock_create:
-                with patch.object(
-                    client, "add_label_to_issue", return_value=True
-                ) as mock_add:
-                    client.add_label("issue-uuid", "adw:running", "team-uuid")
+        ) as mock_get_labels, patch.object(
+            client, "create_label", return_value="new-label-id"
+        ) as mock_create, patch.object(
+            client, "add_label_to_issue", return_value=True
+        ) as mock_add:
+            client.add_label("issue-uuid", "adw:running", "team-uuid")
 
         mock_get_labels.assert_called_once_with("team-uuid")
         mock_create.assert_called_once()
@@ -361,14 +359,12 @@ class TestLinearClientAddLabelIntegration:
 
         with patch.object(
             client, "get_team_labels", return_value=existing_labels
-        ):
-            with patch.object(
-                client, "create_label"
-            ) as mock_create:
-                with patch.object(
-                    client, "add_label_to_issue", return_value=True
-                ) as mock_add:
-                    client.add_label("issue-uuid", "adw:running", "team-uuid")
+        ), patch.object(
+            client, "create_label"
+        ) as mock_create, patch.object(
+            client, "add_label_to_issue", return_value=True
+        ) as mock_add:
+            client.add_label("issue-uuid", "adw:running", "team-uuid")
 
         # create_label should NOT be called since label exists
         mock_create.assert_not_called()
@@ -382,14 +378,13 @@ class TestLinearClientAddLabelIntegration:
 
         with patch.object(
             client, "get_team_labels", return_value=existing_labels
-        ) as mock_get_labels:
-            with patch.object(
-                client, "add_label_to_issue", return_value=True
-            ):
-                # First call should populate cache
-                client.add_label("issue-1", "adw:running", "team-uuid")
-                # Second call should use cache
-                client.add_label("issue-2", "adw:running", "team-uuid")
+        ) as mock_get_labels, patch.object(
+            client, "add_label_to_issue", return_value=True
+        ):
+            # First call should populate cache
+            client.add_label("issue-1", "adw:running", "team-uuid")
+            # Second call should use cache
+            client.add_label("issue-2", "adw:running", "team-uuid")
 
         # get_team_labels should only be called once (cached)
         assert mock_get_labels.call_count == 1
@@ -406,11 +401,10 @@ class TestLinearClientRemoveLabelIntegration:
 
         with patch.object(
             client, "get_team_labels", return_value=existing_labels
-        ):
-            with patch.object(
-                client, "remove_label_from_issue", return_value=True
-            ) as mock_remove:
-                client.remove_label("issue-uuid", "adw:running", "team-uuid")
+        ), patch.object(
+            client, "remove_label_from_issue", return_value=True
+        ) as mock_remove:
+            client.remove_label("issue-uuid", "adw:running", "team-uuid")
 
         mock_remove.assert_called_once_with("issue-uuid", "label-to-remove")
 
@@ -421,12 +415,11 @@ class TestLinearClientRemoveLabelIntegration:
         # No labels exist
         with patch.object(
             client, "get_team_labels", return_value=[]
-        ):
-            with patch.object(
-                client, "remove_label_from_issue"
-            ) as mock_remove:
-                # Should not raise
-                client.remove_label("issue-uuid", "nonexistent:label", "team-uuid")
+        ), patch.object(
+            client, "remove_label_from_issue"
+        ) as mock_remove:
+            # Should not raise
+            client.remove_label("issue-uuid", "nonexistent:label", "team-uuid")
 
         # remove_label_from_issue should not be called
         mock_remove.assert_not_called()

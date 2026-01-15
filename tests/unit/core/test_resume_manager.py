@@ -21,7 +21,6 @@ from adw.core.run_lookup import RunLookup
 from adw.exceptions import ConfigError, StateError
 from adw.models import RunContext
 
-
 # Valid 26-character ULIDs for testing (Crockford Base32 - no I,L,O,U)
 SAMPLE_RUN_ID = "01HQTEST1234567890ABCDEF12"
 INTERRUPTED_RUN_ID = "01HQTEST789ABC000000001234"

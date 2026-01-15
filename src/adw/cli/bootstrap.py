@@ -26,6 +26,7 @@ from adw.core import (
 )
 from adw.core.phase_runner import PhaseRunner
 from adw.exceptions import ConfigError
+from adw.executors.base import LLMExecutor
 from adw.executors.claude_code import ClaudeCodeExecutor
 from adw.hooks.runner import HookRunner
 from adw.logging import LLMCaptureManager, LogManager, LogManagerHandler
@@ -243,6 +244,7 @@ def create_orchestrator(
 
     # Use MockExecutor in test mode to avoid hitting real Claude API
     # Set ADW_MOCK_EXECUTOR=1 to enable mock mode (used by tests)
+    llm_executor: LLMExecutor
     if os.environ.get("ADW_MOCK_EXECUTOR"):
         from adw.executors.mock import MockExecutor
 

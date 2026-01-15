@@ -1572,7 +1572,7 @@ class TestWorktreeNoAutoDelete:
         orchestrator._create_worktree_for_run = MagicMock(return_value=worktree_path)
 
         # Run single phase (signature: phase, feature_description)
-        context = orchestrator.run_single_phase("plan", "Test feature")
+        _ = orchestrator.run_single_phase("plan", "Test feature")
 
         # Verify console.print was called with specific worktree info
         print_calls = [str(c) for c in mock_console.print.call_args_list]

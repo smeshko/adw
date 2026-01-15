@@ -12,7 +12,6 @@ import pytest
 from adw.models import RunContext
 from adw.models.resume import ResumeInfo, ResumeStatus
 
-
 # Valid 26-character ULIDs for testing
 SAMPLE_RUN_ID = "01HQTEST1234567890ABCDEF12"
 

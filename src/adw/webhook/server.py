@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, AsyncGenerator, Callable
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from rich.console import Console
@@ -42,7 +43,7 @@ def _load_config_from_project() -> WebhookConfig:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Manage server startup and shutdown events.
 
     Displays Rich console output for server lifecycle events.

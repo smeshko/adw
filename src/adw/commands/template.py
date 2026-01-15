@@ -374,9 +374,13 @@ class TemplateEngine:
             ConfigError: If strict=True and an unknown variable is found,
                         or if a file inclusion target doesn't exist.
         """
-        # Use parameter overrides if provided, otherwise fall back to instance attributes
-        effective_command_root = command_root if command_root is not None else self.command_root
-        effective_shared_root = shared_root if shared_root is not None else self.shared_root
+        # Use parameter overrides if provided, else fall back to instance attrs
+        effective_command_root = (
+            command_root if command_root is not None else self.command_root
+        )
+        effective_shared_root = (
+            shared_root if shared_root is not None else self.shared_root
+        )
 
         # Convert Pydantic models to dict for variable lookup
         context_dict = self._normalize_context(context)
@@ -388,7 +392,9 @@ class TemplateEngine:
         result = self._process_includes(result, command_root=effective_command_root)
 
         # Process shared includes ({{shared:...}})
-        result = self._process_shared_inclusions(result, shared_root=effective_shared_root)
+        result = self._process_shared_inclusions(
+            result, shared_root=effective_shared_root
+        )
 
         # Process project file inclusions ({{file:...}})
         result = self._process_file_inclusions(result)
@@ -677,7 +683,8 @@ class TemplateEngine:
             raise ConfigError(
                 code="INCLUDE_NO_COMMAND_ROOT",
                 message="Cannot process {{include:...}} without command_root",
-                suggestion="Set command_root when initializing TemplateEngine or pass to render()",
+                suggestion="Set command_root when initializing TemplateEngine "
+                "or pass to render()",
             )
 
         def replace_include(match: re.Match[str]) -> str:
@@ -766,7 +773,8 @@ class TemplateEngine:
             raise ConfigError(
                 code="SHARED_NO_ROOT",
                 message="Cannot process {{shared:...}} without shared_root",
-                suggestion="Set shared_root when initializing TemplateEngine or pass to render()",
+                suggestion="Set shared_root when initializing TemplateEngine "
+                "or pass to render()",
             )
 
         def replace_shared(match: re.Match[str]) -> str:

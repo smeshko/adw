@@ -1309,7 +1309,6 @@ class TestConfigMerging:
     ) -> None:
         """Command config is used when project config is None."""
         from adw.models.command import CommandConfig
-        from adw.models.config import PhaseConfig
 
         runner = PhaseRunner(
             command_resolver=mock_command_resolver,
