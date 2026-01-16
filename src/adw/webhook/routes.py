@@ -135,9 +135,9 @@ async def receive_webhook(
         )
 
         # Trigger run asynchronously in background
-        from adw.webhook.runner import trigger_from_params
+        from adw.webhook.runner import trigger_from_params_async
 
-        trigger_result = trigger_from_params(run_params)
+        trigger_result = await trigger_from_params_async(run_params)
 
         if trigger_result.success:
             logger.info(

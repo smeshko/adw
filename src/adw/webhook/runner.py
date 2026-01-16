@@ -221,8 +221,9 @@ class WebhookRunTrigger:
     ) -> RunTriggerResult:
         """Run the ADW command as a subprocess.
 
-        Launches ADW in the background and captures initial output
-        to extract the run ID.
+        Launches ADW in the background without blocking on output.
+        The subprocess runs detached with stdout/stderr going to
+        DEVNULL to avoid pipe buffer deadlocks.
 
         Args:
             cmd: The command to execute.
@@ -241,49 +242,28 @@ class WebhookRunTrigger:
         )
 
         try:
-            # Start the subprocess - use Popen for background execution
-            # We use asyncio.to_thread to avoid blocking the event loop
+            # Start the subprocess in background with output discarded
+            # We redirect to DEVNULL to avoid pipe buffer deadlock:
+            # if we used PIPE but didn't drain it, the child would block
+            # once the ~64KB buffer fills, causing the run to hang
             process = await asyncio.to_thread(
                 subprocess.Popen,
                 cmd,
                 cwd=self._project_dir,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                # Detach from parent's process group so it continues
+                # running even if the webhook server restarts
+                start_new_session=True,
             )
 
-            # Try to read initial output to get run ID
-            # We read a few lines without blocking indefinitely
-            run_id: str | None = None
-
-            try:
-                # Set a short timeout to get initial output
-                # without blocking the webhook response
-                import select
-
-                if process.stdout:
-                    # Use select for non-blocking read on Unix
-                    # This may not work on Windows, so wrap in try/except
-                    readable, _, _ = select.select([process.stdout], [], [], 1.0)
-                    if readable:
-                        line = process.stdout.readline()
-                        # Look for run ID in output (format: "Run ID: 01HQXK...")
-                        if "Run ID:" in line or "run_id" in line.lower():
-                            # Extract run ID - it's a ULID (26 chars)
-                            import re
-
-                            match = re.search(r"([0-9A-Z]{26})", line)
-                            if match:
-                                run_id = match.group(1)
-
-            except Exception:
-                # Non-blocking read failed - that's okay
-                # The process is still running in background
-                pass
+            # Note: We can't capture the run_id from output anymore
+            # since we redirect to DEVNULL. The run_id can be looked up
+            # via `adw list-runs` or the ADW logs directory if needed.
 
             return RunTriggerResult(
                 success=True,
-                run_id=run_id,
+                run_id=None,  # Not available without reading output
                 process_id=process.pid,
             )
 
@@ -334,14 +314,46 @@ async def trigger_run_async(
     )
 
 
+async def trigger_from_params_async(
+    params: RunParams,
+    project_dir: Path | str | None = None,
+) -> RunTriggerResult:
+    """Trigger an ADW run from extracted RunParams asynchronously.
+
+    Convenience function to trigger a run using the RunParams model
+    extracted from a webhook event. This async version should be used
+    from within FastAPI route handlers or other async contexts.
+
+    Args:
+        params: The run parameters extracted from webhook event.
+        project_dir: Directory to run in (defaults to cwd).
+
+    Returns:
+        RunTriggerResult with trigger status.
+
+    Example:
+        >>> params = provider.extract_run_params(event)
+        >>> result = await trigger_from_params_async(params)
+    """
+    trigger = WebhookRunTrigger(project_dir=project_dir)
+    return await trigger.trigger_async(
+        feature_request=params.feature_request,
+        phases=params.phases,
+        source_info=params.source_info,
+        metadata=params.metadata,
+    )
+
+
 def trigger_from_params(
     params: RunParams,
     project_dir: Path | str | None = None,
 ) -> RunTriggerResult:
-    """Trigger an ADW run from extracted RunParams.
+    """Trigger an ADW run from extracted RunParams synchronously.
 
     Convenience function to trigger a run using the RunParams model
-    extracted from a webhook event.
+    extracted from a webhook event. This sync version should only be
+    used from synchronous code outside an event loop. For FastAPI
+    routes or async contexts, use trigger_from_params_async() instead.
 
     Args:
         params: The run parameters extracted from webhook event.

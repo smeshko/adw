@@ -32,10 +32,12 @@ EVENT_TYPE_NORMALIZATION: dict[str, dict[str, str]] = {
         "Comment.create": "comment_created",
     },
     "github": {
-        "issues.opened": "issue_created",
-        "issues.edited": "issue_updated",
-        "issues.labeled": "issue_updated",
-        "issue_comment.created": "comment_created",
+        # GitHub events use underscore format: {event}_{action}
+        # e.g., "issues" event with "opened" action becomes "issues_opened"
+        "issues_opened": "issue_created",
+        "issues_edited": "issue_updated",
+        "issues_labeled": "issue_updated",
+        "issue_comment_created": "comment_created",
     },
 }
 
