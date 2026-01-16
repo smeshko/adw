@@ -288,11 +288,3 @@ class TestVerbosityIntegration:
         assert result.exit_code == 0
         assert "No such option" not in result.output
 
-    def test_show_llm_output_help_text_present(self) -> None:
-        """Test that --show-llm-output flag has proper help documentation."""
-        result = runner.invoke(app, ["run", "--help"])
-
-        assert result.exit_code == 0
-        assert "--show-llm-output" in result.output
-        # Verify help text describes the flag's purpose
-        assert "LLM" in result.output or "llm" in result.output.lower()

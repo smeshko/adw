@@ -10,11 +10,53 @@
 
 """Tests for webhook server functionality."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 from fastapi.testclient import TestClient
 
-from adw.models.webhook import ProviderConfig, WebhookConfig
+from adw.models.webhook import ProviderConfig, RunParams, WebhookConfig, WebhookEvent
 from adw.webhook.server import app, create_app
+
+if TYPE_CHECKING:
+    from fastapi import Request
+
+
+class MockProvider:
+    """Mock provider for testing route integration."""
+
+    def __init__(
+        self,
+        name: str = "mock",
+        verify_result: bool = True,
+        should_trigger: bool = True,
+    ) -> None:
+        self._name = name
+        self._verify_result = verify_result
+        self._should_trigger = should_trigger
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def verify_signature(self, request: Request, body: bytes) -> bool:
+        return self._verify_result
+
+    def parse_event(self, request: Request, body: bytes) -> WebhookEvent:
+        return WebhookEvent(
+            event_type="test",
+            provider=self._name,
+            payload={"parsed": True},
+            headers={},
+        )
+
+    def should_trigger_run(self, event: WebhookEvent) -> bool:
+        return self._should_trigger
+
+    def extract_run_params(self, event: WebhookEvent) -> RunParams:
+        return RunParams(feature_request="Test feature")
 
 
 class TestHealthEndpoint:
@@ -85,6 +127,79 @@ class TestWebhookRoute:
         # Both should be valid UUIDs
         assert len(body_request_id) == 36
         assert len(header_request_id) == 36
+
+    def test_unknown_provider_404_lists_available_providers(self) -> None:
+        """404 response should list available providers when provider not found."""
+        from adw.webhook.providers.registry import ProviderRegistry
+
+        # Create registry with providers
+        registry = ProviderRegistry()
+        registry.register(MockProvider("linear"))
+        registry.register(MockProvider("github"))
+
+        config = WebhookConfig()
+        test_app = create_app(config=config, registry=registry)
+        client = TestClient(test_app)
+
+        response = client.post("/webhook/unknown", json={})
+        assert response.status_code == 404
+        detail = response.json()["detail"]
+        assert "unknown" in detail.lower()
+        assert "linear" in detail or "github" in detail
+
+    def test_provider_signature_verification_fails_returns_401(self) -> None:
+        """Route returns 401 when provider signature verification fails."""
+        from adw.webhook.providers.registry import ProviderRegistry
+
+        # Provider that fails verification
+        failing_provider = MockProvider("linear", verify_result=False)
+
+        registry = ProviderRegistry()
+        registry.register(failing_provider)
+
+        config = WebhookConfig(
+            providers={"linear": ProviderConfig(enabled=True)}
+        )
+        test_app = create_app(config=config, registry=registry)
+        client = TestClient(test_app)
+
+        response = client.post("/webhook/linear", json={"test": "data"})
+        assert response.status_code == 401
+        assert "signature" in response.json()["detail"].lower()
+
+    def test_provider_parses_event_successfully(self) -> None:
+        """Route uses provider to parse events when registered."""
+        from adw.webhook.providers.registry import ProviderRegistry
+
+        registry = ProviderRegistry()
+        registry.register(MockProvider("linear"))
+
+        config = WebhookConfig(
+            providers={"linear": ProviderConfig(enabled=True)}
+        )
+        test_app = create_app(config=config, registry=registry)
+        client = TestClient(test_app)
+
+        response = client.post("/webhook/linear", json={"test": "data"})
+        assert response.status_code == 202
+        # Event was parsed by provider (we know this passed if 202)
+
+    def test_provider_not_in_registry_uses_fallback(self) -> None:
+        """When provider is enabled but not in registry, uses fallback behavior."""
+        from adw.webhook.providers.registry import ProviderRegistry
+
+        # Empty registry - no providers registered
+        registry = ProviderRegistry()
+
+        config = WebhookConfig(
+            providers={"linear": ProviderConfig(enabled=True)}
+        )
+        test_app = create_app(config=config, registry=registry)
+        client = TestClient(test_app)
+
+        # Should still work (fallback to legacy behavior)
+        response = client.post("/webhook/linear", json={"test": "data"})
+        assert response.status_code == 202
 
 
 class TestRequestLogging:

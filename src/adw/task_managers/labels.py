@@ -190,9 +190,7 @@ class LabelManager:
         # Add completed label (isolated try/except)
         try:
             self._task_manager.add_label(self._task_id, completed_label)
-            logger.debug(
-                "Added label '%s' to task %s", completed_label, self._task_id
-            )
+            logger.debug("Added label '%s' to task %s", completed_label, self._task_id)
         except Exception as e:
             logger.warning(
                 "Failed to add completed label to task %s: %s",

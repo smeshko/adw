@@ -763,7 +763,9 @@ def logs_tools(
             args_str = json.dumps(entry.arguments, indent=None)
             if len(args_str) > 60:
                 args_str = args_str[:57] + "..."
-            table.add_row(timestamp, entry.tool_name, context, duration, status, args_str)
+            table.add_row(
+                timestamp, entry.tool_name, context, duration, status, args_str
+            )
         else:
             table.add_row(timestamp, entry.tool_name, context, duration, status)
 

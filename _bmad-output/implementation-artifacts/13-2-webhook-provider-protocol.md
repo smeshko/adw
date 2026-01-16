@@ -1,6 +1,6 @@
 # Story 13.2: Webhook Provider Protocol
 
-Status: ready-for-dev
+Status: Done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure
 Created: 2026-01-09
@@ -37,51 +37,51 @@ class WebhookProvider(Protocol):
 ## Tasks / Subtasks
 
 ### Task 1: Define Provider Protocol
-- [ ] Create `src/adw/webhook/providers/base.py` with `WebhookProvider` Protocol
-- [ ] Define `verify_signature()` method signature
-- [ ] Define `parse_event()` method signature
-- [ ] Define `should_trigger_run()` method signature
-- [ ] Define `extract_run_params()` method signature
-- [ ] Add comprehensive docstrings for each method
+- [x] Create `src/adw/webhook/providers/base.py` with `WebhookProvider` Protocol
+- [x] Define `verify_signature()` method signature
+- [x] Define `parse_event()` method signature
+- [x] Define `should_trigger_run()` method signature
+- [x] Define `extract_run_params()` method signature
+- [x] Add comprehensive docstrings for each method
 
 ### Task 2: Create Event Models
-- [ ] Create `WebhookEvent` model in `src/adw/models/webhook.py`
-- [ ] Include fields: event_type, provider, payload, headers, timestamp
-- [ ] Create `RunParams` model for extracted run parameters
-- [ ] Include fields: feature_request, phases, source_info, metadata
+- [x] Create `WebhookEvent` model in `src/adw/models/webhook.py`
+- [x] Include fields: event_type, provider, payload, headers, timestamp
+- [x] Create `RunParams` model for extracted run parameters
+- [x] Include fields: feature_request, phases, source_info, metadata
 
 ### Task 3: Implement Provider Registry
-- [ ] Create `src/adw/webhook/providers/registry.py`
-- [ ] Implement `ProviderRegistry` class with register/get methods
-- [ ] Support auto-discovery of enabled providers from config
-- [ ] Implement `list_providers()` for showing available providers
+- [x] Create `src/adw/webhook/providers/registry.py`
+- [x] Implement `ProviderRegistry` class with register/get methods
+- [x] Support auto-discovery of enabled providers from config
+- [x] Implement `list_providers()` for showing available providers
 
 ### Task 4: Update Server Routes
-- [ ] Modify `/webhook/{provider}` route to use provider registry
-- [ ] Return 404 with available providers when provider not found
-- [ ] Delegate signature verification to provider
-- [ ] Delegate event parsing to provider
-- [ ] Add error handling for provider method failures
+- [x] Modify `/webhook/{provider}` route to use provider registry
+- [x] Return 404 with available providers when provider not found
+- [x] Delegate signature verification to provider
+- [x] Delegate event parsing to provider
+- [x] Add error handling for provider method failures
 
 ### Task 5: Create Base Provider Implementation
-- [ ] Create `src/adw/webhook/providers/__init__.py`
-- [ ] Implement `BaseWebhookProvider` abstract class (optional helper)
-- [ ] Add common utilities (header parsing, logging)
-- [ ] Provide default implementations where sensible
+- [x] Create `src/adw/webhook/providers/__init__.py`
+- [x] Implement `BaseWebhookProvider` abstract class (optional helper)
+- [x] Add common utilities (header parsing, logging)
+- [x] Provide default implementations where sensible
 
 ### Task 6: Add Provider Loading
-- [ ] Load enabled providers from project.yaml on server start
-- [ ] Register providers in registry
-- [ ] Log which providers are available
-- [ ] Handle missing provider configuration gracefully
+- [x] Load enabled providers from project.yaml on server start
+- [x] Register providers in registry
+- [x] Log which providers are available
+- [x] Handle missing provider configuration gracefully
 
 ### Task 7: Write Tests
-- [ ] Create `tests/unit/webhook/providers/test_base.py`
-- [ ] Test protocol compliance checker
-- [ ] Create `tests/unit/webhook/providers/test_registry.py`
-- [ ] Test provider registration and retrieval
-- [ ] Test unknown provider handling
-- [ ] Test provider list endpoint
+- [x] Create `tests/unit/webhook/providers/test_base.py`
+- [x] Test protocol compliance checker
+- [x] Create `tests/unit/webhook/providers/test_registry.py`
+- [x] Test provider registration and retrieval
+- [x] Test unknown provider handling
+- [x] Test provider list endpoint
 
 ---
 
@@ -372,7 +372,38 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
+**Task 1 (2026-01-15):** Implemented WebhookProvider Protocol following existing LLMExecutor pattern from executors/base.py. Added @runtime_checkable decorator for isinstance() checks. Also added WebhookEvent and RunParams models to src/adw/models/webhook.py as they are needed by the Protocol type hints. All 3 protocol compliance tests pass.
+
+**Task 2 (2026-01-15):** Added validation tests for WebhookEvent and RunParams models following ADR-001 (no trivial tests). Tests verify required fields, validation errors, default values. 10 model tests pass.
+
+**Task 3 (2026-01-15):** Implemented ProviderRegistry class with register(), get(), and list_providers() methods. Follows registry pattern similar to existing command resolution pattern. All 6 registry tests pass.
+
+**Task 4 (2026-01-15):** Updated routes.py to use provider registry for routing. Added 404 with available providers list, 401 for signature failures, and legacy fallback for providers not yet in registry. server.py now accepts optional registry parameter. 8 route tests pass.
+
+**Task 5 (2026-01-15):** Added BaseWebhookProvider helper class with static utility methods: get_header() for header lookup and parse_json_body() for JSON parsing with error handling. 4 additional tests pass.
+
+**Task 6 (2026-01-15):** Implemented loader.py with load_providers_from_config() and register_provider_factory(). Providers can now be loaded from config and registered dynamically. Graceful handling when provider implementation not available. 5 loader tests pass.
+
+**Task 7 (2026-01-15):** All tests completed during Tasks 1-6. Total: 18 provider tests (test_base: 7, test_registry: 6, test_loader: 5) plus 8 updated route tests in test_server.py. All tests pass.
+
 ### File List
+
+**New Files:**
+- `src/adw/webhook/providers/__init__.py`
+- `src/adw/webhook/providers/base.py`
+- `tests/unit/webhook/providers/__init__.py`
+- `tests/unit/webhook/providers/test_base.py`
+
+**Modified Files:**
+- `src/adw/models/webhook.py` (added WebhookEvent, RunParams)
+- `src/adw/webhook/server.py` (added registry parameter)
+- `src/adw/webhook/routes.py` (updated to use provider registry)
+- `tests/unit/webhook/test_server.py` (added registry tests)
+- `tests/unit/models/test_webhook_events.py`
+- `src/adw/webhook/providers/registry.py`
+- `tests/unit/webhook/providers/test_registry.py`
+- `src/adw/webhook/providers/loader.py`
+- `tests/unit/webhook/providers/test_loader.py`
 
 ---
 

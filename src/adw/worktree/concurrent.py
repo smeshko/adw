@@ -47,9 +47,7 @@ class ActiveRun(BaseModel):
     pid: int = Field(description="Process ID of the running ADW instance")
     start_time: datetime = Field(description="When the run was started")
     worktree_path: Path = Field(description="Absolute path to the worktree directory")
-    backend_port: int | None = Field(
-        default=None, description="Allocated backend port"
-    )
+    backend_port: int | None = Field(default=None, description="Allocated backend port")
     frontend_port: int | None = Field(
         default=None, description="Allocated frontend port"
     )

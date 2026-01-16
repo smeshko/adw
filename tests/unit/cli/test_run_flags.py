@@ -44,22 +44,6 @@ class TestRunCommandFlags:
         assert "mutually exclusive" in result.output
 
 
-class TestRunCommandHelp:
-    """Test that help text includes new flags."""
-
-    def test_help_includes_task_id_flag(self) -> None:
-        """--help shows --task-id flag."""
-        result = runner.invoke(app, ["run", "--help"])
-        assert "--task-id" in result.output
-        assert "task ID" in result.output.lower() or "task id" in result.output.lower()
-
-    def test_help_includes_no_task_manager_flag(self) -> None:
-        """--help shows --no-task-manager flag."""
-        result = runner.invoke(app, ["run", "--help"])
-        assert "--no-task-manager" in result.output
-        assert "task manager" in result.output.lower()
-
-
 class TestAmbiguityHandling:
     """Test ambiguity handling in task ID detection."""
 

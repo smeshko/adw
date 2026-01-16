@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 if TYPE_CHECKING:
     from adw.webhook.config import WebhookConfig
+    from adw.webhook.providers.registry import ProviderRegistry
 
 router = APIRouter()
 
@@ -29,22 +30,91 @@ async def receive_webhook(
 ) -> JSONResponse:
     """Receive and process webhook from a provider.
 
-    This is a skeleton implementation that logs the request
-    and returns 404 for unknown providers. Provider-specific
-    handlers will be implemented in future stories.
+    Uses the provider registry to route requests to the appropriate
+    provider implementation for signature verification and event parsing.
+    Falls back to legacy behavior when provider is not in registry.
     """
-    # Get config from app state
+    # Get config and registry from app state
     config: WebhookConfig = request.app.state.webhook_config
+    registry: ProviderRegistry = request.app.state.provider_registry
 
-    # Check if provider is configured and enabled
-    if not config.is_provider_enabled(provider):
+    # Get provider implementation from registry
+    provider_impl = registry.get(provider)
+
+    # Check if provider is in registry
+    if provider_impl is None:
+        # Provider not in registry - check if it's enabled in config
+        if not config.is_provider_enabled(provider):
+            # Return 404 with list of available providers
+            available = registry.list_providers()
+            if available:
+                available_str = ", ".join(sorted(available))
+                detail = (
+                    f"Provider '{provider}' not found. "
+                    f"Available providers: {available_str}"
+                )
+            else:
+                detail = f"Provider '{provider}' is not configured or not enabled"
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=detail,
+            )
+        # Provider enabled in config but not in registry - use legacy fallback
+        return await _legacy_webhook_handler(provider, request)
+
+    # Provider found in registry - use provider implementation
+    # Reuse request ID from middleware for consistent tracing
+    request_id = getattr(request.state, "request_id", None) or str(uuid.uuid4())
+
+    # Get request body (needed for both signature verification and parsing)
+    body = await request.body()
+
+    # Verify signature using provider
+    if not provider_impl.verify_signature(request, body):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Provider '{provider}' is not configured or not enabled",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid webhook signature",
         )
 
+    # Parse event using provider
+    try:
+        event = provider_impl.parse_event(request, body)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid webhook payload: {e}",
+        ) from e
+
+    # Store metadata for logging middleware
+    request.state.webhook_metadata = {
+        "request_id": request_id,
+        "provider": provider,
+        "event_type": event.event_type,
+        "payload_size": len(body),
+        "timestamp": time.time(),
+    }
+
+    # Return acknowledgment
+    # Future stories will add actual event processing and trigger logic
+    return JSONResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        content={
+            "status": "received",
+            "request_id": request_id,
+        },
+    )
+
+
+async def _legacy_webhook_handler(
+    provider: str,
+    request: Request,
+) -> JSONResponse:
+    """Legacy webhook handler for providers not in registry.
+
+    This preserves backward compatibility for providers that are
+    enabled in config but don't have a registry implementation yet.
+    """
     # Reuse request ID from middleware for consistent tracing
-    # Falls back to new UUID if middleware hasn't set one
     request_id = getattr(request.state, "request_id", None) or str(uuid.uuid4())
 
     # Get request body
@@ -53,8 +123,7 @@ async def receive_webhook(
     # Get event type from headers (provider-specific)
     event_type = _get_event_type(provider, request.headers)
 
-    # Log the webhook (using structured logging in Step 6)
-    # For now, store metadata for logging middleware
+    # Store metadata for logging middleware
     request.state.webhook_metadata = {
         "request_id": request_id,
         "provider": provider,
@@ -64,7 +133,6 @@ async def receive_webhook(
     }
 
     # Return acknowledgment
-    # Future stories will add actual event processing
     return JSONResponse(
         status_code=status.HTTP_202_ACCEPTED,
         content={
