@@ -288,9 +288,10 @@ class TestEventTypeNormalization:
             ("linear", "Issue.create", "issue_created"),
             ("linear", "Issue.update", "issue_updated"),
             ("linear", "Comment.create", "comment_created"),
-            ("github", "issues.opened", "issue_created"),
-            ("github", "issues.edited", "issue_updated"),
-            ("github", "issue_comment.created", "comment_created"),
+            # GitHub events use underscore format: {event}_{action}
+            ("github", "issues_opened", "issue_created"),
+            ("github", "issues_edited", "issue_updated"),
+            ("github", "issue_comment_created", "comment_created"),
         ],
     )
     def test_normalization_mapping_exists(

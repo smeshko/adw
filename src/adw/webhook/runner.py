@@ -141,17 +141,21 @@ class WebhookRunTrigger:
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, RuntimeError) as e:
+            # OSError: subprocess/file operation errors
+            # ValueError: invalid input or configuration
+            # RuntimeError: asyncio or event loop issues
             logger.exception(
                 "Exception while triggering ADW run",
                 extra={
                     "correlation_id": correlation_id,
                     "error": str(e),
+                    "error_type": type(e).__name__,
                 },
             )
             return RunTriggerResult(
                 success=False,
-                error=f"Exception: {e}",
+                error=f"{type(e).__name__}: {e}",
             )
 
     def trigger_sync(
@@ -193,21 +197,30 @@ class WebhookRunTrigger:
 
         Args:
             feature_request: The feature to implement.
-            phases: Optional phases to run.
+            phases: Optional phases to run. If multiple phases are specified,
+                   only the first phase is used (CLI limitation).
 
         Returns:
             Command as list of strings for subprocess.
         """
         cmd = [self._adw_command, "run"]
 
-        # Add phase flags if specified
+        # Add phase flag if specified
         if phases:
-            # Multiple phases means we run them all
-            # For single phase, use --phase flag
             if len(phases) == 1:
                 cmd.extend(["--phase", phases[0]])
-            # For multiple phases, run full pipeline
-            # (ADW will run all phases anyway)
+            else:
+                # CLI only supports single --phase flag
+                # Use first phase and log warning about limitation
+                logger.warning(
+                    "Multiple phases specified but CLI only supports single phase; "
+                    "using first phase only",
+                    extra={
+                        "requested_phases": phases,
+                        "selected_phase": phases[0],
+                    },
+                )
+                cmd.extend(["--phase", phases[0]])
 
         # Add the feature request (quoted for shell safety)
         cmd.append(feature_request)
