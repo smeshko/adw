@@ -29,7 +29,9 @@ class MockProvider:
         return True
 
     def parse_event(self, request: Request, body: bytes) -> WebhookEvent:
-        return WebhookEvent(event_type="test", provider=self._name, payload={}, headers={})
+        return WebhookEvent(
+            event_type="test", provider=self._name, payload={}, headers={}
+        )
 
     def should_trigger_run(self, event: WebhookEvent) -> bool:
         return True

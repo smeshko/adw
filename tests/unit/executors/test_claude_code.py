@@ -1094,7 +1094,11 @@ class TestFinalOutputParsing:
                     "message": {
                         "content": [
                             {"type": "text", "text": "Let me think about this..."},
-                            {"type": "tool_use", "name": "Read", "input": {"path": "/a"}},
+                            {
+                                "type": "tool_use",
+                                "name": "Read",
+                                "input": {"path": "/a"},
+                            },
                         ]
                     },
                 }
@@ -1122,18 +1126,14 @@ class TestFinalOutputParsing:
         assert parsed["final_output"] == "Here is the final result."
         assert "Let me think about this..." not in parsed["final_output"]
 
-    def test_final_output_single_message(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
+    def test_final_output_single_message(self, executor: ClaudeCodeExecutor) -> None:
         """final_output should work with single message."""
         import json
 
         raw_output = json.dumps(
             {
                 "type": "assistant",
-                "message": {
-                    "content": [{"type": "text", "text": "Single response"}]
-                },
+                "message": {"content": [{"type": "text", "text": "Single response"}]},
             }
         )
         parsed = executor._parse_output(raw_output)
@@ -1161,9 +1161,7 @@ class TestFinalOutputParsing:
             json.dumps(
                 {
                     "type": "assistant",
-                    "message": {
-                        "content": [{"type": "text", "text": "First message"}]
-                    },
+                    "message": {"content": [{"type": "text", "text": "First message"}]},
                 }
             ),
             # Last message with multiple text blocks
@@ -1218,32 +1216,47 @@ class TestFinalOutputParsing:
         import json
 
         # Simulate subprocess output with two assistant messages
-        subprocess_output = "\n".join([
-            # First assistant message (intermediate)
-            json.dumps({
-                "type": "assistant",
-                "message": {
-                    "content": [
-                        {"type": "text", "text": "Let me analyze this..."},
-                        {"type": "tool_use", "name": "Read", "input": {"path": "/x"}},
-                    ]
-                },
-            }),
-            # Second assistant message (final)
-            json.dumps({
-                "type": "assistant",
-                "message": {
-                    "content": [
-                        {"type": "text", "text": "The implementation is correct."},
-                    ]
-                },
-            }),
-            # Result with token counts
-            json.dumps({
-                "type": "result",
-                "usage": {"input_tokens": 100, "output_tokens": 50},
-            }),
-        ])
+        subprocess_output = "\n".join(
+            [
+                # First assistant message (intermediate)
+                json.dumps(
+                    {
+                        "type": "assistant",
+                        "message": {
+                            "content": [
+                                {"type": "text", "text": "Let me analyze this..."},
+                                {
+                                    "type": "tool_use",
+                                    "name": "Read",
+                                    "input": {"path": "/x"},
+                                },
+                            ]
+                        },
+                    }
+                ),
+                # Second assistant message (final)
+                json.dumps(
+                    {
+                        "type": "assistant",
+                        "message": {
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": "The implementation is correct.",
+                                },
+                            ]
+                        },
+                    }
+                ),
+                # Result with token counts
+                json.dumps(
+                    {
+                        "type": "result",
+                        "usage": {"input_tokens": 100, "output_tokens": 50},
+                    }
+                ),
+            ]
+        )
 
         with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
             # Create mock process that returns our multi-message output
@@ -2182,9 +2195,7 @@ class TestWorktreeWorkingDirectory:
         config = LLMConfig(path="claude")
         return ClaudeCodeExecutor(config)
 
-    def test_execute_accepts_cwd_parameter(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
+    def test_execute_accepts_cwd_parameter(self, executor: ClaudeCodeExecutor) -> None:
         """execute() should accept optional cwd parameter."""
         from pathlib import Path
 
@@ -2272,9 +2283,7 @@ class TestWorktreeWorkingDirectory:
             # cwd should either not be in kwargs or be None
             assert call_kwargs.get("cwd") is None
 
-    def test_execute_with_none_cwd(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
+    def test_execute_with_none_cwd(self, executor: ClaudeCodeExecutor) -> None:
         """execute() with cwd=None should behave like legacy mode."""
         with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
             process = AsyncMock()

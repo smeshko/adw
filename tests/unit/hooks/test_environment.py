@@ -227,9 +227,7 @@ class TestPortsEnvAutoSourcing:
     ) -> None:
         """Test that .ports.env variables are auto-sourced into environment."""
         ports_file = tmp_path / ".ports.env"
-        ports_file.write_text(
-            "BACKEND_PORT=9100\nFRONTEND_PORT=9200\nADW_SLOT=0\n"
-        )
+        ports_file.write_text("BACKEND_PORT=9100\nFRONTEND_PORT=9200\nADW_SLOT=0\n")
 
         env = build_hook_environment(run_context, "plan", ports_file=ports_file)
 

@@ -68,9 +68,7 @@ class TestTaskIdFlagVariants:
 
     def test_task_id_with_feature_like_input(self) -> None:
         """--task-id with feature-like input shows appropriate error."""
-        result = runner.invoke(
-            app, ["run", "Add user authentication", "--task-id"]
-        )
+        result = runner.invoke(app, ["run", "Add user authentication", "--task-id"])
         assert result.exit_code == 1
         assert "does not match" in result.output
 
@@ -92,9 +90,7 @@ class TestIntegrationFlow:
 
     def test_auto_detect_feature_string(self) -> None:
         """Feature description auto-detected as feature string."""
-        result = runner.invoke(
-            app, ["run", "Add login page with OAuth", "--dry-run"]
-        )
+        result = runner.invoke(app, ["run", "Add login page with OAuth", "--dry-run"])
         # Should not mention task ID - NullTaskManager doesn't match anything
         assert "Resolved as task ID" not in result.output
         # Should proceed to dry-run output (or other expected output)
@@ -122,9 +118,7 @@ class TestTaskIdSuccessPath:
         mock_manager.name = "mock"
 
         # Patch the factory to return our mock manager
-        with patch(
-            "adw.cli.app.TaskManagerFactory"
-        ) as mock_factory_cls:
+        with patch("adw.cli.app.TaskManagerFactory") as mock_factory_cls:
             mock_factory = Mock()
             mock_factory.create.return_value = mock_manager
             mock_factory_cls.return_value = mock_factory
@@ -143,9 +137,7 @@ class TestTaskIdSuccessPath:
         mock_manager.resolve_task_id.return_value = "PROJ-456"
         mock_manager.name = "mock"
 
-        with patch(
-            "adw.cli.app.TaskManagerFactory"
-        ) as mock_factory_cls:
+        with patch("adw.cli.app.TaskManagerFactory") as mock_factory_cls:
             mock_factory = Mock()
             mock_factory.create.return_value = mock_manager
             mock_factory_cls.return_value = mock_factory
@@ -165,9 +157,7 @@ class TestTaskIdSuccessPath:
         mock_manager.resolve_task_id.return_value = "RULE-123"
         mock_manager.name = "mock"
 
-        with patch(
-            "adw.cli.app.TaskManagerFactory"
-        ) as mock_factory_cls:
+        with patch("adw.cli.app.TaskManagerFactory") as mock_factory_cls:
             mock_factory = Mock()
             mock_factory.create.return_value = mock_manager
             mock_factory_cls.return_value = mock_factory

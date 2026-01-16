@@ -669,7 +669,9 @@ class TestBuildTaskContext:
                 priority=priority,
             )
             result = build_task_context(task)
-            assert result["priority_label"] == expected_label, f"Priority {priority} should map to {expected_label}"
+            assert result["priority_label"] == expected_label, (
+                f"Priority {priority} should map to {expected_label}"
+            )
 
     def test_build_task_context_handles_none_fields(self) -> None:
         """build_task_context handles None/missing optional fields as empty strings."""
@@ -731,7 +733,9 @@ class TestTaskContextTemplateRendering:
         )
 
         variables = {"task": build_task_context(task)}
-        template = "Task: {{task.identifier}} - {{task.title}} ({{task.priority_label}})"
+        template = (
+            "Task: {{task.identifier}} - {{task.title}} ({{task.priority_label}})"
+        )
 
         result = engine.render(template, variables)
         assert result == "Task: RULE-456 - Fix bug (High)"
@@ -806,7 +810,9 @@ class TestTaskContextTemplateRendering:
         result = engine.render(template, variables)
         assert result == "Sprint: , Team: "
 
-    def test_graceful_degradation_nested_custom_fields_with_no_task_context(self) -> None:
+    def test_graceful_degradation_nested_custom_fields_with_no_task_context(
+        self,
+    ) -> None:
         """Nested custom task fields should render as empty strings when task_info is None."""
         from adw.commands.template import build_task_context
 
@@ -944,7 +950,9 @@ class TestRenderWithRootParameters:
 
         assert result == "Common: Shared Content"
 
-    def test_render_parameters_override_instance_attributes(self, tmp_path: Path) -> None:
+    def test_render_parameters_override_instance_attributes(
+        self, tmp_path: Path
+    ) -> None:
         """render() parameters should override instance command_root/shared_root."""
         # Create two different command directories with different content
         default_dir = tmp_path / "default"
@@ -1041,7 +1049,9 @@ class TestValidateArtifactReferences:
         from adw.commands.template import validate_artifact_references
 
         template = "All artifacts: {{artifacts.plan.*}}"
-        artifacts_map: dict[str, dict[str, str]] = {}  # Empty, but wildcard should be skipped
+        artifacts_map: dict[
+            str, dict[str, str]
+        ] = {}  # Empty, but wildcard should be skipped
 
         # Should not raise even with empty artifacts
         missing = validate_artifact_references(template, artifacts_map, strict=True)

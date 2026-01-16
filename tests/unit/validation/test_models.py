@@ -197,9 +197,9 @@ class TestValidationResultSchema:
 
         for field in expected_fields:
             assert field in properties, f"Missing field: {field}"
-            assert (
-                "description" in properties[field]
-            ), f"No description for field: {field}"
+            assert "description" in properties[field], (
+                f"No description for field: {field}"
+            )
 
     def test_required_fields_specified(self) -> None:
         """Schema specifies required fields correctly."""

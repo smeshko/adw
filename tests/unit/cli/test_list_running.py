@@ -37,7 +37,9 @@ class TestListRunningCommand:
     """Tests for the list --running command."""
 
     @pytest.fixture
-    def manager(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> ConcurrentRunManager:
+    def manager(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> ConcurrentRunManager:
         """Create a ConcurrentRunManager with mocked cwd."""
         # Mock Path.cwd() to return tmp_path
         monkeypatch.setattr(Path, "cwd", lambda: tmp_path)

@@ -40,9 +40,7 @@ class TestPhaseConfigInputFiles:
 
     def test_input_files_with_nested_paths(self) -> None:
         """PhaseConfig accepts input_files with deeply nested paths."""
-        config = PhaseConfig(
-            input_files={"spec": "docs/specs/api/v2/openapi.yaml"}
-        )
+        config = PhaseConfig(input_files={"spec": "docs/specs/api/v2/openapi.yaml"})
         assert config.input_files["spec"] == "docs/specs/api/v2/openapi.yaml"
 
     def test_input_files_in_yaml_parsing(self) -> None:

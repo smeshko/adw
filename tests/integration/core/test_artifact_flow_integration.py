@@ -56,7 +56,9 @@ class TestArtifactContentIntegrity:
         )
 
         # Retrieve and verify content preserved
-        retrieved = integration_artifact_manager.get(run_id, "validate", "evidence.json")
+        retrieved = integration_artifact_manager.get(
+            run_id, "validate", "evidence.json"
+        )
         assert retrieved == json_content
         assert isinstance(retrieved, str)
 

@@ -1182,9 +1182,7 @@ class TestInputFilesTemplateIntegration:
         project_config = ProjectConfig(
             name="test-project",
             language="python",
-            phases={
-                "plan": PhaseConfig(input_files={"prd": "docs/prd.md"})
-            },
+            phases={"plan": PhaseConfig(input_files={"prd": "docs/prd.md"})},
         )
 
         # Update context to use tmp_path as worktree

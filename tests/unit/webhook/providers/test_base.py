@@ -128,6 +128,6 @@ class TestBaseWebhookProvider:
         from adw.webhook.providers.base import BaseWebhookProvider
 
         # JSON array should be rejected
-        body = b'[1, 2, 3]'
+        body = b"[1, 2, 3]"
         with pytest.raises(ValueError, match="must be an object"):
             BaseWebhookProvider.parse_json_body(body)

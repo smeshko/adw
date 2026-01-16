@@ -867,7 +867,9 @@ class TestTransitionPerformance:
                 for call in mock_logger.info.call_args_list
                 if "Phase completed" in str(call)
             ]
-            assert len(completed_calls) == 4  # One per phase (plan, build, validate, document)
+            assert (
+                len(completed_calls) == 4
+            )  # One per phase (plan, build, validate, document)
 
     def test_slow_transition_logs_debug(
         self,
@@ -1963,7 +1965,8 @@ class TestStatusSyncServiceIntegration:
 
         # Verify the phases were correct
         call_args = [
-            call[0][1] for call in mock_status_sync_service.sync_phase_start.call_args_list
+            call[0][1]
+            for call in mock_status_sync_service.sync_phase_start.call_args_list
         ]
         assert call_args == list(PHASE_SEQUENCE)
 
@@ -2091,9 +2094,7 @@ class TestStatusSyncServiceIntegration:
         worktree_config = WorktreeConfig(enabled=False)
 
         # Make sync service throw errors (these should be caught internally)
-        mock_status_sync_service.sync_phase_start.side_effect = Exception(
-            "API Error"
-        )
+        mock_status_sync_service.sync_phase_start.side_effect = Exception("API Error")
 
         orchestrator = Orchestrator(
             runs_dir=runs_dir,

@@ -59,7 +59,9 @@ class TestBranchExists:
         )
         readme = tmp_path / "README.md"
         readme.write_text("# Test")
-        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "add", "."], cwd=tmp_path, check=True, capture_output=True
+        )
         subprocess.run(
             ["git", "commit", "-m", "Initial commit"],
             cwd=tmp_path,
@@ -128,7 +130,9 @@ class TestBranchCreation:
         )
         readme = tmp_path / "README.md"
         readme.write_text("# Test")
-        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "add", "."], cwd=tmp_path, check=True, capture_output=True
+        )
         subprocess.run(
             ["git", "commit", "-m", "Initial commit"],
             cwd=tmp_path,
@@ -169,7 +173,9 @@ class TestBranchCreation:
             capture_output=True,
         )
         (git_repo / "feature.txt").write_text("feature content")
-        subprocess.run(["git", "add", "."], cwd=git_repo, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "add", "."], cwd=git_repo, check=True, capture_output=True
+        )
         subprocess.run(
             ["git", "commit", "-m", "Add feature"],
             cwd=git_repo,
@@ -258,7 +264,9 @@ class TestBranchDeletion:
         )
         readme = tmp_path / "README.md"
         readme.write_text("# Test")
-        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "add", "."], cwd=tmp_path, check=True, capture_output=True
+        )
         subprocess.run(
             ["git", "commit", "-m", "Initial commit"],
             cwd=tmp_path,

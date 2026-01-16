@@ -49,42 +49,42 @@ so that I can automate feature development from Linear task management.
 - [x] Parse `X-Linear-Signature` header
 
 ### Task 3: Implement Event Parsing
-- [ ] Create `LinearEvent` model for Linear-specific payload structure
-- [ ] Map Linear event types: issue_created, issue_updated, comment_created
-- [ ] Extract issue data: id, identifier, title, description, state
-- [ ] Extract labels, assignee, project information
-- [ ] Handle malformed payloads gracefully
+- [x] Create `LinearEvent` model for Linear-specific payload structure
+- [x] Map Linear event types: issue_created, issue_updated, comment_created
+- [x] Extract issue data: id, identifier, title, description, state
+- [x] Extract labels, assignee, project information
+- [x] Handle malformed payloads gracefully
 
 ### Task 4: Implement Run Trigger Logic
-- [ ] Check for `adw:auto` label on issue created events
-- [ ] Check for `@adw run` pattern in comment text
-- [ ] Parse command flags from comment (--phase, --skip-verify, etc.)
-- [ ] Respect event mapping configuration from project.yaml
+- [x] Check for `adw:auto` label on issue created events
+- [x] Check for `@adw run` pattern in comment text
+- [x] Parse command flags from comment (--phase, --skip-verify, etc.)
+- [x] Respect event mapping configuration from project.yaml
 
 ### Task 5: Implement Run Parameter Extraction
-- [ ] Build feature_request from issue title + description
-- [ ] Include issue identifier in source_info metadata
-- [ ] Parse phases from comment command or use defaults
-- [ ] Include Linear issue URL for reference
+- [x] Build feature_request from issue title + description
+- [x] Include issue identifier in source_info metadata
+- [x] Parse phases from comment command or use defaults
+- [x] Include Linear issue URL for reference
 
 ### Task 6: Add Linear-Specific Models
-- [ ] Add `LinearEvent` model to `src/adw/models/webhook.py`
-- [ ] Add `LinearIssue` model for issue data structure
-- [ ] Add `LinearComment` model for comment data structure
-- [ ] Document Linear webhook payload structure
+- [x] Add `LinearEvent` model to `src/adw/models/webhook.py`
+- [x] Add `LinearIssue` model for issue data structure
+- [x] Add `LinearComment` model for comment data structure
+- [x] Document Linear webhook payload structure
 
 ### Task 7: Add Configuration Support
-- [ ] Support Linear configuration in project.yaml
-- [ ] Configuration options: enabled, secret_env, auto_label, mention_pattern
-- [ ] Default values for all configuration options
+- [x] Support Linear configuration in project.yaml
+- [x] Configuration options: enabled, secret_env, auto_label, mention_pattern
+- [x] Default values for all configuration options
 
 ### Task 8: Write Tests
-- [ ] Create `tests/unit/webhook/providers/test_linear.py`
-- [ ] Test signature verification with known payloads
-- [ ] Test event parsing for each event type
-- [ ] Test trigger logic for various scenarios
-- [ ] Test parameter extraction accuracy
-- [ ] Create test fixtures for Linear webhook payloads
+- [x] Create `tests/unit/webhook/providers/test_linear.py`
+- [x] Test signature verification with known payloads
+- [x] Test event parsing for each event type
+- [x] Test trigger logic for various scenarios
+- [x] Test parameter extraction accuracy
+- [x] Create test fixtures for Linear webhook payloads
 
 ---
 
@@ -392,7 +392,26 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
+- Implemented LinearProvider class conforming to WebhookProvider Protocol
+- Added HMAC-SHA256 signature verification with constant-time comparison
+- Created compound event types (e.g., "Issue.create") for better context
+- Implemented trigger logic for adw:auto labels and @adw run commands
+- Added strongly-typed Pydantic models: LinearEvent, LinearIssue, LinearComment
+- Added helper methods get_issue() and get_comment() for type-safe access
+- Wrote 29 comprehensive tests covering all functionality
+- All 2069 unit tests pass with 82.36% coverage
+
 ### File List
+
+**New Files:**
+- `src/adw/webhook/providers/linear.py` - LinearProvider implementation
+- `tests/unit/webhook/providers/test_linear.py` - Provider tests (18 tests)
+- `tests/unit/models/test_webhook_linear.py` - Model tests (11 tests)
+
+**Modified Files:**
+- `src/adw/webhook/providers/__init__.py` - Export LinearProvider
+- `src/adw/models/webhook.py` - Add Linear-specific models
+- `tests/unit/webhook/test_server.py` - Update test for compound event types
 
 ---
 

@@ -590,7 +590,10 @@ class TestArtifactPathsRunContextIntegration:
         )
 
         # Assert - paths are correctly stored in context
-        assert context.artifacts == {"build": ["diff.txt"], "validate": ["evidence.json"]}
+        assert context.artifacts == {
+            "build": ["diff.txt"],
+            "validate": ["evidence.json"],
+        }
 
     def test_artifact_paths_serializable_in_context(
         self,

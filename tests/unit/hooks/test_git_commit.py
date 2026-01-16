@@ -313,11 +313,14 @@ class TestCreateCommit:
                 MagicMock(returncode=0, stdout=""),  # commit
                 MagicMock(returncode=0, stdout="abc123def456\n"),  # rev-parse HEAD
             ]
-            with patch(
-                "adw.hooks.git_commit.has_staged_changes", return_value=True
-            ) as mock_has_staged, patch(
-                "adw.hooks.git_commit.get_unstaged_modifications", return_value=[]
-            ) as mock_unstaged:
+            with (
+                patch(
+                    "adw.hooks.git_commit.has_staged_changes", return_value=True
+                ) as mock_has_staged,
+                patch(
+                    "adw.hooks.git_commit.get_unstaged_modifications", return_value=[]
+                ) as mock_unstaged,
+            ):
                 result = create_commit(
                     phase="build",
                     feature="Add auth",
