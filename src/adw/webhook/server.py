@@ -11,6 +11,7 @@ from rich.console import Console
 
 from adw.webhook.config import WebhookConfig
 from adw.webhook.middleware import WebhookLoggingMiddleware
+
 # Import providers package to trigger factory registration via __init__.py
 # This ensures LinearProvider and other providers are registered before loading
 from adw.webhook.providers import load_providers_from_config

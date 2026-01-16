@@ -247,10 +247,7 @@ class LinearProvider:
         title = issue_data.get("title", "")
         description = issue_data.get("description") or ""
 
-        if description:
-            feature_request = f"{title}\n\n{description}"
-        else:
-            feature_request = title
+        feature_request = f"{title}\n\n{description}" if description else title
 
         # Extract metadata
         issue_id = issue_data.get("id", "")
@@ -297,10 +294,7 @@ class LinearProvider:
             True if adw:auto label is present.
         """
         labels = data.get("labels", [])
-        for label in labels:
-            if label.get("name") == self._auto_label:
-                return True
-        return False
+        return any(label.get("name") == self._auto_label for label in labels)
 
     def _has_adw_command(self, data: dict[str, Any]) -> bool:
         """Check if comment contains @adw run command.
