@@ -57,11 +57,11 @@ webhook:
 - [x] Load mappings from project.yaml on server start
 
 ### Task 3: Implement Event Evaluation
-- [ ] Create `evaluate_event()` method in EventMapper
-- [ ] Check if event type has mapping configured
-- [ ] Evaluate require_label condition
-- [ ] Evaluate require_mention condition
-- [ ] Return whether event should trigger and with what parameters
+- [x] Create `evaluate_event()` method in EventMapper
+- [x] Check if event type has mapping configured
+- [x] Evaluate require_label condition
+- [x] Evaluate require_mention condition
+- [x] Return whether event should trigger and with what parameters
 
 ### Task 4: Implement Async Run Triggering
 - [ ] Create `src/adw/webhook/runner.py` for run triggering logic
