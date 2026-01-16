@@ -203,32 +203,36 @@ class EventMapper:
             MappingEvaluationResult with decision and reasoning.
         """
         # Check require_label condition
-        if config.require_label is not None:
-            if not self._has_label(event, config.require_label):
-                logger.debug(
-                    "Label requirement not met",
-                    extra={
-                        "required_label": config.require_label,
-                    },
-                )
-                return MappingEvaluationResult(
-                    should_trigger=False,
-                    reason=f"Missing required label '{config.require_label}'",
-                )
+        if (
+            config.require_label is not None
+            and not self._has_label(event, config.require_label)
+        ):
+            logger.debug(
+                "Label requirement not met",
+                extra={
+                    "required_label": config.require_label,
+                },
+            )
+            return MappingEvaluationResult(
+                should_trigger=False,
+                reason=f"Missing required label '{config.require_label}'",
+            )
 
         # Check require_mention condition
-        if config.require_mention is not None:
-            if not self._has_mention(event, config.require_mention):
-                logger.debug(
-                    "Mention requirement not met",
-                    extra={
-                        "required_mention": config.require_mention,
-                    },
-                )
-                return MappingEvaluationResult(
-                    should_trigger=False,
-                    reason=f"Missing required mention '{config.require_mention}'",
-                )
+        if (
+            config.require_mention is not None
+            and not self._has_mention(event, config.require_mention)
+        ):
+            logger.debug(
+                "Mention requirement not met",
+                extra={
+                    "required_mention": config.require_mention,
+                },
+            )
+            return MappingEvaluationResult(
+                should_trigger=False,
+                reason=f"Missing required mention '{config.require_mention}'",
+            )
 
         # All conditions passed - determine reason based on what matched
         matched_condition: str | None = None
