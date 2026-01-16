@@ -35,9 +35,9 @@ so that I can automate feature development from GitHub Issues.
 - [x] Register provider if enabled in configuration
 
 ### Task 2: Implement Signature Verification
-- [ ] Use `verify_github_signature()` from security module
-- [ ] Handle `X-Hub-Signature-256` header
-- [ ] Support legacy `X-Hub-Signature` (SHA-1) as fallback
+- [x] Use `verify_github_signature()` from security module
+- [x] Handle `X-Hub-Signature-256` header
+- [x] Support legacy `X-Hub-Signature` (SHA-1) as fallback
 
 ### Task 3: Implement Event Parsing
 - [ ] Create `GitHubEvent` model for GitHub-specific payload
