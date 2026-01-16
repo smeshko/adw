@@ -41,7 +41,7 @@ class MockProvider:
     def name(self) -> str:
         return self._name
 
-    def verify_signature(self, request: Request) -> bool:
+    def verify_signature(self, request: Request, body: bytes) -> bool:
         return self._verify_result
 
     def parse_event(self, request: Request, body: bytes) -> WebhookEvent:

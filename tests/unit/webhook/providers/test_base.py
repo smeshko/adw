@@ -31,7 +31,7 @@ class TestWebhookProviderProtocol:
             def name(self) -> str:
                 return "mock"
 
-            def verify_signature(self, request: Request) -> bool:
+            def verify_signature(self, request: Request, body: bytes) -> bool:
                 return True
 
             def parse_event(self, request: Request, body: bytes) -> WebhookEvent:

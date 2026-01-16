@@ -32,8 +32,8 @@ class WebhookProvider(Protocol):
         ...     def name(self) -> str:
         ...         return "linear"
         ...
-        ...     def verify_signature(self, request: Request) -> bool:
-        ...         # Verify Linear-specific signature
+        ...     def verify_signature(self, request: Request, body: bytes) -> bool:
+        ...         # Verify Linear-specific signature using body bytes
         ...         return True
         ...
         ...     def parse_event(self, request: Request, body: bytes) -> WebhookEvent:
@@ -63,7 +63,7 @@ class WebhookProvider(Protocol):
         """
         ...
 
-    def verify_signature(self, request: Request) -> bool:
+    def verify_signature(self, request: Request, body: bytes) -> bool:
         """Verify the request came from the claimed provider.
 
         Each provider has its own signature verification mechanism:
@@ -73,6 +73,7 @@ class WebhookProvider(Protocol):
 
         Args:
             request: The incoming FastAPI Request object.
+            body: The raw request body bytes for signature computation.
 
         Returns:
             True if signature is valid, False otherwise.

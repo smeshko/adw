@@ -66,11 +66,11 @@ async def receive_webhook(
     # Reuse request ID from middleware for consistent tracing
     request_id = getattr(request.state, "request_id", None) or str(uuid.uuid4())
 
-    # Get request body
+    # Get request body (needed for both signature verification and parsing)
     body = await request.body()
 
     # Verify signature using provider
-    if not provider_impl.verify_signature(request):
+    if not provider_impl.verify_signature(request, body):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid webhook signature",

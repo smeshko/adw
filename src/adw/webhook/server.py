@@ -11,6 +11,7 @@ from rich.console import Console
 
 from adw.webhook.config import WebhookConfig
 from adw.webhook.middleware import WebhookLoggingMiddleware
+from adw.webhook.providers.loader import load_providers_from_config
 from adw.webhook.providers.registry import ProviderRegistry
 from adw.webhook.routes import router
 
@@ -96,7 +97,8 @@ def create_app(
         Configured FastAPI application instance.
     """
     webhook_config = config or WebhookConfig()
-    provider_registry = registry or ProviderRegistry()
+    # Load providers from config if no registry provided
+    provider_registry = registry or load_providers_from_config(webhook_config)
 
     webhook_app = FastAPI(
         title="ADW Webhook Server",
