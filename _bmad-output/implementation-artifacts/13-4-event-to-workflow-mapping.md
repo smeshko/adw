@@ -64,11 +64,11 @@ webhook:
 - [x] Return whether event should trigger and with what parameters
 
 ### Task 4: Implement Async Run Triggering
-- [ ] Create `src/adw/webhook/runner.py` for run triggering logic
-- [ ] Implement `trigger_run_async()` function
-- [ ] Use asyncio/background task for non-blocking execution
-- [ ] Integrate with ADW orchestrator
-- [ ] Handle run initiation errors gracefully
+- [x] Create `src/adw/webhook/runner.py` for run triggering logic
+- [x] Implement `trigger_run_async()` function
+- [x] Use asyncio/background task for non-blocking execution
+- [x] Integrate with ADW orchestrator
+- [x] Handle run initiation errors gracefully
 
 ### Task 5: Update Provider Logic
 - [ ] Modify provider's `should_trigger_run()` to use EventMapper
