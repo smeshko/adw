@@ -7,7 +7,7 @@ event parsing, and run parameter extraction.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -172,7 +172,7 @@ class WebhookEvent(BaseModel):
         description="Relevant request headers",
     )
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(tz=timezone.utc),
+        default_factory=lambda: datetime.now(tz=UTC),
         description="When the event was received (UTC)",
     )
     raw_body: bytes | None = Field(
