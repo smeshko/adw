@@ -30,9 +30,9 @@ so that I can automate feature development from GitHub Issues.
 ## Tasks / Subtasks
 
 ### Task 1: Create GitHub Provider Package
-- [ ] Create `src/adw/webhook/providers/github.py`
-- [ ] Implement `GitHubProvider` class conforming to `WebhookProvider` Protocol
-- [ ] Register provider if enabled in configuration
+- [x] Create `src/adw/webhook/providers/github.py`
+- [x] Implement `GitHubProvider` class conforming to `WebhookProvider` Protocol
+- [x] Register provider if enabled in configuration
 
 ### Task 2: Implement Signature Verification
 - [ ] Use `verify_github_signature()` from security module

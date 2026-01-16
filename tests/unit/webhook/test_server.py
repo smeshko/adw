@@ -119,7 +119,15 @@ class TestWebhookRoute:
         )
         test_app = create_app(config=config)
         client = TestClient(test_app)
-        response = client.post("/webhook/github", json={})
+        # Include required GitHub headers for the provider to parse correctly
+        response = client.post(
+            "/webhook/github",
+            json={"action": "opened"},
+            headers={
+                "x-github-event": "issues",
+                "x-github-delivery": "test-delivery-id",
+            },
+        )
         # Check body
         body_request_id = response.json()["request_id"]
         # Check header
