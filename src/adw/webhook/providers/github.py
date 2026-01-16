@@ -30,10 +30,24 @@ HEADER_GITHUB_DELIVERY = "x-github-delivery"
 HEADER_GITHUB_SIGNATURE_256 = "x-hub-signature-256"
 HEADER_GITHUB_SIGNATURE = "x-hub-signature"  # Legacy SHA-1 fallback
 
-# ADW trigger label and command patterns
-ADW_LABEL = "adw"
-ADW_COMMAND_PATTERN = re.compile(r"/adw\s+(\w+)(?:\s+(.*))?", re.IGNORECASE)
+# Default ADW trigger label and command patterns
+DEFAULT_TRIGGER_LABEL = "adw"
+DEFAULT_COMMAND_PREFIX = "/adw"
 ADW_PHASE_FLAG_PATTERN = re.compile(r"--phase\s+(\w+)", re.IGNORECASE)
+
+
+def _build_command_pattern(prefix: str) -> re.Pattern[str]:
+    """Build command regex pattern from prefix.
+
+    Args:
+        prefix: The command prefix (e.g., "/adw")
+
+    Returns:
+        Compiled regex pattern for matching commands.
+    """
+    # Escape special regex characters in prefix
+    escaped_prefix = re.escape(prefix)
+    return re.compile(rf"{escaped_prefix}\s+(\w+)(?:\s+(.*))?", re.IGNORECASE)
 
 
 class GitHubProvider:
@@ -44,9 +58,18 @@ class GitHubProvider:
     comments.
 
     Trigger conditions:
-    - Issue opened with 'adw' label
-    - Comment containing '/adw run' command
-    - PR review comment containing '/adw fix' command
+    - Issue opened with configured trigger label (default: 'adw')
+    - Comment containing configured command prefix (default: '/adw run')
+    - PR review comment containing configured command prefix (default: '/adw fix')
+
+    Configuration options (in project.yaml):
+        webhook:
+          providers:
+            github:
+              enabled: true
+              secret_env: GITHUB_WEBHOOK_SECRET
+              command_prefix: "/adw"
+              trigger_label: "adw"
 
     Example:
         >>> provider = GitHubProvider(config)
@@ -65,10 +88,18 @@ class GitHubProvider:
         """
         self._config = config
         self._secret: str | None = None
+        self._trigger_label = DEFAULT_TRIGGER_LABEL
+        self._command_prefix = DEFAULT_COMMAND_PREFIX
+
         if config:
             provider_config = config.get_provider("github")
             if provider_config:
                 self._secret = provider_config.get_secret()
+                self._trigger_label = provider_config.trigger_label
+                self._command_prefix = provider_config.command_prefix
+
+        # Build command pattern from configured prefix
+        self._command_pattern = _build_command_pattern(self._command_prefix)
 
     @property
     def name(self) -> str:
@@ -233,31 +264,31 @@ class GitHubProvider:
         return False
 
     def _has_adw_label(self, payload: dict[str, Any]) -> bool:
-        """Check if issue/PR has the 'adw' label.
+        """Check if issue/PR has the configured trigger label.
 
         Args:
             payload: The webhook payload.
 
         Returns:
-            True if 'adw' label is present, False otherwise.
+            True if trigger label is present, False otherwise.
         """
         issue = payload.get("issue", {})
         labels = issue.get("labels", [])
         return any(
-            label.get("name", "").lower() == ADW_LABEL
+            label.get("name", "").lower() == self._trigger_label.lower()
             for label in labels
         )
 
     def _has_adw_command(self, text: str) -> bool:
-        """Check if text contains an /adw command.
+        """Check if text contains an ADW command.
 
         Args:
             text: The comment text to check.
 
         Returns:
-            True if /adw command is present, False otherwise.
+            True if command is present, False otherwise.
         """
-        return bool(ADW_COMMAND_PATTERN.search(text))
+        return bool(self._command_pattern.search(text))
 
     def extract_run_params(self, event: WebhookEvent) -> RunParams:
         """Extract ADW run parameters from event.
@@ -314,7 +345,7 @@ class GitHubProvider:
         )
 
     def _parse_command(self, text: str) -> dict[str, Any]:
-        """Parse /adw command from text.
+        """Parse ADW command from text.
 
         Extracts command name and flags like --phase from the command text.
 
@@ -326,7 +357,7 @@ class GitHubProvider:
             - command: The command name (e.g., 'run', 'fix')
             - from_phase: The phase to start from (if --phase flag present)
         """
-        match = ADW_COMMAND_PATTERN.search(text)
+        match = self._command_pattern.search(text)
         if not match:
             return {}
 

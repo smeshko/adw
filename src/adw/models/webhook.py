@@ -23,20 +23,24 @@ class ProviderConfig(BaseModel):
     Attributes:
         enabled: Whether this provider is enabled (default: False)
         secret_env: Name of environment variable containing the webhook secret
+        command_prefix: Command prefix for triggering ADW (default: "/adw")
+        trigger_label: Label name that triggers ADW on issues (default: "adw")
 
     Example:
-        >>> config = ProviderConfig(enabled=True, secret_env="LINEAR_WEBHOOK_SECRET")
+        >>> config = ProviderConfig(enabled=True, secret_env="GITHUB_WEBHOOK_SECRET")
         >>> config.enabled
         True
-        >>> config.get_secret()  # Returns value of LINEAR_WEBHOOK_SECRET env var
+        >>> config.get_secret()  # Returns value of GITHUB_WEBHOOK_SECRET env var
         'secret-value'
 
     YAML example:
         webhook:
           providers:
-            linear:
+            github:
               enabled: true
-              secret_env: LINEAR_WEBHOOK_SECRET
+              secret_env: GITHUB_WEBHOOK_SECRET
+              command_prefix: "/adw"
+              trigger_label: "adw"
     """
 
     enabled: bool = Field(
@@ -46,6 +50,14 @@ class ProviderConfig(BaseModel):
     secret_env: str | None = Field(
         default=None,
         description="Name of environment variable containing the webhook secret",
+    )
+    command_prefix: str = Field(
+        default="/adw",
+        description="Command prefix for triggering ADW runs",
+    )
+    trigger_label: str = Field(
+        default="adw",
+        description="Label name that triggers ADW on issues",
     )
 
     def get_secret(self) -> str | None:

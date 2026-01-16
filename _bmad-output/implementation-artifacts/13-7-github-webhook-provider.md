@@ -64,9 +64,9 @@ so that I can automate feature development from GitHub Issues.
 - [x] Add `GitHubPullRequest` model for PR context
 
 ### Task 7: Add Configuration Support
-- [ ] Support GitHub configuration in project.yaml
-- [ ] Configuration options: enabled, secret_env, command_prefix
-- [ ] Default values matching GitHub conventions
+- [x] Support GitHub configuration in project.yaml
+- [x] Configuration options: enabled, secret_env, command_prefix
+- [x] Default values matching GitHub conventions
 
 ### Task 8: Write Tests
 - [ ] Create `tests/unit/webhook/providers/test_github.py`
