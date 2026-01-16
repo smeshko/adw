@@ -105,7 +105,11 @@ class TestLinearEvent:
                 "description": "Implement dark mode toggle",
                 "labels": [{"id": "label-1", "name": "adw:auto", "color": "#ff0000"}],
                 "state": {"id": "state-1", "name": "Todo", "type": "unstarted"},
-                "assignee": {"id": "user-1", "name": "John Doe", "email": "john@example.com"},
+                "assignee": {
+                    "id": "user-1",
+                    "name": "John Doe",
+                    "email": "john@example.com",
+                },
                 "url": "https://linear.app/team/issue/ENG-42",
             },
         }

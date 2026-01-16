@@ -508,9 +508,7 @@ class LinearIssue(BaseModel):
     labels: list[LinearLabel] = Field(
         default_factory=list, description="Labels attached to the issue"
     )
-    assignee: LinearAssignee | None = Field(
-        default=None, description="Assigned user"
-    )
+    assignee: LinearAssignee | None = Field(default=None, description="Assigned user")
     url: str | None = Field(default=None, description="URL to the issue in Linear")
 
 
@@ -641,10 +639,7 @@ class LinearEvent(BaseModel):
             return None
 
         try:
-            labels = [
-                LinearLabel(**label)
-                for label in issue_data.get("labels", [])
-            ]
+            labels = [LinearLabel(**label) for label in issue_data.get("labels", [])]
             state_data = issue_data.get("state")
             state = LinearState(**state_data) if state_data else None
             assignee_data = issue_data.get("assignee")

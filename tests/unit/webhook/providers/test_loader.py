@@ -30,7 +30,9 @@ class MockProvider:
         return True
 
     def parse_event(self, request: Request, body: bytes) -> WebhookEvent:
-        return WebhookEvent(event_type="test", provider=self._name, payload={}, headers={})
+        return WebhookEvent(
+            event_type="test", provider=self._name, payload={}, headers={}
+        )
 
     def should_trigger_run(self, event: WebhookEvent) -> bool:
         return True
@@ -67,7 +69,9 @@ class TestLoadProvidersFromConfig:
 
         assert registry.list_providers() == []
 
-    def test_load_logs_unavailable_providers(self, caplog: pytest.LogCaptureFixture) -> None:
+    def test_load_logs_unavailable_providers(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """Logs info when enabled provider implementation not available."""
         from adw.webhook.providers.loader import load_providers_from_config
 
@@ -83,7 +87,9 @@ class TestLoadProvidersFromConfig:
         # Provider should not be registered (no implementation)
         assert registry.list_providers() == []
         # Should have logged something about unavailable provider
-        assert "unknown_provider" in caplog.text or "not available" in caplog.text.lower()
+        assert (
+            "unknown_provider" in caplog.text or "not available" in caplog.text.lower()
+        )
 
     def test_load_handles_missing_config_gracefully(self) -> None:
         """Returns empty registry when config is None."""

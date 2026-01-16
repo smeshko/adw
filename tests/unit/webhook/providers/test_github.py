@@ -215,9 +215,7 @@ class TestSignatureVerification:
 
         body = b'{"test": "data"}'
         secret = "test-secret"
-        signature = hmac.new(
-            secret.encode("utf-8"), body, hashlib.sha256
-        ).hexdigest()
+        signature = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
 
         request = _create_mock_request(
             headers={"x-hub-signature-256": f"sha256={signature}"}
@@ -232,8 +230,7 @@ class TestSignatureVerification:
             headers={"x-hub-signature-256": "sha256=invalidsignature"}
         )
         assert (
-            github_provider_with_secret.verify_signature(request, b"test body")
-            is False
+            github_provider_with_secret.verify_signature(request, b"test body") is False
         )
 
     def test_verify_sha1_fallback_valid(
@@ -255,9 +252,7 @@ class TestSignatureVerification:
     ) -> None:
         """When secret configured but no signature header, returns False."""
         request = _create_mock_request(headers={})
-        assert (
-            github_provider_with_secret.verify_signature(request, b"test") is False
-        )
+        assert github_provider_with_secret.verify_signature(request, b"test") is False
 
 
 # =============================================================================
@@ -579,7 +574,9 @@ class TestParameterExtraction:
         assert params.source_info["provider"] == "github"
         assert params.source_info["repo"] == "org/repo"
         assert params.source_info["issue_number"] == 42
-        assert params.source_info["issue_url"] == "https://github.com/org/repo/issues/42"
+        assert (
+            params.source_info["issue_url"] == "https://github.com/org/repo/issues/42"
+        )
         assert params.metadata["delivery_id"] == "delivery-abc"
         assert params.phases is None
 

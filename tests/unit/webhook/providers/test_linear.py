@@ -33,9 +33,7 @@ class TestLinearProviderProtocol:
         """LinearProvider.name should be 'linear'."""
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
         assert provider.name == "linear"
 
@@ -49,14 +47,14 @@ class TestLinearProviderSignatureVerification:
 
         secret = "test_webhook_secret"
         config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True, secret_env="LINEAR_SECRET")}
+            providers={
+                "linear": ProviderConfig(enabled=True, secret_env="LINEAR_SECRET")
+            }
         )
         provider = LinearProvider(config, secret=secret)
 
         body = b'{"action":"create","type":"Issue"}'
-        expected_signature = hmac.new(
-            secret.encode(), body, hashlib.sha256
-        ).hexdigest()
+        expected_signature = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
 
         request = MagicMock()
         request.headers = {"x-linear-signature": expected_signature}
@@ -69,7 +67,9 @@ class TestLinearProviderSignatureVerification:
 
         secret = "test_webhook_secret"
         config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True, secret_env="LINEAR_SECRET")}
+            providers={
+                "linear": ProviderConfig(enabled=True, secret_env="LINEAR_SECRET")
+            }
         )
         provider = LinearProvider(config, secret=secret)
 
@@ -83,9 +83,7 @@ class TestLinearProviderSignatureVerification:
         """Should return False when signature header is missing."""
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config, secret="test_secret")
 
         body = b'{"action":"create"}'
@@ -98,9 +96,7 @@ class TestLinearProviderSignatureVerification:
         """Should return True (skip verification) when no secret configured."""
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)  # No secret
 
         body = b'{"action":"create"}'
@@ -118,9 +114,7 @@ class TestLinearProviderEventParsing:
         """Should parse issue created event correctly."""
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         payload = {
@@ -151,9 +145,7 @@ class TestLinearProviderEventParsing:
         """Should parse comment created event correctly."""
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         payload = {
@@ -185,9 +177,7 @@ class TestLinearProviderEventParsing:
         """Should raise ValueError for invalid JSON."""
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         body = b"not valid json"
@@ -206,9 +196,7 @@ class TestLinearProviderTriggerLogic:
         from adw.models.webhook import WebhookEvent
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         event = WebhookEvent(
@@ -233,9 +221,7 @@ class TestLinearProviderTriggerLogic:
         from adw.models.webhook import WebhookEvent
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         event = WebhookEvent(
@@ -258,9 +244,7 @@ class TestLinearProviderTriggerLogic:
         from adw.models.webhook import WebhookEvent
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         event = WebhookEvent(
@@ -288,9 +272,7 @@ class TestLinearProviderTriggerLogic:
         from adw.models.webhook import WebhookEvent
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         event = WebhookEvent(
@@ -318,9 +300,7 @@ class TestLinearProviderRunParams:
         from adw.models.webhook import WebhookEvent
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         event = WebhookEvent(
@@ -353,9 +333,7 @@ class TestLinearProviderRunParams:
         from adw.models.webhook import WebhookEvent
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         event = WebhookEvent(
@@ -389,9 +367,7 @@ class TestLinearProviderRunParams:
         from adw.models.webhook import WebhookEvent
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         event = WebhookEvent(
@@ -419,9 +395,7 @@ class TestLinearProviderRunParams:
         from adw.models.webhook import WebhookEvent
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         event = WebhookEvent(
@@ -462,9 +436,7 @@ class TestLinearProviderRunParams:
         from adw.models.webhook import WebhookEvent
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         event = WebhookEvent(
@@ -492,9 +464,7 @@ class TestLinearProviderRunParams:
         from adw.models.webhook import WebhookEvent
         from adw.webhook.providers.linear import LinearProvider
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         provider = LinearProvider(config)
 
         event = WebhookEvent(
@@ -538,9 +508,7 @@ class TestLinearProviderRegistration:
         import adw.webhook.providers.linear  # noqa: F401
         from adw.webhook.providers.loader import load_providers_from_config
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
 
         registry = load_providers_from_config(config)
 

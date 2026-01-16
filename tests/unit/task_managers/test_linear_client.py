@@ -198,8 +198,16 @@ class TestLinearClientLabelOperations:
                 "team": {
                     "labels": {
                         "nodes": [
-                            {"id": "label-1", "name": "adw:running", "color": "#9333EA"},
-                            {"id": "label-2", "name": "adw:completed", "color": "#9333EA"},
+                            {
+                                "id": "label-1",
+                                "name": "adw:running",
+                                "color": "#9333EA",
+                            },
+                            {
+                                "id": "label-2",
+                                "name": "adw:completed",
+                                "color": "#9333EA",
+                            },
                         ]
                     }
                 }
@@ -219,9 +227,7 @@ class TestLinearClientLabelOperations:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "data": {"team": {"labels": {"nodes": []}}}
-        }
+        mock_response.json.return_value = {"data": {"team": {"labels": {"nodes": []}}}}
 
         with patch.object(client, "_request", return_value=mock_response):
             result = client.get_team_labels("team-uuid")
@@ -270,9 +276,7 @@ class TestLinearClientLabelOperations:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "data": {"issueAddLabel": {"success": True}}
-        }
+        mock_response.json.return_value = {"data": {"issueAddLabel": {"success": True}}}
 
         with patch.object(client, "_request", return_value=mock_response) as mock_req:
             result = client.add_label_to_issue("issue-uuid", "label-uuid")
@@ -337,13 +341,13 @@ class TestLinearClientAddLabelIntegration:
         # Mock get_team_labels to return empty (label doesn't exist)
         # Mock create_label to return new label ID
         # Mock add_label_to_issue to succeed
-        with patch.object(
-            client, "get_team_labels", return_value=[]
-        ) as mock_get_labels, patch.object(
-            client, "create_label", return_value="new-label-id"
-        ) as mock_create, patch.object(
-            client, "add_label_to_issue", return_value=True
-        ) as mock_add:
+        with (
+            patch.object(client, "get_team_labels", return_value=[]) as mock_get_labels,
+            patch.object(
+                client, "create_label", return_value="new-label-id"
+            ) as mock_create,
+            patch.object(client, "add_label_to_issue", return_value=True) as mock_add,
+        ):
             client.add_label("issue-uuid", "adw:running", "team-uuid")
 
         mock_get_labels.assert_called_once_with("team-uuid")
@@ -355,15 +359,15 @@ class TestLinearClientAddLabelIntegration:
         client = LinearClient(api_key="lin_api_test123")
 
         # Mock get_team_labels to return existing label
-        existing_labels = [{"id": "existing-label-id", "name": "adw:running", "color": "#9333EA"}]
+        existing_labels = [
+            {"id": "existing-label-id", "name": "adw:running", "color": "#9333EA"}
+        ]
 
-        with patch.object(
-            client, "get_team_labels", return_value=existing_labels
-        ), patch.object(
-            client, "create_label"
-        ) as mock_create, patch.object(
-            client, "add_label_to_issue", return_value=True
-        ) as mock_add:
+        with (
+            patch.object(client, "get_team_labels", return_value=existing_labels),
+            patch.object(client, "create_label") as mock_create,
+            patch.object(client, "add_label_to_issue", return_value=True) as mock_add,
+        ):
             client.add_label("issue-uuid", "adw:running", "team-uuid")
 
         # create_label should NOT be called since label exists
@@ -374,12 +378,15 @@ class TestLinearClientAddLabelIntegration:
         """add_label caches label IDs to reduce API calls."""
         client = LinearClient(api_key="lin_api_test123")
 
-        existing_labels = [{"id": "cached-label-id", "name": "adw:running", "color": "#9333EA"}]
+        existing_labels = [
+            {"id": "cached-label-id", "name": "adw:running", "color": "#9333EA"}
+        ]
 
-        with patch.object(
-            client, "get_team_labels", return_value=existing_labels
-        ) as mock_get_labels, patch.object(
-            client, "add_label_to_issue", return_value=True
+        with (
+            patch.object(
+                client, "get_team_labels", return_value=existing_labels
+            ) as mock_get_labels,
+            patch.object(client, "add_label_to_issue", return_value=True),
         ):
             # First call should populate cache
             client.add_label("issue-1", "adw:running", "team-uuid")
@@ -397,13 +404,16 @@ class TestLinearClientRemoveLabelIntegration:
         """remove_label looks up label ID and removes from issue."""
         client = LinearClient(api_key="lin_api_test123")
 
-        existing_labels = [{"id": "label-to-remove", "name": "adw:running", "color": "#9333EA"}]
+        existing_labels = [
+            {"id": "label-to-remove", "name": "adw:running", "color": "#9333EA"}
+        ]
 
-        with patch.object(
-            client, "get_team_labels", return_value=existing_labels
-        ), patch.object(
-            client, "remove_label_from_issue", return_value=True
-        ) as mock_remove:
+        with (
+            patch.object(client, "get_team_labels", return_value=existing_labels),
+            patch.object(
+                client, "remove_label_from_issue", return_value=True
+            ) as mock_remove,
+        ):
             client.remove_label("issue-uuid", "adw:running", "team-uuid")
 
         mock_remove.assert_called_once_with("issue-uuid", "label-to-remove")
@@ -413,11 +423,10 @@ class TestLinearClientRemoveLabelIntegration:
         client = LinearClient(api_key="lin_api_test123")
 
         # No labels exist
-        with patch.object(
-            client, "get_team_labels", return_value=[]
-        ), patch.object(
-            client, "remove_label_from_issue"
-        ) as mock_remove:
+        with (
+            patch.object(client, "get_team_labels", return_value=[]),
+            patch.object(client, "remove_label_from_issue") as mock_remove,
+        ):
             # Should not raise
             client.remove_label("issue-uuid", "nonexistent:label", "team-uuid")
 

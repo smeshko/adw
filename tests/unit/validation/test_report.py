@@ -153,8 +153,16 @@ class TestConfidenceCalculation:
             passed=False,
             tests_passed=False,
             code_review_passed=True,
-            issues_fixed=["Fixed 1", "Fixed 2", "Fixed 3", "Fixed 4", "Fixed 5",
-                          "Fixed 6", "Fixed 7", "Fixed 8"],
+            issues_fixed=[
+                "Fixed 1",
+                "Fixed 2",
+                "Fixed 3",
+                "Fixed 4",
+                "Fixed 5",
+                "Fixed 6",
+                "Fixed 7",
+                "Fixed 8",
+            ],
             issues_remaining=["Still failing 1", "Still failing 2"],  # 2/10 = 20%
         )
         generator = ValidationReportGenerator(run_id="test")

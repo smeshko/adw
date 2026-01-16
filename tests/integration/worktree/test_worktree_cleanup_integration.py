@@ -58,7 +58,9 @@ class TestWorktreeCleanupIntegration:
             text=True,
         )
         # Git shows untracked directories, not individual files within them
-        assert "src/" in result.stdout or "??" in result.stdout, "LLM files should be untracked"
+        assert "src/" in result.stdout or "??" in result.stdout, (
+            "LLM files should be untracked"
+        )
 
         # Step 3: Force cleanup (simulates successful run completion)
         # This is the fix from ISS-008: force=True allows cleanup with untracked files
@@ -76,9 +78,7 @@ class TestWorktreeCleanupIntegration:
         preserved_artifacts = git_repo / ".adw" / "runs" / run_id
         assert preserved_artifacts.exists(), "Artifacts should be preserved"
 
-    def test_failed_run_preserves_worktree_for_debugging(
-        self, git_repo: Path
-    ) -> None:
+    def test_failed_run_preserves_worktree_for_debugging(self, git_repo: Path) -> None:
         """Worktree is preserved when run fails (existing behavior).
 
         Failed runs should NOT remove the worktree, allowing developers
@@ -150,7 +150,9 @@ class TestWorktreeCleanupIntegration:
 
         # Simulate run artifacts
         (run_dir / "context.json").write_text('{"run_id": "test", "status": "success"}')
-        (run_dir / "logs" / "run.log").write_text("Phase 1: Complete\nPhase 2: Complete")
+        (run_dir / "logs" / "run.log").write_text(
+            "Phase 1: Complete\nPhase 2: Complete"
+        )
         (run_dir / "artifacts" / "output.txt").write_text("Generated output")
 
         # Add untracked LLM files

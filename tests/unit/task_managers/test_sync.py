@@ -498,7 +498,10 @@ class TestStatusSyncServiceComments:
     ) -> None:
         """Success comments are skipped when comment_on_failure_only is True."""
         config_failure_only = TaskManagerConfig(
-            type="linear", team_key="RULE", sync_comments=True, comment_on_failure_only=True
+            type="linear",
+            team_key="RULE",
+            sync_comments=True,
+            comment_on_failure_only=True,
         )
         service = StatusSyncService(mock_task_manager, config_failure_only)
 
@@ -513,7 +516,10 @@ class TestStatusSyncServiceComments:
     ) -> None:
         """Failure comments are still posted when comment_on_failure_only is True."""
         config_failure_only = TaskManagerConfig(
-            type="linear", team_key="RULE", sync_comments=True, comment_on_failure_only=True
+            type="linear",
+            team_key="RULE",
+            sync_comments=True,
+            comment_on_failure_only=True,
         )
         service = StatusSyncService(mock_task_manager, config_failure_only)
 

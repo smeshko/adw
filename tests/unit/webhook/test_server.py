@@ -91,9 +91,7 @@ class TestWebhookRoute:
 
     def test_disabled_provider_returns_404(self) -> None:
         """Webhook route returns 404 for disabled provider."""
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=False)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=False)})
         test_app = create_app(config=config)
         client = TestClient(test_app)
         response = client.post("/webhook/linear", json={})
@@ -102,9 +100,7 @@ class TestWebhookRoute:
 
     def test_enabled_provider_returns_202(self) -> None:
         """Webhook route returns 202 for enabled provider."""
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         test_app = create_app(config=config)
         client = TestClient(test_app)
         response = client.post("/webhook/linear", json={"test": "data"})
@@ -118,7 +114,9 @@ class TestWebhookRoute:
 
         # Use MockProvider to test request_id feature without signature verification
         registry = ProviderRegistry()
-        registry.register(MockProvider("mock", verify_result=True, should_trigger=False))
+        registry.register(
+            MockProvider("mock", verify_result=True, should_trigger=False)
+        )
 
         config = WebhookConfig()
         test_app = create_app(config=config, registry=registry)
@@ -165,9 +163,7 @@ class TestWebhookRoute:
         registry = ProviderRegistry()
         registry.register(failing_provider)
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         test_app = create_app(config=config, registry=registry)
         client = TestClient(test_app)
 
@@ -182,9 +178,7 @@ class TestWebhookRoute:
         registry = ProviderRegistry()
         registry.register(MockProvider("linear"))
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         test_app = create_app(config=config, registry=registry)
         client = TestClient(test_app)
 
@@ -199,9 +193,7 @@ class TestWebhookRoute:
         # Empty registry - no providers registered
         registry = ProviderRegistry()
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         test_app = create_app(config=config, registry=registry)
         client = TestClient(test_app)
 
@@ -220,9 +212,7 @@ class TestRequestLogging:
         def capture_log(**kwargs: object) -> None:
             captured_logs.append(dict(kwargs))
 
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         test_app = create_app(config=config, log_func=capture_log)
         client = TestClient(test_app)
 
@@ -271,16 +261,12 @@ class TestWebhookConfig:
 
     def test_is_provider_enabled_returns_true_for_enabled(self) -> None:
         """is_provider_enabled returns True for enabled provider."""
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=True)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=True)})
         assert config.is_provider_enabled("linear") is True
 
     def test_is_provider_enabled_returns_false_for_disabled(self) -> None:
         """is_provider_enabled returns False for disabled provider."""
-        config = WebhookConfig(
-            providers={"linear": ProviderConfig(enabled=False)}
-        )
+        config = WebhookConfig(providers={"linear": ProviderConfig(enabled=False)})
         assert config.is_provider_enabled("linear") is False
 
     def test_is_provider_enabled_returns_false_for_unknown(self) -> None:
@@ -306,7 +292,9 @@ class TestWebhookConfig:
 class TestProviderConfig:
     """Tests for ProviderConfig behavior."""
 
-    def test_get_secret_returns_env_value(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_get_secret_returns_env_value(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """get_secret returns environment variable value."""
         monkeypatch.setenv("TEST_WEBHOOK_SECRET", "my-secret-value")
         config = ProviderConfig(enabled=True, secret_env="TEST_WEBHOOK_SECRET")

@@ -479,7 +479,9 @@ class TestWorktreeManagerCreation:
             capture_output=True,
         )
         (git_repo / "feature.txt").write_text("feature content")
-        subprocess.run(["git", "add", "."], cwd=git_repo, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "add", "."], cwd=git_repo, check=True, capture_output=True
+        )
         subprocess.run(
             ["git", "commit", "-m", "Add feature"],
             cwd=git_repo,
@@ -616,7 +618,9 @@ class TestWorktreeManagerRemoval:
 
         assert exc_info.value.code == "WORKTREE_NOT_FOUND"
 
-    def test_remove_worktree_uncommitted_changes_without_force(self, git_repo: Path) -> None:
+    def test_remove_worktree_uncommitted_changes_without_force(
+        self, git_repo: Path
+    ) -> None:
         """Raises WorktreeError when worktree has uncommitted changes and force=False."""
         from adw.exceptions import WorktreeError
         from adw.worktree.manager import WorktreeManager
@@ -634,7 +638,9 @@ class TestWorktreeManagerRemoval:
         assert exc_info.value.code == "WORKTREE_HAS_CHANGES"
         assert worktree_path.exists()  # Worktree should be preserved
 
-    def test_remove_worktree_uncommitted_changes_with_force(self, git_repo: Path) -> None:
+    def test_remove_worktree_uncommitted_changes_with_force(
+        self, git_repo: Path
+    ) -> None:
         """Worktree is removed when force=True despite uncommitted changes."""
         from adw.worktree.manager import WorktreeManager
 

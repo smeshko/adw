@@ -89,7 +89,9 @@ class TestRunContext:
             started_at=datetime.now(),
             worktree_path=Path("/project/trees/01KDSG2VDHNK0W4HSCZWJZXWSQ"),
         )
-        assert context.worktree_path == Path("/project/trees/01KDSG2VDHNK0W4HSCZWJZXWSQ")
+        assert context.worktree_path == Path(
+            "/project/trees/01KDSG2VDHNK0W4HSCZWJZXWSQ"
+        )
 
     def test_use_worktree_defaults_to_true(self) -> None:
         """use_worktree defaults to True."""

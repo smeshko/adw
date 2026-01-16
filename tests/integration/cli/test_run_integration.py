@@ -287,4 +287,3 @@ class TestVerbosityIntegration:
 
         assert result.exit_code == 0
         assert "No such option" not in result.output
-

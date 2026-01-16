@@ -34,9 +34,7 @@ def mock_context() -> RunContext:
 class TestValidationPhaseIntegration:
     """Integration tests for full validation phase execution."""
 
-    def test_phase_returns_validation_result(
-        self, mock_context: RunContext
-    ) -> None:
+    def test_phase_returns_validation_result(self, mock_context: RunContext) -> None:
         """Phase returns ValidationResult."""
         config = ValidationConfig(
             enable_tests=True,
