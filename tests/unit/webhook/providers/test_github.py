@@ -9,7 +9,6 @@ import pytest
 from adw.models.webhook import ProviderConfig, WebhookConfig, WebhookEvent
 from adw.webhook.providers.github import GitHubProvider
 
-
 # =============================================================================
 # Test Fixtures
 # =============================================================================

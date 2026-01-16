@@ -130,16 +130,20 @@ class GitHubProvider:
             should be avoided in production.
         """
         if not self._secret:
-            logger.warning("GitHub webhook secret not configured - skipping verification")
+            logger.warning("GitHub webhook secret not configured - skipping")
             return True
 
         # Try SHA-256 signature first (preferred)
-        signature_256 = BaseWebhookProvider.get_header(request, HEADER_GITHUB_SIGNATURE_256)
+        signature_256 = BaseWebhookProvider.get_header(
+            request, HEADER_GITHUB_SIGNATURE_256
+        )
         if signature_256:
             return self._verify_hmac_sha256(body, signature_256)
 
         # Fall back to SHA-1 signature (legacy)
-        signature_sha1 = BaseWebhookProvider.get_header(request, HEADER_GITHUB_SIGNATURE)
+        signature_sha1 = BaseWebhookProvider.get_header(
+            request, HEADER_GITHUB_SIGNATURE
+        )
         if signature_sha1:
             return self._verify_hmac_sha1(body, signature_sha1)
 
@@ -155,10 +159,15 @@ class GitHubProvider:
 
         Returns:
             True if signature matches, False otherwise.
+
+        Note:
+            Caller must ensure self._secret is not None before calling.
         """
         if not signature.startswith("sha256="):
             return False
 
+        # _secret is guaranteed non-None by verify_signature caller
+        assert self._secret is not None
         expected_signature = signature[7:]  # Remove 'sha256=' prefix
         computed = hmac.new(
             self._secret.encode("utf-8"),
@@ -177,10 +186,15 @@ class GitHubProvider:
 
         Returns:
             True if signature matches, False otherwise.
+
+        Note:
+            Caller must ensure self._secret is not None before calling.
         """
         if not signature.startswith("sha1="):
             return False
 
+        # _secret is guaranteed non-None by verify_signature caller
+        assert self._secret is not None
         expected_signature = signature[5:]  # Remove 'sha1=' prefix
         computed = hmac.new(
             self._secret.encode("utf-8"),
