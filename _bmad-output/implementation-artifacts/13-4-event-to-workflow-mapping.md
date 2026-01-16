@@ -51,10 +51,10 @@ webhook:
 - [x] Add validation for configuration values
 
 ### Task 2: Implement Mapping Configuration Loading
-- [ ] Add mappings section to `WebhookConfig` model
-- [ ] Create `src/adw/webhook/mapping.py` for mapping logic
-- [ ] Implement `EventMapper` class to evaluate trigger conditions
-- [ ] Load mappings from project.yaml on server start
+- [x] Add mappings section to `WebhookConfig` model
+- [x] Create `src/adw/webhook/mapping.py` for mapping logic
+- [x] Implement `EventMapper` class to evaluate trigger conditions
+- [x] Load mappings from project.yaml on server start
 
 ### Task 3: Implement Event Evaluation
 - [ ] Create `evaluate_event()` method in EventMapper
