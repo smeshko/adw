@@ -58,10 +58,10 @@ so that I can automate feature development from GitHub Issues.
 - [x] Handle PR context for fix commands
 
 ### Task 6: Add GitHub-Specific Models
-- [ ] Add `GitHubEvent` model to `src/adw/models/webhook.py`
-- [ ] Add `GitHubIssue` model for issue data
-- [ ] Add `GitHubComment` model for comment data
-- [ ] Add `GitHubPullRequest` model for PR context
+- [x] Add `GitHubEvent` model to `src/adw/models/webhook.py`
+- [x] Add `GitHubIssue` model for issue data
+- [x] Add `GitHubComment` model for comment data
+- [x] Add `GitHubPullRequest` model for PR context
 
 ### Task 7: Add Configuration Support
 - [ ] Support GitHub configuration in project.yaml
