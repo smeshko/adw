@@ -45,10 +45,10 @@ webhook:
 ## Tasks / Subtasks
 
 ### Task 1: Define Mapping Models
-- [ ] Create `EventMapping` model in `src/adw/models/webhook.py`
-- [ ] Create `EventTriggerConfig` model for trigger conditions
-- [ ] Support fields: trigger, require_label, require_mention, parse_command, phases
-- [ ] Add validation for configuration values
+- [x] Create `EventMapping` model in `src/adw/models/webhook.py`
+- [x] Create `EventTriggerConfig` model for trigger conditions
+- [x] Support fields: trigger, require_label, require_mention, parse_command, phases
+- [x] Add validation for configuration values
 
 ### Task 2: Implement Mapping Configuration Loading
 - [ ] Add mappings section to `WebhookConfig` model
