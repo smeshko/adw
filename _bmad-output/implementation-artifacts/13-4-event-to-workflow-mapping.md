@@ -82,12 +82,12 @@ webhook:
 - [x] Add metrics for event processing (if metrics system exists)
 
 ### Task 7: Write Tests
-- [ ] Create `tests/unit/webhook/test_mapping.py`
-- [ ] Test mapping configuration loading
-- [ ] Test require_label condition evaluation
-- [ ] Test require_mention condition evaluation
-- [ ] Test disabled event type handling
-- [ ] Test async run triggering (mock orchestrator)
+- [x] Create `tests/unit/webhook/test_mapping.py`
+- [x] Test mapping configuration loading
+- [x] Test require_label condition evaluation
+- [x] Test require_mention condition evaluation
+- [x] Test disabled event type handling
+- [x] Test async run triggering (mock orchestrator)
 
 ---
 
