@@ -39,7 +39,9 @@ class TestSinglePhaseWorktreePreservation:
         # Create initial commit
         readme = tmp_path / "README.md"
         readme.write_text("# Test Project")
-        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "add", "."], cwd=tmp_path, check=True, capture_output=True
+        )
         subprocess.run(
             ["git", "commit", "-m", "Initial commit"],
             cwd=tmp_path,

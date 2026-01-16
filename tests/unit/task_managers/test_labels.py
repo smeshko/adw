@@ -345,9 +345,7 @@ class TestLabelManagerErrorResilience:
             "task-uuid", "adw:running"
         )
         # add_label should still be called
-        mock_task_manager.add_label.assert_called_once_with(
-            "task-uuid", "adw:failed"
-        )
+        mock_task_manager.add_label.assert_called_once_with("task-uuid", "adw:failed")
 
     def test_operations_continue_on_partial_failure(self) -> None:
         """Operations continue even when some calls fail."""

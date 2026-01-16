@@ -97,7 +97,9 @@ class TestCodeReviewLoopWorkflow:
     def test_instructions_xml_exists(self, workflow_dir: Path) -> None:
         """Instructions XML file should exist."""
         instructions_file = workflow_dir / "instructions.xml"
-        assert instructions_file.exists(), f"Expected instructions at {instructions_file}"
+        assert instructions_file.exists(), (
+            f"Expected instructions at {instructions_file}"
+        )
 
 
 class TestValidateConfigYaml:

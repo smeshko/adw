@@ -709,9 +709,7 @@ class TestBuildCommitDiffFlowIntegration:
         # BUILD phase: create initial code
         (git_repo / "app.py").write_text("# App code\n")
         stage_changes()
-        build_sha = create_commit(
-            phase="build", feature="Add app", run_id="01HQ001"
-        )
+        build_sha = create_commit(phase="build", feature="Add app", run_id="01HQ001")
         assert build_sha is not None
 
         # VALIDATE phase: modify code and add tests based on validation
@@ -727,9 +725,7 @@ class TestBuildCommitDiffFlowIntegration:
         # DOCUMENT phase: add docs
         (git_repo / "README.md").write_text("# Documentation\n")
         stage_changes()
-        doc_sha = create_commit(
-            phase="document", feature="Add app", run_id="01HQ001"
-        )
+        doc_sha = create_commit(phase="document", feature="Add app", run_id="01HQ001")
         assert doc_sha is not None
         assert doc_sha != validate_sha
 

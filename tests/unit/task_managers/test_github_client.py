@@ -56,9 +56,7 @@ class TestGitHubClientIsPrMerged:
 
         assert result is False
 
-    def test_is_pr_merged_caches_result(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_is_pr_merged_caches_result(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Caches PR merge status to avoid repeated API calls."""
         monkeypatch.setenv("GITHUB_TOKEN", "test-token")
 

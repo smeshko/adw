@@ -59,17 +59,13 @@ class TestValidationPhaseRun:
             branch_name=None,
         )
 
-    def test_run_returns_validation_result(
-        self, mock_context: RunContext
-    ) -> None:
+    def test_run_returns_validation_result(self, mock_context: RunContext) -> None:
         """run() returns a ValidationResult."""
         phase = ValidationPhase()
         result = phase.run(mock_context)
         assert isinstance(result, ValidationResult)
 
-    def test_run_returns_default_failed_result(
-        self, mock_context: RunContext
-    ) -> None:
+    def test_run_returns_default_failed_result(self, mock_context: RunContext) -> None:
         """run() returns failed result indicating LLM execution needed."""
         phase = ValidationPhase()
         result = phase.run(mock_context)
@@ -78,7 +74,9 @@ class TestValidationPhaseRun:
         assert result.passed is False
         # Check that there's some indication about needing LLM execution
         has_indicator = (
-            any("not yet executed" in issue.lower() for issue in result.issues_remaining)
+            any(
+                "not yet executed" in issue.lower() for issue in result.issues_remaining
+            )
             or "not yet executed" in result.summary.lower()
             or "requires" in result.summary.lower()
         )

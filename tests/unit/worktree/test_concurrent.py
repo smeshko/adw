@@ -225,9 +225,7 @@ class TestConcurrentRunManager:
         """can_start_run returns True when under max_concurrent."""
         assert manager.can_start_run() is True
 
-    def test_can_start_run_when_at_limit(
-        self, tmp_path: Path
-    ) -> None:
+    def test_can_start_run_when_at_limit(self, tmp_path: Path) -> None:
         """can_start_run returns False when at max_concurrent."""
         # Create manager with max_concurrent=1
         manager = ConcurrentRunManager(tmp_path, max_concurrent=1)
@@ -247,9 +245,7 @@ class TestConcurrentRunManager:
         # Should not raise
         manager.check_can_start_or_raise()
 
-    def test_check_can_start_or_raise_raises_at_limit(
-        self, tmp_path: Path
-    ) -> None:
+    def test_check_can_start_or_raise_raises_at_limit(self, tmp_path: Path) -> None:
         """check_can_start_or_raise raises MaxConcurrentRunsError at limit."""
         manager = ConcurrentRunManager(tmp_path, max_concurrent=1)
 
@@ -341,9 +337,7 @@ class TestOrphanedWorktrees:
         """Create a ConcurrentRunManager for testing."""
         return ConcurrentRunManager(tmp_path, max_concurrent=15)
 
-    def test_get_orphaned_worktrees_empty(
-        self, manager: ConcurrentRunManager
-    ) -> None:
+    def test_get_orphaned_worktrees_empty(self, manager: ConcurrentRunManager) -> None:
         """Returns empty list when no worktrees exist."""
         orphaned = manager.get_orphaned_worktrees()
         assert orphaned == []

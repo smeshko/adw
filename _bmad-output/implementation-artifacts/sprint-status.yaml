@@ -4,7 +4,7 @@
 # story_location: _bmad-output/implementation-artifacts
 
 # STATUS DEFINITIONS:
-# ==================
+# ===========
 # Epic Status:
 #   - backlog: Epic not yet started
 #   - in-progress: Epic actively being worked on
@@ -27,7 +27,7 @@
 #   - completed: Retrospective has been done
 #
 # WORKFLOW NOTES:
-# ===============
+# ========
 # - Epic transitions to 'in-progress' automatically when first story is created
 # - Stories can be worked in parallel if team capacity allows
 # - SM typically drafts next story after previous one is 'done' to incorporate learnings
@@ -278,7 +278,7 @@ development_status:
   epic-13: ready-for-dev
   13-1-generic-webhook-server-framework: done
   13-2-webhook-provider-protocol: done
-  13-3-linear-webhook-provider: in-progress
+  13-3-linear-webhook-provider: review
   13-4-event-to-workflow-mapping: ready-for-dev
   13-5-bot-loop-prevention: ready-for-dev
   13-6-webhook-signature-verification: in-progress

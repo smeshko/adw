@@ -61,17 +61,19 @@ class TestArtifactConfig:
         """ArtifactConfig rejects empty name string."""
         with pytest.raises(ValidationError) as exc_info:
             ArtifactConfig(name="", pattern="output/*.md")
-        assert "min_length" in str(exc_info.value).lower() or "string_too_short" in str(
-            exc_info.value
-        ).lower()
+        assert (
+            "min_length" in str(exc_info.value).lower()
+            or "string_too_short" in str(exc_info.value).lower()
+        )
 
     def test_pattern_empty_string_rejected(self) -> None:
         """ArtifactConfig rejects empty pattern string."""
         with pytest.raises(ValidationError) as exc_info:
             ArtifactConfig(name="plan", pattern="")
-        assert "min_length" in str(exc_info.value).lower() or "string_too_short" in str(
-            exc_info.value
-        ).lower()
+        assert (
+            "min_length" in str(exc_info.value).lower()
+            or "string_too_short" in str(exc_info.value).lower()
+        )
 
     def test_extra_fields_rejected(self) -> None:
         """ArtifactConfig rejects unknown fields (extra='forbid')."""

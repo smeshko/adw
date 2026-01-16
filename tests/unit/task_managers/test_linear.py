@@ -111,7 +111,9 @@ class TestLinearTaskManagerFetchTask:
         assert result.parent_id == "RULE-100"
         assert result.parent_title == "Epic: Auth System"
 
-    def test_fetch_task_not_found_raises_error(self, manager: LinearTaskManager) -> None:
+    def test_fetch_task_not_found_raises_error(
+        self, manager: LinearTaskManager
+    ) -> None:
         """fetch_task raises TaskError when task not found."""
         with patch.object(manager, "_client") as mock_client:
             mock_client.fetch_issue.return_value = None
@@ -158,7 +160,9 @@ class TestLinearTaskManagerFetchTask:
             "description": None,
             "state": None,
             "priority": None,
-            "labels": {"nodes": [{"name": "bug"}, {"name": "urgent"}, {"name": "backend"}]},
+            "labels": {
+                "nodes": [{"name": "bug"}, {"name": "urgent"}, {"name": "backend"}]
+            },
             "assignee": None,
             "parent": None,
         }
@@ -432,9 +436,7 @@ class TestLinearTaskManagerCloseTask:
 class TestLinearTaskManagerIsPrMerged:
     """Tests for LinearTaskManager.is_pr_merged."""
 
-    def test_is_pr_merged_returns_false(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_is_pr_merged_returns_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """is_pr_merged always returns False (handled by IssueCloser)."""
         monkeypatch.setenv("LINEAR_API_KEY", "lin_api_test123")
         monkeypatch.setenv("LINEAR_TEAM_ID", "team-uuid-123")

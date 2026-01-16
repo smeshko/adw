@@ -64,9 +64,7 @@ class TestTaskManagerFactory:
         assert manager.name == "linear"
         assert isinstance(manager, TaskManager)
 
-    def test_create_linear_with_config(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_create_linear_with_config(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Creating Linear manager with explicit config uses that config."""
         from adw.models.config import TaskManagerConfig
 

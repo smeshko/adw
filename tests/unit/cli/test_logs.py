@@ -113,7 +113,9 @@ class TestLogsSnapshotsCommand:
 class TestLogsDiffCommand:
     """Tests for logs diff command - diff detection logic."""
 
-    def test_diff_detects_additions(self, runner: CliRunner, mock_adw_dir: Path) -> None:
+    def test_diff_detects_additions(
+        self, runner: CliRunner, mock_adw_dir: Path
+    ) -> None:
         """Diff correctly identifies added fields."""
         run_dir = mock_adw_dir / "runs" / TEST_RUN_ID
         run_dir.mkdir(parents=True)
@@ -587,6 +589,7 @@ class TestDurationDisplay:
 
         # Mock console.print temporarily
         import adw.cli.logs as logs_module
+
         original_console = logs_module.console
         logs_module.console = console
 
