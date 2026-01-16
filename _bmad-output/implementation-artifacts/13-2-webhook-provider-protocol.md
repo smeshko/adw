@@ -1,6 +1,6 @@
 # Story 13.2: Webhook Provider Protocol
 
-Status: Ready for Review
+Status: Done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure
 Created: 2026-01-09
