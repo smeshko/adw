@@ -114,19 +114,19 @@ class TestWebhookRoute:
 
     def test_webhook_response_includes_request_id(self) -> None:
         """Webhook response includes request_id in body and header."""
-        config = WebhookConfig(
-            providers={"github": ProviderConfig(enabled=True)}
-        )
-        test_app = create_app(config=config)
+        from adw.webhook.providers.registry import ProviderRegistry
+
+        # Use MockProvider to test request_id feature without signature verification
+        registry = ProviderRegistry()
+        registry.register(MockProvider("mock", verify_result=True, should_trigger=False))
+
+        config = WebhookConfig()
+        test_app = create_app(config=config, registry=registry)
         client = TestClient(test_app)
-        # Include required GitHub headers for the provider to parse correctly
+
         response = client.post(
-            "/webhook/github",
+            "/webhook/mock",
             json={"action": "opened"},
-            headers={
-                "x-github-event": "issues",
-                "x-github-delivery": "test-delivery-id",
-            },
         )
         # Check body
         body_request_id = response.json()["request_id"]
