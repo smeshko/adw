@@ -77,7 +77,13 @@ async def receive_webhook(
         )
 
     # Parse event using provider
-    event = provider_impl.parse_event(request, body)
+    try:
+        event = provider_impl.parse_event(request, body)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid webhook payload: {e}",
+        ) from e
 
     # Store metadata for logging middleware
     request.state.webhook_metadata = {
