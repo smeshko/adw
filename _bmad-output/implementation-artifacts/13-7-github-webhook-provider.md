@@ -1,6 +1,6 @@
 # Story 13.7: GitHub Webhook Provider (Future)
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure
 Created: 2026-01-09
