@@ -67,6 +67,7 @@ class LinearProvider:
         """
         self._config = config
         self._auto_label = auto_label
+        self._secret: str | None = None
 
         # Get secret from parameter or config
         if secret is not None:
@@ -109,7 +110,8 @@ class LinearProvider:
         # If no secret configured, skip verification
         if not self._secret:
             logger.warning(
-                "No webhook secret configured for Linear - skipping signature verification"
+                "No webhook secret configured for Linear - "
+                "skipping signature verification"
             )
             return True
 
@@ -255,6 +257,21 @@ class LinearProvider:
         identifier = issue_data.get("identifier", "")
         issue_url = issue_data.get("url", "")
 
+        # Extract labels as list of names (per acceptance criteria)
+        labels = issue_data.get("labels", [])
+        label_names = [label.get("name", "") for label in labels if label.get("name")]
+
+        # Extract assignee info (per acceptance criteria)
+        assignee_data = issue_data.get("assignee")
+        assignee_info: dict[str, str] | None = None
+        if assignee_data:
+            assignee_info = {
+                "id": assignee_data.get("id", ""),
+                "name": assignee_data.get("name", ""),
+            }
+            if assignee_data.get("email"):
+                assignee_info["email"] = assignee_data["email"]
+
         return RunParams(
             feature_request=feature_request,
             phases=phases,
@@ -265,6 +282,8 @@ class LinearProvider:
                 "linear_issue_id": issue_id,
                 "linear_identifier": identifier,
                 "triggered_by": triggered_by,
+                "labels": label_names,
+                "assignee": assignee_info,
             },
         )
 
@@ -298,13 +317,18 @@ class LinearProvider:
     def _parse_phases_from_command(self, text: str) -> list[str] | None:
         """Parse phases from @adw run command.
 
-        Looks for --phase flag in the command text.
+        Looks for --phase flags in the command text. Supports multiple
+        --phase flags to specify multiple phases.
 
         Args:
             text: The comment body text.
 
         Returns:
-            List of phases if --phase flag found, None otherwise.
+            List of phases if --phase flags found, None otherwise.
+
+        Example:
+            "@adw run --phase plan" -> ["plan"]
+            "@adw run --phase plan --phase build" -> ["plan", "build"]
         """
         match = ADW_COMMAND_PATTERN.search(text)
         if not match:
@@ -312,10 +336,10 @@ class LinearProvider:
 
         args = match.group(1).strip()
 
-        # Parse --phase flag
-        phase_match = re.search(r"--phase\s+(\w+)", args)
-        if phase_match:
-            return [phase_match.group(1)]
+        # Parse all --phase flags (support multiple phases)
+        phase_matches = re.findall(r"--phase\s+(\w+)", args)
+        if phase_matches:
+            return phase_matches
 
         return None
 

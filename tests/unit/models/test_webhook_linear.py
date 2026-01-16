@@ -49,6 +49,48 @@ class TestLinearEvent:
         assert event.data == {}
         assert event.webhook_timestamp is None
 
+    def test_from_payload_parses_created_at_timestamp(self) -> None:
+        """Should parse createdAt ISO timestamp from webhook payload."""
+        from datetime import UTC
+
+        from adw.models.webhook import LinearEvent
+
+        payload = {
+            "action": "create",
+            "type": "Issue",
+            "data": {},
+            "createdAt": "2024-01-15T10:30:00.000Z",
+        }
+
+        event = LinearEvent.from_payload(payload)
+
+        assert event.created_at.year == 2024
+        assert event.created_at.month == 1
+        assert event.created_at.day == 15
+        assert event.created_at.hour == 10
+        assert event.created_at.minute == 30
+        assert event.created_at.tzinfo == UTC
+
+    def test_from_payload_handles_invalid_created_at(self) -> None:
+        """Should fall back to now() for invalid createdAt values."""
+        from datetime import UTC, datetime
+
+        from adw.models.webhook import LinearEvent
+
+        payload = {
+            "action": "create",
+            "type": "Issue",
+            "data": {},
+            "createdAt": "not-a-valid-date",
+        }
+
+        before = datetime.now(tz=UTC)
+        event = LinearEvent.from_payload(payload)
+        after = datetime.now(tz=UTC)
+
+        # Should fall back to approximately now
+        assert before <= event.created_at <= after
+
     def test_get_issue_extracts_from_issue_event(self) -> None:
         """Should extract LinearIssue from Issue event data."""
         from adw.models.webhook import LinearEvent

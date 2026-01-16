@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from adw.models.webhook import WebhookConfig, ProviderConfig
+from adw.models.webhook import ProviderConfig, WebhookConfig
 
 
 class TestLinearProviderProtocol:
@@ -414,26 +414,129 @@ class TestLinearProviderRunParams:
 
         assert params.feature_request == "Add dark mode"
 
+    def test_extract_run_params_includes_labels_and_assignee(self) -> None:
+        """Should include labels and assignee in metadata per acceptance criteria."""
+        from adw.models.webhook import WebhookEvent
+        from adw.webhook.providers.linear import LinearProvider
+
+        config = WebhookConfig(
+            providers={"linear": ProviderConfig(enabled=True)}
+        )
+        provider = LinearProvider(config)
+
+        event = WebhookEvent(
+            event_type="Issue.create",
+            provider="linear",
+            payload={
+                "action": "create",
+                "type": "Issue",
+                "data": {
+                    "id": "issue-uuid",
+                    "identifier": "ENG-42",
+                    "title": "Add dark mode",
+                    "labels": [
+                        {"id": "l1", "name": "adw:auto"},
+                        {"id": "l2", "name": "feature"},
+                    ],
+                    "assignee": {
+                        "id": "user-123",
+                        "name": "John Doe",
+                        "email": "john@example.com",
+                    },
+                },
+            },
+        )
+
+        params = provider.extract_run_params(event)
+
+        # Verify labels are extracted
+        assert params.metadata["labels"] == ["adw:auto", "feature"]
+
+        # Verify assignee is extracted
+        assert params.metadata["assignee"]["id"] == "user-123"
+        assert params.metadata["assignee"]["name"] == "John Doe"
+        assert params.metadata["assignee"]["email"] == "john@example.com"
+
+    def test_extract_run_params_handles_missing_assignee(self) -> None:
+        """Should handle issues without assignee."""
+        from adw.models.webhook import WebhookEvent
+        from adw.webhook.providers.linear import LinearProvider
+
+        config = WebhookConfig(
+            providers={"linear": ProviderConfig(enabled=True)}
+        )
+        provider = LinearProvider(config)
+
+        event = WebhookEvent(
+            event_type="Issue.create",
+            provider="linear",
+            payload={
+                "action": "create",
+                "type": "Issue",
+                "data": {
+                    "id": "issue-uuid",
+                    "identifier": "ENG-42",
+                    "title": "Add dark mode",
+                    "labels": [],
+                },
+            },
+        )
+
+        params = provider.extract_run_params(event)
+
+        assert params.metadata["labels"] == []
+        assert params.metadata["assignee"] is None
+
+    def test_extract_run_params_with_multiple_phases(self) -> None:
+        """Should parse multiple --phase flags from command."""
+        from adw.models.webhook import WebhookEvent
+        from adw.webhook.providers.linear import LinearProvider
+
+        config = WebhookConfig(
+            providers={"linear": ProviderConfig(enabled=True)}
+        )
+        provider = LinearProvider(config)
+
+        event = WebhookEvent(
+            event_type="Comment.create",
+            provider="linear",
+            payload={
+                "action": "create",
+                "type": "Comment",
+                "data": {
+                    "id": "comment-123",
+                    "body": "@adw run --phase plan --phase build --phase test",
+                    "issue": {
+                        "id": "issue-uuid",
+                        "identifier": "ENG-42",
+                        "title": "Add dark mode",
+                    },
+                },
+            },
+        )
+
+        params = provider.extract_run_params(event)
+
+        assert params.phases == ["plan", "build", "test"]
+
 
 class TestLinearProviderRegistration:
     """Tests for provider registration."""
 
     def test_linear_provider_registered_in_factories(self) -> None:
         """LinearProvider should be registered in provider factories."""
-        from adw.webhook.providers.loader import get_available_providers
-
         # Import linear module to trigger registration
         import adw.webhook.providers.linear  # noqa: F401
+        from adw.webhook.providers.loader import get_available_providers
 
         factories = get_available_providers()
         assert "linear" in factories
 
     def test_linear_provider_can_be_loaded_from_config(self) -> None:
         """Should be able to load LinearProvider via load_providers_from_config."""
-        from adw.webhook.providers.loader import load_providers_from_config
-
         # Import linear module to trigger registration
         import adw.webhook.providers.linear  # noqa: F401
+        from adw.webhook.providers.loader import load_providers_from_config
 
         config = WebhookConfig(
             providers={"linear": ProviderConfig(enabled=True)}
