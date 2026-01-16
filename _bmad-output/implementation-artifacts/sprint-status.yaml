@@ -278,7 +278,7 @@ development_status:
   epic-13: ready-for-dev
   13-1-generic-webhook-server-framework: done
   13-2-webhook-provider-protocol: done
-  13-3-linear-webhook-provider: ready-for-dev
+  13-3-linear-webhook-provider: in-progress
   13-4-event-to-workflow-mapping: ready-for-dev
   13-5-bot-loop-prevention: ready-for-dev
   13-6-webhook-signature-verification: ready-for-dev
