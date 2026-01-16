@@ -76,10 +76,10 @@ webhook:
 - [x] Update `extract_run_params()` to respect configured phases
 
 ### Task 6: Add Logging and Monitoring
-- [ ] Log all events received with evaluation result
-- [ ] Log trigger decisions with reasoning
-- [ ] Log run initiation with run_id
-- [ ] Add metrics for event processing (if metrics system exists)
+- [x] Log all events received with evaluation result
+- [x] Log trigger decisions with reasoning
+- [x] Log run initiation with run_id
+- [x] Add metrics for event processing (if metrics system exists)
 
 ### Task 7: Write Tests
 - [ ] Create `tests/unit/webhook/test_mapping.py`
