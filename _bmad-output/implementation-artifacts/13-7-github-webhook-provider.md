@@ -40,10 +40,10 @@ so that I can automate feature development from GitHub Issues.
 - [x] Support legacy `X-Hub-Signature` (SHA-1) as fallback
 
 ### Task 3: Implement Event Parsing
-- [ ] Create `GitHubEvent` model for GitHub-specific payload
-- [ ] Map event types: issues, issue_comment, pull_request_review_comment
-- [ ] Extract issue data: number, title, body, labels, user
-- [ ] Extract PR data when applicable
+- [x] Create `GitHubEvent` model for GitHub-specific payload
+- [x] Map event types: issues, issue_comment, pull_request_review_comment
+- [x] Extract issue data: number, title, body, labels, user
+- [x] Extract PR data when applicable
 
 ### Task 4: Implement Run Trigger Logic
 - [ ] Check for `adw` label on issue opened events
