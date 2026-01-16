@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from collections.abc import Mapping
@@ -12,7 +13,10 @@ from fastapi.responses import JSONResponse
 
 if TYPE_CHECKING:
     from adw.webhook.config import WebhookConfig
+    from adw.webhook.mapping import EventMapper
     from adw.webhook.providers.registry import ProviderRegistry
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -32,11 +36,13 @@ async def receive_webhook(
 
     Uses the provider registry to route requests to the appropriate
     provider implementation for signature verification and event parsing.
-    Falls back to legacy behavior when provider is not in registry.
+    Evaluates events against configured mappings to determine if a run
+    should be triggered.
     """
-    # Get config and registry from app state
+    # Get config, registry, and event mapper from app state
     config: WebhookConfig = request.app.state.webhook_config
     registry: ProviderRegistry = request.app.state.provider_registry
+    event_mapper: EventMapper = request.app.state.event_mapper
 
     # Get provider implementation from registry
     provider_impl = registry.get(provider)
@@ -94,14 +100,78 @@ async def receive_webhook(
         "timestamp": time.time(),
     }
 
-    # Return acknowledgment
-    # Future stories will add actual event processing and trigger logic
+    # Evaluate event against mapping configuration (Story 13.4)
+    mapping_result = event_mapper.evaluate(provider, event.event_type, event)
+
+    logger.info(
+        "Event evaluation complete",
+        extra={
+            "request_id": request_id,
+            "provider": provider,
+            "event_type": event.event_type,
+            "should_trigger": mapping_result.should_trigger,
+            "reason": mapping_result.reason,
+        },
+    )
+
+    # If event should trigger a run, extract params and trigger
+    trigger_result = None
+    if mapping_result.should_trigger:
+        # Extract run parameters from provider
+        run_params = provider_impl.extract_run_params(event)
+
+        # Override phases from mapping if specified
+        if mapping_result.phases is not None:
+            run_params = run_params.model_copy(update={"phases": mapping_result.phases})
+
+        logger.info(
+            "Triggering ADW run",
+            extra={
+                "request_id": request_id,
+                "feature_request": run_params.feature_request[:100],
+                "phases": run_params.phases,
+                "source_info": run_params.source_info,
+            },
+        )
+
+        # Trigger run asynchronously in background
+        from adw.webhook.runner import trigger_from_params
+
+        trigger_result = trigger_from_params(run_params)
+
+        if trigger_result.success:
+            logger.info(
+                "Run triggered successfully",
+                extra={
+                    "request_id": request_id,
+                    "run_id": trigger_result.run_id,
+                    "process_id": trigger_result.process_id,
+                },
+            )
+        else:
+            logger.error(
+                "Failed to trigger run",
+                extra={
+                    "request_id": request_id,
+                    "error": trigger_result.error,
+                },
+            )
+
+    # Build response
+    response_content: dict[str, str | bool | None] = {
+        "status": "received",
+        "request_id": request_id,
+        "trigger_evaluation": mapping_result.should_trigger,
+    }
+
+    if trigger_result:
+        response_content["run_triggered"] = trigger_result.success
+        if trigger_result.run_id:
+            response_content["run_id"] = trigger_result.run_id
+
     return JSONResponse(
         status_code=status.HTTP_202_ACCEPTED,
-        content={
-            "status": "received",
-            "request_id": request_id,
-        },
+        content=response_content,
     )
 
 

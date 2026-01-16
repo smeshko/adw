@@ -71,9 +71,9 @@ webhook:
 - [x] Handle run initiation errors gracefully
 
 ### Task 5: Update Provider Logic
-- [ ] Modify provider's `should_trigger_run()` to use EventMapper
-- [ ] Pass mapping configuration to provider on initialization
-- [ ] Update `extract_run_params()` to respect configured phases
+- [x] Modify provider's `should_trigger_run()` to use EventMapper
+- [x] Pass mapping configuration to provider on initialization
+- [x] Update `extract_run_params()` to respect configured phases
 
 ### Task 6: Add Logging and Monitoring
 - [ ] Log all events received with evaluation result
