@@ -1,6 +1,6 @@
 # Story 13.7: GitHub Webhook Provider (Future)
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure
 Created: 2026-01-09
@@ -30,50 +30,50 @@ so that I can automate feature development from GitHub Issues.
 ## Tasks / Subtasks
 
 ### Task 1: Create GitHub Provider Package
-- [ ] Create `src/adw/webhook/providers/github.py`
-- [ ] Implement `GitHubProvider` class conforming to `WebhookProvider` Protocol
-- [ ] Register provider if enabled in configuration
+- [x] Create `src/adw/webhook/providers/github.py`
+- [x] Implement `GitHubProvider` class conforming to `WebhookProvider` Protocol
+- [x] Register provider if enabled in configuration
 
 ### Task 2: Implement Signature Verification
-- [ ] Use `verify_github_signature()` from security module
-- [ ] Handle `X-Hub-Signature-256` header
-- [ ] Support legacy `X-Hub-Signature` (SHA-1) as fallback
+- [x] Use `verify_github_signature()` from security module
+- [x] Handle `X-Hub-Signature-256` header
+- [x] Support legacy `X-Hub-Signature` (SHA-1) as fallback
 
 ### Task 3: Implement Event Parsing
-- [ ] Create `GitHubEvent` model for GitHub-specific payload
-- [ ] Map event types: issues, issue_comment, pull_request_review_comment
-- [ ] Extract issue data: number, title, body, labels, user
-- [ ] Extract PR data when applicable
+- [x] Create `GitHubEvent` model for GitHub-specific payload
+- [x] Map event types: issues, issue_comment, pull_request_review_comment
+- [x] Extract issue data: number, title, body, labels, user
+- [x] Extract PR data when applicable
 
 ### Task 4: Implement Run Trigger Logic
-- [ ] Check for `adw` label on issue opened events
-- [ ] Check for `/adw run` pattern in comment text
-- [ ] Check for `/adw fix` pattern in PR review comments
-- [ ] Respect event mapping configuration from project.yaml
+- [x] Check for `adw` label on issue opened events
+- [x] Check for `/adw run` pattern in comment text
+- [x] Check for `/adw fix` pattern in PR review comments
+- [x] Respect event mapping configuration from project.yaml
 
 ### Task 5: Implement Run Parameter Extraction
-- [ ] Build feature_request from issue title + body
-- [ ] Include issue URL and number in source_info
-- [ ] Parse command flags from comments
-- [ ] Handle PR context for fix commands
+- [x] Build feature_request from issue title + body
+- [x] Include issue URL and number in source_info
+- [x] Parse command flags from comments
+- [x] Handle PR context for fix commands
 
 ### Task 6: Add GitHub-Specific Models
-- [ ] Add `GitHubEvent` model to `src/adw/models/webhook.py`
-- [ ] Add `GitHubIssue` model for issue data
-- [ ] Add `GitHubComment` model for comment data
-- [ ] Add `GitHubPullRequest` model for PR context
+- [x] Add `GitHubEvent` model to `src/adw/models/webhook.py`
+- [x] Add `GitHubIssue` model for issue data
+- [x] Add `GitHubComment` model for comment data
+- [x] Add `GitHubPullRequest` model for PR context
 
 ### Task 7: Add Configuration Support
-- [ ] Support GitHub configuration in project.yaml
-- [ ] Configuration options: enabled, secret_env, command_prefix
-- [ ] Default values matching GitHub conventions
+- [x] Support GitHub configuration in project.yaml
+- [x] Configuration options: enabled, secret_env, command_prefix
+- [x] Default values matching GitHub conventions
 
 ### Task 8: Write Tests
-- [ ] Create `tests/unit/webhook/providers/test_github.py`
-- [ ] Test event parsing for each event type
-- [ ] Test trigger logic for various scenarios
-- [ ] Test parameter extraction
-- [ ] Create test fixtures for GitHub webhook payloads
+- [x] Create `tests/unit/webhook/providers/test_github.py`
+- [x] Test event parsing for each event type
+- [x] Test trigger logic for various scenarios
+- [x] Test parameter extraction
+- [x] Create test fixtures for GitHub webhook payloads
 
 ---
 

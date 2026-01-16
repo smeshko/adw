@@ -23,20 +23,24 @@ class ProviderConfig(BaseModel):
     Attributes:
         enabled: Whether this provider is enabled (default: False)
         secret_env: Name of environment variable containing the webhook secret
+        command_prefix: Command prefix for triggering ADW (default: "/adw")
+        trigger_label: Label name that triggers ADW on issues (default: "adw")
 
     Example:
-        >>> config = ProviderConfig(enabled=True, secret_env="LINEAR_WEBHOOK_SECRET")
+        >>> config = ProviderConfig(enabled=True, secret_env="GITHUB_WEBHOOK_SECRET")
         >>> config.enabled
         True
-        >>> config.get_secret()  # Returns value of LINEAR_WEBHOOK_SECRET env var
+        >>> config.get_secret()  # Returns value of GITHUB_WEBHOOK_SECRET env var
         'secret-value'
 
     YAML example:
         webhook:
           providers:
-            linear:
+            github:
               enabled: true
-              secret_env: LINEAR_WEBHOOK_SECRET
+              secret_env: GITHUB_WEBHOOK_SECRET
+              command_prefix: "/adw"
+              trigger_label: "adw"
     """
 
     enabled: bool = Field(
@@ -46,6 +50,14 @@ class ProviderConfig(BaseModel):
     secret_env: str | None = Field(
         default=None,
         description="Name of environment variable containing the webhook secret",
+    )
+    command_prefix: str = Field(
+        default="/adw",
+        description="Command prefix for triggering ADW runs",
+    )
+    trigger_label: str = Field(
+        default="adw",
+        description="Label name that triggers ADW on issues",
     )
 
     def get_secret(self) -> str | None:
@@ -215,4 +227,182 @@ class RunParams(BaseModel):
     metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="Additional provider-specific metadata",
+    )
+
+
+# =============================================================================
+# GitHub-Specific Models
+# =============================================================================
+
+
+class GitHubUser(BaseModel):
+    """GitHub user data.
+
+    Represents a GitHub user or bot that triggered an event.
+
+    Attributes:
+        id: The GitHub user ID
+        login: The username
+        type: The account type ("User" or "Bot")
+    """
+
+    id: int = Field(description="GitHub user ID")
+    login: str = Field(description="GitHub username")
+    type: str = Field(
+        default="User",
+        description="Account type (User, Bot, Organization)",
+    )
+
+
+class GitHubLabel(BaseModel):
+    """GitHub label data.
+
+    Represents a label attached to an issue or pull request.
+
+    Attributes:
+        name: The label name
+        color: The label color (hex without #)
+    """
+
+    name: str = Field(description="Label name")
+    color: str = Field(default="", description="Label color (hex)")
+
+
+class GitHubIssue(BaseModel):
+    """GitHub issue data.
+
+    Represents the issue data from a GitHub webhook payload.
+
+    Attributes:
+        id: The GitHub issue ID
+        number: The issue number (e.g., #42)
+        title: The issue title
+        body: The issue body/description (may be None)
+        state: The issue state ("open" or "closed")
+        labels: List of labels attached to the issue
+        user: The user who created the issue
+        html_url: The URL to view the issue in browser
+    """
+
+    id: int = Field(description="GitHub issue ID")
+    number: int = Field(description="Issue number")
+    title: str = Field(description="Issue title")
+    body: str | None = Field(default=None, description="Issue body/description")
+    state: str = Field(default="open", description="Issue state (open/closed)")
+    labels: list[GitHubLabel] = Field(
+        default_factory=list,
+        description="Labels attached to the issue",
+    )
+    user: GitHubUser = Field(description="User who created the issue")
+    html_url: str = Field(description="URL to view issue in browser")
+
+
+class GitHubComment(BaseModel):
+    """GitHub comment data.
+
+    Represents a comment on an issue or pull request.
+
+    Attributes:
+        id: The GitHub comment ID
+        body: The comment text
+        user: The user who posted the comment
+        html_url: The URL to view the comment in browser
+        created_at: When the comment was created
+    """
+
+    id: int = Field(description="GitHub comment ID")
+    body: str = Field(description="Comment text")
+    user: GitHubUser = Field(description="User who posted the comment")
+    html_url: str = Field(description="URL to view comment in browser")
+    created_at: datetime = Field(description="When comment was created")
+
+
+class GitHubPullRequest(BaseModel):
+    """GitHub pull request data.
+
+    Represents the pull request data from a GitHub webhook payload.
+
+    Attributes:
+        id: The GitHub pull request ID
+        number: The PR number
+        title: The PR title
+        body: The PR description (may be None)
+        head: The head branch info (ref and sha)
+        base: The base branch info (ref and sha)
+        html_url: The URL to view the PR in browser
+    """
+
+    id: int = Field(description="GitHub pull request ID")
+    number: int = Field(description="Pull request number")
+    title: str = Field(description="Pull request title")
+    body: str | None = Field(default=None, description="Pull request description")
+    head: dict[str, Any] = Field(description="Head branch info (ref, sha)")
+    base: dict[str, Any] = Field(description="Base branch info (ref, sha)")
+    html_url: str = Field(description="URL to view PR in browser")
+
+
+class GitHubRepository(BaseModel):
+    """GitHub repository data.
+
+    Represents the repository where the event occurred.
+
+    Attributes:
+        id: The GitHub repository ID
+        name: The repository name
+        full_name: The full repository name (owner/repo)
+        html_url: The URL to view the repository
+    """
+
+    id: int = Field(description="GitHub repository ID")
+    name: str = Field(description="Repository name")
+    full_name: str = Field(description="Full repository name (owner/repo)")
+    html_url: str = Field(description="URL to view repository")
+
+
+class GitHubEvent(BaseModel):
+    """Parsed GitHub webhook event.
+
+    Represents a fully parsed GitHub webhook event with typed
+    access to common payload fields.
+
+    Attributes:
+        event_type: The event type from X-GitHub-Event header
+        action: The action that triggered the event
+        delivery_id: The unique delivery ID from X-GitHub-Delivery
+        issue: The issue data if present
+        comment: The comment data if present
+        pull_request: The pull request data if present
+        sender: The user who triggered the event
+        repository: The repository where the event occurred
+
+    Example:
+        >>> event = GitHubEvent(
+        ...     event_type="issues",
+        ...     action="opened",
+        ...     delivery_id="abc-123",
+        ...     issue=GitHubIssue(...),
+        ...     sender=GitHubUser(...),
+        ...     repository=GitHubRepository(...),
+        ... )
+    """
+
+    event_type: str = Field(description="Event type from X-GitHub-Event header")
+    action: str = Field(default="", description="Action that triggered event")
+    delivery_id: str = Field(default="", description="Unique delivery ID")
+    issue: GitHubIssue | None = Field(default=None, description="Issue data if present")
+    comment: GitHubComment | None = Field(
+        default=None,
+        description="Comment data if present",
+    )
+    pull_request: GitHubPullRequest | None = Field(
+        default=None,
+        description="Pull request data if present",
+    )
+    sender: GitHubUser | None = Field(
+        default=None,
+        description="User who triggered the event",
+    )
+    repository: GitHubRepository | None = Field(
+        default=None,
+        description="Repository where event occurred",
     )
