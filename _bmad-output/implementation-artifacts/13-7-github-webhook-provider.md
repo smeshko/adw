@@ -52,10 +52,10 @@ so that I can automate feature development from GitHub Issues.
 - [x] Respect event mapping configuration from project.yaml
 
 ### Task 5: Implement Run Parameter Extraction
-- [ ] Build feature_request from issue title + body
-- [ ] Include issue URL and number in source_info
-- [ ] Parse command flags from comments
-- [ ] Handle PR context for fix commands
+- [x] Build feature_request from issue title + body
+- [x] Include issue URL and number in source_info
+- [x] Parse command flags from comments
+- [x] Handle PR context for fix commands
 
 ### Task 6: Add GitHub-Specific Models
 - [ ] Add `GitHubEvent` model to `src/adw/models/webhook.py`
