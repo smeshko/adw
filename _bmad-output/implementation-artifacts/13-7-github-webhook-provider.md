@@ -46,10 +46,10 @@ so that I can automate feature development from GitHub Issues.
 - [x] Extract PR data when applicable
 
 ### Task 4: Implement Run Trigger Logic
-- [ ] Check for `adw` label on issue opened events
-- [ ] Check for `/adw run` pattern in comment text
-- [ ] Check for `/adw fix` pattern in PR review comments
-- [ ] Respect event mapping configuration from project.yaml
+- [x] Check for `adw` label on issue opened events
+- [x] Check for `/adw run` pattern in comment text
+- [x] Check for `/adw fix` pattern in PR review comments
+- [x] Respect event mapping configuration from project.yaml
 
 ### Task 5: Implement Run Parameter Extraction
 - [ ] Build feature_request from issue title + body
