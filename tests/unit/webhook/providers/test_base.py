@@ -6,7 +6,6 @@ not trivial attribute access or import smoke tests.
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
@@ -21,8 +20,8 @@ class TestWebhookProviderProtocol:
 
     def test_mock_provider_implements_protocol(self) -> None:
         """A class with correct methods should satisfy the protocol."""
-        from adw.webhook.providers.base import WebhookProvider
         from adw.models.webhook import RunParams, WebhookEvent
+        from adw.webhook.providers.base import WebhookProvider
 
         class MockProvider:
             """Mock provider implementing the protocol."""
@@ -122,4 +121,13 @@ class TestBaseWebhookProvider:
 
         body = b"not valid json"
         with pytest.raises(ValueError, match="Invalid JSON"):
+            BaseWebhookProvider.parse_json_body(body)
+
+    def test_parse_json_body_raises_on_non_object(self) -> None:
+        """parse_json_body should raise ValueError for arrays or primitives."""
+        from adw.webhook.providers.base import BaseWebhookProvider
+
+        # JSON array should be rejected
+        body = b'[1, 2, 3]'
+        with pytest.raises(ValueError, match="must be an object"):
             BaseWebhookProvider.parse_json_body(body)

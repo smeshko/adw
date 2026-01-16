@@ -6,7 +6,7 @@ business logic - NOT trivial attribute access or serialization smoke tests.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -38,13 +38,13 @@ class TestWebhookEvent:
 
     def test_timestamp_defaults_to_utc_now(self) -> None:
         """Timestamp should default to current UTC time."""
-        before = datetime.now(tz=timezone.utc)
+        before = datetime.now(tz=UTC)
         event = WebhookEvent(event_type="test", provider="mock")
-        after = datetime.now(tz=timezone.utc)
+        after = datetime.now(tz=UTC)
 
         assert event.timestamp >= before
         assert event.timestamp <= after
-        assert event.timestamp.tzinfo == timezone.utc
+        assert event.timestamp.tzinfo == UTC
 
     def test_optional_raw_body_accepts_bytes(self) -> None:
         """raw_body should accept bytes for raw payload storage."""

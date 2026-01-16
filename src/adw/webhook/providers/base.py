@@ -7,7 +7,7 @@ and provides a BaseWebhookProvider class with common utilities.
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 if TYPE_CHECKING:
     from fastapi import Request
@@ -190,6 +190,9 @@ class BaseWebhookProvider:
             ValueError: If the body is not valid JSON.
         """
         try:
-            return json.loads(body.decode("utf-8"))
+            result = json.loads(body.decode("utf-8"))
+            if not isinstance(result, dict):
+                raise ValueError("JSON body must be an object, not array or primitive")
+            return cast(dict[str, Any], result)
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
             raise ValueError(f"Invalid JSON body: {e}") from e

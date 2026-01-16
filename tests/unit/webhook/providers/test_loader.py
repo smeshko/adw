@@ -7,7 +7,6 @@ not trivial attribute access.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -15,7 +14,6 @@ if TYPE_CHECKING:
     from fastapi import Request
 
 from adw.models.webhook import ProviderConfig, RunParams, WebhookConfig, WebhookEvent
-from adw.webhook.providers.base import WebhookProvider
 
 
 class MockProvider:
