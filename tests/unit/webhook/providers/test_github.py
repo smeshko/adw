@@ -586,7 +586,11 @@ class TestParameterExtraction:
     def test_extract_params_from_comment_with_phase_flag(
         self, github_provider: GitHubProvider
     ) -> None:
-        """Extract run parameters from comment with --phase flag."""
+        """Extract run parameters from comment with --phase flag.
+
+        Issue comments should use issue title+body as feature_request
+        (the run starts 'for that issue'), not the comment text.
+        """
         event = WebhookEvent(
             event_type="issue_comment_created",
             provider="github",
@@ -594,6 +598,8 @@ class TestParameterExtraction:
                 "action": "created",
                 "issue": {
                     "number": 42,
+                    "title": "Add payment processing",
+                    "body": "We need to integrate Stripe for payments.",
                     "html_url": "https://github.com/org/repo/issues/42",
                 },
                 "comment": {
@@ -609,7 +615,10 @@ class TestParameterExtraction:
 
         params = github_provider.extract_run_params(event)
 
-        assert "/adw run" in params.feature_request
+        # Feature request should be from issue, not comment
+        assert "Add payment processing" in params.feature_request
+        assert "Stripe" in params.feature_request
+        # Phase flag should still be parsed from comment
         assert params.phases == ["build"]
         assert params.metadata["command"] == "run"
         assert (

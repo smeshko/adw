@@ -326,19 +326,24 @@ class GitHubProvider:
         repository = payload.get("repository", {})
 
         # Determine feature request content based on event type
-        if event.event_type.startswith("issue_comment") or event.event_type.startswith(
-            "pull_request_review_comment"
-        ):
-            # For comments, use the comment body as feature request
-            feature_request = comment.get("body", "")
-            # Also parse any command arguments
-            command_args = self._parse_command(feature_request)
-        else:
-            # For issue events, use issue title + body
+        comment_body = comment.get("body", "")
+        command_args = self._parse_command(comment_body) if comment_body else {}
+
+        if event.event_type.startswith("issue_comment"):
+            # For issue comments, use issue title + body as feature request
+            # (the run starts "for that issue", not for the comment text)
             title = issue.get("title", "")
             body = issue.get("body", "") or ""
             feature_request = f"{title}\n\n{body}".strip()
-            command_args = {}
+        elif event.event_type.startswith("pull_request_review_comment"):
+            # For PR review comments, use the comment body as context
+            # (the review feedback guides the fix)
+            feature_request = comment_body
+        else:
+            # For issue events (opened, labeled), use issue title + body
+            title = issue.get("title", "")
+            body = issue.get("body", "") or ""
+            feature_request = f"{title}\n\n{body}".strip()
 
         # Extract phase from command if present
         phases = None
