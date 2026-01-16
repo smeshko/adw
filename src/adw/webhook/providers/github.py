@@ -121,17 +121,20 @@ class GitHubProvider:
             body: The raw request body bytes for signature computation.
 
         Returns:
-            True if signature is valid or no secret is configured,
-            False if signature is invalid.
+            True if signature is valid,
+            False if signature is invalid or no secret is configured.
 
         Note:
-            If no secret is configured, signature verification is skipped
-            and True is returned. This allows testing without secrets but
-            should be avoided in production.
+            If no secret is configured, signature verification fails closed
+            (returns False) to prevent unauthenticated requests. Configure
+            the secret_env in your provider configuration for production use.
         """
         if not self._secret:
-            logger.warning("GitHub webhook secret not configured - skipping")
-            return True
+            logger.warning(
+                "GitHub webhook secret not configured - rejecting request "
+                "(fail closed for security)"
+            )
+            return False
 
         # Try SHA-256 signature first (preferred)
         signature_256 = BaseWebhookProvider.get_header(
@@ -318,6 +321,7 @@ class GitHubProvider:
         """
         payload = event.payload
         issue = payload.get("issue", {})
+        pull_request = payload.get("pull_request", {})
         comment = payload.get("comment", {})
         repository = payload.get("repository", {})
 
@@ -341,16 +345,29 @@ class GitHubProvider:
         if "from_phase" in command_args:
             phases = [command_args["from_phase"]]
 
-        return RunParams(
-            feature_request=feature_request,
-            phases=phases,
-            source_info={
+        # Build source_info with appropriate context (issue or PR)
+        # PR review comments have pull_request data but may not have issue data
+        if event.event_type.startswith("pull_request_review_comment") and pull_request:
+            source_info = {
+                "provider": self.name,
+                "repo": repository.get("full_name"),
+                "pr_number": pull_request.get("number"),
+                "pr_url": pull_request.get("html_url"),
+                "comment_url": comment.get("html_url") if comment else None,
+            }
+        else:
+            source_info = {
                 "provider": self.name,
                 "repo": repository.get("full_name"),
                 "issue_number": issue.get("number"),
                 "issue_url": issue.get("html_url"),
                 "comment_url": comment.get("html_url") if comment else None,
-            },
+            }
+
+        return RunParams(
+            feature_request=feature_request,
+            phases=phases,
+            source_info=source_info,
             metadata={
                 "delivery_id": event.headers.get(HEADER_GITHUB_DELIVERY),
                 "event_type": event.event_type,

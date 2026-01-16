@@ -199,12 +199,12 @@ class TestGitHubProviderProtocol:
 class TestSignatureVerification:
     """Test signature verification for GitHub webhooks."""
 
-    def test_verify_returns_true_when_no_secret_configured(
+    def test_verify_returns_false_when_no_secret_configured(
         self, github_provider: GitHubProvider
     ) -> None:
-        """Without configured secret, verification returns True with warning."""
+        """Without configured secret, verification fails closed (returns False)."""
         request = _create_mock_request()
-        assert github_provider.verify_signature(request, b"test body") is True
+        assert github_provider.verify_signature(request, b"test body") is False
 
     def test_verify_sha256_signature_valid(
         self, github_provider_with_secret: GitHubProvider
@@ -620,13 +620,16 @@ class TestParameterExtraction:
     def test_extract_params_from_fix_command(
         self, github_provider: GitHubProvider
     ) -> None:
-        """Extract run parameters from /adw fix command."""
+        """Extract run parameters from /adw fix command in PR review comment."""
         event = WebhookEvent(
             event_type="pull_request_review_comment_created",
             provider="github",
             payload={
                 "action": "created",
-                "issue": {},
+                "pull_request": {
+                    "number": 15,
+                    "html_url": "https://github.com/org/repo/pull/15",
+                },
                 "comment": {
                     "body": "/adw fix",
                     "html_url": "https://github.com/org/repo/pull/15#comment-456",
@@ -642,6 +645,13 @@ class TestParameterExtraction:
 
         assert params.feature_request == "/adw fix"
         assert params.metadata["command"] == "fix"
+        # PR context should be extracted for review comments
+        assert params.source_info["pr_number"] == 15
+        assert params.source_info["pr_url"] == "https://github.com/org/repo/pull/15"
+        assert (
+            params.source_info["comment_url"]
+            == "https://github.com/org/repo/pull/15#comment-456"
+        )
 
     def test_extract_params_handles_null_issue_body(
         self, github_provider: GitHubProvider
