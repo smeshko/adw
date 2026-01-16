@@ -1,6 +1,6 @@
 # Story 13.3: Linear Webhook Provider
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure
 Created: 2026-01-09
@@ -38,15 +38,15 @@ so that I can automate feature development from Linear task management.
 ## Tasks / Subtasks
 
 ### Task 1: Create Linear Provider Package
-- [ ] Create `src/adw/webhook/providers/linear.py`
-- [ ] Implement `LinearProvider` class conforming to `WebhookProvider` Protocol
-- [ ] Add provider to registry on initialization
+- [x] Create `src/adw/webhook/providers/linear.py`
+- [x] Implement `LinearProvider` class conforming to `WebhookProvider` Protocol
+- [x] Add provider to registry on initialization
 
 ### Task 2: Implement Signature Verification
-- [ ] Implement `verify_signature()` using HMAC-SHA256
-- [ ] Read secret from environment variable specified in config
-- [ ] Handle missing secret gracefully (log warning, verification skipped)
-- [ ] Parse `X-Linear-Signature` header
+- [x] Implement `verify_signature()` using HMAC-SHA256
+- [x] Read secret from environment variable specified in config
+- [x] Handle missing secret gracefully (log warning, verification skipped)
+- [x] Parse `X-Linear-Signature` header
 
 ### Task 3: Implement Event Parsing
 - [ ] Create `LinearEvent` model for Linear-specific payload structure

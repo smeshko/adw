@@ -1,6 +1,6 @@
 # Story 13.6: Webhook Signature Verification
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure
 Created: 2026-01-09
@@ -34,47 +34,47 @@ so that only legitimate events trigger runs and unauthorized requests are reject
 ## Tasks / Subtasks
 
 ### Task 1: Create Signature Verification Module
-- [ ] Create `src/adw/webhook/security.py` for security utilities
-- [ ] Implement generic HMAC signature verification
-- [ ] Support multiple hash algorithms (SHA-256, SHA-1)
-- [ ] Handle timing-safe comparison
+- [x] Create `src/adw/webhook/security.py` for security utilities
+- [x] Implement generic HMAC signature verification
+- [x] Support multiple hash algorithms (SHA-256, SHA-1)
+- [x] Handle timing-safe comparison
 
 ### Task 2: Implement Linear Signature Verification
-- [ ] Create `verify_linear_signature()` function
-- [ ] Parse `X-Linear-Signature` header
-- [ ] Use HMAC-SHA256 algorithm
-- [ ] Read secret from `LINEAR_WEBHOOK_SECRET` env var
+- [x] Create `verify_linear_signature()` function
+- [x] Parse `X-Linear-Signature` header
+- [x] Use HMAC-SHA256 algorithm
+- [x] Read secret from `LINEAR_WEBHOOK_SECRET` env var
 
 ### Task 3: Implement GitHub Signature Verification
-- [ ] Create `verify_github_signature()` function
-- [ ] Parse `X-Hub-Signature-256` header (format: `sha256=<hex>`)
-- [ ] Use HMAC-SHA256 algorithm
-- [ ] Read secret from `GITHUB_WEBHOOK_SECRET` env var
+- [x] Create `verify_github_signature()` function
+- [x] Parse `X-Hub-Signature-256` header (format: `sha256=<hex>`)
+- [x] Use HMAC-SHA256 algorithm
+- [x] Read secret from `GITHUB_WEBHOOK_SECRET` env var
 
 ### Task 4: Add Configuration Support
-- [ ] Add `secret_env` field to provider configuration
-- [ ] Support environment variable references
-- [ ] Log warning when secret not configured
-- [ ] Make verification optional (but default to enabled)
+- [x] Add `secret_env` field to provider configuration
+- [x] Support environment variable references
+- [x] Log warning when secret not configured
+- [x] Make verification optional (but default to enabled)
 
 ### Task 5: Integrate with Route Handler
-- [ ] Add signature verification middleware or route decorator
-- [ ] Return 401 Unauthorized on verification failure
-- [ ] Include error message in response (without leaking secret)
-- [ ] Log all verification failures with source IP
+- [x] Add signature verification middleware or route decorator
+- [x] Return 401 Unauthorized on verification failure
+- [x] Include error message in response (without leaking secret)
+- [x] Log all verification failures with source IP
 
 ### Task 6: Update Provider Protocol
-- [ ] Ensure `verify_signature()` method is called in route
-- [ ] Pass request headers and body to verification
-- [ ] Handle verification exceptions gracefully
+- [x] Ensure `verify_signature()` method is called in route
+- [x] Pass request headers and body to verification
+- [x] Handle verification exceptions gracefully
 
 ### Task 7: Write Tests
-- [ ] Create `tests/unit/webhook/test_security.py`
-- [ ] Test HMAC verification with known values
-- [ ] Test Linear signature verification
-- [ ] Test GitHub signature verification
-- [ ] Test missing secret handling
-- [ ] Test invalid signature response
+- [x] Create `tests/unit/webhook/test_security.py`
+- [x] Test HMAC verification with known values
+- [x] Test Linear signature verification
+- [x] Test GitHub signature verification
+- [x] Test missing secret handling
+- [x] Test invalid signature response
 
 ---
 
@@ -501,7 +501,23 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
+- Implemented `verify_hmac_signature()` with SHA-256 and SHA-1 support using `hmac.compare_digest()` for timing-safe comparison
+- Implemented `verify_linear_signature()` reading from `LINEAR_WEBHOOK_SECRET` env var, parsing `X-Linear-Signature` header
+- Implemented `verify_github_signature()` reading from `GITHUB_WEBHOOK_SECRET` env var, parsing `X-Hub-Signature-256` header with `sha256=` prefix
+- Created `SignatureVerificationError` exception for consistent error handling
+- Added comprehensive test suite with 17 security-focused tests covering valid/invalid signatures, missing secrets, missing headers
+- Route handler integration was already implemented in Story 13.2 - the `receive_webhook()` route calls `provider.verify_signature()` and returns 401 on failure
+- Configuration support (`secret_env` and `get_secret()`) was already implemented in `ProviderConfig` model
+- Exported all security utilities from `adw.webhook` package
+
 ### File List
+
+**New Files:**
+- `src/adw/webhook/security.py` - Security verification utilities (HMAC, Linear, GitHub)
+- `tests/unit/webhook/test_security.py` - Comprehensive security tests (17 tests)
+
+**Modified Files:**
+- `src/adw/webhook/__init__.py` - Added exports for security module
 
 ---
 
