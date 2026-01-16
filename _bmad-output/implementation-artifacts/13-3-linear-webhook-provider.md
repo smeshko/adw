@@ -1,6 +1,6 @@
 # Story 13.3: Linear Webhook Provider
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure
 Created: 2026-01-09
@@ -392,7 +392,26 @@ Claude Opus 4.5 (create-epic autonomous orchestrator)
 
 ### Completion Notes List
 
+- Implemented LinearProvider class conforming to WebhookProvider Protocol
+- Added HMAC-SHA256 signature verification with constant-time comparison
+- Created compound event types (e.g., "Issue.create") for better context
+- Implemented trigger logic for adw:auto labels and @adw run commands
+- Added strongly-typed Pydantic models: LinearEvent, LinearIssue, LinearComment
+- Added helper methods get_issue() and get_comment() for type-safe access
+- Wrote 29 comprehensive tests covering all functionality
+- All 2069 unit tests pass with 82.36% coverage
+
 ### File List
+
+**New Files:**
+- `src/adw/webhook/providers/linear.py` - LinearProvider implementation
+- `tests/unit/webhook/providers/test_linear.py` - Provider tests (18 tests)
+- `tests/unit/models/test_webhook_linear.py` - Model tests (11 tests)
+
+**Modified Files:**
+- `src/adw/webhook/providers/__init__.py` - Export LinearProvider
+- `src/adw/models/webhook.py` - Add Linear-specific models
+- `tests/unit/webhook/test_server.py` - Update test for compound event types
 
 ---
 
