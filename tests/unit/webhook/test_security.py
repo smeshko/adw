@@ -125,9 +125,11 @@ class TestVerifyLinearSignature:
         payload = b'{"action": "IssueCreate"}'
         request = self._make_mock_request(signature="invalid_signature")
 
-        with patch.dict("os.environ", {ENV_LINEAR_WEBHOOK_SECRET: "secret"}):
-            with pytest.raises(SignatureVerificationError) as exc_info:
-                verify_linear_signature(request, payload)
+        with (
+            patch.dict("os.environ", {ENV_LINEAR_WEBHOOK_SECRET: "secret"}),
+            pytest.raises(SignatureVerificationError) as exc_info,
+        ):
+            verify_linear_signature(request, payload)
 
         assert exc_info.value.provider == "linear"
         assert "Invalid signature" in exc_info.value.reason
@@ -136,9 +138,11 @@ class TestVerifyLinearSignature:
         """Missing signature header raises SignatureVerificationError."""
         request = self._make_mock_request(signature=None)
 
-        with patch.dict("os.environ", {ENV_LINEAR_WEBHOOK_SECRET: "secret"}):
-            with pytest.raises(SignatureVerificationError) as exc_info:
-                verify_linear_signature(request, b"payload")
+        with (
+            patch.dict("os.environ", {ENV_LINEAR_WEBHOOK_SECRET: "secret"}),
+            pytest.raises(SignatureVerificationError) as exc_info,
+        ):
+            verify_linear_signature(request, b"payload")
 
         assert exc_info.value.provider == "linear"
         assert "Missing signature header" in exc_info.value.reason
@@ -190,9 +194,11 @@ class TestVerifyGithubSignature:
         payload = b'{"action": "opened"}'
         request = self._make_mock_request(signature_header="sha256=invalid")
 
-        with patch.dict("os.environ", {ENV_GITHUB_WEBHOOK_SECRET: "secret"}):
-            with pytest.raises(SignatureVerificationError) as exc_info:
-                verify_github_signature(request, payload)
+        with (
+            patch.dict("os.environ", {ENV_GITHUB_WEBHOOK_SECRET: "secret"}),
+            pytest.raises(SignatureVerificationError) as exc_info,
+        ):
+            verify_github_signature(request, payload)
 
         assert exc_info.value.provider == "github"
         assert "Invalid signature" in exc_info.value.reason
@@ -201,9 +207,11 @@ class TestVerifyGithubSignature:
         """Missing signature header raises SignatureVerificationError."""
         request = self._make_mock_request(signature_header=None)
 
-        with patch.dict("os.environ", {ENV_GITHUB_WEBHOOK_SECRET: "secret"}):
-            with pytest.raises(SignatureVerificationError) as exc_info:
-                verify_github_signature(request, b"payload")
+        with (
+            patch.dict("os.environ", {ENV_GITHUB_WEBHOOK_SECRET: "secret"}),
+            pytest.raises(SignatureVerificationError) as exc_info,
+        ):
+            verify_github_signature(request, b"payload")
 
         assert exc_info.value.provider == "github"
         assert "Missing signature header" in exc_info.value.reason
@@ -212,9 +220,11 @@ class TestVerifyGithubSignature:
         """Invalid header format (missing sha256= prefix) raises error."""
         request = self._make_mock_request(signature_header="invalid_format")
 
-        with patch.dict("os.environ", {ENV_GITHUB_WEBHOOK_SECRET: "secret"}):
-            with pytest.raises(SignatureVerificationError) as exc_info:
-                verify_github_signature(request, b"payload")
+        with (
+            patch.dict("os.environ", {ENV_GITHUB_WEBHOOK_SECRET: "secret"}),
+            pytest.raises(SignatureVerificationError) as exc_info,
+        ):
+            verify_github_signature(request, b"payload")
 
         assert exc_info.value.provider == "github"
         assert "Invalid signature format" in exc_info.value.reason
