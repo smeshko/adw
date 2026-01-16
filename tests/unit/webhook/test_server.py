@@ -226,10 +226,11 @@ class TestRequestLogging:
         test_app = create_app(config=config, log_func=capture_log)
         client = TestClient(test_app)
 
-        # Send a webhook with event header
+        # Send a webhook with full Linear payload (Story 13.3 format)
+        # LinearProvider creates compound event types: "{type}.{action}"
         response = client.post(
             "/webhook/linear",
-            json={"action": "create"},
+            json={"action": "create", "type": "Issue", "data": {}},
             headers={"x-linear-event": "Issue"},
         )
         assert response.status_code == 202
@@ -238,7 +239,8 @@ class TestRequestLogging:
         assert len(captured_logs) == 1
         log = captured_logs[0]
         assert log["provider"] == "linear"
-        assert log["event_type"] == "Issue"
+        # LinearProvider creates compound event type: "Issue.create"
+        assert log["event_type"] == "Issue.create"
         assert log["payload_size"] > 0
         assert "request_id" in log
         assert "duration_ms" in log

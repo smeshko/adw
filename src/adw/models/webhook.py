@@ -6,6 +6,7 @@ event parsing, and run parameter extraction.
 
 from __future__ import annotations
 
+import contextlib
 import os
 from datetime import UTC, datetime
 from typing import Any
@@ -406,3 +407,279 @@ class GitHubEvent(BaseModel):
         default=None,
         description="Repository where event occurred",
     )
+
+
+# =============================================================================
+# Linear-Specific Models (Story 13.3)
+# =============================================================================
+
+
+class LinearLabel(BaseModel):
+    """Linear label data structure.
+
+    Represents a label attached to a Linear issue.
+
+    Attributes:
+        id: Unique identifier for the label
+        name: Display name of the label (e.g., "adw:auto")
+        color: Hex color code for the label
+
+    Example:
+        >>> label = LinearLabel(id="label-123", name="adw:auto", color="#ff0000")
+    """
+
+    id: str = Field(description="Unique identifier for the label")
+    name: str = Field(description="Display name of the label")
+    color: str | None = Field(default=None, description="Hex color code")
+
+
+class LinearState(BaseModel):
+    """Linear issue state data structure.
+
+    Represents the workflow state of a Linear issue.
+
+    Attributes:
+        id: Unique identifier for the state
+        name: Display name (e.g., "Todo", "In Progress", "Done")
+        color: Hex color code for the state
+        type: State type (e.g., "started", "completed", "canceled")
+
+    Example:
+        >>> state = LinearState(id="state-1", name="In Progress", type="started")
+    """
+
+    id: str = Field(description="Unique identifier for the state")
+    name: str = Field(description="Display name of the state")
+    color: str | None = Field(default=None, description="Hex color code")
+    type: str | None = Field(default=None, description="State type")
+
+
+class LinearAssignee(BaseModel):
+    """Linear issue assignee data structure.
+
+    Represents a user assigned to a Linear issue.
+
+    Attributes:
+        id: Unique identifier for the user
+        name: Display name of the user
+        email: Email address of the user
+
+    Example:
+        >>> assignee = LinearAssignee(id="user-1", name="John Doe")
+    """
+
+    id: str = Field(description="Unique identifier for the user")
+    name: str = Field(description="Display name of the user")
+    email: str | None = Field(default=None, description="User email address")
+
+
+class LinearIssue(BaseModel):
+    """Linear issue data structure.
+
+    Represents the full issue data from a Linear webhook payload.
+    Used for structured access to issue fields instead of raw dict access.
+
+    Attributes:
+        id: Internal UUID for the issue
+        identifier: Team-prefixed identifier (e.g., "ENG-123")
+        title: Issue title
+        description: Issue description (may be null)
+        state: Current workflow state
+        labels: List of labels attached to the issue
+        assignee: Assigned user (may be null)
+        url: URL to the issue in Linear
+
+    Example:
+        >>> issue = LinearIssue(
+        ...     id="uuid",
+        ...     identifier="ENG-42",
+        ...     title="Add dark mode",
+        ...     labels=[LinearLabel(id="1", name="adw:auto")],
+        ... )
+    """
+
+    id: str = Field(description="Internal UUID for the issue")
+    identifier: str = Field(description="Team-prefixed identifier (e.g., ENG-123)")
+    title: str = Field(description="Issue title")
+    description: str | None = Field(default=None, description="Issue description")
+    state: LinearState | None = Field(
+        default=None, description="Current workflow state"
+    )
+    labels: list[LinearLabel] = Field(
+        default_factory=list, description="Labels attached to the issue"
+    )
+    assignee: LinearAssignee | None = Field(
+        default=None, description="Assigned user"
+    )
+    url: str | None = Field(default=None, description="URL to the issue in Linear")
+
+
+class LinearComment(BaseModel):
+    """Linear comment data structure.
+
+    Represents a comment on a Linear issue.
+
+    Attributes:
+        id: Unique identifier for the comment
+        body: Comment text content (may contain markdown)
+        issue: The issue this comment belongs to
+
+    Example:
+        >>> comment = LinearComment(
+        ...     id="comment-1",
+        ...     body="@adw run --phase build",
+        ...     issue=LinearIssue(id="1", identifier="ENG-42", title="Feature"),
+        ... )
+    """
+
+    id: str = Field(description="Unique identifier for the comment")
+    body: str = Field(description="Comment text content")
+    issue: LinearIssue | None = Field(
+        default=None, description="The issue this comment belongs to"
+    )
+
+
+class LinearEvent(BaseModel):
+    """Parsed Linear webhook event with strongly-typed fields.
+
+    Provides structured access to Linear webhook payloads instead of
+    raw dictionary access. Can be constructed from a WebhookEvent payload.
+
+    Attributes:
+        action: Event action (create, update, remove)
+        type: Resource type (Issue, Comment, etc.)
+        data: Event-specific payload as dict
+        created_at: When the event was created
+        webhook_timestamp: Unix timestamp from webhook
+        webhook_id: Unique ID for this webhook delivery
+        url: Optional URL related to the event
+
+    Example:
+        >>> event = LinearEvent(
+        ...     action="create",
+        ...     type="Issue",
+        ...     data={"id": "123", "title": "New feature"},
+        ...     created_at=datetime.now(UTC),
+        ... )
+
+    Note:
+        For type-safe access to issue/comment data, use the helper methods
+        `get_issue()` and `get_comment()` which return typed models.
+    """
+
+    action: str = Field(description="Event action: create, update, remove")
+    type: str = Field(description="Resource type: Issue, Comment, etc.")
+    data: dict[str, Any] = Field(
+        default_factory=dict, description="Event-specific payload"
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(tz=UTC),
+        description="When the event was created",
+    )
+    webhook_timestamp: int | None = Field(
+        default=None, description="Unix timestamp from webhook"
+    )
+    webhook_id: str | None = Field(
+        default=None, description="Unique ID for this webhook delivery"
+    )
+    url: str | None = Field(default=None, description="Optional URL related to event")
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> LinearEvent:
+        """Create a LinearEvent from a raw webhook payload.
+
+        Args:
+            payload: The raw webhook payload dictionary.
+
+        Returns:
+            Parsed LinearEvent instance.
+
+        Example:
+            >>> payload = {"action": "create", "type": "Issue", "data": {...}}
+            >>> event = LinearEvent.from_payload(payload)
+        """
+        # Parse createdAt from Linear's ISO format if present
+        created_at_str = payload.get("createdAt")
+        created_at: datetime | None = None
+        if created_at_str:
+            # Linear sends ISO format: "2024-01-15T10:00:00.000Z"
+            with contextlib.suppress(ValueError, AttributeError):
+                created_at = datetime.fromisoformat(
+                    created_at_str.replace("Z", "+00:00")
+                )
+
+        kwargs: dict[str, Any] = {
+            "action": payload.get("action", "unknown"),
+            "type": payload.get("type", "unknown"),
+            "data": payload.get("data", {}),
+            "webhook_timestamp": payload.get("webhookTimestamp"),
+            "webhook_id": payload.get("webhookId"),
+            "url": payload.get("url"),
+        }
+        if created_at is not None:
+            kwargs["created_at"] = created_at
+
+        return cls(**kwargs)
+
+    def get_issue(self) -> LinearIssue | None:
+        """Extract typed LinearIssue from event data.
+
+        For Issue events, returns the issue from data.
+        For Comment events, returns the issue from data.issue.
+
+        Returns:
+            LinearIssue if extractable, None otherwise.
+        """
+        if self.type == "Issue":
+            issue_data = self.data
+        elif self.type == "Comment":
+            issue_data = self.data.get("issue", {})
+        else:
+            return None
+
+        if not issue_data:
+            return None
+
+        try:
+            labels = [
+                LinearLabel(**label)
+                for label in issue_data.get("labels", [])
+            ]
+            state_data = issue_data.get("state")
+            state = LinearState(**state_data) if state_data else None
+            assignee_data = issue_data.get("assignee")
+            assignee = LinearAssignee(**assignee_data) if assignee_data else None
+
+            return LinearIssue(
+                id=issue_data.get("id", ""),
+                identifier=issue_data.get("identifier", ""),
+                title=issue_data.get("title", ""),
+                description=issue_data.get("description"),
+                state=state,
+                labels=labels,
+                assignee=assignee,
+                url=issue_data.get("url"),
+            )
+        except (TypeError, ValueError):
+            return None
+
+    def get_comment(self) -> LinearComment | None:
+        """Extract typed LinearComment from event data.
+
+        Only valid for Comment events.
+
+        Returns:
+            LinearComment if this is a Comment event, None otherwise.
+        """
+        if self.type != "Comment":
+            return None
+
+        try:
+            issue = self.get_issue()
+            return LinearComment(
+                id=self.data.get("id", ""),
+                body=self.data.get("body", ""),
+                issue=issue,
+            )
+        except (TypeError, ValueError):
+            return None
