@@ -76,6 +76,7 @@ class GracefulDict(dict[str, Any]):
         """Return False when empty (for conditional checks)."""
         return bool(super().keys())
 
+
 # Priority label mapping (1=Urgent, 2=High, 3=Medium, 4=Low)
 PRIORITY_LABELS: dict[int, str] = {
     1: "Urgent",

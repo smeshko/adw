@@ -103,8 +103,7 @@ class IssueCloser:
             return True
         except Exception as e:
             logger.warning(
-                "Failed to close task %s: %s. "
-                "Close manually with: adw task close %s",
+                "Failed to close task %s: %s. Close manually with: adw task close %s",
                 task_id,
                 e,
                 task_id,

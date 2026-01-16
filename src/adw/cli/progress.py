@@ -358,9 +358,7 @@ class ProgressDisplay:
                     f"[bold green]✓[/] PR created: [cyan]{result.pr_url}[/]"
                 )
             else:
-                self.console.print(
-                    f"[dim]ℹ Auto-PR skipped: {result.reason}[/]"
-                )
+                self.console.print(f"[dim]ℹ Auto-PR skipped: {result.reason}[/]")
 
             return result
 

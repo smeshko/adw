@@ -116,9 +116,7 @@ class CommandResolver:
             pass
         return None
 
-    def _find_hook_path(
-        self, command_dir: Path, hook_type: str
-    ) -> Path | None:
+    def _find_hook_path(self, command_dir: Path, hook_type: str) -> Path | None:
         """Find a hook script in the command directory.
 
         Searches for hook scripts with various naming patterns:
