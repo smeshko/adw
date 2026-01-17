@@ -203,9 +203,8 @@ class EventMapper:
             MappingEvaluationResult with decision and reasoning.
         """
         # Check require_label condition
-        if (
-            config.require_label is not None
-            and not self._has_label(event, config.require_label)
+        if config.require_label is not None and not self._has_label(
+            event, config.require_label
         ):
             logger.debug(
                 "Label requirement not met",
@@ -219,9 +218,8 @@ class EventMapper:
             )
 
         # Check require_mention condition
-        if (
-            config.require_mention is not None
-            and not self._has_mention(event, config.require_mention)
+        if config.require_mention is not None and not self._has_mention(
+            event, config.require_mention
         ):
             logger.debug(
                 "Mention requirement not met",
