@@ -1,7 +1,7 @@
 """Webhook server configuration and event models.
 
 This module contains Pydantic models for webhook server configuration,
-event parsing, and run parameter extraction.
+event parsing, run parameter extraction, and event-to-workflow mapping.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ import os
 from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ProviderConfig(BaseModel):
@@ -76,7 +76,8 @@ class ProviderConfig(BaseModel):
 class WebhookConfig(BaseModel):
     """Configuration for the webhook server.
 
-    Defines server settings including host, port, and provider configurations.
+    Defines server settings including host, port, provider configurations,
+    and event-to-workflow mappings.
     This configuration can be specified in the project's adw.yaml file under
     the 'webhook' key.
 
@@ -84,6 +85,7 @@ class WebhookConfig(BaseModel):
         port: Port to run the webhook server on (default: 8000)
         host: Host to bind the server to (default: "0.0.0.0")
         providers: Dictionary mapping provider names to their configurations
+        mappings: Event-to-workflow mapping configuration (optional)
 
     Example:
         >>> config = WebhookConfig(
@@ -106,6 +108,11 @@ class WebhookConfig(BaseModel):
             github:
               enabled: false
               secret_env: GITHUB_WEBHOOK_SECRET
+          mappings:
+            linear:
+              issue_created:
+                trigger: true
+                require_label: "adw:auto"
     """
 
     port: int = Field(
@@ -121,6 +128,10 @@ class WebhookConfig(BaseModel):
     providers: dict[str, ProviderConfig] = Field(
         default_factory=dict,
         description="Provider configurations keyed by provider name",
+    )
+    mappings: WebhookMappings | None = Field(
+        default=None,
+        description="Event-to-workflow mapping configuration",
     )
 
     def get_provider(self, name: str) -> ProviderConfig | None:
@@ -228,6 +239,247 @@ class RunParams(BaseModel):
     metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="Additional provider-specific metadata",
+    )
+
+
+# =============================================================================
+# Event-to-Workflow Mapping Models (Story 13.4)
+# =============================================================================
+
+
+class EventTriggerConfig(BaseModel):
+    """Configuration for a single event type trigger.
+
+    Defines the conditions under which a specific event type should
+    trigger an ADW workflow run.
+
+    Attributes:
+        trigger: Whether this event type triggers runs (default: True)
+        require_label: Label name that must be present to trigger
+        require_mention: Mention string that must be present (e.g., "@adw")
+        parse_command: Whether to parse command arguments from comment
+        phases: Optional list of phases to run (None = all phases)
+
+    Example:
+        >>> config = EventTriggerConfig(
+        ...     trigger=True,
+        ...     require_label="adw:auto",
+        ...     phases=["plan", "build"],
+        ... )
+        >>> config.trigger
+        True
+
+    YAML example:
+        webhook:
+          mappings:
+            linear:
+              issue_created:
+                trigger: true
+                require_label: "adw:auto"
+                phases: ["plan", "build"]
+    """
+
+    trigger: bool = Field(
+        default=True,
+        description="Whether this event type triggers runs",
+    )
+    require_label: str | None = Field(
+        default=None,
+        description="Label name that must be present to trigger",
+    )
+    require_mention: str | None = Field(
+        default=None,
+        description="Mention string that must be present (e.g., '@adw')",
+    )
+    parse_command: bool = Field(
+        default=False,
+        description="Whether to parse command arguments from comment",
+    )
+    phases: list[str] | None = Field(
+        default=None,
+        description="Phases to run (None = all phases)",
+    )
+
+    @model_validator(mode="after")
+    def validate_conditions(self) -> EventTriggerConfig:
+        """Validate that conditions are coherent.
+
+        Ensures that parse_command is only used with require_mention,
+        since command parsing only makes sense for comment-based triggers.
+
+        Returns:
+            The validated model instance.
+
+        Raises:
+            ValueError: If parse_command is True but require_mention is None.
+        """
+        if self.parse_command and self.require_mention is None:
+            raise ValueError(
+                "parse_command=True requires require_mention to be set "
+                "(command parsing only makes sense for comment triggers)"
+            )
+        return self
+
+
+class ProviderEventMapping(BaseModel):
+    """Event mappings for a specific provider.
+
+    Maps event types to their trigger configurations. Event types use
+    a normalized naming convention across providers.
+
+    Attributes:
+        issue_created: Config for issue creation events
+        issue_updated: Config for issue update events
+        comment_created: Config for comment creation events
+
+    Example:
+        >>> mapping = ProviderEventMapping(
+        ...     issue_created=EventTriggerConfig(
+        ...         trigger=True,
+        ...         require_label="adw:auto",
+        ...     ),
+        ...     issue_updated=EventTriggerConfig(trigger=False),
+        ... )
+        >>> mapping.get_event_config("issue_created")
+        EventTriggerConfig(trigger=True, require_label='adw:auto', ...)
+
+    YAML example:
+        webhook:
+          mappings:
+            linear:
+              issue_created:
+                trigger: true
+                require_label: "adw:auto"
+              comment_created:
+                trigger: true
+                require_mention: "@adw"
+                parse_command: true
+    """
+
+    issue_created: EventTriggerConfig | None = Field(
+        default=None,
+        description="Configuration for issue creation events",
+    )
+    issue_updated: EventTriggerConfig | None = Field(
+        default=None,
+        description="Configuration for issue update events",
+    )
+    comment_created: EventTriggerConfig | None = Field(
+        default=None,
+        description="Configuration for comment creation events",
+    )
+
+    def get_event_config(self, event_type: str) -> EventTriggerConfig | None:
+        """Get the trigger configuration for a specific event type.
+
+        Uses normalized event type names (issue_created, issue_updated,
+        comment_created) rather than provider-specific names.
+
+        Args:
+            event_type: The normalized event type name.
+
+        Returns:
+            EventTriggerConfig if defined, None otherwise.
+
+        Example:
+            >>> mapping.get_event_config("issue_created")
+            EventTriggerConfig(trigger=True, ...)
+        """
+        return getattr(self, event_type, None)
+
+
+class WebhookMappings(BaseModel):
+    """All webhook event mappings across providers.
+
+    Top-level container for provider-specific event mappings. Each
+    provider can define its own mapping rules.
+
+    Attributes:
+        linear: Event mappings for Linear webhooks
+        github: Event mappings for GitHub webhooks
+
+    Example:
+        >>> mappings = WebhookMappings(
+        ...     linear=ProviderEventMapping(
+        ...         issue_created=EventTriggerConfig(trigger=True),
+        ...     ),
+        ... )
+        >>> mappings.get_provider_mapping("linear")
+        ProviderEventMapping(...)
+
+    YAML example:
+        webhook:
+          mappings:
+            linear:
+              issue_created:
+                trigger: true
+                require_label: "adw:auto"
+            github:
+              issue_created:
+                trigger: true
+                require_label: "adw"
+    """
+
+    linear: ProviderEventMapping | None = Field(
+        default=None,
+        description="Event mappings for Linear webhooks",
+    )
+    github: ProviderEventMapping | None = Field(
+        default=None,
+        description="Event mappings for GitHub webhooks",
+    )
+
+    def get_provider_mapping(self, provider: str) -> ProviderEventMapping | None:
+        """Get the event mapping for a specific provider.
+
+        Args:
+            provider: The provider name (e.g., "linear", "github").
+
+        Returns:
+            ProviderEventMapping if defined, None otherwise.
+
+        Example:
+            >>> mappings.get_provider_mapping("linear")
+            ProviderEventMapping(...)
+        """
+        return getattr(self, provider, None)
+
+
+class MappingEvaluationResult(BaseModel):
+    """Result of evaluating an event against mapping configuration.
+
+    Contains the decision on whether to trigger a run and the
+    parameters to use if triggering.
+
+    Attributes:
+        should_trigger: Whether the event should trigger a run
+        phases: Phases to run if triggering (None = all)
+        reason: Human-readable reason for the decision
+        matched_condition: Which condition matched (label, mention, etc.)
+
+    Example:
+        >>> result = MappingEvaluationResult(
+        ...     should_trigger=True,
+        ...     phases=["plan", "build"],
+        ...     reason="Issue has required label 'adw:auto'",
+        ...     matched_condition="require_label",
+        ... )
+    """
+
+    should_trigger: bool = Field(
+        description="Whether the event should trigger a run",
+    )
+    phases: list[str] | None = Field(
+        default=None,
+        description="Phases to run if triggering (None = all)",
+    )
+    reason: str = Field(
+        default="",
+        description="Human-readable reason for the decision",
+    )
+    matched_condition: str | None = Field(
+        default=None,
+        description="Which condition matched (label, mention, etc.)",
     )
 
 

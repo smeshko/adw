@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from rich.console import Console
 
 from adw.webhook.config import WebhookConfig
+from adw.webhook.mapping import EventMapper
 from adw.webhook.middleware import WebhookLoggingMiddleware
 
 # Import providers package to trigger factory registration via __init__.py
@@ -87,6 +88,7 @@ def create_app(
     config: WebhookConfig | None = None,
     log_func: Callable[..., None] | None = None,
     registry: ProviderRegistry | None = None,
+    event_mapper: EventMapper | None = None,
 ) -> FastAPI:
     """Create and configure the FastAPI application.
 
@@ -95,6 +97,7 @@ def create_app(
         log_func: Optional logging function for the middleware.
             If None, logging is disabled in middleware.
         registry: Optional provider registry. If None, creates empty registry.
+        event_mapper: Optional event mapper. If None, creates from config mappings.
 
     Returns:
         Configured FastAPI application instance.
@@ -102,6 +105,8 @@ def create_app(
     webhook_config = config or WebhookConfig()
     # Load providers from config if no registry provided
     provider_registry = registry or load_providers_from_config(webhook_config)
+    # Create event mapper from config mappings if not provided
+    mapper = event_mapper or EventMapper(webhook_config.mappings)
 
     webhook_app = FastAPI(
         title="ADW Webhook Server",
@@ -110,9 +115,10 @@ def create_app(
         lifespan=lifespan,
     )
 
-    # Store config and registry in app state for access in routes
+    # Store config, registry, and mapper in app state for access in routes
     webhook_app.state.webhook_config = webhook_config
     webhook_app.state.provider_registry = provider_registry
+    webhook_app.state.event_mapper = mapper
 
     # Add request logging middleware
     webhook_app.add_middleware(WebhookLoggingMiddleware, log_func=log_func)

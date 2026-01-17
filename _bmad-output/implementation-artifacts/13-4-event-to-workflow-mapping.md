@@ -1,6 +1,6 @@
 # Story 13.4: Event-to-Workflow Mapping
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure
 Created: 2026-01-09
@@ -45,49 +45,49 @@ webhook:
 ## Tasks / Subtasks
 
 ### Task 1: Define Mapping Models
-- [ ] Create `EventMapping` model in `src/adw/models/webhook.py`
-- [ ] Create `EventTriggerConfig` model for trigger conditions
-- [ ] Support fields: trigger, require_label, require_mention, parse_command, phases
-- [ ] Add validation for configuration values
+- [x] Create `EventMapping` model in `src/adw/models/webhook.py`
+- [x] Create `EventTriggerConfig` model for trigger conditions
+- [x] Support fields: trigger, require_label, require_mention, parse_command, phases
+- [x] Add validation for configuration values
 
 ### Task 2: Implement Mapping Configuration Loading
-- [ ] Add mappings section to `WebhookConfig` model
-- [ ] Create `src/adw/webhook/mapping.py` for mapping logic
-- [ ] Implement `EventMapper` class to evaluate trigger conditions
-- [ ] Load mappings from project.yaml on server start
+- [x] Add mappings section to `WebhookConfig` model
+- [x] Create `src/adw/webhook/mapping.py` for mapping logic
+- [x] Implement `EventMapper` class to evaluate trigger conditions
+- [x] Load mappings from project.yaml on server start
 
 ### Task 3: Implement Event Evaluation
-- [ ] Create `evaluate_event()` method in EventMapper
-- [ ] Check if event type has mapping configured
-- [ ] Evaluate require_label condition
-- [ ] Evaluate require_mention condition
-- [ ] Return whether event should trigger and with what parameters
+- [x] Create `evaluate_event()` method in EventMapper
+- [x] Check if event type has mapping configured
+- [x] Evaluate require_label condition
+- [x] Evaluate require_mention condition
+- [x] Return whether event should trigger and with what parameters
 
 ### Task 4: Implement Async Run Triggering
-- [ ] Create `src/adw/webhook/runner.py` for run triggering logic
-- [ ] Implement `trigger_run_async()` function
-- [ ] Use asyncio/background task for non-blocking execution
-- [ ] Integrate with ADW orchestrator
-- [ ] Handle run initiation errors gracefully
+- [x] Create `src/adw/webhook/runner.py` for run triggering logic
+- [x] Implement `trigger_run_async()` function
+- [x] Use asyncio/background task for non-blocking execution
+- [x] Integrate with ADW orchestrator
+- [x] Handle run initiation errors gracefully
 
 ### Task 5: Update Provider Logic
-- [ ] Modify provider's `should_trigger_run()` to use EventMapper
-- [ ] Pass mapping configuration to provider on initialization
-- [ ] Update `extract_run_params()` to respect configured phases
+- [x] Modify provider's `should_trigger_run()` to use EventMapper
+- [x] Pass mapping configuration to provider on initialization
+- [x] Update `extract_run_params()` to respect configured phases
 
 ### Task 6: Add Logging and Monitoring
-- [ ] Log all events received with evaluation result
-- [ ] Log trigger decisions with reasoning
-- [ ] Log run initiation with run_id
-- [ ] Add metrics for event processing (if metrics system exists)
+- [x] Log all events received with evaluation result
+- [x] Log trigger decisions with reasoning
+- [x] Log run initiation with run_id
+- [x] Add metrics for event processing (if metrics system exists)
 
 ### Task 7: Write Tests
-- [ ] Create `tests/unit/webhook/test_mapping.py`
-- [ ] Test mapping configuration loading
-- [ ] Test require_label condition evaluation
-- [ ] Test require_mention condition evaluation
-- [ ] Test disabled event type handling
-- [ ] Test async run triggering (mock orchestrator)
+- [x] Create `tests/unit/webhook/test_mapping.py`
+- [x] Test mapping configuration loading
+- [x] Test require_label condition evaluation
+- [x] Test require_mention condition evaluation
+- [x] Test disabled event type handling
+- [x] Test async run triggering (mock orchestrator)
 
 ---
 
