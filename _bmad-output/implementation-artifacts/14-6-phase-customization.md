@@ -40,17 +40,17 @@ so that I can tune timeouts, hooks, and inputs for my workflow.
 ## Tasks / Subtasks
 
 ### Task 1: Create Phase Customization Step Module
-- [ ] Create `src/adw/cli/wizard/phases.py`
-- [ ] Define `run_phases_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/phases.py`
+- [x] Define `run_phases_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Multi-Select Phase Picker
-- [ ] Create multi-select prompt for phases
-- [ ] Options: plan, build, validate, document
-- [ ] Return list of selected phases
+- [x] Create multi-select prompt for phases
+- [x] Options: plan, build, validate, document
+- [x] Return list of selected phases
 
 ### Task 3: Implement Base Phase Configuration
-- [ ] For each selected phase:
+- [x] For each selected phase:
   - Prompt for enabled (default Yes)
   - Prompt for timeout with language-aware default
   - Prompt for pre-hook path (optional)
@@ -58,8 +58,8 @@ so that I can tune timeouts, hooks, and inputs for my workflow.
   - Prompt for input files (key=path loop)
 
 ### Task 4: Implement Validate Phase Special Options
-- [ ] Detect when validate phase is selected
-- [ ] Add additional prompts:
+- [x] Detect when validate phase is selected
+- [x] Add additional prompts:
   - code_review enabled
   - tests enabled
   - test timeout
@@ -68,22 +68,22 @@ so that I can tune timeouts, hooks, and inputs for my workflow.
   - review focus areas (multi-select)
 
 ### Task 5: Implement Input File Loop
-- [ ] Prompt for key=path pairs
-- [ ] Continue until empty input
-- [ ] Validate path format (relative or absolute)
-- [ ] Store as dictionary
+- [x] Prompt for key=path pairs
+- [x] Continue until empty input
+- [x] Validate path format (relative or absolute)
+- [x] Store as dictionary
 
 ### Task 6: Store Results in Wizard State
-- [ ] Update WizardState with phase configurations
-- [ ] Structure: phases dict with phase name keys
-- [ ] Mark phases step as completed
+- [x] Update WizardState with phase configurations
+- [x] Structure: phases dict with phase name keys
+- [x] Mark phases step as completed
 
 ### Task 7: Write Unit Tests
-- [ ] Test multi-select phase picker
-- [ ] Test base phase configuration flow
-- [ ] Test validate phase special options
-- [ ] Test input file loop
-- [ ] Test state update after step completion
+- [x] Test multi-select phase picker
+- [x] Test base phase configuration flow
+- [x] Test validate phase special options
+- [x] Test input file loop
+- [x] Test state update after step completion
 
 ---
 
@@ -353,13 +353,34 @@ Customize phases? [y/N]
 
 ### Context Reference
 
+- Project Context: `_bmad-output/project-context.md`
+- ADR-001 Test Strategy: `docs/architecture/adrs/ADR-001-test-reduction-strategy.md`
+
 ### Agent Model Used
 
 Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A - Clean implementation
+
 ### Completion Notes List
 
+- Implemented phases customization wizard step with full interactive flow
+- Created multi-select phase picker using Rich Confirm prompts
+- Implemented base phase configuration (enabled, timeout, hooks, input files)
+- Added validate phase special options (code review, tests, triage mode, review focus)
+- Input file loop validates key=path format and handles invalid entries
+- 32 unit tests with 100% coverage of phases.py
+- All 124 wizard tests pass
+
 ### File List
+
+**New Files:**
+- `src/adw/cli/wizard/phases.py` - Phase customization step implementation
+- `tests/unit/cli/wizard/test_phases.py` - Comprehensive unit tests
+
+**Modified Files:**
+- `src/adw/cli/wizard/__init__.py` - Export PhasesStepHandler and run_phases_step
+- `_bmad-output/implementation-artifacts/14-6-phase-customization.md` - Task completion
 

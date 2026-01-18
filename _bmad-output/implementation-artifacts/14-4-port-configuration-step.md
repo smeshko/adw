@@ -1,6 +1,6 @@
 # Story 14.4: Port Configuration Step (Optional)
 
-Status: ready-for-dev
+Status: done
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
