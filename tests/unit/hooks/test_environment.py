@@ -198,6 +198,41 @@ class TestWorktreePathEnvironment:
         assert "ADW_WORKTREE_PATH" not in env or env.get("ADW_WORKTREE_PATH") == ""
 
 
+class TestBranchNameEnvironmentVariable:
+    """Tests for ADW_BRANCH_NAME environment variable (ISS-025)."""
+
+    @pytest.fixture
+    def run_context(self) -> RunContext:
+        """Create a sample RunContext for testing."""
+        return RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test feature description",
+            current_phase="plan",
+            started_at=datetime.now(),
+        )
+
+    def test_branch_name_included_when_set(self, run_context: RunContext) -> None:
+        """Test that ADW_BRANCH_NAME is included when branch_name is set."""
+        run_context = run_context.model_copy(update={"branch_name": "adw/01HQ123"})
+        env = build_hook_environment(run_context, "plan")
+        assert env["ADW_BRANCH_NAME"] == "adw/01HQ123"
+
+    def test_branch_name_not_included_when_none(self, run_context: RunContext) -> None:
+        """Test that ADW_BRANCH_NAME is not included when branch_name is None."""
+        assert run_context.branch_name is None
+        env = build_hook_environment(run_context, "plan")
+        assert "ADW_BRANCH_NAME" not in env
+
+    def test_branch_name_available_in_hooks(self, run_context: RunContext) -> None:
+        """Test that branch_name is correctly formatted for hooks (ISS-025)."""
+        run_context = run_context.model_copy(
+            update={"branch_name": "feature/add-auth"}
+        )
+        env = build_hook_environment(run_context, "build")
+        # Branch name should be exactly as set, without modification
+        assert env["ADW_BRANCH_NAME"] == "feature/add-auth"
+
+
 class TestPortsEnvAutoSourcing:
     """Tests for auto-sourcing .ports.env file (Story 10.5 Task 6)."""
 

@@ -109,6 +109,11 @@ def build_hook_environment(
         adw_vars["ADW_WORKTREE_PATH"] = str(project_root)
     # If both are None, ADW_WORKTREE_PATH is not set (backward compatible)
 
+    # Add branch name variable (ISS-025)
+    # This allows hooks to know which git branch is being used
+    if context.branch_name is not None:
+        adw_vars["ADW_BRANCH_NAME"] = context.branch_name
+
     # Add port allocation variables if provided
     if port_allocation is not None:
         adw_vars["ADW_BACKEND_PORT"] = str(port_allocation.backend_port)
