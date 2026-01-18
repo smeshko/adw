@@ -14,6 +14,7 @@ Exports:
 from adw.cli.wizard.basics import (
     BasicsStepHandler,
     detect_language,
+    detect_test_command,
     run_basics_step,
 )
 
@@ -25,5 +26,6 @@ __all__ = [
     "WizardFlowController",
     "WizardStep",
     "detect_language",
+    "detect_test_command",
     "run_basics_step",
 ]

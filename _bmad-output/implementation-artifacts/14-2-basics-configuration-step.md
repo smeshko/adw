@@ -48,8 +48,8 @@ so that ADW knows what kind of project I'm working on.
 - [x] Return detected language or "unknown"
 
 ### Task 3: Implement Test Command Detection
-- [ ] Create test command detection function
-- [ ] Map language to default test commands:
+- [x] Create test command detection function
+- [x] Map language to default test commands:
   - Python: `pytest`
   - JavaScript: `npm test`
   - Go: `go test ./...`
@@ -57,7 +57,7 @@ so that ADW knows what kind of project I'm working on.
   - Java: `./gradlew test` or `mvn test`
   - Ruby: `bundle exec rspec`
   - PHP: `./vendor/bin/phpunit`
-- [ ] Check if test runner actually exists (optional enhancement)
+- [x] Check if test runner actually exists (optional enhancement) - skipped as optional
 
 ### Task 4: Implement Interactive Prompts
 - [ ] Show language detection result with Rich

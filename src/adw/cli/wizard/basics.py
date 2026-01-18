@@ -25,6 +25,17 @@ LANGUAGE_MARKERS: dict[str, list[str]] = {
     "php": ["composer.json"],
 }
 
+# Default test commands by language
+DEFAULT_TEST_COMMANDS: dict[str, str] = {
+    "python": "pytest",
+    "javascript": "npm test",
+    "go": "go test ./...",
+    "rust": "cargo test",
+    "java": "./gradlew test",  # Alternative: mvn test
+    "ruby": "bundle exec rspec",
+    "php": "./vendor/bin/phpunit",
+}
+
 
 def detect_language(project_root: Path) -> str:
     """Detect project language from marker files.
@@ -42,6 +53,21 @@ def detect_language(project_root: Path) -> str:
         if any((project_root / marker).exists() for marker in markers):
             return language
     return "unknown"
+
+
+def detect_test_command(language: str) -> str:
+    """Get the default test command for a language.
+
+    Returns the conventional test command for the given language.
+    For unknown or custom languages, returns an empty string.
+
+    Args:
+        language: The detected or selected language (lowercase).
+
+    Returns:
+        Default test command string, or empty string if unknown.
+    """
+    return DEFAULT_TEST_COMMANDS.get(language, "")
 
 
 class BasicsStepHandler:
@@ -108,8 +134,8 @@ def run_basics_step(
     # Platform selection will be implemented in Task 4
     platform = "cli"
 
-    # Test command detection will be implemented in Task 3 & 4
-    test_command = ""
+    # Detect test command based on language
+    test_command = detect_test_command(language)
 
     # Build command will be implemented in Task 4
     build_command = ""
