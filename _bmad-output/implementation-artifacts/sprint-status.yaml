@@ -297,7 +297,7 @@ development_status:
   ux-fix-ISS-023-save-last-message-only: done
   refactor-ISS-024-tests-not-cleaning-up-worktrees: done
   # Bugfix (from ISS-025) - CRITICAL
-  bugfix-ISS-025-sdk-fails-to-create-story-branch: ready-for-dev
+  bugfix-ISS-025-sdk-fails-to-create-story-branch: done
   epic-13-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

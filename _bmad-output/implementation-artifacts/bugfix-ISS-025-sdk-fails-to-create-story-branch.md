@@ -1,6 +1,6 @@
 # Story: Bugfix ISS-025 - SDK fails to create story branch
 
-Status: ready-for-dev
+Status: done
 Linear Issue: pending
 Epic: 13 - Webhook Infrastructure (Tech Debt)
 Created: 2026-01-18
