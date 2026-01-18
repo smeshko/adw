@@ -686,9 +686,8 @@ class ClaudeCodeExecutor:
             raise LLMError(
                 code="CLAUDE_NOT_FOUND",
                 message=f"Claude Code CLI not found at '{path}'",
-                suggestion=(
-                    "Install Claude Code or configure llm.claude_code.path in adw.yaml"
-                ),
+                suggestion="Install Claude Code or configure "
+                "llm.claude_code.path in project.yaml",
                 recoverable=False,
             )
 
@@ -705,7 +704,7 @@ class ClaudeCodeExecutor:
             code="CLAUDE_NOT_FOUND",
             message=f"Claude Code CLI '{path}' not found in PATH",
             suggestion=(
-                "Install Claude Code or configure llm.claude_code.path in adw.yaml"
+                "Install Claude Code or configure llm.claude_code.path in project.yaml"
             ),
             recoverable=False,
         )

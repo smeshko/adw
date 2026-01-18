@@ -556,7 +556,7 @@ class TestProjectContext:
         """ProjectContext creates correctly."""
         project = ProjectContext(
             project_root=Path("/tmp/myproject"),
-            config_path=Path("/tmp/myproject/adw.yaml"),
+            config_path=Path("/tmp/myproject/project.yaml"),
             runs_dir=Path("/tmp/myproject/.adw/runs"),
             language="python",
         )
@@ -569,7 +569,7 @@ class TestProjectContext:
         """ProjectContext with framework set."""
         project = ProjectContext(
             project_root=Path("/tmp/myproject"),
-            config_path=Path("/tmp/myproject/adw.yaml"),
+            config_path=Path("/tmp/myproject/project.yaml"),
             runs_dir=Path("/tmp/myproject/.adw/runs"),
             language="python",
             framework="fastapi",

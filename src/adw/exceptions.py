@@ -20,7 +20,7 @@ class ADWError(Exception):
         >>> raise ADWError(
         ...     code="CONFIG_NOT_FOUND",
         ...     message="Configuration file not found",
-        ...     suggestion="Create an adw.yaml file in the project root",
+        ...     suggestion="Create an project.yaml file in the project root",
         ...     recoverable=False,
         ... )
     """
@@ -85,8 +85,8 @@ class ConfigError(ADWError):
     Example:
         >>> raise ConfigError(
         ...     code="CONFIG_NOT_FOUND",
-        ...     message="Configuration file not found at ./adw.yaml",
-        ...     suggestion="Create an adw.yaml file in the project root",
+        ...     message="Configuration file not found at ./project.yaml",
+        ...     suggestion="Create an project.yaml file in the project root",
         ... )
     """
 

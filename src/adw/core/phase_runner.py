@@ -478,13 +478,13 @@ class PhaseRunner:
         """Merge command config with project phase config.
 
         Combines defaults from command's config.yaml with project-level
-        PhaseConfig from adw.yaml. Project settings take precedence
+        PhaseConfig from project.yaml. Project settings take precedence
         (override command defaults).
 
         Args:
             command_config: Configuration from command's config.yaml.
                 May be None if no config.yaml exists.
-            project_phase_config: Phase configuration from project's adw.yaml.
+            project_phase_config: Phase configuration from project's project.yaml.
                 May be None if phase not configured in project.
 
         Returns:

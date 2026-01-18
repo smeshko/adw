@@ -3,7 +3,8 @@
 This module provides the pr command that allows users to create
 a GitHub PR directly from a completed run.
 
-ISS-025: Base branch is now hardcoded to 'staging' - no longer configurable.
+ISS-026: Base branch is configurable via git.base_branch in project.yaml.
+Defaults to 'staging' if not configured.
 
 Examples:
     adw pr 01HQXK5P3Z...              # Create PR from run
@@ -120,18 +121,20 @@ def create_pr_via_gh(
     title: str,
     body: str,
     *,
+    base: str = "staging",
     head_branch: str | None = None,
     draft: bool = False,
     no_open: bool = False,
 ) -> str:
     """Create a PR using the gh CLI.
 
-    ISS-025: Base branch is hardcoded to 'staging' - no longer configurable.
+    ISS-026: Base branch is configurable, defaults to 'staging'.
 
     Args:
         title: PR title.
         body: PR body/description in markdown.
-        head_branch: Head branch for the PR (ISS-025). If provided, explicitly
+        base: Base branch for the PR (default: 'staging').
+        head_branch: Head branch for the PR. If provided, explicitly
             specifies the branch with changes. If None, uses current branch.
         draft: If True, create as draft PR.
         no_open: If True, don't open browser after creation.
@@ -144,11 +147,9 @@ def create_pr_via_gh(
 
     Example:
         >>> url = create_pr_via_gh("Add login", "## Summary\\n...",
-        ...                        head_branch="adw/01HQ123")
+        ...                        base="develop", head_branch="adw/01HQ123")
         >>> print(f"Created: {url}")
     """
-    # ISS-025: Base branch hardcoded to staging
-    base = "staging"
 
     cmd = [
         "gh",
@@ -310,8 +311,9 @@ def auto_create_pr(
     indicating what happened. This allows the run to complete even if PR
     creation fails.
 
-    ISS-025: Base branch is now hardcoded to 'staging'. Uses context.branch_name
-    as the explicit head branch to ensure PR is created from the correct branch.
+    ISS-026: Base branch is read from git.base_branch in project.yaml config,
+    with 'staging' as the default. Uses context.branch_name as the explicit
+    head branch to ensure PR is created from the correct branch.
 
     Args:
         run_id: ID of the completed run.
@@ -377,11 +379,15 @@ def auto_create_pr(
         task_url = f"https://linear.app/{team_key}/issue/{identifier}"
         pr_body = f"{pr_body}\n\n---\nLinear: {task_url}"
 
-    # Create the PR (ISS-025: base hardcoded to staging, use explicit head branch)
+    # Get base branch from config (ISS-026: defaults to staging)
+    base_branch = _get_base_branch(run_dir)
+
+    # Create the PR
     try:
         pr_url = create_pr_via_gh(
             pr_title,
             pr_body,
+            base=base_branch,
             head_branch=context.branch_name,
             draft=False,
             no_open=True,
@@ -516,15 +522,33 @@ def _load_pr_description(run_dir: Path) -> PRDescription:
         ) from e
 
 
-def _get_base_branch() -> str:
-    """Get the base branch for PRs.
+def _get_base_branch(run_dir: Path) -> str:
+    """Get the base branch for PR creation.
 
-    ISS-025: Base branch is now hardcoded to 'staging'.
-    All PRs are created against staging, not main.
+    ISS-026: Reads git.base_branch from project.yaml config.
+    Falls back to 'staging' if not configured.
+
+    Args:
+        run_dir: Path to the run directory (.adw/runs/<run_id>).
 
     Returns:
-        Always returns 'staging'.
+        Base branch name from config, or 'staging' as default.
     """
+    from adw.config.loader import ConfigLoader
+
+    # .adw/runs/<id> -> project root
+    project_root = run_dir.parent.parent.parent
+
+    try:
+        loader = ConfigLoader(project_root)
+        if loader.has_project_config:
+            config = loader.load()
+            if config.git.base_branch:
+                return config.git.base_branch
+    except Exception:
+        # Config loading failed - use default
+        pass
+
     return "staging"
 
 
@@ -580,7 +604,8 @@ def pr(
     If gh is not available, displays the PR description for
     manual copy-paste.
 
-    ISS-025: Base branch is now hardcoded to 'staging'. All PRs target staging.
+    ISS-026: Base branch is read from git.base_branch in project.yaml config.
+    Defaults to 'staging' if not configured.
 
     Examples:
         adw pr                         # Most recent completed run
@@ -639,8 +664,8 @@ def pr(
         )
         raise typer.Exit(1) from None
 
-    # ISS-025: Base branch hardcoded to staging
-    base_branch = _get_base_branch()
+    # ISS-026: Base branch from config (defaults to staging)
+    base_branch = _get_base_branch(run_dir)
 
     # Generate PR title from feature description
     pr_title = context.feature_description
@@ -679,10 +704,11 @@ def pr(
     console.print()
 
     try:
-        # ISS-025: Use explicit head branch from context
+        # ISS-026: Use base_branch from config and explicit head branch from context
         pr_url = create_pr_via_gh(
             pr_title,
             pr_body,
+            base=base_branch,
             head_branch=context.branch_name,
             draft=draft,
             no_open=no_open,

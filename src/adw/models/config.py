@@ -512,6 +512,7 @@ class GitConfig(BaseModel):
         commit_template: Custom commit message template (optional)
         skip_hooks: Skip pre-commit hooks with --no-verify (default: False)
         auto_create_pr: Whether to auto-create PR after successful run (default: True)
+        base_branch: Base branch for PRs (e.g., 'main', 'develop'). Falls back to 'main'
 
     Example:
         >>> config = GitConfig(enabled=True, branch_prefix="feat/")
@@ -530,6 +531,7 @@ class GitConfig(BaseModel):
           commit_template: "{phase}: {feature}"
           skip_hooks: false
           auto_create_pr: true
+          base_branch: main
     """
 
     enabled: bool = Field(
@@ -556,10 +558,15 @@ class GitConfig(BaseModel):
         default=True,
         description="Whether to auto-create PR after successful run (requires gh CLI)",
     )
+    base_branch: str | None = Field(
+        default=None,
+        description="Base branch for PRs (e.g., 'main', 'develop'). "
+        "If not set, falls back to 'main'.",
+    )
 
 
 class ProjectConfig(BaseModel):
-    """Main project configuration loaded from adw.yaml.
+    """Main project configuration loaded from project.yaml.
 
     This model represents the complete project configuration including
     project metadata, LLM settings, and phase configurations.

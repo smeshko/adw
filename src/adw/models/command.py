@@ -96,7 +96,7 @@ class CommandConfig(BaseModel):
 
     Each phase command folder can have an optional config.yaml that defines
     defaults for that command. These defaults are merged with project-level
-    PhaseConfig from adw.yaml, where project settings take precedence.
+    PhaseConfig from project.yaml, where project settings take precedence.
 
     Attributes:
         timeout_seconds: Default timeout for this command in seconds.

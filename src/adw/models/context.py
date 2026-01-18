@@ -267,7 +267,7 @@ class ProjectContext(BaseModel):
 
     Attributes:
         project_root: Absolute path to the project root directory
-        config_path: Path to the adw.yaml configuration file
+        config_path: Path to the project.yaml configuration file
         runs_dir: Directory for storing run data
         language: Programming language of the project
         framework: Framework being used (if any)
@@ -275,7 +275,7 @@ class ProjectContext(BaseModel):
     """
 
     project_root: Path = Field(..., description="Absolute path to project root")
-    config_path: Path = Field(..., description="Path to adw.yaml configuration")
+    config_path: Path = Field(..., description="Path to project.yaml configuration")
     runs_dir: Path = Field(..., description="Directory for storing run data")
     language: str = Field(..., description="Programming language")
     framework: str | None = Field(default=None, description="Framework being used")
