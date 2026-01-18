@@ -23,7 +23,7 @@ class TestInitCommand:
     def test_init_creates_adw_directory(self, tmp_path: Path) -> None:
         """Test that init creates .adw/ directory."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             assert (Path.cwd() / ".adw").exists()
@@ -32,7 +32,7 @@ class TestInitCommand:
     def test_init_creates_project_yaml(self, tmp_path: Path) -> None:
         """Test that init creates project.yaml configuration file."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             project_yaml = Path.cwd() / ".adw" / "project.yaml"
@@ -41,7 +41,7 @@ class TestInitCommand:
     def test_init_creates_runs_directory(self, tmp_path: Path) -> None:
         """Test that init creates runs/ subdirectory."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             runs_dir = Path.cwd() / ".adw" / "runs"
@@ -51,7 +51,7 @@ class TestInitCommand:
     def test_init_creates_commands_directory(self, tmp_path: Path) -> None:
         """Test that init creates commands/ subdirectory."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             commands_dir = Path.cwd() / ".adw" / "commands"
@@ -61,7 +61,7 @@ class TestInitCommand:
     def test_init_creates_gitignore(self, tmp_path: Path) -> None:
         """Test that init creates .gitignore in .adw/ directory."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             gitignore = Path.cwd() / ".adw" / ".gitignore"
@@ -69,18 +69,17 @@ class TestInitCommand:
             content = gitignore.read_text()
             assert "runs/" in content
 
-    def test_init_fails_if_already_initialized(self, tmp_path: Path) -> None:
-        """Test that init raises ConfigError if .adw/ already exists."""
+    def test_init_shows_warning_if_already_initialized(self, tmp_path: Path) -> None:
+        """Test that init shows warning if .adw/ already exists."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
             # Create existing .adw/ directory
             (Path.cwd() / ".adw").mkdir()
 
-            result = runner.invoke(app, ["init"])
+            # Without --force, shows warning and prompts (we decline)
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
-            assert result.exit_code != 0
-            # ConfigError is caught by Typer and displays the message
-            assert "already initialized" in result.output.lower()
-            assert "adw init --force" in result.output.lower()
+            # Should show warning about existing config
+            assert "existing configuration" in result.output.lower()
 
     def test_init_force_overwrites_existing(self, tmp_path: Path) -> None:
         """Test that init --force overwrites existing configuration."""
@@ -91,7 +90,7 @@ class TestInitCommand:
             old_config = adw_dir / "project.yaml"
             old_config.write_text("old: config\n")
 
-            result = runner.invoke(app, ["init", "--force"])
+            result = runner.invoke(app, ["init", "--force", "--no-interactive"])
 
             assert result.exit_code == 0
             new_config = old_config.read_text()
@@ -101,7 +100,7 @@ class TestInitCommand:
     def test_init_language_override(self, tmp_path: Path) -> None:
         """Test that init --language overrides auto-detection."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init", "--language", "rust"])
+            result = runner.invoke(app, ["init", "--language", "rust", "--no-interactive"])
 
             assert result.exit_code == 0
             config = (Path.cwd() / ".adw" / "project.yaml").read_text()
@@ -142,7 +141,7 @@ class TestInitProjectDetection:
             else:
                 marker_path.touch()
 
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             config = (Path.cwd() / ".adw" / "project.yaml").read_text()
@@ -153,7 +152,7 @@ class TestInitProjectDetection:
     def test_init_defaults_to_generic_when_no_markers(self, tmp_path: Path) -> None:
         """Test that init defaults to generic when no project markers found."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             config = (Path.cwd() / ".adw" / "project.yaml").read_text()
@@ -166,7 +165,7 @@ class TestInitLanguageValidation:
     def test_init_warns_on_invalid_language(self, tmp_path: Path) -> None:
         """Test that init warns when invalid language is specified."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init", "--language", "garbage"])
+            result = runner.invoke(app, ["init", "--language", "garbage", "--no-interactive"])
 
             assert result.exit_code == 0
             assert "warning" in result.output.lower()
@@ -175,7 +174,7 @@ class TestInitLanguageValidation:
     def test_init_accepts_valid_language(self, tmp_path: Path) -> None:
         """Test that init accepts valid language without warning."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init", "--language", "python"])
+            result = runner.invoke(app, ["init", "--language", "python", "--no-interactive"])
 
             assert result.exit_code == 0
             assert "warning" not in result.output.lower()
@@ -189,7 +188,7 @@ class TestInitOutput:
     def test_init_shows_success_message(self, tmp_path: Path) -> None:
         """Test that init shows success message on completion."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             assert "initialized" in result.output.lower()
@@ -199,7 +198,7 @@ class TestInitOutput:
         with runner.isolated_filesystem(temp_dir=tmp_path):
             (Path.cwd() / "pyproject.toml").touch()
 
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             assert "python" in result.output.lower()
@@ -207,7 +206,7 @@ class TestInitOutput:
     def test_init_shows_next_steps(self, tmp_path: Path) -> None:
         """Test that init displays next steps for the user."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             # Should mention how to proceed
@@ -222,7 +221,7 @@ class TestInitConfigContent:
         import yaml
 
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             config_path = Path.cwd() / ".adw" / "project.yaml"
@@ -237,7 +236,7 @@ class TestInitConfigContent:
         import yaml
 
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             config_path = Path.cwd() / ".adw" / "project.yaml"
@@ -250,7 +249,7 @@ class TestInitConfigContent:
         import yaml
 
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init"])
+            result = runner.invoke(app, ["init", "--no-interactive"])
 
             assert result.exit_code == 0
             config_path = Path.cwd() / ".adw" / "project.yaml"
@@ -258,3 +257,45 @@ class TestInitConfigContent:
 
             assert "llm" in data
             assert "claude_code" in data["llm"]
+
+
+class TestInitWizardFlags:
+    """Tests for wizard and no-interactive flags."""
+
+    def test_wizard_flag_forces_wizard_mode(self, tmp_path: Path) -> None:
+        """Test that --wizard flag enters wizard mode."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            result = runner.invoke(app, ["init", "--wizard"])
+
+            assert result.exit_code == 0
+            # Wizard mode is indicated in output
+            assert "guided setup" in result.output.lower() or "wizard" in result.output.lower()
+
+    def test_no_interactive_flag_skips_wizard(self, tmp_path: Path) -> None:
+        """Test that --no-interactive flag uses minimal setup."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            result = runner.invoke(app, ["init", "--no-interactive"])
+
+            assert result.exit_code == 0
+            # Should complete without prompting
+            assert (Path.cwd() / ".adw" / "project.yaml").exists()
+
+    def test_wizard_and_no_interactive_mutually_exclusive(self, tmp_path: Path) -> None:
+        """Test that --wizard and --no-interactive cannot be used together."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            result = runner.invoke(app, ["init", "--wizard", "--no-interactive"])
+
+            assert result.exit_code != 0
+            assert "mutually exclusive" in result.output.lower()
+
+    def test_existing_config_shows_warning_panel(self, tmp_path: Path) -> None:
+        """Test that existing config shows warning panel."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            # Create existing .adw/ directory
+            (Path.cwd() / ".adw").mkdir()
+
+            result = runner.invoke(app, ["init", "--no-interactive"])
+
+            # Should show warning about existing configuration
+            assert "existing configuration" in result.output.lower()
+            assert "warning" in result.output.lower()

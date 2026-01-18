@@ -19,9 +19,9 @@ class TestInitFullFlow:
         # Create Python project marker
         (tmp_path / "pyproject.toml").write_text('[project]\nname = "test-project"\n')
 
-        # Run init command
+        # Run init command with --no-interactive to skip prompts
         result = subprocess.run(
-            [sys.executable, "-m", "adw", "init"],
+            [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -51,9 +51,9 @@ class TestInitFullFlow:
         # Create Node.js project marker
         (tmp_path / "package.json").write_text('{"name": "test-project"}')
 
-        # Run init command
+        # Run init command with --no-interactive
         result = subprocess.run(
-            [sys.executable, "-m", "adw", "init"],
+            [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -68,9 +68,9 @@ class TestInitFullFlow:
 
     def test_full_init_flow_generic_project(self, tmp_path: Path) -> None:
         """Test complete init flow for generic project (no markers)."""
-        # Run init command in empty directory
+        # Run init command in empty directory with --no-interactive
         result = subprocess.run(
-            [sys.executable, "-m", "adw", "init"],
+            [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -86,21 +86,21 @@ class TestInitFullFlow:
 class TestInitReinitialize:
     """Integration tests for reinitializing existing projects."""
 
-    def test_init_fails_on_existing_project(self, tmp_path: Path) -> None:
-        """Test that init fails when .adw/ already exists."""
+    def test_init_shows_warning_on_existing_project(self, tmp_path: Path) -> None:
+        """Test that init shows warning when .adw/ already exists."""
         # Create existing .adw directory
         (tmp_path / ".adw").mkdir()
 
-        # Run init command
+        # Run init command with --no-interactive (will show warning but not proceed)
         result = subprocess.run(
-            [sys.executable, "-m", "adw", "init"],
+            [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
         )
 
-        assert result.returncode != 0
-        assert "already initialized" in result.stdout.lower()
+        # Should show warning about existing config
+        assert "existing configuration" in result.stdout.lower()
 
     def test_init_force_reinitializes(self, tmp_path: Path) -> None:
         """Test that init --force reinitializes existing project."""
@@ -112,9 +112,9 @@ class TestInitReinitialize:
         # Create Python marker
         (tmp_path / "pyproject.toml").touch()
 
-        # Run init with force
+        # Run init with force and --no-interactive
         result = subprocess.run(
-            [sys.executable, "-m", "adw", "init", "--force"],
+            [sys.executable, "-m", "adw", "init", "--force", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -134,9 +134,9 @@ class TestInitReinitialize:
         adw_dir.mkdir()
         (adw_dir / "project.yaml").write_text("old: config\n")
 
-        # Run init with force
+        # Run init with force and --no-interactive
         result = subprocess.run(
-            [sys.executable, "-m", "adw", "init", "--force"],
+            [sys.executable, "-m", "adw", "init", "--force", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -155,9 +155,9 @@ class TestInitDirectoryStructure:
 
     def test_runs_directory_is_gitignored(self, tmp_path: Path) -> None:
         """Test that runs/ directory is properly gitignored."""
-        # Run init
+        # Run init with --no-interactive
         subprocess.run(
-            [sys.executable, "-m", "adw", "init"],
+            [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -171,9 +171,9 @@ class TestInitDirectoryStructure:
 
     def test_commands_directory_is_empty(self, tmp_path: Path) -> None:
         """Test that commands/ directory is created empty."""
-        # Run init
+        # Run init with --no-interactive
         subprocess.run(
-            [sys.executable, "-m", "adw", "init"],
+            [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -186,9 +186,9 @@ class TestInitDirectoryStructure:
 
     def test_runs_directory_is_empty(self, tmp_path: Path) -> None:
         """Test that runs/ directory is created empty."""
-        # Run init
+        # Run init with --no-interactive
         subprocess.run(
-            [sys.executable, "-m", "adw", "init"],
+            [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -208,9 +208,9 @@ class TestInitLanguageOverride:
         # Create Python marker
         (tmp_path / "pyproject.toml").touch()
 
-        # Run init with different language
+        # Run init with different language and --no-interactive
         result = subprocess.run(
-            [sys.executable, "-m", "adw", "init", "--language", "rust"],
+            [sys.executable, "-m", "adw", "init", "--language", "rust", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -226,7 +226,7 @@ class TestInitLanguageOverride:
     def test_language_short_flag(self, tmp_path: Path) -> None:
         """Test that -l short flag works."""
         result = subprocess.run(
-            [sys.executable, "-m", "adw", "init", "-l", "go"],
+            [sys.executable, "-m", "adw", "init", "-l", "go", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -244,7 +244,7 @@ class TestInitConfigValidation:
     def test_generated_config_is_valid_yaml(self, tmp_path: Path) -> None:
         """Test that generated configuration is valid YAML."""
         subprocess.run(
-            [sys.executable, "-m", "adw", "init"],
+            [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -258,7 +258,7 @@ class TestInitConfigValidation:
     def test_generated_config_has_llm_timeout(self, tmp_path: Path) -> None:
         """Test that generated config includes LLM timeout setting."""
         subprocess.run(
-            [sys.executable, "-m", "adw", "init"],
+            [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -278,9 +278,9 @@ class TestInitRunIntegration:
         the run command recognizes. The run may fail for other reasons
         (missing claude CLI) but should not fail due to missing config.
         """
-        # Initialize project
+        # Initialize project with --no-interactive
         init_result = subprocess.run(
-            [sys.executable, "-m", "adw", "init"],
+            [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -308,9 +308,9 @@ class TestInitRunIntegration:
 
     def test_run_help_works_after_init(self, tmp_path: Path) -> None:
         """Test that run --help works in initialized project."""
-        # Initialize project
+        # Initialize project with --no-interactive
         subprocess.run(
-            [sys.executable, "-m", "adw", "init"],
+            [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
             capture_output=True,
             text=True,

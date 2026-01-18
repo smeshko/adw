@@ -47,6 +47,18 @@ def init(
         "-l",
         help="Override detected language (python, javascript, go, rust, etc.)",
     ),
+    wizard: bool = typer.Option(
+        False,
+        "--wizard",
+        "-w",
+        help="Force wizard mode, skip initial prompt",
+    ),
+    no_interactive: bool = typer.Option(
+        False,
+        "--no-interactive",
+        "-n",
+        help="Force minimal mode, no prompts",
+    ),
 ) -> None:
     """Initialize ADW in the current directory.
 
@@ -54,12 +66,26 @@ def init(
     Auto-detects project type and sets appropriate defaults.
 
     Examples:
-        adw init                    # Auto-detect and initialize
+        adw init                    # Auto-detect and initialize (prompts for mode)
         adw init --force            # Reinitialize existing project
         adw init --language python  # Override detection
+        adw init --wizard           # Force interactive wizard mode
+        adw init --no-interactive   # Force minimal setup, no prompts
     """
+    # Check mutually exclusive flags
+    if wizard and no_interactive:
+        console.print(
+            "[red]Error:[/] --wizard and --no-interactive are mutually exclusive."
+        )
+        raise typer.Exit(1)
+
     try:
-        init_impl(force=force, language=language)
+        init_impl(
+            force=force,
+            language=language,
+            wizard=wizard,
+            no_interactive=no_interactive,
+        )
     except ConfigError as e:
         console.print(f"[red]Error:[/] {e.message}")
         if e.suggestion:

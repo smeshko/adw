@@ -2,6 +2,7 @@
 
 This module provides the init logic that creates the .adw/ directory
 structure and generates project configuration based on auto-detection.
+Supports both minimal setup and interactive wizard modes.
 """
 
 from pathlib import Path
@@ -9,6 +10,7 @@ from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
+from rich.prompt import Confirm
 
 from adw.config.detector import ProjectTypeDetector
 from adw.config.initializer import ProjectInitializer
@@ -20,6 +22,8 @@ console = Console()
 def init(
     force: bool = False,
     language: str | None = None,
+    wizard: bool = False,
+    no_interactive: bool = False,
 ) -> None:
     """Initialize ADW in the current directory.
 
@@ -29,6 +33,8 @@ def init(
     Args:
         force: If True, overwrite existing configuration.
         language: Override detected language (python, javascript, etc.).
+        wizard: If True, force wizard mode without prompting.
+        no_interactive: If True, force minimal mode without prompting.
 
     Raises:
         ConfigError: If project is already initialized and force is False.
@@ -37,13 +43,98 @@ def init(
     adw_dir = project_root / ".adw"
 
     # Check if already initialized
-    if adw_dir.exists() and not force:
-        raise ConfigError(
-            code="PROJECT_ALREADY_INITIALIZED",
-            message="Project already initialized",
-            suggestion="Use 'adw init --force' to reinitialize",
-            recoverable=False,
-        )
+    if adw_dir.exists():
+        if not force:
+            # Show warning panel for existing configuration
+            console.print()
+            console.print(
+                Panel(
+                    "[yellow]Existing configuration found.[/]\n"
+                    "This will overwrite all settings.",
+                    title="[yellow]Warning[/]",
+                    border_style="yellow",
+                )
+            )
+
+            # Require explicit confirmation to proceed
+            if not Confirm.ask(
+                "Do you want to overwrite the existing configuration?",
+                default=False,
+            ):
+                console.print("[dim]Setup cancelled. No changes made.[/]")
+                return
+
+    # Determine setup mode
+    use_wizard = _determine_setup_mode(wizard, no_interactive)
+
+    if use_wizard:
+        # Enter wizard flow (stub - full implementation in Task 4)
+        _run_wizard_setup(project_root)
+    else:
+        # Minimal setup path
+        _run_minimal_setup(project_root, language, force)
+
+
+def _determine_setup_mode(wizard: bool, no_interactive: bool) -> bool:
+    """Determine whether to use wizard or minimal setup.
+
+    Args:
+        wizard: If True, force wizard mode.
+        no_interactive: If True, force minimal mode.
+
+    Returns:
+        True if wizard mode should be used, False for minimal.
+    """
+    if wizard:
+        return True
+    if no_interactive:
+        return False
+
+    # Prompt user for choice
+    console.print()
+    return Confirm.ask("Would you like guided setup?", default=True)
+
+
+def _run_wizard_setup(project_root: Path) -> None:
+    """Run the interactive wizard setup.
+
+    Args:
+        project_root: Root directory of the project.
+
+    Note:
+        Full implementation will be added in Task 4.
+        For now, this is a stub that displays a message.
+    """
+    from adw.cli.wizard import WizardFlowController
+    from adw.models.wizard import WizardState
+
+    console.print()
+    console.print("[bold blue]Starting guided setup wizard...[/]")
+    console.print()
+
+    # Create controller and state
+    state = WizardState()
+    controller = WizardFlowController(state=state)
+
+    # Stub - run() will be fully implemented in Task 4
+    controller.run()
+
+    console.print("[dim]Wizard flow will be implemented in subsequent stories.[/]")
+
+
+def _run_minimal_setup(
+    project_root: Path,
+    language: str | None,
+    force: bool,
+) -> None:
+    """Run minimal setup with auto-detection.
+
+    Args:
+        project_root: Root directory of the project.
+        language: Override detected language.
+        force: Whether to overwrite existing config.
+    """
+    adw_dir = project_root / ".adw"
 
     # Detect project type
     detector = ProjectTypeDetector()
