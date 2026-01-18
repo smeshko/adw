@@ -1,6 +1,6 @@
 # Story 14.4: Port Configuration Step (Optional)
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
@@ -15,15 +15,15 @@ so that concurrent runs don't conflict with my other services.
 
 ## Acceptance Criteria
 
-- [ ] Prompts "Configure port ranges for concurrent runs? [y/N]"
-- [ ] Default No uses defaults (9100, 9200)
-- [ ] If Yes:
-  - [ ] "Backend services start port: 9100 [Enter or override]"
-  - [ ] "Frontend services start port: 9200 [Enter or override]"
-- [ ] Validates ports are 1-65535
-- [ ] Validates backend and frontend ranges don't overlap (given max_concurrent)
-- [ ] Shows warning if ports conflict with common services (3000, 5000, 8080)
-- [ ] All values stored in wizard state for final generation
+- [x] Prompts "Configure port ranges for concurrent runs? [y/N]"
+- [x] Default No uses defaults (9100, 9200)
+- [x] If Yes:
+  - [x] "Backend services start port: 9100 [Enter or override]"
+  - [x] "Frontend services start port: 9200 [Enter or override]"
+- [x] Validates ports are 1-65535
+- [x] Validates backend and frontend ranges don't overlap (given max_concurrent)
+- [x] Shows warning if ports conflict with common services (3000, 5000, 8080)
+- [x] All values stored in wizard state for final generation
 
 ## Tasks / Subtasks
 
