@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import signal
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from rich.console import Console
 from rich.panel import Panel
@@ -101,7 +101,8 @@ class WizardFlowController:
         self.console = Console()
         self.interrupted = False
         self._step_handlers: dict[WizardStep, StepHandler] = {}
-        self._original_sigint_handler: Callable[..., Any] | None = None
+        # Type is signal handler (Callable | int | None) returned by signal.signal()
+        self._original_sigint_handler: Any = None
 
     def _install_interrupt_handler(self) -> None:
         """Install SIGINT handler for clean Ctrl+C handling."""
@@ -177,7 +178,7 @@ class WizardFlowController:
                     )
                     self.current_index += 1
                 elif action == "back" and self.current_index > 0:
-                    # Remove the destination step from completed_steps since we're revisiting it
+                    # Remove destination step from completed (we're revisiting it)
                     step_to_revisit = self.steps[self.current_index - 1].value
                     if step_to_revisit in self.state.completed_steps:
                         self.state.completed_steps.remove(step_to_revisit)

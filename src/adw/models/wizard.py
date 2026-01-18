@@ -6,7 +6,7 @@ progress through configuration steps and collects user input.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field
 
@@ -83,10 +83,7 @@ class WizardState(BaseModel):
             ]
 
         # Add new step to history if different from current
-        if (
-            not self.navigation_history
-            or self.navigation_history[-1] != step
-        ):
+        if not self.navigation_history or self.navigation_history[-1] != step:
             self.navigation_history.append(step)
             self.history_position = len(self.navigation_history) - 1
 
@@ -136,4 +133,5 @@ class WizardState(BaseModel):
         Returns:
             Configuration dict for the step, or empty dict if none.
         """
-        return self.collected_config.get(step, {})
+        result = self.collected_config.get(step, {})
+        return cast(dict[str, Any], result)

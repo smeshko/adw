@@ -100,7 +100,9 @@ class TestInitCommand:
     def test_init_language_override(self, tmp_path: Path) -> None:
         """Test that init --language overrides auto-detection."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init", "--language", "rust", "--no-interactive"])
+            result = runner.invoke(
+                app, ["init", "--language", "rust", "--no-interactive"]
+            )
 
             assert result.exit_code == 0
             config = (Path.cwd() / ".adw" / "project.yaml").read_text()
@@ -165,7 +167,9 @@ class TestInitLanguageValidation:
     def test_init_warns_on_invalid_language(self, tmp_path: Path) -> None:
         """Test that init warns when invalid language is specified."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init", "--language", "garbage", "--no-interactive"])
+            result = runner.invoke(
+                app, ["init", "--language", "garbage", "--no-interactive"]
+            )
 
             assert result.exit_code == 0
             assert "warning" in result.output.lower()
@@ -174,7 +178,9 @@ class TestInitLanguageValidation:
     def test_init_accepts_valid_language(self, tmp_path: Path) -> None:
         """Test that init accepts valid language without warning."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(app, ["init", "--language", "python", "--no-interactive"])
+            result = runner.invoke(
+                app, ["init", "--language", "python", "--no-interactive"]
+            )
 
             assert result.exit_code == 0
             assert "warning" not in result.output.lower()
@@ -270,7 +276,10 @@ class TestInitWizardFlags:
 
             # Wizard was entered (may exit with 0 or non-zero depending on cancel handling)
             # Key is that wizard output appears
-            assert "guided setup" in result.output.lower() or "wizard" in result.output.lower()
+            assert (
+                "guided setup" in result.output.lower()
+                or "wizard" in result.output.lower()
+            )
 
     def test_no_interactive_flag_skips_wizard(self, tmp_path: Path) -> None:
         """Test that --no-interactive flag uses minimal setup."""

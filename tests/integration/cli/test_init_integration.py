@@ -210,7 +210,15 @@ class TestInitLanguageOverride:
 
         # Run init with different language and --no-interactive
         result = subprocess.run(
-            [sys.executable, "-m", "adw", "init", "--language", "rust", "--no-interactive"],
+            [
+                sys.executable,
+                "-m",
+                "adw",
+                "init",
+                "--language",
+                "rust",
+                "--no-interactive",
+            ],
             cwd=tmp_path,
             capture_output=True,
             text=True,

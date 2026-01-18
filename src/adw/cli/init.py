@@ -8,9 +8,10 @@ Supports both minimal setup and interactive wizard modes.
 from __future__ import annotations
 
 import signal
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
@@ -18,7 +19,6 @@ from rich.prompt import Confirm
 
 from adw.config.detector import ProjectTypeDetector
 from adw.config.initializer import ProjectInitializer
-from adw.exceptions import ConfigError
 
 console = Console()
 
@@ -41,7 +41,7 @@ def _interrupt_handler(signum: int, frame: Any) -> None:
 
 
 @contextmanager
-def _setup_interrupt_handler() -> Generator[None, None, None]:
+def _setup_interrupt_handler() -> Generator[None]:
     """Context manager to install and restore interrupt handler.
 
     Yields:
@@ -85,38 +85,37 @@ def init(
         project_root = Path.cwd()
         adw_dir = project_root / ".adw"
 
-        # Check if already initialized
-        if adw_dir.exists():
-            if not force:
-                # Show warning panel for existing configuration
-                console.print()
-                console.print(
-                    Panel(
-                        "[yellow]Existing configuration found.[/]\n"
-                        "This will overwrite all settings.",
-                        title="[yellow]Warning[/]",
-                        border_style="yellow",
-                    )
+        # Check if already initialized and handle overwrite confirmation
+        if adw_dir.exists() and not force:
+            # Show warning panel for existing configuration
+            console.print()
+            console.print(
+                Panel(
+                    "[yellow]Existing configuration found.[/]\n"
+                    "This will overwrite all settings.",
+                    title="[yellow]Warning[/]",
+                    border_style="yellow",
                 )
+            )
 
-                # In non-interactive mode, refuse to overwrite without --force
-                if no_interactive:
-                    console.print(
-                        "[red]Error:[/] Cannot overwrite existing configuration "
-                        "in non-interactive mode without --force."
-                    )
-                    console.print(
-                        "[dim]Use --force to overwrite existing configuration.[/]"
-                    )
-                    raise SystemExit(1)
+            # In non-interactive mode, refuse to overwrite without --force
+            if no_interactive:
+                console.print(
+                    "[red]Error:[/] Cannot overwrite existing configuration "
+                    "in non-interactive mode without --force."
+                )
+                console.print(
+                    "[dim]Use --force to overwrite existing configuration.[/]"
+                )
+                raise SystemExit(1)
 
-                # Require explicit confirmation to proceed
-                if not Confirm.ask(
-                    "Do you want to overwrite the existing configuration?",
-                    default=False,
-                ):
-                    console.print("[dim]Setup cancelled. No changes made.[/]")
-                    return
+            # Require explicit confirmation to proceed
+            if not Confirm.ask(
+                "Do you want to overwrite the existing configuration?",
+                default=False,
+            ):
+                console.print("[dim]Setup cancelled. No changes made.[/]")
+                return
 
         # Determine setup mode
         use_wizard = _determine_setup_mode(wizard, no_interactive)
@@ -223,6 +222,7 @@ def _run_minimal_setup(
             ):
                 # Let user override
                 from rich.prompt import Prompt
+
                 valid_languages = set(detector.DEFAULTS.keys()) - {"unknown"}
                 choices_str = ", ".join(sorted(valid_languages))
                 console.print(f"[dim]Available: {choices_str}[/]")

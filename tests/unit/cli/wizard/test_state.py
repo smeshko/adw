@@ -6,8 +6,6 @@ wizard progress, configuration, and navigation history.
 
 from __future__ import annotations
 
-import pytest
-
 from adw.models.wizard import WizardState
 
 

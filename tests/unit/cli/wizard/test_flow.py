@@ -6,11 +6,7 @@ that coordinate the interactive init wizard experience.
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import MagicMock, patch
-
-import pytest
-from rich.console import Console
 
 from adw.cli.wizard import StepHandler, WizardFlowController, WizardStep
 from adw.models.wizard import WizardState
@@ -135,21 +131,24 @@ class TestPackageExports:
     def test_wizard_flow_controller_exported(self) -> None:
         """WizardFlowController is exported from package."""
         from adw.cli.wizard import WizardFlowController
+
         assert WizardFlowController is not None
 
     def test_wizard_step_exported(self) -> None:
         """WizardStep is exported from package."""
         from adw.cli.wizard import WizardStep
+
         assert WizardStep is not None
 
     def test_step_handler_exported(self) -> None:
         """StepHandler is exported from package."""
-        from adw.cli.wizard import StepHandler
+
         assert StepHandler is not None
 
     def test_all_exports_defined(self) -> None:
         """__all__ contains expected exports."""
         from adw.cli import wizard
+
         assert "WizardFlowController" in wizard.__all__
         assert "WizardStep" in wizard.__all__
         assert "StepHandler" in wizard.__all__
@@ -163,12 +162,14 @@ class TestWizardFlowControllerRun:
         controller = WizardFlowController()
 
         # Mock the prompt to always return "next" to complete wizard
-        with patch.object(controller, "_prompt_navigation", return_value="next"):
-            with patch.object(controller, "_show_welcome"):
-                with patch.object(controller, "_show_step_header"):
-                    with patch.object(controller, "_show_step_placeholder"):
-                        with patch.object(controller, "_show_completion"):
-                            result = controller.run()
+        with (
+            patch.object(controller, "_prompt_navigation", return_value="next"),
+            patch.object(controller, "_show_welcome"),
+            patch.object(controller, "_show_step_header"),
+            patch.object(controller, "_show_step_placeholder"),
+            patch.object(controller, "_show_completion"),
+        ):
+            result = controller.run()
 
         assert result is True
         assert controller.current_index == len(controller.steps)
@@ -177,11 +178,13 @@ class TestWizardFlowControllerRun:
         """Run returns False when cancelled."""
         controller = WizardFlowController()
 
-        with patch.object(controller, "_prompt_navigation", return_value="cancel"):
-            with patch.object(controller, "_show_welcome"):
-                with patch.object(controller, "_show_step_header"):
-                    with patch.object(controller, "_show_step_placeholder"):
-                        result = controller.run()
+        with (
+            patch.object(controller, "_prompt_navigation", return_value="cancel"),
+            patch.object(controller, "_show_welcome"),
+            patch.object(controller, "_show_step_header"),
+            patch.object(controller, "_show_step_placeholder"),
+        ):
+            result = controller.run()
 
         assert result is False
         assert controller.interrupted is True
@@ -194,11 +197,15 @@ class TestWizardFlowControllerRun:
         nav_sequence = ["next", "next", "back", "cancel"]
         nav_iter = iter(nav_sequence)
 
-        with patch.object(controller, "_prompt_navigation", side_effect=lambda: next(nav_iter)):
-            with patch.object(controller, "_show_welcome"):
-                with patch.object(controller, "_show_step_header"):
-                    with patch.object(controller, "_show_step_placeholder"):
-                        controller.run()
+        with (
+            patch.object(
+                controller, "_prompt_navigation", side_effect=lambda: next(nav_iter)
+            ),
+            patch.object(controller, "_show_welcome"),
+            patch.object(controller, "_show_step_header"),
+            patch.object(controller, "_show_step_placeholder"),
+        ):
+            controller.run()
 
         # Should be at index 1 (went to 2, back to 1, then cancelled)
         assert controller.current_index == 1
@@ -211,11 +218,15 @@ class TestWizardFlowControllerRun:
         nav_sequence = ["next", "next", "next", "cancel"]
         nav_iter = iter(nav_sequence)
 
-        with patch.object(controller, "_prompt_navigation", side_effect=lambda: next(nav_iter)):
-            with patch.object(controller, "_show_welcome"):
-                with patch.object(controller, "_show_step_header"):
-                    with patch.object(controller, "_show_step_placeholder"):
-                        controller.run()
+        with (
+            patch.object(
+                controller, "_prompt_navigation", side_effect=lambda: next(nav_iter)
+            ),
+            patch.object(controller, "_show_welcome"),
+            patch.object(controller, "_show_step_header"),
+            patch.object(controller, "_show_step_placeholder"),
+        ):
+            controller.run()
 
         # First 3 steps should be completed
         assert "basics" in controller.state.completed_steps
@@ -230,11 +241,15 @@ class TestWizardFlowControllerRun:
         nav_sequence = ["next", "next", "next", "back", "cancel"]
         nav_iter = iter(nav_sequence)
 
-        with patch.object(controller, "_prompt_navigation", side_effect=lambda: next(nav_iter)):
-            with patch.object(controller, "_show_welcome"):
-                with patch.object(controller, "_show_step_header"):
-                    with patch.object(controller, "_show_step_placeholder"):
-                        controller.run()
+        with (
+            patch.object(
+                controller, "_prompt_navigation", side_effect=lambda: next(nav_iter)
+            ),
+            patch.object(controller, "_show_welcome"),
+            patch.object(controller, "_show_step_header"),
+            patch.object(controller, "_show_step_placeholder"),
+        ):
+            controller.run()
 
         # basics and git should be completed, but ports should NOT be
         # (we went back from ports, so it was removed)
@@ -255,10 +270,14 @@ class TestWizardFlowControllerRun:
         nav_sequence = ["next", "cancel"]
         nav_iter = iter(nav_sequence)
 
-        with patch.object(controller, "_prompt_navigation", side_effect=lambda: next(nav_iter)):
-            with patch.object(controller, "_show_welcome"):
-                with patch.object(controller, "_show_step_header"):
-                    controller.run()
+        with (
+            patch.object(
+                controller, "_prompt_navigation", side_effect=lambda: next(nav_iter)
+            ),
+            patch.object(controller, "_show_welcome"),
+            patch.object(controller, "_show_step_header"),
+        ):
+            controller.run()
 
         # Handler should have been called
         mock_handler.execute.assert_called_once()
@@ -296,11 +315,13 @@ class TestInterruptHandler:
         original_handler = signal.getsignal(signal.SIGINT)
 
         # Mock to immediately cancel
-        with patch.object(controller, "_prompt_navigation", return_value="cancel"):
-            with patch.object(controller, "_show_welcome"):
-                with patch.object(controller, "_show_step_header"):
-                    with patch.object(controller, "_show_step_placeholder"):
-                        controller.run()
+        with (
+            patch.object(controller, "_prompt_navigation", return_value="cancel"),
+            patch.object(controller, "_show_welcome"),
+            patch.object(controller, "_show_step_header"),
+            patch.object(controller, "_show_step_placeholder"),
+        ):
+            controller.run()
 
         # Handler should be restored after run completes
         current_handler = signal.getsignal(signal.SIGINT)
@@ -310,12 +331,14 @@ class TestInterruptHandler:
         """Cancelling wizard shows cancellation message."""
         controller = WizardFlowController()
 
-        with patch.object(controller, "_prompt_navigation", return_value="cancel"):
-            with patch.object(controller, "_show_welcome"):
-                with patch.object(controller, "_show_step_header"):
-                    with patch.object(controller, "_show_step_placeholder"):
-                        with patch.object(controller.console, "print") as mock_print:
-                            controller.run()
+        with (
+            patch.object(controller, "_prompt_navigation", return_value="cancel"),
+            patch.object(controller, "_show_welcome"),
+            patch.object(controller, "_show_step_header"),
+            patch.object(controller, "_show_step_placeholder"),
+            patch.object(controller.console, "print") as mock_print,
+        ):
+            controller.run()
 
         # Should have printed cancellation message
         call_args = [str(call) for call in mock_print.call_args_list]
