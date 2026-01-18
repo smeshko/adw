@@ -1,6 +1,6 @@
 # Story 14.5: Task Manager Setup (Optional, Full)
 
-Status: ready-for-dev
+Status: done
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
@@ -37,54 +37,54 @@ so that ADW syncs with my project management tool.
 ## Tasks / Subtasks
 
 ### Task 1: Create Task Manager Step Module
-- [ ] Create `src/adw/cli/wizard/task_manager.py`
-- [ ] Define `run_task_manager_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/task_manager.py`
+- [x] Define `run_task_manager_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Team Key Validation
-- [ ] Create validation function for team key
-- [ ] Rules: uppercase letters only, 2-10 characters
-- [ ] Examples: "RULE", "ENG", "ADW"
-- [ ] Show error and re-prompt on invalid input
+- [x] Create validation function for team key
+- [x] Rules: uppercase letters only, 2-10 characters
+- [x] Examples: "RULE", "ENG", "ADW"
+- [x] Show error and re-prompt on invalid input
 
 ### Task 3: Implement Basic Configuration Prompts
-- [ ] Prompt for task manager enable/disable (default No)
-- [ ] If enabled:
+- [x] Prompt for task manager enable/disable (default No)
+- [x] If enabled:
   - Show task manager selection (Linear for now)
   - Prompt for team key with validation
   - Prompt for sync_comments option
   - Conditional: comment_on_failures_only
 
 ### Task 4: Implement PR and Label Configuration
-- [ ] Prompt for PR title format
-- [ ] Prompt for label management enable
-- [ ] Conditional: label prefix prompt
-- [ ] Prompt for auto-close option
+- [x] Prompt for PR title format
+- [x] Prompt for label management enable
+- [x] Conditional: label prefix prompt
+- [x] Prompt for auto-close option
 
 ### Task 5: Implement Context Options
-- [ ] Prompt for include_labels_in_context
-- [ ] Prompt for include_parent_info
+- [x] Prompt for include_labels_in_context
+- [x] Prompt for include_parent_info
 
 ### Task 6: Implement State Mapping Configuration
-- [ ] Prompt for custom state mapping
-- [ ] If Yes, prompt for each phase:
+- [x] Prompt for custom state mapping
+- [x] If Yes, prompt for each phase:
   - plan → (default: "In Progress")
   - build → (default: "In Progress")
   - validate → (default: "In Review")
   - document → (default: "In Review")
   - failed → (default: "Backlog")
-- [ ] Store mappings in wizard state
+- [x] Store mappings in wizard state
 
 ### Task 7: Store Results in Wizard State
-- [ ] Update WizardState with full task_manager config
-- [ ] Mark task_manager step as completed
+- [x] Update WizardState with full task_manager config
+- [x] Mark task_manager step as completed
 
 ### Task 8: Write Unit Tests
-- [ ] Test team key validation
-- [ ] Test prompt flow when task manager disabled
-- [ ] Test prompt flow with all options enabled
-- [ ] Test state mapping configuration
-- [ ] Test state update after step completion
+- [x] Test team key validation
+- [x] Test prompt flow when task manager disabled
+- [x] Test prompt flow with all options enabled
+- [x] Test state mapping configuration
+- [x] Test state update after step completion
 
 ---
 
@@ -338,5 +338,26 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Created TaskManagerStepHandler class and run_task_manager_step function
+- Implemented validate_team_key() with 2-10 uppercase letter validation and auto-normalization
+- Full prompt flow for all task manager configuration options:
+  - Enable/disable (default: No)
+  - Task manager type (Linear for MVP)
+  - Team key with validation loop
+  - Comment sync with conditional failure-only option
+  - PR title format with default
+  - Label management with conditional prefix
+  - Auto-close on PR merge
+  - Context options (include_labels, include_parent)
+  - Optional state mapping customization for all 5 ADW phases
+- Added 28 comprehensive unit tests covering all flows
+- All tests pass (120 wizard tests total)
+
 ### File List
+
+- src/adw/cli/wizard/task_manager.py (NEW)
+- src/adw/cli/wizard/__init__.py (MODIFIED)
+- tests/unit/cli/wizard/test_task_manager.py (NEW)
+- _bmad-output/implementation-artifacts/14-5-task-manager-setup.md (MODIFIED)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (MODIFIED)
 

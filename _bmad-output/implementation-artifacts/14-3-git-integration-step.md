@@ -15,59 +15,59 @@ so that ADW can manage branches and PRs automatically.
 
 ## Acceptance Criteria
 
-- [ ] Git integration is **always enabled** (not optional)
-- [ ] Checks if current directory is a git repository
-- [ ] If NOT a git repo, shows error and guidance to initialize git first
-- [ ] If IS a git repo, proceeds with configuration:
-  - [ ] "Branch prefix: feature/ [Enter or override]"
-  - [ ] "Auto-create PR after successful run? [Y/n]"
-- [ ] Validates branch prefix format (no spaces, valid git branch chars)
-- [ ] All values stored in wizard state for final generation
+- [x] Git integration is **always enabled** (not optional)
+- [x] Checks if current directory is a git repository
+- [x] If NOT a git repo, shows error and guidance to initialize git first
+- [x] If IS a git repo, proceeds with configuration:
+  - [x] "Branch prefix: feature/ [Enter or override]"
+  - [x] "Auto-create PR after successful run? [Y/n]"
+- [x] Validates branch prefix format (no spaces, valid git branch chars)
+- [x] All values stored in wizard state for final generation
 
 ## Tasks / Subtasks
 
 ### Task 1: Create Git Integration Step Module
-- [ ] Create `src/adw/cli/wizard/git.py`
-- [ ] Define `run_git_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/git.py`
+- [x] Define `run_git_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Git Repository Requirement
-- [ ] Check if current directory is a git repository
-- [ ] Use `git rev-parse --is-inside-work-tree` or check for `.git/`
-- [ ] If NOT a git repo:
+- [x] Check if current directory is a git repository
+- [x] Use `git rev-parse --is-inside-work-tree` or check for `.git/`
+- [x] If NOT a git repo:
   - Show error: "Git repository required. ADW needs git for branch management."
   - Show guidance: "Run 'git init' to initialize a repository, then re-run the wizard."
   - Exit wizard (git is mandatory)
-- [ ] If IS a git repo, proceed with configuration
+- [x] If IS a git repo, proceed with configuration
 
 ### Task 3: Implement Branch Prefix Validation
-- [ ] Create validation function for branch prefix
-- [ ] Rules:
+- [x] Create validation function for branch prefix
+- [x] Rules:
   - No spaces allowed
   - Must end with `/` (auto-append if missing)
   - Valid git branch characters only (alphanumeric, `-`, `_`, `/`)
   - Cannot start with `-`
-- [ ] Show error and re-prompt on invalid input
+- [x] Show error and re-prompt on invalid input
 
 ### Task 4: Implement Interactive Prompts
-- [ ] Git is always enabled (no enable/disable prompt)
-- [ ] Prompt for branch prefix with default "feature/"
-- [ ] Validate branch prefix (re-prompt if invalid)
-- [ ] Prompt for auto-PR creation [Y/n]
+- [x] Git is always enabled (no enable/disable prompt)
+- [x] Prompt for branch prefix with default "feature/"
+- [x] Validate branch prefix (re-prompt if invalid)
+- [x] Prompt for auto-PR creation [Y/n]
 
 ### Task 5: Store Results in Wizard State
-- [ ] Update WizardState with:
+- [x] Update WizardState with:
   - `git_enabled: bool` (always True)
   - `git_branch_prefix: str`
   - `git_auto_create_pr: bool`
-- [ ] Mark git step as completed
+- [x] Mark git step as completed
 
 ### Task 6: Write Unit Tests
-- [ ] Test git repo detection (is a repo)
-- [ ] Test git repo detection (not a repo - should error/exit)
-- [ ] Test branch prefix validation (valid and invalid cases)
-- [ ] Test full prompt flow (branch prefix + auto-PR)
-- [ ] Test state update after step completion (git_enabled always True)
+- [x] Test git repo detection (is a repo)
+- [x] Test git repo detection (not a repo - should error/exit)
+- [x] Test branch prefix validation (valid and invalid cases)
+- [x] Test full prompt flow (branch prefix + auto-PR)
+- [x] Test state update after step completion (git_enabled always True)
 
 ---
 
@@ -342,5 +342,18 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Task 1: Created git.py module with GitStepHandler class, run_git_step function, and placeholder functions for git repo requirement, branch prefix validation, and prompts. Exported from wizard package __init__.py. WizardStep.GIT already defined in flow.py.
+- Task 2: Implemented is_git_repo() using subprocess to call `git rev-parse --is-inside-work-tree`. require_git_repo() shows Rich Panel error and exits with SystemExit(1) if not a git repo.
+- Task 3: Implemented validate_branch_prefix() with regex pattern. Validates: no spaces, auto-appends trailing /, must start with letter, valid git chars only. Returns (bool, str) tuple.
+- Task 4: Implemented prompt_branch_prefix() with default "feature/" and validation loop. Implemented prompt_auto_create_pr() using Rich Confirm with default True.
+- Task 5: Verified run_git_step returns dict with git_enabled, git_branch_prefix, git_auto_create_pr. Flow controller handles state update via state.update_config("git", config).
+- Task 6: Created tests/unit/cli/wizard/test_git.py with 25 tests covering: is_git_repo, require_git_repo, validate_branch_prefix (10 valid + 5 invalid), run_git_step structure/values, GitStepHandler delegation. All tests pass.
+
 ### File List
+
+- src/adw/cli/wizard/git.py (created)
+- src/adw/cli/wizard/__init__.py (modified)
+- tests/unit/cli/__init__.py (created)
+- tests/unit/cli/wizard/__init__.py (created)
+- tests/unit/cli/wizard/test_git.py (created)
 

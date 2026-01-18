@@ -15,66 +15,66 @@ so that concurrent runs don't conflict with my other services.
 
 ## Acceptance Criteria
 
-- [ ] Prompts "Configure port ranges for concurrent runs? [y/N]"
-- [ ] Default No uses defaults (9100, 9200)
-- [ ] If Yes:
-  - [ ] "Backend services start port: 9100 [Enter or override]"
-  - [ ] "Frontend services start port: 9200 [Enter or override]"
-- [ ] Validates ports are 1-65535
-- [ ] Validates backend and frontend ranges don't overlap (given max_concurrent)
-- [ ] Shows warning if ports conflict with common services (3000, 5000, 8080)
-- [ ] All values stored in wizard state for final generation
+- [x] Prompts "Configure port ranges for concurrent runs? [y/N]"
+- [x] Default No uses defaults (9100, 9200)
+- [x] If Yes:
+  - [x] "Backend services start port: 9100 [Enter or override]"
+  - [x] "Frontend services start port: 9200 [Enter or override]"
+- [x] Validates ports are 1-65535
+- [x] Validates backend and frontend ranges don't overlap (given max_concurrent)
+- [x] Shows warning if ports conflict with common services (3000, 5000, 8080)
+- [x] All values stored in wizard state for final generation
 
 ## Tasks / Subtasks
 
 ### Task 1: Create Port Configuration Step Module
-- [ ] Create `src/adw/cli/wizard/ports.py`
-- [ ] Define `run_ports_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/ports.py`
+- [x] Define `run_ports_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Port Validation
-- [ ] Create port number validation function
-- [ ] Validate range: 1-65535
-- [ ] Validate integer parsing
-- [ ] Return normalized port or error message
+- [x] Create port number validation function
+- [x] Validate range: 1-65535
+- [x] Validate integer parsing
+- [x] Return normalized port or error message
 
 ### Task 3: Implement Port Range Overlap Check
-- [ ] Check if backend and frontend ranges would overlap
-- [ ] Assume max_concurrent = 10 (or read from config)
-- [ ] Backend range: backend_start to backend_start + max_concurrent
-- [ ] Frontend range: frontend_start to frontend_start + max_concurrent
-- [ ] Warn if ranges overlap
+- [x] Check if backend and frontend ranges would overlap
+- [x] Assume max_concurrent = 10 (or read from config)
+- [x] Backend range: backend_start to backend_start + max_concurrent
+- [x] Frontend range: frontend_start to frontend_start + max_concurrent
+- [x] Warn if ranges overlap
 
 ### Task 4: Implement Common Port Conflict Warning
-- [ ] Define list of common ports: 3000, 3001, 5000, 8000, 8080, 8888
-- [ ] Check if entered ports or ranges include common ports
-- [ ] Show warning (not blocking) if conflict detected
+- [x] Define list of common ports: 3000, 3001, 5000, 8000, 8080, 8888
+- [x] Check if entered ports or ranges include common ports
+- [x] Show warning (not blocking) if conflict detected
 
 ### Task 5: Implement Interactive Prompts
-- [ ] Prompt for port configuration (default No)
-- [ ] If Yes:
+- [x] Prompt for port configuration (default No)
+- [x] If Yes:
   - Prompt for backend start port (default 9100)
   - Validate and handle errors
   - Prompt for frontend start port (default 9200)
   - Validate and check overlap
   - Show warnings for common port conflicts
-- [ ] If No:
+- [x] If No:
   - Use default values silently
 
 ### Task 6: Store Results in Wizard State
-- [ ] Update WizardState with:
+- [x] Update WizardState with:
   - `port_config_custom: bool`
   - `backend_port_start: int`
   - `frontend_port_start: int`
-- [ ] Mark ports step as completed
+- [x] Mark ports step as completed
 
 ### Task 7: Write Unit Tests
-- [ ] Test port validation (valid and invalid)
-- [ ] Test range overlap detection
-- [ ] Test common port conflict detection
-- [ ] Test prompt flow when configuring
-- [ ] Test prompt flow when using defaults
-- [ ] Test state update after step completion
+- [x] Test port validation (valid and invalid)
+- [x] Test range overlap detection
+- [x] Test common port conflict detection
+- [x] Test prompt flow when configuring
+- [x] Test prompt flow when using defaults
+- [x] Test state update after step completion
 
 ---
 
@@ -316,5 +316,17 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Task 1: Created ports.py with PortsStepHandler class and run_ports_step function following the established wizard step pattern from basics.py
+- Task 2: Implemented validate_port() function that returns (bool, int|str) tuple for validation results with range checking (1-65535) and integer parsing
+- Task 3: Implemented check_port_overlap() function with DEFAULT_MAX_CONCURRENT=10, calculates range intersection and _show_overlap_warning() displays red panel when overlap detected
+- Task 4: Defined COMMON_PORTS set with 3000,3001,5000,8000,8080,8443,8888. is_common_port() and check_range_conflicts() detect conflicts, _check_and_warn_common_ports() shows yellow warning panel
+- Task 5: Implemented full interactive flow in run_ports_step() with Confirm.ask for opt-in, _prompt_port() with validation loop, overlap re-prompt, and warning displays. Default No returns defaults silently
+- Task 6: run_ports_step() returns dict with port_config_custom, backend_port_start, frontend_port_start. Flow controller stores via state.update_config() and marks complete via state.mark_completed()
+- Task 7: Added 43 unit tests in test_ports.py covering validation, overlap detection, common port detection, prompt flows, and state integration
+
 ### File List
+
+- `src/adw/cli/wizard/ports.py` (new) - Port configuration step module
+- `src/adw/cli/wizard/__init__.py` (modified) - Added exports for ports module
+- `tests/unit/cli/wizard/test_ports.py` (new) - Unit tests for port configuration step
 
