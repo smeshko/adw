@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 24
+issue_counter: 25
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -68,6 +68,7 @@ issues:
   ISS-022-validate-phase-not-verifying-codex-findings: fixed  # Critical - Claude not verifying Codex hallucinations
   ISS-023-save-only-last-llm-message-as-output: done  # Major - SDK saves full conversation, not final output
   ISS-024-tests-not-cleaning-up-worktrees: story-created  # Major - Worktrees with ULIDs left after test runs
+  ISS-025-sdk-fails-to-create-story-branch: reported  # Critical - SDK not creating story branches, commits go to staging
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -295,6 +296,8 @@ development_status:
   # UX Fix (from ISS-023) - MAJOR
   ux-fix-ISS-023-save-last-message-only: done
   refactor-ISS-024-tests-not-cleaning-up-worktrees: done
+  # Bugfix (from ISS-025) - CRITICAL
+  bugfix-ISS-025-sdk-fails-to-create-story-branch: ready-for-dev
   epic-13-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

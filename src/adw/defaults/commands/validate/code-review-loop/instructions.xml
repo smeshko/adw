@@ -20,6 +20,7 @@
     <rule emoji="🔒">Commit after EVERY cycle that has fixes</rule>
     <rule emoji="📋">Track state in-memory, output JSON results at end</rule>
     <rule emoji="🎯">Validate every finding before fixing - dismiss false positives</rule>
+    <rule emoji="⚡">MANDATORY: You MUST attempt to run `codex exec` via Bash FIRST - only fall back to self-review if Codex fails</rule>
   </universal-rules>
 
   <!-- ================================================================== -->
@@ -261,8 +262,11 @@ Focus only on NEW issues not listed above.
       </step>
 
       <step name="run-codex">
+        <critical>MANDATORY ATTEMPT: You MUST try to invoke Codex via Bash tool FIRST</critical>
+
         <output>Running Codex review...</output>
-        <action>Execute Codex:
+
+        <action>Attempt to execute Codex via Bash tool:
           ```bash
           codex exec --full-auto \
             -c 'headless=true' \
@@ -273,11 +277,51 @@ Focus only on NEW issues not listed above.
         <note>Timeout: 15 minutes (900000ms)</note>
         <critical>Do NOT use -m flag - use Codex's configured default model</critical>
 
-        <check if="Codex fails (error, timeout, unavailable)">
-          <action>Set exit_reason = "review_failed"</action>
-          <action>Set code_review_passed = false</action>
-          <action>Jump to phase: finalize</action>
+        <check if="Codex succeeds">
+          <action>Store Codex output as {{codex_response}}</action>
+          <action>Set review_source = "codex"</action>
+          <action>Proceed to step: parse-findings</action>
         </check>
+
+        <check if="Codex fails (error, timeout, command not found, or unavailable)">
+          <output>⚠️ Codex unavailable - falling back to adversarial self-review</output>
+          <action>Set review_source = "self"</action>
+          <action>Proceed to step: self-review-fallback</action>
+        </check>
+      </step>
+
+      <step name="self-review-fallback">
+        <critical>FALLBACK ONLY: This step runs ONLY if Codex execution failed</critical>
+        <critical>You MUST use the SAME adversarial prompt - do NOT perform a lenient review</critical>
+
+        <output>
+        ```
+        ───────────────────────────────────────────────────────────────
+          SELF-REVIEW FALLBACK (Codex unavailable)
+        ───────────────────────────────────────────────────────────────
+        ```
+        </output>
+
+        <action>Perform adversarial code review using {{constructed_prompt}} as your instructions</action>
+
+        <critical>Review requirements (you are simulating Codex):
+          - Be ADVERSARIAL - actively look for problems, don't rubber-stamp
+          - Find AT LEAST 3-10 issues per review (Codex typically finds issues)
+          - Apply the SAME severity standards as an external reviewer
+          - If you genuinely find zero issues, justify WHY the code is exceptional
+        </critical>
+
+        <action>Generate findings in the exact JSON format specified in the prompt:
+          ```json
+          {
+            "findings": [...],
+            "summary": { "high_count": N, "medium_count": N, "low_count": N, "files_reviewed": N }
+          }
+          ```
+        </action>
+
+        <action>Store self-review output as {{codex_response}}</action>
+        <action>Proceed to step: parse-findings</action>
       </step>
 
       <step name="parse-findings">
@@ -452,8 +496,12 @@ Focus only on NEW issues not listed above.
       <item>Stopping to ask user questions (autonomous workflow)</item>
       <item>Output not valid JSON</item>
       <item>Output contains wrapper text around JSON</item>
+      <item>Skipping Codex attempt entirely without trying to invoke it via Bash</item>
+      <item>Performing self-review without first attempting `codex exec`</item>
+      <item>Using a lenient review instead of the adversarial prompt during self-review fallback</item>
+      <item>Finding zero issues without rigorous justification (rubber-stamping)</item>
     </failure>
   </metrics>
 
-  <master-rule>This is an AUTONOMOUS CI workflow. Execute without user input. Run tests first, fix failures. Then run code review. Output valid JSON to stdout. passed=true only when tests_passed AND code_review_passed.</master-rule>
+  <master-rule>This is an AUTONOMOUS CI workflow. Execute without user input. Run tests first, fix failures. Then ATTEMPT to run Codex code review via `codex exec` Bash command. If Codex fails, fall back to adversarial self-review using the SAME prompt - do NOT rubber-stamp. Output valid JSON to stdout. passed=true only when tests_passed AND code_review_passed.</master-rule>
 </workflow>
