@@ -37,9 +37,9 @@ so that ADW syncs with my project management tool.
 ## Tasks / Subtasks
 
 ### Task 1: Create Task Manager Step Module
-- [ ] Create `src/adw/cli/wizard/task_manager.py`
-- [ ] Define `run_task_manager_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/task_manager.py`
+- [x] Define `run_task_manager_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Team Key Validation
 - [ ] Create validation function for team key

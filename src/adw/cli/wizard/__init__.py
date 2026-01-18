@@ -11,6 +11,9 @@ Exports:
     run_basics_step: Function to execute the basics step.
     PhasesStepHandler: Handler for the phases configuration step.
     run_phases_step: Function to execute the phases step.
+    TaskManagerStepHandler: Handler for the task manager configuration step.
+    run_task_manager_step: Function to execute the task manager step.
+    validate_team_key: Function to validate Linear team keys.
 """
 
 from adw.cli.wizard.basics import (
@@ -24,15 +27,23 @@ from adw.cli.wizard.phases import (
     PhasesStepHandler,
     run_phases_step,
 )
+from adw.cli.wizard.task_manager import (
+    TaskManagerStepHandler,
+    run_task_manager_step,
+    validate_team_key,
+)
 
 __all__ = [
     "BasicsStepHandler",
     "PhasesStepHandler",
     "StepHandler",
+    "TaskManagerStepHandler",
     "WizardFlowController",
     "WizardStep",
     "detect_language",
     "detect_test_command",
     "run_basics_step",
     "run_phases_step",
+    "run_task_manager_step",
+    "validate_team_key",
 ]
