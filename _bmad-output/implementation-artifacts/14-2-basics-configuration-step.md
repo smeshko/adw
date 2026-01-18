@@ -31,9 +31,9 @@ so that ADW knows what kind of project I'm working on.
 ## Tasks / Subtasks
 
 ### Task 1: Create Basics Step Module
-- [ ] Create `src/adw/cli/wizard/basics.py`
-- [ ] Define `run_basics_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/basics.py`
+- [x] Define `run_basics_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Language Detection
 - [ ] Create language detection function
