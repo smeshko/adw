@@ -322,15 +322,19 @@ development_status:
 
   # ═══════════════════════════════════════════════════════════════════════════
   # EPIC 15: Ship Phase & Deployment (Post-MVP) [was Epic 14]
-  # Goal: Automate PR approval, merge, and project-specific deployment hooks
+  # Goal: LLM-driven ship phase with pre-flight analysis, optional deployment
+  #       commands, release notes generation, failure diagnosis, and PR merge
   # ═══════════════════════════════════════════════════════════════════════════
   epic-15: backlog
-  15-1-ship-phase-definition: backlog
-  15-2-pr-approval-automation: backlog
-  15-3-pr-merge-automation: backlog
-  15-4-project-specific-deployment-hooks: backlog
-  15-5-issue-closing: backlog
-  15-6-ship-phase-guards: backlog
+  # Story 15.1 is the foundational SDK integration - MUST be done first
+  # Adds ship to PHASE_SEQUENCE, creates ShipConfig models, command folder
+  15-1-ship-phase-sdk-integration: backlog
+  15-2-context-gathering-pre-flight-analysis: backlog
+  15-3-deployment-command-execution: backlog
+  15-4-release-notes-generation: backlog
+  15-5-failure-diagnosis-recovery: backlog
+  15-6-pr-merge-completion: backlog
+  15-7-ship-report-generation: backlog
   epic-15-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
