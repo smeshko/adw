@@ -1,6 +1,6 @@
 # Story 14.1: Wizard Entry Point & Flow Control
 
-Status: ready-for-dev
+Status: done
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
