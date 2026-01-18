@@ -301,6 +301,29 @@ class TestRunRetryStepCustomConfiguration:
         assert result["retry_multiplier"] == 2.0
         assert mock_prompt.call_count >= 5
 
+    def test_max_delay_default_adjusts_to_base_delay(self) -> None:
+        """Test that max_delay default adjusts when base_delay > DEFAULT_MAX_DELAY.
+
+        When base_delay is set higher than the default max_delay (60s), the
+        max_delay prompt should show a default that is >= base_delay so that
+        pressing Enter to accept the default doesn't immediately fail validation.
+        """
+        console = Console(force_terminal=True)
+        state = WizardState()
+
+        with (
+            patch("adw.cli.wizard.retry.Confirm.ask", return_value=True),
+            patch("adw.cli.wizard.retry.Prompt.ask") as mock_prompt,
+        ):
+            # Use base_delay of 100 (> DEFAULT_MAX_DELAY of 60)
+            # User presses Enter for max_delay, accepting the adjusted default
+            mock_prompt.side_effect = ["3", "100.0", "100.0", "2.0"]
+            result = run_retry_step(state, console)
+
+        # Verify the result uses base_delay of 100 and max_delay of 100
+        assert result["retry_base_delay"] == 100.0
+        assert result["retry_max_delay"] == 100.0  # Should work with adjusted default
+
 
 class TestRetryStepHandler:
     """Tests for RetryStepHandler class."""

@@ -278,10 +278,13 @@ def _prompt_max_delay(console: Console, base_delay: float) -> float:
     Returns:
         The validated max delay value.
     """
+    # Ensure default is always >= base_delay to avoid immediate validation failure
+    default_max = max(DEFAULT_MAX_DELAY, base_delay)
+
     while True:
         value_str = Prompt.ask(
             "Max delay (seconds)",
-            default=str(DEFAULT_MAX_DELAY),
+            default=str(default_max),
             console=console,
         )
 
