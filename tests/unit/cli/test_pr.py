@@ -119,7 +119,7 @@ class TestCheckGhAuthenticated:
 class TestCreatePrViaGh:
     """Tests for create_pr_via_gh function.
 
-    ISS-025: Base branch is now hardcoded to 'staging'.
+    ISS-026: Base branch is configurable, defaults to 'staging'.
     """
 
     def test_create_pr_success(self) -> None:
@@ -130,14 +130,29 @@ class TestCreatePrViaGh:
                 stdout="https://github.com/user/repo/pull/123\n",
                 stderr="",
             )
-            # ISS-025: No longer pass base as positional arg
             url = create_pr_via_gh("Test PR", "## Summary\nTest")
             assert url == "https://github.com/user/repo/pull/123"
 
-            # Verify base is hardcoded to staging
+            # Verify default base is staging
             cmd = mock_run.call_args[0][0]
             base_idx = cmd.index("--base")
             assert cmd[base_idx + 1] == "staging"
+
+    def test_create_pr_with_custom_base(self) -> None:
+        """Test custom base branch is used when provided (ISS-026)."""
+        with patch("adw.cli.pr.subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="https://github.com/user/repo/pull/123\n",
+                stderr="",
+            )
+            url = create_pr_via_gh("Test PR", "## Summary\nTest", base="develop")
+            assert url == "https://github.com/user/repo/pull/123"
+
+            # Verify custom base is used
+            cmd = mock_run.call_args[0][0]
+            base_idx = cmd.index("--base")
+            assert cmd[base_idx + 1] == "develop"
 
     def test_create_pr_with_draft(self) -> None:
         """Test draft PR includes --draft flag."""
@@ -324,13 +339,42 @@ All tests pass
 class TestGetBaseBranch:
     """Tests for _get_base_branch function.
 
-    ISS-025: Base branch is now hardcoded to 'staging'.
+    ISS-026: Base branch is read from git.base_branch in config,
+    defaults to 'staging' if not configured.
     """
 
-    def test_returns_staging_always(self) -> None:
-        """Test always returns 'staging' (ISS-025)."""
-        result = _get_base_branch()
+    def test_returns_staging_by_default(self, tmp_path: Path) -> None:
+        """Test returns 'staging' when no config exists (ISS-026)."""
+        # Set up directory structure: project_root/.adw/runs/<run_id>
+        project_root = tmp_path
+        runs_dir = project_root / ".adw" / "runs"
+        run_dir = runs_dir / "test-run"
+        run_dir.mkdir(parents=True)
+
+        # No project.yaml - should return default 'staging'
+        result = _get_base_branch(run_dir)
         assert result == "staging"
+
+    def test_reads_from_config(self, tmp_path: Path) -> None:
+        """Test reads base_branch from project.yaml config (ISS-026)."""
+        # Set up directory structure
+        project_root = tmp_path
+        runs_dir = project_root / ".adw" / "runs"
+        run_dir = runs_dir / "test-run"
+        run_dir.mkdir(parents=True)
+
+        # Create project.yaml config with custom base_branch
+        config_dir = project_root / ".adw"
+        config_file = config_dir / "project.yaml"
+        config_file.write_text("""
+name: test-project
+language: python
+git:
+  base_branch: develop
+""")
+
+        result = _get_base_branch(run_dir)
+        assert result == "develop"
 
 
 class TestStorePrUrl:
