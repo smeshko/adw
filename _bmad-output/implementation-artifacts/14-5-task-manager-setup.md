@@ -66,14 +66,14 @@ so that ADW syncs with my project management tool.
 - [x] Prompt for include_parent_info
 
 ### Task 6: Implement State Mapping Configuration
-- [ ] Prompt for custom state mapping
-- [ ] If Yes, prompt for each phase:
+- [x] Prompt for custom state mapping
+- [x] If Yes, prompt for each phase:
   - plan → (default: "In Progress")
   - build → (default: "In Progress")
   - validate → (default: "In Review")
   - document → (default: "In Review")
   - failed → (default: "Backlog")
-- [ ] Store mappings in wizard state
+- [x] Store mappings in wizard state
 
 ### Task 7: Store Results in Wizard State
 - [ ] Update WizardState with full task_manager config
