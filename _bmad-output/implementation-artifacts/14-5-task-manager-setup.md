@@ -80,11 +80,11 @@ so that ADW syncs with my project management tool.
 - [x] Mark task_manager step as completed
 
 ### Task 8: Write Unit Tests
-- [ ] Test team key validation
-- [ ] Test prompt flow when task manager disabled
-- [ ] Test prompt flow with all options enabled
-- [ ] Test state mapping configuration
-- [ ] Test state update after step completion
+- [x] Test team key validation
+- [x] Test prompt flow when task manager disabled
+- [x] Test prompt flow with all options enabled
+- [x] Test state mapping configuration
+- [x] Test state update after step completion
 
 ---
 
