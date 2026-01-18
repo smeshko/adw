@@ -19,12 +19,13 @@ if TYPE_CHECKING:
 TEAM_KEY_PATTERN = re.compile(r"^[A-Z]{2,10}$")
 
 # Default state mappings for ADW phases to Linear statuses
+# NOTE: These must match the defaults in TaskManagerConfig (src/adw/models/config.py)
 DEFAULT_STATE_MAPPINGS: dict[str, str] = {
     "plan": "In Progress",
     "build": "In Progress",
     "validate": "In Review",
     "document": "In Review",
-    "failed": "Backlog",
+    "failed": "In Progress",
 }
 
 # Default PR title format
