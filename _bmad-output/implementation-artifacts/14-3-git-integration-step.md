@@ -50,10 +50,10 @@ so that ADW can manage branches and PRs automatically.
 - [x] Show error and re-prompt on invalid input
 
 ### Task 4: Implement Interactive Prompts
-- [ ] Git is always enabled (no enable/disable prompt)
-- [ ] Prompt for branch prefix with default "feature/"
-- [ ] Validate branch prefix (re-prompt if invalid)
-- [ ] Prompt for auto-PR creation [Y/n]
+- [x] Git is always enabled (no enable/disable prompt)
+- [x] Prompt for branch prefix with default "feature/"
+- [x] Validate branch prefix (re-prompt if invalid)
+- [x] Prompt for auto-PR creation [Y/n]
 
 ### Task 5: Store Results in Wizard State
 - [ ] Update WizardState with:
@@ -345,6 +345,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 1: Created git.py module with GitStepHandler class, run_git_step function, and placeholder functions for git repo requirement, branch prefix validation, and prompts. Exported from wizard package __init__.py. WizardStep.GIT already defined in flow.py.
 - Task 2: Implemented is_git_repo() using subprocess to call `git rev-parse --is-inside-work-tree`. require_git_repo() shows Rich Panel error and exits with SystemExit(1) if not a git repo.
 - Task 3: Implemented validate_branch_prefix() with regex pattern. Validates: no spaces, auto-appends trailing /, must start with letter, valid git chars only. Returns (bool, str) tuple.
+- Task 4: Implemented prompt_branch_prefix() with default "feature/" and validation loop. Implemented prompt_auto_create_pr() using Rich Confirm with default True.
 
 ### File List
 

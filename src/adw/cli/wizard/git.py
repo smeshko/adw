@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 from rich.panel import Panel
+from rich.prompt import Confirm, Prompt
 
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
@@ -197,19 +198,37 @@ def validate_branch_prefix(prefix: str) -> tuple[bool, str]:
 def prompt_branch_prefix(console: Console) -> str:
     """Prompt user for branch prefix configuration.
 
+    Prompts the user to enter a branch prefix with "feature/" as default.
+    Re-prompts if the input is invalid.
+
     Args:
         console: Console for output.
 
     Returns:
         The validated and normalized branch prefix.
     """
-    # Placeholder - will be implemented in Task 4
-    _ = console  # Suppress unused warning
-    return "feature/"
+    console.print()
+
+    while True:
+        prefix = Prompt.ask(
+            "Branch prefix",
+            default="feature/",
+            console=console,
+        )
+
+        valid, result = validate_branch_prefix(prefix)
+        if valid:
+            return result
+
+        # Show error and re-prompt
+        console.print(f"[red]Error:[/] {result}")
 
 
 def prompt_auto_create_pr(console: Console) -> bool:
     """Prompt user for auto-PR creation setting.
+
+    Prompts the user whether to automatically create a pull request
+    after a successful run.
 
     Args:
         console: Console for output.
@@ -217,6 +236,10 @@ def prompt_auto_create_pr(console: Console) -> bool:
     Returns:
         True if user wants auto-PR creation, False otherwise.
     """
-    # Placeholder - will be implemented in Task 4
-    _ = console  # Suppress unused warning
-    return True
+    console.print()
+
+    return Confirm.ask(
+        "Auto-create PR after successful run?",
+        default=True,
+        console=console,
+    )
