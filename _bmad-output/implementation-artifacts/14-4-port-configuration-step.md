@@ -62,11 +62,11 @@ so that concurrent runs don't conflict with my other services.
   - Use default values silently
 
 ### Task 6: Store Results in Wizard State
-- [ ] Update WizardState with:
+- [x] Update WizardState with:
   - `port_config_custom: bool`
   - `backend_port_start: int`
   - `frontend_port_start: int`
-- [ ] Mark ports step as completed
+- [x] Mark ports step as completed
 
 ### Task 7: Write Unit Tests
 - [ ] Test port validation (valid and invalid)
@@ -321,6 +321,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 3: Implemented check_port_overlap() function with DEFAULT_MAX_CONCURRENT=10, calculates range intersection and _show_overlap_warning() displays red panel when overlap detected
 - Task 4: Defined COMMON_PORTS set with 3000,3001,5000,8000,8080,8443,8888. is_common_port() and check_range_conflicts() detect conflicts, _check_and_warn_common_ports() shows yellow warning panel
 - Task 5: Implemented full interactive flow in run_ports_step() with Confirm.ask for opt-in, _prompt_port() with validation loop, overlap re-prompt, and warning displays. Default No returns defaults silently
+- Task 6: run_ports_step() returns dict with port_config_custom, backend_port_start, frontend_port_start. Flow controller stores via state.update_config() and marks complete via state.mark_completed()
 
 ### File List
 
