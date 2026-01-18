@@ -77,6 +77,7 @@ class TestWebhooksDisabled:
         assert result["port"] == DEFAULT_PORT
         assert result["host"] == DEFAULT_HOST
         assert result["providers"] == {}
+        assert result["mappings"] == {}
 
 
 class TestServerConfiguration:
@@ -192,6 +193,7 @@ class TestProviderSelection:
 
         assert result["enabled"] is False
         assert result["providers"] == {}
+        assert result["mappings"] == {}
 
 
 class TestProviderConfiguration:
@@ -202,12 +204,13 @@ class TestProviderConfiguration:
         console = Console(force_terminal=True)
 
         with patch("adw.cli.wizard.webhooks.Confirm.ask", return_value=False):
-            config = _configure_provider("linear", console)
+            config, mappings = _configure_provider("linear", console)
 
         assert config == {"enabled": False}
+        assert mappings == {}
 
     def test_configure_provider_defaults(self) -> None:
-        """Test provider configuration with defaults."""
+        """Test provider configuration with defaults (no event mappings)."""
         console = Console(force_terminal=True)
 
         with (
@@ -222,13 +225,15 @@ class TestProviderConfiguration:
                 "adw",
             ]
 
-            config = _configure_provider("linear", console)
+            config, mappings = _configure_provider("linear", console)
 
+        # Provider config matches ProviderConfig model (no event_mappings field)
         assert config["enabled"] is True
         assert config["secret_env"] == "LINEAR_WEBHOOK_SECRET"
         assert config["command_prefix"] == "/adw"
         assert config["trigger_label"] == "adw"
-        assert config["event_mappings"] == {}
+        assert "event_mappings" not in config  # Mappings returned separately
+        assert mappings == {}
 
     def test_configure_provider_custom_values(self) -> None:
         """Test provider configuration with custom values."""
@@ -245,11 +250,12 @@ class TestProviderConfiguration:
                 "custom-label",
             ]
 
-            config = _configure_provider("linear", console)
+            config, mappings = _configure_provider("linear", console)
 
         assert config["secret_env"] == "MY_CUSTOM_SECRET"
         assert config["command_prefix"] == "!adw"
         assert config["trigger_label"] == "custom-label"
+        assert mappings == {}
 
     def test_configure_github_uses_correct_default_secret(self) -> None:
         """Test that GitHub provider uses correct default secret env."""
@@ -266,9 +272,10 @@ class TestProviderConfiguration:
                 "adw",
             ]
 
-            config = _configure_provider("github", console)
+            config, mappings = _configure_provider("github", console)
 
         assert config["secret_env"] == "GITHUB_WEBHOOK_SECRET"
+        assert mappings == {}
 
 
 class TestEventMappingConfiguration:
@@ -385,6 +392,7 @@ class TestWebhooksStepHandler:
 
         assert result["enabled"] is False
         assert result["providers"] == {}
+        assert result["mappings"] == {}
 
 
 class TestFullFlow:
@@ -426,12 +434,16 @@ class TestFullFlow:
         assert result["enabled"] is True
         assert result["port"] == 8080
         assert result["host"] == "localhost"
+        # Provider config matches ProviderConfig model
         assert "linear" in result["providers"]
         linear_config = result["providers"]["linear"]
         assert linear_config["enabled"] is True
         assert linear_config["secret_env"] == "LINEAR_WEBHOOK_SECRET"
-        assert "issue_created" in linear_config["event_mappings"]
-        assert "comment_created" in linear_config["event_mappings"]
+        assert "event_mappings" not in linear_config  # Mappings at top level
+        # Mappings stored at top level, matching WebhookMappings structure
+        assert "linear" in result["mappings"]
+        assert "issue_created" in result["mappings"]["linear"]
+        assert "comment_created" in result["mappings"]["linear"]
 
     def test_full_flow_with_both_providers(self) -> None:
         """Test full flow configuring both Linear and GitHub providers."""
@@ -469,6 +481,32 @@ class TestFullFlow:
         assert "github" in result["providers"]
         assert result["providers"]["linear"]["enabled"] is True
         assert result["providers"]["github"]["enabled"] is True
+        # Mappings at top level (empty because events config skipped)
+        assert result["mappings"] == {}
+
+    def test_all_providers_disabled_returns_disabled_config(self) -> None:
+        """Test that disabling all providers results in enabled=False."""
+        console = Console(force_terminal=True)
+        state = WizardState()
+
+        with (
+            patch("adw.cli.wizard.webhooks.Confirm.ask") as mock_confirm,
+            patch("adw.cli.wizard.webhooks.IntPrompt.ask", return_value=8000),
+            patch("adw.cli.wizard.webhooks.Prompt.ask", return_value="0.0.0.0"),
+        ):
+            mock_confirm.side_effect = [
+                True,  # enable webhooks
+                True,  # configure linear
+                False,  # skip github
+                False,  # disable linear (!)
+            ]
+
+            result = run_webhooks_step(state, console)
+
+        # Global enabled should be False when all providers are disabled
+        assert result["enabled"] is False
+        assert result["providers"] == {}
+        assert result["mappings"] == {}
 
 
 class TestStateIntegration:

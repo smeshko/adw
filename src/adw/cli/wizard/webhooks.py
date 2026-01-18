@@ -93,6 +93,7 @@ def run_webhooks_step(
             "port": DEFAULT_PORT,
             "host": DEFAULT_HOST,
             "providers": {},
+            "mappings": {},
         }
 
     # Step 2: Configure server settings
@@ -108,20 +109,40 @@ def run_webhooks_step(
             "port": port,
             "host": host,
             "providers": {},
+            "mappings": {},
         }
 
     # Step 4: Configure each selected provider
     provider_configs: dict[str, dict[str, Any]] = {}
+    mappings: dict[str, dict[str, Any]] = {}
 
     for provider in selected_providers:
-        config = _configure_provider(provider, console)
+        config, provider_mappings = _configure_provider(provider, console)
         provider_configs[provider] = config
+        if provider_mappings:
+            mappings[provider] = provider_mappings
+
+    # Derive global enabled from whether any provider is actually enabled
+    any_provider_enabled = any(
+        cfg.get("enabled", False) for cfg in provider_configs.values()
+    )
+
+    if not any_provider_enabled:
+        # All providers were disabled during configuration
+        return {
+            "enabled": False,
+            "port": port,
+            "host": host,
+            "providers": {},
+            "mappings": {},
+        }
 
     return {
         "enabled": True,
         "port": port,
         "host": host,
         "providers": provider_configs,
+        "mappings": mappings,
     }
 
 
@@ -183,7 +204,9 @@ def _prompt_provider_selection(console: Console) -> list[str]:
     return selected
 
 
-def _configure_provider(provider: str, console: Console) -> dict[str, Any]:
+def _configure_provider(
+    provider: str, console: Console
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """Configure a single webhook provider.
 
     Args:
@@ -191,7 +214,9 @@ def _configure_provider(provider: str, console: Console) -> dict[str, Any]:
         console: Console for output.
 
     Returns:
-        Configuration dict for the provider.
+        Tuple of (provider_config, event_mappings) where:
+        - provider_config matches ProviderConfig model fields
+        - event_mappings matches ProviderEventMapping structure (or empty)
     """
     display_name = provider.title()
     console.print()
@@ -205,7 +230,7 @@ def _configure_provider(provider: str, console: Console) -> dict[str, Any]:
     )
 
     if not enabled:
-        return {"enabled": False}
+        return {"enabled": False}, {}
 
     default_secret_env = DEFAULT_SECRET_ENVS.get(
         provider, f"{provider.upper()}_WEBHOOK_SECRET"
@@ -228,7 +253,7 @@ def _configure_provider(provider: str, console: Console) -> dict[str, Any]:
         console=console,
     )
 
-    # Event mappings configuration
+    # Event mappings configuration (stored separately per WebhookMappings model)
     configure_events = Confirm.ask(
         "Configure event mappings?",
         default=True,
@@ -239,13 +264,15 @@ def _configure_provider(provider: str, console: Console) -> dict[str, Any]:
     if configure_events:
         event_mappings = _configure_event_mappings(console)
 
-    return {
+    # Return provider config (matching ProviderConfig model) and mappings separately
+    provider_config = {
         "enabled": enabled,
         "secret_env": secret_env,
         "command_prefix": command_prefix,
         "trigger_label": trigger_label,
-        "event_mappings": event_mappings,
     }
+
+    return provider_config, event_mappings
 
 
 def _configure_event_mappings(console: Console) -> dict[str, dict[str, Any]]:
