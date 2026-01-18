@@ -1,66 +1,70 @@
-# Document Phase - PR Description Generation
+# Document Phase
 
-Generate a structured Pull Request description for the implemented feature.
+Analyze code changes for documentation needs, create feature documentation for significant changes, update the conditional docs guide, and generate a PR description.
 
-## Feature Description
+## Context
 
-{{feature_description}}
+Run Context: {{context}}
+Feature: {{feature_description}}
 
-## Implementation Summary
+## Build Artifacts
 
+**Implementation Summary:**
 {{artifacts.build.build_output}}
 
-## Git Changes
+**Git Diff Stats:**
+{{artifacts.build.diff_stats}}
 
-**Available Build Artifacts:**
-{{artifacts.build.*}}
+**Git Diff:**
+{{artifacts.build.diff}}
 
-## Evidence
+## Validation Artifacts
 
-**Available Validate Artifacts:**
+**Evidence:**
 {{artifacts.validate.*}}
+
+## Additional Inputs
+
+{{inputs.*}}
 
 ## Instructions
 
-Generate a GitHub-flavored Markdown PR description with the following structure:
+### Workflow Engine
+{{shared:workflow.xml}}
 
-1. **Summary** (1-2 sentences): Concise description of what this PR accomplishes
-2. **Changes**: Bullet list of key changes made (derived from the build artifacts above)
-3. **Testing**: How the changes were verified (from validate artifacts/evidence)
-4. **Evidence**: Links to relevant evidence items if available (screenshots, API responses, etc.)
+### Workflow Config
+{{include:document-feature/workflow.yaml}}
 
-Use the artifact information above to construct the PR description:
-- If diff_stats is available, include file counts and line changes
-- If evidence_manifest is available, reference evidence items and screenshots
-- If no evidence is available, note "No visual evidence captured"
+### Instructions
+{{include:document-feature/instructions.xml}}
 
-## Output Format
+IT IS CRITICAL THAT YOU FOLLOW THESE STEPS - while staying in character as the documentation specialist persona:
 
-Your response MUST be a valid PR description in the following format:
+<steps CRITICAL="TRUE">
+1. The workflow execution engine (workflow.xml) is included above
+2. The workflow config (workflow.yaml) is included above
+3. Follow workflow.xml instructions EXACTLY as written to process and follow the specific workflow config and its instructions
+4. Execute ALL 5 steps in order:
+   - Step 1: Detect changes and load context
+   - Step 2: Analyze documentation gaps and evaluate significance
+   - Step 3: Update documentation (if needed)
+   - Step 4: Generate documentation report
+   - Step 5: Generate PR description as final output
+5. The final output MUST include the PR description
+</steps>
 
-```markdown
-## Summary
+## Output Requirements
 
-[1-2 sentence summary of the PR]
+Your response must include:
 
-## Changes
+1. **Documentation Report** - Summary of analysis and updates made
+2. **PR Description** - The final PR description in markdown format
 
-- [Change 1]
-- [Change 2]
-- [Change 3]
-
-## Testing
-
-[Description of testing performed]
-
-## Evidence
-
-[Links to evidence or "No visual evidence captured" if none]
+If feature documentation was created, output it between markers:
+```
+# FEATURE DOC OUTPUT
+[feature doc content]
+# END FEATURE DOC OUTPUT
 ```
 
-## Constraints
-
-- Maximum length: ~4000 characters (GitHub PR description limit)
-- Use relative paths for any file references
-- If evidence includes screenshots, include them as markdown image links
-- Focus on the "why" and impact, not just the "what"
+The PR description should be the final section of your response.
