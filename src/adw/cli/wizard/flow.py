@@ -6,8 +6,9 @@ the step-by-step wizard experience for project initialization.
 
 from __future__ import annotations
 
+import signal
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Callable, Protocol
 
 from rich.console import Console
 from rich.panel import Panel
@@ -100,6 +101,30 @@ class WizardFlowController:
         self.console = Console()
         self.interrupted = False
         self._step_handlers: dict[WizardStep, StepHandler] = {}
+        self._original_sigint_handler: Callable[..., Any] | None = None
+
+    def _install_interrupt_handler(self) -> None:
+        """Install SIGINT handler for clean Ctrl+C handling."""
+        self._original_sigint_handler = signal.signal(
+            signal.SIGINT, self._handle_interrupt
+        )
+
+    def _restore_interrupt_handler(self) -> None:
+        """Restore original SIGINT handler."""
+        if self._original_sigint_handler is not None:
+            signal.signal(signal.SIGINT, self._original_sigint_handler)
+
+    def _handle_interrupt(self, signum: int, frame: Any) -> None:
+        """Handle Ctrl+C interrupt.
+
+        Args:
+            signum: Signal number.
+            frame: Current stack frame.
+        """
+        self.interrupted = True
+        self.console.print()
+        self.console.print("[yellow]Setup cancelled. No files created.[/]")
+        raise SystemExit(0)
 
     def register_step_handler(self, step: WizardStep, handler: StepHandler) -> None:
         """Register a handler for a wizard step.
@@ -119,44 +144,51 @@ class WizardFlowController:
         Returns:
             True if wizard completed successfully, False if cancelled.
         """
-        self._show_welcome()
+        self._install_interrupt_handler()
 
-        while self.current_index < len(self.steps):
-            if self.interrupted:
-                return False
+        try:
+            self._show_welcome()
 
-            current_step = self.steps[self.current_index]
-            self._show_step_header(current_step)
+            while self.current_index < len(self.steps):
+                if self.interrupted:
+                    return False
 
-            # Execute step handler if registered
-            if current_step in self._step_handlers:
-                handler = self._step_handlers[current_step]
-                config = handler.execute(self.state, self.console)
-                self.state.update_config(current_step.value, config)
-            else:
-                # Default placeholder for unimplemented steps
-                self._show_step_placeholder(current_step)
+                current_step = self.steps[self.current_index]
+                self._show_step_header(current_step)
 
-            # Handle navigation
-            action = self._prompt_navigation()
+                # Execute step handler if registered
+                if current_step in self._step_handlers:
+                    handler = self._step_handlers[current_step]
+                    config = handler.execute(self.state, self.console)
+                    self.state.update_config(current_step.value, config)
+                else:
+                    # Default placeholder for unimplemented steps
+                    self._show_step_placeholder(current_step)
 
-            if action == "next":
-                self.state.mark_completed(current_step.value)
-                self.state.navigate_to(
-                    self.steps[self.current_index + 1].value
-                    if self.current_index < len(self.steps) - 1
-                    else "complete"
-                )
-                self.current_index += 1
-            elif action == "back" and self.current_index > 0:
-                self.state.go_back_in_history()
-                self.current_index -= 1
-            elif action == "cancel":
-                self.interrupted = True
-                return False
+                # Handle navigation
+                action = self._prompt_navigation()
 
-        self._show_completion()
-        return True
+                if action == "next":
+                    self.state.mark_completed(current_step.value)
+                    self.state.navigate_to(
+                        self.steps[self.current_index + 1].value
+                        if self.current_index < len(self.steps) - 1
+                        else "complete"
+                    )
+                    self.current_index += 1
+                elif action == "back" and self.current_index > 0:
+                    self.state.go_back_in_history()
+                    self.current_index -= 1
+                elif action == "cancel":
+                    self.interrupted = True
+                    self.console.print()
+                    self.console.print("[yellow]Setup cancelled. No files created.[/]")
+                    return False
+
+            self._show_completion()
+            return True
+        finally:
+            self._restore_interrupt_handler()
 
     def _show_welcome(self) -> None:
         """Display wizard welcome message."""

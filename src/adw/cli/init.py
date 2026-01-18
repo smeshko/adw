@@ -5,8 +5,12 @@ structure and generates project configuration based on auto-detection.
 Supports both minimal setup and interactive wizard modes.
 """
 
+from __future__ import annotations
+
+import signal
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Generator
 
 from rich.console import Console
 from rich.panel import Panel
@@ -17,6 +21,43 @@ from adw.config.initializer import ProjectInitializer
 from adw.exceptions import ConfigError
 
 console = Console()
+
+# Global flag to track if setup was interrupted
+_interrupted = False
+
+
+def _interrupt_handler(signum: int, frame: Any) -> None:
+    """Signal handler for Ctrl+C interrupt.
+
+    Args:
+        signum: Signal number (SIGINT).
+        frame: Current stack frame.
+    """
+    global _interrupted
+    _interrupted = True
+    console.print()
+    console.print("[yellow]Setup cancelled. No files created.[/]")
+    raise SystemExit(0)
+
+
+@contextmanager
+def _setup_interrupt_handler() -> Generator[None, None, None]:
+    """Context manager to install and restore interrupt handler.
+
+    Yields:
+        None, while interrupt handler is active.
+    """
+    global _interrupted
+    _interrupted = False
+
+    # Save original handler
+    original_handler = signal.signal(signal.SIGINT, _interrupt_handler)
+
+    try:
+        yield
+    finally:
+        # Restore original handler
+        signal.signal(signal.SIGINT, original_handler)
 
 
 def init(
@@ -39,40 +80,42 @@ def init(
     Raises:
         ConfigError: If project is already initialized and force is False.
     """
-    project_root = Path.cwd()
-    adw_dir = project_root / ".adw"
+    # Install interrupt handler for clean Ctrl+C handling
+    with _setup_interrupt_handler():
+        project_root = Path.cwd()
+        adw_dir = project_root / ".adw"
 
-    # Check if already initialized
-    if adw_dir.exists():
-        if not force:
-            # Show warning panel for existing configuration
-            console.print()
-            console.print(
-                Panel(
-                    "[yellow]Existing configuration found.[/]\n"
-                    "This will overwrite all settings.",
-                    title="[yellow]Warning[/]",
-                    border_style="yellow",
+        # Check if already initialized
+        if adw_dir.exists():
+            if not force:
+                # Show warning panel for existing configuration
+                console.print()
+                console.print(
+                    Panel(
+                        "[yellow]Existing configuration found.[/]\n"
+                        "This will overwrite all settings.",
+                        title="[yellow]Warning[/]",
+                        border_style="yellow",
+                    )
                 )
-            )
 
-            # Require explicit confirmation to proceed
-            if not Confirm.ask(
-                "Do you want to overwrite the existing configuration?",
-                default=False,
-            ):
-                console.print("[dim]Setup cancelled. No changes made.[/]")
-                return
+                # Require explicit confirmation to proceed
+                if not Confirm.ask(
+                    "Do you want to overwrite the existing configuration?",
+                    default=False,
+                ):
+                    console.print("[dim]Setup cancelled. No changes made.[/]")
+                    return
 
-    # Determine setup mode
-    use_wizard = _determine_setup_mode(wizard, no_interactive)
+        # Determine setup mode
+        use_wizard = _determine_setup_mode(wizard, no_interactive)
 
-    if use_wizard:
-        # Enter wizard flow
-        _run_wizard_setup(project_root)
-    else:
-        # Minimal setup path
-        _run_minimal_setup(project_root, language, force, no_interactive)
+        if use_wizard:
+            # Enter wizard flow
+            _run_wizard_setup(project_root)
+        else:
+            # Minimal setup path
+            _run_minimal_setup(project_root, language, force, no_interactive)
 
 
 def _determine_setup_mode(wizard: bool, no_interactive: bool) -> bool:

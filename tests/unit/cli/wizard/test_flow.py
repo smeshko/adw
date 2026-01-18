@@ -254,3 +254,40 @@ class TestStepTitles:
         """All wizard steps have titles defined."""
         for step in WizardStep:
             assert step in WizardFlowController.STEP_TITLES
+
+
+class TestInterruptHandler:
+    """Tests for interrupt handler functionality."""
+
+    def test_interrupt_handler_installed_during_run(self) -> None:
+        """Interrupt handler is installed when run() starts."""
+        import signal
+
+        controller = WizardFlowController()
+        original_handler = signal.getsignal(signal.SIGINT)
+
+        # Mock to immediately cancel
+        with patch.object(controller, "_prompt_navigation", return_value="cancel"):
+            with patch.object(controller, "_show_welcome"):
+                with patch.object(controller, "_show_step_header"):
+                    with patch.object(controller, "_show_step_placeholder"):
+                        controller.run()
+
+        # Handler should be restored after run completes
+        current_handler = signal.getsignal(signal.SIGINT)
+        assert current_handler == original_handler
+
+    def test_cancel_shows_cancellation_message(self) -> None:
+        """Cancelling wizard shows cancellation message."""
+        controller = WizardFlowController()
+
+        with patch.object(controller, "_prompt_navigation", return_value="cancel"):
+            with patch.object(controller, "_show_welcome"):
+                with patch.object(controller, "_show_step_header"):
+                    with patch.object(controller, "_show_step_placeholder"):
+                        with patch.object(controller.console, "print") as mock_print:
+                            controller.run()
+
+        # Should have printed cancellation message
+        call_args = [str(call) for call in mock_print.call_args_list]
+        assert any("cancelled" in arg.lower() for arg in call_args)
