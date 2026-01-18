@@ -1,6 +1,6 @@
 # Story 14.2: Basics Configuration Step
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
@@ -15,18 +15,18 @@ so that ADW knows what kind of project I'm working on.
 
 ## Acceptance Criteria
 
-- [ ] Auto-detects language from project markers (pyproject.toml, package.json, go.mod, etc.)
-- [ ] Shows "Language detected: {lang}. Correct? [Y/n]"
-- [ ] If No, shows selection: python / javascript / go / rust / java / ruby / php / **other**
-- [ ] If "other" selected, prompts for manual language entry
-- [ ] Prompts for platform: "Platform type? [cli] / web / api / **other**"
-- [ ] If "other" selected for platform, prompts for manual platform entry
-- [ ] Auto-detects test command based on language (pytest, npm test, go test, etc.)
-- [ ] Shows "Test command: {cmd} [Enter to accept or type custom command]"
-- [ ] User can type any custom test command (not limited to predefined list)
-- [ ] Prompts "Build command: [none] (Enter to skip or type custom command)"
-- [ ] User can type any custom build command
-- [ ] All values stored in wizard state for final generation
+- [x] Auto-detects language from project markers (pyproject.toml, package.json, go.mod, etc.)
+- [x] Shows "Language detected: {lang}. Correct? [Y/n]"
+- [x] If No, shows selection: python / javascript / go / rust / java / ruby / php / **other**
+- [x] If "other" selected, prompts for manual language entry
+- [x] Prompts for platform: "Platform type? [cli] / web / api / **other**"
+- [x] If "other" selected for platform, prompts for manual platform entry
+- [x] Auto-detects test command based on language (pytest, npm test, go test, etc.)
+- [x] Shows "Test command: {cmd} [Enter to accept or type custom command]"
+- [x] User can type any custom test command (not limited to predefined list)
+- [x] Prompts "Build command: [none] (Enter to skip or type custom command)"
+- [x] User can type any custom build command
+- [x] All values stored in wizard state for final generation
 
 ## Tasks / Subtasks
 
@@ -338,5 +338,21 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Created BasicsStepHandler implementing StepHandler protocol
+- Implemented detect_language() with LANGUAGE_MARKERS dict for 7 languages
+- Implemented detect_test_command() with DEFAULT_TEST_COMMANDS dict
+- Full interactive prompts using Rich Confirm/Prompt with "other" option handling
+- All values stored via flow controller's update_config() pattern
+- Comprehensive test suite with 38 tests using parameterized tests and mocks
+
 ### File List
+
+**New Files:**
+- src/adw/cli/wizard/basics.py
+- tests/unit/cli/wizard/test_basics.py
+
+**Modified Files:**
+- src/adw/cli/wizard/__init__.py (exports)
+- src/adw/cli/init.py (handler registration)
+- _bmad-output/implementation-artifacts/14-2-basics-configuration-step.md (this file)
 
