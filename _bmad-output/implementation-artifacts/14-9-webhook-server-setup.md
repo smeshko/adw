@@ -1,6 +1,6 @@
 # Story 14.9: Webhook Server Setup (Optional, Full)
 
-Status: ready-for-dev
+Status: done
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
@@ -43,50 +43,50 @@ so that external events can trigger ADW runs.
 ## Tasks / Subtasks
 
 ### Task 1: Create Webhook Step Module
-- [ ] Create `src/adw/cli/wizard/webhooks.py`
-- [ ] Define `run_webhooks_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/webhooks.py`
+- [x] Define `run_webhooks_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Server Configuration Prompts
-- [ ] Prompt for webhook server enable/disable
-- [ ] If enabled:
+- [x] Prompt for webhook server enable/disable
+- [x] If enabled:
   - Prompt for port (default 8000, validate 1-65535)
   - Prompt for host (default 0.0.0.0)
 
 ### Task 3: Implement Provider Selection
-- [ ] Create multi-select for providers (Linear, GitHub)
-- [ ] Return list of selected providers
-- [ ] Handle no providers selected (back to disabled)
+- [x] Create multi-select for providers (Linear, GitHub)
+- [x] Return list of selected providers
+- [x] Handle no providers selected (back to disabled)
 
 ### Task 4: Implement Linear Provider Configuration
-- [ ] Prompt for Linear enable
-- [ ] Prompt for secret env variable name
-- [ ] Prompt for command prefix
-- [ ] Prompt for trigger label
-- [ ] Implement event mapping configuration loop
+- [x] Prompt for Linear enable
+- [x] Prompt for secret env variable name
+- [x] Prompt for command prefix
+- [x] Prompt for trigger label
+- [x] Implement event mapping configuration loop
 
 ### Task 5: Implement GitHub Provider Configuration
-- [ ] Same structure as Linear
-- [ ] Different default secret variable (GITHUB_WEBHOOK_SECRET)
-- [ ] May have different event types in future
+- [x] Same structure as Linear
+- [x] Different default secret variable (GITHUB_WEBHOOK_SECRET)
+- [x] May have different event types in future
 
 ### Task 6: Implement Event Mapping Configuration
-- [ ] For each event type (issue_created, issue_updated, comment_created):
+- [x] For each event type (issue_created, issue_updated, comment_created):
   - Prompt for enable/disable
   - Conditional: label requirement
   - For comments: mention prefix, parse command option
 
 ### Task 7: Store Results in Wizard State
-- [ ] Update WizardState with full webhook config
-- [ ] Mark webhooks step as completed
+- [x] Update WizardState with full webhook config
+- [x] Mark webhooks step as completed
 
 ### Task 8: Write Unit Tests
-- [ ] Test server config prompts
-- [ ] Test provider selection
-- [ ] Test Linear provider config flow
-- [ ] Test GitHub provider config flow
-- [ ] Test event mapping configuration
-- [ ] Test state update after step completion
+- [x] Test server config prompts
+- [x] Test provider selection
+- [x] Test Linear provider config flow
+- [x] Test GitHub provider config flow
+- [x] Test event mapping configuration
+- [x] Test state update after step completion
 
 ---
 
@@ -365,5 +365,23 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Implemented comprehensive webhook configuration wizard step
+- Created `WebhooksStepHandler` and `run_webhooks_step` following existing wizard patterns
+- Implemented server configuration (port with 1-65535 validation, host)
+- Implemented multi-select provider selection (Linear, GitHub)
+- Implemented provider configuration with secret env, command prefix, trigger label
+- Implemented event mapping configuration for issue_created, issue_updated, comment_created
+- Added comment-specific options (require_mention, parse_command)
+- Registered handler in init.py flow
+- Wrote 33 comprehensive unit tests covering all functionality
+- All 259 wizard tests pass
+
 ### File List
+
+- src/adw/cli/wizard/webhooks.py (new)
+- src/adw/cli/wizard/__init__.py (modified - added exports)
+- src/adw/cli/init.py (modified - registered handler)
+- tests/unit/cli/wizard/test_webhooks.py (new)
+- _bmad-output/implementation-artifacts/14-9-webhook-server-setup.md (modified)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified)
 

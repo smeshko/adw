@@ -158,7 +158,12 @@ def _run_wizard_setup(project_root: Path) -> None:
         Full implementation will be added in Task 4.
         For now, this is a stub that displays a message.
     """
-    from adw.cli.wizard import BasicsStepHandler, WizardFlowController, WizardStep
+    from adw.cli.wizard import (
+        BasicsStepHandler,
+        WebhooksStepHandler,
+        WizardFlowController,
+        WizardStep,
+    )
     from adw.models.wizard import WizardState
 
     console.print()
@@ -173,6 +178,7 @@ def _run_wizard_setup(project_root: Path) -> None:
     controller.register_step_handler(
         WizardStep.BASICS, BasicsStepHandler(project_root=project_root)
     )
+    controller.register_step_handler(WizardStep.WEBHOOKS, WebhooksStepHandler())
 
     # Run the wizard flow
     completed = controller.run()
