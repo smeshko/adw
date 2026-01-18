@@ -6,10 +6,9 @@ file generation, and atomic write functionality.
 
 from __future__ import annotations
 
-import os
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -492,9 +491,11 @@ class TestAtomicWrite:
                     raise OSError("Disk full")
                 return original_write_text(self, content, *args, **kwargs)
 
-            with patch.object(Path, "write_text", failing_write_text):
-                with pytest.raises(ConfigWriteError) as exc_info:
-                    atomic_write_config(adw_dir, files)
+            with (
+                patch.object(Path, "write_text", failing_write_text),
+                pytest.raises(ConfigWriteError) as exc_info,
+            ):
+                atomic_write_config(adw_dir, files)
 
             assert "Failed to write config" in str(exc_info.value)
             # Check that created file was rolled back

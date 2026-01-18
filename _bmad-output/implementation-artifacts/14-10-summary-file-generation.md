@@ -1,6 +1,6 @@
 # Story 14.10: Summary & File Generation
 
-Status: ready-for-dev
+Status: done
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
@@ -15,7 +15,7 @@ so that I can verify my choices before committing.
 
 ## Acceptance Criteria
 
-- [ ] Displays Rich panel with full configuration summary:
+- [x] Displays Rich panel with full configuration summary:
   ```
   ╭─ Configuration Summary ─────────────────────────────────╮
   │                                                         │
@@ -41,14 +41,14 @@ so that I can verify my choices before committing.
   │                                                         │
   ╰─────────────────────────────────────────────────────────╯
   ```
-- [ ] Prompts "Create configuration? [Y/n]"
-- [ ] If No, prompts "Start over or cancel? [s/C]"
-- [ ] If Yes:
-  - [ ] Creates `.adw/` directory if not exists
-  - [ ] Generates `project.yaml` with all settings
-  - [ ] Generates `commands/{phase}/config.yaml` for customized phases only
-  - [ ] Creates `.adw/.gitignore` (ignore runs/, logs)
-- [ ] Shows success message:
+- [x] Prompts "Create configuration? [Y/n]"
+- [x] If No, prompts "Start over or cancel? [s/C]"
+- [x] If Yes:
+  - [x] Creates `.adw/` directory if not exists
+  - [x] Generates `project.yaml` with all settings
+  - [x] Generates `commands/{phase}/config.yaml` for customized phases only
+  - [x] Creates `.adw/.gitignore` (ignore runs/, logs)
+- [x] Shows success message:
   ```
   ✓ Configuration created!
 
@@ -56,7 +56,7 @@ so that I can verify my choices before committing.
     adw run "your feature description"
     adw --help for more commands
   ```
-- [ ] If file write fails, shows error and doesn't create partial config
+- [x] If file write fails, shows error and doesn't create partial config
 
 ## Tasks / Subtasks
 

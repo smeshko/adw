@@ -307,7 +307,7 @@ development_status:
   # EPIC 14: Interactive Init Wizard (Post-MVP) [NEW 2026-01-18]
   # Goal: Provide guided, interactive setup experience for first-time users
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-14: in-progress
+  epic-14: done
   14-1-wizard-entry-point-flow-control: done
   14-2-basics-configuration-step: done
   14-3-git-integration-step: done
@@ -317,7 +317,7 @@ development_status:
   14-7-llm-retry-configuration: done
   14-8-security-configuration: done
   14-9-webhook-server-setup: done
-  14-10-summary-file-generation: in-progress
+  14-10-summary-file-generation: done
   epic-14-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
