@@ -78,10 +78,10 @@ so that ADW knows what kind of project I'm working on.
 - [x] Mark basics step as completed
 
 ### Task 6: Write Unit Tests
-- [ ] Test language detection for each marker file
-- [ ] Test test command detection for each language
-- [ ] Test prompt flow with mocked Rich prompts
-- [ ] Test state update after step completion
+- [x] Test language detection for each marker file
+- [x] Test test command detection for each language
+- [x] Test prompt flow with mocked Rich prompts
+- [x] Test state update after step completion
 
 ---
 
