@@ -1,6 +1,6 @@
 # Story 14.5: Task Manager Setup (Optional, Full)
 
-Status: Ready for Review
+Status: done
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
