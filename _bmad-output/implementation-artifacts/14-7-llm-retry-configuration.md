@@ -34,10 +34,10 @@ so that I can tune how ADW handles transient failures.
 - [x] Import and register in flow controller
 
 ### Task 2: Implement Value Validations
-- [ ] Create validation for max_retries (positive integer, 1-10)
-- [ ] Create validation for base_delay (positive float, 0.1-60)
-- [ ] Create validation for max_delay (positive float, must be >= base_delay)
-- [ ] Create validation for multiplier (float > 1.0, typically 1.5-3.0)
+- [x] Create validation for max_retries (positive integer, 1-10)
+- [x] Create validation for base_delay (positive float, 0.1-60)
+- [x] Create validation for max_delay (positive float, must be >= base_delay)
+- [x] Create validation for multiplier (float > 1.0, typically 1.5-3.0)
 
 ### Task 3: Implement Interactive Prompts
 - [ ] Prompt for retry configuration (default No)
