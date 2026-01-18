@@ -158,7 +158,7 @@ def _run_wizard_setup(project_root: Path) -> None:
         Full implementation will be added in Task 4.
         For now, this is a stub that displays a message.
     """
-    from adw.cli.wizard import WizardFlowController
+    from adw.cli.wizard import BasicsStepHandler, WizardFlowController, WizardStep
     from adw.models.wizard import WizardState
 
     console.print()
@@ -168,6 +168,11 @@ def _run_wizard_setup(project_root: Path) -> None:
     # Create controller and state
     state = WizardState()
     controller = WizardFlowController(state=state)
+
+    # Register step handlers
+    controller.register_step_handler(
+        WizardStep.BASICS, BasicsStepHandler(project_root=project_root)
+    )
 
     # Run the wizard flow
     completed = controller.run()
@@ -208,7 +213,9 @@ def _run_minimal_setup(
                 f"Valid options: {', '.join(sorted(valid_languages))}"
             )
             console.print("[dim]Proceeding with 'unknown' defaults.[/]")
-        project_type = language
+            project_type = "unknown"  # Use unknown, not the invalid value
+        else:
+            project_type = language
     else:
         project_type = detected_type
 

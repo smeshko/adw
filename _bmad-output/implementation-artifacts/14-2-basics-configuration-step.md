@@ -15,29 +15,29 @@ so that ADW knows what kind of project I'm working on.
 
 ## Acceptance Criteria
 
-- [ ] Auto-detects language from project markers (pyproject.toml, package.json, go.mod, etc.)
-- [ ] Shows "Language detected: {lang}. Correct? [Y/n]"
-- [ ] If No, shows selection: python / javascript / go / rust / java / ruby / php / **other**
-- [ ] If "other" selected, prompts for manual language entry
-- [ ] Prompts for platform: "Platform type? [cli] / web / api / **other**"
-- [ ] If "other" selected for platform, prompts for manual platform entry
-- [ ] Auto-detects test command based on language (pytest, npm test, go test, etc.)
-- [ ] Shows "Test command: {cmd} [Enter to accept or type custom command]"
-- [ ] User can type any custom test command (not limited to predefined list)
-- [ ] Prompts "Build command: [none] (Enter to skip or type custom command)"
-- [ ] User can type any custom build command
-- [ ] All values stored in wizard state for final generation
+- [x] Auto-detects language from project markers (pyproject.toml, package.json, go.mod, etc.)
+- [x] Shows "Language detected: {lang}. Correct? [Y/n]"
+- [x] If No, shows selection: python / javascript / go / rust / java / ruby / php / **other**
+- [x] If "other" selected, prompts for manual language entry
+- [x] Prompts for platform: "Platform type? [cli] / web / api / **other**"
+- [x] If "other" selected for platform, prompts for manual platform entry
+- [x] Auto-detects test command based on language (pytest, npm test, go test, etc.)
+- [x] Shows "Test command: {cmd} [Enter to accept or type custom command]"
+- [x] User can type any custom test command (not limited to predefined list)
+- [x] Prompts "Build command: [none] (Enter to skip or type custom command)"
+- [x] User can type any custom build command
+- [x] All values stored in wizard state for final generation
 
 ## Tasks / Subtasks
 
 ### Task 1: Create Basics Step Module
-- [ ] Create `src/adw/cli/wizard/basics.py`
-- [ ] Define `run_basics_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/basics.py`
+- [x] Define `run_basics_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Language Detection
-- [ ] Create language detection function
-- [ ] Check for project markers:
+- [x] Create language detection function
+- [x] Check for project markers:
   - `pyproject.toml`, `setup.py` → Python
   - `package.json` → JavaScript/TypeScript
   - `go.mod` → Go
@@ -45,11 +45,11 @@ so that ADW knows what kind of project I'm working on.
   - `pom.xml`, `build.gradle` → Java
   - `Gemfile` → Ruby
   - `composer.json` → PHP
-- [ ] Return detected language or "unknown"
+- [x] Return detected language or "unknown"
 
 ### Task 3: Implement Test Command Detection
-- [ ] Create test command detection function
-- [ ] Map language to default test commands:
+- [x] Create test command detection function
+- [x] Map language to default test commands:
   - Python: `pytest`
   - JavaScript: `npm test`
   - Go: `go test ./...`
@@ -57,31 +57,31 @@ so that ADW knows what kind of project I'm working on.
   - Java: `./gradlew test` or `mvn test`
   - Ruby: `bundle exec rspec`
   - PHP: `./vendor/bin/phpunit`
-- [ ] Check if test runner actually exists (optional enhancement)
+- [x] Check if test runner actually exists (optional enhancement) - skipped as optional
 
 ### Task 4: Implement Interactive Prompts
-- [ ] Show language detection result with Rich
-- [ ] Prompt for language confirmation
-- [ ] Show language selection if not confirmed (include "other" option)
-- [ ] If "other" selected, prompt for manual language entry (free text)
-- [ ] Prompt for platform type (cli/web/api/other)
-- [ ] If "other" selected for platform, prompt for manual platform entry (free text)
-- [ ] Show test command with override option (user can type any command)
-- [ ] Prompt for optional build command (user can type any command)
+- [x] Show language detection result with Rich
+- [x] Prompt for language confirmation
+- [x] Show language selection if not confirmed (include "other" option)
+- [x] If "other" selected, prompt for manual language entry (free text)
+- [x] Prompt for platform type (cli/web/api/other)
+- [x] If "other" selected for platform, prompt for manual platform entry (free text)
+- [x] Show test command with override option (user can type any command)
+- [x] Prompt for optional build command (user can type any command)
 
 ### Task 5: Store Results in Wizard State
-- [ ] Update WizardState with:
+- [x] Update WizardState with:
   - `language: str`
   - `platform: str` (cli/web/api)
   - `test_command: str | None`
   - `build_command: str | None`
-- [ ] Mark basics step as completed
+- [x] Mark basics step as completed
 
 ### Task 6: Write Unit Tests
-- [ ] Test language detection for each marker file
-- [ ] Test test command detection for each language
-- [ ] Test prompt flow with mocked Rich prompts
-- [ ] Test state update after step completion
+- [x] Test language detection for each marker file
+- [x] Test test command detection for each language
+- [x] Test prompt flow with mocked Rich prompts
+- [x] Test state update after step completion
 
 ---
 
@@ -338,5 +338,21 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Created BasicsStepHandler implementing StepHandler protocol
+- Implemented detect_language() with LANGUAGE_MARKERS dict for 7 languages
+- Implemented detect_test_command() with DEFAULT_TEST_COMMANDS dict
+- Full interactive prompts using Rich Confirm/Prompt with "other" option handling
+- All values stored via flow controller's update_config() pattern
+- Comprehensive test suite with 38 tests using parameterized tests and mocks
+
 ### File List
+
+**New Files:**
+- src/adw/cli/wizard/basics.py
+- tests/unit/cli/wizard/test_basics.py
+
+**Modified Files:**
+- src/adw/cli/wizard/__init__.py (exports)
+- src/adw/cli/init.py (handler registration)
+- _bmad-output/implementation-artifacts/14-2-basics-configuration-step.md (this file)
 
