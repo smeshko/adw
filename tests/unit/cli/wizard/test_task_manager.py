@@ -255,6 +255,58 @@ class TestEnabledFlow:
         assert result["auto_close"] is True
 
 
+class TestContextOptions:
+    """Tests for context inclusion options."""
+
+    def test_context_options_disabled(self) -> None:
+        """Test context options can be disabled."""
+        console = Console(force_terminal=True)
+        state = WizardState()
+
+        with (
+            patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
+            patch("adw.cli.wizard.task_manager.Prompt.ask") as mock_prompt,
+        ):
+            # enable, sync_comments, labels_enabled, auto_close,
+            # include_labels (no), include_parent (no), configure_mapping
+            mock_confirm.side_effect = [True, False, True, False, False, False, False]
+            mock_prompt.side_effect = [
+                "linear",
+                "TEAM",
+                DEFAULT_PR_TITLE_FORMAT,
+                DEFAULT_LABEL_PREFIX,
+            ]
+
+            result = run_task_manager_step(state, console)
+
+        assert result["include_labels"] is False
+        assert result["include_parent"] is False
+
+    def test_context_options_enabled(self) -> None:
+        """Test context options enabled by default."""
+        console = Console(force_terminal=True)
+        state = WizardState()
+
+        with (
+            patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
+            patch("adw.cli.wizard.task_manager.Prompt.ask") as mock_prompt,
+        ):
+            # enable, sync_comments, labels_enabled, auto_close,
+            # include_labels (yes), include_parent (yes), configure_mapping
+            mock_confirm.side_effect = [True, False, True, False, True, True, False]
+            mock_prompt.side_effect = [
+                "linear",
+                "TEAM",
+                DEFAULT_PR_TITLE_FORMAT,
+                DEFAULT_LABEL_PREFIX,
+            ]
+
+            result = run_task_manager_step(state, console)
+
+        assert result["include_labels"] is True
+        assert result["include_parent"] is True
+
+
 class TestStateMappingConfiguration:
     """Tests for state mapping configuration."""
 
