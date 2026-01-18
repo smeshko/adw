@@ -48,8 +48,8 @@ so that ADW syncs with my project management tool.
 - [x] Show error and re-prompt on invalid input
 
 ### Task 3: Implement Basic Configuration Prompts
-- [ ] Prompt for task manager enable/disable (default No)
-- [ ] If enabled:
+- [x] Prompt for task manager enable/disable (default No)
+- [x] If enabled:
   - Show task manager selection (Linear for now)
   - Prompt for team key with validation
   - Prompt for sync_comments option
