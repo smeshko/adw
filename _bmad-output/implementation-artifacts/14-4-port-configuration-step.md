@@ -39,11 +39,11 @@ so that concurrent runs don't conflict with my other services.
 - [x] Return normalized port or error message
 
 ### Task 3: Implement Port Range Overlap Check
-- [ ] Check if backend and frontend ranges would overlap
-- [ ] Assume max_concurrent = 10 (or read from config)
-- [ ] Backend range: backend_start to backend_start + max_concurrent
-- [ ] Frontend range: frontend_start to frontend_start + max_concurrent
-- [ ] Warn if ranges overlap
+- [x] Check if backend and frontend ranges would overlap
+- [x] Assume max_concurrent = 10 (or read from config)
+- [x] Backend range: backend_start to backend_start + max_concurrent
+- [x] Frontend range: frontend_start to frontend_start + max_concurrent
+- [x] Warn if ranges overlap
 
 ### Task 4: Implement Common Port Conflict Warning
 - [ ] Define list of common ports: 3000, 3001, 5000, 8000, 8080, 8888
@@ -318,6 +318,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - Task 1: Created ports.py with PortsStepHandler class and run_ports_step function following the established wizard step pattern from basics.py
 - Task 2: Implemented validate_port() function that returns (bool, int|str) tuple for validation results with range checking (1-65535) and integer parsing
+- Task 3: Implemented check_port_overlap() function with DEFAULT_MAX_CONCURRENT=10, calculates range intersection and _show_overlap_warning() displays red panel when overlap detected
 
 ### File List
 
