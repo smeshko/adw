@@ -6,6 +6,7 @@ customize retry behavior for transient LLM failures using exponential backoff.
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
@@ -69,6 +70,9 @@ def validate_base_delay(value: str) -> tuple[bool, float | str]:
     except ValueError:
         return (False, "Must be a valid number")
 
+    if not math.isfinite(delay):
+        return (False, "Must be a finite number")
+
     if delay < MIN_DELAY:
         return (False, f"Base delay must be at least {MIN_DELAY}s")
 
@@ -94,6 +98,9 @@ def validate_max_delay(value: str, base_delay: float) -> tuple[bool, float | str
     except ValueError:
         return (False, "Must be a valid number")
 
+    if not math.isfinite(delay):
+        return (False, "Must be a finite number")
+
     if delay < base_delay:
         return (False, f"Max delay must be >= base delay ({base_delay}s)")
 
@@ -117,6 +124,9 @@ def validate_multiplier(value: str) -> tuple[bool, float | str]:
         mult = float(value)
     except ValueError:
         return (False, "Must be a valid number")
+
+    if not math.isfinite(mult):
+        return (False, "Must be a finite number")
 
     if mult <= MIN_MULTIPLIER:
         return (False, f"Multiplier must be greater than {MIN_MULTIPLIER}")

@@ -103,6 +103,9 @@ class TestValidateBaseDelay:
             ("-1", "at least"),
             ("abc", "number"),
             ("", "number"),
+            ("nan", "finite"),
+            ("inf", "finite"),
+            ("-inf", "finite"),
         ],
     )
     def test_invalid_base_delay(
@@ -151,6 +154,14 @@ class TestValidateMaxDelay:
         assert isinstance(result, str)
         assert "number" in result.lower()
 
+    @pytest.mark.parametrize("value", ["nan", "inf", "-inf"])
+    def test_invalid_max_delay_non_finite(self, value: str) -> None:
+        """Test max delay validation fails for non-finite values."""
+        is_valid, result = validate_max_delay(value, base_delay=1.0)
+        assert is_valid is False
+        assert isinstance(result, str)
+        assert "finite" in result.lower()
+
 
 class TestValidateMultiplier:
     """Tests for validate_multiplier function."""
@@ -183,6 +194,9 @@ class TestValidateMultiplier:
             ("-1", "greater than"),
             ("abc", "number"),
             ("", "number"),
+            ("nan", "finite"),
+            ("inf", "finite"),
+            ("-inf", "finite"),
         ],
     )
     def test_invalid_multiplier(
