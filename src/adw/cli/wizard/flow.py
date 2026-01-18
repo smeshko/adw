@@ -177,6 +177,10 @@ class WizardFlowController:
                     )
                     self.current_index += 1
                 elif action == "back" and self.current_index > 0:
+                    # Remove the current step from completed_steps since we're revisiting it
+                    step_to_revisit = self.steps[self.current_index].value
+                    if step_to_revisit in self.state.completed_steps:
+                        self.state.completed_steps.remove(step_to_revisit)
                     self.state.go_back_in_history()
                     self.current_index -= 1
                 elif action == "cancel":

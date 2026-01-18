@@ -213,6 +213,26 @@ class TestWizardFlowControllerRun:
         assert "git" in controller.state.completed_steps
         assert "ports" in controller.state.completed_steps
 
+    def test_run_back_removes_step_from_completed(self) -> None:
+        """Run back navigation removes the revisited step from completed_steps."""
+        controller = WizardFlowController()
+
+        # Advance to step 3 (ports), then go back - ports should be removed
+        nav_sequence = ["next", "next", "next", "back", "cancel"]
+        nav_iter = iter(nav_sequence)
+
+        with patch.object(controller, "_prompt_navigation", side_effect=lambda: next(nav_iter)):
+            with patch.object(controller, "_show_welcome"):
+                with patch.object(controller, "_show_step_header"):
+                    with patch.object(controller, "_show_step_placeholder"):
+                        controller.run()
+
+        # basics and git should be completed, but ports should NOT be
+        # (we went back from ports, so it was removed)
+        assert "basics" in controller.state.completed_steps
+        assert "git" in controller.state.completed_steps
+        assert "ports" not in controller.state.completed_steps
+
     def test_run_with_registered_handler(self) -> None:
         """Run calls registered handler for step."""
         controller = WizardFlowController()

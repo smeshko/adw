@@ -290,13 +290,29 @@ class TestInitWizardFlags:
             assert "mutually exclusive" in result.output.lower()
 
     def test_existing_config_shows_warning_panel(self, tmp_path: Path) -> None:
-        """Test that existing config shows warning panel."""
+        """Test that existing config shows warning panel in interactive mode."""
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            # Create existing .adw/ directory
+            (Path.cwd() / ".adw").mkdir()
+
+            # Interactive mode should show warning and prompt (decline with 'n')
+            result = runner.invoke(app, ["init"], input="n\n")
+
+            # Should show warning about existing configuration
+            assert "existing configuration" in result.output.lower()
+            assert "warning" in result.output.lower()
+
+    def test_no_interactive_with_existing_config_requires_force(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that --no-interactive requires --force when .adw/ exists."""
         with runner.isolated_filesystem(temp_dir=tmp_path):
             # Create existing .adw/ directory
             (Path.cwd() / ".adw").mkdir()
 
             result = runner.invoke(app, ["init", "--no-interactive"])
 
-            # Should show warning about existing configuration
-            assert "existing configuration" in result.output.lower()
-            assert "warning" in result.output.lower()
+            # Should fail and require --force
+            assert result.exit_code == 1
+            assert "cannot overwrite" in result.output.lower()
+            assert "--force" in result.output.lower()

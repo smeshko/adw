@@ -99,6 +99,17 @@ def init(
                     )
                 )
 
+                # In non-interactive mode, refuse to overwrite without --force
+                if no_interactive:
+                    console.print(
+                        "[red]Error:[/] Cannot overwrite existing configuration "
+                        "in non-interactive mode without --force."
+                    )
+                    console.print(
+                        "[dim]Use --force to overwrite existing configuration.[/]"
+                    )
+                    raise SystemExit(1)
+
                 # Require explicit confirmation to proceed
                 if not Confirm.ask(
                     "Do you want to overwrite the existing configuration?",
@@ -159,8 +170,12 @@ def _run_wizard_setup(project_root: Path) -> None:
     state = WizardState()
     controller = WizardFlowController(state=state)
 
-    # Stub - run() will be fully implemented in Task 4
-    controller.run()
+    # Run the wizard flow
+    completed = controller.run()
+
+    if not completed:
+        # Wizard was cancelled - exit without success message
+        return
 
     console.print("[dim]Wizard flow will be implemented in subsequent stories.[/]")
 
