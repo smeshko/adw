@@ -62,8 +62,8 @@ so that ADW syncs with my project management tool.
 - [x] Prompt for auto-close option
 
 ### Task 5: Implement Context Options
-- [ ] Prompt for include_labels_in_context
-- [ ] Prompt for include_parent_info
+- [x] Prompt for include_labels_in_context
+- [x] Prompt for include_parent_info
 
 ### Task 6: Implement State Mapping Configuration
 - [ ] Prompt for custom state mapping
