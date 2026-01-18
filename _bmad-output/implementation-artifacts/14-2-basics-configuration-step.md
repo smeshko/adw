@@ -70,12 +70,12 @@ so that ADW knows what kind of project I'm working on.
 - [x] Prompt for optional build command (user can type any command)
 
 ### Task 5: Store Results in Wizard State
-- [ ] Update WizardState with:
+- [x] Update WizardState with:
   - `language: str`
   - `platform: str` (cli/web/api)
   - `test_command: str | None`
   - `build_command: str | None`
-- [ ] Mark basics step as completed
+- [x] Mark basics step as completed
 
 ### Task 6: Write Unit Tests
 - [ ] Test language detection for each marker file
