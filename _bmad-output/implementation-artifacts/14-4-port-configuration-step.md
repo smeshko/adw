@@ -69,12 +69,12 @@ so that concurrent runs don't conflict with my other services.
 - [x] Mark ports step as completed
 
 ### Task 7: Write Unit Tests
-- [ ] Test port validation (valid and invalid)
-- [ ] Test range overlap detection
-- [ ] Test common port conflict detection
-- [ ] Test prompt flow when configuring
-- [ ] Test prompt flow when using defaults
-- [ ] Test state update after step completion
+- [x] Test port validation (valid and invalid)
+- [x] Test range overlap detection
+- [x] Test common port conflict detection
+- [x] Test prompt flow when configuring
+- [x] Test prompt flow when using defaults
+- [x] Test state update after step completion
 
 ---
 
@@ -322,9 +322,11 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 4: Defined COMMON_PORTS set with 3000,3001,5000,8000,8080,8443,8888. is_common_port() and check_range_conflicts() detect conflicts, _check_and_warn_common_ports() shows yellow warning panel
 - Task 5: Implemented full interactive flow in run_ports_step() with Confirm.ask for opt-in, _prompt_port() with validation loop, overlap re-prompt, and warning displays. Default No returns defaults silently
 - Task 6: run_ports_step() returns dict with port_config_custom, backend_port_start, frontend_port_start. Flow controller stores via state.update_config() and marks complete via state.mark_completed()
+- Task 7: Added 43 unit tests in test_ports.py covering validation, overlap detection, common port detection, prompt flows, and state integration
 
 ### File List
 
 - `src/adw/cli/wizard/ports.py` (new) - Port configuration step module
 - `src/adw/cli/wizard/__init__.py` (modified) - Added exports for ports module
+- `tests/unit/cli/wizard/test_ports.py` (new) - Unit tests for port configuration step
 
