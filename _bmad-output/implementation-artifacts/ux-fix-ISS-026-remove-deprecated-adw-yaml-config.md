@@ -1,6 +1,6 @@
 # Story ISS-026: Remove Deprecated adw.yaml Config and Add base_branch
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure / Tech Debt
 Created: 2026-01-18
@@ -15,34 +15,34 @@ so that **I can configure the base branch for PRs via the current `.adw/project.
 
 ## Acceptance Criteria
 
-- [ ] `GitConfig` model in `src/adw/models/config.py` has new `base_branch: str | None` field with default `None`
-- [ ] `_get_base_branch()` function in `src/adw/cli/pr.py` reads from `.adw/project.yaml` via ConfigLoader instead of `.adw/adw.yaml`
-- [ ] No references to `.adw/adw.yaml` remain in `src/` or `tests/` directories
-- [ ] Tests in `tests/unit/cli/test_pr.py` updated to use `project.yaml` and `git.base_branch`
-- [ ] All existing tests pass after changes
-- [ ] The implementation follows the resolution order: `git.base_branch` from config → fallback to "main"
+- [x] `GitConfig` model in `src/adw/models/config.py` has new `base_branch: str | None` field with default `None`
+- [x] `_get_base_branch()` function in `src/adw/cli/pr.py` reads from `.adw/project.yaml` via ConfigLoader instead of `.adw/adw.yaml`
+- [x] No references to `.adw/adw.yaml` remain in `src/` or `tests/` directories
+- [x] Tests in `tests/unit/cli/test_pr.py` updated to use `project.yaml` and `git.base_branch`
+- [x] All existing tests pass after changes
+- [x] The implementation follows the resolution order: `git.base_branch` from config → fallback to "main"
 
 ## Tasks / Subtasks
 
 ### Task 1: Add `base_branch` to GitConfig Model
-- [ ] Add `base_branch: str | None = Field(default=None, ...)` to `GitConfig` in `src/adw/models/config.py:500-558`
-- [ ] Update docstring to include `base_branch` attribute
-- [ ] Update YAML example in docstring to show `base_branch` configuration
+- [x] Add `base_branch: str | None = Field(default=None, ...)` to `GitConfig` in `src/adw/models/config.py:500-558`
+- [x] Update docstring to include `base_branch` attribute
+- [x] Update YAML example in docstring to show `base_branch` configuration
 
 ### Task 2: Update `_get_base_branch()` Function
-- [ ] Modify `src/adw/cli/pr.py:506-537` to use ConfigLoader
-- [ ] Remove all references to `.adw/adw.yaml`
-- [ ] Add import for ConfigLoader
-- [ ] Follow resolution order: config `git.base_branch` → fallback "main"
+- [x] Modify `src/adw/cli/pr.py:506-537` to use ConfigLoader
+- [x] Remove all references to `.adw/adw.yaml`
+- [x] Add import for ConfigLoader
+- [x] Follow resolution order: config `git.base_branch` → fallback "main"
 
 ### Task 3: Update Unit Tests
-- [ ] Update `test_reads_from_config()` in `tests/unit/cli/test_pr.py:311-330`
-- [ ] Change test to create `.adw/project.yaml` instead of `.adw/adw.yaml`
-- [ ] Change test to use `git.base_branch` instead of `git.default_branch`
+- [x] Update `test_reads_from_config()` in `tests/unit/cli/test_pr.py:311-330`
+- [x] Change test to create `.adw/project.yaml` instead of `.adw/adw.yaml`
+- [x] Change test to use `git.base_branch` instead of `git.default_branch`
 
 ### Task 4: Verify No Other References
-- [ ] Run grep to ensure no `.adw/adw.yaml` references remain
-- [ ] Run full test suite to ensure no regressions
+- [x] Run grep to ensure no `.adw/adw.yaml` references remain
+- [x] Run full test suite to ensure no regressions
 
 ---
 
@@ -293,9 +293,29 @@ N/A
 - Test update requirements specified with sample code
 - Verification commands included
 
+**Implementation Completion (2026-01-18):**
+- ✅ Added `base_branch: str | None` field to GitConfig model
+- ✅ Updated `_get_base_branch()` to use ConfigLoader with project.yaml
+- ✅ Updated test to use project.yaml with git.base_branch
+- ✅ Replaced all `adw.yaml` references with `project.yaml` in docs/comments/errors
+- ✅ All 2151 unit tests passing with 82% coverage
+
 ### File List
 
-Files to modify:
-1. `src/adw/models/config.py` - Add base_branch field to GitConfig
-2. `src/adw/cli/pr.py` - Update _get_base_branch() function
-3. `tests/unit/cli/test_pr.py` - Update test_reads_from_config test
+Files modified:
+1. `src/adw/models/config.py` - Added base_branch field to GitConfig
+2. `src/adw/cli/pr.py` - Updated _get_base_branch() to use ConfigLoader
+3. `tests/unit/cli/test_pr.py` - Updated test_reads_from_config test
+4. `src/adw/models/context.py` - Updated adw.yaml → project.yaml references
+5. `src/adw/models/command.py` - Updated adw.yaml → project.yaml references
+6. `src/adw/models/webhook.py` - Updated adw.yaml → project.yaml references
+7. `src/adw/exceptions.py` - Updated adw.yaml → project.yaml references
+8. `src/adw/cli/webhook.py` - Updated adw.yaml → project.yaml references
+9. `src/adw/webhook/server.py` - Updated adw.yaml → project.yaml references
+10. `src/adw/core/phase_runner.py` - Updated adw.yaml → project.yaml references
+11. `src/adw/executors/claude_code.py` - Updated adw.yaml → project.yaml references
+12. `src/adw/defaults/commands/validate/config.yaml` - Updated comment
+13. `src/adw/defaults/commands/plan/config.yaml` - Updated comment
+14. `src/adw/defaults/commands/document/config.yaml` - Updated comment
+15. `tests/unit/models/test_context.py` - Updated test fixtures
+16. `tests/unit/executors/test_claude_code.py` - Updated test assertion
