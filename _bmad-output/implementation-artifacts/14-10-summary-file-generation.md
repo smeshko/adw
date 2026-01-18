@@ -61,51 +61,51 @@ so that I can verify my choices before committing.
 ## Tasks / Subtasks
 
 ### Task 1: Create Summary Step Module
-- [ ] Create `src/adw/cli/wizard/summary.py`
-- [ ] Define `run_summary_step(state: WizardState) -> bool`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/summary.py`
+- [x] Define `run_summary_step(state: WizardState) -> bool`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Summary Panel Generation
-- [ ] Create function to generate summary panel from WizardState
-- [ ] Format each section concisely
-- [ ] Use checkmarks/icons for enabled features
-- [ ] List files that will be created
+- [x] Create function to generate summary panel from WizardState
+- [x] Format each section concisely
+- [x] Use checkmarks/icons for enabled features
+- [x] List files that will be created
 
 ### Task 3: Implement Configuration Confirmation
-- [ ] Display summary panel
-- [ ] Prompt for confirmation
-- [ ] Handle "Start over" option (return to step 1)
-- [ ] Handle "Cancel" option (exit wizard)
+- [x] Display summary panel
+- [x] Prompt for confirmation
+- [x] Handle "Start over" option (return to step 1)
+- [x] Handle "Cancel" option (exit wizard)
 
 ### Task 4: Implement project.yaml Generation
-- [ ] Create function to generate project.yaml from WizardState
-- [ ] Map all wizard state fields to config structure
-- [ ] Use Pydantic model for serialization
-- [ ] Handle optional sections (null/empty when disabled)
+- [x] Create function to generate project.yaml from WizardState
+- [x] Map all wizard state fields to config structure
+- [x] Use Pydantic model for serialization
+- [x] Handle optional sections (null/empty when disabled)
 
 ### Task 5: Implement Phase config.yaml Generation
-- [ ] For each customized phase, generate config.yaml
-- [ ] Create `commands/{phase}/` directory
-- [ ] Generate phase-specific config file
-- [ ] Only create for phases with custom settings
+- [x] For each customized phase, generate config.yaml
+- [x] Create `commands/{phase}/` directory
+- [x] Generate phase-specific config file
+- [x] Only create for phases with custom settings
 
 ### Task 6: Implement .gitignore Generation
-- [ ] Create `.adw/.gitignore` with:
+- [x] Create `.adw/.gitignore` with:
   - `runs/`
   - `logs/`
   - `*.log`
   - `state.json`
 
 ### Task 7: Implement Atomic File Writing
-- [ ] Collect all files to create
-- [ ] Validate all can be written before starting
-- [ ] Write files with error handling
-- [ ] Rollback on any failure (delete partial)
+- [x] Collect all files to create
+- [x] Validate all can be written before starting
+- [x] Write files with error handling
+- [x] Rollback on any failure (delete partial)
 
 ### Task 8: Implement Success Message
-- [ ] Display success message with Rich formatting
-- [ ] Show next steps
-- [ ] Include helpful command examples
+- [x] Display success message with Rich formatting
+- [x] Show next steps
+- [x] Include helpful command examples
 
 ### Task 9: Write Unit Tests
 - [ ] Test summary panel generation

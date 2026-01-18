@@ -317,7 +317,7 @@ development_status:
   14-7-llm-retry-configuration: done
   14-8-security-configuration: done
   14-9-webhook-server-setup: done
-  14-10-summary-file-generation: ready-for-dev
+  14-10-summary-file-generation: in-progress
   epic-14-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
