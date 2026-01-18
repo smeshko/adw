@@ -23,6 +23,99 @@ DEFAULT_COMMIT_TEMPLATE = "[adw] {Phase}: {feature}\n\nRun: {run_id}"
 MAX_HOOK_RETRIES = 3
 
 
+def get_current_branch(*, working_dir: Path | None = None) -> str | None:
+    """Get the current git branch name.
+
+    Uses `git rev-parse --abbrev-ref HEAD` to get the current branch.
+
+    Args:
+        working_dir: Directory to run git commands in (default: current dir).
+
+    Returns:
+        Current branch name, or None if in detached HEAD state.
+
+    Raises:
+        HookError: If git command fails.
+
+    Example:
+        >>> branch = get_current_branch()
+        >>> print(branch)
+        'adw/01HQ123'
+    """
+    result = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=working_dir,
+    )
+
+    if result.returncode != 0:
+        raise HookError(
+            code="GIT_BRANCH_CHECK_FAILED",
+            message=f"Failed to get current branch: {result.stderr.strip()}",
+            phase="post-hook",
+            exit_code=result.returncode,
+            stderr=result.stderr,
+            suggestion="Ensure you are in a git repository",
+        )
+
+    branch = result.stdout.strip()
+    # "HEAD" is returned when in detached HEAD state
+    return None if branch == "HEAD" else branch
+
+
+def validate_branch_matches(
+    expected_branch: str | None,
+    *,
+    working_dir: Path | None = None,
+) -> None:
+    """Validate that the current git branch matches expected branch (ISS-025).
+
+    This is a critical safety check to ensure commits are made to the correct
+    branch. If the branch doesn't match, an error is raised to prevent
+    commits to the wrong branch.
+
+    Args:
+        expected_branch: The expected branch name (e.g., 'adw/01HQ123').
+            If None, validation is skipped (for non-worktree runs).
+        working_dir: Directory to run git commands in (default: current dir).
+
+    Raises:
+        HookError: If current branch doesn't match expected branch.
+
+    Example:
+        >>> validate_branch_matches("adw/01HQ123")  # OK
+        >>> validate_branch_matches("adw/01HQ123", working_dir=worktree_path)
+        >>> validate_branch_matches("wrong/branch")  # Raises HookError
+    """
+    if expected_branch is None:
+        # No branch validation needed for non-worktree runs
+        return
+
+    current_branch = get_current_branch(working_dir=working_dir)
+
+    if current_branch is None:
+        raise HookError(
+            code="GIT_BRANCH_MISMATCH",
+            message="Cannot commit: repository is in detached HEAD state",
+            phase="post-hook",
+            exit_code=1,
+            suggestion=f"Expected branch '{expected_branch}'. "
+            f"Run 'git checkout {expected_branch}' to fix.",
+        )
+
+    if current_branch != expected_branch:
+        raise HookError(
+            code="GIT_BRANCH_MISMATCH",
+            message=f"Cannot commit: current branch '{current_branch}' "
+            f"does not match expected branch '{expected_branch}'",
+            phase="post-hook",
+            exit_code=1,
+            suggestion=f"Run 'git checkout {expected_branch}' to switch to the correct branch",
+        )
+
+
 def format_commit_message(
     phase: str,
     feature: str,
@@ -230,6 +323,7 @@ def create_commit(
     template: str | None = None,
     skip_hooks: bool = False,
     working_dir: Path | None = None,
+    expected_branch: str | None = None,
 ) -> str | None:
     """Create a commit with the staged changes.
 
@@ -248,12 +342,16 @@ def create_commit(
         skip_hooks: If True, use --no-verify to skip pre-commit hooks.
         working_dir: Directory to run git commands in (default: current dir).
             Essential for worktree support.
+        expected_branch: Expected branch name for validation (ISS-025).
+            If provided, validates current branch matches before committing.
+            If None, branch validation is skipped.
 
     Returns:
         Commit SHA if commit was created, None if no changes to commit.
 
     Raises:
-        HookError: If commit fails (e.g., pre-commit hook rejects).
+        HookError: If commit fails (e.g., pre-commit hook rejects) or
+            if current branch doesn't match expected_branch (ISS-025).
 
     Example:
         >>> sha = create_commit("build", "Add auth", "01HQ123")
@@ -262,9 +360,13 @@ def create_commit(
         ... else:
         ...     print("No changes to commit")
         >>> sha = create_commit("build", "Add auth", "01HQ123",
-        ...                     working_dir=Path("/my/worktree"))
+        ...                     working_dir=Path("/my/worktree"),
+        ...                     expected_branch="adw/01HQ123")
     """
     cwd = working_dir if working_dir is not None else None
+
+    # Validate branch before committing (ISS-025)
+    validate_branch_matches(expected_branch, working_dir=working_dir)
 
     # Check if there are staged changes first
     if not has_staged_changes(working_dir=working_dir):

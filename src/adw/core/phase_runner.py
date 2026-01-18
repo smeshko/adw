@@ -856,11 +856,13 @@ class PhaseRunner:
 
             # Create commit with descriptive message
             # Use worktree path for worktree-isolated runs
+            # ISS-025: Pass branch_name for validation before commit
             sha = create_commit(
                 phase=phase,
                 feature=context.feature_description,
                 run_id=context.run_id,
                 working_dir=context.worktree_path,
+                expected_branch=context.branch_name,
             )
 
             if sha:
