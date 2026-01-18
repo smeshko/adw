@@ -40,8 +40,8 @@ so that I can tune how ADW handles transient failures.
 - [x] Create validation for multiplier (float > 1.0, typically 1.5-3.0)
 
 ### Task 3: Implement Interactive Prompts
-- [ ] Prompt for retry configuration (default No)
-- [ ] If Yes:
+- [x] Prompt for retry configuration (default No)
+- [x] If Yes:
   - Prompt for max_retries with validation
   - Prompt for base_delay with validation
   - Prompt for max_delay with cross-validation
