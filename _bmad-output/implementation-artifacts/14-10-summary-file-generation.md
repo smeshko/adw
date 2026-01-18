@@ -108,14 +108,14 @@ so that I can verify my choices before committing.
 - [x] Include helpful command examples
 
 ### Task 9: Write Unit Tests
-- [ ] Test summary panel generation
-- [ ] Test project.yaml generation
-- [ ] Test phase config generation
-- [ ] Test .gitignore generation
-- [ ] Test atomic write success
-- [ ] Test atomic write rollback on failure
-- [ ] Test start over flow
-- [ ] Test cancel flow
+- [x] Test summary panel generation
+- [x] Test project.yaml generation
+- [x] Test phase config generation
+- [x] Test .gitignore generation
+- [x] Test atomic write success
+- [x] Test atomic write rollback on failure
+- [x] Test start over flow
+- [x] Test cancel flow
 
 ---
 
