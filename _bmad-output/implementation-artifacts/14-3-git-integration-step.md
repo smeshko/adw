@@ -32,13 +32,13 @@ so that ADW can manage branches and PRs automatically.
 - [x] Import and register in flow controller
 
 ### Task 2: Implement Git Repository Requirement
-- [ ] Check if current directory is a git repository
-- [ ] Use `git rev-parse --is-inside-work-tree` or check for `.git/`
-- [ ] If NOT a git repo:
+- [x] Check if current directory is a git repository
+- [x] Use `git rev-parse --is-inside-work-tree` or check for `.git/`
+- [x] If NOT a git repo:
   - Show error: "Git repository required. ADW needs git for branch management."
   - Show guidance: "Run 'git init' to initialize a repository, then re-run the wizard."
   - Exit wizard (git is mandatory)
-- [ ] If IS a git repo, proceed with configuration
+- [x] If IS a git repo, proceed with configuration
 
 ### Task 3: Implement Branch Prefix Validation
 - [ ] Create validation function for branch prefix
@@ -343,6 +343,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Completion Notes List
 
 - Task 1: Created git.py module with GitStepHandler class, run_git_step function, and placeholder functions for git repo requirement, branch prefix validation, and prompts. Exported from wizard package __init__.py. WizardStep.GIT already defined in flow.py.
+- Task 2: Implemented is_git_repo() using subprocess to call `git rev-parse --is-inside-work-tree`. require_git_repo() shows Rich Panel error and exits with SystemExit(1) if not a git repo.
 
 ### File List
 

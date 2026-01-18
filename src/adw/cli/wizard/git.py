@@ -7,9 +7,11 @@ will exit if not in a git repository.
 
 from __future__ import annotations
 
+import subprocess
 from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
+from rich.panel import Panel
 
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
@@ -83,8 +85,9 @@ def run_git_step(
 def require_git_repo(console: Console) -> bool:
     """Require current directory to be inside a git repository.
 
-    Checks if the current directory is inside a git repository.
-    If not, displays an error message and exits the wizard.
+    Checks if the current directory is inside a git repository using
+    `git rev-parse --is-inside-work-tree`. If not, displays an error
+    message with guidance and exits the wizard.
 
     Args:
         console: Console for output.
@@ -95,9 +98,44 @@ def require_git_repo(console: Console) -> bool:
     Raises:
         SystemExit: If not in a git repository.
     """
-    # Placeholder - will be implemented in Task 2
-    _ = console  # Suppress unused warning
-    return True
+    if is_git_repo():
+        return True
+
+    # Not a git repo - show error and exit
+    console.print()
+    console.print(
+        Panel(
+            "[red bold]Git repository required[/]\n\n"
+            "ADW needs git for branch management and worktree isolation.\n\n"
+            "[dim]To fix:[/]\n"
+            "  1. Run [cyan]git init[/] to initialize a repository\n"
+            "  2. Re-run [cyan]adw init[/]",
+            title="Error",
+            border_style="red",
+        )
+    )
+    raise SystemExit(1)
+
+
+def is_git_repo() -> bool:
+    """Check if current directory is inside a git repository.
+
+    Uses `git rev-parse --is-inside-work-tree` to detect if we're
+    inside a git working tree.
+
+    Returns:
+        True if inside a git repository, False otherwise.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--is-inside-work-tree"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        return result.returncode == 0
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return False
 
 
 def validate_branch_prefix(prefix: str) -> tuple[bool, str]:
