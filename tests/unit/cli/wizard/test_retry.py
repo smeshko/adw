@@ -108,9 +108,7 @@ class TestValidateBaseDelay:
             ("-inf", "finite"),
         ],
     )
-    def test_invalid_base_delay(
-        self, value: str, expected_error_contains: str
-    ) -> None:
+    def test_invalid_base_delay(self, value: str, expected_error_contains: str) -> None:
         """Test validation of invalid base delay values."""
         is_valid, result = validate_base_delay(value)
         assert is_valid is False
@@ -199,9 +197,7 @@ class TestValidateMultiplier:
             ("-inf", "finite"),
         ],
     )
-    def test_invalid_multiplier(
-        self, value: str, expected_error_contains: str
-    ) -> None:
+    def test_invalid_multiplier(self, value: str, expected_error_contains: str) -> None:
         """Test validation of invalid multiplier values."""
         is_valid, result = validate_multiplier(value)
         assert is_valid is False
