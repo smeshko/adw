@@ -28,9 +28,9 @@ so that concurrent runs don't conflict with my other services.
 ## Tasks / Subtasks
 
 ### Task 1: Create Port Configuration Step Module
-- [ ] Create `src/adw/cli/wizard/ports.py`
-- [ ] Define `run_ports_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/ports.py`
+- [x] Define `run_ports_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Port Validation
 - [ ] Create port number validation function
@@ -316,5 +316,10 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Task 1: Created ports.py with PortsStepHandler class and run_ports_step function following the established wizard step pattern from basics.py
+
 ### File List
+
+- `src/adw/cli/wizard/ports.py` (new) - Port configuration step module
+- `src/adw/cli/wizard/__init__.py` (modified) - Added exports for ports module
 
