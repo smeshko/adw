@@ -1,6 +1,6 @@
 # Story 14.6: Phase Customization (Optional, Full)
 
-Status: ready-for-dev
+Status: Done
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
