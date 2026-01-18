@@ -33,10 +33,10 @@ so that concurrent runs don't conflict with my other services.
 - [x] Import and register in flow controller
 
 ### Task 2: Implement Port Validation
-- [ ] Create port number validation function
-- [ ] Validate range: 1-65535
-- [ ] Validate integer parsing
-- [ ] Return normalized port or error message
+- [x] Create port number validation function
+- [x] Validate range: 1-65535
+- [x] Validate integer parsing
+- [x] Return normalized port or error message
 
 ### Task 3: Implement Port Range Overlap Check
 - [ ] Check if backend and frontend ranges would overlap
@@ -317,6 +317,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Completion Notes List
 
 - Task 1: Created ports.py with PortsStepHandler class and run_ports_step function following the established wizard step pattern from basics.py
+- Task 2: Implemented validate_port() function that returns (bool, int|str) tuple for validation results with range checking (1-65535) and integer parsing
 
 ### File List
 
