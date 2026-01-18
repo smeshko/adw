@@ -54,10 +54,10 @@ so that I can get the level of configuration help I need.
 - [x] Support step navigation (back/forward) when enabled
 
 ### Task 5: Implement Minimal Setup Path
-- [ ] Auto-detect language from project markers
-- [ ] Prompt for confirmation of detected language
-- [ ] Generate minimal `project.yaml` with defaults
-- [ ] Create `.adw/` directory structure
+- [x] Auto-detect language from project markers
+- [x] Prompt for confirmation of detected language
+- [x] Generate minimal `project.yaml` with defaults
+- [x] Create `.adw/` directory structure
 
 ### Task 6: Add Interrupt Handler
 - [ ] Register signal handler for SIGINT (Ctrl+C)
@@ -290,6 +290,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 2: Enhanced WizardState model with full navigation history support including navigate_to, go_back_in_history, go_forward_in_history, update_config, and get_step_config methods. Added 26 comprehensive tests.
 - Task 3: Modified init.py entry point with --wizard and --no-interactive flags, existing config warning panel, guided setup prompt. Updated app.py for flag handling. Updated all existing tests to use --no-interactive.
 - Task 4: Implemented full WizardFlowController with run() method for sequential step execution, navigation support (back/forward), step handler registration via StepHandler protocol, STEP_TITLES mapping, and cancel functionality. Added 8 new tests.
+- Task 5: Enhanced minimal setup path with interactive language confirmation prompt (skipped when --no-interactive). Uses ProjectTypeDetector for auto-detection and ProjectInitializer for config generation.
 
 ### File List
 
