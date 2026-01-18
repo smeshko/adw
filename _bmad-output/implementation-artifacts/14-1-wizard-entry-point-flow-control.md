@@ -60,10 +60,10 @@ so that I can get the level of configuration help I need.
 - [x] Create `.adw/` directory structure
 
 ### Task 6: Add Interrupt Handler
-- [ ] Register signal handler for SIGINT (Ctrl+C)
-- [ ] On interrupt: display "Setup cancelled. No files created."
-- [ ] Ensure no partial config files are left
-- [ ] Clean up any temporary state
+- [x] Register signal handler for SIGINT (Ctrl+C)
+- [x] On interrupt: display "Setup cancelled. No files created."
+- [x] Ensure no partial config files are left
+- [x] Clean up any temporary state
 
 ### Task 7: Write Unit Tests
 - [ ] Test `--wizard` flag forces wizard mode
@@ -291,6 +291,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 3: Modified init.py entry point with --wizard and --no-interactive flags, existing config warning panel, guided setup prompt. Updated app.py for flag handling. Updated all existing tests to use --no-interactive.
 - Task 4: Implemented full WizardFlowController with run() method for sequential step execution, navigation support (back/forward), step handler registration via StepHandler protocol, STEP_TITLES mapping, and cancel functionality. Added 8 new tests.
 - Task 5: Enhanced minimal setup path with interactive language confirmation prompt (skipped when --no-interactive). Uses ProjectTypeDetector for auto-detection and ProjectInitializer for config generation.
+- Task 6: Added SIGINT (Ctrl+C) interrupt handler for both init and wizard flow. Shows "Setup cancelled. No files created." on interrupt. Includes context manager for init and signal handler install/restore for wizard. Added 2 new tests.
 
 ### File List
 
