@@ -68,14 +68,14 @@ Feature: Story branch creation and validation
 - [x] Fail fast if branch validation fails with clear error message
 
 ### Task 4: Fix PR creation to use branch_name
-- [ ] Modify `create_pr_via_gh()` to accept `head_branch` parameter
-- [ ] Update `auto_create_pr()` to pass `context.branch_name` as head branch
-- [ ] Add `--head` parameter to `gh pr create` command
-- [ ] CRITICAL: Hardcode base branch to "staging" - remove ALL configurability:
-  - [ ] Remove `base_branch` parameter from `auto_create_pr()` function signature
-  - [ ] Remove `--base` CLI option from `adw pr` command
-  - [ ] Remove/simplify `_get_base_branch()` function to just return "staging"
-  - [ ] Remove `git.default_branch` config support from `.adw/adw.yaml` parsing
+- [x] Modify `create_pr_via_gh()` to accept `head_branch` parameter
+- [x] Update `auto_create_pr()` to pass `context.branch_name` as head branch
+- [x] Add `--head` parameter to `gh pr create` command
+- [x] CRITICAL: Hardcode base branch to "staging" - remove ALL configurability:
+  - [x] Remove `base_branch` parameter from `auto_create_pr()` function signature
+  - [x] Remove `--base` CLI option from `adw pr` command
+  - [x] Remove/simplify `_get_base_branch()` function to just return "staging"
+  - [x] Remove `git.default_branch` config support from `.adw/adw.yaml` parsing
 
 ### Task 5: Add ADW_BRANCH_NAME to hook environment
 - [ ] Update `build_hook_environment()` in `hooks/environment.py`
