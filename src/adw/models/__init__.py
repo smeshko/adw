@@ -16,6 +16,7 @@ This package contains all Pydantic models used throughout ADW:
 - task: TaskInfo
 - resume: ResumeInfo, ResumeStatus
 - webhook: WebhookConfig, ProviderConfig
+- wizard: WizardState
 """
 
 from adw.models.artifacts import DiffStats
@@ -66,6 +67,7 @@ from adw.models.security import (
 )
 from adw.models.task import TaskInfo
 from adw.models.webhook import ProviderConfig, WebhookConfig
+from adw.models.wizard import WizardState
 from adw.models.worktree import PortAllocation
 from adw.validation.models import ValidationResult
 
@@ -130,6 +132,8 @@ __all__: list[str] = [
     # Webhook models
     "ProviderConfig",
     "WebhookConfig",
+    # Wizard models
+    "WizardState",
     # Worktree models
     "PortAllocation",
     # Validation models
