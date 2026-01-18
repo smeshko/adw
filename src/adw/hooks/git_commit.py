@@ -112,7 +112,9 @@ def validate_branch_matches(
             f"does not match expected branch '{expected_branch}'",
             phase="post-hook",
             exit_code=1,
-            suggestion=f"Run 'git checkout {expected_branch}' to switch to the correct branch",
+            suggestion=(
+                f"Run 'git checkout {expected_branch}' to switch to the correct branch"
+            ),
         )
 
 

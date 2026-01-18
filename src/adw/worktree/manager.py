@@ -482,7 +482,9 @@ class WorktreeManager:
             if not self._branch_manager.branch_exists(branch_name):
                 raise WorktreeError(
                     code="BRANCH_NOT_CREATED",
-                    message=f"Branch '{branch_name}' was not created during worktree setup",
+                    message=(
+                        f"Branch '{branch_name}' was not created during worktree setup"
+                    ),
                     suggestion="Check git status and try again",
                     recoverable=False,
                 )

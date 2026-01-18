@@ -161,9 +161,7 @@ class TestCreatePrViaGh:
                 stdout="https://github.com/user/repo/pull/123\n",
                 stderr="",
             )
-            create_pr_via_gh(
-                "Test PR", "## Summary\nTest", head_branch="adw/01HQ123"
-            )
+            create_pr_via_gh("Test PR", "## Summary\nTest", head_branch="adw/01HQ123")
 
             cmd = mock_run.call_args[0][0]
             assert "--head" in cmd

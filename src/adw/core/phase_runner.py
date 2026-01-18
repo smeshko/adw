@@ -883,7 +883,8 @@ class PhaseRunner:
             return sha
 
         except HookError as e:
-            # ISS-025: Branch mismatch errors are fatal - must not commit to wrong branch
+            # ISS-025: Branch mismatch errors are fatal - must not commit to
+            # wrong branch
             if e.code == "GIT_BRANCH_MISMATCH":
                 logger.error(
                     "Branch validation failed - aborting commit",

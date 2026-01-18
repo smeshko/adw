@@ -225,9 +225,7 @@ class TestBranchNameEnvironmentVariable:
 
     def test_branch_name_available_in_hooks(self, run_context: RunContext) -> None:
         """Test that branch_name is correctly formatted for hooks (ISS-025)."""
-        run_context = run_context.model_copy(
-            update={"branch_name": "feature/add-auth"}
-        )
+        run_context = run_context.model_copy(update={"branch_name": "feature/add-auth"})
         env = build_hook_environment(run_context, "build")
         # Branch name should be exactly as set, without modification
         assert env["ADW_BRANCH_NAME"] == "feature/add-auth"
