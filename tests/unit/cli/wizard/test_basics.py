@@ -56,14 +56,18 @@ class TestLanguageDetection:
         assert detect_language(tmp_path) == "unknown"
 
     def test_detect_language_priority_first_match(self, tmp_path: Path) -> None:
-        """Test that first matching language wins when multiple markers exist."""
+        """Test that first matching language wins when multiple markers exist.
+
+        Python markers come before JavaScript in LANGUAGE_MARKERS dict,
+        and Python dicts maintain insertion order (3.7+), so Python wins.
+        """
         # Create multiple markers
         (tmp_path / "pyproject.toml").touch()
         (tmp_path / "package.json").touch()
 
         # Python should be detected first (order in LANGUAGE_MARKERS dict)
         result = detect_language(tmp_path)
-        assert result in ["python", "javascript"]  # Either is valid
+        assert result == "python"  # First language in LANGUAGE_MARKERS wins
 
 
 class TestTestCommandDetection:
