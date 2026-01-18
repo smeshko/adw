@@ -26,7 +26,7 @@ from adw.core.resume_manager import ResumeManager
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.run_lookup import RunLookup
 from adw.core.snapshot_manager import SnapshotManager
-from adw.exceptions import ADWError, ConfigError
+from adw.exceptions import ADWError, ConfigError, WorktreeError
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
 from adw.models.phase import PhaseResult
 from adw.worktree import ConcurrentRunManager
@@ -288,19 +288,22 @@ class Orchestrator:
             and self._worktree_manager is not None
         )
 
-        # Create worktree if enabled (Story 10.1)
+        # Create worktree if enabled (Story 10.1, ISS-025)
         worktree_path: Path | None = None
+        branch_name: str | None = None
         if should_use_worktree:
-            worktree_path = self._create_worktree_for_run(run_id)
+            worktree_result = self._create_worktree_for_run(run_id)
             # If worktree creation failed, update flag to reflect reality
-            if worktree_path is None:
+            if worktree_result is None:
                 should_use_worktree = False
                 logger.warning(
                     "Worktree creation failed, running in current directory",
                     extra={"run_id": run_id},
                 )
+            else:
+                worktree_path, branch_name = worktree_result
 
-        # Create initial context
+        # Create initial context (ISS-025: branch_name now populated)
         context = RunContext(
             run_id=run_id,
             feature_description=feature_description,
@@ -309,6 +312,7 @@ class Orchestrator:
             status="running",
             worktree_path=worktree_path,
             use_worktree=should_use_worktree,
+            branch_name=branch_name,
         )
 
         # Create run directory structure
@@ -666,19 +670,22 @@ class Orchestrator:
             and self._worktree_manager is not None
         )
 
-        # Create worktree if enabled
+        # Create worktree if enabled (ISS-025)
         worktree_path: Path | None = None
+        branch_name: str | None = None
         if should_use_worktree:
-            worktree_path = self._create_worktree_for_run(run_id)
+            worktree_result = self._create_worktree_for_run(run_id)
             # If worktree creation failed, update flag to reflect reality
-            if worktree_path is None:
+            if worktree_result is None:
                 should_use_worktree = False
                 logger.warning(
                     "Worktree creation failed, running in current directory",
                     extra={"run_id": run_id},
                 )
+            else:
+                worktree_path, branch_name = worktree_result
 
-        # Create initial context
+        # Create initial context (ISS-025: branch_name now populated)
         context = RunContext(
             run_id=run_id,
             feature_description=feature_description,
@@ -687,6 +694,7 @@ class Orchestrator:
             status="running",
             worktree_path=worktree_path,
             use_worktree=should_use_worktree,
+            branch_name=branch_name,
         )
 
         # Create run directory structure
@@ -1671,21 +1679,27 @@ class Orchestrator:
             )
             self.progress_display.console.print()
 
-    def _create_worktree_for_run(self, run_id: str) -> Path | None:
+    def _create_worktree_for_run(self, run_id: str) -> tuple[Path, str] | None:
         """Create a worktree for the given run.
 
         Creates a git worktree in the configured base directory for isolated
         execution of this run. Checks concurrent run limits before creation
         and registers the run after successful creation.
 
+        ISS-025: Branch creation failures are now fatal. If the worktree or
+        branch cannot be created, this method raises WorktreeError instead
+        of returning None, ensuring the run fails immediately.
+
         Args:
             run_id: ULID identifier for this run.
 
         Returns:
-            Path to the created worktree, or None if creation failed.
+            Tuple of (worktree_path, branch_name) if successful, or None if
+            worktree is not configured. Branch name is in format 'adw/<run_id>'.
 
         Raises:
             MaxConcurrentRunsError: If the maximum concurrent runs limit is reached.
+            WorktreeError: If worktree or branch creation fails (ISS-025).
         """
         if self._worktree_manager is None:
             return None
@@ -1696,12 +1710,13 @@ class Orchestrator:
             self._concurrent_run_manager.check_can_start_or_raise()
 
         try:
-            worktree_path = self._worktree_manager.create_worktree(run_id)
+            worktree_path, branch_name = self._worktree_manager.create_worktree(run_id)
             logger.info(
                 "Created worktree for run",
                 extra={
                     "run_id": run_id,
                     "worktree_path": str(worktree_path),
+                    "branch_name": branch_name,
                 },
             )
 
@@ -1712,18 +1727,12 @@ class Orchestrator:
                     worktree_path=worktree_path,
                 )
 
-            return worktree_path
+            return worktree_path, branch_name
 
-        except Exception as e:
-            # Log but don't fail the run - fall back to running in current directory
-            logger.warning(
-                "Failed to create worktree, running in current directory",
-                extra={
-                    "run_id": run_id,
-                    "error": str(e),
-                },
-            )
-            return None
+        except WorktreeError:
+            # ISS-025: Branch creation failures are fatal - propagate to caller
+            # This ensures the run fails if we can't create the story branch
+            raise
 
     def _cleanup_worktree(self, run_id: str, *, preserve: bool = False) -> None:
         """Clean up or preserve the worktree for a run.

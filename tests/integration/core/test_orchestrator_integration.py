@@ -92,7 +92,13 @@ def orchestrator(
     run_directory_manager: RunDirectoryManager,
     mock_phase_runner: MagicMock,
 ) -> Orchestrator:
-    """Create an Orchestrator with real dependencies."""
+    """Create an Orchestrator with real dependencies.
+
+    Note: Worktree is disabled for integration tests since tmp_path
+    is not a git repository. ISS-025 makes worktree creation errors fatal.
+    """
+    from adw.models import WorktreeConfig
+
     return Orchestrator(
         runs_dir=runs_dir,
         context_manager=context_manager,
@@ -100,6 +106,7 @@ def orchestrator(
         artifact_manager=artifact_manager,
         run_directory_manager=run_directory_manager,
         phase_runner=mock_phase_runner,
+        worktree_config=WorktreeConfig(enabled=False),  # ISS-025
     )
 
 

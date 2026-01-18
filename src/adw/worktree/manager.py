@@ -396,7 +396,7 @@ class WorktreeManager:
         self,
         run_id: str,
         source_branch: str | None = None,
-    ) -> Path:
+    ) -> tuple[Path, str]:
         """Create a new worktree for the given run.
 
         Creates a git worktree at `<project_root>/<base_dir>/<run_id>/`
@@ -408,11 +408,14 @@ class WorktreeManager:
                 If None, uses the current HEAD.
 
         Returns:
-            Absolute path to the created worktree directory.
+            Tuple of (worktree_path, branch_name) where:
+                - worktree_path: Absolute path to the created worktree directory.
+                - branch_name: Name of the created git branch (e.g., 'adw/<run_id>').
 
         Raises:
             ConfigError: If git is not available.
-            WorktreeError: If the branch or worktree path already exists.
+            WorktreeError: If the branch or worktree path already exists,
+                or if branch creation fails.
         """
         worktree_path = self.worktree_base_path / run_id
         branch_name = f"adw/{run_id}"
@@ -475,15 +478,27 @@ class WorktreeManager:
             # Create .adw/runs/<run_id>/ structure in the new worktree
             self.ensure_worktree_adw_structure(worktree_path, run_id)
 
+            # Verify the branch was created (ISS-025)
+            if not self._branch_manager.branch_exists(branch_name):
+                raise WorktreeError(
+                    code="BRANCH_NOT_CREATED",
+                    message=(
+                        f"Branch '{branch_name}' was not created during worktree setup"
+                    ),
+                    suggestion="Check git status and try again",
+                    recoverable=False,
+                )
+
             logger.info(
                 "Worktree created successfully",
                 extra={
                     "run_id": run_id,
                     "path": str(worktree_path),
+                    "branch": branch_name,
                 },
             )
 
-            return worktree_path
+            return worktree_path, branch_name
 
         except FileNotFoundError as e:
             raise ConfigError(

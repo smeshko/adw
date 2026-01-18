@@ -826,9 +826,13 @@ class PhaseRunner:
         Returns:
             Commit SHA if commit was created, None if no changes to commit.
 
+        Raises:
+            HookError: If branch validation fails (GIT_BRANCH_MISMATCH).
+                ISS-025: Branch mismatch is fatal to prevent commits to wrong branch.
+
         Note:
-            This method logs errors but does not raise exceptions to avoid
-            failing the phase due to git issues. Commits are best-effort.
+            Most git errors are logged but do not raise exceptions.
+            However, branch validation failures (ISS-025) are fatal.
         """
         logger.debug("Auto-committing changes", extra={"phase": phase})
 
@@ -856,11 +860,13 @@ class PhaseRunner:
 
             # Create commit with descriptive message
             # Use worktree path for worktree-isolated runs
+            # ISS-025: Pass branch_name for validation before commit
             sha = create_commit(
                 phase=phase,
                 feature=context.feature_description,
                 run_id=context.run_id,
                 working_dir=context.worktree_path,
+                expected_branch=context.branch_name,
             )
 
             if sha:
@@ -877,7 +883,21 @@ class PhaseRunner:
             return sha
 
         except HookError as e:
-            # Log but don't fail - commits are best-effort
+            # ISS-025: Branch mismatch errors are fatal - must not commit to
+            # wrong branch
+            if e.code == "GIT_BRANCH_MISMATCH":
+                logger.error(
+                    "Branch validation failed - aborting commit",
+                    extra={
+                        "phase": phase,
+                        "run_id": context.run_id,
+                        "error_code": e.code,
+                        "error": str(e),
+                    },
+                )
+                raise
+
+            # Other hook errors are best-effort (e.g., pre-commit hook failures)
             logger.warning(
                 "Failed to auto-commit changes",
                 extra={

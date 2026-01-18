@@ -35,7 +35,8 @@ class TestWorktreeCleanupIntegration:
         run_id = "01HQTEST_ISS008_INTEGRATION"
 
         # Step 1: Create worktree (simulates run initialization)
-        worktree_path = manager.create_worktree(run_id)
+        # ISS-025: create_worktree now returns (path, branch_name) tuple
+        worktree_path, _branch_name = manager.create_worktree(run_id)
         assert worktree_path.exists(), "Worktree should exist after creation"
 
         # Step 2: Simulate LLM creating new files during the run
@@ -88,7 +89,8 @@ class TestWorktreeCleanupIntegration:
         run_id = "01HQTEST_FAILED_RUN"
 
         # Create worktree
-        worktree_path = manager.create_worktree(run_id)
+        # ISS-025: create_worktree now returns (path, branch_name) tuple
+        worktree_path, _branch_name = manager.create_worktree(run_id)
 
         # Add some files (LLM work in progress)
         (worktree_path / "partial_work.py").write_text("# Incomplete implementation")
@@ -112,7 +114,8 @@ class TestWorktreeCleanupIntegration:
         run_id = "01HQTEST_MODIFIED_FILES"
 
         # Create worktree
-        worktree_path = manager.create_worktree(run_id)
+        # ISS-025: create_worktree now returns (path, branch_name) tuple
+        worktree_path, _branch_name = manager.create_worktree(run_id)
 
         # Modify existing tracked file (README.md from initial commit)
         readme = worktree_path / "README.md"
@@ -145,7 +148,8 @@ class TestWorktreeCleanupIntegration:
         run_id = "01HQTEST_PRESERVE_ARTIFACTS"
 
         # Create worktree with ADW structure
-        worktree_path = manager.create_worktree(run_id)
+        # ISS-025: create_worktree now returns (path, branch_name) tuple
+        worktree_path, _branch_name = manager.create_worktree(run_id)
         run_dir = worktree_path / ".adw" / "runs" / run_id
 
         # Simulate run artifacts

@@ -30,7 +30,9 @@ class TestEventTriggerConfigValidation:
 
     def test_parse_command_requires_require_mention(self) -> None:
         """parse_command=True without require_mention raises ValueError."""
-        with pytest.raises(ValueError, match="parse_command=True requires require_mention"):
+        with pytest.raises(
+            ValueError, match="parse_command=True requires require_mention"
+        ):
             EventTriggerConfig(parse_command=True)
 
     def test_parse_command_with_require_mention_valid(self) -> None:

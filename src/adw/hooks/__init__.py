@@ -14,9 +14,11 @@ from adw.hooks.git_branch import (
 from adw.hooks.git_commit import (
     create_commit,
     format_commit_message,
+    get_current_branch,
     get_unstaged_modifications,
     has_staged_changes,
     stage_changes,
+    validate_branch_matches,
 )
 from adw.hooks.git_diff import (
     capture_diff,
@@ -43,6 +45,8 @@ __all__: list[str] = [
     "get_unstaged_modifications",
     "create_commit",
     "format_commit_message",
+    "get_current_branch",
+    "validate_branch_matches",
     # Git diff functions
     "DiffStats",
     "capture_diff",

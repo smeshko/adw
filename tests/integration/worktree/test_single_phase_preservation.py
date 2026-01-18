@@ -67,7 +67,8 @@ class TestSinglePhaseWorktreePreservation:
         manager = WorktreeManager(project_root=git_repo, base_dir="trees")
 
         # Create worktree (simulating what orchestrator does)
-        worktree_path = manager.create_worktree(run_id)
+        # ISS-025: create_worktree now returns (path, branch_name) tuple
+        worktree_path, _branch_name = manager.create_worktree(run_id)
 
         # Verify worktree exists
         assert worktree_path.exists()
@@ -98,7 +99,8 @@ class TestSinglePhaseWorktreePreservation:
         manager = WorktreeManager(project_root=git_repo, base_dir="trees")
 
         # Create worktree
-        worktree_path = manager.create_worktree(run_id)
+        # ISS-025: create_worktree now returns (path, branch_name) tuple
+        worktree_path, _branch_name = manager.create_worktree(run_id)
         assert worktree_path.exists()
 
         # Add some files (simulating work done in the phase)
