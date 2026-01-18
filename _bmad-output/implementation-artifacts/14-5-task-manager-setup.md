@@ -76,8 +76,8 @@ so that ADW syncs with my project management tool.
 - [x] Store mappings in wizard state
 
 ### Task 7: Store Results in Wizard State
-- [ ] Update WizardState with full task_manager config
-- [ ] Mark task_manager step as completed
+- [x] Update WizardState with full task_manager config
+- [x] Mark task_manager step as completed
 
 ### Task 8: Write Unit Tests
 - [ ] Test team key validation
