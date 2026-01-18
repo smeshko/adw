@@ -55,7 +55,7 @@ issues:
   ISS-009-git-diff-capture-fails-no-commits: fixed
   ISS-010-evidence-gathering-not-integrated: fixed
   ISS-011-adw-run-should-auto-create-pr: fixed
-  ISS-012-hardcoded-artifact-capture-per-phase: story-created  # Moved to Epic 13
+  ISS-012-hardcoded-artifact-capture-per-phase: canceled  # Moved to Epic 13
   ISS-013-phaserunner-template-aliases-inconsistent: fixed  # Moved to Epic 13
   ISS-014-resume-logic-scattered-across-codebase: done  # Moved to Epic 13
   ISS-015-no-mechanism-to-inject-phase-specific-input-context: fixed
@@ -64,12 +64,12 @@ issues:
   ISS-018-single-phase-runs-delete-worktree-unexpectedly: fixed  # PR #84
   ISS-019-epic-11-phases-not-unified: fixed  # Multiple fix commits merged
   ISS-020-worktrees-should-not-auto-delete: fixed
-  ISS-021-remove-evidence-gathering-completely: story-created  # Major - Remove dead code, Moved to Epic 13
+  ISS-021-remove-evidence-gathering-completely: fixed  # Major - Remove dead code, Moved to Epic 13
   ISS-022-validate-phase-not-verifying-codex-findings: fixed  # Critical - Claude not verifying Codex hallucinations
-  ISS-023-save-only-last-llm-message-as-output: done  # Major - SDK saves full conversation, not final output
-  ISS-024-tests-not-cleaning-up-worktrees: story-created  # Major - Worktrees with ULIDs left after test runs
+  ISS-023-save-only-last-llm-message-as-output: fixed  # Major - SDK saves full conversation, not final output
+  ISS-024-tests-not-cleaning-up-worktrees: fixed  # Major - Worktrees with ULIDs left after test runs
   ISS-025-sdk-fails-to-create-story-branch: fixed  # Critical - SDK not creating story branches, commits go to staging
-  ISS-026-remove-deprecated-adw-yaml-config: story-created  # Major - Remove .adw/adw.yaml, add git config for base branch
+  ISS-026-remove-deprecated-adw-yaml-config: fixed  # Major - Remove .adw/adw.yaml, add git config for base branch
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
