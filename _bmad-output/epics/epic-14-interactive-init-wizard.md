@@ -68,8 +68,11 @@ So that ADW can manage branches and PRs automatically.
 - [ ] Prompts "Enable git integration? [Y/n]"
 - [ ] If No, git section disabled in config
 - [ ] If Yes:
+  - [ ] Auto-detects default branch from git (main/master/develop)
+  - [ ] "Base branch: {detected} [Enter or override]"
   - [ ] "Branch prefix: feature/ [Enter or override]"
   - [ ] "Auto-create PR after successful run? [Y/n]"
+- [ ] Validates base branch exists in repository (warning if not)
 - [ ] Validates branch prefix format (no spaces, valid git branch chars)
 
 ---
@@ -247,7 +250,7 @@ So that I can verify my choices before committing.
   │    Test: pytest                                         │
   │    Build: python -m build                               │
   │                                                         │
-  │  Git: ✓ Enabled (feature/, auto-PR)                    │
+  │  Git: ✓ Enabled (main → feature/, auto-PR)             │
   │  Ports: Default (9100/9200)                            │
   │  Task Manager: Linear (RULE-xxx)                       │
   │  Phases: plan ✎, build ✎, validate (default), doc     │
@@ -319,7 +322,7 @@ adw init
   │     • Build command (optional)
   │
   ├─ STEP 2: Git Integration (always)
-  │     • Enable? → branch_prefix, auto_create_pr
+  │     • Enable? → base_branch, branch_prefix, auto_create_pr
   │
   ├─ STEP 3: Ports (optional)
   │     • "Configure port ranges?" [y/N]
