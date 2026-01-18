@@ -68,7 +68,7 @@ issues:
   ISS-022-validate-phase-not-verifying-codex-findings: fixed  # Critical - Claude not verifying Codex hallucinations
   ISS-023-save-only-last-llm-message-as-output: done  # Major - SDK saves full conversation, not final output
   ISS-024-tests-not-cleaning-up-worktrees: story-created  # Major - Worktrees with ULIDs left after test runs
-  ISS-025-sdk-fails-to-create-story-branch: reported  # Critical - SDK not creating story branches, commits go to staging
+  ISS-025-sdk-fails-to-create-story-branch: fixed  # Critical - SDK not creating story branches, commits go to staging
   ISS-026-remove-deprecated-adw-yaml-config: story-created  # Major - Remove .adw/adw.yaml, add git config for base branch
 
 development_status:
@@ -298,7 +298,7 @@ development_status:
   ux-fix-ISS-023-save-last-message-only: done
   refactor-ISS-024-tests-not-cleaning-up-worktrees: done
   # Bugfix (from ISS-025) - CRITICAL
-  bugfix-ISS-025-sdk-fails-to-create-story-branch: in-progress
+  bugfix-ISS-025-sdk-fails-to-create-story-branch: done
   # UX Fix (from ISS-026) - MAJOR
   ux-fix-ISS-026-remove-deprecated-adw-yaml-config: ready-for-dev
   epic-13-retrospective: optional
