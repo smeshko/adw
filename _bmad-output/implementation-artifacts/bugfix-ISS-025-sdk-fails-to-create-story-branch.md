@@ -83,11 +83,11 @@ Feature: Story branch creation and validation
 - [x] Document the new environment variable
 
 ### Task 6: Add comprehensive tests
-- [ ] Test branch creation returns correct name
-- [ ] Test context.json contains branch_name after run
-- [ ] Test PR creation uses correct head/base branches
-- [ ] Test failure scenarios propagate errors correctly
-- [ ] Test branch validation catches mismatches
+- [x] Test branch creation returns correct name
+- [x] Test context.json contains branch_name after run
+- [x] Test PR creation uses correct head/base branches
+- [x] Test failure scenarios propagate errors correctly
+- [x] Test branch validation catches mismatches
 
 ---
 
