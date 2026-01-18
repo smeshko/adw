@@ -46,9 +46,9 @@ so that concurrent runs don't conflict with my other services.
 - [x] Warn if ranges overlap
 
 ### Task 4: Implement Common Port Conflict Warning
-- [ ] Define list of common ports: 3000, 3001, 5000, 8000, 8080, 8888
-- [ ] Check if entered ports or ranges include common ports
-- [ ] Show warning (not blocking) if conflict detected
+- [x] Define list of common ports: 3000, 3001, 5000, 8000, 8080, 8888
+- [x] Check if entered ports or ranges include common ports
+- [x] Show warning (not blocking) if conflict detected
 
 ### Task 5: Implement Interactive Prompts
 - [ ] Prompt for port configuration (default No)
@@ -319,6 +319,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 1: Created ports.py with PortsStepHandler class and run_ports_step function following the established wizard step pattern from basics.py
 - Task 2: Implemented validate_port() function that returns (bool, int|str) tuple for validation results with range checking (1-65535) and integer parsing
 - Task 3: Implemented check_port_overlap() function with DEFAULT_MAX_CONCURRENT=10, calculates range intersection and _show_overlap_warning() displays red panel when overlap detected
+- Task 4: Defined COMMON_PORTS set with 3000,3001,5000,8000,8080,8443,8888. is_common_port() and check_range_conflicts() detect conflicts, _check_and_warn_common_ports() shows yellow warning panel
 
 ### File List
 
