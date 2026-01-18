@@ -58,9 +58,9 @@ Feature: Story branch creation and validation
 - [x] Add `get_branch_name()` call after worktree creation to verify branch exists
 
 ### Task 2: Populate branch_name in RunContext
-- [ ] Modify `Orchestrator.run()` to capture branch_name from worktree creation
-- [ ] Set `context.branch_name` when creating `RunContext`
-- [ ] Ensure `branch_name` is persisted in `context.json`
+- [x] Modify `Orchestrator.run()` to capture branch_name from worktree creation
+- [x] Set `context.branch_name` when creating `RunContext`
+- [x] Ensure `branch_name` is persisted in `context.json`
 
 ### Task 3: Add branch validation
 - [ ] Create validation function to verify branch exists after creation
