@@ -1,8 +1,8 @@
-# Default configuration for the document phase
-# These defaults can be overridden in project's project.yaml
+# Configuration for the document phase
+# Analyzes changes, updates documentation, creates feature docs, generates PR description
 
-# Timeout for the document phase (5 minutes default - PR description generation)
-timeout_seconds: 300
+# Timeout for the document phase (10 minutes - includes doc analysis and updates)
+timeout_seconds: 600
 
 # Input files for document phase come from previous phase artifacts
 # These are typically auto-loaded via artifact references in the prompt
@@ -19,8 +19,12 @@ artifacts:
   - name: document_output
     pattern: "document_output.md"
     required: true
-    description: "Document phase output"
+    description: "Document phase output including analysis report"
   - name: pr_description
     pattern: "pr_description.md"
     required: true
     description: "Generated PR description"
+  - name: feature_doc
+    pattern: "feature_doc.md"
+    required: false
+    description: "Feature documentation if significant changes detected"

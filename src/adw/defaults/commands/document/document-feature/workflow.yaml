@@ -1,0 +1,28 @@
+name: document-feature
+description: "Analyze changes, update documentation, create feature docs, and generate PR description"
+goal: "Build reusable project knowledge through feature documentation and conditional docs, then generate PR description"
+
+role: |
+  You are a documentation specialist and knowledge architect. Your role is to:
+  1. Analyze code changes for documentation gaps
+  2. Evaluate if changes are SIGNIFICANT enough to warrant feature documentation
+  3. Create feature docs that capture reusable knowledge
+  4. Update the conditional docs guide for discoverability
+  5. Generate a comprehensive PR description
+
+  Execute autonomously without user interaction. This is a CI/CD pipeline phase.
+
+# Workflow components
+installed_path: "{project-root}/src/adw/defaults/commands/document/document-feature"
+instructions: "{installed_path}/instructions.xml"
+
+# Fixed documentation settings (not configurable)
+# These are hardcoded in the workflow:
+#   - check_inline: true (check for missing JSDoc/docstrings)
+#   - check_external: true (check README, docs/ updates)
+#   - create_feature_docs: true (create docs/features/*.md for significant changes)
+#   - conditional_docs_guide: docs/CONDITIONAL_DOCS.md
+#   - feature_docs_dir: docs/features
+
+standalone: true
+web_bundle: false

@@ -1,0 +1,802 @@
+<workflow>
+  <!-- ================================================================== -->
+  <!-- PRIME DIRECTIVE                                                     -->
+  <!-- ================================================================== -->
+  <critical>AUTONOMOUS EXECUTION: Execute ALL steps without user interaction.
+    This is a CI/CD pipeline phase - no pausing, no asking permission.
+    Continue until workflow completes or explicit HALT condition.</critical>
+
+  <critical>WORKTREE SUPPORT: {project-root} = current working directory (pwd).
+    NEVER use 'cd' to navigate elsewhere. All paths are relative to cwd.</critical>
+
+  <critical>The workflow execution engine (workflow.xml) is included above</critical>
+  <critical>The workflow config (workflow.yaml) is included above</critical>
+
+  <!-- ================================================================== -->
+  <!-- CONTEXT BOUNDARIES                                                  -->
+  <!-- ================================================================== -->
+  <context-boundaries>
+    <available>Build artifacts (diff, file list), validate artifacts (evidence), feature description, git status</available>
+    <focus>Documentation analysis, feature doc creation, conditional docs guide, PR description</focus>
+    <limits>Do not modify source code; only modify documentation files</limits>
+    <dependencies>Build phase must have completed with artifacts</dependencies>
+  </context-boundaries>
+
+  <!-- ================================================================== -->
+  <!-- FIXED DOCUMENTATION SETTINGS (NOT CONFIGURABLE)                     -->
+  <!-- ================================================================== -->
+  <settings>
+    <setting name="check_inline" value="true">Check for missing JSDoc/docstrings in changed files</setting>
+    <setting name="check_external" value="true">Check if README or docs/ need updates</setting>
+    <setting name="create_feature_docs" value="true">Create feature docs for significant changes</setting>
+    <setting name="conditional_docs_guide" value="docs/CONDITIONAL_DOCS.md">Path to conditional docs guide</setting>
+    <setting name="feature_docs_dir" value="docs/features">Directory for feature documentation</setting>
+  </settings>
+
+  <!-- ================================================================== -->
+  <!-- STEP 1: INITIALIZE - Detect changes and load context                -->
+  <!-- ================================================================== -->
+  <step n="1" goal="Detect changes and load existing documentation context">
+    <critical>Focus ONLY on loading context and detecting changes - NO updates in this step</critical>
+
+    <!-- 1.1 Extract changed files from build artifacts -->
+    <action>Extract list of changed files from context:
+      - Check {{artifacts.build.diff_stats}} for file change information
+      - Check {{artifacts.build.diff}} for actual changes
+      - If not available, run: git diff --name-status HEAD~1
+    </action>
+    <action>Categorize changed files:
+      - new_files: Files that were added
+      - modified_files: Files that were changed
+      - deleted_files: Files that were removed
+    </action>
+    <action>Store as {{changed_files}} with counts for each category</action>
+
+    <!-- 1.2 Check for no changes -->
+    <check if="no changed files detected">
+      <output>**No changes detected** - Working directory is clean.</output>
+      <action>GOTO step 5 (generate PR description only)</action>
+    </check>
+
+    <!-- 1.3 Load conditional docs guide -->
+    <action>Check if docs/CONDITIONAL_DOCS.md exists</action>
+    <check if="docs/CONDITIONAL_DOCS.md exists">
+      <action>Read the complete file</action>
+      <action>Parse the Documentation Map section to extract entries:
+        - Each entry has a doc path and list of conditions
+        - Store as {{conditional_docs_entries}}
+      </action>
+      <action>Set {{conditional_docs_exists}} = true</action>
+    </check>
+    <check if="docs/CONDITIONAL_DOCS.md does NOT exist">
+      <action>Set {{conditional_docs_exists}} = false</action>
+      <action>Set {{conditional_docs_entries}} = empty</action>
+      <note>Will be created if feature docs are added</note>
+    </check>
+
+    <!-- 1.4 Find relevant existing documentation -->
+    <action>For each changed file, check if any conditions in {{conditional_docs_entries}} match:
+      - Extract keywords from file path and name
+      - Match against condition keywords in guide
+      - Collect matching docs as {{relevant_existing_docs}}
+    </action>
+
+    <check if="relevant existing docs found">
+      <output>**Relevant Documentation Found:**
+        Based on your changes, these existing docs may be useful:
+        {{#relevant_existing_docs}}
+        - {{doc_path}} (matched: "{{matched_condition}}")
+        {{/relevant_existing_docs}}
+      </output>
+    </check>
+
+    <!-- 1.5 Check for existing feature docs -->
+    <action>List files in docs/features/ directory (if exists)</action>
+    <action>Store count as {{existing_feature_docs_count}}</action>
+
+    <!-- 1.6 Display initialization summary -->
+    <output>**Changes Detected:**
+      | Type | Count |
+      |------|-------|
+      | New | {{new_files_count}} |
+      | Modified | {{modified_files_count}} |
+      | Deleted | {{deleted_files_count}} |
+      | **Total** | {{total_files_count}} |
+
+      **Conditional Docs Guide:** {{conditional_docs_exists ? "Exists" : "Needs Creation"}}
+      **Feature Docs:** {{existing_feature_docs_count}} existing in docs/features/
+    </output>
+
+    <action>GOTO step 2</action>
+  </step>
+
+  <!-- ================================================================== -->
+  <!-- STEP 2: ANALYZE - Check documentation and evaluate significance     -->
+  <!-- ================================================================== -->
+  <step n="2" goal="Analyze documentation gaps and evaluate significance of changes">
+    <critical>ANALYZE ONLY - no updates in this step</critical>
+    <critical>The SIGNIFICANCE evaluation is the KEY decision point</critical>
+
+    <!-- 2.1 Initialize analysis results -->
+    <action>Initialize analysis tracking:
+      {{analysis}} = {
+        inline_issues: [],
+        external_issues: [],
+        is_significant: false,
+        significance_reasons: [],
+        suggested_feature_doc: null,
+        suggested_conditions: []
+      }
+    </action>
+
+    <!-- 2.2 Analyze inline documentation -->
+    <critical>CHECK INLINE DOCS: Examine each changed file for documentation gaps</critical>
+
+    <action>For each file in {{changed_files}} (excluding deleted):
+      Analyze based on file type and check for:
+
+      **JavaScript/TypeScript (.js, .ts, .jsx, .tsx):**
+      - Exported functions without JSDoc
+      - Classes without class-level documentation
+      - Complex logic blocks without explanatory comments
+      - Public API methods without parameter/return documentation
+
+      **Python (.py):**
+      - Functions without docstrings
+      - Classes without docstrings
+      - Complex algorithms without comments
+
+      **Other languages:**
+      - Apply equivalent documentation standards
+
+      For each issue found, record:
+      {
+        file: "[path]",
+        line: [number],
+        type: "missing_jsdoc|missing_docstring|missing_comment",
+        element: "[function/class/method name]",
+        severity: "required|recommended"
+      }
+    </action>
+    <action>Store issues in {{analysis.inline_issues}}</action>
+
+    <!-- 2.3 Analyze external documentation -->
+    <critical>CHECK EXTERNAL DOCS: Determine if README or docs/ need updates</critical>
+
+    <action>Analyze if external documentation updates are needed:
+
+      **README.md updates needed if:**
+      - New user-facing feature added
+      - New CLI commands or options
+      - New environment variables
+      - Breaking changes to existing behavior
+      - New installation/setup requirements
+
+      **docs/ updates needed if:**
+      - New API endpoints
+      - New configuration options
+      - New architectural components
+      - Significant workflow changes
+
+      For each issue found, record:
+      {
+        file: "[README.md or docs/specific.md]",
+        section: "[section name]",
+        issue: "[what needs to be added/updated]",
+        severity: "required|recommended"
+      }
+    </action>
+    <action>Store issues in {{analysis.external_issues}}</action>
+
+    <!-- 2.4 EVALUATE SIGNIFICANCE - KEY DECISION -->
+    <critical>SIGNIFICANCE EVALUATION: Determine if changes warrant a feature doc</critical>
+
+    <action>Evaluate each significance criterion against the changes:
+
+      **SIGNIFICANT - Should create feature doc (check all that apply):**
+
+      - [ ] **New architectural pattern**: A way of doing things that will be repeated
+            Examples: New service pattern, new component architecture, new data flow
+            Check: Do changes introduce a pattern others should follow?
+
+      - [ ] **New feature area**: A cohesive set of functionality
+            Examples: Authentication system, export functionality, notification system
+            Check: Is this a distinct capability that didn't exist before?
+
+      - [ ] **Complex integration**: External service, API, or system integration
+            Examples: Payment provider, email service, third-party API
+            Check: Do changes integrate with external systems?
+
+      - [ ] **Non-obvious decisions**: Why something was done a certain way
+            Examples: Performance trade-offs, security considerations, compatibility choices
+            Check: Are there decisions future developers need to understand?
+
+      - [ ] **Reusable pattern**: Code pattern others should follow
+            Examples: Error handling pattern, validation approach, caching strategy
+            Check: Should other developers copy this approach?
+
+      - [ ] **Configuration system**: New config options or environment setup
+            Examples: New env vars, new config file format, feature flags
+            Check: Do changes add configurable behavior?
+
+      - [ ] **Breaking changes**: Changes that affect how others use the code
+            Examples: API changes, removed features, changed interfaces
+            Check: Will existing code need updates?
+
+      - [ ] **Security implementation**: Auth, permissions, encryption patterns
+            Examples: JWT handling, RBAC implementation, data encryption
+            Check: Are security-sensitive patterns being established?
+
+      - [ ] **Performance optimization**: Non-obvious performance patterns
+            Examples: Caching strategy, query optimization, lazy loading
+            Check: Are there performance patterns to document?
+
+      - [ ] **Testing patterns**: New testing approaches or fixtures
+            Examples: Mock patterns, test utilities, integration test setup
+            Check: Are testing patterns being established?
+
+      **NOT SIGNIFICANT - Standard docs only:**
+      - Bug fixes (single issue resolution)
+      - Minor refactoring (code cleanup without behavior change)
+      - Typo fixes
+      - Dependency updates (unless major version with breaking changes)
+      - Style/formatting changes
+      - Single-file changes with no broader implications
+    </action>
+
+    <action>For each criterion that applies:
+      - Set {{analysis.is_significant}} = true
+      - Add reason to {{analysis.significance_reasons}}
+    </action>
+
+    <!-- 2.5 Generate feature doc proposal if significant -->
+    <check if="{{analysis.is_significant}} == true">
+      <action>Generate feature doc proposal:
+        {{analysis.suggested_feature_doc}} = {
+          filename: "docs/features/[descriptive-kebab-case-name].md",
+          title: "[Descriptive Feature Title]",
+          overview: "[2-3 sentence summary of what was built and why]",
+          type: "[pattern|feature|integration|decision|security|performance]"
+        }
+      </action>
+
+      <action>Generate suggested conditions for conditional docs guide:
+        {{analysis.suggested_conditions}} = [
+          "When working with [feature area]",
+          "When implementing [related functionality]",
+          "When modifying [affected components]",
+          "When troubleshooting [specific issues]"
+        ]
+        Generate 3-5 specific, actionable conditions based on the actual changes.
+      </action>
+    </check>
+
+    <!-- 2.6 Display analysis results -->
+    <output>**Documentation Analysis Complete**
+
+      **Inline Documentation Issues:**
+      {{#analysis.inline_issues}}
+      | File | Element | Issue | Severity |
+      |------|---------|-------|----------|
+      | {{file}} | {{element}} | {{type}} | {{severity}} |
+      {{/analysis.inline_issues}}
+      {{^analysis.inline_issues}}
+      No inline documentation issues found.
+      {{/analysis.inline_issues}}
+
+      **External Documentation Issues:**
+      {{#analysis.external_issues}}
+      | File | Section | Issue |
+      |------|---------|-------|
+      | {{file}} | {{section}} | {{issue}} |
+      {{/analysis.external_issues}}
+      {{^analysis.external_issues}}
+      No external documentation updates needed.
+      {{/analysis.external_issues}}
+
+      **Significance Assessment:**
+      {{#analysis.is_significant}}
+      **SIGNIFICANT CHANGES DETECTED** - Feature documentation recommended.
+
+      Reasons:
+      {{#analysis.significance_reasons}}
+      - {{.}}
+      {{/analysis.significance_reasons}}
+
+      Suggested Feature Doc: `{{analysis.suggested_feature_doc.filename}}`
+      Suggested Conditions:
+      {{#analysis.suggested_conditions}}
+      - {{.}}
+      {{/analysis.suggested_conditions}}
+      {{/analysis.is_significant}}
+      {{^analysis.is_significant}}
+      Changes are NOT significant - standard documentation only.
+      {{/analysis.is_significant}}
+    </output>
+
+    <!-- 2.7 Route based on results -->
+    <check if="no inline_issues AND no external_issues AND NOT is_significant">
+      <output>All documentation is up to date!</output>
+      <action>GOTO step 4 (skip updates, go to reporting)</action>
+    </check>
+
+    <check if="inline_issues OR external_issues OR is_significant">
+      <output>Documentation updates needed. Proceeding to update step...</output>
+      <action>GOTO step 3</action>
+    </check>
+  </step>
+
+  <!-- ================================================================== -->
+  <!-- STEP 3: UPDATE - Apply documentation changes                        -->
+  <!-- ================================================================== -->
+  <step n="3" goal="Update documentation, create feature docs, update conditional guide">
+    <critical>APPLY ALL UPDATES identified in analysis</critical>
+    <critical>Create feature doc for significant changes</critical>
+    <critical>Update conditional docs guide for discoverability</critical>
+
+    <!-- 3.1 Initialize update tracking -->
+    <action>Initialize update tracking:
+      {{updates}} = {
+        inline_updates: [],
+        external_updates: [],
+        feature_doc_created: null,
+        conditional_docs_updated: false,
+        files_modified: []
+      }
+    </action>
+
+    <!-- 3.2 Update inline documentation -->
+    <check if="{{analysis.inline_issues}} is not empty">
+      <action>For each inline issue:
+
+        **For missing JSDoc (JavaScript/TypeScript):**
+        ```javascript
+        /**
+         * [Brief description of what the function does]
+         * @param {type} paramName - [Parameter description]
+         * @returns {type} [Return value description]
+         * @throws {ErrorType} [When this error is thrown]
+         */
+        ```
+
+        **For missing docstring (Python):**
+        ```python
+        """
+        [Brief description of what the function does]
+
+        Args:
+            param_name: [Parameter description]
+
+        Returns:
+            [Return value description]
+
+        Raises:
+            ErrorType: [When this error is raised]
+        """
+        ```
+
+        Apply the documentation update to the file.
+        Track in {{updates.inline_updates}}.
+        Add file to {{updates.files_modified}}.
+      </action>
+    </check>
+
+    <!-- 3.3 Update external documentation -->
+    <check if="{{analysis.external_issues}} is not empty">
+      <action>For each external issue:
+
+        **README.md updates:**
+        - Add new feature to feature list
+        - Add new CLI options to usage section
+        - Add new environment variables to configuration section
+        - Add breaking changes to changelog or migration section
+
+        **docs/ file updates:**
+        - Add new sections for new functionality
+        - Update existing sections with changes
+        - Ensure examples are current
+
+        Apply the documentation update to the file.
+        Track in {{updates.external_updates}}.
+        Add file to {{updates.files_modified}}.
+      </action>
+    </check>
+
+    <!-- 3.4 Create feature documentation -->
+    <check if="{{analysis.is_significant}} == true">
+      <critical>CREATE FEATURE DOC using template</critical>
+
+      <action>Create directory if needed: mkdir -p docs/features</action>
+
+      <action>Create feature documentation file at {{analysis.suggested_feature_doc.filename}}:
+
+```markdown
+# {{analysis.suggested_feature_doc.title}}
+
+**Date:** {{current_date_YYYY-MM-DD}}
+**Related Files:** {{list main files from changed_files}}
+
+## Overview
+
+{{analysis.suggested_feature_doc.overview}}
+
+## What Was Built
+
+[List the main components/features implemented based on actual changes]
+
+- [Component/feature 1 - derived from changed files]
+- [Component/feature 2 - derived from changed files]
+- [Component/feature 3 - if applicable]
+
+## Technical Implementation
+
+### Key Files
+
+[List the most important files and their purpose]
+
+- `[file_path]`: [What this file does in the context of this feature]
+- `[file_path]`: [What this file does in the context of this feature]
+
+### Key Patterns
+
+[Describe the most important technical patterns - be specific and actionable]
+
+- **[Pattern Name]**: [Description of the pattern and when to use it]
+- **[Pattern Name]**: [Description of the pattern and when to use it]
+
+### Code Examples
+
+[Include 1-2 brief code examples showing how to use the feature/pattern]
+
+```[language]
+// Example usage
+[code example]
+```
+
+## How to Use
+
+[Step-by-step instructions for using the new feature]
+
+1. [Step 1 - be specific]
+2. [Step 2 - be specific]
+3. [Step 3 - if applicable]
+
+## Configuration
+
+[Any configuration options, environment variables, or settings]
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| [option] | [type] | [default] | [description] |
+
+## Notes
+
+[Any additional context, limitations, known issues, or future considerations]
+
+- [Note 1]
+- [Note 2]
+```
+
+      </action>
+
+      <action>Set {{updates.feature_doc_created}} = {{analysis.suggested_feature_doc.filename}}</action>
+      <action>Add file to {{updates.files_modified}}</action>
+    </check>
+
+    <!-- 3.5 Update conditional docs guide -->
+    <check if="{{updates.feature_doc_created}} is not null">
+      <critical>UPDATE CONDITIONAL DOCS GUIDE for discoverability</critical>
+
+      <check if="{{conditional_docs_exists}} == false">
+        <action>Create docs/CONDITIONAL_DOCS.md with initial content:
+
+```markdown
+# Conditional Documentation Guide
+
+This guide helps you find relevant documentation based on what you're working on.
+
+## Instructions
+
+- Review the task you need to perform
+- Check the conditions below
+- Read the relevant documentation before proceeding
+- Only read documentation if conditions match your task
+
+## Documentation Map
+
+- {{updates.feature_doc_created}}
+  - Conditions:
+{{#analysis.suggested_conditions}}
+    - {{.}}
+{{/analysis.suggested_conditions}}
+```
+
+        </action>
+        <action>Set {{updates.conditional_docs_updated}} = "created"</action>
+      </check>
+
+      <check if="{{conditional_docs_exists}} == true">
+        <action>Append new entry to docs/CONDITIONAL_DOCS.md:
+
+```markdown
+
+- {{updates.feature_doc_created}}
+  - Conditions:
+{{#analysis.suggested_conditions}}
+    - {{.}}
+{{/analysis.suggested_conditions}}
+```
+
+        </action>
+        <action>Set {{updates.conditional_docs_updated}} = "updated"</action>
+      </check>
+
+      <action>Add docs/CONDITIONAL_DOCS.md to {{updates.files_modified}}</action>
+    </check>
+
+    <!-- 3.6 Display updates made -->
+    <output>**Documentation Updates Applied:**
+
+      **Inline Documentation:**
+      {{#updates.inline_updates}}
+      | File | Element | Update |
+      |------|---------|--------|
+      | {{file}} | {{element}} | Added {{type}} |
+      {{/updates.inline_updates}}
+      {{^updates.inline_updates}}
+      No inline updates made.
+      {{/updates.inline_updates}}
+
+      **External Documentation:**
+      {{#updates.external_updates}}
+      | File | Section | Update |
+      |------|---------|--------|
+      | {{file}} | {{section}} | {{change}} |
+      {{/updates.external_updates}}
+      {{^updates.external_updates}}
+      No external updates made.
+      {{/updates.external_updates}}
+
+      {{#updates.feature_doc_created}}
+      **Feature Documentation Created:**
+      - File: `{{updates.feature_doc_created}}`
+      - Title: {{analysis.suggested_feature_doc.title}}
+      - Type: {{analysis.suggested_feature_doc.type}}
+
+      **Conditional Docs Guide:** {{updates.conditional_docs_updated}}
+      - Added conditions:
+      {{#analysis.suggested_conditions}}
+        - {{.}}
+      {{/analysis.suggested_conditions}}
+      {{/updates.feature_doc_created}}
+
+      **Files Modified:** {{updates.files_modified.length}} files
+    </output>
+
+    <!-- 3.7 Commit documentation changes -->
+    <check if="{{updates.files_modified}} is not empty">
+      <action>Stage documentation files: git add {{updates.files_modified}}</action>
+      <action>Create commit with message:
+
+```
+docs: update documentation for {{feature_description_short}}
+
+{{#updates.inline_updates}}
+Inline documentation:
+- Added {{type}} to {{element}} in {{file}}
+{{/updates.inline_updates}}
+
+{{#updates.external_updates}}
+External documentation:
+- Updated {{section}} in {{file}}
+{{/updates.external_updates}}
+
+{{#updates.feature_doc_created}}
+Feature documentation:
+- Created {{updates.feature_doc_created}}
+
+Conditional docs guide:
+- {{updates.conditional_docs_updated}} with new entry
+{{/updates.feature_doc_created}}
+```
+
+      </action>
+      <action>Store commit SHA as {{docs_commit_sha}}</action>
+      <output>Committed documentation updates: {{docs_commit_sha}}</output>
+    </check>
+
+    <action>GOTO step 4</action>
+  </step>
+
+  <!-- ================================================================== -->
+  <!-- STEP 4: REPORT - Generate summary and PR description                -->
+  <!-- ================================================================== -->
+  <step n="4" goal="Generate documentation report and PR description">
+    <critical>Generate comprehensive report of all documentation work</critical>
+    <critical>Generate PR description as final output</critical>
+
+    <!-- 4.1 Compile final results -->
+    <action>Compile results from all steps:
+      - Files analyzed: {{changed_files.total}}
+      - Inline issues found: {{analysis.inline_issues.length}}
+      - Inline issues fixed: {{updates.inline_updates.length}}
+      - External issues found: {{analysis.external_issues.length}}
+      - External issues fixed: {{updates.external_updates.length}}
+      - Significance: {{analysis.is_significant}}
+      - Feature doc: {{updates.feature_doc_created}}
+      - Conditional guide: {{updates.conditional_docs_updated}}
+      - Docs commit: {{docs_commit_sha}}
+    </action>
+
+    <!-- 4.2 Generate documentation report -->
+    <output>
+═══════════════════════════════════════════════════════════════
+                    DOCUMENTATION REPORT
+═══════════════════════════════════════════════════════════════
+
+**Analysis Summary:**
+
+| Category | Checked | Issues | Fixed |
+|----------|---------|--------|-------|
+| Inline docs | Yes | {{analysis.inline_issues.length}} | {{updates.inline_updates.length}} |
+| External docs | Yes | {{analysis.external_issues.length}} | {{updates.external_updates.length}} |
+| Significance | Evaluated | {{analysis.is_significant ? "SIGNIFICANT" : "Standard"}} | - |
+
+{{#updates.feature_doc_created}}
+═══════════════════════════════════════════════════════════════
+  NEW KNOWLEDGE CAPTURED
+═══════════════════════════════════════════════════════════════
+
+| Property | Value |
+|----------|-------|
+| File | `{{updates.feature_doc_created}}` |
+| Title | {{analysis.suggested_feature_doc.title}} |
+| Type | {{analysis.suggested_feature_doc.type}} |
+
+**Why documented:** {{analysis.significance_reasons}}
+
+**Future developers should read this when:**
+{{#analysis.suggested_conditions}}
+- {{.}}
+{{/analysis.suggested_conditions}}
+
+**Conditional Docs Guide:** {{updates.conditional_docs_updated}}
+{{/updates.feature_doc_created}}
+
+{{^updates.feature_doc_created}}
+{{#analysis.is_significant}}{{/analysis.is_significant}}
+{{^analysis.is_significant}}
+Standard documentation updates only - changes not significant enough for feature doc.
+{{/analysis.is_significant}}
+{{/updates.feature_doc_created}}
+
+═══════════════════════════════════════════════════════════════
+{{#updates.feature_doc_created}}
+  KNOWLEDGE BASE EXPANDED
+{{/updates.feature_doc_created}}
+{{^updates.feature_doc_created}}
+{{#updates.files_modified.length}}
+  DOCUMENTATION UPDATED
+{{/updates.files_modified.length}}
+{{^updates.files_modified.length}}
+  DOCUMENTATION COMPLETE
+{{/updates.files_modified.length}}
+{{/updates.feature_doc_created}}
+═══════════════════════════════════════════════════════════════
+
+**Summary:**
+- Files analyzed: {{changed_files.total}}
+- Documentation updates: {{updates.files_modified.length}}
+{{#updates.feature_doc_created}}
+- Feature doc created: {{updates.feature_doc_created}}
+- Conditional guide: {{updates.conditional_docs_updated}}
+{{/updates.feature_doc_created}}
+{{#docs_commit_sha}}
+- Docs commit: {{docs_commit_sha}}
+{{/docs_commit_sha}}
+    </output>
+
+    <action>GOTO step 5</action>
+  </step>
+
+  <!-- ================================================================== -->
+  <!-- STEP 5: PR DESCRIPTION - Generate final PR description              -->
+  <!-- ================================================================== -->
+  <step n="5" goal="Generate PR description as final output">
+    <critical>This is the FINAL OUTPUT - generate comprehensive PR description</critical>
+
+    <action>Generate PR description incorporating:
+      - Feature description from context
+      - Changes from build artifacts
+      - Testing from validate artifacts
+      - Documentation updates made in this phase
+    </action>
+
+    <output>
+## Summary
+
+[1-2 sentence summary of what this PR accomplishes, derived from {{feature_description}}]
+
+## Changes
+
+[Bullet list of key changes, derived from build artifacts and changed files]
+
+- [Primary change 1]
+- [Primary change 2]
+- [Primary change 3]
+{{#updates.feature_doc_created}}
+- Added feature documentation: `{{updates.feature_doc_created}}`
+- Updated conditional docs guide with discoverability conditions
+{{/updates.feature_doc_created}}
+{{#updates.inline_updates.length}}
+- Updated inline documentation for {{updates.inline_updates.length}} elements
+{{/updates.inline_updates.length}}
+{{#updates.external_updates.length}}
+- Updated external documentation in {{updates.external_updates.length}} files
+{{/updates.external_updates.length}}
+
+## Testing
+
+[Description of testing performed, derived from validate artifacts]
+
+{{#artifacts.validate.evidence_manifest}}
+Evidence captured:
+{{#artifacts.validate.evidence_manifest.items}}
+- {{description}}
+{{/artifacts.validate.evidence_manifest.items}}
+{{/artifacts.validate.evidence_manifest}}
+
+## Evidence
+
+{{#artifacts.validate.evidence_manifest}}
+[Include evidence links/screenshots from validate phase]
+{{/artifacts.validate.evidence_manifest}}
+{{^artifacts.validate.evidence_manifest}}
+No visual evidence captured.
+{{/artifacts.validate.evidence_manifest}}
+
+{{#updates.feature_doc_created}}
+## Documentation
+
+New feature documentation has been added:
+
+- **Feature Doc:** [`{{updates.feature_doc_created}}`]({{updates.feature_doc_created}})
+- **When to read:** {{analysis.suggested_conditions.[0]}}
+
+The conditional docs guide has been updated to help future developers discover this documentation.
+{{/updates.feature_doc_created}}
+    </output>
+
+    <critical>The PR description above is the FINAL OUTPUT of this workflow phase</critical>
+  </step>
+
+  <!-- ================================================================== -->
+  <!-- SUCCESS/FAILURE METRICS                                             -->
+  <!-- ================================================================== -->
+  <metrics>
+    <success>
+      <item>Changed files detected from build artifacts or git</item>
+      <item>Conditional docs guide loaded if exists</item>
+      <item>Inline documentation analyzed for all changed files</item>
+      <item>External documentation needs evaluated</item>
+      <item>Significance properly evaluated against all criteria</item>
+      <item>Feature doc created for significant changes</item>
+      <item>Conditional docs guide updated with new entry and conditions</item>
+      <item>Documentation changes committed</item>
+      <item>PR description generated with all sections</item>
+    </success>
+    <failure>
+      <item>Skipping significance evaluation</item>
+      <item>Not creating feature doc for significant changes</item>
+      <item>Creating feature doc for insignificant changes (noise)</item>
+      <item>Not updating conditional docs guide when feature doc created</item>
+      <item>Generic/unhelpful documentation</item>
+      <item>Missing PR description</item>
+    </failure>
+  </metrics>
+
+  <master-rule>Build knowledge that helps future developers find what they need.
+    Every significant change should be captured in a feature doc with clear
+    conditions for when to read it.</master-rule>
+
+</workflow>
