@@ -118,11 +118,21 @@ def orchestrator(
     mock_interruption_handler: MagicMock,
     mock_index_manager: MagicMock,
 ) -> "Orchestrator":
-    """Create an Orchestrator instance with mocked dependencies."""
+    """Create an Orchestrator instance with mocked dependencies.
+
+    Note: Worktree is disabled by default for unit tests since tmp_path
+    is not a git repository. Tests that need worktree functionality
+    should use the worktree-specific tests in TestOrchestratorWorktree.
+    """
     from adw.core.orchestrator import Orchestrator
+    from adw.models import WorktreeConfig
 
     runs_dir = tmp_path / "runs"
     runs_dir.mkdir(parents=True, exist_ok=True)
+
+    # ISS-025: Disable worktree for unit tests (tmp_path is not a git repo)
+    # Worktree creation errors are now fatal, so we must disable it
+    worktree_config = WorktreeConfig(enabled=False)
 
     orch = Orchestrator(
         runs_dir=runs_dir,
@@ -133,6 +143,7 @@ def orchestrator(
         phase_runner=mock_phase_runner,
         interruption_handler=mock_interruption_handler,
         index_manager=mock_index_manager,
+        worktree_config=worktree_config,
     )
     return orch
 
@@ -730,6 +741,7 @@ class TestRetryLogic:
     ) -> None:
         """Test that max_retries can be customized."""
         from adw.core.orchestrator import Orchestrator
+        from adw.models import WorktreeConfig
 
         runs_dir = tmp_path / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
@@ -742,6 +754,7 @@ class TestRetryLogic:
             run_directory_manager=mock_run_directory_manager,
             phase_runner=mock_phase_runner,
             max_retries=5,  # Custom max
+            worktree_config=WorktreeConfig(enabled=False),  # ISS-025
         )
 
         error = LLMTimeoutError(
@@ -1481,6 +1494,12 @@ class TestWorktreeNoAutoDelete:
         # Mock the cleanup method to track calls
         orchestrator._cleanup_worktree = MagicMock()
 
+        # ISS-025: Mock worktree creation (tmp_path is not a git repo)
+        worktree_path = tmp_path / "trees" / "test-run"
+        orchestrator._create_worktree_for_run = MagicMock(
+            return_value=(worktree_path, "adw/test-run")
+        )
+
         # Run single phase (signature: phase, feature_description)
         orchestrator.run_single_phase("plan", "Test feature")
 
@@ -1521,6 +1540,12 @@ class TestWorktreeNoAutoDelete:
 
         # Mock the cleanup method to track calls
         orchestrator._cleanup_worktree = MagicMock()
+
+        # ISS-025: Mock worktree creation (tmp_path is not a git repo)
+        worktree_path = tmp_path / "trees" / "test-run"
+        orchestrator._create_worktree_for_run = MagicMock(
+            return_value=(worktree_path, "adw/test-run")
+        )
 
         # Run full pipeline (signature: feature_description)
         orchestrator.run("Test feature")
@@ -1571,7 +1596,9 @@ class TestWorktreeNoAutoDelete:
 
         # Mock worktree creation to return a path
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(return_value=worktree_path)
+        orchestrator._create_worktree_for_run = MagicMock(
+            return_value=(worktree_path, "adw/test-run")
+        )
 
         # Run single phase (signature: phase, feature_description)
         _ = orchestrator.run_single_phase("plan", "Test feature")
@@ -1635,7 +1662,9 @@ class TestWorktreeNoAutoDelete:
 
         # Mock worktree creation to return a path
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(return_value=worktree_path)
+        orchestrator._create_worktree_for_run = MagicMock(
+            return_value=(worktree_path, "adw/test-run")
+        )
 
         # This should NOT raise AttributeError even without progress_display
         context = orchestrator.run_single_phase("plan", "Test feature")
@@ -1684,6 +1713,12 @@ class TestWorktreeNoAutoDelete:
 
         # Mock the cleanup method to track calls
         orchestrator._cleanup_worktree = MagicMock()
+
+        # ISS-025: Mock worktree creation (tmp_path is not a git repo)
+        worktree_path = tmp_path / "trees" / "test-run"
+        orchestrator._create_worktree_for_run = MagicMock(
+            return_value=(worktree_path, "adw/test-run")
+        )
 
         # Make phase runner fail
         mock_phase_runner.run.side_effect = PhaseError(
@@ -1749,7 +1784,9 @@ class TestWorktreeNoAutoDelete:
 
         # Mock worktree creation to return a path
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(return_value=worktree_path)
+        orchestrator._create_worktree_for_run = MagicMock(
+            return_value=(worktree_path, "adw/test-run")
+        )
 
         # Run full pipeline
         orchestrator.run("Test feature")
@@ -1878,7 +1915,9 @@ class TestWorktreeNoAutoDelete:
 
         # Mock worktree creation
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(return_value=worktree_path)
+        orchestrator._create_worktree_for_run = MagicMock(
+            return_value=(worktree_path, "adw/test-run")
+        )
 
         # Test 1: run() should NOT call _cleanup_worktree
         orchestrator.run("Test feature 1")

@@ -22,7 +22,7 @@ from adw.core.orchestrator import Orchestrator
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
 from adw.exceptions import LLMError
-from adw.models import PhaseResult, PhaseStatus, RunContext
+from adw.models import PhaseResult, PhaseStatus, RunContext, WorktreeConfig
 
 
 class MockPhaseRunner:
@@ -76,6 +76,7 @@ class TestOrchestratorProgressIntegration:
         # Create mock phase runner that completes all phases
         mock_runner = MockPhaseRunner({})
 
+        # ISS-025: Disable worktree for tests (tmp_path is not a git repo)
         orchestrator = Orchestrator(
             runs_dir=tmp_path,
             context_manager=context_manager,
@@ -84,6 +85,7 @@ class TestOrchestratorProgressIntegration:
             run_directory_manager=run_directory_manager,
             phase_runner=mock_runner,
             progress_display=progress,
+            worktree_config=WorktreeConfig(enabled=False),
         )
 
         # Run
@@ -119,6 +121,7 @@ class TestOrchestratorProgressIntegration:
             run_directory_manager=run_directory_manager,
             phase_runner=mock_runner,
             progress_display=progress,
+            worktree_config=WorktreeConfig(enabled=False),  # ISS-025
         )
 
         orchestrator.run("Test feature")
@@ -172,6 +175,7 @@ class TestOrchestratorProgressIntegration:
             run_directory_manager=run_directory_manager,
             phase_runner=FailingPhaseRunner(),
             progress_display=progress,
+            worktree_config=WorktreeConfig(enabled=False),  # ISS-025
         )
 
         with pytest.raises(LLMError):
@@ -205,6 +209,7 @@ class TestOrchestratorProgressIntegration:
             run_directory_manager=run_directory_manager,
             phase_runner=mock_runner,
             progress_display=progress,
+            worktree_config=WorktreeConfig(enabled=False),  # ISS-025
         )
 
         orchestrator.run("Test feature")
@@ -260,6 +265,7 @@ class TestOrchestratorProgressIntegration:
             run_directory_manager=run_directory_manager,
             phase_runner=FailingPhaseRunner(),
             progress_display=progress,
+            worktree_config=WorktreeConfig(enabled=False),  # ISS-025
         )
 
         with pytest.raises(LLMError):

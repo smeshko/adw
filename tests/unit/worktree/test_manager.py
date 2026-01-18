@@ -363,10 +363,12 @@ class TestWorktreeLifecycleIntegration:
         manager = WorktreeManager(project_root=git_repo)
         run_id = "01HQTEST"
 
-        worktree = manager.create_worktree(run_id)
+        worktree, branch_name = manager.create_worktree(run_id)
 
         # ADW structure should exist in worktree
         adw_run_dir = worktree / ".adw" / "runs" / run_id
+        # Branch name should be returned (ISS-025)
+        assert branch_name == f"adw/{run_id}"
         assert adw_run_dir.exists()
         assert (adw_run_dir / "artifacts").exists()
         assert (adw_run_dir / "logs").exists()
@@ -380,7 +382,7 @@ class TestWorktreeLifecycleIntegration:
         run_id = "01HQTEST"
 
         # Create worktree and add artifacts
-        worktree = manager.create_worktree(run_id)
+        worktree, _branch = manager.create_worktree(run_id)
         run_dir = worktree / ".adw" / "runs" / run_id
         (run_dir / "context.json").write_text('{"run_id": "test"}')
         (run_dir / "logs" / "run.log").write_text("log content")
@@ -402,7 +404,7 @@ class TestWorktreeLifecycleIntegration:
         run_id = "01HQTEST"
 
         # Create worktree
-        worktree = manager.create_worktree(run_id)
+        worktree, _branch = manager.create_worktree(run_id)
         run_dir = worktree / ".adw" / "runs" / run_id
         (run_dir / "context.json").write_text('{"run_id": "test"}')
 
@@ -426,12 +428,15 @@ class TestWorktreeManagerCreation:
         manager = WorktreeManager(project_root=git_repo)
         run_id = "01HQ1234567890ABCDEFGHIJK"
 
-        worktree_path = manager.create_worktree(run_id)
+        worktree_path, branch_name = manager.create_worktree(run_id)
 
         # Verify worktree was created
         assert worktree_path.exists()
         assert worktree_path.is_dir()
         assert worktree_path == git_repo / "trees" / run_id
+
+        # Verify branch name is returned (ISS-025)
+        assert branch_name == f"adw/{run_id}"
 
         # Verify the worktree has a .git file (not directory - worktrees use gitfile)
         git_file = worktree_path / ".git"
@@ -453,10 +458,11 @@ class TestWorktreeManagerCreation:
         manager = WorktreeManager(project_root=git_repo, base_dir="worktrees")
         run_id = "01HQ1234567890ABCDEFGHIJK"
 
-        worktree_path = manager.create_worktree(run_id)
+        worktree_path, branch_name = manager.create_worktree(run_id)
 
         assert worktree_path == git_repo / "worktrees" / run_id
         assert worktree_path.exists()
+        assert branch_name == f"adw/{run_id}"
 
     def test_create_worktree_from_source_branch(self, git_repo: Path) -> None:
         """Worktree is created from specified source branch."""
@@ -498,10 +504,13 @@ class TestWorktreeManagerCreation:
         manager = WorktreeManager(project_root=git_repo)
         run_id = "01HQ1234567890ABCDEFGHIJK"
 
-        worktree_path = manager.create_worktree(run_id, source_branch="feature/source")
+        worktree_path, branch_name = manager.create_worktree(
+            run_id, source_branch="feature/source"
+        )
 
         # The worktree should have the feature.txt file from source branch
         assert (worktree_path / "feature.txt").exists()
+        assert branch_name == f"adw/{run_id}"
 
     def test_create_worktree_branch_exists_error(self, git_repo: Path) -> None:
         """Raises WorktreeError when branch already exists."""
@@ -566,9 +575,10 @@ class TestWorktreeManagerCreation:
         manager = WorktreeManager(project_root=git_repo)
         run_id = "01HQ1234567890ABCDEFGHIJK"
 
-        worktree_path = manager.create_worktree(run_id)
+        worktree_path, branch_name = manager.create_worktree(run_id)
 
         assert worktree_path.is_absolute()
+        assert branch_name == f"adw/{run_id}"
 
     def test_create_worktree_creates_base_dir_if_missing(self, git_repo: Path) -> None:
         """Base directory is created if it doesn't exist."""
@@ -577,10 +587,11 @@ class TestWorktreeManagerCreation:
         manager = WorktreeManager(project_root=git_repo, base_dir="new/nested/dir")
         run_id = "01HQ1234567890ABCDEFGHIJK"
 
-        worktree_path = manager.create_worktree(run_id)
+        worktree_path, branch_name = manager.create_worktree(run_id)
 
         assert (git_repo / "new" / "nested" / "dir").exists()
         assert worktree_path.exists()
+        assert branch_name == f"adw/{run_id}"
 
 
 class TestWorktreeManagerRemoval:
@@ -596,7 +607,7 @@ class TestWorktreeManagerRemoval:
         run_id = "01HQ1234567890ABCDEFGHIJK"
 
         # Create a worktree first
-        worktree_path = manager.create_worktree(run_id)
+        worktree_path, _branch = manager.create_worktree(run_id)
         assert worktree_path.exists()
 
         # Remove it
@@ -629,7 +640,7 @@ class TestWorktreeManagerRemoval:
         run_id = "01HQ1234567890ABCDEFGHIJK"
 
         # Create a worktree and make uncommitted changes
-        worktree_path = manager.create_worktree(run_id)
+        worktree_path, _branch = manager.create_worktree(run_id)
         (worktree_path / "new_file.txt").write_text("uncommitted content")
 
         with pytest.raises(WorktreeError) as exc_info:
@@ -648,7 +659,7 @@ class TestWorktreeManagerRemoval:
         run_id = "01HQ1234567890ABCDEFGHIJK"
 
         # Create a worktree and make uncommitted changes
-        worktree_path = manager.create_worktree(run_id)
+        worktree_path, _branch = manager.create_worktree(run_id)
         (worktree_path / "new_file.txt").write_text("uncommitted content")
 
         # Force remove should succeed
@@ -857,7 +868,7 @@ class TestWorktreeForceCleanup:
         run_id = "01HQTEST_FORCE"
 
         # Create worktree
-        worktree_path = manager.create_worktree(run_id)
+        worktree_path, _branch = manager.create_worktree(run_id)
         assert worktree_path.exists()
 
         # Create untracked file (simulating LLM-generated files)
@@ -892,7 +903,7 @@ class TestWorktreeForceCleanup:
         run_id = "01HQTEST_NOFORCE"
 
         # Create worktree
-        worktree_path = manager.create_worktree(run_id)
+        worktree_path, _branch = manager.create_worktree(run_id)
 
         # Create untracked file
         untracked_file = worktree_path / "new_feature.py"
@@ -914,7 +925,7 @@ class TestWorktreeForceCleanup:
         run_id = "01HQTEST_MODIFIED"
 
         # Create worktree
-        worktree_path = manager.create_worktree(run_id)
+        worktree_path, _branch = manager.create_worktree(run_id)
 
         # Modify existing file in worktree
         readme = worktree_path / "README.md"

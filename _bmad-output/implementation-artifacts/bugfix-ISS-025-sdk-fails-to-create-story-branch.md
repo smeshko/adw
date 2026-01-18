@@ -53,41 +53,41 @@ Feature: Story branch creation and validation
 ## Tasks / Subtasks
 
 ### Task 1: Modify WorktreeManager to return branch name
-- [ ] Update `create_worktree()` to return `tuple[Path, str]` (path, branch_name)
-- [ ] Update `_create_worktree_for_run()` to capture and return branch name
-- [ ] Add `get_branch_name()` call after worktree creation to verify branch exists
+- [x] Update `create_worktree()` to return `tuple[Path, str]` (path, branch_name)
+- [x] Update `_create_worktree_for_run()` to capture and return branch name
+- [x] Add `get_branch_name()` call after worktree creation to verify branch exists
 
 ### Task 2: Populate branch_name in RunContext
-- [ ] Modify `Orchestrator.run()` to capture branch_name from worktree creation
-- [ ] Set `context.branch_name` when creating `RunContext`
-- [ ] Ensure `branch_name` is persisted in `context.json`
+- [x] Modify `Orchestrator.run()` to capture branch_name from worktree creation
+- [x] Set `context.branch_name` when creating `RunContext`
+- [x] Ensure `branch_name` is persisted in `context.json`
 
 ### Task 3: Add branch validation
-- [ ] Create validation function to verify branch exists after creation
-- [ ] Add validation that current git branch matches `context.branch_name` before commits
-- [ ] Fail fast if branch validation fails with clear error message
+- [x] Create validation function to verify branch exists after creation
+- [x] Add validation that current git branch matches `context.branch_name` before commits
+- [x] Fail fast if branch validation fails with clear error message
 
 ### Task 4: Fix PR creation to use branch_name
-- [ ] Modify `create_pr_via_gh()` to accept `head_branch` parameter
-- [ ] Update `auto_create_pr()` to pass `context.branch_name` as head branch
-- [ ] Add `--head` parameter to `gh pr create` command
-- [ ] CRITICAL: Hardcode base branch to "staging" - remove ALL configurability:
-  - [ ] Remove `base_branch` parameter from `auto_create_pr()` function signature
-  - [ ] Remove `--base` CLI option from `adw pr` command
-  - [ ] Remove/simplify `_get_base_branch()` function to just return "staging"
-  - [ ] Remove `git.default_branch` config support from `.adw/adw.yaml` parsing
+- [x] Modify `create_pr_via_gh()` to accept `head_branch` parameter
+- [x] Update `auto_create_pr()` to pass `context.branch_name` as head branch
+- [x] Add `--head` parameter to `gh pr create` command
+- [x] CRITICAL: Hardcode base branch to "staging" - remove ALL configurability:
+  - [x] Remove `base_branch` parameter from `auto_create_pr()` function signature
+  - [x] Remove `--base` CLI option from `adw pr` command
+  - [x] Remove/simplify `_get_base_branch()` function to just return "staging"
+  - [x] Remove `git.default_branch` config support from `.adw/adw.yaml` parsing
 
 ### Task 5: Add ADW_BRANCH_NAME to hook environment
-- [ ] Update `build_hook_environment()` in `hooks/environment.py`
-- [ ] Add `ADW_BRANCH_NAME` environment variable
-- [ ] Document the new environment variable
+- [x] Update `build_hook_environment()` in `hooks/environment.py`
+- [x] Add `ADW_BRANCH_NAME` environment variable
+- [x] Document the new environment variable
 
 ### Task 6: Add comprehensive tests
-- [ ] Test branch creation returns correct name
-- [ ] Test context.json contains branch_name after run
-- [ ] Test PR creation uses correct head/base branches
-- [ ] Test failure scenarios propagate errors correctly
-- [ ] Test branch validation catches mismatches
+- [x] Test branch creation returns correct name
+- [x] Test context.json contains branch_name after run
+- [x] Test PR creation uses correct head/base branches
+- [x] Test failure scenarios propagate errors correctly
+- [x] Test branch validation catches mismatches
 
 ---
 
