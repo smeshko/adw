@@ -1,6 +1,6 @@
 # Story 14.3: Git Integration Step (Required)
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
@@ -15,14 +15,14 @@ so that ADW can manage branches and PRs automatically.
 
 ## Acceptance Criteria
 
-- [ ] Git integration is **always enabled** (not optional)
-- [ ] Checks if current directory is a git repository
-- [ ] If NOT a git repo, shows error and guidance to initialize git first
-- [ ] If IS a git repo, proceeds with configuration:
-  - [ ] "Branch prefix: feature/ [Enter or override]"
-  - [ ] "Auto-create PR after successful run? [Y/n]"
-- [ ] Validates branch prefix format (no spaces, valid git branch chars)
-- [ ] All values stored in wizard state for final generation
+- [x] Git integration is **always enabled** (not optional)
+- [x] Checks if current directory is a git repository
+- [x] If NOT a git repo, shows error and guidance to initialize git first
+- [x] If IS a git repo, proceeds with configuration:
+  - [x] "Branch prefix: feature/ [Enter or override]"
+  - [x] "Auto-create PR after successful run? [Y/n]"
+- [x] Validates branch prefix format (no spaces, valid git branch chars)
+- [x] All values stored in wizard state for final generation
 
 ## Tasks / Subtasks
 
