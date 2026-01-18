@@ -1571,7 +1571,9 @@ class TestWorktreeNoAutoDelete:
 
         # Mock worktree creation to return a path
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(return_value=worktree_path)
+        orchestrator._create_worktree_for_run = MagicMock(
+            return_value=(worktree_path, "adw/test-run")
+        )
 
         # Run single phase (signature: phase, feature_description)
         _ = orchestrator.run_single_phase("plan", "Test feature")
@@ -1635,7 +1637,9 @@ class TestWorktreeNoAutoDelete:
 
         # Mock worktree creation to return a path
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(return_value=worktree_path)
+        orchestrator._create_worktree_for_run = MagicMock(
+            return_value=(worktree_path, "adw/test-run")
+        )
 
         # This should NOT raise AttributeError even without progress_display
         context = orchestrator.run_single_phase("plan", "Test feature")
@@ -1749,7 +1753,9 @@ class TestWorktreeNoAutoDelete:
 
         # Mock worktree creation to return a path
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(return_value=worktree_path)
+        orchestrator._create_worktree_for_run = MagicMock(
+            return_value=(worktree_path, "adw/test-run")
+        )
 
         # Run full pipeline
         orchestrator.run("Test feature")
@@ -1878,7 +1884,9 @@ class TestWorktreeNoAutoDelete:
 
         # Mock worktree creation
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(return_value=worktree_path)
+        orchestrator._create_worktree_for_run = MagicMock(
+            return_value=(worktree_path, "adw/test-run")
+        )
 
         # Test 1: run() should NOT call _cleanup_worktree
         orchestrator.run("Test feature 1")

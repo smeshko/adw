@@ -288,19 +288,22 @@ class Orchestrator:
             and self._worktree_manager is not None
         )
 
-        # Create worktree if enabled (Story 10.1)
+        # Create worktree if enabled (Story 10.1, ISS-025)
         worktree_path: Path | None = None
+        branch_name: str | None = None
         if should_use_worktree:
-            worktree_path = self._create_worktree_for_run(run_id)
+            worktree_result = self._create_worktree_for_run(run_id)
             # If worktree creation failed, update flag to reflect reality
-            if worktree_path is None:
+            if worktree_result is None:
                 should_use_worktree = False
                 logger.warning(
                     "Worktree creation failed, running in current directory",
                     extra={"run_id": run_id},
                 )
+            else:
+                worktree_path, branch_name = worktree_result
 
-        # Create initial context
+        # Create initial context (ISS-025: branch_name now populated)
         context = RunContext(
             run_id=run_id,
             feature_description=feature_description,
@@ -309,6 +312,7 @@ class Orchestrator:
             status="running",
             worktree_path=worktree_path,
             use_worktree=should_use_worktree,
+            branch_name=branch_name,
         )
 
         # Create run directory structure
@@ -666,19 +670,22 @@ class Orchestrator:
             and self._worktree_manager is not None
         )
 
-        # Create worktree if enabled
+        # Create worktree if enabled (ISS-025)
         worktree_path: Path | None = None
+        branch_name: str | None = None
         if should_use_worktree:
-            worktree_path = self._create_worktree_for_run(run_id)
+            worktree_result = self._create_worktree_for_run(run_id)
             # If worktree creation failed, update flag to reflect reality
-            if worktree_path is None:
+            if worktree_result is None:
                 should_use_worktree = False
                 logger.warning(
                     "Worktree creation failed, running in current directory",
                     extra={"run_id": run_id},
                 )
+            else:
+                worktree_path, branch_name = worktree_result
 
-        # Create initial context
+        # Create initial context (ISS-025: branch_name now populated)
         context = RunContext(
             run_id=run_id,
             feature_description=feature_description,
@@ -687,6 +694,7 @@ class Orchestrator:
             status="running",
             worktree_path=worktree_path,
             use_worktree=should_use_worktree,
+            branch_name=branch_name,
         )
 
         # Create run directory structure
