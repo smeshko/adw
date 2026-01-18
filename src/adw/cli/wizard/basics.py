@@ -14,6 +14,35 @@ from rich.console import Console
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
 
+# Language detection markers - maps language to file markers
+LANGUAGE_MARKERS: dict[str, list[str]] = {
+    "python": ["pyproject.toml", "setup.py", "setup.cfg"],
+    "javascript": ["package.json"],
+    "go": ["go.mod"],
+    "rust": ["Cargo.toml"],
+    "java": ["pom.xml", "build.gradle", "build.gradle.kts"],
+    "ruby": ["Gemfile"],
+    "php": ["composer.json"],
+}
+
+
+def detect_language(project_root: Path) -> str:
+    """Detect project language from marker files.
+
+    Checks the project root for common language marker files and returns
+    the detected language. If no markers are found, returns "unknown".
+
+    Args:
+        project_root: The project root directory to check.
+
+    Returns:
+        Lowercase language name (e.g., "python", "javascript") or "unknown".
+    """
+    for language, markers in LANGUAGE_MARKERS.items():
+        if any((project_root / marker).exists() for marker in markers):
+            return language
+    return "unknown"
+
 
 class BasicsStepHandler:
     """Handler for the basics configuration wizard step.
@@ -73,8 +102,8 @@ def run_basics_step(
     """
     root = project_root or Path.cwd()
 
-    # Language detection and confirmation will be implemented in Task 2 & 4
-    language = "unknown"
+    # Detect language from project markers
+    language = detect_language(root)
 
     # Platform selection will be implemented in Task 4
     platform = "cli"

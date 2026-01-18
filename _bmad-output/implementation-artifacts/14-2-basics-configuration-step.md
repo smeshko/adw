@@ -36,8 +36,8 @@ so that ADW knows what kind of project I'm working on.
 - [x] Import and register in flow controller
 
 ### Task 2: Implement Language Detection
-- [ ] Create language detection function
-- [ ] Check for project markers:
+- [x] Create language detection function
+- [x] Check for project markers:
   - `pyproject.toml`, `setup.py` → Python
   - `package.json` → JavaScript/TypeScript
   - `go.mod` → Go
@@ -45,7 +45,7 @@ so that ADW knows what kind of project I'm working on.
   - `pom.xml`, `build.gradle` → Java
   - `Gemfile` → Ruby
   - `composer.json` → PHP
-- [ ] Return detected language or "unknown"
+- [x] Return detected language or "unknown"
 
 ### Task 3: Implement Test Command Detection
 - [ ] Create test command detection function

@@ -11,7 +11,12 @@ Exports:
     run_basics_step: Function to execute the basics step.
 """
 
-from adw.cli.wizard.basics import BasicsStepHandler, run_basics_step
+from adw.cli.wizard.basics import (
+    BasicsStepHandler,
+    detect_language,
+    run_basics_step,
+)
+
 from adw.cli.wizard.flow import StepHandler, WizardFlowController, WizardStep
 
 __all__ = [
@@ -19,5 +24,6 @@ __all__ = [
     "StepHandler",
     "WizardFlowController",
     "WizardStep",
+    "detect_language",
     "run_basics_step",
 ]
