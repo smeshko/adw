@@ -142,7 +142,6 @@ class TestRunSecurityStepDangerousOperations:
         """Test that enabling dangerous operations displays warning panel."""
         from io import StringIO
 
-        from rich.panel import Panel
 
         console = Console(force_terminal=True, file=StringIO())
         state = WizardState()
