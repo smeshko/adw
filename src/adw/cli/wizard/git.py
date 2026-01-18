@@ -129,10 +129,11 @@ def is_git_repo() -> bool:
     """Check if current directory is inside a git repository.
 
     Uses `git rev-parse --is-inside-work-tree` to detect if we're
-    inside a git working tree.
+    inside a git working tree. A bare repository returns "false" with
+    exit code 0, so we must check stdout to distinguish properly.
 
     Returns:
-        True if inside a git repository, False otherwise.
+        True if inside a git working tree, False otherwise.
     """
     try:
         result = subprocess.run(
@@ -141,7 +142,8 @@ def is_git_repo() -> bool:
             text=True,
             timeout=5,
         )
-        return result.returncode == 0
+        # Check both returncode and stdout - bare repos return "false" with exit 0
+        return result.returncode == 0 and result.stdout.strip().lower() == "true"
     except (subprocess.SubprocessError, FileNotFoundError):
         return False
 
@@ -179,6 +181,10 @@ def validate_branch_prefix(prefix: str) -> tuple[bool, str]:
     # Auto-append trailing slash if missing
     if not prefix.endswith("/"):
         prefix = prefix + "/"
+
+    # Check for consecutive slashes (Git rejects refs with //)
+    if "//" in prefix:
+        return False, "Branch prefix cannot contain consecutive slashes"
 
     # Check for invalid start character
     if prefix.startswith("-"):

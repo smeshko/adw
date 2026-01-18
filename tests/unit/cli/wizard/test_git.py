@@ -30,16 +30,23 @@ from adw.cli.wizard.git import (
 class TestIsGitRepo:
     """Tests for is_git_repo() function."""
 
-    def test_returns_true_when_in_git_repo(self) -> None:
-        """is_git_repo returns True when git command succeeds."""
+    def test_returns_true_when_in_git_working_tree(self) -> None:
+        """is_git_repo returns True when inside a working tree (stdout='true')."""
         with patch("adw.cli.wizard.git.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=0)
+            mock_run.return_value = MagicMock(returncode=0, stdout="true\n")
             assert is_git_repo() is True
+
+    def test_returns_false_for_bare_repo(self) -> None:
+        """is_git_repo returns False for bare repositories (stdout='false', exit 0)."""
+        with patch("adw.cli.wizard.git.subprocess.run") as mock_run:
+            # Bare repos return "false" with exit code 0
+            mock_run.return_value = MagicMock(returncode=0, stdout="false\n")
+            assert is_git_repo() is False
 
     def test_returns_false_when_not_in_git_repo(self) -> None:
         """is_git_repo returns False when git command fails."""
         with patch("adw.cli.wizard.git.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=128)
+            mock_run.return_value = MagicMock(returncode=128, stdout="")
             assert is_git_repo() is False
 
     def test_returns_false_when_git_not_found(self) -> None:
@@ -108,6 +115,8 @@ class TestValidateBranchPrefix:
             ("-feature/", "cannot start with '-'"),
             ("my feature/", "cannot contain spaces"),
             ("123feature/", "Must start with a letter"),
+            ("feature//", "cannot contain consecutive slashes"),
+            ("foo//bar/", "cannot contain consecutive slashes"),
         ],
     )
     def test_invalid_prefixes(
