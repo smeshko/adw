@@ -48,13 +48,13 @@ so that I can tune how ADW handles transient failures.
   - Prompt for multiplier with validation
 
 ### Task 4: Store Results in Wizard State
-- [ ] Update WizardState with:
+- [x] Update WizardState with:
   - `retry_custom: bool`
   - `retry_max_retries: int`
   - `retry_base_delay: float`
   - `retry_max_delay: float`
   - `retry_multiplier: float`
-- [ ] Mark retry step as completed
+- [x] Mark retry step as completed
 
 ### Task 5: Write Unit Tests
 - [ ] Test all validations (valid and invalid)
