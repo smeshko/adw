@@ -300,7 +300,7 @@ development_status:
   # Bugfix (from ISS-025) - CRITICAL
   bugfix-ISS-025-sdk-fails-to-create-story-branch: done
   # UX Fix (from ISS-026) - MAJOR
-  ux-fix-ISS-026-remove-deprecated-adw-yaml-config: review
+  ux-fix-ISS-026-remove-deprecated-adw-yaml-config: done
   epic-13-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

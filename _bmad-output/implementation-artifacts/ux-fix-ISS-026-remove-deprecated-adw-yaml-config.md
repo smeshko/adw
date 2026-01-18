@@ -1,6 +1,6 @@
 # Story ISS-026: Remove Deprecated adw.yaml Config and Add base_branch
 
-Status: Ready for Review
+Status: done
 Linear Issue: not-configured
 Epic: 13 - Webhook Infrastructure / Tech Debt
 Created: 2026-01-18
