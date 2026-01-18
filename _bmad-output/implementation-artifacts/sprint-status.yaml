@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 25
+issue_counter: 26
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -69,6 +69,7 @@ issues:
   ISS-023-save-only-last-llm-message-as-output: done  # Major - SDK saves full conversation, not final output
   ISS-024-tests-not-cleaning-up-worktrees: story-created  # Major - Worktrees with ULIDs left after test runs
   ISS-025-sdk-fails-to-create-story-branch: reported  # Critical - SDK not creating story branches, commits go to staging
+  ISS-026-remove-deprecated-adw-yaml-config: story-created  # Major - Remove .adw/adw.yaml, add git config for base branch
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -298,6 +299,8 @@ development_status:
   refactor-ISS-024-tests-not-cleaning-up-worktrees: done
   # Bugfix (from ISS-025) - CRITICAL
   bugfix-ISS-025-sdk-fails-to-create-story-branch: in-progress
+  # UX Fix (from ISS-026) - MAJOR
+  ux-fix-ISS-026-remove-deprecated-adw-yaml-config: ready-for-dev
   epic-13-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
