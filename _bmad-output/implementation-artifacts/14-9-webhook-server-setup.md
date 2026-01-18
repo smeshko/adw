@@ -1,6 +1,6 @@
 # Story 14.9: Webhook Server Setup (Optional, Full)
 
-Status: Ready for Review
+Status: done
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
