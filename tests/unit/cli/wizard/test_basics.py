@@ -7,8 +7,7 @@ prompt flow for the basics configuration step.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from rich.console import Console
@@ -112,7 +111,9 @@ class TestPromptLanguage:
 
         with (
             patch("adw.cli.wizard.basics.detect_language", return_value="python"),
-            patch("adw.cli.wizard.basics.Confirm.ask", return_value=True) as mock_confirm,
+            patch(
+                "adw.cli.wizard.basics.Confirm.ask", return_value=True
+            ) as mock_confirm,
             patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
         ):
             mock_prompt.side_effect = ["cli", "pytest", ""]  # platform, test, build

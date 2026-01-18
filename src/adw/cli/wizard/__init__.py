@@ -17,7 +17,6 @@ from adw.cli.wizard.basics import (
     detect_test_command,
     run_basics_step,
 )
-
 from adw.cli.wizard.flow import StepHandler, WizardFlowController, WizardStep
 
 __all__ = [
