@@ -36,7 +36,7 @@ class TestSummaryPanelGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": False},
+            "git": {"git_enabled": False},
             "ports": {},
             "task_manager": {},
             "phases": {},
@@ -60,12 +60,20 @@ class TestSummaryPanelGeneration:
                 "test_command": "pytest",
                 "build_command": "python -m build",
             },
-            "git": {"enabled": True, "branch_prefix": "feature/", "auto_create_pr": True},
-            "ports": {"backend_start": 9100, "frontend_start": 9200},
-            "task_manager": {"type": "linear", "team_key": "RULE"},
-            "phases": {"customized_phases": ["plan"]},
-            "llm_retry": {"customized": True, "max_retries": 5, "base_delay": 2.0},
-            "security": {"allow_dangerous": False},
+            "git": {
+                "git_enabled": True,
+                "git_branch_prefix": "feature/",
+                "git_auto_create_pr": True,
+            },
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": True, "type": "linear", "team_key": "RULE"},
+            "phases": {"customized": True, "phases": {"plan": {"timeout_seconds": 600}}},
+            "llm_retry": {
+                "retry_custom": True,
+                "retry_max_retries": 5,
+                "retry_base_delay": 2.0,
+            },
+            "security": {"security_allow_dangerous": False},
             "webhooks": {"enabled": True, "providers": {"linear": {"enabled": True}}},
         }
 
@@ -96,11 +104,11 @@ class TestSummaryPanelGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "javascript", "platform": "web"},
-            "git": {"enabled": False},
-            "ports": {"backend_start": 9100, "frontend_start": 9200},
-            "task_manager": {"type": "none"},
-            "phases": {"customized_phases": []},
-            "llm_retry": {"customized": False},
+            "git": {"git_enabled": False},
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": False, "type": "none"},
+            "phases": {"customized": False, "phases": {}},
+            "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {"enabled": False},
         }
@@ -120,10 +128,13 @@ class TestSummaryPanelGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": False},
+            "git": {"git_enabled": False},
             "ports": {},
             "task_manager": {},
-            "phases": {"customized_phases": ["plan", "build"]},
+            "phases": {
+                "customized": True,
+                "phases": {"plan": {"timeout": 600}, "build": {"pre_hook": "test"}},
+            },
             "llm_retry": {},
             "security": {},
             "webhooks": {},
@@ -151,10 +162,10 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": False},
-            "ports": {"backend_start": 9100, "frontend_start": 9200},
-            "task_manager": {"type": "none"},
-            "llm_retry": {"customized": False},
+            "git": {"git_enabled": False},
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": False, "type": "none"},
+            "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {"enabled": False},
         }
@@ -177,10 +188,10 @@ class TestProjectYamlGeneration:
                 "test_command": "pytest",
                 "build_command": "python -m build",
             },
-            "git": {"enabled": False},
-            "ports": {"backend_start": 9100, "frontend_start": 9200},
-            "task_manager": {"type": "none"},
-            "llm_retry": {"customized": False},
+            "git": {"git_enabled": False},
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": False, "type": "none"},
+            "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {"enabled": False},
         }
@@ -197,10 +208,10 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": True, "branch_prefix": "feat/", "auto_create_pr": True},
-            "ports": {"backend_start": 9100, "frontend_start": 9200},
-            "task_manager": {"type": "none"},
-            "llm_retry": {"customized": False},
+            "git": {"git_enabled": True, "git_branch_prefix": "feat/", "git_auto_create_pr": True},
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": False, "type": "none"},
+            "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {"enabled": False},
         }
@@ -217,10 +228,10 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": False},
-            "ports": {"backend_start": 9100, "frontend_start": 9200},
-            "task_manager": {"type": "none"},
-            "llm_retry": {"customized": False},
+            "git": {"git_enabled": False},
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": False, "type": "none"},
+            "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {"enabled": False},
         }
@@ -235,10 +246,10 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": False},
-            "ports": {"backend_start": 9100, "frontend_start": 9200},
-            "task_manager": {"type": "linear", "team_key": "RULE", "sync_comments": True},
-            "llm_retry": {"customized": False},
+            "git": {"git_enabled": False},
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": True, "type": "linear", "team_key": "RULE", "sync_comments": True},
+            "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {"enabled": False},
         }
@@ -255,10 +266,10 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": False},
-            "ports": {"backend_start": 8000, "frontend_start": 8100},
-            "task_manager": {"type": "none"},
-            "llm_retry": {"customized": False},
+            "git": {"git_enabled": False},
+            "ports": {"backend_port_start": 8000, "frontend_port_start": 8100},
+            "task_manager": {"enabled": False, "type": "none"},
+            "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {"enabled": False},
         }
@@ -274,10 +285,10 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": False},
-            "ports": {"backend_start": 9100, "frontend_start": 9200},
-            "task_manager": {"type": "none"},
-            "llm_retry": {"customized": False},
+            "git": {"git_enabled": False},
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": False, "type": "none"},
+            "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {"enabled": False},
         }
@@ -292,15 +303,15 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": False},
-            "ports": {"backend_start": 9100, "frontend_start": 9200},
-            "task_manager": {"type": "none"},
+            "git": {"git_enabled": False},
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {
-                "customized": True,
-                "max_retries": 5,
-                "base_delay": 2.0,
-                "max_delay": 120.0,
-                "multiplier": 3.0,
+                "retry_custom": True,
+                "retry_max_retries": 5,
+                "retry_base_delay": 2.0,
+                "retry_max_delay": 120.0,
+                "retry_multiplier": 3.0,
             },
             "security": {},
             "webhooks": {"enabled": False},
@@ -319,10 +330,10 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": False},
-            "ports": {"backend_start": 9100, "frontend_start": 9200},
-            "task_manager": {"type": "none"},
-            "llm_retry": {"customized": False},
+            "git": {"git_enabled": False},
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": False, "type": "none"},
+            "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {
                 "enabled": True,
@@ -352,10 +363,10 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": False},
-            "ports": {"backend_start": 9100, "frontend_start": 9200},
-            "task_manager": {"type": "none"},
-            "llm_retry": {"customized": False},
+            "git": {"git_enabled": False},
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": False, "type": "none"},
+            "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {"enabled": False},
         }
@@ -373,7 +384,7 @@ class TestPhaseConfigGeneration:
         """Test no phase configs generated when nothing customized."""
         state = WizardState()
         state.collected_config = {
-            "phases": {"customized_phases": []},
+            "phases": {"customized": False, "phases": {}},
         }
 
         files = generate_phase_configs(state)
@@ -385,8 +396,8 @@ class TestPhaseConfigGeneration:
         state = WizardState()
         state.collected_config = {
             "phases": {
-                "customized_phases": ["plan", "build"],
-                "phase_configs": {
+                "customized": True,
+                "phases": {
                     "plan": {"timeout_seconds": 600, "pre_hook": "echo starting"},
                     "build": {"post_hook": "npm test"},
                 },
@@ -410,8 +421,8 @@ class TestPhaseConfigGeneration:
         state = WizardState()
         state.collected_config = {
             "phases": {
-                "customized_phases": ["plan"],
-                "phase_configs": {
+                "customized": True,
+                "phases": {
                     "plan": {"input_files": {"prd": "docs/prd.md", "arch": "docs/arch.md"}},
                 },
             },
@@ -428,8 +439,8 @@ class TestPhaseConfigGeneration:
         state = WizardState()
         state.collected_config = {
             "phases": {
-                "customized_phases": ["validate"],
-                "phase_configs": {
+                "customized": True,
+                "phases": {
                     "validate": {
                         "timeout_seconds": 600,
                         "enable_review": True,
@@ -592,11 +603,11 @@ class TestRunSummaryStep:
             state = WizardState()
             state.collected_config = {
                 "basics": {"language": "python", "platform": "cli"},
-                "git": {"enabled": False},
-                "ports": {"backend_start": 9100, "frontend_start": 9200},
-                "task_manager": {"type": "none"},
-                "phases": {"customized_phases": []},
-                "llm_retry": {"customized": False},
+                "git": {"git_enabled": False},
+                "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+                "task_manager": {"enabled": False, "type": "none"},
+                "phases": {"customized": False, "phases": {}},
+                "llm_retry": {"retry_custom": False},
                 "security": {},
                 "webhooks": {"enabled": False},
             }
@@ -619,7 +630,7 @@ class TestRunSummaryStep:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": False},
+            "git": {"git_enabled": False},
             "ports": {},
             "task_manager": {},
             "phases": {},
@@ -644,7 +655,7 @@ class TestRunSummaryStep:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"enabled": False},
+            "git": {"git_enabled": False},
             "ports": {},
             "task_manager": {},
             "phases": {},
@@ -675,11 +686,11 @@ class TestSummaryStepHandler:
             state = WizardState()
             state.collected_config = {
                 "basics": {"language": "python", "platform": "cli"},
-                "git": {"enabled": False},
-                "ports": {"backend_start": 9100, "frontend_start": 9200},
-                "task_manager": {"type": "none"},
-                "phases": {"customized_phases": []},
-                "llm_retry": {"customized": False},
+                "git": {"git_enabled": False},
+                "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+                "task_manager": {"enabled": False, "type": "none"},
+                "phases": {"customized": False, "phases": {}},
+                "llm_retry": {"retry_custom": False},
                 "security": {},
                 "webhooks": {"enabled": False},
             }

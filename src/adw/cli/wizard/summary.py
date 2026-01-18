@@ -180,16 +180,18 @@ def generate_summary_panel(state: WizardState) -> Panel:
     lines.append("")
 
     # Git section
-    if git.get("enabled", False):
-        branch_prefix = git.get("branch_prefix", "feature/")
-        auto_pr = "auto-PR" if git.get("auto_create_pr", True) else "manual PR"
+    # Git step returns: git_enabled, git_branch_prefix, git_auto_create_pr
+    if git.get("git_enabled", False):
+        branch_prefix = git.get("git_branch_prefix", "feature/")
+        auto_pr = "auto-PR" if git.get("git_auto_create_pr", True) else "manual PR"
         lines.append(f"[green]Git:[/] \u2713 Enabled ({branch_prefix}, {auto_pr})")
     else:
         lines.append("[dim]Git:[/] \u2717 Disabled")
 
     # Ports section
-    backend_port = ports.get("backend_start", 9100)
-    frontend_port = ports.get("frontend_start", 9200)
+    # Ports step returns: port_config_custom, backend_port_start, frontend_port_start
+    backend_port = ports.get("backend_port_start", 9100)
+    frontend_port = ports.get("frontend_port_start", 9200)
     if backend_port == 9100 and frontend_port == 9200:
         lines.append(f"[dim]Ports:[/] Default ({backend_port}/{frontend_port})")
     else:
@@ -204,17 +206,19 @@ def generate_summary_panel(state: WizardState) -> Panel:
         lines.append(f"[cyan]Task Manager:[/] {tm_type.title()} ({team_key}-xxx)")
 
     # Phases section
-    customized_phases = phases.get("customized_phases", [])
-    if customized_phases:
-        phase_list = ", ".join(f"{p} \u270e" for p in customized_phases)
+    # Phases step returns: customized (bool), phases (dict of phase name -> config)
+    phases_dict = phases.get("phases", {})
+    if phases.get("customized", False) and phases_dict:
+        phase_list = ", ".join(f"{p} \u270e" for p in phases_dict)
         lines.append(f"[cyan]Phases:[/] {phase_list}")
     else:
         lines.append("[dim]Phases:[/] Default")
 
     # LLM Retry section
-    if llm_retry.get("customized", False):
-        max_retries = llm_retry.get("max_retries", 3)
-        base_delay = llm_retry.get("base_delay", 1.0)
+    # Retry step returns: retry_custom, retry_max_retries, retry_base_delay, etc.
+    if llm_retry.get("retry_custom", False):
+        max_retries = llm_retry.get("retry_max_retries", 3)
+        base_delay = llm_retry.get("retry_base_delay", 1.0)
         lines.append(
             f"[cyan]LLM Retry:[/] Custom ({max_retries} retries, {base_delay}s base)"
         )
@@ -222,7 +226,8 @@ def generate_summary_panel(state: WizardState) -> Panel:
         lines.append("[dim]LLM Retry:[/] Default")
 
     # Security section
-    if security.get("allow_dangerous", False):
+    # Security step returns: security_custom, security_allow_dangerous, etc.
+    if security.get("security_allow_dangerous", False):
         lines.append("[yellow]Security:[/] Dangerous mode")
     else:
         lines.append("[dim]Security:[/] Default (safe mode)")
@@ -270,9 +275,12 @@ def _get_files_to_create(state: WizardState) -> list[str]:
     files = ["project.yaml", ".gitignore"]
 
     # Add phase config files for customized phases
+    # Phases step returns: customized (bool), phases (dict of phase name -> config)
     phases = state.get_step_config("phases")
-    for phase in phases.get("customized_phases", []):
-        files.append(f"commands/{phase}/config.yaml")
+    phases_dict = phases.get("phases", {})
+    if phases.get("customized", False):
+        for phase in phases_dict:
+            files.append(f"commands/{phase}/config.yaml")
 
     return files
 
@@ -376,16 +384,18 @@ def generate_project_yaml(state: WizardState) -> str:
         config["commands"] = commands
 
     # Git section
-    if git.get("enabled", False):
+    # Git step returns: git_enabled, git_branch_prefix, git_auto_create_pr
+    if git.get("git_enabled", False):
         config["git"] = {
             "enabled": True,
-            "branch_prefix": git.get("branch_prefix", "feature/"),
-            "auto_create_pr": git.get("auto_create_pr", True),
+            "branch_prefix": git.get("git_branch_prefix", "feature/"),
+            "auto_create_pr": git.get("git_auto_create_pr", True),
         }
 
     # Ports section (only if non-default)
-    backend = ports.get("backend_start", 9100)
-    frontend = ports.get("frontend_start", 9200)
+    # Ports step returns: port_config_custom, backend_port_start, frontend_port_start
+    backend = ports.get("backend_port_start", 9100)
+    frontend = ports.get("frontend_port_start", 9200)
     if backend != 9100 or frontend != 9200:
         config["ports"] = {
             "backend_start": backend,
@@ -393,7 +403,10 @@ def generate_project_yaml(state: WizardState) -> str:
         }
 
     # Task manager section
-    if task_manager.get("type", "none") != "none":
+    # Task manager step returns: enabled, type, team_key, etc.
+    tm_enabled = task_manager.get("enabled", False)
+    tm_type = task_manager.get("type", "none")
+    if tm_enabled and tm_type != "none":
         tm_config: dict[str, Any] = {
             "type": task_manager["type"],
         }
@@ -404,30 +417,32 @@ def generate_project_yaml(state: WizardState) -> str:
         config["task_manager"] = tm_config
 
     # LLM retry section (only if customized)
-    if llm_retry.get("customized", False):
+    # Retry step returns: retry_custom, retry_max_retries, retry_base_delay, etc.
+    if llm_retry.get("retry_custom", False):
         config["llm"] = {
             "retry": {
-                "max_retries": llm_retry.get("max_retries", 3),
-                "base_delay": llm_retry.get("base_delay", 1.0),
-                "max_delay": llm_retry.get("max_delay", 60.0),
-                "multiplier": llm_retry.get("multiplier", 2.0),
+                "max_retries": llm_retry.get("retry_max_retries", 3),
+                "base_delay": llm_retry.get("retry_base_delay", 1.0),
+                "max_delay": llm_retry.get("retry_max_delay", 60.0),
+                "multiplier": llm_retry.get("retry_multiplier", 2.0),
             }
         }
 
     # Security section (only if modified from defaults)
-    has_security_changes = (
-        security.get("allow_dangerous", False)
-        or security.get("blocked_patterns")
-        or security.get("blocked_env_files")
-    )
+    # Security step returns: security_custom, security_allow_dangerous,
+    # security_blocked_commands, security_blocked_env_files
+    allow_dangerous = security.get("security_allow_dangerous", False)
+    blocked_cmds = security.get("security_blocked_commands")
+    blocked_env = security.get("security_blocked_env_files")
+    has_security_changes = allow_dangerous or blocked_cmds or blocked_env
     if has_security_changes:
         security_config: dict[str, Any] = {}
-        if security.get("allow_dangerous"):
+        if allow_dangerous:
             security_config["allow_dangerous"] = True
-        if security.get("blocked_patterns"):
-            security_config["blocked_patterns"] = security["blocked_patterns"]
-        if security.get("blocked_env_files"):
-            security_config["blocked_env_files"] = security["blocked_env_files"]
+        if blocked_cmds:
+            security_config["blocked_patterns"] = blocked_cmds
+        if blocked_env:
+            security_config["blocked_env_files"] = blocked_env
         if security_config:
             config["security"] = security_config
 
@@ -474,11 +489,13 @@ def generate_phase_configs(state: WizardState) -> dict[str, str]:
     files: dict[str, str] = {}
     phases = state.get_step_config("phases")
 
-    customized_phases = phases.get("customized_phases", [])
-    phase_configs = phases.get("phase_configs", {})
+    # Phases step returns: customized (bool), phases (dict of phase name -> config)
+    phases_dict = phases.get("phases", {})
 
-    for phase in customized_phases:
-        phase_config = phase_configs.get(phase, {})
+    if not phases.get("customized", False):
+        return files
+
+    for phase, phase_config in phases_dict.items():
         if phase_config:
             # Build phase config dict - include all non-None values
             # This preserves all fields including phase-specific options
