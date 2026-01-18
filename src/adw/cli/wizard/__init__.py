@@ -6,11 +6,13 @@ for guiding users through interactive project initialization.
 Exports:
     WizardFlowController: Main controller for wizard flow execution.
     WizardStep: Enumeration of wizard steps.
+    StepHandler: Protocol for implementing wizard step handlers.
 """
 
-from adw.cli.wizard.flow import WizardFlowController, WizardStep
+from adw.cli.wizard.flow import StepHandler, WizardFlowController, WizardStep
 
 __all__ = [
+    "StepHandler",
     "WizardFlowController",
     "WizardStep",
 ]

@@ -7,10 +7,30 @@ the step-by-step wizard experience for project initialization.
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Protocol
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.prompt import Prompt
 
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
+
+
+class StepHandler(Protocol):
+    """Protocol for wizard step handlers."""
+
+    def execute(self, state: WizardState, console: Console) -> dict[str, Any]:
+        """Execute the step and return collected configuration.
+
+        Args:
+            state: Current wizard state.
+            console: Console for output.
+
+        Returns:
+            Configuration collected from this step.
+        """
+        ...
 
 
 class WizardStep(Enum):
@@ -37,6 +57,8 @@ class WizardFlowController:
         state: The current wizard state tracking progress and config.
         steps: Ordered list of wizard steps to execute.
         current_index: Index of the current step in the sequence.
+        console: Rich console for output.
+        interrupted: Flag indicating if wizard was interrupted.
     """
 
     STEP_SEQUENCE: list[WizardStep] = [
@@ -51,6 +73,18 @@ class WizardFlowController:
         WizardStep.SUMMARY,
     ]
 
+    STEP_TITLES: dict[WizardStep, str] = {
+        WizardStep.BASICS: "Project Basics",
+        WizardStep.GIT: "Git Configuration",
+        WizardStep.PORTS: "Port Allocation",
+        WizardStep.TASK_MANAGER: "Task Manager Integration",
+        WizardStep.PHASES: "Phase Configuration",
+        WizardStep.LLM_RETRY: "LLM Retry Settings",
+        WizardStep.SECURITY: "Security Settings",
+        WizardStep.WEBHOOKS: "Webhook Configuration",
+        WizardStep.SUMMARY: "Configuration Summary",
+    }
+
     def __init__(self, state: WizardState | None = None) -> None:
         """Initialize the flow controller.
 
@@ -63,18 +97,151 @@ class WizardFlowController:
         self.state = state if state is not None else WizardState()
         self.steps = self.STEP_SEQUENCE.copy()
         self.current_index = 0
+        self.console = Console()
+        self.interrupted = False
+        self._step_handlers: dict[WizardStep, StepHandler] = {}
 
-    def run(self) -> None:
+    def register_step_handler(self, step: WizardStep, handler: StepHandler) -> None:
+        """Register a handler for a wizard step.
+
+        Args:
+            step: The step to register a handler for.
+            handler: The handler to execute for this step.
+        """
+        self._step_handlers[step] = handler
+
+    def run(self) -> bool:
         """Execute the wizard flow sequentially.
 
         Runs through all wizard steps in order, updating state
-        as each step completes.
+        as each step completes. Supports back/forward navigation.
 
-        Note:
-            Full implementation will be added in Task 4.
+        Returns:
+            True if wizard completed successfully, False if cancelled.
         """
-        # Stub - full implementation in Task 4
-        pass
+        self._show_welcome()
+
+        while self.current_index < len(self.steps):
+            if self.interrupted:
+                return False
+
+            current_step = self.steps[self.current_index]
+            self._show_step_header(current_step)
+
+            # Execute step handler if registered
+            if current_step in self._step_handlers:
+                handler = self._step_handlers[current_step]
+                config = handler.execute(self.state, self.console)
+                self.state.update_config(current_step.value, config)
+            else:
+                # Default placeholder for unimplemented steps
+                self._show_step_placeholder(current_step)
+
+            # Handle navigation
+            action = self._prompt_navigation()
+
+            if action == "next":
+                self.state.mark_completed(current_step.value)
+                self.state.navigate_to(
+                    self.steps[self.current_index + 1].value
+                    if self.current_index < len(self.steps) - 1
+                    else "complete"
+                )
+                self.current_index += 1
+            elif action == "back" and self.current_index > 0:
+                self.state.go_back_in_history()
+                self.current_index -= 1
+            elif action == "cancel":
+                self.interrupted = True
+                return False
+
+        self._show_completion()
+        return True
+
+    def _show_welcome(self) -> None:
+        """Display wizard welcome message."""
+        self.console.print()
+        self.console.print(
+            Panel(
+                "[bold]Welcome to the ADW Configuration Wizard![/]\n\n"
+                "This wizard will guide you through setting up your project.\n"
+                "You can navigate using:\n"
+                "  • [bold]n[/] or [bold]Enter[/] - Next step\n"
+                "  • [bold]b[/] - Go back\n"
+                "  • [bold]c[/] - Cancel wizard",
+                title="[blue]ADW Setup Wizard[/]",
+                border_style="blue",
+            )
+        )
+
+    def _show_step_header(self, step: WizardStep) -> None:
+        """Display header for current step.
+
+        Args:
+            step: The current wizard step.
+        """
+        title = self.STEP_TITLES.get(step, step.value.replace("_", " ").title())
+        step_num = self.current_index + 1
+        total_steps = len(self.steps)
+
+        self.console.print()
+        self.console.print(
+            f"[bold blue]Step {step_num}/{total_steps}:[/] [bold]{title}[/]"
+        )
+        self.console.print("[dim]" + "─" * 50 + "[/]")
+
+    def _show_step_placeholder(self, step: WizardStep) -> None:
+        """Display placeholder for unimplemented step.
+
+        Args:
+            step: The step to show placeholder for.
+        """
+        title = self.STEP_TITLES.get(step, step.value)
+        self.console.print(
+            f"\n[dim]Step '{title}' will be implemented in subsequent stories.[/]\n"
+        )
+
+    def _prompt_navigation(self) -> str:
+        """Prompt user for navigation action.
+
+        Returns:
+            One of 'next', 'back', or 'cancel'.
+        """
+        options = []
+        if self.current_index < len(self.steps) - 1:
+            options.append("[n]ext")
+        else:
+            options.append("[f]inish")
+        if self.current_index > 0:
+            options.append("[b]ack")
+        options.append("[c]ancel")
+
+        prompt_text = f"Action ({'/'.join(options)})"
+
+        while True:
+            choice = Prompt.ask(prompt_text, default="n").lower()
+
+            if choice in ("n", "next", "f", "finish", ""):
+                return "next"
+            elif choice in ("b", "back") and self.current_index > 0:
+                return "back"
+            elif choice in ("c", "cancel"):
+                return "cancel"
+            else:
+                self.console.print("[yellow]Invalid choice. Please try again.[/]")
+
+    def _show_completion(self) -> None:
+        """Display wizard completion message."""
+        self.console.print()
+        self.console.print(
+            Panel(
+                "[bold green]Wizard Complete![/]\n\n"
+                "Your configuration has been collected.\n"
+                "[dim]Note: Full configuration will be applied in the Summary step.[/]",
+                title="[green]Setup Complete[/]",
+                border_style="green",
+            )
+        )
 
     def get_current_step(self) -> WizardStep | None:
         """Get the current wizard step.
@@ -114,3 +281,7 @@ class WizardFlowController:
         if prev_step in self.state.completed_steps:
             self.state.completed_steps.remove(prev_step)
         return True
+
+    def cancel(self) -> None:
+        """Cancel the wizard execution."""
+        self.interrupted = True
