@@ -117,7 +117,10 @@ class TestCheckGhAuthenticated:
 
 
 class TestCreatePrViaGh:
-    """Tests for create_pr_via_gh function."""
+    """Tests for create_pr_via_gh function.
+
+    ISS-025: Base branch is now hardcoded to 'staging'.
+    """
 
     def test_create_pr_success(self) -> None:
         """Test successful PR creation returns URL."""
@@ -127,8 +130,14 @@ class TestCreatePrViaGh:
                 stdout="https://github.com/user/repo/pull/123\n",
                 stderr="",
             )
-            url = create_pr_via_gh("Test PR", "## Summary\nTest", "main")
+            # ISS-025: No longer pass base as positional arg
+            url = create_pr_via_gh("Test PR", "## Summary\nTest")
             assert url == "https://github.com/user/repo/pull/123"
+
+            # Verify base is hardcoded to staging
+            cmd = mock_run.call_args[0][0]
+            base_idx = cmd.index("--base")
+            assert cmd[base_idx + 1] == "staging"
 
     def test_create_pr_with_draft(self) -> None:
         """Test draft PR includes --draft flag."""
@@ -138,11 +147,28 @@ class TestCreatePrViaGh:
                 stdout="https://github.com/user/repo/pull/123\n",
                 stderr="",
             )
-            create_pr_via_gh("Test PR", "## Summary\nTest", "main", draft=True)
+            create_pr_via_gh("Test PR", "## Summary\nTest", draft=True)
 
             # Check that --draft was in the command
             cmd = mock_run.call_args[0][0]
             assert "--draft" in cmd
+
+    def test_create_pr_with_head_branch(self) -> None:
+        """Test head_branch parameter adds --head flag (ISS-025)."""
+        with patch("adw.cli.pr.subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="https://github.com/user/repo/pull/123\n",
+                stderr="",
+            )
+            create_pr_via_gh(
+                "Test PR", "## Summary\nTest", head_branch="adw/01HQ123"
+            )
+
+            cmd = mock_run.call_args[0][0]
+            assert "--head" in cmd
+            head_idx = cmd.index("--head")
+            assert cmd[head_idx + 1] == "adw/01HQ123"
 
     def test_create_pr_auth_error(self) -> None:
         """Test auth error raises ConfigError with correct code."""
@@ -153,7 +179,7 @@ class TestCreatePrViaGh:
                 stderr="error: authentication failed",
             )
             with pytest.raises(ConfigError) as exc_info:
-                create_pr_via_gh("Test PR", "## Summary\nTest", "main")
+                create_pr_via_gh("Test PR", "## Summary\nTest")
 
             assert exc_info.value.code == "GH_AUTH_ERROR"
 
@@ -166,7 +192,7 @@ class TestCreatePrViaGh:
                 stderr="error: no commits between main and feature",
             )
             with pytest.raises(ConfigError) as exc_info:
-                create_pr_via_gh("Test PR", "## Summary\nTest", "main")
+                create_pr_via_gh("Test PR", "## Summary\nTest")
 
             assert exc_info.value.code == "GH_NO_COMMITS"
 
@@ -177,7 +203,7 @@ class TestCreatePrViaGh:
 
             mock_run.side_effect = TimeoutExpired("gh", 60)
             with pytest.raises(ConfigError) as exc_info:
-                create_pr_via_gh("Test PR", "## Summary\nTest", "main")
+                create_pr_via_gh("Test PR", "## Summary\nTest")
 
             assert exc_info.value.code == "GH_TIMEOUT"
 
@@ -190,7 +216,7 @@ class TestCreatePrViaGh:
                 stderr="",
             )
             # no_open should be accepted and work (no-op since gh default is no-open)
-            url = create_pr_via_gh("Test PR", "## Summary\nTest", "main", no_open=True)
+            url = create_pr_via_gh("Test PR", "## Summary\nTest", no_open=True)
             assert url == "https://github.com/user/repo/pull/123"
 
 
@@ -298,36 +324,15 @@ All tests pass
 
 
 class TestGetBaseBranch:
-    """Tests for _get_base_branch function."""
+    """Tests for _get_base_branch function.
 
-    def test_returns_main_by_default(self, tmp_path: Path) -> None:
-        """Test returns 'main' when no config exists."""
-        run_dir = tmp_path / ".adw" / "runs" / "test"
-        run_dir.mkdir(parents=True)
+    ISS-025: Base branch is now hardcoded to 'staging'.
+    """
 
-        result = _get_base_branch(run_dir)
-        assert result == "main"
-
-    def test_reads_from_config(self, tmp_path: Path) -> None:
-        """Test reads default_branch from adw.yaml config."""
-        # Set up directory structure
-        project_root = tmp_path
-        runs_dir = project_root / ".adw" / "runs"
-        run_dir = runs_dir / "test"
-        run_dir.mkdir(parents=True)
-
-        # Create config
-        config_dir = project_root / ".adw"
-        config_file = config_dir / "adw.yaml"
-        config_file.write_text(
-            """
-git:
-  default_branch: develop
-"""
-        )
-
-        result = _get_base_branch(run_dir)
-        assert result == "develop"
+    def test_returns_staging_always(self) -> None:
+        """Test always returns 'staging' (ISS-025)."""
+        result = _get_base_branch()
+        assert result == "staging"
 
 
 class TestStorePrUrl:
@@ -536,58 +541,6 @@ class TestPrCommand:
                                 mock_create.assert_called_once()
                                 _, kwargs = mock_create.call_args
                                 assert kwargs.get("draft") is True
-
-    def test_pr_with_base_option(
-        self,
-        runner: CliRunner,
-        sample_context: RunContext,
-        sample_pr_description: PRDescription,
-        tmp_path: Path,
-    ) -> None:
-        """Test PR creation with --base option."""
-        runs_dir = tmp_path
-        run_dir = runs_dir / sample_context.run_id
-        doc_dir = run_dir / "artifacts" / "document"
-        doc_dir.mkdir(parents=True)
-
-        # Write PR description
-        pr_file = doc_dir / "pr_description.md"
-        pr_file.write_text(sample_pr_description.to_markdown())
-
-        with patch("adw.cli.pr.get_runs_dir") as mock_runs_dir:
-            mock_runs_dir.return_value = runs_dir
-
-            with patch("adw.cli.pr.RunLookup") as mock_lookup:
-                mock_lookup.return_value.find_by_id.return_value = sample_context
-
-                with patch("adw.cli.pr.check_gh_available") as mock_gh:
-                    mock_gh.return_value = True
-
-                    with patch("adw.cli.pr.check_gh_authenticated") as mock_auth:
-                        mock_auth.return_value = (True, "")
-
-                        with patch("adw.cli.pr.create_pr_via_gh") as mock_create:
-                            mock_create.return_value = (
-                                "https://github.com/user/repo/pull/123"
-                            )
-
-                            with patch("adw.cli.pr._store_pr_url") as mock_store:
-                                mock_store.return_value = sample_context
-
-                                runner.invoke(
-                                    app,
-                                    [
-                                        "pr",
-                                        sample_context.run_id,
-                                        "--base",
-                                        "develop",
-                                    ],
-                                )
-
-                                # Verify develop was passed as base
-                                mock_create.assert_called_once()
-                                args, _ = mock_create.call_args
-                                assert args[2] == "develop"
 
     def test_pr_with_no_open_option(
         self,
