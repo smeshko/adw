@@ -1,6 +1,6 @@
 # Story 14.2: Basics Configuration Step
 
-Status: Ready for Review
+Status: done
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
