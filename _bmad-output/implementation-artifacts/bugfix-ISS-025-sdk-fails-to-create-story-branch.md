@@ -53,9 +53,9 @@ Feature: Story branch creation and validation
 ## Tasks / Subtasks
 
 ### Task 1: Modify WorktreeManager to return branch name
-- [ ] Update `create_worktree()` to return `tuple[Path, str]` (path, branch_name)
-- [ ] Update `_create_worktree_for_run()` to capture and return branch name
-- [ ] Add `get_branch_name()` call after worktree creation to verify branch exists
+- [x] Update `create_worktree()` to return `tuple[Path, str]` (path, branch_name)
+- [x] Update `_create_worktree_for_run()` to capture and return branch name
+- [x] Add `get_branch_name()` call after worktree creation to verify branch exists
 
 ### Task 2: Populate branch_name in RunContext
 - [ ] Modify `Orchestrator.run()` to capture branch_name from worktree creation
