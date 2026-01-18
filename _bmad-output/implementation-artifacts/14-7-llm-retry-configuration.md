@@ -1,6 +1,6 @@
 # Story 14.7: LLM Retry Configuration (Optional)
 
-Status: Ready for Review
+Status: done
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
