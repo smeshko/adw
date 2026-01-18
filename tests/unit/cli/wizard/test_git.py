@@ -119,9 +119,7 @@ class TestValidateBranchPrefix:
             ("foo//bar/", "cannot contain consecutive slashes"),
         ],
     )
-    def test_invalid_prefixes(
-        self, prefix: str, expected_error_substring: str
-    ) -> None:
+    def test_invalid_prefixes(self, prefix: str, expected_error_substring: str) -> None:
         """validate_branch_prefix rejects invalid prefixes with descriptive errors."""
         valid, error = validate_branch_prefix(prefix)
         assert valid is False
@@ -196,7 +194,11 @@ class TestGitStepHandler:
 
         with patch(
             "adw.cli.wizard.git.run_git_step",
-            return_value={"git_enabled": True, "git_branch_prefix": "test/", "git_auto_create_pr": True},
+            return_value={
+                "git_enabled": True,
+                "git_branch_prefix": "test/",
+                "git_auto_create_pr": True,
+            },
         ) as mock_run:
             result = handler.execute(state, console)
 
