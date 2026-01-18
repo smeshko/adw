@@ -43,6 +43,13 @@ from adw.cli.wizard.ports import (
     run_ports_step,
     validate_port,
 )
+from adw.cli.wizard.security import (
+    BUILTIN_BLOCKED_COMMANDS,
+    BUILTIN_BLOCKED_ENV_FILES,
+    SecurityStepHandler,
+    run_security_step,
+    validate_regex,
+)
 from adw.cli.wizard.task_manager import (
     TaskManagerStepHandler,
     run_task_manager_step,
@@ -55,9 +62,12 @@ from adw.cli.wizard.webhooks import (
 
 __all__ = [
     "BasicsStepHandler",
+    "BUILTIN_BLOCKED_COMMANDS",
+    "BUILTIN_BLOCKED_ENV_FILES",
     "GitStepHandler",
     "PhasesStepHandler",
     "PortsStepHandler",
+    "SecurityStepHandler",
     "StepHandler",
     "TaskManagerStepHandler",
     "WebhooksStepHandler",
@@ -71,9 +81,11 @@ __all__ = [
     "run_git_step",
     "run_phases_step",
     "run_ports_step",
+    "run_security_step",
     "run_task_manager_step",
     "run_webhooks_step",
     "validate_branch_prefix",
     "validate_port",
+    "validate_regex",
     "validate_team_key",
 ]
