@@ -138,7 +138,7 @@ class TestBasePhaseConfiguration:
             config = _configure_phase("plan", console)
 
         assert config["enabled"] is True
-        assert config["timeout"] == 300
+        assert config["timeout_seconds"] == 300
         assert config["pre_hook"] is None
         assert config["post_hook"] is None
         assert config["input_files"] is None
@@ -159,7 +159,7 @@ class TestBasePhaseConfiguration:
             config = _configure_phase("build", console)
 
         assert config["enabled"] is False
-        assert config["timeout"] == 120
+        assert config["timeout_seconds"] == 120
         assert config["pre_hook"] == "./pre.sh"
         assert config["post_hook"] == "./post.sh"
 
@@ -178,7 +178,7 @@ class TestBasePhaseConfiguration:
             config = _configure_phase("build", console)
 
         # Build default is 600
-        assert config["timeout"] == 600
+        assert config["timeout_seconds"] == 600
 
 
 class TestValidatePhaseSpecialOptions:
@@ -216,12 +216,12 @@ class TestValidatePhaseSpecialOptions:
 
         # Base options
         assert config["enabled"] is True
-        assert config["timeout"] == 900
+        assert config["timeout_seconds"] == 900
 
         # Validate-specific options
-        assert config["code_review"] is True
-        assert config["tests"] is True
-        assert config["test_timeout"] == 300
+        assert config["enable_review"] is True
+        assert config["enable_tests"] is True
+        assert config["test_timeout_seconds"] == 300
         assert config["max_iterations"] == 5
         assert config["triage_mode"] == "auto"
         assert config["review_focus"] == ["security", "error_handling", "edge_cases"]
@@ -254,9 +254,9 @@ class TestValidatePhaseSpecialOptions:
 
             config = _configure_phase("validate", console)
 
-        assert config["code_review"] is False
-        assert config["tests"] is True
-        assert config["test_timeout"] == 600
+        assert config["enable_review"] is False
+        assert config["enable_tests"] is True
+        assert config["test_timeout_seconds"] == 600
         assert config["max_iterations"] == 3
         assert config["triage_mode"] == "manual"
         assert config["review_focus"] == ["security"]
@@ -284,9 +284,9 @@ class TestValidatePhaseSpecialOptions:
 
             config = _configure_validate_phase(console)
 
-        assert config["code_review"] is True
-        assert config["tests"] is False
-        assert config["test_timeout"] == 180
+        assert config["enable_review"] is True
+        assert config["enable_tests"] is False
+        assert config["test_timeout_seconds"] == 180
         assert config["max_iterations"] == 10
         assert config["triage_mode"] == "hybrid"
         assert config["review_focus"] == ["error_handling"]
@@ -475,7 +475,7 @@ class TestFullFlow:
         assert result["customized"] is True
         assert "plan" in result["phases"]
         assert result["phases"]["plan"]["enabled"] is True
-        assert result["phases"]["plan"]["timeout"] == 300
+        assert result["phases"]["plan"]["timeout_seconds"] == 300
 
     def test_full_flow_customize_validate_phase(self) -> None:
         """Test full flow customizing only the validate phase."""
@@ -514,8 +514,8 @@ class TestFullFlow:
         assert result["customized"] is True
         assert "validate" in result["phases"]
         validate_config = result["phases"]["validate"]
-        assert validate_config["code_review"] is True
-        assert validate_config["tests"] is True
+        assert validate_config["enable_review"] is True
+        assert validate_config["enable_tests"] is True
         assert validate_config["triage_mode"] == "auto"
 
 

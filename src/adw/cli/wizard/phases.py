@@ -187,7 +187,7 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
 
     config: dict[str, Any] = {
         "enabled": enabled,
-        "timeout": timeout,
+        "timeout_seconds": timeout,
         "pre_hook": pre_hook,
         "post_hook": post_hook,
         "input_files": input_files if input_files else None,
@@ -240,9 +240,9 @@ def _configure_validate_phase(console: Console) -> dict[str, Any]:
     review_focus = _prompt_review_focus(console)
 
     return {
-        "code_review": code_review,
-        "tests": tests,
-        "test_timeout": test_timeout,
+        "enable_review": code_review,
+        "enable_tests": tests,
+        "test_timeout_seconds": test_timeout,
         "max_iterations": max_iterations,
         "triage_mode": triage_mode,
         "review_focus": review_focus,
