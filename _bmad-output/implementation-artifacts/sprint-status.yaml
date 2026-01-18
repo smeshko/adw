@@ -314,7 +314,7 @@ development_status:
   14-4-port-configuration-step: done
   14-5-task-manager-setup: done
   14-6-phase-customization: done
-  14-7-llm-retry-configuration: in-progress
+  14-7-llm-retry-configuration: review
   14-8-security-configuration: ready-for-dev
   14-9-webhook-server-setup: ready-for-dev
   14-10-summary-file-generation: ready-for-dev

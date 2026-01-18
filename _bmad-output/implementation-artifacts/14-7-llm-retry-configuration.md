@@ -1,6 +1,6 @@
 # Story 14.7: LLM Retry Configuration (Optional)
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
@@ -15,16 +15,16 @@ so that I can tune how ADW handles transient failures.
 
 ## Acceptance Criteria
 
-- [ ] Prompts "Configure LLM retry behavior? [y/N]"
-- [ ] If No, uses defaults (3 retries, 1s base, 60s max, 2x multiplier)
-- [ ] If Yes:
-  - [ ] "Max retries: 3 [Enter or override]"
-  - [ ] "Base delay (seconds): 1.0 [Enter or override]"
-  - [ ] "Max delay (seconds): 60.0 [Enter or override]"
-  - [ ] "Delay multiplier: 2.0 [Enter or override]"
-- [ ] Validates multiplier > 1.0
-- [ ] Validates max_delay >= base_delay
-- [ ] All values stored in wizard state for final generation
+- [x] Prompts "Configure LLM retry behavior? [y/N]"
+- [x] If No, uses defaults (3 retries, 1s base, 60s max, 2x multiplier)
+- [x] If Yes:
+  - [x] "Max retries: 3 [Enter or override]"
+  - [x] "Base delay (seconds): 1.0 [Enter or override]"
+  - [x] "Max delay (seconds): 60.0 [Enter or override]"
+  - [x] "Delay multiplier: 2.0 [Enter or override]"
+- [x] Validates multiplier > 1.0
+- [x] Validates max_delay >= base_delay
+- [x] All values stored in wizard state for final generation
 
 ## Tasks / Subtasks
 
@@ -328,13 +328,38 @@ Configure retry behavior? [y/N]
 
 ### Context Reference
 
+- Project context loaded from `_bmad-output/project-context.md`
+- ADR-001 test reduction strategy followed for unit tests
+- Existing wizard step patterns examined from `ports.py`, `flow.py`
+
 ### Agent Model Used
 
 Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+None required - all tests passed.
+
 ### Completion Notes List
 
+1. Task 1: Created `src/adw/cli/wizard/retry.py` with `RetryStepHandler` class and `run_retry_step` function following established wizard step patterns.
+2. Task 2: Implemented all validation functions (`validate_max_retries`, `validate_base_delay`, `validate_max_delay`, `validate_multiplier`) with proper error messages.
+3. Task 3: Implemented interactive prompts using `Confirm.ask` for opt-in (default No) and `Prompt.ask` with validation loops for each parameter.
+4. Task 4: Step returns dict with all retry config values; flow controller stores via `state.update_config()` and marks step complete automatically.
+5. Task 5: Added 50 unit tests in `tests/unit/cli/wizard/test_retry.py` covering validations, cross-validation, prompt flows, and state integration.
+
 ### File List
+
+**New Files:**
+- `src/adw/cli/wizard/retry.py` - LLM retry configuration step
+- `tests/unit/cli/wizard/test_retry.py` - Unit tests (50 tests)
+
+**Modified Files:**
+- `src/adw/cli/wizard/__init__.py` - Added exports for retry module
+
+### Test Results
+
+- 50 new tests added for retry step
+- 276 wizard tests pass (no regressions)
+- 2645 total tests pass (82.97% coverage)
 
