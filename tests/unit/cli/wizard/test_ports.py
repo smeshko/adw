@@ -219,6 +219,26 @@ class TestRunPortsStepCustomConfiguration:
         # Should have prompted 3 times: backend, overlapping frontend, adjusted frontend
         assert mock_prompt.call_count == 3
 
+    def test_overlap_loops_until_valid(self) -> None:
+        """Test that overlap check loops until user provides non-overlapping port."""
+        console = Console(force_terminal=True)
+        state = WizardState()
+
+        with (
+            patch("adw.cli.wizard.ports.Confirm.ask", return_value=True),
+            patch("adw.cli.wizard.ports.Prompt.ask") as mock_prompt,
+        ):
+            # Backend 9100, then three overlapping frontend values, finally valid
+            # With DEFAULT_MAX_CONCURRENT=15, overlap occurs when frontend < 9115
+            mock_prompt.side_effect = ["9100", "9105", "9106", "9110", "9200"]
+            result = run_ports_step(state, console)
+
+        assert result["backend_port_start"] == 9100
+        # Frontend should be the final non-overlapping value
+        assert result["frontend_port_start"] == 9200
+        # Should have prompted 5 times: backend + 4 frontend attempts
+        assert mock_prompt.call_count == 5
+
 
 class TestPortsStepHandler:
     """Tests for PortsStepHandler class."""
@@ -291,8 +311,9 @@ class TestConstants:
         assert DEFAULT_FRONTEND_PORT == 9200
 
     def test_max_concurrent_default(self) -> None:
-        """Test default max_concurrent value."""
-        assert DEFAULT_MAX_CONCURRENT == 10
+        """Test default max_concurrent value matches worktree module."""
+        # Should match the canonical DEFAULT_MAX_CONCURRENT from worktree/ports.py
+        assert DEFAULT_MAX_CONCURRENT == 15
 
     def test_default_ranges_dont_overlap(self) -> None:
         """Test that default port ranges don't overlap."""

@@ -16,10 +16,12 @@ from rich.prompt import Confirm, Prompt
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
 
-# Default port values (matches worktree/ports.py)
-DEFAULT_BACKEND_PORT = 9100
-DEFAULT_FRONTEND_PORT = 9200
-DEFAULT_MAX_CONCURRENT = 10
+# Import default values from the canonical source (worktree/ports.py)
+from adw.worktree.ports import (
+    DEFAULT_BACKEND_START as DEFAULT_BACKEND_PORT,
+    DEFAULT_FRONTEND_START as DEFAULT_FRONTEND_PORT,
+    DEFAULT_MAX_CONCURRENT,
+)
 
 # Port range limits
 MIN_PORT = 1
@@ -206,8 +208,8 @@ def run_ports_step(
         DEFAULT_FRONTEND_PORT,
     )
 
-    # Check for overlap
-    if check_port_overlap(backend_port, frontend_port):
+    # Check for overlap - loop until valid
+    while check_port_overlap(backend_port, frontend_port):
         _show_overlap_warning(console, backend_port, frontend_port)
         # Re-prompt for frontend port
         console.print()
