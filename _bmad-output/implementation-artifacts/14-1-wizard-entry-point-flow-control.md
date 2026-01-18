@@ -40,11 +40,11 @@ so that I can get the level of configuration help I need.
 - [x] Support for navigation history
 
 ### Task 3: Modify `init.py` Entry Point
-- [ ] Add `--wizard` flag to force wizard mode
-- [ ] Add `--no-interactive` flag to skip wizard
-- [ ] Check for existing `.adw/` directory
-- [ ] Show Rich confirmation panel for overwrite
-- [ ] Prompt for guided vs minimal setup choice
+- [x] Add `--wizard` flag to force wizard mode
+- [x] Add `--no-interactive` flag to skip wizard
+- [x] Check for existing `.adw/` directory
+- [x] Show Rich confirmation panel for overwrite
+- [x] Prompt for guided vs minimal setup choice
 
 ### Task 4: Implement Flow Controller
 - [ ] Create `WizardFlowController` class in `flow.py`
@@ -288,6 +288,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - Task 1: Created wizard package structure with WizardFlowController class and WizardStep enum. Added WizardState model stub for importability. All tests pass (15 new tests added).
 - Task 2: Enhanced WizardState model with full navigation history support including navigate_to, go_back_in_history, go_forward_in_history, update_config, and get_step_config methods. Added 26 comprehensive tests.
+- Task 3: Modified init.py entry point with --wizard and --no-interactive flags, existing config warning panel, guided setup prompt. Updated app.py for flag handling. Updated all existing tests to use --no-interactive.
 
 ### File List
 
@@ -301,4 +302,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 **Modified Files:**
 - src/adw/models/__init__.py (added WizardState export)
+- src/adw/cli/app.py (added --wizard and --no-interactive flags)
+- src/adw/cli/init.py (added wizard/no-interactive support, existing config warning)
+- tests/unit/cli/test_init.py (updated for new flags, added TestInitWizardFlags)
+- tests/integration/cli/test_init_integration.py (updated for --no-interactive flag)
 
