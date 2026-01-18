@@ -14,14 +14,41 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 
+from adw.exceptions import ConfigError
+
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
 
 
-class ConfigWriteError(Exception):
-    """Raised when configuration file writing fails."""
+class ConfigWriteError(ConfigError):
+    """Raised when configuration file writing fails.
 
-    pass
+    Inherits from ConfigError to integrate with ADW's exception hierarchy,
+    providing structured error information with code, message, and suggestion.
+    """
+
+    def __init__(
+        self,
+        code: str = "CONFIG_WRITE_FAILED",
+        message: str = "Failed to write configuration files",
+        *,
+        suggestion: str | None = "Check file permissions and disk space.",
+        recoverable: bool = False,
+    ) -> None:
+        """Initialize a ConfigWriteError.
+
+        Args:
+            code: Unique error code.
+            message: Human-readable error message.
+            suggestion: Optional actionable next step.
+            recoverable: Whether the operation can be retried.
+        """
+        super().__init__(
+            code=code,
+            message=message,
+            suggestion=suggestion,
+            recoverable=recoverable,
+        )
 
 
 class SummaryStepHandler:
@@ -109,7 +136,9 @@ def run_summary_step(
             "files_created": [str(adw_dir / path) for path in files],
         }
     except ConfigWriteError as e:
-        console.print(f"\n[red]Error writing configuration:[/] {e}")
+        console.print(f"\n[red]Error writing configuration:[/] {e.message}")
+        if e.suggestion:
+            console.print(f"[dim]Suggestion: {e.suggestion}[/]")
         console.print("[dim]No files were created.[/]")
         return {
             "confirmed": True,
@@ -431,6 +460,8 @@ def generate_phase_configs(state: WizardState) -> dict[str, str]:
     """Generate phase-specific config.yaml files.
 
     Only generates configs for phases that have custom settings.
+    Preserves all collected configuration fields including phase-specific
+    options like enable_review, enable_tests, max_iterations, etc.
 
     Args:
         state: Current wizard state.
@@ -449,17 +480,16 @@ def generate_phase_configs(state: WizardState) -> dict[str, str]:
     for phase in customized_phases:
         phase_config = phase_configs.get(phase, {})
         if phase_config:
-            # Build phase config dict
+            # Build phase config dict - include all non-None values
+            # This preserves all fields including phase-specific options
+            # like enable_review, enable_tests, max_iterations, triage_mode, etc.
             config: dict[str, Any] = {}
 
-            if phase_config.get("timeout_seconds"):
-                config["timeout_seconds"] = phase_config["timeout_seconds"]
-            if phase_config.get("pre_hook"):
-                config["pre_hook"] = phase_config["pre_hook"]
-            if phase_config.get("post_hook"):
-                config["post_hook"] = phase_config["post_hook"]
-            if phase_config.get("input_files"):
-                config["input_files"] = phase_config["input_files"]
+            for key, value in phase_config.items():
+                # Include all values except None
+                # This ensures booleans (False) and zero values are preserved
+                if value is not None:
+                    config[key] = value
 
             if config:
                 header = (
@@ -492,7 +522,8 @@ def atomic_write_config(adw_dir: Path, files: dict[str, str]) -> None:
     """Write all config files atomically.
 
     Creates files atomically - if any write fails, rolls back
-    all created files to prevent partial configuration.
+    only newly created files to prevent partial configuration.
+    Pre-existing files that were overwritten are backed up and restored on failure.
 
     Args:
         adw_dir: Path to .adw/ directory.
@@ -501,8 +532,9 @@ def atomic_write_config(adw_dir: Path, files: dict[str, str]) -> None:
     Raises:
         ConfigWriteError: If any write fails (partial writes rolled back).
     """
-    created_paths: list[Path] = []
+    newly_created_paths: list[Path] = []
     created_dirs: list[Path] = []
+    backups: dict[Path, str] = {}  # Maps file path to original content
 
     try:
         # Create .adw directory if needed
@@ -520,13 +552,28 @@ def atomic_write_config(adw_dir: Path, files: dict[str, str]) -> None:
                 parent.mkdir(parents=True, exist_ok=True)
                 created_dirs.append(parent)
 
+            # Track if file existed before and backup its content
+            file_existed = full_path.exists()
+            if file_existed:
+                backups[full_path] = full_path.read_text()
+
             # Write file
             full_path.write_text(content)
-            created_paths.append(full_path)
+
+            # Only track newly created files for deletion on rollback
+            if not file_existed:
+                newly_created_paths.append(full_path)
 
     except OSError as e:
-        # Rollback: delete created files in reverse order
-        for path in reversed(created_paths):
+        import contextlib
+
+        # Rollback: restore backups for overwritten files
+        for path, original_content in backups.items():
+            with contextlib.suppress(OSError):
+                path.write_text(original_content)
+
+        # Delete only newly created files (not pre-existing ones)
+        for path in reversed(newly_created_paths):
             if path.is_file():
                 path.unlink(missing_ok=True)
 
@@ -535,7 +582,11 @@ def atomic_write_config(adw_dir: Path, files: dict[str, str]) -> None:
             if dir_path.is_dir() and not any(dir_path.iterdir()):
                 dir_path.rmdir()
 
-        raise ConfigWriteError(f"Failed to write config: {e}") from e
+        raise ConfigWriteError(
+            code="CONFIG_WRITE_FAILED",
+            message=f"Failed to write config: {e}",
+            suggestion="Check file permissions and disk space.",
+        ) from e
 
 
 def _show_success_message(console: Console, files: list[str]) -> None:

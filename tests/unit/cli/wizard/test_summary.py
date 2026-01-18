@@ -423,6 +423,46 @@ class TestPhaseConfigGeneration:
         assert plan_config["input_files"]["prd"] == "docs/prd.md"
         assert plan_config["input_files"]["arch"] == "docs/arch.md"
 
+    def test_generate_phase_configs_preserves_all_fields(self) -> None:
+        """Test that all phase config fields are preserved, including validate-specific ones."""
+        state = WizardState()
+        state.collected_config = {
+            "phases": {
+                "customized_phases": ["validate"],
+                "phase_configs": {
+                    "validate": {
+                        "timeout_seconds": 600,
+                        "enable_review": True,
+                        "enable_tests": False,
+                        "test_timeout_seconds": 120,
+                        "max_iterations": 3,
+                        "triage_mode": "auto",
+                        "review_focus": ["security", "performance"],
+                        "pre_hook": "echo starting",
+                        "post_hook": None,  # None values should be excluded
+                    },
+                },
+            },
+        }
+
+        files = generate_phase_configs(state)
+
+        assert "commands/validate/config.yaml" in files
+        validate_config = yaml.safe_load(files["commands/validate/config.yaml"])
+
+        # All non-None values should be preserved
+        assert validate_config["timeout_seconds"] == 600
+        assert validate_config["enable_review"] is True
+        assert validate_config["enable_tests"] is False  # False should be preserved
+        assert validate_config["test_timeout_seconds"] == 120
+        assert validate_config["max_iterations"] == 3
+        assert validate_config["triage_mode"] == "auto"
+        assert validate_config["review_focus"] == ["security", "performance"]
+        assert validate_config["pre_hook"] == "echo starting"
+
+        # None values should be excluded
+        assert "post_hook" not in validate_config
+
 
 class TestGitignoreGeneration:
     """Tests for .gitignore generation."""
@@ -500,6 +540,46 @@ class TestAtomicWrite:
             assert "Failed to write config" in str(exc_info.value)
             # Check that created file was rolled back
             assert not (adw_dir / "project.yaml").exists() or not adw_dir.exists()
+
+    def test_atomic_write_preserves_existing_files_on_failure(self) -> None:
+        """Test that pre-existing files are preserved when a later write fails."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            adw_dir = Path(tmpdir) / ".adw"
+            adw_dir.mkdir(parents=True)
+
+            # Pre-create project.yaml with original content
+            original_content = "name: original-project\nlanguage: python\n"
+            (adw_dir / "project.yaml").write_text(original_content)
+
+            # Try to write multiple files, with the second one failing
+            files = {
+                "project.yaml": "name: new-project\nlanguage: typescript\n",
+                "new_file.yaml": "this will fail",
+            }
+
+            # Mock write_text to fail on the second file
+            original_write_text = Path.write_text
+            call_count = [0]
+
+            def failing_write_text(self, content, *args, **kwargs):
+                call_count[0] += 1
+                if call_count[0] == 2:  # Fail on second file write
+                    raise OSError("Disk full")
+                return original_write_text(self, content, *args, **kwargs)
+
+            with (
+                patch.object(Path, "write_text", failing_write_text),
+                pytest.raises(ConfigWriteError),
+            ):
+                atomic_write_config(adw_dir, files)
+
+            # Verify original file content was restored
+            assert (adw_dir / "project.yaml").exists()
+            restored_content = (adw_dir / "project.yaml").read_text()
+            assert restored_content == original_content
+
+            # Verify new file was not created
+            assert not (adw_dir / "new_file.yaml").exists()
 
 
 class TestRunSummaryStep:
