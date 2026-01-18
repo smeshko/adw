@@ -1,6 +1,6 @@
 # Story 14.1: Wizard Entry Point & Flow Control
 
-Status: ready-for-dev
+Status: completed
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
@@ -15,16 +15,16 @@ so that I can get the level of configuration help I need.
 
 ## Acceptance Criteria
 
-- [ ] `adw init` prompts "Would you like guided setup? [Y/n]"
-- [ ] Answering No creates minimal config (language + name only)
-- [ ] Answering Yes enters wizard flow
-- [ ] `--no-interactive` flag skips prompt, uses minimal setup
-- [ ] `--wizard` flag skips prompt, enters wizard directly
-- [ ] Detects existing `.adw/` directory
-- [ ] Shows warning: "Existing configuration found. This will overwrite all settings."
-- [ ] Requires explicit confirmation to proceed with overwrite
-- [ ] Wizard state tracks completed steps for back/forward navigation
-- [ ] Ctrl+C at any point shows "Setup cancelled. No files created."
+- [x] `adw init` prompts "Would you like guided setup? [Y/n]"
+- [x] Answering No creates minimal config (language + name only)
+- [x] Answering Yes enters wizard flow
+- [x] `--no-interactive` flag skips prompt, uses minimal setup
+- [x] `--wizard` flag skips prompt, enters wizard directly
+- [x] Detects existing `.adw/` directory
+- [x] Shows warning: "Existing configuration found. This will overwrite all settings."
+- [x] Requires explicit confirmation to proceed with overwrite
+- [x] Wizard state tracks completed steps for back/forward navigation
+- [x] Ctrl+C at any point shows "Setup cancelled. No files created."
 
 ## Tasks / Subtasks
 
@@ -66,11 +66,11 @@ so that I can get the level of configuration help I need.
 - [x] Clean up any temporary state
 
 ### Task 7: Write Unit Tests
-- [ ] Test `--wizard` flag forces wizard mode
-- [ ] Test `--no-interactive` flag skips wizard
-- [ ] Test existing config detection and warning
-- [ ] Test Ctrl+C cleanup (using signal mocking)
-- [ ] Test WizardState navigation methods
+- [x] Test `--wizard` flag forces wizard mode
+- [x] Test `--no-interactive` flag skips wizard
+- [x] Test existing config detection and warning
+- [x] Test Ctrl+C cleanup (using signal mocking)
+- [x] Test WizardState navigation methods
 
 ---
 
@@ -292,6 +292,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 4: Implemented full WizardFlowController with run() method for sequential step execution, navigation support (back/forward), step handler registration via StepHandler protocol, STEP_TITLES mapping, and cancel functionality. Added 8 new tests.
 - Task 5: Enhanced minimal setup path with interactive language confirmation prompt (skipped when --no-interactive). Uses ProjectTypeDetector for auto-detection and ProjectInitializer for config generation.
 - Task 6: Added SIGINT (Ctrl+C) interrupt handler for both init and wizard flow. Shows "Setup cancelled. No files created." on interrupt. Includes context manager for init and signal handler install/restore for wizard. Added 2 new tests.
+- Task 7: All test requirements were implemented incrementally during Tasks 1-6. Total: 82 tests covering wizard package, state model, init flags, and interrupt handling.
 
 ### File List
 
