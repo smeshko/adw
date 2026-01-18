@@ -68,11 +68,11 @@ def init(
     use_wizard = _determine_setup_mode(wizard, no_interactive)
 
     if use_wizard:
-        # Enter wizard flow (stub - full implementation in Task 4)
+        # Enter wizard flow
         _run_wizard_setup(project_root)
     else:
         # Minimal setup path
-        _run_minimal_setup(project_root, language, force)
+        _run_minimal_setup(project_root, language, force, no_interactive)
 
 
 def _determine_setup_mode(wizard: bool, no_interactive: bool) -> bool:
@@ -126,6 +126,7 @@ def _run_minimal_setup(
     project_root: Path,
     language: str | None,
     force: bool,
+    no_interactive: bool = False,
 ) -> None:
     """Run minimal setup with auto-detection.
 
@@ -133,6 +134,7 @@ def _run_minimal_setup(
         project_root: Root directory of the project.
         language: Override detected language.
         force: Whether to overwrite existing config.
+        no_interactive: If True, skip confirmation prompts.
     """
     adw_dir = project_root / ".adw"
 
@@ -152,6 +154,24 @@ def _run_minimal_setup(
         project_type = language
     else:
         project_type = detected_type
+
+        # Prompt for confirmation of detected language if interactive
+        if not no_interactive:
+            console.print()
+            console.print(f"[bold]Detected project type:[/] {project_type}")
+            if not Confirm.ask(
+                f"Use detected language '{project_type}'?",
+                default=True,
+            ):
+                # Let user override
+                from rich.prompt import Prompt
+                valid_languages = set(detector.DEFAULTS.keys()) - {"unknown"}
+                choices_str = ", ".join(sorted(valid_languages))
+                console.print(f"[dim]Available: {choices_str}[/]")
+                project_type = Prompt.ask(
+                    "Enter language",
+                    default=project_type,
+                )
 
     # Initialize
     initializer = ProjectInitializer(project_root)
