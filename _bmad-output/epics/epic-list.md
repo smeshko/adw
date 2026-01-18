@@ -22,24 +22,35 @@
 | 11 | Validation Loop | Iterative review→fix cycle with issue triage (FIX/DISMISS/DEFER) | Post-MVP | Integration |
 | 12 | Task Manager Integration | Enable runs from Linear/Jira/GitHub Issues with auto-fetch, status comments, label management, and issue closing | Post-MVP | Integration |
 | 13 | Webhook Infrastructure | Generic webhook server with Linear provider first, GitHub later | Post-MVP | Integration |
-| 14 | Ship Phase & Deployment | Automate PR approval, merge, and project-specific deployment hooks | Post-MVP | Integration |
-| 15 | Cross-Project Dashboard | Aggregate runs across projects with analytics, token tracking, and dashboard views | Post-MVP | Integration |
-| 16 | Validation Simplification | Rework Epic 11 to single-call validation with LLM handling iteration | Post-MVP | Integration |
+| 14 | Interactive Init Wizard | Guided setup wizard for first-time users covering all configuration options | Post-MVP | Integration |
+| 15 | Ship Phase & Deployment | Automate PR approval, merge, and project-specific deployment hooks | Post-MVP | Integration |
+| 16 | Cross-Project Dashboard | Aggregate runs across projects with analytics, token tracking, and dashboard views | Post-MVP | Integration |
+| 17 | Validation Simplification | Rework Epic 11 to single-call validation with LLM handling iteration | Post-MVP | Integration |
+
+---
+
+## Course Correction Summary (2026-01-18)
+
+**Epic 14: Interactive Init Wizard** — New feature to guide first-time users through configuration:
+- Guided vs minimal setup choice on `adw init`
+- Covers: basics, git, ports, task manager, phases, LLM retry, security, webhooks
+- 10 stories across 4 implementation waves
+- Estimated effort: ~4 days
 
 ---
 
 ## Course Correction Summary (2026-01-08)
 
-**Epic 16: Validation Simplification** — Created to rework Epic 11's over-engineered validation loop:
+**Epic 17: Validation Simplification** (was Epic 16) — Created to rework Epic 11's over-engineered validation loop:
 - SDK makes single executor call (~5 lines of code)
 - LLM handles entire validate→fix→re-validate cycle in one prompt
 - Remove triage system, loop controller, fix engine (~850 lines deleted)
 - Simplify configuration from 13+ fields to 3 fields
 - 4 stories to implement the simplification:
-  - 16.1: Remove SDK Validation Loop (WAVE 1)
-  - 16.2: Create Unified Validation Prompt (WAVE 1)
-  - 16.3: Simplify Configuration (WAVE 2)
-  - 16.4: Update Phase Result Model (WAVE 2)
+  - 17.1: Remove SDK Validation Loop (WAVE 1)
+  - 17.2: Create Unified Validation Prompt (WAVE 1)
+  - 17.3: Simplify Configuration (WAVE 2)
+  - 17.4: Update Phase Result Model (WAVE 2)
 
 See: `sprint-change-proposal-2026-01-08.md` for full rationale.
 
@@ -49,13 +60,15 @@ See: `sprint-change-proposal-2026-01-08.md` for full rationale.
 
 The following changes were made based on gap analysis comparing adw-final to adw-sdk:
 
-### Post-MVP Epics (Renumbered 2026-01-04)
-- **Epic 10: Worktree Isolation** — Concurrent workflow execution via git worktrees (6 stories) [was Epic 12]
-- **Epic 11: Validation Loop** — Iterative review→fix cycle with triage (7 stories) [was Epic 15]
-- **Epic 12: Task Manager Integration** — Extended with full task lifecycle [was Epic 11]
-- **Epic 13: Webhook Infrastructure** — Event-driven workflow triggers (7 stories) [was Epic 14]
-- **Epic 14: Ship Phase & Deployment** — PR approval, merge, deployment hooks (6 stories) [was Epic 13]
-- **Epic 15: Cross-Project Dashboard** — Analytics and dashboard views [was Epic 10]
+### Post-MVP Epics (Renumbered 2026-01-18)
+- **Epic 10: Worktree Isolation** — Concurrent workflow execution via git worktrees (6 stories)
+- **Epic 11: Validation Loop** — Iterative review→fix cycle with triage (7 stories)
+- **Epic 12: Task Manager Integration** — Extended with full task lifecycle
+- **Epic 13: Webhook Infrastructure** — Event-driven workflow triggers (7 stories)
+- **Epic 14: Interactive Init Wizard** — Guided setup wizard (10 stories) [NEW 2026-01-18]
+- **Epic 15: Ship Phase & Deployment** — PR approval, merge, deployment hooks (6 stories) [was Epic 14]
+- **Epic 16: Cross-Project Dashboard** — Analytics and dashboard views [was Epic 15]
+- **Epic 17: Validation Simplification** — Single-call validation (4 stories) [was Epic 16]
 
 ### Extended Epics
 - **Epic 3** — Added security hooks (3 new stories: 3.X, 3.Y, 3.Z)
