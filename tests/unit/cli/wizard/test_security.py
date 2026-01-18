@@ -221,6 +221,28 @@ class TestRunSecurityStepBlockedCommands:
         # Only valid pattern should be stored
         assert result["security_blocked_commands"] == [r"valid\s+pattern"]
 
+    def test_blocked_commands_with_square_brackets(self) -> None:
+        """Test that patterns with square brackets are handled correctly.
+
+        Patterns like [a-z]+ should be stored correctly without being
+        interpreted as Rich markup.
+        """
+        console = Console(force_terminal=True)
+        state = WizardState()
+
+        with (
+            patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
+            patch("adw.cli.wizard.security.Prompt.ask") as mock_prompt,
+        ):
+            # Configure: Yes, Dangerous: No, Add blocked commands: Yes, Add env: No
+            mock_confirm.side_effect = [True, False, True, False]
+            # Pattern with brackets (valid regex), then empty to finish
+            mock_prompt.side_effect = [r"[a-z]+", r"file[0-9]+\.txt", ""]
+            result = run_security_step(state, console)
+
+        # Patterns with brackets should be stored correctly
+        assert result["security_blocked_commands"] == [r"[a-z]+", r"file[0-9]+\.txt"]
+
 
 class TestRunSecurityStepBlockedEnvFiles:
     """Tests for blocked env files configuration."""

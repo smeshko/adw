@@ -11,6 +11,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 
@@ -236,9 +237,9 @@ def _prompt_blocked_commands(console: Console) -> list[str]:
         is_valid, result = validate_regex(pattern)
         if is_valid:
             patterns.append(pattern)
-            console.print(f"[green]Added: {pattern}[/]")
+            console.print(f"[green]Added: {escape(pattern)}[/]")
         else:
-            console.print(f"[red]{result}. Please try again.[/]")
+            console.print(f"[red]{escape(result)}. Please try again.[/]")
 
     return patterns
 
@@ -289,6 +290,6 @@ def _prompt_blocked_env_files(console: Console) -> list[str]:
 
         # No validation needed for glob patterns
         patterns.append(pattern)
-        console.print(f"[green]Added: {pattern}[/]")
+        console.print(f"[green]Added: {escape(pattern)}[/]")
 
     return patterns
