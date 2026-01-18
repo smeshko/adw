@@ -155,6 +155,23 @@ class TestPromptLanguage:
 
             assert result["language"] == "kotlin"  # Normalized to lowercase
 
+    def test_other_language_rejects_empty_string(self) -> None:
+        """Test that selecting 'other' and entering empty string re-prompts."""
+        console = Console(force_terminal=True)
+        state = WizardState()
+
+        with (
+            patch("adw.cli.wizard.basics.detect_language", return_value="unknown"),
+            patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
+        ):
+            # Simulate: select "other", enter "" (rejected), enter "  " (rejected), enter "swift"
+            mock_prompt.side_effect = ["other", "", "  ", "swift", "cli", "", ""]
+            result = run_basics_step(state, console)
+
+            assert result["language"] == "swift"
+            # Verify prompt was called multiple times for language entry
+            assert mock_prompt.call_count >= 4
+
 
 class TestPromptPlatform:
     """Tests for platform prompting flow."""
@@ -189,6 +206,22 @@ class TestPromptPlatform:
             result = run_basics_step(state, console)
 
             assert result["platform"] == "mobile app"  # Normalized to lowercase
+
+    def test_other_platform_rejects_empty_string(self) -> None:
+        """Test that selecting 'other' platform and entering empty string re-prompts."""
+        console = Console(force_terminal=True)
+        state = WizardState()
+
+        with (
+            patch("adw.cli.wizard.basics.detect_language", return_value="python"),
+            patch("adw.cli.wizard.basics.Confirm.ask", return_value=True),
+            patch("adw.cli.wizard.basics.Prompt.ask") as mock_prompt,
+        ):
+            # platform "other", enter "" (rejected), enter "embedded"
+            mock_prompt.side_effect = ["other", "", "embedded", "pytest", ""]
+            result = run_basics_step(state, console)
+
+            assert result["platform"] == "embedded"
 
 
 class TestPromptCommands:

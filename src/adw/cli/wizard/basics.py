@@ -197,12 +197,16 @@ def _prompt_language(console: Console, detected: str) -> str:
 
     # Handle "other" - prompt for custom language
     if language == "other":
-        language = Prompt.ask(
-            "Enter language name",
-            console=console,
-        )
-        # Normalize to lowercase
-        language = language.lower().strip()
+        while True:
+            language = Prompt.ask(
+                "Enter language name",
+                console=console,
+            )
+            # Normalize to lowercase
+            language = language.lower().strip()
+            if language:
+                break
+            console.print("[yellow]Language name cannot be empty. Please try again.[/]")
 
     return language
 
@@ -226,12 +230,16 @@ def _prompt_platform(console: Console) -> str:
 
     # Handle "other" - prompt for custom platform
     if platform == "other":
-        platform = Prompt.ask(
-            "Enter platform type",
-            console=console,
-        )
-        # Normalize to lowercase
-        platform = platform.lower().strip()
+        while True:
+            platform = Prompt.ask(
+                "Enter platform type",
+                console=console,
+            )
+            # Normalize to lowercase
+            platform = platform.lower().strip()
+            if platform:
+                break
+            console.print("[yellow]Platform type cannot be empty. Please try again.[/]")
 
     return platform
 

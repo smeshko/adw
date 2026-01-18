@@ -213,7 +213,9 @@ def _run_minimal_setup(
                 f"Valid options: {', '.join(sorted(valid_languages))}"
             )
             console.print("[dim]Proceeding with 'unknown' defaults.[/]")
-        project_type = language
+            project_type = "unknown"  # Use unknown, not the invalid value
+        else:
+            project_type = language
     else:
         project_type = detected_type
 
