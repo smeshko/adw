@@ -63,11 +63,11 @@ so that ADW can manage branches and PRs automatically.
 - [x] Mark git step as completed
 
 ### Task 6: Write Unit Tests
-- [ ] Test git repo detection (is a repo)
-- [ ] Test git repo detection (not a repo - should error/exit)
-- [ ] Test branch prefix validation (valid and invalid cases)
-- [ ] Test full prompt flow (branch prefix + auto-PR)
-- [ ] Test state update after step completion (git_enabled always True)
+- [x] Test git repo detection (is a repo)
+- [x] Test git repo detection (not a repo - should error/exit)
+- [x] Test branch prefix validation (valid and invalid cases)
+- [x] Test full prompt flow (branch prefix + auto-PR)
+- [x] Test state update after step completion (git_enabled always True)
 
 ---
 
@@ -347,9 +347,13 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 3: Implemented validate_branch_prefix() with regex pattern. Validates: no spaces, auto-appends trailing /, must start with letter, valid git chars only. Returns (bool, str) tuple.
 - Task 4: Implemented prompt_branch_prefix() with default "feature/" and validation loop. Implemented prompt_auto_create_pr() using Rich Confirm with default True.
 - Task 5: Verified run_git_step returns dict with git_enabled, git_branch_prefix, git_auto_create_pr. Flow controller handles state update via state.update_config("git", config).
+- Task 6: Created tests/unit/cli/wizard/test_git.py with 25 tests covering: is_git_repo, require_git_repo, validate_branch_prefix (10 valid + 5 invalid), run_git_step structure/values, GitStepHandler delegation. All tests pass.
 
 ### File List
 
 - src/adw/cli/wizard/git.py (created)
 - src/adw/cli/wizard/__init__.py (modified)
+- tests/unit/cli/__init__.py (created)
+- tests/unit/cli/wizard/__init__.py (created)
+- tests/unit/cli/wizard/test_git.py (created)
 
