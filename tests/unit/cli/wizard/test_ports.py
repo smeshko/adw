@@ -144,7 +144,7 @@ class TestCommonPortDetection:
     def test_common_ports_set_completeness(self) -> None:
         """Test that COMMON_PORTS contains expected ports."""
         expected = {3000, 3001, 5000, 8000, 8080, 8443, 8888}
-        assert COMMON_PORTS == expected
+        assert expected == COMMON_PORTS
 
 
 class TestRunPortsStepDefaults:

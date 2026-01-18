@@ -13,15 +13,12 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 
+from adw.worktree.ports import DEFAULT_BACKEND_START as DEFAULT_BACKEND_PORT
+from adw.worktree.ports import DEFAULT_FRONTEND_START as DEFAULT_FRONTEND_PORT
+from adw.worktree.ports import DEFAULT_MAX_CONCURRENT
+
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
-
-# Import default values from the canonical source (worktree/ports.py)
-from adw.worktree.ports import (
-    DEFAULT_BACKEND_START as DEFAULT_BACKEND_PORT,
-    DEFAULT_FRONTEND_START as DEFAULT_FRONTEND_PORT,
-    DEFAULT_MAX_CONCURRENT,
-)
 
 # Port range limits
 MIN_PORT = 1
