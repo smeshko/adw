@@ -34,10 +34,10 @@ so that I can get the level of configuration help I need.
 - [x] Create `flow.py` for wizard flow controller
 
 ### Task 2: Implement WizardState Model
-- [ ] Add `WizardState` Pydantic model to `src/adw/models/`
-- [ ] Include fields: current_step, completed_steps, collected_config
-- [ ] Include methods: mark_completed, can_go_back, can_go_forward
-- [ ] Support for navigation history
+- [x] Add `WizardState` Pydantic model to `src/adw/models/`
+- [x] Include fields: current_step, completed_steps, collected_config
+- [x] Include methods: mark_completed, can_go_back, can_go_forward
+- [x] Support for navigation history
 
 ### Task 3: Modify `init.py` Entry Point
 - [ ] Add `--wizard` flag to force wizard mode
@@ -287,6 +287,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Completion Notes List
 
 - Task 1: Created wizard package structure with WizardFlowController class and WizardStep enum. Added WizardState model stub for importability. All tests pass (15 new tests added).
+- Task 2: Enhanced WizardState model with full navigation history support including navigate_to, go_back_in_history, go_forward_in_history, update_config, and get_step_config methods. Added 26 comprehensive tests.
 
 ### File List
 
@@ -296,6 +297,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - src/adw/models/wizard.py
 - tests/unit/cli/wizard/__init__.py
 - tests/unit/cli/wizard/test_flow.py
+- tests/unit/cli/wizard/test_state.py
 
 **Modified Files:**
 - src/adw/models/__init__.py (added WizardState export)
