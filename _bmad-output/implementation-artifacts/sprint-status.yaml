@@ -313,7 +313,7 @@ development_status:
   14-3-git-integration-step: ready-for-dev
   14-4-port-configuration-step: ready-for-dev
   14-5-task-manager-setup: ready-for-dev
-  14-6-phase-customization: in-progress
+  14-6-phase-customization: review
   14-7-llm-retry-configuration: ready-for-dev
   14-8-security-configuration: ready-for-dev
   14-9-webhook-server-setup: ready-for-dev
