@@ -43,9 +43,9 @@ so that external events can trigger ADW runs.
 ## Tasks / Subtasks
 
 ### Task 1: Create Webhook Step Module
-- [ ] Create `src/adw/cli/wizard/webhooks.py`
-- [ ] Define `run_webhooks_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/webhooks.py`
+- [x] Define `run_webhooks_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Server Configuration Prompts
 - [ ] Prompt for webhook server enable/disable
