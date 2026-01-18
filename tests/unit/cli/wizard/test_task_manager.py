@@ -149,7 +149,16 @@ class TestEnabledFlow:
         ):
             # enable, sync_comments, comment_failures_only, labels_enabled,
             # auto_close, include_labels, include_parent, configure_mapping
-            mock_confirm.side_effect = [True, True, True, True, False, True, True, False]
+            mock_confirm.side_effect = [
+                True,
+                True,
+                True,
+                True,
+                False,
+                True,
+                True,
+                False,
+            ]
             mock_prompt.side_effect = [
                 "linear",
                 "RULE",

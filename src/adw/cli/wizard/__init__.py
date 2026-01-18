@@ -48,6 +48,10 @@ from adw.cli.wizard.task_manager import (
     run_task_manager_step,
     validate_team_key,
 )
+from adw.cli.wizard.webhooks import (
+    WebhooksStepHandler,
+    run_webhooks_step,
+)
 
 __all__ = [
     "BasicsStepHandler",
@@ -56,6 +60,7 @@ __all__ = [
     "PortsStepHandler",
     "StepHandler",
     "TaskManagerStepHandler",
+    "WebhooksStepHandler",
     "WizardFlowController",
     "WizardStep",
     "check_port_overlap",
@@ -67,6 +72,7 @@ __all__ = [
     "run_phases_step",
     "run_ports_step",
     "run_task_manager_step",
+    "run_webhooks_step",
     "validate_branch_prefix",
     "validate_port",
     "validate_team_key",
