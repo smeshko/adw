@@ -26,7 +26,7 @@ from adw.core.resume_manager import ResumeManager
 from adw.core.run_directory import RunDirectoryManager
 from adw.core.run_lookup import RunLookup
 from adw.core.snapshot_manager import SnapshotManager
-from adw.exceptions import ADWError, ConfigError
+from adw.exceptions import ADWError, ConfigError, WorktreeError
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
 from adw.models.phase import PhaseResult
 from adw.worktree import ConcurrentRunManager
@@ -1686,15 +1686,20 @@ class Orchestrator:
         execution of this run. Checks concurrent run limits before creation
         and registers the run after successful creation.
 
+        ISS-025: Branch creation failures are now fatal. If the worktree or
+        branch cannot be created, this method raises WorktreeError instead
+        of returning None, ensuring the run fails immediately.
+
         Args:
             run_id: ULID identifier for this run.
 
         Returns:
             Tuple of (worktree_path, branch_name) if successful, or None if
-            creation failed. Branch name is in format 'adw/<run_id>'.
+            worktree is not configured. Branch name is in format 'adw/<run_id>'.
 
         Raises:
             MaxConcurrentRunsError: If the maximum concurrent runs limit is reached.
+            WorktreeError: If worktree or branch creation fails (ISS-025).
         """
         if self._worktree_manager is None:
             return None
@@ -1724,16 +1729,10 @@ class Orchestrator:
 
             return worktree_path, branch_name
 
-        except Exception as e:
-            # Log but don't fail the run - fall back to running in current directory
-            logger.warning(
-                "Failed to create worktree, running in current directory",
-                extra={
-                    "run_id": run_id,
-                    "error": str(e),
-                },
-            )
-            return None
+        except WorktreeError:
+            # ISS-025: Branch creation failures are fatal - propagate to caller
+            # This ensures the run fails if we can't create the story branch
+            raise
 
     def _cleanup_worktree(self, run_id: str, *, preserve: bool = False) -> None:
         """Clean up or preserve the worktree for a run.
