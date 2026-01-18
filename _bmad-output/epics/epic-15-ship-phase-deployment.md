@@ -516,27 +516,76 @@ Ship Phase Start
 ## Dependency Flowchart
 
 ```
-     Story 15.1 (Infrastructure)
-              │
-              ▼
-     Story 15.2 (Context & Pre-Flight)
-              │
-       ┌──────┴──────┐
-       ▼             ▼
-    15.3          15.4
- (Commands)   (Release Notes)
-       │             │
-       └──────┬──────┘
-              │
-              ▼
-     Story 15.5 (Failure Diagnosis)
-              │
-              ▼
-     Story 15.6 (PR Merge)
-              │
-              ▼
-     Story 15.7 (Ship Report)
+╔═══════════════════════════════════════════════════════════════════╗
+║  WAVE 1: Start Immediately                                        ║
+╠═══════════════════════════════════════════════════════════════════╣
+║                                                                   ║
+║  [15-1] Ship Phase SDK Integration                                ║
+║         (PHASE_SEQUENCE, config models, command folder)           ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+                              │
+                              ▼
+╔═══════════════════════════════════════════════════════════════════╗
+║  WAVE 2: After 15.1                                               ║
+╠═══════════════════════════════════════════════════════════════════╣
+║                                                                   ║
+║  [15-2] Context Gathering & Pre-Flight Analysis                   ║
+║         (LLM instructions for context + risk assessment)          ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+                              │
+                              ▼
+╔═══════════════════════════════════════════════════════════════════╗
+║  WAVE 3: After 15.2 (PARALLEL x2)                                 ║
+╠═══════════════════════════════════════════════════════════════════╣
+║                                                                   ║
+║  [15-3] Deployment Commands    ║    [15-4] Release Notes          ║
+║  (version_bump, build, pub)    ║    (commit categorization)       ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+                              │
+                              ▼
+╔═══════════════════════════════════════════════════════════════════╗
+║  WAVE 4: After 15.3                                               ║
+╠═══════════════════════════════════════════════════════════════════╣
+║                                                                   ║
+║  [15-5] Failure Diagnosis & Recovery                              ║
+║         (error analysis + remediation steps)                      ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+                              │
+                              ▼
+╔═══════════════════════════════════════════════════════════════════╗
+║  WAVE 5: After 15.5                                               ║
+╠═══════════════════════════════════════════════════════════════════╣
+║                                                                   ║
+║  [15-6] PR Merge & Completion                                     ║
+║         (post.sh merge execution + task manager)                  ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+                              │
+                              ▼
+╔═══════════════════════════════════════════════════════════════════╗
+║  WAVE 6: After 15.6 + 15.4 (Final)                                ║
+╠═══════════════════════════════════════════════════════════════════╣
+║                                                                   ║
+║  [15-7] Ship Report Generation                                    ║
+║         (compile all results into ship_report.md)                 ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
 ```
+
+### Wave Summary
+
+| Wave | Stories | Parallelization | Description |
+|------|---------|-----------------|-------------|
+| 1 | 15.1 | None | Foundation infrastructure |
+| 2 | 15.2 | None | Context & pre-flight analysis |
+| 3 | 15.3, 15.4 | **Parallel** | Commands + Release Notes |
+| 4 | 15.5 | None | Failure diagnosis |
+| 5 | 15.6 | None | PR merge & completion |
+| 6 | 15.7 | None | Final report generation |
 
 ---
 

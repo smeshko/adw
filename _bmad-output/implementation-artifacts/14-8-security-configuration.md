@@ -1,6 +1,6 @@
 # Story 14.8: Security Configuration (Optional)
 
-Status: ready-for-dev
+Status: done
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
@@ -30,46 +30,46 @@ so that I can control what operations ADW is allowed to perform.
 ## Tasks / Subtasks
 
 ### Task 1: Create Security Step Module
-- [ ] Create `src/adw/cli/wizard/security.py`
-- [ ] Define `run_security_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/security.py`
+- [x] Define `run_security_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Regex Validation
-- [ ] Create function to validate regex patterns
-- [ ] Catch `re.error` for invalid patterns
-- [ ] Return helpful error message for invalid patterns
+- [x] Create function to validate regex patterns
+- [x] Catch `re.error` for invalid patterns
+- [x] Return helpful error message for invalid patterns
 
 ### Task 3: Implement Dangerous Operations Warning
-- [ ] Show warning panel when allow_dangerous=True
-- [ ] Require explicit confirmation
-- [ ] Display what "dangerous" means in context
+- [x] Show warning panel when allow_dangerous=True
+- [x] Require explicit confirmation
+- [x] Display what "dangerous" means in context
 
 ### Task 4: Implement Blocked Patterns Loop
-- [ ] Prompt for adding blocked command patterns
-- [ ] If Yes, loop for regex patterns until empty input
-- [ ] Validate each pattern before accepting
-- [ ] Show examples of valid patterns
+- [x] Prompt for adding blocked command patterns
+- [x] If Yes, loop for regex patterns until empty input
+- [x] Validate each pattern before accepting
+- [x] Show examples of valid patterns
 
 ### Task 5: Implement Blocked Env Files Loop
-- [ ] Prompt for adding blocked env file patterns
-- [ ] If Yes, loop for file patterns (glob-style)
-- [ ] No validation needed for file patterns (they're globs)
-- [ ] Show defaults that are always blocked
+- [x] Prompt for adding blocked env file patterns
+- [x] If Yes, loop for file patterns (glob-style)
+- [x] No validation needed for file patterns (they're globs)
+- [x] Show defaults that are always blocked
 
 ### Task 6: Store Results in Wizard State
-- [ ] Update WizardState with:
+- [x] Update WizardState with:
   - `security_custom: bool`
   - `security_allow_dangerous: bool`
   - `security_blocked_commands: list[str]`
   - `security_blocked_env_files: list[str]`
-- [ ] Mark security step as completed
+- [x] Mark security step as completed
 
 ### Task 7: Write Unit Tests
-- [ ] Test regex validation (valid and invalid)
-- [ ] Test prompt flow with defaults
-- [ ] Test prompt flow with custom patterns
-- [ ] Test dangerous operations warning display
-- [ ] Test state update after step completion
+- [x] Test regex validation (valid and invalid)
+- [x] Test prompt flow with defaults
+- [x] Test prompt flow with custom patterns
+- [x] Test dangerous operations warning display
+- [x] Test state update after step completion
 
 ---
 
@@ -341,6 +341,10 @@ Configure security? [y/N]
 
 ### Context Reference
 
+- Reviewed existing wizard patterns from ports.py, flow.py
+- Referenced SecurityConfig model from src/adw/models/security.py
+- Followed test patterns from test_ports.py
+
 ### Agent Model Used
 
 Claude Opus 4.5 (claude-opus-4-5-20251101)
@@ -349,5 +353,16 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Implemented SecurityStepHandler and run_security_step following wizard patterns
+- Created validate_regex function for command pattern validation
+- Implemented dangerous operations warning with double confirmation
+- Created pattern loops for both command and env file patterns
+- Added comprehensive test coverage (27 tests)
+- Registered module in wizard __init__.py
+
 ### File List
+
+- src/adw/cli/wizard/security.py (new)
+- src/adw/cli/wizard/__init__.py (modified)
+- tests/unit/cli/wizard/test_security.py (new)
 
