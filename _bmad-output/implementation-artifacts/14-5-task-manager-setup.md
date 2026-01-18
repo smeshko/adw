@@ -42,10 +42,10 @@ so that ADW syncs with my project management tool.
 - [x] Import and register in flow controller
 
 ### Task 2: Implement Team Key Validation
-- [ ] Create validation function for team key
-- [ ] Rules: uppercase letters only, 2-10 characters
-- [ ] Examples: "RULE", "ENG", "ADW"
-- [ ] Show error and re-prompt on invalid input
+- [x] Create validation function for team key
+- [x] Rules: uppercase letters only, 2-10 characters
+- [x] Examples: "RULE", "ENG", "ADW"
+- [x] Show error and re-prompt on invalid input
 
 ### Task 3: Implement Basic Configuration Prompts
 - [ ] Prompt for task manager enable/disable (default No)
