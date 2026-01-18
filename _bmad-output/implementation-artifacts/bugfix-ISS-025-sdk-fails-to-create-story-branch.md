@@ -78,9 +78,9 @@ Feature: Story branch creation and validation
   - [x] Remove `git.default_branch` config support from `.adw/adw.yaml` parsing
 
 ### Task 5: Add ADW_BRANCH_NAME to hook environment
-- [ ] Update `build_hook_environment()` in `hooks/environment.py`
-- [ ] Add `ADW_BRANCH_NAME` environment variable
-- [ ] Document the new environment variable
+- [x] Update `build_hook_environment()` in `hooks/environment.py`
+- [x] Add `ADW_BRANCH_NAME` environment variable
+- [x] Document the new environment variable
 
 ### Task 6: Add comprehensive tests
 - [ ] Test branch creation returns correct name
