@@ -316,7 +316,8 @@ class TestEventMappingConfiguration:
         with patch("adw.cli.wizard.webhooks.Confirm.ask", return_value=False):
             config = _configure_event("issue_updated", "Issue Updated", console)
 
-        assert config == {"enabled": False}
+        # Uses 'trigger' field to match EventTriggerConfig model
+        assert config == {"trigger": False}
 
     def test_configure_event_with_label(self) -> None:
         """Test event configuration with required label."""
@@ -328,7 +329,8 @@ class TestEventMappingConfiguration:
         ):
             config = _configure_event("issue_created", "Issue Created", console)
 
-        assert config["enabled"] is True
+        # Uses 'trigger' field to match EventTriggerConfig model
+        assert config["trigger"] is True
         assert config["require_label"] == "adw:auto"
 
     def test_configure_event_no_label(self) -> None:
@@ -341,7 +343,8 @@ class TestEventMappingConfiguration:
         ):
             config = _configure_event("issue_created", "Issue Created", console)
 
-        assert config["enabled"] is True
+        # Uses 'trigger' field to match EventTriggerConfig model
+        assert config["trigger"] is True
         assert "require_label" not in config
 
     def test_configure_comment_event_with_mention(self) -> None:
@@ -357,7 +360,8 @@ class TestEventMappingConfiguration:
 
             config = _configure_event("comment_created", "Comment Created", console)
 
-        assert config["enabled"] is True
+        # Uses 'trigger' field to match EventTriggerConfig model
+        assert config["trigger"] is True
         assert config["require_mention"] == "@bot"
         assert config["parse_command"] is True
 
@@ -374,7 +378,8 @@ class TestEventMappingConfiguration:
 
             config = _configure_event("comment_created", "Comment Created", console)
 
-        assert config["enabled"] is True
+        # Uses 'trigger' field to match EventTriggerConfig model
+        assert config["trigger"] is True
         assert config["parse_command"] is False
 
 

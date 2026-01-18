@@ -322,9 +322,9 @@ def _configure_event(
     )
 
     if not trigger:
-        return {"enabled": False}
+        return {"trigger": False}
 
-    config: dict[str, Any] = {"enabled": True}
+    config: dict[str, Any] = {"trigger": True}
 
     # Require label option
     require_label = Prompt.ask(
