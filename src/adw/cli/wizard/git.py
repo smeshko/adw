@@ -7,6 +7,7 @@ will exit if not in a git repository.
 
 from __future__ import annotations
 
+import re
 import subprocess
 from typing import TYPE_CHECKING, Any
 
@@ -15,6 +16,12 @@ from rich.panel import Panel
 
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
+
+# Branch prefix validation pattern:
+# - Must start with a letter (a-zA-Z)
+# - Can contain alphanumeric, hyphens, underscores, and slashes
+# - Must end with a slash
+BRANCH_PREFIX_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9_/-]*/$")
 
 
 class GitStepHandler:
@@ -155,10 +162,36 @@ def validate_branch_prefix(prefix: str) -> tuple[bool, str]:
         If valid, result_or_error is the normalized prefix (with trailing /).
         If invalid, result_or_error is the error message.
     """
-    # Placeholder - will be implemented in Task 3
     if not prefix:
         return False, "Branch prefix cannot be empty"
-    return True, prefix if prefix.endswith("/") else prefix + "/"
+
+    # Strip whitespace
+    prefix = prefix.strip()
+
+    if not prefix:
+        return False, "Branch prefix cannot be empty"
+
+    # Check for spaces
+    if " " in prefix:
+        return False, "Branch prefix cannot contain spaces"
+
+    # Auto-append trailing slash if missing
+    if not prefix.endswith("/"):
+        prefix = prefix + "/"
+
+    # Check for invalid start character
+    if prefix.startswith("-"):
+        return False, "Branch prefix cannot start with '-'"
+
+    # Validate against pattern
+    if not BRANCH_PREFIX_PATTERN.match(prefix):
+        return (
+            False,
+            "Invalid branch prefix format. Use alphanumeric, hyphens, "
+            "underscores, and slashes only. Must start with a letter.",
+        )
+
+    return True, prefix
 
 
 def prompt_branch_prefix(console: Console) -> str:
