@@ -107,16 +107,25 @@ class TestWizardFlowController:
         controller = WizardFlowController()
         assert controller.go_back() is False
 
-    def test_go_back_removes_step_from_completed(self) -> None:
-        """Go back removes step from completed list."""
+    def test_go_back_removes_current_step_from_completed(self) -> None:
+        """Go back removes current step from completed list if it was completed.
+
+        This covers the case where a step was completed, but the user
+        goes back to re-edit it - it should no longer be marked complete.
+        """
         controller = WizardFlowController()
         controller.advance()  # basics -> completed, current = git
         assert "basics" in controller.state.completed_steps
+        assert controller.state.current_step == "git"
 
-        # Manually add git to completed (simulating forward progress)
-        controller.state.completed_steps.append("git")
+        # Manually mark git as completed (simulates completing the step)
+        controller.state.mark_completed("git")
+        assert "git" in controller.state.completed_steps
 
-        controller.go_back()  # git removed, current = basics
+        # Go back should remove git from completed since we're revisiting it
+        controller.go_back()
+        assert controller.state.current_step == "basics"
+        # git should be removed from completed (we're revisiting it)
         assert "git" not in controller.state.completed_steps
 
 

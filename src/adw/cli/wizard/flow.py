@@ -177,8 +177,8 @@ class WizardFlowController:
                     )
                     self.current_index += 1
                 elif action == "back" and self.current_index > 0:
-                    # Remove the current step from completed_steps since we're revisiting it
-                    step_to_revisit = self.steps[self.current_index].value
+                    # Remove the destination step from completed_steps since we're revisiting it
+                    step_to_revisit = self.steps[self.current_index - 1].value
                     if step_to_revisit in self.state.completed_steps:
                         self.state.completed_steps.remove(step_to_revisit)
                     self.state.go_back_in_history()
@@ -297,9 +297,14 @@ class WizardFlowController:
         """
         if self.current_index >= len(self.steps) - 1:
             return False
+        # Mark current step as completed (uses mark_completed to prevent duplicates)
+        current_step_value = self.steps[self.current_index].value
+        self.state.mark_completed(current_step_value)
+        # Move to next step
         self.current_index += 1
-        self.state.current_step = self.steps[self.current_index].value
-        self.state.completed_steps.append(self.steps[self.current_index - 1].value)
+        next_step_value = self.steps[self.current_index].value
+        # Update navigation state properly
+        self.state.navigate_to(next_step_value)
         return True
 
     def go_back(self) -> bool:
@@ -310,12 +315,13 @@ class WizardFlowController:
         """
         if self.current_index <= 0:
             return False
+        # Remove current step from completed (we're revisiting it)
+        current_step_value = self.steps[self.current_index].value
+        if current_step_value in self.state.completed_steps:
+            self.state.completed_steps.remove(current_step_value)
+        # Move back in history and update index
+        self.state.go_back_in_history()
         self.current_index -= 1
-        self.state.current_step = self.steps[self.current_index].value
-        # Remove from completed if present
-        prev_step = self.steps[self.current_index + 1].value
-        if prev_step in self.state.completed_steps:
-            self.state.completed_steps.remove(prev_step)
         return True
 
     def cancel(self) -> None:
