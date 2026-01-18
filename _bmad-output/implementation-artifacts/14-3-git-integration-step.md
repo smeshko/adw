@@ -56,11 +56,11 @@ so that ADW can manage branches and PRs automatically.
 - [x] Prompt for auto-PR creation [Y/n]
 
 ### Task 5: Store Results in Wizard State
-- [ ] Update WizardState with:
+- [x] Update WizardState with:
   - `git_enabled: bool` (always True)
   - `git_branch_prefix: str`
   - `git_auto_create_pr: bool`
-- [ ] Mark git step as completed
+- [x] Mark git step as completed
 
 ### Task 6: Write Unit Tests
 - [ ] Test git repo detection (is a repo)
@@ -346,6 +346,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 2: Implemented is_git_repo() using subprocess to call `git rev-parse --is-inside-work-tree`. require_git_repo() shows Rich Panel error and exits with SystemExit(1) if not a git repo.
 - Task 3: Implemented validate_branch_prefix() with regex pattern. Validates: no spaces, auto-appends trailing /, must start with letter, valid git chars only. Returns (bool, str) tuple.
 - Task 4: Implemented prompt_branch_prefix() with default "feature/" and validation loop. Implemented prompt_auto_create_pr() using Rich Confirm with default True.
+- Task 5: Verified run_git_step returns dict with git_enabled, git_branch_prefix, git_auto_create_pr. Flow controller handles state update via state.update_config("git", config).
 
 ### File List
 
