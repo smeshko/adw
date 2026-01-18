@@ -1671,7 +1671,7 @@ class Orchestrator:
             )
             self.progress_display.console.print()
 
-    def _create_worktree_for_run(self, run_id: str) -> Path | None:
+    def _create_worktree_for_run(self, run_id: str) -> tuple[Path, str] | None:
         """Create a worktree for the given run.
 
         Creates a git worktree in the configured base directory for isolated
@@ -1682,7 +1682,8 @@ class Orchestrator:
             run_id: ULID identifier for this run.
 
         Returns:
-            Path to the created worktree, or None if creation failed.
+            Tuple of (worktree_path, branch_name) if successful, or None if
+            creation failed. Branch name is in format 'adw/<run_id>'.
 
         Raises:
             MaxConcurrentRunsError: If the maximum concurrent runs limit is reached.
@@ -1696,12 +1697,13 @@ class Orchestrator:
             self._concurrent_run_manager.check_can_start_or_raise()
 
         try:
-            worktree_path = self._worktree_manager.create_worktree(run_id)
+            worktree_path, branch_name = self._worktree_manager.create_worktree(run_id)
             logger.info(
                 "Created worktree for run",
                 extra={
                     "run_id": run_id,
                     "worktree_path": str(worktree_path),
+                    "branch_name": branch_name,
                 },
             )
 
@@ -1712,7 +1714,7 @@ class Orchestrator:
                     worktree_path=worktree_path,
                 )
 
-            return worktree_path
+            return worktree_path, branch_name
 
         except Exception as e:
             # Log but don't fail the run - fall back to running in current directory
