@@ -27,9 +27,9 @@ so that ADW can manage branches and PRs automatically.
 ## Tasks / Subtasks
 
 ### Task 1: Create Git Integration Step Module
-- [ ] Create `src/adw/cli/wizard/git.py`
-- [ ] Define `run_git_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/git.py`
+- [x] Define `run_git_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Git Repository Requirement
 - [ ] Check if current directory is a git repository
@@ -342,5 +342,10 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Task 1: Created git.py module with GitStepHandler class, run_git_step function, and placeholder functions for git repo requirement, branch prefix validation, and prompts. Exported from wizard package __init__.py. WizardStep.GIT already defined in flow.py.
+
 ### File List
+
+- src/adw/cli/wizard/git.py (created)
+- src/adw/cli/wizard/__init__.py (modified)
 
