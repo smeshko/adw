@@ -199,6 +199,13 @@ def _prompt_blocked_commands(console: Console) -> list[str]:
         List of user-provided blocked command regex patterns.
     """
     console.print()
+
+    # Show what's always blocked (consistent with env files display)
+    console.print("[dim]These command patterns are always blocked:[/]")
+    for pattern in BUILTIN_BLOCKED_COMMANDS:
+        console.print(f"[dim]  - {pattern}[/]")
+    console.print()
+
     add_patterns = Confirm.ask(
         "Add blocked command patterns?",
         default=False,

@@ -138,6 +138,30 @@ class TestRunSecurityStepDangerousOperations:
         assert result["security_custom"] is True
         assert result["security_allow_dangerous"] is True
 
+    def test_dangerous_operations_shows_warning_panel(self) -> None:
+        """Test that enabling dangerous operations displays warning panel."""
+        from io import StringIO
+
+        from rich.panel import Panel
+
+        console = Console(force_terminal=True, file=StringIO())
+        state = WizardState()
+
+        with (
+            patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
+            patch("adw.cli.wizard.security.Panel") as mock_panel,
+        ):
+            # Configure: Yes, Allow dangerous: Yes, Really sure: No, Add blocked: No, No
+            mock_confirm.side_effect = [True, True, False, False, False]
+            run_security_step(state, console)
+
+        # Verify Panel was called with warning content
+        mock_panel.assert_called_once()
+        call_args = mock_panel.call_args
+        panel_content = call_args[0][0]
+        assert "Warning" in panel_content or "warning" in panel_content.lower()
+        assert "dangerous" in panel_content.lower() or "Dangerous" in panel_content
+
 
 class TestRunSecurityStepBlockedCommands:
     """Tests for blocked command patterns configuration."""
