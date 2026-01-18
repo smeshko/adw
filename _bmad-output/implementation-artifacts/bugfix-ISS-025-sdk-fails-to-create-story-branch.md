@@ -63,9 +63,9 @@ Feature: Story branch creation and validation
 - [x] Ensure `branch_name` is persisted in `context.json`
 
 ### Task 3: Add branch validation
-- [ ] Create validation function to verify branch exists after creation
-- [ ] Add validation that current git branch matches `context.branch_name` before commits
-- [ ] Fail fast if branch validation fails with clear error message
+- [x] Create validation function to verify branch exists after creation
+- [x] Add validation that current git branch matches `context.branch_name` before commits
+- [x] Fail fast if branch validation fails with clear error message
 
 ### Task 4: Fix PR creation to use branch_name
 - [ ] Modify `create_pr_via_gh()` to accept `head_branch` parameter
