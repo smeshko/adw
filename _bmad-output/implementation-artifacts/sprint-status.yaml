@@ -310,7 +310,7 @@ development_status:
   epic-14: in-progress
   14-1-wizard-entry-point-flow-control: done
   14-2-basics-configuration-step: done
-  14-3-git-integration-step: ready-for-dev
+  14-3-git-integration-step: review
   14-4-port-configuration-step: ready-for-dev
   14-5-task-manager-setup: done
   14-6-phase-customization: done
