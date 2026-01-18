@@ -10,9 +10,25 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
+from rich.prompt import Confirm, Prompt
 
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
+
+# Supported languages for selection
+SUPPORTED_LANGUAGES: list[str] = [
+    "python",
+    "javascript",
+    "go",
+    "rust",
+    "java",
+    "ruby",
+    "php",
+    "other",
+]
+
+# Supported platform types
+SUPPORTED_PLATFORMS: list[str] = ["cli", "web", "api", "other"]
 
 # Language detection markers - maps language to file markers
 LANGUAGE_MARKERS: dict[str, list[str]] = {
@@ -128,17 +144,19 @@ def run_basics_step(
     """
     root = project_root or Path.cwd()
 
-    # Detect language from project markers
-    language = detect_language(root)
+    # Step 1: Language detection and confirmation
+    detected_language = detect_language(root)
+    language = _prompt_language(console, detected_language)
 
-    # Platform selection will be implemented in Task 4
-    platform = "cli"
+    # Step 2: Platform selection
+    platform = _prompt_platform(console)
 
-    # Detect test command based on language
-    test_command = detect_test_command(language)
+    # Step 3: Test command (auto-detect based on final language, allow override)
+    default_test_cmd = detect_test_command(language)
+    test_command = _prompt_test_command(console, default_test_cmd)
 
-    # Build command will be implemented in Task 4
-    build_command = ""
+    # Step 4: Build command (optional)
+    build_command = _prompt_build_command(console)
 
     return {
         "language": language,
@@ -146,3 +164,119 @@ def run_basics_step(
         "test_command": test_command,
         "build_command": build_command,
     }
+
+
+def _prompt_language(console: Console, detected: str) -> str:
+    """Prompt user to confirm or select language.
+
+    Args:
+        console: Console for output.
+        detected: The auto-detected language.
+
+    Returns:
+        The confirmed or selected language.
+    """
+    if detected != "unknown":
+        # Show detection and ask for confirmation
+        confirmed = Confirm.ask(
+            f"Language detected: [cyan]{detected}[/]. Correct?",
+            default=True,
+            console=console,
+        )
+        if confirmed:
+            return detected
+
+    # Show language selection
+    console.print()
+    language = Prompt.ask(
+        "Select language",
+        choices=SUPPORTED_LANGUAGES,
+        default=detected if detected != "unknown" else "python",
+        console=console,
+    )
+
+    # Handle "other" - prompt for custom language
+    if language == "other":
+        language = Prompt.ask(
+            "Enter language name",
+            console=console,
+        )
+        # Normalize to lowercase
+        language = language.lower().strip()
+
+    return language
+
+
+def _prompt_platform(console: Console) -> str:
+    """Prompt user to select platform type.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        The selected platform type.
+    """
+    console.print()
+    platform = Prompt.ask(
+        "Platform type",
+        choices=SUPPORTED_PLATFORMS,
+        default="cli",
+        console=console,
+    )
+
+    # Handle "other" - prompt for custom platform
+    if platform == "other":
+        platform = Prompt.ask(
+            "Enter platform type",
+            console=console,
+        )
+        # Normalize to lowercase
+        platform = platform.lower().strip()
+
+    return platform
+
+
+def _prompt_test_command(console: Console, default: str) -> str:
+    """Prompt user for test command.
+
+    Shows the auto-detected command as default, allows user to
+    enter any custom command.
+
+    Args:
+        console: Console for output.
+        default: The auto-detected test command.
+
+    Returns:
+        The test command (may be empty if user skips).
+    """
+    console.print()
+    prompt_text = "Test command"
+    if default:
+        prompt_text += f" (detected: [cyan]{default}[/])"
+
+    test_cmd = Prompt.ask(
+        prompt_text,
+        default=default,
+        console=console,
+    )
+
+    return test_cmd.strip()
+
+
+def _prompt_build_command(console: Console) -> str:
+    """Prompt user for optional build command.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        The build command (may be empty if user skips).
+    """
+    console.print()
+    build_cmd = Prompt.ask(
+        "Build command (Enter to skip)",
+        default="",
+        console=console,
+    )
+
+    return build_cmd.strip()

@@ -60,14 +60,14 @@ so that ADW knows what kind of project I'm working on.
 - [x] Check if test runner actually exists (optional enhancement) - skipped as optional
 
 ### Task 4: Implement Interactive Prompts
-- [ ] Show language detection result with Rich
-- [ ] Prompt for language confirmation
-- [ ] Show language selection if not confirmed (include "other" option)
-- [ ] If "other" selected, prompt for manual language entry (free text)
-- [ ] Prompt for platform type (cli/web/api/other)
-- [ ] If "other" selected for platform, prompt for manual platform entry (free text)
-- [ ] Show test command with override option (user can type any command)
-- [ ] Prompt for optional build command (user can type any command)
+- [x] Show language detection result with Rich
+- [x] Prompt for language confirmation
+- [x] Show language selection if not confirmed (include "other" option)
+- [x] If "other" selected, prompt for manual language entry (free text)
+- [x] Prompt for platform type (cli/web/api/other)
+- [x] If "other" selected for platform, prompt for manual platform entry (free text)
+- [x] Show test command with override option (user can type any command)
+- [x] Prompt for optional build command (user can type any command)
 
 ### Task 5: Store Results in Wizard State
 - [ ] Update WizardState with:
