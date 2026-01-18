@@ -47,11 +47,11 @@ so that I can get the level of configuration help I need.
 - [x] Prompt for guided vs minimal setup choice
 
 ### Task 4: Implement Flow Controller
-- [ ] Create `WizardFlowController` class in `flow.py`
-- [ ] Define step sequence enum/list
-- [ ] Implement `run()` method for sequential step execution
-- [ ] Implement signal handler for Ctrl+C cleanup
-- [ ] Support step navigation (back/forward) when enabled
+- [x] Create `WizardFlowController` class in `flow.py`
+- [x] Define step sequence enum/list
+- [x] Implement `run()` method for sequential step execution
+- [x] Implement signal handler for Ctrl+C cleanup
+- [x] Support step navigation (back/forward) when enabled
 
 ### Task 5: Implement Minimal Setup Path
 - [ ] Auto-detect language from project markers
@@ -289,6 +289,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 1: Created wizard package structure with WizardFlowController class and WizardStep enum. Added WizardState model stub for importability. All tests pass (15 new tests added).
 - Task 2: Enhanced WizardState model with full navigation history support including navigate_to, go_back_in_history, go_forward_in_history, update_config, and get_step_config methods. Added 26 comprehensive tests.
 - Task 3: Modified init.py entry point with --wizard and --no-interactive flags, existing config warning panel, guided setup prompt. Updated app.py for flag handling. Updated all existing tests to use --no-interactive.
+- Task 4: Implemented full WizardFlowController with run() method for sequential step execution, navigation support (back/forward), step handler registration via StepHandler protocol, STEP_TITLES mapping, and cancel functionality. Added 8 new tests.
 
 ### File List
 
