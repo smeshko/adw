@@ -35,13 +35,13 @@ This file lists documentation that should be read under specific conditions. Whe
     - When learning commands to run the application
     - When setting up the development environment
 
-- docs/architecture/architecture.md
+- _bmad-output/architecture.md
   - Conditions:
     - When understanding the overall system design
     - When adding new modules or packages
     - When modifying core abstractions
 
-- docs/product/prd.md
+- _bmad-output/prd.md
   - Conditions:
     - When understanding product requirements
     - When implementing new features
@@ -49,9 +49,86 @@ This file lists documentation that should be read under specific conditions. Whe
 
 ---
 
+## Project Documentation Index
+
+- _bmad-output/index.md
+  - Conditions:
+    - When navigating project documentation
+    - When looking for specific documentation files
+    - When onboarding to the project
+
+- _bmad-output/project-overview.md
+  - Conditions:
+    - When getting a high-level understanding of the project
+    - When reviewing project metrics and capabilities
+    - When explaining the project to others
+
+---
+
+## Architecture Documentation
+
+- _bmad-output/architecture-summary.md
+  - Conditions:
+    - When understanding the layered architecture
+    - When reviewing data flow between components
+    - When adding new integration points
+
+- docs/arch-high-level.md
+  - Conditions:
+    - When understanding system-level architecture
+    - When reviewing component relationships
+
+- docs/arch-orchestrator.md
+  - Conditions:
+    - When modifying the orchestration engine
+    - When adding new phases to the pipeline
+
+- docs/arch-phase-pipeline.md
+  - Conditions:
+    - When working with phase execution
+    - When adding or modifying pipeline behavior
+
+---
+
+## Development Documentation
+
+- _bmad-output/development-guide.md
+  - Conditions:
+    - When setting up the development environment
+    - When learning development commands (test, lint, build)
+    - When adding new features or commands
+    - When debugging issues
+
+- _bmad-output/source-tree-analysis.md
+  - Conditions:
+    - When navigating the codebase
+    - When understanding module purposes
+    - When adding new modules or packages
+    - When locating entry points
+
+---
+
+## API and Data Model Documentation
+
+- _bmad-output/api-contracts-root.md
+  - Conditions:
+    - When working with the webhook server
+    - When adding new API endpoints
+    - When integrating external providers (GitHub, Linear)
+    - When modifying webhook behavior
+
+- _bmad-output/data-models-root.md
+  - Conditions:
+    - When adding new Pydantic models
+    - When modifying existing model schemas
+    - When understanding model relationships
+    - When working with configuration models
+
+---
+
 ## CLI Documentation
 
-- src/adw/cli/README.md (if exists)
+- _bmad-output/development-guide.md (CLI section)
   - Conditions:
     - When adding new CLI commands
     - When modifying command arguments or flags
@@ -76,3 +153,9 @@ This file lists documentation that should be read under specific conditions. Whe
     - When checking current sprint progress
     - When updating story status
     - When planning next work items
+
+- _bmad-output/epics/index.md
+  - Conditions:
+    - When reviewing implementation epics
+    - When planning story work
+    - When understanding feature scope

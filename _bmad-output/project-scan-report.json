@@ -1,0 +1,138 @@
+{
+  "workflow_version": "2.0.0",
+  "execution_mode": "autonomous",
+  "timestamps": {
+    "started": "2026-01-18T00:00:00Z",
+    "last_updated": "2026-01-18T00:00:00Z",
+    "completed": "2026-01-18T00:00:00Z"
+  },
+  "config": {
+    "scan_mode": "full",
+    "scan_level": "deep",
+    "fail_on_warning": "false"
+  },
+  "project_root": "/Users/A1E6E98/Developer/Projects/adw/adw-final",
+  "output_folder": "/Users/A1E6E98/Developer/Projects/adw/adw-final/_bmad-output",
+  "completed_steps": ["step-01", "step-04", "step-05", "step-06", "step-07", "step-08", "step-09", "step-10", "step-12", "step-13", "step-14", "step-15", "step-16"],
+  "current_step": "completed",
+  "exit_code": 0,
+  "warnings": ["Greenfield project detected - documentation workflow typically for brownfield projects"],
+  "errors": [],
+  "findings": {
+    "repository_type": "monolith",
+    "project_parts": [
+      {
+        "name": "root",
+        "path": "/Users/A1E6E98/Developer/Projects/adw/adw-final",
+        "project_type_id": "backend",
+        "confidence": 85,
+        "secondary_type": "cli",
+        "secondary_confidence": 80
+      }
+    ],
+    "key_files": ["pyproject.toml", ".python-version", "uv.lock"],
+    "technology_stack": {
+      "language": "Python 3.13",
+      "framework": "FastAPI",
+      "build_tool": "hatchling",
+      "package_manager": "uv",
+      "cli_framework": "Typer"
+    },
+    "technology_table": [
+      {"category": "Language", "technology": "Python", "version": "3.13", "justification": ".python-version, pyproject.toml requires-python"},
+      {"category": "Framework", "technology": "FastAPI", "version": ">=0.115.0", "justification": "pyproject.toml dependencies"},
+      {"category": "CLI Framework", "technology": "Typer", "version": ">=0.21.0", "justification": "pyproject.toml dependencies, entry point"},
+      {"category": "Web Server", "technology": "Uvicorn", "version": ">=0.32.0", "justification": "pyproject.toml dependencies"},
+      {"category": "HTTP Client", "technology": "HTTPX", "version": ">=0.28.1", "justification": "pyproject.toml dependencies"},
+      {"category": "Validation", "technology": "Pydantic", "version": ">=2.12.5", "justification": "pyproject.toml dependencies"},
+      {"category": "Build Tool", "technology": "Hatchling", "version": "-", "justification": "pyproject.toml build-backend"},
+      {"category": "Package Manager", "technology": "uv", "version": "-", "justification": "uv.lock presence"},
+      {"category": "Unique IDs", "technology": "python-ulid", "version": ">=3.1.0", "justification": "pyproject.toml dependencies"},
+      {"category": "Config", "technology": "PyYAML", "version": ">=6.0.3", "justification": "pyproject.toml dependencies"},
+      {"category": "Schema Validation", "technology": "jsonschema", "version": ">=4.20.0", "justification": "pyproject.toml dependencies"},
+      {"category": "File Locking", "technology": "filelock", "version": ">=3.20.1", "justification": "pyproject.toml dependencies"},
+      {"category": "Terminal UI", "technology": "Rich", "version": ">=14.2.0", "justification": "pyproject.toml dependencies"},
+      {"category": "Testing", "technology": "pytest", "version": ">=9.0.2", "justification": "pyproject.toml dev dependencies"},
+      {"category": "Test Coverage", "technology": "pytest-cov", "version": ">=7.0.0", "justification": "pyproject.toml dev dependencies"},
+      {"category": "Async Testing", "technology": "pytest-asyncio", "version": ">=1.3.0", "justification": "pyproject.toml dev dependencies"},
+      {"category": "Type Checking", "technology": "mypy", "version": ">=1.19.1", "justification": "pyproject.toml dev dependencies"},
+      {"category": "Linting", "technology": "ruff", "version": ">=0.14.10", "justification": "pyproject.toml dev dependencies"}
+    ],
+    "architecture_pattern": "Layered Architecture (CLI + SDK + Webhook Server)",
+    "source_structure": {
+      "main_package": "src/adw",
+      "test_directory": "tests",
+      "documentation": "docs",
+      "modules": {
+        "cli": "src/adw/cli/ - Command-line interface",
+        "core": "src/adw/core/ - Orchestration and state management",
+        "models": "src/adw/models/ - Pydantic data models",
+        "executors": "src/adw/executors/ - LLM execution engines",
+        "webhook": "src/adw/webhook/ - FastAPI webhook server",
+        "logging": "src/adw/logging/ - Logging infrastructure",
+        "security": "src/adw/security/ - Security patterns and interceptors",
+        "hooks": "src/adw/hooks/ - Git and environment hooks",
+        "validation": "src/adw/validation/ - Output validation",
+        "task_managers": "src/adw/task_managers/ - External task integrations (Linear, GitHub)",
+        "worktree": "src/adw/worktree/ - Git worktree management",
+        "commands": "src/adw/commands/ - Command resolution and loading",
+        "config": "src/adw/config/ - Configuration management",
+        "utils": "src/adw/utils/ - Utility functions"
+      }
+    },
+    "existing_docs": {
+      "readme": ["README.md"],
+      "architecture": [
+        "docs/arch-high-level.md",
+        "docs/arch-entry-point.md",
+        "docs/arch-command-system.md",
+        "docs/arch-orchestrator.md",
+        "docs/arch-logging.md",
+        "docs/arch-llm-executor.md",
+        "docs/arch-phase-pipeline.md",
+        "docs/architecture/deep-dive/orchestrator.md",
+        "docs/architecture/deep-dive/phase-runner.md",
+        "docs/architecture/deep-dive/plan-phase.md",
+        "docs/architecture/deep-dive/build-phase.md"
+      ],
+      "adrs": ["docs/architecture/adrs/ADR-001-test-reduction-strategy.md"],
+      "tech_debt": [
+        "docs/development/tech-debt/orchestrator-phase-runner.md",
+        "docs/development/tech-debt/phase-runner-aliases.md",
+        "docs/development/tech-debt/resume-logic-centralization.md"
+      ],
+      "testing": ["docs/testing/TEST_REDUCTION_PLAN.md"],
+      "analysis": ["docs/analysis/validation-phase-redesign.md"],
+      "templates": ["docs/templates.md"],
+      "planning_artifacts": {
+        "prd": "_bmad-output/prd.md",
+        "architecture": "_bmad-output/architecture.md",
+        "ux_design": "_bmad-output/ux-design-specification.md",
+        "test_design": "_bmad-output/test-design-system.md",
+        "implementation_readiness": "_bmad-output/implementation-readiness-report.md",
+        "product_brief": "_bmad-output/analysis/product-brief-adw-sdk-2025-12-30.md",
+        "project_context": "_bmad-output/project-context.md"
+      },
+      "epics": {
+        "overview": "_bmad-output/epics/overview.md",
+        "index": "_bmad-output/epics/index.md",
+        "epic_list": "_bmad-output/epics/epic-list.md",
+        "count": 16,
+        "path": "_bmad-output/epics/"
+      },
+      "implementation_artifacts": {
+        "path": "_bmad-output/implementation-artifacts/",
+        "stories_count": 90,
+        "issues_count": 20
+      }
+    }
+  },
+  "outputs_generated": ["project-scan-report.json", "api-contracts-root.md", "data-models-root.md", "source-tree-analysis.md", "development-guide.md", "architecture-summary.md", "project-overview.md", "index.md"],
+  "conditional_scans": {
+    "api_scan": {"count": 2, "file": "api-contracts-root.md"},
+    "data_models": {"count": 60, "file": "data-models-root.md"},
+    "state_management": "N/A (backend project)",
+    "ui_components": "N/A (backend project)",
+    "ci_cd": {"file": ".github/workflows/ci.yml", "jobs": ["lint", "typecheck", "test"]}
+  }
+}

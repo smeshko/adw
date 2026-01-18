@@ -1,13 +1,13 @@
-# Epic 14: Ship Phase & Deployment
+# Epic 15: Ship Phase & Deployment
 
 **Goal:** Automate PR approval, merge, and project-specific deployment hooks to complete the feature delivery lifecycle.
 
 **Priority:** Post-MVP
-**Dependencies:** Epic 9 (Git Integration), Epic 11 (Task Manager Integration)
+**Dependencies:** Epic 9 (Git Integration), Epic 12 (Task Manager Integration)
 
 ---
 
-## Story 14.1: Ship Phase Definition
+## Story 15.1: Ship Phase Definition
 
 As a developer,
 I want a Ship phase that finalizes and delivers my feature,
@@ -34,7 +34,7 @@ phases:
 
 ---
 
-## Story 14.2: PR Approval Automation
+## Story 15.2: PR Approval Automation
 
 As a developer,
 I want the Ship phase to approve the PR,
@@ -60,7 +60,7 @@ So that I don't need to manually click approve.
 
 ---
 
-## Story 14.3: PR Merge Automation
+## Story 15.3: PR Merge Automation
 
 As a developer,
 I want the Ship phase to merge the PR,
@@ -94,7 +94,7 @@ ship:
 
 ---
 
-## Story 14.4: Project-Specific Deployment Hooks
+## Story 15.4: Project-Specific Deployment Hooks
 
 As a developer,
 I want to run custom deployment commands after merge,
@@ -128,7 +128,7 @@ ship:
 
 ---
 
-## Story 14.5: Issue Closing
+## Story 15.5: Issue Closing
 
 As a developer,
 I want the source task closed after successful ship,
@@ -150,7 +150,7 @@ So that my task board reflects completed work.
 
 ---
 
-## Story 14.6: Ship Phase Guards
+## Story 15.6: Ship Phase Guards
 
 As a developer,
 I want safety checks before shipping,
@@ -257,19 +257,19 @@ Ship Complete
 ## Dependency Flowchart
 
 ```
-     Story 14.1 (Phase Definition)
+     Story 15.1 (Phase Definition)
               │
      ┌────────┼────────┐
      ▼        ▼        ▼
-  13.6     13.2     13.4
+  15.6     15.2     15.4
  Guards   Approve   Hooks
      │        │        │
      └────────┼────────┘
               ▼
-     Story 14.3 (Merge)
+     Story 15.3 (Merge)
               │
               ▼
-     Story 14.5 (Close Task)
+     Story 15.5 (Close Task)
 ```
 
 ---

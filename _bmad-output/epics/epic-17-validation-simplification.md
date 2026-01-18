@@ -1,4 +1,4 @@
-# Epic 16: Validation Phase Simplification
+# Epic 17: Validation Phase Simplification
 
 **Goal:** Rework the validation phase so the SDK simply orchestrates a single prompt execution, and the LLM handles the entire validate→fix→re-validate cycle internally.
 
@@ -70,7 +70,7 @@ Done
 
 ---
 
-## Story 16.1: Remove SDK Validation Loop
+## Story 17.1: Remove SDK Validation Loop
 
 As a developer,
 I want all validation loop logic removed from the SDK,
@@ -100,7 +100,7 @@ So that the codebase is simpler and the LLM handles iteration.
 
 ---
 
-## Story 16.2: Create Unified Validation Prompt
+## Story 17.2: Create Unified Validation Prompt
 
 As a developer,
 I want a single validation prompt that handles everything,
@@ -150,7 +150,7 @@ So that the LLM manages the validate→fix→re-validate cycle.
 
 ---
 
-## Story 16.3: Simplify Configuration
+## Story 17.3: Simplify Configuration
 
 As a developer,
 I want validation configuration simplified,
@@ -187,7 +187,7 @@ validation:
 
 ---
 
-## Story 16.4: Update Phase Result Model
+## Story 17.4: Update Phase Result Model
 
 As a developer,
 I want the validation phase result model simplified,
@@ -305,18 +305,18 @@ From the SDK codebase:
 ║  WAVE 1: Start Immediately (PARALLEL)                             ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║                                                                   ║
-║  [16-1] Remove SDK Validation Loop                                ║
-║  [16-2] Create Unified Validation Prompt                          ║
+║  [17-1] Remove SDK Validation Loop                                ║
+║  [17-2] Create Unified Validation Prompt                          ║
 ║                                                                   ║
 ╚═══════════════════════════════════════════════════════════════════╝
                               │
                               ▼
 ╔═══════════════════════════════════════════════════════════════════╗
-║  WAVE 2: After 16-1, 16-2                                         ║
+║  WAVE 2: After 17-1, 17-2                                         ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║                                                                   ║
-║  [16-3] Simplify Configuration                                    ║
-║  [16-4] Update Phase Result Model                                 ║
+║  [17-3] Simplify Configuration                                    ║
+║  [17-4] Update Phase Result Model                                 ║
 ║                                                                   ║
 ╚═══════════════════════════════════════════════════════════════════╝
 ```
@@ -339,10 +339,10 @@ From the SDK codebase:
 
 | Story | Estimate |
 |-------|----------|
-| 16-1 Remove SDK Loop | 0.5 day |
-| 16-2 Create Unified Prompt | 0.5 day |
-| 16-3 Simplify Config | 0.25 day |
-| 16-4 Update Result Model | 0.25 day |
+| 17-1 Remove SDK Loop | 0.5 day |
+| 17-2 Create Unified Prompt | 0.5 day |
+| 17-3 Simplify Config | 0.25 day |
+| 17-4 Update Result Model | 0.25 day |
 | **Total** | **~1.5 days** |
 
 ---
