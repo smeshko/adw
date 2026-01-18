@@ -51,14 +51,14 @@ so that concurrent runs don't conflict with my other services.
 - [x] Show warning (not blocking) if conflict detected
 
 ### Task 5: Implement Interactive Prompts
-- [ ] Prompt for port configuration (default No)
-- [ ] If Yes:
+- [x] Prompt for port configuration (default No)
+- [x] If Yes:
   - Prompt for backend start port (default 9100)
   - Validate and handle errors
   - Prompt for frontend start port (default 9200)
   - Validate and check overlap
   - Show warnings for common port conflicts
-- [ ] If No:
+- [x] If No:
   - Use default values silently
 
 ### Task 6: Store Results in Wizard State
@@ -320,6 +320,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 2: Implemented validate_port() function that returns (bool, int|str) tuple for validation results with range checking (1-65535) and integer parsing
 - Task 3: Implemented check_port_overlap() function with DEFAULT_MAX_CONCURRENT=10, calculates range intersection and _show_overlap_warning() displays red panel when overlap detected
 - Task 4: Defined COMMON_PORTS set with 3000,3001,5000,8000,8080,8443,8888. is_common_port() and check_range_conflicts() detect conflicts, _check_and_warn_common_ports() shows yellow warning panel
+- Task 5: Implemented full interactive flow in run_ports_step() with Confirm.ask for opt-in, _prompt_port() with validation loop, overlap re-prompt, and warning displays. Default No returns defaults silently
 
 ### File List
 
