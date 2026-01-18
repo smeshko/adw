@@ -1,6 +1,6 @@
 # Story 14.5: Task Manager Setup (Optional, Full)
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
@@ -338,5 +338,26 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Created TaskManagerStepHandler class and run_task_manager_step function
+- Implemented validate_team_key() with 2-10 uppercase letter validation and auto-normalization
+- Full prompt flow for all task manager configuration options:
+  - Enable/disable (default: No)
+  - Task manager type (Linear for MVP)
+  - Team key with validation loop
+  - Comment sync with conditional failure-only option
+  - PR title format with default
+  - Label management with conditional prefix
+  - Auto-close on PR merge
+  - Context options (include_labels, include_parent)
+  - Optional state mapping customization for all 5 ADW phases
+- Added 28 comprehensive unit tests covering all flows
+- All tests pass (120 wizard tests total)
+
 ### File List
+
+- src/adw/cli/wizard/task_manager.py (NEW)
+- src/adw/cli/wizard/__init__.py (MODIFIED)
+- tests/unit/cli/wizard/test_task_manager.py (NEW)
+- _bmad-output/implementation-artifacts/14-5-task-manager-setup.md (MODIFIED)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (MODIFIED)
 
