@@ -1,6 +1,6 @@
 # Story 14.8: Security Configuration (Optional)
 
-Status: in-progress
+Status: Ready for Review
 Linear Issue: pending
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-18
