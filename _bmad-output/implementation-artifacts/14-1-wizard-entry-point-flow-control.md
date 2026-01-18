@@ -29,9 +29,9 @@ so that I can get the level of configuration help I need.
 ## Tasks / Subtasks
 
 ### Task 1: Create Wizard Package Structure
-- [ ] Create `src/adw/cli/wizard/` package directory
-- [ ] Create `__init__.py` with package exports
-- [ ] Create `flow.py` for wizard flow controller
+- [x] Create `src/adw/cli/wizard/` package directory
+- [x] Create `__init__.py` with package exports
+- [x] Create `flow.py` for wizard flow controller
 
 ### Task 2: Implement WizardState Model
 - [ ] Add `WizardState` Pydantic model to `src/adw/models/`
@@ -286,5 +286,17 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
+- Task 1: Created wizard package structure with WizardFlowController class and WizardStep enum. Added WizardState model stub for importability. All tests pass (15 new tests added).
+
 ### File List
+
+**New Files:**
+- src/adw/cli/wizard/__init__.py
+- src/adw/cli/wizard/flow.py
+- src/adw/models/wizard.py
+- tests/unit/cli/wizard/__init__.py
+- tests/unit/cli/wizard/test_flow.py
+
+**Modified Files:**
+- src/adw/models/__init__.py (added WizardState export)
 
