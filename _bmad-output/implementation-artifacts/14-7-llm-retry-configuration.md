@@ -57,11 +57,11 @@ so that I can tune how ADW handles transient failures.
 - [x] Mark retry step as completed
 
 ### Task 5: Write Unit Tests
-- [ ] Test all validations (valid and invalid)
-- [ ] Test cross-validation (max_delay >= base_delay)
-- [ ] Test prompt flow when using defaults
-- [ ] Test prompt flow with custom values
-- [ ] Test state update after step completion
+- [x] Test all validations (valid and invalid)
+- [x] Test cross-validation (max_delay >= base_delay)
+- [x] Test prompt flow when using defaults
+- [x] Test prompt flow with custom values
+- [x] Test state update after step completion
 
 ---
 
