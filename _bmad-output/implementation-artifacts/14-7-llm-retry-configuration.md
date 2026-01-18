@@ -29,9 +29,9 @@ so that I can tune how ADW handles transient failures.
 ## Tasks / Subtasks
 
 ### Task 1: Create LLM Retry Step Module
-- [ ] Create `src/adw/cli/wizard/retry.py`
-- [ ] Define `run_retry_step(state: WizardState) -> WizardState`
-- [ ] Import and register in flow controller
+- [x] Create `src/adw/cli/wizard/retry.py`
+- [x] Define `run_retry_step(state: WizardState) -> WizardState`
+- [x] Import and register in flow controller
 
 ### Task 2: Implement Value Validations
 - [ ] Create validation for max_retries (positive integer, 1-10)
