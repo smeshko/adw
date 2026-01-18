@@ -566,7 +566,7 @@ class GitConfig(BaseModel):
 
 
 class ProjectConfig(BaseModel):
-    """Main project configuration loaded from adw.yaml.
+    """Main project configuration loaded from project.yaml.
 
     This model represents the complete project configuration including
     project metadata, LLM settings, and phase configurations.

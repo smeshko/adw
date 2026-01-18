@@ -798,7 +798,7 @@ class TestErrorHandling:
                 executor.execute("Test prompt")
 
             assert exc_info.value.suggestion is not None
-            assert "adw.yaml" in exc_info.value.suggestion
+            assert "project.yaml" in exc_info.value.suggestion
 
     def test_error_is_not_recoverable(self) -> None:
         """CLAUDE_NOT_FOUND error should not be recoverable."""

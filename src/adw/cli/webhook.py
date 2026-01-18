@@ -50,7 +50,7 @@ def start_server(
     """Start the webhook server.
 
     Starts a FastAPI server that receives webhooks from configured providers.
-    Server settings are read from adw.yaml's webhook section, or can be
+    Server settings are read from project.yaml's webhook section, or can be
     overridden with command-line options.
 
     Examples:
@@ -61,7 +61,7 @@ def start_server(
     """
     import uvicorn
 
-    # Load config from adw.yaml if available
+    # Load config from project.yaml if available
     webhook_config = _load_webhook_config()
 
     # Apply command-line overrides
@@ -123,7 +123,7 @@ def server_status() -> None:
 
 
 def _load_webhook_config() -> WebhookConfig:
-    """Load webhook configuration from adw.yaml.
+    """Load webhook configuration from project.yaml.
 
     Returns:
         WebhookConfig from project config, or default config if not available.
@@ -134,7 +134,7 @@ def _load_webhook_config() -> WebhookConfig:
     except ConfigError:
         # No config or invalid - use defaults
         console.print(
-            "[dim]Note: No adw.yaml found, using default webhook configuration[/]"
+            "[dim]Note: No project.yaml found, using default webhook configuration[/]"
         )
         return WebhookConfig()
     except FileNotFoundError:

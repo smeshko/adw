@@ -27,7 +27,7 @@ console = Console()
 
 
 def _load_config_from_project() -> WebhookConfig:
-    """Load webhook config from project adw.yaml.
+    """Load webhook config from project project.yaml.
 
     Returns:
         WebhookConfig from project config, or default config if not available.
@@ -130,5 +130,5 @@ def create_app(
 
 
 # Default app instance for uvicorn (reload mode)
-# Loads config from project adw.yaml so reload mode honors project settings
+# Loads config from project project.yaml so reload mode honors project settings
 app = create_app(config=_load_config_from_project())

@@ -1,5 +1,5 @@
 # Default configuration for the document phase
-# These defaults can be overridden in project's adw.yaml
+# These defaults can be overridden in project's project.yaml
 
 # Timeout for the document phase (5 minutes default - PR description generation)
 timeout_seconds: 300

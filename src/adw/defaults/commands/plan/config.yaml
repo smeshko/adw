@@ -1,5 +1,5 @@
 # Default configuration for the plan phase
-# These defaults can be overridden in project's adw.yaml
+# These defaults can be overridden in project's project.yaml
 
 # Timeout for the plan phase (10 minutes default)
 timeout_seconds: 600

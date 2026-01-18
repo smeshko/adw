@@ -78,7 +78,7 @@ class WebhookConfig(BaseModel):
 
     Defines server settings including host, port, provider configurations,
     and event-to-workflow mappings.
-    This configuration can be specified in the project's adw.yaml file under
+    This configuration can be specified in the project's project.yaml file under
     the 'webhook' key.
 
     Attributes:

@@ -1,5 +1,5 @@
 # Default configuration for the validate phase
-# These defaults can be overridden in project's adw.yaml
+# These defaults can be overridden in project's project.yaml
 
 # Timeout for the validate phase (5 minutes default - quick validation)
 timeout_seconds: 300
