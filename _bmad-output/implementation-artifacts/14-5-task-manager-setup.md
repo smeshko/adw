@@ -56,10 +56,10 @@ so that ADW syncs with my project management tool.
   - Conditional: comment_on_failures_only
 
 ### Task 4: Implement PR and Label Configuration
-- [ ] Prompt for PR title format
-- [ ] Prompt for label management enable
-- [ ] Conditional: label prefix prompt
-- [ ] Prompt for auto-close option
+- [x] Prompt for PR title format
+- [x] Prompt for label management enable
+- [x] Conditional: label prefix prompt
+- [x] Prompt for auto-close option
 
 ### Task 5: Implement Context Options
 - [ ] Prompt for include_labels_in_context
