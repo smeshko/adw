@@ -320,7 +320,7 @@ development_status:
   14-9-webhook-server-setup: done
   14-10-summary-file-generation: done
   # UX Fix (from ISS-027) - MAJOR
-  ux-fix-ISS-027-init-wizard-phase-config-ux-issues: in-progress
+  ux-fix-ISS-027-init-wizard-phase-config-ux-issues: review
   epic-14-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

@@ -1,6 +1,6 @@
 # Story: UX Fix - Init Wizard Phase Configuration Issues
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-19
@@ -15,76 +15,76 @@ so that I only see relevant options and understand what each setting does.
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: Phase selection uses comma-separated input or multiselect instead of individual y/n prompts
+- [x] **AC1**: Phase selection uses comma-separated input or multiselect instead of individual y/n prompts
   - User can type `plan,build,validate` or similar to select multiple phases at once
   - Alternative: numbered list (1=plan, 2=build, etc.) with comma-separated selection
-- [ ] **AC2**: Pre-hook and post-hook script path prompts are removed from wizard
+- [x] **AC2**: Pre-hook and post-hook script path prompts are removed from wizard
   - SDK always uses fixed `pre.sh`/`post.sh` in phase folder - these are not configurable
   - Remove `pre_hook` and `post_hook` prompts from `_configure_phase()`
-- [ ] **AC3**: Focus options (security, error handling, edge cases) are removed from wizard
+- [x] **AC3**: Focus options (security, error handling, edge cases) are removed from wizard
   - The `review_focus` list is collected but never used by the SDK
   - Remove `_prompt_review_focus()` calls and `REVIEW_FOCUS_AREAS` usage
-- [ ] **AC4**: Danger mode warning message is accurate
+- [x] **AC4**: Danger mode warning message is accurate
   - Current message says "You'll be prompted to confirm risky operations" which contradicts danger mode
   - Update to explain that dangerous operations will show warnings but NOT be blocked
-- [ ] **AC5**: Completion message is accurate
+- [x] **AC5**: Completion message is accurate
   - Remove "Note: Full configuration will be applied in the Summary step" from `_show_completion()`
   - Summary has already been displayed at this point
-- [ ] **AC6**: All existing tests pass after changes
-- [ ] **AC7**: Update tests to reflect new phase selection UX
+- [x] **AC6**: All existing tests pass after changes
+- [x] **AC7**: Update tests to reflect new phase selection UX
 
 ## Tasks / Subtasks
 
-### Task 1: Improve Phase Selection UX
+### Task 1: Improve Phase Selection UX [x]
 **Files**: `src/adw/cli/wizard/phases.py`
 
-1.1 Replace `_prompt_phase_selection()` with comma-separated or numbered input
+- [x] 1.1 Replace `_prompt_phase_selection()` with comma-separated or numbered input
    - Display numbered list: `1. plan  2. build  3. validate  4. document`
    - Accept input like `1,3` or `plan,validate` or `all`
    - Provide clear instructions: "Enter phase numbers separated by commas (e.g., 1,3) or 'all':"
 
-1.2 Update `run_phases_step()` to use new selection method
+- [x] 1.2 Update `run_phases_step()` to use new selection method
 
-### Task 2: Remove Non-Configurable Hook Path Prompts
+### Task 2: Remove Non-Configurable Hook Path Prompts [x]
 **Files**: `src/adw/cli/wizard/phases.py`
 
-2.1 Remove pre_hook prompt from `_configure_phase()` (lines 167-174)
-2.2 Remove post_hook prompt from `_configure_phase()` (lines 176-183)
-2.3 Remove pre_hook and post_hook from config dict (lines 191-192)
-2.4 Update phase config generation in summary.py if needed
+- [x] 2.1 Remove pre_hook prompt from `_configure_phase()` (lines 167-174)
+- [x] 2.2 Remove post_hook prompt from `_configure_phase()` (lines 176-183)
+- [x] 2.3 Remove pre_hook and post_hook from config dict (lines 191-192)
+- [x] 2.4 Update phase config generation in summary.py if needed (not needed - summary.py doesn't output unused fields)
 
-### Task 3: Remove Unused Focus Options
+### Task 3: Remove Unused Focus Options [x]
 **Files**: `src/adw/cli/wizard/phases.py`
 
-3.1 Remove `REVIEW_FOCUS_AREAS` constant (line 34)
-3.2 Remove `_prompt_review_focus()` function (lines 296-317)
-3.3 Remove call to `_prompt_review_focus()` in `_configure_validate_phase()` (line 240)
-3.4 Remove `review_focus` from validate config return dict (line 248)
+- [x] 3.1 Remove `REVIEW_FOCUS_AREAS` constant (line 34)
+- [x] 3.2 Remove `_prompt_review_focus()` function (lines 296-317)
+- [x] 3.3 Remove call to `_prompt_review_focus()` in `_configure_validate_phase()` (line 240)
+- [x] 3.4 Remove `review_focus` from validate config return dict (line 248)
 
-### Task 4: Fix Danger Mode Warning Message
+### Task 4: Fix Danger Mode Warning Message [x]
 **Files**: `src/adw/cli/wizard/security.py`
 
-4.1 Update Panel content in `_prompt_dangerous_operations()` (lines 171-180)
+- [x] 4.1 Update Panel content in `_prompt_dangerous_operations()` (lines 171-180)
    - Change "You'll be prompted to confirm risky operations" to:
    - "Dangerous commands will show warnings but will NOT be blocked"
    - Remove implication that confirmation is required
 
-### Task 5: Fix Completion Message
+### Task 5: Fix Completion Message [x]
 **Files**: `src/adw/cli/wizard/flow.py`
 
-5.1 Update `_show_completion()` (lines 225-236)
+- [x] 5.1 Update `_show_completion()` (lines 225-236)
    - Remove "[dim]Note: Full configuration will be applied in the Summary step.[/]"
    - Message should just confirm completion without referencing Summary step
 
-### Task 6: Update Tests
+### Task 6: Update Tests [x]
 **Files**: `tests/unit/cli/wizard/test_phases.py`
 
-6.1 Update `TestPhaseSelection` class tests for new comma-separated input
-6.2 Remove tests for `_prompt_review_focus()` function
-6.3 Update mock patterns in `TestValidatePhaseSpecialOptions` (no review_focus)
-6.4 Update mock patterns in `TestBasePhaseConfiguration` (no pre_hook/post_hook)
-6.5 Update `TestFullFlow` tests for new phase selection UX
-6.6 Remove `TestReviewFocus` class entirely
+- [x] 6.1 Update `TestPhaseSelection` class tests for new comma-separated input
+- [x] 6.2 Remove tests for `_prompt_review_focus()` function
+- [x] 6.3 Update mock patterns in `TestValidatePhaseSpecialOptions` (no review_focus)
+- [x] 6.4 Update mock patterns in `TestBasePhaseConfiguration` (no pre_hook/post_hook)
+- [x] 6.5 Update `TestFullFlow` tests for new phase selection UX
+- [x] 6.6 Remove `TestReviewFocus` class entirely
 
 ---
 
@@ -226,8 +226,28 @@ Issue: `_bmad-output/implementation-artifacts/issues/ISS-027-init-wizard-phase-c
 
 ### Agent Model Used
 
+claude-opus-4-5-20251101
+
 ### Debug Log References
+
+N/A
 
 ### Completion Notes List
 
+- Replaced individual y/n phase selection prompts with comma-separated input
+- Added `_parse_phase_selection()` helper supporting numbers (1,3), names (plan,validate), and "all" keyword
+- Removed unused pre_hook/post_hook prompts from phase configuration (SDK uses fixed file paths)
+- Removed unused REVIEW_FOCUS_AREAS constant and _prompt_review_focus() function
+- Updated danger mode warning to accurately state commands show warnings but are NOT blocked
+- Fixed completion message to not reference Summary step (already completed at that point)
+- Updated all related tests with new mock patterns for comma-separated input
+- Added TestParsePhaseSelection class for comprehensive parsing tests
+- All 2748 tests pass with 83.72% coverage
+
 ### File List
+
+- src/adw/cli/wizard/phases.py (modified)
+- src/adw/cli/wizard/security.py (modified)
+- src/adw/cli/wizard/flow.py (modified)
+- tests/unit/cli/wizard/test_phases.py (modified)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified)
