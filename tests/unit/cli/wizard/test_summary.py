@@ -72,6 +72,19 @@ class TestSummaryPanelGeneration:
                 "customized": True,
                 "phases": {"plan": {"timeout_seconds": 600}},
             },
+            "ship": {
+                "enabled": True,
+                "commands": {
+                    "version_bump": "npm version patch",
+                    "build": "npm run build",
+                },
+                "post_publish": ["git push --tags"],
+                "pr": {
+                    "merge_on_success": True,
+                    "delete_branch_on_merge": True,
+                    "merge_method": "squash",
+                },
+            },
             "llm_retry": {
                 "retry_custom": True,
                 "retry_max_retries": 5,
@@ -99,6 +112,7 @@ class TestSummaryPanelGeneration:
         assert "Task Manager:" in output
         assert "Linear" in output.title() or "linear" in output.lower()
         assert "Phases:" in output
+        assert "Ship:" in output
         assert "LLM Retry:" in output
         assert "Security:" in output
         assert "Webhooks:" in output
@@ -112,6 +126,16 @@ class TestSummaryPanelGeneration:
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "phases": {"customized": False, "phases": {}},
+            "ship": {
+                "enabled": True,
+                "commands": {},
+                "post_publish": [],
+                "pr": {
+                    "merge_on_success": False,
+                    "delete_branch_on_merge": True,
+                    "merge_method": "squash",
+                },
+            },
             "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {"enabled": False},
@@ -139,6 +163,7 @@ class TestSummaryPanelGeneration:
                 "customized": True,
                 "phases": {"plan": {"timeout": 600}, "build": {"pre_hook": "test"}},
             },
+            "ship": {"enabled": True, "commands": {}, "post_publish": [], "pr": {}},
             "llm_retry": {},
             "security": {},
             "webhooks": {},
@@ -337,6 +362,72 @@ class TestProjectYamlGeneration:
         assert config["llm"]["retry"]["base_delay"] == 2.0
         assert config["llm"]["retry"]["max_delay"] == 120.0
         assert config["llm"]["retry"]["multiplier"] == 3.0
+
+    def test_generate_project_yaml_with_ship(self) -> None:
+        """Test project.yaml includes ship when customized."""
+        state = WizardState()
+        state.collected_config = {
+            "basics": {"language": "python", "platform": "cli"},
+            "git": {"git_enabled": False},
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": False, "type": "none"},
+            "ship": {
+                "enabled": True,
+                "commands": {
+                    "version_bump": "npm version patch",
+                    "build": "npm run build",
+                    "publish": "npm publish",
+                },
+                "post_publish": ["git push --tags", "echo 'deployed'"],
+                "pr": {
+                    "merge_on_success": True,
+                    "delete_branch_on_merge": True,
+                    "merge_method": "squash",
+                },
+            },
+            "llm_retry": {"retry_custom": False},
+            "security": {},
+            "webhooks": {"enabled": False},
+        }
+
+        yaml_content = generate_project_yaml(state)
+        config = yaml.safe_load(yaml_content)
+
+        assert config["ship"]["enabled"] is True
+        assert config["ship"]["commands"]["version_bump"] == "npm version patch"
+        assert config["ship"]["commands"]["build"] == "npm run build"
+        assert config["ship"]["commands"]["publish"] == "npm publish"
+        assert config["ship"]["post_publish"] == ["git push --tags", "echo 'deployed'"]
+        assert config["ship"]["pr"]["merge_on_success"] is True
+        assert config["ship"]["pr"]["merge_method"] == "squash"
+
+    def test_generate_project_yaml_omits_ship_when_default(self) -> None:
+        """Test project.yaml omits ship when using defaults."""
+        state = WizardState()
+        state.collected_config = {
+            "basics": {"language": "python", "platform": "cli"},
+            "git": {"git_enabled": False},
+            "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
+            "task_manager": {"enabled": False, "type": "none"},
+            "ship": {
+                "enabled": True,
+                "commands": {},
+                "post_publish": [],
+                "pr": {
+                    "merge_on_success": False,
+                    "delete_branch_on_merge": True,
+                    "merge_method": "squash",
+                },
+            },
+            "llm_retry": {"retry_custom": False},
+            "security": {},
+            "webhooks": {"enabled": False},
+        }
+
+        yaml_content = generate_project_yaml(state)
+        config = yaml.safe_load(yaml_content)
+
+        assert "ship" not in config
 
     def test_generate_project_yaml_with_webhooks(self) -> None:
         """Test project.yaml includes webhooks when enabled."""

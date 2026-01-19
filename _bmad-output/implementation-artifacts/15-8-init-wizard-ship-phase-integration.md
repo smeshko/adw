@@ -1,6 +1,6 @@
 # Story 15.8: Init Wizard Ship Phase Integration
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-19
@@ -16,61 +16,61 @@ so that deployment commands and PR merge behavior are ready from the start.
 ## Acceptance Criteria
 
 ### AC1: Wizard Step Addition
-- [ ] **Given** the init wizard flow (Epic 14 implemented)
+- [x] **Given** the init wizard flow (Epic 14 implemented)
   **When** ship phase step is added
   **Then** it appears after Phase Customization (Step 5) as a new optional step
 
-- [ ] **Given** user reaches ship phase step
+- [x] **Given** user reaches ship phase step
   **When** prompted
   **Then** wizard asks: "Configure ship phase settings? [y/N]"
 
-- [ ] **Given** user selects No
+- [x] **Given** user selects No
   **When** wizard continues
   **Then** ship phase uses defaults (no commands, merge_on_success=False, squash strategy)
 
 ### AC2: Deployment Commands Configuration
-- [ ] **Given** user selects Yes to configure ship phase
+- [x] **Given** user selects Yes to configure ship phase
   **When** commands section presented
   **Then** wizard prompts:
   - "Version bump command: [none] (Enter to skip or type command)"
   - "Build command: [none] (Enter to skip or type command)"
   - "Publish command: [none] (Enter to skip or type command)"
 
-- [ ] **Given** commands are entered
+- [x] **Given** commands are entered
   **When** wizard validates
   **Then** it accepts any non-empty string (no validation of actual command)
 
 ### AC3: Post-Publish Hooks Configuration
-- [ ] **Given** user is configuring ship phase
+- [x] **Given** user is configuring ship phase
   **When** post-publish section presented
   **Then** wizard prompts: "Add post-publish hooks? [y/N]"
 
-- [ ] **Given** user selects Yes
+- [x] **Given** user selects Yes
   **When** adding hooks
   **Then** wizard loops: "Hook command (empty to finish): ____"
 
-- [ ] **Given** user enters empty line
+- [x] **Given** user enters empty line
   **When** loop evaluates
   **Then** hook collection ends, continues to next section
 
 ### AC4: PR Merge Settings Configuration
-- [ ] **Given** user is configuring ship phase
+- [x] **Given** user is configuring ship phase
   **When** PR settings section presented
   **Then** wizard shows: "--- PR Merge Settings ---"
 
-- [ ] **Given** PR settings section active
+- [x] **Given** PR settings section active
   **When** prompts displayed
   **Then** wizard asks:
   - "Auto-merge after successful ship? [y/N]"
   - "Merge strategy: [squash] / merge / rebase"
   - "Delete branch after merge? [Y/n]"
 
-- [ ] **Given** merge strategy prompt
+- [x] **Given** merge strategy prompt
   **When** user responds
   **Then** accepts: "squash", "merge", "rebase", or Enter for default (squash)
 
 ### AC5: Summary Display Update
-- [ ] **Given** wizard reaches summary step (Story 14.10)
+- [x] **Given** wizard reaches summary step (Story 14.10)
   **When** ship phase was configured
   **Then** summary panel includes ship section:
   ```
@@ -80,12 +80,12 @@ so that deployment commands and PR merge behavior are ready from the start.
     PR: squash merge, auto-delete branch
   ```
 
-- [ ] **Given** ship phase uses defaults
+- [x] **Given** ship phase uses defaults
   **When** summary displayed
   **Then** shows: "Ship: Default (no commands, manual merge)"
 
 ### AC6: Files to Generate
-- [ ] **Given** wizard completes with ship configuration
+- [x] **Given** wizard completes with ship configuration
   **When** files generated
   **Then** `project.yaml` includes ship section:
   ```yaml
@@ -104,7 +104,7 @@ so that deployment commands and PR merge behavior are ready from the start.
   ```
 
 ### AC7: Test Coverage
-- [ ] **Given** wizard ship step implementation
+- [x] **Given** wizard ship step implementation
   **When** tests written
   **Then** coverage includes:
   - Unit tests for ship step prompts and validation
@@ -114,38 +114,38 @@ so that deployment commands and PR merge behavior are ready from the start.
 ## Tasks / Subtasks
 
 ### Task 1: Create Ship Wizard Step Module
-- [ ] Create `src/adw/cli/wizard/ship.py`
-- [ ] Implement `ShipStepHandler` class following `StepHandler` protocol
-- [ ] Implement `run_ship_step()` function
-- [ ] Add deployment commands prompts (version_bump, build, publish)
-- [ ] Add post-publish hooks loop
-- [ ] Add PR merge settings prompts
+- [x] Create `src/adw/cli/wizard/ship.py`
+- [x] Implement `ShipStepHandler` class following `StepHandler` protocol
+- [x] Implement `run_ship_step()` function
+- [x] Add deployment commands prompts (version_bump, build, publish)
+- [x] Add post-publish hooks loop
+- [x] Add PR merge settings prompts
 
 ### Task 2: Integrate Ship Step into Wizard Flow
-- [ ] Add `SHIP = "ship"` to `WizardStep` enum in `flow.py`
-- [ ] Add ship step to `STEP_SEQUENCE` after `PHASES`
-- [ ] Add ship step title to `STEP_TITLES` dictionary
-- [ ] Register `ShipStepHandler` in flow controller initialization
+- [x] Add `SHIP = "ship"` to `WizardStep` enum in `flow.py`
+- [x] Add ship step to `STEP_SEQUENCE` after `PHASES`
+- [x] Add ship step title to `STEP_TITLES` dictionary
+- [x] Register `ShipStepHandler` in flow controller initialization
 
 ### Task 3: Update Summary Step
-- [ ] Add ship section to `generate_summary_panel()` in `summary.py`
-- [ ] Add ship config extraction from wizard state
-- [ ] Format ship summary with commands, hooks, and PR settings
+- [x] Add ship section to `generate_summary_panel()` in `summary.py`
+- [x] Add ship config extraction from wizard state
+- [x] Format ship summary with commands, hooks, and PR settings
 
 ### Task 4: Update Project YAML Generation
-- [ ] Add ship config to `generate_project_yaml()` in `summary.py`
-- [ ] Handle all ship sub-sections: commands, post_publish, pr
-- [ ] Only include ship section if configured (not defaults)
+- [x] Add ship config to `generate_project_yaml()` in `summary.py`
+- [x] Handle all ship sub-sections: commands, post_publish, pr
+- [x] Only include ship section if configured (not defaults)
 
 ### Task 5: Write Unit Tests
-- [ ] Create `tests/unit/cli/wizard/test_ship.py`
-- [ ] Test skip flow (user says No)
-- [ ] Test full configuration flow
-- [ ] Test commands validation
-- [ ] Test post-publish hooks loop
-- [ ] Test PR settings with all merge strategies
-- [ ] Update `test_summary.py` for ship section
-- [ ] Update `test_flow.py` for ship step integration
+- [x] Create `tests/unit/cli/wizard/test_ship.py`
+- [x] Test skip flow (user says No)
+- [x] Test full configuration flow
+- [x] Test commands validation
+- [x] Test post-publish hooks loop
+- [x] Test PR settings with all merge strategies
+- [x] Update `test_summary.py` for ship section
+- [x] Update `test_flow.py` for ship step integration
 
 ---
 

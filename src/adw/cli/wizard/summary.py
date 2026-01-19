@@ -165,6 +165,7 @@ def generate_summary_panel(state: WizardState) -> Panel:
     ports = state.get_step_config("ports")
     task_manager = state.get_step_config("task_manager")
     phases = state.get_step_config("phases")
+    ship = state.get_step_config("ship")
     llm_retry = state.get_step_config("llm_retry")
     security = state.get_step_config("security")
     webhooks = state.get_step_config("webhooks")
@@ -213,6 +214,31 @@ def generate_summary_panel(state: WizardState) -> Panel:
         lines.append(f"[cyan]Phases:[/] {phase_list}")
     else:
         lines.append("[dim]Phases:[/] Default")
+
+    # Ship section
+    # Ship step returns: enabled, commands (dict), post_publish (list), pr (dict)
+    ship_commands = ship.get("commands", {})
+    ship_post_publish = ship.get("post_publish", [])
+    ship_pr = ship.get("pr", {})
+    has_ship_config = (
+        ship_commands or ship_post_publish or ship_pr.get("merge_on_success")
+    )
+
+    if has_ship_config:
+        parts = []
+        if ship_commands:
+            cmd_names = list(ship_commands.keys())
+            parts.append(", ".join(cmd_names))
+        if ship_post_publish:
+            parts.append(f"{len(ship_post_publish)} hook(s)")
+        if ship_pr.get("merge_on_success"):
+            merge_method = ship_pr.get("merge_method", "squash")
+            delete_on_merge = ship_pr.get("delete_branch_on_merge", True)
+            auto_delete = ", auto-delete" if delete_on_merge else ""
+            parts.append(f"{merge_method} merge{auto_delete}")
+        lines.append(f"[cyan]Ship:[/] {'; '.join(parts)}")
+    else:
+        lines.append("[dim]Ship:[/] Default (no commands, manual merge)")
 
     # LLM Retry section
     # Retry step returns: retry_custom, retry_max_retries, retry_base_delay, etc.
@@ -363,6 +389,7 @@ def generate_project_yaml(state: WizardState) -> str:
     git = state.get_step_config("git")
     ports = state.get_step_config("ports")
     task_manager = state.get_step_config("task_manager")
+    ship = state.get_step_config("ship")
     llm_retry = state.get_step_config("llm_retry")
     security = state.get_step_config("security")
     webhooks = state.get_step_config("webhooks")
@@ -416,6 +443,41 @@ def generate_project_yaml(state: WizardState) -> str:
         if task_manager.get("sync_comments"):
             tm_config["sync_comments"] = True
         config["task_manager"] = tm_config
+
+    # Ship section (only if customized)
+    # Ship step returns: enabled, commands (dict), post_publish (list), pr (dict)
+    ship_commands = ship.get("commands", {})
+    ship_post_publish = ship.get("post_publish", [])
+    ship_pr = ship.get("pr", {})
+    has_ship_config = (
+        ship_commands or ship_post_publish or ship_pr.get("merge_on_success")
+    )
+    if has_ship_config:
+        ship_config: dict[str, Any] = {"enabled": True}
+        # Add commands section if any commands are configured
+        if ship_commands:
+            commands_cfg: dict[str, str | None] = {}
+            if ship_commands.get("version_bump"):
+                commands_cfg["version_bump"] = ship_commands["version_bump"]
+            if ship_commands.get("build"):
+                commands_cfg["build"] = ship_commands["build"]
+            if ship_commands.get("publish"):
+                commands_cfg["publish"] = ship_commands["publish"]
+            if commands_cfg:
+                ship_config["commands"] = commands_cfg
+        # Add post_publish hooks if any
+        if ship_post_publish:
+            ship_config["post_publish"] = ship_post_publish
+        # Add PR config if merge_on_success is enabled
+        if ship_pr.get("merge_on_success"):
+            pr_cfg: dict[str, Any] = {
+                "merge_on_success": True,
+                "merge_method": ship_pr.get("merge_method", "squash"),
+            }
+            if not ship_pr.get("delete_branch_on_merge", True):
+                pr_cfg["delete_branch_on_merge"] = False
+            ship_config["pr"] = pr_cfg
+        config["ship"] = ship_config
 
     # LLM retry section (only if customized)
     # Retry step returns: retry_custom, retry_max_retries, retry_base_delay, etc.

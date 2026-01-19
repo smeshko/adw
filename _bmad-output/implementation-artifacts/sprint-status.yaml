@@ -329,7 +329,7 @@ development_status:
   # Goal: LLM-driven ship phase with pre-flight analysis, optional deployment
   #       commands, release notes generation, failure diagnosis, and PR merge
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-15: in-progress
+  epic-15: done
   # Story 15.1 is the foundational SDK integration - MUST be done first
   # Adds ship to PHASE_SEQUENCE, creates ShipConfig models, command folder
   15-1-ship-phase-sdk-integration: done
@@ -339,7 +339,7 @@ development_status:
   15-5-failure-diagnosis-recovery: done
   15-6-pr-merge-completion: done
   15-7-ship-report-generation: done
-  15-8-init-wizard-ship-phase-integration: ready-for-dev
+  15-8-init-wizard-ship-phase-integration: done
   # UX Fix (from ISS-028) - MAJOR
   ux-fix-ISS-028-env-file-for-credentials: done
   epic-15-retrospective: optional
