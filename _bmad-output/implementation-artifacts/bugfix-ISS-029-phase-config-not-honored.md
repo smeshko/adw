@@ -1,6 +1,6 @@
 # Bugfix ISS-029: Phase Configuration from Command Configs Not Honored
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: Bugfix (Critical)
 Created: 2026-01-19
