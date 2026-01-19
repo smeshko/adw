@@ -22,7 +22,15 @@ class TestShipPostHookStatusParsing:
     @pytest.fixture
     def post_hook_path(self) -> Path:
         """Get the path to the ship post.sh hook."""
-        return Path(__file__).parent.parent.parent / "src" / "adw" / "defaults" / "commands" / "ship" / "post.sh"
+        return (
+            Path(__file__).parent.parent.parent
+            / "src"
+            / "adw"
+            / "defaults"
+            / "commands"
+            / "ship"
+            / "post.sh"
+        )
 
     @pytest.fixture
     def tmp_artifacts_dir(self, tmp_path: Path) -> Path:
@@ -61,7 +69,9 @@ class TestShipPostHookStatusParsing:
             timeout=30,
         )
 
-    def test_parse_success_status(self, post_hook_path: Path, tmp_artifacts_dir: Path) -> None:
+    def test_parse_success_status(
+        self, post_hook_path: Path, tmp_artifacts_dir: Path
+    ) -> None:
         """Test parsing SUCCESS deployment status."""
         llm_output = """
 ## Ship Phase Status
@@ -96,7 +106,9 @@ PR_NUMBER: 123
         assert status["pr_merge_approved"] is True
         assert status["version_deployed"] == "1.2.3"
 
-    def test_parse_failed_status(self, post_hook_path: Path, tmp_artifacts_dir: Path) -> None:
+    def test_parse_failed_status(
+        self, post_hook_path: Path, tmp_artifacts_dir: Path
+    ) -> None:
         """Test parsing FAILED deployment status exits with code 1."""
         llm_output = """
 DEPLOYMENT_STATUS: FAILED
@@ -110,7 +122,9 @@ MERGE_REASON: Build command failed with exit code 1
         assert "DEPLOYMENT FAILED" in result.stdout
         assert "Build command failed" in result.stdout
 
-    def test_parse_blocked_status(self, post_hook_path: Path, tmp_artifacts_dir: Path) -> None:
+    def test_parse_blocked_status(
+        self, post_hook_path: Path, tmp_artifacts_dir: Path
+    ) -> None:
         """Test parsing BLOCKED deployment status exits with code 0."""
         llm_output = """
 DEPLOYMENT_STATUS: BLOCKED
@@ -125,7 +139,9 @@ PR_NUMBER: 456
         assert "DEPLOYMENT BLOCKED" in result.stdout
         assert "PR requires review approval" in result.stdout
 
-    def test_parse_unknown_status_defaults(self, post_hook_path: Path, tmp_artifacts_dir: Path) -> None:
+    def test_parse_unknown_status_defaults(
+        self, post_hook_path: Path, tmp_artifacts_dir: Path
+    ) -> None:
         """Test parsing output with missing status defaults safely."""
         llm_output = """
 Some random LLM output without proper status markers.
@@ -144,7 +160,15 @@ class TestShipPostHookAutoMergeDisabled:
     @pytest.fixture
     def post_hook_path(self) -> Path:
         """Get the path to the ship post.sh hook."""
-        return Path(__file__).parent.parent.parent / "src" / "adw" / "defaults" / "commands" / "ship" / "post.sh"
+        return (
+            Path(__file__).parent.parent.parent
+            / "src"
+            / "adw"
+            / "defaults"
+            / "commands"
+            / "ship"
+            / "post.sh"
+        )
 
     @pytest.fixture
     def tmp_artifacts_dir(self, tmp_path: Path) -> Path:
@@ -183,7 +207,9 @@ class TestShipPostHookAutoMergeDisabled:
             timeout=30,
         )
 
-    def test_auto_merge_disabled_skips_merge(self, post_hook_path: Path, tmp_artifacts_dir: Path) -> None:
+    def test_auto_merge_disabled_skips_merge(
+        self, post_hook_path: Path, tmp_artifacts_dir: Path
+    ) -> None:
         """Test that auto_merge: false skips PR merge."""
         llm_output = """
 DEPLOYMENT_STATUS: SUCCESS
@@ -204,7 +230,9 @@ PR_NUMBER: 789
         assert "PR #789 is ready for manual merge" in result.stdout
         assert "gh pr merge 789 --squash" in result.stdout
 
-    def test_pr_not_approved_skips_merge(self, post_hook_path: Path, tmp_artifacts_dir: Path) -> None:
+    def test_pr_not_approved_skips_merge(
+        self, post_hook_path: Path, tmp_artifacts_dir: Path
+    ) -> None:
         """Test that PR_MERGE_APPROVED: false skips merge even with auto_merge enabled."""
         llm_output = """
 DEPLOYMENT_STATUS: SUCCESS
@@ -226,7 +254,15 @@ class TestShipPostHookArtifacts:
     @pytest.fixture
     def post_hook_path(self) -> Path:
         """Get the path to the ship post.sh hook."""
-        return Path(__file__).parent.parent.parent / "src" / "adw" / "defaults" / "commands" / "ship" / "post.sh"
+        return (
+            Path(__file__).parent.parent.parent
+            / "src"
+            / "adw"
+            / "defaults"
+            / "commands"
+            / "ship"
+            / "post.sh"
+        )
 
     @pytest.fixture
     def tmp_artifacts_dir(self, tmp_path: Path) -> Path:
@@ -266,7 +302,9 @@ class TestShipPostHookArtifacts:
             timeout=30,
         )
 
-    def test_ship_report_artifact_saved(self, post_hook_path: Path, tmp_artifacts_dir: Path) -> None:
+    def test_ship_report_artifact_saved(
+        self, post_hook_path: Path, tmp_artifacts_dir: Path
+    ) -> None:
         """Test that ship_report.md artifact is saved."""
         llm_output = """
 ## Ship Phase Report
@@ -288,7 +326,9 @@ Detailed report content...
         assert "Ship Phase Report" in content
         assert "DEPLOYMENT_STATUS: SUCCESS" in content
 
-    def test_release_notes_artifact_extracted(self, post_hook_path: Path, tmp_artifacts_dir: Path) -> None:
+    def test_release_notes_artifact_extracted(
+        self, post_hook_path: Path, tmp_artifacts_dir: Path
+    ) -> None:
         """Test that release notes are extracted to separate artifact."""
         llm_output = """
 DEPLOYMENT_STATUS: SUCCESS
@@ -315,7 +355,9 @@ PR_NUMBER: 55
         assert "Release Notes" in content
         assert "New feature A" in content
 
-    def test_status_json_artifact_valid(self, post_hook_path: Path, tmp_artifacts_dir: Path) -> None:
+    def test_status_json_artifact_valid(
+        self, post_hook_path: Path, tmp_artifacts_dir: Path
+    ) -> None:
         """Test that ship_status.json is valid JSON with correct values."""
         llm_output = """
 DEPLOYMENT_STATUS: SUCCESS
@@ -344,7 +386,15 @@ class TestShipPostHookTaskManager:
     @pytest.fixture
     def post_hook_path(self) -> Path:
         """Get the path to the ship post.sh hook."""
-        return Path(__file__).parent.parent.parent / "src" / "adw" / "defaults" / "commands" / "ship" / "post.sh"
+        return (
+            Path(__file__).parent.parent.parent
+            / "src"
+            / "adw"
+            / "defaults"
+            / "commands"
+            / "ship"
+            / "post.sh"
+        )
 
     @pytest.fixture
     def tmp_artifacts_dir(self, tmp_path: Path) -> Path:
@@ -418,9 +468,19 @@ class TestShipPostHookMergeStrategies:
     @pytest.fixture
     def post_hook_path(self) -> Path:
         """Get the path to the ship post.sh hook."""
-        return Path(__file__).parent.parent.parent / "src" / "adw" / "defaults" / "commands" / "ship" / "post.sh"
+        return (
+            Path(__file__).parent.parent.parent
+            / "src"
+            / "adw"
+            / "defaults"
+            / "commands"
+            / "ship"
+            / "post.sh"
+        )
 
-    def test_merge_strategy_squash_default(self, post_hook_path: Path, tmp_path: Path) -> None:
+    def test_merge_strategy_squash_default(
+        self, post_hook_path: Path, tmp_path: Path
+    ) -> None:
         """Test that squash is the default merge strategy."""
         artifacts_dir = tmp_path / "artifacts"
         artifacts_dir.mkdir()
@@ -455,7 +515,9 @@ PR_NUMBER: 50
         # Default strategy is squash
         assert "gh pr merge 50 --squash" in result.stdout
 
-    def test_merge_body_includes_version(self, post_hook_path: Path, tmp_path: Path) -> None:
+    def test_merge_body_includes_version(
+        self, post_hook_path: Path, tmp_path: Path
+    ) -> None:
         """Test that merge body includes version when deployed."""
         artifacts_dir = tmp_path / "artifacts"
         artifacts_dir.mkdir()
@@ -498,7 +560,15 @@ class TestShipPostHookEdgeCases:
     @pytest.fixture
     def post_hook_path(self) -> Path:
         """Get the path to the ship post.sh hook."""
-        return Path(__file__).parent.parent.parent / "src" / "adw" / "defaults" / "commands" / "ship" / "post.sh"
+        return (
+            Path(__file__).parent.parent.parent
+            / "src"
+            / "adw"
+            / "defaults"
+            / "commands"
+            / "ship"
+            / "post.sh"
+        )
 
     def test_no_llm_output_handles_gracefully(self, post_hook_path: Path) -> None:
         """Test that missing LLM output is handled gracefully."""
@@ -551,7 +621,9 @@ MERGE_REASON: Success
         assert result.returncode == 1
         assert "Cannot merge - no PR number available" in result.stdout
 
-    def test_pr_number_from_output_overrides_env(self, post_hook_path: Path, tmp_path: Path) -> None:
+    def test_pr_number_from_output_overrides_env(
+        self, post_hook_path: Path, tmp_path: Path
+    ) -> None:
         """Test that PR_NUMBER from LLM output is used over env var."""
         artifacts_dir = tmp_path / "artifacts"
         artifacts_dir.mkdir()
