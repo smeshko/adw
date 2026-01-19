@@ -1283,9 +1283,13 @@ class TestInputFilesTemplateIntegration:
 
 
 class TestConfigMerging:
-    """Tests for _merge_configs method (ISS-016)."""
+    """Tests for _merge_configs method (ISS-016, updated for ISS-029).
 
-    def test_merge_configs_both_none_returns_empty_config(
+    Note: ISS-029 removed project phase config support. _merge_configs now
+    only accepts command_config and converts it to PhaseConfig.
+    """
+
+    def test_merge_configs_none_returns_empty_config(
         self,
         mock_command_resolver: MagicMock,
         mock_template_engine: MagicMock,
@@ -1293,7 +1297,7 @@ class TestConfigMerging:
         mock_executor: MagicMock,
         mock_artifact_manager: ArtifactManager,
     ) -> None:
-        """Merging two None configs returns empty PhaseConfig."""
+        """None command config returns empty PhaseConfig."""
         from adw.models.config import PhaseConfig
 
         runner = PhaseRunner(
@@ -1304,13 +1308,13 @@ class TestConfigMerging:
             artifact_manager=mock_artifact_manager,
         )
 
-        result = runner._merge_configs(None, None)
+        result = runner._merge_configs(None)
 
         assert isinstance(result, PhaseConfig)
         assert result.timeout_seconds is None
         assert result.input_files is None
 
-    def test_merge_configs_command_only(
+    def test_merge_configs_with_command_config(
         self,
         mock_command_resolver: MagicMock,
         mock_template_engine: MagicMock,
@@ -1318,7 +1322,7 @@ class TestConfigMerging:
         mock_executor: MagicMock,
         mock_artifact_manager: ArtifactManager,
     ) -> None:
-        """Command config is used when project config is None."""
+        """Command config values are converted to PhaseConfig."""
         from adw.models.command import CommandConfig
 
         runner = PhaseRunner(
@@ -1332,112 +1336,16 @@ class TestConfigMerging:
         command_config = CommandConfig(
             timeout_seconds=600,
             input_files={"prd": "defaults/prd.md"},
+            pre_hook="echo 'pre'",
+            post_hook="echo 'post'",
         )
 
-        result = runner._merge_configs(command_config, None)
+        result = runner._merge_configs(command_config)
 
         assert result.timeout_seconds == 600
         assert result.input_files == {"prd": "defaults/prd.md"}
+        assert result.pre_hook == "echo 'pre'"
+        assert result.post_hook == "echo 'post'"
 
-    def test_merge_configs_project_only(
-        self,
-        mock_command_resolver: MagicMock,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """Project config is used when command config is None."""
-        from adw.models.config import PhaseConfig
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        project_config = PhaseConfig(
-            timeout_seconds=300,
-            input_files={"arch": "docs/arch.md"},
-        )
-
-        result = runner._merge_configs(None, project_config)
-
-        assert result.timeout_seconds == 300
-        assert result.input_files == {"arch": "docs/arch.md"}
-
-    def test_merge_configs_project_overrides_command_scalars(
-        self,
-        mock_command_resolver: MagicMock,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """Project scalar values override command defaults."""
-        from adw.models.command import CommandConfig
-        from adw.models.config import PhaseConfig
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        command_config = CommandConfig(
-            timeout_seconds=600,
-            pre_hook="echo 'command pre'",
-        )
-        project_config = PhaseConfig(
-            timeout_seconds=300,  # Should override command
-        )
-
-        result = runner._merge_configs(command_config, project_config)
-
-        assert result.timeout_seconds == 300  # Project wins
-        assert result.pre_hook == "echo 'command pre'"  # Command default kept
-
-    def test_merge_configs_input_files_merged(
-        self,
-        mock_command_resolver: MagicMock,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """Input files are merged, with project overriding command for same keys."""
-        from adw.models.command import CommandConfig
-        from adw.models.config import PhaseConfig
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        command_config = CommandConfig(
-            input_files={
-                "prd": "defaults/prd.md",
-                "arch": "defaults/arch.md",
-            },
-        )
-        project_config = PhaseConfig(
-            input_files={
-                "prd": "docs/prd.md",  # Override command default
-                "ux": "docs/ux.md",  # Add new file
-            },
-        )
-
-        result = runner._merge_configs(command_config, project_config)
-
-        assert result.input_files == {
-            "prd": "docs/prd.md",  # Project wins
-            "arch": "defaults/arch.md",  # Kept from command
-            "ux": "docs/ux.md",  # Added from project
-        }
+    # NOTE: Tests for project phase config merging removed in ISS-029.
+    # Phase configuration is now delegated entirely to command configs.
