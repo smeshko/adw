@@ -71,7 +71,7 @@ issues:
   ISS-025-sdk-fails-to-create-story-branch: fixed  # Critical - SDK not creating story branches, commits go to staging
   ISS-026-remove-deprecated-adw-yaml-config: fixed  # Major - Remove .adw/adw.yaml, add git config for base branch
   ISS-027-init-wizard-phase-config-ux-issues: reported  # Major - Multiple UX issues in wizard phase configuration
-  ISS-028-sdk-no-env-file-for-linear-credentials: reported  # Major - SDK doesn't auto-load .adw/.env for credentials
+  ISS-028-sdk-no-env-file-for-linear-credentials: fixed  # Major - SDK doesn't auto-load .adw/.env for credentials
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -340,7 +340,7 @@ development_status:
   15-6-pr-merge-completion: ready-for-dev
   15-7-ship-report-generation: ready-for-dev
   # UX Fix (from ISS-028) - MAJOR
-  ux-fix-ISS-028-env-file-for-credentials: in-progress
+  ux-fix-ISS-028-env-file-for-credentials: done
   epic-15-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
