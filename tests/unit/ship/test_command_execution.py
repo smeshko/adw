@@ -10,7 +10,6 @@ Modified Files: src/adw/defaults/commands/ship/instructions.xml (Step 3)
 """
 
 
-
 class TestCommandExecutionSkipLogic:
     """Tests for skip logic when no commands are configured."""
 

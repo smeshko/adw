@@ -5,8 +5,6 @@ Tests for the minimal mode project initialization (ISS-028 additions).
 
 from pathlib import Path
 
-import pytest
-
 from adw.config.initializer import ProjectInitializer
 
 
