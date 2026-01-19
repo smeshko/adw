@@ -114,12 +114,12 @@ so that deployment commands and PR merge behavior are ready from the start.
 ## Tasks / Subtasks
 
 ### Task 1: Create Ship Wizard Step Module
-- [ ] Create `src/adw/cli/wizard/ship.py`
-- [ ] Implement `ShipStepHandler` class following `StepHandler` protocol
-- [ ] Implement `run_ship_step()` function
-- [ ] Add deployment commands prompts (version_bump, build, publish)
-- [ ] Add post-publish hooks loop
-- [ ] Add PR merge settings prompts
+- [x] Create `src/adw/cli/wizard/ship.py`
+- [x] Implement `ShipStepHandler` class following `StepHandler` protocol
+- [x] Implement `run_ship_step()` function
+- [x] Add deployment commands prompts (version_bump, build, publish)
+- [x] Add post-publish hooks loop
+- [x] Add PR merge settings prompts
 
 ### Task 2: Integrate Ship Step into Wizard Flow
 - [ ] Add `SHIP = "ship"` to `WizardStep` enum in `flow.py`

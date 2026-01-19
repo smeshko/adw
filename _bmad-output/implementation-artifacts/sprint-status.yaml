@@ -339,7 +339,7 @@ development_status:
   15-5-failure-diagnosis-recovery: done
   15-6-pr-merge-completion: done
   15-7-ship-report-generation: ready-for-dev
-  15-8-init-wizard-ship-phase-integration: ready-for-dev
+  15-8-init-wizard-ship-phase-integration: in-progress
   # UX Fix (from ISS-028) - MAJOR
   ux-fix-ISS-028-env-file-for-credentials: done
   epic-15-retrospective: optional
