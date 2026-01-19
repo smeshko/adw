@@ -171,9 +171,9 @@ def _prompt_dangerous_operations(console: Console) -> bool:
         Panel(
             "[yellow bold]Warning: Reduced Safety Mode[/]\n\n"
             "Enabling this option means:\n"
-            "  - Dangerous commands will show warnings instead of blocking\n"
-            "  - You'll be prompted to confirm risky operations\n"
-            "  - LLM may execute destructive commands with your approval\n\n"
+            "  - Dangerous commands will show warnings but WILL NOT be blocked\n"
+            "  - LLM may execute destructive commands without confirmation\n"
+            "  - Built-in protections (rm -rf /, sudo rm, etc.) remain active\n\n"
             "[dim]Only enable if you understand the risks.[/]",
             title="Security Warning",
             border_style="yellow",

@@ -228,8 +228,7 @@ class WizardFlowController:
         self.console.print(
             Panel(
                 "[bold green]Wizard Complete![/]\n\n"
-                "Your configuration has been collected.\n"
-                "[dim]Note: Full configuration will be applied in the Summary step.[/]",
+                "Your project has been configured and files have been written.",
                 title="[green]Setup Complete[/]",
                 border_style="green",
             )
