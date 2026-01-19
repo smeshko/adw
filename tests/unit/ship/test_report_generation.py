@@ -169,7 +169,9 @@ class TestStructuredStatusFields:
 
     def test_exact_format_directive(self, step_7_text: str) -> None:
         """Directive for exact format (FIELD: value)."""
-        assert "FIELD_NAME: value" in step_7_text or "field: value" in step_7_text.lower()
+        assert (
+            "FIELD_NAME: value" in step_7_text or "field: value" in step_7_text.lower()
+        )
 
 
 class TestPreFlightSummarySection:
@@ -429,7 +431,9 @@ class TestMetricsUpdated:
 
     def test_report_sections_metric_exists(self, metrics_text: str) -> None:
         """Success metrics mention report sections."""
-        assert "pre-flight" in metrics_text.lower() or "preflight" in metrics_text.lower()
+        assert (
+            "pre-flight" in metrics_text.lower() or "preflight" in metrics_text.lower()
+        )
 
     def test_failure_metric_for_missing_report(self, metrics_text: str) -> None:
         """Failure metrics include missing report generation."""
