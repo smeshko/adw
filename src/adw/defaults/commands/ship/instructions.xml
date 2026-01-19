@@ -673,11 +673,228 @@ Output: {{hook_output}}
       </substep>
     </step>
 
-    <!-- Remaining steps (4-7) will be implemented in subsequent stories -->
-    <!-- Step 4: Release Notes Generation (Story 15.4) -->
-    <!-- Step 5: Failure Diagnosis & Recovery (Story 15.5) -->
-    <!-- Step 6: PR Merge Decision & Completion (Story 15.6) -->
-    <!-- Step 7: Ship Report Generation (Story 15.7) -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- STEP 4: RELEASE NOTES GENERATION                                -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <step n="4" goal="Generate release notes">
+      <critical>Generate release notes from commits in Keep a Changelog format</critical>
+      <critical>Use commit list gathered in Step 1</critical>
+      <critical>Use new version from Step 3 if version_bump executed, otherwise use "Unreleased"</critical>
+
+      <output>
+      ```
+      ───────────────────────────────────────────────────────────────
+        STEP 4: GENERATING RELEASE NOTES
+      ───────────────────────────────────────────────────────────────
+      ```
+      </output>
+
+      <!-- 4a: Determine Version Header -->
+      <substep name="determine-version-header">
+        <critical>Version header depends on whether version bump was executed</critical>
+
+        <check if="{{version_bump_executed}} == true AND {{new_version}} is set">
+          <action>Set {{release_version}} = {{new_version}}</action>
+          <note>Using new version from version bump</note>
+        </check>
+
+        <check if="{{version_bump_executed}} == false OR {{new_version}} is NOT set">
+          <action>Set {{release_version}} = "Unreleased"</action>
+          <note>No version bump - using "Unreleased" placeholder</note>
+        </check>
+
+        <action>Get current date in YYYY-MM-DD format</action>
+        <action>Set {{release_date}} = current date</action>
+      </substep>
+
+      <!-- 4b: Categorize Commits -->
+      <substep name="categorize-commits">
+        <critical>Parse each commit from {{commit_list}} and categorize by conventional commit prefix</critical>
+
+        <action>Initialize empty category lists:
+          - {{commits_added}} = []
+          - {{commits_changed}} = []
+          - {{commits_fixed}} = []
+          - {{commits_documentation}} = []
+          - {{commits_other}} = []
+        </action>
+
+        <action>For each commit in {{commit_list}}:</action>
+
+        <!-- Category: Added -->
+        <check if="commit message starts with 'feat:', 'feat(', 'feature:', or 'add:'">
+          <action>Add to {{commits_added}}</action>
+        </check>
+
+        <!-- Category: Changed -->
+        <check if="commit message starts with 'refactor:', 'refactor(', 'update:', 'change:', or 'improve:'">
+          <action>Add to {{commits_changed}}</action>
+        </check>
+
+        <!-- Category: Fixed -->
+        <check if="commit message starts with 'fix:', 'fix(', 'bugfix:', 'patch:', or 'resolve:'">
+          <action>Add to {{commits_fixed}}</action>
+        </check>
+
+        <!-- Category: Documentation -->
+        <check if="commit message starts with 'docs:', 'docs(', or 'doc:'">
+          <action>Add to {{commits_documentation}}</action>
+        </check>
+
+        <!-- Category: Other -->
+        <check if="commit message starts with 'chore:', 'chore(', 'ci:', 'ci(', 'test:', 'test(', 'style:', 'style(', 'build:', or 'build('">
+          <action>Add to {{commits_other}}</action>
+        </check>
+
+        <!-- Category: Other (no conventional prefix) -->
+        <check if="commit message does NOT match any conventional commit prefix pattern">
+          <action>Add to {{commits_other}}</action>
+        </check>
+      </substep>
+
+      <!-- 4c: Clean Commit Messages -->
+      <substep name="clean-commit-messages">
+        <critical>Clean each commit message for human-readable release notes</critical>
+
+        <action>For each categorized commit, apply cleaning rules:</action>
+
+        <action>Rule 1: Remove conventional commit prefix
+          - "feat: add authentication" → "add authentication"
+          - "feat(api): new endpoint" → "new endpoint"
+          - "fix!: breaking change" → "breaking change"
+        </action>
+
+        <action>Rule 2: Remove scope if present
+          - "(api)" → removed
+          - "(core)" → removed
+        </action>
+
+        <action>Rule 3: Capitalize first letter
+          - "add authentication" → "Add authentication"
+        </action>
+
+        <action>Rule 4: Remove trailing punctuation if present
+          - "Add authentication." → "Add authentication"
+        </action>
+
+        <action>Rule 5: Use first line only for multi-line commits
+          - Keep only the first line (before any newline)
+        </action>
+
+        <action>Rule 6: Deduplicate messages
+          - If squash commits include original messages, keep unique entries only
+        </action>
+      </substep>
+
+      <!-- 4d: Generate Keep a Changelog Format -->
+      <substep name="generate-changelog-format">
+        <critical>Format release notes following Keep a Changelog specification</critical>
+
+        <action>Initialize {{release_notes_content}} with header:
+          ```markdown
+          ## [{{release_version}}] - {{release_date}}
+          ```
+        </action>
+
+        <!-- Added Section -->
+        <check if="{{commits_added}} is NOT empty">
+          <action>Append to {{release_notes_content}}:
+            ```markdown
+
+            ### Added
+            {{#each commits_added}}
+            - {{cleaned_message}}
+            {{/each}}
+            ```
+          </action>
+        </check>
+
+        <!-- Changed Section -->
+        <check if="{{commits_changed}} is NOT empty">
+          <action>Append to {{release_notes_content}}:
+            ```markdown
+
+            ### Changed
+            {{#each commits_changed}}
+            - {{cleaned_message}}
+            {{/each}}
+            ```
+          </action>
+        </check>
+
+        <!-- Fixed Section -->
+        <check if="{{commits_fixed}} is NOT empty">
+          <action>Append to {{release_notes_content}}:
+            ```markdown
+
+            ### Fixed
+            {{#each commits_fixed}}
+            - {{cleaned_message}}
+            {{/each}}
+            ```
+          </action>
+        </check>
+
+        <!-- Documentation Section -->
+        <check if="{{commits_documentation}} is NOT empty">
+          <action>Append to {{release_notes_content}}:
+            ```markdown
+
+            ### Documentation
+            {{#each commits_documentation}}
+            - {{cleaned_message}}
+            {{/each}}
+            ```
+          </action>
+        </check>
+
+        <!-- Other Section -->
+        <check if="{{commits_other}} is NOT empty">
+          <action>Append to {{release_notes_content}}:
+            ```markdown
+
+            ### Other
+            {{#each commits_other}}
+            - {{cleaned_message}}
+            {{/each}}
+            ```
+          </action>
+        </check>
+
+        <note>Empty sections are omitted from output</note>
+      </substep>
+
+      <!-- 4e: Save Release Notes Artifact -->
+      <substep name="save-release-notes-artifact">
+        <critical>Save release notes to artifact directory</critical>
+
+        <action>Determine artifact path: {{artifacts_dir}}/ship/release_notes.md</action>
+
+        <check if="{{artifacts_dir}} is set">
+          <action>Write {{release_notes_content}} to {{artifacts_dir}}/ship/release_notes.md</action>
+          <action>Set {{release_notes_path}} = "{{artifacts_dir}}/ship/release_notes.md"</action>
+          <action>Set {{release_notes_saved}} = true</action>
+        </check>
+
+        <check if="{{artifacts_dir}} is NOT set">
+          <action>Set {{release_notes_saved}} = false</action>
+          <note>Artifact directory not configured - release notes will be included in report only</note>
+        </check>
+      </substep>
+
+      <!-- 4f: Display Release Notes -->
+      <substep name="display-release-notes">
+        <output>
+## Release Notes Generated
+
+{{release_notes_content}}
+
+---
+**Artifact Saved:** {{#if release_notes_saved}}✓ {{release_notes_path}}{{else}}Not saved (no artifact directory configured){{/if}}
+**Categories:** Added: {{commits_added.length}}, Changed: {{commits_changed.length}}, Fixed: {{commits_fixed.length}}, Docs: {{commits_documentation.length}}, Other: {{commits_other.length}}
+        </output>
+      </substep>
+    </step>
 
   </execution>
 
@@ -708,6 +925,9 @@ Output: {{hook_output}}
       <item>PR merge readiness evaluated</item>
       <item>Risk level calculated with justification</item>
       <item>Blocking conditions identified when present</item>
+      <item>Release notes generated in Keep a Changelog format</item>
+      <item>Commits categorized by conventional commit type</item>
+      <item>Release notes artifact saved when artifacts_dir configured</item>
       <item>Status markers output for post.sh parsing</item>
     </success>
     <failure>
@@ -715,6 +935,8 @@ Output: {{hook_output}}
       <item>Not detecting version file when one exists</item>
       <item>Missing risk level assessment</item>
       <item>Proceeding when blocking issues exist</item>
+      <item>Not generating release notes when commits available</item>
+      <item>Incorrect commit categorization</item>
       <item>Missing status markers in output</item>
     </failure>
   </metrics>

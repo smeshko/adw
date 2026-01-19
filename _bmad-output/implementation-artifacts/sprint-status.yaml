@@ -335,7 +335,7 @@ development_status:
   15-1-ship-phase-sdk-integration: done
   15-2-context-gathering-pre-flight-analysis: done
   15-3-deployment-command-execution: done
-  15-4-release-notes-generation: ready-for-dev
+  15-4-release-notes-generation: done
   15-5-failure-diagnosis-recovery: ready-for-dev
   15-6-pr-merge-completion: ready-for-dev
   15-7-ship-report-generation: ready-for-dev
