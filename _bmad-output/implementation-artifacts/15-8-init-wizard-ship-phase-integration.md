@@ -128,9 +128,9 @@ so that deployment commands and PR merge behavior are ready from the start.
 - [x] Register `ShipStepHandler` in flow controller initialization
 
 ### Task 3: Update Summary Step
-- [ ] Add ship section to `generate_summary_panel()` in `summary.py`
-- [ ] Add ship config extraction from wizard state
-- [ ] Format ship summary with commands, hooks, and PR settings
+- [x] Add ship section to `generate_summary_panel()` in `summary.py`
+- [x] Add ship config extraction from wizard state
+- [x] Format ship summary with commands, hooks, and PR settings
 
 ### Task 4: Update Project YAML Generation
 - [ ] Add ship config to `generate_project_yaml()` in `summary.py`

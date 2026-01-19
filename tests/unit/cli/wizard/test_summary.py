@@ -72,6 +72,12 @@ class TestSummaryPanelGeneration:
                 "customized": True,
                 "phases": {"plan": {"timeout_seconds": 600}},
             },
+            "ship": {
+                "enabled": True,
+                "commands": {"version_bump": "npm version patch", "build": "npm run build"},
+                "post_publish": ["git push --tags"],
+                "pr": {"merge_on_success": True, "delete_branch_on_merge": True, "merge_method": "squash"},
+            },
             "llm_retry": {
                 "retry_custom": True,
                 "retry_max_retries": 5,
@@ -99,6 +105,7 @@ class TestSummaryPanelGeneration:
         assert "Task Manager:" in output
         assert "Linear" in output.title() or "linear" in output.lower()
         assert "Phases:" in output
+        assert "Ship:" in output
         assert "LLM Retry:" in output
         assert "Security:" in output
         assert "Webhooks:" in output
@@ -112,6 +119,12 @@ class TestSummaryPanelGeneration:
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "phases": {"customized": False, "phases": {}},
+            "ship": {
+                "enabled": True,
+                "commands": {},
+                "post_publish": [],
+                "pr": {"merge_on_success": False, "delete_branch_on_merge": True, "merge_method": "squash"},
+            },
             "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {"enabled": False},
@@ -139,6 +152,7 @@ class TestSummaryPanelGeneration:
                 "customized": True,
                 "phases": {"plan": {"timeout": 600}, "build": {"pre_hook": "test"}},
             },
+            "ship": {"enabled": True, "commands": {}, "post_publish": [], "pr": {}},
             "llm_retry": {},
             "security": {},
             "webhooks": {},
