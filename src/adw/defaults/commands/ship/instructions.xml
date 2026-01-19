@@ -387,8 +387,293 @@
       </substep>
     </step>
 
-    <!-- Remaining steps (3-6) will be implemented in subsequent stories -->
-    <!-- Step 3: Deployment Command Execution (Story 15.3) -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- STEP 3: DEPLOYMENT COMMAND EXECUTION                            -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <step n="3" goal="Execute deployment commands">
+      <critical>Execute commands in strict order: version_bump → build → publish</critical>
+      <critical>First failure stops the sequence - do NOT continue after failure</critical>
+      <critical>Post-publish hooks continue on failure (best-effort)</critical>
+
+      <output>
+      ```
+      ───────────────────────────────────────────────────────────────
+        STEP 3: DEPLOYMENT COMMAND EXECUTION
+      ───────────────────────────────────────────────────────────────
+      ```
+      </output>
+
+      <!-- 3a: Check if any commands are configured -->
+      <substep name="check-commands-configured">
+        <action>Check if ship.commands section has any configured commands:
+          - {{version_bump_command}} is set and not empty
+          - {{build_command}} is set and not empty
+          - {{publish_command}} is set and not empty
+        </action>
+
+        <check if="all three commands are empty or not configured">
+          <output>
+## Command Execution: SKIPPED
+
+No deployment commands configured in ship.commands section.
+Proceeding to release notes generation...
+          </output>
+          <action>Set {{commands_skipped}} = true</action>
+          <action>Set {{deployment_status}} = "SUCCESS"</action>
+          <action>Skip to Step 4 (Release Notes)</action>
+        </check>
+
+        <check if="at least one command is configured">
+          <action>Set {{commands_skipped}} = false</action>
+          <output>
+## Deployment Commands Configured
+
+| Step | Command | Status |
+|------|---------|--------|
+| Version Bump | {{version_bump_command | default: "not configured"}} | pending |
+| Build | {{build_command | default: "not configured"}} | pending |
+| Publish | {{publish_command | default: "not configured"}} | pending |
+          </output>
+        </check>
+      </substep>
+
+      <!-- 3b: Execute Version Bump Command -->
+      <substep name="execute-version-bump">
+        <check if="{{version_bump_command}} is not set or empty">
+          <output>**Version Bump:** Skipped (not configured)</output>
+          <action>Continue to build step</action>
+        </check>
+
+        <check if="{{version_bump_command}} is set and not empty">
+          <output>**Executing Version Bump:** `{{version_bump_command}}`</output>
+
+          <action>Execute via Bash:
+            ```bash
+            {{version_bump_command}}
+            ```
+          </action>
+          <action>Capture stdout as {{version_bump_stdout}}</action>
+          <action>Capture stderr as {{version_bump_stderr}}</action>
+          <action>Capture exit code as {{version_bump_exit_code}}</action>
+
+          <check if="{{version_bump_exit_code}} != 0">
+            <action>Set {{failed_command}} = "version_bump"</action>
+            <action>Set {{failed_command_name}} = "{{version_bump_command}}"</action>
+            <action>Set {{error_output}} = {{version_bump_stderr}} OR {{version_bump_stdout}}</action>
+            <action>Set {{deployment_status}} = "FAILED"</action>
+            <action>Set {{pr_merge_approved}} = false</action>
+            <output>
+### ❌ Version Bump FAILED
+
+**Command:** `{{version_bump_command}}`
+**Exit Code:** {{version_bump_exit_code}}
+**Error Output:**
+```
+{{error_output}}
+```
+
+**Skipping remaining commands. Proceeding to failure diagnosis...**
+            </output>
+            <action>Jump to Step 5 (Failure Diagnosis)</action>
+          </check>
+
+          <check if="{{version_bump_exit_code}} == 0">
+            <output>**Version Bump:** ✓ Success</output>
+
+            <!-- Re-read version file to capture new version -->
+            <action>Re-read {{version_file_path}} to get new version</action>
+            <action>Store new version as {{new_version}}</action>
+
+            <check if="{{new_version}} != {{current_version}}">
+              <output>**Version Updated:** {{current_version}} → {{new_version}}</output>
+              <action>Set {{version_deployed}} = {{new_version}}</action>
+            </check>
+
+            <check if="{{new_version}} == {{current_version}}">
+              <output>**Note:** Version unchanged after bump command</output>
+              <action>Set {{version_deployed}} = {{current_version}}</action>
+            </check>
+          </check>
+        </check>
+      </substep>
+
+      <!-- 3c: Execute Build Command -->
+      <substep name="execute-build">
+        <check if="{{deployment_status}} == 'FAILED'">
+          <action>Skip build - previous command failed</action>
+        </check>
+
+        <check if="{{build_command}} is not set or empty">
+          <output>**Build:** Skipped (not configured)</output>
+          <action>Continue to publish step</action>
+        </check>
+
+        <check if="{{build_command}} is set and not empty AND {{deployment_status}} != 'FAILED'">
+          <output>**Executing Build:** `{{build_command}}`</output>
+
+          <action>Execute via Bash:
+            ```bash
+            {{build_command}}
+            ```
+          </action>
+          <action>Capture stdout as {{build_stdout}}</action>
+          <action>Capture stderr as {{build_stderr}}</action>
+          <action>Capture exit code as {{build_exit_code}}</action>
+
+          <check if="{{build_exit_code}} != 0">
+            <action>Set {{failed_command}} = "build"</action>
+            <action>Set {{failed_command_name}} = "{{build_command}}"</action>
+            <action>Set {{error_output}} = {{build_stderr}} OR {{build_stdout}}</action>
+            <action>Set {{deployment_status}} = "FAILED"</action>
+            <action>Set {{pr_merge_approved}} = false</action>
+            <output>
+### ❌ Build FAILED
+
+**Command:** `{{build_command}}`
+**Exit Code:** {{build_exit_code}}
+**Error Output:**
+```
+{{error_output}}
+```
+
+**Skipping remaining commands. Proceeding to failure diagnosis...**
+            </output>
+            <action>Jump to Step 5 (Failure Diagnosis)</action>
+          </check>
+
+          <check if="{{build_exit_code}} == 0">
+            <output>**Build:** ✓ Success</output>
+          </check>
+        </check>
+      </substep>
+
+      <!-- 3d: Execute Publish Command -->
+      <substep name="execute-publish">
+        <check if="{{deployment_status}} == 'FAILED'">
+          <action>Skip publish - previous command failed</action>
+        </check>
+
+        <check if="{{publish_command}} is not set or empty">
+          <output>**Publish:** Skipped (not configured)</output>
+          <action>Set {{deployment_status}} = "SUCCESS"</action>
+          <action>Continue to post-publish hooks</action>
+        </check>
+
+        <check if="{{publish_command}} is set and not empty AND {{deployment_status}} != 'FAILED'">
+          <output>**Executing Publish:** `{{publish_command}}`</output>
+
+          <action>Execute via Bash:
+            ```bash
+            {{publish_command}}
+            ```
+          </action>
+          <action>Capture stdout as {{publish_stdout}}</action>
+          <action>Capture stderr as {{publish_stderr}}</action>
+          <action>Capture exit code as {{publish_exit_code}}</action>
+
+          <check if="{{publish_exit_code}} != 0">
+            <action>Set {{failed_command}} = "publish"</action>
+            <action>Set {{failed_command_name}} = "{{publish_command}}"</action>
+            <action>Set {{error_output}} = {{publish_stderr}} OR {{publish_stdout}}</action>
+            <action>Set {{deployment_status}} = "FAILED"</action>
+            <action>Set {{pr_merge_approved}} = false</action>
+            <output>
+### ❌ Publish FAILED
+
+**Command:** `{{publish_command}}`
+**Exit Code:** {{publish_exit_code}}
+**Error Output:**
+```
+{{error_output}}
+```
+
+**Proceeding to failure diagnosis...**
+            </output>
+            <action>Jump to Step 5 (Failure Diagnosis)</action>
+          </check>
+
+          <check if="{{publish_exit_code}} == 0">
+            <output>**Publish:** ✓ Success</output>
+            <action>Set {{deployment_status}} = "SUCCESS"</action>
+          </check>
+        </check>
+      </substep>
+
+      <!-- 3e: Execute Post-Publish Hooks -->
+      <substep name="execute-post-publish-hooks">
+        <check if="{{deployment_status}} == 'FAILED'">
+          <action>Skip post-publish hooks - deployment failed</action>
+        </check>
+
+        <check if="{{post_publish_hooks}} is empty or not configured">
+          <output>**Post-Publish Hooks:** None configured</output>
+        </check>
+
+        <check if="{{post_publish_hooks}} is not empty AND {{deployment_status}} == 'SUCCESS'">
+          <output>
+### Post-Publish Hooks
+
+Executing {{post_publish_hooks.length}} configured hooks...
+          </output>
+
+          <action>For each hook in {{post_publish_hooks}}:</action>
+          <iterate over="{{post_publish_hooks}}" as="hook">
+            <output>**Running:** `{{hook}}`</output>
+
+            <action>Execute via Bash:
+              ```bash
+              {{hook}}
+              ```
+            </action>
+            <action>Capture exit code as {{hook_exit_code}}</action>
+            <action>Capture output as {{hook_output}}</action>
+
+            <check if="{{hook_exit_code}} != 0">
+              <output>⚠️ **Warning:** Post-publish hook failed: `{{hook}}`
+Exit code: {{hook_exit_code}}
+Output: {{hook_output}}
+(Continuing with remaining hooks...)</output>
+              <action>Add to {{hook_warnings}}: "Hook '{{hook}}' failed with exit code {{hook_exit_code}}"</action>
+              <!-- Continue to next hook - do NOT abort -->
+            </check>
+
+            <check if="{{hook_exit_code}} == 0">
+              <output>✓ `{{hook}}` completed</output>
+            </check>
+          </iterate>
+        </check>
+      </substep>
+
+      <!-- 3f: Display Execution Summary -->
+      <substep name="execution-summary">
+        <check if="{{deployment_status}} == 'SUCCESS'">
+          <output>
+## Command Execution: SUCCESS
+
+| Step | Command | Result |
+|------|---------|--------|
+| Version Bump | {{version_bump_command | default: "skipped"}} | {{#if version_bump_exit_code}}{{version_bump_exit_code == 0 ? "✓" : "failed"}}{{else}}skipped{{/if}} |
+| Build | {{build_command | default: "skipped"}} | {{#if build_exit_code}}{{build_exit_code == 0 ? "✓" : "failed"}}{{else}}skipped{{/if}} |
+| Publish | {{publish_command | default: "skipped"}} | {{#if publish_exit_code}}{{publish_exit_code == 0 ? "✓" : "failed"}}{{else}}skipped{{/if}} |
+
+{{#if version_deployed}}
+**Version Deployed:** {{version_deployed}}
+{{/if}}
+
+{{#if hook_warnings}}
+### Post-Publish Hook Warnings
+{{#each hook_warnings}}
+- {{this}}
+{{/each}}
+{{/if}}
+
+**Proceeding to release notes generation...**
+          </output>
+        </check>
+      </substep>
+    </step>
+
+    <!-- Remaining steps (4-7) will be implemented in subsequent stories -->
     <!-- Step 4: Release Notes Generation (Story 15.4) -->
     <!-- Step 5: Failure Diagnosis & Recovery (Story 15.5) -->
     <!-- Step 6: PR Merge Decision & Completion (Story 15.6) -->
