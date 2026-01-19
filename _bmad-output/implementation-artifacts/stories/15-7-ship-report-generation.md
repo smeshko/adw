@@ -1,6 +1,6 @@
 # Story 15.7: Ship Report Generation
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
