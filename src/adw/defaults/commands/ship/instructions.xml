@@ -459,6 +459,7 @@ Proceeding to release notes generation...
           <check if="{{version_bump_exit_code}} != 0">
             <action>Set {{failed_command}} = "version_bump"</action>
             <action>Set {{failed_command_name}} = "{{version_bump_command}}"</action>
+            <action>Set {{failed_exit_code}} = {{version_bump_exit_code}}</action>
             <action>Set {{error_output}} = {{version_bump_stderr}} OR {{version_bump_stdout}}</action>
             <action>Set {{deployment_status}} = "FAILED"</action>
             <action>Set {{pr_merge_approved}} = false</action>
@@ -523,6 +524,7 @@ Proceeding to release notes generation...
           <check if="{{build_exit_code}} != 0">
             <action>Set {{failed_command}} = "build"</action>
             <action>Set {{failed_command_name}} = "{{build_command}}"</action>
+            <action>Set {{failed_exit_code}} = {{build_exit_code}}</action>
             <action>Set {{error_output}} = {{build_stderr}} OR {{build_stdout}}</action>
             <action>Set {{deployment_status}} = "FAILED"</action>
             <action>Set {{pr_merge_approved}} = false</action>
@@ -574,6 +576,7 @@ Proceeding to release notes generation...
           <check if="{{publish_exit_code}} != 0">
             <action>Set {{failed_command}} = "publish"</action>
             <action>Set {{failed_command_name}} = "{{publish_command}}"</action>
+            <action>Set {{failed_exit_code}} = {{publish_exit_code}}</action>
             <action>Set {{error_output}} = {{publish_stderr}} OR {{publish_stdout}}</action>
             <action>Set {{deployment_status}} = "FAILED"</action>
             <action>Set {{pr_merge_approved}} = false</action>
@@ -964,8 +967,8 @@ Output: {{hook_output}}
             <action>Set {{diagnosis_details}} = "A git tag for the target version already exists, preventing the version bump from completing."</action>
             <action>Set {{remediation}} list:
               1. Check existing tags: `git tag -l`
-              2. If the tag is incorrect, delete it: `git tag -d v{{target_version}}`
-              3. Also delete from remote if pushed: `git push origin :refs/tags/v{{target_version}}`
+              2. If the tag is incorrect, delete it: `git tag -d v{{new_version}}`
+              3. Also delete from remote if pushed: `git push origin :refs/tags/v{{new_version}}`
               4. Then retry: `adw resume &lt;run-id&gt; --from ship`
             </action>
           </check>
