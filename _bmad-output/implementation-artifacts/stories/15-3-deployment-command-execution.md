@@ -69,12 +69,12 @@ So that I can automate version bumps, builds, and publishing.
 - [x] On failure, capture error and proceed to failure diagnosis
 
 ### Task 4: Implement Publish Command Execution
-- [ ] Check if `ship.commands.publish` is set
-- [ ] If set, execute command via bash tool
-- [ ] Capture stdout/stderr for logging
-- [ ] This is the critical deployment step
-- [ ] On failure, capture error and proceed to failure diagnosis
-- [ ] On success, set `DEPLOYMENT_STATUS: SUCCESS`
+- [x] Check if `ship.commands.publish` is set
+- [x] If set, execute command via bash tool
+- [x] Capture stdout/stderr for logging
+- [x] This is the critical deployment step
+- [x] On failure, capture error and proceed to failure diagnosis
+- [x] On success, set `DEPLOYMENT_STATUS: SUCCESS`
 
 ### Task 5: Implement Post-Publish Hooks
 - [ ] Check if `ship.post_publish` list is non-empty
@@ -376,6 +376,7 @@ Claude Opus 4.5
   - Added substep 3f for execution summary
 - Task 2: Version bump execution already implemented in substep 3b of Task 1
 - Task 3: Build command execution already implemented in substep 3c of Task 1
+- Task 4: Publish command execution already implemented in substep 3d of Task 1
 
 ### File List
 
