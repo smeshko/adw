@@ -54,6 +54,10 @@ class MockPhaseRunner:
             tokens_used=100,
         )
 
+    def is_phase_enabled(self, phase: str) -> bool:
+        """Return True for all phases (mock implementation for ISS-029)."""
+        return True
+
 
 class TestOrchestratorProgressIntegration:
     """Integration tests for Orchestrator with ProgressDisplay."""
@@ -167,6 +171,10 @@ class TestOrchestratorProgressIntegration:
                     tokens_used=0,
                 )
 
+            def is_phase_enabled(self, phase: str) -> bool:
+                """Return True for all phases (mock implementation for ISS-029)."""
+                return True
+
         orchestrator = Orchestrator(
             runs_dir=tmp_path,
             context_manager=context_manager,
@@ -256,6 +264,10 @@ class TestOrchestratorProgressIntegration:
                     artifacts=[],
                     tokens_used=100,
                 )
+
+            def is_phase_enabled(self, phase: str) -> bool:
+                """Return True for all phases (mock implementation for ISS-029)."""
+                return True
 
         orchestrator = Orchestrator(
             runs_dir=tmp_path,
