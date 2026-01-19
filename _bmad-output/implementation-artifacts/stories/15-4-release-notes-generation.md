@@ -1,6 +1,6 @@
 # Story 15.4: Release Notes Generation
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
@@ -388,8 +388,31 @@ Epic 15: Ship Phase & Deployment - Story 15.4
 
 ### Agent Model Used
 
+Claude Opus 4.5 (claude-opus-4-5-20251101)
+
 ### Debug Log References
+
+N/A - clean implementation without debug issues
 
 ### Completion Notes List
 
+1. **Task 1**: Added Step 4 to ship/instructions.xml with 6 substeps for release notes generation
+2. **Task 2**: Commit categorization implemented via conventional commit prefix matching (Added, Changed, Fixed, Documentation, Other)
+3. **Task 3**: Version header logic uses new_version from Step 3 or "Unreleased" fallback with YYYY-MM-DD date
+4. **Task 4**: Keep a Changelog format with conditional section rendering (empty sections omitted)
+5. **Task 5**: Commit message cleaning rules (remove prefix, scope, capitalize, first line only, dedupe)
+6. **Task 6**: Artifact saved to artifacts_dir/ship/release_notes.md; already configured as optional in config.yaml
+7. **Task 7**: Created 42 tests validating instruction structure, prefix coverage, and format compliance
+
+**Implementation Approach**: This story implements release notes generation as LLM instructions (instructions.xml) rather than Python code, since the feature is executed by an LLM during the ship phase. Tests validate the instruction structure and content.
+
 ### File List
+
+**Created:**
+- `tests/unit/ship/__init__.py` - Test package init
+- `tests/unit/ship/test_release_notes.py` - 42 tests for release notes instructions
+
+**Modified:**
+- `src/adw/defaults/commands/ship/instructions.xml` - Added Step 4: Release Notes Generation
+- `_bmad-output/implementation-artifacts/stories/15-4-release-notes-generation.md` - Task checkboxes and dev record
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` - Status updated to in-progress
