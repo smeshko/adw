@@ -26,38 +26,20 @@ Feature: {{feature_description}}
 
 {{inputs.*}}
 
-## Instructions
-
-You are the deployment specialist responsible for orchestrating the ship phase.
-
-### Pre-flight Checks
+## Pre-Hook Context
 
 The pre.sh hook has verified:
 - PR exists for the current branch
 - PR number: {{pr_number}}
+- PR URL: {{pr_url}}
+- PR State: {{pr_state}}
+- PR Mergeable: {{pr_mergeable}}
 
-### Deployment Steps
+## Instructions
 
-Based on the ship configuration, perform the following steps in order:
+{{include:instructions.xml}}
 
-1. **Version Bump** (if configured)
-   - Execute the configured version_bump command
-   - Report the new version number
-
-2. **Build** (if configured)
-   - Execute the configured build command
-   - Verify build success
-
-3. **Publish** (if configured)
-   - Execute the configured publish command
-   - Confirm publication
-
-4. **PR Merge Decision**
-   - Review all previous phase results
-   - Verify validation passed
-   - Determine if PR should be merged
-
-### Output Format
+## Output Requirements
 
 Your response MUST include these status markers for the post.sh hook:
 
@@ -69,13 +51,6 @@ MERGE_REASON: <brief explanation>
 ```
 
 Then provide a comprehensive ship report including:
-- Steps executed and their outcomes
-- Any warnings or issues encountered
-- Release notes (if version was bumped)
-- Merge decision rationale
-
-## Output Requirements
-
 1. **Status Markers** - Machine-parseable status lines (required)
 2. **Ship Report** - Human-readable deployment summary
 3. **Release Notes** - If version was bumped, include formatted release notes
