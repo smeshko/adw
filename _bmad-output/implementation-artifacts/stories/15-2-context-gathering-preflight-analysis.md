@@ -1,6 +1,6 @@
 # Story 15.2: Context Gathering & Pre-Flight Analysis
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
@@ -42,67 +42,67 @@ So that I'm warned about risky deployments and breaking changes.
 ## Tasks / Subtasks
 
 ### Task 1: Define Context Gathering Instructions (Step 1 in instructions.xml)
-- [ ] Create step 1 in `ship/instructions.xml` for context gathering
-- [ ] Instruction to run `gh pr view --json number,title,mergeable,mergeStateStatus,reviewDecision`
-- [ ] Instruction to detect version file type and read current version
-- [ ] Instruction to run `git describe --tags --abbrev=0` for last tag
-- [ ] Instruction to run `git log <last_tag>..HEAD --oneline` for commits
-- [ ] Store all gathered context in structured format
+- [x] Create step 1 in `ship/instructions.xml` for context gathering
+- [x] Instruction to run `gh pr view --json number,title,mergeable,mergeStateStatus,reviewDecision`
+- [x] Instruction to detect version file type and read current version
+- [x] Instruction to run `git describe --tags --abbrev=0` for last tag
+- [x] Instruction to run `git log <last_tag>..HEAD --oneline` for commits
+- [x] Store all gathered context in structured format
 
 ### Task 2: Define Version File Detection Logic
-- [ ] Check for `package.json` → extract `version` field
-- [ ] Check for `pyproject.toml` → extract `project.version` or `tool.poetry.version`
-- [ ] Check for `Cargo.toml` → extract `package.version`
-- [ ] Check for `VERSION` file → read entire contents
-- [ ] If no version file found → set version to "unknown"
-- [ ] Document detection order in instructions
+- [x] Check for `package.json` → extract `version` field
+- [x] Check for `pyproject.toml` → extract `project.version` or `tool.poetry.version`
+- [x] Check for `Cargo.toml` → extract `package.version`
+- [x] Check for `VERSION` file → read entire contents
+- [x] If no version file found → set version to "unknown"
+- [x] Document detection order in instructions
 
 ### Task 3: Define Pre-Flight Analysis Instructions (Step 2 in instructions.xml)
-- [ ] Create step 2 in `ship/instructions.xml` for pre-flight analysis
-- [ ] Analyze commit messages for breaking change indicators:
+- [x] Create step 2 in `ship/instructions.xml` for pre-flight analysis
+- [x] Analyze commit messages for breaking change indicators:
   - `BREAKING:` prefix
   - `!` after type (e.g., `feat!:`, `fix!:`)
   - Keywords: "breaking", "migration", "schema change"
-- [ ] Analyze file changes for security indicators:
+- [x] Analyze file changes for security indicators:
   - Changes to auth/security files
   - Changes to .env, secrets, credentials
   - New dependencies
-- [ ] Evaluate PR readiness:
+- [x] Evaluate PR readiness:
   - `mergeable: true` required
   - `mergeStateStatus: CLEAN` or `MERGEABLE`
   - `reviewDecision: APPROVED` recommended
 
 ### Task 4: Define Risk Assessment Logic
-- [ ] LOW risk criteria:
+- [x] LOW risk criteria:
   - No breaking changes
   - No security-sensitive changes
   - PR approved and mergeable
   - All checks passing
-- [ ] MEDIUM risk criteria:
+- [x] MEDIUM risk criteria:
   - Minor breaking changes with migration path
   - Changes to secondary security components
   - PR mergeable but not all reviews complete
-- [ ] HIGH risk criteria:
+- [x] HIGH risk criteria:
   - Major breaking changes without migration
   - Changes to core auth/security
   - PR has conflicts or failed checks
   - Missing required reviews
 
 ### Task 5: Define Blocking Conditions
-- [ ] BLOCKED status conditions:
+- [x] BLOCKED status conditions:
   - PR has merge conflicts
   - Required checks are failing
   - Required reviews missing
   - Branch protection rules violated
-- [ ] When BLOCKED:
+- [x] When BLOCKED:
   - Set `DEPLOYMENT_STATUS: BLOCKED`
   - Set `PR_MERGE_APPROVED: false`
   - Include specific reason in report
   - Provide remediation steps
 
 ### Task 6: Write Prompt Template for Context Display
-- [ ] Create section in `prompt.md` for context gathering prompt
-- [ ] Template for displaying gathered context:
+- [x] Create section in `prompt.md` for context gathering prompt
+- [x] Template for displaying gathered context:
   ```
   ## Ship Phase Context
 
@@ -346,8 +346,18 @@ Epic 15: Ship Phase & Deployment - Story 15.2
 
 ### Agent Model Used
 
+Claude Opus 4.5 (claude-opus-4-5-20251101)
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Tasks 1-6: Created comprehensive `instructions.xml` with Steps 1 (Context Gathering) and Step 2 (Pre-Flight Analysis)
+- Step 1 includes: PR info gathering via gh CLI, version file detection (package.json → pyproject.toml → Cargo.toml → VERSION), git history since last tag, ship config extraction
+- Step 2 includes: Breaking change analysis, security-sensitive file detection, PR readiness evaluation, risk level calculation (LOW/MEDIUM/HIGH), blocking condition handling
+- Updated `prompt.md` to include instructions.xml via {{include:}} directive
+
 ### File List
+
+- src/adw/defaults/commands/ship/instructions.xml (new)
+- src/adw/defaults/commands/ship/prompt.md (modified)
