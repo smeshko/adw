@@ -157,8 +157,8 @@ class TestSnapshotListingAcrossPhases:
 
         snapshot_manager = SnapshotManager(run_dir_manager.runs_dir)
 
-        # Create snapshots for multiple phases (current phase sequence)
-        phases = ["plan", "build", "validate", "document"]
+        # Create snapshots for multiple phases (Story 15.1: includes ship)
+        phases = ["plan", "build", "validate", "document", "ship"]
         for phase in phases:
             context = sample_context.model_copy(update={"current_phase": phase})
             snapshot_manager.create_pre_phase_snapshot(context, phase)
