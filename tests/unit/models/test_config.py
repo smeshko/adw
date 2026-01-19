@@ -12,7 +12,7 @@ import pytest
 from pydantic import ValidationError
 
 from adw.models import ProjectConfig
-from adw.models.config import PhaseConfig, WorktreeConfig
+from adw.models.config import PhaseConfig, ShipConfig, ShipPRConfig, WorktreeConfig
 
 
 class TestPhaseConfigInputFiles:
@@ -145,6 +145,56 @@ class TestWorktreeConfig:
             max_concurrent=15,
         )
         assert config.port_range.backend_start == 65521
+
+
+class TestShipConfig:
+    """Tests for ShipConfig validation (Story 15.1)."""
+
+    def test_merge_method_rejects_invalid(self) -> None:
+        """ShipPRConfig rejects invalid merge_method values."""
+        with pytest.raises(ValidationError) as exc_info:
+            ShipPRConfig(merge_method="invalid")  # type: ignore[arg-type]
+        assert "merge_method" in str(exc_info.value)
+
+    def test_merge_method_accepts_valid_values(self) -> None:
+        """ShipPRConfig accepts all valid merge_method values."""
+        for method in ["merge", "squash", "rebase"]:
+            config = ShipPRConfig(merge_method=method)  # type: ignore[arg-type]
+            assert config.merge_method == method
+
+    def test_ship_config_from_yaml(self) -> None:
+        """ShipConfig loads correctly from project YAML."""
+        yaml_content = """
+name: ship-enabled
+language: python
+ship:
+  enabled: true
+  commands:
+    version_bump: npm version patch
+    build: npm run build
+    publish: npm publish
+  pr:
+    merge_on_success: true
+    delete_branch_on_merge: true
+    merge_method: squash
+"""
+        config = ProjectConfig.from_yaml(yaml_content)
+        assert config.ship is not None
+        assert config.ship.enabled is True
+        assert config.ship.commands.version_bump == "npm version patch"
+        assert config.ship.commands.build == "npm run build"
+        assert config.ship.commands.publish == "npm publish"
+        assert config.ship.pr.merge_on_success is True
+        assert config.ship.pr.merge_method == "squash"
+
+    def test_ship_config_defaults_to_none(self) -> None:
+        """ProjectConfig.ship defaults to None when not specified."""
+        yaml_content = """
+name: no-ship
+language: python
+"""
+        config = ProjectConfig.from_yaml(yaml_content)
+        assert config.ship is None
 
 
 class TestProjectConfig:
