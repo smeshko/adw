@@ -8,9 +8,10 @@ This module previously tested PHASE_SEQUENCE. Per ISS-019 and ADR-001, the seque
 verification test was removed as it provides no value - the constant definition
 itself is the source of truth.
 
-Note: PHASE_SEQUENCE was updated from 5 phases to 4 phases in ISS-019:
-- OLD: ("plan", "build", "verify", "validate", "document")
-- NEW: ("plan", "build", "validate", "document")
+PHASE_SEQUENCE history:
+- ISS-019: Removed "verify" phase (5 -> 4 phases)
+- Story 15.1: Added "ship" phase (4 -> 5 phases)
+- Current: ("plan", "build", "validate", "document", "ship")
 """
 
 

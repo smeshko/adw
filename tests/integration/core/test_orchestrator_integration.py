@@ -286,8 +286,8 @@ class TestContextPersistenceIntegration:
 
         orchestrator.run("Test feature")
 
-        # Context should have been persisted multiple times (4 phases)
-        assert persist_count >= 4  # At least once per phase
+        # Context should have been persisted multiple times (5 phases per Story 15.1)
+        assert persist_count >= 5  # At least once per phase
 
     def test_final_context_has_completed_status(
         self,
