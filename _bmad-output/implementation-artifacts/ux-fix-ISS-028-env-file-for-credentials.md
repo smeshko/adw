@@ -42,13 +42,13 @@ so that I can easily manage per-project Linear credentials without global shell 
 ### Task 2: Implement .env Loading in CLI Bootstrap
 **Files**: `src/adw/cli/app.py`
 
-- [ ] 2.1 Add import for `dotenv` at top of file
-- [ ] 2.2 Create `_load_env_file()` helper function that:
+- [x] 2.1 Add import for `dotenv` at top of file
+- [x] 2.2 Create `_load_env_file()` helper function that:
   - Constructs path: `Path.cwd() / ".adw" / ".env"`
   - Checks if file exists
   - Calls `dotenv.load_dotenv(path)` if exists
   - Silently returns if file doesn't exist
-- [ ] 2.3 Call `_load_env_file()` at the START of `@app.callback()` function (line 96)
+- [x] 2.3 Call `_load_env_file()` at the START of `@app.callback()` function (line 96)
   - Must be called BEFORE verbosity handling (line 112)
   - Environment must be loaded before any command runs
 
