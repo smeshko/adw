@@ -111,14 +111,14 @@ artifacts:
 - [x] Verify artifact patterns match generated files
 
 ### Task 9: Write Tests
-- [ ] Test structured fields format
-- [ ] Test pre-flight section generation
-- [ ] Test execution log section
-- [ ] Test release notes inclusion
-- [ ] Test failure analysis conditional
-- [ ] Test verification recommendations
-- [ ] Test artifact creation
-- [ ] Test required artifact validation
+- [x] Test structured fields format
+- [x] Test pre-flight section generation
+- [x] Test execution log section
+- [x] Test release notes inclusion
+- [x] Test failure analysis conditional
+- [x] Test verification recommendations
+- [x] Test artifact creation
+- [x] Test required artifact validation
 
 ---
 
