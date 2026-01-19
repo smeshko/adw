@@ -84,9 +84,9 @@ artifacts:
   - Post-publish hook results
 
 ### Task 5: Implement Release Notes Section
-- [ ] Include full release notes from step 4
-- [ ] Or indicate "Release notes generation skipped" if not applicable
-- [ ] Reference artifact file: `release_notes.md`
+- [x] Include full release notes from step 4
+- [x] Or indicate "Release notes generation skipped" if not applicable
+- [x] Reference artifact file: `release_notes.md`
 
 ### Task 6: Implement Failure Analysis Section (Conditional)
 - [ ] Only include if `DEPLOYMENT_STATUS: FAILED`
