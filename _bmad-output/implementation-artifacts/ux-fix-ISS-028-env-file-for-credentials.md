@@ -37,7 +37,7 @@ so that I can easily manage per-project Linear credentials without global shell 
 ### Task 1: Add python-dotenv Dependency
 **Files**: `pyproject.toml`
 
-- [ ] 1.1 Add `python-dotenv>=1.0.0` to dependencies list (line 11-22)
+- [x] 1.1 Add `python-dotenv>=1.0.0` to dependencies list (line 11-22)
 
 ### Task 2: Implement .env Loading in CLI Bootstrap
 **Files**: `src/adw/cli/app.py`

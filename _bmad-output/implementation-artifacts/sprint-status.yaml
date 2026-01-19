@@ -340,7 +340,7 @@ development_status:
   15-6-pr-merge-completion: ready-for-dev
   15-7-ship-report-generation: ready-for-dev
   # UX Fix (from ISS-028) - MAJOR
-  ux-fix-ISS-028-env-file-for-credentials: ready-for-dev
+  ux-fix-ISS-028-env-file-for-credentials: in-progress
   epic-15-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
