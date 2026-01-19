@@ -84,7 +84,7 @@ So that I can automate version bumps, builds, and publishing.
 - [x] Common hooks: `git push --tags`, notification scripts
 
 ### Task 6: Define Error Handling Flow
-- [ ] On any command failure:
+- [x] On any command failure:
   - Capture full error output (stdout + stderr)
   - Identify which command failed
   - Set `DEPLOYMENT_STATUS: FAILED`
@@ -378,6 +378,7 @@ Claude Opus 4.5
 - Task 3: Build command execution already implemented in substep 3c of Task 1
 - Task 4: Publish command execution already implemented in substep 3d of Task 1
 - Task 5: Post-publish hooks already implemented in substep 3e of Task 1 with continue-on-failure
+- Task 6: Error handling flow implemented across all substeps - captures error, sets FAILED status, jumps to failure diagnosis
 
 ### File List
 
