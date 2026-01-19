@@ -118,49 +118,90 @@ class TestPhaseSelection:
         assert result["customized"] is False
         assert result["phases"] == {}
 
+    def test_invalid_only_input_reprompts(self) -> None:
+        """Test that entering only invalid entries reprompts until valid."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt:
+            # First invalid, then valid
+            mock_prompt.side_effect = ["invalid, foo", "1,3"]
+            selected = _prompt_phase_selection(console)
+
+        assert selected == ["plan", "validate"]
+        assert mock_prompt.call_count == 2
+
+    def test_mixed_valid_invalid_shows_feedback(self) -> None:
+        """Test that mixed input returns valid phases (invalid shown as feedback)."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask", return_value="1, invalid, 3"):
+            selected = _prompt_phase_selection(console)
+
+        assert selected == ["plan", "validate"]
+
 
 class TestParsePhaseSelection:
     """Tests for _parse_phase_selection helper function."""
 
     def test_empty_input(self) -> None:
-        """Test empty input returns empty list."""
-        assert _parse_phase_selection("") == []
-        assert _parse_phase_selection("   ") == []
+        """Test empty input returns empty lists."""
+        assert _parse_phase_selection("") == ([], [])
+        assert _parse_phase_selection("   ") == ([], [])
 
     def test_all_keyword(self) -> None:
         """Test 'all' keyword returns all phases."""
-        assert _parse_phase_selection("all") == AVAILABLE_PHASES
-        assert _parse_phase_selection("ALL") == AVAILABLE_PHASES
-        assert _parse_phase_selection("  all  ") == AVAILABLE_PHASES
+        assert _parse_phase_selection("all") == (AVAILABLE_PHASES, [])
+        assert _parse_phase_selection("ALL") == (AVAILABLE_PHASES, [])
+        assert _parse_phase_selection("  all  ") == (AVAILABLE_PHASES, [])
 
     def test_numeric_selection(self) -> None:
         """Test selecting by number."""
-        assert _parse_phase_selection("1") == ["plan"]
-        assert _parse_phase_selection("1,3") == ["plan", "validate"]
-        assert _parse_phase_selection("1, 2, 3") == ["plan", "build", "validate"]
-        assert _parse_phase_selection("4") == ["document"]
+        assert _parse_phase_selection("1") == (["plan"], [])
+        assert _parse_phase_selection("1,3") == (["plan", "validate"], [])
+        assert _parse_phase_selection("1, 2, 3") == (["plan", "build", "validate"], [])
+        assert _parse_phase_selection("4") == (["document"], [])
 
     def test_name_selection(self) -> None:
         """Test selecting by phase name."""
-        assert _parse_phase_selection("plan") == ["plan"]
-        assert _parse_phase_selection("plan, validate") == ["plan", "validate"]
-        assert _parse_phase_selection("PLAN") == ["plan"]
+        assert _parse_phase_selection("plan") == (["plan"], [])
+        assert _parse_phase_selection("plan, validate") == (["plan", "validate"], [])
+        assert _parse_phase_selection("PLAN") == (["plan"], [])
 
     def test_mixed_selection(self) -> None:
         """Test mixed number and name selection."""
-        assert _parse_phase_selection("1, validate") == ["plan", "validate"]
-        assert _parse_phase_selection("plan, 4") == ["plan", "document"]
+        assert _parse_phase_selection("1, validate") == (["plan", "validate"], [])
+        assert _parse_phase_selection("plan, 4") == (["plan", "document"], [])
 
-    def test_invalid_entries_ignored(self) -> None:
-        """Test that invalid entries are silently ignored."""
-        assert _parse_phase_selection("1, invalid, 3") == ["plan", "validate"]
-        assert _parse_phase_selection("99") == []
-        assert _parse_phase_selection("0") == []
+    def test_invalid_entries_returned(self) -> None:
+        """Test that invalid entries are returned separately."""
+        selected, invalid = _parse_phase_selection("1, invalid, 3")
+        assert selected == ["plan", "validate"]
+        assert invalid == ["invalid"]
+
+        selected, invalid = _parse_phase_selection("99")
+        assert selected == []
+        assert invalid == ["99"]
+
+        selected, invalid = _parse_phase_selection("0")
+        assert selected == []
+        assert invalid == ["0"]
 
     def test_duplicates_removed(self) -> None:
         """Test that duplicate selections are removed."""
-        assert _parse_phase_selection("1, 1, plan") == ["plan"]
-        assert _parse_phase_selection("plan, plan") == ["plan"]
+        assert _parse_phase_selection("1, 1, plan") == (["plan"], [])
+        assert _parse_phase_selection("plan, plan") == (["plan"], [])
+
+    def test_multiple_invalid_entries(self) -> None:
+        """Test multiple invalid entries are all returned."""
+        selected, invalid = _parse_phase_selection("foo, bar, baz")
+        assert selected == []
+        assert invalid == ["foo", "bar", "baz"]
+
+    def test_mixed_valid_and_invalid(self) -> None:
+        """Test mix of valid and invalid entries."""
+        selected, invalid = _parse_phase_selection("1, foo, validate, bar")
+        assert selected == ["plan", "validate"]
+        assert invalid == ["foo", "bar"]
 
 
 class TestBasePhaseConfiguration:

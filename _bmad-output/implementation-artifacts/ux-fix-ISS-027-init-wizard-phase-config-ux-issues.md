@@ -1,6 +1,6 @@
 # Story: UX Fix - Init Wizard Phase Configuration Issues
 
-Status: Ready for Review
+Status: done
 Linear Issue: not-configured
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-19
@@ -242,7 +242,14 @@ N/A
 - Fixed completion message to not reference Summary step (already completed at that point)
 - Updated all related tests with new mock patterns for comma-separated input
 - Added TestParsePhaseSelection class for comprehensive parsing tests
-- All 2748 tests pass with 83.72% coverage
+
+**Code Review Fixes Applied:**
+- Fixed line-too-long linting violation (shortened instruction message)
+- Added user feedback for invalid phase selections (shows "Ignored invalid entries: ...")
+- Added reprompt loop when user enters only invalid phase selections
+- Updated `_parse_phase_selection()` to return tuple of (valid, invalid) for better feedback
+- Added new tests: `test_invalid_only_input_reprompts`, `test_mixed_valid_invalid_shows_feedback`, `test_multiple_invalid_entries`, `test_mixed_valid_and_invalid`
+- All 40 phase wizard tests pass
 
 ### File List
 

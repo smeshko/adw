@@ -116,12 +116,13 @@ def _prompt_phase_selection(console: Console) -> list[str]:
     """Prompt user to select which phases to customize.
 
     Uses comma-separated input for efficient multi-selection.
+    Reprompts if user enters only invalid entries.
 
     Args:
         console: Console for output.
 
     Returns:
-        List of selected phase names.
+        List of selected phase names (empty if user enters nothing).
     """
     console.print()
     console.print("[dim]Available phases:[/]")
@@ -129,15 +130,32 @@ def _prompt_phase_selection(console: Console) -> list[str]:
         console.print(f"  [cyan]{i}[/]. {phase}")
 
     console.print()
-    console.print("[dim]Enter phase numbers separated by commas (e.g., 1,3) or 'all'[/]")
+    console.print("[dim]Enter phase numbers separated by commas, e.g. 1,3 or 'all'[/]")
 
-    selection = Prompt.ask(
-        "Phases to customize",
-        default="",
-        console=console,
-    ).strip()
+    while True:
+        selection = Prompt.ask(
+            "Phases to customize",
+            default="",
+            console=console,
+        ).strip()
 
-    return _parse_phase_selection(selection)
+        # Empty input is valid - user chose not to select any
+        if not selection:
+            return []
+
+        selected, invalid = _parse_phase_selection(selection)
+
+        # Show feedback for invalid entries
+        if invalid:
+            console.print(f"[yellow]Ignored invalid entries: {', '.join(invalid)}[/]")
+
+        # If we have valid selections, return them
+        if selected:
+            return selected
+
+        # All entries were invalid - reprompt
+        console.print("[yellow]No valid phases selected. Please try again.[/]")
+        console.print("[dim]Use numbers (1-4), phase names, or 'all'[/]")
 
 
 def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
@@ -286,7 +304,7 @@ def _parse_int(value: str, default: int) -> int:
         return default
 
 
-def _parse_phase_selection(selection: str) -> list[str]:
+def _parse_phase_selection(selection: str) -> tuple[list[str], list[str]]:
     """Parse comma-separated phase selection input.
 
     Accepts:
@@ -299,23 +317,25 @@ def _parse_phase_selection(selection: str) -> list[str]:
         selection: User input string.
 
     Returns:
-        List of valid phase names.
+        Tuple of (valid_phases, invalid_entries).
     """
     selection = selection.strip().lower()
 
     # Empty input
     if not selection:
-        return []
+        return [], []
 
     # Handle "all" keyword
     if selection == "all":
-        return list(AVAILABLE_PHASES)
+        return list(AVAILABLE_PHASES), []
 
     # Split by comma and process each part
     parts = [p.strip() for p in selection.split(",") if p.strip()]
     selected: list[str] = []
+    invalid: list[str] = []
 
     for part in parts:
+        matched = False
         # Try as number first
         try:
             idx = int(part)
@@ -323,9 +343,15 @@ def _parse_phase_selection(selection: str) -> list[str]:
                 phase = AVAILABLE_PHASES[idx - 1]
                 if phase not in selected:
                     selected.append(phase)
+                matched = True
         except ValueError:
             # Try as phase name
-            if part in AVAILABLE_PHASES and part not in selected:
-                selected.append(part)
+            if part in AVAILABLE_PHASES:
+                if part not in selected:
+                    selected.append(part)
+                matched = True
 
-    return selected
+        if not matched:
+            invalid.append(part)
+
+    return selected, invalid
