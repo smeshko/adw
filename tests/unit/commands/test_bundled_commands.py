@@ -160,9 +160,10 @@ class TestShipPhaseInstructionsXml:
                 break
 
         assert step_1 is not None, "Should have step n='1'"
-        assert "context" in step_1.get("goal", "").lower() or "gather" in step_1.get(
-            "goal", ""
-        ).lower(), "Step 1 should be about context gathering"
+        assert (
+            "context" in step_1.get("goal", "").lower()
+            or "gather" in step_1.get("goal", "").lower()
+        ), "Step 1 should be about context gathering"
 
     def test_instructions_has_step_2_preflight_analysis(
         self, instructions_content: str
@@ -189,13 +190,20 @@ class TestShipPhaseInstructionsXml:
             or "pre-flight" in step_2.get("goal", "").lower()
         ), "Step 2 should be about pre-flight analysis"
 
-    def test_instructions_references_gh_pr_view(self, instructions_content: str) -> None:
+    def test_instructions_references_gh_pr_view(
+        self, instructions_content: str
+    ) -> None:
         """Instructions.xml should reference gh pr view command for PR info."""
         assert "gh pr view" in instructions_content
         assert "mergeable" in instructions_content.lower()
-        assert "mergeStateStatus" in instructions_content or "merge_state_status" in instructions_content
+        assert (
+            "mergeStateStatus" in instructions_content
+            or "merge_state_status" in instructions_content
+        )
 
-    def test_instructions_has_version_detection(self, instructions_content: str) -> None:
+    def test_instructions_has_version_detection(
+        self, instructions_content: str
+    ) -> None:
         """Instructions.xml should have version file detection logic."""
         assert "package.json" in instructions_content
         assert "pyproject.toml" in instructions_content
@@ -207,15 +215,22 @@ class TestShipPhaseInstructionsXml:
         assert "LOW" in instructions_content
         assert "MEDIUM" in instructions_content
         assert "HIGH" in instructions_content
-        assert "risk_level" in instructions_content or "risk level" in instructions_content.lower()
+        assert (
+            "risk_level" in instructions_content
+            or "risk level" in instructions_content.lower()
+        )
 
-    def test_instructions_has_blocking_conditions(self, instructions_content: str) -> None:
+    def test_instructions_has_blocking_conditions(
+        self, instructions_content: str
+    ) -> None:
         """Instructions.xml should define blocking conditions."""
         assert "BLOCKED" in instructions_content
         assert "blocking" in instructions_content.lower()
         assert "PR_MERGE_APPROVED" in instructions_content
 
-    def test_instructions_references_git_describe(self, instructions_content: str) -> None:
+    def test_instructions_references_git_describe(
+        self, instructions_content: str
+    ) -> None:
         """Instructions.xml should reference git describe for version tags."""
         assert "git describe" in instructions_content
         assert "tags" in instructions_content.lower()
@@ -227,7 +242,12 @@ class TestShipPhaseInstructionsXml:
         assert "breaking" in instructions_content.lower()
         assert "BREAKING" in instructions_content
 
-    def test_instructions_has_security_analysis(self, instructions_content: str) -> None:
+    def test_instructions_has_security_analysis(
+        self, instructions_content: str
+    ) -> None:
         """Instructions.xml should analyze security-sensitive changes."""
         assert "security" in instructions_content.lower()
-        assert "auth" in instructions_content.lower() or "authentication" in instructions_content.lower()
+        assert (
+            "auth" in instructions_content.lower()
+            or "authentication" in instructions_content.lower()
+        )
