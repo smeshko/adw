@@ -106,12 +106,32 @@ if [[ -n "$ADW_LLM_OUTPUT" ]] && [[ -n "$ADW_ARTIFACTS_DIR" ]]; then
 
     # Save parsed status as JSON for programmatic access
     status_file="$ADW_ARTIFACTS_DIR/ship_status.json"
+
+    # Helper function to escape strings for JSON
+    json_escape() {
+        local str="$1"
+        # Escape backslashes, quotes, and control characters
+        str="${str//\\/\\\\}"
+        str="${str//\"/\\\"}"
+        str="${str//$'\n'/\\n}"
+        str="${str//$'\r'/\\r}"
+        str="${str//$'\t'/\\t}"
+        echo "$str"
+    }
+
+    # Escape strings that may contain special characters
+    merge_reason_escaped=$(json_escape "$merge_reason")
+
+    # Convert string booleans to JSON booleans safely
+    pr_merge_approved_json="false"
+    [[ "$pr_merge_approved" == "true" ]] && pr_merge_approved_json="true"
+
     cat > "$status_file" <<EOF
 {
   "deployment_status": "$deployment_status",
-  "pr_merge_approved": $pr_merge_approved,
+  "pr_merge_approved": $pr_merge_approved_json,
   "version_deployed": "$version_deployed",
-  "merge_reason": "$merge_reason",
+  "merge_reason": "$merge_reason_escaped",
   "pr_number": ${pr_number:-null}
 }
 EOF
@@ -195,37 +215,39 @@ if [[ "$pr_merge_approved" == "true" ]]; then
         merge_body="Shipped via ADW"
     fi
 
-    # Build merge command based on strategy
+    # Build merge command using array (safer than eval with strings)
+    merge_cmd=(gh pr merge "$pr_number")
+
     case "$merge_strategy" in
         squash)
-            merge_args="--squash --body \"$merge_body\""
+            merge_cmd+=(--squash --body "$merge_body")
             ;;
         merge)
-            merge_args="--merge --body \"$merge_body\""
+            merge_cmd+=(--merge --body "$merge_body")
             ;;
         rebase)
             # Rebase doesn't support --body
-            merge_args="--rebase"
+            merge_cmd+=(--rebase)
             ;;
         *)
             echo "Warning: Unknown merge strategy '$merge_strategy', using squash"
-            merge_args="--squash --body \"$merge_body\""
+            merge_cmd+=(--squash --body "$merge_body")
             ;;
     esac
 
     # Add delete-branch flag if configured
     if [[ "$delete_branch" == "true" ]]; then
-        merge_args="$merge_args --delete-branch"
+        merge_cmd+=(--delete-branch)
         echo "Branch will be deleted after merge"
     fi
 
-    # Execute merge
-    echo "Executing: gh pr merge $pr_number $merge_args"
+    # Execute merge (using array expansion for proper quoting)
+    echo "Executing: ${merge_cmd[*]}"
 
     # Capture both stdout and stderr, and exit code
     merge_output=""
     merge_exit_code=0
-    merge_output=$(eval "gh pr merge $pr_number $merge_args" 2>&1) || merge_exit_code=$?
+    merge_output=$("${merge_cmd[@]}" 2>&1) || merge_exit_code=$?
 
     if [[ $merge_exit_code -eq 0 ]]; then
         echo ""
@@ -243,14 +265,23 @@ if [[ "$pr_merge_approved" == "true" ]]; then
         # Save merge record for task manager sync
         if [[ -n "$ADW_ARTIFACTS_DIR" ]]; then
             merge_record_file="$ADW_ARTIFACTS_DIR/merge_record.json"
+
+            # Convert string boolean to JSON boolean
+            delete_branch_json="false"
+            [[ "$delete_branch" == "true" ]] && delete_branch_json="true"
+
+            # Escape merge_body for JSON (reuse json_escape if in scope, otherwise inline)
+            merge_body_escaped="${merge_body//\\/\\\\}"
+            merge_body_escaped="${merge_body_escaped//\"/\\\"}"
+
             cat > "$merge_record_file" <<EOF
 {
   "merged": true,
   "pr_number": $pr_number,
   "merge_strategy": "$merge_strategy",
   "version": "$version_deployed",
-  "branch_deleted": $delete_branch,
-  "merge_body": "$merge_body"
+  "branch_deleted": $delete_branch_json,
+  "merge_body": "$merge_body_escaped"
 }
 EOF
             echo "Merge record saved to: $merge_record_file"
