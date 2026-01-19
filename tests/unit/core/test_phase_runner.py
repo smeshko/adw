@@ -1159,11 +1159,14 @@ class TestLoadInputFiles:
 
 
 class TestInputFilesTemplateIntegration:
-    """Tests for input files integration with template rendering (ISS-015)."""
+    """Tests for input files integration with template rendering (ISS-015).
+
+    Note: ISS-029 removed phases from ProjectConfig. Input files are now
+    configured via command configs (.adw/commands/<phase>/config.yaml).
+    """
 
     def test_inputs_available_as_template_variable(
         self,
-        mock_command_resolver: MagicMock,
         mock_template_engine: MagicMock,
         mock_hook_runner: MagicMock,
         mock_executor: MagicMock,
@@ -1172,24 +1175,36 @@ class TestInputFilesTemplateIntegration:
         tmp_path: Path,
     ) -> None:
         """Inputs should be available as {{ inputs.name }} in template."""
-        from adw.models.config import PhaseConfig, ProjectConfig
+        from adw.models.config import ProjectConfig
+
+        # Create command directory with config.yaml containing input_files (ISS-029)
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Test prompt")
+        (cmd_dir / "config.yaml").write_text(
+            "input_files:\n  prd: docs/prd.md\n"
+        )
 
         # Create test input file
         (tmp_path / "docs").mkdir(parents=True)
         (tmp_path / "docs" / "prd.md").write_text("# Product Requirements")
 
-        # Create project config with input_files
+        # Create a real command resolver pointing to tmp_path
+        from adw.commands.resolver import CommandResolver
+
+        command_resolver = CommandResolver(project_root=tmp_path)
+
+        # Create minimal project config (no phases - ISS-029)
         project_config = ProjectConfig(
             name="test-project",
             language="python",
-            phases={"plan": PhaseConfig(input_files={"prd": "docs/prd.md"})},
         )
 
         # Update context to use tmp_path as worktree
         context = sample_context.model_copy(update={"worktree_path": tmp_path})
 
         runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
+            command_resolver=command_resolver,
             template_engine=mock_template_engine,
             hook_runner=mock_hook_runner,
             executor=mock_executor,
@@ -1232,7 +1247,7 @@ class TestInputFilesTemplateIntegration:
         assert "inputs" in variables
         assert variables["inputs"] == {}
 
-    def test_inputs_empty_when_phase_has_no_input_files(
+    def test_inputs_empty_when_command_config_has_no_input_files(
         self,
         mock_command_resolver: MagicMock,
         mock_template_engine: MagicMock,
@@ -1241,15 +1256,13 @@ class TestInputFilesTemplateIntegration:
         mock_artifact_manager: ArtifactManager,
         sample_context: RunContext,
     ) -> None:
-        """Inputs should be empty when phase config has no input_files."""
-        from adw.models.config import PhaseConfig, ProjectConfig
+        """Inputs should be empty when command config has no input_files (ISS-029)."""
+        from adw.models.config import ProjectConfig
 
+        # Minimal project config without phases (ISS-029: phases removed)
         project_config = ProjectConfig(
             name="test-project",
             language="python",
-            phases={
-                "plan": PhaseConfig(enabled=True)  # No input_files
-            },
         )
 
         runner = PhaseRunner(

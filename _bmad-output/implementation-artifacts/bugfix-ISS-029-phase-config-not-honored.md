@@ -18,8 +18,8 @@ so that **I can customize timeouts, disable phases, and have predictable executi
 - [x] **AC1**: `timeout_seconds` from `.adw/commands/<phase>/config.yaml` is used when executing LLM calls for that phase
 - [x] **AC2**: Phases with `enabled: false` in their command config are skipped during pipeline execution
 - [x] **AC3**: `CommandConfig` model accepts the `enabled` field without validation errors
-- [ ] **AC4**: The `phases` section is removed from `ProjectConfig` (config.py) - all phase config delegated to command configs
-- [ ] **AC5**: `dry_run.py` loads phase hooks from command configs instead of `project_config.phases`
+- [x] **AC4**: The `phases` section is removed from `ProjectConfig` (config.py) - all phase config delegated to command configs
+- [x] **AC5**: `dry_run.py` loads phase hooks from command configs instead of `project_config.phases`
 - [x] **AC6**: Resume flows also respect the `enabled` flag
 - [ ] **AC7**: All existing tests pass after changes
 - [ ] **AC8**: New tests verify timeout passing and phase skipping behavior
@@ -44,15 +44,15 @@ so that **I can customize timeouts, disable phases, and have predictable executi
 - [x] 3.4 Modify resume loop at line 962 to also skip disabled phases
 
 ### Task 4: Remove `phases` field from `ProjectConfig`
-- [ ] 4.1 Remove `phases: dict[str, PhaseConfig]` field from `ProjectConfig` in `src/adw/models/config.py`
-- [ ] 4.2 Keep `PhaseConfig` class for backwards compatibility (used in merge logic)
-- [ ] 4.3 Update `_merge_configs` in phase_runner.py to not expect project_phase_config
-- [ ] 4.4 Search codebase for all `project_config.phases` references and update
+- [x] 4.1 Remove `phases: dict[str, PhaseConfig]` field from `ProjectConfig` in `src/adw/models/config.py`
+- [x] 4.2 Keep `PhaseConfig` class for backwards compatibility (used in merge logic)
+- [x] 4.3 Update `_merge_configs` in phase_runner.py to not expect project_phase_config
+- [x] 4.4 Search codebase for all `project_config.phases` references and update (dry_run.py in Task 5, tests in Task 6)
 
 ### Task 5: Update `dry_run.py`
-- [ ] 5.1 Modify `_show_phases_table` to load hooks from command configs
-- [ ] 5.2 Add helper to resolve and load command config for display
-- [ ] 5.3 Display `enabled` status in the phases table
+- [x] 5.1 Modify `_show_phases_table` to load hooks from command configs
+- [x] 5.2 Add helper to resolve and load command config for display
+- [x] 5.3 Display `enabled` status in the phases table
 
 ### Task 6: Update tests
 - [ ] 6.1 Add test for timeout being passed to executor

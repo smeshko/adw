@@ -10,11 +10,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import yaml
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from adw.commands.resolver import CommandResolver
 from adw.core.constants import PHASE_SEQUENCE
+from adw.models.command import CommandConfig
 
 if TYPE_CHECKING:
     from adw.models import ProjectConfig
@@ -45,13 +48,20 @@ class DryRunDisplay:
         ... )
     """
 
-    def __init__(self, console: Console | None = None) -> None:
+    def __init__(
+        self,
+        console: Console | None = None,
+        command_resolver: CommandResolver | None = None,
+    ) -> None:
         """Initialize the DryRunDisplay.
 
         Args:
             console: Rich Console instance for output. If None, creates a new one.
+            command_resolver: Command resolver for loading phase configs.
+                If None, creates one using current directory.
         """
         self.console = console or Console()
+        self._command_resolver = command_resolver or CommandResolver()
 
     def show_execution_preview(
         self,
@@ -109,6 +119,33 @@ class DryRunDisplay:
         self.console.print("[yellow]Dry run mode - no execution will occur[/]")
         self.console.print()
 
+    def _load_command_config(self, phase_name: str) -> CommandConfig | None:
+        """Load command config for a phase.
+
+        Args:
+            phase_name: The phase name to load config for.
+
+        Returns:
+            CommandConfig if config.yaml exists, None otherwise.
+        """
+        try:
+            command = self._command_resolver.resolve(phase_name)
+            if not command.has_config:
+                return None
+
+            config_path = command.path / "config.yaml"
+            if not config_path.exists():
+                return None
+
+            config_content = config_path.read_text(encoding="utf-8")
+            data = yaml.safe_load(config_content)
+            if data is None:
+                data = {}
+            return CommandConfig.model_validate(data)
+        except Exception:
+            # Silently fail - config loading errors should not break dry run
+            return None
+
     def _show_phases_table(
         self,
         phases: list[str],
@@ -118,28 +155,32 @@ class DryRunDisplay:
 
         Args:
             phases: List of phase names to show.
-            config: Project configuration for hook display, or None.
+            config: Project configuration (unused, kept for API compatibility).
         """
         self.console.print()
 
         table = Table(title="Phases to Execute")
         table.add_column("Phase", style="cyan")
+        table.add_column("Enabled", style="green")
         table.add_column("Pre-Hook", style="dim")
         table.add_column("Post-Hook", style="dim")
 
         for phase_name in phases:
+            enabled = "✓"
             pre_hook = "—"
             post_hook = "—"
 
-            # Get hooks from config if available
-            if config and phase_name in config.phases:
-                phase_config = config.phases[phase_name]
-                if phase_config.pre_hook:
-                    pre_hook = phase_config.pre_hook
-                if phase_config.post_hook:
-                    post_hook = phase_config.post_hook
+            # Get hooks and enabled status from command config (ISS-029)
+            command_config = self._load_command_config(phase_name)
+            if command_config:
+                if not command_config.enabled:
+                    enabled = "[red]✗[/]"
+                if command_config.pre_hook:
+                    pre_hook = command_config.pre_hook
+                if command_config.post_hook:
+                    post_hook = command_config.post_hook
 
-            table.add_row(phase_name, pre_hook, post_hook)
+            table.add_row(phase_name, enabled, pre_hook, post_hook)
 
         self.console.print(table)
 
