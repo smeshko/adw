@@ -9,7 +9,6 @@ Story: 15.3 - Deployment Command Execution
 Modified Files: src/adw/defaults/commands/ship/instructions.xml (Step 3)
 """
 
-import pytest
 
 
 class TestCommandExecutionSkipLogic:
