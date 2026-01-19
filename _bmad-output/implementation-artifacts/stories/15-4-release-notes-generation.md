@@ -55,10 +55,10 @@ So that I have documentation for what was shipped.
 ## Tasks / Subtasks
 
 ### Task 1: Define Release Notes Instructions (Step 4 in instructions.xml)
-- [ ] Create step 4 in `ship/instructions.xml` for release notes
-- [ ] Input: commit list from step 1 (context gathering)
-- [ ] Input: new version from step 3 (if version_bump ran)
-- [ ] Output: formatted release notes in Keep a Changelog format
+- [x] Create step 4 in `ship/instructions.xml` for release notes
+- [x] Input: commit list from step 1 (context gathering)
+- [x] Input: new version from step 3 (if version_bump ran)
+- [x] Output: formatted release notes in Keep a Changelog format
 
 ### Task 2: Implement Commit Categorization
 - [ ] Parse commit messages for conventional commit prefixes
