@@ -82,7 +82,7 @@ so that I can easily manage per-project Linear credentials without global shell 
 ### Task 5: Create .env.template in Minimal Init Mode
 **Files**: `src/adw/config/initializer.py`
 
-- [ ] 5.1 Add `ENV_TEMPLATE_CONTENT` constant:
+- [x] 5.1 Add `ENV_TEMPLATE_CONTENT` constant:
   ```python
   ENV_TEMPLATE_CONTENT = """\
   # ADW Credentials
@@ -98,8 +98,8 @@ so that I can easily manage per-project Linear credentials without global shell 
   LINEAR_TEAM_ID=
   """
   ```
-- [ ] 5.2 Add `_write_env_template()` method to create `.env.template` file
-- [ ] 5.3 Call `_write_env_template()` in `initialize()` method after `_write_gitignore()`
+- [x] 5.2 Add `_write_env_template()` method to create `.env.template` file
+- [x] 5.3 Call `_write_env_template()` in `initialize()` method after `_write_gitignore()`
 
 ### Task 6: Update Wizard Summary Gitignore
 **Files**: `src/adw/cli/wizard/summary.py`
