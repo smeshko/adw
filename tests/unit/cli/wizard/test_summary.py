@@ -74,9 +74,16 @@ class TestSummaryPanelGeneration:
             },
             "ship": {
                 "enabled": True,
-                "commands": {"version_bump": "npm version patch", "build": "npm run build"},
+                "commands": {
+                    "version_bump": "npm version patch",
+                    "build": "npm run build",
+                },
                 "post_publish": ["git push --tags"],
-                "pr": {"merge_on_success": True, "delete_branch_on_merge": True, "merge_method": "squash"},
+                "pr": {
+                    "merge_on_success": True,
+                    "delete_branch_on_merge": True,
+                    "merge_method": "squash",
+                },
             },
             "llm_retry": {
                 "retry_custom": True,
@@ -123,7 +130,11 @@ class TestSummaryPanelGeneration:
                 "enabled": True,
                 "commands": {},
                 "post_publish": [],
-                "pr": {"merge_on_success": False, "delete_branch_on_merge": True, "merge_method": "squash"},
+                "pr": {
+                    "merge_on_success": False,
+                    "delete_branch_on_merge": True,
+                    "merge_method": "squash",
+                },
             },
             "llm_retry": {"retry_custom": False},
             "security": {},

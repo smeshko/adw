@@ -450,9 +450,7 @@ def generate_project_yaml(state: WizardState) -> str:
     ship_post_publish = ship.get("post_publish", [])
     ship_pr = ship.get("pr", {})
     has_ship_config = (
-        ship_commands
-        or ship_post_publish
-        or ship_pr.get("merge_on_success")
+        ship_commands or ship_post_publish or ship_pr.get("merge_on_success")
     )
     if has_ship_config:
         ship_config: dict[str, Any] = {"enabled": True}
