@@ -56,16 +56,16 @@ artifacts:
 - [x] Include structured fields at top for parsing
 
 ### Task 2: Implement Structured Status Section
-- [ ] Always include at report top:
+- [x] Always include at report top:
   ```markdown
   DEPLOYMENT_STATUS: SUCCESS
   PR_MERGE_APPROVED: true
   VERSION_DEPLOYED: 1.2.3
   PR_NUMBER: 456
   ```
-- [ ] Use exact format (field: value) for post.sh parsing
-- [ ] Valid DEPLOYMENT_STATUS values: SUCCESS, FAILED, BLOCKED
-- [ ] VERSION_DEPLOYED: actual version or "N/A"
+- [x] Use exact format (field: value) for post.sh parsing
+- [x] Valid DEPLOYMENT_STATUS values: SUCCESS, FAILED, BLOCKED
+- [x] VERSION_DEPLOYED: actual version or "N/A"
 
 ### Task 3: Implement Pre-Flight Summary Section
 - [ ] Include from step 2 analysis:
