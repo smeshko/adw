@@ -75,13 +75,13 @@ So that I have documentation for what was shipped.
 - [x] Handle commits without conventional prefix (categorize as "Other")
 
 ### Task 3: Implement Version Header Logic
-- [ ] If version_bump executed successfully:
+- [x] If version_bump executed successfully:
   - Use captured new version number
   - Format: `## [1.2.3] - 2026-01-18`
-- [ ] If no version_bump configured:
+- [x] If no version_bump configured:
   - Use "Unreleased" as version
   - Format: `## [Unreleased] - 2026-01-18`
-- [ ] Always include current date (YYYY-MM-DD format)
+- [x] Always include current date (YYYY-MM-DD format)
 
 ### Task 4: Implement Keep a Changelog Format
 - [ ] Generate release notes following format:
