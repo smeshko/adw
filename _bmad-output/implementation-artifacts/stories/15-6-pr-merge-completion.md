@@ -1,6 +1,6 @@
 # Story 15.6: PR Merge & Completion
 
-Status: in-progress
+Status: done
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
@@ -112,14 +112,14 @@ ship:
 - [x] Continue even if task update fails (log warning)
 
 ### Task 8: Write Tests
-- [ ] Test status parsing from ship_report
-- [ ] Test PR merge execution with squash
-- [ ] Test PR merge with merge strategy
-- [ ] Test PR merge with rebase strategy
-- [ ] Test branch deletion after merge
-- [ ] Test auto_merge disabled flow
-- [ ] Test merge error handling
-- [ ] Test task manager integration
+- [x] Test status parsing from ship_report
+- [x] Test PR merge execution with squash
+- [x] Test PR merge with merge strategy
+- [x] Test PR merge with rebase strategy
+- [x] Test branch deletion after merge
+- [x] Test auto_merge disabled flow
+- [x] Test merge error handling
+- [x] Test task manager integration
 
 ---
 
