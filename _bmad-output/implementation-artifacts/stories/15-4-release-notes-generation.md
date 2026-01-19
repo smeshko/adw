@@ -1,6 +1,6 @@
 # Story 15.4: Release Notes Generation
 
-Status: Ready for Review
+Status: done
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
