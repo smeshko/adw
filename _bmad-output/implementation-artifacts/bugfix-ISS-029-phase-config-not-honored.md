@@ -16,11 +16,11 @@ so that **I can customize timeouts, disable phases, and have predictable executi
 ## Acceptance Criteria
 
 - [x] **AC1**: `timeout_seconds` from `.adw/commands/<phase>/config.yaml` is used when executing LLM calls for that phase
-- [ ] **AC2**: Phases with `enabled: false` in their command config are skipped during pipeline execution
+- [x] **AC2**: Phases with `enabled: false` in their command config are skipped during pipeline execution
 - [x] **AC3**: `CommandConfig` model accepts the `enabled` field without validation errors
 - [ ] **AC4**: The `phases` section is removed from `ProjectConfig` (config.py) - all phase config delegated to command configs
 - [ ] **AC5**: `dry_run.py` loads phase hooks from command configs instead of `project_config.phases`
-- [ ] **AC6**: Resume flows also respect the `enabled` flag
+- [x] **AC6**: Resume flows also respect the `enabled` flag
 - [ ] **AC7**: All existing tests pass after changes
 - [ ] **AC8**: New tests verify timeout passing and phase skipping behavior
 
@@ -38,10 +38,10 @@ so that **I can customize timeouts, disable phases, and have predictable executi
 - [x] 2.4 Verify executor's `execute` method accepts timeout parameter
 
 ### Task 3: Check `enabled` flag in orchestrator
-- [ ] 3.1 Add `_is_phase_enabled(phase: str) -> bool` helper method to `Orchestrator`
-- [ ] 3.2 Helper should resolve command, load config, and check `enabled` flag
-- [ ] 3.3 Modify main loop at line 338 to skip disabled phases with logging
-- [ ] 3.4 Modify resume loop at line 943 to also skip disabled phases
+- [x] 3.1 Add `is_phase_enabled(phase: str) -> bool` method to `PhaseRunnerProtocol` and implement in `PhaseRunner`
+- [x] 3.2 Helper resolves command, loads config, and checks `enabled` flag
+- [x] 3.3 Modify main loop at line 349 to skip disabled phases with logging
+- [x] 3.4 Modify resume loop at line 962 to also skip disabled phases
 
 ### Task 4: Remove `phases` field from `ProjectConfig`
 - [ ] 4.1 Remove `phases: dict[str, PhaseConfig]` field from `ProjectConfig` in `src/adw/models/config.py`
@@ -247,8 +247,10 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - **Task 1 Complete**: Added `enabled: bool = Field(default=True, ...)` to `CommandConfig` in `command.py`. Field placed before `timeout_seconds` for consistency. Verified Pydantic validation passes with default=True, explicit False, and model_validate from dict. Extra fields still forbidden.
 - **Task 2 Complete**: Modified `_execute_llm` to accept `timeout: int | None = None` and pass it to executor. Added `_get_merged_config` helper to extract config loading from `_load_and_render_prompt`. Updated `run()` to load merged config and pass `merged_config.timeout_seconds` to `_execute_llm`. Executor protocol already supports timeout parameter.
+- **Task 3 Complete**: Added `is_phase_enabled(phase: str) -> bool` to `PhaseRunnerProtocol` and implemented in `PhaseRunner`. Method resolves command, loads config, and returns `config.enabled` (defaults to True). Updated both main loop (line 349) and resume loop (line 962) in orchestrator to check `is_phase_enabled` before executing each phase, logging skipped phases.
 
 ### File List
 
 - `src/adw/models/command.py` - Added `enabled` field to CommandConfig
-- `src/adw/core/phase_runner.py` - Added timeout parameter to `_execute_llm`, added `_get_merged_config` helper, updated `run()` and `_load_and_render_prompt`
+- `src/adw/core/phase_runner.py` - Added timeout parameter to `_execute_llm`, added `_get_merged_config` helper, added `is_phase_enabled` method, updated `run()` and `_load_and_render_prompt`
+- `src/adw/core/orchestrator.py` - Added `is_phase_enabled` to `PhaseRunnerProtocol`, added enabled check to main and resume loops
