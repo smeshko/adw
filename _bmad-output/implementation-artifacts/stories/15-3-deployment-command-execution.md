@@ -62,11 +62,11 @@ So that I can automate version bumps, builds, and publishing.
 - [x] On failure, capture error and proceed to failure diagnosis
 
 ### Task 3: Implement Build Command Execution
-- [ ] Check if `ship.commands.build` is set
-- [ ] If set, execute command via bash tool
-- [ ] Capture stdout/stderr for logging
-- [ ] Build typically produces artifacts (don't parse, just run)
-- [ ] On failure, capture error and proceed to failure diagnosis
+- [x] Check if `ship.commands.build` is set
+- [x] If set, execute command via bash tool
+- [x] Capture stdout/stderr for logging
+- [x] Build typically produces artifacts (don't parse, just run)
+- [x] On failure, capture error and proceed to failure diagnosis
 
 ### Task 4: Implement Publish Command Execution
 - [ ] Check if `ship.commands.publish` is set
@@ -375,6 +375,7 @@ Claude Opus 4.5
   - Added substep 3e for post-publish hooks (continue-on-failure)
   - Added substep 3f for execution summary
 - Task 2: Version bump execution already implemented in substep 3b of Task 1
+- Task 3: Build command execution already implemented in substep 3c of Task 1
 
 ### File List
 
