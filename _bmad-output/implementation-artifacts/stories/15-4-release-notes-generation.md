@@ -84,7 +84,7 @@ So that I have documentation for what was shipped.
 - [x] Always include current date (YYYY-MM-DD format)
 
 ### Task 4: Implement Keep a Changelog Format
-- [ ] Generate release notes following format:
+- [x] Generate release notes following format:
   ```markdown
   ## [version] - YYYY-MM-DD
 
@@ -103,8 +103,8 @@ So that I have documentation for what was shipped.
   ### Other
   - Maintenance tasks from chore:/ci:/test: commits
   ```
-- [ ] Omit empty sections (if no commits in category)
-- [ ] Clean commit messages (remove prefix, capitalize first letter)
+- [x] Omit empty sections (if no commits in category)
+- [x] Clean commit messages (remove prefix, capitalize first letter)
 
 ### Task 5: Implement Commit Message Cleaning
 - [ ] Remove conventional commit prefix: `feat: add auth` → `Add auth`
