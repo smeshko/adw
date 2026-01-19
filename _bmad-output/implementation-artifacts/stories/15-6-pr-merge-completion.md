@@ -1,6 +1,6 @@
 # Story 15.6: PR Merge & Completion
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
@@ -50,10 +50,10 @@ ship:
 ## Tasks / Subtasks
 
 ### Task 1: Define Finalization Instructions (Step 6 in instructions.xml)
-- [ ] Create step 6 in `ship/instructions.xml` for finalization
-- [ ] Input: deployment status from steps 3/5
-- [ ] Determine PR_MERGE_APPROVED based on status
-- [ ] Set final status fields for post.sh parsing
+- [x] Create step 6 in `ship/instructions.xml` for finalization
+- [x] Input: deployment status from steps 3/5
+- [x] Determine PR_MERGE_APPROVED based on status
+- [x] Set final status fields for post.sh parsing
 
 ### Task 2: Implement post.sh Status Parsing
 - [ ] Parse ship_report.md for structured fields:
