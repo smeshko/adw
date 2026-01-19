@@ -338,7 +338,7 @@ development_status:
   15-4-release-notes-generation: done
   15-5-failure-diagnosis-recovery: done
   15-6-pr-merge-completion: done
-  15-7-ship-report-generation: ready-for-dev
+  15-7-ship-report-generation: done
   15-8-init-wizard-ship-phase-integration: ready-for-dev
   # UX Fix (from ISS-028) - MAJOR
   ux-fix-ISS-028-env-file-for-credentials: done

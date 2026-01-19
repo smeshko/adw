@@ -1,6 +1,6 @@
 # Story 15.7: Ship Report Generation
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
@@ -50,25 +50,25 @@ artifacts:
 ## Tasks / Subtasks
 
 ### Task 1: Define Report Generation Instructions (Final step in instructions.xml)
-- [ ] Create final step in `ship/instructions.xml` for report generation
-- [ ] Compile all information from prior steps
-- [ ] Generate comprehensive markdown report
-- [ ] Include structured fields at top for parsing
+- [x] Create final step in `ship/instructions.xml` for report generation
+- [x] Compile all information from prior steps
+- [x] Generate comprehensive markdown report
+- [x] Include structured fields at top for parsing
 
 ### Task 2: Implement Structured Status Section
-- [ ] Always include at report top:
+- [x] Always include at report top:
   ```markdown
   DEPLOYMENT_STATUS: SUCCESS
   PR_MERGE_APPROVED: true
   VERSION_DEPLOYED: 1.2.3
   PR_NUMBER: 456
   ```
-- [ ] Use exact format (field: value) for post.sh parsing
-- [ ] Valid DEPLOYMENT_STATUS values: SUCCESS, FAILED, BLOCKED
-- [ ] VERSION_DEPLOYED: actual version or "N/A"
+- [x] Use exact format (field: value) for post.sh parsing
+- [x] Valid DEPLOYMENT_STATUS values: SUCCESS, FAILED, BLOCKED
+- [x] VERSION_DEPLOYED: actual version or "N/A"
 
 ### Task 3: Implement Pre-Flight Summary Section
-- [ ] Include from step 2 analysis:
+- [x] Include from step 2 analysis:
   - Risk level (LOW/MEDIUM/HIGH)
   - Risk justification
   - Breaking changes detected
@@ -76,7 +76,7 @@ artifacts:
   - PR state summary
 
 ### Task 4: Implement Execution Log Section
-- [ ] Include from step 3 execution:
+- [x] Include from step 3 execution:
   - Commands executed (or "No commands configured")
   - Each command's result (success/failure)
   - Output summaries (not full logs)
@@ -84,13 +84,13 @@ artifacts:
   - Post-publish hook results
 
 ### Task 5: Implement Release Notes Section
-- [ ] Include full release notes from step 4
-- [ ] Or indicate "Release notes generation skipped" if not applicable
-- [ ] Reference artifact file: `release_notes.md`
+- [x] Include full release notes from step 4
+- [x] Or indicate "Release notes generation skipped" if not applicable
+- [x] Reference artifact file: `release_notes.md`
 
 ### Task 6: Implement Failure Analysis Section (Conditional)
-- [ ] Only include if `DEPLOYMENT_STATUS: FAILED`
-- [ ] Include from step 5 diagnosis:
+- [x] Only include if `DEPLOYMENT_STATUS: FAILED`
+- [x] Include from step 5 diagnosis:
   - Failed command identification
   - Error output
   - Diagnosis explanation
@@ -98,27 +98,27 @@ artifacts:
   - Recovery path
 
 ### Task 7: Implement Verification Section
-- [ ] Provide post-deployment verification recommendations:
+- [x] Provide post-deployment verification recommendations:
   - If publish succeeded: check package registry
   - If version bumped: verify git tags
   - If PR merged: confirm branch deleted
   - General: smoke test recommendations
 
 ### Task 8: Implement Artifact Configuration
-- [ ] Verify config.yaml defines ship_report artifact
-- [ ] Mark ship_report as required (phase fails without it)
-- [ ] Mark release_notes as optional
-- [ ] Verify artifact patterns match generated files
+- [x] Verify config.yaml defines ship_report artifact
+- [x] Mark ship_report as required (phase fails without it)
+- [x] Mark release_notes as optional
+- [x] Verify artifact patterns match generated files
 
 ### Task 9: Write Tests
-- [ ] Test structured fields format
-- [ ] Test pre-flight section generation
-- [ ] Test execution log section
-- [ ] Test release notes inclusion
-- [ ] Test failure analysis conditional
-- [ ] Test verification recommendations
-- [ ] Test artifact creation
-- [ ] Test required artifact validation
+- [x] Test structured fields format
+- [x] Test pre-flight section generation
+- [x] Test execution log section
+- [x] Test release notes inclusion
+- [x] Test failure analysis conditional
+- [x] Test verification recommendations
+- [x] Test artifact creation
+- [x] Test required artifact validation
 
 ---
 
