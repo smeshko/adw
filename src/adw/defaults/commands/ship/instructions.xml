@@ -652,9 +652,9 @@ Output: {{hook_output}}
 
 | Step | Command | Result |
 |------|---------|--------|
-| Version Bump | {{version_bump_command | default: "skipped"}} | {{version_bump_exit_code == 0 ? "✓" : "skipped"}} |
-| Build | {{build_command | default: "skipped"}} | {{build_exit_code == 0 ? "✓" : "skipped"}} |
-| Publish | {{publish_command | default: "skipped"}} | {{publish_exit_code == 0 ? "✓" : "skipped"}} |
+| Version Bump | {{version_bump_command | default: "skipped"}} | {{#if version_bump_exit_code}}{{version_bump_exit_code == 0 ? "✓" : "failed"}}{{else}}skipped{{/if}} |
+| Build | {{build_command | default: "skipped"}} | {{#if build_exit_code}}{{build_exit_code == 0 ? "✓" : "failed"}}{{else}}skipped{{/if}} |
+| Publish | {{publish_command | default: "skipped"}} | {{#if publish_exit_code}}{{publish_exit_code == 0 ? "✓" : "failed"}}{{else}}skipped{{/if}} |
 
 {{#if version_deployed}}
 **Version Deployed:** {{version_deployed}}
