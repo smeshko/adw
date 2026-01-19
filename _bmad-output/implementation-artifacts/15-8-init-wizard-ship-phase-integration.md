@@ -122,10 +122,10 @@ so that deployment commands and PR merge behavior are ready from the start.
 - [x] Add PR merge settings prompts
 
 ### Task 2: Integrate Ship Step into Wizard Flow
-- [ ] Add `SHIP = "ship"` to `WizardStep` enum in `flow.py`
-- [ ] Add ship step to `STEP_SEQUENCE` after `PHASES`
-- [ ] Add ship step title to `STEP_TITLES` dictionary
-- [ ] Register `ShipStepHandler` in flow controller initialization
+- [x] Add `SHIP = "ship"` to `WizardStep` enum in `flow.py`
+- [x] Add ship step to `STEP_SEQUENCE` after `PHASES`
+- [x] Add ship step title to `STEP_TITLES` dictionary
+- [x] Register `ShipStepHandler` in flow controller initialization
 
 ### Task 3: Update Summary Step
 - [ ] Add ship section to `generate_summary_panel()` in `summary.py`

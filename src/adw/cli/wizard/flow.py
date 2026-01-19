@@ -41,6 +41,7 @@ class WizardStep(Enum):
     PORTS = "ports"
     TASK_MANAGER = "task_manager"
     PHASES = "phases"
+    SHIP = "ship"
     LLM_RETRY = "llm_retry"
     SECURITY = "security"
     WEBHOOKS = "webhooks"
@@ -67,6 +68,7 @@ class WizardFlowController:
         WizardStep.PORTS,
         WizardStep.TASK_MANAGER,
         WizardStep.PHASES,
+        WizardStep.SHIP,
         WizardStep.LLM_RETRY,
         WizardStep.SECURITY,
         WizardStep.WEBHOOKS,
@@ -79,6 +81,7 @@ class WizardFlowController:
         WizardStep.PORTS: "Port Allocation",
         WizardStep.TASK_MANAGER: "Task Manager Integration",
         WizardStep.PHASES: "Phase Configuration",
+        WizardStep.SHIP: "Ship Phase Configuration",
         WizardStep.LLM_RETRY: "LLM Retry Settings",
         WizardStep.SECURITY: "Security Settings",
         WizardStep.WEBHOOKS: "Webhook Configuration",

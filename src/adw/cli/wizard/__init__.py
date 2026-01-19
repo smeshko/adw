@@ -23,6 +23,8 @@ Exports:
     run_task_manager_step: Function to execute the task manager step.
     WebhooksStepHandler: Handler for the webhooks configuration step.
     run_webhooks_step: Function to execute the webhooks step.
+    ShipStepHandler: Handler for the ship phase configuration step.
+    run_ship_step: Function to execute the ship step.
     SummaryStepHandler: Handler for the summary and file generation step.
     run_summary_step: Function to execute the summary step.
     generate_summary_panel: Function to generate the summary panel.
@@ -72,6 +74,10 @@ from adw.cli.wizard.security import (
     run_security_step,
     validate_regex,
 )
+from adw.cli.wizard.ship import (
+    ShipStepHandler,
+    run_ship_step,
+)
 from adw.cli.wizard.summary import (
     ConfigWriteError,
     SummaryStepHandler,
@@ -102,6 +108,7 @@ __all__ = [
     "PortsStepHandler",
     "RetryStepHandler",
     "SecurityStepHandler",
+    "ShipStepHandler",
     "StepHandler",
     "SummaryStepHandler",
     "TaskManagerStepHandler",
@@ -123,6 +130,7 @@ __all__ = [
     "run_ports_step",
     "run_retry_step",
     "run_security_step",
+    "run_ship_step",
     "run_summary_step",
     "run_task_manager_step",
     "run_webhooks_step",
