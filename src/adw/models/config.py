@@ -440,6 +440,7 @@ class TaskManagerConfig(BaseModel):
             build: "In Progress"
             validate: "In Review"
             document: "In Review"
+            ship: "Done"
             failed: "In Progress"
           sync_comments: true
           pr_title_format: "{task_id}: {description}"
@@ -463,6 +464,7 @@ class TaskManagerConfig(BaseModel):
             "build": "In Progress",
             "validate": "In Review",
             "document": "In Review",
+            "ship": "Done",
             "failed": "In Progress",
         },
         description="Phase-based mapping from ADW phases to external system states",
@@ -494,6 +496,142 @@ class TaskManagerConfig(BaseModel):
     include_parent: bool = Field(
         default=True,
         description="Include parent task info in context",
+    )
+
+
+class ShipCommandsConfig(BaseModel):
+    """Configuration for shell commands executed during ship phase.
+
+    Defines optional shell commands for version bump, build, and publish
+    steps during deployment. Each command is executed in sequence if defined.
+
+    Attributes:
+        version_bump: Command to bump version (e.g., "npm version patch")
+        build: Command to build project (e.g., "npm run build")
+        publish: Command to publish package (e.g., "npm publish")
+
+    Example:
+        >>> config = ShipCommandsConfig(
+        ...     version_bump="npm version patch",
+        ...     build="npm run build",
+        ...     publish="npm publish"
+        ... )
+        >>> config.version_bump
+        'npm version patch'
+
+    YAML example:
+        ship:
+          commands:
+            version_bump: npm version patch
+            build: npm run build
+            publish: npm publish
+    """
+
+    version_bump: str | None = Field(
+        default=None,
+        description="Command to bump version (e.g., 'npm version patch')",
+    )
+    build: str | None = Field(
+        default=None,
+        description="Command to build project for deployment",
+    )
+    publish: str | None = Field(
+        default=None,
+        description="Command to publish package or deploy",
+    )
+
+
+class ShipPRConfig(BaseModel):
+    """Configuration for PR automation during ship phase.
+
+    Controls how pull requests are handled during the ship phase,
+    including automatic merging and branch cleanup.
+
+    Attributes:
+        merge_on_success: Whether to auto-merge PR after validation (default: False)
+        delete_branch_on_merge: Delete feature branch after merge (default: True)
+        merge_method: Method for merging PR (default: "squash")
+
+    Example:
+        >>> config = ShipPRConfig(merge_on_success=True, merge_method="squash")
+        >>> config.merge_on_success
+        True
+        >>> config.merge_method
+        'squash'
+
+    YAML example:
+        ship:
+          pr:
+            merge_on_success: true
+            delete_branch_on_merge: true
+            merge_method: squash
+    """
+
+    merge_on_success: bool = Field(
+        default=False,
+        description="Whether to auto-merge PR after successful validation",
+    )
+    delete_branch_on_merge: bool = Field(
+        default=True,
+        description="Delete feature branch after merge",
+    )
+    merge_method: Literal["merge", "squash", "rebase"] = Field(
+        default="squash",
+        description="Method for merging PR (merge, squash, or rebase)",
+    )
+
+
+class ShipConfig(BaseModel):
+    """Configuration for the ship phase.
+
+    The ship phase handles deployment-related tasks including version
+    management, building, publishing, and PR automation.
+
+    Attributes:
+        enabled: Whether the ship phase is enabled (default: True)
+        commands: Shell commands for version, build, and publish steps
+        post_publish: List of commands to run after publishing (e.g., git push --tags)
+        pr: PR automation configuration
+
+    Example:
+        >>> config = ShipConfig(enabled=True)
+        >>> config.enabled
+        True
+        >>> config.commands.version_bump is None
+        True
+        >>> config.post_publish
+        []
+
+    YAML example:
+        ship:
+          enabled: true
+          commands:
+            version_bump: npm version patch
+            build: npm run build
+            publish: npm publish
+          post_publish:
+            - git push --tags
+          pr:
+            merge_on_success: false
+            delete_branch_on_merge: true
+            merge_method: squash
+    """
+
+    enabled: bool = Field(
+        default=True,
+        description="Whether the ship phase is enabled",
+    )
+    commands: ShipCommandsConfig = Field(
+        default_factory=ShipCommandsConfig,
+        description="Shell commands for deployment steps",
+    )
+    post_publish: list[str] = Field(
+        default_factory=list,
+        description="Commands to run after publishing (e.g., git push --tags)",
+    )
+    pr: ShipPRConfig = Field(
+        default_factory=ShipPRConfig,
+        description="PR automation configuration",
     )
 
 
@@ -586,6 +724,7 @@ class ProjectConfig(BaseModel):
         security: Security configuration (blocked patterns, allow_dangerous)
         git: Git integration configuration (branch management)
         task_manager: Task manager integration configuration (Linear, Jira, etc.)
+        ship: Ship phase configuration (version bump, build, publish, PR merge)
 
     Example:
         >>> config = ProjectConfig.from_yaml('''
@@ -639,6 +778,10 @@ class ProjectConfig(BaseModel):
     webhook: WebhookConfig = Field(
         default_factory=WebhookConfig,
         description="Webhook server configuration",
+    )
+    ship: ShipConfig | None = Field(
+        default=None,
+        description="Ship phase configuration (version bump, build, publish, PR merge)",
     )
 
     @model_validator(mode="before")

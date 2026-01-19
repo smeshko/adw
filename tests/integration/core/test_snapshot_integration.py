@@ -157,8 +157,8 @@ class TestSnapshotListingAcrossPhases:
 
         snapshot_manager = SnapshotManager(run_dir_manager.runs_dir)
 
-        # Create snapshots for multiple phases (current phase sequence)
-        phases = ["plan", "build", "validate", "document"]
+        # Create snapshots for multiple phases (Story 15.1: includes ship)
+        phases = ["plan", "build", "validate", "document", "ship"]
         for phase in phases:
             context = sample_context.model_copy(update={"current_phase": phase})
             snapshot_manager.create_pre_phase_snapshot(context, phase)
@@ -173,12 +173,12 @@ class TestSnapshotListingAcrossPhases:
 
         snapshots = snapshot_manager.list_snapshots(sample_context.run_id)
 
-        # Should have 8 snapshots (pre + post for 4 phases)
-        assert len(snapshots) == 8
+        # Story 15.1: Should have 10 snapshots (pre + post for 5 phases)
+        assert len(snapshots) == 10
 
         # Verify sequence order
         sequences = [s["sequence"] for s in snapshots]
-        assert sequences == [1, 2, 3, 4, 5, 6, 7, 8]
+        assert sequences == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
         # Verify phases are in order
         expected_labels = [
@@ -190,6 +190,8 @@ class TestSnapshotListingAcrossPhases:
             "post_validate",
             "pre_document",
             "post_document",
+            "pre_ship",
+            "post_ship",
         ]
         actual_labels = [f"{s['timing']}_{s['phase']}" for s in snapshots]
         assert actual_labels == expected_labels

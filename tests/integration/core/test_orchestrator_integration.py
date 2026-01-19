@@ -144,8 +144,8 @@ class TestFullRunIntegration:
         snapshots_dir = runs_dir / context.run_id / "snapshots"
         snapshot_files = list(snapshots_dir.glob("*.json"))
 
-        # Should have pre and post snapshot for each of 4 phases = 8 snapshots
-        assert len(snapshot_files) == 8
+        # Should have pre and post snapshot for each of 5 phases = 10 snapshots
+        assert len(snapshot_files) == 10
 
         # Verify naming pattern
         for phase in PHASE_SEQUENCE:
@@ -186,7 +186,7 @@ class TestFullRunIntegration:
             assert phase in context.phase_tokens
             assert context.phase_tokens[phase] == 100
 
-        assert context.total_tokens == 400  # 100 tokens * 4 phases
+        assert context.total_tokens == 500  # 100 tokens * 5 phases (Story 15.1)
 
 
 class TestSnapshotIntegration:
@@ -203,9 +203,9 @@ class TestSnapshotIntegration:
 
         context = orchestrator.run("Test feature")
 
-        # Load and verify each snapshot (pre + post for each of 4 phases = 8)
+        # Load and verify each snapshot (pre + post for each of 5 phases = 10)
         snapshots = snapshot_manager.list_snapshots(context.run_id)
-        assert len(snapshots) == 8
+        assert len(snapshots) == 10
 
         for snapshot_meta in snapshots:
             snapshot = snapshot_manager.load_snapshot(
@@ -286,8 +286,8 @@ class TestContextPersistenceIntegration:
 
         orchestrator.run("Test feature")
 
-        # Context should have been persisted multiple times (4 phases)
-        assert persist_count >= 4  # At least once per phase
+        # Context should have been persisted multiple times (5 phases per Story 15.1)
+        assert persist_count >= 5  # At least once per phase
 
     def test_final_context_has_completed_status(
         self,

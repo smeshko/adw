@@ -187,9 +187,7 @@ def _run_wizard_setup(project_root: Path) -> None:
     )
     controller.register_step_handler(WizardStep.GIT, GitStepHandler())
     controller.register_step_handler(WizardStep.PORTS, PortsStepHandler())
-    controller.register_step_handler(
-        WizardStep.TASK_MANAGER, TaskManagerStepHandler()
-    )
+    controller.register_step_handler(WizardStep.TASK_MANAGER, TaskManagerStepHandler())
     controller.register_step_handler(WizardStep.PHASES, PhasesStepHandler())
     controller.register_step_handler(WizardStep.LLM_RETRY, RetryStepHandler())
     controller.register_step_handler(WizardStep.SECURITY, SecurityStepHandler())

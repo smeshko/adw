@@ -5,7 +5,7 @@ This package contains all Pydantic models used throughout ADW:
 - command: ResolvedCommand, LoadedCommand
 - context: RunContext, SessionContext, ProjectContext, StateSnapshot
 - phase: PhaseStatus, PhaseResult, Artifact, ArtifactType
-- config: ProjectConfig, LLMConfig, PhaseConfig, HookConfig, PipelineConfig, GitConfig
+- config: ProjectConfig, LLMConfig, PhaseConfig, HookConfig, PipelineConfig, GitConfig, ShipConfig
 - llm: LLMResult, ToolCall
 - hook: HookResult
 - logging: LogLevel, LogCategory, LogContext, LogEvent
@@ -30,6 +30,9 @@ from adw.models.config import (
     PortRangeConfig,
     ProjectConfig,
     RetryConfig,
+    ShipCommandsConfig,
+    ShipConfig,
+    ShipPRConfig,
     TaskManagerConfig,
     TaskManagerLabelsConfig,
     WorktreeConfig,
@@ -93,6 +96,9 @@ __all__: list[str] = [
     "PortRangeConfig",
     "ProjectConfig",
     "RetryConfig",
+    "ShipCommandsConfig",
+    "ShipConfig",
+    "ShipPRConfig",
     "TaskManagerConfig",
     "TaskManagerLabelsConfig",
     "WorktreeConfig",

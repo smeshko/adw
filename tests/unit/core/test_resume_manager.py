@@ -283,7 +283,8 @@ class TestGetResumePhase:
         """All phases complete returns None."""
         all_done = sample_context.model_copy(
             update={
-                "phase_history": ["plan", "build", "validate", "document"],
+                # Story 15.1: ship is now the 5th phase
+                "phase_history": ["plan", "build", "validate", "document", "ship"],
                 "status": "running",  # Not completed status but all phases done
             }
         )
