@@ -160,6 +160,13 @@ def _run_wizard_setup(project_root: Path) -> None:
     """
     from adw.cli.wizard import (
         BasicsStepHandler,
+        GitStepHandler,
+        PhasesStepHandler,
+        PortsStepHandler,
+        RetryStepHandler,
+        SecurityStepHandler,
+        SummaryStepHandler,
+        TaskManagerStepHandler,
         WebhooksStepHandler,
         WizardFlowController,
         WizardStep,
@@ -178,7 +185,18 @@ def _run_wizard_setup(project_root: Path) -> None:
     controller.register_step_handler(
         WizardStep.BASICS, BasicsStepHandler(project_root=project_root)
     )
+    controller.register_step_handler(WizardStep.GIT, GitStepHandler())
+    controller.register_step_handler(WizardStep.PORTS, PortsStepHandler())
+    controller.register_step_handler(
+        WizardStep.TASK_MANAGER, TaskManagerStepHandler()
+    )
+    controller.register_step_handler(WizardStep.PHASES, PhasesStepHandler())
+    controller.register_step_handler(WizardStep.LLM_RETRY, RetryStepHandler())
+    controller.register_step_handler(WizardStep.SECURITY, SecurityStepHandler())
     controller.register_step_handler(WizardStep.WEBHOOKS, WebhooksStepHandler())
+    controller.register_step_handler(
+        WizardStep.SUMMARY, SummaryStepHandler(project_root=project_root)
+    )
 
     # Run the wizard flow
     completed = controller.run()
@@ -186,8 +204,6 @@ def _run_wizard_setup(project_root: Path) -> None:
     if not completed:
         # Wizard was cancelled - exit without success message
         return
-
-    console.print("[dim]Wizard flow will be implemented in subsequent stories.[/]")
 
 
 def _run_minimal_setup(

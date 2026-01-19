@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Prompt
 
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
@@ -166,29 +165,14 @@ class WizardFlowController:
                     # Default placeholder for unimplemented steps
                     self._show_step_placeholder(current_step)
 
-                # Handle navigation
-                action = self._prompt_navigation()
-
-                if action == "next":
-                    self.state.mark_completed(current_step.value)
-                    self.state.navigate_to(
-                        self.steps[self.current_index + 1].value
-                        if self.current_index < len(self.steps) - 1
-                        else "complete"
-                    )
-                    self.current_index += 1
-                elif action == "back" and self.current_index > 0:
-                    # Remove destination step from completed (we're revisiting it)
-                    step_to_revisit = self.steps[self.current_index - 1].value
-                    if step_to_revisit in self.state.completed_steps:
-                        self.state.completed_steps.remove(step_to_revisit)
-                    self.state.go_back_in_history()
-                    self.current_index -= 1
-                elif action == "cancel":
-                    self.interrupted = True
-                    self.console.print()
-                    self.console.print("[yellow]Setup cancelled. No files created.[/]")
-                    return False
+                # Auto-advance to next step
+                self.state.mark_completed(current_step.value)
+                self.state.navigate_to(
+                    self.steps[self.current_index + 1].value
+                    if self.current_index < len(self.steps) - 1
+                    else "complete"
+                )
+                self.current_index += 1
 
             self._show_completion()
             return True
@@ -237,35 +221,6 @@ class WizardFlowController:
         self.console.print(
             f"\n[dim]Step '{title}' will be implemented in subsequent stories.[/]\n"
         )
-
-    def _prompt_navigation(self) -> str:
-        """Prompt user for navigation action.
-
-        Returns:
-            One of 'next', 'back', or 'cancel'.
-        """
-        options = []
-        if self.current_index < len(self.steps) - 1:
-            options.append("[n]ext")
-        else:
-            options.append("[f]inish")
-        if self.current_index > 0:
-            options.append("[b]ack")
-        options.append("[c]ancel")
-
-        prompt_text = f"Action ({'/'.join(options)})"
-
-        while True:
-            choice = Prompt.ask(prompt_text, default="n").lower()
-
-            if choice in ("n", "next", "f", "finish", ""):
-                return "next"
-            elif choice in ("b", "back") and self.current_index > 0:
-                return "back"
-            elif choice in ("c", "cancel"):
-                return "cancel"
-            else:
-                self.console.print("[yellow]Invalid choice. Please try again.[/]")
 
     def _show_completion(self) -> None:
         """Display wizard completion message."""
