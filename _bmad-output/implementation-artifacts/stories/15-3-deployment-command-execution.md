@@ -1,6 +1,6 @@
 # Story 15.3: Deployment Command Execution
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
