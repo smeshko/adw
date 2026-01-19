@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 28
+issue_counter: 29
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -72,6 +72,7 @@ issues:
   ISS-026-remove-deprecated-adw-yaml-config: fixed  # Major - Remove .adw/adw.yaml, add git config for base branch
   ISS-027-init-wizard-phase-config-ux-issues: reported  # Major - Multiple UX issues in wizard phase configuration
   ISS-028-sdk-no-env-file-for-linear-credentials: fixed  # Major - SDK doesn't auto-load .adw/.env for credentials
+  ISS-029-phase-config-not-honored: reported  # Critical - Phase timeout/enabled from command configs not applied
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -369,3 +370,9 @@ development_status:
   17-3-simplify-configuration: done
   17-4-update-phase-result-model: done
   epic-17-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # BUGFIX: Phase Config Not Honored (ISS-029) - CRITICAL
+  # Goal: Fix phase timeout/enabled settings from command configs being ignored
+  # ═══════════════════════════════════════════════════════════════════════════
+  bugfix-ISS-029-phase-config-not-honored: ready-for-dev
