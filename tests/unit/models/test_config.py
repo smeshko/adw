@@ -173,6 +173,9 @@ ship:
     version_bump: npm version patch
     build: npm run build
     publish: npm publish
+  post_publish:
+    - git push --tags
+    - echo "Published!"
   pr:
     merge_on_success: true
     delete_branch_on_merge: true
@@ -184,8 +187,14 @@ ship:
         assert config.ship.commands.version_bump == "npm version patch"
         assert config.ship.commands.build == "npm run build"
         assert config.ship.commands.publish == "npm publish"
+        assert config.ship.post_publish == ["git push --tags", 'echo "Published!"']
         assert config.ship.pr.merge_on_success is True
         assert config.ship.pr.merge_method == "squash"
+
+    def test_ship_config_post_publish_defaults_to_empty(self) -> None:
+        """ShipConfig.post_publish defaults to empty list."""
+        config = ShipConfig()
+        assert config.post_publish == []
 
     def test_ship_config_defaults_to_none(self) -> None:
         """ProjectConfig.ship defaults to None when not specified."""

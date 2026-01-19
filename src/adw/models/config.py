@@ -590,6 +590,7 @@ class ShipConfig(BaseModel):
     Attributes:
         enabled: Whether the ship phase is enabled (default: True)
         commands: Shell commands for version, build, and publish steps
+        post_publish: List of commands to run after publishing (e.g., git push --tags)
         pr: PR automation configuration
 
     Example:
@@ -598,6 +599,8 @@ class ShipConfig(BaseModel):
         True
         >>> config.commands.version_bump is None
         True
+        >>> config.post_publish
+        []
 
     YAML example:
         ship:
@@ -606,6 +609,8 @@ class ShipConfig(BaseModel):
             version_bump: npm version patch
             build: npm run build
             publish: npm publish
+          post_publish:
+            - git push --tags
           pr:
             merge_on_success: false
             delete_branch_on_merge: true
@@ -619,6 +624,10 @@ class ShipConfig(BaseModel):
     commands: ShipCommandsConfig = Field(
         default_factory=ShipCommandsConfig,
         description="Shell commands for deployment steps",
+    )
+    post_publish: list[str] = Field(
+        default_factory=list,
+        description="Commands to run after publishing (e.g., git push --tags)",
     )
     pr: ShipPRConfig = Field(
         default_factory=ShipPRConfig,
