@@ -552,9 +552,7 @@ class PhaseRunner:
                 message=f"Invalid config in config.yaml at {config_path}: {e}",
             ) from e
 
-    def _get_merged_config(
-        self, phase: str, command: ResolvedCommand
-    ) -> PhaseConfig:
+    def _get_merged_config(self, phase: str, command: ResolvedCommand) -> PhaseConfig:
         """Get configuration for a phase from command config.
 
         Loads command config from config.yaml (if exists) and converts to

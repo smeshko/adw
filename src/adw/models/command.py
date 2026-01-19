@@ -144,7 +144,7 @@ class CommandConfig(BaseModel):
 
     enabled: bool = Field(
         default=True,
-        description="Whether this phase is enabled. Disabled phases are skipped during execution.",
+        description="Whether this phase is enabled. Disabled phases are skipped.",
     )
     timeout_seconds: int | None = Field(
         default=None,

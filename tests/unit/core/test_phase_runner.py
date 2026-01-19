@@ -1181,9 +1181,7 @@ class TestInputFilesTemplateIntegration:
         cmd_dir = tmp_path / ".adw" / "commands" / "plan"
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "prompt.md").write_text("Test prompt")
-        (cmd_dir / "config.yaml").write_text(
-            "input_files:\n  prd: docs/prd.md\n"
-        )
+        (cmd_dir / "config.yaml").write_text("input_files:\n  prd: docs/prd.md\n")
 
         # Create test input file
         (tmp_path / "docs").mkdir(parents=True)
