@@ -55,10 +55,10 @@ so that I can easily manage per-project Linear credentials without global shell 
 ### Task 3: Update Error Messages in Linear Task Manager
 **Files**: `src/adw/task_managers/linear.py`
 
-- [ ] 3.1 Update `_get_api_key()` suggestion message (line 78)
+- [x] 3.1 Update `_get_api_key()` suggestion message (line 78)
   - Change from: `"Add LINEAR_API_KEY to your .env file"`
   - Change to: `"Add LINEAR_API_KEY to .adw/.env file, then retry"`
-- [ ] 3.2 Update `_get_team_id()` suggestion message (line 97)
+- [x] 3.2 Update `_get_team_id()` suggestion message (line 97)
   - Change from: `"Add LINEAR_TEAM_ID to your .env file"`
   - Change to: `"Add LINEAR_TEAM_ID to .adw/.env file, then retry"`
 
