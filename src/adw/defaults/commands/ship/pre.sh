@@ -37,6 +37,16 @@ if ! command -v gh &> /dev/null; then
 fi
 
 # =============================================================================
+# STEP 1b: Check if jq is available (needed to parse gh output)
+# =============================================================================
+
+if ! command -v jq &> /dev/null; then
+    echo "Error: jq is not installed (needed to parse GitHub CLI output)"
+    echo "Install it with: brew install jq"
+    exit 1
+fi
+
+# =============================================================================
 # STEP 2: Check if gh is authenticated
 # =============================================================================
 

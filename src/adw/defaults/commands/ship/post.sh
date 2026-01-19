@@ -38,11 +38,18 @@ version_deployed=""
 merge_reason=""
 
 if [[ -n "$ADW_LLM_OUTPUT" ]]; then
-    # Extract status markers using grep
-    deployment_status=$(echo "$ADW_LLM_OUTPUT" | grep -oP 'DEPLOYMENT_STATUS:\s*\K(SUCCESS|FAILED|BLOCKED)' || echo "UNKNOWN")
-    pr_merge_approved=$(echo "$ADW_LLM_OUTPUT" | grep -oP 'PR_MERGE_APPROVED:\s*\K(true|false)' || echo "false")
-    version_deployed=$(echo "$ADW_LLM_OUTPUT" | grep -oP 'VERSION_DEPLOYED:\s*\K[^\s]+' || echo "N/A")
-    merge_reason=$(echo "$ADW_LLM_OUTPUT" | grep -oP 'MERGE_REASON:\s*\K.*' || echo "No reason provided")
+    # Extract status markers using portable sed (works on macOS and Linux)
+    deployment_status=$(echo "$ADW_LLM_OUTPUT" | sed -n 's/.*DEPLOYMENT_STATUS:[[:space:]]*\(SUCCESS\|FAILED\|BLOCKED\).*/\1/p' | head -1)
+    [[ -z "$deployment_status" ]] && deployment_status="UNKNOWN"
+
+    pr_merge_approved=$(echo "$ADW_LLM_OUTPUT" | sed -n 's/.*PR_MERGE_APPROVED:[[:space:]]*\(true\|false\).*/\1/p' | head -1)
+    [[ -z "$pr_merge_approved" ]] && pr_merge_approved="false"
+
+    version_deployed=$(echo "$ADW_LLM_OUTPUT" | sed -n 's/.*VERSION_DEPLOYED:[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -1)
+    [[ -z "$version_deployed" ]] && version_deployed="N/A"
+
+    merge_reason=$(echo "$ADW_LLM_OUTPUT" | sed -n 's/.*MERGE_REASON:[[:space:]]*\(.*\)/\1/p' | head -1)
+    [[ -z "$merge_reason" ]] && merge_reason="No reason provided"
 
     echo "Parsed status:"
     echo "  Deployment Status: $deployment_status"
