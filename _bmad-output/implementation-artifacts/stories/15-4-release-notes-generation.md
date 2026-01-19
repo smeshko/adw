@@ -107,12 +107,12 @@ So that I have documentation for what was shipped.
 - [x] Clean commit messages (remove prefix, capitalize first letter)
 
 ### Task 5: Implement Commit Message Cleaning
-- [ ] Remove conventional commit prefix: `feat: add auth` → `Add auth`
-- [ ] Remove scope: `feat(api): new endpoint` → `New endpoint`
-- [ ] Capitalize first letter
-- [ ] Remove trailing punctuation if present
-- [ ] Handle multi-line commits (use first line only)
-- [ ] Deduplicate if squash commits include original messages
+- [x] Remove conventional commit prefix: `feat: add auth` → `Add auth`
+- [x] Remove scope: `feat(api): new endpoint` → `New endpoint`
+- [x] Capitalize first letter
+- [x] Remove trailing punctuation if present
+- [x] Handle multi-line commits (use first line only)
+- [x] Deduplicate if squash commits include original messages
 
 ### Task 6: Implement Artifact Output
 - [ ] Save release notes to `release_notes.md` in artifacts
