@@ -8,19 +8,57 @@
 
 **Architecture Reference:** See `architecture.md` → "Future Enhancement: Cross-Project Run Visibility & Dashboard"
 
+**Last Updated:** 2026-01-19 (revised to reflect current implementation)
+
+---
+
+## Existing Infrastructure (Already Implemented)
+
+Before detailing stories, it's important to acknowledge what already exists:
+
+### IndexManager (`src/adw/core/index_manager.py`)
+- **Location:** `~/.adw/index.jsonl` (JSONL format, append-only)
+- **Capabilities:**
+  - `register_run(context, project_path)` - Registers new runs
+  - `update_run(run_id, **updates)` - Updates run status
+  - `get_recent_runs(limit, project_path, status)` - Queries with filters
+  - Auto-archival when >10,000 entries to `~/.adw/index-archive/YYYY-MM.jsonl`
+
+### IndexEntry Model (`src/adw/models/index.py`)
+```python
+class IndexEntry(BaseModel):
+    run_id: str                    # ULID identifier
+    project_path: str              # Absolute path to project
+    project_name: str              # Directory name (derived)
+    feature_description: str       # Feature request
+    started_at: datetime           # UTC timestamp
+    completed_at: datetime | None
+    status: Literal["running", "completed", "failed", "interrupted", "aborted"]
+    phase_reached: str | None
+    phases_completed: list[str]
+```
+
+### What's Missing (Epic 16 Scope)
+1. **CLI commands** to query the global index (`adw global list`, etc.)
+2. **Project registry** for explicit project management
+3. **Statistics and analytics** commands
+4. **TUI dashboard** for visual monitoring
+5. **Export capabilities** for external analysis
+6. **RunContext enhancements** for tags and user tracking
+
 ---
 
 ## Story 16.1: Project Registry
 
 As a user,
-I want to register projects with ADW globally,
-So that I can track runs across multiple projects.
+I want to explicitly register and manage projects with ADW,
+So that I can control which projects appear in cross-project views.
 
 **Acceptance Criteria:**
 
 **Given** command `adw register` in a project directory
 **When** executed
-**Then** the project path and name are added to `~/.config/adw/projects.yaml`
+**Then** the project path and name are added to `~/.adw/projects.yaml`
 
 **Given** command `adw register --name "my-api"`
 **When** executed
@@ -38,28 +76,37 @@ So that I can track runs across multiple projects.
 **When** executed
 **Then** all registered projects are listed with their paths and run counts
 
+**Given** command `adw projects --discover`
+**When** executed
+**Then** unique projects from `~/.adw/index.jsonl` are listed (auto-discovery)
+
 **Technical Notes:**
-- Registry file: `~/.config/adw/projects.yaml`
+- Registry file: `~/.adw/projects.yaml`
 - Schema: `{projects: [{path, name, registered_at}]}`
-- Auto-register on first `adw run` (optional, configurable)
+- Auto-discovery via IndexManager as fallback (no explicit registration required)
+- Registration is optional—`adw global` commands work with index alone
+
+**Implementation:**
+- New file: `src/adw/core/project_registry.py`
+- CLI: Add commands to `src/adw/cli/app.py`
 
 ---
 
 ## Story 16.2: Global Run List
 
 As a user,
-I want to list runs across all registered projects,
+I want to list runs across all projects,
 So that I can see my development activity in one place.
 
 **Acceptance Criteria:**
 
 **Given** command `adw global list`
 **When** executed
-**Then** runs from all registered projects are displayed, sorted by time
+**Then** runs from all projects in the index are displayed, sorted by time (newest first)
 
 **Given** command `adw global list --project my-api`
 **When** executed
-**Then** only runs from that project are shown
+**Then** only runs matching that project name are shown
 
 **Given** command `adw global list --status failed`
 **When** executed
@@ -71,12 +118,17 @@ So that I can see my development activity in one place.
 
 **Given** the run list
 **When** displayed
-**Then** each entry shows: run_id, project, feature (truncated), status, duration, started_at
+**Then** each entry shows: run_id, project_name, feature (truncated), status, duration, started_at
 
 **Technical Notes:**
-- Aggregates `context.json` from all registered projects
-- ULID provides natural time-based sorting
-- Consider pagination for large result sets
+- **Builds on existing:** `IndexManager.get_recent_runs()` already supports `project_path` and `status` filters
+- Add `--since` filter by parsing ULID timestamp or `started_at` field
+- Combine filters: `--project` + `--status` + `--since`
+- Consider pagination with `--limit` and `--offset` for large result sets
+
+**Implementation:**
+- New CLI group: `src/adw/cli/global_commands.py`
+- Register via `app.add_typer(global_app, name="global")`
 
 ---
 
@@ -98,7 +150,7 @@ So that I can understand my overall ADW usage patterns.
 - Total runs (all time, this week, today)
 - Success rate overall and per project
 - Average run duration
-- Total token usage
+- Total token usage (from LLM response files)
 - Estimated cost (based on model pricing)
 
 **Given** command `adw global stats --project my-api`
@@ -110,45 +162,61 @@ So that I can understand my overall ADW usage patterns.
 **Then** outputs machine-readable JSON for integration
 
 **Technical Notes:**
-- Token counts from `llm/*_response.json`
-- Cost estimation requires model pricing table (configurable)
-- Cache stats for performance (invalidate on new runs)
+- Token data from `.adw/runs/<run_id>/llm/*_response.json` files:
+  ```json
+  {
+    "stats": {
+      "input_tokens": 1234,
+      "output_tokens": 5678,
+      "duration_ms": 45000
+    }
+  }
+  ```
+- Cost estimation requires model pricing table (configurable in `~/.adw/config.yaml`)
+- Cache stats to `~/.adw/stats-cache.json` with TTL (invalidate on new runs)
+- Requires reading LLM files from project directories—only works for accessible projects
+
+**Implementation:**
+- New: `src/adw/core/stats_aggregator.py`
+- CLI: `adw global stats` command
 
 ---
 
-## Story 16.4: Central Run Index (Optional)
+## Story 16.4: Index Performance Optimization (Optional)
 
-As a power user,
-I want a central index of all runs,
-So that queries across thousands of runs are fast.
+As a power user with thousands of runs,
+I want queries to remain fast,
+So that cross-project commands don't slow down my workflow.
 
 **Acceptance Criteria:**
 
-**Given** config `global.index_enabled: true`
-**When** any run state changes
-**Then** the change is mirrored to `~/.config/adw/run-index.sqlite`
+**Given** the existing JSONL index at `~/.adw/index.jsonl`
+**When** it contains >5,000 entries
+**Then** queries should complete in <500ms
 
-**Given** the index exists
-**When** `adw global list` is run
-**Then** it queries the index instead of scanning filesystems
+**Given** command `adw global index info`
+**When** executed
+**Then** shows index stats: entry count, file size, archive count
 
 **Given** command `adw global index rebuild`
 **When** executed
 **Then** the index is rebuilt from all registered project run directories
 
-**Given** index and filesystem are out of sync
-**When** detected
+**Given** index file is corrupted or missing entries
+**When** detected during query
 **Then** warning is shown with suggestion to rebuild
 
-**Given** index is corrupted
-**When** any query fails
-**Then** graceful fallback to filesystem scanning with warning
-
 **Technical Notes:**
-- SQLite for simplicity (single file, no server)
-- Schema mirrors `RunContext` essential fields
-- Dual-write pattern: update index in `context_manager.py`
-- Index is optional - filesystem scanning always works
+- **Current implementation:** JSONL at `~/.adw/index.jsonl` (already exists)
+- **Archival:** Already implemented—archives to `~/.adw/index-archive/YYYY-MM.jsonl` when >10,000 entries
+- **Future option:** Migrate to SQLite if JSONL becomes a bottleneck at scale
+- **Rebuild:** Scan all project `.adw/runs/*/context.json` files to reconstruct index
+
+**Implementation:**
+- Enhance `IndexManager` with `get_stats()` and `rebuild_from_projects()` methods
+- CLI: `adw global index info` and `adw global index rebuild`
+
+**Note:** This story is **optional**—the current JSONL implementation is sufficient for most users. Only implement if performance issues are observed at scale.
 
 ---
 
@@ -170,11 +238,11 @@ So that I can monitor runs visually.
 - Summary panel (total runs, success rate, active runs)
 - Recent runs table with status indicators
 - Per-project breakdown
-- Token/cost summary
+- Token/cost summary (if data available)
 
 **Given** active runs exist
 **When** dashboard is open
-**Then** status updates in real-time (polling or watching)
+**Then** status updates periodically (polling the index)
 
 **Given** keyboard navigation
 **When** user presses arrow keys
@@ -185,9 +253,14 @@ So that I can monitor runs visually.
 **Then** dashboard refreshes every 5 seconds
 
 **Technical Notes:**
-- Built with Rich `Live` and `Layout`
+- Built with Rich `Live` and `Layout` components
 - Keyboard handling via Rich or `prompt_toolkit`
-- Consider `textual` for more advanced TUI if needed
+- Consider `textual` for more advanced TUI if needed later
+- Poll `~/.adw/index.jsonl` for updates (lightweight, already JSONL streaming)
+
+**Implementation:**
+- New: `src/adw/cli/dashboard.py`
+- Dependency: `rich` (already in project)
 
 ---
 
@@ -199,10 +272,6 @@ So that cross-project analytics are more useful.
 
 **Acceptance Criteria:**
 
-**Given** a new run starts
-**When** `project.yaml` contains `project_name`
-**Then** it is stored in `RunContext.project_name`
-
 **Given** command `adw run "feature" --tag urgent --tag backend`
 **When** executed
 **Then** tags are stored in `RunContext.tags`
@@ -212,18 +281,42 @@ So that cross-project analytics are more useful.
 **Then** username is stored in `RunContext.initiated_by`
 
 **Given** cross-project queries
-**When** filtering by tag
+**When** filtering by tag (`adw global list --tag urgent`)
 **Then** only runs with matching tags are returned
 
+**Given** `.adw/project.yaml` contains `project_name: "my-api"`
+**When** a run starts
+**Then** explicit project name is used instead of directory name
+
 **Technical Notes:**
-- Add to `models/context.py`:
-  ```python
-  project_name: str | None = None
-  tags: list[str] = []
-  initiated_by: str | None = None
-  ```
-- `initiated_by` from `os.getlogin()` or `$USER`
-- Tags are free-form strings, no validation
+
+Add to `src/adw/models/context.py` (RunContext):
+```python
+tags: list[str] = Field(
+    default_factory=list,
+    description="User-defined tags for categorization"
+)
+initiated_by: str | None = Field(
+    default=None,
+    description="Username who initiated the run"
+)
+```
+
+Add to `IndexEntry` model:
+```python
+tags: list[str] = Field(default_factory=list)
+initiated_by: str | None = None
+```
+
+- `initiated_by` from `os.getlogin()` or `$USER` environment variable
+- Tags are free-form strings, no validation required
+- **Note:** `project_name` already exists in `IndexEntry` (derived from directory). For explicit naming, add optional `project_name` field to `.adw/project.yaml` schema.
+
+**Implementation:**
+- Update: `src/adw/models/context.py`
+- Update: `src/adw/models/index.py`
+- Update: `src/adw/core/index_manager.py` (pass tags through)
+- Update: CLI `adw run` to accept `--tag` flags
 
 ---
 
@@ -237,28 +330,33 @@ So that I can create custom reports or integrate with other tools.
 
 **Given** command `adw global export --format csv`
 **When** executed
-**Then** all run data is exported as CSV
+**Then** all run data is exported as CSV to stdout
 
 **Given** command `adw global export --format json`
 **When** executed
 **Then** all run data is exported as JSON array
 
-**Given** command `adw global export --since 30d --project my-api`
+**Given** command `adw global export --since 30d --project my-api -o report.csv`
 **When** executed
-**Then** only matching runs are included
+**Then** only matching runs are exported to the specified file
 
 **Given** the export
 **When** generated
-**Then** includes: run_id, project, feature, status, phases, duration, tokens, cost_estimate, started_at, completed_at
+**Then** includes: run_id, project_name, feature_description, status, phases_completed, duration, started_at, completed_at
 
 **Given** command `adw global report weekly`
 **When** executed
-**Then** a formatted weekly summary report is generated
+**Then** a formatted weekly summary report is displayed
 
 **Technical Notes:**
-- CSV for spreadsheet import
-- JSON for programmatic consumption
-- Report templates could be customizable (post-post-MVP)
+- CSV: Standard library `csv` module
+- JSON: `model_dump_json()` from Pydantic
+- Report templates: Markdown format using Rich for pretty printing
+- Future: Custom report templates (post-post-MVP)
+
+**Implementation:**
+- CLI: `adw global export` and `adw global report` commands
+- New: `src/adw/core/export.py`
 
 ---
 
@@ -266,26 +364,60 @@ So that I can create custom reports or integrate with other tools.
 
 ### Phased Rollout
 
-1. **Phase A (Foundation):** Stories 16.1, 16.2, 16.6 - Basic registry and listing
+1. **Phase A (Foundation):** Stories 16.2, 16.6 - Global list command + context enhancements
 2. **Phase B (Analytics):** Stories 16.3, 16.7 - Statistics and export
-3. **Phase C (Performance):** Story 16.4 - Central index for scale
+3. **Phase C (Management):** Story 16.1 - Project registry (optional but nice)
 4. **Phase D (Polish):** Story 16.5 - TUI dashboard
+5. **Phase E (Scale):** Story 16.4 - Index optimization (only if needed)
 
 ### File Locations
 
 ```
-~/.config/adw/
-├── config.yaml          # User preferences (existing)
-├── projects.yaml        # Project registry (new)
-└── run-index.sqlite     # Optional central index (new)
+~/.adw/
+├── index.jsonl          # Global run index (EXISTS)
+├── index-archive/       # Archived entries by month (EXISTS)
+│   └── YYYY-MM.jsonl
+├── projects.yaml        # Project registry (NEW - Story 16.1)
+├── config.yaml          # User preferences (NEW - for cost rates)
+└── stats-cache.json     # Cached statistics (NEW - Story 16.3)
+```
+
+### CLI Command Structure
+
+```
+adw global list [--project NAME] [--status STATUS] [--since DURATION] [--limit N]
+adw global stats [--project NAME] [--format json]
+adw global dashboard [--refresh SECONDS]
+adw global export [--format csv|json] [--since DURATION] [--project NAME] [-o FILE]
+adw global report weekly|monthly
+adw global index info
+adw global index rebuild
+
+adw register [--name NAME]
+adw unregister
+adw projects [--discover]
 ```
 
 ### No Breaking Changes
 
 This epic is purely additive:
 - Existing runs continue to work unchanged
-- Project registration is optional (can query by path)
-- Index is optional (filesystem scanning is fallback)
+- Project registration is optional (index-based discovery works)
 - New context fields have defaults (backward compatible)
+- Existing `adw list` continues to work for project-local queries
+
+### Dependencies on Existing Code
+
+| Component | Location | Usage |
+|-----------|----------|-------|
+| IndexManager | `src/adw/core/index_manager.py` | All global queries |
+| IndexEntry | `src/adw/models/index.py` | Run metadata model |
+| RunContext | `src/adw/models/context.py` | Context enhancements |
+| CLI app | `src/adw/cli/app.py` | Command registration |
 
 ---
+
+## Revision History
+
+- **2026-01-19:** Major revision to acknowledge existing IndexManager infrastructure. Fixed paths from `~/.config/adw/` to `~/.adw/`. Rewrote Story 16.4 (index already exists as JSONL). Clarified Story 16.6 (project_name already in IndexEntry). Updated technical notes throughout.
+- **Original:** Initial epic creation (pre-IndexManager implementation)

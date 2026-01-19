@@ -3,7 +3,7 @@
 **Goal:** Complete the feature delivery lifecycle with an LLM-driven ship phase that provides intelligent pre-flight analysis, optional deployment command execution, release notes generation, failure diagnosis, and automated PR merge.
 
 **Priority:** Post-MVP
-**Dependencies:** Epic 9 (Git Integration), Epic 12 (Task Manager Integration), Epic 13 (Webhook Infrastructure)
+**Dependencies:** Epic 9 (Git Integration), Epic 12 (Task Manager Integration), Epic 13 (Webhook Infrastructure), Epic 14 (Init Wizard - for Story 15.8)
 
 ---
 
@@ -405,6 +405,121 @@ artifacts:
 
 ---
 
+## Story 15.8: Init Wizard Ship Phase Integration
+
+As a user running `adw init` with the wizard,
+I want to configure ship phase settings during setup,
+So that deployment commands and PR merge behavior are ready from the start.
+
+**Acceptance Criteria:**
+
+### Wizard Step Addition
+
+**Given** the init wizard flow (Epic 14 implemented)
+**When** ship phase step is added
+**Then** it appears after Phase Customization (Step 5) as a new optional step
+
+**Given** user reaches ship phase step
+**When** prompted
+**Then** wizard asks: "Configure ship phase settings? [y/N]"
+
+**Given** user selects No
+**When** wizard continues
+**Then** ship phase uses defaults (no commands, auto-merge enabled, squash strategy)
+
+### Deployment Commands Configuration
+
+**Given** user selects Yes to configure ship phase
+**When** commands section presented
+**Then** wizard prompts:
+- "Version bump command: [none] (Enter to skip or type command)"
+- "Build command: [none] (Enter to skip or type command)"
+- "Publish command: [none] (Enter to skip or type command)"
+
+**Given** commands are entered
+**When** wizard validates
+**Then** it checks command format is non-empty string (no validation of actual command)
+
+### Post-Publish Hooks Configuration
+
+**Given** user is configuring ship phase
+**When** post-publish section presented
+**Then** wizard prompts: "Add post-publish hooks? [y/N]"
+
+**Given** user selects Yes
+**When** adding hooks
+**Then** wizard loops: "Hook command (empty to finish): ____"
+
+**Given** user enters empty line
+**When** loop evaluates
+**Then** hook collection ends, continues to next section
+
+### PR Merge Settings Configuration
+
+**Given** user is configuring ship phase
+**When** PR settings section presented
+**Then** wizard shows:
+```
+─── PR Merge Settings ───
+```
+
+**Given** PR settings section active
+**When** prompts displayed
+**Then** wizard asks:
+- "Auto-merge after successful ship? [Y/n]"
+- "Merge strategy: [squash] / merge / rebase"
+- "Delete branch after merge? [Y/n]"
+
+**Given** merge strategy prompt
+**When** user responds
+**Then** accepts: "squash", "merge", "rebase", or Enter for default (squash)
+
+### Summary Display Update
+
+**Given** wizard reaches summary step (Story 14.10)
+**When** ship phase was configured
+**Then** summary panel includes ship section:
+```
+Ship: ✓ Enabled
+  Commands: version_bump ✓, build ✓, publish ✓
+  Post-hooks: 2 configured
+  PR: squash merge, auto-delete branch
+```
+
+**Given** ship phase uses defaults
+**When** summary displayed
+**Then** shows: "Ship: Default (no commands, squash merge)"
+
+### Files to Generate
+
+**Given** wizard completes with ship configuration
+**When** files generated
+**Then** `project.yaml` includes ship section:
+```yaml
+ship:
+  commands:
+    version_bump: "npm version patch"  # if configured
+    build: "npm run build"             # if configured
+    publish: "npm publish"             # if configured
+  post_publish:                        # if configured
+    - "git push --tags"
+  pr:
+    auto_merge: true
+    merge_strategy: squash
+    delete_branch: true
+```
+
+### Test Coverage
+
+**Given** wizard ship step implementation
+**When** tests written
+**Then** coverage includes:
+- `test_wizard_ship.py`: All ship prompts and validation
+- `test_wizard_summary.py`: Ship section in summary display
+- `test_wizard_generation.py`: Ship config in generated project.yaml
+
+---
+
 ## Configuration
 
 ```yaml
@@ -567,11 +682,11 @@ Ship Phase Start
                               │
                               ▼
 ╔═══════════════════════════════════════════════════════════════════╗
-║  WAVE 6: After 15.6 + 15.4 (Final)                                ║
+║  WAVE 6: After 15.6 + 15.4 (PARALLEL x2)                          ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║                                                                   ║
-║  [15-7] Ship Report Generation                                    ║
-║         (compile all results into ship_report.md)                 ║
+║  [15-7] Ship Report Generation  ║  [15-8] Init Wizard Integration ║
+║  (ship_report.md artifact)      ║  (wizard step + summary update) ║
 ║                                                                   ║
 ╚═══════════════════════════════════════════════════════════════════╝
 ```
@@ -585,7 +700,7 @@ Ship Phase Start
 | 3 | 15.3, 15.4 | **Parallel** | Commands + Release Notes |
 | 4 | 15.5 | None | Failure diagnosis |
 | 5 | 15.6 | None | PR merge & completion |
-| 6 | 15.7 | None | Final report generation |
+| 6 | 15.7, 15.8 | **Parallel** | Report generation + Wizard integration |
 
 ---
 
@@ -623,6 +738,14 @@ src/adw/defaults/commands/ship/
     └── instructions.xml # 6-step LLM instructions
 ```
 
+### Init Wizard Files (Story 15.8)
+
+| File | Change |
+|------|--------|
+| `src/adw/cli/wizard/ship.py` | New file - ship phase wizard step |
+| `src/adw/cli/wizard/flow.py` | Add ship step after phase customization |
+| `src/adw/cli/wizard/summary.py` | Add ship section to summary panel |
+
 ### Test Files
 
 | File | Coverage |
@@ -632,6 +755,8 @@ src/adw/defaults/commands/ship/
 | `tests/unit/core/test_phase_runner.py` | Ship phase execution |
 | `tests/integration/test_orchestrator.py` | Full pipeline with ship |
 | `tests/unit/hooks/test_ship_hooks.py` | pre.sh and post.sh behavior |
+| `tests/unit/cli/wizard/test_wizard_ship.py` | Ship step prompts and validation |
+| `tests/unit/cli/wizard/test_wizard_summary.py` | Ship section in summary display |
 
 ### Files Automatically Updated (via PHASE_SEQUENCE)
 
