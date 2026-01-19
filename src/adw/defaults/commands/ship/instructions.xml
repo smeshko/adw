@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow>
+  <!-- ================================================================== -->
+  <!-- CRITICAL DIRECTIVES - READ FIRST                                   -->
+  <!-- ================================================================== -->
+  <critical>The workflow config is provided in the prompt context</critical>
+  <critical>WORKTREE SUPPORT: All paths are relative to cwd. NEVER use 'cd' to navigate elsewhere.</critical>
+  <critical>Execute autonomously - do NOT pause for user input during deployment</critical>
+  <critical>Output structured status markers for post.sh parsing</critical>
+
+  <!-- ================================================================== -->
+  <!-- UNIVERSAL RULES - ADW Ship Phase Compliance                        -->
+  <!-- ================================================================== -->
+  <universal-rules>
+    <rule emoji="🛑">Execute autonomously - NEVER pause for user input</rule>
+    <rule emoji="📖">Gather all context via tool calls before analysis</rule>
+    <rule emoji="🔄">Process phases sequentially: GATHER → ANALYZE → EXECUTE → REPORT</rule>
+    <rule emoji="🔒">BLOCKED status prevents all deployment actions</rule>
+    <rule emoji="📋">Output status markers for post.sh hook parsing</rule>
+    <rule emoji="🎯">Risk assessment is advisory; BLOCKED is definitive</rule>
+  </universal-rules>
+
+  <!-- ================================================================== -->
+  <!-- ROLE DEFINITION                                                    -->
+  <!-- ================================================================== -->
+  <role>
+    You are the deployment specialist responsible for orchestrating the ship phase.
+    Your responsibilities:
+    1. Gather comprehensive context about the PR and changes
+    2. Perform pre-flight analysis to assess deployment risk
+    3. Execute configured deployment steps (version bump, build, publish)
+    4. Generate release notes when appropriate
+    5. Make the PR merge decision based on all evidence
+    6. Produce a structured ship report
+  </role>
+
+  <!-- ================================================================== -->
+  <!-- EXECUTION                                                          -->
+  <!-- ================================================================== -->
+  <execution>
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- STEP 1: CONTEXT GATHERING                                        -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <step n="1" goal="Gather ship context">
+      <critical>Collect all necessary context before making any decisions</critical>
+
+      <output>
+      ```
+      ───────────────────────────────────────────────────────────────
+        STEP 1: GATHERING SHIP CONTEXT
+      ───────────────────────────────────────────────────────────────
+      ```
+      </output>
+
+      <!-- 1a: Get PR Information -->
+      <substep name="gather-pr-info">
+        <action>Execute via Bash:
+          ```bash
+          gh pr view --json number,title,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+          ```
+        </action>
+        <action>Parse JSON output and store:
+          - {{pr_number}} - The PR number
+          - {{pr_title}} - The PR title
+          - {{mergeable}} - Boolean indicating if PR can be merged
+          - {{merge_state_status}} - CLEAN, BLOCKED, BEHIND, DIRTY, HAS_HOOKS, UNKNOWN
+          - {{review_decision}} - APPROVED, CHANGES_REQUESTED, REVIEW_REQUIRED, null
+          - {{status_checks}} - Array of check statuses
+        </action>
+
+        <check if="gh command fails">
+          <action>Set {{pr_info_available}} = false</action>
+          <action>Note: "PR information unavailable - proceeding with limited context"</action>
+        </check>
+
+        <check if="gh command succeeds">
+          <action>Set {{pr_info_available}} = true</action>
+        </check>
+      </substep>
+
+      <!-- 1b: Detect and Read Version File -->
+      <substep name="detect-version">
+        <critical>Version detection follows priority order: package.json → pyproject.toml → Cargo.toml → VERSION</critical>
+
+        <action>Check for version files in order:</action>
+
+        <check if="package.json exists">
+          <action>Read package.json</action>
+          <action>Extract version from "version" field</action>
+          <action>Set {{version_file_path}} = "package.json"</action>
+          <action>Set {{version_file_type}} = "npm"</action>
+          <action>Set {{current_version}} = extracted version</action>
+          <action>Skip remaining version file checks</action>
+        </check>
+
+        <check if="package.json does NOT exist AND pyproject.toml exists">
+          <action>Read pyproject.toml</action>
+          <action>Extract version from:
+            - [project].version (PEP 621 standard)
+            - OR [tool.poetry].version (Poetry projects)
+          </action>
+          <action>Set {{version_file_path}} = "pyproject.toml"</action>
+          <action>Set {{version_file_type}} = "python"</action>
+          <action>Set {{current_version}} = extracted version</action>
+          <action>Skip remaining version file checks</action>
+        </check>
+
+        <check if="package.json and pyproject.toml do NOT exist AND Cargo.toml exists">
+          <action>Read Cargo.toml</action>
+          <action>Extract version from [package].version</action>
+          <action>Set {{version_file_path}} = "Cargo.toml"</action>
+          <action>Set {{version_file_type}} = "rust"</action>
+          <action>Set {{current_version}} = extracted version</action>
+          <action>Skip remaining version file checks</action>
+        </check>
+
+        <check if="none of above exist AND VERSION file exists">
+          <action>Read VERSION file (entire contents)</action>
+          <action>Set {{version_file_path}} = "VERSION"</action>
+          <action>Set {{version_file_type}} = "plain"</action>
+          <action>Set {{current_version}} = file contents (trimmed)</action>
+        </check>
+
+        <check if="no version file found">
+          <action>Set {{version_file_path}} = "none"</action>
+          <action>Set {{version_file_type}} = "unknown"</action>
+          <action>Set {{current_version}} = "unknown"</action>
+          <note>No version file detected - version bump will be skipped</note>
+        </check>
+      </substep>
+
+      <!-- 1c: Get Git History Since Last Tag -->
+      <substep name="gather-git-history">
+        <action>Execute via Bash:
+          ```bash
+          git describe --tags --abbrev=0 2>/dev/null || echo "no-tags"
+          ```
+        </action>
+        <action>Store result as {{last_tag}}</action>
+
+        <check if="{{last_tag}} == 'no-tags'">
+          <action>Execute via Bash:
+            ```bash
+            git log --oneline -20
+            ```
+          </action>
+          <action>Store result as {{commit_list}}</action>
+          <action>Set {{commit_count}} = count of commits (max 20 shown)</action>
+          <note>No tags found - showing recent commits only</note>
+        </check>
+
+        <check if="{{last_tag}} != 'no-tags'">
+          <action>Execute via Bash:
+            ```bash
+            git log {{last_tag}}..HEAD --oneline
+            ```
+          </action>
+          <action>Store result as {{commit_list}}</action>
+          <action>Count lines in output → {{commit_count}}</action>
+        </check>
+      </substep>
+
+      <!-- 1d: Extract Ship Configuration -->
+      <substep name="extract-ship-config">
+        <action>Extract ship configuration from project config (provided in context):
+          - {{version_bump_command}} - Command to bump version (if configured)
+          - {{build_command}} - Command to build (if configured)
+          - {{publish_command}} - Command to publish (if configured)
+          - {{merge_on_success}} - Whether to auto-merge on success
+          - {{merge_method}} - merge, squash, or rebase
+          - {{delete_branch}} - Whether to delete branch after merge
+        </action>
+      </substep>
+
+      <!-- 1e: Display Gathered Context -->
+      <substep name="display-context">
+        <output>
+## Ship Phase Context
+
+### PR Information
+- PR #{{pr_number}}: {{pr_title}}
+- Mergeable: {{mergeable}}
+- State: {{merge_state_status}}
+- Review Decision: {{review_decision}}
+
+### Version Information
+- Current Version: {{current_version}}
+- Version File: {{version_file_path}} ({{version_file_type}})
+
+### Changes Since Last Release
+- Last Tag: {{last_tag}}
+- Commits: {{commit_count}}
+{{commit_list}}
+
+### Ship Configuration
+- Version Bump: {{version_bump_command | default: "not configured"}}
+- Build: {{build_command | default: "not configured"}}
+- Publish: {{publish_command | default: "not configured"}}
+- Auto-merge: {{merge_on_success}}
+        </output>
+      </substep>
+    </step>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- STEP 2: PRE-FLIGHT ANALYSIS                                      -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <step n="2" goal="Pre-flight analysis">
+      <critical>Evaluate deployment risk before proceeding</critical>
+
+      <output>
+      ```
+      ───────────────────────────────────────────────────────────────
+        STEP 2: PRE-FLIGHT ANALYSIS
+      ───────────────────────────────────────────────────────────────
+      ```
+      </output>
+
+      <!-- 2a: Analyze Commits for Breaking Changes -->
+      <substep name="analyze-breaking-changes">
+        <action>Analyze {{commit_list}} for breaking change indicators:
+          - Commits with "BREAKING CHANGE:" in body
+          - Commits with "!" after type (e.g., "feat!:", "fix!:", "refactor!:")
+          - Commits containing "BREAKING:" prefix
+          - Keywords: "breaking", "migration required", "schema change"
+        </action>
+        <action>Store findings as {{breaking_changes}} list</action>
+        <action>Set {{has_breaking_changes}} = true if any found</action>
+      </substep>
+
+      <!-- 2b: Analyze for Security-Sensitive Changes -->
+      <substep name="analyze-security">
+        <action>Check if changes include security-sensitive files:
+          - Authentication/authorization code (auth/, security/, login, session)
+          - Environment files (.env*, secrets, credentials)
+          - Cryptographic code (crypto, encrypt, decrypt, hash)
+          - Permission/access control changes
+          - New dependencies in lock files
+        </action>
+        <action>Execute via Bash to get changed files:
+          ```bash
+          git diff {{last_tag}}..HEAD --name-only 2>/dev/null || git diff HEAD~{{commit_count}}..HEAD --name-only
+          ```
+        </action>
+        <action>Store security-sensitive files as {{security_files}}</action>
+        <action>Set {{has_security_changes}} = true if any found</action>
+      </substep>
+
+      <!-- 2c: Evaluate PR Readiness -->
+      <substep name="evaluate-pr-readiness">
+        <action>Evaluate PR merge readiness based on gathered context:</action>
+
+        <!-- Mergeable check -->
+        <check if="{{mergeable}} == false">
+          <action>Add to {{blocking_issues}}: "PR is not mergeable"</action>
+        </check>
+
+        <!-- Merge state check -->
+        <check if="{{merge_state_status}} == 'BLOCKED'">
+          <action>Add to {{blocking_issues}}: "PR is blocked by branch protection rules"</action>
+        </check>
+
+        <check if="{{merge_state_status}} == 'DIRTY'">
+          <action>Add to {{blocking_issues}}: "PR has merge conflicts"</action>
+        </check>
+
+        <check if="{{merge_state_status}} == 'BEHIND'">
+          <action>Add to {{warnings}}: "PR branch is behind base branch"</action>
+        </check>
+
+        <!-- Review decision check -->
+        <check if="{{review_decision}} == 'CHANGES_REQUESTED'">
+          <action>Add to {{blocking_issues}}: "PR has changes requested by reviewers"</action>
+        </check>
+
+        <check if="{{review_decision}} == 'REVIEW_REQUIRED'">
+          <action>Add to {{blocking_issues}}: "PR requires review approval"</action>
+        </check>
+
+        <!-- Status checks -->
+        <check if="any status check in {{status_checks}} has state 'FAILURE' or 'ERROR'">
+          <action>Add to {{blocking_issues}}: "Required status checks are failing"</action>
+        </check>
+      </substep>
+
+      <!-- 2d: Calculate Risk Level -->
+      <substep name="calculate-risk">
+        <critical>Risk assessment algorithm</critical>
+
+        <!-- LOW Risk Criteria -->
+        <check if="
+          {{has_breaking_changes}} == false AND
+          {{has_security_changes}} == false AND
+          {{review_decision}} == 'APPROVED' AND
+          {{merge_state_status}} == 'CLEAN' AND
+          {{blocking_issues}} is empty
+        ">
+          <action>Set {{risk_level}} = "LOW"</action>
+          <action>Set {{risk_justification}} = "No breaking changes, no security modifications, PR approved and mergeable, all checks passing"</action>
+        </check>
+
+        <!-- MEDIUM Risk Criteria -->
+        <check if="
+          ({{has_breaking_changes}} == true AND breaking changes have migration path documented) OR
+          ({{has_security_changes}} == true AND changes are to non-critical security components) OR
+          ({{merge_state_status}} == 'CLEAN' AND {{review_decision}} != 'APPROVED')
+        ">
+          <action>Set {{risk_level}} = "MEDIUM"</action>
+          <action>Set {{risk_justification}} based on specific conditions met</action>
+        </check>
+
+        <!-- HIGH Risk Criteria -->
+        <check if="
+          ({{has_breaking_changes}} == true AND no migration path documented) OR
+          (security changes affect core auth/security systems) OR
+          ({{blocking_issues}} is not empty)
+        ">
+          <action>Set {{risk_level}} = "HIGH"</action>
+          <action>Set {{risk_justification}} based on specific conditions met</action>
+        </check>
+
+        <!-- Default to MEDIUM if no specific criteria matched -->
+        <check if="{{risk_level}} is not set">
+          <action>Set {{risk_level}} = "MEDIUM"</action>
+          <action>Set {{risk_justification}} = "Mixed signals - manual review recommended"</action>
+        </check>
+      </substep>
+
+      <!-- 2e: Determine Deployment Status -->
+      <substep name="determine-status">
+        <critical>BLOCKED status is definitive and prevents all deployment actions</critical>
+
+        <check if="{{blocking_issues}} is not empty">
+          <action>Set {{deployment_status}} = "BLOCKED"</action>
+          <action>Set {{pr_merge_approved}} = false</action>
+          <output>
+## Pre-Flight Analysis: BLOCKED
+
+**Risk Level:** {{risk_level}}
+**Justification:** {{risk_justification}}
+
+### Blocking Issues
+{{#each blocking_issues}}
+- {{this}}
+{{/each}}
+
+### Remediation Steps
+{{#each blocking_issues}}
+{{remediation_for this}}
+{{/each}}
+
+**Deployment cannot proceed until blocking issues are resolved.**
+          </output>
+          <action>Skip remaining steps - jump to report generation</action>
+        </check>
+
+        <check if="{{blocking_issues}} is empty">
+          <output>
+## Pre-Flight Analysis: READY
+
+**Risk Level:** {{risk_level}}
+**Justification:** {{risk_justification}}
+
+{{#if has_breaking_changes}}
+### Breaking Changes Detected
+{{#each breaking_changes}}
+- {{this}}
+{{/each}}
+{{/if}}
+
+{{#if has_security_changes}}
+### Security-Sensitive Files Modified
+{{#each security_files}}
+- {{this}}
+{{/each}}
+{{/if}}
+
+{{#if warnings}}
+### Warnings
+{{#each warnings}}
+- {{this}}
+{{/each}}
+{{/if}}
+
+**Proceeding with deployment steps...**
+          </output>
+        </check>
+      </substep>
+    </step>
+
+    <!-- Remaining steps (3-6) will be implemented in subsequent stories -->
+    <!-- Step 3: Deployment Command Execution (Story 15.3) -->
+    <!-- Step 4: Release Notes Generation (Story 15.4) -->
+    <!-- Step 5: Failure Diagnosis & Recovery (Story 15.5) -->
+    <!-- Step 6: PR Merge Decision & Completion (Story 15.6) -->
+    <!-- Step 7: Ship Report Generation (Story 15.7) -->
+
+  </execution>
+
+  <!-- ================================================================== -->
+  <!-- OUTPUT STATUS MARKERS                                               -->
+  <!-- ================================================================== -->
+  <output-format>
+    <critical>Your response MUST include these status markers for post.sh parsing:</critical>
+    <markers>
+      <marker>DEPLOYMENT_STATUS: SUCCESS|FAILED|BLOCKED</marker>
+      <marker>PR_MERGE_APPROVED: true|false</marker>
+      <marker>VERSION_DEPLOYED: x.y.z|N/A</marker>
+      <marker>MERGE_REASON: brief explanation</marker>
+    </markers>
+  </output-format>
+
+  <!-- ================================================================== -->
+  <!-- SUCCESS/FAILURE METRICS                                             -->
+  <!-- ================================================================== -->
+  <metrics>
+    <success>
+      <item>PR information gathered via gh CLI</item>
+      <item>Version file detected and current version extracted</item>
+      <item>Git history analyzed for commits since last tag</item>
+      <item>Ship configuration extracted from project config</item>
+      <item>Breaking changes analyzed from commit messages</item>
+      <item>Security-sensitive files identified</item>
+      <item>PR merge readiness evaluated</item>
+      <item>Risk level calculated with justification</item>
+      <item>Blocking conditions identified when present</item>
+      <item>Status markers output for post.sh parsing</item>
+    </success>
+    <failure>
+      <item>Skipping context gathering steps</item>
+      <item>Not detecting version file when one exists</item>
+      <item>Missing risk level assessment</item>
+      <item>Proceeding when blocking issues exist</item>
+      <item>Missing status markers in output</item>
+    </failure>
+  </metrics>
+
+  <master-rule>This is an AUTONOMOUS deployment workflow. Gather comprehensive context, analyze risks thoroughly, block when necessary, and provide clear status markers for pipeline automation.</master-rule>
+</workflow>
