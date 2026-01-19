@@ -72,11 +72,6 @@ from adw.cli.wizard.security import (
     run_security_step,
     validate_regex,
 )
-from adw.cli.wizard.task_manager import (
-    TaskManagerStepHandler,
-    run_task_manager_step,
-    validate_team_key,
-)
 from adw.cli.wizard.summary import (
     ConfigWriteError,
     SummaryStepHandler,
@@ -86,6 +81,11 @@ from adw.cli.wizard.summary import (
     generate_project_yaml,
     generate_summary_panel,
     run_summary_step,
+)
+from adw.cli.wizard.task_manager import (
+    TaskManagerStepHandler,
+    run_task_manager_step,
+    validate_team_key,
 )
 from adw.cli.wizard.webhooks import (
     WebhooksStepHandler,

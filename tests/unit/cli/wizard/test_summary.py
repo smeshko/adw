@@ -67,7 +67,10 @@ class TestSummaryPanelGeneration:
             },
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": True, "type": "linear", "team_key": "RULE"},
-            "phases": {"customized": True, "phases": {"plan": {"timeout_seconds": 600}}},
+            "phases": {
+                "customized": True,
+                "phases": {"plan": {"timeout_seconds": 600}},
+            },
             "llm_retry": {
                 "retry_custom": True,
                 "retry_max_retries": 5,
@@ -208,7 +211,11 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": True, "git_branch_prefix": "feat/", "git_auto_create_pr": True},
+            "git": {
+                "git_enabled": True,
+                "git_branch_prefix": "feat/",
+                "git_auto_create_pr": True,
+            },
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
@@ -248,7 +255,12 @@ class TestProjectYamlGeneration:
             "basics": {"language": "python", "platform": "cli"},
             "git": {"git_enabled": False},
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
-            "task_manager": {"enabled": True, "type": "linear", "team_key": "RULE", "sync_comments": True},
+            "task_manager": {
+                "enabled": True,
+                "type": "linear",
+                "team_key": "RULE",
+                "sync_comments": True,
+            },
             "llm_retry": {"retry_custom": False},
             "security": {},
             "webhooks": {"enabled": False},
@@ -423,7 +435,9 @@ class TestPhaseConfigGeneration:
             "phases": {
                 "customized": True,
                 "phases": {
-                    "plan": {"input_files": {"prd": "docs/prd.md", "arch": "docs/arch.md"}},
+                    "plan": {
+                        "input_files": {"prd": "docs/prd.md", "arch": "docs/arch.md"}
+                    },
                 },
             },
         }

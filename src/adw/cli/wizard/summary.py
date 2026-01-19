@@ -239,9 +239,7 @@ def generate_summary_panel(state: WizardState) -> Panel:
             p for p, cfg in providers.items() if cfg.get("enabled", False)
         ]
         if enabled_providers:
-            provider_str = ", ".join(
-                f"{p.title()} \u2713" for p in enabled_providers
-            )
+            provider_str = ", ".join(f"{p.title()} \u2713" for p in enabled_providers)
             lines.append(f"[cyan]Webhooks:[/] {provider_str}")
         else:
             lines.append("[dim]Webhooks:[/] Enabled (no providers)")

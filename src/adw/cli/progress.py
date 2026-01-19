@@ -62,6 +62,7 @@ class ProgressDisplay:
         "build": "cyan",
         "validate": "magenta",
         "document": "green",
+        "ship": "yellow",
     }
 
     STATUS_ICONS: dict[str, str] = {

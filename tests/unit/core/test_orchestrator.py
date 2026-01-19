@@ -270,11 +270,15 @@ class TestGetNextPhase:
         """Test getting next phase after validate."""
         assert orchestrator.get_next_phase("validate") == "document"
 
-    def test_get_next_phase_document_returns_none(
+    def test_get_next_phase_document(self, orchestrator: "Orchestrator") -> None:
+        """Test getting next phase after document (Story 15.1: now ship)."""
+        assert orchestrator.get_next_phase("document") == "ship"
+
+    def test_get_next_phase_ship_returns_none(
         self, orchestrator: "Orchestrator"
     ) -> None:
-        """Test that document is the last phase."""
-        assert orchestrator.get_next_phase("document") is None
+        """Test that ship is the last phase."""
+        assert orchestrator.get_next_phase("ship") is None
 
     def test_get_next_phase_invalid_returns_none(
         self, orchestrator: "Orchestrator"
@@ -702,10 +706,10 @@ class TestRetryLogic:
         context = orchestrator.run("Test feature")
 
         # Should succeed after retries
-        # ISS-019: (2 failures + success on plan = 3, then 3 more phases)
+        # Story 15.1: (2 failures + success on plan = 3, then 4 more phases)
         assert context.status == "completed"
-        # Plan: 3 attempts (2 failures + 1 success) + 3 other phases = 6 calls
-        assert call_count == 6
+        # Plan: 3 attempts (2 failures + 1 success) + 4 other phases = 7 calls
+        assert call_count == 7
 
     def test_retry_exhaustion_raises_error(
         self,
@@ -838,8 +842,8 @@ class TestRetryLogic:
         context = orchestrator.run("Test feature")
 
         assert context.status == "completed"
-        # ISS-019: 1 failure + 4 successes = 5 calls (verify phase removed)
-        assert call_count == 5
+        # Story 15.1: 1 failure + 5 successes = 6 calls (ship phase added)
+        assert call_count == 6
 
 
 class TestTransitionPerformance:
@@ -874,15 +878,15 @@ class TestTransitionPerformance:
             orchestrator.run("Test feature")
 
             # Should have logged phase completed with duration
-            # ISS-019: 4 phases now (verify removed)
+            # Story 15.1: 5 phases now (ship added)
             completed_calls = [
                 call
                 for call in mock_logger.info.call_args_list
                 if "Phase completed" in str(call)
             ]
             assert (
-                len(completed_calls) == 4
-            )  # One per phase (plan, build, validate, document)
+                len(completed_calls) == 5
+            )  # One per phase (plan, build, validate, document, ship)
 
     def test_slow_transition_logs_debug(
         self,

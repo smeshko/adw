@@ -48,6 +48,7 @@ class TestTaskManagerConfig:
             "build": "In Progress",
             "validate": "In Review",
             "document": "In Review",
+            "ship": "Done",  # Story 15.1: ship phase added
             "failed": "In Progress",
         }
 
