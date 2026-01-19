@@ -332,7 +332,7 @@ development_status:
   # Story 15.1 is the foundational SDK integration - MUST be done first
   # Adds ship to PHASE_SEQUENCE, creates ShipConfig models, command folder
   15-1-ship-phase-sdk-integration: done
-  15-2-context-gathering-pre-flight-analysis: in-progress
+  15-2-context-gathering-pre-flight-analysis: review
   15-3-deployment-command-execution: ready-for-dev
   15-4-release-notes-generation: ready-for-dev
   15-5-failure-diagnosis-recovery: ready-for-dev

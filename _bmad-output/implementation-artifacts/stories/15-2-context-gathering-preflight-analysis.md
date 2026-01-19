@@ -1,6 +1,6 @@
 # Story 15.2: Context Gathering & Pre-Flight Analysis
 
-Status: in-progress
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
