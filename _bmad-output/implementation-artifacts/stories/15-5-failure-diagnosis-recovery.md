@@ -134,12 +134,12 @@ So that I can quickly fix the issue and retry.
 - [x] Note that PR remains open for manual merge if needed
 
 ### Task 7: Write Tests
-- [ ] Test version_bump failure detection
-- [ ] Test build failure detection
-- [ ] Test publish failure detection
-- [ ] Test diagnosis output format
-- [ ] Test remediation suggestions
-- [ ] Test PR_MERGE_APPROVED: false on failure
+- [x] Test version_bump failure detection
+- [x] Test build failure detection
+- [x] Test publish failure detection
+- [x] Test diagnosis output format
+- [x] Test remediation suggestions
+- [x] Test PR_MERGE_APPROVED: false on failure
 
 ---
 
@@ -391,7 +391,16 @@ Claude Opus 4.5
   - 5f: Failure status confirmation ensuring DEPLOYMENT_STATUS: FAILED and PR_MERGE_APPROVED: false
 - Each error pattern includes contextual remediation steps specific to the project type (npm, pip, cargo)
 - Updated metrics section with success/failure items for failure diagnosis
+- **Task 7 completed**: Created test_failure_diagnosis.py with 36 specification tests
+  - TestFailureDiagnosisEntryCondition: 2 tests for Step 5 entry conditions
+  - TestVersionBumpFailureDiagnosis: 6 tests for version_bump error patterns
+  - TestBuildFailureDiagnosis: 7 tests for build error patterns
+  - TestPublishFailureDiagnosis: 8 tests for publish error patterns
+  - TestDiagnosisOutputFormat: 5 tests for output structure
+  - TestRecoverySuggestions: 3 tests for remediation quality
+  - TestStatusFlagsOnFailure: 5 tests for status flag verification
 
 ### File List
 
 - Modified: `src/adw/defaults/commands/ship/instructions.xml` (Added Step 5: Failure Diagnosis & Recovery)
+- Added: `tests/unit/ship/test_failure_diagnosis.py` (36 specification tests for failure diagnosis)
