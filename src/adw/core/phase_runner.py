@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import yaml
+from pydantic import ValidationError
 
 from adw.commands.template import (
     build_task_context,
@@ -544,14 +545,12 @@ class PhaseRunner:
                 code="INVALID_CONFIG",
                 message=f"Invalid YAML in config.yaml at {config_path}: {e}",
             ) from e
-        except Exception as e:
+        except ValidationError as e:
             # Catch Pydantic validation errors and re-raise as ConfigError
-            if "ValidationError" in type(e).__name__:
-                raise ConfigError(
-                    code="INVALID_CONFIG",
-                    message=f"Invalid config in config.yaml at {config_path}: {e}",
-                ) from e
-            raise
+            raise ConfigError(
+                code="INVALID_CONFIG",
+                message=f"Invalid config in config.yaml at {config_path}: {e}",
+            ) from e
 
     def _get_merged_config(
         self, phase: str, command: ResolvedCommand

@@ -7,6 +7,7 @@ any phases or modifying state.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -18,6 +19,8 @@ from rich.table import Table
 from adw.commands.resolver import CommandResolver
 from adw.core.constants import PHASE_SEQUENCE
 from adw.models.command import CommandConfig
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from adw.models import ProjectConfig
@@ -142,8 +145,12 @@ class DryRunDisplay:
             if data is None:
                 data = {}
             return CommandConfig.model_validate(data)
-        except Exception:
-            # Silently fail - config loading errors should not break dry run
+        except Exception as e:
+            # Log warning but don't break dry run
+            logger.warning(
+                "Failed to load command config for phase",
+                extra={"phase": phase_name, "error": str(e)},
+            )
             return None
 
     def _show_phases_table(
