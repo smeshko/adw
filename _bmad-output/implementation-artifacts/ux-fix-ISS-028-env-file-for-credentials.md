@@ -104,7 +104,7 @@ so that I can easily manage per-project Linear credentials without global shell 
 ### Task 6: Update Wizard Summary Gitignore
 **Files**: `src/adw/cli/wizard/summary.py`
 
-- [ ] 6.1 Update `generate_gitignore()` function (line 522-533) to include `.env`:
+- [x] 6.1 Update `generate_gitignore()` function (line 522-533) to include `.env`:
   ```python
   return """# ADW runtime artifacts
   runs/

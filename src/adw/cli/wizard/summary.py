@@ -530,6 +530,9 @@ runs/
 logs/
 *.log
 state.json
+
+# Environment files with secrets
+.env
 """
 
 
