@@ -13,15 +13,14 @@ from rich.console import Console
 from adw.cli.wizard.phases import (
     AVAILABLE_PHASES,
     DEFAULT_TIMEOUTS,
-    REVIEW_FOCUS_AREAS,
     TRIAGE_MODES,
     PhasesStepHandler,
     _configure_phase,
     _configure_validate_phase,
     _parse_int,
+    _parse_phase_selection,
     _prompt_input_files,
     _prompt_phase_selection,
-    _prompt_review_focus,
     run_phases_step,
 )
 from adw.models.wizard import WizardState
@@ -50,10 +49,6 @@ class TestConstants:
         """Test triage modes list."""
         assert TRIAGE_MODES == ["auto", "manual", "hybrid"]
 
-    def test_review_focus_areas(self) -> None:
-        """Test review focus areas list."""
-        assert REVIEW_FOCUS_AREAS == ["security", "error_handling", "edge_cases"]
-
 
 class TestNoCustomization:
     """Tests for when user declines customization."""
@@ -71,52 +66,101 @@ class TestNoCustomization:
 
 
 class TestPhaseSelection:
-    """Tests for phase selection flow."""
+    """Tests for phase selection flow with comma-separated input."""
 
-    def test_select_no_phases(self) -> None:
-        """Test selecting no phases returns empty list."""
+    def test_select_no_phases_empty_input(self) -> None:
+        """Test empty input returns empty list."""
         console = Console(force_terminal=True)
 
-        with patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm:
-            # All phases declined
-            mock_confirm.side_effect = [False, False, False, False]
+        with patch("adw.cli.wizard.phases.Prompt.ask", return_value=""):
             selected = _prompt_phase_selection(console)
 
         assert selected == []
 
-    def test_select_all_phases(self) -> None:
-        """Test selecting all phases."""
+    def test_select_all_phases_keyword(self) -> None:
+        """Test 'all' keyword selects all phases."""
         console = Console(force_terminal=True)
 
-        with patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm:
-            mock_confirm.side_effect = [True, True, True, True]
+        with patch("adw.cli.wizard.phases.Prompt.ask", return_value="all"):
             selected = _prompt_phase_selection(console)
 
         assert selected == AVAILABLE_PHASES
 
-    def test_select_some_phases(self) -> None:
-        """Test selecting some phases."""
+    def test_select_phases_by_number(self) -> None:
+        """Test selecting phases by number (1,3)."""
         console = Console(force_terminal=True)
 
-        with patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm:
-            # Select plan and validate only
-            mock_confirm.side_effect = [True, False, True, False]
+        with patch("adw.cli.wizard.phases.Prompt.ask", return_value="1,3"):
+            selected = _prompt_phase_selection(console)
+
+        assert selected == ["plan", "validate"]
+
+    def test_select_phases_by_name(self) -> None:
+        """Test selecting phases by name."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask", return_value="plan, validate"):
             selected = _prompt_phase_selection(console)
 
         assert selected == ["plan", "validate"]
 
     def test_no_phases_selected_returns_empty_result(self) -> None:
-        """Test that selecting no phases after opting to customize returns empty config."""
+        """Test that empty selection after opting to customize returns empty config."""
         console = Console(force_terminal=True)
         state = WizardState()
 
-        with patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm:
-            # First: yes to customize, then no to all phases
-            mock_confirm.side_effect = [True, False, False, False, False]
+        with (
+            patch("adw.cli.wizard.phases.Confirm.ask", return_value=True),
+            patch("adw.cli.wizard.phases.Prompt.ask", return_value=""),
+        ):
             result = run_phases_step(state, console)
 
         assert result["customized"] is False
         assert result["phases"] == {}
+
+
+class TestParsePhaseSelection:
+    """Tests for _parse_phase_selection helper function."""
+
+    def test_empty_input(self) -> None:
+        """Test empty input returns empty list."""
+        assert _parse_phase_selection("") == []
+        assert _parse_phase_selection("   ") == []
+
+    def test_all_keyword(self) -> None:
+        """Test 'all' keyword returns all phases."""
+        assert _parse_phase_selection("all") == AVAILABLE_PHASES
+        assert _parse_phase_selection("ALL") == AVAILABLE_PHASES
+        assert _parse_phase_selection("  all  ") == AVAILABLE_PHASES
+
+    def test_numeric_selection(self) -> None:
+        """Test selecting by number."""
+        assert _parse_phase_selection("1") == ["plan"]
+        assert _parse_phase_selection("1,3") == ["plan", "validate"]
+        assert _parse_phase_selection("1, 2, 3") == ["plan", "build", "validate"]
+        assert _parse_phase_selection("4") == ["document"]
+
+    def test_name_selection(self) -> None:
+        """Test selecting by phase name."""
+        assert _parse_phase_selection("plan") == ["plan"]
+        assert _parse_phase_selection("plan, validate") == ["plan", "validate"]
+        assert _parse_phase_selection("PLAN") == ["plan"]
+
+    def test_mixed_selection(self) -> None:
+        """Test mixed number and name selection."""
+        assert _parse_phase_selection("1, validate") == ["plan", "validate"]
+        assert _parse_phase_selection("plan, 4") == ["plan", "document"]
+
+    def test_invalid_entries_ignored(self) -> None:
+        """Test that invalid entries are silently ignored."""
+        assert _parse_phase_selection("1, invalid, 3") == ["plan", "validate"]
+        assert _parse_phase_selection("99") == []
+        assert _parse_phase_selection("0") == []
+
+    def test_duplicates_removed(self) -> None:
+        """Test that duplicate selections are removed."""
+        assert _parse_phase_selection("1, 1, plan") == ["plan"]
+        assert _parse_phase_selection("plan, plan") == ["plan"]
 
 
 class TestBasePhaseConfiguration:
@@ -132,19 +176,17 @@ class TestBasePhaseConfiguration:
         ):
             # enabled=True, no input files
             mock_confirm.side_effect = [True, False]
-            # timeout (default), pre_hook (none), post_hook (none)
-            mock_prompt.side_effect = ["300", "", ""]
+            # timeout (default)
+            mock_prompt.side_effect = ["300"]
 
             config = _configure_phase("plan", console)
 
         assert config["enabled"] is True
         assert config["timeout_seconds"] == 300
-        assert config["pre_hook"] is None
-        assert config["post_hook"] is None
         assert config["input_files"] is None
 
-    def test_configure_phase_custom_values(self) -> None:
-        """Test phase configuration with custom values."""
+    def test_configure_phase_custom_timeout(self) -> None:
+        """Test phase configuration with custom timeout."""
         console = Console(force_terminal=True)
 
         with (
@@ -153,15 +195,13 @@ class TestBasePhaseConfiguration:
         ):
             # enabled=False, no input files
             mock_confirm.side_effect = [False, False]
-            # timeout=120, pre_hook, post_hook
-            mock_prompt.side_effect = ["120", "./pre.sh", "./post.sh"]
+            # timeout=120
+            mock_prompt.side_effect = ["120"]
 
             config = _configure_phase("build", console)
 
         assert config["enabled"] is False
         assert config["timeout_seconds"] == 120
-        assert config["pre_hook"] == "./pre.sh"
-        assert config["post_hook"] == "./post.sh"
 
     def test_configure_phase_uses_phase_default_timeout(self) -> None:
         """Test that phase configuration uses phase-specific default timeout."""
@@ -173,7 +213,7 @@ class TestBasePhaseConfiguration:
         ):
             mock_confirm.side_effect = [True, False]
             # User just hits enter for timeout (uses default)
-            mock_prompt.side_effect = ["600", "", ""]
+            mock_prompt.side_effect = ["600"]
 
             config = _configure_phase("build", console)
 
@@ -193,20 +233,15 @@ class TestValidatePhaseSpecialOptions:
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
         ):
             # Base config: enabled=True, no input files
-            # Validate special: code_review=True, tests=True, focus=all
+            # Validate special: code_review=True, tests=True
             mock_confirm.side_effect = [
                 True,  # enabled
                 False,  # input files
                 True,  # code_review
                 True,  # tests
-                True,  # security focus
-                True,  # error_handling focus
-                True,  # edge_cases focus
             ]
             mock_prompt.side_effect = [
                 "900",  # timeout
-                "",  # pre_hook
-                "",  # post_hook
                 "300",  # test_timeout
                 "5",  # max_iterations
                 "auto",  # triage_mode
@@ -224,7 +259,6 @@ class TestValidatePhaseSpecialOptions:
         assert config["test_timeout_seconds"] == 300
         assert config["max_iterations"] == 5
         assert config["triage_mode"] == "auto"
-        assert config["review_focus"] == ["security", "error_handling", "edge_cases"]
 
     def test_validate_phase_custom_special_options(self) -> None:
         """Test validate phase with custom special options."""
@@ -239,14 +273,9 @@ class TestValidatePhaseSpecialOptions:
                 False,  # input files
                 False,  # code_review disabled
                 True,  # tests
-                True,  # security focus only
-                False,  # error_handling
-                False,  # edge_cases
             ]
             mock_prompt.side_effect = [
                 "1800",  # timeout 30 min
-                "",  # pre_hook
-                "",  # post_hook
                 "600",  # test_timeout
                 "3",  # max_iterations
                 "manual",  # triage_mode
@@ -259,7 +288,6 @@ class TestValidatePhaseSpecialOptions:
         assert config["test_timeout_seconds"] == 600
         assert config["max_iterations"] == 3
         assert config["triage_mode"] == "manual"
-        assert config["review_focus"] == ["security"]
 
     def test_configure_validate_phase_directly(self) -> None:
         """Test _configure_validate_phase function directly."""
@@ -272,9 +300,6 @@ class TestValidatePhaseSpecialOptions:
             mock_confirm.side_effect = [
                 True,  # code_review
                 False,  # tests disabled
-                False,  # no security focus
-                True,  # error_handling
-                False,  # no edge_cases
             ]
             mock_prompt.side_effect = [
                 "180",  # test_timeout
@@ -289,7 +314,6 @@ class TestValidatePhaseSpecialOptions:
         assert config["test_timeout_seconds"] == 180
         assert config["max_iterations"] == 10
         assert config["triage_mode"] == "hybrid"
-        assert config["review_focus"] == ["error_handling"]
 
 
 class TestInputFileLoop:
@@ -377,40 +401,6 @@ class TestInputFileLoop:
         assert result == {"prd": "docs/prd.md"}
 
 
-class TestReviewFocus:
-    """Tests for review focus selection."""
-
-    def test_select_all_focus_areas(self) -> None:
-        """Test selecting all focus areas."""
-        console = Console(force_terminal=True)
-
-        with patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm:
-            mock_confirm.side_effect = [True, True, True]
-            result = _prompt_review_focus(console)
-
-        assert result == ["security", "error_handling", "edge_cases"]
-
-    def test_select_no_focus_areas(self) -> None:
-        """Test selecting no focus areas."""
-        console = Console(force_terminal=True)
-
-        with patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm:
-            mock_confirm.side_effect = [False, False, False]
-            result = _prompt_review_focus(console)
-
-        assert result == []
-
-    def test_select_some_focus_areas(self) -> None:
-        """Test selecting some focus areas."""
-        console = Console(force_terminal=True)
-
-        with patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm:
-            mock_confirm.side_effect = [True, False, True]
-            result = _prompt_review_focus(console)
-
-        assert result == ["security", "edge_cases"]
-
-
 class TestParseInt:
     """Tests for _parse_int helper function."""
 
@@ -457,17 +447,12 @@ class TestFullFlow:
         ):
             mock_confirm.side_effect = [
                 True,  # customize phases
-                True,  # plan
-                False,  # build
-                False,  # validate
-                False,  # document
                 True,  # enabled
                 False,  # input files
             ]
             mock_prompt.side_effect = [
+                "1",  # select plan phase
                 "300",  # timeout
-                "",  # pre_hook
-                "",  # post_hook
             ]
 
             result = run_phases_step(state, console)
@@ -488,22 +473,14 @@ class TestFullFlow:
         ):
             mock_confirm.side_effect = [
                 True,  # customize phases
-                False,  # plan
-                False,  # build
-                True,  # validate
-                False,  # document
                 True,  # enabled
                 False,  # input files
                 True,  # code_review
                 True,  # tests
-                True,  # security
-                True,  # error_handling
-                True,  # edge_cases
             ]
             mock_prompt.side_effect = [
+                "3",  # select validate phase
                 "900",  # timeout
-                "",  # pre_hook
-                "",  # post_hook
                 "300",  # test_timeout
                 "5",  # max_iterations
                 "auto",  # triage_mode

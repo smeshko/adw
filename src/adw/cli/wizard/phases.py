@@ -30,9 +30,6 @@ DEFAULT_TIMEOUTS: dict[str, int] = {
 # Triage modes for validate phase
 TRIAGE_MODES: list[str] = ["auto", "manual", "hybrid"]
 
-# Review focus areas for validate phase
-REVIEW_FOCUS_AREAS: list[str] = ["security", "error_handling", "edge_cases"]
-
 
 class PhasesStepHandler:
     """Handler for the phases configuration wizard step.
@@ -118,6 +115,8 @@ def run_phases_step(
 def _prompt_phase_selection(console: Console) -> list[str]:
     """Prompt user to select which phases to customize.
 
+    Uses comma-separated input for efficient multi-selection.
+
     Args:
         console: Console for output.
 
@@ -125,19 +124,20 @@ def _prompt_phase_selection(console: Console) -> list[str]:
         List of selected phase names.
     """
     console.print()
-    console.print("[dim]Select phases to customize (press Enter for each):[/]")
+    console.print("[dim]Available phases:[/]")
+    for i, phase in enumerate(AVAILABLE_PHASES, 1):
+        console.print(f"  [cyan]{i}[/]. {phase}")
 
-    selected: list[str] = []
+    console.print()
+    console.print("[dim]Enter phase numbers separated by commas (e.g., 1,3) or 'all'[/]")
 
-    for phase in AVAILABLE_PHASES:
-        if Confirm.ask(
-            f"Customize [cyan]{phase}[/] phase?",
-            default=False,
-            console=console,
-        ):
-            selected.append(phase)
+    selection = Prompt.ask(
+        "Phases to customize",
+        default="",
+        console=console,
+    ).strip()
 
-    return selected
+    return _parse_phase_selection(selection)
 
 
 def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
@@ -164,32 +164,12 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
     )
     timeout = _parse_int(timeout_str, default_timeout)
 
-    pre_hook = (
-        Prompt.ask(
-            "Pre-hook script path",
-            default="",
-            console=console,
-        ).strip()
-        or None
-    )
-
-    post_hook = (
-        Prompt.ask(
-            "Post-hook script path",
-            default="",
-            console=console,
-        ).strip()
-        or None
-    )
-
     # Input files
     input_files = _prompt_input_files(console)
 
     config: dict[str, Any] = {
         "enabled": enabled,
         "timeout_seconds": timeout,
-        "pre_hook": pre_hook,
-        "post_hook": post_hook,
         "input_files": input_files if input_files else None,
     }
 
@@ -237,15 +217,12 @@ def _configure_validate_phase(console: Console) -> dict[str, Any]:
         console=console,
     )
 
-    review_focus = _prompt_review_focus(console)
-
     return {
         "enable_review": code_review,
         "enable_tests": tests,
         "test_timeout_seconds": test_timeout,
         "max_iterations": max_iterations,
         "triage_mode": triage_mode,
-        "review_focus": review_focus,
     }
 
 
@@ -293,30 +270,6 @@ def _prompt_input_files(console: Console) -> dict[str, str]:
     return input_files
 
 
-def _prompt_review_focus(console: Console) -> list[str]:
-    """Prompt for review focus areas multi-select.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        List of selected review focus areas.
-    """
-    console.print("[dim]Select review focus areas:[/]")
-
-    selected: list[str] = []
-
-    for area in REVIEW_FOCUS_AREAS:
-        if Confirm.ask(
-            f"Focus on [cyan]{area.replace('_', ' ')}[/]?",
-            default=True,
-            console=console,
-        ):
-            selected.append(area)
-
-    return selected
-
-
 def _parse_int(value: str, default: int) -> int:
     """Parse string to integer with fallback.
 
@@ -331,3 +284,48 @@ def _parse_int(value: str, default: int) -> int:
         return int(value)
     except ValueError:
         return default
+
+
+def _parse_phase_selection(selection: str) -> list[str]:
+    """Parse comma-separated phase selection input.
+
+    Accepts:
+    - "all" -> returns all phases
+    - "1,3" -> returns phases by number
+    - "plan, validate" -> returns phases by name
+    - "" or whitespace only -> returns empty list
+
+    Args:
+        selection: User input string.
+
+    Returns:
+        List of valid phase names.
+    """
+    selection = selection.strip().lower()
+
+    # Empty input
+    if not selection:
+        return []
+
+    # Handle "all" keyword
+    if selection == "all":
+        return list(AVAILABLE_PHASES)
+
+    # Split by comma and process each part
+    parts = [p.strip() for p in selection.split(",") if p.strip()]
+    selected: list[str] = []
+
+    for part in parts:
+        # Try as number first
+        try:
+            idx = int(part)
+            if 1 <= idx <= len(AVAILABLE_PHASES):
+                phase = AVAILABLE_PHASES[idx - 1]
+                if phase not in selected:
+                    selected.append(phase)
+        except ValueError:
+            # Try as phase name
+            if part in AVAILABLE_PHASES and part not in selected:
+                selected.append(part)
+
+    return selected
