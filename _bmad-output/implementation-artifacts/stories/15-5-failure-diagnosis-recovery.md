@@ -51,31 +51,31 @@ So that I can quickly fix the issue and retry.
 ## Tasks / Subtasks
 
 ### Task 1: Define Failure Diagnosis Instructions (Step 5 in instructions.xml)
-- [ ] Create step 5 in `ship/instructions.xml` for failure diagnosis
-- [ ] Input: failed command, exit code, stdout, stderr from step 3
-- [ ] Output: structured diagnosis with remediation steps
-- [ ] Only execute if `DEPLOYMENT_STATUS: FAILED`
+- [x] Create step 5 in `ship/instructions.xml` for failure diagnosis
+- [x] Input: failed command, exit code, stdout, stderr from step 3
+- [x] Output: structured diagnosis with remediation steps
+- [x] Only execute if `DEPLOYMENT_STATUS: FAILED`
 
 ### Task 2: Implement Version Bump Failure Analysis
-- [ ] Detect common version_bump failures:
+- [x] Detect common version_bump failures:
   - "Git working directory not clean" → uncommitted changes
   - "Invalid version" → version format issue
   - "Tag already exists" → git tag conflict
   - "Permission denied" → file access issue
-- [ ] Provide specific remediation:
+- [x] Provide specific remediation:
   - Uncommitted: "Commit or stash changes before shipping"
   - Invalid version: "Check version format in {version_file}"
   - Tag conflict: "Delete existing tag: git tag -d {tag}"
   - Permission: "Check file permissions on {version_file}"
 
 ### Task 3: Implement Build Failure Analysis
-- [ ] Detect common build failures:
+- [x] Detect common build failures:
   - "Module not found" → missing dependency
   - "Cannot find module" → import error
   - "Compilation failed" → syntax/type error
   - "Test failed" → test failures during build
   - "ENOENT" → missing file
-- [ ] Provide specific remediation:
+- [x] Provide specific remediation:
   - Missing dep: "Run: npm install / uv sync"
   - Import error: "Check import paths and module names"
   - Compilation: "Fix compilation errors in {file}:{line}"
@@ -83,14 +83,14 @@ So that I can quickly fix the issue and retry.
   - Missing file: "Ensure {file} exists"
 
 ### Task 4: Implement Publish Failure Analysis
-- [ ] Detect common publish failures:
+- [x] Detect common publish failures:
   - "403 Forbidden" → authentication issue
   - "401 Unauthorized" → missing credentials
   - "409 Conflict" → version already exists
   - "Payment Required" → npm paid feature
   - "ECONNREFUSED" → network/registry issue
   - "Rate limit" → API rate limiting
-- [ ] Provide specific remediation:
+- [x] Provide specific remediation:
   - Auth issue: "Check NPM_TOKEN / PYPI_TOKEN environment variable"
   - Missing creds: "Run: npm login / twine configure"
   - Version conflict: "Bump version again or use --force"
@@ -98,7 +98,7 @@ So that I can quickly fix the issue and retry.
   - Rate limit: "Wait and retry, or use different credentials"
 
 ### Task 5: Implement Diagnosis Output Format
-- [ ] Structure diagnosis report:
+- [x] Structure diagnosis report:
   ```markdown
   ## Deployment Failure Diagnosis
 
@@ -125,21 +125,21 @@ So that I can quickly fix the issue and retry.
   ```
 
 ### Task 6: Implement Recovery Suggestions
-- [ ] Provide actionable recovery path:
+- [x] Provide actionable recovery path:
   - For fixable issues: specific fix commands
   - For config issues: what to change in project.yaml
   - For auth issues: credential setup instructions
   - For conflicts: resolution steps
-- [ ] Include "retry ship" instruction after fixes
-- [ ] Note that PR remains open for manual merge if needed
+- [x] Include "retry ship" instruction after fixes
+- [x] Note that PR remains open for manual merge if needed
 
 ### Task 7: Write Tests
-- [ ] Test version_bump failure detection
-- [ ] Test build failure detection
-- [ ] Test publish failure detection
-- [ ] Test diagnosis output format
-- [ ] Test remediation suggestions
-- [ ] Test PR_MERGE_APPROVED: false on failure
+- [x] Test version_bump failure detection
+- [x] Test build failure detection
+- [x] Test publish failure detection
+- [x] Test diagnosis output format
+- [x] Test remediation suggestions
+- [x] Test PR_MERGE_APPROVED: false on failure
 
 ---
 
@@ -180,7 +180,7 @@ So that I can quickly fix the issue and retry.
 
 **Modified Files:**
 ```
-src/adw/defaults/commands/ship/ship/instructions.xml  # Step 5
+src/adw/defaults/commands/ship/instructions.xml  # Step 5 added
 ```
 
 **No New SDK Code:** This story defines LLM instructions for failure analysis.
@@ -376,8 +376,31 @@ Epic 15: Ship Phase & Deployment - Story 15.5
 
 ### Agent Model Used
 
+Claude Opus 4.5
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- **Tasks 1-6 completed**: Implemented Step 5 (Failure Diagnosis & Recovery) in ship/instructions.xml
+  - 5a: Validate failure state check before proceeding
+  - 5b: Version bump failure analysis with 5 error patterns (uncommitted changes, invalid version, tag conflict, permission denied, command not found)
+  - 5c: Build failure analysis with 6 error patterns (missing dependency, import error, syntax/type error, test failure, out of memory, missing file)
+  - 5d: Publish failure analysis with 7 error patterns (auth error, version conflict, network error, rate limiting, package name issues, payment required, invalid metadata)
+  - 5e: Diagnosis output format with error output, diagnosis, and remediation sections
+  - 5f: Failure status confirmation ensuring DEPLOYMENT_STATUS: FAILED and PR_MERGE_APPROVED: false
+- Each error pattern includes contextual remediation steps specific to the project type (npm, pip, cargo)
+- Updated metrics section with success/failure items for failure diagnosis
+- **Task 7 completed**: Created test_failure_diagnosis.py with 36 specification tests
+  - TestFailureDiagnosisEntryCondition: 2 tests for Step 5 entry conditions
+  - TestVersionBumpFailureDiagnosis: 6 tests for version_bump error patterns
+  - TestBuildFailureDiagnosis: 7 tests for build error patterns
+  - TestPublishFailureDiagnosis: 8 tests for publish error patterns
+  - TestDiagnosisOutputFormat: 5 tests for output structure
+  - TestRecoverySuggestions: 3 tests for remediation quality
+  - TestStatusFlagsOnFailure: 5 tests for status flag verification
+
 ### File List
+
+- Modified: `src/adw/defaults/commands/ship/instructions.xml` (Added Step 5: Failure Diagnosis & Recovery)
+- Added: `tests/unit/ship/test_failure_diagnosis.py` (36 specification tests for failure diagnosis)
