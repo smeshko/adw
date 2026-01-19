@@ -896,6 +896,375 @@ Output: {{hook_output}}
       </substep>
     </step>
 
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- STEP 5: FAILURE DIAGNOSIS & RECOVERY                            -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <step n="5" goal="Diagnose deployment failure and provide recovery steps">
+      <critical>ONLY execute this step if {{deployment_status}} == "FAILED"</critical>
+      <critical>ALWAYS set PR_MERGE_APPROVED: false when deployment fails</critical>
+      <critical>Provide actionable remediation steps based on error analysis</critical>
+
+      <output>
+      ```
+      ───────────────────────────────────────────────────────────────
+        STEP 5: FAILURE DIAGNOSIS &amp; RECOVERY
+      ───────────────────────────────────────────────────────────────
+      ```
+      </output>
+
+      <!-- 5a: Validate Failure State -->
+      <substep name="validate-failure-state">
+        <check if="{{deployment_status}} != 'FAILED'">
+          <action>Skip this step - deployment did not fail</action>
+          <action>Jump to Step 6 (Ship Report)</action>
+        </check>
+
+        <check if="{{deployment_status}} == 'FAILED'">
+          <output>
+## Deployment Failure Diagnosis
+
+**Failed Step:** {{failed_command}}
+**Command:** `{{failed_command_name}}`
+**Exit Code:** {{failed_exit_code}}
+          </output>
+        </check>
+      </substep>
+
+      <!-- 5b: Analyze Version Bump Failures -->
+      <substep name="diagnose-version-bump">
+        <check if="{{failed_command}} == 'version_bump'">
+          <action>Analyze {{error_output}} for common version_bump failure patterns:</action>
+
+          <!-- Pattern: Uncommitted changes -->
+          <check if="{{error_output}} contains 'not clean' OR 'dirty' OR 'uncommitted' OR 'would be overwritten'">
+            <action>Set {{diagnosis}} = "Uncommitted changes in working directory"</action>
+            <action>Set {{diagnosis_details}} = "The version bump command cannot proceed because there are uncommitted changes that would be overwritten or cause conflicts."</action>
+            <action>Set {{remediation}} list:
+              1. Commit your current changes: `git add -A &amp;&amp; git commit -m 'WIP'`
+              2. Or stash changes temporarily: `git stash push -m 'before version bump'`
+              3. Then retry the ship phase: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Invalid version format -->
+          <check if="{{error_output}} contains 'Invalid version' OR 'invalid version' OR 'version format' OR 'semver' OR 'not valid'">
+            <action>Set {{diagnosis}} = "Invalid version format"</action>
+            <action>Set {{diagnosis_details}} = "The version string in {{version_file_path}} does not conform to the expected format (typically semver: MAJOR.MINOR.PATCH)."</action>
+            <action>Set {{remediation}} list:
+              1. Check the current version in {{version_file_path}}
+              2. Ensure it follows semver format: X.Y.Z (e.g., 1.2.3)
+              3. Fix any pre-release or build metadata formatting issues
+              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Tag already exists -->
+          <check if="{{error_output}} contains 'already exists' OR 'tag exists' OR 'duplicate tag' OR 'conflict'">
+            <action>Set {{diagnosis}} = "Git tag conflict"</action>
+            <action>Set {{diagnosis_details}} = "A git tag for the target version already exists, preventing the version bump from completing."</action>
+            <action>Set {{remediation}} list:
+              1. Check existing tags: `git tag -l`
+              2. If the tag is incorrect, delete it: `git tag -d v{{target_version}}`
+              3. Also delete from remote if pushed: `git push origin :refs/tags/v{{target_version}}`
+              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Permission denied -->
+          <check if="{{error_output}} contains 'Permission denied' OR 'EACCES' OR 'permission' OR 'read-only'">
+            <action>Set {{diagnosis}} = "File permission error"</action>
+            <action>Set {{diagnosis_details}} = "The version file {{version_file_path}} cannot be written due to file system permissions."</action>
+            <action>Set {{remediation}} list:
+              1. Check file permissions: `ls -la {{version_file_path}}`
+              2. Fix permissions if needed: `chmod 644 {{version_file_path}}`
+              3. Ensure you own the file: `chown $(whoami) {{version_file_path}}`
+              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Command not found -->
+          <check if="{{error_output}} contains 'command not found' OR 'not found' OR 'not recognized' OR 'ENOENT'">
+            <action>Set {{diagnosis}} = "Version bump tool not installed"</action>
+            <action>Set {{diagnosis_details}} = "The version bump command could not be found. The required tool may not be installed or not in PATH."</action>
+            <action>Set {{remediation}} list:
+              1. Verify the tool is installed (e.g., npm, cargo, uv)
+              2. Check your PATH includes the tool's location
+              3. Install if missing:
+                 - npm: `npm install -g npm-version` or similar
+                 - Python: `uv pip install bump2version`
+                 - Rust: Tool comes with cargo
+              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Default: Unknown version_bump error -->
+          <check if="{{diagnosis}} is NOT set">
+            <action>Set {{diagnosis}} = "Unknown version bump error"</action>
+            <action>Set {{diagnosis_details}} = "The version bump command failed with an unrecognized error pattern. Manual investigation required."</action>
+            <action>Set {{remediation}} list:
+              1. Review the full error output above
+              2. Try running the command manually: `{{version_bump_command}}`
+              3. Check the version file format in {{version_file_path}}
+              4. Consult the tool's documentation for this error
+              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+        </check>
+      </substep>
+
+      <!-- 5c: Analyze Build Failures -->
+      <substep name="diagnose-build">
+        <check if="{{failed_command}} == 'build'">
+          <action>Analyze {{error_output}} for common build failure patterns:</action>
+
+          <!-- Pattern: Missing dependency -->
+          <check if="{{error_output}} contains 'Module not found' OR 'Cannot find module' OR 'ModuleNotFoundError' OR 'No module named' OR 'could not find crate'">
+            <action>Set {{diagnosis}} = "Missing dependency"</action>
+            <action>Set {{diagnosis_details}} = "The build failed because a required module or package is not installed."</action>
+            <action>Set {{remediation}} list:
+              1. Install dependencies:
+                 - npm/node: `npm install` or `npm ci`
+                 - Python: `uv sync` or `pip install -e .`
+                 - Rust: `cargo build` (auto-installs)
+              2. Check if the missing module is in your dependencies
+              3. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Import/require error -->
+          <check if="{{error_output}} contains 'ImportError' OR 'import error' OR 'require(' OR 'cannot resolve'">
+            <action>Set {{diagnosis}} = "Import resolution error"</action>
+            <action>Set {{diagnosis_details}} = "The build failed due to an import path that cannot be resolved."</action>
+            <action>Set {{remediation}} list:
+              1. Check the import path in the error message
+              2. Verify the module name is spelled correctly
+              3. Ensure the file exists at the expected location
+              4. Check for circular imports
+              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Compilation/syntax error -->
+          <check if="{{error_output}} contains 'SyntaxError' OR 'syntax error' OR 'Compilation failed' OR 'error:' OR 'TypeError' OR 'parse error'">
+            <action>Set {{diagnosis}} = "Compilation or syntax error"</action>
+            <action>Set {{diagnosis_details}} = "The build failed due to a code syntax or type error."</action>
+            <action>Set {{remediation}} list:
+              1. Look for the file:line reference in the error
+              2. Fix the syntax or type error at that location
+              3. Run linter locally: `ruff check .` or `eslint .`
+              4. Run type checker: `mypy .` or `tsc --noEmit`
+              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Test failure -->
+          <check if="{{error_output}} contains 'test failed' OR 'FAILED' OR 'AssertionError' OR 'Expected' OR 'failed test'">
+            <action>Set {{diagnosis}} = "Test failure during build"</action>
+            <action>Set {{diagnosis_details}} = "The build process includes tests that are failing."</action>
+            <action>Set {{remediation}} list:
+              1. Run tests locally to see full output:
+                 - Python: `pytest -v`
+                 - Node: `npm test`
+                 - Rust: `cargo test`
+              2. Fix the failing tests
+              3. Ensure all tests pass before shipping
+              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Out of memory -->
+          <check if="{{error_output}} contains 'out of memory' OR 'heap' OR 'ENOMEM' OR 'JavaScript heap'">
+            <action>Set {{diagnosis}} = "Out of memory during build"</action>
+            <action>Set {{diagnosis_details}} = "The build process ran out of memory."</action>
+            <action>Set {{remediation}} list:
+              1. Increase Node.js memory: `NODE_OPTIONS=--max-old-space-size=4096`
+              2. Close other applications to free memory
+              3. Consider building in smaller chunks
+              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Missing file -->
+          <check if="{{error_output}} contains 'ENOENT' OR 'No such file' OR 'FileNotFoundError' OR 'not found'">
+            <action>Set {{diagnosis}} = "Missing file or directory"</action>
+            <action>Set {{diagnosis_details}} = "The build references a file or directory that does not exist."</action>
+            <action>Set {{remediation}} list:
+              1. Check the file path in the error message
+              2. Ensure the file exists and is committed to git
+              3. Check for case-sensitivity issues in file names
+              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Default: Unknown build error -->
+          <check if="{{diagnosis}} is NOT set">
+            <action>Set {{diagnosis}} = "Unknown build error"</action>
+            <action>Set {{diagnosis_details}} = "The build command failed with an unrecognized error pattern. Manual investigation required."</action>
+            <action>Set {{remediation}} list:
+              1. Review the full error output above
+              2. Try running the command manually: `{{build_command}}`
+              3. Check for recent changes that might have broken the build
+              4. Consult build tool documentation
+              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+        </check>
+      </substep>
+
+      <!-- 5d: Analyze Publish Failures -->
+      <substep name="diagnose-publish">
+        <check if="{{failed_command}} == 'publish'">
+          <action>Analyze {{error_output}} for common publish failure patterns:</action>
+
+          <!-- Pattern: Authentication error -->
+          <check if="{{error_output}} contains '403' OR '401' OR 'Forbidden' OR 'Unauthorized' OR 'authentication' OR 'not authorized'">
+            <action>Set {{diagnosis}} = "Authentication or permission error"</action>
+            <action>Set {{diagnosis_details}} = "The publish command failed due to missing or invalid authentication credentials."</action>
+            <action>Set {{remediation}} list:
+              1. Check your authentication:
+                 - npm: Verify NPM_TOKEN or run `npm login`
+                 - PyPI: Check PYPI_TOKEN or TWINE_USERNAME/TWINE_PASSWORD
+                 - Cargo: Run `cargo login`
+              2. Ensure token has publish permissions
+              3. Check if you have access to the package/org
+              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Version conflict -->
+          <check if="{{error_output}} contains '409' OR 'Conflict' OR 'already exists' OR 'version exists' OR 'Cannot publish over'">
+            <action>Set {{diagnosis}} = "Version already published"</action>
+            <action>Set {{diagnosis_details}} = "This version has already been published to the registry. You cannot overwrite existing versions."</action>
+            <action>Set {{remediation}} list:
+              1. Bump to a new version: `{{version_bump_command}}`
+              2. Or if this was a failed retry, check if it actually published
+              3. Verify current published version: `npm view &lt;pkg&gt; version` or similar
+              4. Then retry with new version: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Network error -->
+          <check if="{{error_output}} contains 'ECONNREFUSED' OR 'network' OR 'ETIMEDOUT' OR 'socket' OR 'connection refused'">
+            <action>Set {{diagnosis}} = "Network or registry connection error"</action>
+            <action>Set {{diagnosis_details}} = "Cannot connect to the package registry. This may be a temporary network issue."</action>
+            <action>Set {{remediation}} list:
+              1. Check your internet connection
+              2. Verify registry URL is correct
+              3. Check registry status page for outages
+              4. Try again in a few minutes
+              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Rate limiting -->
+          <check if="{{error_output}} contains 'rate limit' OR '429' OR 'Too Many Requests' OR 'throttle'">
+            <action>Set {{diagnosis}} = "Rate limited by registry"</action>
+            <action>Set {{diagnosis_details}} = "The package registry has temporarily blocked requests due to rate limiting."</action>
+            <action>Set {{remediation}} list:
+              1. Wait 5-10 minutes before retrying
+              2. Check if you're using automated tools that make many requests
+              3. Consider using authenticated requests (higher limits)
+              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Package name issues -->
+          <check if="{{error_output}} contains '404' OR 'not found' OR 'Invalid package name' OR 'name taken'">
+            <action>Set {{diagnosis}} = "Package name error"</action>
+            <action>Set {{diagnosis_details}} = "The package name is invalid, already taken, or the package doesn't exist."</action>
+            <action>Set {{remediation}} list:
+              1. Check package name in configuration
+              2. Verify you have access to this package name
+              3. For new packages, ensure the name is available
+              4. Check for typos in package name
+              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Payment required (npm) -->
+          <check if="{{error_output}} contains '402' OR 'Payment Required' OR 'paid' OR 'private package'">
+            <action>Set {{diagnosis}} = "Payment or subscription required"</action>
+            <action>Set {{diagnosis_details}} = "Publishing private packages or to org scopes may require a paid subscription."</action>
+            <action>Set {{remediation}} list:
+              1. Check if package is marked as private
+              2. Verify org subscription status
+              3. Consider publishing as public if appropriate
+              4. Upgrade to paid plan if private packages needed
+              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Pattern: Invalid metadata -->
+          <check if="{{error_output}} contains '400' OR 'Bad Request' OR 'invalid' OR 'metadata' OR 'manifest'">
+            <action>Set {{diagnosis}} = "Invalid package metadata"</action>
+            <action>Set {{diagnosis_details}} = "The package configuration file contains invalid metadata."</action>
+            <action>Set {{remediation}} list:
+              1. Validate your package configuration:
+                 - npm: Check package.json is valid JSON
+                 - Python: Validate pyproject.toml
+                 - Rust: Run `cargo verify-project`
+              2. Check all required fields are present
+              3. Verify URLs, license, and description are valid
+              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+
+          <!-- Default: Unknown publish error -->
+          <check if="{{diagnosis}} is NOT set">
+            <action>Set {{diagnosis}} = "Unknown publish error"</action>
+            <action>Set {{diagnosis_details}} = "The publish command failed with an unrecognized error pattern. Manual investigation required."</action>
+            <action>Set {{remediation}} list:
+              1. Review the full error output above
+              2. Try running the command manually: `{{publish_command}}`
+              3. Check registry documentation for this error
+              4. Verify all credentials and permissions
+              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
+            </action>
+          </check>
+        </check>
+      </substep>
+
+      <!-- 5e: Output Diagnosis Report -->
+      <substep name="output-diagnosis">
+        <output>
+### Error Output
+```
+{{error_output}}
+```
+
+### Diagnosis
+**Problem:** {{diagnosis}}
+
+{{diagnosis_details}}
+
+### Remediation Steps
+{{#each remediation}}
+{{@index}}. {{this}}
+{{/each}}
+
+### Recovery
+After applying the fix:
+1. Verify the fix locally by running the failed command
+2. Resume the ship phase: `adw resume &lt;run-id&gt; --from ship`
+
+**Note:** The PR remains open and can be merged manually once the issue is resolved.
+
+---
+**Status Confirmation**
+- DEPLOYMENT_STATUS: FAILED
+- PR_MERGE_APPROVED: false
+        </output>
+      </substep>
+
+      <!-- 5f: Confirm Failure Status Flags -->
+      <substep name="confirm-failure-status">
+        <critical>Ensure failure status flags are set correctly for post.sh parsing</critical>
+        <action>Confirm {{deployment_status}} = "FAILED"</action>
+        <action>Confirm {{pr_merge_approved}} = false</action>
+        <action>Proceed to Step 6 for final report generation</action>
+      </substep>
+    </step>
+
   </execution>
 
   <!-- ================================================================== -->
@@ -929,6 +1298,10 @@ Output: {{hook_output}}
       <item>Commits categorized by conventional commit type</item>
       <item>Release notes artifact saved when artifacts_dir configured</item>
       <item>Status markers output for post.sh parsing</item>
+      <item>Failure diagnosis performed when deployment fails</item>
+      <item>Error patterns correctly identified for version_bump/build/publish</item>
+      <item>Actionable remediation steps provided for failures</item>
+      <item>PR_MERGE_APPROVED set to false on deployment failure</item>
     </success>
     <failure>
       <item>Skipping context gathering steps</item>
@@ -938,6 +1311,9 @@ Output: {{hook_output}}
       <item>Not generating release notes when commits available</item>
       <item>Incorrect commit categorization</item>
       <item>Missing status markers in output</item>
+      <item>Skipping failure diagnosis when deployment fails</item>
+      <item>Generic error messages without specific remediation</item>
+      <item>Not setting PR_MERGE_APPROVED: false on failure</item>
     </failure>
   </metrics>
 
