@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 26
+issue_counter: 27
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -70,6 +70,7 @@ issues:
   ISS-024-tests-not-cleaning-up-worktrees: fixed  # Major - Worktrees with ULIDs left after test runs
   ISS-025-sdk-fails-to-create-story-branch: fixed  # Critical - SDK not creating story branches, commits go to staging
   ISS-026-remove-deprecated-adw-yaml-config: fixed  # Major - Remove .adw/adw.yaml, add git config for base branch
+  ISS-027-init-wizard-phase-config-ux-issues: reported  # Major - Multiple UX issues in wizard phase configuration
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -318,6 +319,8 @@ development_status:
   14-8-security-configuration: done
   14-9-webhook-server-setup: done
   14-10-summary-file-generation: done
+  # UX Fix (from ISS-027) - MAJOR
+  ux-fix-ISS-027-init-wizard-phase-config-ux-issues: ready-for-dev
   epic-14-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
