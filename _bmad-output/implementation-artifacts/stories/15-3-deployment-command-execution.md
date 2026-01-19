@@ -54,12 +54,12 @@ So that I can automate version bumps, builds, and publishing.
 - [x] Document execution order: version_bump → build → publish
 
 ### Task 2: Implement Version Bump Execution
-- [ ] Check if `ship.commands.version_bump` is set
-- [ ] If set, execute command via bash tool
-- [ ] Capture stdout/stderr for logging
-- [ ] After success, re-read version file to capture new version
-- [ ] Store new version for release notes header
-- [ ] On failure, capture error and proceed to failure diagnosis
+- [x] Check if `ship.commands.version_bump` is set
+- [x] If set, execute command via bash tool
+- [x] Capture stdout/stderr for logging
+- [x] After success, re-read version file to capture new version
+- [x] Store new version for release notes header
+- [x] On failure, capture error and proceed to failure diagnosis
 
 ### Task 3: Implement Build Command Execution
 - [ ] Check if `ship.commands.build` is set
@@ -374,6 +374,7 @@ Claude Opus 4.5
   - Added substep 3d for publish execution
   - Added substep 3e for post-publish hooks (continue-on-failure)
   - Added substep 3f for execution summary
+- Task 2: Version bump execution already implemented in substep 3b of Task 1
 
 ### File List
 
