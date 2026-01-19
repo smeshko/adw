@@ -61,18 +61,18 @@ So that I have documentation for what was shipped.
 - [x] Output: formatted release notes in Keep a Changelog format
 
 ### Task 2: Implement Commit Categorization
-- [ ] Parse commit messages for conventional commit prefixes
-- [ ] **Added** category:
+- [x] Parse commit messages for conventional commit prefixes
+- [x] **Added** category:
   - `feat:`, `feat(scope):`, `feature:`, `add:`
-- [ ] **Changed** category:
+- [x] **Changed** category:
   - `refactor:`, `refactor(scope):`, `update:`, `change:`, `improve:`
-- [ ] **Fixed** category:
+- [x] **Fixed** category:
   - `fix:`, `fix(scope):`, `bugfix:`, `patch:`, `resolve:`
-- [ ] **Documentation** category:
+- [x] **Documentation** category:
   - `docs:`, `doc:`
-- [ ] **Other** category (collapsed into single section):
+- [x] **Other** category (collapsed into single section):
   - `chore:`, `ci:`, `test:`, `style:`, `build:`
-- [ ] Handle commits without conventional prefix (categorize as "Other")
+- [x] Handle commits without conventional prefix (categorize as "Other")
 
 ### Task 3: Implement Version Header Logic
 - [ ] If version_bump executed successfully:
