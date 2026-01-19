@@ -707,7 +707,12 @@ class ProjectConfig(BaseModel):
     """Main project configuration loaded from project.yaml.
 
     This model represents the complete project configuration including
-    project metadata, LLM settings, and phase configurations.
+    project metadata and LLM settings.
+
+    Note:
+        Phase-specific configuration (timeout, input_files, hooks) is now
+        delegated to command configs (.adw/commands/<phase>/config.yaml).
+        See ISS-029 for details.
 
     Attributes:
         name: Project name
@@ -717,7 +722,6 @@ class ProjectConfig(BaseModel):
         test_command: Command to run tests
         build_command: Command to build the project
         llm: LLM configuration section
-        phases: Phase-specific configuration
         hooks: Hook configuration
         pipeline: Pipeline behavior configuration
         logging: Logging configuration (includes redaction settings)
@@ -746,9 +750,8 @@ class ProjectConfig(BaseModel):
         default=None, description="Command to build the project"
     )
     llm: LLMConfig = Field(default_factory=LLMConfig, description="LLM configuration")
-    phases: dict[str, PhaseConfig] = Field(
-        default_factory=dict, description="Phase-specific configuration"
-    )
+    # NOTE: phases field removed in ISS-029. Phase configuration is now delegated
+    # entirely to command configs (.adw/commands/<phase>/config.yaml).
     hooks: HookConfig = Field(
         default_factory=HookConfig, description="Hook configuration"
     )

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import yaml
+from pydantic import ValidationError
 
 from adw.commands.template import (
     build_task_context,
@@ -151,6 +152,9 @@ class PhaseRunner:
         # Resolve command once for all steps
         command = self.command_resolver.resolve(phase)
 
+        # Load and merge configs for this phase (ISS-029)
+        merged_config = self._get_merged_config(phase, command)
+
         try:
             # Step 1: Run pre-hook
             pre_hook_output = self._run_pre_hook(phase, context, command)
@@ -161,11 +165,14 @@ class PhaseRunner:
                 context,
                 pre_hook_output,
                 command,
+                merged_config=merged_config,
                 artifacts_override=artifacts_override,
             )
 
-            # Step 3: Execute LLM
-            llm_result = self._execute_llm(phase, context, rendered_prompt)
+            # Step 3: Execute LLM (ISS-029: pass timeout from merged config)
+            llm_result = self._execute_llm(
+                phase, context, rendered_prompt, timeout=merged_config.timeout_seconds
+            )
 
             # Step 4: Capture artifacts
             artifacts = self._capture_artifacts(phase, context, llm_result)
@@ -273,6 +280,7 @@ class PhaseRunner:
         pre_hook_output: str,
         command: ResolvedCommand,
         *,
+        merged_config: PhaseConfig | None = None,
         artifacts_override: dict[str, dict[str, str]] | None = None,
     ) -> str:
         """Load prompt template and render with variables.
@@ -291,6 +299,8 @@ class PhaseRunner:
             context: Run context.
             pre_hook_output: Output from pre-hook.
             command: Resolved command configuration.
+            merged_config: Pre-merged configuration from _get_merged_config.
+                If None, falls back to empty PhaseConfig (backward compatibility).
             artifacts_override: Pre-loaded artifacts to use instead of loading
                 from the current run. Used for single-phase execution.
 
@@ -323,27 +333,17 @@ class PhaseRunner:
             prompt_template, artifacts_map, strict=self.strict_artifacts
         )
 
-        # Load and merge configs (ISS-016: per-phase config.yaml)
-        # 1. Load command config from config.yaml (if exists)
-        command_config = (
-            self._load_command_config(command) if command.has_config else None
-        )
-
-        # 2. Get project phase config (if exists)
-        project_phase_config = None
-        if self.project_config and phase in self.project_config.phases:
-            project_phase_config = self.project_config.phases[phase]
-
-        # 3. Merge configs (project overrides command defaults)
-        merged_config = self._merge_configs(command_config, project_phase_config)
+        # ISS-029: Use pre-merged config if provided, else create empty
+        # Config loading moved to _get_merged_config for timeout access in run()
+        effective_config = merged_config if merged_config is not None else PhaseConfig()
 
         # Load input files from merged config (ISS-015 + ISS-016)
         input_files_map: dict[str, str] = {}
-        if merged_config.input_files:
+        if effective_config.input_files:
             # Determine project root for file resolution
             project_root = context.worktree_path or Path.cwd()
             input_files_map = self._load_input_files(
-                merged_config.input_files,
+                effective_config.input_files,
                 project_root=project_root,
                 worktree_path=context.worktree_path,
             )
@@ -473,47 +473,33 @@ class PhaseRunner:
     def _merge_configs(
         self,
         command_config: CommandConfig | None,
-        project_phase_config: PhaseConfig | None,
     ) -> PhaseConfig:
-        """Merge command config with project phase config.
+        """Convert command config to PhaseConfig.
 
-        Combines defaults from command's config.yaml with project-level
-        PhaseConfig from project.yaml. Project settings take precedence
-        (override command defaults).
+        Extracts settings from command's config.yaml and returns a PhaseConfig.
+        Phase configuration is now delegated entirely to command configs (ISS-029).
 
         Args:
             command_config: Configuration from command's config.yaml.
                 May be None if no config.yaml exists.
-            project_phase_config: Phase configuration from project's project.yaml.
-                May be None if phase not configured in project.
 
         Returns:
-            Merged PhaseConfig with combined settings.
-            Returns empty PhaseConfig if both inputs are None.
-
-        Merge Rules:
-            - Scalar values (timeout_seconds, pre_hook, post_hook): project wins
-            - input_files: merged dict, project values override command values
-            - llm settings: project values override command values
+            PhaseConfig with command settings.
+            Returns empty PhaseConfig if command_config is None.
 
         Example:
             >>> command_config = CommandConfig(
             ...     timeout_seconds=600,
             ...     input_files={"prd": "defaults/prd.md"},
             ... )
-            >>> project_config = PhaseConfig(
-            ...     input_files={"prd": "docs/prd.md", "arch": "docs/arch.md"},
-            ... )
-            >>> merged = runner._merge_configs(command_config, project_config)
-            >>> merged.timeout_seconds  # From command (project didn't override)
+            >>> merged = runner._merge_configs(command_config)
+            >>> merged.timeout_seconds
             600
-            >>> merged.input_files["prd"]  # Project overrides command
-            'docs/prd.md'
         """
         # Start with empty config
         merged_data: dict[str, Any] = {}
 
-        # First, apply command defaults (if any)
+        # Apply command settings (if any)
         if command_config:
             if command_config.timeout_seconds is not None:
                 merged_data["timeout_seconds"] = command_config.timeout_seconds
@@ -523,23 +509,8 @@ class PhaseRunner:
                 merged_data["pre_hook"] = command_config.pre_hook
             if command_config.post_hook is not None:
                 merged_data["post_hook"] = command_config.post_hook
-            # Note: llm settings from command config would go here when supported
 
-        # Then, apply project settings (override command defaults)
-        if project_phase_config:
-            if project_phase_config.timeout_seconds is not None:
-                merged_data["timeout_seconds"] = project_phase_config.timeout_seconds
-            if project_phase_config.input_files is not None:
-                # Merge input_files: project values override command values
-                if "input_files" not in merged_data:
-                    merged_data["input_files"] = {}
-                merged_data["input_files"].update(project_phase_config.input_files)
-            if project_phase_config.pre_hook is not None:
-                merged_data["pre_hook"] = project_phase_config.pre_hook
-            if project_phase_config.post_hook is not None:
-                merged_data["post_hook"] = project_phase_config.post_hook
-
-        # Return merged PhaseConfig
+        # Return PhaseConfig
         return PhaseConfig(**merged_data) if merged_data else PhaseConfig()
 
     def _load_command_config(self, command: ResolvedCommand) -> CommandConfig | None:
@@ -574,14 +545,65 @@ class PhaseRunner:
                 code="INVALID_CONFIG",
                 message=f"Invalid YAML in config.yaml at {config_path}: {e}",
             ) from e
-        except Exception as e:
+        except ValidationError as e:
             # Catch Pydantic validation errors and re-raise as ConfigError
-            if "ValidationError" in type(e).__name__:
-                raise ConfigError(
-                    code="INVALID_CONFIG",
-                    message=f"Invalid config in config.yaml at {config_path}: {e}",
-                ) from e
-            raise
+            raise ConfigError(
+                code="INVALID_CONFIG",
+                message=f"Invalid config in config.yaml at {config_path}: {e}",
+            ) from e
+
+    def _get_merged_config(self, phase: str, command: ResolvedCommand) -> PhaseConfig:
+        """Get configuration for a phase from command config.
+
+        Loads command config from config.yaml (if exists) and converts to
+        PhaseConfig. All phase configuration is now delegated to command
+        configs (ISS-029).
+
+        This method was extracted from _load_and_render_prompt to enable
+        ISS-029: passing timeout to _execute_llm.
+
+        Args:
+            phase: Phase name (unused, kept for interface consistency).
+            command: Resolved command with path information.
+
+        Returns:
+            PhaseConfig with command settings, or empty PhaseConfig if no config.
+        """
+        # Load command config from config.yaml (if exists)
+        command_config = (
+            self._load_command_config(command) if command.has_config else None
+        )
+
+        # Convert command config to PhaseConfig (ISS-029: project.phases removed)
+        return self._merge_configs(command_config)
+
+    def is_phase_enabled(self, phase: str) -> bool:
+        """Check if a phase is enabled in its command config.
+
+        Resolves the command for the phase and checks the `enabled` field
+        in its config.yaml. If no config exists or `enabled` is not set,
+        defaults to True.
+
+        Args:
+            phase: Phase name to check.
+
+        Returns:
+            True if the phase is enabled (default), False if disabled.
+        """
+        try:
+            command = self.command_resolver.resolve(phase)
+            if not command.has_config:
+                return True
+
+            config = self._load_command_config(command)
+            if config is None:
+                return True
+
+            return config.enabled
+        except Exception:
+            # If command resolution fails, consider phase enabled
+            # (actual error will be raised during execution)
+            return True
 
     def _load_phase_artifacts(
         self,
@@ -688,6 +710,7 @@ class PhaseRunner:
         phase: str,
         context: RunContext,
         prompt: str,
+        timeout: int | None = None,
     ) -> LLMResult:
         """Execute LLM with rendered prompt.
 
@@ -695,6 +718,7 @@ class PhaseRunner:
             phase: Phase name.
             context: Run context.
             prompt: Rendered prompt.
+            timeout: Optional timeout in seconds. If None, uses executor's default.
 
         Returns:
             LLMResult with output, tokens, tool calls.
@@ -709,6 +733,7 @@ class PhaseRunner:
                 "worktree_path": (
                     str(context.worktree_path) if context.worktree_path else None
                 ),
+                "timeout": timeout,
             },
         )
 
@@ -718,8 +743,9 @@ class PhaseRunner:
 
         try:
             # Pass worktree_path for isolated execution (Story 10.5)
+            # Pass timeout from merged config (ISS-029)
             result = self.executor.execute(
-                prompt, phase=phase, cwd=context.worktree_path
+                prompt, phase=phase, cwd=context.worktree_path, timeout=timeout
             )
 
             logger.debug(

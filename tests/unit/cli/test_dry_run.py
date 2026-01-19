@@ -7,6 +7,7 @@ configuration display, and artifact preview.
 from __future__ import annotations
 
 from io import StringIO
+from pathlib import Path
 
 import pytest
 from rich.console import Console
@@ -98,21 +99,33 @@ class TestDryRunDisplay:
 class TestDryRunDisplayWithConfig:
     """Tests for DryRunDisplay with configuration."""
 
-    def test_show_phases_with_hooks(self) -> None:
-        """Test phase display shows pre and post hooks when configured."""
-        from adw.models import PhaseConfig
+    def test_show_phases_with_hooks(self, tmp_path: Path) -> None:
+        """Test phase display shows pre and post hooks from command configs (ISS-029)."""
+        from adw.commands.resolver import CommandResolver
+
+        # Create command directories with config.yaml containing hooks (ISS-029)
+        for phase in ["plan", "build", "validate", "document", "ship"]:
+            cmd_dir = tmp_path / ".adw" / "commands" / phase
+            cmd_dir.mkdir(parents=True)
+            (cmd_dir / "prompt.md").write_text(f"Test prompt for {phase}")
+
+        # Add hooks to build and validate configs
+        (tmp_path / ".adw" / "commands" / "build" / "config.yaml").write_text(
+            "pre_hook: npm install\npost_hook: npm run lint\n"
+        )
+        (tmp_path / ".adw" / "commands" / "validate" / "config.yaml").write_text(
+            "post_hook: pytest\n"
+        )
+
+        command_resolver = CommandResolver(project_root=tmp_path)
 
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=100)
-        display = DryRunDisplay(console)
+        display = DryRunDisplay(console, command_resolver=command_resolver)
 
         config = ProjectConfig(
             name="test-project",
             language="python",
-            phases={
-                "build": PhaseConfig(pre_hook="npm install", post_hook="npm run lint"),
-                "validate": PhaseConfig(post_hook="pytest"),
-            },
         )
 
         display.show_execution_preview(

@@ -99,6 +99,7 @@ class CommandConfig(BaseModel):
     PhaseConfig from project.yaml, where project settings take precedence.
 
     Attributes:
+        enabled: Whether this phase is enabled. Disabled phases are skipped.
         timeout_seconds: Default timeout for this command in seconds.
         input_files: Mapping of variable names to file paths for template injection.
             Files are loaded at phase start and available as {{ inputs.name }}.
@@ -109,6 +110,7 @@ class CommandConfig(BaseModel):
 
     Example:
         >>> config = CommandConfig(
+        ...     enabled=True,
         ...     timeout_seconds=600,
         ...     input_files={"prd": "docs/prd.md"},
         ...     llm=PhaseLLMConfig(model="claude-3-opus"),
@@ -117,6 +119,7 @@ class CommandConfig(BaseModel):
         600
 
     YAML example (in command folder's config.yaml):
+        enabled: true
         timeout_seconds: 600
         input_files:
           prd: docs/prd.md
@@ -139,6 +142,10 @@ class CommandConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    enabled: bool = Field(
+        default=True,
+        description="Whether this phase is enabled. Disabled phases are skipped.",
+    )
     timeout_seconds: int | None = Field(
         default=None,
         gt=0,

@@ -43,24 +43,8 @@ class TestPhaseConfigInputFiles:
         config = PhaseConfig(input_files={"spec": "docs/specs/api/v2/openapi.yaml"})
         assert config.input_files["spec"] == "docs/specs/api/v2/openapi.yaml"
 
-    def test_input_files_in_yaml_parsing(self) -> None:
-        """PhaseConfig.input_files loads correctly from YAML."""
-        yaml_content = """
-name: test-project
-language: python
-phases:
-  plan:
-    enabled: true
-    input_files:
-      prd: docs/prd.md
-      architecture: docs/architecture.md
-"""
-        config = ProjectConfig.from_yaml(yaml_content)
-        assert "plan" in config.phases
-        assert config.phases["plan"].input_files == {
-            "prd": "docs/prd.md",
-            "architecture": "docs/architecture.md",
-        }
+    # NOTE: test_input_files_in_yaml_parsing removed in ISS-029
+    # phases field removed from ProjectConfig - use command configs instead
 
 
 class TestWorktreeConfig:
@@ -296,20 +280,5 @@ git:
         assert config.git.enabled is True
         assert config.git.branch_prefix == "feat/"
 
-    def test_with_phase_config(self) -> None:
-        """ProjectConfig with phase-specific configuration."""
-        yaml_content = """
-name: phased
-language: python
-phases:
-  plan:
-    enabled: true
-    timeout_seconds: 120
-  code:
-    enabled: true
-    pre_hook: npm run lint
-"""
-        config = ProjectConfig.from_yaml(yaml_content)
-        assert "plan" in config.phases
-        assert config.phases["plan"].timeout_seconds == 120
-        assert config.phases["code"].pre_hook == "npm run lint"
+    # NOTE: test_with_phase_config removed in ISS-029
+    # phases field removed from ProjectConfig - use command configs instead

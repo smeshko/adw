@@ -1159,11 +1159,14 @@ class TestLoadInputFiles:
 
 
 class TestInputFilesTemplateIntegration:
-    """Tests for input files integration with template rendering (ISS-015)."""
+    """Tests for input files integration with template rendering (ISS-015).
+
+    Note: ISS-029 removed phases from ProjectConfig. Input files are now
+    configured via command configs (.adw/commands/<phase>/config.yaml).
+    """
 
     def test_inputs_available_as_template_variable(
         self,
-        mock_command_resolver: MagicMock,
         mock_template_engine: MagicMock,
         mock_hook_runner: MagicMock,
         mock_executor: MagicMock,
@@ -1172,24 +1175,34 @@ class TestInputFilesTemplateIntegration:
         tmp_path: Path,
     ) -> None:
         """Inputs should be available as {{ inputs.name }} in template."""
-        from adw.models.config import PhaseConfig, ProjectConfig
+        from adw.models.config import ProjectConfig
+
+        # Create command directory with config.yaml containing input_files (ISS-029)
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Test prompt")
+        (cmd_dir / "config.yaml").write_text("input_files:\n  prd: docs/prd.md\n")
 
         # Create test input file
         (tmp_path / "docs").mkdir(parents=True)
         (tmp_path / "docs" / "prd.md").write_text("# Product Requirements")
 
-        # Create project config with input_files
+        # Create a real command resolver pointing to tmp_path
+        from adw.commands.resolver import CommandResolver
+
+        command_resolver = CommandResolver(project_root=tmp_path)
+
+        # Create minimal project config (no phases - ISS-029)
         project_config = ProjectConfig(
             name="test-project",
             language="python",
-            phases={"plan": PhaseConfig(input_files={"prd": "docs/prd.md"})},
         )
 
         # Update context to use tmp_path as worktree
         context = sample_context.model_copy(update={"worktree_path": tmp_path})
 
         runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
+            command_resolver=command_resolver,
             template_engine=mock_template_engine,
             hook_runner=mock_hook_runner,
             executor=mock_executor,
@@ -1232,7 +1245,7 @@ class TestInputFilesTemplateIntegration:
         assert "inputs" in variables
         assert variables["inputs"] == {}
 
-    def test_inputs_empty_when_phase_has_no_input_files(
+    def test_inputs_empty_when_command_config_has_no_input_files(
         self,
         mock_command_resolver: MagicMock,
         mock_template_engine: MagicMock,
@@ -1241,15 +1254,13 @@ class TestInputFilesTemplateIntegration:
         mock_artifact_manager: ArtifactManager,
         sample_context: RunContext,
     ) -> None:
-        """Inputs should be empty when phase config has no input_files."""
-        from adw.models.config import PhaseConfig, ProjectConfig
+        """Inputs should be empty when command config has no input_files (ISS-029)."""
+        from adw.models.config import ProjectConfig
 
+        # Minimal project config without phases (ISS-029: phases removed)
         project_config = ProjectConfig(
             name="test-project",
             language="python",
-            phases={
-                "plan": PhaseConfig(enabled=True)  # No input_files
-            },
         )
 
         runner = PhaseRunner(
@@ -1270,9 +1281,13 @@ class TestInputFilesTemplateIntegration:
 
 
 class TestConfigMerging:
-    """Tests for _merge_configs method (ISS-016)."""
+    """Tests for _merge_configs method (ISS-016, updated for ISS-029).
 
-    def test_merge_configs_both_none_returns_empty_config(
+    Note: ISS-029 removed project phase config support. _merge_configs now
+    only accepts command_config and converts it to PhaseConfig.
+    """
+
+    def test_merge_configs_none_returns_empty_config(
         self,
         mock_command_resolver: MagicMock,
         mock_template_engine: MagicMock,
@@ -1280,7 +1295,7 @@ class TestConfigMerging:
         mock_executor: MagicMock,
         mock_artifact_manager: ArtifactManager,
     ) -> None:
-        """Merging two None configs returns empty PhaseConfig."""
+        """None command config returns empty PhaseConfig."""
         from adw.models.config import PhaseConfig
 
         runner = PhaseRunner(
@@ -1291,13 +1306,13 @@ class TestConfigMerging:
             artifact_manager=mock_artifact_manager,
         )
 
-        result = runner._merge_configs(None, None)
+        result = runner._merge_configs(None)
 
         assert isinstance(result, PhaseConfig)
         assert result.timeout_seconds is None
         assert result.input_files is None
 
-    def test_merge_configs_command_only(
+    def test_merge_configs_with_command_config(
         self,
         mock_command_resolver: MagicMock,
         mock_template_engine: MagicMock,
@@ -1305,7 +1320,7 @@ class TestConfigMerging:
         mock_executor: MagicMock,
         mock_artifact_manager: ArtifactManager,
     ) -> None:
-        """Command config is used when project config is None."""
+        """Command config values are converted to PhaseConfig."""
         from adw.models.command import CommandConfig
 
         runner = PhaseRunner(
@@ -1319,112 +1334,16 @@ class TestConfigMerging:
         command_config = CommandConfig(
             timeout_seconds=600,
             input_files={"prd": "defaults/prd.md"},
+            pre_hook="echo 'pre'",
+            post_hook="echo 'post'",
         )
 
-        result = runner._merge_configs(command_config, None)
+        result = runner._merge_configs(command_config)
 
         assert result.timeout_seconds == 600
         assert result.input_files == {"prd": "defaults/prd.md"}
+        assert result.pre_hook == "echo 'pre'"
+        assert result.post_hook == "echo 'post'"
 
-    def test_merge_configs_project_only(
-        self,
-        mock_command_resolver: MagicMock,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """Project config is used when command config is None."""
-        from adw.models.config import PhaseConfig
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        project_config = PhaseConfig(
-            timeout_seconds=300,
-            input_files={"arch": "docs/arch.md"},
-        )
-
-        result = runner._merge_configs(None, project_config)
-
-        assert result.timeout_seconds == 300
-        assert result.input_files == {"arch": "docs/arch.md"}
-
-    def test_merge_configs_project_overrides_command_scalars(
-        self,
-        mock_command_resolver: MagicMock,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """Project scalar values override command defaults."""
-        from adw.models.command import CommandConfig
-        from adw.models.config import PhaseConfig
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        command_config = CommandConfig(
-            timeout_seconds=600,
-            pre_hook="echo 'command pre'",
-        )
-        project_config = PhaseConfig(
-            timeout_seconds=300,  # Should override command
-        )
-
-        result = runner._merge_configs(command_config, project_config)
-
-        assert result.timeout_seconds == 300  # Project wins
-        assert result.pre_hook == "echo 'command pre'"  # Command default kept
-
-    def test_merge_configs_input_files_merged(
-        self,
-        mock_command_resolver: MagicMock,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """Input files are merged, with project overriding command for same keys."""
-        from adw.models.command import CommandConfig
-        from adw.models.config import PhaseConfig
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        command_config = CommandConfig(
-            input_files={
-                "prd": "defaults/prd.md",
-                "arch": "defaults/arch.md",
-            },
-        )
-        project_config = PhaseConfig(
-            input_files={
-                "prd": "docs/prd.md",  # Override command default
-                "ux": "docs/ux.md",  # Add new file
-            },
-        )
-
-        result = runner._merge_configs(command_config, project_config)
-
-        assert result.input_files == {
-            "prd": "docs/prd.md",  # Project wins
-            "arch": "defaults/arch.md",  # Kept from command
-            "ux": "docs/ux.md",  # Added from project
-        }
+    # NOTE: Tests for project phase config merging removed in ISS-029.
+    # Phase configuration is now delegated entirely to command configs.
