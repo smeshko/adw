@@ -121,13 +121,13 @@ So that I have documentation for what was shipped.
 - [x] Include in ship_report.md as embedded section (deferred to Story 15.7)
 
 ### Task 7: Write Tests
-- [ ] Test commit categorization for each prefix type
-- [ ] Test version header with new version
-- [ ] Test version header with "Unreleased"
-- [ ] Test empty section omission
-- [ ] Test commit message cleaning
-- [ ] Test Keep a Changelog format output
-- [ ] Test artifact file creation
+- [x] Test commit categorization for each prefix type
+- [x] Test version header with new version
+- [x] Test version header with "Unreleased"
+- [x] Test empty section omission
+- [x] Test commit message cleaning
+- [x] Test Keep a Changelog format output
+- [x] Test artifact file creation
 
 ---
 
