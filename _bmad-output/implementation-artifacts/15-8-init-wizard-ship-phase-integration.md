@@ -138,14 +138,14 @@ so that deployment commands and PR merge behavior are ready from the start.
 - [x] Only include ship section if configured (not defaults)
 
 ### Task 5: Write Unit Tests
-- [ ] Create `tests/unit/cli/wizard/test_ship.py`
-- [ ] Test skip flow (user says No)
-- [ ] Test full configuration flow
-- [ ] Test commands validation
-- [ ] Test post-publish hooks loop
-- [ ] Test PR settings with all merge strategies
-- [ ] Update `test_summary.py` for ship section
-- [ ] Update `test_flow.py` for ship step integration
+- [x] Create `tests/unit/cli/wizard/test_ship.py`
+- [x] Test skip flow (user says No)
+- [x] Test full configuration flow
+- [x] Test commands validation
+- [x] Test post-publish hooks loop
+- [x] Test PR settings with all merge strategies
+- [x] Update `test_summary.py` for ship section
+- [x] Update `test_flow.py` for ship step integration
 
 ---
 

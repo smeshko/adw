@@ -212,3 +212,19 @@ class TestShipStepHandler:
         result = handler.execute(state, console)
 
         assert result == expected_result
+
+
+class TestPackageExports:
+    """Tests for package exports."""
+
+    def test_ship_step_handler_exported(self) -> None:
+        """Test that ShipStepHandler is exported from wizard package."""
+        from adw.cli.wizard import ShipStepHandler
+
+        assert ShipStepHandler is not None
+
+    def test_run_ship_step_exported(self) -> None:
+        """Test that run_ship_step is exported from wizard package."""
+        from adw.cli.wizard import run_ship_step
+
+        assert run_ship_step is not None
