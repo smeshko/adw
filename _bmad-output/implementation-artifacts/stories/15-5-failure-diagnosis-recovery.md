@@ -1,6 +1,6 @@
 # Story 15.5: Failure Diagnosis & Recovery
 
-Status: in-progress
+Status: done
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
