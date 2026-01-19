@@ -70,6 +70,9 @@ runs/
 
 # ADW logs
 *.log
+
+# Environment files with secrets
+.env
 """
 
     def __init__(self, project_root: Path) -> None:

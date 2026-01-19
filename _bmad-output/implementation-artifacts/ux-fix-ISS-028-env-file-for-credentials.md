@@ -65,7 +65,7 @@ so that I can easily manage per-project Linear credentials without global shell 
 ### Task 4: Update Gitignore in Minimal Init Mode
 **Files**: `src/adw/config/initializer.py`
 
-- [ ] 4.1 Update `GITIGNORE_CONTENT` constant to include `.env`:
+- [x] 4.1 Update `GITIGNORE_CONTENT` constant to include `.env`:
   ```python
   GITIGNORE_CONTENT = """\
   # ADW run data (can be large)
