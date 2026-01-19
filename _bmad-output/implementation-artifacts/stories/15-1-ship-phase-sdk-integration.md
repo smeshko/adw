@@ -1,6 +1,6 @@
 # Story 15.1: Ship Phase SDK Integration
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
