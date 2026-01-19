@@ -115,10 +115,10 @@ So that I have documentation for what was shipped.
 - [x] Deduplicate if squash commits include original messages
 
 ### Task 6: Implement Artifact Output
-- [ ] Save release notes to `release_notes.md` in artifacts
-- [ ] Artifact path: `.adw/runs/{run_id}/artifacts/ship/release_notes.md`
-- [ ] Mark as optional artifact (defined in config.yaml)
-- [ ] Include in ship_report.md as embedded section
+- [x] Save release notes to `release_notes.md` in artifacts
+- [x] Artifact path: `.adw/runs/{run_id}/artifacts/ship/release_notes.md`
+- [x] Mark as optional artifact (defined in config.yaml)
+- [x] Include in ship_report.md as embedded section (deferred to Story 15.7)
 
 ### Task 7: Write Tests
 - [ ] Test commit categorization for each prefix type
