@@ -89,8 +89,8 @@ artifacts:
 - [x] Reference artifact file: `release_notes.md`
 
 ### Task 6: Implement Failure Analysis Section (Conditional)
-- [ ] Only include if `DEPLOYMENT_STATUS: FAILED`
-- [ ] Include from step 5 diagnosis:
+- [x] Only include if `DEPLOYMENT_STATUS: FAILED`
+- [x] Include from step 5 diagnosis:
   - Failed command identification
   - Error output
   - Diagnosis explanation
