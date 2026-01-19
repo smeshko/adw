@@ -23,6 +23,12 @@ from collections.abc import Generator
 # This MUST be set before any test imports or runs
 os.environ["ADW_MOCK_EXECUTOR"] = "1"
 
+# Set dummy Linear credentials for tests that trigger task manager initialization
+# This prevents ConfigError when running CLI commands that load project config
+# with task_manager.type: linear (the real project config uses Linear)
+os.environ.setdefault("LINEAR_API_KEY", "test-linear-api-key-for-tests")
+os.environ.setdefault("LINEAR_TEAM_ID", "test-team-id-for-tests")
+
 from datetime import datetime
 from pathlib import Path
 
