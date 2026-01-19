@@ -5,8 +5,8 @@ instructions.xml. These tests validate the instruction structure and content
 since the actual execution is LLM-driven.
 """
 
-from pathlib import Path
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pytest
 
@@ -97,9 +97,7 @@ class TestReleaseNotesStep:
     def test_has_save_artifact_substep(self, step_4: ET.Element) -> None:
         """Step 4 has substep for saving release notes artifact."""
         substeps = step_4.findall("substep")
-        artifact = next(
-            (s for s in substeps if "artifact" in s.get("name", "")), None
-        )
+        artifact = next((s for s in substeps if "artifact" in s.get("name", "")), None)
         assert artifact is not None
 
 
@@ -188,7 +186,10 @@ class TestMessageCleaningRules:
     def test_remove_prefix_rule_documented(self, step_4_text: str) -> None:
         """Message cleaning includes rule to remove conventional commit prefix."""
         # Check for rule about removing prefix
-        assert "Remove conventional commit prefix" in step_4_text or "Rule 1" in step_4_text
+        assert (
+            "Remove conventional commit prefix" in step_4_text
+            or "Rule 1" in step_4_text
+        )
 
     def test_capitalize_rule_documented(self, step_4_text: str) -> None:
         """Message cleaning includes rule to capitalize first letter."""
