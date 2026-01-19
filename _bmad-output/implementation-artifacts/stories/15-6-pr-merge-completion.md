@@ -1,6 +1,6 @@
 # Story 15.6: PR Merge & Completion
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
@@ -50,76 +50,76 @@ ship:
 ## Tasks / Subtasks
 
 ### Task 1: Define Finalization Instructions (Step 6 in instructions.xml)
-- [ ] Create step 6 in `ship/instructions.xml` for finalization
-- [ ] Input: deployment status from steps 3/5
-- [ ] Determine PR_MERGE_APPROVED based on status
-- [ ] Set final status fields for post.sh parsing
+- [x] Create step 6 in `ship/instructions.xml` for finalization
+- [x] Input: deployment status from steps 3/5
+- [x] Determine PR_MERGE_APPROVED based on status
+- [x] Set final status fields for post.sh parsing
 
 ### Task 2: Implement post.sh Status Parsing
-- [ ] Parse ship_report.md for structured fields:
+- [x] Parse ship_report.md for structured fields:
   - `DEPLOYMENT_STATUS: SUCCESS|FAILED|BLOCKED`
   - `PR_MERGE_APPROVED: true|false`
   - `VERSION_DEPLOYED: x.y.z|N/A`
-- [ ] Use grep/awk to extract field values
-- [ ] Validate required fields present
+- [x] Use grep/awk to extract field values
+- [x] Validate required fields present
 
 ### Task 3: Implement PR Merge Execution
-- [ ] Check if `PR_MERGE_APPROVED: true`
-- [ ] Check if `ship.pr.auto_merge: true` (default)
-- [ ] If both true, execute merge:
+- [x] Check if `PR_MERGE_APPROVED: true`
+- [x] Check if `ship.pr.auto_merge: true` (default)
+- [x] If both true, execute merge:
   ```bash
   gh pr merge $PR_NUMBER --squash --body "Shipped via ADW"
   ```
-- [ ] Use configured merge_strategy (squash, merge, rebase)
-- [ ] Include version in merge body if available
+- [x] Use configured merge_strategy (squash, merge, rebase)
+- [x] Include version in merge body if available
 
 ### Task 4: Implement Branch Deletion
-- [ ] Check if `ship.pr.delete_branch: true` (default)
-- [ ] If merge succeeded and delete_branch true:
+- [x] Check if `ship.pr.delete_branch: true` (default)
+- [x] If merge succeeded and delete_branch true:
   ```bash
   gh pr merge $PR_NUMBER --delete-branch
   ```
-- [ ] Or handle separately after merge if needed
-- [ ] Log branch deletion success/failure
+- [x] Or handle separately after merge if needed
+- [x] Log branch deletion success/failure
 
 ### Task 5: Implement Auto-Merge Disabled Flow
-- [ ] If `ship.pr.auto_merge: false`:
+- [x] If `ship.pr.auto_merge: false`:
   - Skip gh pr merge
   - Log: "Auto-merge disabled, PR left open"
   - Exit code 0 (success)
-- [ ] PR remains for manual review and merge
-- [ ] Include PR URL in output for convenience
+- [x] PR remains for manual review and merge
+- [x] Include PR URL in output for convenience
 
 ### Task 6: Implement Merge Error Handling
-- [ ] Capture gh pr merge exit code
-- [ ] On failure:
+- [x] Capture gh pr merge exit code
+- [x] On failure:
   - Parse error message from gh
   - Log specific error (conflicts, checks failed, etc.)
   - Provide manual merge instructions
   - Exit with code 1
-- [ ] Common errors:
+- [x] Common errors:
   - Merge conflicts
   - Required status checks failed
   - Branch protection rules violated
 
 ### Task 7: Implement Task Manager Integration
-- [ ] Check if task manager is configured
-- [ ] If configured and merge successful:
+- [x] Check if task manager is configured
+- [x] If configured and merge successful:
   - Get task ID from run context
   - Move task to "Done" state via TaskManager
   - Log task status update
-- [ ] Use existing Epic 12 task_manager integration
-- [ ] Continue even if task update fails (log warning)
+- [x] Use existing Epic 12 task_manager integration
+- [x] Continue even if task update fails (log warning)
 
 ### Task 8: Write Tests
-- [ ] Test status parsing from ship_report
-- [ ] Test PR merge execution with squash
-- [ ] Test PR merge with merge strategy
-- [ ] Test PR merge with rebase strategy
-- [ ] Test branch deletion after merge
-- [ ] Test auto_merge disabled flow
-- [ ] Test merge error handling
-- [ ] Test task manager integration
+- [x] Test status parsing from ship_report
+- [x] Test PR merge execution with squash
+- [x] Test PR merge with merge strategy
+- [x] Test PR merge with rebase strategy
+- [x] Test branch deletion after merge
+- [x] Test auto_merge disabled flow
+- [x] Test merge error handling
+- [x] Test task manager integration
 
 ---
 

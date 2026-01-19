@@ -1268,6 +1268,179 @@ After applying the fix:
       </substep>
     </step>
 
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- STEP 6: FINALIZATION & PR MERGE DECISION                        -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <step n="6" goal="Finalize deployment and determine PR merge approval">
+      <critical>Determine final status based on all prior execution results</critical>
+      <critical>Output structured status markers for post.sh parsing</critical>
+      <critical>This step ALWAYS runs - even after failures - to produce final status</critical>
+
+      <output>
+      ```
+      ───────────────────────────────────────────────────────────────
+        STEP 6: FINALIZATION &amp; PR MERGE DECISION
+      ───────────────────────────────────────────────────────────────
+      ```
+      </output>
+
+      <!-- 6a: Determine PR Merge Approval -->
+      <substep name="determine-merge-approval">
+        <critical>PR_MERGE_APPROVED is true ONLY when deployment succeeds with no blockers</critical>
+
+        <!-- SUCCESS case: All deployment steps passed -->
+        <check if="{{deployment_status}} == 'SUCCESS'">
+          <check if="{{blocking_issues}} is empty">
+            <action>Set {{pr_merge_approved}} = true</action>
+            <action>Set {{merge_reason}} = "Deployment successful, all checks passed"</action>
+          </check>
+
+          <check if="{{blocking_issues}} is NOT empty">
+            <action>Set {{pr_merge_approved}} = false</action>
+            <action>Set {{merge_reason}} = "Deployment succeeded but blocking issues remain: " + first {{blocking_issues}} item</action>
+          </check>
+        </check>
+
+        <!-- FAILED case: Command execution failed -->
+        <check if="{{deployment_status}} == 'FAILED'">
+          <action>Set {{pr_merge_approved}} = false</action>
+          <action>Set {{merge_reason}} = "Deployment failed at {{failed_command}} step"</action>
+        </check>
+
+        <!-- BLOCKED case: Pre-flight analysis blocked deployment -->
+        <check if="{{deployment_status}} == 'BLOCKED'">
+          <action>Set {{pr_merge_approved}} = false</action>
+          <action>Set {{merge_reason}} = "Deployment blocked: " + first {{blocking_issues}} item</action>
+        </check>
+
+        <!-- SKIPPED case: No commands configured but no blockers -->
+        <check if="{{commands_skipped}} == true AND {{blocking_issues}} is empty">
+          <action>Set {{deployment_status}} = "SUCCESS"</action>
+          <action>Set {{pr_merge_approved}} = true</action>
+          <action>Set {{merge_reason}} = "No deployment commands configured, PR ready for merge"</action>
+        </check>
+
+        <!-- Default case: Unknown status -->
+        <check if="{{deployment_status}} is NOT set OR {{deployment_status}} == 'UNKNOWN'">
+          <action>Set {{deployment_status}} = "BLOCKED"</action>
+          <action>Set {{pr_merge_approved}} = false</action>
+          <action>Set {{merge_reason}} = "Unable to determine deployment status"</action>
+        </check>
+      </substep>
+
+      <!-- 6b: Determine Version Deployed -->
+      <substep name="determine-version-deployed">
+        <check if="{{version_deployed}} is set AND {{version_deployed}} is NOT empty">
+          <note>Using version from successful version bump</note>
+        </check>
+
+        <check if="{{version_deployed}} is NOT set OR {{version_deployed}} is empty">
+          <check if="{{new_version}} is set">
+            <action>Set {{version_deployed}} = {{new_version}}</action>
+          </check>
+
+          <check if="{{new_version}} is NOT set AND {{current_version}} is set AND {{current_version}} != 'unknown'">
+            <action>Set {{version_deployed}} = {{current_version}}</action>
+          </check>
+
+          <check if="no version available">
+            <action>Set {{version_deployed}} = "N/A"</action>
+          </check>
+        </check>
+      </substep>
+
+      <!-- 6c: Output Structured Status Markers -->
+      <substep name="output-status-markers">
+        <critical>These markers are parsed by post.sh - format is EXACT</critical>
+        <critical>Each marker MUST be on its own line with exact format: KEY: value</critical>
+
+        <output>
+---
+
+## Ship Phase Status
+
+**Final Decision:**
+
+```
+DEPLOYMENT_STATUS: {{deployment_status}}
+PR_MERGE_APPROVED: {{pr_merge_approved}}
+VERSION_DEPLOYED: {{version_deployed}}
+MERGE_REASON: {{merge_reason}}
+PR_NUMBER: {{pr_number}}
+```
+        </output>
+      </substep>
+
+      <!-- 6d: Generate Ship Summary -->
+      <substep name="generate-ship-summary">
+        <output>
+---
+
+## Ship Phase Summary
+
+| Metric | Value |
+|--------|-------|
+| PR Number | #{{pr_number}} |
+| Deployment Status | {{deployment_status}} |
+| PR Merge Approved | {{pr_merge_approved}} |
+| Version | {{version_deployed}} |
+| Risk Level | {{risk_level}} |
+
+### Execution Timeline
+{{#if version_bump_exit_code}}
+1. **Version Bump:** {{#if version_bump_exit_code == 0}}✓ Success{{else}}✗ Failed (exit {{version_bump_exit_code}}){{/if}}
+{{/if}}
+{{#if build_exit_code}}
+2. **Build:** {{#if build_exit_code == 0}}✓ Success{{else}}✗ Failed (exit {{build_exit_code}}){{/if}}
+{{/if}}
+{{#if publish_exit_code}}
+3. **Publish:** {{#if publish_exit_code == 0}}✓ Success{{else}}✗ Failed (exit {{publish_exit_code}}){{/if}}
+{{/if}}
+{{#if commands_skipped}}
+- Commands: Skipped (none configured)
+{{/if}}
+
+### Next Steps
+{{#if pr_merge_approved}}
+**PR will be merged automatically** (if `ship.pr.auto_merge: true` in config)
+- Merge method: {{merge_method | default: "squash"}}
+- Delete branch: {{delete_branch | default: "true"}}
+{{else}}
+**PR will NOT be merged automatically**
+- Reason: {{merge_reason}}
+- Manual action required: Review blocking issues and merge manually when ready
+{{/if}}
+
+{{#if release_notes_content}}
+### Release Notes
+{{release_notes_content}}
+{{/if}}
+        </output>
+      </substep>
+
+      <!-- 6e: Final Confirmation -->
+      <substep name="final-confirmation">
+        <output>
+---
+
+**Ship phase complete.**
+
+The post.sh hook will now:
+{{#if pr_merge_approved}}
+1. Parse the status markers above
+2. Check if auto-merge is enabled in ship config
+3. If enabled, merge PR #{{pr_number}} using configured method
+4. Delete the branch if configured
+5. Update task manager status if configured
+{{else}}
+1. Parse the status markers above
+2. Log the deployment status ({{deployment_status}})
+3. Leave PR #{{pr_number}} open for manual review
+{{/if}}
+        </output>
+      </substep>
+    </step>
+
   </execution>
 
   <!-- ================================================================== -->
@@ -1305,6 +1478,9 @@ After applying the fix:
       <item>Error patterns correctly identified for version_bump/build/publish</item>
       <item>Actionable remediation steps provided for failures</item>
       <item>PR_MERGE_APPROVED set to false on deployment failure</item>
+      <item>Step 6 finalization executed with proper PR merge decision</item>
+      <item>VERSION_DEPLOYED correctly set based on deployment results</item>
+      <item>Ship summary includes execution timeline and next steps</item>
     </success>
     <failure>
       <item>Skipping context gathering steps</item>
@@ -1317,6 +1493,8 @@ After applying the fix:
       <item>Skipping failure diagnosis when deployment fails</item>
       <item>Generic error messages without specific remediation</item>
       <item>Not setting PR_MERGE_APPROVED: false on failure</item>
+      <item>Missing or incomplete Step 6 finalization</item>
+      <item>Status markers not in exact format for post.sh parsing</item>
     </failure>
   </metrics>
 
