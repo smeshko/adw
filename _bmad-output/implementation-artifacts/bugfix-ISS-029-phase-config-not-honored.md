@@ -15,7 +15,7 @@ so that **I can customize timeouts, disable phases, and have predictable executi
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: `timeout_seconds` from `.adw/commands/<phase>/config.yaml` is used when executing LLM calls for that phase
+- [x] **AC1**: `timeout_seconds` from `.adw/commands/<phase>/config.yaml` is used when executing LLM calls for that phase
 - [ ] **AC2**: Phases with `enabled: false` in their command config are skipped during pipeline execution
 - [x] **AC3**: `CommandConfig` model accepts the `enabled` field without validation errors
 - [ ] **AC4**: The `phases` section is removed from `ProjectConfig` (config.py) - all phase config delegated to command configs
@@ -32,10 +32,10 @@ so that **I can customize timeouts, disable phases, and have predictable executi
 - [x] 1.3 Verify Pydantic validation passes with the new field
 
 ### Task 2: Pass timeout to `_execute_llm`
-- [ ] 2.1 Modify `_execute_llm` signature in `src/adw/core/phase_runner.py` to accept `timeout: int | None = None`
-- [ ] 2.2 Update `_execute_llm` to pass timeout to `self.executor.execute(..., timeout=timeout)`
-- [ ] 2.3 Update call site at line 168 to pass `merged_config.timeout_seconds`
-- [ ] 2.4 Verify executor's `execute` method accepts timeout parameter
+- [x] 2.1 Modify `_execute_llm` signature in `src/adw/core/phase_runner.py` to accept `timeout: int | None = None`
+- [x] 2.2 Update `_execute_llm` to pass timeout to `self.executor.execute(..., timeout=timeout)`
+- [x] 2.3 Update call site at line 168 to pass `merged_config.timeout_seconds`
+- [x] 2.4 Verify executor's `execute` method accepts timeout parameter
 
 ### Task 3: Check `enabled` flag in orchestrator
 - [ ] 3.1 Add `_is_phase_enabled(phase: str) -> bool` helper method to `Orchestrator`
@@ -246,7 +246,9 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Completion Notes List
 
 - **Task 1 Complete**: Added `enabled: bool = Field(default=True, ...)` to `CommandConfig` in `command.py`. Field placed before `timeout_seconds` for consistency. Verified Pydantic validation passes with default=True, explicit False, and model_validate from dict. Extra fields still forbidden.
+- **Task 2 Complete**: Modified `_execute_llm` to accept `timeout: int | None = None` and pass it to executor. Added `_get_merged_config` helper to extract config loading from `_load_and_render_prompt`. Updated `run()` to load merged config and pass `merged_config.timeout_seconds` to `_execute_llm`. Executor protocol already supports timeout parameter.
 
 ### File List
 
 - `src/adw/models/command.py` - Added `enabled` field to CommandConfig
+- `src/adw/core/phase_runner.py` - Added timeout parameter to `_execute_llm`, added `_get_merged_config` helper, updated `run()` and `_load_and_render_prompt`
