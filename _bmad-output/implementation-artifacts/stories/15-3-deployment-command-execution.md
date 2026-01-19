@@ -77,11 +77,11 @@ So that I can automate version bumps, builds, and publishing.
 - [x] On success, set `DEPLOYMENT_STATUS: SUCCESS`
 
 ### Task 5: Implement Post-Publish Hooks
-- [ ] Check if `ship.post_publish` list is non-empty
-- [ ] Execute each hook in order
-- [ ] Continue on failure (log warning, don't abort)
-- [ ] Capture output for each hook
-- [ ] Common hooks: `git push --tags`, notification scripts
+- [x] Check if `ship.post_publish` list is non-empty
+- [x] Execute each hook in order
+- [x] Continue on failure (log warning, don't abort)
+- [x] Capture output for each hook
+- [x] Common hooks: `git push --tags`, notification scripts
 
 ### Task 6: Define Error Handling Flow
 - [ ] On any command failure:
@@ -377,6 +377,7 @@ Claude Opus 4.5
 - Task 2: Version bump execution already implemented in substep 3b of Task 1
 - Task 3: Build command execution already implemented in substep 3c of Task 1
 - Task 4: Publish command execution already implemented in substep 3d of Task 1
+- Task 5: Post-publish hooks already implemented in substep 3e of Task 1 with continue-on-failure
 
 ### File List
 
