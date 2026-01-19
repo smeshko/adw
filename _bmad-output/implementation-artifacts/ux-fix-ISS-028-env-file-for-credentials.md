@@ -120,7 +120,7 @@ so that I can easily manage per-project Linear credentials without global shell 
 ### Task 7: Add .env.template to Wizard File Generation
 **Files**: `src/adw/cli/wizard/summary.py`
 
-- [ ] 7.1 Add `generate_env_template()` function:
+- [x] 7.1 Add `generate_env_template()` function:
   ```python
   def generate_env_template() -> str:
       """Generate .env.template content for credential setup."""
@@ -138,11 +138,11 @@ so that I can easily manage per-project Linear credentials without global shell 
   LINEAR_TEAM_ID=
   """
   ```
-- [ ] 7.2 Update `_generate_all_files()` (line 322) to include `.env.template`:
+- [x] 7.2 Update `_generate_all_files()` (line 322) to include `.env.template`:
   ```python
   files[".env.template"] = generate_env_template()
   ```
-- [ ] 7.3 Update `_get_files_to_create()` (line 264) to include `.env.template`:
+- [x] 7.3 Update `_get_files_to_create()` (line 264) to include `.env.template`:
   ```python
   files = ["project.yaml", ".gitignore", ".env.template"]
   ```

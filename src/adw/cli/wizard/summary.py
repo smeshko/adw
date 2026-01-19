@@ -270,7 +270,7 @@ def _get_files_to_create(state: WizardState) -> list[str]:
     Returns:
         List of relative file paths (within .adw/).
     """
-    files = ["project.yaml", ".gitignore"]
+    files = ["project.yaml", ".gitignore", ".env.template"]
 
     # Add phase config files for customized phases
     # Phases step returns: customized (bool), phases (dict of phase name -> config)
@@ -335,6 +335,9 @@ def _generate_all_files(state: WizardState) -> dict[str, str]:
 
     # Generate .gitignore
     files[".gitignore"] = generate_gitignore()
+
+    # Generate .env.template
+    files[".env.template"] = generate_env_template()
 
     # Generate phase config files
     phase_files = generate_phase_configs(state)
@@ -533,6 +536,27 @@ state.json
 
 # Environment files with secrets
 .env
+"""
+
+
+def generate_env_template() -> str:
+    """Generate .env.template content for credential setup.
+
+    Returns:
+        Environment template file content with placeholder credentials.
+    """
+    return """\
+# ADW Credentials
+# Copy this file to .env and fill in your values
+# The .env file is gitignored and will NOT be committed
+
+# Linear Task Manager (required if using linear task manager)
+# Get your API key from: Linear Settings > API > Personal API keys
+LINEAR_API_KEY=
+
+# Linear Team ID (UUID format)
+# Find via: Linear Settings > Workspace > Copy team ID
+LINEAR_TEAM_ID=
 """
 
 
