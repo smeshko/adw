@@ -614,6 +614,34 @@ class PhaseRunner:
         # Merge configs (project overrides command defaults)
         return self._merge_configs(command_config, project_phase_config)
 
+    def is_phase_enabled(self, phase: str) -> bool:
+        """Check if a phase is enabled in its command config.
+
+        Resolves the command for the phase and checks the `enabled` field
+        in its config.yaml. If no config exists or `enabled` is not set,
+        defaults to True.
+
+        Args:
+            phase: Phase name to check.
+
+        Returns:
+            True if the phase is enabled (default), False if disabled.
+        """
+        try:
+            command = self.command_resolver.resolve(phase)
+            if not command.has_config:
+                return True
+
+            config = self._load_command_config(command)
+            if config is None:
+                return True
+
+            return config.enabled
+        except Exception:
+            # If command resolution fails, consider phase enabled
+            # (actual error will be raised during execution)
+            return True
+
     def _load_phase_artifacts(
         self,
         run_id: str,

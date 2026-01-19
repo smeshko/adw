@@ -66,6 +66,17 @@ class PhaseRunnerProtocol(Protocol):
         """
         ...
 
+    def is_phase_enabled(self, phase: str) -> bool:
+        """Check if a phase is enabled in its command config.
+
+        Args:
+            phase: Phase name to check.
+
+        Returns:
+            True if the phase is enabled (default), False if disabled.
+        """
+        ...
+
 
 __all__ = ["Orchestrator", "PhaseRunnerProtocol"]
 
@@ -339,6 +350,14 @@ class Orchestrator:
                     # Check for shutdown request between phases (NFR7)
                     self.interruption_handler.set_context(context)
                     self.interruption_handler.check_shutdown()
+
+                    # Check if phase is enabled in command config (ISS-029)
+                    if not self._phase_runner.is_phase_enabled(phase):
+                        logger.info(
+                            "Phase skipped (disabled in config)",
+                            extra={"phase": phase, "run_id": context.run_id},
+                        )
+                        continue
 
                     context = self._execute_phase_with_transitions(context, phase)
 
@@ -944,6 +963,14 @@ class Orchestrator:
                     # Check for shutdown request between phases
                     self.interruption_handler.set_context(context)
                     self.interruption_handler.check_shutdown()
+
+                    # Check if phase is enabled in command config (ISS-029)
+                    if not self._phase_runner.is_phase_enabled(phase):
+                        logger.info(
+                            "Phase skipped (disabled in config)",
+                            extra={"phase": phase, "run_id": context.run_id},
+                        )
+                        continue
 
                     # Use source artifacts only for the resume phase
                     # (subsequent phases will use artifacts from current run)
