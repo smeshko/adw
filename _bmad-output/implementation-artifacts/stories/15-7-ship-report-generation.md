@@ -105,10 +105,10 @@ artifacts:
   - General: smoke test recommendations
 
 ### Task 8: Implement Artifact Configuration
-- [ ] Verify config.yaml defines ship_report artifact
-- [ ] Mark ship_report as required (phase fails without it)
-- [ ] Mark release_notes as optional
-- [ ] Verify artifact patterns match generated files
+- [x] Verify config.yaml defines ship_report artifact
+- [x] Mark ship_report as required (phase fails without it)
+- [x] Mark release_notes as optional
+- [x] Verify artifact patterns match generated files
 
 ### Task 9: Write Tests
 - [ ] Test structured fields format
