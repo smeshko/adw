@@ -67,20 +67,21 @@ PHASE_SEQUENCE: tuple[str, ...] = (
 - [x] Verify all existing tests still pass
 
 ### Task 2: Create ShipConfig Models
-- [ ] Add `ShipCommandsConfig` to `src/adw/models/config.py`:
+- [x] Add `ShipCommandsConfig` to `src/adw/models/config.py`:
   - `version_bump: str | None = Field(default=None)`
   - `build: str | None = Field(default=None)`
   - `publish: str | None = Field(default=None)`
-- [ ] Add `ShipPRConfig` to `src/adw/models/config.py`:
-  - `auto_merge: bool = Field(default=True)`
-  - `merge_strategy: Literal["squash", "merge", "rebase"] = Field(default="squash")`
-  - `delete_branch: bool = Field(default=True)`
-- [ ] Add `ShipConfig` to `src/adw/models/config.py`:
+- [x] Add `ShipPRConfig` to `src/adw/models/config.py`:
+  - `merge_on_success: bool = Field(default=False)` (named for clarity)
+  - `merge_method: Literal["merge", "squash", "rebase"] = Field(default="squash")`
+  - `delete_branch_on_merge: bool = Field(default=True)`
+- [x] Add `ShipConfig` to `src/adw/models/config.py`:
+  - `enabled: bool = Field(default=True)`
   - `commands: ShipCommandsConfig = Field(default_factory=ShipCommandsConfig)`
-  - `post_publish: list[str] = Field(default_factory=list)`
   - `pr: ShipPRConfig = Field(default_factory=ShipPRConfig)`
-- [ ] Add `ship: ShipConfig` field to `ProjectConfig`
-- [ ] Export models from `src/adw/models/__init__.py`
+- [x] Add `ship: ShipConfig | None` field to `ProjectConfig`
+- [x] Add "ship" to TaskManagerConfig.state_mapping default
+- [x] Write focused unit tests for validation logic
 
 ### Task 3: Create Ship Command Folder Structure
 - [ ] Create directory `src/adw/defaults/commands/ship/`
@@ -408,6 +409,15 @@ Claude Opus 4.5
 - Updated all test expectations from 4 phases to 5 phases
 - All 2747 tests pass with 83.5% coverage
 
+**Task 2: Create ShipConfig Models** (2026-01-19)
+- Added ShipCommandsConfig (version_bump, build, publish)
+- Added ShipPRConfig (merge_on_success, delete_branch_on_merge, merge_method)
+- Added ShipConfig (enabled, commands, pr)
+- Added ship field to ProjectConfig
+- Updated TaskManagerConfig.state_mapping to include "ship": "Done"
+- Added validation tests for ShipConfig YAML parsing and merge_method validation
+- All 2751 tests pass with 83.5% coverage
+
 ### File List
 
 **Modified (Task 1):**
@@ -417,3 +427,8 @@ Claude Opus 4.5
 - tests/unit/core/test_orchestrator.py - Updated phase count and retry logic expectations
 - tests/unit/core/test_resume_manager.py - Updated phase history expectations
 - tests/integration/core/test_orchestrator_integration.py - Updated snapshot/token count expectations
+
+**Modified (Task 2):**
+- src/adw/models/config.py - Added ShipCommandsConfig, ShipPRConfig, ShipConfig classes
+- tests/unit/models/test_config.py - Added TestShipConfig validation tests
+- tests/unit/models/test_config_task_manager.py - Updated state_mapping test for ship phase
