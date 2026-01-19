@@ -50,10 +50,10 @@ artifacts:
 ## Tasks / Subtasks
 
 ### Task 1: Define Report Generation Instructions (Final step in instructions.xml)
-- [ ] Create final step in `ship/instructions.xml` for report generation
-- [ ] Compile all information from prior steps
-- [ ] Generate comprehensive markdown report
-- [ ] Include structured fields at top for parsing
+- [x] Create final step in `ship/instructions.xml` for report generation
+- [x] Compile all information from prior steps
+- [x] Generate comprehensive markdown report
+- [x] Include structured fields at top for parsing
 
 ### Task 2: Implement Structured Status Section
 - [ ] Always include at report top:
