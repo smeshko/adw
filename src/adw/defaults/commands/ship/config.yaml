@@ -1,0 +1,26 @@
+# Configuration for the ship phase
+# Handles version bumping, building, publishing, and PR merge automation
+
+# Timeout for the ship phase (15 minutes - includes potential deployment steps)
+timeout_seconds: 900
+
+# Input files for ship phase come from document phase artifacts
+# These are typically auto-loaded via artifact references in the prompt
+# input_files:
+#   pr_description: artifacts/document/pr_description.md
+
+# LLM settings for this phase
+# llm:
+#   model: claude-sonnet-4-20250514
+#   temperature: 0.3  # Lower temperature for deployment decisions
+
+# Artifacts to capture from this phase
+artifacts:
+  - name: ship_report
+    pattern: "ship_report.md"
+    required: true
+    description: "Full deployment report from LLM"
+  - name: release_notes
+    pattern: "release_notes.md"
+    required: false
+    description: "Generated release notes"
