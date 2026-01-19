@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
+from dotenv import load_dotenv
 from rich.console import Console
 from ulid import ULID
 
@@ -93,6 +94,21 @@ def init(
         raise typer.Exit(1) from None
 
 
+def _load_env_file() -> None:
+    """Load environment variables from .adw/.env if it exists.
+
+    This enables per-project credential configuration for task managers
+    (e.g., LINEAR_API_KEY, LINEAR_TEAM_ID) without requiring global
+    shell environment variables.
+
+    The file is loaded silently - no error if it doesn't exist.
+    Existing environment variables are NOT overwritten (dotenv default).
+    """
+    env_path = Path.cwd() / ".adw" / ".env"
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path)
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -108,6 +124,9 @@ def main(
     ),
 ) -> None:
     """Agentic Development Workflow SDK CLI."""
+    # Load environment from .adw/.env before any command runs (ISS-028)
+    _load_env_file()
+
     # Handle mutual exclusivity of verbosity flags
     verbosity_flags = sum([quiet, verbose, trace])
     if verbosity_flags > 1:
