@@ -40,23 +40,23 @@ merge_reason=""
 pr_number=""
 
 if [[ -n "$ADW_LLM_OUTPUT" ]]; then
-    # Extract status markers using portable sed (works on macOS and Linux)
+    # Extract status markers using sed -E for extended regex (portable on macOS and Linux)
     # Format expected: KEY: value (on its own line or within a code block)
 
-    deployment_status=$(echo "$ADW_LLM_OUTPUT" | sed -n 's/.*DEPLOYMENT_STATUS:[[:space:]]*\(SUCCESS\|FAILED\|BLOCKED\).*/\1/p' | head -1)
+    deployment_status=$(echo "$ADW_LLM_OUTPUT" | sed -E -n 's/.*DEPLOYMENT_STATUS:[[:space:]]*(SUCCESS|FAILED|BLOCKED).*/\1/p' | head -1)
     [[ -z "$deployment_status" ]] && deployment_status="UNKNOWN"
 
-    pr_merge_approved=$(echo "$ADW_LLM_OUTPUT" | sed -n 's/.*PR_MERGE_APPROVED:[[:space:]]*\(true\|false\).*/\1/p' | head -1)
+    pr_merge_approved=$(echo "$ADW_LLM_OUTPUT" | sed -E -n 's/.*PR_MERGE_APPROVED:[[:space:]]*(true|false).*/\1/p' | head -1)
     [[ -z "$pr_merge_approved" ]] && pr_merge_approved="false"
 
-    version_deployed=$(echo "$ADW_LLM_OUTPUT" | sed -n 's/.*VERSION_DEPLOYED:[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -1)
+    version_deployed=$(echo "$ADW_LLM_OUTPUT" | sed -E -n 's/.*VERSION_DEPLOYED:[[:space:]]*([^[:space:]]*).*/\1/p' | head -1)
     [[ -z "$version_deployed" ]] && version_deployed="N/A"
 
-    merge_reason=$(echo "$ADW_LLM_OUTPUT" | sed -n 's/.*MERGE_REASON:[[:space:]]*\(.*\)/\1/p' | head -1)
+    merge_reason=$(echo "$ADW_LLM_OUTPUT" | sed -E -n 's/.*MERGE_REASON:[[:space:]]*(.*)/\1/p' | head -1)
     [[ -z "$merge_reason" ]] && merge_reason="No reason provided"
 
     # Also extract PR_NUMBER from LLM output if available (fallback to env var)
-    pr_number_from_output=$(echo "$ADW_LLM_OUTPUT" | sed -n 's/.*PR_NUMBER:[[:space:]]*\([0-9]*\).*/\1/p' | head -1)
+    pr_number_from_output=$(echo "$ADW_LLM_OUTPUT" | sed -E -n 's/.*PR_NUMBER:[[:space:]]*([0-9]+).*/\1/p' | head -1)
     pr_number="${pr_number_from_output:-$ADW_PR_NUMBER}"
 
     echo "Parsed status:"
