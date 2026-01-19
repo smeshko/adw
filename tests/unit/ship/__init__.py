@@ -1,1 +1,1 @@
-# Tests for ship phase
+# Tests for ship phase functionality.

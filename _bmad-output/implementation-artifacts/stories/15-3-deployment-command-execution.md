@@ -1,6 +1,6 @@
 # Story 15.3: Deployment Command Execution
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-18
@@ -48,43 +48,43 @@ So that I can automate version bumps, builds, and publishing.
 ## Tasks / Subtasks
 
 ### Task 1: Define Command Execution Instructions (Step 3 in instructions.xml)
-- [ ] Create step 3 in `ship/instructions.xml` for command execution
-- [ ] Check if `ship.commands` has any configured commands
-- [ ] If no commands configured, skip to step 4 (release notes)
-- [ ] Document execution order: version_bump → build → publish
+- [x] Create step 3 in `ship/instructions.xml` for command execution
+- [x] Check if `ship.commands` has any configured commands
+- [x] If no commands configured, skip to step 4 (release notes)
+- [x] Document execution order: version_bump → build → publish
 
 ### Task 2: Implement Version Bump Execution
-- [ ] Check if `ship.commands.version_bump` is set
-- [ ] If set, execute command via bash tool
-- [ ] Capture stdout/stderr for logging
-- [ ] After success, re-read version file to capture new version
-- [ ] Store new version for release notes header
-- [ ] On failure, capture error and proceed to failure diagnosis
+- [x] Check if `ship.commands.version_bump` is set
+- [x] If set, execute command via bash tool
+- [x] Capture stdout/stderr for logging
+- [x] After success, re-read version file to capture new version
+- [x] Store new version for release notes header
+- [x] On failure, capture error and proceed to failure diagnosis
 
 ### Task 3: Implement Build Command Execution
-- [ ] Check if `ship.commands.build` is set
-- [ ] If set, execute command via bash tool
-- [ ] Capture stdout/stderr for logging
-- [ ] Build typically produces artifacts (don't parse, just run)
-- [ ] On failure, capture error and proceed to failure diagnosis
+- [x] Check if `ship.commands.build` is set
+- [x] If set, execute command via bash tool
+- [x] Capture stdout/stderr for logging
+- [x] Build typically produces artifacts (don't parse, just run)
+- [x] On failure, capture error and proceed to failure diagnosis
 
 ### Task 4: Implement Publish Command Execution
-- [ ] Check if `ship.commands.publish` is set
-- [ ] If set, execute command via bash tool
-- [ ] Capture stdout/stderr for logging
-- [ ] This is the critical deployment step
-- [ ] On failure, capture error and proceed to failure diagnosis
-- [ ] On success, set `DEPLOYMENT_STATUS: SUCCESS`
+- [x] Check if `ship.commands.publish` is set
+- [x] If set, execute command via bash tool
+- [x] Capture stdout/stderr for logging
+- [x] This is the critical deployment step
+- [x] On failure, capture error and proceed to failure diagnosis
+- [x] On success, set `DEPLOYMENT_STATUS: SUCCESS`
 
 ### Task 5: Implement Post-Publish Hooks
-- [ ] Check if `ship.post_publish` list is non-empty
-- [ ] Execute each hook in order
-- [ ] Continue on failure (log warning, don't abort)
-- [ ] Capture output for each hook
-- [ ] Common hooks: `git push --tags`, notification scripts
+- [x] Check if `ship.post_publish` list is non-empty
+- [x] Execute each hook in order
+- [x] Continue on failure (log warning, don't abort)
+- [x] Capture output for each hook
+- [x] Common hooks: `git push --tags`, notification scripts
 
 ### Task 6: Define Error Handling Flow
-- [ ] On any command failure:
+- [x] On any command failure:
   - Capture full error output (stdout + stderr)
   - Identify which command failed
   - Set `DEPLOYMENT_STATUS: FAILED`
@@ -94,12 +94,12 @@ So that I can automate version bumps, builds, and publishing.
   - Proceed to failure diagnosis step
 
 ### Task 7: Write Tests
-- [ ] Test skip logic when no commands configured
-- [ ] Test execution order (version_bump → build → publish)
-- [ ] Test failure handling for each command type
-- [ ] Test post_publish hook execution
-- [ ] Test continue-on-failure for post_publish
-- [ ] Integration test with mocked commands
+- [x] Test skip logic when no commands configured
+- [x] Test execution order (version_bump → build → publish)
+- [x] Test failure handling for each command type
+- [x] Test post_publish hook execution
+- [x] Test continue-on-failure for post_publish
+- [x] Integration test with mocked commands
 
 ---
 
@@ -361,8 +361,28 @@ Epic 15: Ship Phase & Deployment - Story 15.3
 
 ### Agent Model Used
 
+Claude Opus 4.5
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created Step 3 in ship/instructions.xml with complete command execution logic
+  - Added substep 3a for checking if commands are configured (skip logic)
+  - Added substep 3b for version_bump execution with version re-read
+  - Added substep 3c for build execution
+  - Added substep 3d for publish execution
+  - Added substep 3e for post-publish hooks (continue-on-failure)
+  - Added substep 3f for execution summary
+- Task 2: Version bump execution already implemented in substep 3b of Task 1
+- Task 3: Build command execution already implemented in substep 3c of Task 1
+- Task 4: Publish command execution already implemented in substep 3d of Task 1
+- Task 5: Post-publish hooks already implemented in substep 3e of Task 1 with continue-on-failure
+- Task 6: Error handling flow implemented across all substeps - captures error, sets FAILED status, jumps to failure diagnosis
+- Task 7: Created test specification file with comprehensive test cases documenting expected LLM behavior
+
 ### File List
+
+- src/adw/defaults/commands/ship/instructions.xml (modified)
+- tests/unit/ship/__init__.py (created)
+- tests/unit/ship/test_command_execution.py (created)
