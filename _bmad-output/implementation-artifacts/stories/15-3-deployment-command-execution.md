@@ -94,12 +94,12 @@ So that I can automate version bumps, builds, and publishing.
   - Proceed to failure diagnosis step
 
 ### Task 7: Write Tests
-- [ ] Test skip logic when no commands configured
-- [ ] Test execution order (version_bump → build → publish)
-- [ ] Test failure handling for each command type
-- [ ] Test post_publish hook execution
-- [ ] Test continue-on-failure for post_publish
-- [ ] Integration test with mocked commands
+- [x] Test skip logic when no commands configured
+- [x] Test execution order (version_bump → build → publish)
+- [x] Test failure handling for each command type
+- [x] Test post_publish hook execution
+- [x] Test continue-on-failure for post_publish
+- [x] Integration test with mocked commands
 
 ---
 
@@ -379,7 +379,10 @@ Claude Opus 4.5
 - Task 4: Publish command execution already implemented in substep 3d of Task 1
 - Task 5: Post-publish hooks already implemented in substep 3e of Task 1 with continue-on-failure
 - Task 6: Error handling flow implemented across all substeps - captures error, sets FAILED status, jumps to failure diagnosis
+- Task 7: Created test specification file with comprehensive test cases documenting expected LLM behavior
 
 ### File List
 
 - src/adw/defaults/commands/ship/instructions.xml (modified)
+- tests/unit/ship/__init__.py (created)
+- tests/unit/ship/test_command_execution.py (created)
