@@ -1441,6 +1441,297 @@ The post.sh hook will now:
       </substep>
     </step>
 
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- STEP 7: SHIP REPORT GENERATION                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <step n="7" goal="Generate comprehensive ship report artifact">
+      <critical>Generate ship_report.md artifact with structured fields for post.sh parsing</critical>
+      <critical>This step ALWAYS runs to produce the required ship_report artifact</critical>
+      <critical>Report must include machine-parseable status fields at the TOP</critical>
+
+      <output>
+      ```
+      ───────────────────────────────────────────────────────────────
+        STEP 7: GENERATING SHIP REPORT
+      ───────────────────────────────────────────────────────────────
+      ```
+      </output>
+
+      <!-- 7a: Compile Structured Status Fields -->
+      <substep name="compile-status-fields">
+        <critical>Status fields MUST be at the top of the report in exact format for parsing</critical>
+        <critical>Format: FIELD_NAME: value (one per line, no additional formatting)</critical>
+
+        <action>Compile status fields from execution results:
+          - DEPLOYMENT_STATUS: {{deployment_status}} (SUCCESS | FAILED | BLOCKED)
+          - PR_MERGE_APPROVED: {{pr_merge_approved}} (true | false)
+          - VERSION_DEPLOYED: {{version_deployed}} (x.y.z | N/A)
+          - PR_NUMBER: {{pr_number}}
+        </action>
+      </substep>
+
+      <!-- 7b: Compile Pre-Flight Summary -->
+      <substep name="compile-preflight-summary">
+        <action>Compile pre-flight summary from Step 2 analysis:
+          - Risk level: {{risk_level}} (LOW | MEDIUM | HIGH)
+          - Risk justification: {{risk_justification}}
+          - Breaking changes: {{breaking_changes}} or "None detected"
+          - Security-sensitive changes: {{security_files}} or "None detected"
+          - PR state summary: mergeable={{mergeable}}, review={{review_decision}}, checks={{status_checks_summary}}
+        </action>
+      </substep>
+
+      <!-- 7c: Compile Execution Log -->
+      <substep name="compile-execution-log">
+        <action>Compile execution log from Step 3 results:</action>
+
+        <check if="{{commands_skipped}} == true">
+          <action>Set {{execution_log}} = "No deployment commands configured"</action>
+        </check>
+
+        <check if="{{commands_skipped}} != true">
+          <action>Build execution log with:
+            - Version Bump: command={{version_bump_command}}, exit_code={{version_bump_exit_code}}, result
+            - Build: command={{build_command}}, exit_code={{build_exit_code}}, result
+            - Publish: command={{publish_command}}, exit_code={{publish_exit_code}}, result
+            - Post-publish hooks: {{hook_warnings}} if any
+          </action>
+        </check>
+      </substep>
+
+      <!-- 7d: Compile Release Notes Section -->
+      <substep name="compile-release-notes">
+        <check if="{{release_notes_content}} is set AND NOT empty">
+          <action>Include full release notes content from Step 4</action>
+          <action>Reference artifact file: release_notes.md</action>
+        </check>
+
+        <check if="{{release_notes_content}} is NOT set OR empty">
+          <action>Set release notes section = "Release notes generation skipped"</action>
+        </check>
+      </substep>
+
+      <!-- 7e: Compile Failure Analysis (Conditional) -->
+      <substep name="compile-failure-analysis">
+        <critical>Only include failure analysis when DEPLOYMENT_STATUS is FAILED</critical>
+
+        <check if="{{deployment_status}} == 'FAILED'">
+          <action>Include failure analysis from Step 5:
+            - Failed step: {{failed_command}}
+            - Failed command: {{failed_command_name}}
+            - Exit code: {{failed_exit_code}}
+            - Error output: {{error_output}}
+            - Diagnosis: {{diagnosis}}
+            - Diagnosis details: {{diagnosis_details}}
+            - Remediation steps: {{remediation}}
+          </action>
+        </check>
+
+        <check if="{{deployment_status}} != 'FAILED'">
+          <action>Omit failure analysis section from report</action>
+        </check>
+      </substep>
+
+      <!-- 7f: Compile Verification Recommendations -->
+      <substep name="compile-verification">
+        <action>Generate verification recommendations based on deployment results:</action>
+
+        <check if="{{deployment_status}} == 'SUCCESS'">
+          <action>Include verification steps:
+            - If publish succeeded: "Verify package in registry (npm/PyPI/crates.io)"
+            - If version bumped: "Confirm git tag created: git tag -l | grep {{version_deployed}}"
+            - If PR merge approved: "Monitor for branch deletion and merge completion"
+            - General: "Run smoke tests against deployed version"
+          </action>
+        </check>
+
+        <check if="{{deployment_status}} == 'BLOCKED'">
+          <action>Include verification steps:
+            - "Review blocking issues listed above"
+            - "Address each blocking condition before retry"
+            - "Re-run ship phase: adw resume &lt;run-id&gt; --from ship"
+          </action>
+        </check>
+
+        <check if="{{deployment_status}} == 'FAILED'">
+          <action>Include verification steps:
+            - "Apply remediation steps from Failure Analysis section"
+            - "Verify fix locally by running the failed command"
+            - "Re-run ship phase: adw resume &lt;run-id&gt; --from ship"
+          </action>
+        </check>
+      </substep>
+
+      <!-- 7g: Generate and Save Ship Report -->
+      <substep name="generate-ship-report">
+        <critical>Generate the complete ship_report.md in required format</critical>
+
+        <action>Generate ship report with the following structure:</action>
+
+        <output>
+```markdown
+# Ship Phase Report
+
+DEPLOYMENT_STATUS: {{deployment_status}}
+PR_MERGE_APPROVED: {{pr_merge_approved}}
+VERSION_DEPLOYED: {{version_deployed}}
+PR_NUMBER: {{pr_number}}
+
+---
+
+## Pre-Flight Summary
+
+**Risk Level:** {{risk_level}}
+
+### Risk Assessment
+{{risk_justification}}
+
+### Breaking Changes
+{{#if has_breaking_changes}}
+{{#each breaking_changes}}
+- {{this}}
+{{/each}}
+{{else}}
+None detected
+{{/if}}
+
+### Security-Sensitive Changes
+{{#if has_security_changes}}
+{{#each security_files}}
+- {{this}}
+{{/each}}
+{{else}}
+None detected
+{{/if}}
+
+### PR State
+- Mergeable: {{mergeable}}
+- Review Status: {{review_decision}}
+- Checks: {{status_checks_summary}}
+
+---
+
+## Execution Log
+
+### Commands Executed
+{{#if commands_skipped}}
+_No deployment commands configured_
+{{else}}
+| Step | Command | Exit Code | Result |
+|------|---------|-----------|--------|
+| Version Bump | {{version_bump_command | default: "skipped"}} | {{version_bump_exit_code | default: "-"}} | {{version_bump_result}} |
+| Build | {{build_command | default: "skipped"}} | {{build_exit_code | default: "-"}} | {{build_result}} |
+| Publish | {{publish_command | default: "skipped"}} | {{publish_exit_code | default: "-"}} | {{publish_result}} |
+{{/if}}
+
+### Post-Publish Hooks
+{{#if hook_warnings}}
+{{#each hook_warnings}}
+- ⚠️ {{this}}
+{{/each}}
+{{else}}
+{{#if post_publish_hooks}}
+All hooks completed successfully
+{{else}}
+None configured
+{{/if}}
+{{/if}}
+
+---
+
+## Release Notes
+
+{{#if release_notes_content}}
+{{release_notes_content}}
+
+_Artifact: release_notes.md_
+{{else}}
+_Release notes generation skipped_
+{{/if}}
+
+---
+
+{{#if deployment_status == 'FAILED'}}
+## Failure Analysis
+
+### Failed Step
+{{failed_command}}
+
+### Failed Command
+`{{failed_command_name}}`
+
+### Exit Code
+{{failed_exit_code}}
+
+### Error Output
+```
+{{error_output}}
+```
+
+### Diagnosis
+**Problem:** {{diagnosis}}
+
+{{diagnosis_details}}
+
+### Remediation Steps
+{{#each remediation}}
+{{@index}}. {{this}}
+{{/each}}
+
+---
+
+{{/if}}
+
+## Verification Recommendations
+
+{{verification_recommendations}}
+
+---
+
+_Report generated by ADW Ship Phase_
+_Run ID: {{run_id}}_
+_Timestamp: {{timestamp}}_
+```
+        </output>
+
+        <!-- Save to artifact directory -->
+        <action>Determine artifact path: {{artifacts_dir}}/ship/ship_report.md</action>
+
+        <check if="{{artifacts_dir}} is set">
+          <action>Write ship report to {{artifacts_dir}}/ship/ship_report.md</action>
+          <action>Set {{ship_report_path}} = "{{artifacts_dir}}/ship/ship_report.md"</action>
+          <action>Set {{ship_report_saved}} = true</action>
+          <output>✓ Ship report saved to: {{ship_report_path}}</output>
+        </check>
+
+        <check if="{{artifacts_dir}} is NOT set">
+          <action>Set {{ship_report_saved}} = false</action>
+          <output>⚠️ Ship report not saved - artifact directory not configured</output>
+          <note>Report content still included in LLM output for capture</note>
+        </check>
+      </substep>
+
+      <!-- 7h: Final Confirmation -->
+      <substep name="report-confirmation">
+        <output>
+---
+
+## Ship Report Generation Complete
+
+**Artifacts Generated:**
+- ship_report.md: {{#if ship_report_saved}}✓ Saved{{else}}⚠️ Not saved (no artifact dir){{/if}}
+- release_notes.md: {{#if release_notes_saved}}✓ Saved{{else}}⚠️ Not saved{{/if}}
+
+**Status Summary:**
+- DEPLOYMENT_STATUS: {{deployment_status}}
+- PR_MERGE_APPROVED: {{pr_merge_approved}}
+- VERSION_DEPLOYED: {{version_deployed}}
+
+**Ship phase workflow complete.**
+        </output>
+      </substep>
+    </step>
+
   </execution>
 
   <!-- ================================================================== -->
@@ -1481,6 +1772,14 @@ The post.sh hook will now:
       <item>Step 6 finalization executed with proper PR merge decision</item>
       <item>VERSION_DEPLOYED correctly set based on deployment results</item>
       <item>Ship summary includes execution timeline and next steps</item>
+      <item>Step 7 generates comprehensive ship_report.md artifact</item>
+      <item>Ship report includes structured status fields at top for parsing</item>
+      <item>Ship report includes pre-flight summary from Step 2</item>
+      <item>Ship report includes execution log from Step 3</item>
+      <item>Ship report includes release notes from Step 4</item>
+      <item>Ship report conditionally includes failure analysis from Step 5</item>
+      <item>Ship report includes verification recommendations</item>
+      <item>Ship report saved to artifacts/ship/ship_report.md</item>
     </success>
     <failure>
       <item>Skipping context gathering steps</item>
@@ -1495,6 +1794,11 @@ The post.sh hook will now:
       <item>Not setting PR_MERGE_APPROVED: false on failure</item>
       <item>Missing or incomplete Step 6 finalization</item>
       <item>Status markers not in exact format for post.sh parsing</item>
+      <item>Step 7 not generating ship_report.md artifact</item>
+      <item>Ship report missing structured status fields at top</item>
+      <item>Ship report missing any required section</item>
+      <item>Failure analysis included when deployment succeeded</item>
+      <item>Ship report not saved to artifacts directory</item>
     </failure>
   </metrics>
 
