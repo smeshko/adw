@@ -17,7 +17,7 @@ so that **I can customize timeouts, disable phases, and have predictable executi
 
 - [ ] **AC1**: `timeout_seconds` from `.adw/commands/<phase>/config.yaml` is used when executing LLM calls for that phase
 - [ ] **AC2**: Phases with `enabled: false` in their command config are skipped during pipeline execution
-- [ ] **AC3**: `CommandConfig` model accepts the `enabled` field without validation errors
+- [x] **AC3**: `CommandConfig` model accepts the `enabled` field without validation errors
 - [ ] **AC4**: The `phases` section is removed from `ProjectConfig` (config.py) - all phase config delegated to command configs
 - [ ] **AC5**: `dry_run.py` loads phase hooks from command configs instead of `project_config.phases`
 - [ ] **AC6**: Resume flows also respect the `enabled` flag
@@ -27,9 +27,9 @@ so that **I can customize timeouts, disable phases, and have predictable executi
 ## Tasks / Subtasks
 
 ### Task 1: Add `enabled` field to `CommandConfig`
-- [ ] 1.1 Add `enabled: bool = Field(default=True, description="Whether this phase is enabled")` to `CommandConfig` in `src/adw/models/command.py`
-- [ ] 1.2 Ensure field is placed before other fields for consistency
-- [ ] 1.3 Verify Pydantic validation passes with the new field
+- [x] 1.1 Add `enabled: bool = Field(default=True, description="Whether this phase is enabled")` to `CommandConfig` in `src/adw/models/command.py`
+- [x] 1.2 Ensure field is placed before other fields for consistency
+- [x] 1.3 Verify Pydantic validation passes with the new field
 
 ### Task 2: Pass timeout to `_execute_llm`
 - [ ] 2.1 Modify `_execute_llm` signature in `src/adw/core/phase_runner.py` to accept `timeout: int | None = None`
@@ -239,8 +239,14 @@ Issue file: `_bmad-output/implementation-artifacts/issues/ISS-029-phase-config-n
 
 ### Agent Model Used
 
+Claude Opus 4.5 (claude-opus-4-5-20251101)
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- **Task 1 Complete**: Added `enabled: bool = Field(default=True, ...)` to `CommandConfig` in `command.py`. Field placed before `timeout_seconds` for consistency. Verified Pydantic validation passes with default=True, explicit False, and model_validate from dict. Extra fields still forbidden.
+
 ### File List
+
+- `src/adw/models/command.py` - Added `enabled` field to CommandConfig

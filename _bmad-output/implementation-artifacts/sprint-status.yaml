@@ -375,4 +375,4 @@ development_status:
   # BUGFIX: Phase Config Not Honored (ISS-029) - CRITICAL
   # Goal: Fix phase timeout/enabled settings from command configs being ignored
   # ═══════════════════════════════════════════════════════════════════════════
-  bugfix-ISS-029-phase-config-not-honored: ready-for-dev
+  bugfix-ISS-029-phase-config-not-honored: in-progress
