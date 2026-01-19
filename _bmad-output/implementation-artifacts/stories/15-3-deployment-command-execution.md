@@ -48,10 +48,10 @@ So that I can automate version bumps, builds, and publishing.
 ## Tasks / Subtasks
 
 ### Task 1: Define Command Execution Instructions (Step 3 in instructions.xml)
-- [ ] Create step 3 in `ship/instructions.xml` for command execution
-- [ ] Check if `ship.commands` has any configured commands
-- [ ] If no commands configured, skip to step 4 (release notes)
-- [ ] Document execution order: version_bump → build → publish
+- [x] Create step 3 in `ship/instructions.xml` for command execution
+- [x] Check if `ship.commands` has any configured commands
+- [x] If no commands configured, skip to step 4 (release notes)
+- [x] Document execution order: version_bump → build → publish
 
 ### Task 2: Implement Version Bump Execution
 - [ ] Check if `ship.commands.version_bump` is set
@@ -361,8 +361,20 @@ Epic 15: Ship Phase & Deployment - Story 15.3
 
 ### Agent Model Used
 
+Claude Opus 4.5
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created Step 3 in ship/instructions.xml with complete command execution logic
+  - Added substep 3a for checking if commands are configured (skip logic)
+  - Added substep 3b for version_bump execution with version re-read
+  - Added substep 3c for build execution
+  - Added substep 3d for publish execution
+  - Added substep 3e for post-publish hooks (continue-on-failure)
+  - Added substep 3f for execution summary
+
 ### File List
+
+- src/adw/defaults/commands/ship/instructions.xml (modified)
