@@ -72,7 +72,7 @@ issues:
   ISS-026-remove-deprecated-adw-yaml-config: fixed  # Major - Remove .adw/adw.yaml, add git config for base branch
   ISS-027-init-wizard-phase-config-ux-issues: reported  # Major - Multiple UX issues in wizard phase configuration
   ISS-028-sdk-no-env-file-for-linear-credentials: fixed  # Major - SDK doesn't auto-load .adw/.env for credentials
-  ISS-029-phase-config-not-honored: reported  # Critical - Phase timeout/enabled from command configs not applied
+  ISS-029-phase-config-not-honored: fixed  # Critical - Phase timeout/enabled from command configs not applied
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -375,4 +375,4 @@ development_status:
   # BUGFIX: Phase Config Not Honored (ISS-029) - CRITICAL
   # Goal: Fix phase timeout/enabled settings from command configs being ignored
   # ═══════════════════════════════════════════════════════════════════════════
-  bugfix-ISS-029-phase-config-not-honored: in-progress
+  bugfix-ISS-029-phase-config-not-honored: done
