@@ -70,6 +70,23 @@ runs/
 
 # ADW logs
 *.log
+
+# Environment files with secrets
+.env
+"""
+
+    ENV_TEMPLATE_CONTENT = """\
+# ADW Credentials
+# Copy this file to .env and fill in your values
+# The .env file is gitignored and will NOT be committed
+
+# Linear Task Manager (required if using linear task manager)
+# Get your API key from: Linear Settings > API > Personal API keys
+LINEAR_API_KEY=
+
+# Linear Team ID (UUID format)
+# Find via: Linear Settings > Workspace > Copy team ID
+LINEAR_TEAM_ID=
 """
 
     def __init__(self, project_root: Path) -> None:
@@ -111,6 +128,7 @@ runs/
         # Write files
         self._write_config(config)
         self._write_gitignore()
+        self._write_env_template()
 
         return config
 
@@ -159,6 +177,11 @@ runs/
         """Write .gitignore for .adw/ directory."""
         gitignore_path = self.adw_dir / ".gitignore"
         gitignore_path.write_text(self.GITIGNORE_CONTENT)
+
+    def _write_env_template(self) -> None:
+        """Write .env.template for credential setup guidance."""
+        env_template_path = self.adw_dir / ".env.template"
+        env_template_path.write_text(self.ENV_TEMPLATE_CONTENT)
 
     def _backup_existing(self) -> None:
         """Backup existing .adw/ configuration."""

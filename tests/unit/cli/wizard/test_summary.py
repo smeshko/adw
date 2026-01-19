@@ -19,6 +19,7 @@ from adw.cli.wizard.summary import (
     ConfigWriteError,
     SummaryStepHandler,
     atomic_write_config,
+    generate_env_template,
     generate_gitignore,
     generate_phase_configs,
     generate_project_yaml,
@@ -500,6 +501,31 @@ class TestGitignoreGeneration:
         assert "logs/" in content
         assert "*.log" in content
         assert "state.json" in content
+
+    def test_generate_gitignore_includes_env_file(self) -> None:
+        """Test .gitignore excludes .env files (ISS-028)."""
+        content = generate_gitignore()
+
+        assert ".env" in content
+
+
+class TestEnvTemplateGeneration:
+    """Tests for .env.template generation (ISS-028)."""
+
+    def test_generate_env_template_contains_linear_credentials(self) -> None:
+        """Test .env.template includes Linear credential placeholders."""
+        content = generate_env_template()
+
+        assert "LINEAR_API_KEY=" in content
+        assert "LINEAR_TEAM_ID=" in content
+
+    def test_generate_env_template_contains_documentation(self) -> None:
+        """Test .env.template includes helpful documentation."""
+        content = generate_env_template()
+
+        assert "Copy this file to .env" in content
+        assert "gitignored" in content
+        assert "Linear Settings" in content
 
 
 class TestAtomicWrite:

@@ -75,7 +75,7 @@ class LinearTaskManager:
             raise ConfigError(
                 code="MISSING_LINEAR_API_KEY",
                 message="LINEAR_API_KEY environment variable is not set",
-                suggestion="Add LINEAR_API_KEY to your .env file",
+                suggestion="Copy .adw/.env.template to .adw/.env and add your key",
                 recoverable=False,
             )
         return api_key
@@ -94,7 +94,7 @@ class LinearTaskManager:
             raise ConfigError(
                 code="MISSING_LINEAR_TEAM_ID",
                 message="LINEAR_TEAM_ID environment variable is not set",
-                suggestion="Add LINEAR_TEAM_ID to your .env file",
+                suggestion="Copy .adw/.env.template to .adw/.env and add your ID",
                 recoverable=False,
             )
         return team_id

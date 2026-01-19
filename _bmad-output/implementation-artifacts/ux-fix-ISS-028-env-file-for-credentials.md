@@ -1,6 +1,6 @@
 # Story: UX Fix - Auto-load .adw/.env for Linear Credentials
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-19
@@ -15,57 +15,57 @@ so that I can easily manage per-project Linear credentials without global shell 
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: Add `python-dotenv` dependency to `pyproject.toml`
-- [ ] **AC2**: Create env loading in CLI bootstrap that loads `.adw/.env` if it exists
+- [x] **AC1**: Add `python-dotenv` dependency to `pyproject.toml`
+- [x] **AC2**: Create env loading in CLI bootstrap that loads `.adw/.env` if it exists
   - Loading happens in `@app.callback()` BEFORE any command runs
   - Only loads from `.adw/.env` path (not project root `.env`)
   - Silent if file doesn't exist (no error)
-- [ ] **AC3**: Create `.adw/.env.template` during `adw init` (both wizard and minimal mode)
+- [x] **AC3**: Create `.adw/.env.template` during `adw init` (both wizard and minimal mode)
   - Contains placeholder for `LINEAR_API_KEY` and `LINEAR_TEAM_ID`
   - Includes helpful comments explaining how to use
-- [ ] **AC4**: Update `.adw/.gitignore` to include `.env` pattern
+- [x] **AC4**: Update `.adw/.gitignore` to include `.env` pattern
   - Update in `initializer.py` (minimal mode)
   - Update in `summary.py` (wizard mode)
-- [ ] **AC5**: Update error messages in `linear.py` to reference `.adw/.env`
+- [x] **AC5**: Update error messages in `linear.py` to reference `.adw/.env`
   - `_get_api_key()` suggestion: "Add LINEAR_API_KEY to .adw/.env file"
   - `_get_team_id()` suggestion: "Add LINEAR_TEAM_ID to .adw/.env file"
-- [ ] **AC6**: All existing tests pass after changes
-- [ ] **AC7**: Add tests for new .env loading functionality
+- [x] **AC6**: All existing tests pass after changes
+- [x] **AC7**: Add tests for new .env loading functionality
 
 ## Tasks / Subtasks
 
 ### Task 1: Add python-dotenv Dependency
 **Files**: `pyproject.toml`
 
-- [ ] 1.1 Add `python-dotenv>=1.0.0` to dependencies list (line 11-22)
+- [x] 1.1 Add `python-dotenv>=1.0.0` to dependencies list (line 11-22)
 
 ### Task 2: Implement .env Loading in CLI Bootstrap
 **Files**: `src/adw/cli/app.py`
 
-- [ ] 2.1 Add import for `dotenv` at top of file
-- [ ] 2.2 Create `_load_env_file()` helper function that:
+- [x] 2.1 Add import for `dotenv` at top of file
+- [x] 2.2 Create `_load_env_file()` helper function that:
   - Constructs path: `Path.cwd() / ".adw" / ".env"`
   - Checks if file exists
   - Calls `dotenv.load_dotenv(path)` if exists
   - Silently returns if file doesn't exist
-- [ ] 2.3 Call `_load_env_file()` at the START of `@app.callback()` function (line 96)
+- [x] 2.3 Call `_load_env_file()` at the START of `@app.callback()` function (line 96)
   - Must be called BEFORE verbosity handling (line 112)
   - Environment must be loaded before any command runs
 
 ### Task 3: Update Error Messages in Linear Task Manager
 **Files**: `src/adw/task_managers/linear.py`
 
-- [ ] 3.1 Update `_get_api_key()` suggestion message (line 78)
+- [x] 3.1 Update `_get_api_key()` suggestion message (line 78)
   - Change from: `"Add LINEAR_API_KEY to your .env file"`
   - Change to: `"Add LINEAR_API_KEY to .adw/.env file, then retry"`
-- [ ] 3.2 Update `_get_team_id()` suggestion message (line 97)
+- [x] 3.2 Update `_get_team_id()` suggestion message (line 97)
   - Change from: `"Add LINEAR_TEAM_ID to your .env file"`
   - Change to: `"Add LINEAR_TEAM_ID to .adw/.env file, then retry"`
 
 ### Task 4: Update Gitignore in Minimal Init Mode
 **Files**: `src/adw/config/initializer.py`
 
-- [ ] 4.1 Update `GITIGNORE_CONTENT` constant to include `.env`:
+- [x] 4.1 Update `GITIGNORE_CONTENT` constant to include `.env`:
   ```python
   GITIGNORE_CONTENT = """\
   # ADW run data (can be large)
@@ -82,7 +82,7 @@ so that I can easily manage per-project Linear credentials without global shell 
 ### Task 5: Create .env.template in Minimal Init Mode
 **Files**: `src/adw/config/initializer.py`
 
-- [ ] 5.1 Add `ENV_TEMPLATE_CONTENT` constant:
+- [x] 5.1 Add `ENV_TEMPLATE_CONTENT` constant:
   ```python
   ENV_TEMPLATE_CONTENT = """\
   # ADW Credentials
@@ -98,13 +98,13 @@ so that I can easily manage per-project Linear credentials without global shell 
   LINEAR_TEAM_ID=
   """
   ```
-- [ ] 5.2 Add `_write_env_template()` method to create `.env.template` file
-- [ ] 5.3 Call `_write_env_template()` in `initialize()` method after `_write_gitignore()`
+- [x] 5.2 Add `_write_env_template()` method to create `.env.template` file
+- [x] 5.3 Call `_write_env_template()` in `initialize()` method after `_write_gitignore()`
 
 ### Task 6: Update Wizard Summary Gitignore
 **Files**: `src/adw/cli/wizard/summary.py`
 
-- [ ] 6.1 Update `generate_gitignore()` function (line 522-533) to include `.env`:
+- [x] 6.1 Update `generate_gitignore()` function (line 522-533) to include `.env`:
   ```python
   return """# ADW runtime artifacts
   runs/
@@ -120,7 +120,7 @@ so that I can easily manage per-project Linear credentials without global shell 
 ### Task 7: Add .env.template to Wizard File Generation
 **Files**: `src/adw/cli/wizard/summary.py`
 
-- [ ] 7.1 Add `generate_env_template()` function:
+- [x] 7.1 Add `generate_env_template()` function:
   ```python
   def generate_env_template() -> str:
       """Generate .env.template content for credential setup."""
@@ -138,11 +138,11 @@ so that I can easily manage per-project Linear credentials without global shell 
   LINEAR_TEAM_ID=
   """
   ```
-- [ ] 7.2 Update `_generate_all_files()` (line 322) to include `.env.template`:
+- [x] 7.2 Update `_generate_all_files()` (line 322) to include `.env.template`:
   ```python
   files[".env.template"] = generate_env_template()
   ```
-- [ ] 7.3 Update `_get_files_to_create()` (line 264) to include `.env.template`:
+- [x] 7.3 Update `_get_files_to_create()` (line 264) to include `.env.template`:
   ```python
   files = ["project.yaml", ".gitignore", ".env.template"]
   ```
@@ -150,20 +150,20 @@ so that I can easily manage per-project Linear credentials without global shell 
 ### Task 8: Add Unit Tests
 **Files**: `tests/unit/cli/test_env_loading.py` (new file)
 
-- [ ] 8.1 Test `_load_env_file()` loads from correct path
-- [ ] 8.2 Test `_load_env_file()` silently does nothing if file doesn't exist
-- [ ] 8.3 Test environment variables are available after loading
-- [ ] 8.4 Test that callback loads env before commands run
+- [x] 8.1 Test `_load_env_file()` loads from correct path
+- [x] 8.2 Test `_load_env_file()` silently does nothing if file doesn't exist
+- [x] 8.3 Test environment variables are available after loading
+- [x] 8.4 Test that callback loads env before commands run
 
-**Files**: `tests/unit/config/test_initializer.py` (update)
+**Files**: `tests/unit/config/test_initializer.py` (new file)
 
-- [ ] 8.5 Add test for `.env.template` creation in minimal mode
-- [ ] 8.6 Add test for `.env` in `.gitignore` content
+- [x] 8.5 Add test for `.env.template` creation in minimal mode
+- [x] 8.6 Add test for `.env` in `.gitignore` content
 
-**Files**: `tests/unit/cli/wizard/test_summary.py` (update)
+**Files**: `tests/unit/cli/wizard/test_summary.py` (updated)
 
-- [ ] 8.7 Add test for `.env.template` in generated files
-- [ ] 8.8 Add test for `.env` in gitignore content
+- [x] 8.7 Add test for `.env` in gitignore generation
+- [x] 8.8 Add test for `.env.template` generation
 
 ---
 
