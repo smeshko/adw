@@ -133,9 +133,9 @@ so that deployment commands and PR merge behavior are ready from the start.
 - [x] Format ship summary with commands, hooks, and PR settings
 
 ### Task 4: Update Project YAML Generation
-- [ ] Add ship config to `generate_project_yaml()` in `summary.py`
-- [ ] Handle all ship sub-sections: commands, post_publish, pr
-- [ ] Only include ship section if configured (not defaults)
+- [x] Add ship config to `generate_project_yaml()` in `summary.py`
+- [x] Handle all ship sub-sections: commands, post_publish, pr
+- [x] Only include ship section if configured (not defaults)
 
 ### Task 5: Write Unit Tests
 - [ ] Create `tests/unit/cli/wizard/test_ship.py`
