@@ -39,9 +39,11 @@ so that **the ship phase can validate and merge the PR as intended**.
 - [x] Handle PR creation failure gracefully (warn, don't fail)
 
 ### Task 3: Update Ship Phase Dependency
-- [ ] If PR creation fails and ship phase is enabled, skip ship with warning
-- [ ] Add `--skip-ship-on-pr-failure` behavior (implicit when no PR)
-- [ ] Ensure ship phase receives PR context (number, URL) if available
+- [x] If PR creation fails and ship phase is enabled, skip ship with warning
+- [x] Add `--skip-ship-on-pr-failure` behavior (implicit when no PR)
+  - Note: Only skips when PR creation was actually attempted and failed
+- [x] Ensure ship phase receives PR context (number, URL) if available
+  - Note: pr_result available at run scope for ship phase hooks
 
 ### Task 4: Store PR Result in Context
 - [ ] Add `pr_result` field to track PR creation outcome

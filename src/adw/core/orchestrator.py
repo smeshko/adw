@@ -347,6 +347,7 @@ class Orchestrator:
 
         # Track PR result at run scope for ship phase and completion summary (ISS-031)
         pr_result = None
+        pr_creation_attempted = False
 
         try:
             with self.interruption_handler.protected_execution(context):
@@ -363,11 +364,41 @@ class Orchestrator:
                         )
                         continue
 
+                    # ISS-031: Skip ship phase if PR creation was attempted but failed
+                    # Only skip if we actually tried to create a PR and it failed
+                    # If PR creation wasn't attempted (no progress_display), run ship
+                    if (
+                        phase == "ship"
+                        and pr_creation_attempted
+                        and (pr_result is None or not pr_result.success)
+                    ):
+                        reason = (
+                            pr_result.reason
+                            if pr_result
+                            else "PR creation failed"
+                        )
+                        logger.warning(
+                            "Skipping ship phase - PR not available",
+                            extra={
+                                "phase": phase,
+                                "run_id": context.run_id,
+                                "reason": reason,
+                            },
+                        )
+                        if self.progress_display:
+                            self.progress_display.console.print(
+                                f"[yellow]⚠[/yellow] Skipping ship phase: {reason}"
+                            )
+                        continue
+
                     context = self._execute_phase_with_transitions(context, phase)
 
                     # ISS-031: Create PR immediately after document phase (before ship)
                     # This ensures ship phase can validate and merge the PR
                     if phase == "document" and self.git_config.auto_create_pr:
+                        # Only mark as attempted if we have the capability to create PRs
+                        if self.progress_display:
+                            pr_creation_attempted = True
                         pr_result = self._maybe_create_pr_after_document(context)
 
                 # All phases complete
@@ -960,6 +991,7 @@ class Orchestrator:
 
         # Track PR result at run scope for ship phase and completion summary (ISS-031)
         pr_result = None
+        pr_creation_attempted = False
 
         try:
             with self.interruption_handler.protected_execution(context):
@@ -976,6 +1008,33 @@ class Orchestrator:
                         )
                         continue
 
+                    # ISS-031: Skip ship phase if PR creation was attempted but failed
+                    # Only skip if we actually tried to create a PR and it failed
+                    # If PR creation wasn't attempted (no progress_display), run ship
+                    if (
+                        phase == "ship"
+                        and pr_creation_attempted
+                        and (pr_result is None or not pr_result.success)
+                    ):
+                        reason = (
+                            pr_result.reason
+                            if pr_result
+                            else "PR creation failed"
+                        )
+                        logger.warning(
+                            "Skipping ship phase - PR not available",
+                            extra={
+                                "phase": phase,
+                                "run_id": context.run_id,
+                                "reason": reason,
+                            },
+                        )
+                        if self.progress_display:
+                            self.progress_display.console.print(
+                                f"[yellow]⚠[/yellow] Skipping ship phase: {reason}"
+                            )
+                        continue
+
                     # Use source artifacts only for the resume phase
                     # (subsequent phases will use artifacts from current run)
                     artifacts = source_artifacts if phase == resume_phase else None
@@ -986,6 +1045,9 @@ class Orchestrator:
                     # ISS-031: Create PR immediately after document phase (before ship)
                     # This ensures ship phase can validate and merge the PR
                     if phase == "document" and self.git_config.auto_create_pr:
+                        # Only mark as attempted if we have the capability to create PRs
+                        if self.progress_display:
+                            pr_creation_attempted = True
                         pr_result = self._maybe_create_pr_after_document(context)
 
                 # All phases complete
