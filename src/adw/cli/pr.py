@@ -85,6 +85,56 @@ def check_git_remote() -> tuple[bool, str]:
         return False, ""
 
 
+def push_branch_to_remote(
+    branch_name: str,
+    *,
+    working_dir: Path | None = None,
+) -> tuple[bool, str]:
+    """Push a branch to the remote repository.
+
+    Pushes the specified branch to origin with --set-upstream flag to
+    establish tracking. This is required before creating a PR via gh CLI.
+
+    ISS-032: Added to support worktree-based PR creation where the
+    feature branch is created locally and needs to be pushed before
+    the PR can be created.
+
+    Args:
+        branch_name: Name of the branch to push.
+        working_dir: Optional working directory for git command.
+
+    Returns:
+        Tuple of (success, error_message).
+        If success, error_message is empty.
+
+    Example:
+        >>> ok, err = push_branch_to_remote("feature/add-auth")
+        >>> if not ok:
+        ...     print(f"Push failed: {err}")
+    """
+    cmd = ["git", "push", "-u", "origin", branch_name]
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=120,  # Allow more time for large pushes
+            cwd=working_dir,
+        )
+
+        if result.returncode != 0:
+            error = result.stderr.strip() or result.stdout.strip()
+            return False, error
+
+        return True, ""
+
+    except subprocess.TimeoutExpired:
+        return False, "Push timed out after 120 seconds"
+    except Exception as e:
+        return False, str(e)
+
+
 def check_gh_authenticated() -> tuple[bool, str]:
     """Check if gh CLI is authenticated.
 
@@ -381,6 +431,21 @@ def auto_create_pr(
 
     # Get base branch from config (ISS-026: defaults to staging)
     base_branch = _get_base_branch(run_dir)
+
+    # Push branch to remote before creating PR (ISS-032)
+    # This is required when using worktrees since the feature branch is
+    # created locally and needs to be pushed before gh pr create can work
+    if context.branch_name:
+        push_ok, push_error = push_branch_to_remote(
+            context.branch_name,
+            working_dir=context.worktree_path,
+        )
+        if not push_ok:
+            return AutoPRResult(
+                success=False,
+                reason=f"Failed to push branch: {push_error}",
+                suggestion="Check git remote configuration and try 'git push' manually",
+            )
 
     # Create the PR
     try:
@@ -695,6 +760,24 @@ def pr(
         # Still show manual instructions as fallback
         display_manual_instructions(pr_body, pr_title, base_branch)
         raise typer.Exit(1)
+
+    # Push branch to remote before creating PR (ISS-032)
+    if context.branch_name:
+        console.print(f"[dim]Pushing branch:[/] {context.branch_name}")
+        push_ok, push_error = push_branch_to_remote(
+            context.branch_name,
+            working_dir=context.worktree_path,
+        )
+        if not push_ok:
+            console.print(
+                Panel(
+                    f"[red]Failed to push branch[/]\n\n{push_error}\n\n"
+                    "[dim]Try 'git push' manually[/]",
+                    title="[red]GIT_PUSH_FAILED[/]",
+                    border_style="red",
+                )
+            )
+            raise typer.Exit(1)
 
     # Create the PR
     console.print(f"[bold]Creating PR from run:[/] {context.run_id}")
