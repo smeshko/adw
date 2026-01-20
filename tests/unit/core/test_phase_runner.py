@@ -51,9 +51,11 @@ def command_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def mock_command_resolver(command_dir: Path) -> MagicMock:
+def mock_command_resolver(command_dir: Path, tmp_path: Path) -> MagicMock:
     """Create a mock command resolver with real temp path."""
     resolver = MagicMock(spec=CommandResolver)
+    # Set project_root to tmp_path (used by _load_project_config)
+    resolver.project_root = tmp_path
     resolved = ResolvedCommand(
         name="plan",
         path=command_dir,
