@@ -396,21 +396,26 @@ class WorktreeManager:
         self,
         run_id: str,
         source_branch: str | None = None,
+        branch_name: str | None = None,
     ) -> tuple[Path, str]:
         """Create a new worktree for the given run.
 
         Creates a git worktree at `<project_root>/<base_dir>/<run_id>/`
-        with a new branch named `adw/<run_id>`.
+        with a new branch. The branch name can be specified explicitly
+        (e.g., 'feature/add-auth') or defaults to 'adw/<run_id>'.
 
         Args:
             run_id: ULID identifier for this run.
             source_branch: Optional branch to create the worktree from.
                 If None, uses the current HEAD.
+            branch_name: Optional explicit branch name for the worktree.
+                If None, defaults to 'adw/<run_id>'. Use this to create
+                human-readable feature branches like 'feature/add-auth'.
 
         Returns:
             Tuple of (worktree_path, branch_name) where:
                 - worktree_path: Absolute path to the created worktree directory.
-                - branch_name: Name of the created git branch (e.g., 'adw/<run_id>').
+                - branch_name: Name of the created git branch.
 
         Raises:
             ConfigError: If git is not available.
@@ -418,7 +423,7 @@ class WorktreeManager:
                 or if branch creation fails.
         """
         worktree_path = self.worktree_base_path / run_id
-        branch_name = f"adw/{run_id}"
+        branch_name = branch_name or f"adw/{run_id}"
 
         # Check if worktree path already exists
         if worktree_path.exists():

@@ -27,6 +27,7 @@ from adw.core.run_directory import RunDirectoryManager
 from adw.core.run_lookup import RunLookup
 from adw.core.snapshot_manager import SnapshotManager
 from adw.exceptions import ADWError, ConfigError, WorktreeError
+from adw.hooks.git_branch import sanitize_branch_name
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
 from adw.models.phase import PhaseResult
 from adw.worktree import ConcurrentRunManager
@@ -300,11 +301,11 @@ class Orchestrator:
             and self._worktree_manager is not None
         )
 
-        # Create worktree if enabled (Story 10.1, ISS-025)
+        # Create worktree if enabled (Story 10.1, ISS-025, ISS-032)
         worktree_path: Path | None = None
         branch_name: str | None = None
         if should_use_worktree:
-            worktree_result = self._create_worktree_for_run(run_id)
+            worktree_result = self._create_worktree_for_run(run_id, feature_description)
             # If worktree creation failed, update flag to reflect reality
             if worktree_result is None:
                 should_use_worktree = False
@@ -724,11 +725,11 @@ class Orchestrator:
             and self._worktree_manager is not None
         )
 
-        # Create worktree if enabled (ISS-025)
+        # Create worktree if enabled (ISS-025, ISS-032)
         worktree_path: Path | None = None
         branch_name: str | None = None
         if should_use_worktree:
-            worktree_result = self._create_worktree_for_run(run_id)
+            worktree_result = self._create_worktree_for_run(run_id, feature_description)
             # If worktree creation failed, update flag to reflect reality
             if worktree_result is None:
                 should_use_worktree = False
@@ -739,7 +740,7 @@ class Orchestrator:
             else:
                 worktree_path, branch_name = worktree_result
 
-        # Create initial context (ISS-025: branch_name now populated)
+        # Create initial context (ISS-025, ISS-032: branch_name now populated)
         context = RunContext(
             run_id=run_id,
             feature_description=feature_description,
@@ -1846,12 +1847,19 @@ class Orchestrator:
             )
             self.progress_display.console.print()
 
-    def _create_worktree_for_run(self, run_id: str) -> tuple[Path, str] | None:
+    def _create_worktree_for_run(
+        self, run_id: str, feature_description: str
+    ) -> tuple[Path, str] | None:
         """Create a worktree for the given run.
 
         Creates a git worktree in the configured base directory for isolated
         execution of this run. Checks concurrent run limits before creation
         and registers the run after successful creation.
+
+        When git integration is enabled, the worktree is created with a
+        human-readable feature branch name (e.g., 'feature/add-auth') instead
+        of the default 'adw/<run_id>' format. This allows the branch to be
+        meaningful in git history and PRs.
 
         ISS-025: Branch creation failures are now fatal. If the worktree or
         branch cannot be created, this method raises WorktreeError instead
@@ -1859,10 +1867,12 @@ class Orchestrator:
 
         Args:
             run_id: ULID identifier for this run.
+            feature_description: Human-readable feature description used to
+                generate the branch name when git integration is enabled.
 
         Returns:
             Tuple of (worktree_path, branch_name) if successful, or None if
-            worktree is not configured. Branch name is in format 'adw/<run_id>'.
+            worktree is not configured. Branch name format depends on git config.
 
         Raises:
             MaxConcurrentRunsError: If the maximum concurrent runs limit is reached.
@@ -1876,8 +1886,19 @@ class Orchestrator:
             # This will raise MaxConcurrentRunsError if at limit
             self._concurrent_run_manager.check_can_start_or_raise()
 
+        # Calculate feature branch name if git integration is enabled (ISS-032)
+        # This creates a human-readable branch like 'feature/add-auth' instead
+        # of the opaque 'adw/<run_id>' format
+        feature_branch_name: str | None = None
+        if self.git_config.enabled and feature_description:
+            sanitized = sanitize_branch_name(feature_description)
+            if sanitized:
+                feature_branch_name = self.git_config.branch_prefix + sanitized
+
         try:
-            worktree_path, branch_name = self._worktree_manager.create_worktree(run_id)
+            worktree_path, branch_name = self._worktree_manager.create_worktree(
+                run_id, branch_name=feature_branch_name
+            )
             logger.info(
                 "Created worktree for run",
                 extra={
