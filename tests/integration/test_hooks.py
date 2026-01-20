@@ -201,7 +201,8 @@ class TestHookIntegration:
 
         assert result.is_success
         # Default working directory is cwd
-        assert str(Path.cwd()) in result.stdout
+        # Use samefile() for macOS case-insensitive filesystem compatibility
+        assert Path.cwd().samefile(Path(result.stdout.strip()))
 
     def test_working_directory_override(
         self,

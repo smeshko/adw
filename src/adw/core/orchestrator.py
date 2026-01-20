@@ -33,6 +33,7 @@ from adw.worktree import ConcurrentRunManager
 from adw.worktree.manager import WorktreeManager
 
 if TYPE_CHECKING:
+    from adw.cli.pr import AutoPRResult
     from adw.cli.progress import ProgressDisplay
     from adw.core.artifact_manager import ArtifactManager
     from adw.task_managers.labels import LabelManager
@@ -344,6 +345,10 @@ class Orchestrator:
             extra={"run_id": run_id, "feature": feature_description},
         )
 
+        # Track PR result at run scope for ship phase and completion summary (ISS-031)
+        pr_result = None
+        pr_creation_attempted = False
+
         try:
             with self.interruption_handler.protected_execution(context):
                 for phase in PHASE_SEQUENCE:
@@ -359,7 +364,45 @@ class Orchestrator:
                         )
                         continue
 
+                    # ISS-031: Skip ship phase if PR creation was attempted but failed
+                    # Only skip if we actually tried to create a PR and it failed
+                    # If PR creation wasn't attempted (no progress_display), run ship
+                    if (
+                        phase == "ship"
+                        and pr_creation_attempted
+                        and (pr_result is None or not pr_result.success)
+                    ):
+                        reason = pr_result.reason if pr_result else "PR creation failed"
+                        logger.warning(
+                            "Skipping ship phase - PR not available",
+                            extra={
+                                "phase": phase,
+                                "run_id": context.run_id,
+                                "reason": reason,
+                            },
+                        )
+                        if self.progress_display:
+                            self.progress_display.console.print(
+                                f"[yellow]⚠[/yellow] Skipping ship phase: {reason}"
+                            )
+                        continue
+
                     context = self._execute_phase_with_transitions(context, phase)
+
+                    # ISS-031: Create PR immediately after document phase (before ship)
+                    # This ensures ship phase can validate and merge the PR
+                    if phase == "document" and self.git_config.auto_create_pr:
+                        # Only mark as attempted if we have the capability to create PRs
+                        if self.progress_display:
+                            pr_creation_attempted = True
+                        pr_result = self._maybe_create_pr_after_document(context)
+
+                        # Store PR URL in context for ship phase hooks (ISS-031)
+                        if pr_result and pr_result.success and pr_result.pr_url:
+                            context = context.model_copy(
+                                update={"pr_url": pr_result.pr_url}
+                            )
+                            self.context_manager.save(context)
 
                 # All phases complete
                 context = context.model_copy(
@@ -383,16 +426,8 @@ class Orchestrator:
                     phases_completed=list(context.phase_history),
                 )
 
-                # Attempt auto-PR creation if enabled (Story ISS-011)
-                # This runs regardless of progress_display to ensure PR is created
-                pr_result = None
-                if self.progress_display:
-                    pr_result = self.progress_display.try_auto_create_pr(
-                        run_id=context.run_id,
-                        context=context,
-                        runs_dir=self.runs_dir,
-                        auto_create_pr_enabled=self.git_config.auto_create_pr,
-                    )
+                # Note: PR creation moved to after document phase (ISS-031)
+                # pr_result is already set from _maybe_create_pr_after_document()
 
                 # Post run completion comment to task manager (Story 12.6)
                 # Non-blocking: catch and log any errors, never fail the run
@@ -957,6 +992,10 @@ class Orchestrator:
         # Load artifacts from completed phases for context
         source_artifacts = self._load_artifacts_for_resume(context, resume_phase)
 
+        # Track PR result at run scope for ship phase and completion summary (ISS-031)
+        pr_result = None
+        pr_creation_attempted = False
+
         try:
             with self.interruption_handler.protected_execution(context):
                 for phase in PHASE_SEQUENCE[start_idx:]:
@@ -972,12 +1011,50 @@ class Orchestrator:
                         )
                         continue
 
+                    # ISS-031: Skip ship phase if PR creation was attempted but failed
+                    # Only skip if we actually tried to create a PR and it failed
+                    # If PR creation wasn't attempted (no progress_display), run ship
+                    if (
+                        phase == "ship"
+                        and pr_creation_attempted
+                        and (pr_result is None or not pr_result.success)
+                    ):
+                        reason = pr_result.reason if pr_result else "PR creation failed"
+                        logger.warning(
+                            "Skipping ship phase - PR not available",
+                            extra={
+                                "phase": phase,
+                                "run_id": context.run_id,
+                                "reason": reason,
+                            },
+                        )
+                        if self.progress_display:
+                            self.progress_display.console.print(
+                                f"[yellow]⚠[/yellow] Skipping ship phase: {reason}"
+                            )
+                        continue
+
                     # Use source artifacts only for the resume phase
                     # (subsequent phases will use artifacts from current run)
                     artifacts = source_artifacts if phase == resume_phase else None
                     context = self._execute_phase_with_transitions(
                         context, phase, artifacts_override=artifacts
                     )
+
+                    # ISS-031: Create PR immediately after document phase (before ship)
+                    # This ensures ship phase can validate and merge the PR
+                    if phase == "document" and self.git_config.auto_create_pr:
+                        # Only mark as attempted if we have the capability to create PRs
+                        if self.progress_display:
+                            pr_creation_attempted = True
+                        pr_result = self._maybe_create_pr_after_document(context)
+
+                        # Store PR URL in context for ship phase hooks (ISS-031)
+                        if pr_result and pr_result.success and pr_result.pr_url:
+                            context = context.model_copy(
+                                update={"pr_url": pr_result.pr_url}
+                            )
+                            self.context_manager.save(context)
 
                 # All phases complete
                 context = context.model_copy(
@@ -1011,13 +1088,8 @@ class Orchestrator:
                             * 1000
                         )
 
-                    # Attempt auto-PR creation if enabled (Story ISS-011)
-                    pr_result = self.progress_display.try_auto_create_pr(
-                        run_id=context.run_id,
-                        context=context,
-                        runs_dir=self.runs_dir,
-                        auto_create_pr_enabled=self.git_config.auto_create_pr,
-                    )
+                    # Note: PR creation moved to after document phase (ISS-031)
+                    # pr_result is already set from _maybe_create_pr_after_document()
 
                     self.progress_display.show_pipeline_summary(
                         completed_phases=context.phase_history,
@@ -1615,6 +1687,74 @@ class Orchestrator:
         )
 
         return updated_context
+
+    def _maybe_create_pr_after_document(
+        self,
+        context: RunContext,
+    ) -> "AutoPRResult | None":
+        """Create PR after document phase completes (ISS-031).
+
+        This method is called immediately after the document phase completes,
+        before the ship phase runs. This ensures the ship phase can find and
+        validate the PR for merging.
+
+        This method is non-blocking - PR creation failures are logged but don't
+        fail the run. If PR creation fails and ship phase is enabled, ship will
+        fail gracefully in its pre.sh hook.
+
+        Args:
+            context: Current run context.
+
+        Returns:
+            AutoPRResult with outcome, or None if PR creation failed or
+            progress_display is not available.
+        """
+        if not self.progress_display:
+            logger.debug(
+                "No progress_display available for PR creation",
+                extra={"run_id": context.run_id},
+            )
+            return None
+
+        logger.info(
+            "Creating PR after document phase",
+            extra={"run_id": context.run_id, "phase": "document"},
+        )
+
+        try:
+            pr_result = self.progress_display.try_auto_create_pr(
+                run_id=context.run_id,
+                context=context,
+                runs_dir=self.runs_dir,
+                auto_create_pr_enabled=True,  # Already checked in caller
+            )
+
+            # PR creation failed - warn about potential ship phase failure
+            if (
+                pr_result
+                and not pr_result.success
+                and self._phase_runner.is_phase_enabled("ship")
+            ):
+                logger.warning(
+                    "PR creation failed, ship phase may fail",
+                    extra={
+                        "run_id": context.run_id,
+                        "reason": pr_result.reason,
+                    },
+                )
+
+            return pr_result
+
+        except Exception as e:
+            # Non-blocking: log warning and continue
+            logger.warning(
+                "PR creation after document phase failed (non-blocking)",
+                extra={
+                    "run_id": context.run_id,
+                    "error": str(e),
+                },
+            )
+            return None
 
     def _maybe_close_task(
         self,

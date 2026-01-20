@@ -15,14 +15,14 @@ so that **I can customize phase settings (like `enabled: false`, `timeout_second
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: Project-level `config.yaml` files are read from `.adw/commands/<phase>/config.yaml` regardless of whether `prompt.md` exists in that directory
-- [ ] **AC2**: When a project has only `config.yaml` (no `prompt.md`), the command resolution still uses the bundled prompt but merges the project's config
-- [ ] **AC3**: Config resolution follows the hierarchy: project config → user config → bundled config (layered merge)
-- [ ] **AC4**: A phase can be disabled by creating `.adw/commands/<phase>/config.yaml` with `enabled: false` without any `prompt.md`
-- [ ] **AC5**: Phase timeout can be overridden via project config without duplicating the prompt
-- [ ] **AC6**: All existing tests pass (2959+ tests)
-- [ ] **AC7**: New unit tests verify the separate config resolution path
-- [ ] **AC8**: Integration test demonstrates disabling a phase with config-only directory
+- [x] **AC1**: Project-level `config.yaml` files are read from `.adw/commands/<phase>/config.yaml` regardless of whether `prompt.md` exists in that directory
+- [x] **AC2**: When a project has only `config.yaml` (no `prompt.md`), the command resolution still uses the bundled prompt but merges the project's config
+- [x] **AC3**: Config resolution follows the hierarchy: project config → user config → bundled config (layered merge)
+- [x] **AC4**: A phase can be disabled by creating `.adw/commands/<phase>/config.yaml` with `enabled: false` without any `prompt.md`
+- [x] **AC5**: Phase timeout can be overridden via project config without duplicating the prompt
+- [x] **AC6**: All existing tests pass (2959+ tests)
+- [x] **AC7**: New unit tests verify the separate config resolution path
+- [x] **AC8**: Integration test demonstrates disabling a phase with config-only directory
 
 ## Tasks / Subtasks
 
@@ -30,45 +30,45 @@ so that **I can customize phase settings (like `enabled: false`, `timeout_second
 
 **Purpose**: Load project-level config.yaml separately from command resolution.
 
-- [ ] 1.1 Add `_load_project_config(phase: str) -> CommandConfig | None` method to `PhaseRunner`
-- [ ] 1.2 Method checks `{project_root}/.adw/commands/{phase}/config.yaml` directly (bypass command resolution)
-- [ ] 1.3 Returns parsed `CommandConfig` if file exists, `None` otherwise
-- [ ] 1.4 Update `_get_merged_config` to call `_load_project_config` and merge on top of resolved command's config
+- [x] 1.1 Add `_load_project_config(phase: str) -> CommandConfig | None` method to `PhaseRunner`
+- [x] 1.2 Method checks `{project_root}/.adw/commands/{phase}/config.yaml` directly (bypass command resolution)
+- [x] 1.3 Returns parsed `CommandConfig` if file exists, `None` otherwise
+- [x] 1.4 Update `_get_merged_config` to call `_load_project_config` and merge on top of resolved command's config
 
 ### Task 2: Update _get_merged_config to Merge Layered Configs
 
 **Purpose**: Implement proper config layering - project config overrides resolved command config.
 
-- [ ] 2.1 Modify `_get_merged_config` to accept optional `project_config: CommandConfig | None`
-- [ ] 2.2 Implement merge logic: command config values, then project config overrides
-- [ ] 2.3 For dict fields (`input_files`), merge with project values taking precedence
-- [ ] 2.4 For scalar fields (`enabled`, `timeout_seconds`), project value wins if set
+- [x] 2.1 Modify `_get_merged_config` to accept optional `project_config: CommandConfig | None`
+- [x] 2.2 Implement merge logic: command config values, then project config overrides
+- [x] 2.3 For dict fields (`input_files`), merge with project values taking precedence
+- [x] 2.4 For scalar fields (`enabled`, `timeout_seconds`), project value wins if set
 
 ### Task 3: Update is_phase_enabled to Check Project Config
 
 **Purpose**: Phase enabled check must consider project config override.
 
-- [ ] 3.1 Update `is_phase_enabled` to also call `_load_project_config`
-- [ ] 3.2 If project config has `enabled` set, it overrides command config
-- [ ] 3.3 Return False if either config disables the phase
+- [x] 3.1 Update `is_phase_enabled` to also call `_load_project_config`
+- [x] 3.2 If project config has `enabled` set, it overrides command config
+- [x] 3.3 Return False if either config disables the phase
 
 ### Task 4: Add Unit Tests
 
 **Purpose**: Verify config resolution works correctly.
 
-- [ ] 4.1 Test `_load_project_config` returns config when file exists
-- [ ] 4.2 Test `_load_project_config` returns None when file doesn't exist
-- [ ] 4.3 Test `_get_merged_config` properly merges project config over command config
-- [ ] 4.4 Test `is_phase_enabled` respects project config override
-- [ ] 4.5 Test timeout_seconds from project config is used
+- [x] 4.1 Test `_load_project_config` returns config when file exists
+- [x] 4.2 Test `_load_project_config` returns None when file doesn't exist
+- [x] 4.3 Test `_get_merged_config` properly merges project config over command config
+- [x] 4.4 Test `is_phase_enabled` respects project config override
+- [x] 4.5 Test timeout_seconds from project config is used
 
 ### Task 5: Add Integration Test
 
 **Purpose**: End-to-end test demonstrating the fix.
 
-- [ ] 5.1 Create test fixture with `.adw/commands/ship/config.yaml` containing `enabled: false` (no prompt.md)
-- [ ] 5.2 Test that ship phase is skipped during pipeline execution
-- [ ] 5.3 Test that other phases still execute normally with bundled commands
+- [x] 5.1 Create test fixture with `.adw/commands/ship/config.yaml` containing `enabled: false` (no prompt.md)
+- [x] 5.2 Test that ship phase is skipped during pipeline execution
+- [x] 5.3 Test that other phases still execute normally with bundled commands
 
 ---
 

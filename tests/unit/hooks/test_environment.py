@@ -337,3 +337,38 @@ class TestPortsEnvAutoSourcing:
         # Should use explicit file's values
         assert env["ADW_PORTS_FILE"] == str(explicit_ports_file)
         assert env["BACKEND_PORT"] == "9200"
+
+
+class TestPRURLEnvironmentVariable:
+    """Tests for ADW_PR_URL environment variable (ISS-031)."""
+
+    @pytest.fixture
+    def run_context(self) -> RunContext:
+        """Create a sample RunContext for testing."""
+        return RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test feature description",
+            current_phase="ship",
+            started_at=datetime.now(),
+        )
+
+    def test_includes_pr_url_when_set(self, run_context: RunContext) -> None:
+        """Test that ADW_PR_URL is included when pr_url is set in context.
+
+        ISS-031: Ship phase hooks need access to the PR URL for merge operations.
+        """
+        context_with_pr = run_context.model_copy(
+            update={"pr_url": "https://github.com/test/repo/pull/123"}
+        )
+        env = build_hook_environment(context_with_pr, "ship")
+        assert "ADW_PR_URL" in env
+        assert env["ADW_PR_URL"] == "https://github.com/test/repo/pull/123"
+
+    def test_excludes_pr_url_when_not_set(self, run_context: RunContext) -> None:
+        """Test that ADW_PR_URL is not included when pr_url is None.
+
+        ISS-031: When no PR was created, ADW_PR_URL should not be in env.
+        """
+        # run_context has pr_url=None by default
+        env = build_hook_environment(run_context, "ship")
+        assert "ADW_PR_URL" not in env

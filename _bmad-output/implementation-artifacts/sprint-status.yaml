@@ -74,7 +74,7 @@ issues:
   ISS-028-sdk-no-env-file-for-linear-credentials: fixed  # Major - SDK doesn't auto-load .adw/.env for credentials
   ISS-029-phase-config-not-honored: fixed  # Critical - Phase timeout/enabled from command configs not applied
   ISS-030-project-config-ignored-without-prompt: reported  # Critical - Project config.yaml ignored if no prompt.md
-  ISS-031-pr-creation-after-document-phase: reported  # Major - Auto-PR runs after all phases, ship expects PR to exist
+  ISS-031-pr-creation-after-document-phase: fixed  # Major - Auto-PR runs after all phases, ship expects PR to exist
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -381,4 +381,4 @@ development_status:
   # Bugfix (from ISS-030) - CRITICAL
   bugfix-ISS-030-project-config-ignored-without-prompt: done
   # UX Fix (from ISS-031) - MAJOR
-  ux-fix-ISS-031-pr-creation-after-document-phase: ready-for-dev
+  ux-fix-ISS-031-pr-creation-after-document-phase: done

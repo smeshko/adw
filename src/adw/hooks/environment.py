@@ -114,6 +114,11 @@ def build_hook_environment(
     if context.branch_name is not None:
         adw_vars["ADW_BRANCH_NAME"] = context.branch_name
 
+    # Add PR URL variable (ISS-031)
+    # This allows ship phase hooks to know the PR URL for merge operations
+    if context.pr_url is not None:
+        adw_vars["ADW_PR_URL"] = context.pr_url
+
     # Add port allocation variables if provided
     if port_allocation is not None:
         adw_vars["ADW_BACKEND_PORT"] = str(port_allocation.backend_port)
