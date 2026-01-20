@@ -53,9 +53,12 @@ so that **the ship phase can validate and merge the PR as intended**.
 - [x] Ship pre.sh can use `ADW_PR_URL` if set by SDK
 
 ### Task 5: Update Completion Summary Logic
-- [ ] PR result should still appear in completion summary
-- [ ] Handle case where PR was created mid-run (not end-of-run)
-- [ ] Ensure PR URL is available for task manager completion comment
+- [x] PR result should still appear in completion summary
+  - Note: pr_result passed to show_pipeline_summary() as before
+- [x] Handle case where PR was created mid-run (not end-of-run)
+  - Note: pr_result now tracked from document phase, not end-of-run
+- [x] Ensure PR URL is available for task manager completion comment
+  - Note: pr_result.pr_url passed to post_completion_comment() and _maybe_close_task()
 
 ### Task 6: Write Tests
 - [ ] Unit test: PR is created after document phase, before ship
