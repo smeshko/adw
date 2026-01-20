@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-031 - PR Creation After Document Phase
 
-Status: ready-for-dev
+Status: completed
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-20
@@ -15,13 +15,17 @@ so that **the ship phase can validate and merge the PR as intended**.
 
 ## Acceptance Criteria
 
-- [ ] PR creation logic moves from post-run (after all phases) to post-document (before ship)
-- [ ] When `auto_create_pr: true` and document phase completes, PR is created before ship starts
-- [ ] Ship phase `pre.sh` hook successfully finds the PR created by document phase
-- [ ] If PR creation fails, ship phase is skipped (not the entire run)
-- [ ] PR result is stored in context and available to ship phase
-- [ ] Existing behavior preserved when ship phase is disabled
-- [ ] Unit tests cover the new timing logic
+- [x] PR creation logic moves from post-run (after all phases) to post-document (before ship)
+- [x] When `auto_create_pr: true` and document phase completes, PR is created before ship starts
+- [x] Ship phase `pre.sh` hook successfully finds the PR created by document phase
+  - Note: ADW_PR_URL environment variable now available to hooks
+- [x] If PR creation fails, ship phase is skipped (not the entire run)
+- [x] PR result is stored in context and available to ship phase
+  - Note: pr_url field added to RunContext, persisted after PR creation
+- [x] Existing behavior preserved when ship phase is disabled
+  - Note: Tested with test_ship_runs_when_auto_create_pr_disabled
+- [x] Unit tests cover the new timing logic
+  - Note: 7 new tests in TestPRCreationAfterDocumentPhase and TestPRURLEnvironmentVariable
 
 ## Tasks / Subtasks
 
