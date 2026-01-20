@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 29
+issue_counter: 31
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -73,6 +73,8 @@ issues:
   ISS-027-init-wizard-phase-config-ux-issues: reported  # Major - Multiple UX issues in wizard phase configuration
   ISS-028-sdk-no-env-file-for-linear-credentials: fixed  # Major - SDK doesn't auto-load .adw/.env for credentials
   ISS-029-phase-config-not-honored: fixed  # Critical - Phase timeout/enabled from command configs not applied
+  ISS-030-project-config-ignored-without-prompt: reported  # Critical - Project config.yaml ignored if no prompt.md
+  ISS-031-pr-creation-after-document-phase: reported  # Major - Auto-PR runs after all phases, ship expects PR to exist
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -376,3 +378,7 @@ development_status:
   # Goal: Fix phase timeout/enabled settings from command configs being ignored
   # ═══════════════════════════════════════════════════════════════════════════
   bugfix-ISS-029-phase-config-not-honored: done
+  # Bugfix (from ISS-030) - CRITICAL
+  bugfix-ISS-030-project-config-ignored-without-prompt: ready-for-dev
+  # UX Fix (from ISS-031) - MAJOR
+  ux-fix-ISS-031-pr-creation-after-document-phase: ready-for-dev
