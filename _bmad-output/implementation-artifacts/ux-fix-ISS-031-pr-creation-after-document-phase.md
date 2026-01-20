@@ -26,10 +26,10 @@ so that **the ship phase can validate and merge the PR as intended**.
 ## Tasks / Subtasks
 
 ### Task 1: Move PR Creation into Phase Loop
-- [ ] In `orchestrator.py`, detect when document phase completes
-- [ ] Call `try_auto_create_pr()` immediately after document phase (not after loop)
-- [ ] Store `pr_result` in a variable accessible to subsequent logic
-- [ ] Remove PR creation from post-run completion block (lines ~386-394)
+- [x] In `orchestrator.py`, detect when document phase completes
+- [x] Call `try_auto_create_pr()` immediately after document phase (not after loop)
+- [x] Store `pr_result` in a variable accessible to subsequent logic
+- [x] Remove PR creation from post-run completion block (lines ~386-394)
 
 ### Task 2: Add Post-Document PR Creation Hook Point
 - [ ] In `_execute_phase_with_transitions()`, add special handling for document phase
