@@ -531,7 +531,8 @@ class PhaseRunner:
 
         Args:
             command_config: Configuration from the resolved command's config.yaml.
-            project_config: Configuration from project's .adw/commands/{phase}/config.yaml.
+            project_config: Configuration from project's
+                .adw/commands/{phase}/config.yaml.
 
         Returns:
             PhaseConfig with merged settings.
@@ -741,7 +742,10 @@ class PhaseRunner:
             # Only override enabled if the project config EXPLICITLY sets it
             # (not just using Pydantic's default=True)
             project_config = self._load_project_config(phase)
-            if project_config is not None and "enabled" in project_config.model_fields_set:
+            if (
+                project_config is not None
+                and "enabled" in project_config.model_fields_set
+            ):
                 # Project config explicitly set enabled - use its value
                 enabled = project_config.enabled
 
