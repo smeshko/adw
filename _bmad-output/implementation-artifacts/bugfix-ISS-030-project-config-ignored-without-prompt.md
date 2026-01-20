@@ -1,6 +1,6 @@
 # Bugfix ISS-030: Project command config.yaml ignored without prompt.md
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: Bugfix (Critical)
 Created: 2026-01-20

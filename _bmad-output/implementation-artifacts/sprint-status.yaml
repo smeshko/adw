@@ -379,6 +379,6 @@ development_status:
   # ═══════════════════════════════════════════════════════════════════════════
   bugfix-ISS-029-phase-config-not-honored: done
   # Bugfix (from ISS-030) - CRITICAL
-  bugfix-ISS-030-project-config-ignored-without-prompt: ready-for-dev
+  bugfix-ISS-030-project-config-ignored-without-prompt: done
   # UX Fix (from ISS-031) - MAJOR
   ux-fix-ISS-031-pr-creation-after-document-phase: ready-for-dev
