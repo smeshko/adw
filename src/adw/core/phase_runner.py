@@ -513,6 +513,66 @@ class PhaseRunner:
         # Return PhaseConfig
         return PhaseConfig(**merged_data) if merged_data else PhaseConfig()
 
+    def _merge_configs_with_project(
+        self,
+        command_config: CommandConfig | None,
+        project_config: CommandConfig | None,
+    ) -> PhaseConfig:
+        """Merge command config with project config overlay (ISS-030).
+
+        Project config values override command config values when set.
+        This enables projects to customize phase settings without duplicating
+        the command prompt.
+
+        Merge strategy:
+        - Start with command config values
+        - Override with project config values (when explicitly set)
+        - For dict fields (input_files), merge with project values taking precedence
+
+        Args:
+            command_config: Configuration from the resolved command's config.yaml.
+            project_config: Configuration from project's .adw/commands/{phase}/config.yaml.
+
+        Returns:
+            PhaseConfig with merged settings.
+
+        Example:
+            >>> # Command config: timeout=300, enabled=True
+            >>> # Project config: enabled=False
+            >>> # Result: timeout=300, enabled=False (project overrides)
+        """
+        merged_data: dict[str, Any] = {}
+
+        # Start with command config values
+        if command_config:
+            if command_config.timeout_seconds is not None:
+                merged_data["timeout_seconds"] = command_config.timeout_seconds
+            if command_config.input_files is not None:
+                merged_data["input_files"] = dict(command_config.input_files)
+            if command_config.pre_hook is not None:
+                merged_data["pre_hook"] = command_config.pre_hook
+            if command_config.post_hook is not None:
+                merged_data["post_hook"] = command_config.post_hook
+
+        # Override with project config values (when set)
+        if project_config:
+            if project_config.timeout_seconds is not None:
+                merged_data["timeout_seconds"] = project_config.timeout_seconds
+            if project_config.pre_hook is not None:
+                merged_data["pre_hook"] = project_config.pre_hook
+            if project_config.post_hook is not None:
+                merged_data["post_hook"] = project_config.post_hook
+
+            # Merge input_files dicts: project values override command values
+            if project_config.input_files is not None:
+                existing_inputs = merged_data.get("input_files", {})
+                merged_data["input_files"] = {
+                    **existing_inputs,
+                    **project_config.input_files,
+                }
+
+        return PhaseConfig(**merged_data) if merged_data else PhaseConfig()
+
     def _load_command_config(self, command: ResolvedCommand) -> CommandConfig | None:
         """Load optional config.yaml from command directory.
 
@@ -552,30 +612,97 @@ class PhaseRunner:
                 message=f"Invalid config in config.yaml at {config_path}: {e}",
             ) from e
 
-    def _get_merged_config(self, phase: str, command: ResolvedCommand) -> PhaseConfig:
-        """Get configuration for a phase from command config.
+    def _load_project_config(self, phase: str) -> CommandConfig | None:
+        """Load project-level config.yaml for a phase (ISS-030).
 
-        Loads command config from config.yaml (if exists) and converts to
-        PhaseConfig. All phase configuration is now delegated to command
-        configs (ISS-029).
+        This method loads config.yaml from the project's .adw/commands/{phase}/
+        directory, bypassing the command resolver. This enables project-level
+        configuration overrides even when no prompt.md exists in the project.
 
-        This method was extracted from _load_and_render_prompt to enable
-        ISS-029: passing timeout to _execute_llm.
+        The project config is loaded separately from command resolution to support
+        cases where only config.yaml exists in the project directory (no prompt.md).
 
         Args:
-            phase: Phase name (unused, kept for interface consistency).
+            phase: Phase name (e.g., "plan", "build", "ship").
+
+        Returns:
+            Parsed CommandConfig if project config.yaml exists, None otherwise.
+
+        Raises:
+            ConfigError: If config.yaml exists but contains invalid YAML or
+                        fails Pydantic validation.
+
+        Example:
+            >>> project_config = runner._load_project_config("ship")
+            >>> if project_config and not project_config.enabled:
+            ...     print("Ship phase disabled at project level")
+        """
+        # Determine project root (use project_config if available, else cwd)
+        project_root = Path.cwd()
+
+        config_path = project_root / ".adw" / "commands" / phase / "config.yaml"
+
+        if not config_path.exists():
+            return None
+
+        logger.debug(
+            "Loading project config",
+            extra={"phase": phase, "config_path": str(config_path)},
+        )
+
+        try:
+            config_content = config_path.read_text(encoding="utf-8")
+            data = yaml.safe_load(config_content)
+
+            # Handle empty config file
+            if data is None:
+                data = {}
+
+            return CommandConfig.model_validate(data)
+        except yaml.YAMLError as e:
+            raise ConfigError(
+                code="INVALID_PROJECT_CONFIG",
+                message=f"Invalid YAML in project config at {config_path}: {e}",
+                suggestion="Check the YAML syntax in your project's config.yaml file.",
+            ) from e
+        except ValidationError as e:
+            raise ConfigError(
+                code="INVALID_PROJECT_CONFIG",
+                message=f"Invalid config in project config at {config_path}: {e}",
+                suggestion="Ensure your config.yaml follows the CommandConfig schema.",
+            ) from e
+
+    def _get_merged_config(self, phase: str, command: ResolvedCommand) -> PhaseConfig:
+        """Get configuration for a phase by merging command and project configs.
+
+        Loads config from the resolved command's config.yaml and also checks
+        for project-level config.yaml in .adw/commands/{phase}/. Project config
+        values override command config values (ISS-030).
+
+        Config resolution order (later overrides earlier):
+        1. Command config (from resolved command tier: bundled/user)
+        2. Project config (from .adw/commands/{phase}/config.yaml)
+
+        This enables projects to customize phase settings (timeout, enabled,
+        input_files) without duplicating the entire command prompt.
+
+        Args:
+            phase: Phase name (e.g., "plan", "build", "ship").
             command: Resolved command with path information.
 
         Returns:
-            PhaseConfig with command settings, or empty PhaseConfig if no config.
+            PhaseConfig with merged settings from command and project configs.
         """
-        # Load command config from config.yaml (if exists)
+        # Load command config from resolved tier (if exists)
         command_config = (
             self._load_command_config(command) if command.has_config else None
         )
 
-        # Convert command config to PhaseConfig (ISS-029: project.phases removed)
-        return self._merge_configs(command_config)
+        # ISS-030: Load project-level config (separate from command resolution)
+        project_config = self._load_project_config(phase)
+
+        # Merge configs: project overrides command
+        return self._merge_configs_with_project(command_config, project_config)
 
     def is_phase_enabled(self, phase: str) -> bool:
         """Check if a phase is enabled in its command config.
