@@ -306,3 +306,187 @@ exit 1
 
         assert exc_info.value.code == "HOOK_FAILED"
         assert exc_info.value.exit_code == 1
+
+
+class TestProjectConfigOverride:
+    """Integration tests for project config override (ISS-030).
+
+    Tests that project-level config.yaml without prompt.md can override
+    command settings from bundled/user tiers.
+    """
+
+    def test_project_config_disables_phase_without_prompt(
+        self, tmp_path: Path, sample_context: RunContext
+    ) -> None:
+        """Test that project config can disable a phase without prompt.md.
+
+        This is the core fix for ISS-030: A project should be able to create
+        .adw/commands/ship/config.yaml with `enabled: false` without having
+        to duplicate the bundled prompt.md.
+        """
+        # Set up bundled command directory (simulates package defaults)
+        bundled_dir = tmp_path / "bundled" / "commands" / "ship"
+        bundled_dir.mkdir(parents=True)
+        (bundled_dir / "prompt.md").write_text("# Ship Phase\nDeploy: {{feature}}")
+        (bundled_dir / "config.yaml").write_text("enabled: true\n")
+
+        # Set up project config that disables ship phase (NO prompt.md!)
+        project_dir = tmp_path / ".adw" / "commands" / "ship"
+        project_dir.mkdir(parents=True)
+        (project_dir / "config.yaml").write_text("enabled: false\n")
+
+        # Create runs directory
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        # Use monkeypatch for cwd (required for _load_project_config)
+        import os
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+
+            # Create CommandResolver that will find bundled command
+            # Note: We need to mock the bundled path since importlib.resources
+            # won't find our test fixtures
+            from unittest.mock import patch
+
+            from adw.models import ResolvedCommand
+
+            resolver = CommandResolver(project_root=tmp_path)
+
+            # Mock _get_bundled_command_path to return our test bundled dir
+            with patch.object(
+                resolver, "_get_bundled_command_path", return_value=bundled_dir
+            ):
+                runner = PhaseRunner(
+                    command_resolver=resolver,
+                    template_engine=TemplateEngine(project_root=tmp_path),
+                    hook_runner=HookRunner(
+                        config=HookConfig(shell="/bin/bash", timeout_seconds=30)
+                    ),
+                    executor=MockExecutor(),
+                    artifact_manager=ArtifactManager(runs_dir=runs_dir),
+                )
+
+                # Key assertion: Phase should be disabled by project config
+                assert runner.is_phase_enabled("ship") is False
+
+        finally:
+            os.chdir(original_cwd)
+
+    def test_project_config_timeout_overrides_bundled(
+        self, tmp_path: Path, sample_context: RunContext
+    ) -> None:
+        """Test that project config timeout_seconds overrides bundled command config."""
+        # Set up bundled command with short timeout
+        bundled_dir = tmp_path / "bundled" / "commands" / "build"
+        bundled_dir.mkdir(parents=True)
+        (bundled_dir / "prompt.md").write_text("# Build Phase\nBuild: {{feature}}")
+        (bundled_dir / "config.yaml").write_text("timeout_seconds: 300\n")
+
+        # Set up project config that overrides timeout (NO prompt.md!)
+        project_dir = tmp_path / ".adw" / "commands" / "build"
+        project_dir.mkdir(parents=True)
+        (project_dir / "config.yaml").write_text("timeout_seconds: 900\n")
+
+        # Create runs directory
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        import os
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+
+            from unittest.mock import patch
+
+            resolver = CommandResolver(project_root=tmp_path)
+
+            with patch.object(
+                resolver, "_get_bundled_command_path", return_value=bundled_dir
+            ):
+                runner = PhaseRunner(
+                    command_resolver=resolver,
+                    template_engine=TemplateEngine(project_root=tmp_path),
+                    hook_runner=HookRunner(
+                        config=HookConfig(shell="/bin/bash", timeout_seconds=30)
+                    ),
+                    executor=MockExecutor(),
+                    artifact_manager=ArtifactManager(runs_dir=runs_dir),
+                )
+
+                # Resolve the command
+                command = resolver.resolve("build")
+
+                # Get merged config
+                merged = runner._get_merged_config("build", command)
+
+                # Project timeout (900) should override bundled (300)
+                assert merged.timeout_seconds == 900
+
+        finally:
+            os.chdir(original_cwd)
+
+    def test_bundled_phase_still_works_with_project_disabled_phase(
+        self, tmp_path: Path, sample_context: RunContext
+    ) -> None:
+        """Test that other phases work normally when one phase is disabled."""
+        # Set up bundled command directories
+        bundled_plan = tmp_path / "bundled" / "commands" / "plan"
+        bundled_plan.mkdir(parents=True)
+        (bundled_plan / "prompt.md").write_text("# Plan Phase\nPlan: {{feature}}")
+
+        bundled_ship = tmp_path / "bundled" / "commands" / "ship"
+        bundled_ship.mkdir(parents=True)
+        (bundled_ship / "prompt.md").write_text("# Ship Phase\nDeploy: {{feature}}")
+        (bundled_ship / "config.yaml").write_text("enabled: true\n")
+
+        # Project disables ship only (NO prompt.md!)
+        project_ship = tmp_path / ".adw" / "commands" / "ship"
+        project_ship.mkdir(parents=True)
+        (project_ship / "config.yaml").write_text("enabled: false\n")
+
+        # Create runs directory
+        runs_dir = tmp_path / ".adw" / "runs"
+        runs_dir.mkdir(parents=True)
+
+        import os
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+
+            from unittest.mock import patch
+
+            resolver = CommandResolver(project_root=tmp_path)
+
+            def mock_bundled(name: str) -> Path | None:
+                return tmp_path / "bundled" / "commands" / name
+
+            with patch.object(
+                resolver, "_get_bundled_command_path", side_effect=mock_bundled
+            ):
+                runner = PhaseRunner(
+                    command_resolver=resolver,
+                    template_engine=TemplateEngine(project_root=tmp_path),
+                    hook_runner=HookRunner(
+                        config=HookConfig(shell="/bin/bash", timeout_seconds=30)
+                    ),
+                    executor=MockExecutor(),
+                    artifact_manager=ArtifactManager(runs_dir=runs_dir),
+                )
+
+                # Ship should be disabled by project config
+                assert runner.is_phase_enabled("ship") is False
+
+                # Plan should still be enabled (no project override)
+                assert runner.is_phase_enabled("plan") is True
+
+                # Plan phase should execute normally
+                result = runner.run("plan", sample_context)
+                assert result.status == PhaseStatus.COMPLETED
+
+        finally:
+            os.chdir(original_cwd)
