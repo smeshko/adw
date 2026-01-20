@@ -51,9 +51,11 @@ def command_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def mock_command_resolver(command_dir: Path) -> MagicMock:
+def mock_command_resolver(command_dir: Path, tmp_path: Path) -> MagicMock:
     """Create a mock command resolver with real temp path."""
     resolver = MagicMock(spec=CommandResolver)
+    # Set project_root to tmp_path (used by _load_project_config)
+    resolver.project_root = tmp_path
     resolved = ResolvedCommand(
         name="plan",
         path=command_dir,
@@ -784,18 +786,20 @@ class TestPhaseRunnerWithMockExecutor:
         mock_hook_runner: MagicMock,
         mock_artifact_manager: ArtifactManager,
         sample_context: RunContext,
+        tmp_path: Path,
     ) -> None:
         """Test full flow with MockExecutor (no Claude Code needed)."""
         from adw.executors.mock import MockExecutor
 
         # Create resolver with the temp command directory
         resolver = MagicMock(spec=CommandResolver)
+        resolver.project_root = tmp_path  # Required for _load_project_config
         resolved = ResolvedCommand(
             name="plan",
             path=command_dir,
             tier="project",
-            has_pre_hook=True,
-            has_post_hook=True,
+            pre_hook_path=command_dir / "pre-hook.sh",
+            post_hook_path=command_dir / "post-hook.sh",
         )
         resolver.resolve.return_value = resolved
 
@@ -1347,3 +1351,373 @@ class TestConfigMerging:
 
     # NOTE: Tests for project phase config merging removed in ISS-029.
     # Phase configuration is now delegated entirely to command configs.
+
+
+class TestProjectConfigLoading:
+    """Tests for _load_project_config method (ISS-030).
+
+    Verifies that project-level config.yaml is loaded separately from
+    command resolution, enabling config overrides without prompt.md.
+    """
+
+    def test_load_project_config_exists(
+        self,
+        tmp_path: Path,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """Project config is loaded when file exists."""
+        # Create project config directory with config.yaml (no prompt.md!)
+        config_dir = tmp_path / ".adw" / "commands" / "ship"
+        config_dir.mkdir(parents=True)
+        (config_dir / "config.yaml").write_text(
+            "enabled: false\ntimeout_seconds: 600\n"
+        )
+
+        # Set mock resolver's project_root to temp directory
+        mock_command_resolver.project_root = tmp_path
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        result = runner._load_project_config("ship")
+
+        assert result is not None
+        assert result.enabled is False
+        assert result.timeout_seconds == 600
+
+    def test_load_project_config_not_exists(
+        self,
+        tmp_path: Path,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """Returns None when no project config file exists."""
+        # Set mock resolver's project_root to temp directory (no config there)
+        mock_command_resolver.project_root = tmp_path
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        result = runner._load_project_config("ship")
+
+        assert result is None
+
+    def test_load_project_config_invalid_yaml_raises_config_error(
+        self,
+        tmp_path: Path,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """Raises ConfigError for invalid YAML in project config."""
+        # Create config with invalid YAML
+        config_dir = tmp_path / ".adw" / "commands" / "ship"
+        config_dir.mkdir(parents=True)
+        (config_dir / "config.yaml").write_text("enabled: [invalid yaml here")
+
+        # Set mock resolver's project_root to temp directory
+        mock_command_resolver.project_root = tmp_path
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        with pytest.raises(ConfigError) as exc_info:
+            runner._load_project_config("ship")
+
+        assert exc_info.value.code == "INVALID_PROJECT_CONFIG"
+
+
+class TestMergeConfigsWithProject:
+    """Tests for _merge_configs_with_project method (ISS-030).
+
+    Verifies that project config values override command config values.
+    """
+
+    def test_merge_project_overrides_command(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """Project config values override command config values."""
+        from adw.models.command import CommandConfig
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        command_config = CommandConfig(
+            timeout_seconds=300,
+            pre_hook="echo 'command pre'",
+        )
+        project_config = CommandConfig(
+            timeout_seconds=600,  # Should override
+        )
+
+        result = runner._merge_configs_with_project(command_config, project_config)
+
+        # Project timeout overrides command timeout
+        assert result.timeout_seconds == 600
+        # Command pre_hook preserved (project didn't override)
+        assert result.pre_hook == "echo 'command pre'"
+
+    def test_merge_preserves_command_when_project_not_set(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """Command config values kept when project doesn't override."""
+        from adw.models.command import CommandConfig
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        command_config = CommandConfig(
+            timeout_seconds=300,
+            input_files={"prd": "docs/prd.md"},
+        )
+
+        result = runner._merge_configs_with_project(command_config, None)
+
+        assert result.timeout_seconds == 300
+        assert result.input_files == {"prd": "docs/prd.md"}
+
+    def test_merge_input_files_dict(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """Input files dict is merged, project takes precedence."""
+        from adw.models.command import CommandConfig
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        command_config = CommandConfig(
+            input_files={"prd": "bundled/prd.md", "arch": "bundled/arch.md"},
+        )
+        project_config = CommandConfig(
+            input_files={"prd": "project/custom-prd.md"},  # Override prd only
+        )
+
+        result = runner._merge_configs_with_project(command_config, project_config)
+
+        # Project's prd overrides, command's arch preserved
+        assert result.input_files == {
+            "prd": "project/custom-prd.md",
+            "arch": "bundled/arch.md",
+        }
+
+
+class TestPhaseEnabledWithProjectConfig:
+    """Tests for is_phase_enabled with project config (ISS-030).
+
+    Verifies that project config can disable phases without prompt.md.
+    """
+
+    def test_phase_enabled_respects_project_config_disable(
+        self,
+        tmp_path: Path,
+        command_dir: Path,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """is_phase_enabled returns False when project config disables phase."""
+        # Create project config that disables ship (no prompt.md!)
+        project_dir = tmp_path / ".adw" / "commands" / "ship"
+        project_dir.mkdir(parents=True)
+        (project_dir / "config.yaml").write_text("enabled: false\n")
+
+        # Mock resolver returns a command with enabled config
+        mock_resolver = MagicMock()
+        mock_resolver.project_root = tmp_path  # Set project root
+        mock_resolved = ResolvedCommand(
+            name="ship",
+            path=command_dir,  # Use fixture path
+            tier="bundled",
+            has_config=True,
+        )
+        mock_resolver.resolve.return_value = mock_resolved
+
+        runner = PhaseRunner(
+            command_resolver=mock_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        # Create command config (enabled by default)
+        (command_dir / "config.yaml").write_text("enabled: true\n")
+
+        # Should be disabled by project config (overrides command config)
+        assert runner.is_phase_enabled("ship") is False
+
+    def test_phase_enabled_defaults_true_no_configs(
+        self,
+        tmp_path: Path,
+        command_dir: Path,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """is_phase_enabled returns True when no configs exist."""
+        # Mock resolver returns a command without config
+        mock_resolver = MagicMock()
+        mock_resolver.project_root = tmp_path  # Set project root
+        mock_resolved = ResolvedCommand(
+            name="plan",
+            path=command_dir,
+            tier="bundled",
+            has_config=False,  # No config file
+        )
+        mock_resolver.resolve.return_value = mock_resolved
+
+        runner = PhaseRunner(
+            command_resolver=mock_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        # Default is enabled (no command config, no project config)
+        assert runner.is_phase_enabled("plan") is True
+
+    def test_phase_timeout_from_project_config_used(
+        self,
+        tmp_path: Path,
+        command_dir: Path,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """Timeout from project config is used in _get_merged_config."""
+        # Create command config with default timeout
+        (command_dir / "config.yaml").write_text("timeout_seconds: 300\n")
+
+        # Create project config that overrides timeout (no prompt.md!)
+        project_dir = tmp_path / ".adw" / "commands" / "build"
+        project_dir.mkdir(parents=True)
+        (project_dir / "config.yaml").write_text("timeout_seconds: 900\n")
+
+        # Mock resolver
+        mock_resolver = MagicMock()
+        mock_resolver.project_root = tmp_path  # Set project root
+        mock_resolved = ResolvedCommand(
+            name="build",
+            path=command_dir,
+            tier="bundled",
+            has_config=True,
+        )
+        mock_resolver.resolve.return_value = mock_resolved
+
+        runner = PhaseRunner(
+            command_resolver=mock_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        # Get merged config
+        merged = runner._get_merged_config("build", mock_resolved)
+
+        # Project timeout (900) should override command (300)
+        assert merged.timeout_seconds == 900
+
+    def test_phase_enabled_not_overridden_by_implicit_default(
+        self,
+        tmp_path: Path,
+        command_dir: Path,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """is_phase_enabled should NOT re-enable a disabled phase when project
+        config only sets timeout (not explicitly enabled).
+
+        This tests the fix for the bug where project config with only timeout_seconds
+        would unintentionally re-enable a phase disabled by command config.
+        """
+        # Create command config that DISABLES the phase
+        (command_dir / "config.yaml").write_text("enabled: false\n")
+
+        # Create project config that only overrides timeout (NOT enabled!)
+        project_dir = tmp_path / ".adw" / "commands" / "build"
+        project_dir.mkdir(parents=True)
+        (project_dir / "config.yaml").write_text("timeout_seconds: 900\n")
+
+        # Mock resolver
+        mock_resolver = MagicMock()
+        mock_resolver.project_root = tmp_path  # Set project root
+        mock_resolved = ResolvedCommand(
+            name="build",
+            path=command_dir,
+            tier="bundled",
+            has_config=True,
+        )
+        mock_resolver.resolve.return_value = mock_resolved
+
+        runner = PhaseRunner(
+            command_resolver=mock_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        # Phase should STILL be disabled (command config says false,
+        # project config doesn't explicitly override enabled)
+        assert runner.is_phase_enabled("build") is False
