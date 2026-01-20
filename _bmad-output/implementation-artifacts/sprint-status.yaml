@@ -381,4 +381,4 @@ development_status:
   # Bugfix (from ISS-030) - CRITICAL
   bugfix-ISS-030-project-config-ignored-without-prompt: ready-for-dev
   # UX Fix (from ISS-031) - MAJOR
-  ux-fix-ISS-031-pr-creation-after-document-phase: completed
+  ux-fix-ISS-031-pr-creation-after-document-phase: done

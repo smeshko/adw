@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-031 - PR Creation After Document Phase
 
-Status: completed
+Status: done
 Linear Issue: not-configured
 Epic: 15 - Ship Phase & Deployment
 Created: 2026-01-20
