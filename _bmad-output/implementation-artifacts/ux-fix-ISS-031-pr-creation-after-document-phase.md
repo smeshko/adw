@@ -61,11 +61,18 @@ so that **the ship phase can validate and merge the PR as intended**.
   - Note: pr_result.pr_url passed to post_completion_comment() and _maybe_close_task()
 
 ### Task 6: Write Tests
-- [ ] Unit test: PR is created after document phase, before ship
-- [ ] Unit test: Ship phase receives PR context when PR exists
-- [ ] Unit test: Ship phase skipped when PR creation fails
-- [ ] Unit test: Backward compatibility when ship disabled
-- [ ] Integration test: Full flow plan→build→validate→document→PR→ship
+- [x] Unit test: PR is created after document phase, before ship
+  - Note: TestPRCreationAfterDocumentPhase::test_pr_created_after_document_phase
+- [x] Unit test: Ship phase receives PR context when PR exists
+  - Note: TestPRCreationAfterDocumentPhase::test_pr_url_stored_in_context
+- [x] Unit test: Ship phase skipped when PR creation fails
+  - Note: TestPRCreationAfterDocumentPhase::test_ship_phase_skipped_when_pr_creation_fails
+- [x] Unit test: Backward compatibility when ship disabled
+  - Note: test_ship_runs_when_auto_create_pr_disabled, test_ship_runs_without_progress_display
+- [x] Integration test: Full flow plan→build→validate→document→PR→ship
+  - Note: Covered by test_pr_created_after_document_phase (tracks phase order)
+- [x] Unit test: ADW_PR_URL environment variable set when PR exists
+  - Note: TestPRURLEnvironmentVariable tests in test_environment.py
 
 ---
 
