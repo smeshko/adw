@@ -786,18 +786,20 @@ class TestPhaseRunnerWithMockExecutor:
         mock_hook_runner: MagicMock,
         mock_artifact_manager: ArtifactManager,
         sample_context: RunContext,
+        tmp_path: Path,
     ) -> None:
         """Test full flow with MockExecutor (no Claude Code needed)."""
         from adw.executors.mock import MockExecutor
 
         # Create resolver with the temp command directory
         resolver = MagicMock(spec=CommandResolver)
+        resolver.project_root = tmp_path  # Required for _load_project_config
         resolved = ResolvedCommand(
             name="plan",
             path=command_dir,
             tier="project",
-            has_pre_hook=True,
-            has_post_hook=True,
+            pre_hook_path=command_dir / "pre-hook.sh",
+            post_hook_path=command_dir / "post-hook.sh",
         )
         resolver.resolve.return_value = resolved
 
