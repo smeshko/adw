@@ -2242,7 +2242,7 @@ class TestPRCreationAfterDocumentPhase:
             progress_display=mock_progress_display,
         )
 
-        context = orchestrator.run("Test feature")
+        orchestrator.run("Test feature")
 
         # Verify PR creation happened after document phase
         assert len(pr_creation_order) == 1
@@ -2325,7 +2325,7 @@ class TestPRCreationAfterDocumentPhase:
             progress_display=mock_progress_display,
         )
 
-        context = orchestrator.run("Test feature")
+        orchestrator.run("Test feature")
 
         # Verify ship phase was NOT executed
         assert "ship" not in executed_phases
@@ -2335,9 +2335,7 @@ class TestPRCreationAfterDocumentPhase:
         # Verify warning message was printed
         mock_progress_display.console.print.assert_called()
         calls = mock_progress_display.console.print.call_args_list
-        skip_message_printed = any(
-            "Skipping ship phase" in str(call) for call in calls
-        )
+        skip_message_printed = any("Skipping ship phase" in str(call) for call in calls)
         assert skip_message_printed
 
     def test_pr_url_stored_in_context(
@@ -2390,7 +2388,7 @@ class TestPRCreationAfterDocumentPhase:
             progress_display=mock_progress_display,
         )
 
-        context = orchestrator.run("Test feature")
+        orchestrator.run("Test feature")
 
         # Verify context_manager.save was called with pr_url set
         # Check the last few save calls to find one with pr_url
@@ -2463,7 +2461,7 @@ class TestPRCreationAfterDocumentPhase:
             git_config=git_config,
         )
 
-        context = orchestrator.run("Test feature")
+        orchestrator.run("Test feature")
 
         # All phases should run, including ship
         assert "ship" in executed_phases
@@ -2528,7 +2526,7 @@ class TestPRCreationAfterDocumentPhase:
             # No progress_display set
         )
 
-        context = orchestrator.run("Test feature")
+        orchestrator.run("Test feature")
 
         # All phases should run since PR creation wasn't attempted
         assert "ship" in executed_phases

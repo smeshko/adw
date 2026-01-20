@@ -372,11 +372,7 @@ class Orchestrator:
                         and pr_creation_attempted
                         and (pr_result is None or not pr_result.success)
                     ):
-                        reason = (
-                            pr_result.reason
-                            if pr_result
-                            else "PR creation failed"
-                        )
+                        reason = pr_result.reason if pr_result else "PR creation failed"
                         logger.warning(
                             "Skipping ship phase - PR not available",
                             extra={
@@ -1023,11 +1019,7 @@ class Orchestrator:
                         and pr_creation_attempted
                         and (pr_result is None or not pr_result.success)
                     ):
-                        reason = (
-                            pr_result.reason
-                            if pr_result
-                            else "PR creation failed"
-                        )
+                        reason = pr_result.reason if pr_result else "PR creation failed"
                         logger.warning(
                             "Skipping ship phase - PR not available",
                             extra={
