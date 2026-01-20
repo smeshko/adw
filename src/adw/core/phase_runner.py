@@ -705,28 +705,43 @@ class PhaseRunner:
         return self._merge_configs_with_project(command_config, project_config)
 
     def is_phase_enabled(self, phase: str) -> bool:
-        """Check if a phase is enabled in its command config.
+        """Check if a phase is enabled in command and project configs (ISS-030).
 
         Resolves the command for the phase and checks the `enabled` field
-        in its config.yaml. If no config exists or `enabled` is not set,
-        defaults to True.
+        in both the command's config.yaml and the project's config.yaml.
+        Project config takes precedence over command config.
+
+        Config resolution order (later overrides earlier):
+        1. Command config `enabled` (from resolved tier)
+        2. Project config `enabled` (from .adw/commands/{phase}/config.yaml)
+
+        If neither config exists or `enabled` is not set, defaults to True.
 
         Args:
             phase: Phase name to check.
 
         Returns:
-            True if the phase is enabled (default), False if disabled.
+            True if the phase is enabled (default), False if disabled by
+            either command or project config.
         """
         try:
+            # Start with default enabled
+            enabled = True
+
+            # Check command config (from resolved tier)
             command = self.command_resolver.resolve(phase)
-            if not command.has_config:
-                return True
+            if command.has_config:
+                config = self._load_command_config(command)
+                if config is not None:
+                    enabled = config.enabled
 
-            config = self._load_command_config(command)
-            if config is None:
-                return True
+            # ISS-030: Check project config (overrides command config)
+            project_config = self._load_project_config(phase)
+            if project_config is not None:
+                # Project config explicitly set - use its value
+                enabled = project_config.enabled
 
-            return config.enabled
+            return enabled
         except Exception:
             # If command resolution fails, consider phase enabled
             # (actual error will be raised during execution)
