@@ -32,10 +32,11 @@ so that **the ship phase can validate and merge the PR as intended**.
 - [x] Remove PR creation from post-run completion block (lines ~386-394)
 
 ### Task 2: Add Post-Document PR Creation Hook Point
-- [ ] In `_execute_phase_with_transitions()`, add special handling for document phase
-- [ ] After document phase completes successfully, invoke PR creation
-- [ ] Log PR creation attempt with structured logging
-- [ ] Handle PR creation failure gracefully (warn, don't fail)
+- [x] In `_execute_phase_with_transitions()`, add special handling for document phase
+  - Note: Implemented in run() after _execute_phase_with_transitions() returns for cleaner separation
+- [x] After document phase completes successfully, invoke PR creation
+- [x] Log PR creation attempt with structured logging
+- [x] Handle PR creation failure gracefully (warn, don't fail)
 
 ### Task 3: Update Ship Phase Dependency
 - [ ] If PR creation fails and ship phase is enabled, skip ship with warning
