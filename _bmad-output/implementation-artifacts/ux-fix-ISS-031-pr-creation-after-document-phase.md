@@ -46,9 +46,11 @@ so that **the ship phase can validate and merge the PR as intended**.
   - Note: pr_result available at run scope for ship phase hooks
 
 ### Task 4: Store PR Result in Context
-- [ ] Add `pr_result` field to track PR creation outcome
-- [ ] Pass PR result to ship phase via context or environment
-- [ ] Ship pre.sh can use `ADW_PR_URL` if set by SDK
+- [x] Add `pr_result` field to track PR creation outcome
+  - Note: Added `pr_url` field to RunContext model
+- [x] Pass PR result to ship phase via context or environment
+  - Note: Added ADW_PR_URL to build_hook_environment()
+- [x] Ship pre.sh can use `ADW_PR_URL` if set by SDK
 
 ### Task 5: Update Completion Summary Logic
 - [ ] PR result should still appear in completion summary

@@ -401,6 +401,13 @@ class Orchestrator:
                             pr_creation_attempted = True
                         pr_result = self._maybe_create_pr_after_document(context)
 
+                        # Store PR URL in context for ship phase hooks (ISS-031)
+                        if pr_result and pr_result.success and pr_result.pr_url:
+                            context = context.model_copy(
+                                update={"pr_url": pr_result.pr_url}
+                            )
+                            self.context_manager.save(context)
+
                 # All phases complete
                 context = context.model_copy(
                     update={
@@ -1049,6 +1056,13 @@ class Orchestrator:
                         if self.progress_display:
                             pr_creation_attempted = True
                         pr_result = self._maybe_create_pr_after_document(context)
+
+                        # Store PR URL in context for ship phase hooks (ISS-031)
+                        if pr_result and pr_result.success and pr_result.pr_url:
+                            context = context.model_copy(
+                                update={"pr_url": pr_result.pr_url}
+                            )
+                            self.context_manager.save(context)
 
                 # All phases complete
                 context = context.model_copy(
