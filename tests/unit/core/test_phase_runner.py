@@ -1364,7 +1364,6 @@ class TestProjectConfigLoading:
         mock_hook_runner: MagicMock,
         mock_executor: MagicMock,
         mock_artifact_manager: ArtifactManager,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Project config is loaded when file exists."""
         # Create project config directory with config.yaml (no prompt.md!)
@@ -1374,8 +1373,8 @@ class TestProjectConfigLoading:
             "enabled: false\ntimeout_seconds: 600\n"
         )
 
-        # Change to temp directory (project root)
-        monkeypatch.chdir(tmp_path)
+        # Set mock resolver's project_root to temp directory
+        mock_command_resolver.project_root = tmp_path
 
         runner = PhaseRunner(
             command_resolver=mock_command_resolver,
@@ -1399,11 +1398,10 @@ class TestProjectConfigLoading:
         mock_hook_runner: MagicMock,
         mock_executor: MagicMock,
         mock_artifact_manager: ArtifactManager,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Returns None when no project config file exists."""
-        # No .adw/commands/ship/ directory at all
-        monkeypatch.chdir(tmp_path)
+        # Set mock resolver's project_root to temp directory (no config there)
+        mock_command_resolver.project_root = tmp_path
 
         runner = PhaseRunner(
             command_resolver=mock_command_resolver,
@@ -1425,7 +1423,6 @@ class TestProjectConfigLoading:
         mock_hook_runner: MagicMock,
         mock_executor: MagicMock,
         mock_artifact_manager: ArtifactManager,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Raises ConfigError for invalid YAML in project config."""
         # Create config with invalid YAML
@@ -1433,7 +1430,8 @@ class TestProjectConfigLoading:
         config_dir.mkdir(parents=True)
         (config_dir / "config.yaml").write_text("enabled: [invalid yaml here")
 
-        monkeypatch.chdir(tmp_path)
+        # Set mock resolver's project_root to temp directory
+        mock_command_resolver.project_root = tmp_path
 
         runner = PhaseRunner(
             command_resolver=mock_command_resolver,
@@ -1567,7 +1565,6 @@ class TestPhaseEnabledWithProjectConfig:
         mock_hook_runner: MagicMock,
         mock_executor: MagicMock,
         mock_artifact_manager: ArtifactManager,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """is_phase_enabled returns False when project config disables phase."""
         # Create project config that disables ship (no prompt.md!)
@@ -1575,10 +1572,9 @@ class TestPhaseEnabledWithProjectConfig:
         project_dir.mkdir(parents=True)
         (project_dir / "config.yaml").write_text("enabled: false\n")
 
-        monkeypatch.chdir(tmp_path)
-
         # Mock resolver returns a command with enabled config
         mock_resolver = MagicMock()
+        mock_resolver.project_root = tmp_path  # Set project root
         mock_resolved = ResolvedCommand(
             name="ship",
             path=command_dir,  # Use fixture path
@@ -1609,13 +1605,11 @@ class TestPhaseEnabledWithProjectConfig:
         mock_hook_runner: MagicMock,
         mock_executor: MagicMock,
         mock_artifact_manager: ArtifactManager,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """is_phase_enabled returns True when no configs exist."""
-        monkeypatch.chdir(tmp_path)
-
         # Mock resolver returns a command without config
         mock_resolver = MagicMock()
+        mock_resolver.project_root = tmp_path  # Set project root
         mock_resolved = ResolvedCommand(
             name="plan",
             path=command_dir,
@@ -1643,7 +1637,6 @@ class TestPhaseEnabledWithProjectConfig:
         mock_hook_runner: MagicMock,
         mock_executor: MagicMock,
         mock_artifact_manager: ArtifactManager,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Timeout from project config is used in _get_merged_config."""
         # Create command config with default timeout
@@ -1654,10 +1647,9 @@ class TestPhaseEnabledWithProjectConfig:
         project_dir.mkdir(parents=True)
         (project_dir / "config.yaml").write_text("timeout_seconds: 900\n")
 
-        monkeypatch.chdir(tmp_path)
-
         # Mock resolver
         mock_resolver = MagicMock()
+        mock_resolver.project_root = tmp_path  # Set project root
         mock_resolved = ResolvedCommand(
             name="build",
             path=command_dir,
@@ -1679,3 +1671,49 @@ class TestPhaseEnabledWithProjectConfig:
 
         # Project timeout (900) should override command (300)
         assert merged.timeout_seconds == 900
+
+    def test_phase_enabled_not_overridden_by_implicit_default(
+        self,
+        tmp_path: Path,
+        command_dir: Path,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """is_phase_enabled should NOT re-enable a disabled phase when project
+        config only sets timeout (not explicitly enabled).
+
+        This tests the fix for the bug where project config with only timeout_seconds
+        would unintentionally re-enable a phase disabled by command config.
+        """
+        # Create command config that DISABLES the phase
+        (command_dir / "config.yaml").write_text("enabled: false\n")
+
+        # Create project config that only overrides timeout (NOT enabled!)
+        project_dir = tmp_path / ".adw" / "commands" / "build"
+        project_dir.mkdir(parents=True)
+        (project_dir / "config.yaml").write_text("timeout_seconds: 900\n")
+
+        # Mock resolver
+        mock_resolver = MagicMock()
+        mock_resolver.project_root = tmp_path  # Set project root
+        mock_resolved = ResolvedCommand(
+            name="build",
+            path=command_dir,
+            tier="bundled",
+            has_config=True,
+        )
+        mock_resolver.resolve.return_value = mock_resolved
+
+        runner = PhaseRunner(
+            command_resolver=mock_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        # Phase should STILL be disabled (command config says false,
+        # project config doesn't explicitly override enabled)
+        assert runner.is_phase_enabled("build") is False

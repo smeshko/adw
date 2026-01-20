@@ -339,41 +339,29 @@ class TestProjectConfigOverride:
         runs_dir = tmp_path / ".adw" / "runs"
         runs_dir.mkdir(parents=True)
 
-        # Use monkeypatch for cwd (required for _load_project_config)
-        import os
+        # Create CommandResolver that will find bundled command
+        # Note: We need to mock the bundled path since importlib.resources
+        # won't find our test fixtures
+        from unittest.mock import patch
 
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(tmp_path)
+        resolver = CommandResolver(project_root=tmp_path)
 
-            # Create CommandResolver that will find bundled command
-            # Note: We need to mock the bundled path since importlib.resources
-            # won't find our test fixtures
-            from unittest.mock import patch
+        # Mock _get_bundled_command_path to return our test bundled dir
+        with patch.object(
+            resolver, "_get_bundled_command_path", return_value=bundled_dir
+        ):
+            runner = PhaseRunner(
+                command_resolver=resolver,
+                template_engine=TemplateEngine(project_root=tmp_path),
+                hook_runner=HookRunner(
+                    config=HookConfig(shell="/bin/bash", timeout_seconds=30)
+                ),
+                executor=MockExecutor(),
+                artifact_manager=ArtifactManager(runs_dir=runs_dir),
+            )
 
-            from adw.models import ResolvedCommand
-
-            resolver = CommandResolver(project_root=tmp_path)
-
-            # Mock _get_bundled_command_path to return our test bundled dir
-            with patch.object(
-                resolver, "_get_bundled_command_path", return_value=bundled_dir
-            ):
-                runner = PhaseRunner(
-                    command_resolver=resolver,
-                    template_engine=TemplateEngine(project_root=tmp_path),
-                    hook_runner=HookRunner(
-                        config=HookConfig(shell="/bin/bash", timeout_seconds=30)
-                    ),
-                    executor=MockExecutor(),
-                    artifact_manager=ArtifactManager(runs_dir=runs_dir),
-                )
-
-                # Key assertion: Phase should be disabled by project config
-                assert runner.is_phase_enabled("ship") is False
-
-        finally:
-            os.chdir(original_cwd)
+            # Key assertion: Phase should be disabled by project config
+            assert runner.is_phase_enabled("ship") is False
 
     def test_project_config_timeout_overrides_bundled(
         self, tmp_path: Path, sample_context: RunContext
@@ -394,40 +382,31 @@ class TestProjectConfigOverride:
         runs_dir = tmp_path / ".adw" / "runs"
         runs_dir.mkdir(parents=True)
 
-        import os
+        from unittest.mock import patch
 
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(tmp_path)
+        resolver = CommandResolver(project_root=tmp_path)
 
-            from unittest.mock import patch
+        with patch.object(
+            resolver, "_get_bundled_command_path", return_value=bundled_dir
+        ):
+            runner = PhaseRunner(
+                command_resolver=resolver,
+                template_engine=TemplateEngine(project_root=tmp_path),
+                hook_runner=HookRunner(
+                    config=HookConfig(shell="/bin/bash", timeout_seconds=30)
+                ),
+                executor=MockExecutor(),
+                artifact_manager=ArtifactManager(runs_dir=runs_dir),
+            )
 
-            resolver = CommandResolver(project_root=tmp_path)
+            # Resolve the command
+            command = resolver.resolve("build")
 
-            with patch.object(
-                resolver, "_get_bundled_command_path", return_value=bundled_dir
-            ):
-                runner = PhaseRunner(
-                    command_resolver=resolver,
-                    template_engine=TemplateEngine(project_root=tmp_path),
-                    hook_runner=HookRunner(
-                        config=HookConfig(shell="/bin/bash", timeout_seconds=30)
-                    ),
-                    executor=MockExecutor(),
-                    artifact_manager=ArtifactManager(runs_dir=runs_dir),
-                )
+            # Get merged config
+            merged = runner._get_merged_config("build", command)
 
-                # Resolve the command
-                command = resolver.resolve("build")
-
-                # Get merged config
-                merged = runner._get_merged_config("build", command)
-
-                # Project timeout (900) should override bundled (300)
-                assert merged.timeout_seconds == 900
-
-        finally:
-            os.chdir(original_cwd)
+            # Project timeout (900) should override bundled (300)
+            assert merged.timeout_seconds == 900
 
     def test_bundled_phase_still_works_with_project_disabled_phase(
         self, tmp_path: Path, sample_context: RunContext
@@ -452,41 +431,32 @@ class TestProjectConfigOverride:
         runs_dir = tmp_path / ".adw" / "runs"
         runs_dir.mkdir(parents=True)
 
-        import os
+        from unittest.mock import patch
 
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(tmp_path)
+        resolver = CommandResolver(project_root=tmp_path)
 
-            from unittest.mock import patch
+        def mock_bundled(name: str) -> Path | None:
+            return tmp_path / "bundled" / "commands" / name
 
-            resolver = CommandResolver(project_root=tmp_path)
+        with patch.object(
+            resolver, "_get_bundled_command_path", side_effect=mock_bundled
+        ):
+            runner = PhaseRunner(
+                command_resolver=resolver,
+                template_engine=TemplateEngine(project_root=tmp_path),
+                hook_runner=HookRunner(
+                    config=HookConfig(shell="/bin/bash", timeout_seconds=30)
+                ),
+                executor=MockExecutor(),
+                artifact_manager=ArtifactManager(runs_dir=runs_dir),
+            )
 
-            def mock_bundled(name: str) -> Path | None:
-                return tmp_path / "bundled" / "commands" / name
+            # Ship should be disabled by project config
+            assert runner.is_phase_enabled("ship") is False
 
-            with patch.object(
-                resolver, "_get_bundled_command_path", side_effect=mock_bundled
-            ):
-                runner = PhaseRunner(
-                    command_resolver=resolver,
-                    template_engine=TemplateEngine(project_root=tmp_path),
-                    hook_runner=HookRunner(
-                        config=HookConfig(shell="/bin/bash", timeout_seconds=30)
-                    ),
-                    executor=MockExecutor(),
-                    artifact_manager=ArtifactManager(runs_dir=runs_dir),
-                )
+            # Plan should still be enabled (no project override)
+            assert runner.is_phase_enabled("plan") is True
 
-                # Ship should be disabled by project config
-                assert runner.is_phase_enabled("ship") is False
-
-                # Plan should still be enabled (no project override)
-                assert runner.is_phase_enabled("plan") is True
-
-                # Plan phase should execute normally
-                result = runner.run("plan", sample_context)
-                assert result.status == PhaseStatus.COMPLETED
-
-        finally:
-            os.chdir(original_cwd)
+            # Plan phase should execute normally
+            result = runner.run("plan", sample_context)
+            assert result.status == PhaseStatus.COMPLETED

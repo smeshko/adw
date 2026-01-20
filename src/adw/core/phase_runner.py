@@ -637,8 +637,10 @@ class PhaseRunner:
             >>> if project_config and not project_config.enabled:
             ...     print("Ship phase disabled at project level")
         """
-        # Determine project root (use project_config if available, else cwd)
-        project_root = Path.cwd()
+        # Use command resolver's project root to ensure consistent config resolution
+        # regardless of current working directory (fixes issue when invoked from
+        # different cwd or during worktree runs)
+        project_root = self.command_resolver.project_root
 
         config_path = project_root / ".adw" / "commands" / phase / "config.yaml"
 
@@ -736,9 +738,11 @@ class PhaseRunner:
                     enabled = config.enabled
 
             # ISS-030: Check project config (overrides command config)
+            # Only override enabled if the project config EXPLICITLY sets it
+            # (not just using Pydantic's default=True)
             project_config = self._load_project_config(phase)
-            if project_config is not None:
-                # Project config explicitly set - use its value
+            if project_config is not None and "enabled" in project_config.model_fields_set:
+                # Project config explicitly set enabled - use its value
                 enabled = project_config.enabled
 
             return enabled
