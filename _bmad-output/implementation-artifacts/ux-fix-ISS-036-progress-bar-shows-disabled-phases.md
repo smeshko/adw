@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-036 - Progress Bar Shows Disabled Phases
 
-Status: ready-for-dev
+Status: dev-done
 Linear Issue: not-configured
 Epic: 5 - Pipeline Orchestration (Story 5-5-display-phase-progress)
 Created: 2026-01-21
@@ -15,14 +15,14 @@ so that **the percentage reflects my actual workflow and I don't see phases I've
 
 ## Acceptance Criteria
 
-- [ ] `ProgressDisplay.__init__` accepts optional `enabled_phases` parameter
-- [ ] When `enabled_phases` is provided, only those phases appear in progress bar
-- [ ] Percentage calculation uses only enabled phases (e.g., 4/4 = 100% when ship disabled)
-- [ ] Phase number display shows correct total (e.g., "Phase 3/4" not "Phase 3/5")
-- [ ] `bootstrap.py` determines enabled phases from config and passes to `ProgressDisplay`
-- [ ] Default behavior unchanged when `enabled_phases` not provided (backward compatibility)
-- [ ] Unit tests cover enabled phases filtering in progress display
-- [ ] Integration test verifies disabled phases don't appear in output
+- [x] `ProgressDisplay.__init__` accepts optional `enabled_phases` parameter
+- [x] When `enabled_phases` is provided, only those phases appear in progress bar
+- [x] Percentage calculation uses only enabled phases (e.g., 4/4 = 100% when ship disabled)
+- [x] Phase number display shows correct total (e.g., "Phase 3/4" not "Phase 3/5")
+- [x] `bootstrap.py` determines enabled phases from config and passes to `ProgressDisplay`
+- [x] Default behavior unchanged when `enabled_phases` not provided (backward compatibility)
+- [x] Unit tests cover enabled phases filtering in progress display
+- [x] Integration test verifies disabled phases don't appear in output
 
 ## Tasks / Subtasks
 
