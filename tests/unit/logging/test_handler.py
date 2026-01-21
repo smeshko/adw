@@ -271,8 +271,9 @@ class TestLogManagerHandler:
         assert len(transport.events) == 1
         event = transport.events[0]
         assert event.context.phase == "validate"
-        # Note: run_id from extra (None) takes precedence over existing context
-        # This is correct behavior - if caller specifies extra, it's intentional
+        # Note: run_id is preserved from parent context because None means "inherit"
+        # This is correct behavior - only explicit values override, None inherits
+        assert event.context.run_id == "EXISTING_RUN"
 
         # Cleanup
         logger.removeHandler(handler)
