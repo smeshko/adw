@@ -1,6 +1,6 @@
 # Story ISS-034: Fix Logging Context and Redundant Messages
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-21
@@ -47,28 +47,28 @@ Feature: Phase context in logs and clean output
 ## Tasks / Subtasks
 
 ### Task 1: Set Phase Context When Logging
-- [ ] Identify where `PhaseRunner` or `Orchestrator` creates/uses loggers
-- [ ] Ensure child logger is created with phase context before phase execution
-- [ ] Pass phase name to `LogManager.child(phase=phase)` when starting each phase
-- [ ] Verify LogContext flows through to all log entries during that phase
+- [x] Identify where `PhaseRunner` or `Orchestrator` creates/uses loggers
+- [x] Ensure child logger is created with phase context before phase execution
+- [x] Pass phase name to `LogManager.child(phase=phase)` when starting each phase
+- [x] Verify LogContext flows through to all log entries during that phase
 
 ### Task 2: Stop Spinner Before Error Logging
-- [ ] In `Orchestrator._execute_phase_with_transitions()`, locate timeout/error handling code
-- [ ] Call `self.progress_display.on_llm_complete()` BEFORE any error logging
-- [ ] Verify this applies to both timeout errors and LLM execution failures
-- [ ] Ensure spinner cleanup is idempotent (safe to call multiple times)
+- [x] In `Orchestrator._execute_phase_with_transitions()`, locate timeout/error handling code
+- [x] Call `self.progress_display.on_llm_complete()` BEFORE any error logging
+- [x] Verify this applies to both timeout errors and LLM execution failures
+- [x] Ensure spinner cleanup is idempotent (safe to call multiple times)
 
 ### Task 3: Remove or Demote Redundant Log
-- [ ] Locate the "Phase completed" log at `orchestrator.py:1542-1545`
-- [ ] Change from `logger.info()` to `logger.debug()`
-- [ ] OR remove the log entirely since Rich progress display provides the same info
-- [ ] Ensure no other duplicate completion messages exist
+- [x] Locate the "Phase completed" log at `orchestrator.py:1542-1545`
+- [x] Change from `logger.info()` to `logger.debug()`
+- [x] OR remove the log entirely since Rich progress display provides the same info
+- [x] Ensure no other duplicate completion messages exist
 
 ### Task 4: Test Changes
-- [ ] Write test that verifies phase context appears in log entries
-- [ ] Write test that spinner is stopped before error display (mock ProgressDisplay)
-- [ ] Write test that only one completion message appears per phase
-- [ ] Run full integration test with `adw run` to verify clean output
+- [x] Write test that verifies phase context appears in log entries
+- [x] Write test that spinner is stopped before error display (mock ProgressDisplay)
+- [x] Write test that only one completion message appears per phase
+- [x] Run full integration test with `adw run` to verify clean output
 
 ---
 

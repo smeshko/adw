@@ -60,6 +60,9 @@ class LogManagerHandler(logging.Handler):
         Translates the Python LogRecord to ADW's logging format
         and sends it through the LogManager to all registered transports.
 
+        Extracts phase and run_id from the Python logging 'extra' dict
+        if present, ensuring structured logs include proper context.
+
         Args:
             record: The Python LogRecord to emit
         """
@@ -67,7 +70,19 @@ class LogManagerHandler(logging.Handler):
             level = self._map_level(record.levelno)
             category = self._infer_category(record.name)
             message = self.format(record)
-            self._log_manager._log(level, category, message)
+
+            # Extract phase and run_id from extra dict if present
+            # This enables existing log calls with extra={"phase": phase}
+            # to automatically populate LogContext.phase
+            phase = getattr(record, "phase", None)
+            run_id = getattr(record, "run_id", None)
+
+            # If phase or run_id found, create a child logger with context
+            if phase or run_id:
+                child_manager = self._log_manager.child(phase=phase, run_id=run_id)
+                child_manager._log(level, category, message)
+            else:
+                self._log_manager._log(level, category, message)
         except Exception:
             # Prevent logging errors from crashing the application
             self.handleError(record)

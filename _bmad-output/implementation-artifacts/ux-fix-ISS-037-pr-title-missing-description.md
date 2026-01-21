@@ -17,21 +17,21 @@ so that **my pull requests are descriptive and useful without manual editing**.
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: When `feature_description` equals `task_id` AND `task_info.title` is available, use `task_info.title` for PR title
+- [x] **AC1**: When `feature_description` equals `task_id` AND `task_info.title` is available, use `task_info.title` for PR title
   - Given: `feature_description = "RULE-151"`, `task_id = "RULE-151"`, `task_info.title = "Add remote configuration module"`
   - Then: PR title should be `"RULE-151: Add remote configuration module"`
 
-- [ ] **AC2**: When `feature_description` equals `task_id` AND `task_info` is NOT available, fallback gracefully to just the task ID
+- [x] **AC2**: When `feature_description` equals `task_id` AND `task_info` is NOT available, fallback gracefully to just the task ID
   - Given: `feature_description = "RULE-151"`, `task_id = "RULE-151"`, `task_info = None`
   - Then: PR title should be `"RULE-151"`
 
-- [ ] **AC3**: When `feature_description` does NOT equal `task_id`, maintain existing behavior
+- [x] **AC3**: When `feature_description` does NOT equal `task_id`, maintain existing behavior
   - Given: `feature_description = "Add user auth"`, `task_id = "RULE-151"`
   - Then: PR title should be `"RULE-151: Add user auth"` (unchanged from current behavior)
 
-- [ ] **AC4**: PR title truncation at 72 chars still applies after the fix
+- [x] **AC4**: PR title truncation at 72 chars still applies after the fix
 
-- [ ] **AC5**: Both `auto_create_pr()` and `pr()` command use consistent title generation logic
+- [x] **AC5**: Both `auto_create_pr()` and `pr()` command use consistent title generation logic
 
 ## Tasks / Subtasks
 
@@ -39,32 +39,32 @@ so that **my pull requests are descriptive and useful without manual editing**.
 **File:** `src/adw/cli/pr.py`
 **Lines:** 411-419
 
-- [ ] Add check: `if context.task_id and context.feature_description == context.task_id`
-- [ ] If true and `context.task_info and context.task_info.title`: use `f"{context.task_id}: {context.task_info.title}"`
-- [ ] If true but no `task_info.title`: use just `context.task_id`
-- [ ] Maintain truncation logic (max 72 chars)
+- [x] Add check: `if context.task_id and context.feature_description == context.task_id`
+- [x] If true and `context.task_info and context.task_info.title`: use `f"{context.task_id}: {context.task_info.title}"`
+- [x] If true but no `task_info.title`: use just `context.task_id`
+- [x] Maintain truncation logic (max 72 chars)
 
 ### Task 2: Apply Same Fix to pr() CLI Command
 **File:** `src/adw/cli/pr.py`
 **Lines:** 735-738
 
-- [ ] Ensure `pr()` CLI command uses same title generation logic
-- [ ] The CLI command currently doesn't check for task_id at all - it just uses feature_description
-- [ ] Consider extracting title generation to a helper function for DRY
+- [x] Ensure `pr()` CLI command uses same title generation logic
+- [x] The CLI command currently doesn't check for task_id at all - it just uses feature_description
+- [x] Consider extracting title generation to a helper function for DRY
 
 ### Task 3: Add Unit Tests
 **File:** `tests/unit/cli/test_pr.py`
 
-- [ ] Test: PR title uses task_info.title when feature_description equals task_id
-- [ ] Test: PR title falls back to task_id when task_info is None
-- [ ] Test: PR title uses feature_description when it differs from task_id
-- [ ] Test: Title truncation still works correctly
+- [x] Test: PR title uses task_info.title when feature_description equals task_id
+- [x] Test: PR title falls back to task_id when task_info is None
+- [x] Test: PR title uses feature_description when it differs from task_id
+- [x] Test: Title truncation still works correctly
 
 ### Task 4: Optional Enhancement - Info Logging
 **File:** `src/adw/cli/pr.py` or logging in orchestrator
 
-- [ ] (Optional) Add info log when using task_info.title as fallback
-- [ ] Log should indicate: "Using task title from Linear as PR description"
+- [x] (Optional) Add info log when using task_info.title as fallback
+- [x] Log should indicate: "Using task title from Linear as PR description"
 
 ---
 
@@ -369,8 +369,20 @@ N/A
 - Developer guardrails and patterns extracted from project-context.md
 - Testing patterns documented from existing test_pr.py
 - Previous story intelligence gathered from ISS-031 and Story 12.6
+- ✅ Task 1: Implemented PR title fix in `auto_create_pr()` - uses `task_info.title` when `feature_description == task_id`
+- ✅ Task 2: Extracted `_generate_pr_title()` helper for DRY code - both `auto_create_pr()` and `pr()` use the same logic
+- ✅ Task 3: Added 6 unit tests in `TestGeneratePrTitle` class covering all edge cases
+- ✅ Task 4: Added info logging when using task_info.title as fallback
+- All 51 tests pass (45 existing + 6 new)
+- Commit contract honored: 4 tasks, 4 commits
 
 ### File List
 
-- `src/adw/cli/pr.py` - Primary file to modify
-- `tests/unit/cli/test_pr.py` - Test file to extend
+- `src/adw/cli/pr.py` - Added `_generate_pr_title()` helper, updated `auto_create_pr()` and `pr()` to use it
+- `tests/unit/cli/test_pr.py` - Added `TestGeneratePrTitle` class with 6 tests
+- `_bmad-output/implementation-artifacts/ux-fix-ISS-037-pr-title-missing-description.md` - This story file
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` - Updated status to in-progress
+
+### Change Log
+
+- 2026-01-21: Story completed - all 4 tasks implemented and tested
