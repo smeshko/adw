@@ -3,7 +3,7 @@
 **ID:** ISS-033
 **Severity:** Critical
 **Type:** Bug
-**Status:** reported
+**Status:** done
 **Reported:** 2026-01-21
 **Reporter:** Ivo
 

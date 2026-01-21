@@ -1,7 +1,7 @@
 # Story ISS-037: PR Title Missing Description When Feature Description Equals Task ID
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: N/A - Standalone UX Fix
 Created: 2026-01-21

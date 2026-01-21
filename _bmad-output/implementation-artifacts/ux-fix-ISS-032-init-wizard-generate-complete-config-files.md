@@ -1,6 +1,6 @@
 # Story: UX Fix - Init Wizard Complete Config File Generation
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-21
