@@ -60,16 +60,16 @@ so that I can discover and customize options directly from my config files witho
 ### Task 2: Create YAML Generator with Comments
 **Files**: `src/adw/config/yaml_generator.py` (NEW)
 
-- [ ] 2.1 Create `YAMLWithComments` class
+- [x] 2.1 Create `YAMLWithComments` class
   - Track which settings are user-modified vs defaults
   - Generate YAML with inactive settings as comments
 
-- [ ] 2.2 Implement `generate_project_yaml(state: WizardState, registry: ConfigRegistry) -> str`
+- [x] 2.2 Implement `generate_project_yaml(state: WizardState, registry: ConfigRegistry) -> str`
   - For each section: write user values as active, defaults as comments
   - Include section headers (# === Git Integration ===)
   - Include descriptions for commented settings
 
-- [ ] 2.3 Implement `generate_phase_yaml(phase: str, config: dict, registry: ConfigRegistry) -> str`
+- [x] 2.3 Implement `generate_phase_yaml(phase: str, config: dict, registry: ConfigRegistry) -> str`
   - Generate complete phase config with commented defaults
   - Always include: enabled, timeout_seconds, input_files, artifacts sections
 

@@ -12,6 +12,10 @@ from adw.config.detector import ProjectType, ProjectTypeDetector
 from adw.config.initializer import ProjectInitializer
 from adw.config.loader import ConfigLoader
 from adw.config.registry import ConfigRegistry, SettingDefinition
+from adw.config.yaml_generator import (
+    YAMLWithComments,
+    generate_all_phase_configs,
+)
 
 __all__ = [
     "ConfigLoader",
@@ -20,4 +24,6 @@ __all__ = [
     "ProjectType",
     "ProjectTypeDetector",
     "SettingDefinition",
+    "YAMLWithComments",
+    "generate_all_phase_configs",
 ]
