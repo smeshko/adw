@@ -14,7 +14,6 @@ from rich.console import Console
 
 from adw.cli.progress import ProgressDisplay
 from adw.commands.resolver import CommandResolver
-from adw.core.constants import PHASE_SEQUENCE
 from adw.commands.template import TemplateEngine
 from adw.config.loader import ConfigLoader
 from adw.core import (
@@ -25,6 +24,7 @@ from adw.core import (
     RunDirectoryManager,
     SnapshotManager,
 )
+from adw.core.constants import PHASE_SEQUENCE
 from adw.core.phase_runner import PhaseRunner
 from adw.exceptions import ConfigError
 from adw.executors.base import LLMExecutor
