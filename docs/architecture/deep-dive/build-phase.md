@@ -4,7 +4,7 @@ This document explains the complete execution flow of the Build phase in ADW.
 
 ## Overview
 
-The Build phase is the second phase in the ADW pipeline (`plan → build → verify → validate → document`). It implements the feature according to the plan from the previous phase.
+The Build phase is the second phase in the ADW pipeline (`plan → build → validate → document → ship`). It implements the feature according to the plan from the previous phase.
 
 **Command:** `adw run "Feature description"` (runs full pipeline) or `adw run "Feature" --phase build --from-run <plan_run_id>`
 
@@ -161,15 +161,11 @@ def _capture_git_diff_artifacts(self, context):
 
 | Phase | Variable | Source |
 |-------|----------|--------|
-| verify | `{{implementation}}` | `build_output.md` |
-| document | `{{implementation}}` | `build_output.md` |
-| document | `{{artifacts.build.*}}` | Lists diff.txt, diff_stats.json |
+| validate | `{{artifacts.build.build_output}}` | `build_output.md` |
+| document | `{{artifacts.build.build_output}}` | `build_output.md` |
+| document | `{{artifacts.build.diff}}` | `diff.txt` |
 
-Alias creation (`phase_runner.py:378-379`):
-```python
-if "build" in artifacts_map and "build_output" in artifacts_map["build"]:
-    variables["implementation"] = artifacts_map["build"]["build_output"]
-```
+Templates access build artifacts via the `{{artifacts.build.*}}` namespace.
 
 ## Template Include Patterns
 
