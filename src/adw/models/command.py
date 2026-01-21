@@ -4,9 +4,12 @@ This module defines models for command resolution, representation, and configura
 """
 
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+
+if TYPE_CHECKING:
+    pass
 
 
 class PhaseLLMConfig(BaseModel):
@@ -195,6 +198,220 @@ class CommandConfig(BaseModel):
             )
 
         return self
+
+
+class ShipCommandsConfig(BaseModel):
+    """Configuration for shell commands executed during ship phase.
+
+    Defines optional shell commands for version bump, build, and publish
+    steps during deployment. Each command is executed in sequence if defined.
+
+    Attributes:
+        version_bump: Command to bump version (e.g., "npm version patch")
+        build: Command to build project (e.g., "npm run build")
+        publish: Command to publish package (e.g., "npm publish")
+
+    Example:
+        >>> config = ShipCommandsConfig(
+        ...     version_bump="npm version patch",
+        ...     build="npm run build",
+        ...     publish="npm publish"
+        ... )
+        >>> config.version_bump
+        'npm version patch'
+
+    YAML example:
+        ship:
+          commands:
+            version_bump: npm version patch
+            build: npm run build
+            publish: npm publish
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    version_bump: str | None = Field(
+        default=None,
+        description="Command to bump version (e.g., 'npm version patch')",
+    )
+    build: str | None = Field(
+        default=None,
+        description="Command to build project for deployment",
+    )
+    publish: str | None = Field(
+        default=None,
+        description="Command to publish package or deploy",
+    )
+
+
+class ShipPRConfig(BaseModel):
+    """Configuration for PR automation during ship phase.
+
+    Controls how pull requests are handled during the ship phase,
+    including automatic merging and branch cleanup.
+
+    Attributes:
+        merge_on_success: Whether to auto-merge PR after validation (default: False)
+        delete_branch_on_merge: Delete feature branch after merge (default: True)
+        merge_method: Method for merging PR (default: "squash")
+
+    Example:
+        >>> config = ShipPRConfig(merge_on_success=True, merge_method="squash")
+        >>> config.merge_on_success
+        True
+        >>> config.merge_method
+        'squash'
+
+    YAML example:
+        ship:
+          pr:
+            merge_on_success: true
+            delete_branch_on_merge: true
+            merge_method: squash
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    merge_on_success: bool = Field(
+        default=False,
+        description="Whether to auto-merge PR after successful validation",
+    )
+    delete_branch_on_merge: bool = Field(
+        default=True,
+        description="Delete feature branch after merge",
+    )
+    merge_method: Literal["merge", "squash", "rebase"] = Field(
+        default="squash",
+        description="Method for merging PR (merge, squash, or rebase)",
+    )
+
+
+class ValidateCommandConfig(CommandConfig):
+    """Validate phase configuration extending CommandConfig.
+
+    Contains all settings from the original ValidationConfig that control
+    validation phase behavior, validators, and iteration settings.
+
+    Attributes:
+        enable_evidence: Whether to run evidence validator.
+        enable_review: Whether to run code review validator.
+        enable_tests: Whether to run test validator.
+        test_command: Custom test command (auto-detect if None).
+        test_timeout_seconds: Timeout for test execution.
+        review_prompt: Path to custom review prompt (optional).
+        review_focus: Areas to focus code review on.
+        max_iterations: Maximum validation loop iterations.
+        max_fix_attempts_per_issue: Max attempts to fix a single issue.
+        stall_threshold: Consecutive iterations without progress before stall.
+        triage_mode: How to handle issue triage (auto, manual, hybrid).
+        auto_dismiss_info: Automatically dismiss info-level issues.
+
+    Example:
+        >>> config = ValidateCommandConfig(
+        ...     enable_tests=True,
+        ...     test_command="pytest",
+        ...     max_iterations=5,
+        ... )
+        >>> config.enable_tests
+        True
+
+    YAML example (in .adw/commands/validate/config.yaml):
+        enabled: true
+        timeout_seconds: 600
+        enable_tests: true
+        test_command: pytest
+        max_iterations: 5
+        triage_mode: auto
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    enable_evidence: bool = Field(
+        default=True, description="Whether to run evidence validator"
+    )
+    enable_review: bool = Field(
+        default=True, description="Whether to run code review validator"
+    )
+    enable_tests: bool = Field(
+        default=True, description="Whether to run test validator"
+    )
+    test_command: str | None = Field(
+        default=None, description="Custom test command (auto-detect if None)"
+    )
+    test_timeout_seconds: int = Field(
+        default=300, description="Timeout for test execution in seconds"
+    )
+    review_prompt: str | None = Field(
+        default=None, description="Path to custom review prompt"
+    )
+    review_focus: list[str] = Field(
+        default_factory=lambda: ["security", "error_handling", "edge_cases"],
+        description="Areas to focus code review on",
+    )
+    max_iterations: int = Field(
+        default=5, description="Maximum validation loop iterations"
+    )
+    max_fix_attempts_per_issue: int = Field(
+        default=2, description="Max attempts to fix a single issue"
+    )
+    stall_threshold: int = Field(
+        default=2, description="Consecutive iterations without progress before stall"
+    )
+    triage_mode: Literal["auto", "manual", "hybrid"] = Field(
+        default="auto", description="How to handle issue triage"
+    )
+    auto_dismiss_info: bool = Field(
+        default=True, description="Automatically dismiss info-level issues"
+    )
+
+
+class ShipCommandConfig(CommandConfig):
+    """Ship phase configuration extending CommandConfig.
+
+    Contains all settings for the ship phase including deployment commands,
+    post-publish hooks, and PR automation settings.
+
+    Attributes:
+        commands: Shell commands for version bump, build, and publish steps.
+        post_publish: List of commands to run after publishing.
+        pr: PR automation configuration (merge settings).
+
+    Example:
+        >>> config = ShipCommandConfig(
+        ...     commands=ShipCommandsConfig(version_bump="npm version patch"),
+        ...     pr=ShipPRConfig(merge_on_success=True),
+        ... )
+        >>> config.commands.version_bump
+        'npm version patch'
+
+    YAML example (in .adw/commands/ship/config.yaml):
+        enabled: true
+        timeout_seconds: 900
+        commands:
+          version_bump: npm version patch
+          build: npm run build
+          publish: npm publish
+        post_publish:
+          - git push --tags
+        pr:
+          merge_on_success: true
+          merge_method: squash
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    commands: ShipCommandsConfig = Field(
+        default_factory=ShipCommandsConfig,
+        description="Shell commands for deployment steps",
+    )
+    post_publish: list[str] = Field(
+        default_factory=list,
+        description="Commands to run after publishing (e.g., git push --tags)",
+    )
+    pr: ShipPRConfig = Field(
+        default_factory=ShipPRConfig,
+        description="PR automation configuration",
+    )
 
 
 class ResolvedCommand(BaseModel):

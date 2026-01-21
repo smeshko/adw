@@ -1,8 +1,33 @@
 # Default configuration for the validate phase
-# These defaults can be overridden in project's project.yaml
+# These defaults can be overridden in project's .adw/commands/validate/config.yaml
 
-# Timeout for the validate phase (5 minutes default - quick validation)
-timeout_seconds: 300
+# Timeout for the validate phase (10 minutes for full validation loop)
+timeout_seconds: 600
+
+# === Validation Settings ===
+# Controls which validators run and their behavior
+
+# Enable/disable specific validators
+enable_evidence: true   # Run evidence validator
+enable_review: true     # Run code review validator
+enable_tests: true      # Run test validator
+
+# Test execution settings
+# test_command: null    # Custom test command (auto-detect if null)
+test_timeout_seconds: 300  # Timeout for test execution
+
+# Code review settings
+# review_prompt: null   # Path to custom review prompt
+review_focus: ["security", "error_handling", "edge_cases"]
+
+# Iteration and fix attempt limits
+max_iterations: 5               # Maximum validation loop iterations
+max_fix_attempts_per_issue: 2   # Max attempts to fix a single issue
+stall_threshold: 2              # Iterations without progress before stall
+
+# Issue triage behavior
+triage_mode: auto       # How to handle issues (auto/manual/hybrid)
+auto_dismiss_info: true # Automatically dismiss info-level issues
 
 # Input files for validate phase
 # input_files:

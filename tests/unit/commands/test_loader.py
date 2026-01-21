@@ -515,7 +515,7 @@ class TestConfigLoading:
 
         loader = CommandLoader(project_root=tmp_path)
         resolved = loader.resolver.resolve("plan")
-        config = loader._load_config(resolved)
+        config = loader._load_config(resolved, "plan")
 
         assert config is None
 
@@ -533,7 +533,7 @@ class TestConfigLoading:
 
         loader = CommandLoader(project_root=tmp_path)
         resolved = loader.resolver.resolve("plan")
-        config = loader._load_config(resolved)
+        config = loader._load_config(resolved, "plan")
 
         assert config is not None
         assert isinstance(config, CommandConfig)
@@ -551,7 +551,7 @@ class TestConfigLoading:
 
         loader = CommandLoader(project_root=tmp_path)
         resolved = loader.resolver.resolve("plan")
-        config = loader._load_config(resolved)
+        config = loader._load_config(resolved, "plan")
 
         assert config is not None
         assert isinstance(config, CommandConfig)
@@ -568,7 +568,7 @@ class TestConfigLoading:
         resolved = loader.resolver.resolve("plan")
 
         with pytest.raises(ConfigError) as exc_info:
-            loader._load_config(resolved)
+            loader._load_config(resolved, "plan")
         assert exc_info.value.code == "INVALID_CONFIG"
 
     def test_load_config_raises_on_validation_error(self, tmp_path: Path) -> None:
@@ -583,7 +583,7 @@ class TestConfigLoading:
         resolved = loader.resolver.resolve("plan")
 
         with pytest.raises(ConfigError) as exc_info:
-            loader._load_config(resolved)
+            loader._load_config(resolved, "plan")
         assert exc_info.value.code == "INVALID_CONFIG"
 
     def test_load_command_includes_config(

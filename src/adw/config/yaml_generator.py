@@ -117,11 +117,11 @@ class YAMLWithComments:
         lines.append("")
 
         # Get configs from wizard state
+        # Note: Ship config has been moved to phase config (.adw/commands/ship/config.yaml)
         basics = state.get_step_config("basics")
         git = state.get_step_config("git")
         ports = state.get_step_config("ports")
         task_manager = state.get_step_config("task_manager")
-        ship = state.get_step_config("ship")
         llm_retry = state.get_step_config("llm_retry")
         security = state.get_step_config("security")
         webhooks = state.get_step_config("webhooks")
@@ -314,53 +314,8 @@ class YAMLWithComments:
 
         lines.append("")
 
-        # === Ship Phase ===
-        lines.append("# === Ship Phase ===")
-        ship_commands = ship.get("commands", {})
-        ship_post_publish = ship.get("post_publish", [])
-        ship_pr = ship.get("pr", {})
-        has_ship_config = (
-            ship_commands or ship_post_publish or ship_pr.get("merge_on_success")
-        )
-
-        if has_ship_config:
-            lines.append("ship:")
-            lines.append("  enabled: true")
-
-            if ship_commands:
-                lines.append("  commands:")
-                if ship_commands.get("version_bump"):
-                    lines.append(f"    version_bump: {ship_commands['version_bump']}")
-                if ship_commands.get("build"):
-                    lines.append(f"    build: {ship_commands['build']}")
-                if ship_commands.get("publish"):
-                    lines.append(f"    publish: {ship_commands['publish']}")
-
-            if ship_post_publish:
-                lines.append("  post_publish:")
-                for cmd in ship_post_publish:
-                    lines.append(f"    - {cmd}")
-
-            if ship_pr.get("merge_on_success"):
-                lines.append("  pr:")
-                lines.append("    merge_on_success: true")
-                lines.append(
-                    f"    merge_method: {ship_pr.get('merge_method', 'squash')}"
-                )
-                if not ship_pr.get("delete_branch_on_merge", True):
-                    lines.append("    delete_branch_on_merge: false")
-        else:
-            lines.append("# ship:")
-            lines.append("#   enabled: true  # Enable ship phase")
-            lines.append("#   commands:")
-            lines.append("#     version_bump: null  # Version bump command")
-            lines.append("#     build: null  # Build command")
-            lines.append("#     publish: null  # Publish command")
-            lines.append("#   pr:")
-            lines.append("#     merge_on_success: false  # Auto-merge PR")
-            lines.append('#     merge_method: "squash"  # Merge method')
-
-        lines.append("")
+        # Note: Ship phase configuration has been moved to .adw/commands/ship/config.yaml
+        # See generate_phase_yaml for ship settings (commands, post_publish, pr)
 
         return "\n".join(lines)
 
@@ -467,29 +422,101 @@ class YAMLWithComments:
     ) -> None:
         """Add validate phase specific settings.
 
+        Outputs all 11 validation fields from ValidateCommandConfig,
+        showing configured values as active YAML and defaults as comments.
+
         Args:
             lines: List of output lines to append to.
             config: Phase configuration dict.
         """
         lines.append("# === Validate Phase Settings ===")
 
+        # enable_evidence
+        enable_evidence = config.get("enable_evidence")
+        if enable_evidence is not None:
+            lines.append(f"enable_evidence: {_format_yaml_value(enable_evidence)}")
+        else:
+            lines.append("# enable_evidence: true  # Run evidence validator")
+
+        # enable_review
         enable_review = config.get("enable_review")
         if enable_review is not None:
             lines.append(f"enable_review: {_format_yaml_value(enable_review)}")
         else:
-            lines.append("# enable_review: true  # Enable code review checks")
+            lines.append("# enable_review: true  # Run code review validator")
 
+        # enable_tests
         enable_tests = config.get("enable_tests")
         if enable_tests is not None:
             lines.append(f"enable_tests: {_format_yaml_value(enable_tests)}")
         else:
-            lines.append("# enable_tests: true  # Enable test execution")
+            lines.append("# enable_tests: true  # Run test validator")
 
+        # test_command
+        test_command = config.get("test_command")
+        if test_command is not None:
+            lines.append(f"test_command: {test_command}")
+        else:
+            lines.append("# test_command: null  # Custom test command (auto-detect)")
+
+        # test_timeout_seconds
+        test_timeout = config.get("test_timeout_seconds")
+        if test_timeout is not None:
+            lines.append(f"test_timeout_seconds: {test_timeout}")
+        else:
+            lines.append("# test_timeout_seconds: 300  # Timeout for test execution")
+
+        # review_prompt
+        review_prompt = config.get("review_prompt")
+        if review_prompt is not None:
+            lines.append(f"review_prompt: {review_prompt}")
+        else:
+            lines.append("# review_prompt: null  # Path to custom review prompt")
+
+        # review_focus
+        review_focus = config.get("review_focus")
+        if review_focus is not None:
+            lines.append(f"review_focus: {_format_yaml_value(review_focus)}")
+        else:
+            lines.append(
+                '# review_focus: ["security", "error_handling", "edge_cases"]  '
+                "# Code review focus areas"
+            )
+
+        # max_iterations
         max_iterations = config.get("max_iterations")
         if max_iterations is not None:
             lines.append(f"max_iterations: {max_iterations}")
         else:
-            lines.append("# max_iterations: 3  # Max fix attempts")
+            lines.append("# max_iterations: 5  # Maximum validation loop iterations")
+
+        # max_fix_attempts_per_issue
+        max_fix_attempts = config.get("max_fix_attempts_per_issue")
+        if max_fix_attempts is not None:
+            lines.append(f"max_fix_attempts_per_issue: {max_fix_attempts}")
+        else:
+            lines.append("# max_fix_attempts_per_issue: 2  # Max attempts per issue")
+
+        # stall_threshold
+        stall_threshold = config.get("stall_threshold")
+        if stall_threshold is not None:
+            lines.append(f"stall_threshold: {stall_threshold}")
+        else:
+            lines.append("# stall_threshold: 2  # Iterations without progress before stall")
+
+        # triage_mode
+        triage_mode = config.get("triage_mode")
+        if triage_mode is not None:
+            lines.append(f"triage_mode: {triage_mode}")
+        else:
+            lines.append("# triage_mode: auto  # Issue triage mode (auto/manual/hybrid)")
+
+        # auto_dismiss_info
+        auto_dismiss_info = config.get("auto_dismiss_info")
+        if auto_dismiss_info is not None:
+            lines.append(f"auto_dismiss_info: {_format_yaml_value(auto_dismiss_info)}")
+        else:
+            lines.append("# auto_dismiss_info: true  # Auto-dismiss info-level issues")
 
         lines.append("")
 
@@ -498,13 +525,77 @@ class YAMLWithComments:
     ) -> None:
         """Add ship phase specific settings.
 
+        Outputs all ship-specific fields from ShipCommandConfig,
+        including commands, post_publish, and PR settings.
+
         Args:
             lines: List of output lines to append to.
             config: Phase configuration dict.
         """
         lines.append("# === Ship Phase Settings ===")
-        lines.append("# Note: Ship configuration is typically in project.yaml")
-        lines.append("# These are phase-level overrides only.")
+
+        # Get nested config sections
+        commands = config.get("commands", {})
+        post_publish = config.get("post_publish", [])
+        pr = config.get("pr", {})
+
+        has_commands = (
+            commands.get("version_bump")
+            or commands.get("build")
+            or commands.get("publish")
+        )
+        has_pr_config = pr.get("merge_on_success")
+
+        # Commands section
+        if has_commands:
+            lines.append("commands:")
+            if commands.get("version_bump"):
+                lines.append(f"  version_bump: {commands['version_bump']}")
+            else:
+                lines.append("  # version_bump: null  # Version bump command")
+            if commands.get("build"):
+                lines.append(f"  build: {commands['build']}")
+            else:
+                lines.append("  # build: null  # Build command for deployment")
+            if commands.get("publish"):
+                lines.append(f"  publish: {commands['publish']}")
+            else:
+                lines.append("  # publish: null  # Publish/deploy command")
+        else:
+            lines.append("# commands:")
+            lines.append("#   version_bump: null  # Version bump command")
+            lines.append("#   build: null  # Build command for deployment")
+            lines.append("#   publish: null  # Publish/deploy command")
+
+        lines.append("")
+
+        # Post-publish hooks
+        if post_publish:
+            lines.append("post_publish:")
+            for cmd in post_publish:
+                lines.append(f"  - {cmd}")
+        else:
+            lines.append("# post_publish:  # Commands after publishing")
+            lines.append("#   - git push --tags")
+
+        lines.append("")
+
+        # PR automation settings
+        if has_pr_config:
+            lines.append("pr:")
+            lines.append(
+                f"  merge_on_success: {_format_yaml_value(pr.get('merge_on_success', False))}"
+            )
+            lines.append(
+                f"  delete_branch_on_merge: {_format_yaml_value(pr.get('delete_branch_on_merge', True))}"
+            )
+            lines.append(f"  merge_method: {pr.get('merge_method', 'squash')}")
+        else:
+            lines.append("# pr:")
+            lines.append("#   merge_on_success: false  # Auto-merge PR after validation")
+            lines.append("#   delete_branch_on_merge: true  # Delete branch after merge")
+            lines.append('#   merge_method: squash  # Merge method (merge/squash/rebase)')
+
         lines.append("")
 
 
@@ -516,6 +607,9 @@ def generate_all_phase_configs(
 
     Unlike the previous implementation that only generated configs for
     phases with customized=True, this generates for all phases.
+
+    Ship phase config is merged from both the phases step and the
+    dedicated ship step (which collects commands, post_publish, pr).
 
     Args:
         state: WizardState containing collected configuration.
@@ -533,9 +627,24 @@ def generate_all_phase_configs(
     phases = state.get_step_config("phases")
     phases_dict = phases.get("phases", {})
 
+    # Get ship-specific config from the ship step (ISS-031)
+    ship_step_config = state.get_step_config("ship")
+
     # Generate config for ALL phases, not just customized ones
     for phase in PHASE_SEQUENCE:
         phase_config = phases_dict.get(phase, {})
+
+        # For ship phase, merge in the ship step config
+        if phase == "ship" and ship_step_config:
+            # Merge ship step settings (commands, post_publish, pr)
+            phase_config = {**phase_config}  # Shallow copy to avoid mutation
+            if ship_step_config.get("commands"):
+                phase_config["commands"] = ship_step_config["commands"]
+            if ship_step_config.get("post_publish"):
+                phase_config["post_publish"] = ship_step_config["post_publish"]
+            if ship_step_config.get("pr"):
+                phase_config["pr"] = ship_step_config["pr"]
+
         content = generator.generate_phase_yaml(phase, phase_config)
         files[f"commands/{phase}/config.yaml"] = content
 

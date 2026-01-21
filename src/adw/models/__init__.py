@@ -2,10 +2,11 @@
 
 This package contains all Pydantic models used throughout ADW:
 - artifacts: DiffStats
-- command: ResolvedCommand, LoadedCommand
+- command: ResolvedCommand, LoadedCommand, ValidateCommandConfig, ShipCommandConfig,
+           ShipCommandsConfig, ShipPRConfig
 - context: RunContext, SessionContext, ProjectContext, StateSnapshot
 - phase: PhaseStatus, PhaseResult, Artifact, ArtifactType
-- config: ProjectConfig, LLMConfig, PhaseConfig, HookConfig, PipelineConfig, GitConfig, ShipConfig
+- config: ProjectConfig, LLMConfig, PhaseConfig, HookConfig, PipelineConfig, GitConfig
 - llm: LLMResult, ToolCall
 - hook: HookResult
 - logging: LogLevel, LogCategory, LogContext, LogEvent
@@ -20,7 +21,14 @@ This package contains all Pydantic models used throughout ADW:
 """
 
 from adw.models.artifacts import DiffStats
-from adw.models.command import LoadedCommand, ResolvedCommand
+from adw.models.command import (
+    LoadedCommand,
+    ResolvedCommand,
+    ShipCommandConfig,
+    ShipCommandsConfig,
+    ShipPRConfig,
+    ValidateCommandConfig,
+)
 from adw.models.config import (
     GitConfig,
     HookConfig,
@@ -30,9 +38,6 @@ from adw.models.config import (
     PortRangeConfig,
     ProjectConfig,
     RetryConfig,
-    ShipCommandsConfig,
-    ShipConfig,
-    ShipPRConfig,
     TaskManagerConfig,
     TaskManagerLabelsConfig,
     WorktreeConfig,
@@ -87,6 +92,10 @@ __all__: list[str] = [
     # Command models
     "LoadedCommand",
     "ResolvedCommand",
+    "ShipCommandConfig",
+    "ShipCommandsConfig",
+    "ShipPRConfig",
+    "ValidateCommandConfig",
     # Config models
     "GitConfig",
     "HookConfig",
@@ -96,9 +105,6 @@ __all__: list[str] = [
     "PortRangeConfig",
     "ProjectConfig",
     "RetryConfig",
-    "ShipCommandsConfig",
-    "ShipConfig",
-    "ShipPRConfig",
     "TaskManagerConfig",
     "TaskManagerLabelsConfig",
     "WorktreeConfig",

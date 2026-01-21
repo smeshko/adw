@@ -12,7 +12,8 @@ import pytest
 from pydantic import ValidationError
 
 from adw.models import ProjectConfig
-from adw.models.config import PhaseConfig, ShipConfig, ShipPRConfig, WorktreeConfig
+from adw.models.command import ShipCommandConfig, ShipPRConfig
+from adw.models.config import PhaseConfig, WorktreeConfig
 
 
 class TestPhaseConfigInputFiles:
@@ -131,8 +132,13 @@ class TestWorktreeConfig:
         assert config.port_range.backend_start == 65521
 
 
-class TestShipConfig:
-    """Tests for ShipConfig validation (Story 15.1)."""
+class TestShipCommandConfig:
+    """Tests for ShipCommandConfig validation (ISS-031 refactored from Story 15.1).
+
+    Note: Ship configuration has been moved from ProjectConfig.ship to
+    phase-specific config at .adw/commands/ship/config.yaml. These tests
+    now validate the ShipCommandConfig class directly.
+    """
 
     def test_merge_method_rejects_invalid(self) -> None:
         """ShipPRConfig rejects invalid merge_method values."""
@@ -146,48 +152,45 @@ class TestShipConfig:
             config = ShipPRConfig(merge_method=method)  # type: ignore[arg-type]
             assert config.merge_method == method
 
-    def test_ship_config_from_yaml(self) -> None:
-        """ShipConfig loads correctly from project YAML."""
-        yaml_content = """
-name: ship-enabled
-language: python
-ship:
-  enabled: true
-  commands:
-    version_bump: npm version patch
-    build: npm run build
-    publish: npm publish
-  post_publish:
-    - git push --tags
-    - echo "Published!"
-  pr:
-    merge_on_success: true
-    delete_branch_on_merge: true
-    merge_method: squash
-"""
-        config = ProjectConfig.from_yaml(yaml_content)
-        assert config.ship is not None
-        assert config.ship.enabled is True
-        assert config.ship.commands.version_bump == "npm version patch"
-        assert config.ship.commands.build == "npm run build"
-        assert config.ship.commands.publish == "npm publish"
-        assert config.ship.post_publish == ["git push --tags", 'echo "Published!"']
-        assert config.ship.pr.merge_on_success is True
-        assert config.ship.pr.merge_method == "squash"
-
-    def test_ship_config_post_publish_defaults_to_empty(self) -> None:
-        """ShipConfig.post_publish defaults to empty list."""
-        config = ShipConfig()
+    def test_ship_command_config_defaults(self) -> None:
+        """ShipCommandConfig has expected defaults."""
+        config = ShipCommandConfig()
+        assert config.enabled is True
+        assert config.commands.version_bump is None
+        assert config.commands.build is None
+        assert config.commands.publish is None
         assert config.post_publish == []
+        assert config.pr.merge_on_success is False
+        assert config.pr.delete_branch_on_merge is True
+        assert config.pr.merge_method == "squash"
 
-    def test_ship_config_defaults_to_none(self) -> None:
-        """ProjectConfig.ship defaults to None when not specified."""
-        yaml_content = """
-name: no-ship
-language: python
-"""
-        config = ProjectConfig.from_yaml(yaml_content)
-        assert config.ship is None
+    def test_ship_command_config_with_values(self) -> None:
+        """ShipCommandConfig accepts all ship-specific fields."""
+        config = ShipCommandConfig(
+            enabled=True,
+            commands={
+                "version_bump": "npm version patch",
+                "build": "npm run build",
+                "publish": "npm publish",
+            },
+            post_publish=["git push --tags", "echo Done"],
+            pr={
+                "merge_on_success": True,
+                "delete_branch_on_merge": True,
+                "merge_method": "squash",
+            },
+        )
+        assert config.commands.version_bump == "npm version patch"
+        assert config.commands.build == "npm run build"
+        assert config.commands.publish == "npm publish"
+        assert config.post_publish == ["git push --tags", "echo Done"]
+        assert config.pr.merge_on_success is True
+        assert config.pr.merge_method == "squash"
+
+    def test_ship_command_config_post_publish_defaults_to_empty(self) -> None:
+        """ShipCommandConfig.post_publish defaults to empty list."""
+        config = ShipCommandConfig()
+        assert config.post_publish == []
 
 
 class TestProjectConfig:

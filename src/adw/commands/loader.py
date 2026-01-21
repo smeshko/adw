@@ -17,10 +17,41 @@ import yaml
 from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
 from adw.exceptions import ConfigError
-from adw.models.command import CommandConfig, LoadedCommand
+from adw.models.command import (
+    CommandConfig,
+    LoadedCommand,
+    ShipCommandConfig,
+    ValidateCommandConfig,
+)
 
 if TYPE_CHECKING:
     from adw.models import ResolvedCommand, RunContext
+
+
+# Mapping of phase names to their specialized config classes
+PHASE_CONFIG_CLASSES: dict[str, type[CommandConfig]] = {
+    "validate": ValidateCommandConfig,
+    "ship": ShipCommandConfig,
+}
+
+
+def get_config_class(phase: str) -> type[CommandConfig]:
+    """Get the appropriate config class for a phase.
+
+    Args:
+        phase: Phase name (e.g., "validate", "ship", "plan").
+
+    Returns:
+        The specialized config class for the phase, or CommandConfig
+        for phases without specialized configuration.
+
+    Example:
+        >>> get_config_class("validate")
+        <class 'ValidateCommandConfig'>
+        >>> get_config_class("plan")
+        <class 'CommandConfig'>
+    """
+    return PHASE_CONFIG_CLASSES.get(phase, CommandConfig)
 
 
 class CommandLoader:
@@ -148,8 +179,8 @@ class CommandLoader:
         # Load optional schema
         schema = self._load_schema(resolved)
 
-        # Load optional config
-        config = self._load_config(resolved)
+        # Load optional config (uses phase-specific config class)
+        config = self._load_config(resolved, phase)
 
         return LoadedCommand(
             name=phase,
@@ -217,14 +248,20 @@ class CommandLoader:
                 message=f"Invalid JSON in schema.json at {schema_path}: {e}",
             ) from e
 
-    def _load_config(self, resolved: "ResolvedCommand") -> CommandConfig | None:
+    def _load_config(
+        self, resolved: "ResolvedCommand", phase: str
+    ) -> CommandConfig | None:
         """Load optional config.yaml from command directory.
+
+        Uses the phase-specific config class (e.g., ValidateCommandConfig for
+        validate phase) to load and validate the configuration.
 
         Args:
             resolved: The resolved command with path information.
+            phase: The phase name for selecting the appropriate config class.
 
         Returns:
-            Parsed CommandConfig if config.yaml exists, None otherwise.
+            Parsed CommandConfig (or subclass) if config.yaml exists, None otherwise.
 
         Raises:
             ConfigError: If config.yaml exists but contains invalid YAML or
@@ -243,7 +280,9 @@ class CommandLoader:
             if data is None:
                 data = {}
 
-            return CommandConfig.model_validate(data)
+            # Use phase-specific config class
+            config_class = get_config_class(phase)
+            return config_class.model_validate(data)
         except yaml.YAMLError as e:
             raise ConfigError(
                 code="INVALID_CONFIG",

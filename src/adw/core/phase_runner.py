@@ -30,6 +30,7 @@ from adw.hooks.git_diff import (
     has_commits,
     truncate_diff,
 )
+from adw.commands.loader import get_config_class
 from adw.models import (
     LLMResult,
     PhaseResult,
@@ -37,7 +38,11 @@ from adw.models import (
     ResolvedCommand,
     RunContext,
 )
-from adw.models.command import CommandConfig
+from adw.models.command import (
+    CommandConfig,
+    ShipCommandConfig,
+    ValidateCommandConfig,
+)
 from adw.models.config import PhaseConfig, ProjectConfig
 
 if TYPE_CHECKING:
@@ -374,6 +379,20 @@ class PhaseRunner:
             ),
         }
 
+        # Load phase-specific typed config for templates (ISS-031)
+        # This provides {{validation_config.*}} and {{ship_config.*}} access
+        typed_config = self._load_project_config(phase)
+        variables["validation_config"] = (
+            typed_config.model_dump()
+            if isinstance(typed_config, ValidateCommandConfig)
+            else {}
+        )
+        variables["ship_config"] = (
+            typed_config.model_dump()
+            if isinstance(typed_config, ShipCommandConfig)
+            else {}
+        )
+
         # Load schema from command directory if exists (for validate phase)
         schema_path = command.path / "schema.json"
         if schema_path.exists():
@@ -574,14 +593,20 @@ class PhaseRunner:
 
         return PhaseConfig(**merged_data) if merged_data else PhaseConfig()
 
-    def _load_command_config(self, command: ResolvedCommand) -> CommandConfig | None:
+    def _load_command_config(
+        self, command: ResolvedCommand, phase: str
+    ) -> CommandConfig | None:
         """Load optional config.yaml from command directory.
+
+        Uses the phase-specific config class (e.g., ValidateCommandConfig for
+        validate phase) to load and validate the configuration.
 
         Args:
             command: The resolved command with path information.
+            phase: The phase name for selecting the appropriate config class.
 
         Returns:
-            Parsed CommandConfig if config.yaml exists, None otherwise.
+            Parsed CommandConfig (or subclass) if config.yaml exists, None otherwise.
 
         Raises:
             ConfigError: If config.yaml exists but contains invalid YAML or
@@ -600,7 +625,9 @@ class PhaseRunner:
             if data is None:
                 data = {}
 
-            return CommandConfig.model_validate(data)
+            # Use phase-specific config class
+            config_class = get_config_class(phase)
+            return config_class.model_validate(data)
         except yaml.YAMLError as e:
             raise ConfigError(
                 code="INVALID_CONFIG",
@@ -623,11 +650,15 @@ class PhaseRunner:
         The project config is loaded separately from command resolution to support
         cases where only config.yaml exists in the project directory (no prompt.md).
 
+        Uses the phase-specific config class (e.g., ValidateCommandConfig for
+        validate phase) to load and validate the configuration.
+
         Args:
             phase: Phase name (e.g., "plan", "build", "ship").
 
         Returns:
-            Parsed CommandConfig if project config.yaml exists, None otherwise.
+            Parsed CommandConfig (or subclass) if project config.yaml exists,
+            None otherwise.
 
         Raises:
             ConfigError: If config.yaml exists but contains invalid YAML or
@@ -661,7 +692,9 @@ class PhaseRunner:
             if data is None:
                 data = {}
 
-            return CommandConfig.model_validate(data)
+            # Use phase-specific config class
+            config_class = get_config_class(phase)
+            return config_class.model_validate(data)
         except yaml.YAMLError as e:
             raise ConfigError(
                 code="INVALID_PROJECT_CONFIG",
@@ -698,7 +731,7 @@ class PhaseRunner:
         """
         # Load command config from resolved tier (if exists)
         command_config = (
-            self._load_command_config(command) if command.has_config else None
+            self._load_command_config(command, phase) if command.has_config else None
         )
 
         # ISS-030: Load project-level config (separate from command resolution)
@@ -734,7 +767,7 @@ class PhaseRunner:
             # Check command config (from resolved tier)
             command = self.command_resolver.resolve(phase)
             if command.has_config:
-                config = self._load_command_config(command)
+                config = self._load_command_config(command, phase)
                 if config is not None:
                     enabled = config.enabled
 
