@@ -364,8 +364,13 @@ class TestProjectYamlGeneration:
         assert config["llm"]["retry"]["max_delay"] == 120.0
         assert config["llm"]["retry"]["multiplier"] == 3.0
 
-    def test_generate_project_yaml_with_ship(self) -> None:
-        """Test project.yaml includes ship when customized."""
+    def test_generate_project_yaml_ship_moved_to_phase_config(self) -> None:
+        """Test project.yaml no longer includes ship (ISS-031: moved to phase config).
+
+        Ship configuration has been moved from project.yaml to the phase-specific
+        config file at .adw/commands/ship/config.yaml. This test verifies that
+        the ship section is no longer generated in project.yaml.
+        """
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
@@ -394,16 +399,15 @@ class TestProjectYamlGeneration:
         yaml_content = generate_project_yaml(state)
         config = yaml.safe_load(yaml_content)
 
-        assert config["ship"]["enabled"] is True
-        assert config["ship"]["commands"]["version_bump"] == "npm version patch"
-        assert config["ship"]["commands"]["build"] == "npm run build"
-        assert config["ship"]["commands"]["publish"] == "npm publish"
-        assert config["ship"]["post_publish"] == ["git push --tags", "echo 'deployed'"]
-        assert config["ship"]["pr"]["merge_on_success"] is True
-        assert config["ship"]["pr"]["merge_method"] == "squash"
+        # Ship config is now in .adw/commands/ship/config.yaml, not project.yaml
+        assert "ship" not in config
 
-    def test_generate_project_yaml_omits_ship_when_default(self) -> None:
-        """Test project.yaml omits ship when using defaults."""
+    def test_generate_project_yaml_omits_ship_section(self) -> None:
+        """Test project.yaml omits ship section entirely (ISS-031).
+
+        After the refactoring, ship config is always in phase config,
+        not in project.yaml.
+        """
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},

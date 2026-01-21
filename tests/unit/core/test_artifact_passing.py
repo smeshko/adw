@@ -46,9 +46,12 @@ def template_engine(tmp_path: Path) -> TemplateEngine:
 def phase_runner(
     artifact_manager: ArtifactManager,
     template_engine: TemplateEngine,
+    tmp_path: Path,
 ) -> PhaseRunner:
     """Create a PhaseRunner with mocked dependencies."""
     mock_resolver = MagicMock(spec=CommandResolver)
+    # ISS-031: Add project_root for _load_project_config
+    mock_resolver.project_root = tmp_path
     mock_hook_runner = MagicMock()
     mock_executor = MagicMock()
 

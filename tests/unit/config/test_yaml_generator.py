@@ -117,11 +117,15 @@ class TestYAMLWithComments:
     def test_generate_project_yaml_has_all_sections(
         self, generator: YAMLWithComments
     ) -> None:
-        """Test that all config sections are present."""
+        """Test that all config sections are present.
+
+        Note: Ship Phase section removed in ISS-031 - ship config is now
+        in .adw/commands/ship/config.yaml instead of project.yaml.
+        """
         state = MockWizardState()
         yaml_content = generator.generate_project_yaml(state)
 
-        # Check all section headers
+        # Check all section headers (Ship Phase removed - now in phase config)
         assert "# === Core Settings ===" in yaml_content
         assert "# === Commands ===" in yaml_content
         assert "# === Git Integration ===" in yaml_content
@@ -130,7 +134,8 @@ class TestYAMLWithComments:
         assert "# === LLM Configuration ===" in yaml_content
         assert "# === Security ===" in yaml_content
         assert "# === Webhook Server ===" in yaml_content
-        assert "# === Ship Phase ===" in yaml_content
+        # Ship config is now in .adw/commands/ship/config.yaml
+        assert "# === Ship Phase ===" not in yaml_content
 
     def test_generate_project_yaml_commented_settings_are_valid_yaml(
         self, generator: YAMLWithComments

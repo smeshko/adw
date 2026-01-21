@@ -81,15 +81,17 @@ class ConfigRegistry:
     def _build_catalog(self) -> None:
         """Build the complete settings catalog from Pydantic models."""
         # Import models here to avoid circular imports
+        from adw.models.command import (
+            ShipCommandConfig,
+            ShipCommandsConfig,
+            ShipPRConfig,
+        )
         from adw.models.config import (
             GitConfig,
             LLMConfig,
             PhaseConfig,
             PortRangeConfig,
             ProjectConfig,
-            ShipCommandsConfig,
-            ShipConfig,
-            ShipPRConfig,
             TaskManagerConfig,
             TaskManagerLabelsConfig,
             WorktreeConfig,
@@ -116,7 +118,7 @@ class ConfigRegistry:
         self._settings["webhook"] = self._extract_webhook_settings(WebhookConfig)
         self._settings["webhook_provider"] = self._extract_from_model(ProviderConfig)
         self._settings["ship"] = self._extract_from_model(
-            ShipConfig, skip_nested=["commands", "pr"]
+            ShipCommandConfig, skip_nested=["commands", "pr"]
         )
         self._settings["ship_commands"] = self._extract_from_model(ShipCommandsConfig)
         self._settings["ship_pr"] = self._extract_from_model(ShipPRConfig)
