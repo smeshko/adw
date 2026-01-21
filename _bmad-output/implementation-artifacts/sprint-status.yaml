@@ -76,11 +76,11 @@ issues:
   ISS-030-project-config-ignored-without-prompt: fixed  # Critical - Project config.yaml ignored if no prompt.md
   ISS-031-pr-creation-after-document-phase: fixed  # Major - Auto-PR runs after all phases, ship expects PR to exist
   ISS-032-init-wizard-generate-complete-config-files: fixed  # Major - Wizard should output all settings with commented defaults
-  ISS-033-task-manager-wiring-broken: reported  # Critical - StatusSyncService not instantiated, LabelManager uses identifier instead of UUID
+  ISS-033-task-manager-wiring-broken: fixed  # Critical - StatusSyncService not instantiated, LabelManager uses identifier instead of UUID
   ISS-034-logging-context-and-redundancy: fixed  # Major - [phase] placeholder in logs, spinner/error overlap, redundant phase completed msg
   ISS-035-duplicate-worktree-log-messages: fixed  # Minor - Two "worktree created" messages logged
   ISS-036-progress-bar-shows-disabled-phases: fixed  # Major - Disabled phases (ship) shown in progress bar, affects percentage
-  ISS-037-pr-title-missing-description: reported  # Major - PR title just shows task ID when feature_description equals task_id
+  ISS-037-pr-title-missing-description: fixed  # Major - PR title just shows task ID when feature_description equals task_id
   ISS-038-conditional-docs-too-generic: in-progress  # Minor - Document phase generates overly broad conditions not specific to feature (story created)
 
 development_status:
@@ -399,7 +399,7 @@ development_status:
   # Bugfix (from ISS-033) - CRITICAL
   # StatusSyncService not instantiated in bootstrap.py, no comments posted to Linear
   # LabelManager receives identifier (RULE-151) instead of internal UUID (task_info.id)
-  bugfix-ISS-033-task-manager-wiring-broken: review
+  bugfix-ISS-033-task-manager-wiring-broken: done
   # UX Fix (from ISS-034) - MAJOR
   # [phase] shows as placeholder instead of actual phase name in logs
   # Spinner output overlaps with error/warning messages (on_llm_complete not called)
@@ -415,7 +415,7 @@ development_status:
   # UX Fix (from ISS-037) - MAJOR
   # PR title just shows "RULE-151" when feature_description equals task_id
   # Should fall back to task_info.title from Linear
-  ux-fix-ISS-037-pr-title-missing-description: review
+  ux-fix-ISS-037-pr-title-missing-description: done
   # UX Fix (from ISS-038) - MINOR
   # Document phase generates overly generic conditions for CONDITIONAL_DOCS.md
   # Should include feature name in conditions to prevent doc pollution
