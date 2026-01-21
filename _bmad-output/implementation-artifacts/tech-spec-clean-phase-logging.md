@@ -1,7 +1,7 @@
 # Tech-Spec: Clean Phase Logging Output
 
 **Created:** 2026-01-21
-**Status:** Ready for Development
+**Status:** Completed
 
 ## Overview
 
@@ -87,43 +87,44 @@ Clean up the logging format by:
 
 ### Tasks
 
-- [ ] Task 1: Remove level padding in console.py
-  - Change `f"[{level_name:5}]"` to `f"[{level_name}]"` in `_write_rich()` (line 169)
-  - Change `f"[{level_name:5}]"` to `f"[{level_name}]"` in `_write_plain()` (line 212)
+- [x] Task 1: Remove level padding in console.py
+  - Changed `f"[{level_name:5}]"` to `f"[{level_name}]"` in `_write_rich()` (line 169)
+  - Changed `f"[{level_name:5}]"` to `f"[{level_name}]"` in `_write_plain()` (line 212)
 
-- [ ] Task 2: Remove phase name from console output
-  - Remove lines 177-178 in `_write_rich()` that append phase context
-  - Remove phase from context_parts in `_write_plain()` (lines 202-203)
+- [x] Task 2: Remove phase name from console output
+  - Removed lines 177-178 in `_write_rich()` that append phase context
+  - Removed phase from context_parts in `_write_plain()` (lines 202-203)
 
-- [ ] Task 3: Remove run_id from console output
-  - Remove lines 175-176 in `_write_rich()` that append run_id
-  - Remove run_id from context_parts in `_write_plain()` (lines 199-200)
+- [x] Task 3: Remove run_id from console output
+  - Removed lines 175-176 in `_write_rich()` that append run_id
+  - Removed run_id from context_parts in `_write_plain()` (lines 199-200)
 
-- [ ] Task 4: Remove redundant phase start logs
-  - Remove or comment out the log statement at `orchestrator.py:1493`
-  - Remove or comment out the log statement at `phase_runner.py:155`
+- [x] Task 4: Remove redundant phase start logs
+  - Removed the log statement at `orchestrator.py:1493`
+  - Removed the log statement at `phase_runner.py:155`
 
-- [ ] Task 5: Handle spinner/log newline coordination
-  - Investigate current Rich Live behavior
-  - Add coordination mechanism to ensure logs print on new line when spinner active
-  - Options: module state, context manager, or Rich console coordination
+- [x] Task 5: Handle spinner/log newline coordination
+  - Added module-level `_active_live` reference in console.py
+  - Added `set_active_live()` and `get_active_live()` functions for coordination
+  - ConsoleTransport now stops active Live display before writing to prevent overlap
+  - ProgressDisplay registers/unregisters Live display on spinner start/stop
 
-- [ ] Task 6: Update tests
-  - Update `test_console.py` tests that assert run_id appears in output
-  - Update tests that assert phase appears in output
-  - Verify level formatting tests pass
+- [x] Task 6: Update tests
+  - Updated `test_includes_run_id_when_present` to `test_excludes_run_id_from_console`
+  - Updated `test_includes_phase_when_present` to `test_excludes_phase_from_console`
+  - Added `TestLogLevelFormatting` class with tests for no-padding verification
 
 ### Acceptance Criteria
 
-- [ ] AC 1: Log levels show without padding: `[INFO]` not `[INFO ]`
-- [ ] AC 2: Phase name `[build]` does not appear in console log lines
-- [ ] AC 3: Run ID does not appear in console log lines
-- [ ] AC 4: Run ID still appears in:
+- [x] AC 1: Log levels show without padding: `[INFO]` not `[INFO ]`
+- [x] AC 2: Phase name `[build]` does not appear in console log lines
+- [x] AC 3: Run ID does not appear in console log lines
+- [x] AC 4: Run ID still appears in:
   - Run header panel
   - File logs (logs.txt and logs.jsonl)
-- [ ] AC 5: Only one "starting phase" indicator appears (the panel)
-- [ ] AC 6: Log messages during spinner appear on new line, not concatenated
-- [ ] AC 7: All existing tests pass (with updates for new format)
+- [x] AC 5: Only one "starting phase" indicator appears (the panel)
+- [x] AC 6: Log messages during spinner appear on new line, not concatenated
+- [x] AC 7: All existing tests pass (with updates for new format)
 
 ## Additional Context
 
