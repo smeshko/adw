@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from adw.models.security import SecurityConfig
 from adw.models.webhook import WebhookConfig
+
 # NOTE: ValidationConfig removed - validation settings now in ValidateCommandConfig
 # NOTE: ShipConfig classes moved to command.py as ShipCommandConfig
 

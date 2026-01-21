@@ -116,8 +116,7 @@ class YAMLWithComments:
         lines.append("# Uncomment and modify to customize behavior.")
         lines.append("")
 
-        # Get configs from wizard state
-        # Note: Ship config has been moved to phase config (.adw/commands/ship/config.yaml)
+        # Get configs from wizard state (ship config is now in phase config file)
         basics = state.get_step_config("basics")
         git = state.get_step_config("git")
         ports = state.get_step_config("ports")
@@ -314,8 +313,7 @@ class YAMLWithComments:
 
         lines.append("")
 
-        # Note: Ship phase configuration has been moved to .adw/commands/ship/config.yaml
-        # See generate_phase_yaml for ship settings (commands, post_publish, pr)
+        # Ship phase config is now in .adw/commands/ship/config.yaml
 
         return "\n".join(lines)
 
@@ -502,14 +500,14 @@ class YAMLWithComments:
         if stall_threshold is not None:
             lines.append(f"stall_threshold: {stall_threshold}")
         else:
-            lines.append("# stall_threshold: 2  # Iterations without progress before stall")
+            lines.append("# stall_threshold: 2  # Iterations before stall")
 
         # triage_mode
         triage_mode = config.get("triage_mode")
         if triage_mode is not None:
             lines.append(f"triage_mode: {triage_mode}")
         else:
-            lines.append("# triage_mode: auto  # Issue triage mode (auto/manual/hybrid)")
+            lines.append("# triage_mode: auto  # auto/manual/hybrid")
 
         # auto_dismiss_info
         auto_dismiss_info = config.get("auto_dismiss_info")
@@ -583,18 +581,16 @@ class YAMLWithComments:
         # PR automation settings
         if has_pr_config:
             lines.append("pr:")
-            lines.append(
-                f"  merge_on_success: {_format_yaml_value(pr.get('merge_on_success', False))}"
-            )
-            lines.append(
-                f"  delete_branch_on_merge: {_format_yaml_value(pr.get('delete_branch_on_merge', True))}"
-            )
+            merge_val = _format_yaml_value(pr.get("merge_on_success", False))
+            delete_val = _format_yaml_value(pr.get("delete_branch_on_merge", True))
+            lines.append(f"  merge_on_success: {merge_val}")
+            lines.append(f"  delete_branch_on_merge: {delete_val}")
             lines.append(f"  merge_method: {pr.get('merge_method', 'squash')}")
         else:
             lines.append("# pr:")
-            lines.append("#   merge_on_success: false  # Auto-merge PR after validation")
-            lines.append("#   delete_branch_on_merge: true  # Delete branch after merge")
-            lines.append('#   merge_method: squash  # Merge method (merge/squash/rebase)')
+            lines.append("#   merge_on_success: false  # Auto-merge PR")
+            lines.append("#   delete_branch_on_merge: true  # Delete branch")
+            lines.append("#   merge_method: squash  # merge/squash/rebase")
 
         lines.append("")
 

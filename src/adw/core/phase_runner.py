@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 from pydantic import ValidationError
 
+from adw.commands.loader import get_config_class
 from adw.commands.template import (
     build_task_context,
     validate_artifact_references,
@@ -30,7 +31,6 @@ from adw.hooks.git_diff import (
     has_commits,
     truncate_diff,
 )
-from adw.commands.loader import get_config_class
 from adw.models import (
     LLMResult,
     PhaseResult,
