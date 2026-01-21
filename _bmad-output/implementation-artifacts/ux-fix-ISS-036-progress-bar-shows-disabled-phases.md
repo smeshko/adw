@@ -51,11 +51,11 @@ so that **the percentage reflects my actual workflow and I don't see phases I've
 - [x] Handle case where config loading fails (use all phases)
 
 ### Task 6: Write Unit Tests
-- [ ] Test `ProgressDisplay` with custom `enabled_phases`
-- [ ] Test percentage calculation with 4 enabled phases
-- [ ] Test phase number display with reduced phase count
-- [ ] Test backward compatibility when `enabled_phases=None`
-- [ ] Test progress bar only shows enabled phases
+- [x] Test `ProgressDisplay` with custom `enabled_phases`
+- [x] Test percentage calculation with 4 enabled phases
+- [x] Test phase number display with reduced phase count
+- [x] Test backward compatibility when `enabled_phases=None`
+- [x] Test progress bar only shows enabled phases
 
 ---
 

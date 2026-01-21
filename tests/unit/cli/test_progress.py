@@ -693,6 +693,109 @@ class TestPipelineSummaryWithPRResult:
         assert "pr_description.md" in output_text
 
 
+class TestEnabledPhasesFiltering:
+    """Tests for enabled phases filtering (ISS-036).
+
+    When ship or other phases are disabled via config, the progress bar should:
+    1. Only display enabled phases
+    2. Calculate percentage based on enabled phases only
+    3. Show correct phase numbers (e.g., "Phase 3/4" not "Phase 3/5")
+    """
+
+    def test_init_with_enabled_phases(self) -> None:
+        """Test ProgressDisplay accepts enabled_phases parameter."""
+        enabled = ["plan", "build", "validate", "document"]
+        progress = ProgressDisplay(enabled_phases=enabled)
+        assert progress._enabled_phases == enabled
+
+    def test_init_default_enabled_phases(self) -> None:
+        """Test ProgressDisplay defaults to all phases when None."""
+        progress = ProgressDisplay()
+        assert progress._enabled_phases == list(PHASE_SEQUENCE)
+
+    def test_progress_bar_shows_only_enabled_phases(self) -> None:
+        """Test progress bar only displays enabled phases."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        enabled = ["plan", "build", "validate", "document"]  # No ship
+        progress = ProgressDisplay(console, enabled_phases=enabled)
+
+        progress._show_progress_bar(current_phase="plan")
+
+        output_text = output.getvalue()
+        assert "ship" not in output_text.lower()
+        assert "plan" in output_text
+        assert "document" in output_text
+
+    def test_percentage_calculation_with_enabled_phases(self) -> None:
+        """Test percentage uses enabled phases count."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        enabled = ["plan", "build", "validate", "document"]  # 4 phases
+        progress = ProgressDisplay(console, enabled_phases=enabled)
+
+        progress._completed_phases = ["plan", "build", "validate", "document"]
+        progress._show_progress_bar()
+
+        output_text = output.getvalue()
+        # 4/4 = 100%, not 4/5 = 80%
+        assert "100" in output_text and "%" in output_text
+
+    def test_phase_number_with_enabled_phases(self) -> None:
+        """Test phase number shows correct total."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        enabled = ["plan", "build", "validate", "document"]
+        progress = ProgressDisplay(console, enabled_phases=enabled)
+
+        progress.on_phase_start("validate")
+
+        output_text = output.getvalue()
+        # validate is 3rd of 4 enabled phases
+        assert "3/4" in output_text
+
+    def test_summary_shows_only_enabled_phases(self) -> None:
+        """Test pipeline summary only shows enabled phases."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        enabled = ["plan", "build", "validate", "document"]
+        progress = ProgressDisplay(console, enabled_phases=enabled)
+
+        progress.show_pipeline_summary(
+            completed_phases=["plan", "build", "validate", "document"],
+            status="completed",
+            total_duration_ms=10000,
+            total_tokens=5000,
+        )
+
+        output_text = output.getvalue()
+        assert "ship" not in output_text.lower()
+
+    def test_backward_compatibility_none_enabled_phases(self) -> None:
+        """Test backward compatibility when enabled_phases=None."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console, enabled_phases=None)
+
+        progress._show_progress_bar(current_phase="plan")
+
+        output_text = output.getvalue()
+        # With None, all phases including ship should be shown
+        assert "ship" in output_text.lower()
+
+    def test_percentage_zero_when_no_enabled_phases(self) -> None:
+        """Test percentage handles edge case of no enabled phases."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True, width=80)
+        progress = ProgressDisplay(console, enabled_phases=[])
+
+        progress._show_progress_bar()
+
+        output_text = output.getvalue()
+        # Should show 0% without division error
+        assert "0" in output_text and "%" in output_text
+
+
 class TestTryAutoCreatePr:
     """Tests for try_auto_create_pr method (Story ISS-011)."""
 
