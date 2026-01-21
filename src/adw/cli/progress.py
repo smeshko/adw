@@ -129,13 +129,13 @@ class ProgressDisplay:
         """Display the overall pipeline progress bar.
 
         Shows: [Plan] ✓ [Build] ► [Validate] · [Document]
-        with percentage complete.
+        with percentage complete based on enabled phases only.
 
         Args:
             current_phase: Currently executing phase (shown with ►).
         """
         phase_status = []
-        for phase in PHASE_SEQUENCE:
+        for phase in self._enabled_phases:
             color = self.PHASE_COLORS.get(phase, "white")
             if phase in self._completed_phases:
                 phase_status.append(f"[green]✓[/] [{color}]{phase}[/]")
@@ -146,10 +146,10 @@ class ProgressDisplay:
 
         status_line = " → ".join(phase_status)
 
-        # Calculate percentage
+        # Calculate percentage based on enabled phases only
         completed = len(self._completed_phases)
-        total = len(PHASE_SEQUENCE)
-        percentage = (completed / total) * 100
+        total = len(self._enabled_phases)
+        percentage = (completed / total) * 100 if total > 0 else 0
 
         self.console.print(f"{status_line}  [bold cyan]{percentage:.0f}%[/]")
 

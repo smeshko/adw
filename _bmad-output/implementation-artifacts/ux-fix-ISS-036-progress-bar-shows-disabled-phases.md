@@ -32,9 +32,9 @@ so that **the percentage reflects my actual workflow and I don't see phases I've
 - [x] Update type hints and docstring
 
 ### Task 2: Update _show_progress_bar Method
-- [ ] Use `self._enabled_phases` instead of `PHASE_SEQUENCE` in iteration
-- [ ] Calculate percentage as `len(completed) / len(self._enabled_phases)`
-- [ ] Ensure progress bar only shows phases in `_enabled_phases`
+- [x] Use `self._enabled_phases` instead of `PHASE_SEQUENCE` in iteration
+- [x] Calculate percentage as `len(completed) / len(self._enabled_phases)`
+- [x] Ensure progress bar only shows phases in `_enabled_phases`
 
 ### Task 3: Update on_phase_start Method
 - [ ] Calculate `phase_num` relative to `self._enabled_phases`
