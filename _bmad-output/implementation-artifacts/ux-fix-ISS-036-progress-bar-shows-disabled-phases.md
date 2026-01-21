@@ -37,9 +37,9 @@ so that **the percentage reflects my actual workflow and I don't see phases I've
 - [x] Ensure progress bar only shows phases in `_enabled_phases`
 
 ### Task 3: Update on_phase_start Method
-- [ ] Calculate `phase_num` relative to `self._enabled_phases`
-- [ ] Calculate `total_phases` from `len(self._enabled_phases)`
-- [ ] Display "Phase X/Y" using enabled phases count
+- [x] Calculate `phase_num` relative to `self._enabled_phases`
+- [x] Calculate `total_phases` from `len(self._enabled_phases)`
+- [x] Display "Phase X/Y" using enabled phases count
 
 ### Task 4: Update show_pipeline_summary Method
 - [ ] Use `self._enabled_phases` for phase status line

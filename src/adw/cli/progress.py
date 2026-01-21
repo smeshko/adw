@@ -101,17 +101,17 @@ class ProgressDisplay:
         """Display phase starting message.
 
         Args:
-            phase: Phase name starting (plan, build, validate, document).
+            phase: Phase name starting (plan, build, validate, document, ship).
         """
         self._current_phase = phase
         color = self.PHASE_COLORS.get(phase, "white")
 
-        # Calculate phase position
+        # Calculate phase position relative to enabled phases
         try:
-            phase_num = PHASE_SEQUENCE.index(phase) + 1
+            phase_num = self._enabled_phases.index(phase) + 1
         except ValueError:
             phase_num = 0
-        total_phases = len(PHASE_SEQUENCE)
+        total_phases = len(self._enabled_phases)
 
         # Show overall progress bar
         self._show_progress_bar(current_phase=phase)
