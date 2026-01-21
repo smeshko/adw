@@ -47,10 +47,10 @@ Feature: Phase context in logs and clean output
 ## Tasks / Subtasks
 
 ### Task 1: Set Phase Context When Logging
-- [ ] Identify where `PhaseRunner` or `Orchestrator` creates/uses loggers
-- [ ] Ensure child logger is created with phase context before phase execution
-- [ ] Pass phase name to `LogManager.child(phase=phase)` when starting each phase
-- [ ] Verify LogContext flows through to all log entries during that phase
+- [x] Identify where `PhaseRunner` or `Orchestrator` creates/uses loggers
+- [x] Ensure child logger is created with phase context before phase execution
+- [x] Pass phase name to `LogManager.child(phase=phase)` when starting each phase
+- [x] Verify LogContext flows through to all log entries during that phase
 
 ### Task 2: Stop Spinner Before Error Logging
 - [ ] In `Orchestrator._execute_phase_with_transitions()`, locate timeout/error handling code

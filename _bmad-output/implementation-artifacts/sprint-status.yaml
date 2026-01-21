@@ -404,7 +404,7 @@ development_status:
   # [phase] shows as placeholder instead of actual phase name in logs
   # Spinner output overlaps with error/warning messages (on_llm_complete not called)
   # Redundant "Phase completed" log duplicates rich progress display output
-  ux-fix-ISS-034-logging-context-and-redundancy: ready-for-dev
+  ux-fix-ISS-034-logging-context-and-redundancy: in-progress
   # UX Fix (from ISS-036) - MAJOR
   # Progress bar shows all 5 phases including disabled ones (ship)
   # Percentage calculation includes disabled phases
