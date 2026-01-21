@@ -65,10 +65,10 @@ Feature: Phase context in logs and clean output
 - [x] Ensure no other duplicate completion messages exist
 
 ### Task 4: Test Changes
-- [ ] Write test that verifies phase context appears in log entries
-- [ ] Write test that spinner is stopped before error display (mock ProgressDisplay)
-- [ ] Write test that only one completion message appears per phase
-- [ ] Run full integration test with `adw run` to verify clean output
+- [x] Write test that verifies phase context appears in log entries
+- [x] Write test that spinner is stopped before error display (mock ProgressDisplay)
+- [x] Write test that only one completion message appears per phase
+- [x] Run full integration test with `adw run` to verify clean output
 
 ---
 
