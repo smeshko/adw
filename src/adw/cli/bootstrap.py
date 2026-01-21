@@ -41,9 +41,11 @@ from adw.models.config import (
     WorktreeConfig,
 )
 from adw.models.logging import VERBOSITY_LEVEL_MAP, LogLevel, Verbosity
+from adw.models.task import TaskInfo
 from adw.security import SecurityInterceptor, ToolLogger
 from adw.task_managers.base import TaskManager
 from adw.task_managers.labels import LabelManager
+from adw.task_managers.sync import StatusSyncService
 
 
 def get_project_root() -> Path:
@@ -164,6 +166,7 @@ def create_orchestrator(
     show_llm_output: bool = False,
     task_manager: TaskManager | None = None,
     task_id: str | None = None,
+    task_info: TaskInfo | None = None,
 ) -> Orchestrator:
     """Create a fully configured Orchestrator instance.
 
@@ -185,8 +188,10 @@ def create_orchestrator(
         allow_dangerous: If True, log warnings instead of blocking dangerous operations.
         run_id: Optional run ID for tool logging. If None, tool logging is disabled.
         show_llm_output: If True, stream LLM output to terminal (Story UX-FIX-ISS-001).
-        task_manager: Optional task manager for label operations (Story 12.7).
-        task_id: Optional task ID (internal UUID) for label operations (Story 12.7).
+        task_manager: Optional task manager for label/sync operations.
+        task_id: Optional task identifier like "RULE-151" (backwards compat).
+        task_info: Optional TaskInfo with internal UUID for label operations.
+            task_info.id is used for Linear API calls (not the identifier).
 
     Returns:
         Configured Orchestrator ready for use.
@@ -277,12 +282,19 @@ def create_orchestrator(
         # Update PhaseRunner with the progress display
         phase_runner.progress_display = progress_display
 
-    # Create LabelManager if task manager and task ID are provided (Story 12.7)
+    # Create StatusSyncService if task manager is configured (Story 12.3, ISS-033)
+    status_sync_service: StatusSyncService | None = None
+    if task_manager is not None and config is not None and config.task_manager:
+        status_sync_service = StatusSyncService(task_manager, config.task_manager)
+
+    # Create LabelManager if task manager and task_info are provided
+    # CRITICAL: LabelManager must receive task_info.id (internal UUID)
+    # The Linear API requires internal UUID for all label operations
     label_manager: LabelManager | None = None
-    if task_manager is not None and task_id is not None and config is not None:
+    if task_manager is not None and task_info is not None and config is not None:
         labels_config = config.task_manager.labels if config.task_manager else None
         if labels_config and labels_config.enabled:
-            label_manager = LabelManager(task_manager, labels_config, task_id)
+            label_manager = LabelManager(task_manager, labels_config, task_info.id)
 
     # Create orchestrator
     orchestrator = Orchestrator(
@@ -298,6 +310,7 @@ def create_orchestrator(
         git_config=git_config,
         task_manager_config=task_manager_config,
         label_manager=label_manager,
+        status_sync_service=status_sync_service,
     )
 
     return orchestrator
