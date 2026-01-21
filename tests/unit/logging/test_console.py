@@ -190,8 +190,8 @@ class TestConsoleTransportTTYVsNonTTY:
 class TestConsoleTransportContext:
     """Tests for context handling in output."""
 
-    def test_includes_run_id_when_present(self) -> None:
-        """write() includes run_id from context."""
+    def test_excludes_run_id_from_console(self) -> None:
+        """write() excludes run_id from console output (shown in run header/file logs)."""
         output = io.StringIO()
         transport = ConsoleTransport(file=output, force_tty=False)
 
@@ -204,10 +204,14 @@ class TestConsoleTransportContext:
         transport.write(event)
 
         result = output.getvalue()
-        assert "01HQ123ABC" in result
+        # Run_id should NOT appear in console output - it's shown in
+        # run header panel and file logs instead
+        assert "01HQ123ABC" not in result
+        # Message should still appear
+        assert "State change" in result
 
-    def test_includes_phase_when_present(self) -> None:
-        """write() includes phase from context."""
+    def test_excludes_phase_from_console(self) -> None:
+        """write() excludes phase from console output (shown in progress panel)."""
         output = io.StringIO()
         transport = ConsoleTransport(file=output, force_tty=False)
 
@@ -220,7 +224,13 @@ class TestConsoleTransportContext:
         transport.write(event)
 
         result = output.getvalue()
-        assert "build" in result
+        # Phase should NOT appear in console output - it's shown in
+        # the progress panel instead
+        # Note: "build" might appear if the message contains it, so check
+        # the bracketed form [build] specifically
+        assert "[build]" not in result
+        # Message should still appear
+        assert "Phase started" in result
 
     def test_includes_extra_when_present(self) -> None:
         """write() includes extra context fields."""
@@ -257,6 +267,43 @@ class TestConsoleTransportContext:
 
         result = output.getvalue()
         assert "hook_name=pre-build" in result
+
+
+class TestLogLevelFormatting:
+    """Tests for log level formatting."""
+
+    def test_level_has_no_padding(self) -> None:
+        """Log level is formatted without padding (e.g., [INFO] not [INFO ])."""
+        output = io.StringIO()
+        transport = ConsoleTransport(file=output, force_tty=False)
+
+        event = LogEvent(
+            level=LogLevel.INFO,
+            category=LogCategory.PHASE,
+            message="Test message",
+        )
+        transport.write(event)
+
+        result = output.getvalue()
+        # Should have [INFO] not [INFO ] (with trailing space inside brackets)
+        assert "[INFO]" in result
+        assert "[INFO ]" not in result
+
+    def test_warn_level_has_no_padding(self) -> None:
+        """WARN level is formatted without padding."""
+        output = io.StringIO()
+        transport = ConsoleTransport(file=output, force_tty=False)
+
+        event = LogEvent(
+            level=LogLevel.WARN,
+            category=LogCategory.LLM,
+            message="Warning message",
+        )
+        transport.write(event)
+
+        result = output.getvalue()
+        assert "[WARN]" in result
+        assert "[WARN ]" not in result
 
 
 class TestLevelStyles:

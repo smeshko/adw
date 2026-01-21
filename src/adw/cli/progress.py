@@ -27,6 +27,7 @@ from rich.progress import (
 )
 
 from adw.core.constants import PHASE_SEQUENCE, PR_DESCRIPTION_ARTIFACT
+from adw.logging.console import set_active_live
 
 if TYPE_CHECKING:
     from adw.cli.pr import AutoPRResult
@@ -167,6 +168,8 @@ class ProgressDisplay:
         )
         self._live = Live(self._progress, console=self.console, refresh_per_second=4)
         self._live.start()
+        # Register Live display for spinner/log coordination
+        set_active_live(self._live)
         self._task_id = self._progress.add_task(
             "LLM executing...",
             total=None,
@@ -186,6 +189,8 @@ class ProgressDisplay:
         """Complete LLM progress display."""
         if self._live is not None:
             self._live.stop()
+            # Clear Live display registration for spinner/log coordination
+            set_active_live(None)
             self._live = None
         self._progress = None
         self._task_id = None

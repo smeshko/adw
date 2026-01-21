@@ -5,12 +5,42 @@ for TTY terminals and plain text for non-TTY (piped/redirected).
 """
 
 import sys
-from typing import TextIO
+from typing import TYPE_CHECKING, TextIO
 
 from rich.console import Console
 from rich.text import Text
 
 from adw.models.logging import VERBOSITY_LEVEL_MAP, LogEvent, LogLevel, Verbosity
+
+if TYPE_CHECKING:
+    from rich.live import Live
+
+# Module-level reference to active Live display for spinner/log coordination.
+# When a spinner is active, logs should stop the Live display first to
+# prevent output overlap (e.g., "⠧ LLM executing...14:36:35 [WARN]").
+_active_live: "Live | None" = None
+
+
+def set_active_live(live: "Live | None") -> None:
+    """Set the active Live display for spinner/log coordination.
+
+    Called by ProgressDisplay.on_llm_start() to register the spinner,
+    and on_llm_complete() to unregister it.
+
+    Args:
+        live: The active Live display, or None to clear.
+    """
+    global _active_live
+    _active_live = live
+
+
+def get_active_live() -> "Live | None":
+    """Get the currently active Live display.
+
+    Returns:
+        The active Live display, or None if no spinner is running.
+    """
+    return _active_live
 
 # Level styling configuration for Rich console
 LEVEL_STYLES: dict[LogLevel, str] = {
@@ -138,12 +168,23 @@ class ConsoleTransport:
         - VERBOSE: DEBUG and above
         - TRACE: All levels
 
+        When a spinner is active, stops it temporarily to prevent output
+        overlap (e.g., "⠧ LLM executing...14:36:35 [WARN]").
+
         Args:
             event: The log event to write
         """
         # Filter based on verbosity
         if not should_log(event.level, self._verbosity):
             return
+
+        # Stop active Live display to prevent spinner/log overlap
+        # The Live will be restarted by the next on_llm_progress() call
+        live = get_active_live()
+        if live is not None:
+            live.stop()
+            # Clear the module reference since we stopped it
+            set_active_live(None)
 
         if self._is_tty:
             self._write_rich(event)
@@ -165,17 +206,14 @@ class ConsoleTransport:
         # Timestamp (dim)
         text.append(f"{timestamp} ", style="dim")
 
-        # Level (styled based on level)
-        text.append(f"[{level_name:5}] ", style=level_style)
+        # Level (styled based on level, no padding)
+        text.append(f"[{level_name}] ", style=level_style)
 
         # Category (cyan)
         text.append(f"[{event.category.value}] ", style="cyan")
 
-        # Context (if present)
-        if event.context.run_id:
-            text.append(f"({event.context.run_id}) ", style="dim")
-        if event.context.phase:
-            text.append(f"[{event.context.phase}] ", style="magenta")
+        # Context (if present) - only show extra fields, not run_id or phase
+        # Run_id is shown in run header and file logs; phase is shown in panel
         if event.context.extra:
             extra_str = " ".join(f"{k}={v}" for k, v in event.context.extra.items())
             text.append(f"{{{extra_str}}} ", style="dim italic")
@@ -194,12 +232,9 @@ class ConsoleTransport:
         timestamp = event.timestamp.strftime("%H:%M:%S")
         level_name = event.level.value.upper()
 
-        # Build context string
+        # Build context string - only include extra fields
+        # Run_id is shown in run header and file logs; phase is shown in panel
         context_parts: list[str] = []
-        if event.context.run_id:
-            context_parts.append(f"({event.context.run_id})")
-        if event.context.phase:
-            context_parts.append(f"[{event.context.phase}]")
         if event.context.extra:
             extra_str = " ".join(f"{k}={v}" for k, v in event.context.extra.items())
             context_parts.append(f"{{{extra_str}}}")
@@ -207,9 +242,9 @@ class ConsoleTransport:
         if context_str:
             context_str = f" {context_str}"
 
-        # Format: TIMESTAMP [LEVEL] [category] (run_id) [phase] {extra} message
+        # Format: TIMESTAMP [LEVEL] [category] {extra} message
         category = event.category.value
-        line = f"{timestamp} [{level_name:5}] [{category}]{context_str} {event.message}"
+        line = f"{timestamp} [{level_name}] [{category}]{context_str} {event.message}"
 
         # Use console.print to ensure consistent output, but without markup
         self._console.print(line, markup=False, highlight=False)

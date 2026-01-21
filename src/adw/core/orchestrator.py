@@ -1489,10 +1489,7 @@ class Orchestrator:
                     },
                 )
 
-        logger.info(
-            "Starting phase",
-            extra={"phase": phase, "run_id": context.run_id},
-        )
+        # Phase start already shown in progress panel - no duplicate log needed
 
         try:
             # Execute phase with retry for recoverable errors

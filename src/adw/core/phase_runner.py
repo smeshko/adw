@@ -152,7 +152,7 @@ class PhaseRunner:
             LLMError: If LLM execution fails.
         """
         started_at = datetime.now(UTC)
-        logger.info("Phase starting", extra={"phase": phase, "run_id": context.run_id})
+        # Phase start already shown in progress panel - no duplicate log needed
 
         # Resolve command once for all steps
         command = self.command_resolver.resolve(phase)
