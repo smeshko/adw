@@ -1899,14 +1899,8 @@ class Orchestrator:
             worktree_path, branch_name = self._worktree_manager.create_worktree(
                 run_id, branch_name=feature_branch_name
             )
-            logger.info(
-                "Created worktree for run",
-                extra={
-                    "run_id": run_id,
-                    "worktree_path": str(worktree_path),
-                    "branch_name": branch_name,
-                },
-            )
+            # Note: Worktree creation log is handled in WorktreeManager.create_worktree()
+            # (ISS-035: Removed duplicate log message)
 
             # Register the run after successful worktree creation (Story 10.4)
             if self._concurrent_run_manager is not None:
