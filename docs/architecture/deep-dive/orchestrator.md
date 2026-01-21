@@ -1,6 +1,6 @@
 # Orchestrator
 
-The `Orchestrator` (`src/adw/core/orchestrator.py`) is the central coordinator for the ADW pipeline. It manages execution of phases in a fixed sequence: **Plan → Build → Verify → Validate → Document**.
+The `Orchestrator` (`src/adw/core/orchestrator.py`) is the central coordinator for the ADW pipeline. It manages execution of phases in a fixed sequence: **Plan → Build → Validate → Document → Ship**.
 
 ## Core Responsibilities
 
@@ -30,7 +30,7 @@ Orchestrator
 
 | Method | Purpose |
 |--------|---------|
-| `run(feature)` | Full pipeline execution (all 5 phases) |
+| `run(feature)` | Full pipeline execution (plan → build → validate → document → ship) |
 | `run_single_phase(phase, feature)` | Execute one phase only |
 | `resume(run_id)` | Continue a failed/interrupted run |
 

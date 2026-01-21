@@ -469,6 +469,11 @@ No visual evidence captured
         )
         artifact_manager = ArtifactManager(runs_dir=runs_dir)
 
+        # Create extension registry with DocumentExtension for pr_description.md
+        git_config = GitConfig(auto_create_pr=False)
+        extension_registry = ExtensionRegistry()
+        extension_registry.register(DocumentExtension(git_config, runs_dir))
+
         return PhaseRunner(
             command_resolver=command_resolver,
             template_engine=template_engine,
@@ -476,6 +481,7 @@ No visual evidence captured
             executor=mock_executor_no_build,
             artifact_manager=artifact_manager,
             strict_artifacts=False,
+            extension_registry=extension_registry,
         )
 
     def test_document_phase_handles_missing_build_artifacts(

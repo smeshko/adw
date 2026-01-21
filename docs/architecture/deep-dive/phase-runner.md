@@ -36,11 +36,11 @@ run(phase, context)
  │    └── Render with variables
  ├── Execute LLM → stream response
  ├── Run post-hook (ADW_LLM_OUTPUT in env)
+ ├── Auto-commit changes
  └── Capture artifacts
       ├── {phase}_output.md (always)
       ├── {phase}_tool_calls.json (if any)
-      ├── diff.txt, diff_stats.json (build phase)
-      └── evidence_manifest.json (verify phase)
+      └── diff.txt, diff_stats.json (build phase via extension)
 ```
 
 ## Template Variables
@@ -59,9 +59,10 @@ run(phase, context)
 Templates reference prior phase outputs via nested map:
 
 ```
-{{artifacts.plan.plan_output}}   → plan phase LLM output
-{{artifacts.build.diff}}         → git diff from build
-{{artifacts.verify.evidence_manifest}} → evidence JSON
+{{artifacts.plan.plan_output}}     → plan phase LLM output
+{{artifacts.build.build_output}}   → build phase LLM output
+{{artifacts.build.diff}}           → git diff from build (via extension)
+{{artifacts.validate.validate_output}} → validate phase LLM output
 ```
 
 ## Error Handling
@@ -74,8 +75,8 @@ Templates reference prior phase outputs via nested map:
 
 ## Design Notes
 
-**Special-case artifacts**: Build phase captures git diff, verify phase copies evidence manifest. These are hardcoded rather than config-driven (technical debt).
+**Extension-based artifacts**: Build phase captures git diff via `BuildExtension`. This pattern allows phase-specific artifact capture without hardcoding in the PhaseRunner core.
 
-**Alias variables**: `{{plan}}`, `{{implementation}}`, `{{output}}` are convenience shortcuts to common artifacts. Inconsistently named (technical debt).
+**Alias variables**: `{{feature}}` and `{{feature_description}}` are convenience shortcuts. The `{{artifacts.phase.name}}` pattern provides direct access to all phase outputs.
 
 **Worktree support**: All git operations and LLM execution respect `context.worktree_path` for isolated runs (Story 10.5).
