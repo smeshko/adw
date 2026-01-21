@@ -638,9 +638,18 @@ def _generate_pr_title(context: RunContext) -> str:
         # Feature description is just the task ID - use task title from Linear if available
         if context.task_info and context.task_info.title:
             pr_title = f"{context.task_id}: {context.task_info.title}"
+            logger.info(
+                "Using task title from Linear as PR description",
+                task_id=context.task_id,
+                title=context.task_info.title,
+            )
         else:
             # Fallback to just the task ID (no redundant duplication)
             pr_title = context.task_id
+            logger.debug(
+                "No task title available, using task ID only",
+                task_id=context.task_id,
+            )
     elif context.task_id:
         # Normal case: prefix with task ID
         pr_title = f"{context.task_id}: {context.feature_description}"

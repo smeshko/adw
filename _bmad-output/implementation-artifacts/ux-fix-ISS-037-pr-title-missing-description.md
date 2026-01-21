@@ -63,8 +63,8 @@ so that **my pull requests are descriptive and useful without manual editing**.
 ### Task 4: Optional Enhancement - Info Logging
 **File:** `src/adw/cli/pr.py` or logging in orchestrator
 
-- [ ] (Optional) Add info log when using task_info.title as fallback
-- [ ] Log should indicate: "Using task title from Linear as PR description"
+- [x] (Optional) Add info log when using task_info.title as fallback
+- [x] Log should indicate: "Using task title from Linear as PR description"
 
 ---
 
