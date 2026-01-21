@@ -636,7 +636,7 @@ def _generate_pr_title(context: RunContext) -> str:
 
     if context.task_id and context.feature_description == context.task_id:
         # Feature description is just the task ID - use task title from Linear if available
-        if context.task_info and context.task_info.title:
+        if context.task_info and context.task_info.title and context.task_info.title.strip():
             pr_title = f"{context.task_id}: {context.task_info.title}"
             logger.info(
                 "Using task title from Linear as PR description",

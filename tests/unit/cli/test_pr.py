@@ -1092,3 +1092,25 @@ class TestGeneratePrTitle:
 
         # Should be just "RULE-123" since title is empty
         assert pr_title == "RULE-123"
+
+    def test_fallback_when_task_info_has_whitespace_only_title(self) -> None:
+        """Test PR title falls back when task_info.title is whitespace-only."""
+        from adw.models.task import TaskInfo
+
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="RULE-123",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            task_id="RULE-123",
+            task_info=TaskInfo(
+                id="uuid-123",
+                identifier="RULE-123",
+                title="   ",  # Whitespace-only title
+            ),
+        )
+
+        pr_title = _generate_pr_title(context)
+
+        # Should be just "RULE-123" since title is whitespace-only
+        assert pr_title == "RULE-123"
