@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
-from ulid import ULID
+from collections.abc import Sequence
 
 from adw.core.constants import PHASE_SEQUENCE
 from adw.core.context_manager import ContextManager
@@ -24,10 +24,10 @@ from adw.core.index_manager import IndexManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.resume_manager import ResumeManager
 from adw.core.run_directory import RunDirectoryManager
+from adw.core.run_lifecycle import RunLifecycle
 from adw.core.run_lookup import RunLookup
 from adw.core.snapshot_manager import SnapshotManager
-from adw.exceptions import ADWError, ConfigError, WorktreeError
-from adw.hooks.git_branch import sanitize_branch_name
+from adw.exceptions import ADWError, ConfigError
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
 from adw.models.phase import PhaseResult
 from adw.worktree import ConcurrentRunManager
@@ -140,6 +140,7 @@ class Orchestrator:
         label_manager: "LabelManager | None" = None,
         status_sync_service: "StatusSyncService | None" = None,
         resume_manager: ResumeManager | None = None,
+        run_lifecycle: RunLifecycle | None = None,
     ) -> None:
         """Initialize the Orchestrator.
 
@@ -163,6 +164,8 @@ class Orchestrator:
                 phase transitions.
             resume_manager: Manager for resume operations (optional, Story ISS-014).
                 When provided, delegates resume validation and phase determination.
+            run_lifecycle: Manager for run lifecycle operations (optional).
+                When provided, delegates context creation, completion, and error handling.
         """
         self.runs_dir = runs_dir
         # Derive project path from runs_dir (runs_dir is typically .adw/runs)
@@ -210,6 +213,25 @@ class Orchestrator:
                 max_concurrent=self.worktree_config.max_concurrent,
                 base_dir=self.worktree_config.base_dir,
             )
+
+        # Run lifecycle manager (Story ISS-XXX)
+        # Create default if not provided
+        self._lifecycle = run_lifecycle or RunLifecycle(
+            runs_dir=runs_dir,
+            project_path=self._project_path,
+            context_manager=context_manager,
+            run_directory_manager=run_directory_manager,
+            index_manager=self.index_manager,
+            interruption_handler=self.interruption_handler,
+            progress_display=progress_display,
+            worktree_config=self.worktree_config,
+            git_config=self.git_config,
+            task_manager_config=self.task_manager_config,
+            label_manager=label_manager,
+            status_sync_service=status_sync_service,
+            worktree_manager=self._worktree_manager,
+            concurrent_run_manager=self._concurrent_run_manager,
+        )
 
     @property
     def resume_manager(self) -> ResumeManager:
@@ -291,387 +313,30 @@ class Orchestrator:
             >>> # Run without worktree isolation
             >>> context = orchestrator.run("Quick fix", use_worktree=False)
         """
-        # Use provided run_id or generate new one
-        run_id = run_id or str(ULID())
-
-        # Determine if we should use worktree for this run
-        should_use_worktree = (
-            use_worktree
-            and self.worktree_config.enabled
-            and self._worktree_manager is not None
-        )
-
-        # Create worktree if enabled (Story 10.1, ISS-025, ISS-032)
-        worktree_path: Path | None = None
-        branch_name: str | None = None
-        if should_use_worktree:
-            worktree_result = self._create_worktree_for_run(run_id, feature_description)
-            # If worktree creation failed, update flag to reflect reality
-            if worktree_result is None:
-                should_use_worktree = False
-                logger.warning(
-                    "Worktree creation failed, running in current directory",
-                    extra={"run_id": run_id},
-                )
-            else:
-                worktree_path, branch_name = worktree_result
-
-        # Create initial context (ISS-025: branch_name now populated)
-        context = RunContext(
+        # Create run context via lifecycle
+        context = self._lifecycle.create_run_context(
+            feature_description,
             run_id=run_id,
-            feature_description=feature_description,
-            current_phase=PHASE_SEQUENCE[0],
-            started_at=datetime.now(UTC),
-            status="running",
-            worktree_path=worktree_path,
-            use_worktree=should_use_worktree,
-            branch_name=branch_name,
+            use_worktree=use_worktree,
         )
-
-        # Create run directory structure
-        self.run_directory_manager.create(context)
-
-        # Persist initial state before any phase execution (NFR6)
-        self.context_manager.save(context)
-
-        # Register run in global index (Story 7.0)
-        self.index_manager.register_run(context, self._project_path)
-
-        # Set running label (Story 12.7)
-        if self._label_manager:
-            self._label_manager.set_running()
-
-        logger.info(
-            "Starting run",
-            extra={"run_id": run_id, "feature": feature_description},
-        )
-
-        # Track PR result at run scope for ship phase and completion summary (ISS-031)
-        pr_result = None
-        pr_creation_attempted = False
 
         try:
             with self.interruption_handler.protected_execution(context):
-                for phase in PHASE_SEQUENCE:
-                    # Check for shutdown request between phases (NFR7)
-                    self.interruption_handler.set_context(context)
-                    self.interruption_handler.check_shutdown()
-
-                    # Check if phase is enabled in command config (ISS-029)
-                    if not self._phase_runner.is_phase_enabled(phase):
-                        logger.info(
-                            "Phase skipped (disabled in config)",
-                            extra={"phase": phase, "run_id": context.run_id},
-                        )
-                        continue
-
-                    # ISS-031: Skip ship phase if PR creation was attempted but failed
-                    # Only skip if we actually tried to create a PR and it failed
-                    # If PR creation wasn't attempted (no progress_display), run ship
-                    if (
-                        phase == "ship"
-                        and pr_creation_attempted
-                        and (pr_result is None or not pr_result.success)
-                    ):
-                        reason = pr_result.reason if pr_result else "PR creation failed"
-                        logger.warning(
-                            "Skipping ship phase - PR not available",
-                            extra={
-                                "phase": phase,
-                                "run_id": context.run_id,
-                                "reason": reason,
-                            },
-                        )
-                        if self.progress_display:
-                            self.progress_display.console.print(
-                                f"[yellow]⚠[/yellow] Skipping ship phase: {reason}"
-                            )
-                        continue
-
-                    context = self._execute_phase_with_transitions(context, phase)
-
-                    # ISS-031: Create PR immediately after document phase (before ship)
-                    # This ensures ship phase can validate and merge the PR
-                    if phase == "document" and self.git_config.auto_create_pr:
-                        # Only mark as attempted if we have the capability to create PRs
-                        if self.progress_display:
-                            pr_creation_attempted = True
-                        pr_result = self._maybe_create_pr_after_document(context)
-
-                        # Store PR URL in context for ship phase hooks (ISS-031)
-                        if pr_result and pr_result.success and pr_result.pr_url:
-                            context = context.model_copy(
-                                update={"pr_url": pr_result.pr_url}
-                            )
-                            self.context_manager.save(context)
-
-                # All phases complete
-                context = context.model_copy(
-                    update={
-                        "status": "completed",
-                        "completed_at": datetime.now(UTC),
-                    }
+                context, pr_result = self._execute_phases(context, PHASE_SEQUENCE)
+                context = self._lifecycle.finalize_success(
+                    context, pr_result=pr_result, task_uuid=task_uuid
                 )
-                self.context_manager.save(context)
-
-                # Set completed label (Story 12.7)
-                if self._label_manager:
-                    self._label_manager.set_completed()
-
-                # Update global index on completion (Story 7.0)
-                self.index_manager.update_run(
-                    context.run_id,
-                    status="completed",
-                    completed_at=context.completed_at,
-                    phase_reached=context.current_phase,
-                    phases_completed=list(context.phase_history),
-                )
-
-                # Note: PR creation moved to after document phase (ISS-031)
-                # pr_result is already set from _maybe_create_pr_after_document()
-
-                # Post run completion comment to task manager (Story 12.6)
-                # Non-blocking: catch and log any errors, never fail the run
-                if self._status_sync_service:
-                    try:
-                        self._status_sync_service.post_completion_comment(
-                            context,
-                            pr_url=pr_result.pr_url if pr_result else None,
-                            summary="All phases completed successfully",
-                        )
-                    except Exception as comment_error:
-                        logger.warning(
-                            "Failed to post completion comment (non-blocking)",
-                            extra={
-                                "run_id": context.run_id,
-                                "error": str(comment_error),
-                            },
-                        )
-
-                # Attempt to close task if auto_close enabled (Story 12.8)
-                # This must run regardless of progress_display
-                self._maybe_close_task(
-                    task_uuid=task_uuid,
-                    pr_url=pr_result.pr_url if pr_result else None,
-                )
-
-                # Show pipeline summary (Story 5.5)
-                if self.progress_display:
-                    total_tokens = sum(context.phase_tokens.values())
-                    duration_ms = 0
-                    if context.completed_at and context.started_at:
-                        duration_ms = int(
-                            (context.completed_at - context.started_at).total_seconds()
-                            * 1000
-                        )
-
-                    self.progress_display.show_pipeline_summary(
-                        completed_phases=context.phase_history,
-                        status="completed",
-                        total_duration_ms=duration_ms,
-                        total_tokens=total_tokens,
-                        run_id=context.run_id,
-                        pr_result=pr_result,
-                    )
-
-                # Preserve worktree for user inspection (ISS-020)
-                # Worktrees are NEVER auto-deleted - only via explicit cleanup command
-                self._show_worktree_preserved(context, outcome="success")
-
-                logger.info("Run completed", extra={"run_id": run_id})
 
         except ShutdownRequested as e:
-            # Graceful shutdown - state already saved by handler
-            # Clear running label on interruption (Story 12.7)
-            if self._label_manager:
-                self._label_manager.set_failed()
-
-            # Update global index on interruption (Story 7.0)
-            self.index_manager.update_run(
-                context.run_id,
-                status="interrupted",
-                phase_reached=e.phase,
-                phases_completed=list(context.phase_history),
-            )
-            logger.info(
-                "Run interrupted",
-                extra={"run_id": run_id, "phase": e.phase},
-            )
+            self._lifecycle.handle_shutdown(context, e)
             raise
 
         except ADWError as e:
-            # Sync failure status with task manager (Story 12.3)
-            # Use error's phase if available (more accurate), else fall back to context
-            # Non-blocking: catch and log any sync errors, never fail the run
-            failed_phase = getattr(e, "phase", None) or context.current_phase
-            if self._status_sync_service:
-                try:
-                    self._status_sync_service.sync_run_failed(
-                        context, failed_phase, str(e)
-                    )
-                except Exception as sync_error:
-                    logger.warning(
-                        "Status sync failed (non-blocking)",
-                        extra={
-                            "run_id": context.run_id,
-                            "phase": failed_phase,
-                            "error": str(sync_error),
-                        },
-                    )
-
-                # Post failure comment to task manager (Story 12.6)
-                try:
-                    self._status_sync_service.post_failure_comment(
-                        context, failed_phase, str(e)
-                    )
-                except Exception as comment_error:
-                    logger.warning(
-                        "Failed to post failure comment (non-blocking)",
-                        extra={
-                            "run_id": context.run_id,
-                            "phase": failed_phase,
-                            "error": str(comment_error),
-                        },
-                    )
-
-            # Mark as failed and persist
-            context = context.model_copy(
-                update={
-                    "status": "failed",
-                    "completed_at": datetime.now(UTC),
-                }
-            )
-            self.context_manager.save(context)
-
-            # Set failed label (Story 12.7)
-            if self._label_manager:
-                self._label_manager.set_failed()
-
-            # Update global index on failure (Story 7.0)
-            self.index_manager.update_run(
-                context.run_id,
-                status="failed",
-                completed_at=context.completed_at,
-                phase_reached=context.current_phase,
-                phases_completed=list(context.phase_history),
-            )
-
-            # Show pipeline summary on failure (Story 5.5)
-            if self.progress_display:
-                total_tokens = sum(context.phase_tokens.values())
-                duration_ms = 0
-                if context.completed_at and context.started_at:
-                    duration_ms = int(
-                        (context.completed_at - context.started_at).total_seconds()
-                        * 1000
-                    )
-                self.progress_display.show_pipeline_summary(
-                    completed_phases=context.phase_history,
-                    status="failed",
-                    total_duration_ms=duration_ms,
-                    total_tokens=total_tokens,
-                    run_id=context.run_id,
-                )
-
-            # Preserve worktree for debugging (ISS-020)
-            # Worktrees are NEVER auto-deleted - only via explicit cleanup command
-            self._show_worktree_preserved(context, outcome="failure")
-
-            logger.error(
-                "Run failed",
-                extra={
-                    "run_id": run_id,
-                    "phase": failed_phase,
-                    "error_code": e.code,
-                },
-            )
+            self._lifecycle.handle_adw_error(context, e)
             raise
 
         except Exception as e:
-            # Sync failure status with task manager (Story 12.3)
-            # Non-blocking: catch and log any sync errors, never fail the run
-            if self._status_sync_service:
-                try:
-                    self._status_sync_service.sync_run_failed(
-                        context, context.current_phase, str(e)
-                    )
-                except Exception as sync_error:
-                    logger.warning(
-                        "Status sync failed (non-blocking)",
-                        extra={
-                            "run_id": context.run_id,
-                            "phase": context.current_phase,
-                            "error": str(sync_error),
-                        },
-                    )
-
-                # Post failure comment to task manager (Story 12.6)
-                try:
-                    self._status_sync_service.post_failure_comment(
-                        context, context.current_phase, str(e)
-                    )
-                except Exception as comment_error:
-                    logger.warning(
-                        "Failed to post failure comment (non-blocking)",
-                        extra={
-                            "run_id": context.run_id,
-                            "phase": context.current_phase,
-                            "error": str(comment_error),
-                        },
-                    )
-
-            # Catch-all for unexpected errors (RuntimeError, etc.)
-            # Ensures run status is updated even for infrastructure errors
-            context = context.model_copy(
-                update={
-                    "status": "failed",
-                    "completed_at": datetime.now(UTC),
-                }
-            )
-            self.context_manager.save(context)
-
-            # Set failed label (Story 12.7)
-            if self._label_manager:
-                self._label_manager.set_failed()
-
-            # Update global index on failure (Story 7.0)
-            self.index_manager.update_run(
-                context.run_id,
-                status="failed",
-                completed_at=context.completed_at,
-                phase_reached=context.current_phase,
-                phases_completed=list(context.phase_history),
-            )
-
-            # Show pipeline summary on failure (Story 5.5)
-            if self.progress_display:
-                total_tokens = sum(context.phase_tokens.values())
-                duration_ms = 0
-                if context.completed_at and context.started_at:
-                    duration_ms = int(
-                        (context.completed_at - context.started_at).total_seconds()
-                        * 1000
-                    )
-                self.progress_display.show_pipeline_summary(
-                    completed_phases=context.phase_history,
-                    status="failed",
-                    total_duration_ms=duration_ms,
-                    total_tokens=total_tokens,
-                    run_id=context.run_id,
-                )
-
-            # Preserve worktree for debugging (ISS-020)
-            # Worktrees are NEVER auto-deleted - only via explicit cleanup command
-            self._show_worktree_preserved(context, outcome="failure")
-
-            logger.error(
-                "Run failed with unexpected error",
-                extra={
-                    "run_id": run_id,
-                    "phase": context.current_phase,
-                    "error": str(e),
-                },
-            )
+            self._lifecycle.handle_exception(context, e)
             raise
 
         return context
@@ -715,71 +380,27 @@ class Orchestrator:
             ...     "plan", "Quick fix", use_worktree=False
             ... )
         """
-        # Use provided run_id or generate new one
-        run_id = run_id or str(ULID())
-
-        # Determine if we should use worktree for this run (Story 10.1)
-        should_use_worktree = (
-            use_worktree
-            and self.worktree_config.enabled
-            and self._worktree_manager is not None
-        )
-
-        # Create worktree if enabled (ISS-025, ISS-032)
-        worktree_path: Path | None = None
-        branch_name: str | None = None
-        if should_use_worktree:
-            worktree_result = self._create_worktree_for_run(run_id, feature_description)
-            # If worktree creation failed, update flag to reflect reality
-            if worktree_result is None:
-                should_use_worktree = False
-                logger.warning(
-                    "Worktree creation failed, running in current directory",
-                    extra={"run_id": run_id},
-                )
-            else:
-                worktree_path, branch_name = worktree_result
-
-        # Create initial context (ISS-025, ISS-032: branch_name now populated)
-        context = RunContext(
+        # Create run context via lifecycle
+        context = self._lifecycle.create_run_context(
+            feature_description,
             run_id=run_id,
-            feature_description=feature_description,
-            current_phase=phase,
-            started_at=datetime.now(UTC),
-            status="running",
-            worktree_path=worktree_path,
-            use_worktree=should_use_worktree,
-            branch_name=branch_name,
+            use_worktree=use_worktree,
+            starting_phase=phase,
         )
-
-        # Create run directory structure
-        self.run_directory_manager.create(context)
-
-        # Persist initial state
-        self.context_manager.save(context)
-
-        # Register run in global index (Story 7.0)
-        self.index_manager.register_run(context, self._project_path)
 
         logger.info(
             "Starting single-phase run",
             extra={
-                "run_id": run_id,
+                "run_id": context.run_id,
                 "phase": phase,
                 "from_run": from_run_id,
             },
         )
 
-        # Set running label (Story 12.7)
-        if self._label_manager:
-            self._label_manager.set_running()
-
         # Load artifacts from source run if specified
         source_artifacts: dict[str, dict[str, str]] | None = None
         if from_run_id:
             source_artifacts = self._load_artifacts_from_source(from_run_id, phase)
-
-            # Validate required artifacts exist
             self._validate_required_artifacts(phase, source_artifacts, from_run_id)
 
         try:
@@ -812,121 +433,23 @@ class Orchestrator:
 
             logger.info(
                 "Single-phase run completed",
-                extra={"run_id": run_id, "phase": phase},
+                extra={"run_id": context.run_id, "phase": phase},
             )
 
             # Preserve worktree for single-phase runs (ISS-018, ISS-020)
-            # User intent: single-phase = stop and inspect before deciding next steps
-            if should_use_worktree and worktree_path is not None:
-                # Show phase completion message before worktree info
+            if context.use_worktree and context.worktree_path is not None:
                 if self.progress_display:
                     self.progress_display.console.print(
                         f"[green]✓[/green] Phase '{phase}' complete"
                     )
-                self._show_worktree_preserved(context, outcome="success")
+                self._lifecycle._show_worktree_preserved(context, outcome="success")
 
         except ADWError as e:
-            # Sync failure status with task manager (Story 12.3)
-            # Non-blocking: catch and log any sync errors, never fail the run
-            if self._status_sync_service:
-                try:
-                    self._status_sync_service.sync_run_failed(context, phase, str(e))
-                except Exception as sync_error:
-                    logger.warning(
-                        "Status sync failed (non-blocking)",
-                        extra={
-                            "run_id": context.run_id,
-                            "phase": phase,
-                            "error": str(sync_error),
-                        },
-                    )
-
-            # Mark as failed
-            context = context.model_copy(
-                update={
-                    "status": "failed",
-                    "completed_at": datetime.now(UTC),
-                }
-            )
-            self.context_manager.save(context)
-
-            # Set failed label (Story 12.7)
-            if self._label_manager:
-                self._label_manager.set_failed()
-
-            # Update global index on failure (Story 7.0)
-            self.index_manager.update_run(
-                context.run_id,
-                status="failed",
-                completed_at=context.completed_at,
-                phase_reached=context.current_phase,
-                phases_completed=list(context.phase_history),
-            )
-
-            logger.error(
-                "Single-phase run failed",
-                extra={
-                    "run_id": run_id,
-                    "phase": phase,
-                    "error_code": e.code,
-                },
-            )
-
-            # Preserve worktree for debugging (ISS-020)
-            # Worktrees are NEVER auto-deleted - only via explicit cleanup command
-            self._show_worktree_preserved(context, outcome="failure")
+            self._lifecycle.handle_adw_error(context, e)
             raise
 
         except Exception as e:
-            # Sync failure status with task manager (Story 12.3)
-            # Non-blocking: catch and log any sync errors, never fail the run
-            if self._status_sync_service:
-                try:
-                    self._status_sync_service.sync_run_failed(context, phase, str(e))
-                except Exception as sync_error:
-                    logger.warning(
-                        "Status sync failed (non-blocking)",
-                        extra={
-                            "run_id": context.run_id,
-                            "phase": phase,
-                            "error": str(sync_error),
-                        },
-                    )
-
-            # Catch-all for unexpected errors (RuntimeError, etc.)
-            context = context.model_copy(
-                update={
-                    "status": "failed",
-                    "completed_at": datetime.now(UTC),
-                }
-            )
-            self.context_manager.save(context)
-
-            # Set failed label (Story 12.7)
-            if self._label_manager:
-                self._label_manager.set_failed()
-
-            # Update global index on failure (Story 7.0)
-            self.index_manager.update_run(
-                context.run_id,
-                status="failed",
-                completed_at=context.completed_at,
-                phase_reached=context.current_phase,
-                phases_completed=list(context.phase_history),
-            )
-
-            logger.error(
-                "Single-phase run failed with unexpected error",
-                extra={
-                    "run_id": run_id,
-                    "phase": phase,
-                    "error": str(e),
-                },
-            )
-
-            # Preserve worktree for debugging (ISS-020)
-            # Worktrees are NEVER auto-deleted - only via explicit cleanup command
-            self._show_worktree_preserved(context, outcome="failure")
+            self._lifecycle.handle_exception(context, e)
             raise
 
         return context
@@ -967,10 +490,9 @@ class Orchestrator:
         # Determine resume phase using ResumeManager
         resume_phase = from_phase or self.resume_manager.get_resume_phase(context)
         if resume_phase is None:
-            # All phases completed but status not "completed" - use current
             resume_phase = context.current_phase
 
-        # Prepare context for resume (clears interrupted state, sets running)
+        # Prepare context for resume
         context = self.resume_manager.prepare_for_resume(context, from_phase=from_phase)
         self.context_manager.save(context)
 
@@ -983,292 +505,122 @@ class Orchestrator:
             },
         )
 
-        # Set running label (Story 12.7)
-        if self._label_manager:
-            self._label_manager.set_running()
+        # Set running label via lifecycle
+        context = self._lifecycle.prepare_resume_context(context)
 
         # Find the index of the resume phase
         start_idx = PHASE_SEQUENCE.index(resume_phase)
+        phases_to_run = PHASE_SEQUENCE[start_idx:]
 
         # Load artifacts from completed phases for context
         source_artifacts = self._load_artifacts_for_resume(context, resume_phase)
 
-        # Track PR result at run scope for ship phase and completion summary (ISS-031)
-        pr_result = None
-        pr_creation_attempted = False
-
         try:
             with self.interruption_handler.protected_execution(context):
-                for phase in PHASE_SEQUENCE[start_idx:]:
-                    # Check for shutdown request between phases
-                    self.interruption_handler.set_context(context)
-                    self.interruption_handler.check_shutdown()
-
-                    # Check if phase is enabled in command config (ISS-029)
-                    if not self._phase_runner.is_phase_enabled(phase):
-                        logger.info(
-                            "Phase skipped (disabled in config)",
-                            extra={"phase": phase, "run_id": context.run_id},
-                        )
-                        continue
-
-                    # ISS-031: Skip ship phase if PR creation was attempted but failed
-                    # Only skip if we actually tried to create a PR and it failed
-                    # If PR creation wasn't attempted (no progress_display), run ship
-                    if (
-                        phase == "ship"
-                        and pr_creation_attempted
-                        and (pr_result is None or not pr_result.success)
-                    ):
-                        reason = pr_result.reason if pr_result else "PR creation failed"
-                        logger.warning(
-                            "Skipping ship phase - PR not available",
-                            extra={
-                                "phase": phase,
-                                "run_id": context.run_id,
-                                "reason": reason,
-                            },
-                        )
-                        if self.progress_display:
-                            self.progress_display.console.print(
-                                f"[yellow]⚠[/yellow] Skipping ship phase: {reason}"
-                            )
-                        continue
-
-                    # Use source artifacts only for the resume phase
-                    # (subsequent phases will use artifacts from current run)
-                    artifacts = source_artifacts if phase == resume_phase else None
-                    context = self._execute_phase_with_transitions(
-                        context, phase, artifacts_override=artifacts
-                    )
-
-                    # ISS-031: Create PR immediately after document phase (before ship)
-                    # This ensures ship phase can validate and merge the PR
-                    if phase == "document" and self.git_config.auto_create_pr:
-                        # Only mark as attempted if we have the capability to create PRs
-                        if self.progress_display:
-                            pr_creation_attempted = True
-                        pr_result = self._maybe_create_pr_after_document(context)
-
-                        # Store PR URL in context for ship phase hooks (ISS-031)
-                        if pr_result and pr_result.success and pr_result.pr_url:
-                            context = context.model_copy(
-                                update={"pr_url": pr_result.pr_url}
-                            )
-                            self.context_manager.save(context)
-
-                # All phases complete
-                context = context.model_copy(
-                    update={
-                        "status": "completed",
-                        "completed_at": datetime.now(UTC),
-                    }
+                context, pr_result = self._execute_phases(
+                    context,
+                    phases_to_run,
+                    start_artifacts=source_artifacts,
+                    resume_phase=resume_phase,
                 )
-                self.context_manager.save(context)
-
-                # Set completed label (Story 12.7)
-                if self._label_manager:
-                    self._label_manager.set_completed()
-
-                # Update global index on resume completion (Story 7.0)
-                self.index_manager.update_run(
-                    context.run_id,
-                    status="completed",
-                    completed_at=context.completed_at,
-                    phase_reached=context.current_phase,
-                    phases_completed=list(context.phase_history),
-                )
-
-                # Show pipeline summary (Story 5.5)
-                if self.progress_display:
-                    total_tokens = sum(context.phase_tokens.values())
-                    duration_ms = 0
-                    if context.completed_at and context.started_at:
-                        duration_ms = int(
-                            (context.completed_at - context.started_at).total_seconds()
-                            * 1000
-                        )
-
-                    # Note: PR creation moved to after document phase (ISS-031)
-                    # pr_result is already set from _maybe_create_pr_after_document()
-
-                    self.progress_display.show_pipeline_summary(
-                        completed_phases=context.phase_history,
-                        status="completed",
-                        total_duration_ms=duration_ms,
-                        total_tokens=total_tokens,
-                        run_id=context.run_id,
-                        pr_result=pr_result,
-                    )
-
-                logger.info("Resume completed", extra={"run_id": run_id})
-
-                # Preserve worktree for user inspection (ISS-020)
-                # Worktrees are NEVER auto-deleted - only via explicit cleanup command
-                self._show_worktree_preserved(context, outcome="success")
+                context = self._lifecycle.finalize_success(context, pr_result=pr_result)
 
         except ShutdownRequested as e:
-            # Graceful shutdown - state already saved by handler
-            # Clear running label on interruption (Story 12.7)
-            if self._label_manager:
-                self._label_manager.set_failed()
-
-            # Update global index on resume interruption (Story 7.0)
-            self.index_manager.update_run(
-                context.run_id,
-                status="interrupted",
-                phase_reached=e.phase,
-                phases_completed=list(context.phase_history),
-            )
-            logger.info(
-                "Resume interrupted",
-                extra={"run_id": run_id, "phase": e.phase},
-            )
+            self._lifecycle.handle_shutdown(context, e)
             raise
 
         except ADWError as e:
-            # Sync failure status with task manager (Story 12.3)
-            # Non-blocking: catch and log any sync errors, never fail the run
-            if self._status_sync_service:
-                try:
-                    self._status_sync_service.sync_run_failed(
-                        context, context.current_phase, str(e)
-                    )
-                except Exception as sync_error:
-                    logger.warning(
-                        "Status sync failed (non-blocking)",
-                        extra={
-                            "run_id": context.run_id,
-                            "phase": context.current_phase,
-                            "error": str(sync_error),
-                        },
-                    )
-
-            # Mark as failed and persist
-            context = context.model_copy(
-                update={
-                    "status": "failed",
-                    "completed_at": datetime.now(UTC),
-                }
-            )
-            self.context_manager.save(context)
-
-            # Set failed label (Story 12.7)
-            if self._label_manager:
-                self._label_manager.set_failed()
-
-            # Update global index on resume failure (Story 7.0)
-            self.index_manager.update_run(
-                context.run_id,
-                status="failed",
-                completed_at=context.completed_at,
-                phase_reached=context.current_phase,
-                phases_completed=list(context.phase_history),
-            )
-
-            # Show pipeline summary on failure (Story 5.5)
-            if self.progress_display:
-                total_tokens = sum(context.phase_tokens.values())
-                duration_ms = 0
-                if context.completed_at and context.started_at:
-                    duration_ms = int(
-                        (context.completed_at - context.started_at).total_seconds()
-                        * 1000
-                    )
-                self.progress_display.show_pipeline_summary(
-                    completed_phases=context.phase_history,
-                    status="failed",
-                    total_duration_ms=duration_ms,
-                    total_tokens=total_tokens,
-                    run_id=context.run_id,
-                )
-
-            logger.error(
-                "Resume failed",
-                extra={
-                    "run_id": run_id,
-                    "phase": getattr(e, "phase", None),
-                    "error_code": e.code,
-                },
-            )
-
-            # Preserve worktree for debugging (ISS-020)
-            # Worktrees are NEVER auto-deleted - only via explicit cleanup command
-            self._show_worktree_preserved(context, outcome="failure")
+            self._lifecycle.handle_adw_error(context, e)
             raise
 
         except Exception as e:
-            # Sync failure status with task manager (Story 12.3)
-            # Non-blocking: catch and log any sync errors, never fail the run
-            if self._status_sync_service:
-                try:
-                    self._status_sync_service.sync_run_failed(
-                        context, context.current_phase, str(e)
-                    )
-                except Exception as sync_error:
-                    logger.warning(
-                        "Status sync failed (non-blocking)",
-                        extra={
-                            "run_id": context.run_id,
-                            "phase": context.current_phase,
-                            "error": str(sync_error),
-                        },
-                    )
-
-            # Catch-all for unexpected errors (RuntimeError, etc.)
-            context = context.model_copy(
-                update={
-                    "status": "failed",
-                    "completed_at": datetime.now(UTC),
-                }
-            )
-            self.context_manager.save(context)
-
-            # Set failed label (Story 12.7)
-            if self._label_manager:
-                self._label_manager.set_failed()
-
-            # Update global index on failure (Story 7.0)
-            self.index_manager.update_run(
-                context.run_id,
-                status="failed",
-                completed_at=context.completed_at,
-                phase_reached=context.current_phase,
-                phases_completed=list(context.phase_history),
-            )
-
-            # Show pipeline summary on failure (Story 5.5)
-            if self.progress_display:
-                total_tokens = sum(context.phase_tokens.values())
-                duration_ms = 0
-                if context.completed_at and context.started_at:
-                    duration_ms = int(
-                        (context.completed_at - context.started_at).total_seconds()
-                        * 1000
-                    )
-                self.progress_display.show_pipeline_summary(
-                    completed_phases=context.phase_history,
-                    status="failed",
-                    total_duration_ms=duration_ms,
-                    total_tokens=total_tokens,
-                    run_id=context.run_id,
-                )
-
-            logger.error(
-                "Resume failed with unexpected error",
-                extra={
-                    "run_id": run_id,
-                    "phase": context.current_phase,
-                    "error": str(e),
-                },
-            )
-
-            # Preserve worktree for debugging (ISS-020)
-            # Worktrees are NEVER auto-deleted - only via explicit cleanup command
-            self._show_worktree_preserved(context, outcome="failure")
+            self._lifecycle.handle_exception(context, e)
             raise
 
         return context
+
+    def _execute_phases(
+        self,
+        context: RunContext,
+        phases: Sequence[str],
+        *,
+        start_artifacts: dict[str, dict[str, str]] | None = None,
+        resume_phase: str | None = None,
+    ) -> tuple[RunContext, "AutoPRResult | None"]:
+        """Execute phases with PR creation logic.
+
+        This method handles the common phase execution loop used by
+        run() and resume().
+
+        Args:
+            context: Current run context.
+            phases: List of phases to execute.
+            start_artifacts: Pre-loaded artifacts for the first phase (for resume).
+            resume_phase: The phase being resumed from (for artifact handling).
+
+        Returns:
+            Tuple of (updated context, PR result or None).
+        """
+        pr_result = None
+        pr_creation_attempted = False
+
+        for phase in phases:
+            # Check for shutdown request between phases (NFR7)
+            self.interruption_handler.set_context(context)
+            self.interruption_handler.check_shutdown()
+
+            # Check if phase is enabled in command config (ISS-029)
+            if not self._phase_runner.is_phase_enabled(phase):
+                logger.info(
+                    "Phase skipped (disabled in config)",
+                    extra={"phase": phase, "run_id": context.run_id},
+                )
+                continue
+
+            # ISS-031: Skip ship phase if PR creation was attempted but failed
+            if (
+                phase == "ship"
+                and pr_creation_attempted
+                and (pr_result is None or not pr_result.success)
+            ):
+                reason = pr_result.reason if pr_result else "PR creation failed"
+                logger.warning(
+                    "Skipping ship phase - PR not available",
+                    extra={
+                        "phase": phase,
+                        "run_id": context.run_id,
+                        "reason": reason,
+                    },
+                )
+                if self.progress_display:
+                    self.progress_display.console.print(
+                        f"[yellow]⚠[/yellow] Skipping ship phase: {reason}"
+                    )
+                continue
+
+            # Use source artifacts only for the resume phase
+            artifacts = None
+            if start_artifacts and phase == resume_phase:
+                artifacts = start_artifacts
+
+            context = self._execute_phase_with_transitions(
+                context, phase, artifacts_override=artifacts
+            )
+
+            # ISS-031: Create PR immediately after document phase (before ship)
+            if phase == "document" and self.git_config.auto_create_pr:
+                if self.progress_display:
+                    pr_creation_attempted = True
+                pr_result = self._maybe_create_pr_after_document(context)
+
+                # Store PR URL in context for ship phase hooks (ISS-031)
+                if pr_result and pr_result.success and pr_result.pr_url:
+                    context = context.model_copy(
+                        update={"pr_url": pr_result.pr_url}
+                    )
+                    self.context_manager.save(context)
+
+        return context, pr_result
 
     def _load_artifacts_for_resume(
         self,
@@ -1296,7 +648,6 @@ class Orchestrator:
         if not context.phase_history:
             return None
 
-        # Load artifacts from phases that completed before the resume phase
         return self._load_artifacts_from_source(context.run_id, resume_phase)
 
     def _load_artifacts_from_source(
@@ -1323,7 +674,6 @@ class Orchestrator:
         """
         artifacts_map: dict[str, dict[str, str]] = {}
 
-        # Only load artifacts from phases before target
         try:
             target_idx = PHASE_SEQUENCE.index(target_phase)
         except ValueError:
@@ -1336,7 +686,6 @@ class Orchestrator:
         previous_phases = PHASE_SEQUENCE[:target_idx]
 
         for phase in previous_phases:
-            # List artifacts for this phase from source run
             phase_artifacts = self.artifact_manager.list_artifacts(source_run_id, phase)
 
             if phase_artifacts:
@@ -1344,13 +693,11 @@ class Orchestrator:
                 for artifact_info in phase_artifacts:
                     artifact_name = artifact_info.get("name", "")
                     if artifact_name:
-                        # Strip extension for template access
                         name_without_ext = artifact_name.rsplit(".", 1)[0]
                         content = self.artifact_manager.get(
                             source_run_id, phase, artifact_name
                         )
                         if content:
-                            # Ensure content is a string for template access
                             if isinstance(content, bytes):
                                 content = content.decode("utf-8")
                             phase_map[name_without_ext] = content
@@ -1388,18 +735,16 @@ class Orchestrator:
         Raises:
             ConfigError: If required artifacts are missing.
         """
-        # Determine required phases (all phases before target)
         try:
             target_idx = PHASE_SEQUENCE.index(phase)
         except ValueError:
-            return  # Unknown phase - skip validation
+            return
 
         required_phases = PHASE_SEQUENCE[:target_idx]
 
         if not required_phases:
-            return  # plan phase has no requirements
+            return
 
-        # Check each required phase has artifacts
         missing_phases = [p for p in required_phases if p not in artifacts]
 
         if missing_phases:
@@ -1475,7 +820,6 @@ class Orchestrator:
             self._label_manager.set_phase(phase)
 
         # Sync status with task manager (Story 12.3)
-        # Non-blocking: catch and log any sync errors, never fail the phase
         if self._status_sync_service:
             try:
                 self._status_sync_service.sync_phase_start(context, phase)
@@ -1488,8 +832,6 @@ class Orchestrator:
                         "error": str(sync_error),
                     },
                 )
-
-        # Phase start already shown in progress panel - no duplicate log needed
 
         try:
             # Execute phase with retry for recoverable errors
@@ -1505,7 +847,6 @@ class Orchestrator:
                 self.progress_display.on_phase_complete(phase, result)
 
             # Post phase completion comment to task manager (Story 12.6)
-            # Non-blocking: catch and log any errors, never fail the phase
             if self._status_sync_service:
                 try:
                     self._status_sync_service.post_phase_comment(context, phase, result)
@@ -1536,9 +877,6 @@ class Orchestrator:
             )
 
             transition_time_ms = (time.monotonic() - transition_start) * 1000
-            # ISS-034: Demoted to debug - Rich progress display already shows
-            # "✓ PHASE completed" via on_phase_complete(). This log is for
-            # structured file output (logs.jsonl) only.
             logger.debug(
                 "Phase completed",
                 extra={"phase": phase, "duration_ms": transition_time_ms},
@@ -1553,7 +891,6 @@ class Orchestrator:
             return context
 
         except ADWError as e:
-            # Notify progress display of phase error (Story 5.5)
             if self.progress_display:
                 self.progress_display.on_phase_error(phase, e)
             raise
@@ -1581,28 +918,19 @@ class Orchestrator:
         Raises:
             ADWError: If error is non-recoverable or retries exhausted.
         """
-        # Note: _phase_runner is a required constructor argument, so this should
-        # never be None. This check is a defensive guard against improper usage.
         assert self._phase_runner is not None, "PhaseRunner cannot be None"
 
         last_error: ADWError | None = None
 
         for attempt in range(self.max_retries):
             try:
-                # Delegate to PhaseRunner (Story 5.2)
                 return self._phase_runner.run(
                     phase, context, artifacts_override=artifacts_override
                 )
 
             except ADWError as e:
-                # Note: Only ADWError subclasses are retried. Other exceptions
-                # (IOError, etc.) bubble up immediately as they indicate
-                # infrastructure issues that retrying won't resolve.
                 last_error = e
 
-                # ISS-034: Stop spinner BEFORE any error logging to prevent
-                # output overlap (e.g., "⠴ LLM executing...20:25:17 [WARN]").
-                # on_llm_complete() is idempotent - safe to call multiple times.
                 if self.progress_display:
                     self.progress_display.on_llm_complete()
 
@@ -1614,7 +942,7 @@ class Orchestrator:
                     raise
 
                 if attempt < self.max_retries - 1:
-                    delay = 2**attempt  # 1, 2, 4 seconds
+                    delay = 2**attempt
                     logger.warning(
                         "Retrying phase",
                         extra={
@@ -1626,7 +954,6 @@ class Orchestrator:
                     )
                     time.sleep(delay)
 
-        # Retries exhausted - spinner already stopped in the exception handler above
         logger.error(
             "Retries exhausted",
             extra={"phase": phase, "attempts": self.max_retries},
@@ -1651,10 +978,8 @@ class Orchestrator:
         Raises:
             ConfigError: If run is not found or not active.
         """
-        # Load context
         context = self.context_manager.load(run_id)
 
-        # Check if already aborted
         if context.status == "aborted":
             raise ConfigError(
                 code="RUN_ALREADY_ABORTED",
@@ -1663,7 +988,6 @@ class Orchestrator:
                 recoverable=False,
             )
 
-        # Validate run is active
         if context.status != "running":
             raise ConfigError(
                 code="RUN_NOT_ACTIVE",
@@ -1672,14 +996,11 @@ class Orchestrator:
                 recoverable=False,
             )
 
-        # Abort gracefully using InterruptionHandler
         updated_context = self.interruption_handler.abort_gracefully(
             context, reason=reason
         )
 
-        # Preserve worktree on abort for debugging (Story 10.1)
         if context.use_worktree and context.worktree_path:
-            # Always preserve on abort - user may want to debug
             logger.info(
                 "Preserving worktree for debugging after abort",
                 extra={
@@ -1733,10 +1054,9 @@ class Orchestrator:
                 run_id=context.run_id,
                 context=context,
                 runs_dir=self.runs_dir,
-                auto_create_pr_enabled=True,  # Already checked in caller
+                auto_create_pr_enabled=True,
             )
 
-            # PR creation failed - warn about potential ship phase failure
             if (
                 pr_result
                 and not pr_result.success
@@ -1753,7 +1073,6 @@ class Orchestrator:
             return pr_result
 
         except Exception as e:
-            # Non-blocking: log warning and continue
             logger.warning(
                 "PR creation after document phase failed (non-blocking)",
                 extra={
@@ -1763,164 +1082,7 @@ class Orchestrator:
             )
             return None
 
-    def _maybe_close_task(
-        self,
-        task_uuid: str | None,
-        pr_url: str | None,
-    ) -> None:
-        """Attempt to close task if auto_close is enabled (Story 12.8).
-
-        This method is non-blocking - failures are logged but don't
-        affect the run outcome.
-
-        Args:
-            task_uuid: Internal task UUID (from TaskInfo.id). If None, does nothing.
-            pr_url: PR URL to check merge status. If None, closes without checking PR.
-        """
-        if not task_uuid:
-            logger.debug("No task_uuid provided, skipping issue closing")
-            return
-
-        if not self.task_manager_config.auto_close:
-            logger.debug("Auto-close disabled, skipping issue closing")
-            return
-
-        try:
-            from adw.task_managers import TaskManagerFactory
-            from adw.task_managers.closer import IssueCloser
-
-            task_manager = TaskManagerFactory().create(
-                task_type=self.task_manager_config.type,
-                config=self.task_manager_config,
-            )
-            with IssueCloser(task_manager, self.task_manager_config) as closer:
-                closed = closer.maybe_close(task_uuid, pr_url)
-                if closed:
-                    logger.info(
-                        "Task closed after run completion",
-                        extra={"task_uuid": task_uuid},
-                    )
-                else:
-                    logger.debug(
-                        "Task not closed (PR not merged or condition not met)",
-                        extra={"task_uuid": task_uuid, "pr_url": pr_url},
-                    )
-        except Exception as e:
-            # Non-blocking - log warning and continue
-            logger.warning(
-                "Failed to close task: %s. Close manually with: adw task close %s",
-                e,
-                task_uuid,
-            )
-
-    def _show_worktree_preserved(
-        self, context: RunContext, outcome: str = "success"
-    ) -> None:
-        """Show worktree preservation message after run completion (ISS-020).
-
-        Displays worktree location and cleanup instructions to the user.
-        This method should be called after any run completion (success or failure)
-        when a worktree was used.
-
-        Args:
-            context: Run context containing worktree information.
-            outcome: Either "success" or "failure" for logging purposes.
-        """
-        if not (context.use_worktree and context.worktree_path):
-            return
-
-        log_message = (
-            "Worktree preserved for user inspection"
-            if outcome == "success"
-            else "Worktree preserved for debugging"
-        )
-        logger.info(
-            log_message,
-            extra={
-                "run_id": context.run_id,
-                "worktree_path": str(context.worktree_path),
-                "outcome": outcome,
-                "reason": "user_control_policy",
-            },
-        )
-        if self.progress_display:
-            self.progress_display.console.print()
-            self.progress_display.console.print(
-                f"[blue]Worktree:[/blue] {context.worktree_path}"
-            )
-            self.progress_display.console.print(
-                f"Run [yellow]adw cleanup {context.run_id}[/yellow] to remove"
-            )
-            self.progress_display.console.print()
-
-    def _create_worktree_for_run(
-        self, run_id: str, feature_description: str
-    ) -> tuple[Path, str] | None:
-        """Create a worktree for the given run.
-
-        Creates a git worktree in the configured base directory for isolated
-        execution of this run. Checks concurrent run limits before creation
-        and registers the run after successful creation.
-
-        When git integration is enabled, the worktree is created with a
-        human-readable feature branch name (e.g., 'feature/add-auth') instead
-        of the default 'adw/<run_id>' format. This allows the branch to be
-        meaningful in git history and PRs.
-
-        ISS-025: Branch creation failures are now fatal. If the worktree or
-        branch cannot be created, this method raises WorktreeError instead
-        of returning None, ensuring the run fails immediately.
-
-        Args:
-            run_id: ULID identifier for this run.
-            feature_description: Human-readable feature description used to
-                generate the branch name when git integration is enabled.
-
-        Returns:
-            Tuple of (worktree_path, branch_name) if successful, or None if
-            worktree is not configured. Branch name format depends on git config.
-
-        Raises:
-            MaxConcurrentRunsError: If the maximum concurrent runs limit is reached.
-            WorktreeError: If worktree or branch creation fails (ISS-025).
-        """
-        if self._worktree_manager is None:
-            return None
-
-        # Check concurrent run limit before creating worktree (Story 10.4)
-        if self._concurrent_run_manager is not None:
-            # This will raise MaxConcurrentRunsError if at limit
-            self._concurrent_run_manager.check_can_start_or_raise()
-
-        # Calculate feature branch name if git integration is enabled (ISS-032)
-        # This creates a human-readable branch like 'feature/add-auth' instead
-        # of the opaque 'adw/<run_id>' format
-        feature_branch_name: str | None = None
-        if self.git_config.enabled and feature_description:
-            sanitized = sanitize_branch_name(feature_description)
-            if sanitized:
-                feature_branch_name = self.git_config.branch_prefix + sanitized
-
-        try:
-            worktree_path, branch_name = self._worktree_manager.create_worktree(
-                run_id, branch_name=feature_branch_name
-            )
-            # Worktree creation log handled by WorktreeManager (ISS-035)
-
-            # Register the run after successful worktree creation (Story 10.4)
-            if self._concurrent_run_manager is not None:
-                self._concurrent_run_manager.register_run(
-                    run_id=run_id,
-                    worktree_path=worktree_path,
-                )
-
-            return worktree_path, branch_name
-
-        except WorktreeError:
-            # ISS-025: Branch creation failures are fatal - propagate to caller
-            # This ensures the run fails if we can't create the story branch
-            raise
-
+    # Keep these methods for backwards compatibility and cleanup command
     def _cleanup_worktree(self, run_id: str, *, preserve: bool = False) -> None:
         """Clean up or preserve the worktree for a run.
 
@@ -1931,7 +1093,6 @@ class Orchestrator:
             run_id: ULID identifier for this run.
             preserve: If True, log but don't remove the worktree.
         """
-        # Always unregister the run from concurrent tracking (Story 10.4)
         if self._concurrent_run_manager is not None:
             self._concurrent_run_manager.unregister_run(run_id)
 
@@ -1956,9 +1117,8 @@ class Orchestrator:
                 run_id,
                 force=True,
                 delete_branch=self.worktree_config.cleanup_branch_on_remove,
-                preserve=True,  # Preserve artifacts to main project before removal
+                preserve=True,
             )
-            # Log successful cleanup with path and force indication (ISS-008)
             logger.info(
                 "Cleaned up worktree (force=True, uncommitted changes discarded)",
                 extra={
@@ -1970,7 +1130,6 @@ class Orchestrator:
             )
 
         except Exception as e:
-            # Log but don't fail - worktree cleanup is not critical
             logger.warning(
                 "Failed to cleanup worktree",
                 extra={

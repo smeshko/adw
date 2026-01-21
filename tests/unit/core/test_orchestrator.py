@@ -1568,9 +1568,9 @@ class TestWorktreeNoAutoDelete:
         # Mock the cleanup method to track calls
         orchestrator._cleanup_worktree = MagicMock()
 
-        # ISS-025: Mock worktree creation (tmp_path is not a git repo)
+        # ISS-025: Mock worktree creation on lifecycle (tmp_path is not a git repo)
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(
+        orchestrator._lifecycle._create_worktree_for_run = MagicMock(
             return_value=(worktree_path, "adw/test-run")
         )
 
@@ -1617,7 +1617,7 @@ class TestWorktreeNoAutoDelete:
 
         # ISS-025: Mock worktree creation (tmp_path is not a git repo)
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(
+        orchestrator._lifecycle._create_worktree_for_run = MagicMock(
             return_value=(worktree_path, "adw/test-run")
         )
 
@@ -1667,10 +1667,12 @@ class TestWorktreeNoAutoDelete:
         mock_progress_display = MagicMock(spec=ProgressDisplay)
         mock_progress_display.console = mock_console
         orchestrator.progress_display = mock_progress_display
+        # Also update lifecycle's progress_display since it was created with None
+        orchestrator._lifecycle.progress_display = mock_progress_display
 
         # Mock worktree creation to return a path
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(
+        orchestrator._lifecycle._create_worktree_for_run = MagicMock(
             return_value=(worktree_path, "adw/test-run")
         )
 
@@ -1736,7 +1738,7 @@ class TestWorktreeNoAutoDelete:
 
         # Mock worktree creation to return a path
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(
+        orchestrator._lifecycle._create_worktree_for_run = MagicMock(
             return_value=(worktree_path, "adw/test-run")
         )
 
@@ -1790,7 +1792,7 @@ class TestWorktreeNoAutoDelete:
 
         # ISS-025: Mock worktree creation (tmp_path is not a git repo)
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(
+        orchestrator._lifecycle._create_worktree_for_run = MagicMock(
             return_value=(worktree_path, "adw/test-run")
         )
 
@@ -1853,12 +1855,18 @@ class TestWorktreeNoAutoDelete:
         orchestrator.progress_display = mock_progress_display
 
         # Enable worktree and mock the manager
-        orchestrator.worktree_config = WorktreeConfig(enabled=True, base_dir="trees")
+        worktree_config = WorktreeConfig(enabled=True, base_dir="trees")
+        orchestrator.worktree_config = worktree_config
         orchestrator._worktree_manager = MagicMock()
+
+        # Also update lifecycle's progress_display and worktree_config
+        orchestrator._lifecycle.progress_display = mock_progress_display
+        orchestrator._lifecycle.worktree_config = worktree_config
+        orchestrator._lifecycle._worktree_manager = orchestrator._worktree_manager
 
         # Mock worktree creation to return a path
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(
+        orchestrator._lifecycle._create_worktree_for_run = MagicMock(
             return_value=(worktree_path, "adw/test-run")
         )
 
@@ -1989,7 +1997,7 @@ class TestWorktreeNoAutoDelete:
 
         # Mock worktree creation
         worktree_path = tmp_path / "trees" / "test-run"
-        orchestrator._create_worktree_for_run = MagicMock(
+        orchestrator._lifecycle._create_worktree_for_run = MagicMock(
             return_value=(worktree_path, "adw/test-run")
         )
 
