@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-035 - Remove Duplicate Worktree Log Messages
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 10 - Worktree Isolation
 Created: 2026-01-21

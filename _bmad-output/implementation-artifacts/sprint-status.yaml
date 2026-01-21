@@ -411,7 +411,7 @@ development_status:
   ux-fix-ISS-036-progress-bar-shows-disabled-phases: ready-for-dev
   # UX Fix (from ISS-035) - MINOR
   # Two "worktree created" messages logged, redundant output
-  ux-fix-ISS-035-duplicate-worktree-log-messages: review
+  ux-fix-ISS-035-duplicate-worktree-log-messages: done
   # UX Fix (from ISS-037) - MAJOR
   # PR title just shows "RULE-151" when feature_description equals task_id
   # Should fall back to task_info.title from Linear
