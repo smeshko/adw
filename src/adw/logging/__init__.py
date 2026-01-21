@@ -1,7 +1,8 @@
 """ADW logging module - multi-tier structured logging.
 
 This package provides a comprehensive logging system with:
-- Multi-tier output: console (Rich), raw text files, structured JSONL
+- Console output via Rich
+- Real-time streaming via LiveStreamTransport to live.log
 - TTY-aware console formatting (colors for terminals, plain text otherwise)
 - Scoped child loggers with context inheritance
 - Level-based filtering (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
@@ -23,9 +24,8 @@ For run-scoped logging:
 import logging
 
 from adw.logging.console import ConsoleTransport
-from adw.logging.file import RawFileTransport, StructuredFileTransport
 from adw.logging.handler import LogManagerHandler
-from adw.logging.llm_capture import LLMCaptureManager
+from adw.logging.live_stream import LiveStreamTransport
 from adw.logging.manager import LogManager, Transport
 from adw.logging.redactor import (
     DEFAULT_REDACTION_PATTERNS,
@@ -36,7 +36,6 @@ from adw.logging.redactor import (
     get_redactor,
     reset_redactor,
 )
-from adw.logging.stream import StreamLogger
 from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
 
 # Module-level default logger instance
@@ -114,8 +113,7 @@ def configure_default_logger(
     *,
     level: LogLevel = LogLevel.INFO,
     console: bool = True,
-    raw_file: str | None = None,
-    jsonl_file: str | None = None,
+    live_log: str | None = None,
     redaction_enabled: bool = True,
     redaction_patterns: list[str] | None = None,
     redaction_disable_defaults: bool = False,
@@ -128,8 +126,7 @@ def configure_default_logger(
     Args:
         level: Minimum log level (default: INFO)
         console: Whether to add console transport (default: True)
-        raw_file: Path to raw log file (optional)
-        jsonl_file: Path to JSONL log file (optional)
+        live_log: Path to live.log file for real-time streaming (optional)
         redaction_enabled: Whether to enable secret redaction (default: True)
         redaction_patterns: Additional custom patterns for redaction
         redaction_disable_defaults: If True, only use custom patterns
@@ -140,8 +137,7 @@ def configure_default_logger(
     Example:
         >>> logger = configure_default_logger(
         ...     level=LogLevel.DEBUG,
-        ...     raw_file=".agent/runs/123/logs/raw.log",
-        ...     jsonl_file=".agent/runs/123/logs/logs.jsonl",
+        ...     live_log=".adw/runs/123/live.log",
         ...     redaction_enabled=True,
         ...     redaction_patterns=["ACME_[A-Z0-9]+"],
         ... )
@@ -161,11 +157,8 @@ def configure_default_logger(
     if console:
         _default_logger.register(ConsoleTransport())
 
-    if raw_file:
-        _default_logger.register(RawFileTransport(Path(raw_file)))
-
-    if jsonl_file:
-        _default_logger.register(StructuredFileTransport(Path(jsonl_file)))
+    if live_log:
+        _default_logger.register(LiveStreamTransport(Path(live_log)))
 
     return _default_logger
 
@@ -175,12 +168,9 @@ __all__ = [
     "LogManager",
     "LogManagerHandler",
     "Transport",
-    "StreamLogger",
-    "LLMCaptureManager",
+    "LiveStreamTransport",
     # Transports
     "ConsoleTransport",
-    "RawFileTransport",
-    "StructuredFileTransport",
     # Redaction
     "Redactor",
     "DEFAULT_REDACTION_PATTERNS",

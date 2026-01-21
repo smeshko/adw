@@ -1,7 +1,7 @@
 """ADW Security module.
 
 This package provides security interceptor functionality for blocking
-dangerous LLM tool calls and logging tool execution.
+dangerous LLM tool calls.
 
 Key components:
 - defaults: Default blocked patterns for shell commands and file access
@@ -9,7 +9,6 @@ Key components:
 - interceptor: Security interceptor for blocking dangerous operations
 - suggestions: Alternative command suggestions for blocked patterns
 - override: Override logging for --allow-dangerous mode
-- tool_logger: Tool execution logging to JSONL files
 """
 
 from adw.security.defaults import (
@@ -37,7 +36,6 @@ from adw.security.suggestions import (
     get_category_examples,
     get_override_instruction,
 )
-from adw.security.tool_logger import ToolLogger
 
 __all__: list[str] = [
     # Interceptor (Story 3.6)
@@ -60,6 +58,4 @@ __all__: list[str] = [
     "SuggestionFormatter",
     "get_category_examples",
     "get_override_instruction",
-    # Tool logging
-    "ToolLogger",
 ]
