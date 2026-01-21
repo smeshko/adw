@@ -55,10 +55,10 @@ so that **my pull requests are descriptive and useful without manual editing**.
 ### Task 3: Add Unit Tests
 **File:** `tests/unit/cli/test_pr.py`
 
-- [ ] Test: PR title uses task_info.title when feature_description equals task_id
-- [ ] Test: PR title falls back to task_id when task_info is None
-- [ ] Test: PR title uses feature_description when it differs from task_id
-- [ ] Test: Title truncation still works correctly
+- [x] Test: PR title uses task_info.title when feature_description equals task_id
+- [x] Test: PR title falls back to task_id when task_info is None
+- [x] Test: PR title uses feature_description when it differs from task_id
+- [x] Test: Title truncation still works correctly
 
 ### Task 4: Optional Enhancement - Info Logging
 **File:** `src/adw/cli/pr.py` or logging in orchestrator
