@@ -1001,80 +1001,78 @@ def logs_follow(
         ...,
         help="Run ID to follow logs for",
     ),
-    phase: str | None = typer.Option(
-        None,
-        "--phase",
-        "-p",
-        help="Filter by phase",
-    ),
     interval: float = typer.Option(
         0.1,
         "--interval",
         "-i",
         help="Polling interval in seconds (default: 0.1)",
     ),
+    replay: bool = typer.Option(
+        False,
+        "--replay",
+        "-r",
+        help="Replay entire log file from beginning (for completed runs)",
+    ),
 ) -> None:
-    """Stream new log entries in real-time.
+    """Stream LLM output in real-time from live.log.
 
-    Watches for new log entries and displays them as they arrive.
-    Press Ctrl+C to stop following.
+    For running executions: follows new output as it's written.
+    For completed runs: use --replay to see full output.
 
     Examples:
         adw logs follow 01HQXK5P3Z7V8R2M4N6T9W1Y3C
-        adw logs follow 01HQXK5P3Z7V8R2M4N6T9W1Y3C --phase build
+        adw logs follow 01HQXK5P3Z7V8R2M4N6T9W1Y3C --replay
         adw logs follow 01HQXK5P3Z7V8R2M4N6T9W1Y3C --interval 0.5
     """
     import time
 
     run_dir = _get_run_dir(run_id)
 
-    # Check if run is active
+    live_log = run_dir / "live.log"
     context_file = run_dir / "context.json"
+
+    # Check run status
+    run_status = ""
     if context_file.exists():
         try:
             context = json.loads(context_file.read_text())
-            status = context.get("status", "")
-            if status not in ("running", ""):
-                console.print(f"[yellow]Run is not active (status: {status})[/]")
-                console.print("[dim]Showing existing logs instead...[/]\n")
-                # Fall back to show
-                entries = _load_log_entries(run_dir)
-                entries = _filter_log_entries(entries, phase=phase)
-                for entry in entries:
-                    _display_log_entry(entry)
-                return
+            run_status = context.get("status", "")
         except (json.JSONDecodeError, OSError):
             pass
 
-    logs_file = run_dir / "logs" / "logs.jsonl"
-    if not logs_file.exists():
-        console.print(f"[yellow]No log file found for run:[/] {run_id}")
+    # If run is not active and not replay mode, inform user
+    if run_status not in ("running", "") and not replay:
+        console.print(f"[yellow]Run is not active (status: {run_status})[/]")
+        if live_log.exists():
+            console.print("[dim]Use --replay to view the complete log[/]\n")
         return
 
-    console.print(f"[bold]Following logs for run {run_id}[/]")
+    # Wait for live.log to appear if run is active
+    wait_count = 0
+    while not live_log.exists():
+        if wait_count == 0:
+            console.print(f"[dim]Waiting for live.log to appear...[/]")
+        wait_count += 1
+        if wait_count > 50:  # 5 seconds
+            console.print(f"[yellow]No live.log found for run:[/] {run_id}")
+            return
+        time.sleep(0.1)
+
+    console.print(f"[bold]Following live output for run {run_id}[/]")
     console.print("[dim]Press Ctrl+C to stop[/]\n")
 
-    # Track file position
     try:
-        with open(logs_file) as f:
-            # Go to end of file
-            f.seek(0, 2)
+        with open(live_log, encoding="utf-8") as f:
+            # For replay mode or completed runs, start from beginning
+            # For active runs, skip to end and follow
+            if not replay and run_status in ("running", ""):
+                f.seek(0, 2)  # Seek to end
 
             while True:
                 line = f.readline()
                 if line:
-                    line = line.strip()
-                    if line:
-                        try:
-                            entry = json.loads(line)
-                            # Apply phase filter
-                            if phase:
-                                entry_phase = entry.get("context", {}).get("phase", "")
-                                if entry_phase.lower() != phase.lower():
-                                    continue
-                            _display_log_entry(entry)
-                        except json.JSONDecodeError:
-                            pass
+                    # Print line with ANSI colors preserved
+                    print(line, end="", flush=True)
                 else:
                     # Check if run is still active
                     if context_file.exists():
@@ -1089,6 +1087,7 @@ def logs_follow(
                         except (json.JSONDecodeError, OSError):
                             pass
                     time.sleep(interval)
+
     except KeyboardInterrupt:
         console.print("\n[dim]Stopped following logs[/]")
 
@@ -1463,8 +1462,7 @@ def logs_export(
 ) -> None:
     """Create a shareable bundle of logs and state.
 
-    Exports logs, LLM captures, snapshots, and context for debugging
-    and sharing.
+    Exports live.log, snapshots, and context for debugging and sharing.
 
     Examples:
         adw logs export 01HQXK5P3Z7V8R2M4N6T9W1Y3C

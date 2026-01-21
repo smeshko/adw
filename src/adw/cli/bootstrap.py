@@ -30,9 +30,9 @@ from adw.exceptions import ConfigError
 from adw.executors.base import LLMExecutor
 from adw.executors.claude_code import ClaudeCodeExecutor
 from adw.hooks.runner import HookRunner
-from adw.logging import LLMCaptureManager, LogManager, LogManagerHandler
+from adw.logging import LogManager, LogManagerHandler
 from adw.logging.console import ConsoleTransport
-from adw.logging.file import RawFileTransport, StructuredFileTransport
+from adw.logging.live_stream import LiveStreamTransport
 from adw.models.config import (
     GitConfig,
     HookConfig,
@@ -42,7 +42,7 @@ from adw.models.config import (
 )
 from adw.models.logging import VERBOSITY_LEVEL_MAP, LogLevel, Verbosity
 from adw.models.task import TaskInfo
-from adw.security import SecurityInterceptor, ToolLogger
+from adw.security import SecurityInterceptor
 from adw.task_managers.base import TaskManager
 from adw.task_managers.labels import LabelManager
 from adw.task_managers.sync import StatusSyncService
@@ -113,19 +113,11 @@ def create_log_manager(
     )
     log_manager.register(console_transport)
 
-    # Add file transports when run_dir is provided
-    # Note: File transports create directories lazily on first write,
-    # so we don't mkdir here to avoid conflicts with RunDirectoryManager
+    # Add live stream transport when run_dir is provided
+    # LiveStreamTransport writes to live.log with ANSI formatting for real-time tailing
     if run_dir:
-        logs_dir = run_dir / "logs"
-
-        # Structured JSON Lines for programmatic access
-        jsonl_transport = StructuredFileTransport(logs_dir / "logs.jsonl")
-        log_manager.register(jsonl_transport)
-
-        # Human-readable raw log
-        raw_transport = RawFileTransport(logs_dir / "raw.log")
-        log_manager.register(raw_transport)
+        live_transport = LiveStreamTransport(run_dir / "live.log")
+        log_manager.register(live_transport)
 
     # Wire Python's standard logging to flow through LogManager (ISS-006 fix)
     # This ensures all logging.getLogger(__name__).info() calls in ADW modules
@@ -163,9 +155,7 @@ def create_orchestrator(
     with_progress: bool = True,
     allow_dangerous: bool = False,
     run_id: str | None = None,
-    show_llm_output: bool = False,
     task_manager: TaskManager | None = None,
-    task_id: str | None = None,
     task_info: TaskInfo | None = None,
 ) -> Orchestrator:
     """Create a fully configured Orchestrator instance.
@@ -178,7 +168,6 @@ def create_orchestrator(
     - InterruptionHandler for graceful shutdown
     - ProgressDisplay for CLI output (optional)
     - SecurityInterceptor for tool call validation
-    - ToolLogger for tool call audit trail
     - PhaseRunner with CommandResolver, TemplateEngine, HookRunner, LLMExecutor
     - LabelManager for task label operations (optional, Story 12.7)
 
@@ -186,10 +175,8 @@ def create_orchestrator(
         console: Rich console for output. If None, creates a new one.
         with_progress: Whether to include progress display.
         allow_dangerous: If True, log warnings instead of blocking dangerous operations.
-        run_id: Optional run ID for tool logging. If None, tool logging is disabled.
-        show_llm_output: If True, stream LLM output to terminal (Story UX-FIX-ISS-001).
+        run_id: Optional run ID. Used for live log directory setup.
         task_manager: Optional task manager for label/sync operations.
-        task_id: Optional task identifier like "RULE-151" (backwards compat).
         task_info: Optional TaskInfo with internal UUID for label operations.
             task_info.id is used for Linear API calls (not the identifier).
 
@@ -235,13 +222,12 @@ def create_orchestrator(
 
     # Create security components (Story 3.6)
     security_interceptor = SecurityInterceptor(allow_dangerous=allow_dangerous)
-    tool_logger = None
-    llm_capture = None
+
+    # Set up live stream transport for LLM output logging
+    live_stream = None
     if run_id:
         run_dir = runs_dir / run_id
-        tool_logger = ToolLogger(run_dir)
-        # Create LLM capture manager for debugging (ISS-003 fix)
-        llm_capture = LLMCaptureManager(run_dir / "llm")
+        live_stream = LiveStreamTransport(run_dir / "live.log")
 
     # Use MockExecutor in test mode to avoid hitting real Claude API
     # Set ADW_MOCK_EXECUTOR=1 to enable mock mode (used by tests)
@@ -255,10 +241,8 @@ def create_orchestrator(
             config=LLMConfig(),
             console=console,
             security_interceptor=security_interceptor,
-            tool_logger=tool_logger,
             allow_dangerous=allow_dangerous,
-            show_llm_output=show_llm_output,
-            llm_capture=llm_capture,
+            live_stream=live_stream,
         )
 
     # Create PhaseRunner first (without progress_display) (Story 5.2)

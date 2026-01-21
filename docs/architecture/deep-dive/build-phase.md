@@ -61,17 +61,22 @@ The Build phase is the second phase in the ADW pipeline (`plan → build → val
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│  6. Run Post-Hook                                               │
-│     File: src/adw/defaults/commands/build/post.sh               │
-│     Action: Auto-commits any remaining changes                  │
-│     Commit format: adw(build): <feature> [run_id]               │
+│  6. Capture Artifacts                                           │
+│     - build_output.md  → LLM response text                      │
+│     - diff.txt         → Git diff (via BuildExtension)          │
+│     - diff_stats.json  → Files changed, insertions, deletions   │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│  7. Capture Artifacts                                           │
-│     - build_output.md  → LLM response text                      │
-│     - diff.txt         → Git diff since last commit             │
-│     - diff_stats.json  → Files changed, insertions, deletions   │
+│  7. Run Post-Hook (optional)                                    │
+│     If post.sh exists in command directory                      │
+│     ADW_LLM_OUTPUT env var and artifacts dir available          │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  8. Auto-Commit Changes                                         │
+│     Stages all changes and commits                              │
+│     Commit format: adw(build): <feature> [run_id]               │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -79,7 +84,7 @@ The Build phase is the second phase in the ADW pipeline (`plan → build → val
 
 The plan from the previous phase is passed via template variables:
 
-**1. Artifact Loading** (`phase_runner.py:712-763`):
+**1. Artifact Loading** (`PhaseRunner._build_artifacts_map()`):
 ```python
 def _build_artifacts_map(self, run_id, current_phase):
     previous_phases = PHASE_SEQUENCE[:current_idx]  # ["plan"] for build
@@ -89,16 +94,10 @@ def _build_artifacts_map(self, run_id, current_phase):
     return artifacts_map  # {"plan": {"plan_output": "<content>"}}
 ```
 
-**2. Convenience Alias** (`phase_runner.py:373-377`):
-```python
-if "plan" in artifacts_map and "plan_output" in artifacts_map["plan"]:
-    variables["plan"] = artifacts_map["plan"]["plan_output"]
-```
-
-**3. Template Rendering**:
+**2. Template Rendering**:
 ```markdown
 ## Plan
-{{plan}}
+{{artifacts.plan.plan_output}}
 ```
 Becomes:
 ```markdown
@@ -113,28 +112,29 @@ Becomes:
 Whatever text the LLM writes in response to the prompt is captured as the artifact.
 
 ```python
-# phase_runner.py:799-810
+# PhaseRunner._capture_artifacts()
 output_name = f"{phase}_output.md"  # "build_output.md"
 self.artifact_manager.store(
     context.run_id,
     phase,
     output_name,
-    llm_result.content,  # Raw LLM response text
+    llm_result.final_output or llm_result.content,  # LLM response text
 )
 ```
 
-### Git Diff Artifacts (Automatic)
+### Git Diff Artifacts (via BuildExtension)
 
-After LLM execution, the PhaseRunner captures git changes:
+After LLM execution, the `BuildExtension` captures git changes via the extension system:
 
 ```python
-# phase_runner.py:1106-1199
-def _capture_git_diff_artifacts(self, context):
-    diff_content = capture_diff(since="HEAD~1")
-    self.artifact_manager.store_text(run_id, "build", "diff.txt", diff_content)
-
+# BuildExtension.extra_artifacts()
+def extra_artifacts(self, phase, context, llm_result):
+    diff_content = capture_diff(since="HEAD~1", working_dir=context.worktree_path)
     stats = get_diff_stats(stat_output, diff_content)
-    self.artifact_manager.store_json(run_id, "build", "diff_stats.json", stats)
+    return [
+        ("diff.txt", diff_content),
+        ("diff_stats.json", json.dumps(stats)),
+    ]
 ```
 
 ## Artifact Directory Structure
@@ -190,14 +190,14 @@ src/adw/defaults/commands/build/
     └── checklist.md       # Definition of done
 ```
 
-## Post-Hook: Auto-Commit
+## Auto-Commit
 
-The `post.sh` script runs after LLM execution:
+After LLM execution and post-hook (if any), the PhaseRunner auto-commits changes:
 
-1. Checks if `git.auto_commit` is enabled in `adw.yaml`
-2. Stages all changes: `git add -A`
-3. Creates commit with format: `adw(build): <feature> [run_id]`
-4. Respects `git.skip_hooks` setting
+1. Stages all changes: `git add -A`
+2. Creates commit with format: `adw(build): <feature> [run_id]`
+3. Validates branch before commit (ISS-025)
+4. Commit is created in worktree context if applicable
 
 ## Key Source Files
 
@@ -205,9 +205,9 @@ The `post.sh` script runs after LLM execution:
 |------|------|
 | `src/adw/core/phase_runner.py` | Phase execution, artifact loading/saving |
 | `src/adw/core/orchestrator.py` | Phase sequencing |
+| `src/adw/core/extensions.py` | Extension registry for phase hooks |
 | `src/adw/commands/template.py` | Template rendering with includes |
 | `src/adw/defaults/commands/build/prompt.md` | Default build prompt |
-| `src/adw/defaults/commands/build/post.sh` | Auto-commit hook |
 | `src/adw/hooks/git_commit.py` | Git commit helper functions |
 | `src/adw/hooks/git_diff.py` | Diff capture utilities |
 

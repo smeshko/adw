@@ -4,7 +4,7 @@ This document explains the complete execution flow of the Plan phase in ADW.
 
 ## Overview
 
-The Plan phase is the first phase in the ADW pipeline (`plan → build → verify → validate → document`). It generates an implementation plan for a feature description.
+The Plan phase is the first phase in the ADW pipeline (`plan → build → validate → document → ship`). It generates an implementation plan for a feature description.
 
 **Command:** `adw run "Feature description" --phase plan`
 
@@ -35,12 +35,12 @@ The Plan phase is the first phase in the ADW pipeline (`plan → build → verif
 ┌─────────────────────────────────────────────────────────────────┐
 │  4. PhaseRunner (src/adw/core/phase_runner.py)                  │
 │     Step 1: Resolve command from 3-tier hierarchy               │
-│     Step 2: Run pre-hook (git branch creation)                  │
+│     Step 2: Run pre-hook (if exists)                            │
 │     Step 3: Render prompt.md with template variables            │
 │     Step 4: Execute LLM via ClaudeCodeExecutor                  │
-│     Step 5: Run post-hook (if exists)                           │
-│     Step 6: Auto-commit changes                                 │
-│     Step 7: Capture artifacts (plan_output.md)                  │
+│     Step 5: Capture artifacts (plan_output.md)                  │
+│     Step 6: Run post-hook (if exists)                           │
+│     Step 7: Auto-commit changes                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -89,13 +89,13 @@ claude --print --verbose --output-format stream-json \
 **Important:** The SDK creates artifact files, not the LLM.
 
 ```python
-# src/adw/core/phase_runner.py:751-777
+# PhaseRunner._capture_artifacts()
 output_name = f"{phase}_output.md"  # "plan_output.md"
 self.artifact_manager.store(
     context.run_id,
     phase,
     output_name,
-    llm_result.content,  # Raw LLM stdout saved as-is
+    llm_result.final_output or llm_result.content,  # LLM response saved as-is
 )
 ```
 
@@ -162,9 +162,11 @@ The LLM's text response will be saved verbatim to `plan_output.md`. You control 
 | `src/adw/cli/bootstrap.py` | Dependency injection |
 | `src/adw/core/orchestrator.py` | Pipeline coordination |
 | `src/adw/core/phase_runner.py` | Phase execution logic |
+| `src/adw/core/extensions.py` | Extension registry for phase hooks |
 | `src/adw/commands/resolver.py` | 3-tier command resolution |
 | `src/adw/commands/template.py` | Jinja2 prompt rendering |
 | `src/adw/executors/claude_code.py` | LLM subprocess management |
 | `src/adw/core/artifact_manager.py` | Artifact storage |
 | `src/adw/defaults/commands/plan/prompt.md` | Default plan prompt |
 | `src/adw/defaults/commands/plan/pre.sh` | Git branch pre-hook |
+| `src/adw/defaults/commands/plan/config.yaml` | Phase configuration |

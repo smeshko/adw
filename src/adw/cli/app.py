@@ -189,11 +189,6 @@ def run(
         "--allow-dangerous",
         help="Allow dangerous LLM tool calls (log warnings instead of blocking)",
     ),
-    show_llm_output: bool = typer.Option(
-        False,
-        "--show-llm-output",
-        help="Stream LLM output to terminal in real-time (verbose, for debugging)",
-    ),
     no_worktree: bool = typer.Option(
         False,
         "--no-worktree",
@@ -229,6 +224,9 @@ def run(
 
         # Allow dangerous operations (log warnings instead of blocking)
         adw run "Add login" --allow-dangerous
+
+        # View real-time LLM output (run in separate terminal)
+        adw logs follow <run_id>
 
         # Run without worktree isolation (in current directory)
         adw run "Quick fix" --no-worktree
@@ -358,11 +356,8 @@ def run(
 
     # Create log manager with file transports (Story 7.2, ISS-003, ISS-006 fix)
     # This wires up Python logging to LogManager, so all logging.getLogger() calls
-    # in ADW modules flow through to logs.jsonl for debugging via `adw logs show`
+    # in ADW modules flow through to live.log for debugging via `adw logs follow`
     create_log_manager(console, verbosity=verbosity, run_dir=run_dir)
-
-    # Enable LLM output if flag is set OR verbosity is TRACE (Story UX-FIX-ISS-001)
-    effective_show_llm_output = show_llm_output or verbosity == Verbosity.TRACE
 
     try:
         # Pass task_manager and task_info for StatusSyncService/LabelManager
@@ -370,9 +365,7 @@ def run(
             console,
             allow_dangerous=allow_dangerous,
             run_id=run_id,
-            show_llm_output=effective_show_llm_output,
             task_manager=task_manager,
-            task_id=resolved.task_id,
             task_info=task_info,
         )
 

@@ -15,23 +15,18 @@ import json
 import logging
 import shutil
 import time
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 
 from adw.exceptions import LLMError, LLMTimeoutError
-from adw.logging.stream import StreamLogger
 from adw.models.config import LLMConfig
 from adw.models.llm import LLMResult, ToolCall
-from adw.models.logging import LLMStats
-from adw.models.security import ToolCallLog
 
 if TYPE_CHECKING:
-    from adw.logging.llm_capture import LLMCaptureManager
+    from adw.logging.live_stream import LiveStreamTransport
     from adw.security.interceptor import SecurityInterceptor
-    from adw.security.tool_logger import ToolLogger
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +55,9 @@ class ClaudeCodeExecutor:
         config: LLMConfig,
         *,
         console: Console | None = None,
-        tool_logger: "ToolLogger | None" = None,
         security_interceptor: "SecurityInterceptor | None" = None,
         allow_dangerous: bool = False,
-        show_llm_output: bool = False,
-        llm_capture: "LLMCaptureManager | None" = None,
+        live_stream: "LiveStreamTransport | None" = None,
     ) -> None:
         """Initialize the ClaudeCodeExecutor.
 
@@ -72,24 +65,18 @@ class ClaudeCodeExecutor:
             config: LLM configuration containing path, timeout, and other settings.
             console: Optional Rich console for streaming output. If not provided,
                      a new Console instance is created.
-            tool_logger: Optional ToolLogger for persisting tool call logs.
-                        Used for security auditing (Story 3.8).
             security_interceptor: Optional SecurityInterceptor for checking tool
                         calls against security patterns (Story 3.6).
             allow_dangerous: If True, log warnings instead of blocking dangerous
                         commands (Story 3.6).
-            show_llm_output: If True, stream LLM output to console in real-time.
-                        Default False to reduce terminal noise (UX-FIX-ISS-001).
-            llm_capture: Optional LLMCaptureManager for capturing LLM interactions
-                        to files for debugging (ISS-003 fix).
+            live_stream: Optional LiveStreamTransport for writing LLM tokens
+                        to live.log for real-time tailing.
         """
         self.config = config
         self.console = console or Console()
-        self.tool_logger = tool_logger
         self.security_interceptor = security_interceptor
         self.allow_dangerous = allow_dangerous
-        self.show_llm_output = show_llm_output
-        self.llm_capture = llm_capture
+        self.live_stream = live_stream
 
     def _resolve_timeout(self, timeout: int | None) -> int:
         """Resolve timeout using 3-tier hierarchy.
@@ -116,21 +103,19 @@ class ClaudeCodeExecutor:
         prompt: str,
         *,
         timeout: int | None = None,
-        stream_logger: StreamLogger | None = None,
         phase: str | None = None,
         cwd: Path | None = None,
     ) -> LLMResult:
         """Execute a prompt using Claude Code CLI.
 
         Spawns Claude Code as a subprocess, streams output in real-time,
-        and returns a structured result.
+        and returns a structured result. LLM output is always written to
+        live.log when a live_stream transport is configured.
 
         Args:
             prompt: The prompt to send to Claude Code.
             timeout: Optional timeout in seconds. If None, uses config default.
-            stream_logger: Optional StreamLogger for capturing stream events.
-                          Used for debugging and replay (Story 7.3).
-            phase: Optional phase name for LLM capture logging.
+            phase: Optional phase name for log context.
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
                  Used for worktree isolation support (Story 10.5).
@@ -141,41 +126,19 @@ class ClaudeCodeExecutor:
         Raises:
             LLMError: If Claude Code is not found, execution fails, or timeout.
         """
-        from adw.models.logging import LLMRequest, LLMResponse, LLMToolCall
-
         effective_timeout = self._resolve_timeout(timeout)
-        current_phase = phase or "unknown"
 
-        # Capture LLM request if capture manager is configured
-        if self.llm_capture:
-            request = LLMRequest(
-                prompt=prompt,
-                phase=current_phase,
-                params={"model": self.config.model, "timeout": effective_timeout},
-            )
-            self.llm_capture.capture_request(request)
+        # Log LLM start to live stream
+        if self.live_stream:
+            self.live_stream.write_llm_start(phase)
 
         result = asyncio.run(
-            self._stream_subprocess(prompt, effective_timeout, stream_logger, cwd=cwd)
+            self._stream_subprocess(prompt, effective_timeout, cwd=cwd)
         )
 
-        # Capture LLM response if capture manager is configured
-        if self.llm_capture:
-            response = LLMResponse(
-                content=result.content,
-                phase=current_phase,
-                stats=LLMStats(
-                    input_tokens=0,  # Not tracked by CLI currently
-                    output_tokens=result.tokens_used,
-                    duration_ms=result.duration_ms,
-                ),
-                tool_calls=[
-                    LLMToolCall(id=f"call_{i}", name=tc.tool_name, input=tc.arguments)
-                    for i, tc in enumerate(result.tool_calls)
-                ],
-            )
-            self.llm_capture.capture_response(response)
-            self.llm_capture.next_sequence()
+        # Log LLM end to live stream
+        if self.live_stream:
+            self.live_stream.write_llm_end(result.tokens_used, result.duration_ms)
 
         return result
 
@@ -183,19 +146,18 @@ class ClaudeCodeExecutor:
         self,
         prompt: str,
         timeout: int,
-        stream_logger: StreamLogger | None = None,
         *,
         cwd: Path | None = None,
     ) -> LLMResult:
         """Execute Claude Code subprocess with streaming output.
 
         Uses concurrent tasks for stdout/stderr to prevent deadlocks,
-        and enforces timeout on the entire operation.
+        and enforces timeout on the entire operation. LLM tokens are
+        written to live.log when a live_stream transport is configured.
 
         Args:
             prompt: The prompt to send to Claude Code.
             timeout: Timeout in seconds.
-            stream_logger: Optional StreamLogger for capturing stream events.
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
 
@@ -250,10 +212,10 @@ class ClaudeCodeExecutor:
         try:
             # Use concurrent tasks to read stdout and stderr to prevent deadlocks
             result = await asyncio.wait_for(
-                self._read_process_output(process, stream_logger),
+                self._read_process_output(process),
                 timeout=timeout,
             )
-            return self._build_result(result, start_time, stream_logger)
+            return self._build_result(result, start_time)
 
         except TimeoutError:
             # Calculate elapsed time before cleanup
@@ -344,16 +306,15 @@ class ClaudeCodeExecutor:
     async def _read_process_output(
         self,
         process: asyncio.subprocess.Process,
-        stream_logger: StreamLogger | None = None,
     ) -> dict[str, Any]:
         """Read stdout and stderr concurrently to prevent deadlocks.
 
         Uses asyncio.create_task() for concurrent processing as required
-        by NFR3 (artifact writes don't block stream).
+        by NFR3 (artifact writes don't block stream). LLM tokens are
+        written to live.log when a live_stream transport is configured.
 
         Args:
             process: The subprocess to read from.
-            stream_logger: Optional StreamLogger for capturing stream events.
 
         Returns:
             Dictionary with stdout_lines, stderr, and returncode.
@@ -368,14 +329,14 @@ class ClaudeCodeExecutor:
         stderr = process.stderr
 
         async def read_stdout() -> None:
-            """Read stdout line-by-line and optionally stream to console.
+            """Read stdout line-by-line and write to live.log.
 
             With --output-format stream-json, each line is JSON.
-            We parse it to extract text content for real-time display.
+            We parse it to extract text content and write to live.log
+            for real-time tailing via `adw logs follow`.
 
-            Note: Console output is controlled by self.show_llm_output flag.
-            When False (default), LLM output is NOT printed to reduce terminal noise.
-            StreamLogger capture is always performed regardless of this flag.
+            Note: Console output is NOT displayed - use `adw logs follow`
+            in another terminal to see real-time LLM output.
             """
             while True:
                 line = await stdout.readline()
@@ -384,16 +345,11 @@ class ClaudeCodeExecutor:
                 decoded = line.decode()
                 content_lines.append(decoded)
 
-                # Try to extract text content from stream-json for display
-                # Only print to console if show_llm_output is enabled
-                if self.show_llm_output:
+                # Write tokens to live.log for real-time tailing
+                if self.live_stream:
                     display_text = self._extract_display_text(decoded)
                     if display_text:
-                        self.console.print(display_text, end="")
-
-                # Capture to stream logger if provided (always, regardless of flag)
-                if stream_logger:
-                    stream_logger.token(decoded)
+                        self.live_stream.write_llm_token(display_text)
 
         async def read_stderr() -> None:
             """Read stderr line-by-line."""
@@ -432,14 +388,12 @@ class ClaudeCodeExecutor:
         self,
         process_output: dict[str, Any],
         start_time: float,
-        stream_logger: StreamLogger | None = None,
     ) -> LLMResult:
         """Build LLMResult from process output.
 
         Args:
             process_output: Dictionary with stdout, stderr, returncode.
             start_time: Time when execution started.
-            stream_logger: Optional StreamLogger for capturing completion/error.
 
         Returns:
             LLMResult instance.
@@ -462,26 +416,14 @@ class ClaudeCodeExecutor:
             },
         )
 
-        # Log tool calls for security auditing (Story 3.8)
-        if self.tool_logger and parsed["tool_calls"]:
-            self._log_tool_calls(parsed["tool_calls"], duration_ms)
+        # Log tool calls to live stream
+        if self.live_stream and parsed["tool_calls"]:
+            for tc in parsed["tool_calls"]:
+                context = self._extract_tool_context(tc.tool_name, tc.arguments)
+                self.live_stream.write_tool_call(tc.tool_name, context)
 
         # Build result
         if returncode == 0:
-            # Log completion event if stream_logger provided
-            if stream_logger:
-                # Estimate input tokens as ~1/4 of total (rough approximation)
-                # Real token counts come from parsed output
-                tokens_used = parsed["tokens_used"]
-                input_tokens = tokens_used // 4 if tokens_used else 0
-                output_tokens = tokens_used - input_tokens if tokens_used else 0
-                stream_logger.end(
-                    LLMStats(
-                        input_tokens=input_tokens,
-                        output_tokens=output_tokens,
-                        duration_ms=duration_ms,
-                    )
-                )
             return LLMResult(
                 success=True,
                 content=parsed["content"],
@@ -492,9 +434,9 @@ class ClaudeCodeExecutor:
             )
         else:
             error_msg = stderr or f"Claude Code exited with code {returncode}"
-            # Log error event if stream_logger provided
-            if stream_logger:
-                stream_logger.error(error_msg)
+            # Log error to live stream
+            if self.live_stream:
+                self.live_stream.write_error(error_msg)
             return LLMResult(
                 success=False,
                 content=parsed["content"],
@@ -620,52 +562,54 @@ class ClaudeCodeExecutor:
             "tokens_used": tokens_used,
         }
 
-    def _log_tool_calls(
+    def _extract_tool_context(
         self,
-        tool_calls: list[ToolCall],
-        total_duration_ms: int,
-    ) -> None:
-        """Log tool calls to the configured tool logger.
-
-        Creates ToolCallLog entries for each tool call and persists them
-        to the JSONL log file.
-
-        Note:
-            **Duration Approximation**: Individual tool timing is not available
-            from Claude Code CLI output, so the total duration is distributed
-            evenly across all tools. The logged duration_ms values are
-            approximations and should not be used for precise performance
-            analysis of individual tools.
+        tool_name: str,
+        arguments: dict[str, Any],
+    ) -> str | None:
+        """Extract meaningful context from tool arguments for logging.
 
         Args:
-            tool_calls: List of tool calls to log.
-            total_duration_ms: Total execution time for all tools.
+            tool_name: Name of the tool.
+            arguments: Tool arguments.
+
+        Returns:
+            A brief context string (e.g., file path), or None.
         """
-        if not self.tool_logger:
-            return
+        max_len = 60
 
-        # Distribute duration evenly across tools (approximation)
-        per_tool_duration = total_duration_ms // len(tool_calls) if tool_calls else 0
+        if tool_name == "Read":
+            path = arguments.get("file_path", "")
+            return path[:max_len] if path else None
 
-        for tool_call in tool_calls:
-            # Generate individual timestamp per tool call for accurate logging
-            timestamp = datetime.now(UTC).isoformat()
-            # Truncate result summary if present
-            result_summary = tool_call.result_summary
-            if result_summary and len(result_summary) > 200:
-                result_summary = result_summary[:197] + "..."
+        if tool_name == "Write":
+            path = arguments.get("file_path", "")
+            return path[:max_len] if path else None
 
-            log_entry = ToolCallLog(
-                timestamp=timestamp,
-                tool_name=tool_call.tool_name,
-                arguments=tool_call.arguments,
-                result_summary=result_summary,
-                duration_ms=per_tool_duration,
-                blocked=False,
-                block_reason=None,
-                phase=self.tool_logger.current_phase,
-            )
-            self.tool_logger.log_tool_call(log_entry)
+        if tool_name == "Edit":
+            path = arguments.get("file_path", "")
+            return path[:max_len] if path else None
+
+        if tool_name == "Bash":
+            cmd = arguments.get("command", "")
+            return cmd[:max_len] if cmd else None
+
+        if tool_name == "Glob":
+            pattern = arguments.get("pattern", "")
+            return pattern[:max_len] if pattern else None
+
+        if tool_name == "Grep":
+            pattern = arguments.get("pattern", "")
+            return pattern[:max_len] if pattern else None
+
+        if tool_name == "Task":
+            subagent = arguments.get("subagent_type", "")
+            if subagent:
+                return subagent[:max_len]
+            desc = arguments.get("description", "")
+            return desc[:max_len] if desc else None
+
+        return None
 
     def _verify_claude_path(self) -> Path:
         """Verify Claude Code executable exists.
@@ -747,99 +691,3 @@ class ClaudeCodeExecutor:
 
         return None
 
-    def _check_and_log_tool_calls(
-        self,
-        tool_calls: list[ToolCall],
-        total_duration_ms: int,
-    ) -> None:
-        """Check tool calls against security patterns and log them.
-
-        This method combines security validation (Story 3.6) with tool logging
-        (Story 3.8). It checks each tool call against the security interceptor
-        and raises SecurityError if blocked, then logs all calls.
-
-        Args:
-            tool_calls: List of tool calls to check and log.
-            total_duration_ms: Total execution time for all tools.
-
-        Raises:
-            SecurityError: If a tool call is blocked and allow_dangerous is False.
-        """
-        from adw.exceptions import SecurityError
-        from adw.security.interceptor import SecurityCheckResult
-
-        if not tool_calls:
-            return
-
-        per_tool_duration = total_duration_ms // len(tool_calls)
-
-        for tool_call in tool_calls:
-            # Generate individual timestamp per tool call for accurate logging
-            timestamp = datetime.now(UTC).isoformat()
-            blocked = False
-            block_reason: str | None = None
-
-            # Check against security interceptor if configured
-            if self.security_interceptor:
-                response = self.security_interceptor.check_tool_call(
-                    tool_call.tool_name,
-                    tool_call.arguments,
-                )
-
-                if response.result == SecurityCheckResult.BLOCKED:
-                    # Build block reason message
-                    match = response.matches[0] if response.matches else None
-                    if match:
-                        block_reason = f"Blocked: {match.description}"
-                    else:
-                        block_reason = "Blocked by security policy"
-
-                    blocked = True
-
-                    # Log before raising if tool_logger is configured
-                    if self.tool_logger:
-                        log_entry = ToolCallLog(
-                            timestamp=timestamp,
-                            tool_name=tool_call.tool_name,
-                            arguments=tool_call.arguments,
-                            result_summary=None,
-                            duration_ms=per_tool_duration,
-                            blocked=True,
-                            block_reason=block_reason,
-                            phase=self.tool_logger.current_phase,
-                        )
-                        self.tool_logger.log_tool_call(log_entry)
-
-                    # Raise security error
-                    raise SecurityError(
-                        code="DANGEROUS_COMMAND_BLOCKED",
-                        message=block_reason,
-                        tool_name=tool_call.tool_name,
-                        pattern_matched=match.pattern if match else "",
-                        suggestion=match.alternative if match else None,
-                    )
-
-                elif response.result == SecurityCheckResult.WARNING:
-                    # Log warning but don't block
-                    match = response.matches[0] if response.matches else None
-                    if match:
-                        block_reason = f"Warning: {match.description}"
-                    blocked = False  # Not actually blocked in warning mode
-
-            # Log the tool call
-            if self.tool_logger:
-                result_summary = tool_call.result_summary
-                if result_summary and len(result_summary) > 200:
-                    result_summary = result_summary[:197] + "..."
-
-                log_entry = ToolCallLog(
-                    timestamp=timestamp,
-                    tool_name=tool_call.tool_name,
-                    arguments=tool_call.arguments,
-                    result_summary=result_summary,
-                    duration_ms=per_tool_duration,
-                    blocked=blocked,
-                    block_reason=block_reason,
-                    phase=self.tool_logger.current_phase,
-                )
-                self.tool_logger.log_tool_call(log_entry)
