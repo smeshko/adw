@@ -13,10 +13,12 @@ import pytest
 from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
 from adw.core.artifact_manager import ArtifactManager
+from adw.core.extensions import DocumentExtension, ExtensionRegistry
 from adw.core.phase_runner import PhaseRunner
 from adw.executors.mock import MockExecutor
 from adw.hooks.runner import HookRunner
 from adw.models import (
+    GitConfig,
     HookConfig,
     PhaseStatus,
     RunContext,
@@ -244,6 +246,11 @@ def phase_runner(
     hook_runner = HookRunner(config=HookConfig(shell="/bin/bash", timeout_seconds=30))
     artifact_manager = ArtifactManager(runs_dir=runs_dir)
 
+    # Create extension registry with DocumentExtension for pr_description.md
+    git_config = GitConfig(auto_create_pr=False)  # Don't attempt PR creation in tests
+    extension_registry = ExtensionRegistry()
+    extension_registry.register(DocumentExtension(git_config, runs_dir))
+
     return PhaseRunner(
         command_resolver=command_resolver,
         template_engine=template_engine,
@@ -251,6 +258,7 @@ def phase_runner(
         executor=mock_executor,
         artifact_manager=artifact_manager,
         strict_artifacts=False,
+        extension_registry=extension_registry,
     )
 
 
