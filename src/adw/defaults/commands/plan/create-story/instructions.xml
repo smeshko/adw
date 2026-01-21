@@ -1,8 +1,27 @@
 <workflow>
+  <!-- ================================================================== -->
+  <!-- PRIME DIRECTIVE - READ THIS FIRST BEFORE ANY OTHER INSTRUCTION    -->
+  <!-- ================================================================== -->
+  <critical>🚨 OUTPUT CONTRACT: Only your FINAL message is captured as the artifact.
+    All previous messages are DISCARDED. Your final message MUST contain the
+    COMPLETE story document - not a summary, not a reference to "generated above".
+    OUTPUTTING A SUMMARY INSTEAD OF THE COMPLETE DOCUMENT IS A SYSTEM FAILURE.</critical>
+
   <critical>The workflow execution engine (workflow.xml) is included above</critical>
   <critical>The workflow config (workflow.yaml) is included above</critical>
   <critical>Communicate all responses in English and generate all documents in English</critical>
   <critical>WORKTREE SUPPORT: {project-root} = current working directory (pwd). NEVER use 'cd' to navigate elsewhere. All paths are relative to cwd.</critical>
+
+  <!-- ================================================================== -->
+  <!-- UNIVERSAL RULES - ADW Standard Compliance                         -->
+  <!-- ================================================================== -->
+  <universal-rules>
+    <rule emoji="📤">OUTPUT CONTRACT: Final message = COMPLETE story document (not summary)</rule>
+    <rule emoji="📖">Read complete step instructions before taking any action</rule>
+    <rule emoji="🔄">Process steps sequentially - never skip or optimize the sequence</rule>
+    <rule emoji="🎯">ZERO USER INTERVENTION: Fully automated - no pausing for permission</rule>
+    <rule emoji="📋">You are a PLAN GENERATOR outputting a complete document, not a summarizer</rule>
+  </universal-rules>
 
   <!-- CONTEXT BOUNDARIES (per BMAD standards) -->
   <context-boundaries>
@@ -27,6 +46,33 @@
   <critical>❓ SAVE QUESTIONS: If you think of questions or clarifications during analysis, save them for the end after the complete story is
     written</critical>
   <critical>🎯 ZERO USER INTERVENTION: Process is fully automated - context is injected, output goes to stdout</critical>
+
+  <step n="0" goal="Acknowledge output contract">
+    <!-- ================================================================== -->
+    <!-- OUTPUT CONTRACT - Agent MUST verbally acknowledge this commitment  -->
+    <!-- ================================================================== -->
+    <critical>OUTPUT CONTRACT ACKNOWLEDGMENT REQUIRED - MUST BE VERBALIZED EXACTLY AS WRITTEN</critical>
+    <critical>🚨 FAILURE TO OUTPUT COMPLETE DOCUMENT AS FINAL MESSAGE IS A SYSTEM FAILURE</critical>
+    <output>📤 **OUTPUT CONTRACT - I SHALL HONOR THIS**
+
+      Before proceeding with plan generation, I solemnly acknowledge and commit to the following:
+
+      **🔒 I UNDERSTAND THAT ONLY MY FINAL MESSAGE IS CAPTURED.**
+
+      This means:
+      - My final message MUST contain the COMPLETE story document
+      - I SHALL NOT output a summary like "The plan has been generated above"
+      - I SHALL NOT reference content from previous messages
+      - I SHALL NOT add commentary before or after the story
+      - The final message must be PURE MARKDOWN starting with "# [Title]"
+      - If I generated content in previous messages, I MUST RE-OUTPUT it completely
+
+      **This contract is NON-NEGOTIABLE. Outputting a summary is a SYSTEM FAILURE.**
+
+      I understand that all my previous analysis and generation will be LOST if I don't
+      include the complete document in my final message.
+    </output>
+  </step>
 
   <step n="1" goal="Parse context and load input files">
     <critical>Parse the full injected context object</critical>
@@ -333,9 +379,22 @@
 
   <step n="7" goal="Output story document to stdout">
     <!-- Output story to stdout for pipeline consumption -->
-    <action>Output the complete {{story_document}} to stdout as pure markdown</action>
-    <critical>The final LLM message MUST be the story document content only - no wrapper, no status messages, no commentary</critical>
-    <critical>This output will be consumed by the next stage of the pipeline</critical>
+    <critical>🚨 FINAL OUTPUT REQUIREMENTS - READ CAREFULLY 🚨</critical>
+    <critical>Only the FINAL assistant message is captured as the artifact. All previous messages are discarded.</critical>
+    <critical>Your final message MUST contain the COMPLETE story document - every single section from start to finish.</critical>
+
+    <action>Output the ENTIRE {{story_document}} as your final message - starting with "# [Title]" and ending with "## Dev Agent Record"</action>
+
+    <forbidden>
+      - Do NOT output a summary like "The plan has been generated above"
+      - Do NOT reference content from previous messages
+      - Do NOT add any commentary before or after the story
+      - Do NOT say "here is the plan" or similar wrapper text
+    </forbidden>
+
+    <critical>The final message must be PURE MARKDOWN containing the COMPLETE story document.</critical>
+    <critical>If you have been generating content in previous messages, you must RE-OUTPUT the complete document now.</critical>
+    <critical>This output will be consumed by the next stage of the pipeline - only this final message is saved.</critical>
   </step>
 
   <!-- SUCCESS/FAILURE METRICS (per BMAD standards) -->
@@ -361,6 +420,8 @@
       <item>Tasks formatted as tables instead of ### Task N with checkboxes</item>
       <item>Missing "## Story" section with As a/I want/so that</item>
       <item>Output includes wrapper text, status messages, or commentary instead of pure story</item>
+      <item>Final message is a SUMMARY instead of the COMPLETE story document</item>
+      <item>Final message references "generated above" instead of containing the full content</item>
     </failure>
   </metrics>
 

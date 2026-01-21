@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 31
+issue_counter: 38
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -57,7 +57,7 @@ issues:
   ISS-011-adw-run-should-auto-create-pr: fixed
   ISS-012-hardcoded-artifact-capture-per-phase: canceled  # Moved to Epic 13
   ISS-013-phaserunner-template-aliases-inconsistent: fixed  # Moved to Epic 13
-  ISS-014-resume-logic-scattered-across-codebase: done  # Moved to Epic 13
+  ISS-014-resume-logic-scattered-across-codebase: fixed  # Moved to Epic 13
   ISS-015-no-mechanism-to-inject-phase-specific-input-context: fixed
   ISS-016-per-phase-config-yaml-not-implemented: fixed
   ISS-017-template-logic-scattered-between-modules: fixed  # Moved to Epic 13
@@ -70,11 +70,18 @@ issues:
   ISS-024-tests-not-cleaning-up-worktrees: fixed  # Major - Worktrees with ULIDs left after test runs
   ISS-025-sdk-fails-to-create-story-branch: fixed  # Critical - SDK not creating story branches, commits go to staging
   ISS-026-remove-deprecated-adw-yaml-config: fixed  # Major - Remove .adw/adw.yaml, add git config for base branch
-  ISS-027-init-wizard-phase-config-ux-issues: reported  # Major - Multiple UX issues in wizard phase configuration
+  ISS-027-init-wizard-phase-config-ux-issues: fixed  # Major - Multiple UX issues in wizard phase configuration
   ISS-028-sdk-no-env-file-for-linear-credentials: fixed  # Major - SDK doesn't auto-load .adw/.env for credentials
   ISS-029-phase-config-not-honored: fixed  # Critical - Phase timeout/enabled from command configs not applied
-  ISS-030-project-config-ignored-without-prompt: reported  # Critical - Project config.yaml ignored if no prompt.md
+  ISS-030-project-config-ignored-without-prompt: fixed  # Critical - Project config.yaml ignored if no prompt.md
   ISS-031-pr-creation-after-document-phase: fixed  # Major - Auto-PR runs after all phases, ship expects PR to exist
+  ISS-032-init-wizard-generate-complete-config-files: reported  # Major - Wizard should output all settings with commented defaults
+  ISS-033-task-manager-wiring-broken: reported  # Critical - StatusSyncService not instantiated, LabelManager uses identifier instead of UUID
+  ISS-034-logging-context-and-redundancy: reported  # Major - [phase] placeholder in logs, spinner/error overlap, redundant phase completed msg
+  ISS-035-duplicate-worktree-log-messages: in-progress  # Minor - Two "worktree created" messages logged
+  ISS-036-progress-bar-shows-disabled-phases: reported  # Major - Disabled phases (ship) shown in progress bar, affects percentage
+  ISS-037-pr-title-missing-description: reported  # Major - PR title just shows task ID when feature_description equals task_id
+  ISS-038-conditional-docs-too-generic: in-progress  # Minor - Document phase generates overly broad conditions not specific to feature (story created)
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -325,6 +332,8 @@ development_status:
   14-10-summary-file-generation: done
   # UX Fix (from ISS-027) - MAJOR
   ux-fix-ISS-027-init-wizard-phase-config-ux-issues: done
+  # UX Fix (from ISS-032) - MAJOR
+  ux-fix-ISS-032-init-wizard-generate-complete-config-files: ready-for-dev
   epic-14-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -382,3 +391,32 @@ development_status:
   bugfix-ISS-030-project-config-ignored-without-prompt: done
   # UX Fix (from ISS-031) - MAJOR
   ux-fix-ISS-031-pr-creation-after-document-phase: done
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # QA Issues from Run Analysis (2026-01-21)
+  # Source: project-rulebook-be run 01KFEG36NZMB5E39YCM0A36CBX
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Bugfix (from ISS-033) - CRITICAL
+  # StatusSyncService not instantiated in bootstrap.py, no comments posted to Linear
+  # LabelManager receives identifier (RULE-151) instead of internal UUID (task_info.id)
+  bugfix-ISS-033-task-manager-wiring-broken: ready-for-dev
+  # UX Fix (from ISS-034) - MAJOR
+  # [phase] shows as placeholder instead of actual phase name in logs
+  # Spinner output overlaps with error/warning messages (on_llm_complete not called)
+  # Redundant "Phase completed" log duplicates rich progress display output
+  ux-fix-ISS-034-logging-context-and-redundancy: ready-for-dev
+  # UX Fix (from ISS-036) - MAJOR
+  # Progress bar shows all 5 phases including disabled ones (ship)
+  # Percentage calculation includes disabled phases
+  ux-fix-ISS-036-progress-bar-shows-disabled-phases: ready-for-dev
+  # UX Fix (from ISS-035) - MINOR
+  # Two "worktree created" messages logged, redundant output
+  ux-fix-ISS-035-duplicate-worktree-log-messages: ready-for-dev
+  # UX Fix (from ISS-037) - MAJOR
+  # PR title just shows "RULE-151" when feature_description equals task_id
+  # Should fall back to task_info.title from Linear
+  ux-fix-ISS-037-pr-title-missing-description: ready-for-dev
+  # UX Fix (from ISS-038) - MINOR
+  # Document phase generates overly generic conditions for CONDITIONAL_DOCS.md
+  # Should include feature name in conditions to prevent doc pollution
+  ux-fix-ISS-038-conditional-docs-too-generic: ready-for-dev
