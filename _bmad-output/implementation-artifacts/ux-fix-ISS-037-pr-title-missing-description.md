@@ -48,9 +48,9 @@ so that **my pull requests are descriptive and useful without manual editing**.
 **File:** `src/adw/cli/pr.py`
 **Lines:** 735-738
 
-- [ ] Ensure `pr()` CLI command uses same title generation logic
-- [ ] The CLI command currently doesn't check for task_id at all - it just uses feature_description
-- [ ] Consider extracting title generation to a helper function for DRY
+- [x] Ensure `pr()` CLI command uses same title generation logic
+- [x] The CLI command currently doesn't check for task_id at all - it just uses feature_description
+- [x] Consider extracting title generation to a helper function for DRY
 
 ### Task 3: Add Unit Tests
 **File:** `tests/unit/cli/test_pr.py`

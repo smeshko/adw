@@ -408,23 +408,8 @@ def auto_create_pr(
             suggestion=e.suggestion or "Ensure document phase completed",
         )
 
-    # Generate PR title from feature description (Story 12.6: PR-Task Linking)
-    # ISS-037: If feature_description equals task_id, use task_info.title instead
-    pr_title = context.feature_description
-
-    if context.task_id and context.feature_description == context.task_id:
-        # Feature description is just the task ID - use task title from Linear if available
-        if context.task_info and context.task_info.title:
-            pr_title = f"{context.task_id}: {context.task_info.title}"
-        else:
-            # Fallback to just the task ID (no redundant duplication)
-            pr_title = context.task_id
-    elif context.task_id:
-        # Normal case: prefix with task ID
-        pr_title = f"{context.task_id}: {context.feature_description}"
-
-    if len(pr_title) > 72:
-        pr_title = pr_title[:69] + "..."
+    # Generate PR title (Story 12.6: PR-Task Linking, ISS-037: task_info.title fallback)
+    pr_title = _generate_pr_title(context)
 
     # Convert to markdown
     pr_body = pr_desc.to_markdown()
@@ -625,6 +610,47 @@ def _get_base_branch(run_dir: Path) -> str:
     return "staging"
 
 
+def _generate_pr_title(context: RunContext) -> str:
+    """Generate PR title from context, using task_info.title when appropriate.
+
+    ISS-037: When feature_description equals task_id (user ran with just a task ID),
+    use task_info.title from Linear to create a meaningful PR title.
+
+    Title generation logic:
+    1. If feature_description == task_id and task_info.title exists:
+       → "{task_id}: {task_info.title}"
+    2. If feature_description == task_id but no task_info:
+       → "{task_id}" (no redundant duplication)
+    3. If feature_description != task_id and task_id exists:
+       → "{task_id}: {feature_description}"
+    4. If no task_id:
+       → "{feature_description}"
+
+    Args:
+        context: RunContext with feature_description, task_id, and task_info.
+
+    Returns:
+        PR title string, truncated to 72 chars if necessary.
+    """
+    pr_title = context.feature_description
+
+    if context.task_id and context.feature_description == context.task_id:
+        # Feature description is just the task ID - use task title from Linear if available
+        if context.task_info and context.task_info.title:
+            pr_title = f"{context.task_id}: {context.task_info.title}"
+        else:
+            # Fallback to just the task ID (no redundant duplication)
+            pr_title = context.task_id
+    elif context.task_id:
+        # Normal case: prefix with task ID
+        pr_title = f"{context.task_id}: {context.feature_description}"
+
+    if len(pr_title) > 72:
+        pr_title = pr_title[:69] + "..."
+
+    return pr_title
+
+
 def _store_pr_url(context: RunContext, pr_url: str, runs_dir: Path) -> RunContext:
     """Store PR URL in run context.
 
@@ -740,10 +766,8 @@ def pr(
     # ISS-026: Base branch from config (defaults to staging)
     base_branch = _get_base_branch(run_dir)
 
-    # Generate PR title from feature description
-    pr_title = context.feature_description
-    if len(pr_title) > 72:
-        pr_title = pr_title[:69] + "..."
+    # Generate PR title (ISS-037: use helper for consistent title generation)
+    pr_title = _generate_pr_title(context)
 
     # Convert to markdown
     pr_body = pr_desc.to_markdown()
