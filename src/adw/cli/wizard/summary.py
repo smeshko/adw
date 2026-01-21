@@ -290,21 +290,22 @@ def generate_summary_panel(state: WizardState) -> Panel:
 def _get_files_to_create(state: WizardState) -> list[str]:
     """Get list of files that will be created.
 
+    Now generates config files for ALL phases (not just customized ones)
+    per ISS-032 requirements for full configuration visibility.
+
     Args:
         state: Current wizard state.
 
     Returns:
         List of relative file paths (within .adw/).
     """
+    from adw.core.constants import PHASE_SEQUENCE
+
     files = ["project.yaml", ".gitignore", ".env.template"]
 
-    # Add phase config files for customized phases
-    # Phases step returns: customized (bool), phases (dict of phase name -> config)
-    phases = state.get_step_config("phases")
-    phases_dict = phases.get("phases", {})
-    if phases.get("customized", False):
-        for phase in phases_dict:
-            files.append(f"commands/{phase}/config.yaml")
+    # Add phase config files for ALL phases (ISS-032 change)
+    for phase in PHASE_SEQUENCE:
+        files.append(f"commands/{phase}/config.yaml")
 
     return files
 
@@ -375,171 +376,28 @@ def _generate_all_files(state: WizardState) -> dict[str, str]:
 def generate_project_yaml(state: WizardState) -> str:
     """Generate project.yaml content from wizard state.
 
+    Uses the new YAMLWithComments generator for comprehensive config
+    with commented defaults (ISS-032).
+
     Args:
         state: Current wizard state.
 
     Returns:
-        YAML content string.
+        YAML content string with all settings visible.
     """
-    from datetime import date
+    from adw.config.registry import ConfigRegistry
+    from adw.config.yaml_generator import YAMLWithComments
 
-    import yaml
-
-    basics = state.get_step_config("basics")
-    git = state.get_step_config("git")
-    ports = state.get_step_config("ports")
-    task_manager = state.get_step_config("task_manager")
-    ship = state.get_step_config("ship")
-    llm_retry = state.get_step_config("llm_retry")
-    security = state.get_step_config("security")
-    webhooks = state.get_step_config("webhooks")
-
-    # Build config dict
-    config: dict[str, Any] = {}
-
-    # Header comment will be added separately
-    config["name"] = basics.get("project_name", basics.get("language", "my-project"))
-    config["language"] = basics.get("language", "unknown")
-    config["platform"] = basics.get("platform", "cli")
-
-    # Commands section
-    commands: dict[str, str] = {}
-    if basics.get("test_command"):
-        commands["test"] = basics["test_command"]
-    if basics.get("build_command"):
-        commands["build"] = basics["build_command"]
-    if commands:
-        config["commands"] = commands
-
-    # Git section
-    # Git step returns: git_enabled, git_branch_prefix, git_auto_create_pr
-    if git.get("git_enabled", False):
-        config["git"] = {
-            "enabled": True,
-            "branch_prefix": git.get("git_branch_prefix", "feature/"),
-            "auto_create_pr": git.get("git_auto_create_pr", True),
-        }
-
-    # Ports section (only if non-default)
-    # Ports step returns: port_config_custom, backend_port_start, frontend_port_start
-    backend = ports.get("backend_port_start", 9100)
-    frontend = ports.get("frontend_port_start", 9200)
-    if backend != 9100 or frontend != 9200:
-        config["ports"] = {
-            "backend_start": backend,
-            "frontend_start": frontend,
-        }
-
-    # Task manager section
-    # Task manager step returns: enabled, type, team_key, etc.
-    tm_enabled = task_manager.get("enabled", False)
-    tm_type = task_manager.get("type", "none")
-    if tm_enabled and tm_type != "none":
-        tm_config: dict[str, Any] = {
-            "type": task_manager["type"],
-        }
-        if task_manager.get("team_key"):
-            tm_config["team_key"] = task_manager["team_key"]
-        if task_manager.get("sync_comments"):
-            tm_config["sync_comments"] = True
-        config["task_manager"] = tm_config
-
-    # Ship section (only if customized)
-    # Ship step returns: enabled, commands (dict), post_publish (list), pr (dict)
-    ship_commands = ship.get("commands", {})
-    ship_post_publish = ship.get("post_publish", [])
-    ship_pr = ship.get("pr", {})
-    has_ship_config = (
-        ship_commands or ship_post_publish or ship_pr.get("merge_on_success")
-    )
-    if has_ship_config:
-        ship_config: dict[str, Any] = {"enabled": True}
-        # Add commands section if any commands are configured
-        if ship_commands:
-            commands_cfg: dict[str, str | None] = {}
-            if ship_commands.get("version_bump"):
-                commands_cfg["version_bump"] = ship_commands["version_bump"]
-            if ship_commands.get("build"):
-                commands_cfg["build"] = ship_commands["build"]
-            if ship_commands.get("publish"):
-                commands_cfg["publish"] = ship_commands["publish"]
-            if commands_cfg:
-                ship_config["commands"] = commands_cfg
-        # Add post_publish hooks if any
-        if ship_post_publish:
-            ship_config["post_publish"] = ship_post_publish
-        # Add PR config if merge_on_success is enabled
-        if ship_pr.get("merge_on_success"):
-            pr_cfg: dict[str, Any] = {
-                "merge_on_success": True,
-                "merge_method": ship_pr.get("merge_method", "squash"),
-            }
-            if not ship_pr.get("delete_branch_on_merge", True):
-                pr_cfg["delete_branch_on_merge"] = False
-            ship_config["pr"] = pr_cfg
-        config["ship"] = ship_config
-
-    # LLM retry section (only if customized)
-    # Retry step returns: retry_custom, retry_max_retries, retry_base_delay, etc.
-    if llm_retry.get("retry_custom", False):
-        config["llm"] = {
-            "retry": {
-                "max_retries": llm_retry.get("retry_max_retries", 3),
-                "base_delay": llm_retry.get("retry_base_delay", 1.0),
-                "max_delay": llm_retry.get("retry_max_delay", 60.0),
-                "multiplier": llm_retry.get("retry_multiplier", 2.0),
-            }
-        }
-
-    # Security section (only if modified from defaults)
-    # Security step returns: security_custom, security_allow_dangerous,
-    # security_blocked_commands, security_blocked_env_files
-    allow_dangerous = security.get("security_allow_dangerous", False)
-    blocked_cmds = security.get("security_blocked_commands")
-    blocked_env = security.get("security_blocked_env_files")
-    has_security_changes = allow_dangerous or blocked_cmds or blocked_env
-    if has_security_changes:
-        security_config: dict[str, Any] = {}
-        if allow_dangerous:
-            security_config["allow_dangerous"] = True
-        if blocked_cmds:
-            security_config["blocked_patterns"] = blocked_cmds
-        if blocked_env:
-            security_config["blocked_env_files"] = blocked_env
-        if security_config:
-            config["security"] = security_config
-
-    # Webhooks section
-    if webhooks.get("enabled", False):
-        webhook_config: dict[str, Any] = {
-            "port": webhooks.get("port", 8000),
-            "host": webhooks.get("host", "0.0.0.0"),
-        }
-        providers = webhooks.get("providers", {})
-        if providers:
-            webhook_config["providers"] = {}
-            for name, pcfg in providers.items():
-                if pcfg.get("enabled", False):
-                    webhook_config["providers"][name] = {
-                        "enabled": True,
-                        "secret_env": pcfg.get("secret_env"),
-                        "command_prefix": pcfg.get("command_prefix", "/adw"),
-                        "trigger_label": pcfg.get("trigger_label", "adw"),
-                    }
-        config["webhook"] = webhook_config
-
-    # Generate YAML with header comment
-    header = f"# Generated by ADW Init Wizard\n# Date: {date.today().isoformat()}\n\n"
-    yaml_content = yaml.dump(config, default_flow_style=False, sort_keys=False)
-    return header + yaml_content
+    registry = ConfigRegistry()
+    generator = YAMLWithComments(registry)
+    return generator.generate_project_yaml(state)
 
 
 def generate_phase_configs(state: WizardState) -> dict[str, str]:
-    """Generate phase-specific config.yaml files.
+    """Generate phase-specific config.yaml files for ALL phases.
 
-    Only generates configs for phases that have custom settings.
-    Preserves all collected configuration fields including phase-specific
-    options like enable_review, enable_tests, max_iterations, etc.
+    Now generates configs for ALL phases (not just customized ones)
+    with commented defaults per ISS-032 requirements.
 
     Args:
         state: Current wizard state.
@@ -547,41 +405,11 @@ def generate_phase_configs(state: WizardState) -> dict[str, str]:
     Returns:
         Dict mapping relative file paths to their content.
     """
-    import yaml
+    from adw.config.registry import ConfigRegistry
+    from adw.config.yaml_generator import generate_all_phase_configs
 
-    files: dict[str, str] = {}
-    phases = state.get_step_config("phases")
-
-    # Phases step returns: customized (bool), phases (dict of phase name -> config)
-    phases_dict = phases.get("phases", {})
-
-    if not phases.get("customized", False):
-        return files
-
-    for phase, phase_config in phases_dict.items():
-        if phase_config:
-            # Build phase config dict - include all non-None values
-            # This preserves all fields including phase-specific options
-            # like enable_review, enable_tests, max_iterations, triage_mode, etc.
-            config: dict[str, Any] = {}
-
-            for key, value in phase_config.items():
-                # Include all values except None
-                # This ensures booleans (False) and zero values are preserved
-                if value is not None:
-                    config[key] = value
-
-            if config:
-                header = (
-                    f"# Phase configuration for {phase}\n"
-                    "# Generated by ADW Init Wizard\n\n"
-                )
-                yaml_content = yaml.dump(
-                    config, default_flow_style=False, sort_keys=False
-                )
-                files[f"commands/{phase}/config.yaml"] = header + yaml_content
-
-    return files
+    registry = ConfigRegistry()
+    return generate_all_phase_configs(state, registry)
 
 
 def generate_gitignore() -> str:

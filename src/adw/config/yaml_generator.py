@@ -227,16 +227,20 @@ class YAMLWithComments:
         frontend_port = ports.get("frontend_port_start", 9200)
         ports_customized = backend_port != 9100 or frontend_port != 9200
 
-        lines.append("# worktree:")
-        lines.append("#   enabled: true  # Use worktree isolation")
-        lines.append('#   base_dir: "trees"  # Directory for worktrees')
-        lines.append("#   max_concurrent: 15  # Maximum concurrent runs")
-
         if ports_customized:
+            # Active worktree section when ports are customized
+            lines.append("worktree:")
+            lines.append("  # enabled: true  # Use worktree isolation")
+            lines.append('  # base_dir: "trees"  # Directory for worktrees')
+            lines.append("  # max_concurrent: 15  # Maximum concurrent runs")
             lines.append("  port_range:")
             lines.append(f"    backend_start: {backend_port}")
             lines.append(f"    frontend_start: {frontend_port}")
         else:
+            lines.append("# worktree:")
+            lines.append("#   enabled: true  # Use worktree isolation")
+            lines.append('#   base_dir: "trees"  # Directory for worktrees')
+            lines.append("#   max_concurrent: 15  # Maximum concurrent runs")
             lines.append("#   port_range:")
             lines.append("#     backend_start: 9100  # Backend port base")
             lines.append("#     frontend_start: 9200  # Frontend port base")
@@ -514,7 +518,7 @@ def generate_all_phase_configs(
     Returns:
         Dict mapping relative file paths to content.
     """
-    from adw.core.phase import PHASE_SEQUENCE
+    from adw.core.constants import PHASE_SEQUENCE
 
     generator = YAMLWithComments(registry)
     files: dict[str, str] = {}

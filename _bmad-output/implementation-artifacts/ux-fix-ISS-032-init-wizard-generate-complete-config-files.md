@@ -76,13 +76,13 @@ so that I can discover and customize options directly from my config files witho
 ### Task 3: Update Summary Step to Use New Generator
 **Files**: `src/adw/cli/wizard/summary.py`
 
-- [ ] 3.1 Import and instantiate ConfigRegistry
-- [ ] 3.2 Replace `_generate_project_yaml()` with new `YAMLWithComments.generate_project_yaml()`
-- [ ] 3.3 Update `_generate_phase_configs()` to always generate for all phases
+- [x] 3.1 Import and instantiate ConfigRegistry
+- [x] 3.2 Replace `_generate_project_yaml()` with new `YAMLWithComments.generate_project_yaml()`
+- [x] 3.3 Update `_generate_phase_configs()` to always generate for all phases
   - Previously: `if phase_config.get("customized"):`
   - After: Always generate, use registry for defaults
 
-- [ ] 3.4 Update `_generate_all_files()` to include all phase configs in files dict
+- [x] 3.4 Update `_generate_all_files()` to include all phase configs in files dict
 
 ### Task 4: Extract Default Values from Models
 **Files**: `src/adw/config/registry.py`
