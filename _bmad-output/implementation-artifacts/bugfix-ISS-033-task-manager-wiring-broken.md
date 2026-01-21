@@ -42,10 +42,10 @@ So that my team can see ADW progress on Linear issues and labels are applied cor
 - [x] Pass status_sync_service to Orchestrator constructor
 
 ### Task 2: Fix LabelManager to receive internal UUID
-- [ ] Locate LabelManager creation at bootstrap.py:278
-- [ ] Change `task_id` parameter to `task_info.id` (requires task_info to be available)
-- [ ] Ensure task_info is fetched before LabelManager creation
-- [ ] Add guard to only create LabelManager when task_info is available
+- [x] Locate LabelManager creation at bootstrap.py:278
+- [x] Change `task_id` parameter to `task_info.id` (requires task_info to be available)
+- [x] Ensure task_info is fetched before LabelManager creation
+- [x] Add guard to only create LabelManager when task_info is available
 
 ### Task 3: Wire task_info through the bootstrap chain
 - [ ] Ensure fetch_task() result (task_info) is available in bootstrap.py
