@@ -145,8 +145,9 @@ class TestBootstrapTaskManagerWiring:
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         # Create orchestrator with task_info
-        with patch("adw.cli.bootstrap.Orchestrator"), patch(
-            "adw.cli.bootstrap.StatusSyncService"
+        with (
+            patch("adw.cli.bootstrap.Orchestrator"),
+            patch("adw.cli.bootstrap.StatusSyncService"),
         ):
             create_orchestrator(
                 task_manager=mock_task_manager,
@@ -186,8 +187,9 @@ class TestBootstrapTaskManagerWiring:
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         # Create orchestrator with task_manager but WITHOUT task_info
-        with patch("adw.cli.bootstrap.Orchestrator"), patch(
-            "adw.cli.bootstrap.StatusSyncService"
+        with (
+            patch("adw.cli.bootstrap.Orchestrator"),
+            patch("adw.cli.bootstrap.StatusSyncService"),
         ):
             create_orchestrator(
                 task_manager=mock_task_manager,
@@ -220,8 +222,9 @@ class TestBootstrapTaskManagerWiring:
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         # Create orchestrator with labels disabled
-        with patch("adw.cli.bootstrap.Orchestrator"), patch(
-            "adw.cli.bootstrap.StatusSyncService"
+        with (
+            patch("adw.cli.bootstrap.Orchestrator"),
+            patch("adw.cli.bootstrap.StatusSyncService"),
         ):
             create_orchestrator(
                 task_manager=mock_task_manager,

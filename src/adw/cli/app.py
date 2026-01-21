@@ -289,7 +289,8 @@ def run(
         )
         raise typer.Exit(code=1) from None
 
-    # Fetch task info to get internal UUID for issue closing and labels (Story 12.8, ISS-033)
+    # Fetch task info to get internal UUID for issue closing and labels
+    # (Story 12.8, ISS-033)
     task_uuid: str | None = None
     task_info: TaskInfo | None = None
     if resolved.type == InputType.TASK_ID and resolved.task_id:
@@ -364,7 +365,7 @@ def run(
     effective_show_llm_output = show_llm_output or verbosity == Verbosity.TRACE
 
     try:
-        # Pass task_manager and task_info for StatusSyncService and LabelManager (ISS-033)
+        # Pass task_manager and task_info for StatusSyncService/LabelManager
         orchestrator = create_orchestrator(
             console,
             allow_dangerous=allow_dangerous,
