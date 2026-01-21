@@ -59,10 +59,10 @@ Feature: Phase context in logs and clean output
 - [x] Ensure spinner cleanup is idempotent (safe to call multiple times)
 
 ### Task 3: Remove or Demote Redundant Log
-- [ ] Locate the "Phase completed" log at `orchestrator.py:1542-1545`
-- [ ] Change from `logger.info()` to `logger.debug()`
-- [ ] OR remove the log entirely since Rich progress display provides the same info
-- [ ] Ensure no other duplicate completion messages exist
+- [x] Locate the "Phase completed" log at `orchestrator.py:1542-1545`
+- [x] Change from `logger.info()` to `logger.debug()`
+- [x] OR remove the log entirely since Rich progress display provides the same info
+- [x] Ensure no other duplicate completion messages exist
 
 ### Task 4: Test Changes
 - [ ] Write test that verifies phase context appears in log entries

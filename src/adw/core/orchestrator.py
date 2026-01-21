@@ -1539,7 +1539,10 @@ class Orchestrator:
             )
 
             transition_time_ms = (time.monotonic() - transition_start) * 1000
-            logger.info(
+            # ISS-034: Demoted to debug - Rich progress display already shows
+            # "✓ PHASE completed" via on_phase_complete(). This log is for
+            # structured file output (logs.jsonl) only.
+            logger.debug(
                 "Phase completed",
                 extra={"phase": phase, "duration_ms": transition_time_ms},
             )
