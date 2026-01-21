@@ -1,7 +1,7 @@
 # Story ISS-037: PR Title Missing Description When Feature Description Equals Task ID
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: N/A - Standalone UX Fix
 Created: 2026-01-21
@@ -17,21 +17,21 @@ so that **my pull requests are descriptive and useful without manual editing**.
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: When `feature_description` equals `task_id` AND `task_info.title` is available, use `task_info.title` for PR title
+- [x] **AC1**: When `feature_description` equals `task_id` AND `task_info.title` is available, use `task_info.title` for PR title
   - Given: `feature_description = "RULE-151"`, `task_id = "RULE-151"`, `task_info.title = "Add remote configuration module"`
   - Then: PR title should be `"RULE-151: Add remote configuration module"`
 
-- [ ] **AC2**: When `feature_description` equals `task_id` AND `task_info` is NOT available, fallback gracefully to just the task ID
+- [x] **AC2**: When `feature_description` equals `task_id` AND `task_info` is NOT available, fallback gracefully to just the task ID
   - Given: `feature_description = "RULE-151"`, `task_id = "RULE-151"`, `task_info = None`
   - Then: PR title should be `"RULE-151"`
 
-- [ ] **AC3**: When `feature_description` does NOT equal `task_id`, maintain existing behavior
+- [x] **AC3**: When `feature_description` does NOT equal `task_id`, maintain existing behavior
   - Given: `feature_description = "Add user auth"`, `task_id = "RULE-151"`
   - Then: PR title should be `"RULE-151: Add user auth"` (unchanged from current behavior)
 
-- [ ] **AC4**: PR title truncation at 72 chars still applies after the fix
+- [x] **AC4**: PR title truncation at 72 chars still applies after the fix
 
-- [ ] **AC5**: Both `auto_create_pr()` and `pr()` command use consistent title generation logic
+- [x] **AC5**: Both `auto_create_pr()` and `pr()` command use consistent title generation logic
 
 ## Tasks / Subtasks
 
@@ -369,8 +369,20 @@ N/A
 - Developer guardrails and patterns extracted from project-context.md
 - Testing patterns documented from existing test_pr.py
 - Previous story intelligence gathered from ISS-031 and Story 12.6
+- ✅ Task 1: Implemented PR title fix in `auto_create_pr()` - uses `task_info.title` when `feature_description == task_id`
+- ✅ Task 2: Extracted `_generate_pr_title()` helper for DRY code - both `auto_create_pr()` and `pr()` use the same logic
+- ✅ Task 3: Added 6 unit tests in `TestGeneratePrTitle` class covering all edge cases
+- ✅ Task 4: Added info logging when using task_info.title as fallback
+- All 51 tests pass (45 existing + 6 new)
+- Commit contract honored: 4 tasks, 4 commits
 
 ### File List
 
-- `src/adw/cli/pr.py` - Primary file to modify
-- `tests/unit/cli/test_pr.py` - Test file to extend
+- `src/adw/cli/pr.py` - Added `_generate_pr_title()` helper, updated `auto_create_pr()` and `pr()` to use it
+- `tests/unit/cli/test_pr.py` - Added `TestGeneratePrTitle` class with 6 tests
+- `_bmad-output/implementation-artifacts/ux-fix-ISS-037-pr-title-missing-description.md` - This story file
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` - Updated status to in-progress
+
+### Change Log
+
+- 2026-01-21: Story completed - all 4 tasks implemented and tested

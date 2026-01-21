@@ -415,7 +415,7 @@ development_status:
   # UX Fix (from ISS-037) - MAJOR
   # PR title just shows "RULE-151" when feature_description equals task_id
   # Should fall back to task_info.title from Linear
-  ux-fix-ISS-037-pr-title-missing-description: in-progress
+  ux-fix-ISS-037-pr-title-missing-description: review
   # UX Fix (from ISS-038) - MINOR
   # Document phase generates overly generic conditions for CONDITIONAL_DOCS.md
   # Should include feature name in conditions to prevent doc pollution
