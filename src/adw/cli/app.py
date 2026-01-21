@@ -24,6 +24,7 @@ from adw.config.loader import ConfigLoader
 from adw.exceptions import ADWError, ConfigError
 from adw.models.config import ProjectConfig
 from adw.models.logging import Verbosity
+from adw.models.task import TaskInfo
 from adw.task_managers import InputResolver, InputType, TaskManagerFactory
 
 console = Console()
@@ -288,8 +289,9 @@ def run(
         )
         raise typer.Exit(code=1) from None
 
-    # Fetch task info to get internal UUID for issue closing (Story 12.8)
+    # Fetch task info to get internal UUID for issue closing and labels (Story 12.8, ISS-033)
     task_uuid: str | None = None
+    task_info: TaskInfo | None = None
     if resolved.type == InputType.TASK_ID and resolved.task_id:
         console.print(f"[dim]Resolved as task ID:[/] {resolved.task_id}")
         try:
@@ -297,8 +299,8 @@ def run(
             task_uuid = task_info.id  # Internal UUID for issue closing
             console.print(f"[dim]Task:[/] {task_info.title}")
         except Exception:
-            # Non-blocking - continue without task UUID
-            pass
+            # Non-blocking - continue without task_info/task_uuid
+            task_info = None
         if not task_id:  # Auto-detected, not forced
             console.print(
                 "[dim]Tip:[/] Use --no-task-manager if you meant this "
@@ -362,11 +364,15 @@ def run(
     effective_show_llm_output = show_llm_output or verbosity == Verbosity.TRACE
 
     try:
+        # Pass task_manager and task_info for StatusSyncService and LabelManager (ISS-033)
         orchestrator = create_orchestrator(
             console,
             allow_dangerous=allow_dangerous,
             run_id=run_id,
             show_llm_output=effective_show_llm_output,
+            task_manager=task_manager,
+            task_id=resolved.task_id,
+            task_info=task_info,
         )
 
         if phase:
