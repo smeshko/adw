@@ -3,9 +3,67 @@
 This module defines models for LLM execution results and tool calls.
 """
 
+from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field
+
+
+class StreamEventType(str, Enum):
+    """Type of event in the Claude Code stream-json output."""
+
+    TEXT = "text"
+    """Streaming text content from the LLM."""
+
+    TOOL_START = "tool_start"
+    """Tool call initiated (content_block_start with tool_use)."""
+
+    TOOL_RESULT = "tool_result"
+    """Tool call result received."""
+
+
+@dataclass
+class StreamEvent:
+    """Structured event parsed from Claude Code stream-json output.
+
+    Represents different event types that occur during LLM streaming:
+    - TEXT: Streaming text tokens from the LLM
+    - TOOL_START: A tool call has been initiated
+    - TOOL_RESULT: A tool call has completed with results
+
+    Used by ClaudeCodeExecutor to handle real-time streaming of tool calls
+    and text content to live.log.
+
+    Example:
+        >>> event = StreamEvent(
+        ...     event_type=StreamEventType.TOOL_START,
+        ...     tool_name="Read",
+        ...     tool_id="toolu_01abc",
+        ...     tool_input={"file_path": "/src/main.py"},
+        ... )
+    """
+
+    event_type: StreamEventType
+    """The type of stream event."""
+
+    content: str = ""
+    """Text content (for TEXT events)."""
+
+    tool_name: str = ""
+    """Name of the tool (for TOOL_START and TOOL_RESULT events)."""
+
+    tool_id: str = ""
+    """Tool use ID for correlation (for TOOL_START and TOOL_RESULT events)."""
+
+    tool_input: dict[str, Any] = field(default_factory=dict)
+    """Tool input arguments (for TOOL_START events)."""
+
+    tool_output: str = ""
+    """Tool output content (for TOOL_RESULT events)."""
+
+    is_error: bool = False
+    """Whether the tool result is an error (for TOOL_RESULT events)."""
 
 
 class ToolCall(BaseModel):

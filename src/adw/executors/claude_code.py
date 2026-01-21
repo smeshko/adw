@@ -22,7 +22,7 @@ from rich.console import Console
 
 from adw.exceptions import LLMError, LLMTimeoutError
 from adw.models.config import LLMConfig
-from adw.models.llm import LLMResult, ToolCall
+from adw.models.llm import LLMResult, StreamEvent, StreamEventType, ToolCall
 
 if TYPE_CHECKING:
     from adw.logging.live_stream import LiveStreamTransport
@@ -313,14 +313,23 @@ class ClaudeCodeExecutor:
         by NFR3 (artifact writes don't block stream). LLM tokens are
         written to live.log when a live_stream transport is configured.
 
+        Tool calls and results are streamed in real-time via _extract_stream_event()
+        rather than being batched at the end.
+
         Args:
             process: The subprocess to read from.
 
         Returns:
-            Dictionary with stdout_lines, stderr, and returncode.
+            Dictionary with stdout_lines, stderr, returncode, and
+            streamed_tool_ids (set of tool IDs already written to live.log).
         """
         content_lines: list[str] = []
         stderr_lines: list[str] = []
+
+        # Track pending tool calls by ID for correlating with results
+        pending_tools: dict[str, dict[str, Any]] = {}
+        # Track which tool IDs have been streamed to live.log
+        streamed_tool_ids: set[str] = set()
 
         # These are guaranteed to be set since we passed stdout=PIPE and stderr=PIPE
         assert process.stdout is not None
@@ -332,8 +341,8 @@ class ClaudeCodeExecutor:
             """Read stdout line-by-line and write to live.log.
 
             With --output-format stream-json, each line is JSON.
-            We parse it to extract text content and write to live.log
-            for real-time tailing via `adw logs follow`.
+            We parse it to extract text content, tool calls, and tool results
+            and write them to live.log for real-time tailing via `adw logs follow`.
 
             Note: Console output is NOT displayed - use `adw logs follow`
             in another terminal to see real-time LLM output.
@@ -345,11 +354,32 @@ class ClaudeCodeExecutor:
                 decoded = line.decode()
                 content_lines.append(decoded)
 
-                # Write tokens to live.log for real-time tailing
+                # Write events to live.log for real-time tailing
                 if self.live_stream:
-                    display_text = self._extract_display_text(decoded)
-                    if display_text:
-                        self.live_stream.write_llm_token(display_text)
+                    event = self._extract_stream_event(decoded)
+                    if event:
+                        if event.event_type == StreamEventType.TEXT:
+                            self.live_stream.write_llm_token(event.content)
+
+                        elif event.event_type == StreamEventType.TOOL_START:
+                            # Store pending tool info for later result correlation
+                            pending_tools[event.tool_id] = {
+                                "name": event.tool_name,
+                                "input": event.tool_input,
+                            }
+                            # Write tool call header immediately
+                            context = self._extract_tool_context(
+                                event.tool_name, event.tool_input
+                            )
+                            self.live_stream.write_tool_call(event.tool_name, context)
+                            streamed_tool_ids.add(event.tool_id)
+
+                        elif event.event_type == StreamEventType.TOOL_RESULT:
+                            # Write tool result with boxed output
+                            self.live_stream.write_tool_result(
+                                event.tool_output,
+                                is_error=event.is_error,
+                            )
 
         async def read_stderr() -> None:
             """Read stderr line-by-line."""
@@ -382,6 +412,7 @@ class ClaudeCodeExecutor:
             "stdout": "".join(content_lines),
             "stderr": "".join(stderr_lines),
             "returncode": process.returncode,
+            "streamed_tool_ids": streamed_tool_ids,
         }
 
     def _build_result(
@@ -416,11 +447,9 @@ class ClaudeCodeExecutor:
             },
         )
 
-        # Log tool calls to live stream
-        if self.live_stream and parsed["tool_calls"]:
-            for tc in parsed["tool_calls"]:
-                context = self._extract_tool_context(tc.tool_name, tc.arguments)
-                self.live_stream.write_tool_call(tc.tool_name, context)
+        # Note: Tool calls are now logged in real-time during streaming via
+        # _extract_stream_event() in _read_process_output(). We no longer
+        # log them here to avoid duplicate entries (AC3).
 
         # Build result
         if returncode == 0:
@@ -603,10 +632,10 @@ class ClaudeCodeExecutor:
             return pattern[:max_len] if pattern else None
 
         if tool_name == "Task":
-            subagent = arguments.get("subagent_type", "")
+            subagent = str(arguments.get("subagent_type", ""))
             if subagent:
                 return subagent[:max_len]
-            desc = arguments.get("description", "")
+            desc = str(arguments.get("description", ""))
             return desc[:max_len] if desc else None
 
         return None
@@ -652,6 +681,71 @@ class ClaudeCodeExecutor:
             ),
             recoverable=False,
         )
+
+    def _extract_stream_event(self, line: str) -> StreamEvent | None:
+        """Extract a structured stream event from a stream-json line.
+
+        Claude Code --output-format stream-json produces JSONL with various
+        message types. This method parses lines and returns structured events
+        for real-time handling of text, tool starts, and tool results.
+
+        Args:
+            line: A single line of stream-json output.
+
+        Returns:
+            StreamEvent if the line contains a relevant event, None otherwise.
+        """
+        try:
+            data = json.loads(line.strip())
+        except json.JSONDecodeError:
+            return None
+
+        if not isinstance(data, dict):
+            return None
+
+        msg_type = data.get("type", "")
+
+        # Extract text from content block deltas (streaming text)
+        if msg_type == "content_block_delta":
+            delta = data.get("delta", {})
+            if delta.get("type") == "text_delta":
+                text = delta.get("text", "")
+                if text:
+                    return StreamEvent(
+                        event_type=StreamEventType.TEXT,
+                        content=str(text),
+                    )
+
+        # Handle tool_use start from content_block_start
+        if msg_type == "content_block_start":
+            content_block = data.get("content_block", {})
+            if content_block.get("type") == "tool_use":
+                return StreamEvent(
+                    event_type=StreamEventType.TOOL_START,
+                    tool_name=content_block.get("name", "unknown"),
+                    tool_id=content_block.get("id", ""),
+                    tool_input=content_block.get("input", {}),
+                )
+
+        # Handle tool_result messages
+        if msg_type == "tool_result":
+            # Extract text content from the result
+            content_list = data.get("content", [])
+            output_parts: list[str] = []
+            for item in content_list:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    output_parts.append(item.get("text", ""))
+                elif isinstance(item, str):
+                    output_parts.append(item)
+
+            return StreamEvent(
+                event_type=StreamEventType.TOOL_RESULT,
+                tool_id=data.get("tool_use_id", ""),
+                tool_output="\n".join(output_parts),
+                is_error=data.get("is_error", False),
+            )
+
+        return None
 
     def _extract_display_text(self, line: str) -> str | None:
         """Extract displayable text from a stream-json line.
