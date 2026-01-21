@@ -39,10 +39,10 @@ so that **my pull requests are descriptive and useful without manual editing**.
 **File:** `src/adw/cli/pr.py`
 **Lines:** 411-419
 
-- [ ] Add check: `if context.task_id and context.feature_description == context.task_id`
-- [ ] If true and `context.task_info and context.task_info.title`: use `f"{context.task_id}: {context.task_info.title}"`
-- [ ] If true but no `task_info.title`: use just `context.task_id`
-- [ ] Maintain truncation logic (max 72 chars)
+- [x] Add check: `if context.task_id and context.feature_description == context.task_id`
+- [x] If true and `context.task_info and context.task_info.title`: use `f"{context.task_id}: {context.task_info.title}"`
+- [x] If true but no `task_info.title`: use just `context.task_id`
+- [x] Maintain truncation logic (max 72 chars)
 
 ### Task 2: Apply Same Fix to pr() CLI Command
 **File:** `src/adw/cli/pr.py`

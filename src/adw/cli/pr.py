@@ -409,10 +409,18 @@ def auto_create_pr(
         )
 
     # Generate PR title from feature description (Story 12.6: PR-Task Linking)
-    # If task_id is present, prefix with task ID
+    # ISS-037: If feature_description equals task_id, use task_info.title instead
     pr_title = context.feature_description
-    if context.task_id:
-        # Format: "TASK-123: description"
+
+    if context.task_id and context.feature_description == context.task_id:
+        # Feature description is just the task ID - use task title from Linear if available
+        if context.task_info and context.task_info.title:
+            pr_title = f"{context.task_id}: {context.task_info.title}"
+        else:
+            # Fallback to just the task ID (no redundant duplication)
+            pr_title = context.task_id
+    elif context.task_id:
+        # Normal case: prefix with task ID
         pr_title = f"{context.task_id}: {context.feature_description}"
 
     if len(pr_title) > 72:
