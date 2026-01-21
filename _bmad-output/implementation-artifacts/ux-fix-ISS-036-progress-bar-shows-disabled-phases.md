@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-036 - Progress Bar Shows Disabled Phases
 
-Status: dev-done
+Status: done
 Linear Issue: not-configured
 Epic: 5 - Pipeline Orchestration (Story 5-5-display-phase-progress)
 Created: 2026-01-21
