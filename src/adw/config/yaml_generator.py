@@ -10,6 +10,8 @@ from __future__ import annotations
 from datetime import date
 from typing import TYPE_CHECKING, Any
 
+from pydantic_core import PydanticUndefined
+
 if TYPE_CHECKING:
     from adw.config.registry import ConfigRegistry, SettingDefinition
     from adw.models.wizard import WizardState
@@ -24,7 +26,7 @@ def _format_yaml_value(value: Any) -> str:
     Returns:
         YAML-formatted string representation.
     """
-    if value is None:
+    if value is None or value is PydanticUndefined:
         return "null"
     if isinstance(value, bool):
         return "true" if value else "false"
@@ -51,7 +53,7 @@ def _format_yaml_value(value: Any) -> str:
     return str(value)
 
 
-def _format_setting_as_comment(setting: SettingDefinition) -> str:
+def _format_setting_as_comment(setting: "SettingDefinition") -> str:
     """Format a setting with its default value as a YAML comment.
 
     Args:

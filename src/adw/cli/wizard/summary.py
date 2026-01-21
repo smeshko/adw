@@ -7,6 +7,7 @@ generated.
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -497,8 +498,6 @@ def atomic_write_config(adw_dir: Path, files: dict[str, str]) -> None:
                 newly_created_paths.append(full_path)
 
     except OSError as e:
-        import contextlib
-
         # Rollback: restore backups for overwritten files
         for path, original_content in backups.items():
             with contextlib.suppress(OSError):
