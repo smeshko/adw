@@ -48,9 +48,9 @@ So that my team can see ADW progress on Linear issues and labels are applied cor
 - [x] Add guard to only create LabelManager when task_info is available
 
 ### Task 3: Wire task_info through the bootstrap chain
-- [ ] Ensure fetch_task() result (task_info) is available in bootstrap.py
-- [ ] Pass task_info.id to LabelManager constructor
-- [ ] Verify task_info contains the correct internal UUID from Linear
+- [x] Ensure fetch_task() result (task_info) is available in bootstrap.py
+- [x] Pass task_info.id to LabelManager constructor
+- [x] Verify task_info contains the correct internal UUID from Linear
 
 ### Task 4: Write Tests
 - [ ] Add test: StatusSyncService instantiated when task_manager is configured
