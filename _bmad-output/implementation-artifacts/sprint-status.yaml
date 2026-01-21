@@ -75,7 +75,7 @@ issues:
   ISS-029-phase-config-not-honored: fixed  # Critical - Phase timeout/enabled from command configs not applied
   ISS-030-project-config-ignored-without-prompt: fixed  # Critical - Project config.yaml ignored if no prompt.md
   ISS-031-pr-creation-after-document-phase: fixed  # Major - Auto-PR runs after all phases, ship expects PR to exist
-  ISS-032-init-wizard-generate-complete-config-files: reported  # Major - Wizard should output all settings with commented defaults
+  ISS-032-init-wizard-generate-complete-config-files: fixed  # Major - Wizard should output all settings with commented defaults
   ISS-033-task-manager-wiring-broken: reported  # Critical - StatusSyncService not instantiated, LabelManager uses identifier instead of UUID
   ISS-034-logging-context-and-redundancy: reported  # Major - [phase] placeholder in logs, spinner/error overlap, redundant phase completed msg
   ISS-035-duplicate-worktree-log-messages: in-progress  # Minor - Two "worktree created" messages logged
@@ -333,7 +333,7 @@ development_status:
   # UX Fix (from ISS-027) - MAJOR
   ux-fix-ISS-027-init-wizard-phase-config-ux-issues: done
   # UX Fix (from ISS-032) - MAJOR
-  ux-fix-ISS-032-init-wizard-generate-complete-config-files: in-progress
+  ux-fix-ISS-032-init-wizard-generate-complete-config-files: done
   epic-14-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════

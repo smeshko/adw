@@ -15,30 +15,30 @@ so that I can discover and customize options directly from my config files witho
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: `project.yaml` contains ALL available project-level settings
+- [x] **AC1**: `project.yaml` contains ALL available project-level settings
   - Settings changed by user are written as active YAML
   - Settings NOT changed are written as YAML comments with default values
   - Each commented setting includes a brief description
 
-- [ ] **AC2**: Phase config files (`.adw/commands/{phase}/config.yaml`) generated for ALL phases
+- [x] **AC2**: Phase config files (`.adw/commands/{phase}/config.yaml`) generated for ALL phases
   - Currently only generated for phases with `customized=True`
   - After: Always generate for all phases (plan, build, validate, document, ship)
   - Include all available phase settings (enabled, timeout_seconds, input_files, artifacts)
   - Non-customized settings appear as comments with defaults
 
-- [ ] **AC3**: Settings grouped logically with section headers
+- [x] **AC3**: Settings grouped logically with section headers
   - Core settings first (name, language, platform, commands)
   - Git, Task Manager, Ports in logical order
   - LLM, Security, Webhook, Ship at end
 
-- [ ] **AC4**: Comment format is consistent and parseable
+- [x] **AC4**: Comment format is consistent and parseable
   ```yaml
   # timeout_seconds: 300  # Max execution time in seconds (default)
   retry_attempts: 5  # User configured
   ```
 
-- [ ] **AC5**: All existing tests pass
-- [ ] **AC6**: New tests verify commented defaults appear correctly
+- [x] **AC5**: All existing tests pass
+- [x] **AC6**: New tests verify commented defaults appear correctly
 
 ## Tasks / Subtasks
 
