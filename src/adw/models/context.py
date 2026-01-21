@@ -117,6 +117,24 @@ class RunContext(BaseModel):
         "Set after document phase completes when auto_create_pr is enabled. "
         "(ISS-031)",
     )
+    pr_creation_attempted: bool = Field(
+        default=False,
+        description="Whether PR creation was attempted for this run. "
+        "Set to True before attempting PR creation in document phase. "
+        "(Phase Extensions)",
+    )
+    pr_creation_failed: bool = Field(
+        default=False,
+        description="Whether PR creation failed for this run. "
+        "Used by ShipExtension to skip ship phase when PR is unavailable. "
+        "(Phase Extensions)",
+    )
+    pr_failure_reason: str | None = Field(
+        default=None,
+        description="Reason PR creation failed, if applicable. "
+        "Provides context for why ship phase may be skipped. "
+        "(Phase Extensions)",
+    )
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -231,6 +249,9 @@ class RunContext(BaseModel):
                 "use_worktree": True,
                 "branch_name": "adw/01KDSG2VDHNK0W4HSCZWJZXWSQ",
                 "branch_deleted": False,
+                "pr_creation_attempted": False,
+                "pr_creation_failed": False,
+                "pr_failure_reason": None,
                 "platform": "cli",
             }
         },

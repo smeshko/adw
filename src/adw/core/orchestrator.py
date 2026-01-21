@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Protocol
 from collections.abc import Sequence
 
 from adw.core.constants import PHASE_SEQUENCE
+from adw.core.extensions import ExtensionRegistry
 from adw.core.context_manager import ContextManager
 from adw.core.index_manager import IndexManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
@@ -141,6 +142,7 @@ class Orchestrator:
         status_sync_service: "StatusSyncService | None" = None,
         resume_manager: ResumeManager | None = None,
         run_lifecycle: RunLifecycle | None = None,
+        extension_registry: ExtensionRegistry | None = None,
     ) -> None:
         """Initialize the Orchestrator.
 
@@ -166,6 +168,8 @@ class Orchestrator:
                 When provided, delegates resume validation and phase determination.
             run_lifecycle: Manager for run lifecycle operations (optional).
                 When provided, delegates context creation, completion, and error handling.
+            extension_registry: Registry for phase extensions (optional, Phase Extensions).
+                If None, creates an empty registry (no extensions).
         """
         self.runs_dir = runs_dir
         # Derive project path from runs_dir (runs_dir is typically .adw/runs)
@@ -197,6 +201,9 @@ class Orchestrator:
         # Resume manager for centralized resume operations (Story ISS-014)
         # Lazy initialization: create on first use if not provided
         self._resume_manager = resume_manager
+
+        # Extension registry for phase-specific behavior (Phase Extensions)
+        self._extension_registry = extension_registry or ExtensionRegistry()
 
         # Worktree isolation (Story 10.1)
         self.worktree_config = worktree_config or WorktreeConfig()
@@ -560,10 +567,9 @@ class Orchestrator:
 
         Returns:
             Tuple of (updated context, PR result or None).
+            Note: PR result is now tracked in context via DocumentExtension,
+            so this always returns None for pr_result (Phase Extensions).
         """
-        pr_result = None
-        pr_creation_attempted = False
-
         for phase in phases:
             # Check for shutdown request between phases (NFR7)
             self.interruption_handler.set_context(context)
@@ -577,26 +583,26 @@ class Orchestrator:
                 )
                 continue
 
-            # ISS-031: Skip ship phase if PR creation was attempted but failed
-            if (
-                phase == "ship"
-                and pr_creation_attempted
-                and (pr_result is None or not pr_result.success)
-            ):
-                reason = pr_result.reason if pr_result else "PR creation failed"
-                logger.warning(
-                    "Skipping ship phase - PR not available",
+            # Check if extensions want to skip this phase (Phase Extensions)
+            should_skip, skip_reason = self._extension_registry.should_skip_phase(
+                phase, context
+            )
+            if should_skip:
+                logger.info(
+                    "Phase skipped (extension requested)",
                     extra={
                         "phase": phase,
                         "run_id": context.run_id,
-                        "reason": reason,
+                        "reason": skip_reason,
                     },
                 )
                 if self.progress_display:
                     self.progress_display.console.print(
-                        f"[yellow]⚠[/yellow] Skipping ship phase: {reason}"
+                        f"[yellow]⚠[/yellow] Skipping {phase} phase: {skip_reason}"
                     )
                 continue
+
+            # Note: ISS-031 ship phase skip logic is now handled by ShipExtension
 
             # Use source artifacts only for the resume phase
             artifacts = None
@@ -607,20 +613,10 @@ class Orchestrator:
                 context, phase, artifacts_override=artifacts
             )
 
-            # ISS-031: Create PR immediately after document phase (before ship)
-            if phase == "document" and self.git_config.auto_create_pr:
-                if self.progress_display:
-                    pr_creation_attempted = True
-                pr_result = self._maybe_create_pr_after_document(context)
+            # Note: ISS-031 PR creation is now handled by DocumentExtension.on_complete()
 
-                # Store PR URL in context for ship phase hooks (ISS-031)
-                if pr_result and pr_result.success and pr_result.pr_url:
-                    context = context.model_copy(
-                        update={"pr_url": pr_result.pr_url}
-                    )
-                    self.context_manager.save(context)
-
-        return context, pr_result
+        # PR result is now tracked in context via DocumentExtension
+        return context, None
 
     def _load_artifacts_for_resume(
         self,
@@ -876,6 +872,10 @@ class Orchestrator:
                 phases_completed=list(context.phase_history),
             )
 
+            # Call extension on_complete hooks (Phase Extensions)
+            context = self._extension_registry.call_on_complete(phase, context, result)
+            self.context_manager.save(context)
+
             transition_time_ms = (time.monotonic() - transition_start) * 1000
             logger.debug(
                 "Phase completed",
@@ -1016,71 +1016,7 @@ class Orchestrator:
 
         return updated_context
 
-    def _maybe_create_pr_after_document(
-        self,
-        context: RunContext,
-    ) -> "AutoPRResult | None":
-        """Create PR after document phase completes (ISS-031).
-
-        This method is called immediately after the document phase completes,
-        before the ship phase runs. This ensures the ship phase can find and
-        validate the PR for merging.
-
-        This method is non-blocking - PR creation failures are logged but don't
-        fail the run. If PR creation fails and ship phase is enabled, ship will
-        fail gracefully in its pre.sh hook.
-
-        Args:
-            context: Current run context.
-
-        Returns:
-            AutoPRResult with outcome, or None if PR creation failed or
-            progress_display is not available.
-        """
-        if not self.progress_display:
-            logger.debug(
-                "No progress_display available for PR creation",
-                extra={"run_id": context.run_id},
-            )
-            return None
-
-        logger.info(
-            "Creating PR after document phase",
-            extra={"run_id": context.run_id, "phase": "document"},
-        )
-
-        try:
-            pr_result = self.progress_display.try_auto_create_pr(
-                run_id=context.run_id,
-                context=context,
-                runs_dir=self.runs_dir,
-                auto_create_pr_enabled=True,
-            )
-
-            if (
-                pr_result
-                and not pr_result.success
-                and self._phase_runner.is_phase_enabled("ship")
-            ):
-                logger.warning(
-                    "PR creation failed, ship phase may fail",
-                    extra={
-                        "run_id": context.run_id,
-                        "reason": pr_result.reason,
-                    },
-                )
-
-            return pr_result
-
-        except Exception as e:
-            logger.warning(
-                "PR creation after document phase failed (non-blocking)",
-                extra={
-                    "run_id": context.run_id,
-                    "error": str(e),
-                },
-            )
-            return None
+    # Note: _maybe_create_pr_after_document removed - now handled by DocumentExtension
 
     # Keep these methods for backwards compatibility and cleanup command
     def _cleanup_worktree(self, run_id: str, *, preserve: bool = False) -> None:
