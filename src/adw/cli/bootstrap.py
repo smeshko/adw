@@ -14,6 +14,7 @@ from rich.console import Console
 
 from adw.cli.progress import ProgressDisplay
 from adw.commands.resolver import CommandResolver
+from adw.core.constants import PHASE_SEQUENCE
 from adw.commands.template import TemplateEngine
 from adw.config.loader import ConfigLoader
 from adw.core import (
@@ -269,8 +270,6 @@ def create_orchestrator(
     # Progress display for CLI feedback (ISS-036: filter to enabled phases)
     progress_display = None
     if with_progress:
-        from adw.core.constants import PHASE_SEQUENCE
-
         # Compute enabled phases using PhaseRunner's is_phase_enabled()
         # This checks both command config and project config for each phase
         enabled_phases = [p for p in PHASE_SEQUENCE if phase_runner.is_phase_enabled(p)]
