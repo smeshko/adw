@@ -15,97 +15,99 @@ so that I can discover and customize options directly from my config files witho
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: `project.yaml` contains ALL available project-level settings
+- [x] **AC1**: `project.yaml` contains ALL available project-level settings
   - Settings changed by user are written as active YAML
   - Settings NOT changed are written as YAML comments with default values
   - Each commented setting includes a brief description
 
-- [ ] **AC2**: Phase config files (`.adw/commands/{phase}/config.yaml`) generated for ALL phases
+- [x] **AC2**: Phase config files (`.adw/commands/{phase}/config.yaml`) generated for ALL phases
   - Currently only generated for phases with `customized=True`
   - After: Always generate for all phases (plan, build, validate, document, ship)
   - Include all available phase settings (enabled, timeout_seconds, input_files, artifacts)
   - Non-customized settings appear as comments with defaults
 
-- [ ] **AC3**: Settings grouped logically with section headers
+- [x] **AC3**: Settings grouped logically with section headers
   - Core settings first (name, language, platform, commands)
   - Git, Task Manager, Ports in logical order
   - LLM, Security, Webhook, Ship at end
 
-- [ ] **AC4**: Comment format is consistent and parseable
+- [x] **AC4**: Comment format is consistent and parseable
   ```yaml
   # timeout_seconds: 300  # Max execution time in seconds (default)
   retry_attempts: 5  # User configured
   ```
 
-- [ ] **AC5**: All existing tests pass
-- [ ] **AC6**: New tests verify commented defaults appear correctly
+- [x] **AC5**: All existing tests pass
+- [x] **AC6**: New tests verify commented defaults appear correctly
 
 ## Tasks / Subtasks
 
 ### Task 1: Create Config Registry Module
 **Files**: `src/adw/config/registry.py` (NEW)
 
-- [ ] 1.1 Create `ConfigRegistry` class with complete settings catalog
+- [x] 1.1 Create `ConfigRegistry` class with complete settings catalog
   - Store setting name, type, default value, description for every setting
   - Organized by section (project, llm, git, task_manager, etc.)
   - Extract defaults from existing Pydantic models
 
-- [ ] 1.2 Add helper method `get_all_settings(section: str) -> list[SettingDefinition]`
+- [x] 1.2 Add helper method `get_all_settings(section: str) -> list[SettingDefinition]`
   - Returns ordered list of settings for a section
   - SettingDefinition: name, type, default, description, is_nested
 
-- [ ] 1.3 Add helper method `get_phase_settings(phase: str) -> list[SettingDefinition]`
+- [x] 1.3 Add helper method `get_phase_settings(phase: str) -> list[SettingDefinition]`
   - Returns settings specific to a phase (timeout, enabled, input_files, artifacts)
 
 ### Task 2: Create YAML Generator with Comments
 **Files**: `src/adw/config/yaml_generator.py` (NEW)
 
-- [ ] 2.1 Create `YAMLWithComments` class
+- [x] 2.1 Create `YAMLWithComments` class
   - Track which settings are user-modified vs defaults
   - Generate YAML with inactive settings as comments
 
-- [ ] 2.2 Implement `generate_project_yaml(state: WizardState, registry: ConfigRegistry) -> str`
+- [x] 2.2 Implement `generate_project_yaml(state: WizardState, registry: ConfigRegistry) -> str`
   - For each section: write user values as active, defaults as comments
   - Include section headers (# === Git Integration ===)
   - Include descriptions for commented settings
 
-- [ ] 2.3 Implement `generate_phase_yaml(phase: str, config: dict, registry: ConfigRegistry) -> str`
+- [x] 2.3 Implement `generate_phase_yaml(phase: str, config: dict, registry: ConfigRegistry) -> str`
   - Generate complete phase config with commented defaults
   - Always include: enabled, timeout_seconds, input_files, artifacts sections
 
 ### Task 3: Update Summary Step to Use New Generator
 **Files**: `src/adw/cli/wizard/summary.py`
 
-- [ ] 3.1 Import and instantiate ConfigRegistry
-- [ ] 3.2 Replace `_generate_project_yaml()` with new `YAMLWithComments.generate_project_yaml()`
-- [ ] 3.3 Update `_generate_phase_configs()` to always generate for all phases
+- [x] 3.1 Import and instantiate ConfigRegistry
+- [x] 3.2 Replace `_generate_project_yaml()` with new `YAMLWithComments.generate_project_yaml()`
+- [x] 3.3 Update `_generate_phase_configs()` to always generate for all phases
   - Previously: `if phase_config.get("customized"):`
   - After: Always generate, use registry for defaults
 
-- [ ] 3.4 Update `_generate_all_files()` to include all phase configs in files dict
+- [x] 3.4 Update `_generate_all_files()` to include all phase configs in files dict
 
 ### Task 4: Extract Default Values from Models
 **Files**: `src/adw/config/registry.py`
 
-- [ ] 4.1 Parse `ProjectConfig` model for field defaults and descriptions
+- [x] 4.1 Parse `ProjectConfig` model for field defaults and descriptions
   - Use Pydantic's `model_fields` to extract Field definitions
   - Map Field(default=X, description=Y) to SettingDefinition
 
-- [ ] 4.2 Parse nested configs (LLMConfig, GitConfig, etc.)
+- [x] 4.2 Parse nested configs (LLMConfig, GitConfig, etc.)
   - Recursively extract from nested BaseModel fields
   - Track full path: `llm.timeout_seconds`, `git.branch_prefix`
 
-- [ ] 4.3 Parse PhaseConfig for phase-level defaults
+- [x] 4.3 Parse PhaseConfig for phase-level defaults
   - Include all: enabled, timeout_seconds, pre_hook, post_hook, input_files
+
+_Note: Task 4 was completed as part of Task 1 implementation._
 
 ### Task 5: Update Tests
 **Files**: `tests/unit/config/test_registry.py` (NEW), `tests/unit/cli/wizard/test_summary.py`
 
-- [ ] 5.1 Test ConfigRegistry returns all expected settings
-- [ ] 5.2 Test YAMLWithComments generates correct format
-- [ ] 5.3 Test commented settings are syntactically valid (can be uncommented)
-- [ ] 5.4 Test all phases generate config files (not just customized ones)
-- [ ] 5.5 Update existing summary tests for new generation pattern
+- [x] 5.1 Test ConfigRegistry returns all expected settings
+- [x] 5.2 Test YAMLWithComments generates correct format
+- [x] 5.3 Test commented settings are syntactically valid (can be uncommented)
+- [x] 5.4 Test all phases generate config files (not just customized ones)
+- [x] 5.5 Update existing summary tests for new generation pattern
 
 ---
 
