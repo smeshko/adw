@@ -1051,7 +1051,9 @@ class TestGeneratePrTitle:
         """Test PR title is truncated to 72 chars with ellipsis (ISS-037 AC4)."""
         from adw.models.task import TaskInfo
 
-        long_title = "This is a very long task title that exceeds seventy two characters limit"
+        long_title = (
+            "This is a very long task title that exceeds seventy two characters limit"
+        )
         context = RunContext(
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="RULE-123",
