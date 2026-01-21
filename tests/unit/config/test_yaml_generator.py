@@ -53,9 +53,7 @@ class TestYAMLWithComments:
         """Create generator fixture."""
         return YAMLWithComments(registry)
 
-    def test_generate_project_yaml_header(
-        self, generator: YAMLWithComments
-    ) -> None:
+    def test_generate_project_yaml_header(self, generator: YAMLWithComments) -> None:
         """Test that generated YAML has proper header."""
         state = MockWizardState()
         yaml_content = generator.generate_project_yaml(state)
@@ -67,13 +65,15 @@ class TestYAMLWithComments:
         self, generator: YAMLWithComments
     ) -> None:
         """Test that core settings are always active (not commented)."""
-        state = MockWizardState({
-            "basics": {
-                "project_name": "my-app",
-                "language": "typescript",
-                "platform": "web",
+        state = MockWizardState(
+            {
+                "basics": {
+                    "project_name": "my-app",
+                    "language": "typescript",
+                    "platform": "web",
+                }
             }
-        })
+        )
         yaml_content = generator.generate_project_yaml(state)
 
         assert "name: my-app" in yaml_content
@@ -97,13 +97,15 @@ class TestYAMLWithComments:
         self, generator: YAMLWithComments
     ) -> None:
         """Test that enabled git config shows as active YAML."""
-        state = MockWizardState({
-            "git": {
-                "git_enabled": True,
-                "git_branch_prefix": "feature/",
-                "git_auto_create_pr": True,
+        state = MockWizardState(
+            {
+                "git": {
+                    "git_enabled": True,
+                    "git_branch_prefix": "feature/",
+                    "git_auto_create_pr": True,
+                }
             }
-        })
+        )
         yaml_content = generator.generate_project_yaml(state)
 
         assert "git:" in yaml_content
@@ -164,12 +166,14 @@ class TestYAMLWithComments:
         self, generator: YAMLWithComments
     ) -> None:
         """Test that custom ports are shown as active config."""
-        state = MockWizardState({
-            "ports": {
-                "backend_port_start": 8000,
-                "frontend_port_start": 8100,
+        state = MockWizardState(
+            {
+                "ports": {
+                    "backend_port_start": 8000,
+                    "frontend_port_start": 8100,
+                }
             }
-        })
+        )
         yaml_content = generator.generate_project_yaml(state)
 
         assert "backend_start: 8000" in yaml_content
@@ -189,9 +193,7 @@ class TestPhaseYAMLGeneration:
         """Create generator fixture."""
         return YAMLWithComments(registry)
 
-    def test_generate_phase_yaml_header(
-        self, generator: YAMLWithComments
-    ) -> None:
+    def test_generate_phase_yaml_header(self, generator: YAMLWithComments) -> None:
         """Test phase config has proper header."""
         content = generator.generate_phase_yaml("plan", {})
 
@@ -239,13 +241,11 @@ class TestPhaseYAMLGeneration:
         assert "# pre_hook:" in content
         assert "# post_hook:" in content
 
-    def test_generate_phase_yaml_input_files(
-        self, generator: YAMLWithComments
-    ) -> None:
+    def test_generate_phase_yaml_input_files(self, generator: YAMLWithComments) -> None:
         """Test input_files configuration."""
-        content = generator.generate_phase_yaml("plan", {
-            "input_files": {"prd": "docs/prd.md", "arch": "docs/arch.md"}
-        })
+        content = generator.generate_phase_yaml(
+            "plan", {"input_files": {"prd": "docs/prd.md", "arch": "docs/arch.md"}}
+        )
 
         assert "input_files:" in content
         assert "prd: docs/prd.md" in content
@@ -266,10 +266,13 @@ class TestPhaseYAMLGeneration:
         self, generator: YAMLWithComments
     ) -> None:
         """Test that generated phase YAML is valid."""
-        content = generator.generate_phase_yaml("build", {
-            "enabled": True,
-            "timeout_seconds": 600,
-        })
+        content = generator.generate_phase_yaml(
+            "build",
+            {
+                "enabled": True,
+                "timeout_seconds": 600,
+            },
+        )
 
         # Parse the uncommented content
         lines = content.split("\n")

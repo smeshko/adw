@@ -65,7 +65,9 @@ class TestConfigRegistry:
         assert registry is not None
         assert len(registry.list_sections()) > 0
 
-    def test_project_section_has_required_fields(self, registry: ConfigRegistry) -> None:
+    def test_project_section_has_required_fields(
+        self, registry: ConfigRegistry
+    ) -> None:
         """Test project section includes name and language as required."""
         settings = registry.get_all_settings("project")
         setting_names = {s.name for s in settings}
@@ -144,7 +146,9 @@ class TestConfigRegistry:
         for section in ["project", "git", "llm"]:
             settings = registry.get_all_settings(section)
             for setting in settings:
-                assert setting.description, f"{section}.{setting.name} missing description"
+                assert setting.description, (
+                    f"{section}.{setting.name} missing description"
+                )
 
     def test_security_section_exists(self, registry: ConfigRegistry) -> None:
         """Test security section has expected settings."""

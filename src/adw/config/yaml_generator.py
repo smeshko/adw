@@ -53,7 +53,7 @@ def _format_yaml_value(value: Any) -> str:
     return str(value)
 
 
-def _format_setting_as_comment(setting: "SettingDefinition") -> str:
+def _format_setting_as_comment(setting: SettingDefinition) -> str:
     """Format a setting with its default value as a YAML comment.
 
     Args:
@@ -179,9 +179,8 @@ class YAMLWithComments:
             lines.append("git:")
             lines.append("  enabled: true")
             lines.append(f"  branch_prefix: {git.get('git_branch_prefix', 'feature/')}")
-            lines.append(
-                f"  auto_create_pr: {_format_yaml_value(git.get('git_auto_create_pr', True))}"
-            )
+            auto_pr = _format_yaml_value(git.get("git_auto_create_pr", True))
+            lines.append(f"  auto_create_pr: {auto_pr}")
             # Show remaining settings as comments
             lines.append("  # auto_commit: true  # Auto-commit after phases")
             lines.append("  # skip_hooks: false  # Skip pre-commit hooks")
@@ -208,7 +207,9 @@ class YAMLWithComments:
             if task_manager.get("team_key"):
                 lines.append(f"  team_key: {task_manager['team_key']}")
             else:
-                lines.append("  # team_key: null  # Team prefix (e.g., RULE for RULE-123)")
+                lines.append(
+                    "  # team_key: null  # Team prefix (e.g., RULE for RULE-123)"
+                )
             if task_manager.get("sync_comments"):
                 lines.append("  sync_comments: true")
             else:
@@ -280,7 +281,9 @@ class YAMLWithComments:
             lines.append("  allow_dangerous: true  # Log warnings instead of blocking")
         else:
             lines.append("# security:")
-            lines.append("#   allow_dangerous: false  # Log warnings instead of blocking")
+            lines.append(
+                "#   allow_dangerous: false  # Log warnings instead of blocking"
+            )
             lines.append("#   blocked_patterns: []  # Additional patterns to block")
 
         lines.append("")
@@ -341,7 +344,9 @@ class YAMLWithComments:
             if ship_pr.get("merge_on_success"):
                 lines.append("  pr:")
                 lines.append("    merge_on_success: true")
-                lines.append(f"    merge_method: {ship_pr.get('merge_method', 'squash')}")
+                lines.append(
+                    f"    merge_method: {ship_pr.get('merge_method', 'squash')}"
+                )
                 if not ship_pr.get("delete_branch_on_merge", True):
                     lines.append("    delete_branch_on_merge: false")
         else:
@@ -385,9 +390,6 @@ class YAMLWithComments:
         lines.append("# Uncomment settings to customize this phase.")
         lines.append("")
 
-        # Get phase defaults from registry
-        phase_settings = self.registry.get_phase_settings(phase)
-
         # enabled setting
         enabled = phase_config.get("enabled", True)
         lines.append(f"enabled: {_format_yaml_value(enabled)}")
@@ -399,7 +401,9 @@ class YAMLWithComments:
         else:
             # Default varies by phase
             default_timeout = self._get_default_phase_timeout(phase)
-            lines.append(f"# timeout_seconds: {default_timeout}  # Phase-specific timeout")
+            lines.append(
+                f"# timeout_seconds: {default_timeout}  # Phase-specific timeout"
+            )
 
         lines.append("")
 

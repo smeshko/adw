@@ -65,7 +65,13 @@ class ConfigRegistry:
     ]
 
     # Phase-specific settings
-    PHASE_SETTINGS = ["enabled", "timeout_seconds", "pre_hook", "post_hook", "input_files"]
+    PHASE_SETTINGS = [
+        "enabled",
+        "timeout_seconds",
+        "pre_hook",
+        "post_hook",
+        "input_files",
+    ]
 
     def __init__(self) -> None:
         """Initialize the config registry and build settings catalog."""
@@ -81,16 +87,14 @@ class ConfigRegistry:
             PhaseConfig,
             PortRangeConfig,
             ProjectConfig,
-            SecurityConfig,
             ShipCommandsConfig,
             ShipConfig,
             ShipPRConfig,
             TaskManagerConfig,
             TaskManagerLabelsConfig,
-            WebhookConfig,
             WorktreeConfig,
         )
-        from adw.models.webhook import ProviderConfig
+        from adw.models.webhook import ProviderConfig, WebhookConfig
 
         # Project-level settings (top-level scalar fields)
         self._settings["project"] = self._extract_project_settings(ProjectConfig)
@@ -232,7 +236,7 @@ class ConfigRegistry:
         # Handle default_factory
         if default is PydanticUndefined and field_info.default_factory is not None:
             try:
-                default = field_info.default_factory()
+                default = field_info.default_factory()  # type: ignore[call-arg]
                 is_required = False
             except Exception:
                 default = None
@@ -288,7 +292,7 @@ class ConfigRegistry:
 
         # Simple types
         if hasattr(annotation, "__name__"):
-            return annotation.__name__
+            return str(annotation.__name__)
 
         return str(annotation)
 
