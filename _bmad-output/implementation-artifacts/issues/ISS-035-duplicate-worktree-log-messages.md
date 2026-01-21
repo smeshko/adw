@@ -3,7 +3,7 @@
 **ID:** ISS-035
 **Severity:** Minor
 **Type:** Bug
-**Status:** reported
+**Status:** fixed
 **Reported:** 2026-01-21
 **Reporter:** Ivo
 
@@ -88,10 +88,15 @@ Remove the redundant "Created worktree for run" log from the caller.
 
 ## Resolution
 
-- **Fix Story:** N/A - Minor issue for backlog
-- **Fixed In:** Pending
-- **Verified By:** Pending
-- **Verified Date:** Pending
+- **Fix Story:** ux-fix-ISS-035
+- **Fixed In:** story/ux-fix-ISS-035 branch (commit 7d401d0)
+- **Verified By:** Automated tests (2979 passed)
+- **Verified Date:** 2026-01-21
+
+### Implementation Details
+
+Removed the redundant log message from `src/adw/core/orchestrator.py:1902-1909`.
+The detailed log in `WorktreeManager.create_worktree()` is retained as the single source of worktree creation logging.
 
 ## Notes
 
