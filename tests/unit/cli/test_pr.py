@@ -13,6 +13,7 @@ from typer.testing import CliRunner
 from adw.cli.app import app
 from adw.cli.pr import (
     AutoPRResult,
+    _generate_pr_title,
     _get_base_branch,
     _get_pr_description_path,
     _load_pr_description,
@@ -952,3 +953,166 @@ class TestAutoCreatePr:
                         not pr_title.startswith("RULE-")
                         and not pr_title.startswith("JIRA-")
                     )
+
+
+class TestGeneratePrTitle:
+    """Tests for _generate_pr_title helper function (ISS-037)."""
+
+    def test_uses_task_info_title_when_feature_equals_task_id(self) -> None:
+        """Test PR title uses task_info.title when feature_description equals task_id (ISS-037).
+
+        When user runs ADW with just a task ID (e.g., adw run "RULE-151"),
+        the PR title should use the task title from Linear instead of duplicating
+        the task ID.
+        """
+        from adw.models.task import TaskInfo
+
+        # Context where feature_description == task_id
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="RULE-123",  # Same as task_id
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            task_id="RULE-123",
+            task_info=TaskInfo(
+                id="uuid-123",
+                identifier="RULE-123",
+                title="Add remote configuration module",
+            ),
+        )
+
+        pr_title = _generate_pr_title(context)
+
+        # Should be "RULE-123: Add remote configuration module"
+        assert pr_title == "RULE-123: Add remote configuration module"
+
+    def test_fallback_to_task_id_when_no_task_info(self) -> None:
+        """Test PR title falls back to task_id when task_info is None (ISS-037).
+
+        When user runs with task ID but Linear task info is unavailable,
+        the PR title should be just the task ID without redundant duplication.
+        """
+        # Context where feature_description == task_id but no task_info
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="RULE-123",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            task_id="RULE-123",
+            task_info=None,  # No task info available
+        )
+
+        pr_title = _generate_pr_title(context)
+
+        # Should be just "RULE-123" (no redundant "RULE-123: RULE-123")
+        assert pr_title == "RULE-123"
+
+    def test_uses_feature_description_when_different_from_task_id(self) -> None:
+        """Test PR title uses feature_description when it differs from task_id (ISS-037).
+
+        Normal case: user provided a meaningful feature description along with task ID.
+        """
+        from adw.models.task import TaskInfo
+
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Add user authentication",  # Different from task_id
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            task_id="RULE-123",
+            task_info=TaskInfo(
+                id="uuid-123",
+                identifier="RULE-123",
+                title="Add auth",
+            ),
+        )
+
+        pr_title = _generate_pr_title(context)
+
+        # Should be "RULE-123: Add user authentication"
+        assert pr_title == "RULE-123: Add user authentication"
+
+    def test_uses_feature_description_when_no_task_id(self) -> None:
+        """Test PR title uses feature_description when no task_id is present."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Add user authentication",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            task_id=None,  # No task ID
+        )
+
+        pr_title = _generate_pr_title(context)
+
+        # Should be just the feature description
+        assert pr_title == "Add user authentication"
+
+    def test_truncates_long_titles_at_72_chars(self) -> None:
+        """Test PR title is truncated to 72 chars with ellipsis (ISS-037 AC4)."""
+        from adw.models.task import TaskInfo
+
+        long_title = (
+            "This is a very long task title that exceeds seventy two characters limit"
+        )
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="RULE-123",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            task_id="RULE-123",
+            task_info=TaskInfo(
+                id="uuid-123",
+                identifier="RULE-123",
+                title=long_title,
+            ),
+        )
+
+        pr_title = _generate_pr_title(context)
+
+        # Should be truncated
+        assert len(pr_title) <= 72
+        assert pr_title.endswith("...")
+
+    def test_fallback_when_task_info_has_no_title(self) -> None:
+        """Test PR title falls back when task_info exists but title is empty."""
+        from adw.models.task import TaskInfo
+
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="RULE-123",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            task_id="RULE-123",
+            task_info=TaskInfo(
+                id="uuid-123",
+                identifier="RULE-123",
+                title="",  # Empty title
+            ),
+        )
+
+        pr_title = _generate_pr_title(context)
+
+        # Should be just "RULE-123" since title is empty
+        assert pr_title == "RULE-123"
+
+    def test_fallback_when_task_info_has_whitespace_only_title(self) -> None:
+        """Test PR title falls back when task_info.title is whitespace-only."""
+        from adw.models.task import TaskInfo
+
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="RULE-123",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            task_id="RULE-123",
+            task_info=TaskInfo(
+                id="uuid-123",
+                identifier="RULE-123",
+                title="   ",  # Whitespace-only title
+            ),
+        )
+
+        pr_title = _generate_pr_title(context)
+
+        # Should be just "RULE-123" since title is whitespace-only
+        assert pr_title == "RULE-123"
