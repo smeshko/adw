@@ -53,10 +53,10 @@ Feature: Phase context in logs and clean output
 - [x] Verify LogContext flows through to all log entries during that phase
 
 ### Task 2: Stop Spinner Before Error Logging
-- [ ] In `Orchestrator._execute_phase_with_transitions()`, locate timeout/error handling code
-- [ ] Call `self.progress_display.on_llm_complete()` BEFORE any error logging
-- [ ] Verify this applies to both timeout errors and LLM execution failures
-- [ ] Ensure spinner cleanup is idempotent (safe to call multiple times)
+- [x] In `Orchestrator._execute_phase_with_transitions()`, locate timeout/error handling code
+- [x] Call `self.progress_display.on_llm_complete()` BEFORE any error logging
+- [x] Verify this applies to both timeout errors and LLM execution failures
+- [x] Ensure spinner cleanup is idempotent (safe to call multiple times)
 
 ### Task 3: Remove or Demote Redundant Log
 - [ ] Locate the "Phase completed" log at `orchestrator.py:1542-1545`
