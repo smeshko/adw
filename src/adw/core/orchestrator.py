@@ -1539,7 +1539,10 @@ class Orchestrator:
             )
 
             transition_time_ms = (time.monotonic() - transition_start) * 1000
-            logger.info(
+            # ISS-034: Demoted to debug - Rich progress display already shows
+            # "✓ PHASE completed" via on_phase_complete(). This log is for
+            # structured file output (logs.jsonl) only.
+            logger.debug(
                 "Phase completed",
                 extra={"phase": phase, "duration_ms": transition_time_ms},
             )
@@ -1600,6 +1603,12 @@ class Orchestrator:
                 # infrastructure issues that retrying won't resolve.
                 last_error = e
 
+                # ISS-034: Stop spinner BEFORE any error logging to prevent
+                # output overlap (e.g., "⠴ LLM executing...20:25:17 [WARN]").
+                # on_llm_complete() is idempotent - safe to call multiple times.
+                if self.progress_display:
+                    self.progress_display.on_llm_complete()
+
                 if not e.recoverable:
                     logger.error(
                         "Non-recoverable error",
@@ -1620,7 +1629,7 @@ class Orchestrator:
                     )
                     time.sleep(delay)
 
-        # Retries exhausted
+        # Retries exhausted - spinner already stopped in the exception handler above
         logger.error(
             "Retries exhausted",
             extra={"phase": phase, "attempts": self.max_retries},
