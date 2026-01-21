@@ -1,6 +1,6 @@
 # Story ISS-034: Fix Logging Context and Redundant Messages
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 7 - Observability & Logging
 Created: 2026-01-21
