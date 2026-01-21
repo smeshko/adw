@@ -77,7 +77,7 @@ issues:
   ISS-031-pr-creation-after-document-phase: fixed  # Major - Auto-PR runs after all phases, ship expects PR to exist
   ISS-032-init-wizard-generate-complete-config-files: reported  # Major - Wizard should output all settings with commented defaults
   ISS-033-task-manager-wiring-broken: reported  # Critical - StatusSyncService not instantiated, LabelManager uses identifier instead of UUID
-  ISS-034-logging-context-and-redundancy: reported  # Major - [phase] placeholder in logs, spinner/error overlap, redundant phase completed msg
+  ISS-034-logging-context-and-redundancy: fixed  # Major - [phase] placeholder in logs, spinner/error overlap, redundant phase completed msg
   ISS-035-duplicate-worktree-log-messages: in-progress  # Minor - Two "worktree created" messages logged
   ISS-036-progress-bar-shows-disabled-phases: reported  # Major - Disabled phases (ship) shown in progress bar, affects percentage
   ISS-037-pr-title-missing-description: reported  # Major - PR title just shows task ID when feature_description equals task_id
@@ -404,7 +404,7 @@ development_status:
   # [phase] shows as placeholder instead of actual phase name in logs
   # Spinner output overlaps with error/warning messages (on_llm_complete not called)
   # Redundant "Phase completed" log duplicates rich progress display output
-  ux-fix-ISS-034-logging-context-and-redundancy: in-progress
+  ux-fix-ISS-034-logging-context-and-redundancy: done
   # UX Fix (from ISS-036) - MAJOR
   # Progress bar shows all 5 phases including disabled ones (ship)
   # Percentage calculation includes disabled phases
