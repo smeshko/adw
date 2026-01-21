@@ -46,9 +46,9 @@ so that **the percentage reflects my actual workflow and I don't see phases I've
 - [x] Only show phases that are in `_enabled_phases`
 
 ### Task 5: Update bootstrap.py to Pass Enabled Phases
-- [ ] After loading config, determine enabled phases using `CommandResolver`
-- [ ] Pass `enabled_phases` to `ProgressDisplay` constructor
-- [ ] Handle case where config loading fails (use all phases)
+- [x] After loading config, determine enabled phases using `CommandResolver`
+- [x] Pass `enabled_phases` to `ProgressDisplay` constructor
+- [x] Handle case where config loading fails (use all phases)
 
 ### Task 6: Write Unit Tests
 - [ ] Test `ProgressDisplay` with custom `enabled_phases`
