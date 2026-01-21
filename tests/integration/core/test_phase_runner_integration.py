@@ -70,13 +70,14 @@ def runs_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def sample_context() -> RunContext:
-    """Create a sample run context."""
+def sample_context(git_repo: Path) -> RunContext:
+    """Create a sample run context with isolated git repo."""
     return RunContext(
         run_id="01HQXH9Z8G2K4M5N6P7R8S9T0V",
         feature_description="Add user authentication with OAuth2",
         current_phase="plan",
         started_at=datetime.now(UTC),
+        worktree_path=git_repo,
     )
 
 

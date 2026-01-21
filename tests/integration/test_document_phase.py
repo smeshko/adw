@@ -135,14 +135,15 @@ def run_id() -> str:
 
 
 @pytest.fixture
-def sample_context(run_id: str) -> RunContext:
-    """Create a sample run context."""
+def sample_context(run_id: str, git_repo: Path) -> RunContext:
+    """Create a sample run context with isolated git repo."""
     return RunContext(
         run_id=run_id,
         feature_description="Add user authentication with OAuth2",
         current_phase="document",
         phase_history=["plan", "build", "validate"],
         started_at=datetime.now(UTC),
+        worktree_path=git_repo,
     )
 
 
