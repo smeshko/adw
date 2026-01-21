@@ -79,7 +79,7 @@ issues:
   ISS-033-task-manager-wiring-broken: reported  # Critical - StatusSyncService not instantiated, LabelManager uses identifier instead of UUID
   ISS-034-logging-context-and-redundancy: fixed  # Major - [phase] placeholder in logs, spinner/error overlap, redundant phase completed msg
   ISS-035-duplicate-worktree-log-messages: fixed  # Minor - Two "worktree created" messages logged
-  ISS-036-progress-bar-shows-disabled-phases: reported  # Major - Disabled phases (ship) shown in progress bar, affects percentage
+  ISS-036-progress-bar-shows-disabled-phases: fixed  # Major - Disabled phases (ship) shown in progress bar, affects percentage
   ISS-037-pr-title-missing-description: reported  # Major - PR title just shows task ID when feature_description equals task_id
   ISS-038-conditional-docs-too-generic: in-progress  # Minor - Document phase generates overly broad conditions not specific to feature (story created)
 
@@ -408,7 +408,7 @@ development_status:
   # UX Fix (from ISS-036) - MAJOR
   # Progress bar shows all 5 phases including disabled ones (ship)
   # Percentage calculation includes disabled phases
-  ux-fix-ISS-036-progress-bar-shows-disabled-phases: ready-for-dev
+  ux-fix-ISS-036-progress-bar-shows-disabled-phases: done
   # UX Fix (from ISS-035) - MINOR
   # Two "worktree created" messages logged, redundant output
   ux-fix-ISS-035-duplicate-worktree-log-messages: done

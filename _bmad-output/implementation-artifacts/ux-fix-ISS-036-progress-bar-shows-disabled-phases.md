@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-036 - Progress Bar Shows Disabled Phases
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 5 - Pipeline Orchestration (Story 5-5-display-phase-progress)
 Created: 2026-01-21
@@ -15,47 +15,47 @@ so that **the percentage reflects my actual workflow and I don't see phases I've
 
 ## Acceptance Criteria
 
-- [ ] `ProgressDisplay.__init__` accepts optional `enabled_phases` parameter
-- [ ] When `enabled_phases` is provided, only those phases appear in progress bar
-- [ ] Percentage calculation uses only enabled phases (e.g., 4/4 = 100% when ship disabled)
-- [ ] Phase number display shows correct total (e.g., "Phase 3/4" not "Phase 3/5")
-- [ ] `bootstrap.py` determines enabled phases from config and passes to `ProgressDisplay`
-- [ ] Default behavior unchanged when `enabled_phases` not provided (backward compatibility)
-- [ ] Unit tests cover enabled phases filtering in progress display
-- [ ] Integration test verifies disabled phases don't appear in output
+- [x] `ProgressDisplay.__init__` accepts optional `enabled_phases` parameter
+- [x] When `enabled_phases` is provided, only those phases appear in progress bar
+- [x] Percentage calculation uses only enabled phases (e.g., 4/4 = 100% when ship disabled)
+- [x] Phase number display shows correct total (e.g., "Phase 3/4" not "Phase 3/5")
+- [x] `bootstrap.py` determines enabled phases from config and passes to `ProgressDisplay`
+- [x] Default behavior unchanged when `enabled_phases` not provided (backward compatibility)
+- [x] Unit tests cover enabled phases filtering in progress display
+- [x] Integration test verifies disabled phases don't appear in output
 
 ## Tasks / Subtasks
 
 ### Task 1: Add enabled_phases Parameter to ProgressDisplay
-- [ ] Add `enabled_phases: list[str] | None = None` parameter to `__init__`
-- [ ] Store `self._enabled_phases` defaulting to `PHASE_SEQUENCE` if None
-- [ ] Update type hints and docstring
+- [x] Add `enabled_phases: list[str] | None = None` parameter to `__init__`
+- [x] Store `self._enabled_phases` defaulting to `PHASE_SEQUENCE` if None
+- [x] Update type hints and docstring
 
 ### Task 2: Update _show_progress_bar Method
-- [ ] Use `self._enabled_phases` instead of `PHASE_SEQUENCE` in iteration
-- [ ] Calculate percentage as `len(completed) / len(self._enabled_phases)`
-- [ ] Ensure progress bar only shows phases in `_enabled_phases`
+- [x] Use `self._enabled_phases` instead of `PHASE_SEQUENCE` in iteration
+- [x] Calculate percentage as `len(completed) / len(self._enabled_phases)`
+- [x] Ensure progress bar only shows phases in `_enabled_phases`
 
 ### Task 3: Update on_phase_start Method
-- [ ] Calculate `phase_num` relative to `self._enabled_phases`
-- [ ] Calculate `total_phases` from `len(self._enabled_phases)`
-- [ ] Display "Phase X/Y" using enabled phases count
+- [x] Calculate `phase_num` relative to `self._enabled_phases`
+- [x] Calculate `total_phases` from `len(self._enabled_phases)`
+- [x] Display "Phase X/Y" using enabled phases count
 
 ### Task 4: Update show_pipeline_summary Method
-- [ ] Use `self._enabled_phases` for phase status line
-- [ ] Only show phases that are in `_enabled_phases`
+- [x] Use `self._enabled_phases` for phase status line
+- [x] Only show phases that are in `_enabled_phases`
 
 ### Task 5: Update bootstrap.py to Pass Enabled Phases
-- [ ] After loading config, determine enabled phases using `CommandResolver`
-- [ ] Pass `enabled_phases` to `ProgressDisplay` constructor
-- [ ] Handle case where config loading fails (use all phases)
+- [x] After loading config, determine enabled phases using `CommandResolver`
+- [x] Pass `enabled_phases` to `ProgressDisplay` constructor
+- [x] Handle case where config loading fails (use all phases)
 
 ### Task 6: Write Unit Tests
-- [ ] Test `ProgressDisplay` with custom `enabled_phases`
-- [ ] Test percentage calculation with 4 enabled phases
-- [ ] Test phase number display with reduced phase count
-- [ ] Test backward compatibility when `enabled_phases=None`
-- [ ] Test progress bar only shows enabled phases
+- [x] Test `ProgressDisplay` with custom `enabled_phases`
+- [x] Test percentage calculation with 4 enabled phases
+- [x] Test phase number display with reduced phase count
+- [x] Test backward compatibility when `enabled_phases=None`
+- [x] Test progress bar only shows enabled phases
 
 ---
 

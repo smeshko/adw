@@ -74,13 +74,21 @@ class ProgressDisplay:
         "interrupted": "⏸",
     }
 
-    def __init__(self, console: Console | None = None) -> None:
+    def __init__(
+        self,
+        console: Console | None = None,
+        enabled_phases: list[str] | None = None,
+    ) -> None:
         """Initialize the ProgressDisplay.
 
         Args:
             console: Rich Console instance for output. If None, creates a new one.
+            enabled_phases: List of enabled phase names for progress display.
+                If None, defaults to all phases in PHASE_SEQUENCE.
+                Use this to filter out disabled phases from progress bar.
         """
         self.console = console or Console()
+        self._enabled_phases = enabled_phases or list(PHASE_SEQUENCE)
         self._current_phase: str | None = None
         self._live: Live | None = None
         self._progress: Progress | None = None
@@ -93,17 +101,17 @@ class ProgressDisplay:
         """Display phase starting message.
 
         Args:
-            phase: Phase name starting (plan, build, validate, document).
+            phase: Phase name starting (plan, build, validate, document, ship).
         """
         self._current_phase = phase
         color = self.PHASE_COLORS.get(phase, "white")
 
-        # Calculate phase position
+        # Calculate phase position relative to enabled phases
         try:
-            phase_num = PHASE_SEQUENCE.index(phase) + 1
+            phase_num = self._enabled_phases.index(phase) + 1
         except ValueError:
             phase_num = 0
-        total_phases = len(PHASE_SEQUENCE)
+        total_phases = len(self._enabled_phases)
 
         # Show overall progress bar
         self._show_progress_bar(current_phase=phase)
@@ -121,13 +129,13 @@ class ProgressDisplay:
         """Display the overall pipeline progress bar.
 
         Shows: [Plan] ✓ [Build] ► [Validate] · [Document]
-        with percentage complete.
+        with percentage complete based on enabled phases only.
 
         Args:
             current_phase: Currently executing phase (shown with ►).
         """
         phase_status = []
-        for phase in PHASE_SEQUENCE:
+        for phase in self._enabled_phases:
             color = self.PHASE_COLORS.get(phase, "white")
             if phase in self._completed_phases:
                 phase_status.append(f"[green]✓[/] [{color}]{phase}[/]")
@@ -138,10 +146,10 @@ class ProgressDisplay:
 
         status_line = " → ".join(phase_status)
 
-        # Calculate percentage
+        # Calculate percentage based on enabled phases only
         completed = len(self._completed_phases)
-        total = len(PHASE_SEQUENCE)
-        percentage = (completed / total) * 100
+        total = len(self._enabled_phases)
+        percentage = (completed / total) * 100 if total > 0 else 0
 
         self.console.print(f"{status_line}  [bold cyan]{percentage:.0f}%[/]")
 
@@ -246,9 +254,9 @@ class ProgressDisplay:
         """
         self.console.print()
 
-        # Build phase status line
+        # Build phase status line using enabled phases only
         phase_status = []
-        for phase in PHASE_SEQUENCE:
+        for phase in self._enabled_phases:
             color = self.PHASE_COLORS.get(phase, "white")
             if phase in completed_phases:
                 phase_status.append(f"[green]✓[/] [{color}]{phase}[/]")

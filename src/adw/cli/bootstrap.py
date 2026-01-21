@@ -24,6 +24,7 @@ from adw.core import (
     RunDirectoryManager,
     SnapshotManager,
 )
+from adw.core.constants import PHASE_SEQUENCE
 from adw.core.phase_runner import PhaseRunner
 from adw.exceptions import ConfigError
 from adw.executors.base import LLMExecutor
@@ -222,11 +223,6 @@ def create_orchestrator(
     run_directory_manager = RunDirectoryManager(project_root)
     interruption_handler = InterruptionHandler(context_manager, snapshot_manager)
 
-    # Progress display for CLI feedback
-    progress_display = None
-    if with_progress:
-        progress_display = ProgressDisplay(console)
-
     # Create PhaseRunner dependencies (Epic 2 & 3)
     command_resolver = CommandResolver(project_root=project_root)
     template_engine = TemplateEngine(project_root=project_root)
@@ -260,15 +256,26 @@ def create_orchestrator(
             llm_capture=llm_capture,
         )
 
-    # Create PhaseRunner (Story 5.2)
+    # Create PhaseRunner first (without progress_display) (Story 5.2)
+    # so we can compute enabled phases using is_phase_enabled()
     phase_runner = PhaseRunner(
         command_resolver=command_resolver,
         template_engine=template_engine,
         hook_runner=hook_runner,
         executor=llm_executor,
         artifact_manager=artifact_manager,
-        progress_display=progress_display,
+        progress_display=None,
     )
+
+    # Progress display for CLI feedback (ISS-036: filter to enabled phases)
+    progress_display = None
+    if with_progress:
+        # Compute enabled phases using PhaseRunner's is_phase_enabled()
+        # This checks both command config and project config for each phase
+        enabled_phases = [p for p in PHASE_SEQUENCE if phase_runner.is_phase_enabled(p)]
+        progress_display = ProgressDisplay(console, enabled_phases=enabled_phases)
+        # Update PhaseRunner with the progress display
+        phase_runner.progress_display = progress_display
 
     # Create LabelManager if task manager and task ID are provided (Story 12.7)
     label_manager: LabelManager | None = None
