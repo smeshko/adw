@@ -36,10 +36,10 @@ So that my team can see ADW progress on Linear issues and labels are applied cor
 ## Tasks / Subtasks
 
 ### Task 1: Create StatusSyncService in bootstrap.py
-- [ ] Import StatusSyncService from `adw.task_managers.sync`
-- [ ] Create StatusSyncService after TaskManager is created
-- [ ] Pass task_manager and task_manager_config to StatusSyncService constructor
-- [ ] Pass status_sync_service to Orchestrator constructor
+- [x] Import StatusSyncService from `adw.task_managers.sync`
+- [x] Create StatusSyncService after TaskManager is created
+- [x] Pass task_manager and task_manager_config to StatusSyncService constructor
+- [x] Pass status_sync_service to Orchestrator constructor
 
 ### Task 2: Fix LabelManager to receive internal UUID
 - [ ] Locate LabelManager creation at bootstrap.py:278
