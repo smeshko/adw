@@ -87,25 +87,27 @@ so that I can discover and customize options directly from my config files witho
 ### Task 4: Extract Default Values from Models
 **Files**: `src/adw/config/registry.py`
 
-- [ ] 4.1 Parse `ProjectConfig` model for field defaults and descriptions
+- [x] 4.1 Parse `ProjectConfig` model for field defaults and descriptions
   - Use Pydantic's `model_fields` to extract Field definitions
   - Map Field(default=X, description=Y) to SettingDefinition
 
-- [ ] 4.2 Parse nested configs (LLMConfig, GitConfig, etc.)
+- [x] 4.2 Parse nested configs (LLMConfig, GitConfig, etc.)
   - Recursively extract from nested BaseModel fields
   - Track full path: `llm.timeout_seconds`, `git.branch_prefix`
 
-- [ ] 4.3 Parse PhaseConfig for phase-level defaults
+- [x] 4.3 Parse PhaseConfig for phase-level defaults
   - Include all: enabled, timeout_seconds, pre_hook, post_hook, input_files
+
+_Note: Task 4 was completed as part of Task 1 implementation._
 
 ### Task 5: Update Tests
 **Files**: `tests/unit/config/test_registry.py` (NEW), `tests/unit/cli/wizard/test_summary.py`
 
-- [ ] 5.1 Test ConfigRegistry returns all expected settings
-- [ ] 5.2 Test YAMLWithComments generates correct format
-- [ ] 5.3 Test commented settings are syntactically valid (can be uncommented)
-- [ ] 5.4 Test all phases generate config files (not just customized ones)
-- [ ] 5.5 Update existing summary tests for new generation pattern
+- [x] 5.1 Test ConfigRegistry returns all expected settings
+- [x] 5.2 Test YAMLWithComments generates correct format
+- [x] 5.3 Test commented settings are syntactically valid (can be uncommented)
+- [x] 5.4 Test all phases generate config files (not just customized ones)
+- [x] 5.5 Update existing summary tests for new generation pattern
 
 ---
 
