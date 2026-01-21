@@ -6,10 +6,9 @@ from pathlib import Path
 
 from adw.logging import (
     ConsoleTransport,
+    LiveStreamTransport,
     LogLevel,
     LogManager,
-    RawFileTransport,
-    StructuredFileTransport,
     configure_default_logger,
     get_logger,
     reset_logger,
@@ -60,40 +59,17 @@ class TestConfigureDefaultLogger:
         logger = configure_default_logger(console=False)
         assert len(logger.transports) == 0
 
-    def test_configure_with_raw_file(self, tmp_path: Path) -> None:
-        """configure_default_logger adds raw file transport."""
+    def test_configure_with_live_log(self, tmp_path: Path) -> None:
+        """configure_default_logger adds live stream transport."""
         reset_logger()
-        log_path = tmp_path / "raw.log"
+        log_path = tmp_path / "live.log"
 
         logger = configure_default_logger(
             console=False,
-            raw_file=str(log_path),
+            live_log=str(log_path),
         )
         assert len(logger.transports) == 1
-        assert isinstance(logger.transports[0], RawFileTransport)
-
-    def test_configure_with_jsonl_file(self, tmp_path: Path) -> None:
-        """configure_default_logger adds JSONL file transport."""
-        reset_logger()
-        log_path = tmp_path / "logs.jsonl"
-
-        logger = configure_default_logger(
-            console=False,
-            jsonl_file=str(log_path),
-        )
-        assert len(logger.transports) == 1
-        assert isinstance(logger.transports[0], StructuredFileTransport)
-
-    def test_configure_with_all_transports(self, tmp_path: Path) -> None:
-        """configure_default_logger can add all transports."""
-        reset_logger()
-
-        logger = configure_default_logger(
-            console=True,
-            raw_file=str(tmp_path / "raw.log"),
-            jsonl_file=str(tmp_path / "logs.jsonl"),
-        )
-        assert len(logger.transports) == 3
+        assert isinstance(logger.transports[0], LiveStreamTransport)
 
     def test_configure_replaces_previous_logger(self) -> None:
         """configure_default_logger replaces the previous default logger."""

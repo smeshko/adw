@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from adw.logging.console import ConsoleTransport
-from adw.logging.file import RawFileTransport, StructuredFileTransport
+from adw.logging.live_stream import LiveStreamTransport
 from adw.logging.manager import LogManager
 from adw.models.logging import LogCategory, LogEvent, LogLevel, Verbosity
 
@@ -47,14 +47,12 @@ class TestTransportRegistration:
         manager = LogManager()
         output = io.StringIO()
         console = ConsoleTransport(file=output, force_tty=False)
-        raw_file = RawFileTransport(tmp_path / "raw.log")
-        jsonl_file = StructuredFileTransport(tmp_path / "logs.jsonl")
+        live_log = LiveStreamTransport(tmp_path / "live.log")
 
         manager.register(console)
-        manager.register(raw_file)
-        manager.register(jsonl_file)
+        manager.register(live_log)
 
-        assert len(manager.transports) == 3
+        assert len(manager.transports) == 2
 
     def test_register_custom_transport(self) -> None:
         """LogManager can register custom transports implementing Transport protocol."""
@@ -209,23 +207,18 @@ class TestEventRouting:
 
         output = io.StringIO()
         console = ConsoleTransport(file=output, force_tty=False)
-        raw_file = RawFileTransport(tmp_path / "raw.log")
-        jsonl_file = StructuredFileTransport(tmp_path / "logs.jsonl")
+        live_log = LiveStreamTransport(tmp_path / "live.log")
 
         manager.register(console)
-        manager.register(raw_file)
-        manager.register(jsonl_file)
+        manager.register(live_log)
 
         manager.info(LogCategory.PHASE, "Broadcast message")
 
         # Check console
         assert "Broadcast message" in output.getvalue()
 
-        # Check raw file
-        assert "Broadcast message" in (tmp_path / "raw.log").read_text()
-
-        # Check JSONL file
-        assert "Broadcast message" in (tmp_path / "logs.jsonl").read_text()
+        # Check live log
+        assert "Broadcast message" in (tmp_path / "live.log").read_text()
 
     def test_includes_category_in_event(self) -> None:
         """LogManager includes category in events."""
@@ -344,14 +337,14 @@ class TestLogManagerVerbosity:
     def test_set_verbosity_does_not_affect_file_transports(
         self, tmp_path: Path
     ) -> None:
-        """set_verbosity() does not affect file transports."""
+        """set_verbosity() does not affect file transports (LiveStreamTransport)."""
         manager = LogManager()
         output = io.StringIO()
         console = ConsoleTransport(file=output, force_tty=False)
-        raw_file = RawFileTransport(tmp_path / "raw.log")
+        live_log = LiveStreamTransport(tmp_path / "live.log")
 
         manager.register(console)
-        manager.register(raw_file)
+        manager.register(live_log)
 
         # Set verbosity to quiet
         manager.set_verbosity(Verbosity.QUIET)
@@ -363,7 +356,7 @@ class TestLogManagerVerbosity:
         assert output.getvalue() == ""
 
         # File should still have the message (files ignore verbosity)
-        assert "Info message" in (tmp_path / "raw.log").read_text()
+        assert "Info message" in (tmp_path / "live.log").read_text()
 
     def test_set_verbosity_filters_console_output(self) -> None:
         """set_verbosity() filters messages on console."""
