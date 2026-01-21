@@ -254,9 +254,9 @@ class ProgressDisplay:
         """
         self.console.print()
 
-        # Build phase status line
+        # Build phase status line using enabled phases only
         phase_status = []
-        for phase in PHASE_SEQUENCE:
+        for phase in self._enabled_phases:
             color = self.PHASE_COLORS.get(phase, "white")
             if phase in completed_phases:
                 phase_status.append(f"[green]✓[/] [{color}]{phase}[/]")

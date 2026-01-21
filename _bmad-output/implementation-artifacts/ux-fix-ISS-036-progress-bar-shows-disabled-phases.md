@@ -42,8 +42,8 @@ so that **the percentage reflects my actual workflow and I don't see phases I've
 - [x] Display "Phase X/Y" using enabled phases count
 
 ### Task 4: Update show_pipeline_summary Method
-- [ ] Use `self._enabled_phases` for phase status line
-- [ ] Only show phases that are in `_enabled_phases`
+- [x] Use `self._enabled_phases` for phase status line
+- [x] Only show phases that are in `_enabled_phases`
 
 ### Task 5: Update bootstrap.py to Pass Enabled Phases
 - [ ] After loading config, determine enabled phases using `CommandResolver`
