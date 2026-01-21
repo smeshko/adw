@@ -45,16 +45,16 @@ so that I can discover and customize options directly from my config files witho
 ### Task 1: Create Config Registry Module
 **Files**: `src/adw/config/registry.py` (NEW)
 
-- [ ] 1.1 Create `ConfigRegistry` class with complete settings catalog
+- [x] 1.1 Create `ConfigRegistry` class with complete settings catalog
   - Store setting name, type, default value, description for every setting
   - Organized by section (project, llm, git, task_manager, etc.)
   - Extract defaults from existing Pydantic models
 
-- [ ] 1.2 Add helper method `get_all_settings(section: str) -> list[SettingDefinition]`
+- [x] 1.2 Add helper method `get_all_settings(section: str) -> list[SettingDefinition]`
   - Returns ordered list of settings for a section
   - SettingDefinition: name, type, default, description, is_nested
 
-- [ ] 1.3 Add helper method `get_phase_settings(phase: str) -> list[SettingDefinition]`
+- [x] 1.3 Add helper method `get_phase_settings(phase: str) -> list[SettingDefinition]`
   - Returns settings specific to a phase (timeout, enabled, input_files, artifacts)
 
 ### Task 2: Create YAML Generator with Comments
