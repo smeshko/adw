@@ -74,13 +74,21 @@ class ProgressDisplay:
         "interrupted": "⏸",
     }
 
-    def __init__(self, console: Console | None = None) -> None:
+    def __init__(
+        self,
+        console: Console | None = None,
+        enabled_phases: list[str] | None = None,
+    ) -> None:
         """Initialize the ProgressDisplay.
 
         Args:
             console: Rich Console instance for output. If None, creates a new one.
+            enabled_phases: List of enabled phase names for progress display.
+                If None, defaults to all phases in PHASE_SEQUENCE.
+                Use this to filter out disabled phases from progress bar.
         """
         self.console = console or Console()
+        self._enabled_phases = enabled_phases or list(PHASE_SEQUENCE)
         self._current_phase: str | None = None
         self._live: Live | None = None
         self._progress: Progress | None = None

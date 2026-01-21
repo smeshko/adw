@@ -27,9 +27,9 @@ so that **the percentage reflects my actual workflow and I don't see phases I've
 ## Tasks / Subtasks
 
 ### Task 1: Add enabled_phases Parameter to ProgressDisplay
-- [ ] Add `enabled_phases: list[str] | None = None` parameter to `__init__`
-- [ ] Store `self._enabled_phases` defaulting to `PHASE_SEQUENCE` if None
-- [ ] Update type hints and docstring
+- [x] Add `enabled_phases: list[str] | None = None` parameter to `__init__`
+- [x] Store `self._enabled_phases` defaulting to `PHASE_SEQUENCE` if None
+- [x] Update type hints and docstring
 
 ### Task 2: Update _show_progress_bar Method
 - [ ] Use `self._enabled_phases` instead of `PHASE_SEQUENCE` in iteration
