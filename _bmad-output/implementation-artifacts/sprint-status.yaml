@@ -399,7 +399,7 @@ development_status:
   # Bugfix (from ISS-033) - CRITICAL
   # StatusSyncService not instantiated in bootstrap.py, no comments posted to Linear
   # LabelManager receives identifier (RULE-151) instead of internal UUID (task_info.id)
-  bugfix-ISS-033-task-manager-wiring-broken: ready-for-dev
+  bugfix-ISS-033-task-manager-wiring-broken: in-progress
   # UX Fix (from ISS-034) - MAJOR
   # [phase] shows as placeholder instead of actual phase name in logs
   # Spinner output overlaps with error/warning messages (on_llm_complete not called)

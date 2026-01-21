@@ -44,6 +44,7 @@ from adw.models.logging import VERBOSITY_LEVEL_MAP, LogLevel, Verbosity
 from adw.security import SecurityInterceptor, ToolLogger
 from adw.task_managers.base import TaskManager
 from adw.task_managers.labels import LabelManager
+from adw.task_managers.sync import StatusSyncService
 
 
 def get_project_root() -> Path:
@@ -277,6 +278,11 @@ def create_orchestrator(
         # Update PhaseRunner with the progress display
         phase_runner.progress_display = progress_display
 
+    # Create StatusSyncService if task manager is configured (Story 12.3, ISS-033)
+    status_sync_service: StatusSyncService | None = None
+    if task_manager is not None and config is not None and config.task_manager:
+        status_sync_service = StatusSyncService(task_manager, config.task_manager)
+
     # Create LabelManager if task manager and task ID are provided (Story 12.7)
     label_manager: LabelManager | None = None
     if task_manager is not None and task_id is not None and config is not None:
@@ -298,6 +304,7 @@ def create_orchestrator(
         git_config=git_config,
         task_manager_config=task_manager_config,
         label_manager=label_manager,
+        status_sync_service=status_sync_service,
     )
 
     return orchestrator
