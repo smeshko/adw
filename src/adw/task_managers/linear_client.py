@@ -69,9 +69,9 @@ query TeamLabels($teamId: String!) {
 
 CREATE_LABEL_MUTATION = """
 mutation CreateLabel($teamId: String!, $name: String!, $color: String!) {
-  labelCreate(input: {teamId: $teamId, name: $name, color: $color}) {
+  issueLabelCreate(input: {teamId: $teamId, name: $name, color: $color}) {
     success
-    label { id name }
+    issueLabel { id name }
   }
 }
 """
@@ -370,9 +370,9 @@ class LinearClient:
         self._handle_response_errors(response, team_id)
 
         data: dict[str, Any] = response.json()
-        result: dict[str, Any] | None = data.get("data", {}).get("labelCreate")
+        result: dict[str, Any] | None = data.get("data", {}).get("issueLabelCreate")
         if result and result.get("success"):
-            label: dict[str, Any] | None = result.get("label")
+            label: dict[str, Any] | None = result.get("issueLabel")
             if label:
                 label_id: str | None = label.get("id")
                 return label_id

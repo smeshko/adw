@@ -277,16 +277,16 @@ class TestLinearClientLabelOperations:
         assert result == []
 
     def test_create_label_sends_mutation(self) -> None:
-        """create_label sends labelCreate mutation and returns label ID."""
+        """create_label sends issueLabelCreate mutation and returns label ID."""
         client = LinearClient(api_key="lin_api_test123")
 
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "data": {
-                "labelCreate": {
+                "issueLabelCreate": {
                     "success": True,
-                    "label": {"id": "new-label-id", "name": "adw:running"},
+                    "issueLabel": {"id": "new-label-id", "name": "adw:running"},
                 }
             }
         }
@@ -304,7 +304,7 @@ class TestLinearClientLabelOperations:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "data": {"labelCreate": {"success": False, "label": None}}
+            "data": {"issueLabelCreate": {"success": False, "issueLabel": None}}
         }
 
         with patch.object(client, "_request", return_value=mock_response):

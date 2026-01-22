@@ -199,14 +199,9 @@ class LinearTaskManager:
             status: The ADW status to map to Linear state (e.g., "running").
             metadata: Optional additional metadata (currently unused).
         """
-        # Map ADW status to Linear state name
-        linear_state_name = self._config.state_mapping.get(status)
-        if not linear_state_name:
-            logger.warning(
-                "No state mapping found for ADW status '%s'",
-                status,
-            )
-            return
+        # Map ADW phase/status to Linear state name if mapping exists,
+        # otherwise use the status directly (already mapped by StatusSyncService)
+        linear_state_name = self._config.state_mapping.get(status, status)
 
         # Get state ID from cache or fetch
         state_id = self._get_state_id(linear_state_name)
