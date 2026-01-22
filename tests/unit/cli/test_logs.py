@@ -634,6 +634,19 @@ class TestParseLogLine:
         timestamp, category, content = result
         assert category == "INFO"
 
+    def test_parse_line_with_embedded_ansi_codes(self) -> None:
+        """Test parsing strips ANSI codes before matching."""
+        from adw.cli.logs import _parse_log_line
+
+        # Real log line with ANSI color codes embedded
+        line = "[2024-01-15 10:30:46] \x1b[33m[TOOL]\x1b[0m \x1b[1mRead\x1b[0m: /src/main.py"
+        result = _parse_log_line(line)
+        assert result is not None
+        timestamp, category, content = result
+        assert timestamp == "2024-01-15 10:30:46"
+        assert category == "TOOL"
+        assert content == "Read: /src/main.py"
+
 
 class TestStripAnsi:
     """Tests for _strip_ansi helper function."""

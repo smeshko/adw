@@ -57,14 +57,18 @@ def _strip_ansi(text: str) -> str:
 def _parse_log_line(line: str) -> tuple[str, str, str] | None:
     """Parse a structured log line into components.
 
+    Strips ANSI codes before parsing to handle colored log output.
+
     Args:
-        line: A single log line.
+        line: A single log line (may contain ANSI codes).
 
     Returns:
         Tuple of (timestamp, category, content) if structured log line,
         None otherwise.
     """
-    match = LOG_LINE_PATTERN.match(line.strip())
+    # Strip ANSI codes first so regex can match
+    clean_line = _strip_ansi(line.strip())
+    match = LOG_LINE_PATTERN.match(clean_line)
     if match:
         return match.group(1), match.group(2), match.group(3)
     return None
