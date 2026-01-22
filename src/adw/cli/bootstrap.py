@@ -269,10 +269,12 @@ def create_orchestrator(
 
     # Create StatusSyncService if task manager is configured (Story 12.3, ISS-033, ISS-039)
     # Pass task_info so methods use stored value instead of context (same pattern as LabelManager)
+    # Use task_manager_config (which has defaults) instead of config.task_manager to handle
+    # case where config loading fails but task_manager is provided via CLI
     status_sync_service: StatusSyncService | None = None
-    if task_manager is not None and config is not None and config.task_manager:
+    if task_manager is not None and task_manager_config is not None:
         status_sync_service = StatusSyncService(
-            task_manager, config.task_manager, task_info=task_info
+            task_manager, task_manager_config, task_info=task_info
         )
 
     # Create LabelManager if task manager and task_info are provided
