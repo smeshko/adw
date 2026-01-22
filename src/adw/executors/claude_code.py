@@ -357,6 +357,11 @@ class ClaudeCodeExecutor:
                     if tool_info:
                         self.live_stream.write_tool_call(tool_info[0], tool_info[1])
 
+                    # Detect and log tool results inline
+                    tool_result = self._extract_tool_result(decoded)
+                    if tool_result:
+                        self.live_stream.write_tool_result("Tool", tool_result[1])
+
         async def read_stderr() -> None:
             """Read stderr line-by-line."""
             while True:
@@ -640,6 +645,57 @@ class ClaudeCodeExecutor:
                         tool_name, block.get("input", {})
                     )
                     return (tool_name, context)
+
+        return None
+
+    def _extract_tool_result(self, line: str) -> tuple[str, str] | None:
+        """Extract tool result info from stream-json line for inline logging.
+
+        Detects tool_result blocks in user messages as they stream, enabling
+        real-time logging of tool results.
+
+        Args:
+            line: A single line of stream-json output.
+
+        Returns:
+            Tuple of (tool_use_id, result_summary) if tool result found, None otherwise.
+        """
+        try:
+            data = json.loads(line.strip())
+        except json.JSONDecodeError:
+            return None
+
+        if not isinstance(data, dict):
+            return None
+
+        # Check for tool_result in user message content blocks
+        # Claude Code outputs tool results as user messages with tool_result blocks
+        if data.get("type") == "user":
+            for block in data.get("message", {}).get("content", []):
+                if block.get("type") == "tool_result":
+                    tool_use_id = block.get("tool_use_id", "unknown")
+                    content = block.get("content", "")
+
+                    # Extract summary from content (could be string or list)
+                    if isinstance(content, str):
+                        result_summary = content
+                    elif isinstance(content, list):
+                        # Content might be a list of text blocks
+                        texts = []
+                        for item in content:
+                            if isinstance(item, dict) and item.get("type") == "text":
+                                texts.append(item.get("text", ""))
+                            elif isinstance(item, str):
+                                texts.append(item)
+                        result_summary = " ".join(texts)
+                    else:
+                        result_summary = str(content)
+
+                    # Truncate very long results
+                    if len(result_summary) > 200:
+                        result_summary = result_summary[:197] + "..."
+
+                    return (tool_use_id, result_summary)
 
         return None
 

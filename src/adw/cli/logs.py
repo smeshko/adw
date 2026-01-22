@@ -37,6 +37,7 @@ PANEL_COLORS: dict[str, str] = {
     "PHASE": "magenta",
     "LLM": "cyan",
     "TOOL": "yellow",
+    "TOOL_RESULT": "green",
     "ERROR": "red",
     "INFO": "green",
     "WARN": "yellow",

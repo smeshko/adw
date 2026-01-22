@@ -1859,3 +1859,118 @@ class TestExtractToolCall:
         tool_name, context = result
         assert tool_name == "Task"
         assert context == "Explore"
+
+
+class TestExtractToolResult:
+    """Tests for _extract_tool_result method for inline tool result logging."""
+
+    @pytest.fixture
+    def executor(self) -> ClaudeCodeExecutor:
+        """Create executor with default config."""
+        return ClaudeCodeExecutor(LLMConfig(path="claude"))
+
+    def test_extract_tool_result_from_user_message(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Extract tool result from user message with tool_result block."""
+        import json
+
+        line = json.dumps(
+            {
+                "type": "user",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "toolu_123",
+                            "content": "File contents here...",
+                        }
+                    ]
+                },
+            }
+        )
+        result = executor._extract_tool_result(line)
+        assert result is not None
+        tool_use_id, summary = result
+        assert tool_use_id == "toolu_123"
+        assert summary == "File contents here..."
+
+    def test_extract_tool_result_with_list_content(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Extract tool result when content is a list of text blocks."""
+        import json
+
+        line = json.dumps(
+            {
+                "type": "user",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "toolu_456",
+                            "content": [
+                                {"type": "text", "text": "Line 1"},
+                                {"type": "text", "text": "Line 2"},
+                            ],
+                        }
+                    ]
+                },
+            }
+        )
+        result = executor._extract_tool_result(line)
+        assert result is not None
+        tool_use_id, summary = result
+        assert tool_use_id == "toolu_456"
+        assert summary == "Line 1 Line 2"
+
+    def test_extract_tool_result_truncates_long_content(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Extract tool result truncates content over 200 chars."""
+        import json
+
+        long_content = "x" * 300
+        line = json.dumps(
+            {
+                "type": "user",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "toolu_789",
+                            "content": long_content,
+                        }
+                    ]
+                },
+            }
+        )
+        result = executor._extract_tool_result(line)
+        assert result is not None
+        tool_use_id, summary = result
+        assert len(summary) == 200
+        assert summary.endswith("...")
+
+    def test_extract_tool_result_returns_none_for_assistant_message(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Return None for assistant messages (not tool results)."""
+        import json
+
+        line = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [{"type": "text", "text": "Some response"}]
+                },
+            }
+        )
+        result = executor._extract_tool_result(line)
+        assert result is None
+
+    def test_extract_tool_result_returns_none_for_invalid_json(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Return None for non-JSON lines."""
+        result = executor._extract_tool_result("Not valid JSON")
+        assert result is None
