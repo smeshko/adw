@@ -118,7 +118,7 @@ class LinearProvider:
         # Get signature from header
         signature = BaseWebhookProvider.get_header(request, "x-linear-signature")
         if not signature:
-            logger.warning("Missing X-Linear-Signature header")
+            logger.error("Missing X-Linear-Signature header - webhook rejected")
             return False
 
         # Compute expected signature
@@ -132,7 +132,7 @@ class LinearProvider:
         is_valid = hmac.compare_digest(expected, signature)
 
         if not is_valid:
-            logger.warning("Invalid Linear webhook signature")
+            logger.error("Invalid Linear webhook signature - webhook rejected")
 
         return is_valid
 

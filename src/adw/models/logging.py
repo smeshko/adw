@@ -62,6 +62,17 @@ VERBOSITY_LEVEL_MAP: dict["Verbosity", LogLevel] = {
     Verbosity.TRACE: LogLevel.TRACE,  # Everything
 }
 
+# Level ordering for filtering comparisons
+# Used by LogManager and ConsoleTransport for level checks
+LEVEL_ORDER: dict[LogLevel, int] = {
+    LogLevel.TRACE: 0,
+    LogLevel.DEBUG: 1,
+    LogLevel.INFO: 2,
+    LogLevel.WARN: 3,
+    LogLevel.ERROR: 4,
+    LogLevel.FATAL: 5,
+}
+
 
 class LogCategory(str, Enum):
     """Log event categories for filtering and organization.

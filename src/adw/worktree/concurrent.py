@@ -280,8 +280,8 @@ class ConcurrentRunManager:
         lock_path = self._lock_path(run_id)
         lock_path.write_text(json.dumps(lock_data, indent=2))
 
-        logger.info(
-            "Registered active run",
+        logger.debug(
+            "Registered active run in index",
             extra={
                 "run_id": run_id,
                 "pid": lock_data["pid"],
@@ -304,7 +304,7 @@ class ConcurrentRunManager:
         if lock_path.exists():
             try:
                 lock_path.unlink()
-                logger.info(
+                logger.debug(
                     "Unregistered run",
                     extra={
                         "run_id": run_id,

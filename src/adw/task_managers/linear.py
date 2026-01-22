@@ -216,19 +216,19 @@ class LinearTaskManager:
         try:
             result = self._client.update_issue(task_id, {"stateId": state_id})
             if result:
-                logger.info(
+                logger.debug(
                     "Updated state to '%s'",
                     linear_state_name,
                     extra={"task_id": task_id},
                 )
             else:
-                logger.warning(
+                logger.error(
                     "Failed to update state to '%s'",
                     linear_state_name,
                     extra={"task_id": task_id},
                 )
         except Exception as e:
-            logger.warning(
+            logger.error(
                 "Error updating state to '%s': %s",
                 linear_state_name,
                 str(e),
@@ -265,7 +265,7 @@ class LinearTaskManager:
                 self._team_id,
             )
         except Exception as e:
-            logger.warning(
+            logger.error(
                 "Failed to fetch team workflow states: %s",
                 str(e),
             )
@@ -435,13 +435,13 @@ class LinearTaskManager:
         """
         try:
             self._client.add_label(task_id, label, self._team_id)
-            logger.info(
+            logger.debug(
                 "Added label '%s'",
                 label,
                 extra={"task_id": task_id},
             )
         except Exception as e:
-            logger.warning(
+            logger.error(
                 "Failed to add label '%s': %s",
                 label,
                 str(e),
@@ -460,13 +460,13 @@ class LinearTaskManager:
         """
         try:
             self._client.remove_label(task_id, label, self._team_id)
-            logger.info(
+            logger.debug(
                 "Removed label '%s'",
                 label,
                 extra={"task_id": task_id},
             )
         except Exception as e:
-            logger.warning(
+            logger.error(
                 "Failed to remove label '%s': %s",
                 label,
                 str(e),
@@ -485,12 +485,12 @@ class LinearTaskManager:
         """
         try:
             self._client.post_comment(task_id, body)
-            logger.info(
+            logger.debug(
                 "Posted sync comment",
                 extra={"task_id": task_id},
             )
         except Exception as e:
-            logger.warning(
+            logger.error(
                 "Failed to post comment: %s",
                 str(e),
                 extra={"task_id": task_id},

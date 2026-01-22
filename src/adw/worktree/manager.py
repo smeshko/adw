@@ -297,7 +297,7 @@ class WorktreeManager:
                     )
                 )
 
-                logger.info(
+                logger.debug(
                     "Preserved artifact",
                     extra={
                         "artifact": artifact_name,
@@ -324,7 +324,7 @@ class WorktreeManager:
         try:
             manifest_path.write_text(json.dumps(manifest_data, indent=2))
             preserved_paths.append(manifest_path)
-            logger.info(
+            logger.debug(
                 "Created artifact manifest",
                 extra={"path": str(manifest_path)},
             )

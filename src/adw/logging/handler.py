@@ -113,6 +113,8 @@ class LogManagerHandler(logging.Handler):
         - Modules containing 'executor' or 'llm' -> LLM
         - Modules containing 'hook' -> HOOK
         - Modules containing 'state' -> STATE
+        - Modules containing 'webhook' -> WEBHOOK
+        - Modules containing 'perf' or 'timing' -> PERFORMANCE
         - Everything else -> PHASE (default for orchestration)
 
         Args:
@@ -125,10 +127,15 @@ class LogManagerHandler(logging.Handler):
 
         if "executor" in name_lower or "llm" in name_lower:
             return LogCategory.LLM
+        elif "webhook" in name_lower:
+            # Check webhook before hook since webhook contains hook
+            return LogCategory.WEBHOOK
         elif "hook" in name_lower:
             return LogCategory.HOOK
         elif "state" in name_lower:
             return LogCategory.STATE
+        elif "perf" in name_lower or "timing" in name_lower:
+            return LogCategory.PERFORMANCE
         else:
             # Default to PHASE for orchestration-related logs
             return LogCategory.PHASE

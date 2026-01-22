@@ -152,13 +152,13 @@ class GitHubClient:
         response = client.get(f"/repos/{owner}/{repo}/pulls/{number}/merge")
 
         if response.status_code == 204:
-            logger.info("PR is merged: %s/%s#%d", owner, repo, number)
+            logger.debug("PR is merged: %s/%s#%d", owner, repo, number)
             return True
         elif response.status_code == 404:
             logger.debug("PR is not merged: %s/%s#%d", owner, repo, number)
             return False
         else:
-            # Unexpected status code
+            # Unexpected status code - treat as not merged
             logger.warning(
                 "Unexpected GitHub API response %d for %s/%s#%d",
                 response.status_code,

@@ -8,20 +8,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel, Verbosity
+from adw.models.logging import (
+    LEVEL_ORDER,
+    LogCategory,
+    LogContext,
+    LogEvent,
+    LogLevel,
+    Verbosity,
+)
 
 if TYPE_CHECKING:
     from adw.logging.redactor import Redactor
-
-# Level ordering for filtering
-LEVEL_ORDER: dict[LogLevel, int] = {
-    LogLevel.TRACE: 0,
-    LogLevel.DEBUG: 1,
-    LogLevel.INFO: 2,
-    LogLevel.WARN: 3,
-    LogLevel.ERROR: 4,
-    LogLevel.FATAL: 5,
-}
 
 
 @runtime_checkable

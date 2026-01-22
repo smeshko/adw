@@ -127,8 +127,8 @@ def verify_linear_signature(request: Request, body: bytes) -> bool:
     signature = request.headers.get(HEADER_LINEAR_SIGNATURE)
 
     if not signature:
-        logger.warning(
-            "Missing signature header for Linear webhook",
+        logger.error(
+            "Missing signature header for Linear webhook - request rejected",
             extra={
                 "provider": "linear",
                 "header": HEADER_LINEAR_SIGNATURE,
@@ -138,8 +138,8 @@ def verify_linear_signature(request: Request, body: bytes) -> bool:
         raise SignatureVerificationError("linear", "Missing signature header")
 
     if not verify_hmac_signature(body, signature, secret, "sha256"):
-        logger.warning(
-            "Invalid Linear webhook signature",
+        logger.error(
+            "Invalid Linear webhook signature - request rejected",
             extra={"provider": "linear", "source_ip": _get_client_ip(request)},
         )
         raise SignatureVerificationError("linear", "Invalid signature")
@@ -179,8 +179,8 @@ def verify_github_signature(request: Request, body: bytes) -> bool:
     header = request.headers.get(HEADER_GITHUB_SIGNATURE_256)
 
     if not header:
-        logger.warning(
-            "Missing signature header for GitHub webhook",
+        logger.error(
+            "Missing signature header for GitHub webhook - request rejected",
             extra={
                 "provider": "github",
                 "header": HEADER_GITHUB_SIGNATURE_256,
@@ -191,8 +191,8 @@ def verify_github_signature(request: Request, body: bytes) -> bool:
 
     # GitHub format: "sha256=<hex_signature>"
     if not header.startswith("sha256="):
-        logger.warning(
-            "Invalid GitHub signature format",
+        logger.error(
+            "Invalid GitHub signature format - request rejected",
             extra={
                 "provider": "github",
                 "expected_prefix": "sha256=",
@@ -204,8 +204,8 @@ def verify_github_signature(request: Request, body: bytes) -> bool:
     signature = header[7:]  # Remove "sha256=" prefix
 
     if not verify_hmac_signature(body, signature, secret, "sha256"):
-        logger.warning(
-            "Invalid GitHub webhook signature",
+        logger.error(
+            "Invalid GitHub webhook signature - request rejected",
             extra={"provider": "github", "source_ip": _get_client_ip(request)},
         )
         raise SignatureVerificationError("github", "Invalid signature")
