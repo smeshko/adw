@@ -23,10 +23,14 @@ from ulid import ULID
 
 console = Console()
 
-# Pattern to parse structured log lines: [timestamp] [CATEGORY] content
+# Pattern to parse structured log lines with optional level prefix:
+# Format 1: [timestamp] [CATEGORY] content
+# Format 2: [timestamp] [LEVEL] [COMPONENT] content (prefer COMPONENT)
 LOG_LINE_PATTERN = re.compile(
     r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[(\w+)\] (.*)$"
 )
+# Pattern to extract component from content that starts with [COMPONENT]
+COMPONENT_PATTERN = re.compile(r"^\[(\w+)\] (.*)$")
 
 # Panel border colors by log category
 PANEL_COLORS: dict[str, str] = {
@@ -58,6 +62,9 @@ def _parse_log_line(line: str) -> tuple[str, str, str] | None:
     """Parse a structured log line into components.
 
     Strips ANSI codes before parsing to handle colored log output.
+    Handles two formats:
+    - [timestamp] [CATEGORY] content
+    - [timestamp] [LEVEL] [COMPONENT] content (extracts COMPONENT as category)
 
     Args:
         line: A single log line (may contain ANSI codes).
@@ -70,7 +77,21 @@ def _parse_log_line(line: str) -> tuple[str, str, str] | None:
     clean_line = _strip_ansi(line.strip())
     match = LOG_LINE_PATTERN.match(clean_line)
     if match:
-        return match.group(1), match.group(2), match.group(3)
+        timestamp = match.group(1)
+        category = match.group(2)
+        content = match.group(3)
+
+        # Check if content starts with [COMPONENT] - if so, use that as category
+        # This handles format: [timestamp] [INFO] [PHASE] message
+        component_match = COMPONENT_PATTERN.match(content)
+        if component_match:
+            component = component_match.group(1)
+            # Only override if component is a known category (PHASE, LLM, TOOL, etc.)
+            if component in PANEL_COLORS:
+                category = component
+                content = component_match.group(2)
+
+        return timestamp, category, content
     return None
 
 
@@ -128,13 +149,30 @@ def _render_log_line(line: str, in_llm_stream: bool) -> bool:
         return in_llm_stream
 
     else:
-        # Unstructured content (LLM streaming text)
+        # Unstructured content (LLM streaming text or other)
+        clean_line = _strip_ansi(line.rstrip())
+        if not clean_line:
+            # Empty line - just print newline
+            console.print()
+            return in_llm_stream
+
         if in_llm_stream:
-            # Print streaming content directly without boxes
-            console.print(line, end="")
+            # LLM streaming content - show in cyan panel
+            panel = Panel(
+                clean_line,
+                title="[dim]LLM Output[/]",
+                border_style="cyan",
+                padding=(0, 1),
+            )
+            console.print(panel)
         else:
-            # Non-streaming unstructured content
-            console.print(line, end="")
+            # Non-streaming unstructured content - show in dim panel
+            panel = Panel(
+                clean_line,
+                border_style="dim",
+                padding=(0, 1),
+            )
+            console.print(panel)
         return in_llm_stream
 
 

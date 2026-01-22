@@ -647,6 +647,32 @@ class TestParseLogLine:
         assert category == "TOOL"
         assert content == "Read: /src/main.py"
 
+    def test_parse_line_extracts_component_from_content(self) -> None:
+        """Test parsing extracts [COMPONENT] from content when present."""
+        from adw.cli.logs import _parse_log_line
+
+        # Format: [timestamp] [INFO] [PHASE] message - should use PHASE as category
+        line = "[2024-01-15 10:30:45] [INFO] [PHASE] {run=01KEVKB9} Starting run"
+        result = _parse_log_line(line)
+        assert result is not None
+        timestamp, category, content = result
+        assert timestamp == "2024-01-15 10:30:45"
+        assert category == "PHASE"  # Should extract PHASE, not INFO
+        assert content == "{run=01KEVKB9} Starting run"
+
+    def test_parse_line_keeps_category_for_unknown_component(self) -> None:
+        """Test parsing keeps original category if component is not known."""
+        from adw.cli.logs import _parse_log_line
+
+        # Format: [timestamp] [INFO] [UNKNOWN] message - UNKNOWN not in PANEL_COLORS
+        line = "[2024-01-15 10:30:45] [INFO] [CUSTOM] Some message"
+        result = _parse_log_line(line)
+        assert result is not None
+        timestamp, category, content = result
+        assert timestamp == "2024-01-15 10:30:45"
+        assert category == "INFO"  # Keeps INFO since CUSTOM is not known
+        assert content == "[CUSTOM] Some message"  # Content unchanged
+
 
 class TestStripAnsi:
     """Tests for _strip_ansi helper function."""
