@@ -420,7 +420,7 @@ development_status:
   # UX Fix (from ISS-038) - MINOR
   # Document phase generates overly generic conditions for CONDITIONAL_DOCS.md
   # Should include feature name in conditions to prevent doc pollution
-  ux-fix-ISS-038-conditional-docs-too-generic: in-progress
+  ux-fix-ISS-038-conditional-docs-too-generic: review
   # Bugfix (from ISS-039) - CRITICAL
   # RunContext.task_id and task_info never populated in create_run_context()
   # StatusSyncService.post_phase_comment() and other methods silently return early

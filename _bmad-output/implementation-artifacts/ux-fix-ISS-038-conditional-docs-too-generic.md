@@ -1,6 +1,6 @@
 # Story ISS-038: Make Conditional Docs Conditions Feature-Specific
 
-Status: in-progress
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: N/A - UX Fix (LLM Prompt Instructions)
 Created: 2026-01-21
