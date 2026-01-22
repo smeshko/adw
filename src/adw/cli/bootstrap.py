@@ -267,10 +267,15 @@ def create_orchestrator(
         # Update PhaseRunner with the progress display
         phase_runner.progress_display = progress_display
 
-    # Create StatusSyncService if task manager is configured (Story 12.3, ISS-033)
+    # Create StatusSyncService if task manager is provided (Story 12.3, ISS-033, ISS-039)
+    # Pass task_info so methods use stored value instead of context (same pattern as LabelManager)
+    # Ensure task_manager_config has a default if not set (e.g., config has task_manager: null)
     status_sync_service: StatusSyncService | None = None
-    if task_manager is not None and config is not None and config.task_manager:
-        status_sync_service = StatusSyncService(task_manager, config.task_manager)
+    if task_manager is not None:
+        effective_config = task_manager_config or TaskManagerConfig()
+        status_sync_service = StatusSyncService(
+            task_manager, effective_config, task_info=task_info
+        )
 
     # Create LabelManager if task manager and task_info are provided
     # CRITICAL: LabelManager must receive task_info.id (internal UUID)
@@ -285,7 +290,7 @@ def create_orchestrator(
     # This registers BuildExtension (diff capture) and DocumentExtension (PR creation)
     extension_registry = create_default_registry(git_config, runs_dir)
 
-    # Create orchestrator
+    # Create orchestrator (ISS-039: pass task_info to populate RunContext)
     orchestrator = Orchestrator(
         runs_dir=runs_dir,
         context_manager=context_manager,
@@ -301,6 +306,7 @@ def create_orchestrator(
         label_manager=label_manager,
         status_sync_service=status_sync_service,
         extension_registry=extension_registry,
+        task_info=task_info,
     )
 
     return orchestrator

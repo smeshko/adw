@@ -1,6 +1,6 @@
 # Story: Bugfix ISS-039 - RunContext Missing task_id and task_info
 
-Status: ready-for-dev
+Status: complete
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-22
@@ -36,27 +36,27 @@ So that phase completion comments and status updates are posted to my Linear iss
 ## Tasks / Subtasks
 
 ### Task 1: Make StatusSyncService Consistent with LabelManager (Primary Fix)
-- [ ] Add `task_info` parameter to StatusSyncService constructor
-- [ ] Store as `self._task_info` instance variable
-- [ ] Update all methods to use `self._task_info` instead of `context.task_info`
-- [ ] Fallback to context for backwards compatibility: `task_info = self._task_info or context.task_info`
-- [ ] Update bootstrap.py to pass task_info to StatusSyncService constructor
+- [x] Add `task_info` parameter to StatusSyncService constructor
+- [x] Store as `self._task_info` instance variable
+- [x] Update all methods to use `self._task_info` instead of `context.task_info`
+- [x] Fallback to context for backwards compatibility: `task_info = self._task_info or context.task_info`
+- [x] Update bootstrap.py to pass task_info to StatusSyncService constructor
 
 ### Task 2: Populate RunContext Fields (Consistency Fix)
-- [ ] Add `task_info` parameter to RunLifecycle constructor
-- [ ] Store `task_info` as instance variable on RunLifecycle
-- [ ] Update `create_run_context()` to populate `task_id` and `task_info` fields
-- [ ] Ensure RunContext fields are set: `task_id=task_info.identifier`, `task_info=task_info`
+- [x] Add `task_info` parameter to RunLifecycle constructor
+- [x] Store `task_info` as instance variable on RunLifecycle
+- [x] Update `create_run_context()` to populate `task_id` and `task_info` fields
+- [x] Ensure RunContext fields are set: `task_id=task_info.identifier`, `task_info=task_info`
 
 ### Task 3: Wire task_info Through Lifecycle Creation
-- [ ] Update bootstrap.py `create_orchestrator()` to pass task_info to RunLifecycle
-- [ ] Verify task_info flows from app.py → bootstrap.py → RunLifecycle → RunContext
+- [x] Update bootstrap.py `create_orchestrator()` to pass task_info to Orchestrator → RunLifecycle
+- [x] Verify task_info flows from app.py → bootstrap.py → Orchestrator → RunLifecycle → RunContext
 
 ### Task 4: Write Tests
-- [ ] Add test: StatusSyncService stores task_info from constructor
-- [ ] Add test: StatusSyncService.post_phase_comment() uses stored task_info
-- [ ] Add test: RunContext created with task_id and task_info populated
-- [ ] Add test: StatusSyncService methods don't return early when task_info provided
+- [x] Add test: StatusSyncService stores task_info from constructor
+- [x] Add test: StatusSyncService.post_phase_comment() uses stored task_info
+- [x] Add test: RunContext created with task_id and task_info populated
+- [x] Add test: StatusSyncService methods don't return early when task_info provided
 
 ---
 

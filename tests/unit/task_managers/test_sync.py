@@ -526,3 +526,179 @@ class TestStatusSyncServiceComments:
         # Failure comments should be posted
         service.post_failure_comment(context_with_task, "build", "Error")
         mock_task_manager.post_comment.assert_called_once()
+
+
+class TestStatusSyncServiceTaskInfo:
+    """Tests for ISS-039: StatusSyncService task_info storage and usage."""
+
+    @pytest.fixture
+    def mock_task_manager(self) -> MagicMock:
+        """Create a mock task manager with all necessary methods."""
+        manager = MagicMock()
+        manager.name = "linear"
+        manager.update_status = MagicMock()
+        manager.post_comment = MagicMock()
+        return manager
+
+    @pytest.fixture
+    def config(self) -> TaskManagerConfig:
+        """Create a task manager config with sync_comments enabled."""
+        return TaskManagerConfig(type="linear", team_key="RULE", sync_comments=True)
+
+    @pytest.fixture
+    def task_info(self) -> TaskInfo:
+        """Create a TaskInfo instance."""
+        return TaskInfo(
+            id="uuid-stored-123",
+            identifier="RULE-151",
+            title="Test task from constructor",
+        )
+
+    @pytest.fixture
+    def context_without_task(self) -> RunContext:
+        """Create a RunContext WITHOUT task information."""
+        return RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test feature",
+            current_phase="plan",
+            started_at=datetime.now(),
+            # No task_id or task_info - intentionally empty
+        )
+
+    def test_stores_task_info_from_constructor(
+        self,
+        mock_task_manager: MagicMock,
+        config: TaskManagerConfig,
+        task_info: TaskInfo,
+    ) -> None:
+        """StatusSyncService stores task_info from constructor."""
+        service = StatusSyncService(mock_task_manager, config, task_info=task_info)
+        assert service._task_info is not None
+        assert service._task_info == task_info
+        assert service._task_info.id == "uuid-stored-123"
+
+    def test_post_phase_comment_uses_stored_task_info(
+        self,
+        mock_task_manager: MagicMock,
+        config: TaskManagerConfig,
+        task_info: TaskInfo,
+        context_without_task: RunContext,
+    ) -> None:
+        """post_phase_comment uses stored task_info even when context has none."""
+        from datetime import timedelta
+
+        from adw.models.phase import PhaseResult, PhaseStatus
+
+        # Service has stored task_info, but context does NOT
+        service = StatusSyncService(mock_task_manager, config, task_info=task_info)
+
+        # Verify context has no task info
+        assert context_without_task.task_info is None
+        assert context_without_task.task_id is None
+
+        started = datetime.now()
+        completed = started + timedelta(seconds=10.5)
+        result = PhaseResult(
+            phase="plan",
+            status=PhaseStatus.COMPLETED,
+            started_at=started,
+            completed_at=completed,
+            artifacts=["file.md"],
+        )
+
+        # Should still work because service has stored task_info
+        service.post_phase_comment(context_without_task, "plan", result)
+
+        # Verify comment was posted using STORED task_info.id
+        mock_task_manager.post_comment.assert_called_once()
+        call_args = mock_task_manager.post_comment.call_args
+        assert call_args[0][0] == "uuid-stored-123"  # Uses stored task_info.id
+
+    def test_sync_phase_start_uses_stored_task_info(
+        self,
+        mock_task_manager: MagicMock,
+        config: TaskManagerConfig,
+        task_info: TaskInfo,
+        context_without_task: RunContext,
+    ) -> None:
+        """sync_phase_start uses stored task_info even when context has none."""
+        service = StatusSyncService(mock_task_manager, config, task_info=task_info)
+
+        # Context has no task info
+        assert context_without_task.task_info is None
+
+        service.sync_phase_start(context_without_task, "plan")
+
+        # Verify update_status was called using stored task_info.id
+        mock_task_manager.update_status.assert_called_once()
+        call_args = mock_task_manager.update_status.call_args
+        assert call_args[0][0] == "uuid-stored-123"
+
+    def test_falls_back_to_context_task_info(
+        self,
+        mock_task_manager: MagicMock,
+        config: TaskManagerConfig,
+    ) -> None:
+        """Falls back to context.task_info when no stored task_info."""
+        context_with_task = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test feature",
+            current_phase="plan",
+            started_at=datetime.now(),
+            task_id="RULE-456",
+            task_info=TaskInfo(
+                id="uuid-context-456",
+                identifier="RULE-456",
+                title="Task from context",
+            ),
+        )
+
+        # Service created WITHOUT task_info (task_info=None)
+        service = StatusSyncService(mock_task_manager, config, task_info=None)
+
+        service.sync_phase_start(context_with_task, "plan")
+
+        # Should use context.task_info.id as fallback
+        mock_task_manager.update_status.assert_called_once()
+        call_args = mock_task_manager.update_status.call_args
+        assert call_args[0][0] == "uuid-context-456"  # Fallback to context
+
+    def test_methods_do_not_return_early_with_stored_task_info(
+        self,
+        mock_task_manager: MagicMock,
+        config: TaskManagerConfig,
+        task_info: TaskInfo,
+        context_without_task: RunContext,
+    ) -> None:
+        """Methods execute fully when stored task_info is available.
+
+        This is the key fix for ISS-039: methods should NOT return early
+        when context has no task_info, as long as the service has stored task_info.
+        """
+        from datetime import timedelta
+
+        from adw.models.phase import PhaseResult, PhaseStatus
+
+        service = StatusSyncService(mock_task_manager, config, task_info=task_info)
+
+        # All these methods should execute (not return early) because
+        # the service has stored task_info even though context has none
+        started = datetime.now()
+        completed = started + timedelta(seconds=5.0)
+        result = PhaseResult(
+            phase="plan",
+            status=PhaseStatus.COMPLETED,
+            started_at=started,
+            completed_at=completed,
+        )
+
+        service.sync_phase_start(context_without_task, "plan")
+        service.sync_phase_transition(context_without_task, "plan", "build")
+        service.sync_run_failed(context_without_task, "build", "Error")
+        service.post_phase_comment(context_without_task, "plan", result)
+        service.post_failure_comment(context_without_task, "build", "Error")
+        service.post_completion_comment(context_without_task, summary="Done")
+
+        # Verify that all methods actually executed (called the task manager)
+        assert mock_task_manager.update_status.call_count == 3  # start, transition, failed
+        assert mock_task_manager.post_comment.call_count == 3  # phase, failure, completion
