@@ -43,10 +43,10 @@ So that phase completion comments and status updates are posted to my Linear iss
 - [x] Update bootstrap.py to pass task_info to StatusSyncService constructor
 
 ### Task 2: Populate RunContext Fields (Consistency Fix)
-- [ ] Add `task_info` parameter to RunLifecycle constructor
-- [ ] Store `task_info` as instance variable on RunLifecycle
-- [ ] Update `create_run_context()` to populate `task_id` and `task_info` fields
-- [ ] Ensure RunContext fields are set: `task_id=task_info.identifier`, `task_info=task_info`
+- [x] Add `task_info` parameter to RunLifecycle constructor
+- [x] Store `task_info` as instance variable on RunLifecycle
+- [x] Update `create_run_context()` to populate `task_id` and `task_info` fields
+- [x] Ensure RunContext fields are set: `task_id=task_info.identifier`, `task_info=task_info`
 
 ### Task 3: Wire task_info Through Lifecycle Creation
 - [ ] Update bootstrap.py `create_orchestrator()` to pass task_info to RunLifecycle

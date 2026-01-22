@@ -29,6 +29,7 @@ from adw.core.run_directory import RunDirectoryManager
 from adw.exceptions import ADWError, WorktreeError
 from adw.hooks.git_branch import sanitize_branch_name
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
+from adw.models.task import TaskInfo
 from adw.worktree import ConcurrentRunManager
 from adw.worktree.manager import WorktreeManager
 
@@ -93,6 +94,7 @@ class RunLifecycle:
         status_sync_service: StatusSyncService | None = None,
         worktree_manager: WorktreeManager | None = None,
         concurrent_run_manager: ConcurrentRunManager | None = None,
+        task_info: TaskInfo | None = None,
     ) -> None:
         """Initialize the RunLifecycle.
 
@@ -112,6 +114,8 @@ class RunLifecycle:
                 (optional, Story 12.3).
             worktree_manager: Manager for git worktrees (optional).
             concurrent_run_manager: Manager for tracking concurrent runs (optional).
+            task_info: Task information from external task manager (optional, ISS-039).
+                Used to populate RunContext.task_id and RunContext.task_info.
         """
         self.runs_dir = runs_dir
         self.project_path = project_path
@@ -127,6 +131,7 @@ class RunLifecycle:
         self._status_sync_service = status_sync_service
         self._worktree_manager = worktree_manager
         self._concurrent_run_manager = concurrent_run_manager
+        self._task_info = task_info
 
     def create_run_context(
         self,
@@ -184,7 +189,7 @@ class RunLifecycle:
             else:
                 worktree_path, branch_name = worktree_result
 
-        # Create initial context
+        # Create initial context (ISS-039: populate task_id and task_info)
         context = RunContext(
             run_id=run_id,
             feature_description=feature_description,
@@ -194,6 +199,8 @@ class RunLifecycle:
             worktree_path=worktree_path,
             use_worktree=should_use_worktree,
             branch_name=branch_name,
+            task_id=self._task_info.identifier if self._task_info else None,
+            task_info=self._task_info,
         )
 
         # Initialize run
