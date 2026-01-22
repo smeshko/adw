@@ -365,6 +365,86 @@ class ValidateCommandConfig(CommandConfig):
     )
 
 
+class DocMappingConfig(BaseModel):
+    """Configuration for mapping source files to documentation directories.
+
+    Used by the document phase to identify which documentation files should
+    be updated when specific source files change.
+
+    Attributes:
+        source_pattern: Glob pattern for source files (e.g., "src/core/**/*.py").
+        docs_dir: Directory containing documentation files to update.
+
+    Example:
+        >>> mapping = DocMappingConfig(
+        ...     source_pattern="src/adw/core/**/*.py",
+        ...     docs_dir="docs/architecture/deep-dive"
+        ... )
+        >>> mapping.source_pattern
+        'src/adw/core/**/*.py'
+
+    YAML example:
+        doc_mappings:
+          - source_pattern: "src/adw/core/**/*.py"
+            docs_dir: "docs/architecture/deep-dive"
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_pattern: str = Field(
+        ...,
+        min_length=1,
+        description="Glob pattern for source files (e.g., 'src/core/**/*.py')",
+    )
+    docs_dir: str = Field(
+        ...,
+        min_length=1,
+        description="Directory containing documentation files to update",
+    )
+
+
+class DocumentCommandConfig(CommandConfig):
+    """Document phase configuration extending CommandConfig.
+
+    Contains settings for the document phase including doc_mappings that
+    map source file patterns to documentation directories for automatic
+    surgical updates.
+
+    Attributes:
+        doc_mappings: List of source-to-docs directory mappings. When files
+            matching source_pattern change, the document phase looks for
+            corresponding docs in docs_dir (matched by filename stem).
+
+    Example:
+        >>> config = DocumentCommandConfig(
+        ...     doc_mappings=[
+        ...         DocMappingConfig(
+        ...             source_pattern="src/core/**/*.py",
+        ...             docs_dir="docs/architecture"
+        ...         )
+        ...     ]
+        ... )
+        >>> config.doc_mappings[0].source_pattern
+        'src/core/**/*.py'
+
+    YAML example (in .adw/commands/document/config.yaml):
+        enabled: true
+        timeout_seconds: 600
+        doc_mappings:
+          - source_pattern: "src/adw/core/**/*.py"
+            docs_dir: "docs/architecture/deep-dive"
+          - source_pattern: "src/adw/cli/**/*.py"
+            docs_dir: "docs/cli"
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    doc_mappings: list[DocMappingConfig] | None = Field(
+        default=None,
+        description="List of source file to documentation directory mappings",
+    )
+
+
 class ShipCommandConfig(CommandConfig):
     """Ship phase configuration extending CommandConfig.
 

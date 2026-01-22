@@ -196,6 +196,11 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
         validate_config = _configure_validate_phase(console)
         config.update(validate_config)
 
+    # Document phase special options
+    if phase == "document":
+        document_config = _configure_document_phase(console)
+        config.update(document_config)
+
     return config
 
 
@@ -242,6 +247,84 @@ def _configure_validate_phase(console: Console) -> dict[str, Any]:
         "max_iterations": max_iterations,
         "triage_mode": triage_mode,
     }
+
+
+def _configure_document_phase(console: Console) -> dict[str, Any]:
+    """Configure document phase special options.
+
+    Prompts user to configure doc_mappings which map source file patterns
+    to documentation directories for automatic surgical updates.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        Document-specific configuration dict.
+    """
+    console.print()
+    console.print("[dim]Document phase options:[/]")
+    console.print("[dim]Doc mappings link source file patterns to doc directories.[/]")
+    console.print("[dim]When matching source files change, their docs are updated.[/]")
+
+    add_mappings = Confirm.ask(
+        "Add doc mappings?", default=False, console=console
+    )
+
+    if not add_mappings:
+        return {}
+
+    doc_mappings = _prompt_doc_mappings(console)
+
+    if not doc_mappings:
+        return {}
+
+    return {
+        "doc_mappings": doc_mappings,
+    }
+
+
+def _prompt_doc_mappings(console: Console) -> list[dict[str, str]]:
+    """Prompt for source pattern to docs directory mappings.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        List of doc mapping dictionaries with source_pattern and docs_dir.
+    """
+    mappings: list[dict[str, str]] = []
+    console.print("[dim]Enter source_pattern=docs_dir pairs (empty to finish):[/]")
+    console.print("[dim]Example: src/core/**/*.py=docs/architecture[/]")
+
+    while True:
+        entry = Prompt.ask(
+            "pattern=dir",
+            default="",
+            console=console,
+        ).strip()
+
+        if not entry:
+            break
+
+        if "=" not in entry:
+            console.print("[yellow]Invalid format. Use source_pattern=docs_dir.[/]")
+            continue
+
+        pattern, docs_dir = entry.split("=", 1)
+        pattern = pattern.strip()
+        docs_dir = docs_dir.strip()
+
+        if not pattern or not docs_dir:
+            console.print("[yellow]Both pattern and docs_dir are required.[/]")
+            continue
+
+        mappings.append({
+            "source_pattern": pattern,
+            "docs_dir": docs_dir,
+        })
+        console.print(f"[green]Added:[/] {pattern} -> {docs_dir}")
+
+    return mappings
 
 
 def _prompt_input_files(console: Console) -> dict[str, str]:

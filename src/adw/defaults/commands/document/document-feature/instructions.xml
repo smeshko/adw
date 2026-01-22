@@ -107,6 +107,78 @@
       **Feature Docs:** {{existing_feature_docs_count}} existing in docs/features/
     </output>
 
+    <action>GOTO step 1b</action>
+  </step>
+
+  <!-- ================================================================== -->
+  <!-- STEP 1b: DOC MAPPINGS - Update mapped documentation files           -->
+  <!-- ================================================================== -->
+  <step n="1b" goal="Update existing docs based on doc_mappings configuration">
+    <critical>Process doc_mappings from document_config for surgical doc updates</critical>
+    <critical>Skip silently if no doc_mappings configured or no matches found</critical>
+    <critical>doc_mappings is available via {{document_config.doc_mappings}} template variable</critical>
+
+    <!-- 1b.1 Check doc_mappings from document_config -->
+    <check if="{{document_config.doc_mappings}} is null or empty">
+      <output>No doc_mappings configured - skipping mapped doc updates.</output>
+      <action>GOTO step 2</action>
+    </check>
+
+    <!-- 1b.2 Initialize mapping results tracking -->
+    <action>Initialize tracking for doc mapping updates:
+      - matched_files: files that matched a source_pattern
+      - docs_updated: doc files that were surgically updated
+      - docs_skipped: source files where no corresponding doc exists
+    </action>
+
+    <!-- 1b.3 Process each changed file against mappings -->
+    <action>For each file in {{changed_files}} (excluding deleted files):
+      1. For each mapping in {{document_config.doc_mappings}} (first match wins):
+         a. Test if file path matches the mapping's source_pattern using glob matching
+         b. If match found:
+            - Extract filename stem (e.g., "orchestrator" from "orchestrator.py")
+            - Construct expected doc path: [mapping.docs_dir]/[stem].md
+            - Check if expected doc file exists on disk
+
+      2. If expected doc file EXISTS:
+         - Add to matched_files list
+         - Read both the source file and the doc file
+         - Analyze what changed in the source file (use {{artifacts.build.diff}} for context)
+         - Identify sections in the doc that correspond to the changed code
+         - Apply SURGICAL updates to only those doc sections (do NOT rewrite entire doc)
+         - Add updated doc path to docs_updated list
+
+      3. If expected doc file does NOT exist:
+         - Add to docs_skipped list with reason "no matching doc"
+         - Continue to next file (do NOT create new docs - this is out of scope)
+
+      4. If file matches no patterns:
+         - Continue to next file (normal document phase behavior applies)
+    </action>
+
+    <!-- 1b.4 Display mapping results -->
+    <output>**Doc Mapping Results:**</output>
+
+    <check if="docs_updated is not empty">
+      <output>
+        ✅ **Documentation Files Updated:**
+        | Source File | Documentation Updated |
+        |-------------|----------------------|
+        [List each source file and its corresponding updated doc]
+      </output>
+    </check>
+
+    <check if="docs_skipped is not empty">
+      <output>
+        ⏭️ **Mappings Skipped (no matching doc file exists):**
+        [List each skipped source file and the doc path that would have been updated]
+      </output>
+    </check>
+
+    <check if="matched_files is empty">
+      <output>No changed files matched any doc_mappings patterns.</output>
+    </check>
+
     <action>GOTO step 2</action>
   </step>
 

@@ -14,6 +14,18 @@ timeout_seconds: 600
 #   model: claude-sonnet-4-20250514
 #   temperature: 0.5  # Moderate temperature for documentation
 
+# Map source files to documentation directories for automatic updates
+# When files matching source_pattern change, the document phase looks for
+# corresponding docs in docs_dir (matched by filename stem: foo.py -> foo.md)
+# Example:
+# doc_mappings:
+#   - source_pattern: "src/adw/core/**/*.py"
+#     docs_dir: "docs/architecture/deep-dive"
+#   - source_pattern: "src/adw/cli/**/*.py"
+#     docs_dir: "docs/cli"
+#   - source_pattern: "src/adw/models/**/*.py"
+#     docs_dir: "docs/models"
+
 # Artifacts to capture from this phase
 artifacts:
   - name: document_output

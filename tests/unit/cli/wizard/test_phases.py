@@ -15,10 +15,12 @@ from adw.cli.wizard.phases import (
     DEFAULT_TIMEOUTS,
     TRIAGE_MODES,
     PhasesStepHandler,
+    _configure_document_phase,
     _configure_phase,
     _configure_validate_phase,
     _parse_int,
     _parse_phase_selection,
+    _prompt_doc_mappings,
     _prompt_input_files,
     _prompt_phase_selection,
     run_phases_step,
@@ -472,6 +474,137 @@ class TestPhasesStepHandler:
 
         assert result["customized"] is False
         assert result["phases"] == {}
+
+
+class TestDocumentPhaseSpecialOptions:
+    """Tests for document phase special options (doc_mappings)."""
+
+    def test_document_phase_no_mappings(self) -> None:
+        """Test document phase config when declining to add mappings."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Confirm.ask", return_value=False):
+            config = _configure_document_phase(console)
+
+        assert config == {}
+
+    def test_document_phase_with_mappings(self) -> None:
+        """Test document phase config with doc_mappings."""
+        console = Console(force_terminal=True)
+
+        with (
+            patch("adw.cli.wizard.phases.Confirm.ask", return_value=True),
+            patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
+        ):
+            mock_prompt.side_effect = [
+                "src/core/**/*.py=docs/architecture",
+                "src/cli/**/*.py=docs/cli",
+                "",  # finish
+            ]
+            config = _configure_document_phase(console)
+
+        assert "doc_mappings" in config
+        assert len(config["doc_mappings"]) == 2
+        assert config["doc_mappings"][0]["source_pattern"] == "src/core/**/*.py"
+        assert config["doc_mappings"][0]["docs_dir"] == "docs/architecture"
+        assert config["doc_mappings"][1]["source_pattern"] == "src/cli/**/*.py"
+        assert config["doc_mappings"][1]["docs_dir"] == "docs/cli"
+
+    def test_document_phase_included_in_full_config(self) -> None:
+        """Test that document phase includes special options in full config."""
+        console = Console(force_terminal=True)
+
+        with (
+            patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
+            patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
+        ):
+            # Base config: enabled=True, no input files
+            # Document special: add_mappings=True
+            mock_confirm.side_effect = [
+                True,  # enabled
+                False,  # input files
+                True,  # add doc_mappings
+            ]
+            mock_prompt.side_effect = [
+                "300",  # timeout
+                "src/**/*.py=docs/src",  # mapping
+                "",  # finish mappings
+            ]
+
+            config = _configure_phase("document", console)
+
+        # Base options
+        assert config["enabled"] is True
+        assert config["timeout_seconds"] == 300
+
+        # Document-specific options
+        assert "doc_mappings" in config
+        assert len(config["doc_mappings"]) == 1
+
+
+class TestPromptDocMappings:
+    """Tests for _prompt_doc_mappings helper function."""
+
+    def test_single_mapping(self) -> None:
+        """Test adding a single doc mapping."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt:
+            mock_prompt.side_effect = ["src/**/*.py=docs/src", ""]
+            result = _prompt_doc_mappings(console)
+
+        assert len(result) == 1
+        assert result[0]["source_pattern"] == "src/**/*.py"
+        assert result[0]["docs_dir"] == "docs/src"
+
+    def test_multiple_mappings(self) -> None:
+        """Test adding multiple doc mappings."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt:
+            mock_prompt.side_effect = [
+                "src/core/**/*.py=docs/architecture",
+                "src/cli/**/*.py=docs/cli",
+                "src/models/**/*.py=docs/models",
+                "",
+            ]
+            result = _prompt_doc_mappings(console)
+
+        assert len(result) == 3
+        assert result[0]["source_pattern"] == "src/core/**/*.py"
+        assert result[1]["docs_dir"] == "docs/cli"
+        assert result[2]["source_pattern"] == "src/models/**/*.py"
+
+    def test_invalid_format_reprompts(self) -> None:
+        """Test that invalid format shows error and reprompts."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt:
+            mock_prompt.side_effect = [
+                "no_equals_sign",  # invalid
+                "src/**/*.py=docs/src",  # valid
+                "",
+            ]
+            result = _prompt_doc_mappings(console)
+
+        assert len(result) == 1
+        assert mock_prompt.call_count == 3
+
+    def test_empty_pattern_or_dir_reprompts(self) -> None:
+        """Test that empty pattern or dir shows error and reprompts."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt:
+            mock_prompt.side_effect = [
+                "=docs/src",  # empty pattern
+                "src/**/*.py=",  # empty dir
+                "src/**/*.py=docs/src",  # valid
+                "",
+            ]
+            result = _prompt_doc_mappings(console)
+
+        assert len(result) == 1
+        assert result[0]["source_pattern"] == "src/**/*.py"
 
 
 class TestFullFlow:
