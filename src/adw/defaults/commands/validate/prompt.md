@@ -5,7 +5,7 @@ Test and review the implementation of the plan.
 ## Context
 
 Run Context: {{context}}
-Plan: {{artifacts.plan.plan}}
+Plan: {{artifacts.plan.plan_output}}
 Diff: {{artifacts.build.diff}}
 Project Config: {{project_config}}
 Provided files: {{inputs.*}}
