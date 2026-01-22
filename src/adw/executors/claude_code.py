@@ -357,10 +357,9 @@ class ClaudeCodeExecutor:
                     if tool_info:
                         self.live_stream.write_tool_call(tool_info[0], tool_info[1])
 
-                    # Detect and log tool results inline
-                    tool_result = self._extract_tool_result(decoded)
-                    if tool_result:
-                        self.live_stream.write_tool_result("Tool", tool_result[1])
+                    # Note: Tool results are not available in Claude Code CLI's
+                    # stream-json output. Claude Code executes tools internally
+                    # and feeds results back to Claude without exposing them.
 
         async def read_stderr() -> None:
             """Read stderr line-by-line."""
