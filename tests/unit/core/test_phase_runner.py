@@ -5,9 +5,10 @@ pre-hook → prompt loading → LLM execution → post-hook → artifact capture
 """
 
 import os
+from collections.abc import Generator
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -26,6 +27,25 @@ from adw.models import (
     RunContext,
     ToolCall,
 )
+
+
+@pytest.fixture(autouse=True)
+def mock_git_operations() -> Generator[None]:
+    """Auto-mock git operations to prevent commits to real project directory.
+
+    This fixture runs automatically for all tests in this module. It patches
+    the git operations used by PhaseRunner._auto_commit_changes to prevent
+    accidental commits to the working directory when tests use contexts
+    with worktree_path=None.
+
+    Tests that need to verify git operation behavior should use their own
+    explicit patches which will override these.
+    """
+    with (
+        patch("adw.core.phase_runner.stage_changes", return_value=[]),
+        patch("adw.core.phase_runner.create_commit", return_value=None),
+    ):
+        yield
 
 
 @pytest.fixture
@@ -822,6 +842,8 @@ class TestPhaseRunnerWithMockExecutor:
         tmp_path: Path,
     ) -> None:
         """Test full flow with MockExecutor (no Claude Code needed)."""
+        from unittest.mock import patch
+
         from adw.executors.mock import MockExecutor
 
         # Create resolver with the temp command directory
@@ -847,7 +869,17 @@ class TestPhaseRunnerWithMockExecutor:
             artifact_manager=mock_artifact_manager,
         )
 
-        result = runner.run("plan", sample_context)
+        # Mock git operations to prevent commits to the real project directory
+        # (sample_context has worktree_path=None, so without mocking, git
+        # operations would affect the actual project working directory)
+        with (
+            patch("adw.core.phase_runner.stage_changes") as mock_stage,
+            patch("adw.core.phase_runner.create_commit") as mock_commit,
+        ):
+            mock_stage.return_value = []  # No files to stage
+            mock_commit.return_value = None
+
+            result = runner.run("plan", sample_context)
 
         assert result.status == PhaseStatus.COMPLETED
         assert result.tokens_used > 0

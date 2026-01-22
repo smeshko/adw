@@ -4,8 +4,10 @@ Tests the full phase execution flow with real components (except Claude Code).
 Uses MockExecutor to simulate LLM execution without requiring Claude Code.
 """
 
+from collections.abc import Generator
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -20,6 +22,21 @@ from adw.models import (
     PhaseStatus,
     RunContext,
 )
+
+
+@pytest.fixture(autouse=True)
+def mock_git_operations() -> Generator[None]:
+    """Auto-mock git operations to prevent commits to real project directory.
+
+    Even though tests use git_repo fixture for isolation, this provides an
+    additional safety layer to ensure no commits accidentally go to the
+    actual project working directory.
+    """
+    with (
+        patch("adw.core.phase_runner.stage_changes", return_value=[]),
+        patch("adw.core.phase_runner.create_commit", return_value=None),
+    ):
+        yield
 
 
 @pytest.fixture
