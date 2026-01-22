@@ -368,7 +368,6 @@ class TestRealTimeStreaming:
         LLM output is written to live.log for real-time tailing via `adw logs follow`.
         """
         import json
-        from pathlib import Path
 
         from adw.logging.live_stream import LiveStreamTransport
 

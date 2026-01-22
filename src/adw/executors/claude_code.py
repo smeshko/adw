@@ -579,22 +579,13 @@ class ClaudeCodeExecutor:
         """
         context: str | None = None
 
-        if tool_name == "Read":
-            context = arguments.get("file_path") or None
-
-        elif tool_name == "Write":
-            context = arguments.get("file_path") or None
-
-        elif tool_name == "Edit":
+        if tool_name == "Read" or tool_name == "Write" or tool_name == "Edit":
             context = arguments.get("file_path") or None
 
         elif tool_name == "Bash":
             context = arguments.get("command") or None
 
-        elif tool_name == "Glob":
-            context = arguments.get("pattern") or None
-
-        elif tool_name == "Grep":
+        elif tool_name == "Glob" or tool_name == "Grep":
             context = arguments.get("pattern") or None
 
         elif tool_name == "Task":

@@ -16,14 +16,15 @@ import yaml
 from pydantic import ValidationError
 
 from adw.commands.loader import get_config_class
-from adw.core.extensions import ExtensionRegistry
 from adw.commands.template import (
     build_task_context,
     validate_artifact_references,
 )
 from adw.core.constants import PHASE_SEQUENCE
+from adw.core.extensions import ExtensionRegistry
 from adw.exceptions import ADWError, ConfigError, HookError, LLMError
 from adw.hooks.git_commit import create_commit, stage_changes
+
 # Note: git_diff imports removed - BuildExtension now handles diff capture
 from adw.models import (
     LLMResult,

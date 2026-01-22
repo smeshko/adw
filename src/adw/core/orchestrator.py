@@ -12,15 +12,14 @@ Key responsibilities:
 
 import logging
 import time
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
-from collections.abc import Sequence
-
 from adw.core.constants import PHASE_SEQUENCE
-from adw.core.extensions import ExtensionRegistry
 from adw.core.context_manager import ContextManager
+from adw.core.extensions import ExtensionRegistry
 from adw.core.index_manager import IndexManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.resume_manager import ResumeManager

@@ -6,13 +6,13 @@ including context creation, success finalization, and error handling.
 
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from adw.core.run_lifecycle import RunLifecycle
-from adw.exceptions import ADWError, PhaseError
-from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
+from adw.exceptions import PhaseError
+from adw.models import RunContext, WorktreeConfig
 
 
 @pytest.fixture
