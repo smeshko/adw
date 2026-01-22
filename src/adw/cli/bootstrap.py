@@ -267,10 +267,13 @@ def create_orchestrator(
         # Update PhaseRunner with the progress display
         phase_runner.progress_display = progress_display
 
-    # Create StatusSyncService if task manager is configured (Story 12.3, ISS-033)
+    # Create StatusSyncService if task manager is configured (Story 12.3, ISS-033, ISS-039)
+    # Pass task_info so methods use stored value instead of context (same pattern as LabelManager)
     status_sync_service: StatusSyncService | None = None
     if task_manager is not None and config is not None and config.task_manager:
-        status_sync_service = StatusSyncService(task_manager, config.task_manager)
+        status_sync_service = StatusSyncService(
+            task_manager, config.task_manager, task_info=task_info
+        )
 
     # Create LabelManager if task manager and task_info are provided
     # CRITICAL: LabelManager must receive task_info.id (internal UUID)

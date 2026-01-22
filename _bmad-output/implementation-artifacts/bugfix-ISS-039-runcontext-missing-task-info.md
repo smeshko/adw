@@ -36,11 +36,11 @@ So that phase completion comments and status updates are posted to my Linear iss
 ## Tasks / Subtasks
 
 ### Task 1: Make StatusSyncService Consistent with LabelManager (Primary Fix)
-- [ ] Add `task_info` parameter to StatusSyncService constructor
-- [ ] Store as `self._task_info` instance variable
-- [ ] Update all methods to use `self._task_info` instead of `context.task_info`
-- [ ] Fallback to context for backwards compatibility: `task_info = self._task_info or context.task_info`
-- [ ] Update bootstrap.py to pass task_info to StatusSyncService constructor
+- [x] Add `task_info` parameter to StatusSyncService constructor
+- [x] Store as `self._task_info` instance variable
+- [x] Update all methods to use `self._task_info` instead of `context.task_info`
+- [x] Fallback to context for backwards compatibility: `task_info = self._task_info or context.task_info`
+- [x] Update bootstrap.py to pass task_info to StatusSyncService constructor
 
 ### Task 2: Populate RunContext Fields (Consistency Fix)
 - [ ] Add `task_info` parameter to RunLifecycle constructor

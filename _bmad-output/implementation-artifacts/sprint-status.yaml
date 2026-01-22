@@ -424,4 +424,4 @@ development_status:
   # Bugfix (from ISS-039) - CRITICAL
   # RunContext.task_id and task_info never populated in create_run_context()
   # StatusSyncService.post_phase_comment() and other methods silently return early
-  bugfix-ISS-039-runcontext-missing-task-info: ready-for-dev
+  bugfix-ISS-039-runcontext-missing-task-info: in-progress

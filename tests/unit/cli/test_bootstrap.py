@@ -82,10 +82,11 @@ class TestBootstrapTaskManagerWiring:
                 task_info=mock_task_info,
             )
 
-        # Verify StatusSyncService was created with correct arguments
+        # Verify StatusSyncService was created with correct arguments (ISS-039: now includes task_info)
         mock_sync_service_class.assert_called_once_with(
             mock_task_manager,
             mock_config_with_labels,
+            task_info=mock_task_info,
         )
 
     @patch("adw.cli.bootstrap.ConfigLoader")

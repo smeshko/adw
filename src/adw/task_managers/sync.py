@@ -14,6 +14,7 @@ from typing import Any
 from adw.models.config import TaskManagerConfig
 from adw.models.context import RunContext
 from adw.models.phase import PhaseResult
+from adw.models.task import TaskInfo
 from adw.task_managers.base import TaskManager
 from adw.task_managers.comments import CommentFormatter
 
@@ -48,32 +49,39 @@ class StatusSyncService:
         self,
         task_manager: TaskManager,
         config: TaskManagerConfig,
+        task_info: TaskInfo | None = None,
     ) -> None:
         """Initialize StatusSyncService.
 
         Args:
             task_manager: The task manager instance to use for status updates.
             config: Task manager configuration with state_mapping settings.
+            task_info: Optional TaskInfo with internal UUID for API calls.
+                task_info.id is used for Linear/Jira API calls.
+                If not provided, falls back to context.task_info (for backwards compat).
         """
         self._task_manager = task_manager
         self._config = config
+        self._task_info = task_info
         self._comment_formatter = CommentFormatter()
 
     def sync_phase_start(self, context: RunContext, phase: str) -> None:
         """Sync status when a phase starts.
 
         Updates the external task management system with the status mapped
-        from the starting phase. Does nothing if context has no task_id.
+        from the starting phase. Does nothing if no task_info is available.
 
         Args:
             context: The current run context with task information.
             phase: The phase that is starting (e.g., "plan", "build").
         """
-        if not context.task_id or not context.task_info:
+        # Use stored task_info, fallback to context for backwards compatibility
+        task_info = self._task_info or context.task_info
+        if not task_info:
             return
 
         self._safe_update_status(
-            context.task_info.id,
+            task_info.id,
             phase,
             {
                 "run_id": context.run_id,
@@ -90,18 +98,20 @@ class StatusSyncService:
         """Sync status on phase transition.
 
         Updates the external task management system with the status mapped
-        from the target phase. Does nothing if context has no task_id.
+        from the target phase. Does nothing if no task_info is available.
 
         Args:
             context: The current run context with task information.
             from_phase: The phase that just completed.
             to_phase: The phase that is starting.
         """
-        if not context.task_id or not context.task_info:
+        # Use stored task_info, fallback to context for backwards compatibility
+        task_info = self._task_info or context.task_info
+        if not task_info:
             return
 
         self._safe_update_status(
-            context.task_info.id,
+            task_info.id,
             to_phase,
             {
                 "run_id": context.run_id,
@@ -119,18 +129,20 @@ class StatusSyncService:
         """Sync status when run fails.
 
         Updates the external task management system with the "failed" status
-        mapping. Does nothing if context has no task_id.
+        mapping. Does nothing if no task_info is available.
 
         Args:
             context: The current run context with task information.
             phase: The phase where the failure occurred.
             error: The error message describing the failure.
         """
-        if not context.task_id or not context.task_info:
+        # Use stored task_info, fallback to context for backwards compatibility
+        task_info = self._task_info or context.task_info
+        if not task_info:
             return
 
         self._safe_update_status(
-            context.task_info.id,
+            task_info.id,
             "failed",
             {
                 "run_id": context.run_id,
@@ -211,7 +223,7 @@ class StatusSyncService:
 
         Posts a formatted comment to the task management system when a phase
         completes. Does nothing if:
-        - context has no task_id
+        - no task_info is available
         - sync_comments is False in config
         - comment_on_failure_only is True (success comments skipped)
 
@@ -220,7 +232,9 @@ class StatusSyncService:
             phase: The phase that completed.
             result: The phase result with duration and artifacts.
         """
-        if not context.task_id or not context.task_info:
+        # Use stored task_info, fallback to context for backwards compatibility
+        task_info = self._task_info or context.task_info
+        if not task_info:
             return
 
         # Check sync_comments config (Story 12.6)
@@ -245,7 +259,7 @@ class StatusSyncService:
             artifacts=artifacts_count,
         )
 
-        self._safe_post_comment(context.task_info.id, comment)
+        self._safe_post_comment(task_info.id, comment)
 
     def post_failure_comment(
         self,
@@ -257,7 +271,7 @@ class StatusSyncService:
 
         Posts a formatted comment to the task management system when a phase
         fails. Does nothing if:
-        - context has no task_id
+        - no task_info is available
         - sync_comments is False in config
 
         Note: Failure comments are ALWAYS posted (not affected by
@@ -268,7 +282,9 @@ class StatusSyncService:
             phase: The phase where the failure occurred.
             error: The error message.
         """
-        if not context.task_id or not context.task_info:
+        # Use stored task_info, fallback to context for backwards compatibility
+        task_info = self._task_info or context.task_info
+        if not task_info:
             return
 
         # Check sync_comments config (Story 12.6)
@@ -281,7 +297,7 @@ class StatusSyncService:
             run_id=context.run_id,
         )
 
-        self._safe_post_comment(context.task_info.id, comment)
+        self._safe_post_comment(task_info.id, comment)
 
     def post_completion_comment(
         self,
@@ -293,7 +309,7 @@ class StatusSyncService:
 
         Posts a formatted comment to the task management system when the run
         completes. Does nothing if:
-        - context has no task_id
+        - no task_info is available
         - sync_comments is False in config
         - comment_on_failure_only is True (success comments skipped)
 
@@ -302,7 +318,9 @@ class StatusSyncService:
             pr_url: The pull request URL if a PR was created.
             summary: A summary of the run outcome.
         """
-        if not context.task_id or not context.task_info:
+        # Use stored task_info, fallback to context for backwards compatibility
+        task_info = self._task_info or context.task_info
+        if not task_info:
             return
 
         # Check sync_comments config (Story 12.6)
@@ -319,7 +337,7 @@ class StatusSyncService:
             summary=summary,
         )
 
-        self._safe_post_comment(context.task_info.id, comment)
+        self._safe_post_comment(task_info.id, comment)
 
     def _safe_post_comment(self, task_id: str, body: str) -> None:
         """Post comment, catching and logging any errors.
