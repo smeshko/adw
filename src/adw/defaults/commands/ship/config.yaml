@@ -24,6 +24,7 @@ timeout_seconds: 900
 #   merge_on_success: false          # Auto-merge PR after validation
 #   delete_branch_on_merge: true     # Delete branch after merge
 #   merge_method: squash             # Merge method (merge/squash/rebase)
+#   bypass_ci: false                 # Bypass CI checks using --admin (requires admin access)
 
 # Input files for ship phase come from document phase artifacts
 # These are typically auto-loaded via artifact references in the prompt

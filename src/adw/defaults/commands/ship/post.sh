@@ -20,6 +20,7 @@
 #   ADW_SHIP_AUTO_MERGE       - Whether to auto-merge (true/false, default: true)
 #   ADW_SHIP_DELETE_BRANCH    - Delete branch after merge (true/false, default: true)
 #   ADW_SHIP_MERGE_STRATEGY   - Merge method (merge/squash/rebase, default: squash)
+#   ADW_SHIP_BYPASS_CI        - Bypass CI checks using --admin (true/false, default: false)
 #
 # Exit codes:
 #   0 - Success
@@ -239,6 +240,13 @@ if [[ "$pr_merge_approved" == "true" ]]; then
     if [[ "$delete_branch" == "true" ]]; then
         merge_cmd+=(--delete-branch)
         echo "Branch will be deleted after merge"
+    fi
+
+    # Add --admin flag to bypass CI checks if configured (requires admin access)
+    bypass_ci="${ADW_SHIP_BYPASS_CI:-false}"
+    if [[ "$bypass_ci" == "true" ]]; then
+        merge_cmd+=(--admin)
+        echo "Bypassing CI checks with --admin flag (requires admin access)"
     fi
 
     # Execute merge (using array expansion for proper quoting)
