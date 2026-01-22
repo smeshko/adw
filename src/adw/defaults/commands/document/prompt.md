@@ -27,9 +27,9 @@ Feature: {{feature_description}}
 
 {{inputs.*}}
 
-## Document Phase Configuration
+## Doc Mappings Configuration
 
-{{document_config}}
+{{doc_mappings}}
 
 ## Instructions
 

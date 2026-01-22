@@ -114,12 +114,12 @@
   <!-- STEP 1b: DOC MAPPINGS - Update mapped documentation files           -->
   <!-- ================================================================== -->
   <step n="1b" goal="Update existing docs based on doc_mappings configuration">
-    <critical>Process doc_mappings from document_config for surgical doc updates</critical>
+    <critical>Process doc_mappings for surgical doc updates</critical>
     <critical>Skip silently if no doc_mappings configured or no matches found</critical>
-    <critical>doc_mappings is available via {{document_config.doc_mappings}} template variable</critical>
+    <critical>doc_mappings is available via {{doc_mappings}} template variable (list of {source_pattern, docs_dir})</critical>
 
-    <!-- 1b.1 Check doc_mappings from document_config -->
-    <check if="{{document_config.doc_mappings}} is null or empty">
+    <!-- 1b.1 Check doc_mappings configuration -->
+    <check if="{{doc_mappings}} is empty">
       <output>No doc_mappings configured - skipping mapped doc updates.</output>
       <action>GOTO step 2</action>
     </check>
@@ -133,7 +133,7 @@
 
     <!-- 1b.3 Process each changed file against mappings -->
     <action>For each file in {{changed_files}} (excluding deleted files):
-      1. For each mapping in {{document_config.doc_mappings}} (first match wins):
+      1. For each mapping in {{doc_mappings}} (first match wins):
          a. Test if file path matches the mapping's source_pattern using glob matching
          b. If match found:
             - Extract filename stem (e.g., "orchestrator" from "orchestrator.py")
