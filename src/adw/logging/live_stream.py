@@ -260,32 +260,6 @@ class LiveStreamTransport:
         line = f"[{timestamp}] {label} {tool}{ctx}"
         self._write_line(line)
 
-    def write_tool_result(
-        self,
-        tool_name: str,
-        result_summary: str,
-    ) -> None:
-        """Write a tool result log entry.
-
-        Args:
-            tool_name: Name of the tool that produced the result
-            result_summary: Brief summary of the result (truncated if long)
-        """
-        if self._closed:
-            return
-
-        timestamp = self._format_timestamp()
-        label = self._colorize("[TOOL_RESULT]", "green")
-        tool = self._colorize(tool_name, "bold")
-
-        # Truncate result summary if too long
-        max_len = 100
-        if len(result_summary) > max_len:
-            result_summary = result_summary[: max_len - 3] + "..."
-
-        line = f"[{timestamp}] {label} {tool}: {result_summary}"
-        self._write_line(line)
-
     def write_phase(self, phase: str, event: str = "started") -> None:
         """Write a phase transition log entry.
 

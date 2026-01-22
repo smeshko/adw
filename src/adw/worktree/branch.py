@@ -151,19 +151,27 @@ class WorktreeBranchManager:
         except FileNotFoundError:
             return False
 
-    def delete_branch(self, run_id: str, force: bool = False) -> bool:
+    def delete_branch(
+        self,
+        run_id: str,
+        force: bool = False,
+        *,
+        branch_name: str | None = None,
+    ) -> bool:
         """Delete a worktree branch.
 
         Args:
             run_id: ULID identifier for the run.
             force: If True, use -D flag (force delete even if not merged).
                 If False, use -d flag which fails on unmerged branches.
+            branch_name: Explicit branch name to delete. If None, falls back to
+                deriving from run_id using get_branch_name().
 
         Returns:
             True if branch was deleted or didn't exist, False if preserved
             due to unpushed commits (when force=False).
         """
-        branch_name = self.get_branch_name(run_id)
+        branch_name = branch_name or self.get_branch_name(run_id)
 
         if not self.branch_exists(branch_name):
             return True  # Already gone

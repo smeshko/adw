@@ -80,11 +80,14 @@ def cleanup_command(
             recoverable=False,
         )
 
+    # Determine the actual branch name for display
+    display_branch = context.branch_name or f"adw/{run_id}"
+
     # Warn about branch deletion
     if delete_branch and not force:
         console.print(
             "[yellow]⚠ Warning:[/] --delete-branch will permanently remove "
-            f"the branch 'adw/{run_id}'"
+            f"the branch '{display_branch}'"
         )
         console.print(
             "[dim]Branches with existing PRs or unpushed commits "
@@ -107,6 +110,7 @@ def cleanup_command(
             run_id,
             force=force,
             delete_branch=delete_branch,
+            branch_name=context.branch_name,
         )
 
         if worktree_removed:
@@ -114,14 +118,14 @@ def cleanup_command(
 
         if delete_branch:
             if branch_deleted:
-                console.print(f"[green]✓[/] Branch deleted: adw/{run_id}")
+                console.print(f"[green]✓[/] Branch deleted: {display_branch}")
             else:
                 console.print(
-                    f"[yellow]![/] Branch preserved: adw/{run_id} "
+                    f"[yellow]![/] Branch preserved: {display_branch} "
                     "(has PR, gh CLI unavailable, or deletion failed)"
                 )
         else:
-            console.print(f"[dim]Branch preserved: adw/{run_id}[/]")
+            console.print(f"[dim]Branch preserved: {display_branch}[/]")
 
     except WorktreeError as e:
         if e.code == "WORKTREE_NOT_FOUND":
@@ -131,12 +135,14 @@ def cleanup_command(
                 branch_manager = worktree_manager.branch_manager
                 # When worktree doesn't exist, user explicitly wants deletion
                 # Use force=True since there's no worktree to protect
-                deleted = branch_manager.delete_branch(run_id, force=True)
+                deleted = branch_manager.delete_branch(
+                    run_id, force=True, branch_name=context.branch_name
+                )
                 if deleted:
-                    console.print(f"[green]✓[/] Branch deleted: adw/{run_id}")
+                    console.print(f"[green]✓[/] Branch deleted: {display_branch}")
                 else:
                     console.print(
-                        f"[yellow]![/] Branch preserved: adw/{run_id} "
+                        f"[yellow]![/] Branch preserved: {display_branch} "
                         "(branch not found or deletion failed)"
                     )
         elif e.code == "WORKTREE_HAS_CHANGES":
@@ -216,6 +222,9 @@ def cleanup_orphans_command(
         project_root=project_root,
         base_dir=manager.base_dir,
     )
+    # Context manager for loading branch names from context files
+    runs_dir = get_runs_dir()
+    context_manager = ContextManager(runs_dir)
 
     removed_count = 0
     branch_deleted_count = 0
@@ -223,11 +232,20 @@ def cleanup_orphans_command(
     for worktree_path in orphaned:
         run_id = worktree_path.name
 
+        # Try to load context to get actual branch name
+        branch_name: str | None = None
+        try:
+            ctx = context_manager.load(run_id)
+            branch_name = ctx.branch_name
+        except StateError:
+            pass  # Context not found, will fall back to default naming
+
         try:
             worktree_removed, branch_deleted = worktree_manager.remove_worktree(
                 run_id,
                 force=force,
                 delete_branch=delete_branch,
+                branch_name=branch_name,
             )
 
             if worktree_removed:

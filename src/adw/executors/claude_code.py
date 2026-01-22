@@ -357,10 +357,6 @@ class ClaudeCodeExecutor:
                     if tool_info:
                         self.live_stream.write_tool_call(tool_info[0], tool_info[1])
 
-                    # Note: Tool results are not available in Claude Code CLI's
-                    # stream-json output. Claude Code executes tools internally
-                    # and feeds results back to Claude without exposing them.
-
         async def read_stderr() -> None:
             """Read stderr line-by-line."""
             while True:
@@ -578,42 +574,41 @@ class ClaudeCodeExecutor:
             arguments: Tool arguments.
 
         Returns:
-            A brief context string (e.g., file path), or None.
+            A context string (e.g., file path), or None.
+            Newlines are replaced with ↵ to keep log entries on single lines.
         """
-        max_len = 60
+        context: str | None = None
 
         if tool_name == "Read":
-            path = arguments.get("file_path", "")
-            return path[:max_len] if path else None
+            context = arguments.get("file_path") or None
 
-        if tool_name == "Write":
-            path = arguments.get("file_path", "")
-            return path[:max_len] if path else None
+        elif tool_name == "Write":
+            context = arguments.get("file_path") or None
 
-        if tool_name == "Edit":
-            path = arguments.get("file_path", "")
-            return path[:max_len] if path else None
+        elif tool_name == "Edit":
+            context = arguments.get("file_path") or None
 
-        if tool_name == "Bash":
-            cmd = arguments.get("command", "")
-            return cmd[:max_len] if cmd else None
+        elif tool_name == "Bash":
+            context = arguments.get("command") or None
 
-        if tool_name == "Glob":
-            pattern = arguments.get("pattern", "")
-            return pattern[:max_len] if pattern else None
+        elif tool_name == "Glob":
+            context = arguments.get("pattern") or None
 
-        if tool_name == "Grep":
-            pattern = arguments.get("pattern", "")
-            return pattern[:max_len] if pattern else None
+        elif tool_name == "Grep":
+            context = arguments.get("pattern") or None
 
-        if tool_name == "Task":
-            subagent = arguments.get("subagent_type", "")
+        elif tool_name == "Task":
+            subagent = arguments.get("subagent_type")
             if subagent:
-                return subagent[:max_len]
-            desc = arguments.get("description", "")
-            return desc[:max_len] if desc else None
+                context = subagent
+            else:
+                context = arguments.get("description") or None
 
-        return None
+        # Replace newlines with ↵ to keep log entries on single lines
+        if context and "\n" in context:
+            context = context.replace("\n", " ↵ ")
+
+        return context
 
     def _extract_tool_call(self, line: str) -> tuple[str, str | None] | None:
         """Extract tool call info from stream-json line for inline logging.
@@ -644,57 +639,6 @@ class ClaudeCodeExecutor:
                         tool_name, block.get("input", {})
                     )
                     return (tool_name, context)
-
-        return None
-
-    def _extract_tool_result(self, line: str) -> tuple[str, str] | None:
-        """Extract tool result info from stream-json line for inline logging.
-
-        Detects tool_result blocks in user messages as they stream, enabling
-        real-time logging of tool results.
-
-        Args:
-            line: A single line of stream-json output.
-
-        Returns:
-            Tuple of (tool_use_id, result_summary) if tool result found, None otherwise.
-        """
-        try:
-            data = json.loads(line.strip())
-        except json.JSONDecodeError:
-            return None
-
-        if not isinstance(data, dict):
-            return None
-
-        # Check for tool_result in user message content blocks
-        # Claude Code outputs tool results as user messages with tool_result blocks
-        if data.get("type") == "user":
-            for block in data.get("message", {}).get("content", []):
-                if block.get("type") == "tool_result":
-                    tool_use_id = block.get("tool_use_id", "unknown")
-                    content = block.get("content", "")
-
-                    # Extract summary from content (could be string or list)
-                    if isinstance(content, str):
-                        result_summary = content
-                    elif isinstance(content, list):
-                        # Content might be a list of text blocks
-                        texts = []
-                        for item in content:
-                            if isinstance(item, dict) and item.get("type") == "text":
-                                texts.append(item.get("text", ""))
-                            elif isinstance(item, str):
-                                texts.append(item)
-                        result_summary = " ".join(texts)
-                    else:
-                        result_summary = str(content)
-
-                    # Truncate very long results
-                    if len(result_summary) > 200:
-                        result_summary = result_summary[:197] + "..."
-
-                    return (tool_use_id, result_summary)
 
         return None
 

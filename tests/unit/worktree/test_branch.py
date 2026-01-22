@@ -347,6 +347,35 @@ class TestBranchDeletion:
         )
         assert f"adw/{run_id}" not in branch_list.stdout
 
+    def test_deletes_branch_with_explicit_branch_name(self, git_repo: Path) -> None:
+        """Deletes branch using explicit branch_name parameter."""
+        from adw.worktree.branch import WorktreeBranchManager
+
+        # Create a feature branch (not the default adw/ pattern)
+        feature_branch = "feature/add-user-auth"
+        subprocess.run(
+            ["git", "branch", feature_branch],
+            cwd=git_repo,
+            check=True,
+            capture_output=True,
+        )
+
+        manager = WorktreeBranchManager(git_repo)
+        run_id = "01HQTEST12345678901234567"
+
+        # Delete using explicit branch name (different from derived name)
+        result = manager.delete_branch(run_id, force=True, branch_name=feature_branch)
+
+        assert result is True
+        # Verify feature branch is gone
+        branch_list = subprocess.run(
+            ["git", "branch", "--list", feature_branch],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+        )
+        assert feature_branch not in branch_list.stdout
+
 
 class TestPRDetection:
     """Tests for PR existence checking."""

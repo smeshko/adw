@@ -521,19 +521,23 @@ class WorktreeManager:
         preserve: bool = True,
         artifacts_to_preserve: list[str] | None = None,
         manifest_file: str = "worktree-artifacts.json",
+        branch_name: str | None = None,
     ) -> tuple[bool, bool]:
         """Remove an existing worktree for the given run.
 
         Args:
             run_id: ULID identifier for this run.
             force: If True, remove even if there are uncommitted changes.
-            delete_branch: If True, also delete the `adw/<run_id>` branch.
+            delete_branch: If True, also delete the associated branch.
                 Branch will be preserved if it has a PR or gh CLI is unavailable
                 (unless force=True).
             preserve: If True, preserve artifacts before removal (default: True).
             artifacts_to_preserve: List of artifact names to preserve. If None,
                 uses DEFAULT_PRESERVE_ARTIFACTS.
             manifest_file: Name of the manifest file to create.
+            branch_name: Explicit branch name to delete. If None, falls back to
+                deriving from run_id (adw/<run_id>). This should be used when
+                git integration creates feature branches like feature/<name>.
 
         Returns:
             Tuple of (worktree_removed, branch_deleted).
@@ -546,7 +550,7 @@ class WorktreeManager:
                 and force=False.
         """
         worktree_path = self.worktree_base_path / run_id
-        branch_name = self._branch_manager.get_branch_name(run_id)
+        branch_name = branch_name or self._branch_manager.get_branch_name(run_id)
 
         # Check if worktree exists
         if not worktree_path.exists():
@@ -637,7 +641,7 @@ class WorktreeManager:
                     # Use force=True since ADW branches always have unmerged commits
                     # PR check above is the safety guard, not unmerged commits
                     branch_deleted = self._branch_manager.delete_branch(
-                        run_id, force=True
+                        run_id, force=True, branch_name=branch_name
                     )
                     if not branch_deleted:
                         logger.warning(
