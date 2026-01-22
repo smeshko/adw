@@ -130,13 +130,11 @@ class LiveStreamTransport:
             self._path.parent.mkdir(parents=True, exist_ok=True)
 
             # Write with file locking for concurrency safety
-            with (
-                FileLock(self._lock_path),
-                open(self._path, "a", encoding="utf-8") as f,
-            ):
-                f.write(line + "\n")
-                if flush:
-                    f.flush()
+            with FileLock(self._lock_path):
+                with open(self._path, "a", encoding="utf-8") as f:
+                    f.write(line + "\n")
+                    if flush:
+                        f.flush()
         except OSError as e:
             _logger.warning("Failed to write to live.log %s: %s", self._path, e)
 
@@ -165,8 +163,7 @@ class LiveStreamTransport:
 
         # Format: [timestamp] [LEVEL] [category] message
         level_str = self._colorize(f"[{event.level.value.upper()}]", level_color)
-        cat_upper = event.category.value.upper()
-        category_str = self._colorize(f"[{cat_upper}]", category_color)
+        category_str = self._colorize(f"[{event.category.value.upper()}]", category_color)
 
         # Build context if present
         context_parts = []
@@ -183,7 +180,7 @@ class LiveStreamTransport:
         self._write_line(line)
 
     def write_llm_start(self, phase: str | None = None) -> None:
-        """Write LLM token stream start marker with box border.
+        """Write LLM token stream start marker.
 
         Args:
             phase: Optional phase name for context
@@ -200,14 +197,10 @@ class LiveStreamTransport:
         line = f"[{timestamp}] {label} {marker} Token stream begins{phase_str}"
         self._write_line(line)
 
-        # Write top border of LLM box
-        top_border = self._colorize("┌─ LLM " + "─" * 50, "cyan")
-        self._write_line(top_border)
-
     def write_llm_token(self, content: str) -> None:
-        """Write LLM token content with box prefix.
+        """Write LLM token content.
 
-        Tokens are prefixed with box line character for visual hierarchy.
+        Tokens are written as-is for replay fidelity.
 
         Args:
             content: Token text content
@@ -215,12 +208,12 @@ class LiveStreamTransport:
         if self._closed:
             return
 
-        # Prefix token content with box line character
-        prefix = self._colorize("│ ", "cyan")
-        self._write_line(f"{prefix}{content}", flush=True)
+        # Write token content directly (no timestamp, just the text)
+        # This preserves the stream for replay
+        self._write_line(content, flush=True)
 
     def write_llm_end(self, token_count: int = 0, duration_ms: int = 0) -> None:
-        """Write LLM token stream end marker with box border.
+        """Write LLM token stream end marker.
 
         Args:
             token_count: Total tokens in the stream
@@ -230,11 +223,6 @@ class LiveStreamTransport:
             return
 
         self._in_llm_stream = False
-
-        # Write bottom border of LLM box
-        bottom_border = self._colorize("└" + "─" * 55, "cyan")
-        self._write_line(bottom_border)
-
         timestamp = self._format_timestamp()
         marker = self._colorize("◀", "cyan")
         label = self._colorize("[LLM]", "cyan")
@@ -247,7 +235,7 @@ class LiveStreamTransport:
             stats_parts.append(f"{seconds:.1f}s")
         stats = f" ({', '.join(stats_parts)})" if stats_parts else ""
 
-        line = f"[{timestamp}] {label} {marker} Token stream ends{stats}"
+        line = f"\n[{timestamp}] {label} {marker} Token stream ends{stats}"
         self._write_line(line)
 
     def write_tool_call(
@@ -257,11 +245,6 @@ class LiveStreamTransport:
     ) -> None:
         """Write a tool call log entry.
 
-        Format: [timestamp] [TOOL] ToolName: context
-        - Dim timestamp
-        - Yellow [TOOL] label
-        - Bold tool name
-
         Args:
             tool_name: Name of the tool being called
             context: Brief context (e.g., file path for Read)
@@ -270,92 +253,12 @@ class LiveStreamTransport:
             return
 
         timestamp = self._format_timestamp()
-        dim_timestamp = self._colorize(f"[{timestamp}]", "dim")
         label = self._colorize("[TOOL]", "yellow")
         tool = self._colorize(tool_name, "bold")
+        ctx = f": {context}" if context else ""
 
-        # Truncate long context paths: /very/long/.../file.swift
-        ctx = ""
-        if context:
-            if len(context) > 60:
-                # Truncate middle of path
-                context = context[:25] + "..." + context[-32:]
-            ctx = f": {context}"
-
-        line = f"{dim_timestamp} {label} {tool}{ctx}"
+        line = f"[{timestamp}] {label} {tool}{ctx}"
         self._write_line(line)
-
-    def write_tool_result(
-        self,
-        output: str,
-        *,
-        is_error: bool = False,
-        exit_code: int | None = None,
-    ) -> None:
-        """Write a tool result in boxed format.
-
-        Displays tool output in a visual box with Unicode box-drawing characters.
-        Long output (>10 lines) is truncated to show first 5 + last 5 lines.
-
-        Args:
-            output: The tool output content
-            is_error: Whether the result is an error (red box)
-            exit_code: Optional exit code to display in footer
-        """
-        if self._closed:
-            return
-
-        # Determine box color based on error state
-        box_color = "red" if is_error else "dim"
-
-        # Top border
-        top_label = "output"
-        top_border = self._colorize(f"┌─ {top_label} " + "─" * 50, box_color)
-        self._write_line(top_border)
-
-        # Process output lines
-        lines = output.split("\n") if output else []
-        max_lines = 10
-        truncation_threshold = 5
-
-        if len(lines) > max_lines:
-            # Show first 5 lines
-            for line_text in lines[:truncation_threshold]:
-                prefix = self._colorize("│ ", box_color)
-                self._write_line(f"{prefix}{line_text}")
-
-            # Truncation message
-            truncated_count = len(lines) - (truncation_threshold * 2)
-            truncation_msg = f"... ({truncated_count} lines truncated) ..."
-            prefix = self._colorize("│ ", box_color)
-            self._write_line(f"{prefix}{truncation_msg}")
-
-            # Show last 5 lines
-            for line_text in lines[-truncation_threshold:]:
-                prefix = self._colorize("│ ", box_color)
-                self._write_line(f"{prefix}{line_text}")
-        else:
-            # Show all lines
-            for line_text in lines:
-                prefix = self._colorize("│ ", box_color)
-                self._write_line(f"{prefix}{line_text}")
-
-        # Bottom border with optional exit code and error indicator
-        footer_parts = []
-        if exit_code is not None:
-            footer_parts.append(f"exit {exit_code}")
-        if is_error:
-            footer_parts.append("ERROR")
-
-        if footer_parts:
-            footer_text = " ".join(footer_parts)
-            bottom_border = self._colorize(
-                "└─ " + footer_text + " " + "─" * (50 - len(footer_text) - 1), box_color
-            )
-        else:
-            bottom_border = self._colorize("└" + "─" * 55, box_color)
-
-        self._write_line(bottom_border)
 
     def write_phase(self, phase: str, event: str = "started") -> None:
         """Write a phase transition log entry.
