@@ -392,10 +392,10 @@ class PhaseRunner:
             if isinstance(typed_config, ShipCommandConfig)
             else {}
         )
-        variables["document_config"] = (
-            typed_config.model_dump()
-            if isinstance(typed_config, DocumentCommandConfig)
-            else {}
+        variables["doc_mappings"] = (
+            [m.model_dump() for m in typed_config.doc_mappings]
+            if isinstance(typed_config, DocumentCommandConfig) and typed_config.doc_mappings
+            else []
         )
 
         # Load schema from command directory if exists (for validate phase)

@@ -1,6 +1,6 @@
 # Story: Bugfix ISS-039 - RunContext Missing task_id and task_info
 
-Status: ready-for-dev
+Status: done
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-22
