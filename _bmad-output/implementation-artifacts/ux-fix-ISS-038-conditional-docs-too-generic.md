@@ -1,6 +1,6 @@
 # Story ISS-038: Make Conditional Docs Conditions Feature-Specific
 
-Status: ready-for-dev
+Status: in-progress
 Linear Issue: not-configured
 Epic: N/A - UX Fix (LLM Prompt Instructions)
 Created: 2026-01-21
@@ -22,7 +22,7 @@ so that **CONDITIONAL_DOCS.md remains useful and doesn't trigger irrelevant docu
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1:** Add explicit guidance against generic conditions in `instructions.xml`
+- [x] **Task 1:** Add explicit guidance against generic conditions in `instructions.xml`
   - Add IMPORTANT directive after the condition generation action
   - Include BAD/GOOD examples for common generic patterns
   - Emphasize including feature name in every condition
@@ -205,18 +205,18 @@ Story created from ISS-038 issue report.
 
 ### Agent Model Used
 
-<!-- To be filled by dev agent -->
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
-<!-- To be filled by dev agent -->
+N/A - No debugging required for this prompt change.
 
 ### Completion Notes List
 
-<!-- To be filled by dev agent -->
+- **Task 1 Complete (2026-01-22):** Added IMPORTANT directive with BAD/GOOD examples to `instructions.xml` at lines 272-280. The directive explicitly guides the LLM to include feature name/domain context in generated conditions, with contrasting examples showing generic vs. specific patterns.
 
 ### File List
 
 | File | Action | Notes |
 |------|--------|-------|
-| `src/adw/defaults/commands/document/document-feature/instructions.xml` | EDIT | Add IMPORTANT block with BAD/GOOD examples at lines 269-271 |
+| `src/adw/defaults/commands/document/document-feature/instructions.xml` | EDIT | Added IMPORTANT block with BAD/GOOD examples at lines 272-280 |
