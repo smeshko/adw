@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 import pytest
 
+from adw.commands.loader import CommandLoader
 from adw.commands.resolver import CommandResolver
 from adw.commands.template import TemplateEngine
 from adw.core.artifact_manager import ArtifactManager
@@ -25,6 +26,7 @@ from adw.models import (
     PhaseStatus,
     RunContext,
 )
+from adw.models.command import DocumentCommandConfig
 
 
 @pytest.fixture(autouse=True)
@@ -514,3 +516,119 @@ No visual evidence captured
         # Should complete even without build artifacts
         assert result.status == PhaseStatus.COMPLETED
         assert "pr_description.md" in result.artifacts
+
+
+class TestDocumentPhaseDocMappings:
+    """Integration tests for Document phase doc_mappings configuration."""
+
+    def test_document_config_loads_with_doc_mappings(self, tmp_path: Path) -> None:
+        """Test that CommandLoader loads DocumentCommandConfig with doc_mappings."""
+        # Create document command directory with config including doc_mappings
+        cmd_dir = tmp_path / ".adw" / "commands" / "document"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Document prompt")
+        (cmd_dir / "config.yaml").write_text(
+            """timeout_seconds: 600
+doc_mappings:
+  - source_pattern: "src/adw/core/**/*.py"
+    docs_dir: "docs/architecture/deep-dive"
+  - source_pattern: "src/adw/cli/**/*.py"
+    docs_dir: "docs/cli"
+  - source_pattern: "src/adw/models/**/*.py"
+    docs_dir: "docs/models"
+"""
+        )
+
+        # Create a minimal RunContext
+        context = RunContext(
+            run_id="01HQXH9Z8G2K4M5N6P7R8S9T0V",
+            feature_description="Test doc mappings",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+        )
+
+        loader = CommandLoader(project_root=tmp_path)
+        loaded = loader.load_command("document", context)
+
+        # Verify config is DocumentCommandConfig
+        assert loaded.config is not None
+        assert isinstance(loaded.config, DocumentCommandConfig)
+
+        # Verify doc_mappings loaded correctly
+        assert loaded.config.doc_mappings is not None
+        assert len(loaded.config.doc_mappings) == 3
+
+        # Verify first mapping
+        assert loaded.config.doc_mappings[0].source_pattern == "src/adw/core/**/*.py"
+        assert loaded.config.doc_mappings[0].docs_dir == "docs/architecture/deep-dive"
+
+        # Verify second mapping
+        assert loaded.config.doc_mappings[1].source_pattern == "src/adw/cli/**/*.py"
+        assert loaded.config.doc_mappings[1].docs_dir == "docs/cli"
+
+        # Verify third mapping
+        assert loaded.config.doc_mappings[2].source_pattern == "src/adw/models/**/*.py"
+        assert loaded.config.doc_mappings[2].docs_dir == "docs/models"
+
+    def test_document_config_loads_without_doc_mappings(self, tmp_path: Path) -> None:
+        """Test that CommandLoader loads DocumentCommandConfig without doc_mappings."""
+        # Create document command directory with config WITHOUT doc_mappings
+        cmd_dir = tmp_path / ".adw" / "commands" / "document"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Document prompt")
+        (cmd_dir / "config.yaml").write_text("timeout_seconds: 300\n")
+
+        context = RunContext(
+            run_id="01HQXH9Z8G2K4M5N6P7R8S9T0V",
+            feature_description="Test no doc mappings",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+        )
+
+        loader = CommandLoader(project_root=tmp_path)
+        loaded = loader.load_command("document", context)
+
+        # Verify config is DocumentCommandConfig even without doc_mappings
+        assert loaded.config is not None
+        assert isinstance(loaded.config, DocumentCommandConfig)
+        assert loaded.config.timeout_seconds == 300
+        assert loaded.config.doc_mappings is None
+
+    def test_document_config_inherits_base_config_fields(self, tmp_path: Path) -> None:
+        """Test that DocumentCommandConfig correctly inherits base CommandConfig fields."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "document"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Document prompt")
+        (cmd_dir / "config.yaml").write_text(
+            """enabled: true
+timeout_seconds: 900
+input_files:
+  prd: docs/prd.md
+doc_mappings:
+  - source_pattern: "src/**/*.py"
+    docs_dir: "docs/src"
+pre_hook: echo "Starting document phase"
+"""
+        )
+
+        context = RunContext(
+            run_id="01HQXH9Z8G2K4M5N6P7R8S9T0V",
+            feature_description="Test inherited fields",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+        )
+
+        loader = CommandLoader(project_root=tmp_path)
+        loaded = loader.load_command("document", context)
+
+        # Verify base CommandConfig fields are inherited
+        assert loaded.config is not None
+        assert isinstance(loaded.config, DocumentCommandConfig)
+        assert loaded.config.enabled is True
+        assert loaded.config.timeout_seconds == 900
+        assert loaded.config.input_files == {"prd": "docs/prd.md"}
+        assert loaded.config.pre_hook == 'echo "Starting document phase"'
+
+        # Verify doc_mappings specific field
+        assert loaded.config.doc_mappings is not None
+        assert len(loaded.config.doc_mappings) == 1

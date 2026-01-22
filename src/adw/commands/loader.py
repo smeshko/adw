@@ -19,6 +19,7 @@ from adw.commands.template import TemplateEngine
 from adw.exceptions import ConfigError
 from adw.models.command import (
     CommandConfig,
+    DocumentCommandConfig,
     LoadedCommand,
     ShipCommandConfig,
     ValidateCommandConfig,
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
 PHASE_CONFIG_CLASSES: dict[str, type[CommandConfig]] = {
     "validate": ValidateCommandConfig,
     "ship": ShipCommandConfig,
+    "document": DocumentCommandConfig,
 }
 
 

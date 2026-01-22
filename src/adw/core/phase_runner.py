@@ -35,6 +35,7 @@ from adw.models import (
 )
 from adw.models.command import (
     CommandConfig,
+    DocumentCommandConfig,
     ShipCommandConfig,
     ValidateCommandConfig,
 )
@@ -389,6 +390,11 @@ class PhaseRunner:
         variables["ship_config"] = (
             typed_config.model_dump()
             if isinstance(typed_config, ShipCommandConfig)
+            else {}
+        )
+        variables["document_config"] = (
+            typed_config.model_dump()
+            if isinstance(typed_config, DocumentCommandConfig)
             else {}
         )
 

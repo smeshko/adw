@@ -27,6 +27,10 @@ Feature: {{feature_description}}
 
 {{inputs.*}}
 
+## Document Phase Configuration
+
+{{document_config}}
+
 ## Instructions
 
 ### Workflow Engine

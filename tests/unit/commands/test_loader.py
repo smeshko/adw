@@ -17,9 +17,16 @@ from pathlib import Path
 import pytest
 
 from adw.commands import CommandLoader, CommandResolver
+from adw.commands.loader import PHASE_CONFIG_CLASSES, get_config_class
 from adw.exceptions import ConfigError
 from adw.models import ResolvedCommand, RunContext
-from adw.models.command import LoadedCommand
+from adw.models.command import (
+    CommandConfig,
+    DocumentCommandConfig,
+    LoadedCommand,
+    ShipCommandConfig,
+    ValidateCommandConfig,
+)
 
 
 @pytest.fixture
@@ -613,3 +620,106 @@ class TestConfigLoading:
         result = loader.load_command("plan", run_context)
 
         assert result.config is None
+
+
+class TestPhaseConfigClasses:
+    """Tests for PHASE_CONFIG_CLASSES mapping and get_config_class function."""
+
+    def test_phase_config_classes_includes_validate(self) -> None:
+        """PHASE_CONFIG_CLASSES includes validate phase."""
+        assert "validate" in PHASE_CONFIG_CLASSES
+        assert PHASE_CONFIG_CLASSES["validate"] is ValidateCommandConfig
+
+    def test_phase_config_classes_includes_ship(self) -> None:
+        """PHASE_CONFIG_CLASSES includes ship phase."""
+        assert "ship" in PHASE_CONFIG_CLASSES
+        assert PHASE_CONFIG_CLASSES["ship"] is ShipCommandConfig
+
+    def test_phase_config_classes_includes_document(self) -> None:
+        """PHASE_CONFIG_CLASSES includes document phase."""
+        assert "document" in PHASE_CONFIG_CLASSES
+        assert PHASE_CONFIG_CLASSES["document"] is DocumentCommandConfig
+
+    def test_get_config_class_returns_specialized_for_validate(self) -> None:
+        """get_config_class returns ValidateCommandConfig for validate phase."""
+        assert get_config_class("validate") is ValidateCommandConfig
+
+    def test_get_config_class_returns_specialized_for_ship(self) -> None:
+        """get_config_class returns ShipCommandConfig for ship phase."""
+        assert get_config_class("ship") is ShipCommandConfig
+
+    def test_get_config_class_returns_specialized_for_document(self) -> None:
+        """get_config_class returns DocumentCommandConfig for document phase."""
+        assert get_config_class("document") is DocumentCommandConfig
+
+    def test_get_config_class_returns_base_for_unknown_phase(self) -> None:
+        """get_config_class returns CommandConfig for unknown phases."""
+        assert get_config_class("plan") is CommandConfig
+        assert get_config_class("build") is CommandConfig
+        assert get_config_class("unknown") is CommandConfig
+
+
+class TestDocumentConfigLoading:
+    """Tests for loading DocumentCommandConfig from config.yaml."""
+
+    def test_load_document_config_with_doc_mappings(
+        self, tmp_path: Path, run_context: RunContext
+    ) -> None:
+        """load_command loads DocumentCommandConfig with doc_mappings."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "document"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Document prompt", encoding="utf-8")
+        (cmd_dir / "config.yaml").write_text(
+            """timeout_seconds: 600
+doc_mappings:
+  - source_pattern: "src/core/**/*.py"
+    docs_dir: "docs/architecture"
+  - source_pattern: "src/cli/**/*.py"
+    docs_dir: "docs/cli"
+""",
+            encoding="utf-8",
+        )
+
+        # Update context for document phase
+        context = RunContext(
+            run_id=run_context.run_id,
+            feature_description=run_context.feature_description,
+            current_phase="document",
+            started_at=run_context.started_at,
+        )
+
+        loader = CommandLoader(project_root=tmp_path)
+        result = loader.load_command("document", context)
+
+        assert result.config is not None
+        assert isinstance(result.config, DocumentCommandConfig)
+        assert result.config.timeout_seconds == 600
+        assert result.config.doc_mappings is not None
+        assert len(result.config.doc_mappings) == 2
+        assert result.config.doc_mappings[0].source_pattern == "src/core/**/*.py"
+        assert result.config.doc_mappings[0].docs_dir == "docs/architecture"
+        assert result.config.doc_mappings[1].source_pattern == "src/cli/**/*.py"
+        assert result.config.doc_mappings[1].docs_dir == "docs/cli"
+
+    def test_load_document_config_without_doc_mappings(
+        self, tmp_path: Path, run_context: RunContext
+    ) -> None:
+        """load_command loads DocumentCommandConfig without doc_mappings."""
+        cmd_dir = tmp_path / ".adw" / "commands" / "document"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Document prompt", encoding="utf-8")
+        (cmd_dir / "config.yaml").write_text("timeout_seconds: 300", encoding="utf-8")
+
+        context = RunContext(
+            run_id=run_context.run_id,
+            feature_description=run_context.feature_description,
+            current_phase="document",
+            started_at=run_context.started_at,
+        )
+
+        loader = CommandLoader(project_root=tmp_path)
+        result = loader.load_command("document", context)
+
+        assert result.config is not None
+        assert isinstance(result.config, DocumentCommandConfig)
+        assert result.config.doc_mappings is None
