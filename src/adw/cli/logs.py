@@ -23,6 +23,116 @@ from ulid import ULID
 
 console = Console()
 
+# Pattern to parse structured log lines: [timestamp] [CATEGORY] content
+LOG_LINE_PATTERN = re.compile(
+    r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[(\w+)\] (.*)$"
+)
+
+# Panel border colors by log category
+PANEL_COLORS: dict[str, str] = {
+    "PHASE": "magenta",
+    "LLM": "cyan",
+    "TOOL": "yellow",
+    "ERROR": "red",
+    "INFO": "green",
+    "WARN": "yellow",
+}
+
+# ANSI escape code pattern for stripping colors
+ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape codes from text.
+
+    Args:
+        text: Text potentially containing ANSI codes.
+
+    Returns:
+        Clean text without ANSI codes.
+    """
+    return ANSI_PATTERN.sub("", text)
+
+
+def _parse_log_line(line: str) -> tuple[str, str, str] | None:
+    """Parse a structured log line into components.
+
+    Args:
+        line: A single log line.
+
+    Returns:
+        Tuple of (timestamp, category, content) if structured log line,
+        None otherwise.
+    """
+    match = LOG_LINE_PATTERN.match(line.strip())
+    if match:
+        return match.group(1), match.group(2), match.group(3)
+    return None
+
+
+def _render_log_line(line: str, in_llm_stream: bool) -> bool:
+    """Render a log line as a colored panel or plain text.
+
+    Args:
+        line: The log line to render.
+        in_llm_stream: Whether we're currently inside LLM streaming content.
+
+    Returns:
+        Updated in_llm_stream state (True if inside streaming content).
+    """
+    parsed = _parse_log_line(line)
+
+    if parsed:
+        timestamp, category, content = parsed
+        color = PANEL_COLORS.get(category, "dim")
+
+        # Strip ANSI codes from content for clean panel
+        clean_content = _strip_ansi(content)
+
+        # Detect LLM stream boundaries
+        if category == "LLM":
+            if "Token stream begins" in clean_content:
+                # Show the marker in a panel, then start streaming mode
+                panel = Panel(
+                    clean_content,
+                    title=f"[dim]{timestamp}[/] [{color}]{category}[/]",
+                    border_style=color,
+                    padding=(0, 1),
+                )
+                console.print(panel)
+                return True  # Now in LLM stream mode
+            elif "Token stream ends" in clean_content:
+                # End streaming mode, show the marker
+                console.print()  # Newline after streamed content
+                panel = Panel(
+                    clean_content,
+                    title=f"[dim]{timestamp}[/] [{color}]{category}[/]",
+                    border_style=color,
+                    padding=(0, 1),
+                )
+                console.print(panel)
+                return False  # No longer in LLM stream mode
+
+        # Regular structured log line - show in panel
+        panel = Panel(
+            clean_content,
+            title=f"[dim]{timestamp}[/] [{color}]{category}[/]",
+            border_style=color,
+            padding=(0, 1),
+        )
+        console.print(panel)
+        return in_llm_stream
+
+    else:
+        # Unstructured content (LLM streaming text)
+        if in_llm_stream:
+            # Print streaming content directly without boxes
+            console.print(line, end="")
+        else:
+            # Non-streaming unstructured content
+            console.print(line, end="")
+        return in_llm_stream
+
 
 def _validate_ulid(run_id: str) -> bool:
     """Check if string is valid ULID format.
@@ -472,11 +582,14 @@ def logs_follow(
             if not replay and run_status in ("running", ""):
                 f.seek(0, 2)  # Seek to end
 
+            # Track whether we're inside LLM streaming content
+            in_llm_stream = False
+
             while True:
                 line = f.readline()
                 if line:
-                    # Print line with ANSI colors preserved
-                    print(line, end="", flush=True)
+                    # Render line with colored panels for structured logs
+                    in_llm_stream = _render_log_line(line, in_llm_stream)
                 else:
                     # Check if run is still active
                     if context_file.exists():

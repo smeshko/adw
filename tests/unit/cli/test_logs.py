@@ -571,6 +571,107 @@ class TestTruncateHelper:
             assert len(result) <= max_len
 
 
+class TestParseLogLine:
+    """Tests for _parse_log_line helper function."""
+
+    def test_parse_valid_log_line(self) -> None:
+        """Test parsing a valid structured log line."""
+        from adw.cli.logs import _parse_log_line
+
+        line = "[2024-01-15 10:30:45] [PHASE] Starting plan phase"
+        result = _parse_log_line(line)
+        assert result is not None
+        timestamp, category, content = result
+        assert timestamp == "2024-01-15 10:30:45"
+        assert category == "PHASE"
+        assert content == "Starting plan phase"
+
+    def test_parse_tool_log_line(self) -> None:
+        """Test parsing a TOOL category log line."""
+        from adw.cli.logs import _parse_log_line
+
+        line = "[2024-01-15 10:30:46] [TOOL] Read: /src/main.py"
+        result = _parse_log_line(line)
+        assert result is not None
+        timestamp, category, content = result
+        assert category == "TOOL"
+        assert content == "Read: /src/main.py"
+
+    def test_parse_llm_log_line(self) -> None:
+        """Test parsing an LLM category log line."""
+        from adw.cli.logs import _parse_log_line
+
+        line = "[2024-01-15 10:30:47] [LLM] ▶ Token stream begins"
+        result = _parse_log_line(line)
+        assert result is not None
+        timestamp, category, content = result
+        assert category == "LLM"
+        assert "Token stream begins" in content
+
+    def test_parse_unstructured_line_returns_none(self) -> None:
+        """Test that unstructured lines return None."""
+        from adw.cli.logs import _parse_log_line
+
+        line = "This is just plain text without structure"
+        result = _parse_log_line(line)
+        assert result is None
+
+    def test_parse_llm_streaming_content_returns_none(self) -> None:
+        """Test that LLM streaming content (no brackets) returns None."""
+        from adw.cli.logs import _parse_log_line
+
+        line = "I'm analyzing your codebase..."
+        result = _parse_log_line(line)
+        assert result is None
+
+    def test_parse_line_with_trailing_whitespace(self) -> None:
+        """Test parsing handles trailing whitespace."""
+        from adw.cli.logs import _parse_log_line
+
+        line = "[2024-01-15 10:30:45] [INFO] Some message  \n"
+        result = _parse_log_line(line)
+        assert result is not None
+        timestamp, category, content = result
+        assert category == "INFO"
+
+
+class TestStripAnsi:
+    """Tests for _strip_ansi helper function."""
+
+    def test_strip_ansi_codes(self) -> None:
+        """Test removing ANSI escape codes from text."""
+        from adw.cli.logs import _strip_ansi
+
+        # Text with ANSI color codes
+        colored = "\x1b[32mGreen text\x1b[0m"
+        result = _strip_ansi(colored)
+        assert result == "Green text"
+
+    def test_strip_multiple_ansi_codes(self) -> None:
+        """Test removing multiple ANSI codes."""
+        from adw.cli.logs import _strip_ansi
+
+        colored = "\x1b[1m\x1b[34mBold blue\x1b[0m normal"
+        result = _strip_ansi(colored)
+        assert result == "Bold blue normal"
+
+    def test_strip_ansi_no_codes(self) -> None:
+        """Test that text without ANSI codes is unchanged."""
+        from adw.cli.logs import _strip_ansi
+
+        plain = "Just plain text"
+        result = _strip_ansi(plain)
+        assert result == plain
+
+    def test_strip_ansi_preserves_unicode(self) -> None:
+        """Test that unicode characters are preserved."""
+        from adw.cli.logs import _strip_ansi
+
+        text = "\x1b[33m▶ Token stream begins\x1b[0m"
+        result = _strip_ansi(text)
+        assert result == "▶ Token stream begins"
+
+
 class TestDurationDisplay:
     """Tests for duration display with tilde prefix."""
 

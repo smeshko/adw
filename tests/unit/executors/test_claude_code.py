@@ -1717,3 +1717,145 @@ class TestWorktreeWorkingDirectory:
             # Verify cwd is None
             call_kwargs = mock_asyncio.create_subprocess_exec.call_args.kwargs
             assert call_kwargs.get("cwd") is None
+
+
+class TestExtractToolCall:
+    """Tests for _extract_tool_call method for inline tool logging."""
+
+    @pytest.fixture
+    def executor(self) -> ClaudeCodeExecutor:
+        """Create executor with default config."""
+        return ClaudeCodeExecutor(LLMConfig(path="claude"))
+
+    def test_extract_tool_call_from_assistant_message(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Extract tool call from assistant message with tool_use block."""
+        import json
+
+        line = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "name": "Read",
+                            "input": {"file_path": "/src/main.py"},
+                        }
+                    ]
+                },
+            }
+        )
+        result = executor._extract_tool_call(line)
+        assert result is not None
+        tool_name, context = result
+        assert tool_name == "Read"
+        assert context == "/src/main.py"
+
+    def test_extract_tool_call_bash(self, executor: ClaudeCodeExecutor) -> None:
+        """Extract Bash tool call with command context."""
+        import json
+
+        line = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "name": "Bash",
+                            "input": {"command": "npm run build"},
+                        }
+                    ]
+                },
+            }
+        )
+        result = executor._extract_tool_call(line)
+        assert result is not None
+        tool_name, context = result
+        assert tool_name == "Bash"
+        assert context == "npm run build"
+
+    def test_extract_tool_call_returns_none_for_text_block(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Return None when assistant message contains only text."""
+        import json
+
+        line = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [{"type": "text", "text": "I will analyze this..."}]
+                },
+            }
+        )
+        result = executor._extract_tool_call(line)
+        assert result is None
+
+    def test_extract_tool_call_returns_none_for_content_delta(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Return None for content_block_delta (streaming text)."""
+        import json
+
+        line = json.dumps(
+            {
+                "type": "content_block_delta",
+                "delta": {"type": "text_delta", "text": "analyzing..."},
+            }
+        )
+        result = executor._extract_tool_call(line)
+        assert result is None
+
+    def test_extract_tool_call_returns_none_for_invalid_json(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Return None for non-JSON lines."""
+        result = executor._extract_tool_call("Not valid JSON at all")
+        assert result is None
+
+    def test_extract_tool_call_returns_none_for_result_type(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Return None for result message type."""
+        import json
+
+        line = json.dumps(
+            {
+                "type": "result",
+                "usage": {"input_tokens": 100, "output_tokens": 50},
+            }
+        )
+        result = executor._extract_tool_call(line)
+        assert result is None
+
+    def test_extract_tool_call_with_task_subagent(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Extract Task tool call shows subagent_type as context."""
+        import json
+
+        line = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "name": "Task",
+                            "input": {
+                                "subagent_type": "Explore",
+                                "prompt": "Find auth code",
+                            },
+                        }
+                    ]
+                },
+            }
+        )
+        result = executor._extract_tool_call(line)
+        assert result is not None
+        tool_name, context = result
+        assert tool_name == "Task"
+        assert context == "Explore"

@@ -352,6 +352,11 @@ class ClaudeCodeExecutor:
                     if display_text:
                         self.live_stream.write_llm_token(display_text)
 
+                    # Detect and log tool calls inline as they happen
+                    tool_info = self._extract_tool_call(decoded)
+                    if tool_info:
+                        self.live_stream.write_tool_call(tool_info[0], tool_info[1])
+
         async def read_stderr() -> None:
             """Read stderr line-by-line."""
             while True:
@@ -416,12 +421,6 @@ class ClaudeCodeExecutor:
                 "duration_ms": duration_ms,
             },
         )
-
-        # Log tool calls to live stream
-        if self.live_stream and parsed["tool_calls"]:
-            for tc in parsed["tool_calls"]:
-                context = self._extract_tool_context(tc.tool_name, tc.arguments)
-                self.live_stream.write_tool_call(tc.tool_name, context)
 
         # Build result
         if returncode == 0:
@@ -609,6 +608,38 @@ class ClaudeCodeExecutor:
                 return subagent[:max_len]
             desc = arguments.get("description", "")
             return desc[:max_len] if desc else None
+
+        return None
+
+    def _extract_tool_call(self, line: str) -> tuple[str, str | None] | None:
+        """Extract tool call info from stream-json line for inline logging.
+
+        Detects tool_use blocks in assistant messages as they stream, enabling
+        real-time logging of tool calls instead of batching at end.
+
+        Args:
+            line: A single line of stream-json output.
+
+        Returns:
+            Tuple of (tool_name, context) if tool call found, None otherwise.
+        """
+        try:
+            data = json.loads(line.strip())
+        except json.JSONDecodeError:
+            return None
+
+        if not isinstance(data, dict):
+            return None
+
+        # Check for tool_use in assistant message content blocks
+        if data.get("type") == "assistant":
+            for block in data.get("message", {}).get("content", []):
+                if block.get("type") == "tool_use":
+                    tool_name = block.get("name", "unknown")
+                    context = self._extract_tool_context(
+                        tool_name, block.get("input", {})
+                    )
+                    return (tool_name, context)
 
         return None
 
