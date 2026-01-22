@@ -632,9 +632,7 @@ class TestPhaseRunnerGitDiffCapture:
 
         # Mock git diff functions at the import location in BuildExtension
         with (
-            patch(
-                "adw.core.extensions.build.has_commits", return_value=True
-            ),
+            patch("adw.core.extensions.build.has_commits", return_value=True),
             patch("adw.core.extensions.build.capture_diff") as mock_capture,
             patch("adw.core.extensions.build.subprocess.run") as mock_stat,
         ):

@@ -42,6 +42,7 @@ def get_active_live() -> "Live | None":
     """
     return _active_live
 
+
 # Level styling configuration for Rich console
 LEVEL_STYLES: dict[LogLevel, str] = {
     LogLevel.TRACE: "dim",

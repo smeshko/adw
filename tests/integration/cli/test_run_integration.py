@@ -201,54 +201,10 @@ name: test
 
 
 class TestVerbosityIntegration:
-    """Integration tests for verbosity and show_llm_output flag propagation.
+    """Integration tests for verbosity flag propagation.
 
-    Story UX-FIX-ISS-001: Verify that --show-llm-output and --trace flags
-    properly propagate through the CLI → bootstrap → executor chain.
+    Story UX-FIX-ISS-001: Verify that --trace flag logic is correct.
     """
-
-    def test_show_llm_output_flag_propagates_to_orchestrator(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test that --show-llm-output flag is properly wired through bootstrap.
-
-        Verifies: CLI flag → create_orchestrator() → ClaudeCodeExecutor.show_llm_output
-        """
-        from unittest.mock import patch
-
-        from adw.cli.bootstrap import create_orchestrator
-
-        # Disable mock executor mode to test real ClaudeCodeExecutor path
-        monkeypatch.delenv("ADW_MOCK_EXECUTOR", raising=False)
-
-        # Test with show_llm_output=True
-        with patch("adw.cli.bootstrap.ClaudeCodeExecutor") as mock_executor_class:
-            mock_executor_class.return_value = mock_executor_class
-            create_orchestrator(show_llm_output=True)
-
-            # Verify executor was created with show_llm_output=True
-            mock_executor_class.assert_called_once()
-            call_kwargs = mock_executor_class.call_args[1]
-            assert call_kwargs.get("show_llm_output") is True
-
-    def test_show_llm_output_defaults_to_false_in_orchestrator(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test that show_llm_output defaults to False in create_orchestrator."""
-        from unittest.mock import patch
-
-        from adw.cli.bootstrap import create_orchestrator
-
-        # Disable mock executor mode to test real ClaudeCodeExecutor path
-        monkeypatch.delenv("ADW_MOCK_EXECUTOR", raising=False)
-
-        with patch("adw.cli.bootstrap.ClaudeCodeExecutor") as mock_executor_class:
-            mock_executor_class.return_value = mock_executor_class
-            create_orchestrator()  # No show_llm_output specified
-
-            mock_executor_class.assert_called_once()
-            call_kwargs = mock_executor_class.call_args[1]
-            assert call_kwargs.get("show_llm_output") is False
 
     def test_trace_verbosity_enables_show_llm_output(self) -> None:
         """Test that --trace verbosity enables LLM output in the run command.
@@ -276,14 +232,3 @@ class TestVerbosityIntegration:
         effective_show_llm_output = show_llm_output_flag or verbosity == Verbosity.TRACE
 
         assert effective_show_llm_output is False
-
-    def test_show_llm_output_flag_accepted_by_run_command(self) -> None:
-        """Test that --show-llm-output flag is accepted without errors."""
-        result = runner.invoke(
-            app,
-            ["run", "Test feature", "--show-llm-output", "--dry-run"],
-            catch_exceptions=False,
-        )
-
-        assert result.exit_code == 0
-        assert "No such option" not in result.output

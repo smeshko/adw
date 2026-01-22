@@ -501,7 +501,6 @@ class TaskManagerConfig(BaseModel):
     )
 
 
-
 # NOTE: ShipCommandsConfig, ShipPRConfig, ShipConfig classes moved to command.py
 # as part of ISS-031 phase-specific config refactoring. Use ShipCommandConfig
 # from adw.models.command instead.

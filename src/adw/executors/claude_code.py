@@ -709,4 +709,3 @@ class ClaudeCodeExecutor:
                     return str(text) if text else None
 
         return None
-

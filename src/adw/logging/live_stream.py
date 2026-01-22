@@ -130,9 +130,10 @@ class LiveStreamTransport:
             self._path.parent.mkdir(parents=True, exist_ok=True)
 
             # Write with file locking for concurrency safety
-            with FileLock(self._lock_path), open(
-                self._path, "a", encoding="utf-8"
-            ) as f:
+            with (
+                FileLock(self._lock_path),
+                open(self._path, "a", encoding="utf-8") as f,
+            ):
                 f.write(line + "\n")
                 if flush:
                     f.flush()

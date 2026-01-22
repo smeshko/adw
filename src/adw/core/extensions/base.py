@@ -68,9 +68,7 @@ class PhaseExtension(Protocol):
         """
         ...
 
-    def on_complete(
-        self, context: "RunContext", result: "PhaseResult"
-    ) -> "RunContext":
+    def on_complete(self, context: "RunContext", result: "PhaseResult") -> "RunContext":
         """Handle post-phase processing.
 
         Called after phase completes successfully. Can perform side effects

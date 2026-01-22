@@ -79,7 +79,6 @@ class TestBootstrapTaskManagerWiring:
         with patch("adw.cli.bootstrap.Orchestrator"):
             create_orchestrator(
                 task_manager=mock_task_manager,
-                task_id="RULE-151",
                 task_info=mock_task_info,
             )
 
@@ -151,7 +150,6 @@ class TestBootstrapTaskManagerWiring:
         ):
             create_orchestrator(
                 task_manager=mock_task_manager,
-                task_id="RULE-151",  # The identifier
                 task_info=mock_task_info,  # Contains internal UUID
             )
 
@@ -193,7 +191,6 @@ class TestBootstrapTaskManagerWiring:
         ):
             create_orchestrator(
                 task_manager=mock_task_manager,
-                task_id="RULE-151",
                 task_info=None,  # No task_info
             )
 
@@ -228,7 +225,6 @@ class TestBootstrapTaskManagerWiring:
         ):
             create_orchestrator(
                 task_manager=mock_task_manager,
-                task_id="RULE-151",
                 task_info=mock_task_info,
             )
 
