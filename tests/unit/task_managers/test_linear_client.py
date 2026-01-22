@@ -23,12 +23,13 @@ class TestLinearClient:
         assert client._base_url == "https://api.linear.app/graphql"
 
     def test_headers_include_authorization(self) -> None:
-        """Headers include Authorization Bearer token."""
+        """Headers include Authorization with API key (no Bearer prefix)."""
         client = LinearClient(api_key="lin_api_test123")
 
         headers = client._get_headers()
 
-        assert headers["Authorization"] == "Bearer lin_api_test123"
+        # Linear API keys are passed directly, not as Bearer tokens
+        assert headers["Authorization"] == "lin_api_test123"
         assert headers["Content-Type"] == "application/json"
 
 

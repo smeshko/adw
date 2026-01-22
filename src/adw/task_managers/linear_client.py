@@ -130,11 +130,13 @@ class LinearClient:
     def _get_headers(self) -> dict[str, str]:
         """Get HTTP headers for API requests.
 
+        Linear API keys are passed directly without Bearer prefix.
+
         Returns:
             Headers dict with Authorization and Content-Type.
         """
         return {
-            "Authorization": f"Bearer {self._api_key}",
+            "Authorization": self._api_key,
             "Content-Type": "application/json",
         }
 
