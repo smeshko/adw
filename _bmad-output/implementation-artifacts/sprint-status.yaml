@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 38
+issue_counter: 39
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -82,6 +82,7 @@ issues:
   ISS-036-progress-bar-shows-disabled-phases: fixed  # Major - Disabled phases (ship) shown in progress bar, affects percentage
   ISS-037-pr-title-missing-description: fixed  # Major - PR title just shows task ID when feature_description equals task_id
   ISS-038-conditional-docs-too-generic: in-progress  # Minor - Document phase generates overly broad conditions not specific to feature (story created)
+  ISS-039-runcontext-missing-task-info: reported  # Critical - RunContext.task_id/task_info never populated, StatusSyncService comments silently fail
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -420,3 +421,7 @@ development_status:
   # Document phase generates overly generic conditions for CONDITIONAL_DOCS.md
   # Should include feature name in conditions to prevent doc pollution
   ux-fix-ISS-038-conditional-docs-too-generic: ready-for-dev
+  # Bugfix (from ISS-039) - CRITICAL
+  # RunContext.task_id and task_info never populated in create_run_context()
+  # StatusSyncService.post_phase_comment() and other methods silently return early
+  bugfix-ISS-039-runcontext-missing-task-info: backlog
