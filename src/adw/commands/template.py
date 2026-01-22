@@ -211,6 +211,7 @@ def validate_artifact_references(
     artifacts_map: dict[str, dict[str, str]],
     *,
     strict: bool = True,
+    template_path: str | None = None,
 ) -> list[str]:
     """Validate that all artifact references in template exist.
 
@@ -227,6 +228,7 @@ def validate_artifact_references(
         artifacts_map: Available artifacts as {phase: {name: content}}.
         strict: If True, raise ConfigError for missing artifacts.
                 If False, return list of missing references.
+        template_path: Optional path to template file for enhanced logging.
 
     Returns:
         List of missing artifact references in "phase/name" format.
@@ -267,21 +269,25 @@ def validate_artifact_references(
         if phase_name not in artifacts_map:
             missing_artifacts.append(f"{phase_name}/{artifact_name}")
             logger.warning(
-                "Missing artifact reference in template",
+                "Missing artifact reference in template: %s",
+                f"artifacts.{ref_path}",
                 extra={
                     "phase": phase_name,
                     "artifact": artifact_name,
                     "ref": f"artifacts.{ref_path}",
+                    "template": template_path,
                 },
             )
         elif artifact_name not in artifacts_map[phase_name]:
             missing_artifacts.append(f"{phase_name}/{artifact_name}")
             logger.warning(
-                "Missing artifact reference in template",
+                "Missing artifact reference in template: %s",
+                f"artifacts.{ref_path}",
                 extra={
                     "phase": phase_name,
                     "artifact": artifact_name,
                     "ref": f"artifacts.{ref_path}",
+                    "template": template_path,
                     "available": list(artifacts_map[phase_name].keys()),
                 },
             )
@@ -567,7 +573,8 @@ class TemplateEngine:
                 else:
                     # Log warning in lenient mode
                     logger.warning(
-                        "Unknown template variable left as-is",
+                        "Unknown template variable left as-is: {{%s}}",
+                        var_path,
                         extra={"variable": var_path},
                     )
                     return match.group(0)

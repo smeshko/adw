@@ -217,21 +217,22 @@ class LinearTaskManager:
             result = self._client.update_issue(task_id, {"stateId": state_id})
             if result:
                 logger.info(
-                    "Updated Linear issue %s to state '%s'",
-                    task_id,
+                    "Updated state to '%s'",
                     linear_state_name,
+                    extra={"task_id": task_id},
                 )
             else:
                 logger.warning(
-                    "Failed to update Linear issue %s to state '%s'",
-                    task_id,
+                    "Failed to update state to '%s'",
                     linear_state_name,
+                    extra={"task_id": task_id},
                 )
         except Exception as e:
             logger.warning(
-                "Error updating Linear issue %s: %s",
-                task_id,
+                "Error updating state to '%s': %s",
+                linear_state_name,
                 str(e),
+                extra={"task_id": task_id, "state": linear_state_name},
             )
 
     def _get_state_id(self, state_name: str) -> str | None:
@@ -358,8 +359,8 @@ class LinearTaskManager:
             )
             if result:
                 logger.info(
-                    "Closed Linear issue %s (set to Done with completedAt)",
-                    task_id,
+                    "Closed issue",
+                    extra={"task_id": task_id},
                 )
             else:
                 raise TaskError(
@@ -435,16 +436,16 @@ class LinearTaskManager:
         try:
             self._client.add_label(task_id, label, self._team_id)
             logger.info(
-                "Added label '%s' to issue %s",
+                "Added label '%s'",
                 label,
-                task_id,
+                extra={"task_id": task_id},
             )
         except Exception as e:
             logger.warning(
-                "Failed to add label '%s' to issue %s: %s",
+                "Failed to add label '%s': %s",
                 label,
-                task_id,
                 str(e),
+                extra={"task_id": task_id},
             )
 
     def remove_label(self, task_id: str, label: str) -> None:
@@ -460,16 +461,16 @@ class LinearTaskManager:
         try:
             self._client.remove_label(task_id, label, self._team_id)
             logger.info(
-                "Removed label '%s' from issue %s",
+                "Removed label '%s'",
                 label,
-                task_id,
+                extra={"task_id": task_id},
             )
         except Exception as e:
             logger.warning(
-                "Failed to remove label '%s' from issue %s: %s",
+                "Failed to remove label '%s': %s",
                 label,
-                task_id,
                 str(e),
+                extra={"task_id": task_id},
             )
 
     def post_comment(self, task_id: str, body: str) -> None:
@@ -485,12 +486,12 @@ class LinearTaskManager:
         try:
             self._client.post_comment(task_id, body)
             logger.info(
-                "Posted comment to issue %s",
-                task_id,
+                "Posted sync comment",
+                extra={"task_id": task_id},
             )
         except Exception as e:
             logger.warning(
-                "Failed to post comment to issue %s: %s",
-                task_id,
+                "Failed to post comment: %s",
                 str(e),
+                extra={"task_id": task_id},
             )

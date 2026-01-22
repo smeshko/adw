@@ -196,15 +196,8 @@ class StatusSyncService:
             mapped_status = mapping.get(phase_or_state, phase_or_state)
 
             self._task_manager.update_status(task_id, mapped_status, metadata)
-
-            logger.info(
-                "Status synced to task manager",
-                extra={
-                    "task_id": task_id,
-                    "status": mapped_status,
-                    "phase": phase_or_state,
-                },
-            )
+            # Note: Success logging handled by task_manager (e.g., LinearTaskManager)
+            # to avoid duplicate logs
         except Exception as e:
             logger.warning(
                 "Failed to sync status to task manager: %s (task_id=%s, phase=%s)",
@@ -352,10 +345,8 @@ class StatusSyncService:
         """
         try:
             self._task_manager.post_comment(task_id, body)
-            logger.info(
-                "Comment posted to task manager",
-                extra={"task_id": task_id},
-            )
+            # Note: Success logging handled by task_manager (e.g., LinearTaskManager)
+            # to avoid duplicate logs
         except Exception as e:
             logger.warning(
                 "Failed to post comment to task manager: %s (task_id=%s)",
