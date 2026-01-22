@@ -288,7 +288,7 @@ def create_orchestrator(
     # This registers BuildExtension (diff capture) and DocumentExtension (PR creation)
     extension_registry = create_default_registry(git_config, runs_dir)
 
-    # Create orchestrator
+    # Create orchestrator (ISS-039: pass task_info to populate RunContext)
     orchestrator = Orchestrator(
         runs_dir=runs_dir,
         context_manager=context_manager,
@@ -304,6 +304,7 @@ def create_orchestrator(
         label_manager=label_manager,
         status_sync_service=status_sync_service,
         extension_registry=extension_registry,
+        task_info=task_info,
     )
 
     return orchestrator

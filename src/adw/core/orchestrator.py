@@ -30,6 +30,7 @@ from adw.core.snapshot_manager import SnapshotManager
 from adw.exceptions import ADWError, ConfigError
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
 from adw.models.phase import PhaseResult
+from adw.models.task import TaskInfo
 from adw.worktree import ConcurrentRunManager
 from adw.worktree.manager import WorktreeManager
 
@@ -142,6 +143,7 @@ class Orchestrator:
         resume_manager: ResumeManager | None = None,
         run_lifecycle: RunLifecycle | None = None,
         extension_registry: ExtensionRegistry | None = None,
+        task_info: TaskInfo | None = None,
     ) -> None:
         """Initialize the Orchestrator.
 
@@ -170,6 +172,8 @@ class Orchestrator:
                 and error handling.
             extension_registry: Registry for phase extensions (optional).
                 If None, creates an empty registry (no extensions).
+            task_info: Task information from external task manager (optional, ISS-039).
+                Passed to RunLifecycle to populate RunContext.task_id and task_info.
         """
         self.runs_dir = runs_dir
         # Derive project path from runs_dir (runs_dir is typically .adw/runs)
@@ -238,6 +242,7 @@ class Orchestrator:
             status_sync_service=status_sync_service,
             worktree_manager=self._worktree_manager,
             concurrent_run_manager=self._concurrent_run_manager,
+            task_info=task_info,  # ISS-039: Pass task_info to populate RunContext
         )
 
     @property
