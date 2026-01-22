@@ -150,7 +150,7 @@ class GitHubProvider:
         if signature_sha1:
             return self._verify_hmac_sha1(body, signature_sha1)
 
-        logger.warning("No GitHub signature header found")
+        logger.error("No GitHub signature header found - webhook rejected")
         return False
 
     def _verify_hmac_sha256(self, body: bytes, signature: str) -> bool:

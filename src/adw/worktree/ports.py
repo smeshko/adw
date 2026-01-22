@@ -136,7 +136,7 @@ class PortAllocator:
             if self.is_port_available(backend_port) and self.is_port_available(
                 frontend_port
             ):
-                logger.info(
+                logger.debug(
                     "Port allocation successful",
                     extra={
                         "run_id": run_id,
@@ -199,7 +199,7 @@ ADW_RUN_ID={allocation.run_id}
 """
         ports_file.write_text(content)
 
-        logger.info(
+        logger.debug(
             "Port environment file written",
             extra={
                 "path": str(ports_file),

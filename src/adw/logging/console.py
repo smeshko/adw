@@ -10,7 +10,13 @@ from typing import TYPE_CHECKING, TextIO
 from rich.console import Console
 from rich.text import Text
 
-from adw.models.logging import VERBOSITY_LEVEL_MAP, LogEvent, LogLevel, Verbosity
+from adw.models.logging import (
+    LEVEL_ORDER,
+    VERBOSITY_LEVEL_MAP,
+    LogEvent,
+    LogLevel,
+    Verbosity,
+)
 
 if TYPE_CHECKING:
     from rich.live import Live
@@ -51,16 +57,6 @@ LEVEL_STYLES: dict[LogLevel, str] = {
     LogLevel.WARN: "yellow",
     LogLevel.ERROR: "bold red",
     LogLevel.FATAL: "bold white on red",
-}
-
-# Level ordering for comparison
-LEVEL_ORDER: dict[LogLevel, int] = {
-    LogLevel.TRACE: 0,
-    LogLevel.DEBUG: 1,
-    LogLevel.INFO: 2,
-    LogLevel.WARN: 3,
-    LogLevel.ERROR: 4,
-    LogLevel.FATAL: 5,
 }
 
 
