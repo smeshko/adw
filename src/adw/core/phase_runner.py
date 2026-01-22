@@ -335,7 +335,10 @@ class PhaseRunner:
         # Validate artifact references in template (ISS-017: template module)
         # Raises ConfigError if strict_artifacts=True and artifact missing
         validate_artifact_references(
-            prompt_template, artifacts_map, strict=self.strict_artifacts
+            prompt_template,
+            artifacts_map,
+            strict=self.strict_artifacts,
+            template_path=str(prompt_path),
         )
 
         # ISS-029: Use pre-merged config if provided, else create empty

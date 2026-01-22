@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ulid import ULID
 
@@ -42,6 +42,21 @@ if TYPE_CHECKING:
 __all__ = ["RunLifecycle"]
 
 logger = logging.getLogger(__name__)
+
+
+class _PRResultFromContext:
+    """Lightweight PR result for constructing from context fields.
+
+    Avoids importing AutoPRResult from CLI layer into core.
+    Duck-typed to match the interface used by ProgressDisplay.show_pipeline_summary().
+    """
+
+    __slots__ = ("success", "pr_url", "reason")
+
+    def __init__(self, *, success: bool, pr_url: str, reason: str) -> None:
+        self.success = success
+        self.pr_url = pr_url
+        self.reason = reason
 
 
 class RunLifecycle:
@@ -574,13 +589,32 @@ class RunLifecycle:
                 (context.completed_at - context.started_at).total_seconds() * 1000
             )
 
+        # Determine PR result for display (only for completed runs)
+        # Type is AutoPRResult | _PRResultFromContext | None (duck-typed)
+        effective_pr_result: Any = None
+        if status == "completed":
+            if pr_result is not None:
+                effective_pr_result = pr_result
+            elif context.pr_url:
+                # Construct from context fields (Phase Extensions store PR info in context)
+                # Use a simple object with required attributes to avoid CLI import in core
+                effective_pr_result = _PRResultFromContext(
+                    success=True, pr_url=context.pr_url, reason=""
+                )
+            elif context.pr_creation_attempted and context.pr_creation_failed:
+                effective_pr_result = _PRResultFromContext(
+                    success=False,
+                    pr_url="",
+                    reason=context.pr_failure_reason or "Unknown error",
+                )
+
         self.progress_display.show_pipeline_summary(
             completed_phases=context.phase_history,
             status=status,
             total_duration_ms=duration_ms,
             total_tokens=total_tokens,
             run_id=context.run_id,
-            pr_result=pr_result if status == "completed" else None,
+            pr_result=effective_pr_result,
         )
 
     def _show_worktree_preserved(

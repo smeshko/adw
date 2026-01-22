@@ -843,11 +843,8 @@ class Orchestrator:
             # Post-phase snapshot
             self.snapshot_manager.create_post_phase_snapshot(context, phase, result)
 
-            # Notify progress display of phase completion (Story 5.5)
-            if self.progress_display:
-                self.progress_display.on_phase_complete(phase, result)
-
             # Post phase completion comment to task manager (Story 12.6)
+            # Note: Sync before displaying completion so logs appear in order
             if self._status_sync_service:
                 try:
                     self._status_sync_service.post_phase_comment(context, phase, result)
@@ -860,6 +857,10 @@ class Orchestrator:
                             "error": str(comment_error),
                         },
                     )
+
+            # Notify progress display of phase completion (Story 5.5)
+            if self.progress_display:
+                self.progress_display.on_phase_complete(phase, result)
 
             # Update context with phase completion
             context = context.model_copy(
