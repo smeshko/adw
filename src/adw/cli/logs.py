@@ -42,6 +42,9 @@ PANEL_COLORS: dict[str, str] = {
     "WARN": "yellow",
 }
 
+# Color for LLM output content (distinct from LLM markers)
+LLM_OUTPUT_COLOR = "orange3"
+
 # ANSI escape code pattern for stripping colors
 ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -109,8 +112,8 @@ class LogRenderer:
             content = "\n".join(self.llm_buffer)
             panel = Panel(
                 content,
-                title="[dim]LLM Output[/]",
-                border_style="cyan",
+                title=f"[{LLM_OUTPUT_COLOR}]LLM Output[/]",
+                border_style=LLM_OUTPUT_COLOR,
                 padding=(0, 1),
             )
             console.print(panel)
