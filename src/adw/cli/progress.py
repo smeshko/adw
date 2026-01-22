@@ -114,9 +114,6 @@ class ProgressDisplay:
             phase_num = 0
         total_phases = len(self._enabled_phases)
 
-        # Show overall progress bar
-        self._show_progress_bar(current_phase=phase)
-
         self.console.print()
         self.console.print(
             Panel(
@@ -125,6 +122,9 @@ class ProgressDisplay:
                 border_style=color,
             )
         )
+
+        # Show overall progress bar (after phase header)
+        self._show_progress_bar(current_phase=phase)
 
     def _show_progress_bar(self, current_phase: str | None = None) -> None:
         """Display the overall pipeline progress bar.

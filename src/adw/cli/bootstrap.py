@@ -24,6 +24,7 @@ from adw.core import (
     RunDirectoryManager,
     SnapshotManager,
 )
+from adw.core.extensions import create_default_registry
 from adw.core.constants import PHASE_SEQUENCE
 from adw.core.phase_runner import PhaseRunner
 from adw.exceptions import ConfigError
@@ -280,6 +281,10 @@ def create_orchestrator(
         if labels_config and labels_config.enabled:
             label_manager = LabelManager(task_manager, labels_config, task_info.id)
 
+    # Create extension registry with built-in extensions (Phase Extensions)
+    # This registers BuildExtension (diff capture) and DocumentExtension (PR creation)
+    extension_registry = create_default_registry(git_config, runs_dir)
+
     # Create orchestrator
     orchestrator = Orchestrator(
         runs_dir=runs_dir,
@@ -295,6 +300,7 @@ def create_orchestrator(
         task_manager_config=task_manager_config,
         label_manager=label_manager,
         status_sync_service=status_sync_service,
+        extension_registry=extension_registry,
     )
 
     return orchestrator
