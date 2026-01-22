@@ -41,13 +41,18 @@ class TestLinearClientFetchIssue:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
+        # Response structure uses issues filter query with nodes array
         mock_response.json.return_value = {
             "data": {
-                "issue": {
-                    "id": "abc123",
-                    "identifier": "RULE-123",
-                    "title": "Test Issue",
-                    "description": "Test description",
+                "issues": {
+                    "nodes": [
+                        {
+                            "id": "abc123",
+                            "identifier": "RULE-123",
+                            "title": "Test Issue",
+                            "description": "Test description",
+                        }
+                    ]
                 }
             }
         }
@@ -65,12 +70,48 @@ class TestLinearClientFetchIssue:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"data": {"issue": None}}
+        # Empty nodes array when issue not found
+        mock_response.json.return_value = {"data": {"issues": {"nodes": []}}}
 
         with patch.object(client, "_request", return_value=mock_response):
             result = client.fetch_issue("NONEXISTENT-999")
 
         assert result is None
+
+    def test_fetch_issue_raises_error_for_invalid_identifier_format(self) -> None:
+        """fetch_issue raises TaskError for invalid identifier format."""
+        client = LinearClient(api_key="lin_api_test123")
+
+        with pytest.raises(TaskError) as exc_info:
+            client.fetch_issue("invalid-format-no-number")
+
+        assert exc_info.value.code == "INVALID_TASK_ID"
+
+    def test_fetch_issue_raises_error_for_non_numeric_number(self) -> None:
+        """fetch_issue raises TaskError when issue number is not numeric."""
+        client = LinearClient(api_key="lin_api_test123")
+
+        with pytest.raises(TaskError) as exc_info:
+            client.fetch_issue("RULE-abc")
+
+        assert exc_info.value.code == "INVALID_TASK_ID"
+
+    def test_fetch_issue_parses_identifier_correctly(self) -> None:
+        """fetch_issue correctly parses team key and number from identifier."""
+        client = LinearClient(api_key="lin_api_test123")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"data": {"issues": {"nodes": []}}}
+
+        with patch.object(client, "_request", return_value=mock_response) as mock_req:
+            client.fetch_issue("TEAM-456")
+
+        # Verify variables passed to request
+        call_args = mock_req.call_args
+        variables = call_args[1]["variables"]
+        assert variables["teamKey"] == "TEAM"
+        assert variables["number"] == 456.0
 
 
 class TestLinearClientUpdateIssue:

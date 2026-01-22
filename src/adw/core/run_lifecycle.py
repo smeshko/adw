@@ -189,7 +189,7 @@ class RunLifecycle:
             else:
                 worktree_path, branch_name = worktree_result
 
-        # Create initial context (ISS-039: populate task_id and task_info)
+        # Create initial context (ISS-039: populate task_id, task_info, and task_manager)
         context = RunContext(
             run_id=run_id,
             feature_description=feature_description,
@@ -201,6 +201,7 @@ class RunLifecycle:
             branch_name=branch_name,
             task_id=self._task_info.identifier if self._task_info else None,
             task_info=self._task_info,
+            task_manager=self.task_manager_config.type if self.task_manager_config.type != "none" else None,
         )
 
         # Initialize run

@@ -297,8 +297,15 @@ def run(
             task_info = task_manager.fetch_task(resolved.task_id)
             task_uuid = task_info.id  # Internal UUID for issue closing
             console.print(f"[dim]Task:[/] {task_info.title}")
-        except Exception:
-            # Non-blocking - continue without task_info/task_uuid
+        except Exception as e:
+            # Non-blocking - continue without task_info/task_uuid, but warn user
+            console.print(
+                f"[yellow]Warning:[/] Failed to fetch task '{resolved.task_id}': {e}"
+            )
+            console.print(
+                "[dim]Continuing without task context. "
+                "The LLM will only see the task ID, not its contents.[/]"
+            )
             task_info = None
         if not task_id:  # Auto-detected, not forced
             console.print(

@@ -18,19 +18,26 @@ ADW_LABEL_COLOR = "#9333EA"
 
 
 # GraphQL Queries and Mutations
+# Note: Linear's issue(id:) query requires internal UUID, not the human-readable
+# identifier like "RULE-151". We use a filter query instead to fetch by identifier.
 FETCH_ISSUE_QUERY = """
-query FetchIssue($identifier: String!) {
-  issue(id: $identifier) {
-    id
-    identifier
-    title
-    description
-    state { id name }
-    priority
-    labels { nodes { name } }
-    assignee { name email }
-    project { name }
-    parent { identifier title }
+query FetchIssue($teamKey: String!, $number: Float!) {
+  issues(filter: {
+    team: { key: { eq: $teamKey } },
+    number: { eq: $number }
+  }, first: 1) {
+    nodes {
+      id
+      identifier
+      title
+      description
+      state { id name }
+      priority
+      labels { nodes { name } }
+      assignee { name email }
+      project { name }
+      parent { identifier title }
+    }
   }
 }
 """
@@ -158,25 +165,56 @@ class LinearClient:
     def fetch_issue(self, identifier: str) -> dict[str, Any] | None:
         """Fetch an issue by identifier (e.g., RULE-123).
 
+        Parses the identifier into team key and issue number, then queries
+        Linear's API using a filter. This is more reliable than using the
+        issue(id:) query which requires the internal UUID.
+
         Args:
-            identifier: The issue identifier.
+            identifier: The issue identifier (e.g., "RULE-123").
 
         Returns:
             Issue data dict if found, None otherwise.
 
         Raises:
-            TaskError: If the API request fails.
+            TaskError: If the API request fails or identifier format is invalid.
         """
+        # Parse identifier (e.g., "RULE-151" -> team_key="RULE", number=151)
+        parts = identifier.rsplit("-", 1)
+        if len(parts) != 2:
+            raise TaskError(
+                code="INVALID_TASK_ID",
+                message=f"Invalid task identifier format: '{identifier}'",
+                suggestion="Use format like 'TEAM-123' (e.g., 'RULE-151')",
+                task_id=identifier,
+                recoverable=False,
+            )
+
+        team_key, number_str = parts
+        try:
+            number = int(number_str)
+        except ValueError:
+            raise TaskError(
+                code="INVALID_TASK_ID",
+                message=f"Invalid issue number in identifier: '{identifier}'",
+                suggestion="Issue number must be numeric (e.g., 'RULE-151')",
+                task_id=identifier,
+                recoverable=False,
+            )
+
         try:
             response = self._request(
                 FETCH_ISSUE_QUERY,
-                variables={"identifier": identifier},
+                variables={"teamKey": team_key, "number": float(number)},
             )
             self._handle_response_errors(response, identifier)
 
             data: dict[str, Any] = response.json()
-            issue: dict[str, Any] | None = data.get("data", {}).get("issue")
-            return issue
+            nodes: list[dict[str, Any]] = (
+                data.get("data", {}).get("issues", {}).get("nodes", [])
+            )
+            if nodes:
+                return nodes[0]
+            return None
         except TaskError:
             raise
         except httpx.TimeoutException as e:
