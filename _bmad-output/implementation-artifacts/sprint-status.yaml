@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 39
+issue_counter: 40
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -83,6 +83,7 @@ issues:
   ISS-037-pr-title-missing-description: fixed  # Major - PR title just shows task ID when feature_description equals task_id
   ISS-038-conditional-docs-too-generic: in-progress  # Minor - Document phase generates overly broad conditions not specific to feature (story created)
   ISS-039-runcontext-missing-task-info: fixed  # Critical - RunContext.task_id/task_info never populated, StatusSyncService comments silently fail (story created)
+  ISS-040-template-variables-not-populated: reported  # Major - Ship phase PR vars and build diff artifacts not populated in templates
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -425,3 +426,7 @@ development_status:
   # RunContext.task_id and task_info never populated in create_run_context()
   # StatusSyncService.post_phase_comment() and other methods silently return early
   bugfix-ISS-039-runcontext-missing-task-info: done
+  # UX Fix (from ISS-040) - MAJOR
+  # Ship phase PR variables (pr_number, pr_url, etc.) not populated from pre-hook
+  # Build artifacts (diff, diff_stats) not available in document phase template
+  ux-fix-ISS-040-template-variables-not-populated: ready-for-dev
