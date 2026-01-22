@@ -147,6 +147,10 @@ def create_log_manager(
     if root_logger.level == logging.NOTSET or root_logger.level > logging.DEBUG:
         root_logger.setLevel(logging.DEBUG)
 
+    # Suppress noisy third-party loggers (httpx logs every HTTP request at INFO)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
     return log_manager
 
 
