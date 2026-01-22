@@ -130,11 +130,12 @@ class LiveStreamTransport:
             self._path.parent.mkdir(parents=True, exist_ok=True)
 
             # Write with file locking for concurrency safety
-            with FileLock(self._lock_path):
-                with open(self._path, "a", encoding="utf-8") as f:
-                    f.write(line + "\n")
-                    if flush:
-                        f.flush()
+            with FileLock(self._lock_path), open(
+                self._path, "a", encoding="utf-8"
+            ) as f:
+                f.write(line + "\n")
+                if flush:
+                    f.flush()
         except OSError as e:
             _logger.warning("Failed to write to live.log %s: %s", self._path, e)
 
@@ -163,7 +164,8 @@ class LiveStreamTransport:
 
         # Format: [timestamp] [LEVEL] [category] message
         level_str = self._colorize(f"[{event.level.value.upper()}]", level_color)
-        category_str = self._colorize(f"[{event.category.value.upper()}]", category_color)
+        cat_upper = event.category.value.upper()
+        category_str = self._colorize(f"[{cat_upper}]", category_color)
 
         # Build context if present
         context_parts = []

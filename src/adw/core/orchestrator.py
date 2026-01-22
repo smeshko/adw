@@ -166,8 +166,9 @@ class Orchestrator:
             resume_manager: Manager for resume operations (optional, Story ISS-014).
                 When provided, delegates resume validation and phase determination.
             run_lifecycle: Manager for run lifecycle operations (optional).
-                When provided, delegates context creation, completion, and error handling.
-            extension_registry: Registry for phase extensions (optional, Phase Extensions).
+                When provided, delegates context creation, completion,
+                and error handling.
+            extension_registry: Registry for phase extensions (optional).
                 If None, creates an empty registry (no extensions).
         """
         self.runs_dir = runs_dir
@@ -612,7 +613,7 @@ class Orchestrator:
                 context, phase, artifacts_override=artifacts
             )
 
-            # Note: ISS-031 PR creation is now handled by DocumentExtension.on_complete()
+            # Note: ISS-031 PR creation now handled by DocumentExtension
 
         # PR result is now tracked in context via DocumentExtension
         return context, None

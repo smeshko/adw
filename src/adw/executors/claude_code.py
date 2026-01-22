@@ -199,9 +199,9 @@ class ClaudeCodeExecutor:
             },
         )
 
-        # Create subprocess with increased buffer limit for large JSON outputs
+        # Create subprocess with increased buffer limit for large JSON outputs.
         # Claude Code outputs JSON lines that can be very large when tool results
-        # contain file contents (e.g., reading large files). 10MB should handle most cases.
+        # contain file contents (e.g., reading large files). 10MB handles most cases.
         process = await asyncio.create_subprocess_exec(
             *args,
             stdout=asyncio.subprocess.PIPE,
@@ -590,10 +590,7 @@ class ClaudeCodeExecutor:
 
         elif tool_name == "Task":
             subagent = arguments.get("subagent_type")
-            if subagent:
-                context = subagent
-            else:
-                context = arguments.get("description") or None
+            context = subagent or (arguments.get("description") or None)
 
         # Replace newlines with ↵ to keep log entries on single lines
         if context and "\n" in context:
