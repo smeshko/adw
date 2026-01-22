@@ -1,6 +1,6 @@
 # Story: Bugfix ISS-039 - RunContext Missing task_id and task_info
 
-Status: ready-for-dev
+Status: complete
 Linear Issue: not-configured
 Epic: 12 - Task Manager Integration
 Created: 2026-01-22
@@ -53,10 +53,10 @@ So that phase completion comments and status updates are posted to my Linear iss
 - [x] Verify task_info flows from app.py → bootstrap.py → Orchestrator → RunLifecycle → RunContext
 
 ### Task 4: Write Tests
-- [ ] Add test: StatusSyncService stores task_info from constructor
-- [ ] Add test: StatusSyncService.post_phase_comment() uses stored task_info
-- [ ] Add test: RunContext created with task_id and task_info populated
-- [ ] Add test: StatusSyncService methods don't return early when task_info provided
+- [x] Add test: StatusSyncService stores task_info from constructor
+- [x] Add test: StatusSyncService.post_phase_comment() uses stored task_info
+- [x] Add test: RunContext created with task_id and task_info populated
+- [x] Add test: StatusSyncService methods don't return early when task_info provided
 
 ---
 

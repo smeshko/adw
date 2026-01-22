@@ -773,3 +773,75 @@ class TestShowWorktreePreserved:
 
         # console.print should not be called
         mock_progress_display.console.print.assert_not_called()
+
+
+class TestRunContextTaskInfoPopulation:
+    """Tests for ISS-039: RunContext task_id and task_info population."""
+
+    def test_context_created_with_task_info_populated(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_interruption_handler: MagicMock,
+    ) -> None:
+        """RunContext is created with task_id and task_info from RunLifecycle."""
+        from adw.models.task import TaskInfo
+
+        task_info = TaskInfo(
+            id="uuid-lifecycle-123",
+            identifier="RULE-789",
+            title="Test task from lifecycle",
+        )
+
+        lifecycle = RunLifecycle(
+            runs_dir=tmp_path,
+            project_path=tmp_path,
+            context_manager=mock_context_manager,
+            run_directory_manager=mock_run_directory_manager,
+            index_manager=mock_index_manager,
+            interruption_handler=mock_interruption_handler,
+            worktree_config=WorktreeConfig(enabled=False),
+            task_info=task_info,  # ISS-039: pass task_info to lifecycle
+        )
+
+        context = lifecycle.create_run_context(
+            feature_description="Test feature",
+            use_worktree=False,
+        )
+
+        # Verify task_id and task_info are populated
+        assert context.task_id == "RULE-789"  # Should be task_info.identifier
+        assert context.task_info is not None
+        assert context.task_info.id == "uuid-lifecycle-123"
+        assert context.task_info.identifier == "RULE-789"
+
+    def test_context_created_without_task_info_when_not_provided(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_interruption_handler: MagicMock,
+    ) -> None:
+        """RunContext has None for task_id/task_info when not provided."""
+        lifecycle = RunLifecycle(
+            runs_dir=tmp_path,
+            project_path=tmp_path,
+            context_manager=mock_context_manager,
+            run_directory_manager=mock_run_directory_manager,
+            index_manager=mock_index_manager,
+            interruption_handler=mock_interruption_handler,
+            worktree_config=WorktreeConfig(enabled=False),
+            # No task_info provided
+        )
+
+        context = lifecycle.create_run_context(
+            feature_description="Test feature",
+            use_worktree=False,
+        )
+
+        # Verify task_id and task_info are None
+        assert context.task_id is None
+        assert context.task_info is None
