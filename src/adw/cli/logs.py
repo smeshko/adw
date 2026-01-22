@@ -95,85 +95,103 @@ def _parse_log_line(line: str) -> tuple[str, str, str] | None:
     return None
 
 
-def _render_log_line(line: str, in_llm_stream: bool) -> bool:
-    """Render a log line as a colored panel or plain text.
+class LogRenderer:
+    """Stateful renderer for log lines with LLM content accumulation."""
 
-    Args:
-        line: The log line to render.
-        in_llm_stream: Whether we're currently inside LLM streaming content.
+    def __init__(self) -> None:
+        """Initialize the renderer state."""
+        self.in_llm_stream = False
+        self.llm_buffer: list[str] = []
 
-    Returns:
-        Updated in_llm_stream state (True if inside streaming content).
-    """
-    parsed = _parse_log_line(line)
-
-    if parsed:
-        timestamp, category, content = parsed
-        color = PANEL_COLORS.get(category, "dim")
-
-        # Strip ANSI codes from content for clean panel
-        clean_content = _strip_ansi(content)
-
-        # Detect LLM stream boundaries
-        if category == "LLM":
-            if "Token stream begins" in clean_content:
-                # Show the marker in a panel, then start streaming mode
-                panel = Panel(
-                    clean_content,
-                    title=f"[dim]{timestamp}[/] [{color}]{category}[/]",
-                    border_style=color,
-                    padding=(0, 1),
-                )
-                console.print(panel)
-                return True  # Now in LLM stream mode
-            elif "Token stream ends" in clean_content:
-                # End streaming mode, show the marker
-                console.print()  # Newline after streamed content
-                panel = Panel(
-                    clean_content,
-                    title=f"[dim]{timestamp}[/] [{color}]{category}[/]",
-                    border_style=color,
-                    padding=(0, 1),
-                )
-                console.print(panel)
-                return False  # No longer in LLM stream mode
-
-        # Regular structured log line - show in panel
-        panel = Panel(
-            clean_content,
-            title=f"[dim]{timestamp}[/] [{color}]{category}[/]",
-            border_style=color,
-            padding=(0, 1),
-        )
-        console.print(panel)
-        return in_llm_stream
-
-    else:
-        # Unstructured content (LLM streaming text or other)
-        clean_line = _strip_ansi(line.rstrip())
-        if not clean_line:
-            # Empty line - just print newline
-            console.print()
-            return in_llm_stream
-
-        if in_llm_stream:
-            # LLM streaming content - show in cyan panel
+    def _flush_llm_buffer(self) -> None:
+        """Flush accumulated LLM content as a single panel."""
+        if self.llm_buffer:
+            content = "\n".join(self.llm_buffer)
             panel = Panel(
-                clean_line,
+                content,
                 title="[dim]LLM Output[/]",
                 border_style="cyan",
                 padding=(0, 1),
             )
             console.print(panel)
-        else:
-            # Non-streaming unstructured content - show in dim panel
+            self.llm_buffer = []
+
+    def render(self, line: str) -> None:
+        """Render a log line, accumulating LLM content into single panels.
+
+        Args:
+            line: The log line to render.
+        """
+        parsed = _parse_log_line(line)
+
+        if parsed:
+            timestamp, category, content = parsed
+            color = PANEL_COLORS.get(category, "dim")
+            clean_content = _strip_ansi(content)
+
+            # Detect LLM stream boundaries
+            if category == "LLM":
+                if "Token stream begins" in clean_content:
+                    # Flush any pending LLM content first
+                    self._flush_llm_buffer()
+                    # Show the marker in a panel
+                    panel = Panel(
+                        clean_content,
+                        title=f"[dim]{timestamp}[/] [{color}]{category}[/]",
+                        border_style=color,
+                        padding=(0, 1),
+                    )
+                    console.print(panel)
+                    self.in_llm_stream = True
+                    return
+
+                if "Token stream ends" in clean_content:
+                    # Flush accumulated LLM content as one panel
+                    self._flush_llm_buffer()
+                    # Show the end marker
+                    panel = Panel(
+                        clean_content,
+                        title=f"[dim]{timestamp}[/] [{color}]{category}[/]",
+                        border_style=color,
+                        padding=(0, 1),
+                    )
+                    console.print(panel)
+                    self.in_llm_stream = False
+                    return
+
+            # For TOOL calls during LLM stream, flush buffer first
+            if self.in_llm_stream and category == "TOOL":
+                self._flush_llm_buffer()
+
+            # Regular structured log line - show in panel
             panel = Panel(
-                clean_line,
-                border_style="dim",
+                clean_content,
+                title=f"[dim]{timestamp}[/] [{color}]{category}[/]",
+                border_style=color,
                 padding=(0, 1),
             )
             console.print(panel)
-        return in_llm_stream
+
+        else:
+            # Unstructured content (LLM streaming text or other)
+            clean_line = _strip_ansi(line.rstrip())
+            if not clean_line:
+                # Empty line in LLM stream - add to buffer as blank
+                if self.in_llm_stream:
+                    self.llm_buffer.append("")
+                return
+
+            if self.in_llm_stream:
+                # Accumulate LLM streaming content
+                self.llm_buffer.append(clean_line)
+            else:
+                # Non-streaming unstructured content - show in dim panel
+                panel = Panel(
+                    clean_line,
+                    border_style="dim",
+                    padding=(0, 1),
+                )
+                console.print(panel)
 
 
 def _validate_ulid(run_id: str) -> bool:
@@ -624,14 +642,14 @@ def logs_follow(
             if not replay and run_status in ("running", ""):
                 f.seek(0, 2)  # Seek to end
 
-            # Track whether we're inside LLM streaming content
-            in_llm_stream = False
+            # Create renderer to track state and accumulate LLM content
+            renderer = LogRenderer()
 
             while True:
                 line = f.readline()
                 if line:
-                    # Render line with colored panels for structured logs
-                    in_llm_stream = _render_log_line(line, in_llm_stream)
+                    # Render line with colored panels, accumulating LLM content
+                    renderer.render(line)
                 else:
                     # Check if run is still active
                     if context_file.exists():
