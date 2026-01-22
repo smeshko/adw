@@ -82,7 +82,7 @@ issues:
   ISS-036-progress-bar-shows-disabled-phases: fixed  # Major - Disabled phases (ship) shown in progress bar, affects percentage
   ISS-037-pr-title-missing-description: fixed  # Major - PR title just shows task ID when feature_description equals task_id
   ISS-038-conditional-docs-too-generic: in-progress  # Minor - Document phase generates overly broad conditions not specific to feature (story created)
-  ISS-039-runcontext-missing-task-info: in-progress  # Critical - RunContext.task_id/task_info never populated, StatusSyncService comments silently fail (story created)
+  ISS-039-runcontext-missing-task-info: fixed  # Critical - RunContext.task_id/task_info never populated, StatusSyncService comments silently fail (story created)
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -424,4 +424,4 @@ development_status:
   # Bugfix (from ISS-039) - CRITICAL
   # RunContext.task_id and task_info never populated in create_run_context()
   # StatusSyncService.post_phase_comment() and other methods silently return early
-  bugfix-ISS-039-runcontext-missing-task-info: in-progress
+  bugfix-ISS-039-runcontext-missing-task-info: done
