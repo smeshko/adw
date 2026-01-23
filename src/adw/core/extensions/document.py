@@ -56,19 +56,20 @@ class DocumentExtension:
         self._git_config = git_config
         self._runs_dir = runs_dir
 
-    def should_skip(self, _context: "RunContext") -> tuple[bool, str | None]:
+    def should_skip(self, context: "RunContext") -> tuple[bool, str | None]:
         """Document phase never skips via extension logic.
 
         Args:
-            _context: Current run context (unused).
+            context: Current run context (unused).
 
         Returns:
             Always returns (False, None).
         """
+        del context  # Unused
         return False, None
 
     def on_complete(
-        self, context: "RunContext", _result: "PhaseResult"
+        self, context: "RunContext", result: "PhaseResult"
     ) -> "RunContext":
         """Handle PR creation after document phase completes.
 
@@ -83,11 +84,12 @@ class DocumentExtension:
 
         Args:
             context: Current run context.
-            _result: Result from the completed phase (unused).
+            result: Result from the completed phase (unused).
 
         Returns:
             Updated RunContext with PR state fields.
         """
+        del result  # Unused
         if not self._git_config.auto_create_pr:
             logger.debug(
                 "Auto-PR disabled, skipping PR creation",
@@ -180,3 +182,15 @@ class DocumentExtension:
         from adw.cli.pr import auto_create_pr
 
         return auto_create_pr(context.run_id, context, self._runs_dir)
+
+    def get_hook_env(self, context: "RunContext") -> dict[str, str]:
+        """Document phase has no additional hook environment variables.
+
+        Args:
+            context: Current run context (unused).
+
+        Returns:
+            Empty dictionary.
+        """
+        del context  # Unused
+        return {}

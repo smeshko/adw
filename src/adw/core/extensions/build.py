@@ -42,33 +42,35 @@ class BuildExtension:
 
     phase: ClassVar[str] = "build"
 
-    def should_skip(self, _context: "RunContext") -> tuple[bool, str | None]:
+    def should_skip(self, context: "RunContext") -> tuple[bool, str | None]:
         """Build phase never skips via extension logic.
 
         Args:
-            _context: Current run context (unused).
+            context: Current run context (unused).
 
         Returns:
             Always returns (False, None).
         """
+        del context  # Unused
         return False, None
 
     def on_complete(
-        self, context: "RunContext", _result: "PhaseResult"
+        self, context: "RunContext", result: "PhaseResult"
     ) -> "RunContext":
         """No post-processing needed for build phase.
 
         Args:
             context: Current run context.
-            _result: Result from the completed phase (unused).
+            result: Result from the completed phase (unused).
 
         Returns:
             Unchanged context.
         """
+        del result  # Unused
         return context
 
     def extra_artifacts(
-        self, context: "RunContext", _llm_result: "LLMResult"
+        self, context: "RunContext", llm_result: "LLMResult"
     ) -> list[tuple[str, str]]:
         """Capture git diff as build phase artifacts.
 
@@ -86,6 +88,7 @@ class BuildExtension:
             - ("diff_stats.json", stats_json)
             Empty list if no changes to capture or on error.
         """
+        del llm_result  # Unused
         artifacts: list[tuple[str, str]] = []
         diff_reference = "HEAD~1"
 
@@ -216,3 +219,15 @@ class BuildExtension:
                 extra={"error": str(stat_error)},
             )
             return None
+
+    def get_hook_env(self, context: "RunContext") -> dict[str, str]:
+        """Build phase has no additional hook environment variables.
+
+        Args:
+            context: Current run context (unused).
+
+        Returns:
+            Empty dictionary.
+        """
+        del context  # Unused
+        return {}

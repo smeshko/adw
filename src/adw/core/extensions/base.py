@@ -68,7 +68,9 @@ class PhaseExtension(Protocol):
         """
         ...
 
-    def on_complete(self, context: "RunContext", result: "PhaseResult") -> "RunContext":
+    def on_complete(
+        self, context: "RunContext", result: "PhaseResult"
+    ) -> "RunContext":
         """Handle post-phase processing.
 
         Called after phase completes successfully. Can perform side effects
@@ -109,5 +111,28 @@ class PhaseExtension(Protocol):
             >>> def extra_artifacts(self, context, llm_result):
             ...     diff = capture_git_diff()
             ...     return [("diff.txt", diff), ("diff_stats.json", stats)]
+        """
+        ...
+
+    def get_hook_env(self, context: "RunContext") -> dict[str, str]:
+        """Get environment variables to set before running hooks.
+
+        Called before pre-hook and post-hook execution. Returns a dictionary
+        of environment variable names to values that should be set in the
+        hook's environment.
+
+        Args:
+            context: Current run context.
+
+        Returns:
+            Dictionary of environment variable names to values. Empty dict
+            if no additional environment variables are needed.
+
+        Example:
+            >>> def get_hook_env(self, context):
+            ...     return {
+            ...         "MY_VAR": "value",
+            ...         "ANOTHER_VAR": "true",
+            ...     }
         """
         ...

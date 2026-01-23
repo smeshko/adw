@@ -192,3 +192,47 @@ class ExtensionRegistry:
                 )
 
         return all_artifacts
+
+    def get_hook_env(self, phase: str, context: "RunContext") -> dict[str, str]:
+        """Collect environment variables from all phase extensions for hooks.
+
+        Merges environment variables from all extensions for the phase.
+        Later extensions can override variables from earlier ones.
+
+        Args:
+            phase: Current phase.
+            context: Current run context.
+
+        Returns:
+            Dictionary of environment variable names to values. Empty dict
+            if no extensions or no environment variables.
+        """
+        extensions = self.get_extensions(phase)
+        env_vars: dict[str, str] = {}
+
+        for ext in extensions:
+            try:
+                # Check if extension implements get_hook_env (optional method)
+                if hasattr(ext, "get_hook_env"):
+                    ext_env = ext.get_hook_env(context)
+                    if ext_env:
+                        env_vars.update(ext_env)
+                        logger.debug(
+                            "Extension provided hook environment variables",
+                            extra={
+                                "phase": phase,
+                                "extension": type(ext).__name__,
+                                "var_count": len(ext_env),
+                            },
+                        )
+            except Exception as e:
+                logger.warning(
+                    "Extension get_hook_env failed (non-blocking)",
+                    extra={
+                        "phase": phase,
+                        "extension": type(ext).__name__,
+                        "error": str(e),
+                    },
+                )
+
+        return env_vars

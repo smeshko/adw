@@ -254,6 +254,7 @@ class ShipPRConfig(BaseModel):
         merge_on_success: Whether to auto-merge PR after validation (default: False)
         delete_branch_on_merge: Delete feature branch after merge (default: True)
         merge_method: Method for merging PR (default: "squash")
+        bypass_ci: Bypass CI checks using --admin flag (default: False, requires admin)
 
     Example:
         >>> config = ShipPRConfig(merge_on_success=True, merge_method="squash")
@@ -268,6 +269,7 @@ class ShipPRConfig(BaseModel):
             merge_on_success: true
             delete_branch_on_merge: true
             merge_method: squash
+            bypass_ci: false
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -283,6 +285,10 @@ class ShipPRConfig(BaseModel):
     merge_method: Literal["merge", "squash", "rebase"] = Field(
         default="squash",
         description="Method for merging PR (merge, squash, or rebase)",
+    )
+    bypass_ci: bool = Field(
+        default=False,
+        description="Bypass CI checks using --admin flag (requires admin access)",
     )
 
 

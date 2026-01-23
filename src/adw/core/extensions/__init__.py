@@ -35,6 +35,7 @@ from adw.models import GitConfig
 def create_default_registry(
     git_config: GitConfig,
     runs_dir: Path,
+    project_root: Path | None = None,
 ) -> ExtensionRegistry:
     """Create registry with all built-in extensions.
 
@@ -42,11 +43,12 @@ def create_default_registry(
     with the standard phase extensions:
     - BuildExtension: Git diff capture
     - DocumentExtension: PR description and auto-PR creation
-    - ShipExtension: Skip logic based on PR state
+    - ShipExtension: Skip logic based on PR state, hook env from config
 
     Args:
         git_config: Git configuration with auto_create_pr setting.
         runs_dir: Path to .adw/runs directory.
+        project_root: Path to project root for loading phase configs.
 
     Returns:
         ExtensionRegistry with all built-in extensions registered.
@@ -55,12 +57,13 @@ def create_default_registry(
         >>> registry = create_default_registry(
         ...     git_config=GitConfig(auto_create_pr=True),
         ...     runs_dir=Path(".adw/runs"),
+        ...     project_root=Path("/project"),
         ... )
     """
     registry = ExtensionRegistry()
     registry.register(BuildExtension())
     registry.register(DocumentExtension(git_config, runs_dir))
-    registry.register(ShipExtension())
+    registry.register(ShipExtension(project_root=project_root))
     return registry
 
 

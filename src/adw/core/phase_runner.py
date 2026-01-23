@@ -992,8 +992,24 @@ class PhaseRunner:
         artifacts_dir = (
             self.artifact_manager.runs_dir / context.run_id / "artifacts" / phase
         )
+
+        # Get extension-provided environment variables for this phase
+        extension_env = self.extension_registry.get_hook_env(phase, context)
+        extension_env_keys: list[str] = []
+
         try:
             os.environ["ADW_LLM_OUTPUT"] = llm_output
+
+            # Set extension environment variables
+            for key, value in extension_env.items():
+                os.environ[key] = value
+                extension_env_keys.append(key)
+
+            if extension_env_keys:
+                logger.debug(
+                    "Set extension environment variables for hook",
+                    extra={"phase": phase, "vars": extension_env_keys},
+                )
 
             result = self.hook_runner.run_hook(
                 hook_path=command.post_hook_path,
@@ -1022,6 +1038,10 @@ class PhaseRunner:
                 os.environ.pop("ADW_LLM_OUTPUT", None)
             else:
                 os.environ["ADW_LLM_OUTPUT"] = original_env
+
+            # Clean up extension environment variables
+            for key in extension_env_keys:
+                os.environ.pop(key, None)
 
     def _auto_commit_changes(
         self,

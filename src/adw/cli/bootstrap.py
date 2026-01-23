@@ -291,8 +291,11 @@ def create_orchestrator(
             label_manager = LabelManager(task_manager, labels_config, task_info.id)
 
     # Create extension registry with built-in extensions (Phase Extensions)
-    # This registers BuildExtension (diff capture) and DocumentExtension (PR creation)
-    extension_registry = create_default_registry(git_config, runs_dir)
+    # This registers BuildExtension (diff capture), DocumentExtension (PR creation),
+    # and ShipExtension (skip logic and hook env vars)
+    extension_registry = create_default_registry(
+        git_config, runs_dir, project_root=project_root
+    )
 
     # Create orchestrator (ISS-039: pass task_info to populate RunContext)
     orchestrator = Orchestrator(
