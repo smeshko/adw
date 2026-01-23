@@ -1,0 +1,27 @@
+# Run Tests Workflow Configuration
+name: "run-tests"
+version: "2.0.0"
+description: "Autonomously run all configured test commands with auto-fix capability. Designed for CI/automation."
+author: "BMad"
+
+# Workflow type
+type: "action" # Autonomous execution, no user interaction
+
+# Critical variables
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+project_config: "{project-root}/_bmad/project-config.yaml"
+
+# Exit codes
+exit_codes:
+  success: 0 # All tests passed (including after fixes)
+  failure: 1 # Tests failed after fix attempts
+
+# Module path and component files
+installed_path: "{project-root}/_bmad/bmm/workflows/4-implementation/run-tests"
+workflow: "{installed_path}/workflow.md"
+
+# Execution configuration
+max_fix_attempts: 3
+auto_commit_fixes: true
+
+standalone: true

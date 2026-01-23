@@ -1,0 +1,45 @@
+# Document Project Workflow Configuration
+name: "document-project"
+version: "3.0.0"
+description: "Autonomously analyzes and documents brownfield projects by scanning codebase, architecture, and patterns to create comprehensive reference documentation for AI-assisted development. Designed for CI/automation."
+author: "BMad"
+
+# Workflow type
+type: "action" # Autonomous execution, no user interaction
+
+# Critical variables
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+document_output_language: "{config_source}:document_output_language"
+user_skill_level: "{config_source}:user_skill_level"
+date: system-generated
+
+# Environment variable overrides (for CI)
+env_vars:
+  SCAN_MODE: "full" # full | quick
+  SCAN_LEVEL: "deep" # quick | deep | exhaustive
+  FAIL_ON_WARNING: "false" # true | false
+
+# Exit codes
+exit_codes:
+  success: 0
+  critical_failure: 1
+  partial_success: 2
+
+# Module path and component files
+installed_path: "{project-root}/_bmad/bmm/workflows/document-project"
+template: false # Action workflow with multiple output files
+workflow: "{installed_path}/workflow.md"
+validation: "{installed_path}/checklist.md"
+
+# Required data files - CRITICAL for project type detection and documentation requirements
+documentation_requirements_csv: "{installed_path}/documentation-requirements.csv"
+
+# Output configuration - Multiple files generated in output folder
+# Primary output: {output_folder}/index.md
+# State file: {output_folder}/project-scan-report.json
+# Additional files generated based on project structure
+
+standalone: true
