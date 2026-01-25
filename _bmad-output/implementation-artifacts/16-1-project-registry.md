@@ -87,10 +87,10 @@ So that I can control which projects appear in cross-project views.
 - [x] Write unit tests in `tests/unit/cli/test_register.py`
 
 ### Task 4: Implement `adw unregister` Command
-- [ ] Add `unregister` command to `src/adw/cli/app.py`
-- [ ] Remove current project from registry
-- [ ] Display success message or "not registered" message
-- [ ] Write unit tests in `tests/unit/cli/test_unregister.py`
+- [x] Add `unregister` command to `src/adw/cli/app.py`
+- [x] Remove current project from registry
+- [x] Display success message or "not registered" message
+- [x] Write unit tests in `tests/unit/cli/test_unregister.py`
 
 ### Task 5: Implement `adw projects` Command
 - [ ] Add `projects` command to `src/adw/cli/app.py`
@@ -571,19 +571,28 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Provides clear success/update messages using Rich console
 - 4 unit tests covering registration, custom naming, validation, and updates
 
+**Task 4 Completed (2026-01-25):**
+- Created `adw unregister` CLI command in `src/adw/cli/unregister.py`
+- Removes current project from registry
+- Shows "not registered" message if project wasn't in registry
+- Validates current directory is an ADW project
+- 3 unit tests covering unregistration, not-registered case, and validation
+
 ### File List
 
 **New Files:**
 - `src/adw/models/registry.py` - RegisteredProject and ProjectRegistry models
 - `src/adw/core/project_registry.py` - ProjectRegistryManager class
 - `src/adw/cli/register.py` - `adw register` CLI command
+- `src/adw/cli/unregister.py` - `adw unregister` CLI command
 - `tests/unit/models/test_registry.py` - Unit tests for registry models
 - `tests/unit/core/test_project_registry.py` - Unit tests for registry manager
 - `tests/unit/cli/test_register.py` - Unit tests for register command
+- `tests/unit/cli/test_unregister.py` - Unit tests for unregister command
 
 **Modified Files:**
 - `src/adw/models/__init__.py` - Added exports for registry models
-- `src/adw/cli/app.py` - Registered the `register` command
+- `src/adw/cli/app.py` - Registered `register` and `unregister` commands
 
 ---
 
