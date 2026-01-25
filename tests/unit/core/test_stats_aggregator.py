@@ -4,8 +4,10 @@ Tests for cost calculation, pricing configuration, and LLM file parsing.
 """
 
 import json
+import os
 from pathlib import Path
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -245,3 +247,183 @@ class TestParseLLMResponseFiles:
 
         assert usage.input_tokens == 0
         assert usage.output_tokens == 13266
+
+
+class TestStatsAggregatorInit:
+    """Tests for StatsAggregator initialization."""
+
+    def test_default_cache_path(self) -> None:
+        """Default cache path is ~/.adw/stats-cache.json."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        # Clear env var if set
+        with patch.dict(os.environ, {}, clear=True):
+            os.environ.pop("ADW_TEST_STATS_CACHE_PATH", None)
+            aggregator = StatsAggregator()
+
+        assert aggregator.cache_path == Path.home() / ".adw" / "stats-cache.json"
+
+    def test_custom_cache_path(self, tmp_path: Path) -> None:
+        """Custom cache path can be specified."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        custom_path = tmp_path / "custom-cache.json"
+        aggregator = StatsAggregator(cache_path=custom_path)
+
+        assert aggregator.cache_path == custom_path
+
+    def test_env_var_cache_path(self, tmp_path: Path) -> None:
+        """ADW_TEST_STATS_CACHE_PATH env var overrides default."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        env_path = str(tmp_path / "env-cache.json")
+        with patch.dict(os.environ, {"ADW_TEST_STATS_CACHE_PATH": env_path}):
+            aggregator = StatsAggregator()
+
+        assert aggregator.cache_path == Path(env_path)
+
+    def test_explicit_path_overrides_env(self, tmp_path: Path) -> None:
+        """Explicit cache_path parameter overrides env var."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        env_path = str(tmp_path / "env-cache.json")
+        custom_path = tmp_path / "custom-cache.json"
+
+        with patch.dict(os.environ, {"ADW_TEST_STATS_CACHE_PATH": env_path}):
+            aggregator = StatsAggregator(cache_path=custom_path)
+
+        assert aggregator.cache_path == custom_path
+
+    def test_custom_pricing(self) -> None:
+        """Custom pricing configuration can be specified."""
+        from adw.core.stats_aggregator import StatsAggregator, DEFAULT_PRICING
+
+        custom_pricing = {
+            "my-model": {"input": 1.00, "output": 2.00},
+            "default": {"input": 1.00, "output": 2.00},
+        }
+
+        aggregator = StatsAggregator(pricing=custom_pricing)
+
+        assert aggregator.pricing == custom_pricing
+        assert aggregator.pricing != DEFAULT_PRICING
+
+    def test_custom_index_manager(self) -> None:
+        """Custom IndexManager can be specified."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.core.index_manager import IndexManager
+
+        custom_manager = IndexManager()
+        aggregator = StatsAggregator(index_manager=custom_manager)
+
+        assert aggregator.index_manager is custom_manager
+
+
+class TestGetGlobalStats:
+    """Tests for get_global_stats method."""
+
+    def test_returns_global_statistics(self, tmp_path: Path) -> None:
+        """get_global_stats returns GlobalStatistics object."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.core.index_manager import IndexManager
+        from adw.models.stats import GlobalStatistics
+
+        # Create mock index manager
+        index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
+
+        aggregator = StatsAggregator(
+            index_manager=index_manager,
+            cache_path=tmp_path / "cache.json",
+        )
+
+        stats = aggregator.get_global_stats()
+
+        assert isinstance(stats, GlobalStatistics)
+        assert stats.generated_at is not None
+
+    def test_empty_index_returns_empty_stats(self, tmp_path: Path) -> None:
+        """Empty index returns stats with zero values."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.core.index_manager import IndexManager
+
+        index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
+
+        aggregator = StatsAggregator(
+            index_manager=index_manager,
+            cache_path=tmp_path / "cache.json",
+        )
+
+        stats = aggregator.get_global_stats()
+
+        assert stats.total_runs == 0
+        assert stats.runs_this_week == 0
+        assert stats.runs_today == 0
+        assert stats.success_rate == 0.0
+        assert stats.projects == []
+
+    def test_force_refresh_ignores_cache(self, tmp_path: Path) -> None:
+        """force_refresh=True skips cache check."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.core.index_manager import IndexManager
+
+        index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
+        cache_path = tmp_path / "cache.json"
+
+        # Create a cache file
+        cache_data = {
+            "generated_at": datetime.now(UTC).isoformat(),
+            "ttl_seconds": 300,
+            "stats": {
+                "generated_at": datetime.now(UTC).isoformat(),
+                "total_runs": 999,  # Different from fresh stats
+            },
+        }
+        with open(cache_path, "w") as f:
+            json.dump(cache_data, f)
+
+        aggregator = StatsAggregator(
+            index_manager=index_manager,
+            cache_path=cache_path,
+        )
+
+        # With force_refresh, should get 0 runs (fresh stats from empty index)
+        stats = aggregator.get_global_stats(force_refresh=True)
+
+        assert stats.total_runs == 0  # Fresh, not cached 999
+
+
+class TestGetTokenUsage:
+    """Tests for get_token_usage helper method."""
+
+    def test_get_token_usage_for_run(self, tmp_path: Path) -> None:
+        """get_token_usage returns token usage for a specific run."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        # Set up run directory structure
+        run_id = "01ABC123"
+        project_path = tmp_path / "my-project"
+        run_dir = project_path / ".adw" / "runs" / run_id / "llm"
+        run_dir.mkdir(parents=True)
+
+        # Create response file
+        response = {"stats": {"input_tokens": 5000, "output_tokens": 2500}}
+        (run_dir / "001_plan_response.json").write_text(json.dumps(response))
+
+        aggregator = StatsAggregator()
+        usage = aggregator.get_token_usage(run_id, project_path)
+
+        assert usage is not None
+        assert usage.input_tokens == 5000
+        assert usage.output_tokens == 2500
+
+    def test_get_token_usage_missing_run(self, tmp_path: Path) -> None:
+        """get_token_usage returns None for non-existent run."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        project_path = tmp_path / "my-project"
+        project_path.mkdir()
+
+        aggregator = StatsAggregator()
+        usage = aggregator.get_token_usage("nonexistent-run", project_path)
+
+        assert usage is None

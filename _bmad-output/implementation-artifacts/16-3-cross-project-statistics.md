@@ -57,14 +57,14 @@ so that I can understand my overall ADW usage patterns.
 - [x] Write unit tests for cost calculation
 
 ### Task 3: Create StatsAggregator Core Class
-- [ ] Create `src/adw/core/stats_aggregator.py` with `StatsAggregator` class
-- [ ] Implement methods:
+- [x] Create `src/adw/core/stats_aggregator.py` with `StatsAggregator` class
+- [x] Implement methods:
   - `get_global_stats(project_name: str | None = None) -> GlobalStatistics`
   - `get_token_usage(run_id: str, project_path: Path) -> TokenUsage | None`
   - `calculate_cost(tokens: TokenUsage, model: str) -> float`
   - `_collect_llm_stats(project_path: Path, run_id: str) -> dict`
-- [ ] Support `ADW_TEST_STATS_CACHE_PATH` env var for testing
-- [ ] Write unit tests in `tests/unit/core/test_stats_aggregator.py`
+- [x] Support `ADW_TEST_STATS_CACHE_PATH` env var for testing
+- [x] Write unit tests in `tests/unit/core/test_stats_aggregator.py`
 
 ### Task 4: Implement LLM Response File Parsing
 - [ ] Create method `_parse_llm_response_files(run_dir: Path) -> TokenUsage`
@@ -914,6 +914,7 @@ claude-opus-4-5-20251101
 
 - Task 1: Created TokenUsage, ProjectStatistics, GlobalStatistics models in src/adw/models/stats.py. Exported from models package. Added 14 unit tests covering all model functionality.
 - Task 2: Created StatsAggregator class with DEFAULT_PRICING constant, calculate_cost method, and _parse_llm_response_files method. Added 16 unit tests for pricing and LLM parsing.
+- Task 3: Added get_global_stats, get_token_usage methods. Added env var support for ADW_TEST_STATS_CACHE_PATH. Added 11 more unit tests (27 total).
 
 ### File List
 

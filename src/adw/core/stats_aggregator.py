@@ -72,6 +72,26 @@ class StatsAggregator:
 
         self.pricing = pricing or DEFAULT_PRICING
 
+    def get_token_usage(
+        self,
+        run_id: str,
+        project_path: Path,
+    ) -> TokenUsage | None:
+        """Get token usage for a specific run.
+
+        Args:
+            run_id: The run ID to look up.
+            project_path: Path to the project directory.
+
+        Returns:
+            TokenUsage for the run, or None if run directory doesn't exist.
+        """
+        run_dir = project_path / ".adw" / "runs" / run_id
+        if not run_dir.exists():
+            return None
+
+        return self._parse_llm_response_files(run_dir)
+
     def calculate_cost(
         self,
         tokens: TokenUsage,
