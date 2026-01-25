@@ -93,13 +93,13 @@ So that I can control which projects appear in cross-project views.
 - [x] Write unit tests in `tests/unit/cli/test_unregister.py`
 
 ### Task 5: Implement `adw projects` Command
-- [ ] Add `projects` command to `src/adw/cli/app.py`
-- [ ] Display table with: Name, Path, Registered At, Run Count
-- [ ] Run count from IndexManager.get_recent_runs() filtered by project_path
-- [ ] Implement `--discover` flag to show projects from `index.jsonl`
-- [ ] Implement `--json` flag for machine-readable output
-- [ ] Sort by name (alphabetical) by default
-- [ ] Write unit tests in `tests/unit/cli/test_projects.py`
+- [x] Add `projects` command to `src/adw/cli/app.py`
+- [x] Display table with: Name, Path, Registered At, Run Count
+- [x] Run count from IndexManager.get_recent_runs() filtered by project_path
+- [x] Implement `--discover` flag to show projects from `index.jsonl`
+- [x] Implement `--json` flag for machine-readable output
+- [x] Sort by name (alphabetical) by default
+- [x] Write unit tests in `tests/unit/cli/test_projects.py`
 
 ### Task 6: Create GLOBAL_REGISTRY Wizard Step
 - [ ] Create `src/adw/cli/wizard/global_registry.py` with:
@@ -578,6 +578,14 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Validates current directory is an ADW project
 - 3 unit tests covering unregistration, not-registered case, and validation
 
+**Task 5 Completed (2026-01-25):**
+- Created `adw projects` CLI command in `src/adw/cli/projects.py`
+- Displays Rich table with Name, Path, Runs, Since columns
+- Calculates run count per project from IndexManager
+- Implements `--discover` flag to show projects from run history
+- Implements `--json` flag for machine-readable output
+- 4 unit tests covering listing, empty registry, discover flag, and JSON output
+
 ### File List
 
 **New Files:**
@@ -585,14 +593,16 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - `src/adw/core/project_registry.py` - ProjectRegistryManager class
 - `src/adw/cli/register.py` - `adw register` CLI command
 - `src/adw/cli/unregister.py` - `adw unregister` CLI command
+- `src/adw/cli/projects.py` - `adw projects` CLI command
 - `tests/unit/models/test_registry.py` - Unit tests for registry models
 - `tests/unit/core/test_project_registry.py` - Unit tests for registry manager
 - `tests/unit/cli/test_register.py` - Unit tests for register command
 - `tests/unit/cli/test_unregister.py` - Unit tests for unregister command
+- `tests/unit/cli/test_projects.py` - Unit tests for projects command
 
 **Modified Files:**
 - `src/adw/models/__init__.py` - Added exports for registry models
-- `src/adw/cli/app.py` - Registered `register` and `unregister` commands
+- `src/adw/cli/app.py` - Registered `register`, `unregister`, and `projects` commands
 
 ---
 

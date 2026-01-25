@@ -14,6 +14,7 @@ from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
 from adw.cli.logs import logs_app
 from adw.cli.pr import pr as pr_command
+from adw.cli.projects import projects as projects_command
 from adw.cli.register import register as register_command
 from adw.cli.resume import resume as resume_command
 from adw.cli.unregister import unregister as unregister_command
@@ -479,6 +480,9 @@ app.command()(register_command)
 
 # Register the unregister command (Story 16.1)
 app.command()(unregister_command)
+
+# Register the projects command (Story 16.1)
+app.command()(projects_command)
 
 # Register the webhook subapp (Story 13.1)
 app.add_typer(webhook_app, name="webhook")
