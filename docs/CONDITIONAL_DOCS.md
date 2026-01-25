@@ -1,10 +1,22 @@
-# Conditional Documentation
-
-This file lists documentation that should be read under specific conditions. When working on certain parts of the codebase, consult the relevant documentation to ensure consistency and adherence to established patterns.
-
+---
+title: Conditional Documentation Guide
+description: Find documentation based on your current task
+author: ADW Team
+date: 2026-01-25
 ---
 
-## Architecture Decision Records
+# Conditional Documentation Guide
+
+This guide helps you find relevant documentation based on what you're working on.
+
+## Instructions
+
+- Review the task you need to perform
+- Check the conditions below
+- Read the relevant documentation before proceeding
+- Only read documentation if conditions match your task
+
+## Documentation Map
 
 - docs/architecture/adrs/ADR-001-test-reduction-strategy.md
   - Conditions:
@@ -15,19 +27,11 @@ This file lists documentation that should be read under specific conditions. Whe
     - When consolidating redundant tests
     - When auditing test quality
 
----
-
-## Testing Documentation
-
 - docs/testing/TEST_REDUCTION_PLAN.md
   - Conditions:
     - When understanding which test categories are considered waste
     - When identifying tests for deletion or consolidation
     - When reviewing test file structure
-
----
-
-## Core Documentation
 
 - README.md
   - Conditions:
@@ -47,10 +51,6 @@ This file lists documentation that should be read under specific conditions. Whe
     - When implementing new features
     - When prioritizing work
 
----
-
-## Project Documentation Index
-
 - _bmad-output/index.md
   - Conditions:
     - When navigating project documentation
@@ -62,10 +62,6 @@ This file lists documentation that should be read under specific conditions. Whe
     - When getting a high-level understanding of the project
     - When reviewing project metrics and capabilities
     - When explaining the project to others
-
----
-
-## Architecture Documentation
 
 - _bmad-output/architecture-summary.md
   - Conditions:
@@ -88,16 +84,15 @@ This file lists documentation that should be read under specific conditions. Whe
     - When working with phase execution
     - When adding or modifying pipeline behavior
 
----
-
-## Development Documentation
-
 - _bmad-output/development-guide.md
   - Conditions:
     - When setting up the development environment
     - When learning development commands (test, lint, build)
     - When adding new features or commands
     - When debugging issues
+    - When adding new CLI commands
+    - When modifying command arguments or flags
+    - When working with Typer integration
 
 - _bmad-output/source-tree-analysis.md
   - Conditions:
@@ -105,10 +100,6 @@ This file lists documentation that should be read under specific conditions. Whe
     - When understanding module purposes
     - When adding new modules or packages
     - When locating entry points
-
----
-
-## API and Data Model Documentation
 
 - _bmad-output/api-contracts-root.md
   - Conditions:
@@ -124,29 +115,11 @@ This file lists documentation that should be read under specific conditions. Whe
     - When understanding model relationships
     - When working with configuration models
 
----
-
-## CLI Documentation
-
-- _bmad-output/development-guide.md (CLI section)
-  - Conditions:
-    - When adding new CLI commands
-    - When modifying command arguments or flags
-    - When working with Typer integration
-
----
-
-## Security Documentation
-
-- docs/architecture/adrs/ (security-related ADRs)
+- docs/architecture/adrs/
   - Conditions:
     - When working with secret redaction
     - When modifying dangerous command patterns
     - When implementing security interceptors
-
----
-
-## Sprint and Planning
 
 - docs/planning/sprint-status.md
   - Conditions:
