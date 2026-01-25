@@ -39,13 +39,13 @@ so that I can understand my overall ADW usage patterns.
 ## Tasks / Subtasks
 
 ### Task 1: Create Statistics Models
-- [ ] Create `src/adw/models/stats.py` with:
+- [x] Create `src/adw/models/stats.py` with:
   - `TokenUsage` model: `input_tokens: int`, `output_tokens: int`, `total_tokens: int`
   - `RunStatistics` model: aggregate run metrics
   - `ProjectStatistics` model: per-project breakdown
   - `GlobalStatistics` model: all stats combined
-- [ ] Export from `src/adw/models/__init__.py`
-- [ ] Write unit tests in `tests/unit/models/test_stats.py`
+- [x] Export from `src/adw/models/__init__.py`
+- [x] Write unit tests in `tests/unit/models/test_stats.py`
 
 ### Task 2: Create Model Pricing Configuration
 - [ ] Define default pricing table for models in `src/adw/core/stats_aggregator.py`:
@@ -906,13 +906,19 @@ Epic 16: Cross-Project Dashboard - Story 16.3
 
 ### Agent Model Used
 
-<!-- To be filled by implementing agent -->
+claude-opus-4-5-20251101
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created TokenUsage, ProjectStatistics, GlobalStatistics models in src/adw/models/stats.py. Exported from models package. Added 14 unit tests covering all model functionality.
+
 ### File List
+
+- src/adw/models/stats.py (NEW)
+- src/adw/models/__init__.py (MODIFIED)
+- tests/unit/models/test_stats.py (NEW)
 
 ---
 
