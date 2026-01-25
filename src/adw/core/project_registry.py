@@ -95,7 +95,9 @@ class ProjectRegistryManager:
 
         # Resolve and normalize path
         path_str = str(path.resolve())
-        display_name = name or path.name
+        # Strip whitespace from name and fallback to directory name if empty
+        stripped_name = name.strip() if name else None
+        display_name = stripped_name or path.name
 
         # Check for existing entry
         existing_idx = None
@@ -274,7 +276,9 @@ class ProjectRegistryManager:
                 return ProjectRegistry()
 
             return ProjectRegistry.model_validate(data)
-        except (yaml.YAMLError, OSError) as e:
+        except (yaml.YAMLError, OSError, ValueError) as e:
+            # ValueError catches pydantic.ValidationError (which inherits from it)
+            # This handles malformed YAML structure (wrong types, missing fields)
             logger.warning(
                 "Failed to load registry, returning empty",
                 extra={

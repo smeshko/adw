@@ -144,6 +144,19 @@ class TestRegister:
         names = {p.name for p in all_projects}
         assert names == {"Project A", "Project B"}
 
+    def test_register_whitespace_name_uses_directory_name(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that whitespace-only names fall back to directory name."""
+        registry_path = tmp_path / "projects.yaml"
+        manager = ProjectRegistryManager(registry_path=registry_path)
+
+        project_path = Path("/Users/dev/my-api")
+        result = manager.register(project_path, name="   ")  # Whitespace only
+
+        # Should use directory name, not whitespace
+        assert result.name == "my-api"
+
 
 class TestUnregister:
     """Tests for ProjectRegistryManager.unregister()."""
@@ -350,6 +363,24 @@ class TestYAMLPersistence:
 
         assert len(all_projects) == 1
         assert all_projects[0].name == "my-api"
+
+    def test_malformed_registry_returns_empty(self, tmp_path: Path) -> None:
+        """Test that malformed registry YAML returns empty list instead of crashing."""
+        registry_path = tmp_path / "projects.yaml"
+
+        # Write malformed YAML structure (wrong types)
+        registry_path.write_text("""
+projects:
+  - path: 123  # Should be string
+    name: null  # Should be string
+    registered_at: "not-a-date"  # Invalid datetime
+""")
+
+        manager = ProjectRegistryManager(registry_path=registry_path)
+        all_projects = manager.get_all()
+
+        # Should gracefully return empty list, not crash
+        assert all_projects == []
 
 
 def _create_mock_index(path: Path, entries: list[dict]) -> None:

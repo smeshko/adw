@@ -158,7 +158,8 @@ def _format_relative_time(iso_timestamp: str) -> str:
             return f"{minutes}m ago"
         else:
             return "just now"
-    except (ValueError, AttributeError):
+    except (ValueError, AttributeError, TypeError):
+        # TypeError handles naive datetime subtraction from aware datetime
         return "unknown"
 
 
