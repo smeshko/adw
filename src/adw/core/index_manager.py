@@ -13,6 +13,7 @@ Key features:
 """
 
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -172,7 +173,9 @@ class IndexManager:
         self,
         limit: int = 10,
         project_path: Path | None = None,
+        project_name: str | None = None,
         status: str | None = None,
+        since: datetime | None = None,
     ) -> list[IndexEntry]:
         """Query recent runs with optional filters.
 
@@ -180,14 +183,17 @@ class IndexManager:
 
         Args:
             limit: Maximum number of entries to return.
-            project_path: Filter to runs from this project only.
+            project_path: Filter to runs from this project path only.
+            project_name: Filter to runs matching this project name.
             status: Filter to runs with this status.
+            since: Filter to runs started on or after this time.
 
         Returns:
             List of IndexEntry objects matching the filters.
 
         Example:
             >>> runs = manager.get_recent_runs(limit=5, status="completed")
+            >>> runs = manager.get_recent_runs(project_name="my-api", since=threshold)
         """
         if not self.index_path.exists():
             return []
@@ -199,8 +205,14 @@ class IndexManager:
             project_path_str = str(project_path)
             entries = [e for e in entries if e.project_path == project_path_str]
 
+        if project_name is not None:
+            entries = [e for e in entries if e.project_name == project_name]
+
         if status is not None:
             entries = [e for e in entries if e.status == status]
+
+        if since is not None:
+            entries = [e for e in entries if e.started_at >= since]
 
         # Sort by started_at (most recent first)
         entries.sort(key=lambda e: e.started_at, reverse=True)
