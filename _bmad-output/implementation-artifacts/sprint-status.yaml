@@ -367,7 +367,7 @@ development_status:
   16-2-global-run-list: done
   16-3-cross-project-statistics: done
   # 16-4-index-performance-optimization: DROPPED (2026-01-25) - Not needed
-  16-5-tui-dashboard: ready-for-dev
+  16-5-tui-dashboard: in-progress
   # 16-6-run-context-enhancements: DROPPED (2026-01-25) - Tags/username not needed
   # 16-7-export-and-reporting: DROPPED (2026-01-25) - Export not needed
   epic-16-retrospective: optional
