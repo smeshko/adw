@@ -501,10 +501,187 @@ class DashboardLayout:
 class DashboardController:
     """Controls dashboard state and rendering.
 
-    Placeholder - will be implemented in Task 3.
+    Coordinates between data fetching (IndexManager, StatsAggregator),
+    state management (DashboardState), and rendering (DashboardLayout).
+
+    Attributes:
+        refresh_interval: Seconds between auto-refreshes.
+        project_filter: Optional project name filter.
+        state: Mutable dashboard state.
+        data: Cached dashboard data.
+        layout: Layout renderer.
+        console: Rich Console for output.
+        index_manager: IndexManager for run queries.
+        stats_aggregator: StatsAggregator for statistics.
+
+    Example:
+        >>> controller = DashboardController(refresh_interval=30)
+        >>> controller.refresh_data()
+        >>> renderable = controller.render()
     """
 
-    pass
+    def __init__(
+        self,
+        refresh_interval: int = 30,
+        project_filter: str | None = None,
+        console: Console | None = None,
+    ) -> None:
+        """Initialize the DashboardController.
+
+        Args:
+            refresh_interval: Seconds between auto-refreshes.
+            project_filter: Optional project name filter.
+            console: Optional Rich Console (creates one if not provided).
+        """
+        # Import here to avoid circular imports
+        from adw.core.index_manager import IndexManager
+        from adw.core.stats_aggregator import StatsAggregator
+
+        self.refresh_interval = refresh_interval
+        self.project_filter = project_filter
+        self.console = console or Console()
+
+        # Initialize state and data containers
+        self.state = DashboardState()
+        self.data = DashboardData()
+
+        # Initialize layout renderer
+        self.layout = DashboardLayout(self.console)
+
+        # Initialize data sources
+        self.index_manager = IndexManager()
+        self.stats_aggregator = StatsAggregator()
+
+    def refresh_data(self) -> None:
+        """Fetch latest data from IndexManager and StatsAggregator.
+
+        Updates self.data with fresh run list and statistics.
+        """
+        try:
+            # Fetch recent runs
+            recent_runs = self.index_manager.get_recent_runs(
+                limit=100,
+                project_name=self.project_filter,
+            )
+            self.data.recent_runs = recent_runs
+
+            # Filter to active runs only
+            self.data.active_runs = [
+                run for run in recent_runs if run.status == "running"
+            ]
+
+            # Fetch global statistics
+            self.data.stats = self.stats_aggregator.get_global_stats(
+                project_name=self.project_filter,
+            )
+
+            # Clear any previous error
+            self.data.error = None
+
+            # Update last refresh time
+            self.state.last_refresh = datetime.now(UTC)
+
+        except Exception as e:
+            self.data.error = str(e)
+
+    def handle_key(self, key: str) -> None:
+        """Process keyboard input.
+
+        Args:
+            key: Key string (e.g., "q", "up", "down", "r", "p").
+        """
+        key_lower = key.lower()
+
+        if key_lower == "q":
+            self.state.quit_requested = True
+
+        elif key_lower == "p":
+            self.state.paused = not self.state.paused
+
+        elif key_lower == "r":
+            self.refresh_data()
+
+        elif key_lower == "up":
+            if self.state.selected_run_index > 0:
+                self.state.selected_run_index -= 1
+
+        elif key_lower == "down":
+            max_index = len(self.data.recent_runs) - 1
+            if self.state.selected_run_index < max_index:
+                self.state.selected_run_index += 1
+
+    def render(self) -> Panel:
+        """Generate Rich renderable for current state.
+
+        Returns:
+            Rich Panel containing the dashboard display.
+        """
+        from rich.layout import Layout
+
+        # Create main layout
+        main_layout = Layout()
+        main_layout.split_column(
+            Layout(name="header", size=3),
+            Layout(name="body"),
+            Layout(name="footer", size=1),
+        )
+
+        # Build header
+        main_layout["header"].update(self.layout.create_header())
+
+        # Build body based on data availability
+        if self.data.stats is None and not self.data.recent_runs:
+            # Empty state
+            main_layout["body"].update(self.layout.create_empty_state())
+        else:
+            # Build body with content
+            body_layout = Layout()
+            body_layout.split_column(
+                Layout(name="summary", size=8),
+                Layout(name="runs"),
+            )
+
+            # Summary panel
+            body_layout["summary"].update(
+                self.layout.create_summary_panel(self.data.stats)
+            )
+
+            # Active runs section (if any)
+            active_panel = self.layout.create_active_runs_panel(self.data.active_runs)
+            if active_panel:
+                runs_layout = Layout()
+                runs_layout.split_column(
+                    Layout(name="active", size=6),
+                    Layout(name="recent"),
+                )
+                runs_layout["active"].update(active_panel)
+                runs_layout["recent"].update(
+                    self.layout.create_recent_runs_table(
+                        self.data.recent_runs,
+                        selected_index=self.state.selected_run_index,
+                    )
+                )
+                body_layout["runs"].update(runs_layout)
+            else:
+                body_layout["runs"].update(
+                    self.layout.create_recent_runs_table(
+                        self.data.recent_runs,
+                        selected_index=self.state.selected_run_index,
+                    )
+                )
+
+            main_layout["body"].update(body_layout)
+
+        # Build footer
+        main_layout["footer"].update(
+            self.layout.create_footer(
+                last_refresh=self.state.last_refresh,
+                paused=self.state.paused,
+                refresh_interval=self.refresh_interval,
+            )
+        )
+
+        return Panel(main_layout, border_style="blue")
 
 
 def run_dashboard(

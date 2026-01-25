@@ -5,12 +5,14 @@ used by the TUI dashboard for cross-project monitoring.
 """
 
 from datetime import UTC, datetime
+from unittest.mock import patch
 
 import pytest
 from rich.console import Console
 
 from adw.cli.dashboard import (
     STATUS_INDICATORS,
+    DashboardController,
     DashboardData,
     DashboardLayout,
     DashboardState,
@@ -259,3 +261,164 @@ class TestDashboardLayout:
         # Should contain guidance text
         panel_str = str(panel.renderable) if hasattr(panel, "renderable") else str(panel)
         assert "register" in panel_str.lower() or "init" in panel_str.lower()
+
+
+class TestDashboardController:
+    """Tests for DashboardController state management and data fetching."""
+
+    def test_init_defaults(self) -> None:
+        """Controller initializes with sensible defaults."""
+        controller = DashboardController()
+        assert controller.refresh_interval == 30
+        assert controller.project_filter is None
+        assert controller.state is not None
+        assert controller.data is not None
+        assert controller.layout is not None
+
+    def test_init_custom_params(self) -> None:
+        """Controller accepts custom parameters."""
+        controller = DashboardController(
+            refresh_interval=60,
+            project_filter="my-api",
+        )
+        assert controller.refresh_interval == 60
+        assert controller.project_filter == "my-api"
+
+    def test_refresh_data_calls_index_manager(
+        self, sample_index_entries: list[IndexEntry]
+    ) -> None:
+        """refresh_data fetches from IndexManager."""
+        controller = DashboardController()
+
+        with patch.object(
+            controller.index_manager,
+            "get_recent_runs",
+            return_value=sample_index_entries,
+        ):
+            controller.refresh_data()
+
+        assert len(controller.data.recent_runs) == 2
+        assert len(controller.data.active_runs) == 1  # One running
+
+    def test_refresh_data_calls_stats_aggregator(
+        self, sample_global_stats: GlobalStatistics
+    ) -> None:
+        """refresh_data fetches from StatsAggregator."""
+        controller = DashboardController()
+
+        with (
+            patch.object(
+                controller.index_manager,
+                "get_recent_runs",
+                return_value=[],
+            ),
+            patch.object(
+                controller.stats_aggregator,
+                "get_global_stats",
+                return_value=sample_global_stats,
+            ),
+        ):
+            controller.refresh_data()
+
+        assert controller.data.stats is not None
+        assert controller.data.stats.total_runs == 100
+
+    def test_refresh_data_filters_active_runs(
+        self, sample_index_entries: list[IndexEntry]
+    ) -> None:
+        """refresh_data correctly identifies active runs."""
+        controller = DashboardController()
+
+        with patch.object(
+            controller.index_manager,
+            "get_recent_runs",
+            return_value=sample_index_entries,
+        ):
+            controller.refresh_data()
+
+        # Should filter to only running status
+        for run in controller.data.active_runs:
+            assert run.status == "running"
+
+    def test_handle_key_q_requests_quit(self) -> None:
+        """'q' key sets quit_requested."""
+        controller = DashboardController()
+        assert not controller.state.quit_requested
+
+        controller.handle_key("q")
+
+        assert controller.state.quit_requested is True
+
+    def test_handle_key_p_toggles_pause(self) -> None:
+        """'p' key toggles paused state."""
+        controller = DashboardController()
+        assert not controller.state.paused
+
+        controller.handle_key("p")
+        assert controller.state.paused is True
+
+        controller.handle_key("p")
+        assert controller.state.paused is False
+
+    def test_handle_key_r_triggers_refresh(self) -> None:
+        """'r' key triggers data refresh."""
+        controller = DashboardController()
+
+        with patch.object(controller, "refresh_data") as mock_refresh:
+            controller.handle_key("r")
+            mock_refresh.assert_called_once()
+
+    def test_handle_key_up_decrements_selection(self) -> None:
+        """Up arrow decrements selected index."""
+        controller = DashboardController()
+        controller.state.selected_run_index = 5
+
+        controller.handle_key("up")
+
+        assert controller.state.selected_run_index == 4
+
+    def test_handle_key_up_stops_at_zero(self) -> None:
+        """Up arrow stops at index 0."""
+        controller = DashboardController()
+        controller.state.selected_run_index = 0
+
+        controller.handle_key("up")
+
+        assert controller.state.selected_run_index == 0
+
+    def test_handle_key_down_increments_selection(
+        self, sample_index_entries: list[IndexEntry]
+    ) -> None:
+        """Down arrow increments selected index."""
+        controller = DashboardController()
+        controller.data.recent_runs = sample_index_entries
+        controller.state.selected_run_index = 0
+
+        controller.handle_key("down")
+
+        assert controller.state.selected_run_index == 1
+
+    def test_handle_key_down_stops_at_max(
+        self, sample_index_entries: list[IndexEntry]
+    ) -> None:
+        """Down arrow stops at max index."""
+        controller = DashboardController()
+        controller.data.recent_runs = sample_index_entries
+        controller.state.selected_run_index = len(sample_index_entries) - 1
+
+        controller.handle_key("down")
+
+        assert controller.state.selected_run_index == len(sample_index_entries) - 1
+
+    def test_render_returns_renderable(self) -> None:
+        """render() returns a Rich renderable."""
+        controller = DashboardController()
+        result = controller.render()
+        assert result is not None
+
+    def test_render_with_no_data(self) -> None:
+        """render() works with empty data."""
+        controller = DashboardController()
+        controller.data = DashboardData()  # Reset to empty
+        result = controller.render()
+        assert result is not None

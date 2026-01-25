@@ -72,15 +72,15 @@ So that I can monitor runs visually.
 - [x] Write unit tests for layout generation
 
 ### Task 3: Create Dashboard Controller Class
-- [ ] Create `DashboardController` class in `src/adw/cli/dashboard.py`:
+- [x] Create `DashboardController` class in `src/adw/cli/dashboard.py`:
   - `__init__(refresh_interval: int = 30, project_filter: str | None = None)`
   - `run()` - Main event loop
   - `refresh_data()` - Fetch latest data from IndexManager and StatsAggregator
   - `handle_key(key: str)` - Process keyboard input
   - `render()` - Generate Rich renderable for current state
-- [ ] Integrate with `IndexManager` for run queries
-- [ ] Integrate with `StatsAggregator` for statistics (from Story 16.3)
-- [ ] Write unit tests for controller logic
+- [x] Integrate with `IndexManager` for run queries
+- [x] Integrate with `StatsAggregator` for statistics (from Story 16.3)
+- [x] Write unit tests for controller logic
 
 ### Task 4: Implement Rich Live Display
 - [ ] Use Rich `Live` context manager for auto-refresh display
@@ -1458,6 +1458,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - Task 1: Created DashboardState and DashboardData dataclass models in src/adw/cli/dashboard.py with proper type annotations and documentation. Added 7 unit tests covering default values, mutability, and state management.
 - Task 2: Implemented full DashboardLayout class with 8 methods for Rich renderable generation (header, summary, active runs, recent runs table, projects panel, footer, empty state). Added STATUS_INDICATORS dictionary. Added 13 new unit tests for layout components.
+- Task 3: Implemented DashboardController class with refresh_data(), handle_key(), and render() methods. Integrated IndexManager and StatsAggregator for data fetching. Added 14 unit tests for controller logic.
 
 ### File List
 
