@@ -1,0 +1,278 @@
+<workflow>
+  <critical>The workflow execution engine is governed by: {project-root}/_bmad/core/tasks/workflow.xml</critical>
+  <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
+  <critical>Communicate all responses in {communication_language} and generate all documents in {document_output_language}</critical>
+  <critical>WORKTREE SUPPORT: {project-root} = current working directory (pwd). NEVER use 'cd' to navigate elsewhere. All paths are relative to cwd.</critical>
+
+  <!-- CONTEXT BOUNDARIES (per BMAD standards) -->
+  <context-boundaries>
+    <available>Injected context with feature_description, input_files (docs), run metadata; codebase for discovery; git history</available>
+    <focus>Creating comprehensive, implementation-ready plans with exhaustive developer guidance</focus>
+    <limits>Do not implement the feature; do not skip artifact analysis; output pure markdown to stdout</limits>
+    <dependencies>Context must include feature_description; input_files optional but recommended</dependencies>
+  </context-boundaries>
+
+  <!-- EXECUTION PROTOCOLS: Each <action> tag serves as an execution protocol directive -->
+
+  <critical>🔥 CRITICAL MISSION: You are creating the ULTIMATE story context engine that prevents LLM developer mistakes, omissions or
+    disasters! 🔥</critical>
+  <critical>Your purpose is NOT to copy from epics - it's to create a comprehensive, optimized story file that gives the DEV agent
+    EVERYTHING needed for flawless implementation</critical>
+  <critical>COMMON LLM MISTAKES TO PREVENT: reinventing wheels, wrong libraries, wrong file locations, breaking regressions, ignoring UX,
+    vague implementations, lying about completion, not learning from past work</critical>
+  <critical>🚨 EXHAUSTIVE ANALYSIS REQUIRED: You must thoroughly analyze ALL artifacts to extract critical context - do NOT be lazy or skim!
+    This is the most important function in the entire development process!</critical>
+  <critical>🔬 UTILIZE SUBPROCESSES AND SUBAGENTS: Use research subagents, subprocesses or parallel processing if available to thoroughly
+    analyze different artifacts simultaneously and thoroughly</critical>
+  <critical>❓ SAVE QUESTIONS: If you think of questions or clarifications during analysis, save them for the end after the complete story is
+    written</critical>
+  <critical>🎯 ZERO USER INTERVENTION: Process is fully automated - context is injected, output goes to stdout</critical>
+
+  <step n="1" goal="Parse context and load input files">
+    <critical>Parse the full injected context object</critical>
+
+    <!-- Extract primary fields from context -->
+    <action>Extract {{feature_description}} from context - this is the user's request</action>
+    <action>Extract {{input_files}} list from context - paths to documents to analyze</action>
+    <action>Extract {{platform}} from context if available (cli, web, mobile, backend)</action>
+    <action>Extract {{run_id}} from context for reference</action>
+    <action>Extract any other available context fields (artifacts, phase_history, etc.)</action>
+
+    <!-- Load all input files -->
+    <check if="{{input_files}} is not empty">
+      <action>For each file path in {{input_files}}:
+        - Read the file content
+        - Categorize by type (architecture, PRD, requirements, design, etc.) based on filename/content
+        - Store content for analysis in subsequent steps
+      </action>
+      <note>Files may include: architecture docs, PRD, requirements, design specs, existing code references</note>
+    </check>
+
+    <check if="{{input_files}} is empty or not provided">
+      <note>No input files provided - will rely on codebase discovery and feature_description analysis</note>
+    </check>
+
+    <action>GOTO step 2</action>
+  </step>
+
+  <step n="2" goal="Codebase discovery for related implementations">
+    <critical>Search codebase for existing patterns BEFORE creating new implementations - prevents reinventing wheels!</critical>
+
+    <!-- Search for related implementations in codebase -->
+    <action>Extract keywords from {{feature_description}} to guide codebase search</action>
+    <action>Search codebase for existing implementations related to the feature:
+      - Similar functionality that can be extended
+      - Patterns and conventions already in use
+      - Related modules or components
+      - Existing utilities or helpers
+    </action>
+
+    <check if="related implementations found">
+      <action>Store discovered patterns as {{codebase_patterns}}</action>
+      <note>These existing patterns will inform the implementation guidance</note>
+    </check>
+
+    <!-- Git intelligence for previous work patterns -->
+    <check if="git repository detected">
+      <action>Get last 10 commit titles to understand recent work patterns</action>
+      <action>Analyze recent commits for relevance to the feature:
+        - Files created/modified
+        - Code patterns and conventions used
+        - Library dependencies added/changed
+        - Architecture decisions implemented
+        - Testing approaches used
+      </action>
+      <action>Store actionable insights as {{git_intelligence}}</action>
+    </check>
+
+    <action>GOTO step 3</action>
+  </step>
+
+  <step n="3" goal="Analyze input documents and feature requirements">
+    <!-- Role Reinforcement: You are a meticulous artifact analyst extracting every relevant detail -->
+    <critical>🔬 EXHAUSTIVE ARTIFACT ANALYSIS - This is where you prevent future developer fuckups!</critical>
+
+    <!-- Analyze all loaded input files from Step 1 -->
+    <action>For each document loaded from {{input_files}}, extract relevant information:</action>
+
+    <!-- Requirements/PRD Analysis -->
+    <check if="requirements or PRD documents were loaded">
+      <action>Extract from requirements/PRD:
+        - Business objectives and user value
+        - Functional requirements related to {{feature_description}}
+        - Non-functional requirements (performance, security, etc.)
+        - Acceptance criteria if specified
+        - User stories or use cases
+      </action>
+    </check>
+
+    <!-- Architecture Analysis -->
+    <check if="architecture documents were loaded">
+      <action>Extract from architecture docs:
+        - Technical stack: languages, frameworks, libraries with versions
+        - Code structure: folder organization, naming conventions
+        - API patterns: service structure, endpoint patterns
+        - Database schemas if relevant
+        - Security requirements and patterns
+        - Testing standards and frameworks
+      </action>
+    </check>
+
+    <!-- Design/UX Analysis -->
+    <check if="design or UX documents were loaded">
+      <action>Extract from design docs:
+        - User experience requirements
+        - UI component specifications
+        - Interaction patterns
+        - Accessibility requirements
+      </action>
+    </check>
+
+    <!-- If no input files, analyze feature_description deeply -->
+    <check if="no input files were loaded">
+      <action>Perform deep analysis of {{feature_description}}:
+        - Identify implied requirements
+        - Determine likely technical approach
+        - Note assumptions that need validation
+      </action>
+    </check>
+
+    <action>Combine all extracted requirements into {{requirements_analysis}}</action>
+  </step>
+
+  <step n="4" goal="Synthesize developer guardrails">
+    <!-- Role Reinforcement: You are a technical architect ensuring developer compliance with system design -->
+    <critical>🏗️ ARCHITECTURE INTELLIGENCE - Extract everything the developer MUST follow!</critical>
+
+    <!-- Synthesize from all gathered information -->
+    <action>Combine analysis from:
+      - {{requirements_analysis}} from Step 3
+      - {{codebase_patterns}} from Step 2
+      - {{git_intelligence}} from Step 2
+    </action>
+
+    **CRITICAL ARCHITECTURE EXTRACTION:**
+    <action>For each area, extract requirements the developer MUST follow:</action>
+    - **Technical Stack:** Languages, frameworks, libraries with versions
+    - **Code Structure:** Folder organization, naming conventions, file patterns
+    - **API Patterns:** Service structure, endpoint patterns, data contracts
+    - **Database Schemas:** Tables, relationships, constraints if relevant
+    - **Security Requirements:** Authentication patterns, authorization rules
+    - **Performance Requirements:** Caching strategies, optimization patterns
+    - **Testing Standards:** Testing frameworks, coverage expectations, test patterns
+    - **Deployment Patterns:** Environment configurations, build processes
+    - **Integration Patterns:** External service integrations, data flows
+
+    <action>Extract feature-specific requirements the developer MUST follow</action>
+    <action>Identify existing patterns that should be reused</action>
+    <action>Store as {{developer_guardrails}}</action>
+  </step>
+
+  <step n="5" goal="Web research for latest technical specifics">
+    <critical>🌐 ENSURE LATEST TECH KNOWLEDGE - Prevent outdated implementations!</critical> **WEB INTELLIGENCE:** <action>Identify specific
+    technical areas that require latest version knowledge:</action>
+
+    <!-- Check for libraries/frameworks mentioned in architecture -->
+    <action>From architecture analysis, identify specific libraries, APIs, or
+    frameworks</action>
+    <action>For each critical technology, research latest stable version and key changes:
+      - Latest API documentation and breaking changes
+      - Security vulnerabilities or updates
+      - Performance improvements or deprecations
+      - Best practices for current version
+    </action>
+    **EXTERNAL CONTEXT INCLUSION:** <action>Include in story any critical latest information the developer needs:
+      - Specific library versions and why chosen
+      - API endpoints with parameters and authentication
+      - Recent security patches or considerations
+      - Performance optimization techniques
+      - Migration considerations if upgrading
+    </action>
+  </step>
+
+  <step n="6" goal="Generate comprehensive implementation plan">
+    <!-- Role Reinforcement: You are a technical writer creating the definitive developer implementation guide -->
+    <critical>📝 CREATE ULTIMATE IMPLEMENTATION PLAN - The developer's master guide!</critical>
+
+    <!-- Generate the implementation plan document -->
+    <action>Generate implementation plan with the following structure:</action>
+
+    **# {{title derived from feature_description}}**
+
+    **## Feature Description**
+    - Include {{feature_description}} as provided
+
+    **## Requirements Analysis**
+    - Include extracted requirements from {{requirements_analysis}}
+    - Business objectives and user value
+    - Functional and non-functional requirements
+    - Acceptance criteria
+
+    **## Developer Context**
+
+    **### Technical Requirements**
+    - From {{developer_guardrails}}: stack, patterns, constraints
+
+    **### Architecture Compliance**
+    - Required patterns and conventions from codebase analysis
+    - Integration points and dependencies
+
+    **### File Structure Requirements**
+    - Where files should be created/modified
+    - Naming conventions to follow
+
+    **### Testing Requirements**
+    - Testing standards and frameworks
+    - Coverage expectations
+
+    **## Codebase Intelligence**
+
+    **### Existing Patterns to Reuse**
+    - From {{codebase_patterns}}: similar implementations found
+
+    **### Git History Insights**
+    - From {{git_intelligence}}: recent relevant changes
+
+    **## Latest Technical Information**
+    - From web research: library versions, API updates, best practices
+
+    **## Implementation Tasks**
+    - Break down into specific, actionable tasks
+    - Include file paths and code locations
+    - Order by dependency
+
+    <action>Compile all sections into {{implementation_plan}}</action>
+  </step>
+
+  <step n="7" goal="Output implementation plan to stdout">
+    <!-- Output plan to stdout for CI pipeline consumption -->
+    <action>Output the complete {{implementation_plan}} to stdout as pure markdown</action>
+    <critical>The final LLM message MUST be the implementation plan content only - no wrapper, no status messages, no commentary</critical>
+    <critical>This output will be consumed by the next stage of the CI pipeline</critical>
+  </step>
+
+  <!-- SUCCESS/FAILURE METRICS (per BMAD standards) -->
+  <metrics>
+    <success>
+      <item>Context parsed successfully (feature_description, input_files, metadata)</item>
+      <item>All input_files read and analyzed</item>
+      <item>Codebase discovery completed (existing patterns, git history)</item>
+      <item>Exhaustive artifact analysis completed</item>
+      <item>Developer guardrails extracted and documented</item>
+      <item>Web research completed for relevant technologies</item>
+      <item>Implementation plan generated with all required sections</item>
+      <item>Pure markdown output to stdout as final message</item>
+    </success>
+    <failure>
+      <item>Missing or invalid feature_description in context</item>
+      <item>Failed to read files from input_files list</item>
+      <item>Incomplete or superficial artifact analysis (skimming instead of exhaustive review)</item>
+      <item>Missing critical developer context (architecture constraints, codebase patterns)</item>
+      <item>Implementation plan missing required sections</item>
+      <item>Output includes wrapper text, status messages, or commentary instead of pure plan</item>
+    </failure>
+  </metrics>
+
+  <master-rule>Skipping artifact analysis, optimizing sequences, or creating superficial implementation plans is FORBIDDEN and constitutes SYSTEM FAILURE.</master-rule>
+
+</workflow>

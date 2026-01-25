@@ -1,0 +1,78 @@
+name: create-story
+description: "Create the next user story from epics+stories with enhanced context analysis and direct ready-for-dev marking"
+author: "BMad"
+goal: "Create comprehensive, implementation-ready story files with exhaustive context analysis to prevent LLM developer mistakes, omissions, and implementation disasters"
+
+# Role Definition (partnership format per BMAD standards)
+role: |
+  In addition to your name, communication_style, and persona, you are also a
+  story context engineer collaborating with a product owner. This is a partnership,
+  not a client-vendor relationship. You bring exhaustive artifact analysis and
+  developer guidance expertise, while the user brings epic/story requirements and
+  domain knowledge. Work together as equals to create the ultimate implementation guide.
+
+# Architecture Note: This workflow uses BMM XML-based architecture (single instructions.xml)
+# rather than BMB step-file architecture. This is intentional for automation-focused
+# "zero user intervention" execution. Governance is handled by core/tasks/workflow.xml.
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+date: system-generated
+
+# Path Segregation (alpha.20) - separates ephemeral from permanent artifacts
+planning_artifacts: "{config_source}:planning_artifacts"
+implementation_artifacts: "{config_source}:implementation_artifacts"
+output_folder: "{planning_artifacts}"
+story_dir: "{implementation_artifacts}"
+
+# Workflow components
+installed_path: "{project-root}/_bmad/bmm/workflows/4-implementation/create-story"
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.xml"
+validation: "{installed_path}/validation-prompt.md"
+
+# External tool paths (extracted for maintainability)
+linear_scripts_path: "~/.claude/skills/linear/scripts"
+
+# Variables and inputs
+variables:
+  sprint_status: "{implementation_artifacts}/sprint-status.yaml" # Primary source for story tracking
+  epics_file: "{planning_artifacts}/epics.md" # Enhanced epics+stories with BDD and source hints
+  prd_file: "{planning_artifacts}/PRD.md" # Fallback for requirements (if not in epics file)
+  architecture_file: "{planning_artifacts}/architecture.md" # Fallback for constraints (if not in epics file)
+  ux_file: "{planning_artifacts}/ux.md" # Fallback for UX requirements (if not in epics file)
+  story_title: "" # Will be elicited if not derivable
+
+# Project context
+project_context: "**/project-context.md"
+
+default_output_file: "{story_dir}/{{story_key}}.md"
+
+# Smart input file references - Simplified for enhanced approach
+# The epics+stories file should contain everything needed with source hints
+input_file_patterns:
+  prd:
+    description: "PRD (fallback - epics file should have most content)"
+    whole: "{planning_artifacts}/*prd*.md"
+    sharded: "{planning_artifacts}/*prd*/*.md"
+    load_strategy: "SELECTIVE_LOAD" # Only load if needed
+  architecture:
+    description: "Architecture (fallback - epics file should have relevant sections)"
+    whole: "{planning_artifacts}/*architecture*.md"
+    sharded: "{planning_artifacts}/*architecture*/*.md"
+    load_strategy: "SELECTIVE_LOAD" # Only load if needed
+  ux:
+    description: "UX design (fallback - epics file should have relevant sections)"
+    whole: "{planning_artifacts}/*ux*.md"
+    sharded: "{planning_artifacts}/*ux*/*.md"
+    load_strategy: "SELECTIVE_LOAD" # Only load if needed
+  epics:
+    description: "Enhanced epics+stories file with BDD and source hints"
+    whole: "{planning_artifacts}/*epic*.md"
+    sharded: "{planning_artifacts}/*epic*/*.md"
+    load_strategy: "SELECTIVE_LOAD" # Only load needed epic
+
+standalone: true
+web_bundle: false

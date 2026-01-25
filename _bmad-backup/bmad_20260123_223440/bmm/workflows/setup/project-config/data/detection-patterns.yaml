@@ -1,0 +1,160 @@
+# Project Type Detection Patterns
+# Used by step-02-scan.md to identify project types and tooling
+
+project_types:
+  web:
+    indicators:
+      - file: package.json
+        check_for:
+          - react
+          - vue
+          - angular
+          - next
+          - nuxt
+          - svelte
+      - file: vite.config.*
+      - file: webpack.config.*
+      - file: next.config.*
+    default_commands:
+      test: npm test
+      lint: npm run lint
+      build: npm run build
+
+  backend:
+    indicators:
+      - file: package.json
+        check_for:
+          - express
+          - fastify
+          - koa
+          - nestjs
+      - file: requirements.txt
+      - file: pyproject.toml
+      - file: go.mod
+      - file: Cargo.toml
+      - file: pom.xml
+      - file: build.gradle
+    default_commands:
+      test: npm test
+      lint: npm run lint
+
+  mobile:
+    indicators:
+      - file: Podfile
+      - file: "*.xcodeproj"
+      - file: "*.xcworkspace"
+      - file: build.gradle
+        check_for:
+          - com.android.application
+      - file: pubspec.yaml
+    default_commands:
+      test: xcodebuild test
+      lint: swiftlint
+
+  monorepo:
+    indicators:
+      - file: lerna.json
+      - file: pnpm-workspace.yaml
+      - file: turbo.json
+      - file: nx.json
+      - directory: packages/
+      - directory: apps/
+    default_commands:
+      test: npm test
+      lint: npm run lint
+
+tooling_configs:
+  eslint:
+    files:
+      - .eslintrc
+      - .eslintrc.js
+      - .eslintrc.json
+      - .eslintrc.yaml
+      - .eslintrc.yml
+      - eslint.config.js
+      - eslint.config.mjs
+    command_pattern: "eslint ."
+
+  prettier:
+    files:
+      - .prettierrc
+      - .prettierrc.js
+      - .prettierrc.json
+      - .prettierrc.yaml
+      - .prettierrc.yml
+      - prettier.config.js
+    command_pattern: "prettier --check ."
+
+  jest:
+    files:
+      - jest.config.js
+      - jest.config.ts
+      - jest.config.json
+      - jest.setup.js
+      - jest.setup.ts
+    command_pattern: "jest"
+
+  vitest:
+    files:
+      - vitest.config.js
+      - vitest.config.ts
+      - vitest.config.mjs
+    command_pattern: "vitest run"
+
+  playwright:
+    files:
+      - playwright.config.js
+      - playwright.config.ts
+    command_pattern: "playwright test"
+
+  cypress:
+    files:
+      - cypress.config.js
+      - cypress.config.ts
+      - cypress.json
+    command_pattern: "cypress run"
+
+  typescript:
+    files:
+      - tsconfig.json
+      - tsconfig.*.json
+    command_pattern: "tsc --noEmit"
+
+  docker:
+    files:
+      - Dockerfile
+      - docker-compose.yml
+      - docker-compose.yaml
+    command_pattern: "docker build ."
+
+  github_actions:
+    files:
+      - .github/workflows/*.yml
+      - .github/workflows/*.yaml
+    command_pattern: null
+
+package_json_scripts:
+  test_patterns:
+    - test
+    - test:unit
+    - test:e2e
+    - test:integration
+    - jest
+    - vitest
+
+  lint_patterns:
+    - lint
+    - lint:fix
+    - eslint
+    - prettier
+
+  build_patterns:
+    - build
+    - build:prod
+    - compile
+
+  typecheck_patterns:
+    - typecheck
+    - type-check
+    - tsc
+    - check-types

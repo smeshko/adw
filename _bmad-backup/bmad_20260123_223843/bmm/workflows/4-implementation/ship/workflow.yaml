@@ -1,0 +1,27 @@
+# Ship Workflow Configuration
+name: "ship"
+version: "2.0.0"
+description: "Autonomously deploy or release using configured commands. Designed for CI/automation."
+author: "BMad"
+
+# Workflow type
+type: "action" # Autonomous execution, no user interaction
+
+# Critical variables
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+project_config: "{project-root}/_bmad/project-config.yaml"
+
+# Exit codes
+exit_codes:
+  success: 0 # Deployment successful
+  failure: 1 # Deployment failed
+  partial: 2 # Published but post-publish failed
+
+# Module path and component files
+installed_path: "{project-root}/_bmad/bmm/workflows/4-implementation/ship"
+workflow: "{installed_path}/workflow.md"
+
+# Execution configuration
+fail_fast: true # Stop immediately on command failure
+
+standalone: true
