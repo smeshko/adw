@@ -5,7 +5,7 @@ used by the TUI dashboard for cross-project monitoring.
 """
 
 from datetime import UTC, datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from rich.console import Console
@@ -16,6 +16,7 @@ from adw.cli.dashboard import (
     DashboardData,
     DashboardLayout,
     DashboardState,
+    run_dashboard,
 )
 from adw.models.index import IndexEntry
 from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
@@ -422,3 +423,131 @@ class TestDashboardController:
         controller.data = DashboardData()  # Reset to empty
         result = controller.render()
         assert result is not None
+
+
+class TestRunDashboard:
+    """Tests for run_dashboard function and Live display lifecycle."""
+
+    def test_run_dashboard_callable(self) -> None:
+        """run_dashboard function is callable."""
+        assert callable(run_dashboard)
+
+    def test_run_dashboard_creates_controller(self) -> None:
+        """run_dashboard creates a controller with proper parameters."""
+        # Test that parameters are passed correctly by mocking
+        with patch("adw.cli.dashboard.DashboardController") as mock_ctrl:
+            # Make the mock controller's run method exit immediately
+            mock_instance = MagicMock()
+            mock_instance.run.return_value = None
+            mock_ctrl.return_value = mock_instance
+
+            run_dashboard(refresh_interval=60, project_filter="test-project")
+
+            mock_ctrl.assert_called_once_with(
+                refresh_interval=60,
+                project_filter="test-project",
+            )
+            mock_instance.run.assert_called_once()
+
+    def test_run_dashboard_default_parameters(self) -> None:
+        """run_dashboard uses default parameters when none provided."""
+        with patch("adw.cli.dashboard.DashboardController") as mock_ctrl:
+            mock_instance = MagicMock()
+            mock_instance.run.return_value = None
+            mock_ctrl.return_value = mock_instance
+
+            run_dashboard()
+
+            mock_ctrl.assert_called_once_with(
+                refresh_interval=30,
+                project_filter=None,
+            )
+
+    def test_run_dashboard_no_auto_refresh(self) -> None:
+        """run_dashboard passes no_auto_refresh to controller."""
+        with patch("adw.cli.dashboard.DashboardController") as mock_ctrl:
+            mock_instance = MagicMock()
+            mock_instance.run.return_value = None
+            mock_ctrl.return_value = mock_instance
+
+            run_dashboard(no_auto_refresh=True)
+
+            # No auto refresh should still use interval but pause
+            mock_ctrl.assert_called_once()
+            mock_instance.run.assert_called_once_with(no_auto_refresh=True)
+
+
+class TestDashboardControllerRun:
+    """Tests for DashboardController.run() method with Live display."""
+
+    def test_controller_has_run_method(self) -> None:
+        """Controller has run() method."""
+        controller = DashboardController()
+        assert hasattr(controller, "run")
+        assert callable(controller.run)
+
+    def test_run_refreshes_data_initially(self) -> None:
+        """run() refreshes data before entering live display."""
+        controller = DashboardController()
+
+        with (
+            patch.object(controller, "refresh_data") as mock_refresh,
+            patch.object(controller, "_setup_keyboard", return_value=False),
+            patch.object(controller, "_cleanup_keyboard"),
+            patch("rich.live.Live") as mock_live,
+        ):
+            # Make Live context exit immediately
+            mock_live_instance = MagicMock()
+            mock_live_instance.__enter__ = MagicMock(return_value=mock_live_instance)
+            mock_live_instance.__exit__ = MagicMock(return_value=None)
+            mock_live.return_value = mock_live_instance
+
+            # Force quit after first iteration
+            controller.state.quit_requested = True
+
+            controller.run()
+
+            mock_refresh.assert_called()
+
+    def test_run_uses_live_context(self) -> None:
+        """run() uses Rich Live context manager."""
+        controller = DashboardController()
+
+        with (
+            patch.object(controller, "_setup_keyboard", return_value=False),
+            patch.object(controller, "_cleanup_keyboard"),
+            patch("rich.live.Live") as mock_live,
+        ):
+            mock_live_instance = MagicMock()
+            mock_live_instance.__enter__ = MagicMock(return_value=mock_live_instance)
+            mock_live_instance.__exit__ = MagicMock(return_value=None)
+            mock_live.return_value = mock_live_instance
+
+            # Force quit after first iteration
+            controller.state.quit_requested = True
+
+            controller.run()
+
+            mock_live.assert_called_once()
+
+    def test_run_respects_quit_requested(self) -> None:
+        """run() exits when quit_requested is True."""
+        controller = DashboardController()
+        controller.state.quit_requested = True
+
+        with (
+            patch.object(controller, "_setup_keyboard", return_value=False),
+            patch.object(controller, "_cleanup_keyboard"),
+            patch("rich.live.Live") as mock_live,
+        ):
+            mock_live_instance = MagicMock()
+            mock_live_instance.__enter__ = MagicMock(return_value=mock_live_instance)
+            mock_live_instance.__exit__ = MagicMock(return_value=None)
+            mock_live.return_value = mock_live_instance
+
+            # Should exit immediately
+            controller.run()
+
+            # Verify Live was entered and exited
+            mock_live_instance.__enter__.assert_called_once()
+            mock_live_instance.__exit__.assert_called_once()

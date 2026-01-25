@@ -683,19 +683,138 @@ class DashboardController:
 
         return Panel(main_layout, border_style="blue")
 
+    def run(self, no_auto_refresh: bool = False) -> None:
+        """Run the main dashboard event loop with Rich Live display.
+
+        Args:
+            no_auto_refresh: If True, start with auto-refresh paused.
+        """
+        from rich.live import Live
+
+        # Initial data refresh
+        self.refresh_data()
+
+        # Set initial pause state if no_auto_refresh
+        if no_auto_refresh:
+            self.state.paused = True
+
+        # Check if we have a TTY for keyboard input
+        keyboard_enabled = self._setup_keyboard()
+
+        try:
+            with Live(
+                self.render(),
+                console=self.console,
+                refresh_per_second=4,
+                transient=False,
+            ) as live:
+                last_refresh_time = datetime.now(UTC)
+
+                while not self.state.quit_requested:
+                    # Check for keyboard input (non-blocking)
+                    key = self._read_key() if keyboard_enabled else None
+
+                    if key:
+                        self.handle_key(key)
+                        live.update(self.render())
+
+                    # Auto-refresh if not paused
+                    if not self.state.paused:
+                        now = datetime.now(UTC)
+                        elapsed = (now - last_refresh_time).total_seconds()
+                        if elapsed >= self.refresh_interval:
+                            self.refresh_data()
+                            last_refresh_time = now
+                            live.update(self.render())
+
+                    # Small sleep to prevent CPU spinning when no keyboard
+                    if not keyboard_enabled:
+                        import time
+
+                        time.sleep(0.25)
+
+        finally:
+            self._cleanup_keyboard()
+
+    def _setup_keyboard(self) -> bool:
+        """Set up terminal for keyboard input.
+
+        Returns:
+            True if keyboard input is available, False otherwise.
+        """
+        import sys
+
+        self._old_settings = None
+
+        try:
+            import termios
+            import tty
+
+            self._old_settings = termios.tcgetattr(sys.stdin)
+            tty.setcbreak(sys.stdin.fileno())
+            return True
+        except (ImportError, OSError, AttributeError):
+            # Not a TTY or termios not available
+            return False
+
+    def _cleanup_keyboard(self) -> None:
+        """Restore terminal settings."""
+        import sys
+
+        if self._old_settings is not None:
+            try:
+                import termios
+
+                termios.tcsetattr(
+                    sys.stdin, termios.TCSADRAIN, self._old_settings
+                )
+            except (ImportError, OSError):
+                pass
+            self._old_settings = None
+
+    def _read_key(self) -> str | None:
+        """Read a key from stdin (non-blocking).
+
+        Returns:
+            Key string, or None if no key available.
+        """
+        import select
+        import sys
+
+        try:
+            if select.select([sys.stdin], [], [], 0.25)[0]:
+                key = sys.stdin.read(1)
+
+                # Handle escape sequences for arrow keys
+                if key == "\x1b" and select.select([sys.stdin], [], [], 0.1)[0]:
+                    key += sys.stdin.read(2)
+                    if key == "\x1b[A":
+                        return "up"
+                    elif key == "\x1b[B":
+                        return "down"
+                return key
+        except OSError:
+            pass
+        return None
+
 
 def run_dashboard(
     refresh_interval: int = 30,
     project_filter: str | None = None,
     no_auto_refresh: bool = False,
 ) -> None:
-    """Run the dashboard (entry point for CLI command).
+    """Run the interactive TUI dashboard.
 
-    Placeholder - will be implemented in Task 4.
+    Entry point for the `adw global dashboard` CLI command.
+    Creates a DashboardController and starts the live display.
 
     Args:
         refresh_interval: Seconds between auto-refreshes.
         project_filter: Optional project name filter.
         no_auto_refresh: If True, disable auto-refresh.
     """
-    pass
+    controller = DashboardController(
+        refresh_interval=refresh_interval,
+        project_filter=project_filter,
+    )
+    controller.run(no_auto_refresh=no_auto_refresh)

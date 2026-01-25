@@ -83,12 +83,12 @@ So that I can monitor runs visually.
 - [x] Write unit tests for controller logic
 
 ### Task 4: Implement Rich Live Display
-- [ ] Use Rich `Live` context manager for auto-refresh display
-- [ ] Configure refresh rate based on `--refresh` option
-- [ ] Handle terminal resize events gracefully
-- [ ] Use `transient=False` to preserve final state on exit
-- [ ] Implement spinner animation for active runs using `Spinner`
-- [ ] Write tests for Live display lifecycle
+- [x] Use Rich `Live` context manager for auto-refresh display
+- [x] Configure refresh rate based on `--refresh` option
+- [x] Handle terminal resize events gracefully
+- [x] Use `transient=False` to preserve final state on exit
+- [x] Implement spinner animation for active runs using `Spinner`
+- [x] Write tests for Live display lifecycle
 
 ### Task 5: Implement Keyboard Navigation
 - [ ] Use Rich's keyboard input or `prompt_toolkit` for input:
@@ -1459,6 +1459,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 1: Created DashboardState and DashboardData dataclass models in src/adw/cli/dashboard.py with proper type annotations and documentation. Added 7 unit tests covering default values, mutability, and state management.
 - Task 2: Implemented full DashboardLayout class with 8 methods for Rich renderable generation (header, summary, active runs, recent runs table, projects panel, footer, empty state). Added STATUS_INDICATORS dictionary. Added 13 new unit tests for layout components.
 - Task 3: Implemented DashboardController class with refresh_data(), handle_key(), and render() methods. Integrated IndexManager and StatsAggregator for data fetching. Added 14 unit tests for controller logic.
+- Task 4: Implemented run() method with Rich Live display, auto-refresh loop, and keyboard input handling. Added run_dashboard() entry point function. Added 8 unit tests for Live display lifecycle.
 
 ### File List
 
