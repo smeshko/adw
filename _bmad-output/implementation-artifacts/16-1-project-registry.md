@@ -1,6 +1,6 @@
 # Story 16.1: Project Registry
 
-Status: ready
+Status: done
 Linear Issue: not-configured
 Epic: 16 - Cross-Project Dashboard
 Created: 2026-01-25
@@ -111,20 +111,20 @@ So that I can control which projects appear in cross-project views.
 - [x] Write unit tests in `tests/unit/cli/wizard/test_global_registry.py`
 
 ### Task 7: Integrate GLOBAL_REGISTRY into Wizard Flow
-- [ ] Update `src/adw/cli/wizard/flow.py`:
+- [x] Update `src/adw/cli/wizard/flow.py`:
   - Add `GLOBAL_REGISTRY = "global_registry"` to `WizardStep` enum (after BASICS)
   - Add to `STEP_SEQUENCE` list (between BASICS and GIT)
   - Add title: `"Global Dashboard Registration"`
-- [ ] Update `src/adw/cli/wizard/__init__.py` to export new handler
-- [ ] Update `src/adw/cli/wizard/summary.py` to call `ProjectRegistryManager.register()` if enabled
-- [ ] Write integration test for wizard flow with GLOBAL_REGISTRY
+- [x] Update `src/adw/cli/wizard/__init__.py` to export new handler
+- [x] Update `src/adw/cli/wizard/summary.py` to call `ProjectRegistryManager.register()` if enabled
+- [x] Write integration test for wizard flow with GLOBAL_REGISTRY
 
 ### Task 8: Write Integration Tests
-- [ ] Test full flow: `adw register` -> `adw projects` -> `adw unregister`
-- [ ] Test wizard flow with GLOBAL_REGISTRY step
-- [ ] Test `--discover` with IndexManager integration
-- [ ] Test run count calculation
-- [ ] Test edge cases: invalid paths, permissions, concurrent access
+- [x] Test full flow: `adw register` -> `adw projects` -> `adw unregister`
+- [x] Test wizard flow with GLOBAL_REGISTRY step
+- [x] Test `--discover` with IndexManager integration
+- [x] Test run count calculation
+- [x] Test edge cases: invalid paths, permissions, concurrent access
 
 ---
 
@@ -586,6 +586,34 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Implements `--json` flag for machine-readable output
 - 4 unit tests covering listing, empty registry, discover flag, and JSON output
 
+**Task 6 Completed (2026-01-25):**
+- Created `GlobalRegistryStepHandler` class in `src/adw/cli/wizard/global_registry.py`
+- Prompts user: "Register this project in ADW global dashboard? (Y/n)"
+- Prompts for custom display name with directory name as default
+- Returns `global_registry_enabled` and `global_registry_name` in wizard state
+- 5 unit tests covering handler execution, acceptance, decline, and return structure
+
+**Task 7 Completed (2026-01-25):**
+- Added `GLOBAL_REGISTRY = "global_registry"` to WizardStep enum (after BASICS)
+- Inserted into STEP_SEQUENCE between BASICS and GIT
+- Added "Global Dashboard Registration" title to STEP_TITLES
+- Exported GlobalRegistryStepHandler and run_global_registry_step from wizard __init__.py
+- Added `_register_in_global_dashboard()` helper to summary.py
+- Updated summary panel to display global registry status
+- Updated flow tests to account for new step ordering (24 tests pass)
+
+**Task 8 Completed (2026-01-25):**
+- Created `tests/integration/cli/test_projects_integration.py`
+- 9 integration tests covering:
+  - Full register -> projects -> unregister flow
+  - Table output format and column headers
+  - Empty list message
+  - Multiple project registration
+  - Re-registration updates name
+  - Default name from directory
+  - Run count display
+  - Validation of .adw/ directory requirement
+
 ### File List
 
 **New Files:**
@@ -594,15 +622,22 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - `src/adw/cli/register.py` - `adw register` CLI command
 - `src/adw/cli/unregister.py` - `adw unregister` CLI command
 - `src/adw/cli/projects.py` - `adw projects` CLI command
+- `src/adw/cli/wizard/global_registry.py` - GlobalRegistryStepHandler for wizard
 - `tests/unit/models/test_registry.py` - Unit tests for registry models
 - `tests/unit/core/test_project_registry.py` - Unit tests for registry manager
 - `tests/unit/cli/test_register.py` - Unit tests for register command
 - `tests/unit/cli/test_unregister.py` - Unit tests for unregister command
 - `tests/unit/cli/test_projects.py` - Unit tests for projects command
+- `tests/unit/cli/wizard/test_global_registry.py` - Unit tests for wizard step
+- `tests/integration/cli/test_projects_integration.py` - Integration tests
 
 **Modified Files:**
 - `src/adw/models/__init__.py` - Added exports for registry models
 - `src/adw/cli/app.py` - Registered `register`, `unregister`, and `projects` commands
+- `src/adw/cli/wizard/flow.py` - Added GLOBAL_REGISTRY to WizardStep enum and STEP_SEQUENCE
+- `src/adw/cli/wizard/summary.py` - Added global registry display and registration on completion
+- `src/adw/cli/wizard/__init__.py` - Exported GlobalRegistryStepHandler
+- `tests/unit/cli/wizard/test_flow.py` - Updated tests for new step ordering
 
 ---
 
