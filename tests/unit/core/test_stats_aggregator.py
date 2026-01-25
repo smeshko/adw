@@ -427,3 +427,235 @@ class TestGetTokenUsage:
         usage = aggregator.get_token_usage("nonexistent-run", project_path)
 
         assert usage is None
+
+
+class TestStatisticsCache:
+    """Tests for statistics caching behavior."""
+
+    def test_cache_is_created(self, tmp_path: Path) -> None:
+        """Cache file is created after get_global_stats."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.core.index_manager import IndexManager
+
+        cache_path = tmp_path / "cache.json"
+        index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
+
+        aggregator = StatsAggregator(
+            index_manager=index_manager,
+            cache_path=cache_path,
+        )
+
+        aggregator.get_global_stats()
+
+        assert cache_path.exists()
+
+    def test_cache_structure(self, tmp_path: Path) -> None:
+        """Cache has correct structure."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.core.index_manager import IndexManager
+
+        cache_path = tmp_path / "cache.json"
+        index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
+
+        aggregator = StatsAggregator(
+            index_manager=index_manager,
+            cache_path=cache_path,
+        )
+
+        aggregator.get_global_stats()
+
+        with open(cache_path) as f:
+            cache_data = json.load(f)
+
+        assert "generated_at" in cache_data
+        assert "ttl_seconds" in cache_data
+        assert cache_data["ttl_seconds"] == 300
+        assert "stats" in cache_data
+        assert "index_mtime" in cache_data
+
+    def test_cache_is_used_when_valid(self, tmp_path: Path) -> None:
+        """Valid cache is used instead of recalculating."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.core.index_manager import IndexManager
+        from adw.models.stats import GlobalStatistics
+
+        cache_path = tmp_path / "cache.json"
+        index_path = tmp_path / "index.jsonl"
+        index_manager = IndexManager(index_path=index_path)
+
+        # Create a cache with distinctive data
+        now = datetime.now(UTC)
+        cached_stats = GlobalStatistics(
+            generated_at=now,
+            total_runs=12345,  # Distinctive value
+        )
+
+        cache_data = {
+            "generated_at": now.isoformat(),
+            "ttl_seconds": 300,
+            "index_mtime": None,  # No index file
+            "project_name": None,
+            "since": None,
+            "stats": cached_stats.model_dump(mode="json"),
+        }
+
+        with open(cache_path, "w") as f:
+            json.dump(cache_data, f)
+
+        aggregator = StatsAggregator(
+            index_manager=index_manager,
+            cache_path=cache_path,
+        )
+
+        stats = aggregator.get_global_stats()
+
+        assert stats.total_runs == 12345  # From cache, not fresh calculation
+
+    def test_cache_invalidated_on_ttl_expiry(self, tmp_path: Path) -> None:
+        """Cache is invalidated when TTL expires."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.core.index_manager import IndexManager
+
+        cache_path = tmp_path / "cache.json"
+        index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
+
+        # Create an expired cache
+        expired_time = datetime.now(UTC) - timedelta(seconds=600)  # 10 minutes ago
+        cache_data = {
+            "generated_at": expired_time.isoformat(),
+            "ttl_seconds": 300,  # 5 minutes TTL
+            "index_mtime": None,
+            "project_name": None,
+            "since": None,
+            "stats": {
+                "generated_at": expired_time.isoformat(),
+                "total_runs": 99999,
+            },
+        }
+
+        with open(cache_path, "w") as f:
+            json.dump(cache_data, f)
+
+        aggregator = StatsAggregator(
+            index_manager=index_manager,
+            cache_path=cache_path,
+        )
+
+        stats = aggregator.get_global_stats()
+
+        # Should get fresh stats (0 runs from empty index), not cached 99999
+        assert stats.total_runs == 0
+
+    def test_cache_invalidated_on_index_change(self, tmp_path: Path) -> None:
+        """Cache is invalidated when index file is modified."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.core.index_manager import IndexManager
+
+        cache_path = tmp_path / "cache.json"
+        index_path = tmp_path / "index.jsonl"
+
+        # Create the index file first
+        index_path.write_text("")
+        original_mtime = datetime.fromtimestamp(
+            index_path.stat().st_mtime, tz=UTC
+        ).isoformat()
+
+        index_manager = IndexManager(index_path=index_path)
+
+        # Create cache with old mtime
+        now = datetime.now(UTC)
+        cache_data = {
+            "generated_at": now.isoformat(),
+            "ttl_seconds": 300,
+            "index_mtime": "2020-01-01T00:00:00+00:00",  # Old mtime
+            "project_name": None,
+            "since": None,
+            "stats": {
+                "generated_at": now.isoformat(),
+                "total_runs": 88888,
+            },
+        }
+
+        with open(cache_path, "w") as f:
+            json.dump(cache_data, f)
+
+        aggregator = StatsAggregator(
+            index_manager=index_manager,
+            cache_path=cache_path,
+        )
+
+        stats = aggregator.get_global_stats()
+
+        # Should get fresh stats (0 runs from empty index), not cached 88888
+        assert stats.total_runs == 0
+
+    def test_cache_invalidated_on_different_filters(self, tmp_path: Path) -> None:
+        """Cache is invalidated when filter parameters differ."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.core.index_manager import IndexManager
+
+        cache_path = tmp_path / "cache.json"
+        index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
+
+        # Create cache for project "foo"
+        now = datetime.now(UTC)
+        cache_data = {
+            "generated_at": now.isoformat(),
+            "ttl_seconds": 300,
+            "index_mtime": None,
+            "project_name": "foo",  # Cache for project "foo"
+            "since": None,
+            "stats": {
+                "generated_at": now.isoformat(),
+                "total_runs": 77777,
+            },
+        }
+
+        with open(cache_path, "w") as f:
+            json.dump(cache_data, f)
+
+        aggregator = StatsAggregator(
+            index_manager=index_manager,
+            cache_path=cache_path,
+        )
+
+        # Request for project "bar"
+        stats = aggregator.get_global_stats(project_name="bar")
+
+        # Should get fresh stats, not cached (different project filter)
+        assert stats.total_runs == 0
+
+    def test_force_refresh_bypasses_cache(self, tmp_path: Path) -> None:
+        """force_refresh=True bypasses valid cache."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.core.index_manager import IndexManager
+
+        cache_path = tmp_path / "cache.json"
+        index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
+
+        # Create a valid cache
+        now = datetime.now(UTC)
+        cache_data = {
+            "generated_at": now.isoformat(),
+            "ttl_seconds": 300,
+            "index_mtime": None,
+            "project_name": None,
+            "since": None,
+            "stats": {
+                "generated_at": now.isoformat(),
+                "total_runs": 66666,
+            },
+        }
+
+        with open(cache_path, "w") as f:
+            json.dump(cache_data, f)
+
+        aggregator = StatsAggregator(
+            index_manager=index_manager,
+            cache_path=cache_path,
+        )
+
+        # Force refresh should bypass cache
+        stats = aggregator.get_global_stats(force_refresh=True)
+
+        assert stats.total_runs == 0  # Fresh, not cached 66666

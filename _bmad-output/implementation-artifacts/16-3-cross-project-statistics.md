@@ -75,8 +75,8 @@ so that I can understand my overall ADW usage patterns.
 - [x] Write unit tests with fixture files
 
 ### Task 5: Implement Statistics Cache
-- [ ] Create cache file at `~/.adw/stats-cache.json`
-- [ ] Cache structure:
+- [x] Create cache file at `~/.adw/stats-cache.json`
+- [x] Cache structure:
   ```json
   {
     "generated_at": "2026-01-25T10:00:00Z",
@@ -84,12 +84,12 @@ so that I can understand my overall ADW usage patterns.
     "stats": { ... }
   }
   ```
-- [ ] Invalidate cache when:
+- [x] Invalidate cache when:
   - TTL expired (default 5 minutes)
   - `~/.adw/index.jsonl` modified time changed
   - `--force` flag used
-- [ ] Create `_load_cache()` and `_save_cache()` methods
-- [ ] Write unit tests for cache behavior
+- [x] Create `_load_cache()` and `_save_cache()` methods
+- [x] Write unit tests for cache behavior
 
 ### Task 6: Implement `adw global stats` Command
 - [ ] Add `stats` command to `src/adw/cli/global_commands.py`
@@ -916,6 +916,7 @@ claude-opus-4-5-20251101
 - Task 2: Created StatsAggregator class with DEFAULT_PRICING constant, calculate_cost method, and _parse_llm_response_files method. Added 16 unit tests for pricing and LLM parsing.
 - Task 3: Added get_global_stats, get_token_usage methods. Added env var support for ADW_TEST_STATS_CACHE_PATH. Added 11 more unit tests (27 total).
 - Task 4: LLM response file parsing already implemented in Task 2. Tests verify all requirements: parsing, summing, graceful degradation.
+- Task 5: Statistics cache implemented with _load_cache and _save_cache methods. Added 7 cache tests covering creation, structure, TTL expiry, index change, filter mismatch, and force refresh.
 
 ### File List
 
