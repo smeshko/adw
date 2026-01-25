@@ -66,17 +66,17 @@ So that I can control which projects appear in cross-project views.
 - [x] Write unit tests in `tests/unit/models/test_registry.py`
 
 ### Task 2: Create ProjectRegistryManager Core Class
-- [ ] Create `src/adw/core/project_registry.py` with `ProjectRegistryManager` class
-- [ ] Implement methods:
+- [x] Create `src/adw/core/project_registry.py` with `ProjectRegistryManager` class
+- [x] Implement methods:
   - `register(path: Path, name: str | None = None) -> RegisteredProject`
   - `unregister(path: Path) -> bool`
   - `get_all() -> list[RegisteredProject]`
   - `get_by_path(path: Path) -> RegisteredProject | None`
   - `discover_from_index() -> list[RegisteredProject]` (uses IndexManager)
-- [ ] Implement YAML file persistence at `~/.adw/projects.yaml`
-- [ ] Handle duplicate detection (update existing registration)
-- [ ] Support `ADW_TEST_REGISTRY_PATH` env var for testing (mirrors IndexManager pattern)
-- [ ] Write unit tests in `tests/unit/core/test_project_registry.py`
+- [x] Implement YAML file persistence at `~/.adw/projects.yaml`
+- [x] Handle duplicate detection (update existing registration)
+- [x] Support `ADW_TEST_REGISTRY_PATH` env var for testing (mirrors IndexManager pattern)
+- [x] Write unit tests in `tests/unit/core/test_project_registry.py`
 
 ### Task 3: Implement `adw register` Command
 - [ ] Add `register` command to `src/adw/cli/app.py`
@@ -556,11 +556,21 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Exported both models from `src/adw/models/__init__.py`
 - 15 unit tests covering model instantiation, validation, and serialization round-trips
 
+**Task 2 Completed (2026-01-25):**
+- Created `ProjectRegistryManager` class following IndexManager patterns
+- Implemented all required methods: register, unregister, get_all, get_by_path, discover_from_index
+- YAML file persistence at `~/.adw/projects.yaml`
+- Environment variable override `ADW_TEST_REGISTRY_PATH` for testing
+- Duplicate detection updates existing entries rather than creating duplicates
+- 25 unit tests covering initialization, registration, unregistration, queries, and persistence
+
 ### File List
 
 **New Files:**
 - `src/adw/models/registry.py` - RegisteredProject and ProjectRegistry models
+- `src/adw/core/project_registry.py` - ProjectRegistryManager class
 - `tests/unit/models/test_registry.py` - Unit tests for registry models
+- `tests/unit/core/test_project_registry.py` - Unit tests for registry manager
 
 **Modified Files:**
 - `src/adw/models/__init__.py` - Added exports for registry models
