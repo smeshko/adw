@@ -91,7 +91,7 @@ So that I can monitor runs visually.
 - [x] Write tests for Live display lifecycle
 
 ### Task 5: Implement Keyboard Navigation
-- [ ] Use Rich's keyboard input or `prompt_toolkit` for input:
+- [x] Use Rich's keyboard input or `prompt_toolkit` for input:
   - `↑/k` - Move selection up
   - `↓/j` - Move selection down
   - `Enter` - View selected run details
@@ -101,9 +101,9 @@ So that I can monitor runs visually.
   - `1/2/3` - Switch views (Summary/Runs/Projects)
   - `/` - Filter by project (prompt for name)
   - `Esc` - Clear filter
-- [ ] Handle vim-style navigation (j/k for down/up)
-- [ ] Display keyboard hints in footer
-- [ ] Write unit tests for key handling
+- [x] Handle vim-style navigation (j/k for down/up)
+- [x] Display keyboard hints in footer
+- [x] Write unit tests for key handling
 
 ### Task 6: Implement Run Detail View
 - [ ] Create `_show_run_detail(run: IndexEntry)` method:
@@ -1460,6 +1460,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 2: Implemented full DashboardLayout class with 8 methods for Rich renderable generation (header, summary, active runs, recent runs table, projects panel, footer, empty state). Added STATUS_INDICATORS dictionary. Added 13 new unit tests for layout components.
 - Task 3: Implemented DashboardController class with refresh_data(), handle_key(), and render() methods. Integrated IndexManager and StatsAggregator for data fetching. Added 14 unit tests for controller logic.
 - Task 4: Implemented run() method with Rich Live display, auto-refresh loop, and keyboard input handling. Added run_dashboard() entry point function. Added 8 unit tests for Live display lifecycle.
+- Task 5: Extended handle_key() with vim-style navigation (j/k), view mode switching (1/2/3), and Escape key support. Added 6 unit tests for keyboard navigation.
 
 ### File List
 

@@ -587,28 +587,57 @@ class DashboardController:
     def handle_key(self, key: str) -> None:
         """Process keyboard input.
 
+        Supported keys:
+            q, Esc: Quit dashboard
+            p: Pause/resume auto-refresh
+            r: Force refresh now
+            up, k: Move selection up
+            down, j: Move selection down
+            Enter: View selected run details (placeholder)
+            1: Switch to summary view
+            2: Switch to runs view
+            3: Switch to projects view
+
         Args:
             key: Key string (e.g., "q", "up", "down", "r", "p").
         """
         key_lower = key.lower()
 
-        if key_lower == "q":
+        # Quit commands
+        if key_lower == "q" or key == "\x1b":  # Escape key
             self.state.quit_requested = True
 
+        # Pause/resume auto-refresh
         elif key_lower == "p":
             self.state.paused = not self.state.paused
 
+        # Force refresh
         elif key_lower == "r":
             self.refresh_data()
 
-        elif key_lower == "up":
+        # Navigation: up arrow or k (vim-style)
+        elif key_lower == "up" or key_lower == "k":
             if self.state.selected_run_index > 0:
                 self.state.selected_run_index -= 1
 
-        elif key_lower == "down":
+        # Navigation: down arrow or j (vim-style)
+        elif key_lower == "down" or key_lower == "j":
             max_index = len(self.data.recent_runs) - 1
-            if self.state.selected_run_index < max_index:
+            if max_index >= 0 and self.state.selected_run_index < max_index:
                 self.state.selected_run_index += 1
+
+        # Enter: View run details (placeholder for Task 6)
+        elif key == "\r" or key == "\n":
+            # Will be implemented in Task 6
+            pass
+
+        # View mode switching
+        elif key == "1":
+            self.state.view_mode = "summary"
+        elif key == "2":
+            self.state.view_mode = "runs"
+        elif key == "3":
+            self.state.view_mode = "projects"
 
     def render(self) -> Panel:
         """Generate Rich renderable for current state.

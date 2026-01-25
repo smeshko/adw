@@ -350,6 +350,15 @@ class TestDashboardController:
 
         assert controller.state.quit_requested is True
 
+    def test_handle_key_escape_requests_quit(self) -> None:
+        """Escape key sets quit_requested."""
+        controller = DashboardController()
+        assert not controller.state.quit_requested
+
+        controller.handle_key("\x1b")
+
+        assert controller.state.quit_requested is True
+
     def test_handle_key_p_toggles_pause(self) -> None:
         """'p' key toggles paused state."""
         controller = DashboardController()
@@ -375,6 +384,15 @@ class TestDashboardController:
         controller.state.selected_run_index = 5
 
         controller.handle_key("up")
+
+        assert controller.state.selected_run_index == 4
+
+    def test_handle_key_k_decrements_selection(self) -> None:
+        """'k' key (vim-style) decrements selected index."""
+        controller = DashboardController()
+        controller.state.selected_run_index = 5
+
+        controller.handle_key("k")
 
         assert controller.state.selected_run_index == 4
 
@@ -410,6 +428,45 @@ class TestDashboardController:
         controller.handle_key("down")
 
         assert controller.state.selected_run_index == len(sample_index_entries) - 1
+
+    def test_handle_key_j_increments_selection(
+        self, sample_index_entries: list[IndexEntry]
+    ) -> None:
+        """'j' key (vim-style) increments selected index."""
+        controller = DashboardController()
+        controller.data.recent_runs = sample_index_entries
+        controller.state.selected_run_index = 0
+
+        controller.handle_key("j")
+
+        assert controller.state.selected_run_index == 1
+
+    def test_handle_key_1_switches_to_summary_view(self) -> None:
+        """'1' key switches to summary view."""
+        controller = DashboardController()
+        controller.state.view_mode = "runs"
+
+        controller.handle_key("1")
+
+        assert controller.state.view_mode == "summary"
+
+    def test_handle_key_2_switches_to_runs_view(self) -> None:
+        """'2' key switches to runs view."""
+        controller = DashboardController()
+        controller.state.view_mode = "summary"
+
+        controller.handle_key("2")
+
+        assert controller.state.view_mode == "runs"
+
+    def test_handle_key_3_switches_to_projects_view(self) -> None:
+        """'3' key switches to projects view."""
+        controller = DashboardController()
+        controller.state.view_mode = "summary"
+
+        controller.handle_key("3")
+
+        assert controller.state.view_mode == "projects"
 
     def test_render_returns_renderable(self) -> None:
         """render() returns a Rich renderable."""
