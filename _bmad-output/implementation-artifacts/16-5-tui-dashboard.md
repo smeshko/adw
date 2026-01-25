@@ -142,13 +142,13 @@ So that I can monitor runs visually.
 - [x] Write tests for empty state display
 
 ### Task 9: Implement `adw global dashboard` Command
-- [ ] Add `dashboard` command to `src/adw/cli/global_commands.py`:
+- [x] Add `dashboard` command to `src/adw/cli/global_commands.py`:
   - `--refresh, -r INT` - Refresh interval in seconds (default: 30)
   - `--project, -p NAME` - Filter to specific project initially
   - `--no-auto-refresh` - Disable auto-refresh (manual R to refresh)
-- [ ] Handle graceful exit on Ctrl+C
-- [ ] Show "Loading..." state while fetching initial data
-- [ ] Write unit tests for command options
+- [x] Handle graceful exit on Ctrl+C
+- [x] Show "Loading..." state while fetching initial data
+- [x] Write unit tests for command options
 
 ### Task 10: Write Integration Tests
 - [ ] Test full dashboard lifecycle: start -> interact -> quit
