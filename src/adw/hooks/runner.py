@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Literal
 
 from adw.exceptions import HookError
 from adw.hooks.environment import build_hook_environment
+from adw.logging.redactor import get_redactor
 from adw.models import HookConfig, HookResult, RunContext
 
 if TYPE_CHECKING:
@@ -171,6 +172,22 @@ class HookRunner:
 
         # Use provided working directory or default to current directory
         cwd = working_dir if working_dir is not None else Path.cwd()
+
+        # Log ADW environment variables for debugging (with secret redaction)
+        if logger.isEnabledFor(logging.DEBUG):
+            adw_env = {k: v for k, v in env.items() if k.startswith("ADW_")}
+            # Redact sensitive values before logging
+            redactor = get_redactor()
+            safe_env = redactor.redact_env_dict(adw_env)
+            logger.debug(
+                f"Hook environment ({hook_type}-hook)",
+                extra={
+                    "phase": phase,
+                    "hook_type": hook_type,
+                    "adw_env": safe_env,
+                    "working_dir": str(cwd),
+                },
+            )
 
         start_time = time.monotonic()
 

@@ -39,6 +39,7 @@ pr_merge_approved=""
 version_deployed=""
 merge_reason=""
 pr_number=""
+merge_succeeded=false  # Track if PR merge succeeded for exit code
 
 if [[ -n "$ADW_LLM_OUTPUT" ]]; then
     # Extract status markers using sed -E for extended regex (portable on macOS and Linux)
@@ -258,6 +259,11 @@ if [[ "$pr_merge_approved" == "true" ]]; then
     merge_output=$("${merge_cmd[@]}" 2>&1) || merge_exit_code=$?
 
     if [[ $merge_exit_code -eq 0 ]]; then
+        # PR merge succeeded - this is the critical success condition
+        # Disable set -e so bookkeeping failures don't fail the entire hook
+        set +e
+        merge_succeeded=true
+
         echo ""
         echo "=========================================="
         echo "PR MERGED SUCCESSFULLY"
@@ -282,7 +288,7 @@ if [[ "$pr_merge_approved" == "true" ]]; then
             merge_body_escaped="${merge_body//\\/\\\\}"
             merge_body_escaped="${merge_body_escaped//\"/\\\"}"
 
-            cat > "$merge_record_file" <<EOF
+            if cat > "$merge_record_file" <<EOF
 {
   "merged": true,
   "pr_number": $pr_number,
@@ -292,7 +298,11 @@ if [[ "$pr_merge_approved" == "true" ]]; then
   "merge_body": "$merge_body_escaped"
 }
 EOF
-            echo "Merge record saved to: $merge_record_file"
+            then
+                echo "Merge record saved to: $merge_record_file"
+            else
+                echo "Warning: Failed to save merge record (non-fatal)"
+            fi
         fi
     else
         echo ""
@@ -367,7 +377,7 @@ if [[ -n "$ADW_TASK_ID" ]] && [[ "$pr_merge_approved" == "true" ]] && [[ $merge_
     # The SDK handles task manager updates via Python code, but we log intent here
     if [[ -n "$ADW_ARTIFACTS_DIR" ]]; then
         task_update_file="$ADW_ARTIFACTS_DIR/task_update_request.json"
-        cat > "$task_update_file" <<EOF
+        if cat > "$task_update_file" <<EOF
 {
   "task_id": "$ADW_TASK_ID",
   "status": "done",
@@ -376,10 +386,19 @@ if [[ -n "$ADW_TASK_ID" ]] && [[ "$pr_merge_approved" == "true" ]] && [[ $merge_
   "version": "$version_deployed"
 }
 EOF
-        echo "Task update request saved to: $task_update_file"
-        echo "Note: Task manager status update will be handled by ADW SDK"
+        then
+            echo "Task update request saved to: $task_update_file"
+            echo "Note: Task manager status update will be handled by ADW SDK"
+        else
+            echo "Warning: Failed to save task update request (non-fatal)"
+        fi
     fi
 fi
 
 echo ""
 echo "Ship phase post-hook complete"
+
+# Exit with success if PR was merged, regardless of bookkeeping errors
+if [[ "$merge_succeeded" == "true" ]]; then
+    exit 0
+fi

@@ -1025,11 +1025,27 @@ class PhaseRunner:
             )
 
         except HookError as e:
-            # Log hook output for debugging
+            # Log hook output at ERROR level so it shows at normal verbosity
             if e.stderr:
                 logger.error(f"Post-hook stderr: {e.stderr[:1000]}")
             if e.stdout:
-                logger.debug(f"Post-hook stdout: {e.stdout[:1000]}")
+                logger.error(f"Post-hook stdout: {e.stdout[:1000]}")
+
+            # Persist hook output as artifact for post-mortem debugging
+            if artifacts_dir.exists() and (e.stdout or e.stderr):
+                try:
+                    hook_debug_path = artifacts_dir / f"{phase}_hook_debug.txt"
+                    with open(hook_debug_path, "w", encoding="utf-8") as f:
+                        f.write(f"=== HOOK FAILURE DEBUG ===\n")
+                        f.write(f"Phase: {phase}\n")
+                        f.write(f"Exit code: {e.exit_code}\n")
+                        f.write(f"Duration: {e.duration_ms}ms\n\n")
+                        f.write(f"=== STDOUT ===\n{e.stdout or '(empty)'}\n\n")
+                        f.write(f"=== STDERR ===\n{e.stderr or '(empty)'}\n")
+                    logger.debug(f"Hook debug output saved to: {hook_debug_path}")
+                except OSError as write_err:
+                    logger.warning(f"Failed to save hook debug output: {write_err}")
+
             logger.error("Post-hook failed", extra={"phase": phase})
             raise
         finally:
