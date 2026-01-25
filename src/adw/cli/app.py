@@ -10,6 +10,7 @@ from ulid import ULID
 
 from adw.cli.bootstrap import create_log_manager, create_orchestrator
 from adw.cli.dry_run import DryRunDisplay
+from adw.cli.global_commands import global_app
 from adw.cli.init import init as init_impl
 from adw.cli.list import list_runs
 from adw.cli.logs import logs_app
@@ -486,6 +487,9 @@ app.command()(projects_command)
 
 # Register the webhook subapp (Story 13.1)
 app.add_typer(webhook_app, name="webhook")
+
+# Register the global subapp (Story 16.2)
+app.add_typer(global_app, name="global")
 
 
 @app.command()

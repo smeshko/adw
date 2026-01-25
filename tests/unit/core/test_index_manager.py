@@ -340,6 +340,98 @@ class TestGetRecentRuns:
         entries = manager.get_recent_runs(limit=10)
         assert len(entries) == 1
 
+    def test_filter_by_project_name(self, tmp_path: Path) -> None:
+        """Test filtering by project_name (directory name, not full path)."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+
+        context1 = _create_test_context(run_id="01KDSG2VDHNK0W4HSCZWJZXWS1")
+        context2 = _create_test_context(run_id="01KDSG2VDHNK0W4HSCZWJZXWS2")
+        context3 = _create_test_context(run_id="01KDSG2VDHNK0W4HSCZWJZXWS3")
+
+        # Different paths but some with same project name
+        manager.register_run(context1, Path("/home/user/projects/my-api"))
+        manager.register_run(context2, Path("/work/projects/my-api"))
+        manager.register_run(context3, Path("/home/user/projects/frontend"))
+
+        # Filter by project_name should return both my-api entries
+        entries = manager.get_recent_runs(limit=10, project_name="my-api")
+        assert len(entries) == 2
+        for entry in entries:
+            assert entry.project_name == "my-api"
+
+    def test_filter_by_since(self, tmp_path: Path) -> None:
+        """Test filtering by since datetime threshold."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+
+        old_time = datetime(2024, 1, 1, tzinfo=UTC)
+        recent_time = datetime(2024, 6, 15, tzinfo=UTC)
+        threshold = datetime(2024, 6, 1, tzinfo=UTC)
+
+        context1 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS1",
+            started_at=old_time,
+        )
+        context2 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS2",
+            started_at=recent_time,
+        )
+
+        manager.register_run(context1, Path("/project/a"))
+        manager.register_run(context2, Path("/project/b"))
+
+        # Filter by since should only return the recent entry
+        entries = manager.get_recent_runs(limit=10, since=threshold)
+        assert len(entries) == 1
+        assert entries[0].run_id == "01KDSG2VDHNK0W4HSCZWJZXWS2"
+
+    def test_combined_filters(self, tmp_path: Path) -> None:
+        """Test combining project_name, status, and since filters."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+
+        old_time = datetime(2024, 1, 1, tzinfo=UTC)
+        recent_time = datetime(2024, 6, 15, tzinfo=UTC)
+        threshold = datetime(2024, 6, 1, tzinfo=UTC)
+
+        # Create 4 entries with different combinations
+        context1 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS1",
+            started_at=old_time,
+        )
+        context2 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS2",
+            started_at=recent_time,
+        )
+        context3 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS3",
+            started_at=recent_time,
+        )
+        context4 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS4",
+            started_at=recent_time,
+        )
+
+        manager.register_run(context1, Path("/projects/my-api"))  # old, my-api
+        manager.register_run(context2, Path("/projects/my-api"))  # recent, my-api
+        manager.register_run(context3, Path("/projects/frontend"))  # recent, frontend
+        manager.register_run(context4, Path("/projects/my-api"))  # recent, my-api
+
+        # Mark context2 as failed, context4 as completed
+        manager.update_run(context2.run_id, status="failed")
+        manager.update_run(context4.run_id, status="completed")
+
+        # Combined filter: my-api, failed, since threshold
+        entries = manager.get_recent_runs(
+            limit=10,
+            project_name="my-api",
+            status="failed",
+            since=threshold,
+        )
+        assert len(entries) == 1
+        assert entries[0].run_id == "01KDSG2VDHNK0W4HSCZWJZXWS2"
+
 
 class TestArchiveOldEntries:
     """Tests for IndexManager._archive_old_entries()."""

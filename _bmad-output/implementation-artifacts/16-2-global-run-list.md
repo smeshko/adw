@@ -1,6 +1,6 @@
 # Story 16.2: Global Run List
 
-Status: ready
+Status: done
 Linear Issue: not-configured
 Epic: 16 - Cross-Project Dashboard
 Created: 2026-01-25
