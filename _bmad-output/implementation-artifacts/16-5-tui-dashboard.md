@@ -42,18 +42,18 @@ So that I can monitor runs visually.
 ## Tasks / Subtasks
 
 ### Task 1: Create Dashboard Data Models
-- [ ] Create `DashboardState` model in `src/adw/cli/dashboard.py`:
+- [x] Create `DashboardState` model in `src/adw/cli/dashboard.py`:
   - `selected_run_index: int` - Currently selected run in the list
   - `selected_project: str | None` - Currently filtered project (if any)
   - `scroll_offset: int` - Scroll position for runs list
   - `last_refresh: datetime` - When data was last refreshed
   - `paused: bool` - Auto-refresh paused flag
   - `view_mode: Literal["summary", "runs", "projects"]` - Current view
-- [ ] Create `DashboardData` model to hold fetched data:
+- [x] Create `DashboardData` model to hold fetched data:
   - `stats: GlobalStatistics` - From StatsAggregator
   - `recent_runs: list[IndexEntry]` - From IndexManager
   - `active_runs: list[IndexEntry]` - Running runs only
-- [ ] Write unit tests in `tests/unit/cli/test_dashboard.py`
+- [x] Write unit tests in `tests/unit/cli/test_dashboard.py`
 
 ### Task 2: Create Dashboard Layout Components
 - [ ] Create `DashboardLayout` class with Rich `Layout` and `Panel` components:
@@ -1450,13 +1450,18 @@ Epic 16: Cross-Project Dashboard - Story 16.5 (Final Story)
 
 ### Agent Model Used
 
-<!-- To be filled by implementing agent -->
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created DashboardState and DashboardData dataclass models in src/adw/cli/dashboard.py with proper type annotations and documentation. Added 7 unit tests covering default values, mutability, and state management.
+
 ### File List
+
+- src/adw/cli/dashboard.py (new)
+- tests/unit/cli/test_dashboard.py (new)
 
 ---
 
