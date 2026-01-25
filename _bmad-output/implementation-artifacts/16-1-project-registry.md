@@ -102,13 +102,13 @@ So that I can control which projects appear in cross-project views.
 - [x] Write unit tests in `tests/unit/cli/test_projects.py`
 
 ### Task 6: Create GLOBAL_REGISTRY Wizard Step
-- [ ] Create `src/adw/cli/wizard/global_registry.py` with:
+- [x] Create `src/adw/cli/wizard/global_registry.py` with:
   - `GlobalRegistryStepHandler` class
   - `run_global_registry_step()` function
-- [ ] Prompt: "Register this project in ADW global dashboard? (Y/n)"
-- [ ] If yes, prompt: "Custom display name (Enter for 'project-name'):"
-- [ ] Store in wizard state: `global_registry_enabled: bool`, `global_registry_name: str | None`
-- [ ] Write unit tests in `tests/unit/cli/wizard/test_global_registry.py`
+- [x] Prompt: "Register this project in ADW global dashboard? (Y/n)"
+- [x] If yes, prompt: "Custom display name (Enter for 'project-name'):"
+- [x] Store in wizard state: `global_registry_enabled: bool`, `global_registry_name: str | None`
+- [x] Write unit tests in `tests/unit/cli/wizard/test_global_registry.py`
 
 ### Task 7: Integrate GLOBAL_REGISTRY into Wizard Flow
 - [ ] Update `src/adw/cli/wizard/flow.py`:
