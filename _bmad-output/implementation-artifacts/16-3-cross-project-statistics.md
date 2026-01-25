@@ -102,15 +102,15 @@ so that I can understand my overall ADW usage patterns.
 - [x] Write unit tests in `tests/unit/cli/test_global_commands.py`
 
 ### Task 7: Create StatsDisplay Helper Class
-- [ ] Create display helper in `src/adw/cli/global_commands.py`:
+- [x] Create display helper in `src/adw/cli/global_commands.py`:
   - `show_global_stats(stats: GlobalStatistics)` - Rich panels/tables
   - `_format_tokens(count: int) -> str` - e.g., "1.2M", "450K"
   - `_format_cost(amount: float) -> str` - e.g., "$12.45"
   - `_format_duration(ms: int) -> str` - e.g., "4m 32s"
   - `_format_rate(rate: float) -> str` - e.g., "94.3%"
-- [ ] Create summary panel with key metrics
-- [ ] Create per-project breakdown table
-- [ ] Write unit tests for display formatting
+- [x] Create summary panel with key metrics
+- [x] Create per-project breakdown table
+- [x] Write unit tests for display formatting
 
 ### Task 8: Implement JSON Output Format
 - [ ] Add `--format json` support
@@ -918,6 +918,7 @@ claude-opus-4-5-20251101
 - Task 4: LLM response file parsing already implemented in Task 2. Tests verify all requirements: parsing, summing, graceful degradation.
 - Task 5: Statistics cache implemented with _load_cache and _save_cache methods. Added 7 cache tests covering creation, structure, TTL expiry, index change, filter mismatch, and force refresh.
 - Task 6: Implemented `adw global stats` command with --project, --format, --force, and --since options. Added 16 CLI tests.
+- Task 7: Display helpers (_show_global_stats, _format_tokens, _format_cost, _format_duration_ms, _format_rate) implemented in Task 6. Tests in TestStatsFormatters class.
 
 ### File List
 
