@@ -48,13 +48,13 @@ so that I can understand my overall ADW usage patterns.
 - [x] Write unit tests in `tests/unit/models/test_stats.py`
 
 ### Task 2: Create Model Pricing Configuration
-- [ ] Define default pricing table for models in `src/adw/core/stats_aggregator.py`:
+- [x] Define default pricing table for models in `src/adw/core/stats_aggregator.py`:
   - `claude-3-5-sonnet`: $3.00 / 1M input, $15.00 / 1M output
   - `claude-3-opus`: $15.00 / 1M input, $75.00 / 1M output
   - `claude-3-haiku`: $0.25 / 1M input, $1.25 / 1M output
   - Allow override via `~/.adw/config.yaml` under `pricing` key
-- [ ] Create `ModelPricing` model for pricing configuration
-- [ ] Write unit tests for cost calculation
+- [x] Create `ModelPricing` model for pricing configuration
+- [x] Write unit tests for cost calculation
 
 ### Task 3: Create StatsAggregator Core Class
 - [ ] Create `src/adw/core/stats_aggregator.py` with `StatsAggregator` class
@@ -913,12 +913,15 @@ claude-opus-4-5-20251101
 ### Completion Notes List
 
 - Task 1: Created TokenUsage, ProjectStatistics, GlobalStatistics models in src/adw/models/stats.py. Exported from models package. Added 14 unit tests covering all model functionality.
+- Task 2: Created StatsAggregator class with DEFAULT_PRICING constant, calculate_cost method, and _parse_llm_response_files method. Added 16 unit tests for pricing and LLM parsing.
 
 ### File List
 
 - src/adw/models/stats.py (NEW)
 - src/adw/models/__init__.py (MODIFIED)
+- src/adw/core/stats_aggregator.py (NEW)
 - tests/unit/models/test_stats.py (NEW)
+- tests/unit/core/test_stats_aggregator.py (NEW)
 
 ---
 
