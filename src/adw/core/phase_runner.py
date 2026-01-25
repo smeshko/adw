@@ -397,7 +397,8 @@ class PhaseRunner:
         )
         variables["doc_mappings"] = (
             [m.model_dump() for m in typed_config.doc_mappings]
-            if isinstance(typed_config, DocumentCommandConfig) and typed_config.doc_mappings
+            if isinstance(typed_config, DocumentCommandConfig)
+            and typed_config.doc_mappings
             else []
         )
 
@@ -1036,7 +1037,7 @@ class PhaseRunner:
                 try:
                     hook_debug_path = artifacts_dir / f"{phase}_hook_debug.txt"
                     with open(hook_debug_path, "w", encoding="utf-8") as f:
-                        f.write(f"=== HOOK FAILURE DEBUG ===\n")
+                        f.write("=== HOOK FAILURE DEBUG ===\n")
                         f.write(f"Phase: {phase}\n")
                         f.write(f"Exit code: {e.exit_code}\n")
                         f.write(f"Duration: {e.duration_ms}ms\n\n")

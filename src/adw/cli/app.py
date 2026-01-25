@@ -18,9 +18,9 @@ from adw.cli.pr import pr as pr_command
 from adw.cli.projects import projects as projects_command
 from adw.cli.register import register as register_command
 from adw.cli.resume import resume as resume_command
-from adw.cli.unregister import unregister as unregister_command
 from adw.cli.run_display import RunDisplay
 from adw.cli.status import status as status_command
+from adw.cli.unregister import unregister as unregister_command
 from adw.cli.validators import validate_phase
 from adw.cli.webhook import webhook_app
 from adw.commands.template import escape_feature_description

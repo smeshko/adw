@@ -68,9 +68,7 @@ class DocumentExtension:
         del context  # Unused
         return False, None
 
-    def on_complete(
-        self, context: "RunContext", result: "PhaseResult"
-    ) -> "RunContext":
+    def on_complete(self, context: "RunContext", result: "PhaseResult") -> "RunContext":
         """Handle PR creation after document phase completes.
 
         If auto_create_pr is enabled in git_config, attempts to create

@@ -34,14 +34,9 @@ class TestRegisterCommand:
         project_dir.mkdir()
         (project_dir / ".adw").mkdir()
 
-        # Set up mock registry
-        registry_path = tmp_path / "projects.yaml"
-
         with (
             patch("adw.cli.register.Path.cwd", return_value=project_dir),
-            patch(
-                "adw.cli.register.ProjectRegistryManager"
-            ) as mock_manager_class,
+            patch("adw.cli.register.ProjectRegistryManager") as mock_manager_class,
         ):
             mock_manager = mock_manager_class.return_value
             mock_manager.register.return_value = _create_mock_project(
@@ -61,9 +56,7 @@ class TestRegisterCommand:
 
         with (
             patch("adw.cli.register.Path.cwd", return_value=project_dir),
-            patch(
-                "adw.cli.register.ProjectRegistryManager"
-            ) as mock_manager_class,
+            patch("adw.cli.register.ProjectRegistryManager") as mock_manager_class,
         ):
             mock_manager = mock_manager_class.return_value
             mock_manager.register.return_value = _create_mock_project(
@@ -92,7 +85,10 @@ class TestRegisterCommand:
 
         # Should fail because it's not an ADW project
         assert result.exit_code != 0
-        assert "not an ADW project" in result.output.lower() or "adw init" in result.output.lower()
+        assert (
+            "not an ADW project" in result.output.lower()
+            or "adw init" in result.output.lower()
+        )
 
     def test_register_updates_existing(self, tmp_path: Path) -> None:
         """Test that registering an already-registered project updates it."""
@@ -102,9 +98,7 @@ class TestRegisterCommand:
 
         with (
             patch("adw.cli.register.Path.cwd", return_value=project_dir),
-            patch(
-                "adw.cli.register.ProjectRegistryManager"
-            ) as mock_manager_class,
+            patch("adw.cli.register.ProjectRegistryManager") as mock_manager_class,
         ):
             mock_manager = mock_manager_class.return_value
             # First call returns existing project
@@ -120,7 +114,9 @@ class TestRegisterCommand:
 
         assert result.exit_code == 0
         # Should indicate update (not a failure)
-        assert "updated" in result.output.lower() or "registered" in result.output.lower()
+        assert (
+            "updated" in result.output.lower() or "registered" in result.output.lower()
+        )
 
 
 def _create_mock_project(path: str, name: str):

@@ -194,14 +194,14 @@ class LinearClient:
         team_key, number_str = parts
         try:
             number = int(number_str)
-        except ValueError:
+        except ValueError as e:
             raise TaskError(
                 code="INVALID_TASK_ID",
                 message=f"Invalid issue number in identifier: '{identifier}'",
                 suggestion="Issue number must be numeric (e.g., 'RULE-151')",
                 task_id=identifier,
                 recoverable=False,
-            )
+            ) from e
 
         try:
             response = self._request(

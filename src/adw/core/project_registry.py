@@ -240,7 +240,9 @@ class ProjectRegistryManager:
                         project_path = entry.get("project_path")
                         project_name = entry.get("project_name")
                         if project_path and project_path not in seen_paths:
-                            seen_paths[project_path] = project_name or Path(project_path).name
+                            seen_paths[project_path] = (
+                                project_name or Path(project_path).name
+                            )
                     except (json.JSONDecodeError, KeyError):
                         continue  # Skip corrupted entries
         except OSError:

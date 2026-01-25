@@ -266,9 +266,7 @@ def _configure_document_phase(console: Console) -> dict[str, Any]:
     console.print("[dim]Doc mappings link source file patterns to doc directories.[/]")
     console.print("[dim]When matching source files change, their docs are updated.[/]")
 
-    add_mappings = Confirm.ask(
-        "Add doc mappings?", default=False, console=console
-    )
+    add_mappings = Confirm.ask("Add doc mappings?", default=False, console=console)
 
     if not add_mappings:
         return {}
@@ -318,10 +316,12 @@ def _prompt_doc_mappings(console: Console) -> list[dict[str, str]]:
             console.print("[yellow]Both pattern and docs_dir are required.[/]")
             continue
 
-        mappings.append({
-            "source_pattern": pattern,
-            "docs_dir": docs_dir,
-        })
+        mappings.append(
+            {
+                "source_pattern": pattern,
+                "docs_dir": docs_dir,
+            }
+        )
         console.print(f"[green]Added:[/] {pattern} -> {docs_dir}")
 
     return mappings

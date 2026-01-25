@@ -700,5 +700,9 @@ class TestStatusSyncServiceTaskInfo:
         service.post_completion_comment(context_without_task, summary="Done")
 
         # Verify that all methods actually executed (called the task manager)
-        assert mock_task_manager.update_status.call_count == 3  # start, transition, failed
-        assert mock_task_manager.post_comment.call_count == 3  # phase, failure, completion
+        assert (
+            mock_task_manager.update_status.call_count == 3
+        )  # start, transition, failed
+        assert (
+            mock_task_manager.post_comment.call_count == 3
+        )  # phase, failure, completion

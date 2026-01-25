@@ -20,9 +20,7 @@ def temp_registry(tmp_path: Path):
     """Create a temporary registry file for testing."""
     registry_path = tmp_path / "projects.yaml"
     # Override the registry path via environment variable
-    with patch.dict(
-        "os.environ", {"ADW_TEST_REGISTRY_PATH": str(registry_path)}
-    ):
+    with patch.dict("os.environ", {"ADW_TEST_REGISTRY_PATH": str(registry_path)}):
         yield registry_path
 
 
@@ -39,9 +37,11 @@ def project_dir(tmp_path: Path):
 @pytest.fixture
 def mock_cwd(project_dir: Path):
     """Mock current working directory to project_dir."""
-    with patch("adw.cli.register.Path.cwd", return_value=project_dir):
-        with patch("adw.cli.unregister.Path.cwd", return_value=project_dir):
-            yield project_dir
+    with (
+        patch("adw.cli.register.Path.cwd", return_value=project_dir),
+        patch("adw.cli.unregister.Path.cwd", return_value=project_dir),
+    ):
+        yield project_dir
 
 
 class TestRegisterUnregisterFlow:
@@ -95,9 +95,7 @@ class TestRegisterUnregisterFlow:
 class TestProjectsCommand:
     """Tests for projects command output."""
 
-    def test_projects_table_output(
-        self, temp_registry: Path, mock_cwd: Path
-    ) -> None:
+    def test_projects_table_output(self, temp_registry: Path, mock_cwd: Path) -> None:
         """Table output includes expected columns."""
         runner.invoke(app, ["register", "--name", "Test Project"])
 
@@ -148,9 +146,7 @@ class TestMultipleProjects:
         # Register each project
         for i, project in enumerate(projects):
             with patch("adw.cli.register.Path.cwd", return_value=project):
-                result = runner.invoke(
-                    app, ["register", "--name", f"Project {i}"]
-                )
+                result = runner.invoke(app, ["register", "--name", f"Project {i}"])
                 assert result.exit_code == 0
 
         # Verify all projects listed

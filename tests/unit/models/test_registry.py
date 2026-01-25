@@ -10,7 +10,6 @@ Tests cover:
 
 from datetime import UTC, datetime
 
-import pytest
 import yaml
 
 from adw.models.registry import ProjectRegistry, RegisteredProject

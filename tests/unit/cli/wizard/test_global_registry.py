@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from rich.console import Console
@@ -93,9 +93,7 @@ class TestRunGlobalRegistryStep:
         self, mock_state: WizardState, console: Console
     ) -> None:
         """Returns enabled=False when user declines registration."""
-        with patch(
-            "adw.cli.wizard.global_registry.Confirm.ask", return_value=False
-        ):
+        with patch("adw.cli.wizard.global_registry.Confirm.ask", return_value=False):
             result = run_global_registry_step(mock_state, console)
 
         assert result["global_registry_enabled"] is False
@@ -114,7 +112,7 @@ class TestRunGlobalRegistryStep:
             patch("adw.cli.wizard.global_registry.Path.cwd") as mock_cwd,
         ):
             mock_cwd.return_value = Path("/Users/dev/my-project")
-            result = run_global_registry_step(mock_state, console)
+            run_global_registry_step(mock_state, console)
 
         # Verify Prompt.ask was called with default
         assert mock_prompt.called

@@ -110,9 +110,7 @@ class ShipExtension:
 
         return False, None
 
-    def on_complete(
-        self, context: "RunContext", result: "PhaseResult"
-    ) -> "RunContext":
+    def on_complete(self, context: "RunContext", result: "PhaseResult") -> "RunContext":
         """No post-processing needed for ship phase.
 
         Args:

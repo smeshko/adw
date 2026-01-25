@@ -34,9 +34,7 @@ class TestUnregisterCommand:
 
         with (
             patch("adw.cli.unregister.Path.cwd", return_value=project_dir),
-            patch(
-                "adw.cli.unregister.ProjectRegistryManager"
-            ) as mock_manager_class,
+            patch("adw.cli.unregister.ProjectRegistryManager") as mock_manager_class,
         ):
             mock_manager = mock_manager_class.return_value
             mock_manager.unregister.return_value = True
@@ -44,7 +42,10 @@ class TestUnregisterCommand:
             result = runner.invoke(app, ["unregister"])
 
         assert result.exit_code == 0
-        assert "unregistered" in result.output.lower() or "removed" in result.output.lower()
+        assert (
+            "unregistered" in result.output.lower()
+            or "removed" in result.output.lower()
+        )
 
     def test_unregister_not_registered(self, tmp_path: Path) -> None:
         """Test unregistering a project that isn't registered."""
@@ -54,9 +55,7 @@ class TestUnregisterCommand:
 
         with (
             patch("adw.cli.unregister.Path.cwd", return_value=project_dir),
-            patch(
-                "adw.cli.unregister.ProjectRegistryManager"
-            ) as mock_manager_class,
+            patch("adw.cli.unregister.ProjectRegistryManager") as mock_manager_class,
         ):
             mock_manager = mock_manager_class.return_value
             mock_manager.unregister.return_value = False
@@ -78,4 +77,7 @@ class TestUnregisterCommand:
 
         # Should fail because it's not an ADW project
         assert result.exit_code != 0
-        assert "not an ADW project" in result.output.lower() or "adw init" in result.output.lower()
+        assert (
+            "not an ADW project" in result.output.lower()
+            or "adw init" in result.output.lower()
+        )

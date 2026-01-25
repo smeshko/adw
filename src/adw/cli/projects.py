@@ -12,6 +12,7 @@ Examples:
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -19,7 +20,6 @@ from rich.table import Table
 
 from adw.core.index_manager import IndexManager
 from adw.core.project_registry import ProjectRegistryManager
-from adw.models.registry import RegisteredProject
 
 console = Console()
 
@@ -85,14 +85,14 @@ def projects(
         _output_table(project_data, title, discover)
 
 
-def _output_json(project_data: list[dict]) -> None:
+def _output_json(project_data: list[dict[str, Any]]) -> None:
     """Output projects as JSON."""
     output = {"projects": project_data}
     console.print(json.dumps(output, indent=2))
 
 
 def _output_table(
-    project_data: list[dict],
+    project_data: list[dict[str, Any]],
     title: str,
     is_discover: bool,
 ) -> None:
@@ -100,9 +100,7 @@ def _output_table(
     if not project_data:
         if is_discover:
             console.print("[yellow]No projects found in run history.[/]")
-            console.print(
-                "[dim]Run 'adw run' in a project to start tracking runs.[/]"
-            )
+            console.print("[dim]Run 'adw run' in a project to start tracking runs.[/]")
         else:
             console.print("[yellow]No projects registered.[/]")
             console.print(
@@ -134,7 +132,7 @@ def _output_table(
     if is_discover:
         console.print()
         console.print(
-            "[dim]Tip:[/] Run 'adw register' in a project directory to add it to the registry."
+            "[dim]Tip:[/] Run 'adw register' in a project to add it to the registry."
         )
 
 

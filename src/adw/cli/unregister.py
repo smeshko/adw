@@ -20,7 +20,7 @@ console = Console()
 def unregister() -> None:
     """Unregister current project from global ADW dashboard.
 
-    Removes the current project from the global project registry at ~/.adw/projects.yaml.
+    Removes the project from the global registry at ~/.adw/projects.yaml.
     The project will no longer appear in cross-project views.
 
     Examples:

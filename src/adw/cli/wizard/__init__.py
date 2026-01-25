@@ -45,14 +45,14 @@ from adw.cli.wizard.basics import (
     run_basics_step,
 )
 from adw.cli.wizard.flow import StepHandler, WizardFlowController, WizardStep
-from adw.cli.wizard.global_registry import (
-    GlobalRegistryStepHandler,
-    run_global_registry_step,
-)
 from adw.cli.wizard.git import (
     GitStepHandler,
     run_git_step,
     validate_branch_prefix,
+)
+from adw.cli.wizard.global_registry import (
+    GlobalRegistryStepHandler,
+    run_global_registry_step,
 )
 from adw.cli.wizard.phases import (
     PhasesStepHandler,

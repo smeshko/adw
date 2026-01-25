@@ -144,9 +144,7 @@ class TestRegister:
         names = {p.name for p in all_projects}
         assert names == {"Project A", "Project B"}
 
-    def test_register_whitespace_name_uses_directory_name(
-        self, tmp_path: Path
-    ) -> None:
+    def test_register_whitespace_name_uses_directory_name(self, tmp_path: Path) -> None:
         """Test that whitespace-only names fall back to directory name."""
         registry_path = tmp_path / "projects.yaml"
         manager = ProjectRegistryManager(registry_path=registry_path)
@@ -253,9 +251,7 @@ class TestGetByPath:
         assert result.path == str(project_path)
         assert result.name == "My API"
 
-    def test_get_by_path_returns_none_for_unregistered(
-        self, tmp_path: Path
-    ) -> None:
+    def test_get_by_path_returns_none_for_unregistered(self, tmp_path: Path) -> None:
         """Test that get_by_path returns None for unregistered path."""
         registry_path = tmp_path / "projects.yaml"
         manager = ProjectRegistryManager(registry_path=registry_path)
@@ -282,9 +278,7 @@ class TestGetByPath:
 class TestDiscoverFromIndex:
     """Tests for ProjectRegistryManager.discover_from_index()."""
 
-    def test_discover_from_index_returns_unique_projects(
-        self, tmp_path: Path
-    ) -> None:
+    def test_discover_from_index_returns_unique_projects(self, tmp_path: Path) -> None:
         """Test that discover_from_index returns unique projects from index."""
         registry_path = tmp_path / "projects.yaml"
         index_path = tmp_path / "index.jsonl"
@@ -344,7 +338,9 @@ class TestDiscoverFromIndex:
             # Invalid: JSON string
             f.write('"just a string"\n')
             # Another valid entry
-            f.write('{"project_path": "/Users/dev/another", "project_name": "another"}\n')
+            f.write(
+                '{"project_path": "/Users/dev/another", "project_name": "another"}\n'
+            )
 
         projects = manager.discover_from_index(index_path=index_path)
 

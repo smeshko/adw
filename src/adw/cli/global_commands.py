@@ -342,7 +342,9 @@ def _show_empty_results_message(
         for f in filters:
             console.print(f)
 
-    console.print("\n[dim]Tip: Try broader filters or check 'adw global list' for all runs[/]")
+    console.print(
+        "\n[dim]Tip: Try broader filters or check 'adw global list' for all runs[/]"
+    )
 
 
 def _build_table_title(

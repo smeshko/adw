@@ -204,7 +204,7 @@ class RunLifecycle:
             else:
                 worktree_path, branch_name = worktree_result
 
-        # Create initial context (ISS-039: populate task_id, task_info, and task_manager)
+        # Create initial context (populate task_id, task_info, and task_manager)
         context = RunContext(
             run_id=run_id,
             feature_description=feature_description,
@@ -216,7 +216,9 @@ class RunLifecycle:
             branch_name=branch_name,
             task_id=self._task_info.identifier if self._task_info else None,
             task_info=self._task_info,
-            task_manager=self.task_manager_config.type if self.task_manager_config.type != "none" else None,
+            task_manager=self.task_manager_config.type
+            if self.task_manager_config.type != "none"
+            else None,
         )
 
         # Initialize run
@@ -596,8 +598,8 @@ class RunLifecycle:
             if pr_result is not None:
                 effective_pr_result = pr_result
             elif context.pr_url:
-                # Construct from context fields (Phase Extensions store PR info in context)
-                # Use a simple object with required attributes to avoid CLI import in core
+                # Construct from context fields (Phase Extensions store PR info)
+                # Use simple object with required attrs to avoid CLI import
                 effective_pr_result = _PRResultFromContext(
                     success=True, pr_url=context.pr_url, reason=""
                 )

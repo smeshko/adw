@@ -9,7 +9,7 @@ Tests for the `adw projects` command including:
 """
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
@@ -30,9 +30,7 @@ class TestProjectsCommand:
 
     def test_list_registered_projects(self, tmp_path: Path) -> None:
         """Test listing registered projects in a table."""
-        with patch(
-            "adw.cli.projects.ProjectRegistryManager"
-        ) as mock_manager_class:
+        with patch("adw.cli.projects.ProjectRegistryManager") as mock_manager_class:
             mock_manager = mock_manager_class.return_value
             mock_manager.get_all.return_value = [
                 _create_mock_project("/Users/dev/project-a", "project-a"),
@@ -52,22 +50,21 @@ class TestProjectsCommand:
 
     def test_list_empty_registry(self) -> None:
         """Test message when no projects are registered."""
-        with patch(
-            "adw.cli.projects.ProjectRegistryManager"
-        ) as mock_manager_class:
+        with patch("adw.cli.projects.ProjectRegistryManager") as mock_manager_class:
             mock_manager = mock_manager_class.return_value
             mock_manager.get_all.return_value = []
 
             result = runner.invoke(app, ["projects"])
 
         assert result.exit_code == 0
-        assert "no projects registered" in result.output.lower() or "empty" in result.output.lower()
+        assert (
+            "no projects registered" in result.output.lower()
+            or "empty" in result.output.lower()
+        )
 
     def test_discover_flag(self) -> None:
         """Test --discover flag shows projects from index."""
-        with patch(
-            "adw.cli.projects.ProjectRegistryManager"
-        ) as mock_manager_class:
+        with patch("adw.cli.projects.ProjectRegistryManager") as mock_manager_class:
             mock_manager = mock_manager_class.return_value
             mock_manager.discover_from_index.return_value = [
                 _create_mock_project("/Users/dev/discovered-1", "discovered-1"),
@@ -89,9 +86,7 @@ class TestProjectsCommand:
         """Test --json flag outputs JSON format."""
         import json
 
-        with patch(
-            "adw.cli.projects.ProjectRegistryManager"
-        ) as mock_manager_class:
+        with patch("adw.cli.projects.ProjectRegistryManager") as mock_manager_class:
             mock_manager = mock_manager_class.return_value
             mock_manager.get_all.return_value = [
                 _create_mock_project("/Users/dev/project-a", "project-a"),

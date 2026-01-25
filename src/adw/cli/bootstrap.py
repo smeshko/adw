@@ -271,9 +271,9 @@ def create_orchestrator(
         # Update PhaseRunner with the progress display
         phase_runner.progress_display = progress_display
 
-    # Create StatusSyncService if task manager is provided (Story 12.3, ISS-033, ISS-039)
-    # Pass task_info so methods use stored value instead of context (same pattern as LabelManager)
-    # Ensure task_manager_config has a default if not set (e.g., config has task_manager: null)
+    # Create StatusSyncService if task manager is provided (Story 12.3)
+    # Pass task_info so methods use stored value instead of context
+    # Default task_manager_config if not set (e.g., config has task_manager: null)
     status_sync_service: StatusSyncService | None = None
     if task_manager is not None:
         effective_config = task_manager_config or TaskManagerConfig()

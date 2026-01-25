@@ -47,9 +47,7 @@ def _create_test_context(
 class TestGlobalListIntegration:
     """Integration tests for adw global list command."""
 
-    def test_list_shows_entries_from_index(
-        self, temp_index: IndexManager
-    ) -> None:
+    def test_list_shows_entries_from_index(self, temp_index: IndexManager) -> None:
         """Global list should show entries from the index file."""
         # Register some test runs
         context1 = _create_test_context("01KDSG2VDHNK0W4HSCZWJZXWS1", "FeatureAlpha")
@@ -67,9 +65,7 @@ class TestGlobalListIntegration:
         assert "alpha" in result.output
         assert "beta" in result.output
 
-    def test_list_filters_by_project(
-        self, temp_index: IndexManager
-    ) -> None:
+    def test_list_filters_by_project(self, temp_index: IndexManager) -> None:
         """--project should filter to matching project name."""
         context1 = _create_test_context("01KDSG2VDHNK0W4HSCZWJZXWS1", "FeatureA")
         context2 = _create_test_context("01KDSG2VDHNK0W4HSCZWJZXWS2", "FeatureB")
@@ -84,9 +80,7 @@ class TestGlobalListIntegration:
         assert "01KDSG2VDHNK0W4HSCZWJZXWS1" in result.output
         assert "01KDSG2VDHNK0W4HSCZWJZXWS2" not in result.output
 
-    def test_list_filters_by_status(
-        self, temp_index: IndexManager
-    ) -> None:
+    def test_list_filters_by_status(self, temp_index: IndexManager) -> None:
         """--status should filter to matching status."""
         context1 = _create_test_context("01KDSG2VDHNK0W4HSCZWJZXWS1", "SuccessRun")
         context2 = _create_test_context("01KDSG2VDHNK0W4HSCZWJZXWS2", "FailedRun")
@@ -103,9 +97,7 @@ class TestGlobalListIntegration:
         assert "01KDSG2VDHNK0W4HSCZWJZXWS2" in result.output
         assert "01KDSG2VDHNK0W4HSCZWJZXWS1" not in result.output
 
-    def test_list_filters_by_since(
-        self, temp_index: IndexManager
-    ) -> None:
+    def test_list_filters_by_since(self, temp_index: IndexManager) -> None:
         """--since should filter to recent entries only."""
         old_time = datetime.now(UTC) - timedelta(days=30)
         recent_time = datetime.now(UTC) - timedelta(hours=1)
@@ -127,9 +119,7 @@ class TestGlobalListIntegration:
         assert "01KDSG2VDHNK0W4HSCZWJZXWS2" in result.output
         assert "01KDSG2VDHNK0W4HSCZWJZXWS1" not in result.output
 
-    def test_list_combined_filters(
-        self, temp_index: IndexManager
-    ) -> None:
+    def test_list_combined_filters(self, temp_index: IndexManager) -> None:
         """Multiple filters should combine with AND logic."""
         recent_time = datetime.now(UTC) - timedelta(hours=1)
 
@@ -162,7 +152,16 @@ class TestGlobalListIntegration:
         # Filter: my-api + failed + last 7 days - only context1 matches
         result = runner.invoke(
             app,
-            ["global", "list", "--project", "my-api", "--status", "failed", "--since", "7d"],
+            [
+                "global",
+                "list",
+                "--project",
+                "my-api",
+                "--status",
+                "failed",
+                "--since",
+                "7d",
+            ],
         )
 
         assert result.exit_code == 0
@@ -172,9 +171,7 @@ class TestGlobalListIntegration:
         assert "01KDSG2VDHNK0W4HSCZWJZXWS3" not in result.output
         assert "01KDSG2VDHNK0W4HSCZWJZXWS4" not in result.output
 
-    def test_list_limit_parameter(
-        self, temp_index: IndexManager
-    ) -> None:
+    def test_list_limit_parameter(self, temp_index: IndexManager) -> None:
         """--limit should restrict number of results."""
         # Create 10 entries with single-word features
         for i in range(10):
@@ -191,9 +188,7 @@ class TestGlobalListIntegration:
         run_count = result.output.count("01KDSG2VDHNK0W4HSCZWJZXW")
         assert run_count == 3
 
-    def test_list_offset_parameter(
-        self, temp_index: IndexManager
-    ) -> None:
+    def test_list_offset_parameter(self, temp_index: IndexManager) -> None:
         """--offset should skip first N results."""
         # Create 5 entries with distinct times
         for i in range(5):
@@ -215,9 +210,7 @@ class TestGlobalListIntegration:
         assert "01KDSG2VDHNK0W4HSCZWJZXW02" in result.output
         assert "01KDSG2VDHNK0W4HSCZWJZXW03" in result.output
 
-    def test_list_json_output(
-        self, temp_index: IndexManager
-    ) -> None:
+    def test_list_json_output(self, temp_index: IndexManager) -> None:
         """--json should output valid JSON array."""
         import json
 
@@ -241,7 +234,8 @@ class TestGlobalListIntegration:
         assert "phases_completed" in entry  # Consistent with adw list --json
 
     def test_list_empty_index_shows_message(
-        self, temp_index: IndexManager  # noqa: ARG002
+        self,
+        temp_index: IndexManager,  # noqa: ARG002
     ) -> None:
         """Empty index should show helpful message, not error."""
         # Index is empty (just created fixture)
@@ -251,7 +245,8 @@ class TestGlobalListIntegration:
         assert "No runs found" in result.output
 
     def test_list_empty_index_json_returns_empty_array(
-        self, temp_index: IndexManager  # noqa: ARG002
+        self,
+        temp_index: IndexManager,  # noqa: ARG002
     ) -> None:
         """Empty index with --json should return valid empty JSON array."""
         import json
@@ -283,7 +278,8 @@ class TestGlobalListIntegration:
         assert "failed" in result.output
 
     def test_invalid_status_shows_valid_options(
-        self, temp_index: IndexManager  # noqa: ARG002
+        self,
+        temp_index: IndexManager,  # noqa: ARG002
     ) -> None:
         """Invalid status value should show list of valid options."""
         result = runner.invoke(app, ["global", "list", "--status", "invalid-status"])
