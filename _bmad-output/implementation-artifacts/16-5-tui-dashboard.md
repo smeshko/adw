@@ -151,13 +151,13 @@ So that I can monitor runs visually.
 - [x] Write unit tests for command options
 
 ### Task 10: Write Integration Tests
-- [ ] Test full dashboard lifecycle: start -> interact -> quit
-- [ ] Test with real IndexManager data (using `ADW_TEST_INDEX_PATH`)
-- [ ] Test with real StatsAggregator data (using `ADW_TEST_STATS_CACHE_PATH`)
-- [ ] Test keyboard navigation simulation
-- [ ] Test empty state and error handling
-- [ ] Test refresh behavior
-- [ ] Create integration tests in `tests/integration/cli/test_dashboard_integration.py`
+- [x] Test full dashboard lifecycle: start -> interact -> quit
+- [x] Test with real IndexManager data (using `ADW_TEST_INDEX_PATH`)
+- [x] Test with real StatsAggregator data (using `ADW_TEST_STATS_CACHE_PATH`)
+- [x] Test keyboard navigation simulation
+- [x] Test empty state and error handling
+- [x] Test refresh behavior
+- [x] Create integration tests in `tests/integration/cli/test_dashboard_integration.py`
 
 ### Task 11: Update Documentation
 - [ ] Add comprehensive docstrings to all classes and methods
