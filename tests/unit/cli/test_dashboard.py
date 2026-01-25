@@ -263,6 +263,32 @@ class TestDashboardLayout:
         panel_str = str(panel.renderable) if hasattr(panel, "renderable") else str(panel)
         assert "register" in panel_str.lower() or "init" in panel_str.lower()
 
+    def test_create_run_detail(self, sample_index_entries: list[IndexEntry]) -> None:
+        """Run detail view displays all run information."""
+        console = Console()
+        layout = DashboardLayout(console)
+        run = sample_index_entries[0]  # Completed run
+
+        panel = layout.create_run_detail(run)
+
+        assert panel is not None
+        assert "RUN DETAILS" in str(panel.title).upper()
+
+    def test_create_run_detail_running(
+        self, sample_index_entries: list[IndexEntry]
+    ) -> None:
+        """Run detail view handles running runs."""
+        console = Console()
+        layout = DashboardLayout(console)
+        run = sample_index_entries[1]  # Running run
+
+        panel = layout.create_run_detail(run)
+
+        assert panel is not None
+        # Should show running indicator
+        panel_str = str(panel.renderable) if hasattr(panel, "renderable") else str(panel)
+        assert "running" in panel_str.lower() or "RUNNING" in panel_str
+
 
 class TestDashboardController:
     """Tests for DashboardController state management and data fetching."""
@@ -467,6 +493,28 @@ class TestDashboardController:
         controller.handle_key("3")
 
         assert controller.state.view_mode == "projects"
+
+    def test_handle_key_enter_shows_run_detail(
+        self, sample_index_entries: list[IndexEntry]
+    ) -> None:
+        """Enter key sets show_run_detail flag."""
+        controller = DashboardController()
+        controller.data.recent_runs = sample_index_entries
+        controller.state.selected_run_index = 0
+
+        controller.handle_key("\r")
+
+        assert controller.state.show_run_detail is True
+
+    def test_escape_from_detail_view_returns_to_main(self) -> None:
+        """Escape from detail view returns to main view."""
+        controller = DashboardController()
+        controller.state.show_run_detail = True
+
+        controller.handle_key("\x1b")
+
+        assert controller.state.show_run_detail is False
+        assert controller.state.quit_requested is False
 
     def test_render_returns_renderable(self) -> None:
         """render() returns a Rich renderable."""

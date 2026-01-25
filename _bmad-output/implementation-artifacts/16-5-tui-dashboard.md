@@ -106,14 +106,14 @@ So that I can monitor runs visually.
 - [x] Write unit tests for key handling
 
 ### Task 6: Implement Run Detail View
-- [ ] Create `_show_run_detail(run: IndexEntry)` method:
+- [x] Create `_show_run_detail(run: IndexEntry)` method:
   - Display full run information in a modal-style panel
   - Show: run_id, project, feature (full), status, phases completed
   - Show: started_at, completed_at, duration
   - Show: token usage (if available from stats)
   - Show: path to run artifacts
-- [ ] Allow returning to main view with `Esc` or `Q`
-- [ ] Write unit tests for detail view rendering
+- [x] Allow returning to main view with `Esc` or `Q`
+- [x] Write unit tests for detail view rendering
 
 ### Task 7: Implement Project Filter View
 - [ ] When a project is selected (via `/` or clicking project):
@@ -1461,6 +1461,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 3: Implemented DashboardController class with refresh_data(), handle_key(), and render() methods. Integrated IndexManager and StatsAggregator for data fetching. Added 14 unit tests for controller logic.
 - Task 4: Implemented run() method with Rich Live display, auto-refresh loop, and keyboard input handling. Added run_dashboard() entry point function. Added 8 unit tests for Live display lifecycle.
 - Task 5: Extended handle_key() with vim-style navigation (j/k), view mode switching (1/2/3), and Escape key support. Added 6 unit tests for keyboard navigation.
+- Task 6: Added create_run_detail() method to DashboardLayout for modal-style run detail view. Added show_run_detail flag to DashboardState. Updated render() to show detail view. Added 4 unit tests.
 
 ### File List
 

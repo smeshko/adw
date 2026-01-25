@@ -70,6 +70,7 @@ class DashboardState:
         paused: Whether auto-refresh is paused.
         view_mode: Current view (summary, runs, or projects).
         quit_requested: Flag to signal dashboard shutdown.
+        show_run_detail: Whether to show run detail view.
 
     Example:
         >>> state = DashboardState()
@@ -84,6 +85,7 @@ class DashboardState:
     paused: bool = False
     view_mode: Literal["summary", "runs", "projects"] = "summary"
     quit_requested: bool = False
+    show_run_detail: bool = False
 
 
 @dataclass
@@ -497,6 +499,109 @@ class DashboardLayout:
             border_style="yellow",
         )
 
+    def create_run_detail(self, run: IndexEntry) -> Panel:
+        """Create run detail view.
+
+        Args:
+            run: The IndexEntry to display details for.
+
+        Returns:
+            Rich Panel with run details.
+        """
+        content = Text()
+        content.append("\n")
+
+        # Run ID
+        content.append("  RUN ID       ", style="bold")
+        content.append(run.run_id, style="cyan")
+        content.append("\n\n")
+
+        # Project
+        content.append("  PROJECT      ", style="bold")
+        content.append(run.project_name, style="green")
+        content.append("\n")
+        content.append("  PATH         ", style="bold dim")
+        content.append(run.project_path, style="dim")
+        content.append("\n\n")
+
+        # Feature
+        content.append("  FEATURE      ", style="bold")
+        content.append("\n")
+        content.append(f"    {run.feature_description}\n", style="white")
+        content.append("\n")
+
+        # Status
+        indicator, color = STATUS_INDICATORS.get(run.status, ("?", "white"))
+        content.append("  STATUS       ", style="bold")
+        content.append(f"{indicator} ", style=color)
+        content.append(run.status.upper(), style=f"bold {color}")
+        content.append("\n\n")
+
+        # Timing
+        content.append("  STARTED      ", style="bold")
+        content.append(run.started_at.strftime("%Y-%m-%d %H:%M:%S UTC"), style="dim")
+        content.append("\n")
+
+        if run.completed_at:
+            content.append("  COMPLETED    ", style="bold")
+            content.append(
+                run.completed_at.strftime("%Y-%m-%d %H:%M:%S UTC"), style="dim"
+            )
+            content.append("\n")
+
+            # Duration
+            delta = run.completed_at - run.started_at
+            total_sec = int(delta.total_seconds())
+            minutes = total_sec // 60
+            seconds = total_sec % 60
+            content.append("  DURATION     ", style="bold")
+            content.append(f"{minutes}m {seconds}s", style="cyan")
+            content.append("\n")
+        else:
+            # Running duration
+            delta = datetime.now(UTC) - run.started_at
+            total_sec = int(delta.total_seconds())
+            minutes = total_sec // 60
+            seconds = total_sec % 60
+            content.append("  ELAPSED      ", style="bold")
+            content.append(f"{minutes}m {seconds}s", style="yellow")
+            content.append(" (running)\n")
+
+        content.append("\n")
+
+        # Phases
+        content.append("  PHASES       ", style="bold")
+        if run.phases_completed:
+            content.append(" → ".join(run.phases_completed), style="green")
+        else:
+            content.append("(none)", style="dim")
+        content.append("\n")
+
+        if run.phase_reached:
+            content.append("  LAST PHASE   ", style="bold dim")
+            content.append(run.phase_reached, style="dim")
+            content.append("\n")
+
+        content.append("\n")
+
+        # Artifacts path
+        artifacts_path = f"{run.project_path}/.adw/runs/{run.run_id}"
+        content.append("  ARTIFACTS    ", style="bold dim")
+        content.append(artifacts_path, style="dim")
+        content.append("\n\n")
+
+        # Footer hint
+        content.append(
+            "  Press [Q] or [Esc] to return to dashboard", style="dim italic"
+        )
+        content.append("\n")
+
+        return Panel(
+            content,
+            title="RUN DETAILS",
+            border_style="cyan",
+        )
+
 
 class DashboardController:
     """Controls dashboard state and rendering.
@@ -603,8 +708,21 @@ class DashboardController:
         """
         key_lower = key.lower()
 
+        # Handle escape key - either exit detail view or quit
+        if key == "\x1b":  # Escape key
+            if self.state.show_run_detail:
+                self.state.show_run_detail = False
+            else:
+                self.state.quit_requested = True
+            return
+
+        # Handle 'q' in detail view - close detail view
+        if key_lower == "q" and self.state.show_run_detail:
+            self.state.show_run_detail = False
+            return
+
         # Quit commands
-        if key_lower == "q" or key == "\x1b":  # Escape key
+        if key_lower == "q":
             self.state.quit_requested = True
 
         # Pause/resume auto-refresh
@@ -626,10 +744,10 @@ class DashboardController:
             if max_index >= 0 and self.state.selected_run_index < max_index:
                 self.state.selected_run_index += 1
 
-        # Enter: View run details (placeholder for Task 6)
+        # Enter: View run details
         elif key == "\r" or key == "\n":
-            # Will be implemented in Task 6
-            pass
+            if self.data.recent_runs:
+                self.state.show_run_detail = True
 
         # View mode switching
         elif key == "1":
@@ -646,6 +764,11 @@ class DashboardController:
             Rich Panel containing the dashboard display.
         """
         from rich.layout import Layout
+
+        # Handle run detail view
+        if self.state.show_run_detail and self.data.recent_runs:
+            selected_run = self.data.recent_runs[self.state.selected_run_index]
+            return self.layout.create_run_detail(selected_run)
 
         # Create main layout
         main_layout = Layout()
