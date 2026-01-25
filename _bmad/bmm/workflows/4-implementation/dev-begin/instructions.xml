@@ -429,9 +429,12 @@ Branch: story/{{target_story_id}}
     </output>
 
     <!-- Update sprint status to in-progress if it was ready-for-dev -->
+    <!-- CRITICAL: This happens IN THE WORKTREE to avoid uncommitted changes on staging -->
     <check if="{{story_status}} == 'ready-for-dev'">
-      <action>Update {{sprint_status}}: set {{target_story_id}} status to "in-progress"</action>
-      <output>Sprint status updated: ready-for-dev -> in-progress</output>
+      <action>Update sprint-status.yaml in current worktree: set {{target_story_id}} status to "in-progress"</action>
+      <action>Run: git add sprint-status.yaml (or the relative path to it)</action>
+      <action>Run: git commit -m "chore: start story {{target_story_id}}"</action>
+      <output>Sprint status updated and committed in worktree: ready-for-dev -> in-progress</output>
     </check>
 
     <!-- Invoke dev-story -->
