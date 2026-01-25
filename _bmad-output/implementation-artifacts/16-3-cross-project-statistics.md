@@ -92,14 +92,14 @@ so that I can understand my overall ADW usage patterns.
 - [x] Write unit tests for cache behavior
 
 ### Task 6: Implement `adw global stats` Command
-- [ ] Add `stats` command to `src/adw/cli/global_commands.py`
-- [ ] Accept options:
+- [x] Add `stats` command to `src/adw/cli/global_commands.py`
+- [x] Accept options:
   - `--project, -p NAME` - Filter to specific project
   - `--format FORMAT` - Output format: `table` (default) or `json`
   - `--force` - Ignore cache, recalculate stats
   - `--since DURATION` - Only include runs from this period (e.g., 7d, 30d)
-- [ ] Display Rich formatted output with panels
-- [ ] Write unit tests in `tests/unit/cli/test_global_commands.py`
+- [x] Display Rich formatted output with panels
+- [x] Write unit tests in `tests/unit/cli/test_global_commands.py`
 
 ### Task 7: Create StatsDisplay Helper Class
 - [ ] Create display helper in `src/adw/cli/global_commands.py`:
@@ -917,6 +917,7 @@ claude-opus-4-5-20251101
 - Task 3: Added get_global_stats, get_token_usage methods. Added env var support for ADW_TEST_STATS_CACHE_PATH. Added 11 more unit tests (27 total).
 - Task 4: LLM response file parsing already implemented in Task 2. Tests verify all requirements: parsing, summing, graceful degradation.
 - Task 5: Statistics cache implemented with _load_cache and _save_cache methods. Added 7 cache tests covering creation, structure, TTL expiry, index change, filter mismatch, and force refresh.
+- Task 6: Implemented `adw global stats` command with --project, --format, --force, and --since options. Added 16 CLI tests.
 
 ### File List
 
@@ -925,6 +926,8 @@ claude-opus-4-5-20251101
 - src/adw/core/stats_aggregator.py (NEW)
 - tests/unit/models/test_stats.py (NEW)
 - tests/unit/core/test_stats_aggregator.py (NEW)
+- tests/unit/cli/test_global_stats.py (NEW)
+- src/adw/cli/global_commands.py (MODIFIED)
 
 ---
 

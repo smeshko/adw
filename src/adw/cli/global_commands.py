@@ -10,10 +10,14 @@ from datetime import UTC, datetime, timedelta
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 from adw.core.index_manager import IndexManager
+from adw.core.stats_aggregator import StatsAggregator
 from adw.models.index import IndexEntry
+from adw.models.stats import GlobalStatistics
 
 console = Console()
 
@@ -374,3 +378,270 @@ def _build_table_title(
         return f"Global Runs ({filter_str}) - {count} results"
     else:
         return f"Global Runs ({count} most recent)"
+
+
+# ============================================================================
+# Statistics Command and Helpers
+# ============================================================================
+
+
+def _format_tokens(count: int) -> str:
+    """Format token count for display.
+
+    Args:
+        count: Number of tokens.
+
+    Returns:
+        Formatted string like "1.2M", "450K", or "999".
+
+    Examples:
+        >>> _format_tokens(1234)
+        '1.2K'
+        >>> _format_tokens(1234567)
+        '1.2M'
+    """
+    if count >= 1_000_000:
+        return f"{count / 1_000_000:.1f}M"
+    elif count >= 1_000:
+        return f"{count / 1_000:.1f}K"
+    else:
+        return str(count)
+
+
+def _format_cost(amount: float) -> str:
+    """Format cost for display.
+
+    Args:
+        amount: Cost in USD.
+
+    Returns:
+        Formatted string like "$47.82" or "$1,234.56".
+
+    Examples:
+        >>> _format_cost(47.82)
+        '$47.82'
+        >>> _format_cost(1234.56)
+        '$1,234.56'
+    """
+    if amount >= 1000:
+        return f"${amount:,.2f}"
+    return f"${amount:.2f}"
+
+
+def _format_duration_ms(ms: int) -> str:
+    """Format duration in milliseconds for display.
+
+    Args:
+        ms: Duration in milliseconds.
+
+    Returns:
+        Formatted string like "45s", "2m 5s", or "1h 2m".
+    """
+    total_seconds = ms // 1000
+
+    if total_seconds < 60:
+        return f"{total_seconds}s"
+    elif total_seconds < 3600:
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+        return f"{minutes}m {seconds}s"
+    else:
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        return f"{hours}h {minutes}m"
+
+
+def _format_rate(rate: float) -> str:
+    """Format rate as percentage.
+
+    Args:
+        rate: Rate as decimal (0.0-1.0).
+
+    Returns:
+        Formatted string like "94.3%".
+    """
+    return f"{rate * 100:.1f}%"
+
+
+def _show_global_stats(stats: GlobalStatistics) -> None:
+    """Display global statistics with Rich panels and tables.
+
+    Args:
+        stats: GlobalStatistics to display.
+    """
+    # Handle empty stats
+    if stats.total_runs == 0:
+        console.print(
+            Panel(
+                "[dim]No statistics available\n\n"
+                "No runs found in the global index.\n\n"
+                "Get started:\n"
+                "  1. Run 'adw init' in a project directory\n"
+                "  2. Run 'adw run \"your feature\"' to create runs\n"
+                "  3. Run 'adw global stats' to see statistics[/]",
+                title="[bold]ADW Global Statistics[/]",
+                border_style="dim",
+            )
+        )
+        return
+
+    # Build summary text
+    summary_lines = [
+        f"[bold cyan]TOTAL RUNS[/]      {stats.total_runs:,}",
+        f"[bold blue]THIS WEEK[/]       {stats.runs_this_week:,}",
+        f"[bold green]TODAY[/]           {stats.runs_today:,}",
+        f"[bold yellow]SUCCESS RATE[/]    {_format_rate(stats.success_rate)}",
+        "",
+        f"[dim]AVG DURATION[/]    {_format_duration_ms(stats.average_duration_ms)}",
+        f"[dim]TOTAL TOKENS[/]    {_format_tokens(stats.tokens.total_tokens)}",
+        f"[dim]EST. COST[/]       {_format_cost(stats.estimated_cost)}",
+    ]
+
+    summary_text = "\n".join(summary_lines)
+
+    # Show summary panel
+    console.print(
+        Panel(
+            summary_text,
+            title="[bold]ADW Global Statistics[/]",
+            border_style="cyan",
+        )
+    )
+
+    # Show per-project breakdown if there are projects
+    if stats.projects:
+        table = Table(title="Per-Project Breakdown")
+        table.add_column("Project", style="green")
+        table.add_column("Path", style="dim", max_width=35)
+        table.add_column("Runs", justify="right")
+        table.add_column("Success", justify="right")
+        table.add_column("Tokens", justify="right")
+        table.add_column("Cost", justify="right")
+
+        for proj in stats.projects:
+            # Truncate path if too long
+            path = proj.path
+            if len(path) > 35:
+                path = "..." + path[-32:]
+
+            table.add_row(
+                proj.name,
+                path,
+                f"{proj.total_runs:,}",
+                _format_rate(proj.success_rate),
+                _format_tokens(proj.tokens.total_tokens),
+                _format_cost(proj.estimated_cost),
+            )
+
+        console.print(table)
+
+    # Show cache info
+    cache_age = (datetime.now(UTC) - stats.generated_at).total_seconds()
+    if cache_age < 60:
+        cache_info = "just now"
+    elif cache_age < 3600:
+        cache_info = f"{int(cache_age // 60)} minutes ago"
+    else:
+        cache_info = f"{int(cache_age // 3600)} hours ago"
+
+    console.print(f"\n[dim]Generated: {cache_info}[/]")
+
+
+def _output_stats_json(stats: GlobalStatistics) -> None:
+    """Output statistics as JSON.
+
+    Args:
+        stats: GlobalStatistics to output.
+    """
+    output = {
+        "generated_at": stats.generated_at.isoformat(),
+        "total_runs": stats.total_runs,
+        "runs_this_week": stats.runs_this_week,
+        "runs_today": stats.runs_today,
+        "success_rate": stats.success_rate,
+        "average_duration_ms": stats.average_duration_ms,
+        "total_tokens": {
+            "input": stats.tokens.input_tokens,
+            "output": stats.tokens.output_tokens,
+            "total": stats.tokens.total_tokens,
+        },
+        "estimated_cost": stats.estimated_cost,
+        "projects": [
+            {
+                "name": proj.name,
+                "path": proj.path,
+                "runs": proj.total_runs,
+                "success_rate": proj.success_rate,
+                "tokens": {
+                    "input": proj.tokens.input_tokens,
+                    "output": proj.tokens.output_tokens,
+                    "total": proj.tokens.total_tokens,
+                },
+                "cost": proj.estimated_cost,
+            }
+            for proj in stats.projects
+        ],
+    }
+
+    console.print_json(json.dumps(output))
+
+
+@global_app.command(name="stats")
+def stats_command(
+    project: str | None = typer.Option(
+        None,
+        "--project",
+        "-p",
+        help="Filter to specific project name",
+    ),
+    format_output: str = typer.Option(
+        "table",
+        "--format",
+        "-f",
+        help="Output format: table or json",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Ignore cache, recalculate statistics",
+    ),
+    since: str | None = typer.Option(
+        None,
+        "--since",
+        help="Only include runs from this period (e.g., 7d, 30d)",
+    ),
+) -> None:
+    """Show aggregate statistics across all projects.
+
+    Displays run counts, success rates, token usage, and estimated costs
+    for all registered ADW projects.
+
+    Examples:
+        adw global stats                    # Show all statistics
+        adw global stats --project my-api   # Stats for one project
+        adw global stats --format json      # JSON output
+        adw global stats --since 30d        # Last 30 days only
+        adw global stats --force            # Ignore cache
+    """
+    # Parse --since if provided
+    since_threshold: datetime | None = None
+    if since:
+        try:
+            since_threshold = parse_duration(since)
+        except ValueError as e:
+            console.print(f"[red]Error:[/] {e}")
+            raise typer.Exit(code=1) from None
+
+    # Get statistics
+    aggregator = StatsAggregator()
+    stats = aggregator.get_global_stats(
+        project_name=project,
+        since=since_threshold,
+        force_refresh=force,
+    )
+
+    # Output based on format
+    if format_output == "json":
+        _output_stats_json(stats)
+    else:
+        _show_global_stats(stats)
