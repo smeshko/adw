@@ -12,7 +12,6 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 
 from adw.core.index_manager import IndexManager
 from adw.core.stats_aggregator import StatsAggregator
@@ -586,6 +585,10 @@ def _output_stats_json(stats: GlobalStatistics) -> None:
     console.print_json(json.dumps(output))
 
 
+# Valid output format values for stats command
+VALID_FORMATS = frozenset({"table", "json"})
+
+
 @global_app.command(name="stats")
 def stats_command(
     project: str | None = typer.Option(
@@ -623,6 +626,12 @@ def stats_command(
         adw global stats --since 30d        # Last 30 days only
         adw global stats --force            # Ignore cache
     """
+    # Validate --format
+    if format_output not in VALID_FORMATS:
+        console.print(f"[red]Error:[/] Invalid format: {format_output}")
+        console.print(f"Valid values: {', '.join(sorted(VALID_FORMATS))}")
+        raise typer.Exit(code=1)
+
     # Parse --since if provided
     since_threshold: datetime | None = None
     if since:

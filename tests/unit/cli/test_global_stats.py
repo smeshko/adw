@@ -4,8 +4,7 @@ Tests for the stats command in global_commands.py.
 """
 
 import json
-from datetime import datetime, UTC
-from pathlib import Path
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -13,7 +12,6 @@ from typer.testing import CliRunner
 
 from adw.cli.global_commands import global_app
 from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
-
 
 runner = CliRunner()
 
@@ -140,6 +138,14 @@ class TestStatsCommand:
 
         assert result.exit_code == 1
         assert "invalid" in result.stdout.lower() or "error" in result.stdout.lower()
+
+    def test_stats_invalid_format_value(self) -> None:
+        """stats command rejects invalid --format values."""
+        result = runner.invoke(global_app, ["stats", "--format", "xml"])
+
+        assert result.exit_code == 1
+        assert "invalid" in result.stdout.lower() or "error" in result.stdout.lower()
+        assert "xml" in result.stdout.lower()
 
     def test_stats_json_format(self, mock_stats: GlobalStatistics) -> None:
         """stats --format json outputs JSON."""
