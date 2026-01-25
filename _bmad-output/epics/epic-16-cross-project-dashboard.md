@@ -40,11 +40,14 @@ class IndexEntry(BaseModel):
 
 ### What's Missing (Epic 16 Scope)
 1. **CLI commands** to query the global index (`adw global list`, etc.)
-2. **Project registry** for explicit project management
+2. **Project registry** for explicit project management (+ init wizard integration)
 3. **Statistics and analytics** commands
 4. **TUI dashboard** for visual monitoring
-5. **Export capabilities** for external analysis
-6. **RunContext enhancements** for tags and user tracking
+
+**Dropped from scope (2026-01-25):**
+- ~~Export capabilities~~ - Not needed
+- ~~RunContext enhancements (tags/username)~~ - Not needed
+- ~~Index performance optimization~~ - Not needed
 
 ---
 
@@ -80,6 +83,24 @@ So that I can control which projects appear in cross-project views.
 **When** executed
 **Then** unique projects from `~/.adw/index.jsonl` are listed (auto-discovery)
 
+### Init Wizard Integration
+
+**Given** user runs `adw init` wizard
+**When** the GLOBAL_REGISTRY step is reached (after BASICS step)
+**Then** user is prompted: "Register this project in ADW global dashboard? (Y/n)"
+
+**Given** user confirms registration in wizard
+**When** wizard completes
+**Then** project is automatically added to `~/.adw/projects.yaml`
+
+**Given** user declines registration in wizard
+**When** wizard completes
+**Then** project is NOT added to registry (can be added later via `adw register`)
+
+**Given** user confirms registration
+**When** prompted for custom name
+**Then** user can optionally provide a display name (default: directory name from BASICS step)
+
 **Technical Notes:**
 - Registry file: `~/.adw/projects.yaml`
 - Schema: `{projects: [{path, name, registered_at}]}`
@@ -89,6 +110,8 @@ So that I can control which projects appear in cross-project views.
 **Implementation:**
 - New file: `src/adw/core/project_registry.py`
 - CLI: Add commands to `src/adw/cli/app.py`
+- New wizard step: `src/adw/cli/wizard/global_registry.py`
+- Update `WizardStep` enum in `src/adw/cli/wizard/flow.py` to add `GLOBAL_REGISTRY` after `BASICS`
 
 ---
 
@@ -182,11 +205,13 @@ So that I can understand my overall ADW usage patterns.
 
 ---
 
-## Story 16.4: Index Performance Optimization (Optional)
+## ~~Story 16.4: Index Performance Optimization~~ [DROPPED]
 
-As a power user with thousands of runs,
+> **Status:** DROPPED (2026-01-25) - Performance optimization not needed for current scope.
+
+~~As a power user with thousands of runs,
 I want queries to remain fast,
-So that cross-project commands don't slow down my workflow.
+So that cross-project commands don't slow down my workflow.~~
 
 **Acceptance Criteria:**
 
@@ -262,13 +287,139 @@ So that I can monitor runs visually.
 - New: `src/adw/cli/dashboard.py`
 - Dependency: `rich` (already in project)
 
+### Visual Design Reference (ASCII Mockups)
+
+#### Main Dashboard View
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                              ADW GLOBAL DASHBOARD                                    [Q]uit    ┃
+┃                              ════════════════════                                    [R]efresh ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SUMMARY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                                ┃
+┃   ╭─────────────────╮  ╭─────────────────╮  ╭─────────────────╮  ╭─────────────────╮           ┃
+┃   │   TOTAL RUNS    │  │   THIS WEEK     │  │     TODAY       │  │  SUCCESS RATE   │           ┃
+┃   │                 │  │                 │  │                 │  │                 │           ┃
+┃   │      1,247      │  │       89        │  │       12        │  │     94.3%       │           ┃
+┃   │                 │  │                 │  │                 │  │   ████████░░    │           ┃
+┃   ╰─────────────────╯  ╰─────────────────╯  ╰─────────────────╯  ╰─────────────────╯           ┃
+┃                                                                                                ┃
+┃   AVG DURATION: 4m 23s    │    TOTAL TOKENS: 2.4M    │    EST. COST: $47.82                    ┃
+┃                                                                                                ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ RECENT RUNS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                                ┃
+┃  RUN ID      PROJECT          FEATURE                      STATUS       DURATION    STARTED   ┃
+┃  ─────────────────────────────────────────────────────────────────────────────────────────────  ┃
+┃  a7f3c2e1    adw-final        Add user authentication...   ● RUNNING       2m 14s   just now  ┃
+┃  b8e4d3f2    myapp-backend    Fix database connection...   ✓ COMPLETED     5m 32s   5 min ago ┃
+┃  c9f5e4a3    adw-final        Implement caching layer...   ✓ COMPLETED     3m 18s   12 min ago┃
+┃  d0a6f5b4    frontend-ui      Update navigation compo...   ✗ FAILED        1m 45s   18 min ago┃
+┃  e1b7a6c5    myapp-backend    Add rate limiting middl...   ✓ COMPLETED     4m 52s   25 min ago┃
+┃  f2c8b7d6    adw-final        Refactor error handling...   ⊘ INTERRUPTED   6m 03s   32 min ago┃
+┃                                                                                                ┃
+┃                          [↑/↓] Navigate   [Enter] View Details   [Page↓] More                  ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━ PER-PROJECT BREAKDOWN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                                ┃
+┃  PROJECT            PATH                              RUNS    SUCCESS    TOKENS     COST       ┃
+┃  ─────────────────────────────────────────────────────────────────────────────────────────────  ┃
+┃  adw-final          ~/Developer/Projects/adw/adw...    423      96.2%     892K    $18.24       ┃
+┃  myapp-backend      ~/Developer/Projects/myapp-b...    512      93.8%     1.1M    $21.45       ┃
+┃  frontend-ui        ~/Developer/Projects/frontend...   312      91.7%     412K     $8.13       ┃
+┃                                                                                                ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+  Last refreshed: 2s ago                                                   Auto-refresh: 30s [P]ause
+```
+
+#### Filtered by Project View
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━ PROJECT: adw-final ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                                ┃
+┃   Path: /Users/dev/Projects/adw/adw-final                                       [Esc] Clear   ┃
+┃                                                                                                ┃
+┃   ╭──────────────╮  ╭──────────────╮  ╭──────────────╮  ╭──────────────╮  ╭──────────────╮     ┃
+┃   │    RUNS      │  │  THIS WEEK   │  │    TODAY     │  │   SUCCESS    │  │  AVG DURATION│     ┃
+┃   │     423      │  │      34      │  │      5       │  │    96.2%     │  │    3m 47s    │     ┃
+┃   ╰──────────────╯  ╰──────────────╯  ╰──────────────╯  ╰──────────────╯  ╰──────────────╯     ┃
+┃                                                                                                ┃
+┃   TOKENS: 892,341 (input: 743,892 / output: 148,449)         EST. COST: $18.24                 ┃
+┃                                                                                                ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ STATUS BREAKDOWN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                                ┃
+┃   ✓ COMPLETED     407  ████████████████████████████████████████████████░░░░░░   96.2%          ┃
+┃   ✗ FAILED          9  ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    2.1%          ┃
+┃   ⊘ INTERRUPTED     6  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    1.4%          ┃
+┃   ⦻ ABORTED         1  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    0.2%          ┃
+┃                                                                                                ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+```
+
+#### Empty State
+```
+                         ╭────────────────────────────────────────────────╮
+                         │                                                │
+                         │            No Projects Registered              │
+                         │                                                │
+                         │   ┌────────────────────────────────────────┐   │
+                         │   │                                        │   │
+                         │   │     Run `adw init` in any project      │   │
+                         │   │     directory to register it and       │   │
+                         │   │     start tracking runs globally.      │   │
+                         │   │                                        │   │
+                         │   │     Or use: adw register               │   │
+                         │   │                                        │   │
+                         │   └────────────────────────────────────────┘   │
+                         │                                                │
+                         ╰────────────────────────────────────────────────╯
+```
+
+#### Active Runs State
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━ ACTIVE RUNS (2) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                                                                                                ┃
+┃  ● a7f3c2e1 │ adw-final      │ Add user authentication flow...      │ ◐  2m 14s │ 12.4K tok   ┃
+┃  ● x2y9z8w7 │ myapp-backend  │ Implement webhook endpoint for...    │ ◑  0m 47s │  3.1K tok   ┃
+┃                                                                                                ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+```
+
+#### Keyboard Shortcuts
+```
+  NAVIGATION                      ACTIONS                         VIEWS
+  ──────────────────────────────────────────────────────────────────────────
+  ↑/k      Move up                Enter    View run details       1    Summary
+  ↓/j      Move down              R        Refresh now            2    Runs list
+  PgUp     Page up                P        Pause/resume refresh   3    Projects
+  PgDn     Page down              /        Filter by project
+  Home     Go to top              Esc      Clear filter
+  End      Go to bottom           Q        Quit dashboard
+```
+
+#### Status Indicators
+```
+  ● RUNNING      Active ADW session in progress (yellow, animated spinner)
+  ✓ COMPLETED    Successfully finished (green)
+  ✗ FAILED       Terminated with error (red)
+  ⊘ INTERRUPTED  User cancelled mid-run (orange)
+  ⦻ ABORTED      System/crash termination (dim red)
+```
+
 ---
 
-## Story 16.6: Run Context Enhancements
+## ~~Story 16.6: Run Context Enhancements~~ [DROPPED]
 
-As a developer,
+> **Status:** DROPPED (2026-01-25) - Tags and username tracking not needed.
+
+~~As a developer,
 I want additional metadata captured per run,
-So that cross-project analytics are more useful.
+So that cross-project analytics are more useful.~~
 
 **Acceptance Criteria:**
 
@@ -320,11 +471,13 @@ initiated_by: str | None = None
 
 ---
 
-## Story 16.7: Export and Reporting
+## ~~Story 16.7: Export and Reporting~~ [DROPPED]
 
-As a user,
+> **Status:** DROPPED (2026-01-25) - Export functionality not needed.
+
+~~As a user,
 I want to export run data for external analysis,
-So that I can create custom reports or integrate with other tools.
+So that I can create custom reports or integrate with other tools.~~
 
 **Acceptance Criteria:**
 
@@ -362,13 +515,14 @@ So that I can create custom reports or integrate with other tools.
 
 ## Implementation Notes
 
-### Phased Rollout
+### Phased Rollout (Revised 2026-01-25)
 
-1. **Phase A (Foundation):** Stories 16.2, 16.6 - Global list command + context enhancements
-2. **Phase B (Analytics):** Stories 16.3, 16.7 - Statistics and export
-3. **Phase C (Management):** Story 16.1 - Project registry (optional but nice)
+1. **Phase A (Foundation):** Story 16.1 - Project registry + init wizard integration
+2. **Phase B (Core):** Story 16.2 - Global run list command
+3. **Phase C (Analytics):** Story 16.3 - Cross-project statistics
 4. **Phase D (Polish):** Story 16.5 - TUI dashboard
-5. **Phase E (Scale):** Story 16.4 - Index optimization (only if needed)
+
+**Dropped:** ~~16.4 (Index Optimization)~~, ~~16.6 (Tags/Username)~~, ~~16.7 (Export)~~
 
 ### File Locations
 
@@ -382,21 +536,24 @@ So that I can create custom reports or integrate with other tools.
 └── stats-cache.json     # Cached statistics (NEW - Story 16.3)
 ```
 
-### CLI Command Structure
+### CLI Command Structure (Revised 2026-01-25)
 
 ```
+# Global commands
 adw global list [--project NAME] [--status STATUS] [--since DURATION] [--limit N]
 adw global stats [--project NAME] [--format json]
 adw global dashboard [--refresh SECONDS]
-adw global export [--format csv|json] [--since DURATION] [--project NAME] [-o FILE]
-adw global report weekly|monthly
-adw global index info
-adw global index rebuild
 
+# Project registration
 adw register [--name NAME]
 adw unregister
 adw projects [--discover]
+
+# Init wizard (updated)
+adw init  # Now includes GLOBAL_REGISTRY step after BASICS
 ```
+
+**Removed:** ~~adw global export~~, ~~adw global report~~, ~~adw global index info/rebuild~~
 
 ### No Breaking Changes
 
@@ -412,12 +569,87 @@ This epic is purely additive:
 |-----------|----------|-------|
 | IndexManager | `src/adw/core/index_manager.py` | All global queries |
 | IndexEntry | `src/adw/models/index.py` | Run metadata model |
-| RunContext | `src/adw/models/context.py` | Context enhancements |
+| WizardFlowController | `src/adw/cli/wizard/flow.py` | Init wizard integration (16.1) |
 | CLI app | `src/adw/cli/app.py` | Command registration |
+
+---
+
+## Epic 16: Dependency Flowchart (Revised 2026-01-25)
+
+```
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 1: Start Immediately                                                    ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [16.1] Project Registry                                                      ║
+║  - Project management CLI (adw register, adw projects)                        ║
+║  - ~/.adw/projects.yaml                                                       ║
+║  - Init wizard GLOBAL_REGISTRY step                                           ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+                                    │
+                                    ▼
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 2: After 16.1                                                           ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [16.2] Global Run List                                                       ║
+║  - adw global list command                                                    ║
+║  - Creates global_app CLI group                                               ║
+║  - Foundation for all other global commands                                   ║
+║  - Filters: --project, --status, --since (NO --tag filter)                    ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+                                    │
+                                    ▼
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 3: After 16.2                                                           ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [16.3] Cross-Project Statistics                                              ║
+║  - adw global stats command                                                   ║
+║  - Token/cost aggregation from LLM response files                             ║
+║  - Success rate, average duration                                             ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+                                    │
+                                    ▼
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  WAVE 4: After 16.1, 16.2, 16.3                                               ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  [16.5] TUI Dashboard                                                         ║
+║  - Rich-based terminal dashboard                                              ║
+║  - Combines: project list, run list, statistics                               ║
+║  - Live refresh with keyboard navigation                                      ║
+║  - See ASCII mockups in Story 16.5 section                                    ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+DROPPED STORIES (strikethrough in document):
+  ╳ [16.4] Index Performance Optimization - Not needed
+  ╳ [16.6] Run Context Enhancements (tags/username) - Not needed
+  ╳ [16.7] Export and Reporting - Not needed
+```
+
+**Execution Summary (4 stories):**
+- **Wave 1:** 16.1 - Project registry + init wizard integration
+- **Wave 2:** 16.2 - Global run list (core infrastructure)
+- **Wave 3:** 16.3 - Statistics
+- **Wave 4:** 16.5 - TUI dashboard (requires 16.1 + 16.2 + 16.3)
+
+**Critical Path:** 16.1 → 16.2 → 16.3 → 16.5
 
 ---
 
 ## Revision History
 
+- **2026-01-25 (Scope Revision):**
+  - DROPPED stories 16.4 (Index Performance), 16.6 (Tags/Username), 16.7 (Export/Reporting)
+  - ADDED init wizard integration to 16.1 (GLOBAL_REGISTRY step after BASICS)
+  - ADDED ASCII mockups for TUI dashboard (Story 16.5)
+  - Updated dependency flowchart to reflect 4-story scope
+  - Removed `--tag` filter from 16.2 (no longer applicable without 16.6)
+- **2026-01-25:** Added dependency flowchart and created all story files via create-epic workflow.
 - **2026-01-19:** Major revision to acknowledge existing IndexManager infrastructure. Fixed paths from `~/.config/adw/` to `~/.adw/`. Rewrote Story 16.4 (index already exists as JSONL). Clarified Story 16.6 (project_name already in IndexEntry). Updated technical notes throughout.
 - **Original:** Initial epic creation (pre-IndexManager implementation)

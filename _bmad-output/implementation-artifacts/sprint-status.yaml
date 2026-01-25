@@ -362,14 +362,14 @@ development_status:
   # EPIC 16: Cross-Project Dashboard (Post-MVP) [was Epic 15]
   # Goal: Enable users to view and analyze runs across all ADW-enabled projects
   # ═══════════════════════════════════════════════════════════════════════════
-  epic-16: backlog
-  16-1-project-registry: backlog
-  16-2-global-run-list: backlog
-  16-3-cross-project-statistics: backlog
-  16-4-central-run-index: backlog
-  16-5-tui-dashboard: backlog
-  16-6-run-context-enhancements: backlog
-  16-7-export-and-reporting: backlog
+  epic-16: in-progress
+  16-1-project-registry: ready-for-dev
+  16-2-global-run-list: ready-for-dev
+  16-3-cross-project-statistics: ready-for-dev
+  # 16-4-index-performance-optimization: DROPPED (2026-01-25) - Not needed
+  16-5-tui-dashboard: ready-for-dev
+  # 16-6-run-context-enhancements: DROPPED (2026-01-25) - Tags/username not needed
+  # 16-7-export-and-reporting: DROPPED (2026-01-25) - Export not needed
   epic-16-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
