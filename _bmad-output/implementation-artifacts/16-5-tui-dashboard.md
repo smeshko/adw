@@ -56,20 +56,20 @@ So that I can monitor runs visually.
 - [x] Write unit tests in `tests/unit/cli/test_dashboard.py`
 
 ### Task 2: Create Dashboard Layout Components
-- [ ] Create `DashboardLayout` class with Rich `Layout` and `Panel` components:
+- [x] Create `DashboardLayout` class with Rich `Layout` and `Panel` components:
   - `_create_header()` - Title bar with [Q]uit, [R]efresh hints
   - `_create_summary_panel()` - Stats cards (total runs, week, today, success rate)
   - `_create_active_runs_panel()` - Active runs section (if any)
   - `_create_recent_runs_table()` - Recent runs with status indicators
   - `_create_projects_panel()` - Per-project breakdown table
   - `_create_footer()` - Refresh status, keyboard hints
-- [ ] Implement status indicators:
+- [x] Implement status indicators:
   - `● RUNNING` - yellow with spinner animation
   - `✓ COMPLETED` - green
   - `✗ FAILED` - red
   - `⊘ INTERRUPTED` - orange/yellow
   - `⦻ ABORTED` - dim red/magenta
-- [ ] Write unit tests for layout generation
+- [x] Write unit tests for layout generation
 
 ### Task 3: Create Dashboard Controller Class
 - [ ] Create `DashboardController` class in `src/adw/cli/dashboard.py`:
@@ -1457,11 +1457,12 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Completion Notes List
 
 - Task 1: Created DashboardState and DashboardData dataclass models in src/adw/cli/dashboard.py with proper type annotations and documentation. Added 7 unit tests covering default values, mutability, and state management.
+- Task 2: Implemented full DashboardLayout class with 8 methods for Rich renderable generation (header, summary, active runs, recent runs table, projects panel, footer, empty state). Added STATUS_INDICATORS dictionary. Added 13 new unit tests for layout components.
 
 ### File List
 
-- src/adw/cli/dashboard.py (new)
-- tests/unit/cli/test_dashboard.py (new)
+- src/adw/cli/dashboard.py (modified)
+- tests/unit/cli/test_dashboard.py (modified)
 
 ---
 
