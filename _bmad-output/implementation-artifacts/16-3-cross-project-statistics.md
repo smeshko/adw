@@ -1,6 +1,6 @@
 # Story 16.3: Cross-Project Statistics
 
-Status: ready
+Status: done
 Linear Issue: not-configured
 Epic: 16 - Cross-Project Dashboard
 Created: 2026-01-25
