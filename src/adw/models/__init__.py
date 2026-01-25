@@ -19,6 +19,7 @@ This package contains all Pydantic models used throughout ADW:
 - webhook: WebhookConfig, ProviderConfig
 - wizard: WizardState
 - registry: RegisteredProject, ProjectRegistry
+- stats: TokenUsage, ProjectStatistics, GlobalStatistics
 """
 
 from adw.models.artifacts import DiffStats
@@ -71,6 +72,7 @@ from adw.models.phase import (
 )
 from adw.models.pr import PRDescription
 from adw.models.registry import ProjectRegistry, RegisteredProject
+from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
 from adw.models.resume import ResumeInfo, ResumeStatus
 from adw.models.security import (
     BlockedPattern,
@@ -141,6 +143,10 @@ __all__: list[str] = [
     # Registry models
     "ProjectRegistry",
     "RegisteredProject",
+    # Statistics models
+    "GlobalStatistics",
+    "ProjectStatistics",
+    "TokenUsage",
     # Resume models
     "ResumeInfo",
     "ResumeStatus",
