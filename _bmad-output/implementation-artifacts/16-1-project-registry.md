@@ -58,12 +58,12 @@ So that I can control which projects appear in cross-project views.
 ## Tasks / Subtasks
 
 ### Task 1: Create ProjectRegistry Model
-- [ ] Create `src/adw/models/registry.py` with:
+- [x] Create `src/adw/models/registry.py` with:
   - `RegisteredProject` model: `path: str`, `name: str`, `registered_at: datetime`
   - `ProjectRegistry` model: `projects: list[RegisteredProject]`
-- [ ] Add YAML serialization support via Pydantic
-- [ ] Export from `src/adw/models/__init__.py`
-- [ ] Write unit tests in `tests/unit/models/test_registry.py`
+- [x] Add YAML serialization support via Pydantic
+- [x] Export from `src/adw/models/__init__.py`
+- [x] Write unit tests in `tests/unit/models/test_registry.py`
 
 ### Task 2: Create ProjectRegistryManager Core Class
 - [ ] Create `src/adw/core/project_registry.py` with `ProjectRegistryManager` class
@@ -543,13 +543,27 @@ Epic 16: Cross-Project Dashboard - Story 16.1
 
 ### Agent Model Used
 
-<!-- To be filled by implementing agent -->
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+**Task 1 Completed (2026-01-25):**
+- Created `RegisteredProject` model with `path`, `name`, `registered_at` fields
+- Created `ProjectRegistry` model with `projects` list
+- Both models support YAML serialization via Pydantic's `model_dump(mode="json")` + PyYAML
+- Exported both models from `src/adw/models/__init__.py`
+- 15 unit tests covering model instantiation, validation, and serialization round-trips
+
 ### File List
+
+**New Files:**
+- `src/adw/models/registry.py` - RegisteredProject and ProjectRegistry models
+- `tests/unit/models/test_registry.py` - Unit tests for registry models
+
+**Modified Files:**
+- `src/adw/models/__init__.py` - Added exports for registry models
 
 ---
 
