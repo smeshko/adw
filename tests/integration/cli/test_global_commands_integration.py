@@ -238,6 +238,7 @@ class TestGlobalListIntegration:
         assert entry["status"] == "completed"
         assert "project_name" in entry
         assert "duration_seconds" in entry
+        assert "phases_completed" in entry  # Consistent with adw list --json
 
     def test_list_empty_index_shows_message(
         self, temp_index: IndexManager  # noqa: ARG002

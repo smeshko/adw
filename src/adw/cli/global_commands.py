@@ -208,6 +208,7 @@ def _output_json_entries(entries: list[IndexEntry]) -> None:
                 ),
                 "duration_seconds": duration_seconds,
                 "phase_reached": entry.phase_reached,
+                "phases_completed": entry.phases_completed,
             }
         )
 
