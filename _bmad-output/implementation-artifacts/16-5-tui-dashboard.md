@@ -1,6 +1,6 @@
 # Story 16.5: TUI Dashboard
 
-Status: ready
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 16 - Cross-Project Dashboard
 Created: 2026-01-25
@@ -160,9 +160,9 @@ So that I can monitor runs visually.
 - [x] Create integration tests in `tests/integration/cli/test_dashboard_integration.py`
 
 ### Task 11: Update Documentation
-- [ ] Add comprehensive docstrings to all classes and methods
-- [ ] Update `adw global dashboard --help` with examples
-- [ ] Document keyboard shortcuts in help text
+- [x] Add comprehensive docstrings to all classes and methods
+- [x] Update `adw global dashboard --help` with examples
+- [x] Document keyboard shortcuts in help text
 
 ---
 
