@@ -38,20 +38,20 @@ So that I can see my development activity in one place.
 ## Tasks / Subtasks
 
 ### Task 1: Create Global Commands Typer Subapp
-- [ ] Create `src/adw/cli/global_commands.py` with:
+- [x] Create `src/adw/cli/global_commands.py` with:
   - `global_app = typer.Typer(name="global", help="Cross-project commands")`
   - Placeholder `list` command
-- [ ] Register in `src/adw/cli/app.py` via `app.add_typer(global_app, name="global")`
-- [ ] Verify `adw global --help` shows the new subcommand group
-- [ ] Write basic test in `tests/unit/cli/test_global_commands.py`
+- [x] Register in `src/adw/cli/app.py` via `app.add_typer(global_app, name="global")`
+- [x] Verify `adw global --help` shows the new subcommand group
+- [x] Write basic test in `tests/unit/cli/test_global_commands.py`
 
 ### Task 2: Implement `--since` Duration Filter
-- [ ] Create duration parsing utility in `src/adw/cli/global_commands.py`:
+- [x] Create duration parsing utility in `src/adw/cli/global_commands.py`:
   - Parse duration strings: `7d`, `24h`, `30m`, `2w` (days, hours, minutes, weeks)
   - Return `datetime` threshold for filtering
   - Raise `ValueError` for invalid formats
-- [ ] Add `--since` option to `list` command
-- [ ] Write unit tests for duration parsing in `tests/unit/cli/test_global_commands.py`
+- [x] Add `--since` option to `list` command
+- [x] Write unit tests for duration parsing in `tests/unit/cli/test_global_commands.py`
 
 ### Task 3: Extend IndexManager Query Capabilities
 - [ ] Add optional `project_name: str | None` parameter to `get_recent_runs()`

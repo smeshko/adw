@@ -364,7 +364,7 @@ development_status:
   # ═══════════════════════════════════════════════════════════════════════════
   epic-16: in-progress
   16-1-project-registry: done
-  16-2-global-run-list: ready-for-dev
+  16-2-global-run-list: in-progress
   16-3-cross-project-statistics: ready-for-dev
   # 16-4-index-performance-optimization: DROPPED (2026-01-25) - Not needed
   16-5-tui-dashboard: ready-for-dev
