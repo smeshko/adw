@@ -177,6 +177,15 @@ class TestDashboardLayout:
         # Panel has title/subtitle attributes
         assert "DASHBOARD" in str(header.title).upper() or hasattr(header, "renderable")
 
+    def test_create_header_with_project_filter(self) -> None:
+        """Header shows project filter when active."""
+        console = Console()
+        layout = DashboardLayout(console)
+        header = layout.create_header(project_filter="my-api")
+        assert header is not None
+        # Should show yellow border when filtered
+        assert header.border_style == "yellow"
+
     def test_create_summary_panel_with_stats(
         self, sample_global_stats: GlobalStatistics
     ) -> None:

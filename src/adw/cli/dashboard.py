@@ -137,17 +137,29 @@ class DashboardLayout:
         """
         self.console = console
 
-    def create_header(self, title: str = "ADW GLOBAL DASHBOARD") -> Panel:
+    def create_header(
+        self,
+        title: str = "ADW GLOBAL DASHBOARD",
+        project_filter: str | None = None,
+    ) -> Panel:
         """Create dashboard header with title and keyboard hints.
 
         Args:
             title: Dashboard title to display.
+            project_filter: Currently active project filter, if any.
 
         Returns:
             Rich Panel containing the header.
         """
         header_text = Text()
         header_text.append(title, style="bold white")
+
+        if project_filter:
+            header_text.append("  ", style="dim")
+            header_text.append("[", style="dim")
+            header_text.append(project_filter, style="yellow bold")
+            header_text.append("]", style="dim")
+
         header_text.append("  ", style="dim")
         header_text.append("[Q]", style="bold cyan")
         header_text.append("uit  ", style="dim")
@@ -157,7 +169,7 @@ class DashboardLayout:
         return Panel(
             header_text,
             style="bold",
-            border_style="blue",
+            border_style="yellow" if project_filter else "blue",
         )
 
     def create_summary_panel(
@@ -779,7 +791,9 @@ class DashboardController:
         )
 
         # Build header
-        main_layout["header"].update(self.layout.create_header())
+        main_layout["header"].update(
+            self.layout.create_header(project_filter=self.project_filter)
+        )
 
         # Build body based on data availability
         if self.data.stats is None and not self.data.recent_runs:

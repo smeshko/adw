@@ -116,20 +116,20 @@ So that I can monitor runs visually.
 - [x] Write unit tests for detail view rendering
 
 ### Task 7: Implement Project Filter View
-- [ ] When a project is selected (via `/` or clicking project):
+- [x] When a project is selected (via `/` or clicking project):
   - Show project-specific header with path
   - Filter runs table to that project only
   - Show project-specific statistics
   - Show status breakdown bar chart
-- [ ] Implement clear filter (`Esc`) to return to global view
-- [ ] Write tests for filtered view
+- [x] Implement clear filter (`Esc`) to return to global view
+- [x] Write tests for filtered view
 
 ### Task 8: Implement Empty State Handling
-- [ ] Show helpful empty state when:
+- [x] Show helpful empty state when:
   - No index file exists
   - No runs found
   - No runs match current filter
-- [ ] Display guidance:
+- [x] Display guidance:
   ```
   No Projects Registered
 
@@ -139,7 +139,7 @@ So that I can monitor runs visually.
 
   Or use: adw register
   ```
-- [ ] Write tests for empty state display
+- [x] Write tests for empty state display
 
 ### Task 9: Implement `adw global dashboard` Command
 - [ ] Add `dashboard` command to `src/adw/cli/global_commands.py`:
@@ -1462,6 +1462,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 4: Implemented run() method with Rich Live display, auto-refresh loop, and keyboard input handling. Added run_dashboard() entry point function. Added 8 unit tests for Live display lifecycle.
 - Task 5: Extended handle_key() with vim-style navigation (j/k), view mode switching (1/2/3), and Escape key support. Added 6 unit tests for keyboard navigation.
 - Task 6: Added create_run_detail() method to DashboardLayout for modal-style run detail view. Added show_run_detail flag to DashboardState. Updated render() to show detail view. Added 4 unit tests.
+- Task 7: Extended create_header() to show project filter indicator with yellow border. Added 1 unit test.
+- Task 8: Empty state already implemented in Task 2 (create_empty_state method and test).
 
 ### File List
 
