@@ -11,6 +11,8 @@ Exports:
     run_basics_step: Function to execute the basics step.
     GitStepHandler: Handler for the git integration step.
     run_git_step: Function to execute the git step.
+    GlobalRegistryStepHandler: Handler for the global dashboard registration step.
+    run_global_registry_step: Function to execute the global registry step.
     PhasesStepHandler: Handler for the phases configuration step.
     run_phases_step: Function to execute the phases step.
     PortsStepHandler: Handler for the port configuration step.
@@ -43,6 +45,10 @@ from adw.cli.wizard.basics import (
     run_basics_step,
 )
 from adw.cli.wizard.flow import StepHandler, WizardFlowController, WizardStep
+from adw.cli.wizard.global_registry import (
+    GlobalRegistryStepHandler,
+    run_global_registry_step,
+)
 from adw.cli.wizard.git import (
     GitStepHandler,
     run_git_step,
@@ -104,6 +110,7 @@ __all__ = [
     "BUILTIN_BLOCKED_ENV_FILES",
     "ConfigWriteError",
     "GitStepHandler",
+    "GlobalRegistryStepHandler",
     "PhasesStepHandler",
     "PortsStepHandler",
     "RetryStepHandler",
@@ -126,6 +133,7 @@ __all__ = [
     "is_common_port",
     "run_basics_step",
     "run_git_step",
+    "run_global_registry_step",
     "run_phases_step",
     "run_ports_step",
     "run_retry_step",

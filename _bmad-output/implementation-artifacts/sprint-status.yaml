@@ -363,7 +363,7 @@ development_status:
   # Goal: Enable users to view and analyze runs across all ADW-enabled projects
   # ═══════════════════════════════════════════════════════════════════════════
   epic-16: in-progress
-  16-1-project-registry: ready-for-dev
+  16-1-project-registry: done
   16-2-global-run-list: ready-for-dev
   16-3-cross-project-statistics: ready-for-dev
   # 16-4-index-performance-optimization: DROPPED (2026-01-25) - Not needed

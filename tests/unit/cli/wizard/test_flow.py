@@ -19,6 +19,7 @@ class TestWizardStep:
         """Verify all expected wizard steps are defined."""
         expected_steps = [
             "basics",
+            "global_registry",
             "git",
             "ports",
             "task_manager",
@@ -58,8 +59,9 @@ class TestWizardFlowController:
 
     def test_step_sequence_defined(self) -> None:
         """Controller has defined step sequence."""
-        assert len(WizardFlowController.STEP_SEQUENCE) == 10
+        assert len(WizardFlowController.STEP_SEQUENCE) == 11
         assert WizardFlowController.STEP_SEQUENCE[0] == WizardStep.BASICS
+        assert WizardFlowController.STEP_SEQUENCE[1] == WizardStep.GLOBAL_REGISTRY
         assert WizardFlowController.STEP_SEQUENCE[-1] == WizardStep.SUMMARY
 
     def test_get_current_step(self) -> None:
@@ -78,8 +80,8 @@ class TestWizardFlowController:
         controller = WizardFlowController()
         assert controller.advance() is True
         assert controller.current_index == 1
-        assert controller.get_current_step() == WizardStep.GIT
-        assert controller.state.current_step == "git"
+        assert controller.get_current_step() == WizardStep.GLOBAL_REGISTRY
+        assert controller.state.current_step == "global_registry"
         assert "basics" in controller.state.completed_steps
 
     def test_advance_at_end_returns_false(self) -> None:
@@ -91,13 +93,13 @@ class TestWizardFlowController:
     def test_go_back_moves_to_previous_step(self) -> None:
         """Go back moves to previous step and updates state."""
         controller = WizardFlowController()
+        controller.advance()  # Move to global_registry
         controller.advance()  # Move to git
-        controller.advance()  # Move to ports
 
         assert controller.go_back() is True
         assert controller.current_index == 1
-        assert controller.get_current_step() == WizardStep.GIT
-        assert controller.state.current_step == "git"
+        assert controller.get_current_step() == WizardStep.GLOBAL_REGISTRY
+        assert controller.state.current_step == "global_registry"
 
     def test_go_back_at_start_returns_false(self) -> None:
         """Go back returns False when at start."""
@@ -111,19 +113,19 @@ class TestWizardFlowController:
         goes back to re-edit it - it should no longer be marked complete.
         """
         controller = WizardFlowController()
-        controller.advance()  # basics -> completed, current = git
+        controller.advance()  # basics -> completed, current = global_registry
         assert "basics" in controller.state.completed_steps
-        assert controller.state.current_step == "git"
+        assert controller.state.current_step == "global_registry"
 
-        # Manually mark git as completed (simulates completing the step)
-        controller.state.mark_completed("git")
-        assert "git" in controller.state.completed_steps
+        # Manually mark global_registry as completed (simulates completing the step)
+        controller.state.mark_completed("global_registry")
+        assert "global_registry" in controller.state.completed_steps
 
-        # Go back should remove git from completed since we're revisiting it
+        # Go back should remove global_registry from completed since we're revisiting
         controller.go_back()
         assert controller.state.current_step == "basics"
-        # git should be removed from completed (we're revisiting it)
-        assert "git" not in controller.state.completed_steps
+        # global_registry should be removed from completed (we're revisiting it)
+        assert "global_registry" not in controller.state.completed_steps
 
 
 class TestPackageExports:

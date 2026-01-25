@@ -37,6 +37,7 @@ class WizardStep(Enum):
     """Enumeration of wizard steps in execution order."""
 
     BASICS = "basics"
+    GLOBAL_REGISTRY = "global_registry"
     GIT = "git"
     PORTS = "ports"
     TASK_MANAGER = "task_manager"
@@ -64,6 +65,7 @@ class WizardFlowController:
 
     STEP_SEQUENCE: list[WizardStep] = [
         WizardStep.BASICS,
+        WizardStep.GLOBAL_REGISTRY,
         WizardStep.GIT,
         WizardStep.PORTS,
         WizardStep.TASK_MANAGER,
@@ -77,6 +79,7 @@ class WizardFlowController:
 
     STEP_TITLES: dict[WizardStep, str] = {
         WizardStep.BASICS: "Project Basics",
+        WizardStep.GLOBAL_REGISTRY: "Global Dashboard Registration",
         WizardStep.GIT: "Git Configuration",
         WizardStep.PORTS: "Port Allocation",
         WizardStep.TASK_MANAGER: "Task Manager Integration",

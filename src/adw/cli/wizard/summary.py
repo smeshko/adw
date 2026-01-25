@@ -128,7 +128,16 @@ def run_summary_step(
         adw_dir = root / ".adw"
         atomic_write_config(adw_dir, files)
 
-        # Step 4: Show success message
+        # Step 4: Register project in global dashboard if enabled
+        global_registry = state.get_step_config("global_registry")
+        if global_registry.get("global_registry_enabled", False):
+            _register_in_global_dashboard(
+                root,
+                global_registry.get("global_registry_name"),
+                console,
+            )
+
+        # Step 5: Show success message
         _show_success_message(console, list(files.keys()))
 
         return {
@@ -162,6 +171,7 @@ def generate_summary_panel(state: WizardState) -> Panel:
 
     # Get configs from collected_config
     basics = state.get_step_config("basics")
+    global_registry = state.get_step_config("global_registry")
     git = state.get_step_config("git")
     ports = state.get_step_config("ports")
     task_manager = state.get_step_config("task_manager")
@@ -180,6 +190,13 @@ def generate_summary_panel(state: WizardState) -> Panel:
     lines.append(f"  Test: {basics.get('test_command') or 'none'}")
     lines.append(f"  Build: {basics.get('build_command') or 'none'}")
     lines.append("")
+
+    # Global Registry section
+    if global_registry.get("global_registry_enabled", False):
+        reg_name = global_registry.get("global_registry_name", "unknown")
+        lines.append(f"[green]Global Dashboard:[/] ✓ Registered as '{reg_name}'")
+    else:
+        lines.append("[dim]Global Dashboard:[/] ✗ Not registered")
 
     # Git section
     # Git step returns: git_enabled, git_branch_prefix, git_auto_create_pr
@@ -518,6 +535,30 @@ def atomic_write_config(adw_dir: Path, files: dict[str, str]) -> None:
             message=f"Failed to write config: {e}",
             suggestion="Check file permissions and disk space.",
         ) from e
+
+
+def _register_in_global_dashboard(
+    project_root: Path,
+    name: str | None,
+    console: Console,
+) -> None:
+    """Register project in the global ADW dashboard.
+
+    Args:
+        project_root: The project root directory.
+        name: Custom display name for the project.
+        console: Console for output.
+    """
+    from adw.core.project_registry import ProjectRegistryManager
+
+    try:
+        manager = ProjectRegistryManager()
+        manager.register(project_root, name)
+    except Exception as e:
+        # Non-fatal: warn but continue
+        console.print(
+            f"[yellow]Warning: Could not register in global dashboard: {e}[/]"
+        )
 
 
 def _show_success_message(console: Console, files: list[str]) -> None:

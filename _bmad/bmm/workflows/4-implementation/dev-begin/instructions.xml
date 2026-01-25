@@ -9,12 +9,70 @@
 
   <step n="1" goal="Verify git state and handle uncommitted changes">
     <critical>Ensure clean working tree before proceeding</critical>
+    <critical>On staging: auto-commit and push. On feature branches: prompt user.</critical>
+
+    <!-- Get current branch first -->
+    <action>Run: git branch --show-current</action>
+    <action>Store result as {{current_branch}}</action>
 
     <!-- Check for uncommitted changes -->
     <action>Run: git status --porcelain</action>
 
     <check if="working tree has uncommitted changes">
-      <output>**Uncommitted Changes Detected**
+
+      <!-- STAGING BRANCH: Auto-commit and push -->
+      <check if="{{current_branch}} == 'staging'">
+        <output>**Uncommitted Changes on Staging** - Auto-committing...</output>
+
+        <!-- Analyze changes for commit message -->
+        <action>Run: git diff --stat</action>
+        <action>Run: git diff --name-only</action>
+        <action>Analyze the changes to generate a descriptive commit message</action>
+        <action>Consider: files modified, nature of changes (fix, refactor, add, update, etc.)</action>
+
+        <output>Generated commit message: **{{auto_commit_message}}**</output>
+
+        <action>Run: git add -A</action>
+        <action>Run: git commit -m "{{auto_commit_message}}"</action>
+        <action>Run: git push origin staging</action>
+
+        <output>Changes committed and pushed to staging.</output>
+      </check>
+
+      <!-- MAIN BRANCH: Warn and pause -->
+      <check if="{{current_branch}} == 'main'">
+        <output>**⚠️ Uncommitted Changes on Main Branch**
+
+You have uncommitted changes on the main branch. This is unusual - main should typically only receive merged PRs.
+
+**Options:**
+1. Stash changes (git stash push -m "dev-begin auto-stash")
+2. Commit changes (will prompt for message)
+3. Discard changes (git checkout -- . &amp;&amp; git clean -fd)
+4. Abort workflow
+        </output>
+        <ask>How would you like to proceed? [1/2/3/4]:</ask>
+
+        <check if="user chooses '1'">
+          <action>Run: git stash push -m "dev-begin auto-stash"</action>
+          <output>Changes stashed. Remember to `git stash pop` later.</output>
+        </check>
+        <check if="user chooses '2'">
+          <ask>Enter commit message:</ask>
+          <action>Run: git add -A &amp;&amp; git commit -m "{{user_commit_message}}"</action>
+        </check>
+        <check if="user chooses '3'">
+          <ask>Are you sure you want to discard all changes? This cannot be undone. [y/n]</ask>
+          <action if="confirmed">Run: git checkout -- . &amp;&amp; git clean -fd</action>
+        </check>
+        <check if="user chooses '4'">
+          <action>HALT: "Workflow aborted by user due to uncommitted changes"</action>
+        </check>
+      </check>
+
+      <!-- OTHER BRANCHES: Prompt with options -->
+      <check if="{{current_branch}} != 'staging' AND {{current_branch}} != 'main'">
+        <output>**Uncommitted Changes Detected** on branch **{{current_branch}}**
 
 You have uncommitted changes in your working tree.
 
@@ -23,23 +81,24 @@ You have uncommitted changes in your working tree.
 2. Commit changes (will prompt for message)
 3. Discard changes (git checkout -- . &amp;&amp; git clean -fd)
 4. Abort workflow
-      </output>
-      <ask>How would you like to proceed? [1/2/3/4]:</ask>
+        </output>
+        <ask>How would you like to proceed? [1/2/3/4]:</ask>
 
-      <check if="user chooses '1'">
-        <action>Run: git stash push -m "dev-begin auto-stash"</action>
-        <output>Changes stashed. Remember to `git stash pop` later.</output>
-      </check>
-      <check if="user chooses '2'">
-        <ask>Enter commit message:</ask>
-        <action>Run: git add -A &amp;&amp; git commit -m "{{user_commit_message}}"</action>
-      </check>
-      <check if="user chooses '3'">
-        <ask>Are you sure you want to discard all changes? This cannot be undone. [y/n]</ask>
-        <action if="confirmed">Run: git checkout -- . &amp;&amp; git clean -fd</action>
-      </check>
-      <check if="user chooses '4'">
-        <action>HALT: "Workflow aborted by user due to uncommitted changes"</action>
+        <check if="user chooses '1'">
+          <action>Run: git stash push -m "dev-begin auto-stash"</action>
+          <output>Changes stashed. Remember to `git stash pop` later.</output>
+        </check>
+        <check if="user chooses '2'">
+          <ask>Enter commit message:</ask>
+          <action>Run: git add -A &amp;&amp; git commit -m "{{user_commit_message}}"</action>
+        </check>
+        <check if="user chooses '3'">
+          <ask>Are you sure you want to discard all changes? This cannot be undone. [y/n]</ask>
+          <action if="confirmed">Run: git checkout -- . &amp;&amp; git clean -fd</action>
+        </check>
+        <check if="user chooses '4'">
+          <action>HALT: "Workflow aborted by user due to uncommitted changes"</action>
+        </check>
       </check>
     </check>
 
@@ -234,51 +293,35 @@ Please complete the above stories first, then run dev-begin again.
     </check>
   </step>
 
-  <step n="5" goal="Decide environment type (worktree vs branch)">
-    <critical>Decision is based on "Can Parallel With" section in story file</critical>
-    <critical>If Can Parallel With has ANY entries -> WORKTREE</critical>
-    <critical>If Can Parallel With is empty -> BRANCH</critical>
+  <step n="5" goal="Set up worktree environment">
+    <critical>Always use worktrees for story development</critical>
+
+    <!-- Always use worktree -->
+    <action>Set {{environment_type}} = "worktree"</action>
 
     <!-- Check for resume mode first -->
     <check if="{{is_resume}} == true">
-      <output>**Resume Mode** - checking for existing environment...</output>
+      <output>**Resume Mode** - checking for existing worktree...</output>
       <goto anchor="resume_check" />
     </check>
 
-    <!-- Fresh start - check Can Parallel With -->
-    <action>Parse story file for "Can Parallel With:" section</action>
-    <action>Extract list of parallel story IDs</action>
-    <action>Store as {{can_parallel_with}}</action>
+    <!-- Fresh start - always worktree -->
+    <output>**Environment Decision: WORKTREE**</output>
 
-    <check if="{{can_parallel_with}} is NOT empty">
-      <action>Set {{environment_type}} = "worktree"</action>
-      <output>**Environment Decision: WORKTREE**
-Reason: Story can be parallelized with: {{can_parallel_with}}
-      </output>
-
-      <!-- Check for existing parallel worktrees (informational) -->
-      <action>Run: ls -d {worktree_base}/story-* 2>/dev/null || echo "none"</action>
-      <check if="parallel worktrees exist">
-        <output>Active parallel worktrees detected: {{existing_worktrees}}</output>
-      </check>
-    </check>
-
-    <check if="{{can_parallel_with}} is empty">
-      <action>Set {{environment_type}} = "branch"</action>
-      <output>**Environment Decision: BRANCH**
-Reason: Story has no parallel siblings
-      </output>
+    <!-- Check for existing parallel worktrees (informational) -->
+    <action>Run: ls -d {worktree_base}/story-* 2>/dev/null || echo "none"</action>
+    <check if="parallel worktrees exist">
+      <output>Active parallel worktrees detected: {{existing_worktrees}}</output>
     </check>
 
     <goto step="6" />
 
-    <!-- Resume mode: find existing environment -->
+    <!-- Resume mode: find existing worktree -->
     <anchor id="resume_check" />
 
     <!-- Check for existing worktree -->
     <action>Check if {worktree_base}/story-{{target_story_id}}/ exists</action>
     <check if="worktree exists">
-      <action>Set {{environment_type}} = "worktree"</action>
       <action>Set {{environment_path}} = {worktree_base}/story-{{target_story_id}}</action>
       <output>**Resume Mode: Existing worktree found**
 Path: {{environment_path}}
@@ -286,38 +329,19 @@ Path: {{environment_path}}
       <goto step="6" />
     </check>
 
-    <!-- Check if already on the story branch -->
-    <check if="{{current_branch}} == 'story/{{target_story_id}}'">
-      <action>Set {{environment_type}} = "branch"</action>
-      <output>**Resume Mode: Already on story branch**
-Branch: {{current_branch}}
-      </output>
-      <goto step="6" />
-    </check>
+    <!-- No existing worktree found for in-progress story - error -->
+    <output>**Error: In-Progress Story Without Worktree**
 
-    <!-- Check if story branch exists but not checked out -->
-    <action>Run: git branch --list "story/{{target_story_id}}"</action>
-    <check if="branch exists">
-      <action>Set {{environment_type}} = "branch"</action>
-      <action>Set {{needs_checkout}} = true</action>
-      <output>**Resume Mode: Story branch exists**
-Branch: story/{{target_story_id}}
-      </output>
-      <goto step="6" />
-    </check>
+Story **{{target_story_id}}** is marked in-progress but no worktree was found at:
+{worktree_base}/story-{{target_story_id}}/
 
-    <!-- No existing environment found for in-progress story - error -->
-    <output>**Error: In-Progress Story Without Environment**
-
-Story **{{target_story_id}}** is marked in-progress but no branch or worktree was found.
-
-This may indicate a corrupted state. Please check git branches and worktrees manually.
+Please check git worktrees manually: `git worktree list`
     </output>
-    <action>HALT: "In-progress story has no environment"</action>
+    <action>HALT: "In-progress story has no worktree"</action>
   </step>
 
-  <step n="6" goal="Set up development environment">
-    <critical>Create worktree or branch based on decision from Step 5</critical>
+  <step n="6" goal="Set up worktree environment">
+    <critical>Always create worktree for story development</critical>
     <critical>For fresh starts, always pull latest from staging first</critical>
 
     <!-- Resume mode shortcuts -->
@@ -326,27 +350,15 @@ This may indicate a corrupted state. Please check git branches and worktrees man
       <goto step="7" />
     </check>
 
-    <check if="{{is_resume}} == true AND {{environment_type}} == 'worktree'">
+    <check if="{{is_resume}} == true AND {{environment_path}} is set">
       <output>Switching to existing worktree...</output>
       <action>Change working directory to: {{environment_path}}</action>
       <output>Now in: {{environment_path}}</output>
       <goto step="7" />
     </check>
 
-    <check if="{{is_resume}} == true AND {{needs_checkout}} == true">
-      <output>Checking out existing branch...</output>
-      <action>Run: git checkout story/{{target_story_id}}</action>
-      <output>Switched to branch: story/{{target_story_id}}</output>
-      <goto step="7" />
-    </check>
-
-    <check if="{{is_resume}} == true AND {{environment_type}} == 'branch'">
-      <output>**Already on story branch** - no setup needed</output>
-      <goto step="7" />
-    </check>
-
     <!-- Fresh start: ensure we're on staging with latest -->
-    <output>Setting up fresh environment...</output>
+    <output>Setting up fresh worktree environment...</output>
 
     <check if="{{current_branch}} != 'staging'">
       <action>Run: git checkout staging</action>
@@ -357,12 +369,11 @@ This may indicate a corrupted state. Please check git branches and worktrees man
     <output>Pulled latest from staging</output>
 
     <!-- Create worktree -->
-    <check if="{{environment_type}} == 'worktree'">
-      <action>Run: mkdir -p {worktree_base}</action>
-      <action>Run: git worktree add {worktree_base}/story-{{target_story_id}} -b story/{{target_story_id}}</action>
+    <action>Run: mkdir -p {worktree_base}</action>
+    <action>Run: git worktree add {worktree_base}/story-{{target_story_id}} -b story/{{target_story_id}}</action>
 
-      <check if="git worktree command fails">
-        <output>**Git Worktree Creation Failed**
+    <check if="git worktree command fails">
+      <output>**Git Worktree Creation Failed**
 
 Common causes:
 - Branch 'story/{{target_story_id}}' already exists locally or remotely
@@ -372,34 +383,25 @@ Common causes:
 - Check existing worktrees: `git worktree list`
 - Check existing branches: `git branch -a | grep {{target_story_id}}`
 - Remove stale worktree: `git worktree remove {worktree_base}/story-{{target_story_id}}`
-        </output>
-        <action>HALT: "Worktree creation failed - see troubleshooting above"</action>
-      </check>
+      </output>
+      <action>HALT: "Worktree creation failed - see troubleshooting above"</action>
+    </check>
 
-      <action>Set {{environment_path}} = {worktree_base}/story-{{target_story_id}}</action>
+    <action>Set {{environment_path}} = {worktree_base}/story-{{target_story_id}}</action>
 
-      <!-- Copy gitignored config files to new worktree -->
-      <check if="{project-root}/.codex/auth.json exists">
-        <action>Run: mkdir -p {{environment_path}}/.codex</action>
-        <action>Run: cp {project-root}/.codex/auth.json {{environment_path}}/.codex/auth.json</action>
-        <output>Copied .codex/auth.json to worktree</output>
-      </check>
+    <!-- Copy gitignored config files to new worktree -->
+    <check if="{project-root}/.codex/auth.json exists">
+      <action>Run: mkdir -p {{environment_path}}/.codex</action>
+      <action>Run: cp {project-root}/.codex/auth.json {{environment_path}}/.codex/auth.json</action>
+      <output>Copied .codex/auth.json to worktree</output>
+    </check>
 
-      <output>**Worktree Created**
+    <output>**Worktree Created**
 Path: {{environment_path}}
 Branch: story/{{target_story_id}}
-      </output>
-      <action>Change working directory to: {{environment_path}}</action>
-      <output>Now in: {{environment_path}}</output>
-    </check>
-
-    <!-- Create branch -->
-    <check if="{{environment_type}} == 'branch'">
-      <action>Run: git checkout -b story/{{target_story_id}}</action>
-      <output>**Branch Created**
-Branch: story/{{target_story_id}}
-      </output>
-    </check>
+    </output>
+    <action>Change working directory to: {{environment_path}}</action>
+    <output>Now in: {{environment_path}}</output>
   </step>
 
   <step n="7" goal="Invoke dev-story workflow">
@@ -420,7 +422,7 @@ Branch: story/{{target_story_id}}
 |---------|-------|
 | Story | {{target_story_id}} |
 | Story File | {{story_path}} |
-| Environment | {{environment_type}} |
+| Worktree | {{environment_path}} |
 | Mode | {{mode_display}} |
 
 **Starting dev-story workflow...**

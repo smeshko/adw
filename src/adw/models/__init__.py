@@ -18,6 +18,7 @@ This package contains all Pydantic models used throughout ADW:
 - resume: ResumeInfo, ResumeStatus
 - webhook: WebhookConfig, ProviderConfig
 - wizard: WizardState
+- registry: RegisteredProject, ProjectRegistry
 """
 
 from adw.models.artifacts import DiffStats
@@ -69,6 +70,7 @@ from adw.models.phase import (
     PhaseStatus,
 )
 from adw.models.pr import PRDescription
+from adw.models.registry import ProjectRegistry, RegisteredProject
 from adw.models.resume import ResumeInfo, ResumeStatus
 from adw.models.security import (
     BlockedPattern,
@@ -136,6 +138,9 @@ __all__: list[str] = [
     "PhaseStatus",
     # PR models
     "PRDescription",
+    # Registry models
+    "ProjectRegistry",
+    "RegisteredProject",
     # Resume models
     "ResumeInfo",
     "ResumeStatus",
