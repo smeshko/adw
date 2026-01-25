@@ -234,6 +234,9 @@ class ProjectRegistryManager:
                         continue
                     try:
                         entry = json.loads(line)
+                        # Skip non-dict entries (e.g., lists, strings)
+                        if not isinstance(entry, dict):
+                            continue
                         project_path = entry.get("project_path")
                         project_name = entry.get("project_name")
                         if project_path and project_path not in seen_paths:

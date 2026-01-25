@@ -329,6 +329,31 @@ class TestDiscoverFromIndex:
 
         assert projects == []
 
+    def test_discover_from_index_non_dict_entries(self, tmp_path: Path) -> None:
+        """Test that discover skips non-dict JSON entries (lists, strings)."""
+        registry_path = tmp_path / "projects.yaml"
+        index_path = tmp_path / "index.jsonl"
+        manager = ProjectRegistryManager(registry_path=registry_path)
+
+        # Write index with mixed valid and invalid entries
+        with open(index_path, "w") as f:
+            # Valid dict entry
+            f.write('{"project_path": "/Users/dev/valid", "project_name": "valid"}\n')
+            # Invalid: JSON array
+            f.write('["this", "is", "an", "array"]\n')
+            # Invalid: JSON string
+            f.write('"just a string"\n')
+            # Another valid entry
+            f.write('{"project_path": "/Users/dev/another", "project_name": "another"}\n')
+
+        projects = manager.discover_from_index(index_path=index_path)
+
+        # Should only return the valid dict entries
+        assert len(projects) == 2
+        paths = {p.path for p in projects}
+        assert "/Users/dev/valid" in paths
+        assert "/Users/dev/another" in paths
+
 
 class TestYAMLPersistence:
     """Tests for YAML file persistence."""
