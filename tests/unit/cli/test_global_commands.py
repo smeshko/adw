@@ -85,3 +85,30 @@ class TestParseDuration:
         """Unknown unit should raise ValueError."""
         with pytest.raises(ValueError, match="Invalid duration format"):
             parse_duration("7x")
+
+
+class TestGlobalListCommand:
+    """Tests for the global list command functionality."""
+
+    def test_list_with_invalid_status_shows_error(self) -> None:
+        """Invalid status value should show error message."""
+        result = runner.invoke(app, ["global", "list", "--status", "invalid"])
+        assert result.exit_code == 1
+        assert "Invalid status" in result.output
+
+    def test_list_with_invalid_since_shows_error(self) -> None:
+        """Invalid since duration should show error message."""
+        result = runner.invoke(app, ["global", "list", "--since", "invalid"])
+        assert result.exit_code == 1
+        assert "Invalid duration format" in result.output
+
+    def test_list_help_shows_all_options(self) -> None:
+        """Help should show all available options."""
+        result = runner.invoke(app, ["global", "list", "--help"])
+        assert result.exit_code == 0
+        assert "--project" in result.output
+        assert "--status" in result.output
+        assert "--since" in result.output
+        assert "--limit" in result.output
+        assert "--offset" in result.output
+        assert "--json" in result.output
