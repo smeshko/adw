@@ -298,7 +298,11 @@ def list_runs(
 
     # Handle empty results
     if not entries:
-        _show_empty_results_message(project, status, since)
+        if json_output:
+            # Return valid JSON empty array for scripts
+            console.print_json("[]")
+        else:
+            _show_empty_results_message(project, status, since)
         return
 
     # Build title with applied filters

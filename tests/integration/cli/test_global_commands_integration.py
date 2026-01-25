@@ -249,6 +249,19 @@ class TestGlobalListIntegration:
         assert result.exit_code == 0
         assert "No runs found" in result.output
 
+    def test_list_empty_index_json_returns_empty_array(
+        self, temp_index: IndexManager  # noqa: ARG002
+    ) -> None:
+        """Empty index with --json should return valid empty JSON array."""
+        import json
+
+        result = runner.invoke(app, ["global", "list", "--json"])
+
+        assert result.exit_code == 0
+        # Should be valid JSON
+        data = json.loads(result.output)
+        assert data == []
+
     def test_list_empty_filtered_results_shows_filters(
         self, temp_index: IndexManager
     ) -> None:
