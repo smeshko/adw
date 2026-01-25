@@ -113,8 +113,8 @@ so that I can understand my overall ADW usage patterns.
 - [x] Write unit tests for display formatting
 
 ### Task 8: Implement JSON Output Format
-- [ ] Add `--format json` support
-- [ ] Output structure:
+- [x] Add `--format json` support
+- [x] Output structure:
   ```json
   {
     "generated_at": "2026-01-25T10:30:00Z",
@@ -142,7 +142,7 @@ so that I can understand my overall ADW usage patterns.
     ]
   }
   ```
-- [ ] Write tests for JSON output format
+- [x] Write tests for JSON output format
 
 ### Task 9: Write Integration Tests
 - [ ] Test full flow: create runs with LLM files -> `adw global stats` -> verify output
@@ -919,6 +919,7 @@ claude-opus-4-5-20251101
 - Task 5: Statistics cache implemented with _load_cache and _save_cache methods. Added 7 cache tests covering creation, structure, TTL expiry, index change, filter mismatch, and force refresh.
 - Task 6: Implemented `adw global stats` command with --project, --format, --force, and --since options. Added 16 CLI tests.
 - Task 7: Display helpers (_show_global_stats, _format_tokens, _format_cost, _format_duration_ms, _format_rate) implemented in Task 6. Tests in TestStatsFormatters class.
+- Task 8: JSON output implemented in Task 6 via _output_stats_json function. Tests test_stats_json_format and test_stats_json_includes_all_fields verify structure.
 
 ### File List
 
