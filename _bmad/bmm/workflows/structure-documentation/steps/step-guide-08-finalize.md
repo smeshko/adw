@@ -111,38 +111,38 @@ Using {conditionalDocsTemplate}, create `docs/CONDITIONAL_DOCS.md`:
 ```markdown
 ---
 title: Conditional Documentation Guide
-description: Task-based navigation for common workflows
+description: Find documentation based on your current task
 ---
 
 # Conditional Documentation Guide
 
-Find documentation based on what you're trying to do.
+This guide helps you find relevant documentation based on what you're working on.
 
-## I want to...
+## Instructions
 
-### Set up the project
-→ [Getting Started](development/getting-started.md)
+- Review the task you need to perform
+- Check the conditions below
+- Read the relevant documentation before proceeding
+- Only read documentation if conditions match your task
 
-### Understand the architecture
-→ [Architecture Overview](architecture/overview.md)
+## Documentation Map
 
-### Create a new component
-→ [Component Templates](templates/)
+- docs/architecture/overview.md
+  - Conditions:
+    - When understanding the system architecture
+    - When onboarding to the project
 
-### Deploy the application
-→ [Deployment Guide](development/deployment.md)
+- docs/development/getting-started.md
+  - Conditions:
+    - When setting up the development environment
 
-### Run tests
-→ [Testing Strategy](testing/testing-strategy.md)
+- docs/templates/
+  - Conditions:
+    - When creating a new component
 
-### Understand the data model
-→ [Data Models](reference/data-models.md)
-
-### Understand product requirements
-→ [PRD](product/prd.md)
-
-### Work on the UI
-→ [Design System](design/design-system.md)
+- docs/testing/testing-strategy.md
+  - Conditions:
+    - When writing or running tests
 ```
 
 ### 4. Generate DOCUMENTATION_STANDARDS
