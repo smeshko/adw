@@ -79,12 +79,12 @@ So that I can control which projects appear in cross-project views.
 - [x] Write unit tests in `tests/unit/core/test_project_registry.py`
 
 ### Task 3: Implement `adw register` Command
-- [ ] Add `register` command to `src/adw/cli/app.py`
-- [ ] Accept optional `--name` parameter
-- [ ] Validate current directory has `.adw/` folder (is an ADW project)
-- [ ] Display success message with project path and name
-- [ ] Handle already-registered case (update, show message)
-- [ ] Write unit tests in `tests/unit/cli/test_register.py`
+- [x] Add `register` command to `src/adw/cli/app.py`
+- [x] Accept optional `--name` parameter
+- [x] Validate current directory has `.adw/` folder (is an ADW project)
+- [x] Display success message with project path and name
+- [x] Handle already-registered case (update, show message)
+- [x] Write unit tests in `tests/unit/cli/test_register.py`
 
 ### Task 4: Implement `adw unregister` Command
 - [ ] Add `unregister` command to `src/adw/cli/app.py`
@@ -564,16 +564,26 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Duplicate detection updates existing entries rather than creating duplicates
 - 25 unit tests covering initialization, registration, unregistration, queries, and persistence
 
+**Task 3 Completed (2026-01-25):**
+- Created `adw register` CLI command in `src/adw/cli/register.py`
+- Accepts optional `--name` flag for custom display name
+- Validates current directory is an ADW project (has `.adw/` folder)
+- Provides clear success/update messages using Rich console
+- 4 unit tests covering registration, custom naming, validation, and updates
+
 ### File List
 
 **New Files:**
 - `src/adw/models/registry.py` - RegisteredProject and ProjectRegistry models
 - `src/adw/core/project_registry.py` - ProjectRegistryManager class
+- `src/adw/cli/register.py` - `adw register` CLI command
 - `tests/unit/models/test_registry.py` - Unit tests for registry models
 - `tests/unit/core/test_project_registry.py` - Unit tests for registry manager
+- `tests/unit/cli/test_register.py` - Unit tests for register command
 
 **Modified Files:**
 - `src/adw/models/__init__.py` - Added exports for registry models
+- `src/adw/cli/app.py` - Registered the `register` command
 
 ---
 
