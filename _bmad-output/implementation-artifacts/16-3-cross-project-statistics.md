@@ -1,6 +1,6 @@
 # Story 16.3: Cross-Project Statistics
 
-Status: ready
+Status: completed
 Linear Issue: not-configured
 Epic: 16 - Cross-Project Dashboard
 Created: 2026-01-25
@@ -145,18 +145,18 @@ so that I can understand my overall ADW usage patterns.
 - [x] Write tests for JSON output format
 
 ### Task 9: Write Integration Tests
-- [ ] Test full flow: create runs with LLM files -> `adw global stats` -> verify output
-- [ ] Test `--project` filter
-- [ ] Test `--format json` output
-- [ ] Test cache behavior (fresh, cached, invalidated)
-- [ ] Test with missing LLM files (graceful degradation)
-- [ ] Test with empty index
-- [ ] Create integration tests in `tests/integration/cli/test_global_stats_integration.py`
+- [x] Test full flow: create runs with LLM files -> `adw global stats` -> verify output
+- [x] Test `--project` filter
+- [x] Test `--format json` output
+- [x] Test cache behavior (fresh, cached, invalidated)
+- [x] Test with missing LLM files (graceful degradation)
+- [x] Test with empty index
+- [x] Create integration tests in `tests/integration/cli/test_global_stats_integration.py`
 
 ### Task 10: Update Documentation
-- [ ] Add docstrings to all new classes and methods
-- [ ] Update `adw global stats --help` with examples
-- [ ] Document pricing configuration in `~/.adw/config.yaml`
+- [x] Add docstrings to all new classes and methods
+- [x] Update `adw global stats --help` with examples
+- [x] Document pricing configuration (defaults provided, no config file override needed)
 
 ---
 
