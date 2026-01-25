@@ -67,12 +67,12 @@ so that I can understand my overall ADW usage patterns.
 - [x] Write unit tests in `tests/unit/core/test_stats_aggregator.py`
 
 ### Task 4: Implement LLM Response File Parsing
-- [ ] Create method `_parse_llm_response_files(run_dir: Path) -> TokenUsage`
-- [ ] Read `*.json` files from `{project_path}/.adw/runs/{run_id}/llm/` directory
-- [ ] Extract `stats.input_tokens`, `stats.output_tokens`, `stats.duration_ms` from each response
-- [ ] Handle missing stats gracefully (some responses may not have stats)
-- [ ] Sum tokens across all response files for a run
-- [ ] Write unit tests with fixture files
+- [x] Create method `_parse_llm_response_files(run_dir: Path) -> TokenUsage`
+- [x] Read `*.json` files from `{project_path}/.adw/runs/{run_id}/llm/` directory
+- [x] Extract `stats.input_tokens`, `stats.output_tokens`, `stats.duration_ms` from each response
+- [x] Handle missing stats gracefully (some responses may not have stats)
+- [x] Sum tokens across all response files for a run
+- [x] Write unit tests with fixture files
 
 ### Task 5: Implement Statistics Cache
 - [ ] Create cache file at `~/.adw/stats-cache.json`
@@ -915,6 +915,7 @@ claude-opus-4-5-20251101
 - Task 1: Created TokenUsage, ProjectStatistics, GlobalStatistics models in src/adw/models/stats.py. Exported from models package. Added 14 unit tests covering all model functionality.
 - Task 2: Created StatsAggregator class with DEFAULT_PRICING constant, calculate_cost method, and _parse_llm_response_files method. Added 16 unit tests for pricing and LLM parsing.
 - Task 3: Added get_global_stats, get_token_usage methods. Added env var support for ADW_TEST_STATS_CACHE_PATH. Added 11 more unit tests (27 total).
+- Task 4: LLM response file parsing already implemented in Task 2. Tests verify all requirements: parsing, summing, graceful degradation.
 
 ### File List
 
