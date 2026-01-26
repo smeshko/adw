@@ -776,6 +776,22 @@ def _path_exists(path: str) -> bool:
     return Path(path).exists()
 
 
+def _run_exists(project_path: str, run_id: str) -> bool:
+    """Check if a run directory exists in the project's .adw/runs folder.
+
+    Args:
+        project_path: Path to the project directory.
+        run_id: The run ID to check.
+
+    Returns:
+        True if the run directory exists.
+    """
+    from pathlib import Path
+
+    run_dir = Path(project_path) / ".adw" / "runs" / run_id
+    return run_dir.exists()
+
+
 @global_app.command(name="clean")
 def clean_command(
     dry_run: bool = typer.Option(
@@ -790,17 +806,24 @@ def clean_command(
         "-f",
         help="Skip confirmation prompt",
     ),
+    orphaned: bool = typer.Option(
+        True,
+        "--orphaned/--no-orphaned",
+        help="Remove orphaned runs (index entries without local run directories)",
+    ),
 ) -> None:
     """Clean up stale and temporary entries from the global index.
 
     Removes entries for:
     - Projects that no longer exist on disk
     - Temporary directories (pytest, /tmp/, etc.)
+    - Orphaned runs (entries without corresponding local run directories)
 
     Examples:
         adw global clean              # Interactive cleanup
         adw global clean --dry-run    # Preview what would be removed
         adw global clean --force      # Skip confirmation
+        adw global clean --no-orphaned  # Skip orphaned run check
     """
     index_manager = IndexManager()
     registry_manager = ProjectRegistryManager()
@@ -826,6 +849,7 @@ def clean_command(
     removed_temp: list[IndexEntry] = []
     removed_missing: list[IndexEntry] = []
     removed_unregistered: list[IndexEntry] = []
+    removed_orphaned: list[IndexEntry] = []
 
     for entry in entries:
         path = entry.project_path
@@ -845,10 +869,20 @@ def clean_command(
             removed_unregistered.append(entry)
             continue
 
+        # Check if run directory exists locally (orphaned run check)
+        if orphaned and not _run_exists(path, entry.run_id):
+            removed_orphaned.append(entry)
+            continue
+
         entries_to_keep.append(entry)
 
     # Calculate totals
-    total_removed = len(removed_temp) + len(removed_missing) + len(removed_unregistered)
+    total_removed = (
+        len(removed_temp)
+        + len(removed_missing)
+        + len(removed_unregistered)
+        + len(removed_orphaned)
+    )
 
     if total_removed == 0:
         console.print("[green]Global index is clean. No entries to remove.[/]")
@@ -866,6 +900,8 @@ def clean_command(
         console.print(f"  - Missing paths: {len(removed_missing):,}")
     if removed_unregistered:
         console.print(f"  - Unregistered projects: {len(removed_unregistered):,}")
+    if removed_orphaned:
+        console.print(f"  - Orphaned runs (no local data): {len(removed_orphaned):,}")
 
     # Show samples of what will be removed
     if dry_run:
@@ -891,6 +927,13 @@ def clean_command(
                 console.print(f"  {entry.project_name}: {entry.project_path}")
             if len(removed_unregistered) > 5:
                 console.print(f"  ... and {len(removed_unregistered) - 5} more")
+
+        if removed_orphaned:
+            console.print("\n[dim]Orphaned runs (sample):[/]")
+            for entry in removed_orphaned[:5]:
+                console.print(f"  {entry.run_id}: {entry.project_name} ({entry.status})")
+            if len(removed_orphaned) > 5:
+                console.print(f"  ... and {len(removed_orphaned) - 5} more")
 
         console.print("\n[yellow]Run without --dry-run to apply changes.[/]")
         return
