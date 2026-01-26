@@ -270,11 +270,11 @@ class DashboardLayout:
 
         table = Table(show_header=False, box=None, padding=(0, 1))
         table.add_column("Status", width=2)
-        table.add_column("ID", width=18, no_wrap=True)
-        table.add_column("Project", width=15)
-        table.add_column("Feature", max_width=35)
-        table.add_column("Duration", width=14, no_wrap=True)
-        table.add_column("Tokens", width=10)
+        table.add_column("ID", width=28, no_wrap=True)
+        table.add_column("Project", width=12)
+        table.add_column("Feature", max_width=25)
+        table.add_column("Phase", width=10)
+        table.add_column("Duration", width=12, no_wrap=True)
 
         for run in active_runs:
             # Calculate elapsed time with human-readable format
@@ -293,16 +293,19 @@ class DashboardLayout:
 
             # Truncate feature
             feature = run.feature_description
-            if len(feature) > 32:
-                feature = feature[:29] + "..."
+            if len(feature) > 22:
+                feature = feature[:19] + "..."
+
+            # Current phase (phase_reached shows last/current phase)
+            current_phase = run.phase_reached or "starting"
 
             table.add_row(
                 "[yellow]●[/]",
-                run.run_id[:16] + ".." if len(run.run_id) > 16 else run.run_id,
+                run.run_id,
                 self.get_display_name(run),
                 feature,
+                f"[cyan]{current_phase}[/]",
                 f"[yellow]◐[/] {duration}",
-                "—",  # Tokens not available during run
             )
 
         return Panel(
