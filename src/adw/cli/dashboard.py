@@ -883,9 +883,11 @@ class DashboardController:
                     )
             else:
                 # Summary view (default) - shows summary, runs, and projects
+                # Use ratio=1 for runs so it shares space proportionally
+                # rather than taking all remaining space
                 body_layout.split_column(
                     Layout(name="summary", size=8),
-                    Layout(name="runs"),
+                    Layout(name="runs", ratio=1),
                     Layout(name="projects", size=10),
                 )
 

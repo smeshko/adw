@@ -26,9 +26,9 @@ so that **I can quickly understand the status and cost of my workflow runs at a 
 ## Tasks / Subtasks
 
 ### Task 1: Fix Recent Runs Panel Sizing
-- [ ] 1.1: In `create_recent_runs_table()`, remove fixed height constraints
-- [ ] 1.2: Let the table size naturally based on row count
-- [ ] 1.3: In `render()`, use `size` parameter only for fixed sections (summary, projects), let runs section use remaining space proportionally
+- [x] 1.1: In `create_recent_runs_table()`, remove fixed height constraints
+- [x] 1.2: Let the table size naturally based on row count
+- [x] 1.3: In `render()`, use `size` parameter only for fixed sections (summary, projects), let runs section use remaining space proportionally
 
 ### Task 2: Fix Active Runs Duration Display
 - [ ] 2.1: In `create_active_runs_panel()`, fix the duration column formatting
@@ -240,16 +240,17 @@ Screenshot: `_bmad-output/implementation-artifacts/issues/assets/ISS-041-dashboa
 
 ### Agent Model Used
 
-<!-- To be filled by dev agent -->
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
-<!-- To be filled during implementation -->
+N/A - straightforward layout fix
 
 ### Completion Notes List
 
-<!-- To be filled during implementation -->
+- Task 1: Fixed recent runs panel sizing by using `ratio=1` in Layout instead of unbounded sizing. The table in `create_recent_runs_table()` already sizes naturally - the issue was the parent Layout taking all remaining space.
 
 ### File List
 
-<!-- To be filled during implementation -->
+- `src/adw/cli/dashboard.py` - Modified render() to use ratio-based sizing for runs section
+- `tests/unit/cli/test_dashboard.py` - Added TestDashboardLayoutSizing tests
