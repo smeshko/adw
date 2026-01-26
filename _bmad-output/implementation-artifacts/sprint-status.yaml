@@ -437,4 +437,4 @@ development_status:
   ux-fix-ISS-041-dashboard-layout-display-issues: ready-for-dev
   # Bugfix (from ISS-042) - CRITICAL
   # Arrow keys read as bare \x1b instead of escape sequences, triggering quit handler
-  bugfix-ISS-042-global-dashboard-exits-immediately: in-progress
+  bugfix-ISS-042-global-dashboard-exits-immediately: review

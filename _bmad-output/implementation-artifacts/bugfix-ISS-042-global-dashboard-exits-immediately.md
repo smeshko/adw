@@ -1,6 +1,6 @@
 # Story: Bugfix ISS-042 - Global Dashboard Exits Immediately
 
-Status: ready-for-dev
+Status: review
 Linear Issue: not-configured
 Epic: 16 - Cross-Project Dashboard
 Created: 2026-01-26
