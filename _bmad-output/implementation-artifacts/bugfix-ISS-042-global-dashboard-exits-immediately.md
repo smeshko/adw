@@ -34,21 +34,21 @@ so that **I can navigate the dashboard interactively without it unexpectedly exi
 ## Tasks / Subtasks
 
 ### Task 1: Replace Custom Keyboard Handling with readchar Library
-- [ ] Add `readchar` dependency to pyproject.toml
-- [ ] Replace `_setup_keyboard()`, `_cleanup_keyboard()`, and `_read_key()` methods in `dashboard.py`
-- [ ] Use `readchar.readkey()` for proper cross-platform key reading
-- [ ] Map `readchar.key.UP`, `readchar.key.DOWN`, etc. to handle_key inputs
+- [x] Add `readchar` dependency to pyproject.toml
+- [x] Replace `_setup_keyboard()`, `_cleanup_keyboard()`, and `_read_key()` methods in `dashboard.py`
+- [x] Use `readchar.readkey()` for proper cross-platform key reading
+- [x] Map `readchar.key.UP`, `readchar.key.DOWN`, etc. to handle_key inputs
 
 ### Task 2: Update Key Handling in DashboardController.handle_key()
-- [ ] Update key comparisons to work with readchar key constants
-- [ ] Keep escape key handling (`\x1b`) for actual Escape key presses
-- [ ] Ensure arrow key strings ("up", "down") are correctly passed from readchar
+- [x] Update key comparisons to work with readchar key constants
+- [x] Keep escape key handling (`\x1b`) for actual Escape key presses
+- [x] Ensure arrow key strings ("up", "down") are correctly passed from readchar
 
 ### Task 3: Add Unit Tests
-- [ ] Test keyboard input handling with mock readchar
-- [ ] Test that arrow keys map to correct navigation actions
-- [ ] Test that escape key triggers quit when not in detail view
-- [ ] Test that escape key closes detail view when in detail view
+- [x] Test keyboard input handling with mock readchar
+- [x] Test that arrow keys map to correct navigation actions
+- [x] Test that escape key triggers quit when not in detail view
+- [x] Test that escape key closes detail view when in detail view
 
 ### Task 4: Manual Integration Testing
 - [ ] Run `adw global dashboard` and verify arrow key navigation works
@@ -283,9 +283,29 @@ The `_read_key()` method uses `select.select()` with a 0.1s timeout to detect es
 
 ### Agent Model Used
 
+Claude Opus 4.5 (claude-opus-4-5-20251101)
+
 ### Debug Log References
+
+N/A
 
 ### Completion Notes List
 
+- Fixed ISS-042: Arrow keys now correctly navigate the dashboard instead of triggering quit
+- Added `readchar>=4.0.0` dependency for proper cross-platform escape sequence handling
+- Replaced manual termios/select-based keyboard handling with readchar library
+- `_read_key()` now uses `select()` for non-blocking timeout, then `readchar.readkey()` for proper key parsing
+- Arrow keys correctly mapped: UP→"up", DOWN→"down", LEFT→"left", RIGHT→"right"
+- ESC key correctly mapped to `\x1b` for quit behavior
+- ENTER key correctly mapped to `\r` for run details
+- Added 15 new unit tests for keyboard input handling in `TestKeyboardInput` class
+- All 68 dashboard unit tests pass
+- All 3237 tests pass (2 pre-existing integration test failures unrelated to this fix)
+- Linting (ruff) and type checking (mypy) pass
+
 ### File List
+
+- `pyproject.toml` - Added `readchar>=4.0.0` dependency
+- `src/adw/cli/dashboard.py` - Replaced `_setup_keyboard()`, `_cleanup_keyboard()`, `_read_key()` methods
+- `tests/unit/cli/test_dashboard.py` - Added `TestKeyboardInput` class with 15 new tests
 

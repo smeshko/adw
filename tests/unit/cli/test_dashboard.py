@@ -665,3 +665,176 @@ class TestDashboardControllerRun:
             # Verify Live was entered and exited
             mock_live_instance.__enter__.assert_called_once()
             mock_live_instance.__exit__.assert_called_once()
+
+
+class TestKeyboardInput:
+    """Tests for keyboard input handling with readchar."""
+
+    def test_setup_keyboard_returns_true_for_tty(self) -> None:
+        """_setup_keyboard returns True when stdin is a TTY."""
+        controller = DashboardController()
+
+        with patch("sys.stdin") as mock_stdin:
+            mock_stdin.isatty.return_value = True
+            result = controller._setup_keyboard()
+
+        assert result is True
+
+    def test_setup_keyboard_returns_false_for_non_tty(self) -> None:
+        """_setup_keyboard returns False when stdin is not a TTY."""
+        controller = DashboardController()
+
+        with patch("sys.stdin") as mock_stdin:
+            mock_stdin.isatty.return_value = False
+            result = controller._setup_keyboard()
+
+        assert result is False
+
+    def test_setup_keyboard_handles_os_error(self) -> None:
+        """_setup_keyboard returns False on OSError."""
+        controller = DashboardController()
+
+        with patch("sys.stdin") as mock_stdin:
+            mock_stdin.isatty.side_effect = OSError("Not a terminal")
+            result = controller._setup_keyboard()
+
+        assert result is False
+
+    def test_cleanup_keyboard_is_noop(self) -> None:
+        """_cleanup_keyboard does nothing (readchar handles cleanup)."""
+        controller = DashboardController()
+        # Should not raise
+        controller._cleanup_keyboard()
+
+    def test_read_key_returns_none_on_timeout(self) -> None:
+        """_read_key returns None when no input available."""
+        controller = DashboardController()
+
+        with patch("select.select", return_value=([], [], [])):
+            result = controller._read_key()
+
+        assert result is None
+
+    def test_read_key_maps_up_arrow(self) -> None:
+        """_read_key correctly maps UP arrow key."""
+        controller = DashboardController()
+        import readchar
+
+        with (
+            patch("select.select", return_value=([True], [], [])),
+            patch("readchar.readkey", return_value=readchar.key.UP),
+        ):
+            result = controller._read_key()
+
+        assert result == "up"
+
+    def test_read_key_maps_down_arrow(self) -> None:
+        """_read_key correctly maps DOWN arrow key."""
+        controller = DashboardController()
+        import readchar
+
+        with (
+            patch("select.select", return_value=([True], [], [])),
+            patch("readchar.readkey", return_value=readchar.key.DOWN),
+        ):
+            result = controller._read_key()
+
+        assert result == "down"
+
+    def test_read_key_maps_left_arrow(self) -> None:
+        """_read_key correctly maps LEFT arrow key."""
+        controller = DashboardController()
+        import readchar
+
+        with (
+            patch("select.select", return_value=([True], [], [])),
+            patch("readchar.readkey", return_value=readchar.key.LEFT),
+        ):
+            result = controller._read_key()
+
+        assert result == "left"
+
+    def test_read_key_maps_right_arrow(self) -> None:
+        """_read_key correctly maps RIGHT arrow key."""
+        controller = DashboardController()
+        import readchar
+
+        with (
+            patch("select.select", return_value=([True], [], [])),
+            patch("readchar.readkey", return_value=readchar.key.RIGHT),
+        ):
+            result = controller._read_key()
+
+        assert result == "right"
+
+    def test_read_key_maps_enter(self) -> None:
+        """_read_key correctly maps ENTER key."""
+        controller = DashboardController()
+        import readchar
+
+        with (
+            patch("select.select", return_value=([True], [], [])),
+            patch("readchar.readkey", return_value=readchar.key.ENTER),
+        ):
+            result = controller._read_key()
+
+        assert result == "\r"
+
+    def test_read_key_maps_escape(self) -> None:
+        """_read_key correctly maps ESC key."""
+        controller = DashboardController()
+        import readchar
+
+        with (
+            patch("select.select", return_value=([True], [], [])),
+            patch("readchar.readkey", return_value=readchar.key.ESC),
+        ):
+            result = controller._read_key()
+
+        assert result == "\x1b"
+
+    def test_read_key_passes_regular_chars(self) -> None:
+        """_read_key passes through regular characters unchanged."""
+        controller = DashboardController()
+
+        with (
+            patch("select.select", return_value=([True], [], [])),
+            patch("readchar.readkey", return_value="q"),
+        ):
+            result = controller._read_key()
+
+        assert result == "q"
+
+    def test_read_key_handles_os_error(self) -> None:
+        """_read_key returns None on OSError."""
+        controller = DashboardController()
+
+        with patch("select.select", side_effect=OSError("Error")):
+            result = controller._read_key()
+
+        assert result is None
+
+    def test_arrow_keys_do_not_trigger_quit(self) -> None:
+        """Arrow keys should navigate, not trigger quit (fixes ISS-042)."""
+        controller = DashboardController()
+        controller.state.selected_run_index = 1
+        controller.data.recent_runs = [MagicMock(), MagicMock(), MagicMock()]
+
+        # Simulate pressing up arrow - should decrement selection, not quit
+        controller.handle_key("up")
+        assert controller.state.quit_requested is False
+        assert controller.state.selected_run_index == 0
+
+        # Simulate pressing down arrow - should increment selection, not quit
+        controller.handle_key("down")
+        assert controller.state.quit_requested is False
+        assert controller.state.selected_run_index == 1
+
+    def test_escape_key_triggers_quit(self) -> None:
+        """Actual escape key should trigger quit (not in detail view)."""
+        controller = DashboardController()
+        controller.state.show_run_detail = False
+
+        controller.handle_key("\x1b")
+
+        assert controller.state.quit_requested is True
