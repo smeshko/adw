@@ -31,9 +31,9 @@ so that **I can quickly understand the status and cost of my workflow runs at a 
 - [x] 1.3: In `render()`, use `size` parameter only for fixed sections (summary, projects), let runs section use remaining space proportionally
 
 ### Task 2: Fix Active Runs Duration Display
-- [ ] 2.1: In `create_active_runs_panel()`, fix the duration column formatting
-- [ ] 2.2: Remove the line break between minutes and seconds (current: `"[yellow]◐[/]  {elapsed_min}m\n{elapsed_sec:02d}s"`)
-- [ ] 2.3: Format duration consistently: `{elapsed_min}m {elapsed_sec:02d}s` or convert to hours when > 60 minutes
+- [x] 2.1: In `create_active_runs_panel()`, fix the duration column formatting
+- [x] 2.2: Remove the line break between minutes and seconds (current: `"[yellow]◐[/]  {elapsed_min}m\n{elapsed_sec:02d}s"`)
+- [x] 2.3: Format duration consistently: `{elapsed_min}m {elapsed_sec:02d}s` or convert to hours when > 60 minutes
 
 ### Task 3: Improve Run ID Column Width
 - [ ] 3.1: Increase the run ID column `width` from 10-12 to 16-20 characters
@@ -249,6 +249,7 @@ N/A - straightforward layout fix
 ### Completion Notes List
 
 - Task 1: Fixed recent runs panel sizing by using `ratio=1` in Layout instead of unbounded sizing. The table in `create_recent_runs_table()` already sizes naturally - the issue was the parent Layout taking all remaining space.
+- Task 2: Fixed active runs duration display - increased column width from 10 to 14 with no_wrap=True, reduced icon spacing, and added hours format for durations >= 60 minutes (e.g., "88h 53m" instead of "5333m 50s").
 
 ### File List
 

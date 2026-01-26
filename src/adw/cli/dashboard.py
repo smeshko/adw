@@ -273,15 +273,23 @@ class DashboardLayout:
         table.add_column("ID", width=10)
         table.add_column("Project", width=15)
         table.add_column("Feature", max_width=35)
-        table.add_column("Duration", width=10)
+        table.add_column("Duration", width=14, no_wrap=True)
         table.add_column("Tokens", width=10)
 
         for run in active_runs:
-            # Calculate elapsed time
+            # Calculate elapsed time with human-readable format
             elapsed = datetime.now(UTC) - run.started_at
-            elapsed_min = int(elapsed.total_seconds()) // 60
-            elapsed_sec = int(elapsed.total_seconds()) % 60
-            duration = f"{elapsed_min}m {elapsed_sec:02d}s"
+            total_seconds = int(elapsed.total_seconds())
+            total_minutes = total_seconds // 60
+
+            # Format duration: use hours if >= 60 minutes
+            if total_minutes >= 60:
+                hours = total_minutes // 60
+                minutes = total_minutes % 60
+                duration = f"{hours}h {minutes:02d}m"
+            else:
+                seconds = total_seconds % 60
+                duration = f"{total_minutes}m {seconds:02d}s"
 
             # Truncate feature
             feature = run.feature_description
@@ -293,7 +301,7 @@ class DashboardLayout:
                 run.run_id[:8] + "...",
                 self.get_display_name(run),
                 feature,
-                f"[yellow]◐[/]  {duration}",
+                f"[yellow]◐[/] {duration}",
                 "—",  # Tokens not available during run
             )
 
