@@ -270,7 +270,7 @@ class DashboardLayout:
 
         table = Table(show_header=False, box=None, padding=(0, 1))
         table.add_column("Status", width=2)
-        table.add_column("ID", width=10)
+        table.add_column("ID", width=18, no_wrap=True)
         table.add_column("Project", width=15)
         table.add_column("Feature", max_width=35)
         table.add_column("Duration", width=14, no_wrap=True)
@@ -298,7 +298,7 @@ class DashboardLayout:
 
             table.add_row(
                 "[yellow]●[/]",
-                run.run_id[:8] + "...",
+                run.run_id[:14] + "..",
                 self.get_display_name(run),
                 feature,
                 f"[yellow]◐[/] {duration}",
@@ -335,7 +335,7 @@ class DashboardLayout:
             )
 
         table = Table(show_header=True, box=None, padding=(0, 1))
-        table.add_column("RUN ID", style="cyan", no_wrap=True, width=12)
+        table.add_column("RUN ID", style="cyan", no_wrap=True, width=18)
         table.add_column("PROJECT", width=15)
         table.add_column("FEATURE", max_width=30)
         table.add_column("STATUS", justify="center", width=12)
@@ -381,7 +381,7 @@ class DashboardLayout:
             # Highlight selected row
             if i == selected_index:
                 table.add_row(
-                    f"[bold reverse]{run.run_id[:10]}[/]",
+                    f"[bold reverse]{run.run_id[:14]}[/]..",
                     f"[bold]{display_name}[/]",
                     f"[bold]{feature}[/]",
                     status_text,
@@ -390,7 +390,7 @@ class DashboardLayout:
                 )
             else:
                 table.add_row(
-                    run.run_id[:10] + "..",
+                    run.run_id[:14] + "..",
                     display_name,
                     feature,
                     status_text,

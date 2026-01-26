@@ -36,9 +36,9 @@ so that **I can quickly understand the status and cost of my workflow runs at a 
 - [x] 2.3: Format duration consistently: `{elapsed_min}m {elapsed_sec:02d}s` or convert to hours when > 60 minutes
 
 ### Task 3: Improve Run ID Column Width
-- [ ] 3.1: Increase the run ID column `width` from 10-12 to 16-20 characters
-- [ ] 3.2: Consider making width dynamic based on terminal size
-- [ ] 3.3: Update both recent runs table and active runs panel
+- [x] 3.1: Increase the run ID column `width` from 10-12 to 16-20 characters
+- [x] 3.2: Consider making width dynamic based on terminal size
+- [x] 3.3: Update both recent runs table and active runs panel
 
 ### Task 4: Investigate Token Display
 - [ ] 4.1: Verify LLM response files exist in run directories under `.adw/runs/{run_id}/llm/`
@@ -250,6 +250,7 @@ N/A - straightforward layout fix
 
 - Task 1: Fixed recent runs panel sizing by using `ratio=1` in Layout instead of unbounded sizing. The table in `create_recent_runs_table()` already sizes naturally - the issue was the parent Layout taking all remaining space.
 - Task 2: Fixed active runs duration display - increased column width from 10 to 14 with no_wrap=True, reduced icon spacing, and added hours format for durations >= 60 minutes (e.g., "88h 53m" instead of "5333m 50s").
+- Task 3: Improved run ID display - increased column width to 18 in both active runs and recent runs tables, showing 14 characters of ID instead of 8-10. Added no_wrap=True to prevent wrapping.
 
 ### File List
 
