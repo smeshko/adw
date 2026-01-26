@@ -667,6 +667,9 @@ class DashboardController:
         self.index_manager = IndexManager()
         self.stats_aggregator = StatsAggregator()
 
+        # Flag to signal run() to reset its local auto-refresh timer
+        self._manual_refresh_triggered = False
+
     def refresh_data(self) -> None:
         """Fetch latest data from IndexManager and StatsAggregator.
 
@@ -750,9 +753,10 @@ class DashboardController:
         elif key_lower == "p":
             self.state.paused = not self.state.paused
 
-        # Force refresh
+        # Force refresh (sets _manual_refresh_triggered flag for run() to sync timer)
         elif key_lower == "r":
             self.refresh_data()
+            self._manual_refresh_triggered = True
 
         # Navigation: up arrow or k (vim-style)
         elif key_lower == "up" or key_lower == "k":
@@ -944,6 +948,10 @@ class DashboardController:
                     if key:
                         self.handle_key(key)
                         live.update(self.render())
+                        # Sync timer if manual refresh was triggered
+                        if self._manual_refresh_triggered:
+                            last_refresh_time = datetime.now(UTC)
+                            self._manual_refresh_triggered = False
 
                     # Auto-refresh if not paused
                     if not self.state.paused:
