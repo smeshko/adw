@@ -250,6 +250,15 @@ def create_orchestrator(
             live_stream=live_stream,
         )
 
+    # Create extension registry with built-in extensions (Phase Extensions)
+    # This registers BuildExtension (diff capture), DocumentExtension (PR creation),
+    # and ShipExtension (skip logic and hook env vars)
+    # NOTE: Must be created BEFORE PhaseRunner so extensions are available for
+    # artifact capture during phase execution (ISS-043)
+    extension_registry = create_default_registry(
+        git_config, runs_dir, project_root=project_root
+    )
+
     # Create PhaseRunner first (without progress_display) (Story 5.2)
     # so we can compute enabled phases using is_phase_enabled()
     phase_runner = PhaseRunner(
@@ -259,6 +268,7 @@ def create_orchestrator(
         executor=llm_executor,
         artifact_manager=artifact_manager,
         progress_display=None,
+        extension_registry=extension_registry,
     )
 
     # Progress display for CLI feedback (ISS-036: filter to enabled phases)
@@ -289,13 +299,6 @@ def create_orchestrator(
         labels_config = config.task_manager.labels if config.task_manager else None
         if labels_config and labels_config.enabled:
             label_manager = LabelManager(task_manager, labels_config, task_info.id)
-
-    # Create extension registry with built-in extensions (Phase Extensions)
-    # This registers BuildExtension (diff capture), DocumentExtension (PR creation),
-    # and ShipExtension (skip logic and hook env vars)
-    extension_registry = create_default_registry(
-        git_config, runs_dir, project_root=project_root
-    )
 
     # Create orchestrator (ISS-039: pass task_info to populate RunContext)
     orchestrator = Orchestrator(

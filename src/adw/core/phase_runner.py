@@ -711,10 +711,26 @@ class PhaseRunner:
                 suggestion="Check the YAML syntax in your project's config.yaml file.",
             ) from e
         except ValidationError as e:
+            # Provide helpful suggestions for common config errors
+            suggestion = "Ensure your config.yaml follows the CommandConfig schema."
+
+            # Check for doc_mappings errors (common misconfiguration)
+            error_str = str(e)
+            if "doc_mappings" in error_str or (
+                phase == "document" and "source_pattern" in error_str
+            ):
+                suggestion = (
+                    "doc_mappings must be a list of objects with 'source_pattern' "
+                    "and 'docs_dir' fields. Example:\n"
+                    "  doc_mappings:\n"
+                    "    - source_pattern: 'src/**/*.py'\n"
+                    "      docs_dir: 'docs/api'"
+                )
+
             raise ConfigError(
                 code="INVALID_PROJECT_CONFIG",
                 message=f"Invalid config in project config at {config_path}: {e}",
-                suggestion="Ensure your config.yaml follows the CommandConfig schema.",
+                suggestion=suggestion,
             ) from e
 
     def _get_merged_config(self, phase: str, command: ResolvedCommand) -> PhaseConfig:
