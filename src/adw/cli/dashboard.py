@@ -998,61 +998,67 @@ class DashboardController:
     def _setup_keyboard(self) -> bool:
         """Set up terminal for keyboard input.
 
+        Uses readchar for cross-platform keyboard handling.
+        Returns True if stdin is a TTY (interactive terminal).
+
         Returns:
             True if keyboard input is available, False otherwise.
         """
         import sys
 
-        self._old_settings = None
-
         try:
-            import termios
-            import tty
-
-            self._old_settings = termios.tcgetattr(sys.stdin)
-            tty.setcbreak(sys.stdin.fileno())
-            return True
-        except (ImportError, OSError, AttributeError):
-            # Not a TTY or termios not available
+            return sys.stdin.isatty()
+        except (OSError, AttributeError):
             return False
 
     def _cleanup_keyboard(self) -> None:
-        """Restore terminal settings."""
-        import sys
+        """Restore terminal settings.
 
-        if self._old_settings is not None:
-            try:
-                import termios
-
-                termios.tcsetattr(
-                    sys.stdin, termios.TCSADRAIN, self._old_settings
-                )
-            except (ImportError, OSError):
-                pass
-            self._old_settings = None
+        readchar handles terminal cleanup internally, so this is a no-op.
+        Kept for interface compatibility.
+        """
+        pass
 
     def _read_key(self) -> str | None:
-        """Read a key from stdin (non-blocking).
+        """Read a key from stdin with timeout (non-blocking).
+
+        Uses readchar library for proper cross-platform escape sequence handling.
+        Implements timeout using select() to check for input availability.
 
         Returns:
-            Key string, or None if no key available.
+            Key string ("up", "down", "q", etc.), or None if no key available.
         """
         import select
         import sys
 
         try:
-            if select.select([sys.stdin], [], [], 0.25)[0]:
-                key = sys.stdin.read(1)
+            # Use select with timeout to check for input availability
+            if not select.select([sys.stdin], [], [], 0.25)[0]:
+                return None
 
-                # Handle escape sequences for arrow keys
-                if key == "\x1b" and select.select([sys.stdin], [], [], 0.1)[0]:
-                    key += sys.stdin.read(2)
-                    if key == "\x1b[A":
-                        return "up"
-                    elif key == "\x1b[B":
-                        return "down"
+            # Input is available - use readchar for proper key reading
+            import readchar
+
+            key = readchar.readkey()
+
+            # Map readchar special keys to our string format
+            if key == readchar.key.UP:
+                return "up"
+            elif key == readchar.key.DOWN:
+                return "down"
+            elif key == readchar.key.LEFT:
+                return "left"
+            elif key == readchar.key.RIGHT:
+                return "right"
+            elif key == readchar.key.ENTER:
+                return "\r"
+            elif key == readchar.key.ESC:
+                return "\x1b"
+            else:
+                # Return the key as-is (single characters like 'q', 'r', etc.)
                 return key
-        except OSError:
+
+        except (OSError, ImportError):
             pass
         return None
 
