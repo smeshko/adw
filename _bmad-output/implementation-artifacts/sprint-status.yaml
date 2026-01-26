@@ -85,7 +85,7 @@ issues:
   ISS-039-runcontext-missing-task-info: fixed  # Critical - RunContext.task_id/task_info never populated, StatusSyncService comments silently fail (story created)
   ISS-040-template-variables-not-populated: reported  # Major - Ship phase PR vars and build diff artifacts not populated in templates
   ISS-041-dashboard-layout-display-issues: reported  # Major - TUI dashboard spacing, truncation, and token display issues
-  ISS-042-global-dashboard-exits-immediately: reported  # Critical - Arrow keys read as bare \x1b, triggering quit handler
+  ISS-042-global-dashboard-exits-immediately: fixed  # Critical - Arrow keys read as bare \x1b, triggering quit handler
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -437,4 +437,4 @@ development_status:
   ux-fix-ISS-041-dashboard-layout-display-issues: ready-for-dev
   # Bugfix (from ISS-042) - CRITICAL
   # Arrow keys read as bare \x1b instead of escape sequences, triggering quit handler
-  bugfix-ISS-042-global-dashboard-exits-immediately: review
+  bugfix-ISS-042-global-dashboard-exits-immediately: done
