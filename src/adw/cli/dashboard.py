@@ -816,13 +816,13 @@ class DashboardController:
         elif key == "3":
             self.state.view_mode = "projects"
 
-    def render(self) -> Panel:
+    def render(self) -> "Panel | Group":
         """Generate Rich renderable for current state.
 
         Returns:
-            Rich Panel containing the dashboard display.
+            Rich renderable (Panel for detail view, Group for main view).
         """
-        from rich.layout import Layout
+        from rich.console import Group
 
         # Clamp selected index to valid range (handles data refresh edge cases)
         max_visible = min(len(self.data.recent_runs), 6) if self.data.recent_runs else 0
@@ -834,92 +834,51 @@ class DashboardController:
             selected_run = self.data.recent_runs[self.state.selected_run_index]
             return self.layout.create_run_detail(selected_run)
 
-        # Create main layout
-        main_layout = Layout()
-        main_layout.split_column(
-            Layout(name="header", size=3),
-            Layout(name="body"),
-            Layout(name="footer", size=1),
-        )
+        # Build components list - Group sizes to content automatically
+        components: list = []
 
-        # Build header
-        main_layout["header"].update(
+        # Header
+        components.append(
             self.layout.create_header(project_filter=self.project_filter)
         )
 
         # Build body based on data availability
         if self.data.stats is None and not self.data.recent_runs:
             # Empty state
-            main_layout["body"].update(self.layout.create_empty_state())
+            components.append(Text())  # Spacing
+            components.append(self.layout.create_empty_state())
         else:
             # Build body with content based on view_mode
-            body_layout = Layout()
-
             if self.state.view_mode == "projects":
                 # Projects-only view
-                body_layout.split_column(
-                    Layout(name="summary", size=8),
-                    Layout(name="projects"),
-                )
-                body_layout["summary"].update(
+                components.append(Text())  # Spacing
+                components.append(
                     self.layout.create_summary_panel(self.data.stats)
                 )
-                body_layout["projects"].update(
+                components.append(Text())  # Spacing between sections
+                components.append(
                     self.layout.create_projects_panel(self.data.stats)
                 )
             elif self.state.view_mode == "runs":
                 # Runs-only view (no summary)
-                body_layout.split_column(
-                    Layout(name="runs"),
-                )
                 active_panel = self.layout.create_active_runs_panel(
                     self.data.active_runs
                 )
                 if active_panel:
-                    runs_layout = Layout()
-                    runs_layout.split_column(
-                        Layout(name="active", size=6),
-                        Layout(name="recent"),
+                    components.append(Text())  # Spacing
+                    components.append(active_panel)
+                components.append(Text())  # Spacing
+                components.append(
+                    self.layout.create_recent_runs_table(
+                        self.data.recent_runs,
+                        selected_index=self.state.selected_run_index,
                     )
-                    runs_layout["active"].update(active_panel)
-                    runs_layout["recent"].update(
-                        self.layout.create_recent_runs_table(
-                            self.data.recent_runs,
-                            selected_index=self.state.selected_run_index,
-                        )
-                    )
-                    body_layout["runs"].update(runs_layout)
-                else:
-                    body_layout["runs"].update(
-                        self.layout.create_recent_runs_table(
-                            self.data.recent_runs,
-                            selected_index=self.state.selected_run_index,
-                        )
-                    )
+                )
             else:
                 # Summary view (default) - shows summary, runs, and projects
-                # Calculate runs section size based on actual content
-                active_runs_count = len(self.data.active_runs)
-                # Panel chrome (2) + rows, or 0 if no active runs
-                active_size = (3 + active_runs_count) if active_runs_count else 0
-                recent_runs_count = min(len(self.data.recent_runs), 6)
-                # Panel border (2) + header (1) + data rows + subtitle (1)
-                recent_size = 4 + recent_runs_count
-                runs_section_size = active_size + recent_size
-
-                # Calculate projects section size based on content
-                # Panel border (2) + header (1) + project rows + some padding
-                project_count = len(self.data.stats.projects) if self.data.stats else 0
-                projects_section_size = max(4, 3 + project_count)
-
-                body_layout.split_column(
-                    Layout(name="summary", size=9),  # +1 for spacing
-                    Layout(name="runs", size=runs_section_size + 1),  # +1 for spacing
-                    Layout(name="projects", size=projects_section_size),
-                )
-
                 # Summary panel
-                body_layout["summary"].update(
+                components.append(Text())  # Spacing after header
+                components.append(
                     self.layout.create_summary_panel(self.data.stats)
                 )
 
@@ -928,36 +887,27 @@ class DashboardController:
                     self.data.active_runs
                 )
                 if active_panel:
-                    runs_layout = Layout()
-                    runs_layout.split_column(
-                        Layout(name="active", size=active_size),
-                        Layout(name="recent"),
+                    components.append(Text())  # Spacing
+                    components.append(active_panel)
+
+                # Recent runs
+                components.append(Text())  # Spacing between sections
+                components.append(
+                    self.layout.create_recent_runs_table(
+                        self.data.recent_runs,
+                        selected_index=self.state.selected_run_index,
                     )
-                    runs_layout["active"].update(active_panel)
-                    runs_layout["recent"].update(
-                        self.layout.create_recent_runs_table(
-                            self.data.recent_runs,
-                            selected_index=self.state.selected_run_index,
-                        )
-                    )
-                    body_layout["runs"].update(runs_layout)
-                else:
-                    body_layout["runs"].update(
-                        self.layout.create_recent_runs_table(
-                            self.data.recent_runs,
-                            selected_index=self.state.selected_run_index,
-                        )
-                    )
+                )
 
                 # Projects panel
-                body_layout["projects"].update(
+                components.append(Text())  # Spacing between sections
+                components.append(
                     self.layout.create_projects_panel(self.data.stats)
                 )
 
-            main_layout["body"].update(body_layout)
-
-        # Build footer
-        main_layout["footer"].update(
+        # Footer
+        components.append(Text())  # Spacing before footer
+        components.append(
             self.layout.create_footer(
                 last_refresh=self.state.last_refresh,
                 paused=self.state.paused,
@@ -965,7 +915,7 @@ class DashboardController:
             )
         )
 
-        return Panel(main_layout, border_style="blue")
+        return Group(*components)
 
     def run(self, no_auto_refresh: bool = False) -> None:
         """Run the main dashboard event loop with Rich Live display.
