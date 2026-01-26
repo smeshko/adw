@@ -944,8 +944,6 @@ class DashboardController:
         Args:
             no_auto_refresh: If True, start with auto-refresh paused.
         """
-        import time
-
         from rich.live import Live
 
         # Initial data refresh
@@ -957,10 +955,6 @@ class DashboardController:
 
         # Check if we have a TTY for keyboard input
         keyboard_enabled = self._setup_keyboard()
-
-        # Grace period to ignore stray escape sequences from terminal init
-        startup_time = time.monotonic()
-        startup_grace_period = 1.0  # seconds
 
         try:
             with Live(
@@ -976,20 +970,12 @@ class DashboardController:
                     key = self._read_key() if keyboard_enabled else None
 
                     if key:
-                        # Ignore bare escape during startup grace period
-                        # (terminals may send escape sequences during init)
-                        in_grace_period = (
-                            time.monotonic() - startup_time
-                        ) < startup_grace_period
-                        if key == "\x1b" and in_grace_period:
-                            pass  # Ignore stray escape
-                        else:
-                            self.handle_key(key)
-                            live.update(self.render())
-                            # Sync timer if manual refresh was triggered
-                            if self._manual_refresh_triggered:
-                                last_refresh_time = datetime.now(UTC)
-                                self._manual_refresh_triggered = False
+                        self.handle_key(key)
+                        live.update(self.render())
+                        # Sync timer if manual refresh was triggered
+                        if self._manual_refresh_triggered:
+                            last_refresh_time = datetime.now(UTC)
+                            self._manual_refresh_triggered = False
 
                     # Auto-refresh if not paused
                     if not self.state.paused:
@@ -1002,6 +988,8 @@ class DashboardController:
 
                     # Small sleep to prevent CPU spinning when no keyboard
                     if not keyboard_enabled:
+                        import time
+
                         time.sleep(0.25)
 
         finally:
@@ -1023,10 +1011,6 @@ class DashboardController:
 
             self._old_settings = termios.tcgetattr(sys.stdin)
             tty.setcbreak(sys.stdin.fileno())
-            # Flush any buffered input to prevent stray characters from
-            # triggering unexpected behavior (e.g., escape sequences from
-            # terminal negotiation)
-            termios.tcflush(sys.stdin, termios.TCIFLUSH)
             return True
         except (ImportError, OSError, AttributeError):
             # Not a TTY or termios not available
@@ -1056,38 +1040,17 @@ class DashboardController:
         import select
         import sys
 
-        # Timeout for waiting for escape sequence characters (200ms)
-        ESC_TIMEOUT = 0.2
-
         try:
             if select.select([sys.stdin], [], [], 0.25)[0]:
                 key = sys.stdin.read(1)
 
-                # Handle escape sequences
-                if key == "\x1b":
-                    # Wait longer for potential escape sequence
-                    if select.select([sys.stdin], [], [], ESC_TIMEOUT)[0]:
-                        # More data available - this is an escape sequence
-                        seq = sys.stdin.read(1)
-                        if seq == "[":
-                            # CSI sequence - read the final character
-                            if select.select([sys.stdin], [], [], ESC_TIMEOUT)[0]:
-                                final = sys.stdin.read(1)
-                                if final == "A":
-                                    return "up"
-                                elif final == "B":
-                                    return "down"
-                                elif final == "C":
-                                    return "right"
-                                elif final == "D":
-                                    return "left"
-                        # Unknown/unhandled escape sequence - consume and discard
-                        while select.select([sys.stdin], [], [], 0.02)[0]:
-                            sys.stdin.read(1)
-                        return None
-                    else:
-                        # No follow-up data after 200ms - bare Escape key press
-                        return key
+                # Handle escape sequences for arrow keys
+                if key == "\x1b" and select.select([sys.stdin], [], [], 0.1)[0]:
+                    key += sys.stdin.read(2)
+                    if key == "\x1b[A":
+                        return "up"
+                    elif key == "\x1b[B":
+                        return "down"
                 return key
         except OSError:
             pass
