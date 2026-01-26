@@ -14,6 +14,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from adw.core.index_manager import IndexManager
+from adw.core.project_registry import ProjectRegistryManager
 from adw.core.stats_aggregator import StatsAggregator
 from adw.models.index import IndexEntry
 from adw.models.stats import GlobalStatistics
@@ -138,12 +139,17 @@ def _format_relative_time(dt: datetime) -> str:
         return f"{days}d ago"
 
 
-def _display_global_runs(entries: list[IndexEntry], title: str) -> None:
+def _display_global_runs(
+    entries: list[IndexEntry],
+    title: str,
+    registered_names: dict[str, str] | None = None,
+) -> None:
     """Display global runs in Rich table format.
 
     Args:
         entries: List of IndexEntry objects to display.
         title: Table title.
+        registered_names: Optional mapping of project_path -> registered name.
     """
     table = Table(title=title)
     table.add_column("Run ID", style="cyan", no_wrap=True)
@@ -168,9 +174,14 @@ def _display_global_runs(entries: list[IndexEntry], title: str) -> None:
         if len(feature) > 30:
             feature = feature[:27] + "..."
 
+        # Use registered name if available, fallback to index name
+        project_name = entry.project_name
+        if registered_names and entry.project_path in registered_names:
+            project_name = registered_names[entry.project_path]
+
         table.add_row(
             entry.run_id,
-            entry.project_name,
+            project_name,
             feature,
             f"[{status_style}]{entry.status}[/{status_style}]",
             duration,
@@ -288,6 +299,12 @@ def list_runs(
 
     # Query the global index
     index_manager = IndexManager()
+    registry_manager = ProjectRegistryManager()
+
+    # Build lookup of registered project names
+    registered_names = {
+        p.path: p.name for p in registry_manager.get_all()
+    }
 
     # Request more entries to handle offset
     entries = index_manager.get_recent_runs(
@@ -316,7 +333,7 @@ def list_runs(
     if json_output:
         _output_json_entries(entries)
     else:
-        _display_global_runs(entries, title)
+        _display_global_runs(entries, title, registered_names)
 
 
 def _show_empty_results_message(
@@ -716,3 +733,182 @@ def dashboard_command(
         # Graceful exit on Ctrl+C
         console.print("\n[dim]Dashboard closed[/]")
         raise typer.Exit(code=0) from None
+
+
+# ============================================================================
+# Clean Command
+# ============================================================================
+
+# Patterns that indicate temporary/test directories
+TEMP_PATH_PATTERNS = (
+    "/pytest-",
+    "/tmp/",
+    "/var/folders/",
+    "/private/var/folders/",
+    "/.worktrees/",
+    "/test_",
+)
+
+
+def _is_temp_path(path: str) -> bool:
+    """Check if path matches temporary/test directory patterns.
+
+    Args:
+        path: Project path to check.
+
+    Returns:
+        True if path appears to be a temporary directory.
+    """
+    return any(pattern in path for pattern in TEMP_PATH_PATTERNS)
+
+
+def _path_exists(path: str) -> bool:
+    """Check if path exists on filesystem.
+
+    Args:
+        path: Project path to check.
+
+    Returns:
+        True if path exists.
+    """
+    from pathlib import Path
+
+    return Path(path).exists()
+
+
+@global_app.command(name="clean")
+def clean_command(
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        "-n",
+        help="Show what would be removed without making changes",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Skip confirmation prompt",
+    ),
+) -> None:
+    """Clean up stale and temporary entries from the global index.
+
+    Removes entries for:
+    - Projects that no longer exist on disk
+    - Temporary directories (pytest, /tmp/, etc.)
+
+    Examples:
+        adw global clean              # Interactive cleanup
+        adw global clean --dry-run    # Preview what would be removed
+        adw global clean --force      # Skip confirmation
+    """
+    index_manager = IndexManager()
+    registry_manager = ProjectRegistryManager()
+
+    if not index_manager.index_path.exists():
+        console.print("[yellow]No global index found. Nothing to clean.[/]")
+        return
+
+    # Read all entries
+    entries = index_manager._read_all_entries()
+    total_count = len(entries)
+
+    if total_count == 0:
+        console.print("[green]Global index is empty. Nothing to clean.[/]")
+        return
+
+    # Get registered project paths
+    registered_projects = registry_manager.get_all()
+    registered_paths = {p.path for p in registered_projects}
+
+    # Categorize entries
+    entries_to_keep: list[IndexEntry] = []
+    removed_temp: list[IndexEntry] = []
+    removed_missing: list[IndexEntry] = []
+    removed_unregistered: list[IndexEntry] = []
+
+    for entry in entries:
+        path = entry.project_path
+
+        # Check if it's a temp/test path
+        if _is_temp_path(path):
+            removed_temp.append(entry)
+            continue
+
+        # Check if path still exists
+        if not _path_exists(path):
+            removed_missing.append(entry)
+            continue
+
+        # Check if project is registered (only if we have registered projects)
+        if registered_paths and path not in registered_paths:
+            removed_unregistered.append(entry)
+            continue
+
+        entries_to_keep.append(entry)
+
+    # Calculate totals
+    total_removed = len(removed_temp) + len(removed_missing) + len(removed_unregistered)
+
+    if total_removed == 0:
+        console.print("[green]Global index is clean. No entries to remove.[/]")
+        return
+
+    # Show summary
+    console.print(f"\n[bold]Index Cleanup Summary[/]")
+    console.print(f"Total entries: {total_count:,}")
+    console.print(f"Entries to keep: {len(entries_to_keep):,}")
+    console.print(f"Entries to remove: {total_removed:,}")
+
+    if removed_temp:
+        console.print(f"  - Temporary/test paths: {len(removed_temp):,}")
+    if removed_missing:
+        console.print(f"  - Missing paths: {len(removed_missing):,}")
+    if removed_unregistered:
+        console.print(f"  - Unregistered projects: {len(removed_unregistered):,}")
+
+    # Show samples of what will be removed
+    if dry_run:
+        console.print("\n[yellow]Dry run - showing samples of entries to remove:[/]")
+
+        if removed_temp:
+            console.print("\n[dim]Temporary/test paths (sample):[/]")
+            for entry in removed_temp[:5]:
+                console.print(f"  {entry.project_name}: {entry.project_path}")
+            if len(removed_temp) > 5:
+                console.print(f"  ... and {len(removed_temp) - 5} more")
+
+        if removed_missing:
+            console.print("\n[dim]Missing paths (sample):[/]")
+            for entry in removed_missing[:5]:
+                console.print(f"  {entry.project_name}: {entry.project_path}")
+            if len(removed_missing) > 5:
+                console.print(f"  ... and {len(removed_missing) - 5} more")
+
+        if removed_unregistered:
+            console.print("\n[dim]Unregistered projects (sample):[/]")
+            for entry in removed_unregistered[:5]:
+                console.print(f"  {entry.project_name}: {entry.project_path}")
+            if len(removed_unregistered) > 5:
+                console.print(f"  ... and {len(removed_unregistered) - 5} more")
+
+        console.print("\n[yellow]Run without --dry-run to apply changes.[/]")
+        return
+
+    # Confirm unless --force
+    if not force:
+        console.print("")
+        confirm = typer.confirm(
+            f"Remove {total_removed:,} entries from the global index?"
+        )
+        if not confirm:
+            console.print("[dim]Cancelled.[/]")
+            raise typer.Exit(code=0)
+
+    # Write cleaned entries
+    index_manager._write_all_entries(entries_to_keep)
+
+    console.print(
+        f"\n[green]Cleaned {total_removed:,} entries from global index.[/]"
+    )
+    console.print(f"[dim]Remaining entries: {len(entries_to_keep):,}[/]")

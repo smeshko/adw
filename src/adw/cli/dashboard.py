@@ -110,6 +110,7 @@ class DashboardData:
     stats: GlobalStatistics | None = None
     recent_runs: list[IndexEntry] = field(default_factory=list)
     active_runs: list[IndexEntry] = field(default_factory=list)
+    registered_names: dict[str, str] = field(default_factory=dict)
     error: str | None = None
 
 
@@ -136,6 +137,18 @@ class DashboardLayout:
             console: Rich Console for output.
         """
         self.console = console
+        self.registered_names: dict[str, str] = {}
+
+    def get_display_name(self, run: IndexEntry) -> str:
+        """Get display name for a run, using registered name if available.
+
+        Args:
+            run: IndexEntry to get display name for.
+
+        Returns:
+            Registered project name or fallback to index project_name.
+        """
+        return self.registered_names.get(run.project_path, run.project_name)
 
     def create_header(
         self,
@@ -278,7 +291,7 @@ class DashboardLayout:
             table.add_row(
                 "[yellow]●[/]",
                 run.run_id[:8] + "...",
-                run.project_name,
+                self.get_display_name(run),
                 feature,
                 f"[yellow]◐[/]  {duration}",
                 "—",  # Tokens not available during run
@@ -354,11 +367,14 @@ class DashboardLayout:
             if len(feature) > 27:
                 feature = feature[:24] + "..."
 
+            # Get display name (registered name or fallback)
+            display_name = self.get_display_name(run)
+
             # Highlight selected row
             if i == selected_index:
                 table.add_row(
                     f"[bold reverse]{run.run_id[:10]}[/]",
-                    f"[bold]{run.project_name}[/]",
+                    f"[bold]{display_name}[/]",
                     f"[bold]{feature}[/]",
                     status_text,
                     duration,
@@ -367,7 +383,7 @@ class DashboardLayout:
             else:
                 table.add_row(
                     run.run_id[:10] + "..",
-                    run.project_name,
+                    display_name,
                     feature,
                     status_text,
                     duration,
@@ -528,7 +544,7 @@ class DashboardLayout:
 
         # Project
         content.append("  PROJECT      ", style="bold")
-        content.append(run.project_name, style="green")
+        content.append(self.get_display_name(run), style="green")
         content.append("\n")
         content.append("  PATH         ", style="bold dim")
         content.append(run.project_path, style="dim")
@@ -650,6 +666,7 @@ class DashboardController:
         """
         # Import here to avoid circular imports
         from adw.core.index_manager import IndexManager
+        from adw.core.project_registry import ProjectRegistryManager
         from adw.core.stats_aggregator import StatsAggregator
 
         self.refresh_interval = refresh_interval
@@ -665,6 +682,7 @@ class DashboardController:
 
         # Initialize data sources
         self.index_manager = IndexManager()
+        self.project_registry = ProjectRegistryManager()
         self.stats_aggregator = StatsAggregator()
 
         # Flag to signal run() to reset its local auto-refresh timer
@@ -677,6 +695,12 @@ class DashboardController:
         Also clamps selected_run_index to valid range to prevent IndexError.
         """
         try:
+            # Build registered names lookup and share with layout
+            self.data.registered_names = {
+                p.path: p.name for p in self.project_registry.get_all()
+            }
+            self.layout.registered_names = self.data.registered_names
+
             # Fetch recent runs
             recent_runs = self.index_manager.get_recent_runs(
                 limit=100,
@@ -920,6 +944,8 @@ class DashboardController:
         Args:
             no_auto_refresh: If True, start with auto-refresh paused.
         """
+        import time
+
         from rich.live import Live
 
         # Initial data refresh
@@ -931,6 +957,10 @@ class DashboardController:
 
         # Check if we have a TTY for keyboard input
         keyboard_enabled = self._setup_keyboard()
+
+        # Grace period to ignore stray escape sequences from terminal init
+        startup_time = time.monotonic()
+        startup_grace_period = 1.0  # seconds
 
         try:
             with Live(
@@ -946,12 +976,20 @@ class DashboardController:
                     key = self._read_key() if keyboard_enabled else None
 
                     if key:
-                        self.handle_key(key)
-                        live.update(self.render())
-                        # Sync timer if manual refresh was triggered
-                        if self._manual_refresh_triggered:
-                            last_refresh_time = datetime.now(UTC)
-                            self._manual_refresh_triggered = False
+                        # Ignore bare escape during startup grace period
+                        # (terminals may send escape sequences during init)
+                        in_grace_period = (
+                            time.monotonic() - startup_time
+                        ) < startup_grace_period
+                        if key == "\x1b" and in_grace_period:
+                            pass  # Ignore stray escape
+                        else:
+                            self.handle_key(key)
+                            live.update(self.render())
+                            # Sync timer if manual refresh was triggered
+                            if self._manual_refresh_triggered:
+                                last_refresh_time = datetime.now(UTC)
+                                self._manual_refresh_triggered = False
 
                     # Auto-refresh if not paused
                     if not self.state.paused:
@@ -964,8 +1002,6 @@ class DashboardController:
 
                     # Small sleep to prevent CPU spinning when no keyboard
                     if not keyboard_enabled:
-                        import time
-
                         time.sleep(0.25)
 
         finally:
@@ -987,6 +1023,10 @@ class DashboardController:
 
             self._old_settings = termios.tcgetattr(sys.stdin)
             tty.setcbreak(sys.stdin.fileno())
+            # Flush any buffered input to prevent stray characters from
+            # triggering unexpected behavior (e.g., escape sequences from
+            # terminal negotiation)
+            termios.tcflush(sys.stdin, termios.TCIFLUSH)
             return True
         except (ImportError, OSError, AttributeError):
             # Not a TTY or termios not available
@@ -1016,17 +1056,38 @@ class DashboardController:
         import select
         import sys
 
+        # Timeout for waiting for escape sequence characters (200ms)
+        ESC_TIMEOUT = 0.2
+
         try:
             if select.select([sys.stdin], [], [], 0.25)[0]:
                 key = sys.stdin.read(1)
 
-                # Handle escape sequences for arrow keys
-                if key == "\x1b" and select.select([sys.stdin], [], [], 0.1)[0]:
-                    key += sys.stdin.read(2)
-                    if key == "\x1b[A":
-                        return "up"
-                    elif key == "\x1b[B":
-                        return "down"
+                # Handle escape sequences
+                if key == "\x1b":
+                    # Wait longer for potential escape sequence
+                    if select.select([sys.stdin], [], [], ESC_TIMEOUT)[0]:
+                        # More data available - this is an escape sequence
+                        seq = sys.stdin.read(1)
+                        if seq == "[":
+                            # CSI sequence - read the final character
+                            if select.select([sys.stdin], [], [], ESC_TIMEOUT)[0]:
+                                final = sys.stdin.read(1)
+                                if final == "A":
+                                    return "up"
+                                elif final == "B":
+                                    return "down"
+                                elif final == "C":
+                                    return "right"
+                                elif final == "D":
+                                    return "left"
+                        # Unknown/unhandled escape sequence - consume and discard
+                        while select.select([sys.stdin], [], [], 0.02)[0]:
+                            sys.stdin.read(1)
+                        return None
+                    else:
+                        # No follow-up data after 200ms - bare Escape key press
+                        return key
                 return key
         except OSError:
             pass

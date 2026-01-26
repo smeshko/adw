@@ -11,6 +11,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from adw.core.index_manager import IndexManager
+from adw.core.project_registry import ProjectRegistryManager
 from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,7 @@ class StatsAggregator:
         index_manager: IndexManager | None = None,
         cache_path: Path | None = None,
         pricing: dict[str, dict[str, float]] | None = None,
+        project_registry: ProjectRegistryManager | None = None,
     ) -> None:
         """Initialize the StatsAggregator.
 
@@ -59,8 +61,10 @@ class StatsAggregator:
             index_manager: Optional IndexManager instance.
             cache_path: Path to cache file. Defaults to ~/.adw/stats-cache.json.
             pricing: Model pricing override.
+            project_registry: Optional ProjectRegistryManager instance.
         """
         self.index_manager = index_manager or IndexManager()
+        self.project_registry = project_registry or ProjectRegistryManager()
 
         env_cache_path = os.environ.get("ADW_TEST_STATS_CACHE_PATH")
         if cache_path is not None:
@@ -183,6 +187,9 @@ class StatsAggregator:
     ) -> GlobalStatistics:
         """Collect statistics from index and LLM files.
 
+        Only includes runs from registered projects to avoid polluting
+        stats with test/temporary directories.
+
         Args:
             project_name: Filter to specific project.
             since: Only include runs after this time.
@@ -194,12 +201,20 @@ class StatsAggregator:
         week_ago = now - timedelta(days=7)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
+        # Get registered project paths for filtering
+        registered_projects = self.project_registry.get_all()
+        registered_paths = {p.path for p in registered_projects}
+
         # Get all runs from index
         entries = self.index_manager.get_recent_runs(
             limit=100000,  # Get all
             project_name=project_name,
             since=since,
         )
+
+        # Filter to only registered projects
+        if registered_paths:
+            entries = [e for e in entries if e.project_path in registered_paths]
 
         if not entries:
             return GlobalStatistics(generated_at=now)
@@ -227,6 +242,11 @@ class StatsAggregator:
             int(sum(durations) / len(durations)) if durations else 0
         )
 
+        # Build lookup of registered project names
+        registered_names = {
+            p.path: p.name for p in registered_projects
+        }
+
         # Collect token usage from LLM files
         total_tokens = TokenUsage()
         project_stats: dict[str, ProjectStatistics] = {}
@@ -244,8 +264,8 @@ class StatsAggregator:
                 output_tokens=total_tokens.output_tokens + run_tokens.output_tokens,
             )
 
-            # Update project statistics
-            proj_name = entry.project_name
+            # Update project statistics - use registered name if available
+            proj_name = registered_names.get(entry.project_path, entry.project_name)
             if proj_name not in project_stats:
                 project_stats[proj_name] = ProjectStatistics(
                     name=proj_name,

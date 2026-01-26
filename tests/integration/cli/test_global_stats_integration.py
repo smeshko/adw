@@ -15,6 +15,7 @@ from typer.testing import CliRunner
 from adw.cli.global_commands import global_app
 from adw.core.stats_aggregator import StatsAggregator
 from adw.core.index_manager import IndexManager
+from adw.core.project_registry import ProjectRegistryManager
 
 
 runner = CliRunner()
@@ -29,12 +30,14 @@ def test_env(tmp_path: Path):
 
     index_path = adw_home / "index.jsonl"
     cache_path = adw_home / "stats-cache.json"
+    registry_path = adw_home / "projects.yaml"
 
     yield {
         "tmp_path": tmp_path,
         "adw_home": adw_home,
         "index_path": index_path,
         "cache_path": cache_path,
+        "registry_path": registry_path,
     }
 
 
@@ -111,9 +114,13 @@ def _create_mock_aggregator_class(test_env: dict):
 
         def __init__(self, **kwargs):
             index_manager = IndexManager(index_path=test_env["index_path"])
+            project_registry = ProjectRegistryManager(
+                registry_path=test_env["registry_path"]
+            )
             self._real = StatsAggregator(
                 index_manager=index_manager,
                 cache_path=test_env["cache_path"],
+                project_registry=project_registry,
                 **{k: v for k, v in kwargs.items() if k == "pricing"},
             )
 
@@ -127,6 +134,12 @@ def _create_mock_aggregator_class(test_env: dict):
             return self._real.calculate_cost(tokens, model)
 
     return MockStatsAggregator
+
+
+def register_project(test_env: dict, project_path: Path, name: str | None = None) -> None:
+    """Register a project in the test registry."""
+    registry = ProjectRegistryManager(registry_path=test_env["registry_path"])
+    registry.register(project_path, name=name)
 
 
 class TestStatsIntegration:
@@ -147,6 +160,9 @@ class TestStatsIntegration:
         """Stats command shows correct statistics for actual runs."""
         project_path = test_env["tmp_path"] / "my-project"
         project_path.mkdir()
+
+        # Register the project
+        register_project(test_env, project_path, "my-project")
 
         # Create index entries
         now = datetime.now(UTC)
@@ -202,6 +218,10 @@ class TestStatsIntegration:
         project_a.mkdir()
         project_b.mkdir()
 
+        # Register both projects
+        register_project(test_env, project_a, "project-a")
+        register_project(test_env, project_b, "project-b")
+
         now = datetime.now(UTC)
         entries = [
             create_index_entry("01ABC001", "project-a", str(project_a), "completed", now),
@@ -225,6 +245,9 @@ class TestStatsIntegration:
         """Stats --format json outputs valid JSON."""
         project_path = test_env["tmp_path"] / "test-project"
         project_path.mkdir()
+
+        # Register the project
+        register_project(test_env, project_path, "test-project")
 
         now = datetime.now(UTC)
         entry = create_index_entry(
@@ -295,6 +318,9 @@ class TestStatsIntegration:
         project_path = test_env["tmp_path"] / "no-llm-project"
         project_path.mkdir()
 
+        # Register the project
+        register_project(test_env, project_path, "no-llm-project")
+
         now = datetime.now(UTC)
         entry = create_index_entry(
             "01ABC001",
@@ -321,6 +347,9 @@ class TestStatsIntegration:
         """Stats correctly aggregates tokens from LLM files."""
         project_path = test_env["tmp_path"] / "token-project"
         project_path.mkdir()
+
+        # Register the project
+        register_project(test_env, project_path, "token-project")
 
         now = datetime.now(UTC)
         # Use a short ID that will be padded to 26 chars
@@ -358,6 +387,9 @@ class TestStatsIntegration:
         """Stats --since filters by time period."""
         project_path = test_env["tmp_path"] / "time-project"
         project_path.mkdir()
+
+        # Register the project
+        register_project(test_env, project_path, "time-project")
 
         now = datetime.now(UTC)
         entries = [
