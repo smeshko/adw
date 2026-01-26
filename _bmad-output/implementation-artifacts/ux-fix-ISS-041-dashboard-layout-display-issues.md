@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-041 - Dashboard Layout and Display Issues
 
-Status: ready-for-dev
+Status: done
 Linear Issue: pending
 Epic: 16 - Cross-Project Dashboard
 Created: 2026-01-26

@@ -434,7 +434,7 @@ development_status:
   ux-fix-ISS-040-template-variables-not-populated: ready-for-dev
   # UX Fix (from ISS-041) - MAJOR
   # TUI dashboard layout issues: whitespace, duration display, ID truncation, token aggregation
-  ux-fix-ISS-041-dashboard-layout-display-issues: ready-for-dev
+  ux-fix-ISS-041-dashboard-layout-display-issues: done
   # Bugfix (from ISS-042) - CRITICAL
   # Arrow keys read as bare \x1b instead of escape sequences, triggering quit handler
   bugfix-ISS-042-global-dashboard-exits-immediately: ready-for-dev
