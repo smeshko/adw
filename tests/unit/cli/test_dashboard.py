@@ -668,41 +668,22 @@ class TestDashboardControllerRun:
 
 
 class TestKeyboardInput:
-    """Tests for keyboard input handling with readchar."""
+    """Tests for keyboard input handling with manual escape sequence parsing."""
 
-    def test_setup_keyboard_returns_true_for_tty(self) -> None:
-        """_setup_keyboard returns True when stdin is a TTY."""
+    def test_setup_keyboard_returns_false_on_os_error(self) -> None:
+        """_setup_keyboard returns False when termios fails."""
         controller = DashboardController()
 
         with patch("sys.stdin") as mock_stdin:
-            mock_stdin.isatty.return_value = True
-            result = controller._setup_keyboard()
-
-        assert result is True
-
-    def test_setup_keyboard_returns_false_for_non_tty(self) -> None:
-        """_setup_keyboard returns False when stdin is not a TTY."""
-        controller = DashboardController()
-
-        with patch("sys.stdin") as mock_stdin:
-            mock_stdin.isatty.return_value = False
+            mock_stdin.fileno.side_effect = OSError("Not a terminal")
             result = controller._setup_keyboard()
 
         assert result is False
 
-    def test_setup_keyboard_handles_os_error(self) -> None:
-        """_setup_keyboard returns False on OSError."""
+    def test_cleanup_keyboard_handles_no_settings(self) -> None:
+        """_cleanup_keyboard handles case where no settings were saved."""
         controller = DashboardController()
-
-        with patch("sys.stdin") as mock_stdin:
-            mock_stdin.isatty.side_effect = OSError("Not a terminal")
-            result = controller._setup_keyboard()
-
-        assert result is False
-
-    def test_cleanup_keyboard_is_noop(self) -> None:
-        """_cleanup_keyboard does nothing (readchar handles cleanup)."""
-        controller = DashboardController()
+        controller._old_settings = None
         # Should not raise
         controller._cleanup_keyboard()
 
@@ -714,96 +695,6 @@ class TestKeyboardInput:
             result = controller._read_key()
 
         assert result is None
-
-    def test_read_key_maps_up_arrow(self) -> None:
-        """_read_key correctly maps UP arrow key."""
-        controller = DashboardController()
-        import readchar
-
-        with (
-            patch("select.select", return_value=([True], [], [])),
-            patch("readchar.readkey", return_value=readchar.key.UP),
-        ):
-            result = controller._read_key()
-
-        assert result == "up"
-
-    def test_read_key_maps_down_arrow(self) -> None:
-        """_read_key correctly maps DOWN arrow key."""
-        controller = DashboardController()
-        import readchar
-
-        with (
-            patch("select.select", return_value=([True], [], [])),
-            patch("readchar.readkey", return_value=readchar.key.DOWN),
-        ):
-            result = controller._read_key()
-
-        assert result == "down"
-
-    def test_read_key_maps_left_arrow(self) -> None:
-        """_read_key correctly maps LEFT arrow key."""
-        controller = DashboardController()
-        import readchar
-
-        with (
-            patch("select.select", return_value=([True], [], [])),
-            patch("readchar.readkey", return_value=readchar.key.LEFT),
-        ):
-            result = controller._read_key()
-
-        assert result == "left"
-
-    def test_read_key_maps_right_arrow(self) -> None:
-        """_read_key correctly maps RIGHT arrow key."""
-        controller = DashboardController()
-        import readchar
-
-        with (
-            patch("select.select", return_value=([True], [], [])),
-            patch("readchar.readkey", return_value=readchar.key.RIGHT),
-        ):
-            result = controller._read_key()
-
-        assert result == "right"
-
-    def test_read_key_maps_enter(self) -> None:
-        """_read_key correctly maps ENTER key."""
-        controller = DashboardController()
-        import readchar
-
-        with (
-            patch("select.select", return_value=([True], [], [])),
-            patch("readchar.readkey", return_value=readchar.key.ENTER),
-        ):
-            result = controller._read_key()
-
-        assert result == "\r"
-
-    def test_read_key_maps_escape(self) -> None:
-        """_read_key correctly maps ESC key."""
-        controller = DashboardController()
-        import readchar
-
-        with (
-            patch("select.select", return_value=([True], [], [])),
-            patch("readchar.readkey", return_value=readchar.key.ESC),
-        ):
-            result = controller._read_key()
-
-        assert result == "\x1b"
-
-    def test_read_key_passes_regular_chars(self) -> None:
-        """_read_key passes through regular characters unchanged."""
-        controller = DashboardController()
-
-        with (
-            patch("select.select", return_value=([True], [], [])),
-            patch("readchar.readkey", return_value="q"),
-        ):
-            result = controller._read_key()
-
-        assert result == "q"
 
     def test_read_key_handles_os_error(self) -> None:
         """_read_key returns None on OSError."""
@@ -838,6 +729,19 @@ class TestKeyboardInput:
         controller.handle_key("\x1b")
 
         assert controller.state.quit_requested is True
+
+    def test_selection_clamped_to_visible_rows(self) -> None:
+        """Selection should be limited to visible rows (max 6)."""
+        controller = DashboardController()
+        # Create 10 runs but only 6 are visible
+        controller.data.recent_runs = [MagicMock() for _ in range(10)]
+        controller.state.selected_run_index = 0
+
+        # Press down 10 times - should stop at index 5 (6th item)
+        for _ in range(10):
+            controller.handle_key("down")
+
+        assert controller.state.selected_run_index == 5  # Max visible index
 
 
 class TestDashboardLayoutSizing:

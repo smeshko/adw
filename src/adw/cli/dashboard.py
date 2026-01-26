@@ -335,12 +335,12 @@ class DashboardLayout:
             )
 
         table = Table(show_header=True, box=None, padding=(0, 1))
-        table.add_column("RUN ID", style="cyan", no_wrap=True, width=18)
-        table.add_column("PROJECT", width=15)
-        table.add_column("FEATURE", max_width=30)
-        table.add_column("STATUS", justify="center", width=12)
+        table.add_column("RUN ID", style="cyan", no_wrap=True, width=28)
+        table.add_column("PROJECT", width=12)
+        table.add_column("FEATURE", max_width=25)
+        table.add_column("STATUS", justify="left", width=14)
         table.add_column("DURATION", width=10)
-        table.add_column("STARTED", style="dim", width=12)
+        table.add_column("STARTED", style="dim", width=10)
 
         for i, run in enumerate(runs[:max_rows]):
             # Status indicator
@@ -378,13 +378,10 @@ class DashboardLayout:
             # Get display name (registered name or fallback)
             display_name = self.get_display_name(run)
 
-            # Format run ID - show 16 chars if longer, otherwise full ID
-            truncated_id = run.run_id[:16] + ".." if len(run.run_id) > 16 else run.run_id
-
             # Highlight selected row
             if i == selected_index:
                 table.add_row(
-                    f"[bold reverse]{truncated_id}[/]",
+                    f"[bold reverse]{run.run_id}[/]",
                     f"[bold]{display_name}[/]",
                     f"[bold]{feature}[/]",
                     status_text,
@@ -393,7 +390,7 @@ class DashboardLayout:
                 )
             else:
                 table.add_row(
-                    truncated_id,
+                    run.run_id,
                     display_name,
                     feature,
                     status_text,
@@ -800,7 +797,9 @@ class DashboardController:
 
         # Navigation: down arrow or j (vim-style)
         elif key_lower == "down" or key_lower == "j":
-            max_index = len(self.data.recent_runs) - 1
+            # Limit to visible rows (max_rows=6 in create_recent_runs_table)
+            max_visible = min(len(self.data.recent_runs), 6)
+            max_index = max_visible - 1
             if max_index >= 0 and self.state.selected_run_index < max_index:
                 self.state.selected_run_index += 1
 
@@ -824,6 +823,11 @@ class DashboardController:
             Rich Panel containing the dashboard display.
         """
         from rich.layout import Layout
+
+        # Clamp selected index to valid range (handles data refresh edge cases)
+        max_visible = min(len(self.data.recent_runs), 6) if self.data.recent_runs else 0
+        if self.state.selected_run_index >= max_visible:
+            self.state.selected_run_index = max(0, max_visible - 1)
 
         # Handle run detail view
         if self.state.show_run_detail and self.data.recent_runs:
@@ -894,21 +898,24 @@ class DashboardController:
                     )
             else:
                 # Summary view (default) - shows summary, runs, and projects
-                # Calculate runs section size based on actual content:
-                # - Active runs: panel border (2) + rows (1 per run)
-                # - Recent runs: panel border (2) + header (1) + rows (max 6) + footer (1)
+                # Calculate runs section size based on actual content
                 active_runs_count = len(self.data.active_runs)
-                # Panel chrome (2) + rows, minimum 0 if no active runs
-                active_section_size = (3 + active_runs_count) if active_runs_count else 0
+                # Panel chrome (2) + rows, or 0 if no active runs
+                active_size = (3 + active_runs_count) if active_runs_count else 0
                 recent_runs_count = min(len(self.data.recent_runs), 6)
-                # Panel border (2) + header row (1) + data rows + subtitle (1)
-                recent_section_size = 4 + recent_runs_count
-                runs_section_size = active_section_size + recent_section_size
+                # Panel border (2) + header (1) + data rows + subtitle (1)
+                recent_size = 4 + recent_runs_count
+                runs_section_size = active_size + recent_size
+
+                # Calculate projects section size based on content
+                # Panel border (2) + header (1) + project rows + some padding
+                project_count = len(self.data.stats.projects) if self.data.stats else 0
+                projects_section_size = max(4, 3 + project_count)
 
                 body_layout.split_column(
-                    Layout(name="summary", size=8),
-                    Layout(name="runs", size=runs_section_size),
-                    Layout(name="projects", size=10),
+                    Layout(name="summary", size=9),  # +1 for spacing
+                    Layout(name="runs", size=runs_section_size + 1),  # +1 for spacing
+                    Layout(name="projects", size=projects_section_size),
                 )
 
                 # Summary panel
@@ -923,7 +930,7 @@ class DashboardController:
                 if active_panel:
                     runs_layout = Layout()
                     runs_layout.split_column(
-                        Layout(name="active", size=active_section_size),
+                        Layout(name="active", size=active_size),
                         Layout(name="recent"),
                     )
                     runs_layout["active"].update(active_panel)
@@ -1084,7 +1091,7 @@ class DashboardController:
             try:
                 # Read all available bytes (up to 10 for safety)
                 data = sys.stdin.read(10)
-            except (IOError, BlockingIOError):
+            except OSError:
                 data = ""
             finally:
                 # Restore blocking mode
