@@ -654,3 +654,65 @@ def stats_command(
         _output_stats_json(stats)
     else:
         _show_global_stats(stats)
+
+
+@global_app.command(name="dashboard")
+def dashboard_command(
+    refresh: int = typer.Option(
+        30,
+        "--refresh",
+        "-r",
+        help="Refresh interval in seconds",
+        min=5,
+        max=300,
+    ),
+    project: str | None = typer.Option(
+        None,
+        "--project",
+        "-p",
+        help="Filter to specific project initially",
+    ),
+    no_auto_refresh: bool = typer.Option(
+        False,
+        "--no-auto-refresh",
+        help="Disable auto-refresh (use R to manually refresh)",
+    ),
+) -> None:
+    """Launch the interactive TUI dashboard.
+
+    Displays a real-time overview of ADW runs across all projects with
+    statistics, active runs, and recent run history.
+
+    Features:
+    - Summary statistics (total runs, success rate, cost)
+    - Active runs with elapsed time
+    - Recent runs table with status indicators
+    - Per-project breakdown
+
+    Keyboard shortcuts:
+    - Q / Esc: Quit dashboard
+    - R: Force refresh
+    - P: Pause/resume auto-refresh
+    - Up/k: Move selection up
+    - Down/j: Move selection down
+    - Enter: View run details
+    - 1/2/3: Switch views (Summary/Runs/Projects)
+
+    Examples:
+        adw global dashboard                    # Default 30s refresh
+        adw global dashboard --refresh 60       # 60s refresh interval
+        adw global dashboard --project my-api   # Filter to project
+        adw global dashboard --no-auto-refresh  # Manual refresh only
+    """
+    from adw.cli.dashboard import run_dashboard
+
+    try:
+        run_dashboard(
+            refresh_interval=refresh,
+            project_filter=project,
+            no_auto_refresh=no_auto_refresh,
+        )
+    except KeyboardInterrupt:
+        # Graceful exit on Ctrl+C
+        console.print("\n[dim]Dashboard closed[/]")
+        raise typer.Exit(code=0) from None

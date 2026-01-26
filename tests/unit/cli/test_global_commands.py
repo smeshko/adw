@@ -5,6 +5,7 @@ run listing, filtering, and statistics.
 """
 
 from datetime import UTC, datetime, timedelta
+from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
@@ -112,3 +113,126 @@ class TestGlobalListCommand:
         assert "--limit" in result.output
         assert "--offset" in result.output
         assert "--json" in result.output
+
+
+class TestDashboardCommand:
+    """Tests for the global dashboard command."""
+
+    def test_dashboard_command_exists(self) -> None:
+        """The dashboard command should be registered."""
+        result = runner.invoke(app, ["global", "dashboard", "--help"])
+        assert result.exit_code == 0
+        assert "Launch the interactive TUI dashboard" in result.output
+
+    def test_dashboard_help_shows_all_options(self) -> None:
+        """Help should show all available options."""
+        result = runner.invoke(app, ["global", "dashboard", "--help"])
+        assert result.exit_code == 0
+        assert "--refresh" in result.output
+        assert "--project" in result.output
+        assert "--no-auto-refresh" in result.output
+
+    def test_dashboard_help_shows_keyboard_shortcuts(self) -> None:
+        """Help should document keyboard shortcuts."""
+        result = runner.invoke(app, ["global", "dashboard", "--help"])
+        assert result.exit_code == 0
+        # Check that keyboard shortcuts are documented
+        assert "q" in result.output.lower() or "quit" in result.output.lower()
+
+    @patch("adw.cli.dashboard.run_dashboard")
+    def test_dashboard_calls_run_dashboard(self, mock_run: "MagicMock") -> None:
+        """Dashboard command should call run_dashboard function."""
+        result = runner.invoke(app, ["global", "dashboard"])
+        assert result.exit_code == 0
+        mock_run.assert_called_once_with(
+            refresh_interval=30,
+            project_filter=None,
+            no_auto_refresh=False,
+        )
+
+    @patch("adw.cli.dashboard.run_dashboard")
+    def test_dashboard_with_refresh_option(self, mock_run: "MagicMock") -> None:
+        """Dashboard should pass refresh interval to run_dashboard."""
+        result = runner.invoke(app, ["global", "dashboard", "--refresh", "60"])
+        assert result.exit_code == 0
+        mock_run.assert_called_once_with(
+            refresh_interval=60,
+            project_filter=None,
+            no_auto_refresh=False,
+        )
+
+    @patch("adw.cli.dashboard.run_dashboard")
+    def test_dashboard_with_project_filter(self, mock_run: "MagicMock") -> None:
+        """Dashboard should pass project filter to run_dashboard."""
+        result = runner.invoke(app, ["global", "dashboard", "--project", "my-api"])
+        assert result.exit_code == 0
+        mock_run.assert_called_once_with(
+            refresh_interval=30,
+            project_filter="my-api",
+            no_auto_refresh=False,
+        )
+
+    @patch("adw.cli.dashboard.run_dashboard")
+    def test_dashboard_with_no_auto_refresh(self, mock_run: "MagicMock") -> None:
+        """Dashboard should pass no-auto-refresh flag to run_dashboard."""
+        result = runner.invoke(app, ["global", "dashboard", "--no-auto-refresh"])
+        assert result.exit_code == 0
+        mock_run.assert_called_once_with(
+            refresh_interval=30,
+            project_filter=None,
+            no_auto_refresh=True,
+        )
+
+    @patch("adw.cli.dashboard.run_dashboard")
+    def test_dashboard_with_all_options(self, mock_run: "MagicMock") -> None:
+        """Dashboard should handle all options together."""
+        result = runner.invoke(
+            app,
+            [
+                "global",
+                "dashboard",
+                "--refresh",
+                "120",
+                "--project",
+                "test-proj",
+                "--no-auto-refresh",
+            ],
+        )
+        assert result.exit_code == 0
+        mock_run.assert_called_once_with(
+            refresh_interval=120,
+            project_filter="test-proj",
+            no_auto_refresh=True,
+        )
+
+    @patch("adw.cli.dashboard.run_dashboard")
+    def test_dashboard_short_option_aliases(self, mock_run: "MagicMock") -> None:
+        """Dashboard should accept short option aliases."""
+        result = runner.invoke(app, ["global", "dashboard", "-r", "45", "-p", "api"])
+        assert result.exit_code == 0
+        mock_run.assert_called_once_with(
+            refresh_interval=45,
+            project_filter="api",
+            no_auto_refresh=False,
+        )
+
+    def test_dashboard_refresh_min_validation(self) -> None:
+        """Dashboard should reject refresh interval below minimum."""
+        result = runner.invoke(app, ["global", "dashboard", "--refresh", "1"])
+        # Typer should reject values below min=5
+        assert result.exit_code != 0
+
+    def test_dashboard_refresh_max_validation(self) -> None:
+        """Dashboard should reject refresh interval above maximum."""
+        result = runner.invoke(app, ["global", "dashboard", "--refresh", "500"])
+        # Typer should reject values above max=300
+        assert result.exit_code != 0
+
+    @patch("adw.cli.dashboard.run_dashboard")
+    def test_dashboard_handles_keyboard_interrupt(self, mock_run: "MagicMock") -> None:
+        """Dashboard should handle KeyboardInterrupt gracefully."""
+        mock_run.side_effect = KeyboardInterrupt()
+        result = runner.invoke(app, ["global", "dashboard"])
+        # Should exit cleanly with code 0
+        assert result.exit_code == 0
+        assert "Dashboard closed" in result.output
