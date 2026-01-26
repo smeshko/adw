@@ -894,10 +894,12 @@ class DashboardController:
                     )
             else:
                 # Summary view (default) - shows summary, runs, and projects
-                # Calculate runs section size based on content:
-                # - Active runs: 6 lines if present (panel header + rows + padding)
-                # - Recent runs: header (3) + rows (max 6) + footer (2) = 11 lines
-                active_section_size = 6 if self.data.active_runs else 0
+                # Calculate runs section size based on actual content:
+                # - Active runs: panel border (2) + rows (1 per run)
+                # - Recent runs: panel border (2) + header (1) + rows (max 6) + footer (1)
+                active_runs_count = len(self.data.active_runs)
+                # Panel chrome (2) + rows, minimum 0 if no active runs
+                active_section_size = (3 + active_runs_count) if active_runs_count else 0
                 recent_runs_count = min(len(self.data.recent_runs), 6)
                 # Panel border (2) + header row (1) + data rows + subtitle (1)
                 recent_section_size = 4 + recent_runs_count
@@ -921,7 +923,7 @@ class DashboardController:
                 if active_panel:
                     runs_layout = Layout()
                     runs_layout.split_column(
-                        Layout(name="active", size=6),
+                        Layout(name="active", size=active_section_size),
                         Layout(name="recent"),
                     )
                     runs_layout["active"].update(active_panel)
