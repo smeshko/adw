@@ -1191,6 +1191,8 @@ class PhaseRunner:
         Returns:
             List of artifact filenames.
         """
+        import json
+
         artifacts: list[str] = []
 
         # ISS-023: Use final_output (last message only) for artifacts
@@ -1222,6 +1224,28 @@ class PhaseRunner:
             artifacts.append(tool_calls_name)
 
         # Note: Build phase git diff capture is now handled by BuildExtension
+
+        # Store LLM response stats to llm/ directory for token tracking
+        # This is used by StatsAggregator for dashboard token display
+        try:
+            phase_index = PHASE_SEQUENCE.index(phase) + 1
+        except ValueError:
+            phase_index = 99  # Unknown phase gets high index
+
+        response_data = {
+            "timestamp": datetime.now(UTC).isoformat(),
+            "phase": phase,
+            "stats": {
+                "input_tokens": llm_result.input_tokens,
+                "output_tokens": llm_result.output_tokens,
+                "duration_ms": llm_result.duration_ms,
+            },
+        }
+
+        llm_dir = self.artifact_manager.runs_dir / context.run_id / "llm"
+        llm_dir.mkdir(parents=True, exist_ok=True)
+        response_file = llm_dir / f"{phase_index:03d}_{phase}_response.json"
+        response_file.write_text(json.dumps(response_data, indent=2))
 
         # Call extension extra_artifacts hooks (Phase Extensions)
         extra_artifacts = self.extension_registry.call_extra_artifacts(

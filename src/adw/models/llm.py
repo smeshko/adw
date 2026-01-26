@@ -71,7 +71,13 @@ class LLMResult(BaseModel):
     """List of tool calls made during execution."""
 
     tokens_used: int = 0
-    """Number of tokens consumed by this execution."""
+    """Total number of tokens consumed by this execution (input + output)."""
+
+    input_tokens: int = 0
+    """Number of input tokens consumed."""
+
+    output_tokens: int = 0
+    """Number of output tokens generated."""
 
     duration_ms: int = 0
     """Execution duration in milliseconds."""

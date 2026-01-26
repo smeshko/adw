@@ -430,6 +430,8 @@ class ClaudeCodeExecutor:
                 final_output=parsed.get("final_output", ""),
                 tool_calls=parsed["tool_calls"],
                 tokens_used=parsed["tokens_used"],
+                input_tokens=parsed["input_tokens"],
+                output_tokens=parsed["output_tokens"],
                 duration_ms=duration_ms,
             )
         else:
@@ -443,6 +445,8 @@ class ClaudeCodeExecutor:
                 final_output=parsed.get("final_output", ""),
                 tool_calls=parsed["tool_calls"],
                 tokens_used=parsed["tokens_used"],
+                input_tokens=parsed["input_tokens"],
+                output_tokens=parsed["output_tokens"],
                 duration_ms=duration_ms,
                 error=error_msg,
             )
@@ -469,7 +473,8 @@ class ClaudeCodeExecutor:
         """
         content_parts: list[str] = []
         tool_calls: list[ToolCall] = []
-        tokens_used = 0
+        input_tokens = 0
+        output_tokens = 0
         # Track the last assistant message text separately (ISS-023)
         last_assistant_text: list[str] = []
         current_message_text: list[str] = []
@@ -519,9 +524,8 @@ class ClaudeCodeExecutor:
             elif msg_type == "result":
                 # Result message may contain token usage
                 usage = data.get("usage", {})
-                tokens_used = usage.get("input_tokens", 0) + usage.get(
-                    "output_tokens", 0
-                )
+                input_tokens = usage.get("input_tokens", 0)
+                output_tokens = usage.get("output_tokens", 0)
                 # Also extract final text if present
                 if "text" in data:
                     text = data["text"]
@@ -544,9 +548,8 @@ class ClaudeCodeExecutor:
                 # Message delta with usage
                 usage = data.get("usage", {})
                 if usage:
-                    tokens_used = usage.get("input_tokens", 0) + usage.get(
-                        "output_tokens", 0
-                    )
+                    input_tokens = usage.get("input_tokens", 0)
+                    output_tokens = usage.get("output_tokens", 0)
 
         # Save the final assistant message text
         if current_message_text:
@@ -559,7 +562,9 @@ class ClaudeCodeExecutor:
             "content": "".join(content_parts),
             "final_output": final_output,
             "tool_calls": tool_calls,
-            "tokens_used": tokens_used,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "tokens_used": input_tokens + output_tokens,
         }
 
     def _extract_tool_context(
