@@ -374,9 +374,7 @@ class DashboardLayout:
                     started,
                 )
 
-        footer = (
-            "[dim][↑/↓] Navigate   [Enter] View Details   [Page↓] More[/]"
-        )
+        footer = "[dim][↑/↓] Navigate   [Enter] View Details[/]"
 
         return Panel(
             table,
@@ -673,6 +671,7 @@ class DashboardController:
         """Fetch latest data from IndexManager and StatsAggregator.
 
         Updates self.data with fresh run list and statistics.
+        Also clamps selected_run_index to valid range to prevent IndexError.
         """
         try:
             # Fetch recent runs
@@ -691,6 +690,16 @@ class DashboardController:
             self.data.stats = self.stats_aggregator.get_global_stats(
                 project_name=self.project_filter,
             )
+
+            # Clamp selected_run_index to valid range after data refresh
+            if recent_runs:
+                max_index = len(recent_runs) - 1
+                if self.state.selected_run_index > max_index:
+                    self.state.selected_run_index = max_index
+            else:
+                self.state.selected_run_index = 0
+                # Disable detail view if no runs available
+                self.state.show_run_detail = False
 
             # Clear any previous error
             self.data.error = None
@@ -800,40 +809,92 @@ class DashboardController:
             # Empty state
             main_layout["body"].update(self.layout.create_empty_state())
         else:
-            # Build body with content
+            # Build body with content based on view_mode
             body_layout = Layout()
-            body_layout.split_column(
-                Layout(name="summary", size=8),
-                Layout(name="runs"),
-            )
 
-            # Summary panel
-            body_layout["summary"].update(
-                self.layout.create_summary_panel(self.data.stats)
-            )
-
-            # Active runs section (if any)
-            active_panel = self.layout.create_active_runs_panel(self.data.active_runs)
-            if active_panel:
-                runs_layout = Layout()
-                runs_layout.split_column(
-                    Layout(name="active", size=6),
-                    Layout(name="recent"),
+            if self.state.view_mode == "projects":
+                # Projects-only view
+                body_layout.split_column(
+                    Layout(name="summary", size=8),
+                    Layout(name="projects"),
                 )
-                runs_layout["active"].update(active_panel)
-                runs_layout["recent"].update(
-                    self.layout.create_recent_runs_table(
-                        self.data.recent_runs,
-                        selected_index=self.state.selected_run_index,
+                body_layout["summary"].update(
+                    self.layout.create_summary_panel(self.data.stats)
+                )
+                body_layout["projects"].update(
+                    self.layout.create_projects_panel(self.data.stats)
+                )
+            elif self.state.view_mode == "runs":
+                # Runs-only view (no summary)
+                body_layout.split_column(
+                    Layout(name="runs"),
+                )
+                active_panel = self.layout.create_active_runs_panel(
+                    self.data.active_runs
+                )
+                if active_panel:
+                    runs_layout = Layout()
+                    runs_layout.split_column(
+                        Layout(name="active", size=6),
+                        Layout(name="recent"),
                     )
-                )
-                body_layout["runs"].update(runs_layout)
+                    runs_layout["active"].update(active_panel)
+                    runs_layout["recent"].update(
+                        self.layout.create_recent_runs_table(
+                            self.data.recent_runs,
+                            selected_index=self.state.selected_run_index,
+                        )
+                    )
+                    body_layout["runs"].update(runs_layout)
+                else:
+                    body_layout["runs"].update(
+                        self.layout.create_recent_runs_table(
+                            self.data.recent_runs,
+                            selected_index=self.state.selected_run_index,
+                        )
+                    )
             else:
-                body_layout["runs"].update(
-                    self.layout.create_recent_runs_table(
-                        self.data.recent_runs,
-                        selected_index=self.state.selected_run_index,
+                # Summary view (default) - shows summary, runs, and projects
+                body_layout.split_column(
+                    Layout(name="summary", size=8),
+                    Layout(name="runs"),
+                    Layout(name="projects", size=10),
+                )
+
+                # Summary panel
+                body_layout["summary"].update(
+                    self.layout.create_summary_panel(self.data.stats)
+                )
+
+                # Active runs section (if any)
+                active_panel = self.layout.create_active_runs_panel(
+                    self.data.active_runs
+                )
+                if active_panel:
+                    runs_layout = Layout()
+                    runs_layout.split_column(
+                        Layout(name="active", size=6),
+                        Layout(name="recent"),
                     )
+                    runs_layout["active"].update(active_panel)
+                    runs_layout["recent"].update(
+                        self.layout.create_recent_runs_table(
+                            self.data.recent_runs,
+                            selected_index=self.state.selected_run_index,
+                        )
+                    )
+                    body_layout["runs"].update(runs_layout)
+                else:
+                    body_layout["runs"].update(
+                        self.layout.create_recent_runs_table(
+                            self.data.recent_runs,
+                            selected_index=self.state.selected_run_index,
+                        )
+                    )
+
+                # Projects panel
+                body_layout["projects"].update(
+                    self.layout.create_projects_panel(self.data.stats)
                 )
 
             main_layout["body"].update(body_layout)

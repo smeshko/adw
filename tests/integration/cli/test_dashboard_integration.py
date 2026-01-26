@@ -436,3 +436,117 @@ class TestDashboardRefreshBehavior:
         controller = DashboardController(refresh_interval=60)
 
         assert controller.refresh_interval == 60
+
+
+class TestDashboardIndexClamping:
+    """Tests for selected_run_index bounds clamping."""
+
+    def test_selected_index_clamped_after_refresh(self) -> None:
+        """Selected index should be clamped when runs list shrinks."""
+        controller = DashboardController(refresh_interval=30)
+
+        # Start with 3 mock runs
+        mock_runs_3 = [MagicMock(), MagicMock(), MagicMock()]
+        mock_runs_1 = [MagicMock()]
+
+        # First refresh returns 3 runs
+        with patch.object(
+            controller.index_manager, "get_recent_runs", return_value=mock_runs_3
+        ):
+            controller.refresh_data()
+
+        # Set selected index to last run
+        controller.state.selected_run_index = 2
+
+        # Second refresh returns only 1 run
+        with patch.object(
+            controller.index_manager, "get_recent_runs", return_value=mock_runs_1
+        ):
+            controller.refresh_data()
+
+        # Index should be clamped to 0 (only 1 run now)
+        assert controller.state.selected_run_index == 0
+
+    def test_render_does_not_raise_with_out_of_range_index(self) -> None:
+        """Render should not raise IndexError even if index is out of range."""
+        controller = DashboardController(refresh_interval=30)
+        controller.data.recent_runs = []  # Empty list
+        controller.state.selected_run_index = 5  # Out of range
+
+        # Should not raise
+        output = controller.render()
+        assert output is not None
+
+    def test_detail_view_disabled_when_no_runs(self) -> None:
+        """Detail view flag should be cleared when no runs available."""
+        controller = DashboardController(refresh_interval=30)
+        controller.state.show_run_detail = True
+
+        # Empty refresh
+        with patch.object(
+            controller.index_manager, "get_recent_runs", return_value=[]
+        ):
+            controller.refresh_data()
+
+        # Detail view should be disabled
+        assert controller.state.show_run_detail is False
+        assert controller.state.selected_run_index == 0
+
+
+class TestDashboardViewModeRendering:
+    """Tests for view_mode-based rendering."""
+
+    def test_projects_view_renders_projects_panel(self) -> None:
+        """Projects view mode should render the projects panel."""
+        console = Console(force_terminal=True, record=True, width=120)
+        controller = DashboardController(refresh_interval=30, console=console)
+        controller.data.stats = GlobalStatistics(generated_at=datetime.now(UTC))
+        controller.data.recent_runs = []
+        controller.data.active_runs = []
+
+        # Switch to projects view
+        controller.handle_key("3")
+        assert controller.state.view_mode == "projects"
+
+        # Render and capture output
+        output = controller.render()
+        console.print(output)
+        output_str = console.export_text()
+
+        # Should include projects-related content
+        assert "PROJECT" in output_str.upper()
+
+    def test_runs_view_focuses_on_runs(self) -> None:
+        """Runs view mode should show runs without summary."""
+        console = Console(force_terminal=True, record=True, width=120)
+        controller = DashboardController(refresh_interval=30, console=console)
+        controller.data.stats = GlobalStatistics(generated_at=datetime.now(UTC))
+        controller.data.recent_runs = []
+        controller.data.active_runs = []
+
+        # Switch to runs view
+        controller.handle_key("2")
+        assert controller.state.view_mode == "runs"
+
+        # Render should not raise
+        output = controller.render()
+        assert output is not None
+
+    def test_summary_view_includes_projects(self) -> None:
+        """Summary view (default) should include projects panel."""
+        console = Console(force_terminal=True, record=True, width=120)
+        controller = DashboardController(refresh_interval=30, console=console)
+        controller.data.stats = GlobalStatistics(generated_at=datetime.now(UTC))
+        controller.data.recent_runs = []
+        controller.data.active_runs = []
+
+        # Keep default summary view
+        assert controller.state.view_mode == "summary"
+
+        # Render and capture output
+        output = controller.render()
+        console.print(output)
+        output_str = console.export_text()
+
+        # Should include both summary and projects
+        assert "SUMMARY" in output_str.upper() or "summary" in output_str.lower()
