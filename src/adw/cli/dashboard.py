@@ -270,18 +270,26 @@ class DashboardLayout:
 
         table = Table(show_header=False, box=None, padding=(0, 1))
         table.add_column("Status", width=2)
-        table.add_column("ID", width=10)
+        table.add_column("ID", width=18, no_wrap=True)
         table.add_column("Project", width=15)
         table.add_column("Feature", max_width=35)
-        table.add_column("Duration", width=10)
+        table.add_column("Duration", width=14, no_wrap=True)
         table.add_column("Tokens", width=10)
 
         for run in active_runs:
-            # Calculate elapsed time
+            # Calculate elapsed time with human-readable format
             elapsed = datetime.now(UTC) - run.started_at
-            elapsed_min = int(elapsed.total_seconds()) // 60
-            elapsed_sec = int(elapsed.total_seconds()) % 60
-            duration = f"{elapsed_min}m {elapsed_sec:02d}s"
+            total_seconds = int(elapsed.total_seconds())
+            total_minutes = total_seconds // 60
+
+            # Format duration: use hours if >= 60 minutes
+            if total_minutes >= 60:
+                hours = total_minutes // 60
+                minutes = total_minutes % 60
+                duration = f"{hours}h {minutes:02d}m"
+            else:
+                seconds = total_seconds % 60
+                duration = f"{total_minutes}m {seconds:02d}s"
 
             # Truncate feature
             feature = run.feature_description
@@ -290,10 +298,10 @@ class DashboardLayout:
 
             table.add_row(
                 "[yellow]●[/]",
-                run.run_id[:8] + "...",
+                run.run_id[:16] + ".." if len(run.run_id) > 16 else run.run_id,
                 self.get_display_name(run),
                 feature,
-                f"[yellow]◐[/]  {duration}",
+                f"[yellow]◐[/] {duration}",
                 "—",  # Tokens not available during run
             )
 
@@ -327,7 +335,7 @@ class DashboardLayout:
             )
 
         table = Table(show_header=True, box=None, padding=(0, 1))
-        table.add_column("RUN ID", style="cyan", no_wrap=True, width=12)
+        table.add_column("RUN ID", style="cyan", no_wrap=True, width=18)
         table.add_column("PROJECT", width=15)
         table.add_column("FEATURE", max_width=30)
         table.add_column("STATUS", justify="center", width=12)
@@ -370,10 +378,13 @@ class DashboardLayout:
             # Get display name (registered name or fallback)
             display_name = self.get_display_name(run)
 
+            # Format run ID - show 16 chars if longer, otherwise full ID
+            truncated_id = run.run_id[:16] + ".." if len(run.run_id) > 16 else run.run_id
+
             # Highlight selected row
             if i == selected_index:
                 table.add_row(
-                    f"[bold reverse]{run.run_id[:10]}[/]",
+                    f"[bold reverse]{truncated_id}[/]",
                     f"[bold]{display_name}[/]",
                     f"[bold]{feature}[/]",
                     status_text,
@@ -382,7 +393,7 @@ class DashboardLayout:
                 )
             else:
                 table.add_row(
-                    run.run_id[:10] + "..",
+                    truncated_id,
                     display_name,
                     feature,
                     status_text,
@@ -883,9 +894,20 @@ class DashboardController:
                     )
             else:
                 # Summary view (default) - shows summary, runs, and projects
+                # Calculate runs section size based on actual content:
+                # - Active runs: panel border (2) + rows (1 per run)
+                # - Recent runs: panel border (2) + header (1) + rows (max 6) + footer (1)
+                active_runs_count = len(self.data.active_runs)
+                # Panel chrome (2) + rows, minimum 0 if no active runs
+                active_section_size = (3 + active_runs_count) if active_runs_count else 0
+                recent_runs_count = min(len(self.data.recent_runs), 6)
+                # Panel border (2) + header row (1) + data rows + subtitle (1)
+                recent_section_size = 4 + recent_runs_count
+                runs_section_size = active_section_size + recent_section_size
+
                 body_layout.split_column(
                     Layout(name="summary", size=8),
-                    Layout(name="runs"),
+                    Layout(name="runs", size=runs_section_size),
                     Layout(name="projects", size=10),
                 )
 
@@ -901,7 +923,7 @@ class DashboardController:
                 if active_panel:
                     runs_layout = Layout()
                     runs_layout.split_column(
-                        Layout(name="active", size=6),
+                        Layout(name="active", size=active_section_size),
                         Layout(name="recent"),
                     )
                     runs_layout["active"].update(active_panel)

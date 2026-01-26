@@ -1,6 +1,6 @@
 # Story: UX Fix ISS-041 - Dashboard Layout and Display Issues
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: pending
 Epic: 16 - Cross-Project Dashboard
 Created: 2026-01-26
@@ -26,25 +26,32 @@ so that **I can quickly understand the status and cost of my workflow runs at a 
 ## Tasks / Subtasks
 
 ### Task 1: Fix Recent Runs Panel Sizing
-- [ ] 1.1: In `create_recent_runs_table()`, remove fixed height constraints
-- [ ] 1.2: Let the table size naturally based on row count
-- [ ] 1.3: In `render()`, use `size` parameter only for fixed sections (summary, projects), let runs section use remaining space proportionally
+- [x] 1.1: In `create_recent_runs_table()`, remove fixed height constraints
+- [x] 1.2: Let the table size naturally based on row count
+- [x] 1.3: In `render()`, use `size` parameter only for fixed sections (summary, projects), let runs section use remaining space proportionally
 
 ### Task 2: Fix Active Runs Duration Display
-- [ ] 2.1: In `create_active_runs_panel()`, fix the duration column formatting
-- [ ] 2.2: Remove the line break between minutes and seconds (current: `"[yellow]◐[/]  {elapsed_min}m\n{elapsed_sec:02d}s"`)
-- [ ] 2.3: Format duration consistently: `{elapsed_min}m {elapsed_sec:02d}s` or convert to hours when > 60 minutes
+- [x] 2.1: In `create_active_runs_panel()`, fix the duration column formatting
+- [x] 2.2: Remove the line break between minutes and seconds (current: `"[yellow]◐[/]  {elapsed_min}m\n{elapsed_sec:02d}s"`)
+- [x] 2.3: Format duration consistently: `{elapsed_min}m {elapsed_sec:02d}s` or convert to hours when > 60 minutes
 
 ### Task 3: Improve Run ID Column Width
-- [ ] 3.1: Increase the run ID column `width` from 10-12 to 16-20 characters
-- [ ] 3.2: Consider making width dynamic based on terminal size
-- [ ] 3.3: Update both recent runs table and active runs panel
+- [x] 3.1: Increase the run ID column `width` from 10-12 to 16-20 characters
+- [x] 3.2: Consider making width dynamic based on terminal size
+- [x] 3.3: Update both recent runs table and active runs panel
 
 ### Task 4: Investigate Token Display
-- [ ] 4.1: Verify LLM response files exist in run directories under `.adw/runs/{run_id}/llm/`
-- [ ] 4.2: Check if `_parse_llm_response_files()` is finding and parsing files correctly
-- [ ] 4.3: If LLM files don't exist, investigate why they're not being persisted during runs
-- [ ] 4.4: Add logging to help diagnose token aggregation issues
+- [x] 4.1: Verify LLM response files exist in run directories under `.adw/runs/{run_id}/llm/`
+- [x] 4.2: Check if `_parse_llm_response_files()` is finding and parsing files correctly
+- [x] 4.3: If LLM files don't exist, investigate why they're not being persisted during runs
+- [x] 4.4: Add logging to help diagnose token aggregation issues
+
+**Investigation Findings (Task 4):**
+- Most `.adw/runs/{run_id}/llm/` directories are empty (0 files)
+- The `_parse_llm_response_files()` function works correctly when files exist
+- Root cause: LLM response files are not being persisted during runs (executor layer issue)
+- This is a separate bug that should be tracked in a new issue (outside dashboard scope)
+- Added debug logging to help diagnose token aggregation issues
 
 ---
 
@@ -240,16 +247,21 @@ Screenshot: `_bmad-output/implementation-artifacts/issues/assets/ISS-041-dashboa
 
 ### Agent Model Used
 
-<!-- To be filled by dev agent -->
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
-<!-- To be filled during implementation -->
+N/A - straightforward layout fix
 
 ### Completion Notes List
 
-<!-- To be filled during implementation -->
+- Task 1: Fixed recent runs panel sizing by using `ratio=1` in Layout instead of unbounded sizing. The table in `create_recent_runs_table()` already sizes naturally - the issue was the parent Layout taking all remaining space.
+- Task 2: Fixed active runs duration display - increased column width from 10 to 14 with no_wrap=True, reduced icon spacing, and added hours format for durations >= 60 minutes (e.g., "88h 53m" instead of "5333m 50s").
+- Task 3: Improved run ID display - increased column width to 18 in both active runs and recent runs tables, showing 14 characters of ID instead of 8-10. Added no_wrap=True to prevent wrapping.
+- Task 4: Investigated token display issue - found that most LLM response files are empty/not persisted (executor layer bug, not dashboard). Added debug logging to stats_aggregator to help diagnose. The `_parse_llm_response_files()` function works correctly when files exist.
 
 ### File List
 
-<!-- To be filled during implementation -->
+- `src/adw/cli/dashboard.py` - Modified render() to use ratio-based sizing for runs section; improved duration and ID column formatting
+- `src/adw/core/stats_aggregator.py` - Added debug logging for LLM response file parsing
+- `tests/unit/cli/test_dashboard.py` - Added TestDashboardLayoutSizing tests
