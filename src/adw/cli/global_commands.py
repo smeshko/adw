@@ -792,6 +792,31 @@ def _run_exists(project_path: str, run_id: str) -> bool:
     return run_dir.exists()
 
 
+# Default threshold for considering a "running" entry as stale (24 hours)
+_DEFAULT_STALE_HOURS = 24
+
+
+def _is_stale_running(entry: IndexEntry, stale_hours: int = _DEFAULT_STALE_HOURS) -> bool:
+    """Check if a run entry is stale (running status for too long).
+
+    A run is considered stale if it has status "running" but has been
+    running for longer than the threshold. This typically indicates the
+    process crashed or was killed without updating the index.
+
+    Args:
+        entry: The index entry to check.
+        stale_hours: Hours after which a running entry is considered stale.
+
+    Returns:
+        True if the entry is stale.
+    """
+    if entry.status != "running":
+        return False
+
+    elapsed = datetime.now(UTC) - entry.started_at
+    return elapsed.total_seconds() > stale_hours * 3600
+
+
 @global_app.command(name="clean")
 def clean_command(
     dry_run: bool = typer.Option(
@@ -811,6 +836,17 @@ def clean_command(
         "--orphaned/--no-orphaned",
         help="Remove orphaned runs (index entries without local run directories)",
     ),
+    stale: bool = typer.Option(
+        True,
+        "--stale/--no-stale",
+        help="Mark stale 'running' entries as interrupted (running > 24h)",
+    ),
+    stale_hours: int = typer.Option(
+        _DEFAULT_STALE_HOURS,
+        "--stale-hours",
+        help="Hours after which a 'running' entry is considered stale",
+        min=1,
+    ),
 ) -> None:
     """Clean up stale and temporary entries from the global index.
 
@@ -818,12 +854,15 @@ def clean_command(
     - Projects that no longer exist on disk
     - Temporary directories (pytest, /tmp/, etc.)
     - Orphaned runs (entries without corresponding local run directories)
+    - Stale runs (status 'running' for > 24h, marked as 'interrupted')
 
     Examples:
         adw global clean              # Interactive cleanup
         adw global clean --dry-run    # Preview what would be removed
         adw global clean --force      # Skip confirmation
         adw global clean --no-orphaned  # Skip orphaned run check
+        adw global clean --no-stale   # Skip stale run detection
+        adw global clean --stale-hours 48  # Custom stale threshold
     """
     index_manager = IndexManager()
     registry_manager = ProjectRegistryManager()
@@ -850,6 +889,7 @@ def clean_command(
     removed_missing: list[IndexEntry] = []
     removed_unregistered: list[IndexEntry] = []
     removed_orphaned: list[IndexEntry] = []
+    stale_running: list[IndexEntry] = []  # These will be updated, not removed
 
     for entry in entries:
         path = entry.project_path
@@ -874,6 +914,14 @@ def clean_command(
             removed_orphaned.append(entry)
             continue
 
+        # Check if entry is stale (running for too long)
+        if stale and _is_stale_running(entry, stale_hours):
+            stale_running.append(entry)
+            # Mark as interrupted and keep it
+            updated_entry = entry.model_copy(update={"status": "interrupted"})
+            entries_to_keep.append(updated_entry)
+            continue
+
         entries_to_keep.append(entry)
 
     # Calculate totals
@@ -883,16 +931,20 @@ def clean_command(
         + len(removed_unregistered)
         + len(removed_orphaned)
     )
+    total_updated = len(stale_running)
 
-    if total_removed == 0:
-        console.print("[green]Global index is clean. No entries to remove.[/]")
+    if total_removed == 0 and total_updated == 0:
+        console.print("[green]Global index is clean. No entries to remove or update.[/]")
         return
 
     # Show summary
     console.print(f"\n[bold]Index Cleanup Summary[/]")
     console.print(f"Total entries: {total_count:,}")
     console.print(f"Entries to keep: {len(entries_to_keep):,}")
-    console.print(f"Entries to remove: {total_removed:,}")
+    if total_removed > 0:
+        console.print(f"Entries to remove: {total_removed:,}")
+    if total_updated > 0:
+        console.print(f"Entries to update: {total_updated:,}")
 
     if removed_temp:
         console.print(f"  - Temporary/test paths: {len(removed_temp):,}")
@@ -902,6 +954,10 @@ def clean_command(
         console.print(f"  - Unregistered projects: {len(removed_unregistered):,}")
     if removed_orphaned:
         console.print(f"  - Orphaned runs (no local data): {len(removed_orphaned):,}")
+    if stale_running:
+        console.print(
+            f"  - Stale 'running' → 'interrupted': {len(stale_running):,}"
+        )
 
     # Show samples of what will be removed
     if dry_run:
@@ -935,15 +991,30 @@ def clean_command(
             if len(removed_orphaned) > 5:
                 console.print(f"  ... and {len(removed_orphaned) - 5} more")
 
+        if stale_running:
+            console.print("\n[dim]Stale runs to mark as interrupted (sample):[/]")
+            for entry in stale_running[:5]:
+                elapsed = datetime.now(UTC) - entry.started_at
+                hours = int(elapsed.total_seconds() / 3600)
+                console.print(
+                    f"  {entry.run_id}: {entry.project_name} (running {hours}h)"
+                )
+            if len(stale_running) > 5:
+                console.print(f"  ... and {len(stale_running) - 5} more")
+
         console.print("\n[yellow]Run without --dry-run to apply changes.[/]")
         return
 
     # Confirm unless --force
     if not force:
         console.print("")
-        confirm = typer.confirm(
-            f"Remove {total_removed:,} entries from the global index?"
-        )
+        actions = []
+        if total_removed > 0:
+            actions.append(f"remove {total_removed:,}")
+        if total_updated > 0:
+            actions.append(f"update {total_updated:,}")
+        action_str = " and ".join(actions)
+        confirm = typer.confirm(f"{action_str.capitalize()} entries in the global index?")
         if not confirm:
             console.print("[dim]Cancelled.[/]")
             raise typer.Exit(code=0)
@@ -951,7 +1022,12 @@ def clean_command(
     # Write cleaned entries
     index_manager._write_all_entries(entries_to_keep)
 
-    console.print(
-        f"\n[green]Cleaned {total_removed:,} entries from global index.[/]"
-    )
+    # Show results
+    results = []
+    if total_removed > 0:
+        results.append(f"removed {total_removed:,}")
+    if total_updated > 0:
+        results.append(f"updated {total_updated:,} stale → interrupted")
+
+    console.print(f"\n[green]Cleaned index: {', '.join(results)}.[/]")
     console.print(f"[dim]Remaining entries: {len(entries_to_keep):,}[/]")
