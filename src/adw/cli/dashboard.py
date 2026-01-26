@@ -975,9 +975,6 @@ class DashboardController:
         if no_auto_refresh:
             self.state.paused = True
 
-        # Check if we have a TTY for keyboard input
-        keyboard_enabled = self._setup_keyboard()
-
         try:
             with Live(
                 self.render(),
@@ -985,102 +982,137 @@ class DashboardController:
                 refresh_per_second=4,
                 transient=False,
             ) as live:
-                last_refresh_time = datetime.now(UTC)
+                # Set up keyboard AFTER Live context starts to avoid mode conflicts
+                keyboard_enabled = self._setup_keyboard()
 
-                while not self.state.quit_requested:
-                    # Check for keyboard input (non-blocking)
-                    key = self._read_key() if keyboard_enabled else None
+                try:
+                    last_refresh_time = datetime.now(UTC)
 
-                    if key:
-                        self.handle_key(key)
-                        live.update(self.render())
-                        # Sync timer if manual refresh was triggered
-                        if self._manual_refresh_triggered:
-                            last_refresh_time = datetime.now(UTC)
-                            self._manual_refresh_triggered = False
+                    while not self.state.quit_requested:
+                        # Check for keyboard input (non-blocking)
+                        key = self._read_key() if keyboard_enabled else None
 
-                    # Auto-refresh if not paused
-                    if not self.state.paused:
-                        now = datetime.now(UTC)
-                        elapsed = (now - last_refresh_time).total_seconds()
-                        if elapsed >= self.refresh_interval:
-                            self.refresh_data()
-                            last_refresh_time = now
+                        if key:
+                            self.handle_key(key)
                             live.update(self.render())
+                            # Sync timer if manual refresh was triggered
+                            if self._manual_refresh_triggered:
+                                last_refresh_time = datetime.now(UTC)
+                                self._manual_refresh_triggered = False
 
-                    # Small sleep to prevent CPU spinning when no keyboard
-                    if not keyboard_enabled:
-                        import time
+                        # Auto-refresh if not paused
+                        if not self.state.paused:
+                            now = datetime.now(UTC)
+                            elapsed = (now - last_refresh_time).total_seconds()
+                            if elapsed >= self.refresh_interval:
+                                self.refresh_data()
+                                last_refresh_time = now
+                                live.update(self.render())
 
-                        time.sleep(0.25)
+                        # Small sleep to prevent CPU spinning when no keyboard
+                        if not keyboard_enabled:
+                            import time
 
-        finally:
+                            time.sleep(0.25)
+                finally:
+                    self._cleanup_keyboard()
+
+        except Exception:
             self._cleanup_keyboard()
+            raise
 
     def _setup_keyboard(self) -> bool:
         """Set up terminal for keyboard input.
 
-        Uses readchar for cross-platform keyboard handling.
-        Returns True if stdin is a TTY (interactive terminal).
+        Configures terminal for cbreak mode (character-by-character input, no echo).
 
         Returns:
             True if keyboard input is available, False otherwise.
         """
         import sys
 
+        self._old_settings = None
+
         try:
-            return sys.stdin.isatty()
-        except (OSError, AttributeError):
+            import termios
+            import tty
+
+            self._old_settings = termios.tcgetattr(sys.stdin)
+            tty.setcbreak(sys.stdin.fileno())
+            return True
+        except (ImportError, OSError, AttributeError):
+            # Not a TTY or termios not available
             return False
 
     def _cleanup_keyboard(self) -> None:
-        """Restore terminal settings.
+        """Restore terminal settings."""
+        import sys
 
-        readchar handles terminal cleanup internally, so this is a no-op.
-        Kept for interface compatibility.
-        """
-        pass
+        if self._old_settings is not None:
+            try:
+                import termios
+
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self._old_settings)
+            except (ImportError, OSError):
+                pass
+            self._old_settings = None
 
     def _read_key(self) -> str | None:
         """Read a key from stdin with timeout (non-blocking).
 
-        Uses readchar library for proper cross-platform escape sequence handling.
-        Implements timeout using select() to check for input availability.
+        Handles escape sequences for arrow keys by reading all available bytes
+        when an escape character is detected.
 
         Returns:
             Key string ("up", "down", "q", etc.), or None if no key available.
         """
+        import fcntl
+        import os
         import select
         import sys
 
         try:
-            # Use select with timeout to check for input availability
+            # Check if input is available (non-blocking with 0.25s timeout)
             if not select.select([sys.stdin], [], [], 0.25)[0]:
                 return None
 
-            # Input is available - use readchar for proper key reading
-            import readchar
+            # Set stdin to non-blocking mode temporarily
+            fd = sys.stdin.fileno()
+            old_flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+            fcntl.fcntl(fd, fcntl.F_SETFL, old_flags | os.O_NONBLOCK)
 
-            key = readchar.readkey()
+            try:
+                # Read all available bytes (up to 10 for safety)
+                data = sys.stdin.read(10)
+            except (IOError, BlockingIOError):
+                data = ""
+            finally:
+                # Restore blocking mode
+                fcntl.fcntl(fd, fcntl.F_SETFL, old_flags)
 
-            # Map readchar special keys to our string format
-            if key == readchar.key.UP:
+            if not data:
+                return None
+
+            # Handle escape sequences for arrow keys
+            if data == "\x1b":
+                # Standalone Escape key
+                return "\x1b"
+            elif data == "\x1b[A":
                 return "up"
-            elif key == readchar.key.DOWN:
+            elif data == "\x1b[B":
                 return "down"
-            elif key == readchar.key.LEFT:
-                return "left"
-            elif key == readchar.key.RIGHT:
+            elif data == "\x1b[C":
                 return "right"
-            elif key == readchar.key.ENTER:
-                return "\r"
-            elif key == readchar.key.ESC:
+            elif data == "\x1b[D":
+                return "left"
+            elif data.startswith("\x1b"):
+                # Unknown escape sequence - treat as Escape
                 return "\x1b"
             else:
-                # Return the key as-is (single characters like 'q', 'r', etc.)
-                return key
+                # Regular character(s) - return first one
+                return data[0]
 
-        except (OSError, ImportError):
+        except OSError:
             pass
         return None
 
