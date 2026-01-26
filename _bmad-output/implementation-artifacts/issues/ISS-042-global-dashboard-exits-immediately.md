@@ -3,7 +3,7 @@
 **ID:** ISS-042
 **Severity:** Critical
 **Type:** Bug
-**Status:** reported
+**Status:** fixed
 **Reported:** 2026-01-26
 **Reporter:** Ivo
 
