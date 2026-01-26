@@ -298,7 +298,7 @@ class DashboardLayout:
 
             table.add_row(
                 "[yellow]●[/]",
-                run.run_id[:14] + "..",
+                run.run_id[:16] + ".." if len(run.run_id) > 16 else run.run_id,
                 self.get_display_name(run),
                 feature,
                 f"[yellow]◐[/] {duration}",
@@ -378,10 +378,13 @@ class DashboardLayout:
             # Get display name (registered name or fallback)
             display_name = self.get_display_name(run)
 
+            # Format run ID - show 16 chars if longer, otherwise full ID
+            truncated_id = run.run_id[:16] + ".." if len(run.run_id) > 16 else run.run_id
+
             # Highlight selected row
             if i == selected_index:
                 table.add_row(
-                    f"[bold reverse]{run.run_id[:14]}[/]..",
+                    f"[bold reverse]{truncated_id}[/]",
                     f"[bold]{display_name}[/]",
                     f"[bold]{feature}[/]",
                     status_text,
@@ -390,7 +393,7 @@ class DashboardLayout:
                 )
             else:
                 table.add_row(
-                    run.run_id[:14] + "..",
+                    truncated_id,
                     display_name,
                     feature,
                     status_text,
@@ -891,11 +894,18 @@ class DashboardController:
                     )
             else:
                 # Summary view (default) - shows summary, runs, and projects
-                # Use ratio=1 for runs so it shares space proportionally
-                # rather than taking all remaining space
+                # Calculate runs section size based on content:
+                # - Active runs: 6 lines if present (panel header + rows + padding)
+                # - Recent runs: header (3) + rows (max 6) + footer (2) = 11 lines
+                active_section_size = 6 if self.data.active_runs else 0
+                recent_runs_count = min(len(self.data.recent_runs), 6)
+                # Panel border (2) + header row (1) + data rows + subtitle (1)
+                recent_section_size = 4 + recent_runs_count
+                runs_section_size = active_section_size + recent_section_size
+
                 body_layout.split_column(
                     Layout(name="summary", size=8),
-                    Layout(name="runs", ratio=1),
+                    Layout(name="runs", size=runs_section_size),
                     Layout(name="projects", size=10),
                 )
 
