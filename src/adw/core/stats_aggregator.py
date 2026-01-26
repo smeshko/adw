@@ -128,12 +128,18 @@ class StatsAggregator:
         """
         llm_dir = run_dir / "llm"
         if not llm_dir.exists():
+            logger.debug(
+                "LLM directory not found",
+                extra={"run_dir": str(run_dir)},
+            )
             return TokenUsage()
 
         total_input = 0
         total_output = 0
+        files_found = 0
 
         for response_file in llm_dir.glob("*_response.json"):
+            files_found += 1
             try:
                 with open(response_file) as f:
                     data = json.load(f)
@@ -147,6 +153,12 @@ class StatsAggregator:
                     extra={"file": str(response_file), "error": str(e)},
                 )
                 continue
+
+        if files_found == 0:
+            logger.debug(
+                "No LLM response files found in run",
+                extra={"llm_dir": str(llm_dir)},
+            )
 
         return TokenUsage(input_tokens=total_input, output_tokens=total_output)
 

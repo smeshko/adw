@@ -41,10 +41,17 @@ so that **I can quickly understand the status and cost of my workflow runs at a 
 - [x] 3.3: Update both recent runs table and active runs panel
 
 ### Task 4: Investigate Token Display
-- [ ] 4.1: Verify LLM response files exist in run directories under `.adw/runs/{run_id}/llm/`
-- [ ] 4.2: Check if `_parse_llm_response_files()` is finding and parsing files correctly
-- [ ] 4.3: If LLM files don't exist, investigate why they're not being persisted during runs
-- [ ] 4.4: Add logging to help diagnose token aggregation issues
+- [x] 4.1: Verify LLM response files exist in run directories under `.adw/runs/{run_id}/llm/`
+- [x] 4.2: Check if `_parse_llm_response_files()` is finding and parsing files correctly
+- [x] 4.3: If LLM files don't exist, investigate why they're not being persisted during runs
+- [x] 4.4: Add logging to help diagnose token aggregation issues
+
+**Investigation Findings (Task 4):**
+- Most `.adw/runs/{run_id}/llm/` directories are empty (0 files)
+- The `_parse_llm_response_files()` function works correctly when files exist
+- Root cause: LLM response files are not being persisted during runs (executor layer issue)
+- This is a separate bug that should be tracked in a new issue (outside dashboard scope)
+- Added debug logging to help diagnose token aggregation issues
 
 ---
 
@@ -251,8 +258,10 @@ N/A - straightforward layout fix
 - Task 1: Fixed recent runs panel sizing by using `ratio=1` in Layout instead of unbounded sizing. The table in `create_recent_runs_table()` already sizes naturally - the issue was the parent Layout taking all remaining space.
 - Task 2: Fixed active runs duration display - increased column width from 10 to 14 with no_wrap=True, reduced icon spacing, and added hours format for durations >= 60 minutes (e.g., "88h 53m" instead of "5333m 50s").
 - Task 3: Improved run ID display - increased column width to 18 in both active runs and recent runs tables, showing 14 characters of ID instead of 8-10. Added no_wrap=True to prevent wrapping.
+- Task 4: Investigated token display issue - found that most LLM response files are empty/not persisted (executor layer bug, not dashboard). Added debug logging to stats_aggregator to help diagnose. The `_parse_llm_response_files()` function works correctly when files exist.
 
 ### File List
 
-- `src/adw/cli/dashboard.py` - Modified render() to use ratio-based sizing for runs section
+- `src/adw/cli/dashboard.py` - Modified render() to use ratio-based sizing for runs section; improved duration and ID column formatting
+- `src/adw/core/stats_aggregator.py` - Added debug logging for LLM response file parsing
 - `tests/unit/cli/test_dashboard.py` - Added TestDashboardLayoutSizing tests
