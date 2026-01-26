@@ -1,6 +1,6 @@
 # Story 16.5: TUI Dashboard
 
-Status: Ready for Review
+Status: done
 Linear Issue: not-configured
 Epic: 16 - Cross-Project Dashboard
 Created: 2026-01-25
