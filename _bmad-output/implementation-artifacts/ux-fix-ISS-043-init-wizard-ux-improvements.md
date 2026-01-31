@@ -1,6 +1,6 @@
 # Story: UX Fix - Init Wizard UX Improvements
 
-Status: Ready for Review
+Status: done
 Linear Issue: not-configured
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-31
