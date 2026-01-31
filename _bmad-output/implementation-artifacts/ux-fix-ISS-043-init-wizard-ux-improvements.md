@@ -54,8 +54,8 @@ so that I can efficiently configure my project without redundant questions or mi
 ### Task 1: Add Ship to AVAILABLE_PHASES and Update Timeouts
 **Files**: `src/adw/cli/wizard/phases.py`
 
-- [ ] 1.1 Add `"ship"` to `AVAILABLE_PHASES` list (line 20)
-- [ ] 1.2 Update `DEFAULT_TIMEOUTS` dictionary (lines 23-28):
+- [x] 1.1 Add `"ship"` to `AVAILABLE_PHASES` list (line 20)
+- [x] 1.2 Update `DEFAULT_TIMEOUTS` dictionary (lines 23-28):
   ```python
   DEFAULT_TIMEOUTS: dict[str, int] = {
       "plan": 900,       # 15 minutes
@@ -65,7 +65,7 @@ so that I can efficiently configure my project without redundant questions or mi
       "ship": 1200,      # 20 minutes
   }
   ```
-- [ ] 1.3 Update phase selection hints/instructions to include ship (line 158: "Use numbers (1-5), phase names, or 'all'")
+- [x] 1.3 Update phase selection hints/instructions to include ship (line 158: "Use numbers (1-5), phase names, or 'all'")
 
 ### Task 2: Refactor Ship Configuration to Follow Common Pattern
 **Files**: `src/adw/cli/wizard/ship.py`, `src/adw/cli/wizard/phases.py`

@@ -32,8 +32,8 @@ class TestConstants:
     """Tests for module constants."""
 
     def test_available_phases(self) -> None:
-        """Test available phases list."""
-        assert AVAILABLE_PHASES == ["plan", "build", "validate", "document"]
+        """Test available phases list includes ship."""
+        assert AVAILABLE_PHASES == ["plan", "build", "validate", "document", "ship"]
 
     def test_default_timeouts_defined_for_all_phases(self) -> None:
         """Test that default timeouts exist for all phases."""
@@ -41,11 +41,12 @@ class TestConstants:
             assert phase in DEFAULT_TIMEOUTS
 
     def test_default_timeout_values(self) -> None:
-        """Test specific default timeout values."""
-        assert DEFAULT_TIMEOUTS["plan"] == 300
-        assert DEFAULT_TIMEOUTS["build"] == 600
-        assert DEFAULT_TIMEOUTS["validate"] == 900
-        assert DEFAULT_TIMEOUTS["document"] == 300
+        """Test specific default timeout values (updated per AC8)."""
+        assert DEFAULT_TIMEOUTS["plan"] == 900  # 15 minutes
+        assert DEFAULT_TIMEOUTS["build"] == 1800  # 30 minutes
+        assert DEFAULT_TIMEOUTS["validate"] == 900  # 15 minutes
+        assert DEFAULT_TIMEOUTS["document"] == 900  # 15 minutes
+        assert DEFAULT_TIMEOUTS["ship"] == 1200  # 20 minutes
 
     def test_triage_modes(self) -> None:
         """Test triage modes list."""
