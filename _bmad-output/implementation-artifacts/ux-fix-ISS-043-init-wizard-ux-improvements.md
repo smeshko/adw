@@ -102,16 +102,16 @@ so that I can efficiently configure my project without redundant questions or mi
 ### Task 4: Register GlobalRegistryStepHandler and Wire Registration
 **Files**: `src/adw/cli/init.py`, `src/adw/cli/wizard/summary.py`
 
-- [ ] 4.1 Add missing handler registration in `init.py` (after line 197):
+- [x] 4.1 Add missing handler registration in `init.py` (after line 197):
   ```python
   controller.register_step_handler(
       WizardStep.GLOBAL_REGISTRY,
       GlobalRegistryStepHandler()
   )
   ```
-- [ ] 4.2 Verify `_register_in_global_dashboard()` in summary.py is called correctly
-- [ ] 4.3 Ensure `ProjectRegistryManager.register()` is invoked with collected config
-- [ ] 4.4 Test that registration persists to global registry file
+- [x] 4.2 Verify `_register_in_global_dashboard()` in summary.py is called correctly
+- [x] 4.3 Ensure `ProjectRegistryManager.register()` is invoked with collected config
+- [x] 4.4 Test that registration persists to global registry file
 
 ### Task 5: Fix Custom Language/Platform Entry
 **Files**: `src/adw/cli/wizard/basics.py`
