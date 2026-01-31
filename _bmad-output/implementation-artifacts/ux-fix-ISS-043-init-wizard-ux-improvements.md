@@ -1,6 +1,6 @@
 # Story: UX Fix - Init Wizard UX Improvements
 
-Status: ready-for-dev
+Status: Ready for Review
 Linear Issue: not-configured
 Epic: 14 - Interactive Init Wizard
 Created: 2026-01-31
@@ -15,35 +15,35 @@ so that I can efficiently configure my project without redundant questions or mi
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: Ship phase appears in phase selection list alongside plan, build, validate, document
+- [x] **AC1**: Ship phase appears in phase selection list alongside plan, build, validate, document
   - User can select ship for customization in the phases step
   - Ship configuration routed through `_configure_phase()` pattern when selected
 
-- [ ] **AC2**: Ship configuration follows common phase pattern (enabled, timeout, input_files first)
+- [x] **AC2**: Ship configuration follows common phase pattern (enabled, timeout, input_files first)
   - When ship is selected for customization, prompt for enabled/timeout/input_files BEFORE ship-specific settings
   - Maintains consistency with other phase configurations
 
-- [ ] **AC3**: Navigation keys (b/c) work throughout the wizard
+- [x] **AC3**: Navigation keys (b/c) work throughout the wizard
   - `b` goes back to previous step
   - `c` cancels wizard
   - All prompts intercept these keys before processing as input
 
-- [ ] **AC4**: Project registration actually registers the project in global dashboard
+- [x] **AC4**: Project registration actually registers the project in global dashboard
   - `GlobalRegistryStepHandler` registered in init.py
   - Registration persisted when summary step completes
 
-- [ ] **AC5**: Custom language/platform can be typed directly without selecting "other" first
+- [x] **AC5**: Custom language/platform can be typed directly without selecting "other" first
   - Remove `choices` restriction from Prompt.ask()
   - Show numbered list as hint, accept number or direct text input
 
-- [ ] **AC6**: Validate phase allows configuring multiple linter commands
+- [x] **AC6**: Validate phase allows configuring multiple linter commands
   - New `_prompt_linter_commands()` function collects linter commands
   - Commands stored in validate config and used during validation
 
-- [ ] **AC7**: Auto-merge NO skips merge_method and delete_branch questions
+- [x] **AC7**: Auto-merge NO skips merge_method and delete_branch questions
   - Only prompt for merge strategy and delete branch if `merge_on_success == True`
 
-- [ ] **AC8**: Default timeouts are increased to realistic values
+- [x] **AC8**: Default timeouts are increased to realistic values
   - plan: 900 seconds (15 minutes)
   - build: 1800 seconds (30 minutes)
   - document: 900 seconds (15 minutes)
@@ -465,16 +465,36 @@ Issue: `_bmad-output/implementation-artifacts/issues/ISS-043-init-wizard-ux-impr
 
 ### Agent Model Used
 
-_To be filled by dev agent_
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
-_To be filled by dev agent_
+N/A - All tests pass (432 wizard tests)
 
 ### Completion Notes List
 
-_To be filled by dev agent_
+1. **Ship in AVAILABLE_PHASES**: Added ship to phases.py AVAILABLE_PHASES list with 1200s timeout
+2. **Updated timeouts**: plan=900s, build=1800s, validate=900s, document=900s, ship=1200s
+3. **Ship common pattern**: _configure_ship_phase() added to phases.py, routed via _configure_phase()
+4. **Navigation infrastructure**: New navigation.py module with NavigationSignal, NavigationError, nav_prompt_ask
+5. **GlobalRegistryStepHandler**: Now registered in init.py wizard setup
+6. **Language/platform direct entry**: Refactored _prompt_language() and _prompt_platform() to show numbered list and accept number or custom text directly
+7. **Linter commands**: Added _prompt_linter_commands() to validate phase configuration
+8. **Auto-merge conditional**: _prompt_pr_settings() now only asks merge strategy/delete branch if auto-merge=True
+9. **Tests updated**: All existing tests updated, new tests added for navigation (21 tests), linter commands, conditional merge
 
 ### File List
 
-_To be filled by dev agent_
+**Modified:**
+- `src/adw/cli/wizard/phases.py` - AVAILABLE_PHASES, DEFAULT_TIMEOUTS, _configure_ship_phase, _prompt_linter_commands
+- `src/adw/cli/wizard/ship.py` - _prompt_pr_settings conditional logic
+- `src/adw/cli/wizard/basics.py` - _prompt_language, _prompt_platform refactored
+- `src/adw/cli/wizard/__init__.py` - Export navigation helpers
+- `src/adw/cli/init.py` - Register GlobalRegistryStepHandler
+- `tests/unit/cli/wizard/test_phases.py` - Updated for new functionality
+- `tests/unit/cli/wizard/test_ship.py` - Added conditional merge test
+- `tests/unit/cli/wizard/test_basics.py` - Updated for new selection pattern
+
+**Created:**
+- `src/adw/cli/wizard/navigation.py` - NavigationSignal, NavigationError, nav_prompt_ask, check_navigation
+- `tests/unit/cli/wizard/test_navigation.py` - 21 tests for navigation module
