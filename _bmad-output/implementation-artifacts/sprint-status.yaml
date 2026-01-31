@@ -441,4 +441,4 @@ development_status:
   bugfix-ISS-042-global-dashboard-exits-immediately: done
   # UX Fix (from ISS-043) - MAJOR
   # 8 UX issues: ship in phase selection, navigation keys, linter commands, timeouts, etc.
-  ux-fix-ISS-043-init-wizard-ux-improvements: ready-for-dev
+  ux-fix-ISS-043-init-wizard-ux-improvements: in-progress
