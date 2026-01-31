@@ -189,12 +189,12 @@ so that I can efficiently configure my project without redundant questions or mi
 ### Task 8: Update Tests
 **Files**: `tests/unit/cli/wizard/test_phases.py`, `tests/unit/cli/wizard/test_ship.py`, `tests/unit/cli/wizard/test_basics.py`
 
-- [ ] 8.1 Update phase selection tests to include ship phase
-- [ ] 8.2 Add tests for new timeout defaults
-- [ ] 8.3 Add tests for `_prompt_linter_commands()`
-- [ ] 8.4 Update ship tests for conditional merge questions
-- [ ] 8.5 Update basics tests for new language/platform selection pattern
-- [ ] 8.6 Add navigation key handling tests (if flow.py changes are testable)
+- [x] 8.1 Update phase selection tests to include ship phase
+- [x] 8.2 Add tests for new timeout defaults
+- [x] 8.3 Add tests for `_prompt_linter_commands()`
+- [x] 8.4 Update ship tests for conditional merge questions
+- [x] 8.5 Update basics tests for new language/platform selection pattern
+- [x] 8.6 Add navigation key handling tests (test_navigation.py with 21 tests)
 
 ---
 

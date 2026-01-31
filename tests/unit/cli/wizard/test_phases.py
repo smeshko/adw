@@ -682,6 +682,7 @@ class TestFullFlow:
                 False,  # input files
                 True,  # code_review
                 True,  # tests
+                False,  # add linter commands
             ]
             mock_prompt.side_effect = [
                 "3",  # select validate phase
@@ -699,6 +700,7 @@ class TestFullFlow:
         assert validate_config["enable_review"] is True
         assert validate_config["enable_tests"] is True
         assert validate_config["triage_mode"] == "auto"
+        assert "linter_commands" not in validate_config
 
 
 class TestStateIntegration:
