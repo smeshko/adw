@@ -144,31 +144,72 @@ class TestNavPromptAsk:
 
 
 class TestNavConfirmAsk:
-    """Tests for nav_confirm_ask function."""
+    """Tests for nav_confirm_ask function.
 
-    def test_returns_true(self) -> None:
-        """Test that True is returned for yes."""
+    nav_confirm_ask uses Prompt.ask internally to allow navigation commands
+    (b/back) while accepting y/yes/n/no for confirm responses.
+    """
+
+    def test_returns_true_for_y(self) -> None:
+        """Test that True is returned for 'y' input."""
         console = Console(force_terminal=True)
 
-        with patch("adw.cli.wizard.navigation.Confirm.ask", return_value=True):
+        with patch("adw.cli.wizard.navigation.Prompt.ask", return_value="y"):
             result = nav_confirm_ask("Question?", console=console)
 
         assert result is True
 
-    def test_returns_false(self) -> None:
-        """Test that False is returned for no."""
+    def test_returns_true_for_yes(self) -> None:
+        """Test that True is returned for 'yes' input."""
         console = Console(force_terminal=True)
 
-        with patch("adw.cli.wizard.navigation.Confirm.ask", return_value=False):
+        with patch("adw.cli.wizard.navigation.Prompt.ask", return_value="yes"):
+            result = nav_confirm_ask("Question?", console=console)
+
+        assert result is True
+
+    def test_returns_false_for_n(self) -> None:
+        """Test that False is returned for 'n' input."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.navigation.Prompt.ask", return_value="n"):
             result = nav_confirm_ask("Question?", console=console)
 
         assert result is False
 
-    def test_passes_default(self) -> None:
-        """Test that default is passed to Confirm.ask."""
+    def test_returns_false_for_no(self) -> None:
+        """Test that False is returned for 'no' input."""
         console = Console(force_terminal=True)
 
-        with patch("adw.cli.wizard.navigation.Confirm.ask", return_value=False) as mock:
+        with patch("adw.cli.wizard.navigation.Prompt.ask", return_value="no"):
+            result = nav_confirm_ask("Question?", console=console)
+
+        assert result is False
+
+    def test_raises_navigation_error_for_back(self) -> None:
+        """Test that NavigationError is raised for 'b' input."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.navigation.Prompt.ask", return_value="b"):
+            with pytest.raises(NavigationError) as exc_info:
+                nav_confirm_ask("Question?", console=console)
+
+        assert exc_info.value.signal == NavigationSignal.BACK
+
+    def test_passes_default_y(self) -> None:
+        """Test that default=True results in 'y' as default for Prompt.ask."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.navigation.Prompt.ask", return_value="y") as mock:
+            nav_confirm_ask("Question?", console=console, default=True)
+            mock.assert_called_once()
+            assert mock.call_args.kwargs["default"] == "y"
+
+    def test_passes_default_n(self) -> None:
+        """Test that default=False results in 'n' as default for Prompt.ask."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.navigation.Prompt.ask", return_value="n") as mock:
             nav_confirm_ask("Question?", console=console, default=False)
             mock.assert_called_once()
-            assert mock.call_args.kwargs["default"] is False
+            assert mock.call_args.kwargs["default"] == "n"

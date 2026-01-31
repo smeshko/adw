@@ -217,9 +217,10 @@ class TestBasePhaseConfiguration:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
-            # enabled=True, no input files
-            mock_confirm.side_effect = [True, False]
+            # enabled=True
+            mock_confirm.return_value = True
             # timeout (default)
             mock_prompt.side_effect = ["300"]
 
@@ -236,9 +237,10 @@ class TestBasePhaseConfiguration:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
-            # enabled=False, no input files
-            mock_confirm.side_effect = [False, False]
+            # enabled=False
+            mock_confirm.return_value = False
             # timeout=120
             mock_prompt.side_effect = ["120"]
 
@@ -254,8 +256,9 @@ class TestBasePhaseConfiguration:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
-            mock_confirm.side_effect = [True, False]
+            mock_confirm.return_value = True
             # User just hits enter for timeout (uses default)
             mock_prompt.side_effect = ["600"]
 
@@ -275,12 +278,12 @@ class TestValidatePhaseSpecialOptions:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
-            # Base config: enabled=True, no input files
+            # Base config: enabled=True
             # Validate special: code_review=True, tests=True, no linters
             mock_confirm.side_effect = [
                 True,  # enabled
-                False,  # input files
                 True,  # code_review
                 True,  # tests
                 False,  # add linter commands
@@ -313,10 +316,10 @@ class TestValidatePhaseSpecialOptions:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
             mock_confirm.side_effect = [
                 True,  # enabled
-                False,  # input files
                 False,  # code_review disabled
                 True,  # tests
                 False,  # add linter commands
@@ -397,7 +400,7 @@ class TestInputFileLoop:
         """Test declining to add input files."""
         console = Console(force_terminal=True)
 
-        with patch("adw.cli.wizard.phases.Confirm.ask", return_value=False):
+        with patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False):
             result = _prompt_input_files(console)
 
         assert result == {}
@@ -407,7 +410,7 @@ class TestInputFileLoop:
         console = Console(force_terminal=True)
 
         with (
-            patch("adw.cli.wizard.phases.Confirm.ask", return_value=True),
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=True),
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
         ):
             mock_prompt.side_effect = ["prd=docs/prd.md", ""]
@@ -420,7 +423,7 @@ class TestInputFileLoop:
         console = Console(force_terminal=True)
 
         with (
-            patch("adw.cli.wizard.phases.Confirm.ask", return_value=True),
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=True),
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
         ):
             mock_prompt.side_effect = [
@@ -442,7 +445,7 @@ class TestInputFileLoop:
         console = Console(force_terminal=True)
 
         with (
-            patch("adw.cli.wizard.phases.Confirm.ask", return_value=True),
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=True),
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
         ):
             mock_prompt.side_effect = [
@@ -461,7 +464,7 @@ class TestInputFileLoop:
         console = Console(force_terminal=True)
 
         with (
-            patch("adw.cli.wizard.phases.Confirm.ask", return_value=True),
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=True),
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
         ):
             mock_prompt.side_effect = [
@@ -548,12 +551,12 @@ class TestDocumentPhaseSpecialOptions:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
-            # Base config: enabled=True, no input files
+            # Base config: enabled=True
             # Document special: add_mappings=True
             mock_confirm.side_effect = [
                 True,  # enabled
-                False,  # input files
                 True,  # add doc_mappings
             ]
             mock_prompt.side_effect = [
@@ -649,11 +652,11 @@ class TestFullFlow:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
             mock_confirm.side_effect = [
                 True,  # customize phases
                 True,  # enabled
-                False,  # input files
             ]
             mock_prompt.side_effect = [
                 "1",  # select plan phase
@@ -675,11 +678,11 @@ class TestFullFlow:
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
             mock_confirm.side_effect = [
                 True,  # customize phases
                 True,  # enabled
-                False,  # input files
                 True,  # code_review
                 True,  # tests
                 False,  # add linter commands

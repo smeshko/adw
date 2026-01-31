@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING, Any, Protocol
 from rich.console import Console
 from rich.panel import Panel
 
+from adw.cli.wizard.navigation import NavigationError, NavigationSignal
+
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
 
@@ -42,7 +44,7 @@ class WizardStep(Enum):
     PORTS = "ports"
     TASK_MANAGER = "task_manager"
     PHASES = "phases"
-    SHIP = "ship"
+    # Note: SHIP step removed - ship phase config is now part of PHASES step
     LLM_RETRY = "llm_retry"
     SECURITY = "security"
     WEBHOOKS = "webhooks"
@@ -70,7 +72,7 @@ class WizardFlowController:
         WizardStep.PORTS,
         WizardStep.TASK_MANAGER,
         WizardStep.PHASES,
-        WizardStep.SHIP,
+        # Note: SHIP removed - ship config is part of PHASES step
         WizardStep.LLM_RETRY,
         WizardStep.SECURITY,
         WizardStep.WEBHOOKS,
@@ -84,7 +86,7 @@ class WizardFlowController:
         WizardStep.PORTS: "Port Allocation",
         WizardStep.TASK_MANAGER: "Task Manager Integration",
         WizardStep.PHASES: "Phase Configuration",
-        WizardStep.SHIP: "Ship Phase Configuration",
+        # Note: SHIP removed - ship config is part of PHASES step
         WizardStep.LLM_RETRY: "LLM Retry Settings",
         WizardStep.SECURITY: "Security Settings",
         WizardStep.WEBHOOKS: "Webhook Configuration",
@@ -162,23 +164,40 @@ class WizardFlowController:
                 current_step = self.steps[self.current_index]
                 self._show_step_header(current_step)
 
-                # Execute step handler if registered
-                if current_step in self._step_handlers:
-                    handler = self._step_handlers[current_step]
-                    config = handler.execute(self.state, self.console)
-                    self.state.update_config(current_step.value, config)
-                else:
-                    # Default placeholder for unimplemented steps
-                    self._show_step_placeholder(current_step)
+                try:
+                    # Execute step handler if registered
+                    if current_step in self._step_handlers:
+                        handler = self._step_handlers[current_step]
+                        config = handler.execute(self.state, self.console)
+                        self.state.update_config(current_step.value, config)
+                    else:
+                        # Default placeholder for unimplemented steps
+                        self._show_step_placeholder(current_step)
 
-                # Auto-advance to next step
-                self.state.mark_completed(current_step.value)
-                self.state.navigate_to(
-                    self.steps[self.current_index + 1].value
-                    if self.current_index < len(self.steps) - 1
-                    else "complete"
-                )
-                self.current_index += 1
+                    # Auto-advance to next step
+                    self.state.mark_completed(current_step.value)
+                    self.state.navigate_to(
+                        self.steps[self.current_index + 1].value
+                        if self.current_index < len(self.steps) - 1
+                        else "complete"
+                    )
+                    self.current_index += 1
+
+                except NavigationError as nav_err:
+                    if nav_err.signal == NavigationSignal.BACK:
+                        # Go back to previous step if possible
+                        if self.current_index > 0:
+                            self.current_index -= 1
+                            self.console.print(
+                                "[dim]Going back to previous step...[/]"
+                            )
+                        else:
+                            self.console.print(
+                                "[yellow]Already at the first step.[/]"
+                            )
+                    elif nav_err.signal == NavigationSignal.CANCEL:
+                        self.console.print("[yellow]Wizard cancelled.[/]")
+                        return False
 
             self._show_completion()
             return True

@@ -12,6 +12,8 @@ from rich.console import Console
 from rich.prompt import Confirm, Prompt
 from rich.rule import Rule
 
+from adw.cli.wizard.navigation import nav_confirm_ask
+
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
 
@@ -523,7 +525,7 @@ def _prompt_input_files(console: Console) -> dict[str, str]:
     Returns:
         Dictionary of variable name to file path mappings.
     """
-    add_inputs = Confirm.ask("Add input files?", default=False, console=console)
+    add_inputs = nav_confirm_ask("Add input files?", default=False, console=console)
 
     if not add_inputs:
         return {}

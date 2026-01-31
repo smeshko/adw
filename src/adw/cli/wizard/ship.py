@@ -56,6 +56,10 @@ def run_ship_step(
     This is the main entry point for the ship step, implementing
     the full interactive flow for ship phase configuration.
 
+    Note: This step has been removed from the wizard flow. Ship phase
+    configuration is now handled as part of the phases step. This function
+    is retained for backwards compatibility and direct usage.
+
     Args:
         state: Current wizard state (reserved for future use).
         console: Console for output.

@@ -105,25 +105,45 @@ def nav_confirm_ask(
     *,
     console: Console | None = None,
     default: bool = True,
-    **kwargs: Any,
+    **kwargs: Any,  # noqa: ARG001
 ) -> bool:
-    """Navigation-aware version of Confirm.ask.
+    """Navigation-aware confirm prompt using text input.
 
-    For confirm prompts, we can't easily intercept navigation since
-    input is restricted to y/n. This wrapper is provided for consistency
-    but doesn't support navigation.
+    Unlike Rich's Confirm.ask which only accepts y/n, this uses a text
+    prompt that accepts y/yes/n/no as well as navigation commands (b/back).
 
     Args:
         question: The question to ask.
         console: Console for output.
         default: Default value if user presses Enter.
-        **kwargs: Additional arguments passed to Confirm.ask.
 
     Returns:
         True for yes, False for no.
-    """
-    prompt_kwargs: dict[str, Any] = {"default": default, **kwargs}
-    if console is not None:
-        prompt_kwargs["console"] = console
 
-    return Confirm.ask(question, **prompt_kwargs)
+    Raises:
+        NavigationError: If user enters 'b' or 'back' for back navigation.
+    """
+    default_str = "y" if default else "n"
+    prompt_text = f"{question} [y/n]"
+
+    while True:
+        prompt_kwargs: dict[str, Any] = {"default": default_str}
+        if console is not None:
+            prompt_kwargs["console"] = console
+
+        result = Prompt.ask(prompt_text, **prompt_kwargs).lower().strip()
+
+        # Check for navigation commands first
+        nav = check_navigation(result)
+        if nav is not None:
+            raise NavigationError(nav)
+
+        # Parse yes/no responses
+        if result in ("y", "yes", "true", "1"):
+            return True
+        if result in ("n", "no", "false", "0"):
+            return False
+
+        # Invalid input - show error and re-prompt
+        if console:
+            console.print("[yellow]Please enter Y or N[/]")

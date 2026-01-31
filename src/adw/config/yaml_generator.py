@@ -532,9 +532,9 @@ class YAMLWithComments:
         """
         lines.append("# === Ship Phase Settings ===")
 
-        # Get nested config sections
-        commands = config.get("commands", {})
-        post_publish = config.get("post_publish", [])
+        # Get nested config sections (handle None values explicitly)
+        commands = config.get("commands") or {}
+        post_publish = config.get("post_publish") or []
         pr = config.get("pr", {})
 
         has_commands = (
