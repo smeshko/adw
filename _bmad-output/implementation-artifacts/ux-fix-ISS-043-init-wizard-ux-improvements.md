@@ -116,7 +116,7 @@ so that I can efficiently configure my project without redundant questions or mi
 ### Task 5: Fix Custom Language/Platform Entry
 **Files**: `src/adw/cli/wizard/basics.py`
 
-- [ ] 5.1 Modify `_prompt_language()` (lines 191-210):
+- [x] 5.1 Modify `_prompt_language()` (lines 191-210):
   - Remove `choices=SUPPORTED_LANGUAGES` from Prompt.ask()
   - Display numbered list before prompt: "1. python  2. javascript  3. go  ..."
   - Accept either number (1-8) or direct text input
@@ -134,7 +134,7 @@ so that I can efficiently configure my project without redundant questions or mi
       language = selection
   ```
 
-- [ ] 5.2 Apply same pattern to `_prompt_platform()` (lines 224-242):
+- [x] 5.2 Apply same pattern to `_prompt_platform()` (lines 224-242):
   - Remove choices restriction
   - Show numbered list for SUPPORTED_PLATFORMS
   - Accept number or custom text

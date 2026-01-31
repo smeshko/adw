@@ -169,6 +169,9 @@ def run_basics_step(
 def _prompt_language(console: Console, detected: str) -> str:
     """Prompt user to confirm or select language.
 
+    Shows a numbered list but accepts either a number or direct text input,
+    allowing users to type custom languages without selecting "other" first.
+
     Args:
         console: Console for output.
         detected: The auto-detected language.
@@ -186,33 +189,44 @@ def _prompt_language(console: Console, detected: str) -> str:
         if confirmed:
             return detected
 
-    # Show language selection
+    # Show language options as numbered list
     console.print()
-    language = Prompt.ask(
-        "Select language",
-        choices=SUPPORTED_LANGUAGES,
-        default=detected if detected != "unknown" else "python",
-        console=console,
-    )
+    console.print("[dim]Available languages:[/]")
+    # Filter out 'other' since user can just type any custom language
+    display_languages = [lang for lang in SUPPORTED_LANGUAGES if lang != "other"]
+    for i, lang in enumerate(display_languages, 1):
+        console.print(f"  [cyan]{i}[/]. {lang}")
+    console.print("[dim]  Or type a custom language name[/]")
+    console.print()
 
-    # Handle "other" - prompt for custom language
-    if language == "other":
-        while True:
-            language = Prompt.ask(
-                "Enter language name",
-                console=console,
-            )
-            # Normalize to lowercase
-            language = language.lower().strip()
-            if language:
-                break
-            console.print("[yellow]Language name cannot be empty. Please try again.[/]")
+    while True:
+        selection = Prompt.ask(
+            "Language",
+            default=detected if detected != "unknown" else "python",
+            console=console,
+        ).strip()
 
-    return language
+        if not selection:
+            console.print("[yellow]Language cannot be empty.[/]")
+            continue
+
+        # Try to parse as number
+        if selection.isdigit():
+            idx = int(selection)
+            if 1 <= idx <= len(display_languages):
+                return display_languages[idx - 1]
+            console.print(f"[yellow]Invalid number. Use 1-{len(display_languages)} or type a name.[/]")
+            continue
+
+        # Accept as custom language
+        return selection.lower()
 
 
 def _prompt_platform(console: Console) -> str:
     """Prompt user to select platform type.
+
+    Shows a numbered list but accepts either a number or direct text input,
+    allowing users to type custom platforms without selecting "other" first.
 
     Args:
         console: Console for output.
@@ -220,28 +234,37 @@ def _prompt_platform(console: Console) -> str:
     Returns:
         The selected platform type.
     """
+    # Show platform options as numbered list
     console.print()
-    platform = Prompt.ask(
-        "Platform type",
-        choices=SUPPORTED_PLATFORMS,
-        default="cli",
-        console=console,
-    )
+    console.print("[dim]Available platforms:[/]")
+    # Filter out 'other' since user can just type any custom platform
+    display_platforms = [plat for plat in SUPPORTED_PLATFORMS if plat != "other"]
+    for i, plat in enumerate(display_platforms, 1):
+        console.print(f"  [cyan]{i}[/]. {plat}")
+    console.print("[dim]  Or type a custom platform name[/]")
+    console.print()
 
-    # Handle "other" - prompt for custom platform
-    if platform == "other":
-        while True:
-            platform = Prompt.ask(
-                "Enter platform type",
-                console=console,
-            )
-            # Normalize to lowercase
-            platform = platform.lower().strip()
-            if platform:
-                break
-            console.print("[yellow]Platform type cannot be empty. Please try again.[/]")
+    while True:
+        selection = Prompt.ask(
+            "Platform",
+            default="cli",
+            console=console,
+        ).strip()
 
-    return platform
+        if not selection:
+            console.print("[yellow]Platform cannot be empty.[/]")
+            continue
+
+        # Try to parse as number
+        if selection.isdigit():
+            idx = int(selection)
+            if 1 <= idx <= len(display_platforms):
+                return display_platforms[idx - 1]
+            console.print(f"[yellow]Invalid number. Use 1-{len(display_platforms)} or type a name.[/]")
+            continue
+
+        # Accept as custom platform
+        return selection.lower()
 
 
 def _prompt_test_command(console: Console, default: str) -> str:
