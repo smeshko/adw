@@ -161,6 +161,7 @@ def _run_wizard_setup(project_root: Path) -> None:
     from adw.cli.wizard import (
         BasicsStepHandler,
         GitStepHandler,
+        GlobalRegistryStepHandler,
         PhasesStepHandler,
         PortsStepHandler,
         RetryStepHandler,
@@ -185,6 +186,9 @@ def _run_wizard_setup(project_root: Path) -> None:
     # Register step handlers
     controller.register_step_handler(
         WizardStep.BASICS, BasicsStepHandler(project_root=project_root)
+    )
+    controller.register_step_handler(
+        WizardStep.GLOBAL_REGISTRY, GlobalRegistryStepHandler()
     )
     controller.register_step_handler(WizardStep.GIT, GitStepHandler())
     controller.register_step_handler(WizardStep.PORTS, PortsStepHandler())

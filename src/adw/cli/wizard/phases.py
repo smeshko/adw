@@ -17,14 +17,15 @@ if TYPE_CHECKING:
 
 
 # Available phases for customization
-AVAILABLE_PHASES: list[str] = ["plan", "build", "validate", "document"]
+AVAILABLE_PHASES: list[str] = ["plan", "build", "validate", "document", "ship"]
 
 # Default timeouts by phase (in seconds)
 DEFAULT_TIMEOUTS: dict[str, int] = {
-    "plan": 300,  # 5 minutes
-    "build": 600,  # 10 minutes
+    "plan": 900,  # 15 minutes
+    "build": 1800,  # 30 minutes
     "validate": 900,  # 15 minutes
-    "document": 300,  # 5 minutes
+    "document": 900,  # 15 minutes
+    "ship": 1200,  # 20 minutes
 }
 
 # Triage modes for validate phase
@@ -155,7 +156,7 @@ def _prompt_phase_selection(console: Console) -> list[str]:
 
         # All entries were invalid - reprompt
         console.print("[yellow]No valid phases selected. Please try again.[/]")
-        console.print("[dim]Use numbers (1-4), phase names, or 'all'[/]")
+        console.print("[dim]Use numbers (1-5), phase names, or 'all'[/]")
 
 
 def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
@@ -201,6 +202,11 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
         document_config = _configure_document_phase(console)
         config.update(document_config)
 
+    # Ship phase special options
+    if phase == "ship":
+        ship_config = _configure_ship_phase(console)
+        config.update(ship_config)
+
     return config
 
 
@@ -240,13 +246,58 @@ def _configure_validate_phase(console: Console) -> dict[str, Any]:
         console=console,
     )
 
-    return {
+    # Linter commands
+    linter_commands = _prompt_linter_commands(console)
+
+    config: dict[str, Any] = {
         "enable_review": code_review,
         "enable_tests": tests,
         "test_timeout_seconds": test_timeout,
         "max_iterations": max_iterations,
         "triage_mode": triage_mode,
     }
+
+    if linter_commands:
+        config["linter_commands"] = linter_commands
+
+    return config
+
+
+def _prompt_linter_commands(console: Console) -> list[str]:
+    """Collect multiple linter commands for validate phase.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        List of linter commands.
+    """
+    add_linters = Confirm.ask(
+        "Add linter commands?",
+        default=False,
+        console=console,
+    )
+
+    if not add_linters:
+        return []
+
+    linters: list[str] = []
+    console.print("[dim]Enter linter commands (empty to finish):[/]")
+    console.print("[dim]Examples: 'ruff check .', 'mypy src/', 'eslint .'[/]")
+
+    while True:
+        cmd = Prompt.ask(
+            "Linter command",
+            default="",
+            console=console,
+        ).strip()
+
+        if not cmd:
+            break
+
+        linters.append(cmd)
+
+    return linters
 
 
 def _configure_document_phase(console: Console) -> dict[str, Any]:
@@ -278,6 +329,142 @@ def _configure_document_phase(console: Console) -> dict[str, Any]:
 
     return {
         "doc_mappings": doc_mappings,
+    }
+
+
+def _configure_ship_phase(console: Console) -> dict[str, Any]:
+    """Configure ship phase special options.
+
+    Prompts for deployment commands, post-publish hooks, and PR settings.
+    This follows the same pattern as the ship.py standalone step but integrated
+    into the common phase configuration flow.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        Ship-specific configuration dict.
+    """
+    console.print()
+    console.print("[dim]Ship phase options:[/]")
+
+    # Deployment commands
+    console.print("[dim]Enter deployment commands (empty to skip):[/]")
+    commands: dict[str, str] = {}
+
+    version_bump = Prompt.ask(
+        "Version bump command",
+        default="",
+        console=console,
+    ).strip()
+    if version_bump:
+        commands["version_bump"] = version_bump
+
+    build_cmd = Prompt.ask(
+        "Build command",
+        default="",
+        console=console,
+    ).strip()
+    if build_cmd:
+        commands["build"] = build_cmd
+
+    publish_cmd = Prompt.ask(
+        "Publish command",
+        default="",
+        console=console,
+    ).strip()
+    if publish_cmd:
+        commands["publish"] = publish_cmd
+
+    # Post-publish hooks
+    post_publish = _prompt_post_publish_hooks(console)
+
+    # PR settings
+    pr_config = _prompt_ship_pr_settings(console)
+
+    return {
+        "commands": commands if commands else None,
+        "post_publish": post_publish if post_publish else None,
+        "pr": pr_config,
+    }
+
+
+def _prompt_post_publish_hooks(console: Console) -> list[str]:
+    """Prompt for post-publish hooks.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        List of hook commands.
+    """
+    add_hooks = Confirm.ask(
+        "Add post-publish hooks?",
+        default=False,
+        console=console,
+    )
+
+    if not add_hooks:
+        return []
+
+    hooks: list[str] = []
+    console.print("[dim]Enter hook commands (empty to finish):[/]")
+
+    while True:
+        hook = Prompt.ask(
+            "Hook command",
+            default="",
+            console=console,
+        ).strip()
+
+        if not hook:
+            break
+
+        hooks.append(hook)
+
+    return hooks
+
+
+def _prompt_ship_pr_settings(console: Console) -> dict[str, Any]:
+    """Prompt for ship phase PR merge settings.
+
+    Only prompts for merge strategy and delete branch if auto-merge is enabled.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        Dictionary of PR settings.
+    """
+    merge_on_success = Confirm.ask(
+        "Auto-merge after successful ship?",
+        default=False,
+        console=console,
+    )
+
+    # Defaults
+    merge_method = "squash"
+    delete_branch = True
+
+    # Only ask follow-up questions if auto-merge is enabled
+    if merge_on_success:
+        merge_method = Prompt.ask(
+            "Merge strategy",
+            choices=["squash", "merge", "rebase"],
+            default="squash",
+            console=console,
+        )
+
+        delete_branch = Confirm.ask(
+            "Delete branch after merge?",
+            default=True,
+            console=console,
+        )
+
+    return {
+        "merge_on_success": merge_on_success,
+        "delete_branch_on_merge": delete_branch,
+        "merge_method": merge_method,
     }
 
 

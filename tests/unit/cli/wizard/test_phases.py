@@ -32,8 +32,8 @@ class TestConstants:
     """Tests for module constants."""
 
     def test_available_phases(self) -> None:
-        """Test available phases list."""
-        assert AVAILABLE_PHASES == ["plan", "build", "validate", "document"]
+        """Test available phases list includes ship."""
+        assert AVAILABLE_PHASES == ["plan", "build", "validate", "document", "ship"]
 
     def test_default_timeouts_defined_for_all_phases(self) -> None:
         """Test that default timeouts exist for all phases."""
@@ -41,11 +41,12 @@ class TestConstants:
             assert phase in DEFAULT_TIMEOUTS
 
     def test_default_timeout_values(self) -> None:
-        """Test specific default timeout values."""
-        assert DEFAULT_TIMEOUTS["plan"] == 300
-        assert DEFAULT_TIMEOUTS["build"] == 600
-        assert DEFAULT_TIMEOUTS["validate"] == 900
-        assert DEFAULT_TIMEOUTS["document"] == 300
+        """Test specific default timeout values (updated per AC8)."""
+        assert DEFAULT_TIMEOUTS["plan"] == 900  # 15 minutes
+        assert DEFAULT_TIMEOUTS["build"] == 1800  # 30 minutes
+        assert DEFAULT_TIMEOUTS["validate"] == 900  # 15 minutes
+        assert DEFAULT_TIMEOUTS["document"] == 900  # 15 minutes
+        assert DEFAULT_TIMEOUTS["ship"] == 1200  # 20 minutes
 
     def test_triage_modes(self) -> None:
         """Test triage modes list."""
@@ -276,12 +277,13 @@ class TestValidatePhaseSpecialOptions:
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
         ):
             # Base config: enabled=True, no input files
-            # Validate special: code_review=True, tests=True
+            # Validate special: code_review=True, tests=True, no linters
             mock_confirm.side_effect = [
                 True,  # enabled
                 False,  # input files
                 True,  # code_review
                 True,  # tests
+                False,  # add linter commands
             ]
             mock_prompt.side_effect = [
                 "900",  # timeout
@@ -302,6 +304,7 @@ class TestValidatePhaseSpecialOptions:
         assert config["test_timeout_seconds"] == 300
         assert config["max_iterations"] == 5
         assert config["triage_mode"] == "auto"
+        assert "linter_commands" not in config  # Not added when declined
 
     def test_validate_phase_custom_special_options(self) -> None:
         """Test validate phase with custom special options."""
@@ -316,6 +319,7 @@ class TestValidatePhaseSpecialOptions:
                 False,  # input files
                 False,  # code_review disabled
                 True,  # tests
+                False,  # add linter commands
             ]
             mock_prompt.side_effect = [
                 "1800",  # timeout 30 min
@@ -343,6 +347,7 @@ class TestValidatePhaseSpecialOptions:
             mock_confirm.side_effect = [
                 True,  # code_review
                 False,  # tests disabled
+                False,  # add linter commands
             ]
             mock_prompt.side_effect = [
                 "180",  # test_timeout
@@ -357,6 +362,32 @@ class TestValidatePhaseSpecialOptions:
         assert config["test_timeout_seconds"] == 180
         assert config["max_iterations"] == 10
         assert config["triage_mode"] == "hybrid"
+
+    def test_validate_phase_with_linter_commands(self) -> None:
+        """Test validate phase with linter commands added."""
+        console = Console(force_terminal=True)
+
+        with (
+            patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
+            patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
+        ):
+            mock_confirm.side_effect = [
+                True,  # code_review
+                True,  # tests
+                True,  # add linter commands
+            ]
+            mock_prompt.side_effect = [
+                "300",  # test_timeout
+                "5",  # max_iterations
+                "auto",  # triage_mode
+                "ruff check .",  # first linter
+                "mypy src/",  # second linter
+                "",  # done adding linters
+            ]
+
+            config = _configure_validate_phase(console)
+
+        assert config["linter_commands"] == ["ruff check .", "mypy src/"]
 
 
 class TestInputFileLoop:
@@ -651,6 +682,7 @@ class TestFullFlow:
                 False,  # input files
                 True,  # code_review
                 True,  # tests
+                False,  # add linter commands
             ]
             mock_prompt.side_effect = [
                 "3",  # select validate phase
@@ -668,6 +700,7 @@ class TestFullFlow:
         assert validate_config["enable_review"] is True
         assert validate_config["enable_tests"] is True
         assert validate_config["triage_mode"] == "auto"
+        assert "linter_commands" not in validate_config
 
 
 class TestStateIntegration:

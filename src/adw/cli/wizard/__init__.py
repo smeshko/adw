@@ -103,6 +103,13 @@ from adw.cli.wizard.webhooks import (
     WebhooksStepHandler,
     run_webhooks_step,
 )
+from adw.cli.wizard.navigation import (
+    NavigationError,
+    NavigationSignal,
+    check_navigation,
+    nav_confirm_ask,
+    nav_prompt_ask,
+)
 
 __all__ = [
     "BasicsStepHandler",
@@ -111,6 +118,8 @@ __all__ = [
     "ConfigWriteError",
     "GitStepHandler",
     "GlobalRegistryStepHandler",
+    "NavigationError",
+    "NavigationSignal",
     "PhasesStepHandler",
     "PortsStepHandler",
     "RetryStepHandler",
@@ -123,6 +132,7 @@ __all__ = [
     "WizardFlowController",
     "WizardStep",
     "atomic_write_config",
+    "check_navigation",
     "check_port_overlap",
     "detect_language",
     "detect_test_command",
@@ -131,6 +141,8 @@ __all__ = [
     "generate_project_yaml",
     "generate_summary_panel",
     "is_common_port",
+    "nav_confirm_ask",
+    "nav_prompt_ask",
     "run_basics_step",
     "run_git_step",
     "run_global_registry_step",
