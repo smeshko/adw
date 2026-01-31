@@ -194,6 +194,9 @@ def _prompt_post_publish_hooks(console: Console) -> list[str]:
 def _prompt_pr_settings(console: Console) -> dict[str, Any]:
     """Prompt for PR merge settings.
 
+    Only prompts for merge strategy and delete branch if auto-merge is enabled.
+    This prevents asking redundant questions when auto-merge is disabled.
+
     Args:
         console: Console for output.
 
@@ -206,18 +209,24 @@ def _prompt_pr_settings(console: Console) -> dict[str, Any]:
         console=console,
     )
 
-    merge_method = Prompt.ask(
-        "Merge strategy",
-        choices=MERGE_STRATEGIES,
-        default="squash",
-        console=console,
-    )
+    # Defaults
+    merge_method = "squash"
+    delete_branch = True
 
-    delete_branch = Confirm.ask(
-        "Delete branch after merge?",
-        default=True,
-        console=console,
-    )
+    # Only ask follow-up questions if auto-merge is enabled
+    if merge_on_success:
+        merge_method = Prompt.ask(
+            "Merge strategy",
+            choices=MERGE_STRATEGIES,
+            default="squash",
+            console=console,
+        )
+
+        delete_branch = Confirm.ask(
+            "Delete branch after merge?",
+            default=True,
+            console=console,
+        )
 
     return {
         "merge_on_success": merge_on_success,

@@ -167,7 +167,7 @@ so that I can efficiently configure my project without redundant questions or mi
 ### Task 7: Fix Auto-merge Follow-up Questions
 **Files**: `src/adw/cli/wizard/ship.py`
 
-- [ ] 7.1 Modify `_prompt_pr_settings()` (lines 203-226):
+- [x] 7.1 Modify `_prompt_pr_settings()` (lines 203-226):
   - Move merge_method and delete_branch prompts inside conditional
   ```python
   merge_on_success = Confirm.ask("Auto-merge after successful ship?", ...)
