@@ -70,13 +70,13 @@ so that I can efficiently configure my project without redundant questions or mi
 ### Task 2: Refactor Ship Configuration to Follow Common Pattern
 **Files**: `src/adw/cli/wizard/ship.py`, `src/adw/cli/wizard/phases.py`
 
-- [ ] 2.1 When ship is selected in phases step, route to `_configure_phase("ship", console)` first
-- [ ] 2.2 After common config (enabled, timeout, input_files), call ship-specific functions:
-  - `_prompt_ship_commands()`
-  - `_prompt_post_publish_hooks()`
-  - `_prompt_pr_settings()`
-- [ ] 2.3 Remove ship as a separate wizard step OR keep it as fallback when not selected in phases
-- [ ] 2.4 Update `run_ship_step()` in ship.py to use common pattern if ship step is kept
+- [x] 2.1 When ship is selected in phases step, route to `_configure_phase("ship", console)` first
+- [x] 2.2 After common config (enabled, timeout, input_files), call ship-specific functions:
+  - `_prompt_ship_commands()` (via `_configure_ship_phase`)
+  - `_prompt_post_publish_hooks()` (via `_configure_ship_phase`)
+  - `_prompt_pr_settings()` (via `_prompt_ship_pr_settings`)
+- [x] 2.3 Remove ship as a separate wizard step OR keep it as fallback when not selected in phases
+- [x] 2.4 Update `run_ship_step()` in ship.py to use common pattern if ship step is kept
 
 ### Task 3: Implement Navigation Key Handling
 **Files**: `src/adw/cli/wizard/flow.py`, possibly new `src/adw/cli/wizard/prompts.py`
