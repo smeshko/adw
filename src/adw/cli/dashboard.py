@@ -908,13 +908,14 @@ class DashboardController:
                     self.layout.create_projects_panel(self.data.stats)
                 )
 
-        # Footer
+        # Footer - show faster interval when active runs exist
+        effective_interval = 5 if self.data.active_runs else self.refresh_interval
         components.append(Text())  # Spacing before footer
         components.append(
             self.layout.create_footer(
                 last_refresh=self.state.last_refresh,
                 paused=self.state.paused,
-                refresh_interval=self.refresh_interval,
+                refresh_interval=effective_interval,
             )
         )
 
@@ -939,8 +940,9 @@ class DashboardController:
             with Live(
                 self.render(),
                 console=self.console,
-                refresh_per_second=4,
+                refresh_per_second=1,
                 transient=False,
+                vertical_overflow="visible",
             ) as live:
                 # Set up keyboard AFTER Live context starts to avoid mode conflicts
                 keyboard_enabled = self._setup_keyboard()
@@ -961,10 +963,15 @@ class DashboardController:
                                 self._manual_refresh_triggered = False
 
                         # Auto-refresh if not paused
+                        # Use faster refresh when there are active runs
                         if not self.state.paused:
                             now = datetime.now(UTC)
                             elapsed = (now - last_refresh_time).total_seconds()
-                            if elapsed >= self.refresh_interval:
+                            # Refresh every 5s when active runs exist, else use normal interval
+                            effective_interval = (
+                                5 if self.data.active_runs else self.refresh_interval
+                            )
+                            if elapsed >= effective_interval:
                                 self.refresh_data()
                                 last_refresh_time = now
                                 live.update(self.render())
