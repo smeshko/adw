@@ -246,13 +246,58 @@ def _configure_validate_phase(console: Console) -> dict[str, Any]:
         console=console,
     )
 
-    return {
+    # Linter commands
+    linter_commands = _prompt_linter_commands(console)
+
+    config: dict[str, Any] = {
         "enable_review": code_review,
         "enable_tests": tests,
         "test_timeout_seconds": test_timeout,
         "max_iterations": max_iterations,
         "triage_mode": triage_mode,
     }
+
+    if linter_commands:
+        config["linter_commands"] = linter_commands
+
+    return config
+
+
+def _prompt_linter_commands(console: Console) -> list[str]:
+    """Collect multiple linter commands for validate phase.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        List of linter commands.
+    """
+    add_linters = Confirm.ask(
+        "Add linter commands?",
+        default=False,
+        console=console,
+    )
+
+    if not add_linters:
+        return []
+
+    linters: list[str] = []
+    console.print("[dim]Enter linter commands (empty to finish):[/]")
+    console.print("[dim]Examples: 'ruff check .', 'mypy src/', 'eslint .'[/]")
+
+    while True:
+        cmd = Prompt.ask(
+            "Linter command",
+            default="",
+            console=console,
+        ).strip()
+
+        if not cmd:
+            break
+
+        linters.append(cmd)
+
+    return linters
 
 
 def _configure_document_phase(console: Console) -> dict[str, Any]:

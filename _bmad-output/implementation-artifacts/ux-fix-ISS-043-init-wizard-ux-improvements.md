@@ -142,7 +142,7 @@ so that I can efficiently configure my project without redundant questions or mi
 ### Task 6: Add Linter Commands to Validate Phase
 **Files**: `src/adw/cli/wizard/phases.py`
 
-- [ ] 6.1 Create `_prompt_linter_commands()` function (similar to ship.py:_prompt_post_publish_hooks):
+- [x] 6.1 Create `_prompt_linter_commands()` function (similar to ship.py:_prompt_post_publish_hooks):
   ```python
   def _prompt_linter_commands(console: Console) -> list[str]:
       """Collect multiple linter commands for validate phase."""
@@ -157,12 +157,12 @@ so that I can efficiently configure my project without redundant questions or mi
       return linters
   ```
 
-- [ ] 6.2 Call `_prompt_linter_commands()` in `_configure_validate_phase()` after test config:
+- [x] 6.2 Call `_prompt_linter_commands()` in `_configure_validate_phase()` after test config:
   - Add prompt: "Add linter commands? [y/N]"
   - If yes, call `_prompt_linter_commands()`
   - Store in config: `"linter_commands": linters`
 
-- [ ] 6.3 Update validate phase config generation in summary.py to include linter_commands
+- [x] 6.3 Update validate phase config generation in summary.py to include linter_commands
 
 ### Task 7: Fix Auto-merge Follow-up Questions
 **Files**: `src/adw/cli/wizard/ship.py`
