@@ -37,7 +37,7 @@ generated: 2026-01-04
 project: adw-sdk
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
-issue_counter: 42
+issue_counter: 43
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ISSUES
@@ -86,6 +86,7 @@ issues:
   ISS-040-template-variables-not-populated: reported  # Major - Ship phase PR vars and build diff artifacts not populated in templates
   ISS-041-dashboard-layout-display-issues: reported  # Major - TUI dashboard spacing, truncation, and token display issues
   ISS-042-global-dashboard-exits-immediately: fixed  # Critical - Arrow keys read as bare \x1b, triggering quit handler
+  ISS-043-init-wizard-ux-improvements: reported  # Major - 8 UX issues: navigation, ship phase, timeouts, linter commands
 
 development_status:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -438,3 +439,6 @@ development_status:
   # Bugfix (from ISS-042) - CRITICAL
   # Arrow keys read as bare \x1b instead of escape sequences, triggering quit handler
   bugfix-ISS-042-global-dashboard-exits-immediately: done
+  # UX Fix (from ISS-043) - MAJOR
+  # 8 UX issues: ship in phase selection, navigation keys, linter commands, timeouts, etc.
+  ux-fix-ISS-043-init-wizard-ux-improvements: ready-for-dev
