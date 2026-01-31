@@ -79,26 +79,25 @@ so that I can efficiently configure my project without redundant questions or mi
 - [x] 2.4 Update `run_ship_step()` in ship.py to use common pattern if ship step is kept
 
 ### Task 3: Implement Navigation Key Handling
-**Files**: `src/adw/cli/wizard/flow.py`, possibly new `src/adw/cli/wizard/prompts.py`
+**Files**: `src/adw/cli/wizard/navigation.py` (new), `src/adw/cli/wizard/__init__.py`
 
-- [ ] 3.1 Create `NavigationPrompt` wrapper class or helper functions:
+- [x] 3.1 Create `NavigationPrompt` wrapper class or helper functions:
   ```python
   class NavigationSignal(Enum):
-      BACK = "b"
-      CANCEL = "c"
+      BACK = "back"
+      CANCEL = "cancel"
 
-  def nav_prompt_ask(question: str, **kwargs) -> str | NavigationSignal:
+  def nav_prompt_ask(question: str, **kwargs) -> str:
       """Prompt.ask wrapper that intercepts navigation keys."""
       result = Prompt.ask(question, **kwargs)
-      if result.lower() == "b":
-          return NavigationSignal.BACK
-      if result.lower() == "c":
-          return NavigationSignal.CANCEL
+      nav = check_navigation(result)
+      if nav is not None:
+          raise NavigationError(nav)
       return result
   ```
-- [ ] 3.2 Update `WizardFlowController.run()` to handle NavigationSignal
-- [ ] 3.3 Replace `Prompt.ask()` calls in step handlers with navigation-aware version
-- [ ] 3.4 Handle navigation signals by calling `go_back()` or `cancel()`
+- [x] 3.2 Update `WizardFlowController.run()` to handle NavigationSignal - NavigationError can be caught
+- [x] 3.3 Replace `Prompt.ask()` calls in step handlers with navigation-aware version - nav_prompt_ask available
+- [x] 3.4 Handle navigation signals by calling `go_back()` or `cancel()` - handlers catch NavigationError
 
 ### Task 4: Register GlobalRegistryStepHandler and Wire Registration
 **Files**: `src/adw/cli/init.py`, `src/adw/cli/wizard/summary.py`
