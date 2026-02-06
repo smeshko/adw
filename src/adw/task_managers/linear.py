@@ -175,7 +175,7 @@ class LinearTaskManager:
             title=title,
             description=issue.get("description"),
             status=status,
-            priority=issue.get("priority"),
+            priority=issue.get("priority") or None,
             labels=labels,
             assignee=assignee,
             parent_id=parent_id,

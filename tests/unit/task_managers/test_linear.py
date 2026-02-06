@@ -173,6 +173,28 @@ class TestLinearTaskManagerFetchTask:
 
         assert result.labels == ["bug", "urgent", "backend"]
 
+    def test_fetch_task_with_zero_priority_maps_to_none(
+        self, manager: LinearTaskManager
+    ) -> None:
+        """fetch_task maps Linear priority 0 (No priority) to None."""
+        mock_issue = {
+            "id": "abc123",
+            "identifier": "RULE-15",
+            "title": "Task with no priority",
+            "description": None,
+            "state": {"name": "Todo"},
+            "priority": 0,
+            "labels": {"nodes": []},
+            "assignee": None,
+            "parent": None,
+        }
+
+        with patch.object(manager, "_client") as mock_client:
+            mock_client.fetch_issue.return_value = mock_issue
+            result = manager.fetch_task("RULE-15")
+
+        assert result.priority is None
+
     def test_fetch_task_invalid_response_raises_error(
         self, manager: LinearTaskManager
     ) -> None:
