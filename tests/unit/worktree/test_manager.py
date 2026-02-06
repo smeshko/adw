@@ -512,6 +512,50 @@ class TestWorktreeManagerCreation:
         assert (worktree_path / "feature.txt").exists()
         assert branch_name == f"adw/{run_id}"
 
+    def test_create_worktree_from_remote_ref(self, git_repo: Path) -> None:
+        """Worktree is created from a remote tracking ref like origin/staging."""
+        from adw.worktree.manager import WorktreeManager
+
+        # Simulate a remote ref by creating a local branch, then referencing
+        # it as if it were a remote. We use a real commit ref instead of an
+        # actual remote. Get the current HEAD commit hash.
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+        )
+        head_sha = result.stdout.strip()
+
+        # Create a fake remote ref that points to HEAD
+        subprocess.run(
+            ["git", "update-ref", "refs/remotes/origin/staging", head_sha],
+            cwd=git_repo,
+            check=True,
+            capture_output=True,
+        )
+
+        manager = WorktreeManager(project_root=git_repo)
+        run_id = "01HQREMOTEREF123456789012"
+
+        worktree_path, branch_name = manager.create_worktree(
+            run_id, source_branch="origin/staging"
+        )
+
+        # Verify worktree was created successfully
+        assert worktree_path.exists()
+        assert worktree_path.is_dir()
+        assert branch_name == f"adw/{run_id}"
+
+        # Verify the branch was created and tracks the correct commit
+        result = subprocess.run(
+            ["git", "rev-parse", f"adw/{run_id}"],
+            cwd=git_repo,
+            capture_output=True,
+            text=True,
+        )
+        assert result.stdout.strip() == head_sha
+
     def test_create_worktree_branch_exists_error(self, git_repo: Path) -> None:
         """Raises WorktreeError when branch already exists."""
         from adw.exceptions import WorktreeError

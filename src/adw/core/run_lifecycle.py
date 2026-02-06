@@ -15,6 +15,7 @@ Key responsibilities:
 from __future__ import annotations
 
 import logging
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -520,6 +521,51 @@ class RunLifecycle:
         if self._label_manager:
             self._label_manager.set_running()
 
+    def _fetch_base_branch(self) -> str:
+        """Fetch the remote base branch and return the remote ref.
+
+        Determines the base branch from git config (falling back to
+        ``"staging"``), runs ``git fetch origin <base_branch>``, and
+        returns ``"origin/<base_branch>"`` so the caller can branch
+        from the latest remote state.
+
+        Returns:
+            Remote ref string, e.g. ``"origin/staging"``.
+
+        Raises:
+            WorktreeError: If the fetch command fails (network error,
+                no remote, auth failure, etc.).
+        """
+        base_branch = self.git_config.base_branch or "staging"
+
+        result = subprocess.run(
+            ["git", "fetch", "origin", base_branch],
+            cwd=self.project_path,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        if result.returncode != 0:
+            raise WorktreeError(
+                code="GIT_FETCH_FAILED",
+                message=(
+                    f"Failed to fetch '{base_branch}' from origin: "
+                    f"{result.stderr.strip()}"
+                ),
+                suggestion=(
+                    "Check your network connection and ensure the remote "
+                    "'origin' is configured with: git remote -v"
+                ),
+            )
+
+        logger.info(
+            "Fetched latest remote base branch",
+            extra={"base_branch": base_branch, "ref": f"origin/{base_branch}"},
+        )
+
+        return f"origin/{base_branch}"
+
     def _create_worktree_for_run(
         self, run_id: str, feature_description: str
     ) -> tuple[Path, str] | None:
@@ -550,9 +596,13 @@ class RunLifecycle:
             if sanitized:
                 feature_branch_name = self.git_config.branch_prefix + sanitized
 
+        # Fetch latest remote base branch so the worktree starts from
+        # up-to-date code rather than a potentially stale local HEAD.
+        source_ref = self._fetch_base_branch()
+
         try:
             worktree_path, branch_name = self._worktree_manager.create_worktree(
-                run_id, branch_name=feature_branch_name
+                run_id, source_branch=source_ref, branch_name=feature_branch_name
             )
 
             # Register the run after successful worktree creation (Story 10.4)
