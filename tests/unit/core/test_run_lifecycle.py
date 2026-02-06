@@ -293,6 +293,73 @@ class TestCreateRunContext:
         mock_label_manager.set_running.assert_called_once()
 
 
+class TestInitializeRunPostsStartedComment:
+    """Tests for run started comment in _initialize_run."""
+
+    def test_posts_run_started_comment_when_sync_service_present(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_interruption_handler: MagicMock,
+        mock_status_sync_service: MagicMock,
+    ) -> None:
+        """_initialize_run calls post_run_started_comment on sync service."""
+        lifecycle = RunLifecycle(
+            runs_dir=tmp_path,
+            project_path=tmp_path,
+            context_manager=mock_context_manager,
+            run_directory_manager=mock_run_directory_manager,
+            index_manager=mock_index_manager,
+            interruption_handler=mock_interruption_handler,
+            status_sync_service=mock_status_sync_service,
+            worktree_config=WorktreeConfig(enabled=False),
+        )
+
+        lifecycle.create_run_context(feature_description="Add user auth")
+
+        mock_status_sync_service.post_run_started_comment.assert_called_once()
+
+    def test_run_started_comment_is_non_blocking(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_interruption_handler: MagicMock,
+    ) -> None:
+        """_initialize_run does not fail if post_run_started_comment raises."""
+        failing_sync = MagicMock()
+        failing_sync.post_run_started_comment = MagicMock(
+            side_effect=Exception("Network error")
+        )
+
+        lifecycle = RunLifecycle(
+            runs_dir=tmp_path,
+            project_path=tmp_path,
+            context_manager=mock_context_manager,
+            run_directory_manager=mock_run_directory_manager,
+            index_manager=mock_index_manager,
+            interruption_handler=mock_interruption_handler,
+            status_sync_service=failing_sync,
+            worktree_config=WorktreeConfig(enabled=False),
+        )
+
+        # Should not raise
+        context = lifecycle.create_run_context(feature_description="Add user auth")
+        assert context.status == "running"
+
+    def test_no_run_started_comment_without_sync_service(
+        self,
+        run_lifecycle: RunLifecycle,
+    ) -> None:
+        """_initialize_run does not call post_run_started_comment when no sync service."""
+        # run_lifecycle fixture has no status_sync_service — should not error
+        context = run_lifecycle.create_run_context(feature_description="Add user auth")
+        assert context.status == "running"
+
+
 class TestPrepareResumeContext:
     """Tests for prepare_resume_context method."""
 

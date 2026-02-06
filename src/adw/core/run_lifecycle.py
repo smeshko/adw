@@ -521,6 +521,19 @@ class RunLifecycle:
         if self._label_manager:
             self._label_manager.set_running()
 
+        # Post run started comment to task manager (non-blocking)
+        if self._status_sync_service:
+            try:
+                self._status_sync_service.post_run_started_comment(context)
+            except Exception as comment_error:
+                logger.warning(
+                    "Failed to post run started comment (non-blocking)",
+                    extra={
+                        "run_id": context.run_id,
+                        "error": str(comment_error),
+                    },
+                )
+
     def _fetch_base_branch(self) -> str:
         """Fetch the remote base branch and return the remote ref.
 
