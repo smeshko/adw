@@ -172,13 +172,13 @@ class TestCommentFormatter:
         )
 
         assert "plan" in result.lower()
-        assert "45.2" in result or "45.20" in result
+        assert "45s" in result or "45" in result
         assert "3" in result
         # Should be markdown
         assert "**" in result or "#" in result
 
     def test_format_phase_complete_shows_duration_formatted(self) -> None:
-        """format_phase_complete should format duration nicely."""
+        """format_phase_complete should format duration as human-friendly."""
         from adw.task_managers.comments import CommentFormatter
 
         formatter = CommentFormatter()
@@ -186,8 +186,39 @@ class TestCommentFormatter:
             phase="build", duration=125.7, artifacts=5
         )
 
-        # Duration should be formatted (could be seconds or minutes)
-        assert "125" in result or "2m" in result
+        # Duration should be formatted as minutes
+        assert "2m 5s" in result
+
+    def test_format_phase_complete_with_enriched_data(self) -> None:
+        """format_phase_complete includes artifact names and token metrics."""
+        from adw.task_managers.comments import CommentFormatter
+
+        formatter = CommentFormatter()
+        result = formatter.format_phase_complete(
+            phase="build",
+            duration=60.0,
+            artifacts=2,
+            artifact_names=["src/main.py", "tests/test_main.py"],
+            tokens_used=15000,
+            tool_calls_count=42,
+        )
+
+        assert "`src/main.py`" in result
+        assert "`tests/test_main.py`" in result
+        assert "15,000" in result
+        assert "42" in result
+
+    def test_format_phase_complete_backward_compatible(self) -> None:
+        """format_phase_complete works without new keyword args."""
+        from adw.task_managers.comments import CommentFormatter
+
+        formatter = CommentFormatter()
+        # Old-style call with only positional args
+        result = formatter.format_phase_complete("plan", 30.0, 2)
+
+        assert "plan" in result.lower()
+        assert "30s" in result
+        assert "2" in result
 
     def test_format_phase_failed_includes_error(self) -> None:
         """format_phase_failed should include error message."""
@@ -203,6 +234,36 @@ class TestCommentFormatter:
         assert "build" in result.lower()
         assert "missing dependency" in result.lower() or "Build failed" in result
         assert "01ABC123" in result
+
+    def test_format_phase_failed_with_enriched_data(self) -> None:
+        """format_phase_failed includes timeline, duration, artifacts, branch."""
+        from adw.task_managers.comments import CommentFormatter
+
+        formatter = CommentFormatter()
+        result = formatter.format_phase_failed(
+            phase="build",
+            error="Compilation error",
+            run_id="01ABC123",
+            duration=138.5,
+            phase_sequence=["plan", "build", "validate", "document", "ship"],
+            completed_phases=["plan"],
+            branch_name="adw/feature-auth",
+            artifacts_by_phase={"plan": ["plan.md", "spec.md"]},
+        )
+
+        # Timeline
+        assert "plan ✓" in result
+        assert "build ✗" in result
+        assert "validate ⊘" in result
+        # Duration
+        assert "2m 18s" in result
+        # Branch
+        assert "`adw/feature-auth`" in result
+        # Artifacts before failure
+        assert "`plan.md`" in result
+        assert "`spec.md`" in result
+        # Branch preservation note
+        assert "preserved for debugging" in result
 
     def test_format_run_complete_with_pr_url(self) -> None:
         """format_run_complete should include PR URL when provided."""
@@ -232,3 +293,162 @@ class TestCommentFormatter:
 
         assert "01ABC123" in result
         assert "completed" in result.lower() or "Run" in result
+
+    def test_format_run_complete_with_enriched_data(self) -> None:
+        """format_run_complete includes timeline, duration, tokens, commits, artifacts."""
+        from adw.task_managers.comments import CommentFormatter
+
+        formatter = CommentFormatter()
+        result = formatter.format_run_complete(
+            run_id="01ABC123",
+            pr_url="https://github.com/org/repo/pull/99",
+            summary="All phases completed",
+            duration=300.0,
+            phase_sequence=["plan", "build", "validate", "document", "ship"],
+            completed_phases=["plan", "build", "validate", "document", "ship"],
+            total_tokens=50000,
+            commit_count=5,
+            artifacts_by_phase={
+                "plan": ["plan.md"],
+                "build": ["src/app.py"],
+                "document": ["README.md"],
+            },
+        )
+
+        # Timeline - all completed
+        assert "plan ✓" in result
+        assert "ship ✓" in result
+        # Duration
+        assert "5m 0s" in result
+        # Tokens
+        assert "50,000" in result
+        # Commits
+        assert "5" in result
+        # Artifacts
+        assert "`plan.md`" in result
+        assert "`src/app.py`" in result
+        assert "`README.md`" in result
+
+
+class TestFormatDuration:
+    """Tests for CommentFormatter._format_duration helper."""
+
+    def test_seconds_only(self) -> None:
+        """Formats short durations as seconds."""
+        from adw.task_managers.comments import CommentFormatter
+
+        assert CommentFormatter._format_duration(28.0) == "28s"
+
+    def test_minutes_and_seconds(self) -> None:
+        """Formats longer durations as minutes and seconds."""
+        from adw.task_managers.comments import CommentFormatter
+
+        assert CommentFormatter._format_duration(138.0) == "2m 18s"
+
+    def test_zero_seconds(self) -> None:
+        """Formats zero duration."""
+        from adw.task_managers.comments import CommentFormatter
+
+        assert CommentFormatter._format_duration(0.0) == "0s"
+
+    def test_negative_treated_as_zero(self) -> None:
+        """Negative durations are clamped to zero."""
+        from adw.task_managers.comments import CommentFormatter
+
+        assert CommentFormatter._format_duration(-5.0) == "0s"
+
+    def test_exact_minute(self) -> None:
+        """Exact minute boundary."""
+        from adw.task_managers.comments import CommentFormatter
+
+        assert CommentFormatter._format_duration(60.0) == "1m 0s"
+
+    def test_fractional_seconds_truncated(self) -> None:
+        """Fractional seconds are truncated."""
+        from adw.task_managers.comments import CommentFormatter
+
+        assert CommentFormatter._format_duration(45.9) == "45s"
+
+
+class TestFormatPhaseTimeline:
+    """Tests for CommentFormatter._format_phase_timeline helper."""
+
+    def test_all_completed(self) -> None:
+        """All phases completed shows all checkmarks."""
+        from adw.task_managers.comments import CommentFormatter
+
+        seq = ["plan", "build", "validate"]
+        result = CommentFormatter._format_phase_timeline(seq, seq)
+        assert result == "plan ✓ → build ✓ → validate ✓"
+
+    def test_failure_mid_pipeline(self) -> None:
+        """Failure in the middle marks failed and skipped."""
+        from adw.task_managers.comments import CommentFormatter
+
+        seq = ["plan", "build", "validate", "document", "ship"]
+        completed = ["plan"]
+        result = CommentFormatter._format_phase_timeline(
+            seq, completed, failed_phase="build"
+        )
+        assert result == "plan ✓ → build ✗ → validate ⊘ → document ⊘ → ship ⊘"
+
+    def test_no_phases_completed(self) -> None:
+        """No phases completed, first phase failed."""
+        from adw.task_managers.comments import CommentFormatter
+
+        seq = ["plan", "build"]
+        result = CommentFormatter._format_phase_timeline(
+            seq, [], failed_phase="plan"
+        )
+        assert result == "plan ✗ → build ⊘"
+
+    def test_no_failure(self) -> None:
+        """Partial completion without failure (e.g., successful run that skipped ship)."""
+        from adw.task_managers.comments import CommentFormatter
+
+        seq = ["plan", "build", "validate"]
+        completed = ["plan", "build"]
+        result = CommentFormatter._format_phase_timeline(seq, completed)
+        assert result == "plan ✓ → build ✓ → validate ⊘"
+
+
+class TestFormatRunStarted:
+    """Tests for CommentFormatter.format_run_started."""
+
+    def test_basic_run_started(self) -> None:
+        """Basic run started with just run_id."""
+        from adw.task_managers.comments import CommentFormatter
+
+        formatter = CommentFormatter()
+        result = formatter.format_run_started("01RUN123")
+
+        assert "▶ ADW Run Started" in result
+        assert "`01RUN123`" in result
+
+    def test_run_started_with_all_fields(self) -> None:
+        """Run started with all optional fields."""
+        from adw.task_managers.comments import CommentFormatter
+
+        formatter = CommentFormatter()
+        result = formatter.format_run_started(
+            "01RUN123",
+            branch_name="adw/feature-auth",
+            phase_sequence=["plan", "build", "validate", "document", "ship"],
+            assignee="developer@example.com",
+        )
+
+        assert "`01RUN123`" in result
+        assert "`adw/feature-auth`" in result
+        assert "plan → build → validate → document → ship" in result
+        assert "developer@example.com" in result
+
+    def test_run_started_without_optional_fields(self) -> None:
+        """Run started omits rows for None fields."""
+        from adw.task_managers.comments import CommentFormatter
+
+        formatter = CommentFormatter()
+        result = formatter.format_run_started("01RUN123")
+
+        assert "Branch" not in result
+        assert "Pipeline" not in result
+        assert "Triggered by" not in result

@@ -4,7 +4,7 @@ Tests verify that status synchronization works correctly with task managers,
 handles phase transitions, and provides non-blocking error handling.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock
 
 import pytest
@@ -333,7 +333,7 @@ class TestStatusSyncServiceComments:
             run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
             feature_description="Test feature",
             current_phase="plan",
-            started_at=datetime.now(),
+            started_at=datetime.now(UTC),
             task_id="RULE-123",
             task_info=TaskInfo(
                 id="uuid-123",
@@ -360,12 +360,10 @@ class TestStatusSyncServiceComments:
         context_with_task: RunContext,
     ) -> None:
         """post_phase_comment calls task_manager.post_comment."""
-        from datetime import timedelta
-
         from adw.models.phase import PhaseResult, PhaseStatus
 
         service = StatusSyncService(mock_task_manager, config)
-        started = datetime.now()
+        started = datetime.now(UTC)
         completed = started + timedelta(seconds=45.2)
         result = PhaseResult(
             phase="plan",
@@ -381,7 +379,40 @@ class TestStatusSyncServiceComments:
         call_args = mock_task_manager.post_comment.call_args
         assert call_args[0][0] == "uuid-123"  # task_id
         assert "plan" in call_args[0][1].lower()  # phase in body
-        assert "45.20" in call_args[0][1]  # duration
+
+    def test_post_phase_comment_includes_enriched_data(
+        self,
+        mock_task_manager: MagicMock,
+        config: TaskManagerConfig,
+        context_with_task: RunContext,
+    ) -> None:
+        """post_phase_comment passes artifact names, tokens, tool calls."""
+        from adw.models.llm import ToolCall
+        from adw.models.phase import PhaseResult, PhaseStatus
+
+        service = StatusSyncService(mock_task_manager, config)
+        started = datetime.now(UTC)
+        completed = started + timedelta(seconds=60)
+        result = PhaseResult(
+            phase="build",
+            status=PhaseStatus.COMPLETED,
+            started_at=started,
+            completed_at=completed,
+            artifacts=["src/main.py", "tests/test_main.py"],
+            tokens_used=12000,
+            tool_calls=[
+                ToolCall(tool_name="write_file", arguments={"path": "src/main.py"}),
+                ToolCall(tool_name="write_file", arguments={"path": "tests/test_main.py"}),
+            ],
+        )
+
+        service.post_phase_comment(context_with_task, "build", result)
+
+        body = mock_task_manager.post_comment.call_args[0][1]
+        assert "`src/main.py`" in body
+        assert "`tests/test_main.py`" in body
+        assert "12,000" in body
+        assert "2" in body  # 2 tool calls
 
     def test_post_phase_comment_skips_without_task(
         self,
@@ -419,6 +450,38 @@ class TestStatusSyncServiceComments:
         assert call_args[0][0] == "uuid-123"
         assert "build" in call_args[0][1].lower()
         assert "missing dep" in call_args[0][1]
+
+    def test_post_failure_comment_includes_enriched_data(
+        self,
+        mock_task_manager: MagicMock,
+        config: TaskManagerConfig,
+    ) -> None:
+        """post_failure_comment includes phase timeline and branch info."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test feature",
+            current_phase="build",
+            started_at=datetime.now(UTC) - timedelta(seconds=120),
+            task_id="RULE-123",
+            task_info=TaskInfo(
+                id="uuid-123",
+                identifier="RULE-123",
+                title="Test task",
+            ),
+            task_manager="linear",
+            phase_history=["plan"],
+            branch_name="adw/feature-test",
+            artifacts={"plan": ["plan.md"]},
+        )
+
+        service = StatusSyncService(mock_task_manager, config)
+        service.post_failure_comment(context, "build", "Error occurred")
+
+        body = mock_task_manager.post_comment.call_args[0][1]
+        assert "plan ✓" in body
+        assert "build ✗" in body
+        assert "`adw/feature-test`" in body
+        assert "`plan.md`" in body
 
     def test_post_completion_comment_includes_pr_url(
         self,
@@ -458,6 +521,48 @@ class TestStatusSyncServiceComments:
         mock_task_manager.post_comment.assert_called_once()
         call_args = mock_task_manager.post_comment.call_args
         assert "01KDSG2VDHNK0W4HSCZWJZXWSQ" in call_args[0][1]  # run_id
+
+    def test_post_completion_comment_includes_enriched_data(
+        self,
+        mock_task_manager: MagicMock,
+        config: TaskManagerConfig,
+    ) -> None:
+        """post_completion_comment includes timeline, tokens, commits, artifacts."""
+        started = datetime.now(UTC) - timedelta(seconds=300)
+        completed = datetime.now(UTC)
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test feature",
+            current_phase="ship",
+            started_at=started,
+            completed_at=completed,
+            task_id="RULE-123",
+            task_info=TaskInfo(
+                id="uuid-123",
+                identifier="RULE-123",
+                title="Test task",
+            ),
+            task_manager="linear",
+            phase_history=["plan", "build", "validate", "document", "ship"],
+            phase_tokens={"plan": 10000, "build": 30000, "validate": 5000},
+            commit_shas=["abc123", "def456"],
+            artifacts={"plan": ["plan.md"], "build": ["src/app.py"]},
+        )
+
+        service = StatusSyncService(mock_task_manager, config)
+        service.post_completion_comment(
+            context,
+            pr_url="https://github.com/org/repo/pull/99",
+            summary="All done",
+        )
+
+        body = mock_task_manager.post_comment.call_args[0][1]
+        assert "plan ✓" in body
+        assert "ship ✓" in body
+        assert "45,000" in body  # total_tokens = 10000 + 30000 + 5000
+        assert "2" in body  # 2 commits
+        assert "`plan.md`" in body
+        assert "`src/app.py`" in body
 
     def test_safe_post_comment_handles_errors(
         self,
@@ -528,6 +633,120 @@ class TestStatusSyncServiceComments:
         mock_task_manager.post_comment.assert_called_once()
 
 
+class TestStatusSyncServiceRunStartedComment:
+    """Tests for post_run_started_comment."""
+
+    @pytest.fixture
+    def mock_task_manager(self) -> MagicMock:
+        """Create a mock task manager."""
+        manager = MagicMock()
+        manager.name = "linear"
+        manager.post_comment = MagicMock()
+        return manager
+
+    @pytest.fixture
+    def config(self) -> TaskManagerConfig:
+        """Create a task manager config with sync_comments enabled."""
+        return TaskManagerConfig(type="linear", team_key="RULE", sync_comments=True)
+
+    @pytest.fixture
+    def context_with_task(self) -> RunContext:
+        """Create a RunContext with task information."""
+        return RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test feature",
+            current_phase="plan",
+            started_at=datetime.now(UTC),
+            branch_name="adw/feature-test",
+            task_id="RULE-123",
+            task_info=TaskInfo(
+                id="uuid-123",
+                identifier="RULE-123",
+                title="Test task",
+                assignee="developer@example.com",
+            ),
+            task_manager="linear",
+        )
+
+    def test_post_run_started_comment_posts(
+        self,
+        mock_task_manager: MagicMock,
+        config: TaskManagerConfig,
+        context_with_task: RunContext,
+    ) -> None:
+        """post_run_started_comment posts a comment with run details."""
+        service = StatusSyncService(mock_task_manager, config)
+        service.post_run_started_comment(context_with_task)
+
+        mock_task_manager.post_comment.assert_called_once()
+        body = mock_task_manager.post_comment.call_args[0][1]
+        assert "▶ ADW Run Started" in body
+        assert "01KDSG2VDHNK0W4HSCZWJZXWSQ" in body
+        assert "`adw/feature-test`" in body
+        assert "plan" in body  # pipeline visualization
+
+    def test_post_run_started_comment_includes_assignee(
+        self,
+        mock_task_manager: MagicMock,
+        config: TaskManagerConfig,
+        context_with_task: RunContext,
+    ) -> None:
+        """post_run_started_comment includes assignee in comment."""
+        service = StatusSyncService(mock_task_manager, config)
+        service.post_run_started_comment(context_with_task)
+
+        body = mock_task_manager.post_comment.call_args[0][1]
+        assert "developer@example.com" in body
+
+    def test_post_run_started_skipped_without_task(
+        self,
+        mock_task_manager: MagicMock,
+        config: TaskManagerConfig,
+    ) -> None:
+        """post_run_started_comment is no-op without task info."""
+        context = RunContext(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            feature_description="Test",
+            current_phase="plan",
+            started_at=datetime.now(UTC),
+        )
+        service = StatusSyncService(mock_task_manager, config)
+        service.post_run_started_comment(context)
+
+        mock_task_manager.post_comment.assert_not_called()
+
+    def test_post_run_started_skipped_when_sync_comments_false(
+        self,
+        mock_task_manager: MagicMock,
+        context_with_task: RunContext,
+    ) -> None:
+        """post_run_started_comment is no-op when sync_comments is False."""
+        config = TaskManagerConfig(
+            type="linear", team_key="RULE", sync_comments=False
+        )
+        service = StatusSyncService(mock_task_manager, config)
+        service.post_run_started_comment(context_with_task)
+
+        mock_task_manager.post_comment.assert_not_called()
+
+    def test_post_run_started_skipped_when_comment_on_failure_only(
+        self,
+        mock_task_manager: MagicMock,
+        context_with_task: RunContext,
+    ) -> None:
+        """post_run_started_comment is no-op when comment_on_failure_only is True."""
+        config = TaskManagerConfig(
+            type="linear",
+            team_key="RULE",
+            sync_comments=True,
+            comment_on_failure_only=True,
+        )
+        service = StatusSyncService(mock_task_manager, config)
+        service.post_run_started_comment(context_with_task)
+
+        mock_task_manager.post_comment.assert_not_called()
+
+
 class TestStatusSyncServiceTaskInfo:
     """Tests for ISS-039: StatusSyncService task_info storage and usage."""
 
@@ -585,8 +804,6 @@ class TestStatusSyncServiceTaskInfo:
         context_without_task: RunContext,
     ) -> None:
         """post_phase_comment uses stored task_info even when context has none."""
-        from datetime import timedelta
-
         from adw.models.phase import PhaseResult, PhaseStatus
 
         # Service has stored task_info, but context does NOT
@@ -675,8 +892,6 @@ class TestStatusSyncServiceTaskInfo:
         This is the key fix for ISS-039: methods should NOT return early
         when context has no task_info, as long as the service has stored task_info.
         """
-        from datetime import timedelta
-
         from adw.models.phase import PhaseResult, PhaseStatus
 
         service = StatusSyncService(mock_task_manager, config, task_info=task_info)

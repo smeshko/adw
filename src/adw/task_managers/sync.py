@@ -9,6 +9,7 @@ Story 12.6: Post Status Update Comments
 """
 
 import logging
+from datetime import UTC, datetime
 from typing import Any
 
 from adw.models.config import TaskManagerConfig
@@ -206,6 +207,42 @@ class StatusSyncService:
                 phase_or_state,
             )
 
+    def post_run_started_comment(self, context: RunContext) -> None:
+        """Post a comment when an ADW run starts.
+
+        Posts a formatted comment to the task management system when a run
+        begins. Does nothing if:
+        - no task_info is available
+        - sync_comments is False in config
+        - comment_on_failure_only is True
+
+        Args:
+            context: The current run context with task and run information.
+        """
+        task_info = self._task_info or context.task_info
+        if not task_info:
+            return
+
+        if not self._config.sync_comments:
+            return
+
+        if self._config.comment_on_failure_only:
+            return
+
+        # Import locally to avoid circular dependency between core and task_managers
+        from adw.core.constants import PHASE_SEQUENCE
+
+        assignee = task_info.assignee if hasattr(task_info, "assignee") else None
+
+        comment = self._comment_formatter.format_run_started(
+            run_id=context.run_id,
+            branch_name=context.branch_name,
+            phase_sequence=list(PHASE_SEQUENCE),
+            assignee=assignee,
+        )
+
+        self._safe_post_comment(task_info.id, comment)
+
     def post_phase_comment(
         self,
         context: RunContext,
@@ -240,16 +277,25 @@ class StatusSyncService:
 
         # Determine artifacts count (count files in artifacts if available)
         artifacts_count = 0
+        artifact_names: list[str] | None = None
         if result.artifacts:
             artifacts_count = len(result.artifacts)
+            artifact_names = result.artifacts
 
         # Calculate duration
         duration = result.duration_ms / 1000 if result.duration_ms else 0.0
+
+        # Extract token and tool call metrics
+        tokens_used = result.tokens_used
+        tool_calls_count = len(result.tool_calls)
 
         comment = self._comment_formatter.format_phase_complete(
             phase=phase,
             duration=duration,
             artifacts=artifacts_count,
+            artifact_names=artifact_names,
+            tokens_used=tokens_used,
+            tool_calls_count=tool_calls_count,
         )
 
         self._safe_post_comment(task_info.id, comment)
@@ -284,10 +330,24 @@ class StatusSyncService:
         if not self._config.sync_comments:
             return
 
+        # Import locally to avoid circular dependency
+        from adw.core.constants import PHASE_SEQUENCE
+
+        # Calculate duration from started_at to now
+        duration: float | None = None
+        if context.started_at:
+            delta = datetime.now(UTC) - context.started_at.replace(tzinfo=UTC)
+            duration = delta.total_seconds()
+
         comment = self._comment_formatter.format_phase_failed(
             phase=phase,
             error=error,
             run_id=context.run_id,
+            duration=duration,
+            phase_sequence=list(PHASE_SEQUENCE),
+            completed_phases=list(context.phase_history),
+            branch_name=context.branch_name,
+            artifacts_by_phase=dict(context.artifacts) if context.artifacts else None,
         )
 
         self._safe_post_comment(task_info.id, comment)
@@ -324,10 +384,26 @@ class StatusSyncService:
         if self._config.comment_on_failure_only:
             return
 
+        # Import locally to avoid circular dependency
+        from adw.core.constants import PHASE_SEQUENCE
+
+        # Calculate duration from started_at to completed_at (or now)
+        duration: float | None = None
+        if context.started_at:
+            end = context.completed_at or datetime.now(UTC)
+            delta = end.replace(tzinfo=UTC) - context.started_at.replace(tzinfo=UTC)
+            duration = delta.total_seconds()
+
         comment = self._comment_formatter.format_run_complete(
             run_id=context.run_id,
             pr_url=pr_url,
             summary=summary,
+            duration=duration,
+            phase_sequence=list(PHASE_SEQUENCE),
+            completed_phases=list(context.phase_history),
+            total_tokens=context.total_tokens,
+            commit_count=len(context.commit_shas),
+            artifacts_by_phase=dict(context.artifacts) if context.artifacts else None,
         )
 
         self._safe_post_comment(task_info.id, comment)
