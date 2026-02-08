@@ -64,5 +64,5 @@ Thumbs.db
 
 # ADW worktree directory
 trees/
-_bmad-backup/.claude/
+_bmad-backup/
 .claude/
