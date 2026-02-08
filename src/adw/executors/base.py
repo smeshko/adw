@@ -38,6 +38,7 @@ class LLMExecutor(Protocol):
         timeout: int | None = None,
         phase: str | None = None,
         cwd: Path | None = None,
+        model: str | None = None,
     ) -> LLMResult:
         """Execute a prompt and return the result.
 
@@ -48,6 +49,8 @@ class LLMExecutor(Protocol):
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
                  Used for worktree isolation support (Story 10.5).
+            model: Optional model identifier to use for this call.
+                 If None, uses executor's default (no --model flag).
 
         Returns:
             LLMResult with success status, content, tool calls, and metrics.

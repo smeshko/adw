@@ -10,6 +10,7 @@ from typing import Any, Literal, Self
 import yaml
 from pydantic import BaseModel, Field, model_validator
 
+from adw.models.command import PhaseLLMConfig
 from adw.models.security import SecurityConfig
 from adw.models.webhook import WebhookConfig
 
@@ -81,7 +82,6 @@ class LLMConfig(BaseModel):
         path: Path to the Claude Code executable
         timeout_seconds: Maximum time for LLM calls
         max_retries: Number of retry attempts on failure
-        model: Model identifier to use
     """
 
     path: str = Field(
@@ -95,10 +95,6 @@ class LLMConfig(BaseModel):
     max_retries: int = Field(
         default=3,
         description="Number of retry attempts on failure",
-    )
-    model: str | None = Field(
-        default=None,
-        description="Model identifier to use (e.g., 'claude-3-opus')",
     )
 
 
@@ -143,6 +139,10 @@ class PhaseConfig(BaseModel):
     input_files: dict[str, str] | None = Field(
         default=None,
         description="Mapping of variable names to file paths for template injection",
+    )
+    llm: PhaseLLMConfig | None = Field(
+        default=None,
+        description="Phase-specific LLM settings (model, temperature)",
     )
 
 

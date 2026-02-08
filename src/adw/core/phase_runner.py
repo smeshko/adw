@@ -36,6 +36,7 @@ from adw.models import (
 from adw.models.command import (
     CommandConfig,
     DocumentCommandConfig,
+    PhaseLLMConfig,
     ShipCommandConfig,
     ValidateCommandConfig,
 )
@@ -176,7 +177,11 @@ class PhaseRunner:
 
             # Step 3: Execute LLM (ISS-029: pass timeout from merged config)
             llm_result = self._execute_llm(
-                phase, context, rendered_prompt, timeout=merged_config.timeout_seconds
+                phase,
+                context,
+                rendered_prompt,
+                timeout=merged_config.timeout_seconds,
+                model=merged_config.llm.model if merged_config.llm else None,
             )
 
             # Step 4: Capture artifacts
@@ -537,6 +542,8 @@ class PhaseRunner:
                 merged_data["pre_hook"] = command_config.pre_hook
             if command_config.post_hook is not None:
                 merged_data["post_hook"] = command_config.post_hook
+            if command_config.llm is not None:
+                merged_data["llm"] = command_config.llm
 
         # Return PhaseConfig
         return PhaseConfig(**merged_data) if merged_data else PhaseConfig()
@@ -582,6 +589,8 @@ class PhaseRunner:
                 merged_data["pre_hook"] = command_config.pre_hook
             if command_config.post_hook is not None:
                 merged_data["post_hook"] = command_config.post_hook
+            if command_config.llm is not None:
+                merged_data["llm"] = command_config.llm
 
         # Override with project config values (when set)
         if project_config:
@@ -599,6 +608,19 @@ class PhaseRunner:
                     **existing_inputs,
                     **project_config.input_files,
                 }
+
+            # Merge LLM config: project fields override command fields
+            if project_config.llm is not None:
+                existing_llm = merged_data.get("llm")
+                if existing_llm is not None:
+                    # Merge: project values override command values
+                    existing_dict = existing_llm.model_dump(exclude_none=True)
+                    project_dict = project_config.llm.model_dump(exclude_none=True)
+                    merged_data["llm"] = PhaseLLMConfig(
+                        **{**existing_dict, **project_dict}
+                    )
+                else:
+                    merged_data["llm"] = project_config.llm
 
         return PhaseConfig(**merged_data) if merged_data else PhaseConfig()
 
@@ -919,6 +941,7 @@ class PhaseRunner:
         context: RunContext,
         prompt: str,
         timeout: int | None = None,
+        model: str | None = None,
     ) -> LLMResult:
         """Execute LLM with rendered prompt.
 
@@ -927,6 +950,7 @@ class PhaseRunner:
             context: Run context.
             prompt: Rendered prompt.
             timeout: Optional timeout in seconds. If None, uses executor's default.
+            model: Optional model identifier from phase config.
 
         Returns:
             LLMResult with output, tokens, tool calls.
@@ -942,6 +966,7 @@ class PhaseRunner:
                     str(context.worktree_path) if context.worktree_path else None
                 ),
                 "timeout": timeout,
+                "model": model,
             },
         )
 
@@ -952,8 +977,13 @@ class PhaseRunner:
         try:
             # Pass worktree_path for isolated execution (Story 10.5)
             # Pass timeout from merged config (ISS-029)
+            # Pass model from phase LLM config
             result = self.executor.execute(
-                prompt, phase=phase, cwd=context.worktree_path, timeout=timeout
+                prompt,
+                phase=phase,
+                cwd=context.worktree_path,
+                timeout=timeout,
+                model=model,
             )
 
             logger.debug(

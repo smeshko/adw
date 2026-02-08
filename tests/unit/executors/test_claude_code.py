@@ -1008,11 +1008,11 @@ class TestPathConfiguration:
 
 
 class TestModelConfiguration:
-    """Tests for model configuration."""
+    """Tests for per-call model configuration."""
 
-    def test_passes_model_flag_when_configured(self) -> None:
-        """Should pass --model flag when model is configured."""
-        config = LLMConfig(path="claude", model="claude-3-opus")
+    def test_passes_model_flag_when_provided(self) -> None:
+        """Should pass --model flag when model is passed to execute()."""
+        config = LLMConfig(path="claude")
         executor = ClaudeCodeExecutor(config)
 
         with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
@@ -1032,7 +1032,7 @@ class TestModelConfiguration:
             mock_asyncio.wait_for = asyncio.wait_for
 
             with patch("shutil.which", return_value="/usr/bin/claude"):
-                executor.execute("Test prompt")
+                executor.execute("Test prompt", model="claude-3-opus")
 
             # Verify --model flag was passed
             call_args = mock_asyncio.create_subprocess_exec.call_args
@@ -1040,9 +1040,9 @@ class TestModelConfiguration:
             assert "--model" in args
             assert "claude-3-opus" in args
 
-    def test_no_model_flag_when_not_configured(self) -> None:
-        """Should not pass --model flag when model is not configured."""
-        config = LLMConfig(path="claude")  # No model specified
+    def test_no_model_flag_when_not_provided(self) -> None:
+        """Should not pass --model flag when model is not provided."""
+        config = LLMConfig(path="claude")
         executor = ClaudeCodeExecutor(config)
 
         with patch("adw.executors.claude_code.asyncio") as mock_asyncio:

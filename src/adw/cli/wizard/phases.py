@@ -188,11 +188,17 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
     # Input files
     input_files = _prompt_input_files(console)
 
+    # LLM settings
+    llm_config = _prompt_llm_settings(console)
+
     config: dict[str, Any] = {
         "enabled": enabled,
         "timeout_seconds": timeout,
         "input_files": input_files if input_files else None,
     }
+
+    if llm_config:
+        config["llm"] = llm_config
 
     # Validate phase special options
     if phase == "validate":
@@ -514,6 +520,39 @@ def _prompt_doc_mappings(console: Console) -> list[dict[str, str]]:
         console.print(f"[green]Added:[/] {pattern} -> {docs_dir}")
 
     return mappings
+
+
+def _prompt_llm_settings(console: Console) -> dict[str, Any] | None:
+    """Prompt for phase-specific LLM settings.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        LLM config dict with model/temperature, or None if nothing set.
+    """
+    model = Prompt.ask(
+        "Model override (empty to skip)",
+        default="",
+        console=console,
+    ).strip()
+
+    temp_str = Prompt.ask(
+        "Temperature override (empty to skip)",
+        default="",
+        console=console,
+    ).strip()
+
+    llm: dict[str, Any] = {}
+    if model:
+        llm["model"] = model
+    if temp_str:
+        try:
+            llm["temperature"] = float(temp_str)
+        except ValueError:
+            console.print("[yellow]Invalid temperature, skipping.[/]")
+
+    return llm if llm else None
 
 
 def _prompt_input_files(console: Console) -> dict[str, str]:
