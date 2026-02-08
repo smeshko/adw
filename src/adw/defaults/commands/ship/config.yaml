@@ -7,9 +7,9 @@ timeout_seconds: 900
 
 # === Deployment Commands ===
 # Shell commands executed during ship phase (all optional)
+# Note: build_command is configured at the project level in project.yaml
 # commands:
 #   version_bump: npm version patch  # Command to bump version
-#   build: npm run build             # Command to build project
 #   publish: npm publish             # Command to publish/deploy
 
 # === Post-Publish Hooks ===

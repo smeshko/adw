@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from adw.validation.config import ValidationConfig
+from adw.models.command import ValidateCommandConfig as ValidationConfig
 from adw.validation.models import ValidationResult
 
 if TYPE_CHECKING:

@@ -157,7 +157,6 @@ class TestShipCommandConfig:
         config = ShipCommandConfig()
         assert config.enabled is True
         assert config.commands.version_bump is None
-        assert config.commands.build is None
         assert config.commands.publish is None
         assert config.post_publish == []
         assert config.pr.merge_on_success is False
@@ -170,7 +169,6 @@ class TestShipCommandConfig:
             enabled=True,
             commands={
                 "version_bump": "npm version patch",
-                "build": "npm run build",
                 "publish": "npm publish",
             },
             post_publish=["git push --tags", "echo Done"],
@@ -181,7 +179,6 @@ class TestShipCommandConfig:
             },
         )
         assert config.commands.version_bump == "npm version patch"
-        assert config.commands.build == "npm run build"
         assert config.commands.publish == "npm publish"
         assert config.post_publish == ["git push --tags", "echo Done"]
         assert config.pr.merge_on_success is True

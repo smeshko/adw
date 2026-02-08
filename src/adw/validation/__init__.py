@@ -7,7 +7,7 @@ validate-fix-re-validate cycle internally, returning a simplified result.
 Simplified in Epic 16 to remove SDK-side iteration logic.
 """
 
-from adw.validation.config import ValidationConfig
+from adw.models.command import ValidateCommandConfig as ValidationConfig
 from adw.validation.models import ValidationResult
 from adw.validation.phase import ValidationPhase
 
