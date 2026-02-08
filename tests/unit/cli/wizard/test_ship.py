@@ -60,8 +60,6 @@ class TestRunShipStep:
             # Return appropriate values based on prompt
             if "Version bump" in msg:
                 return "npm version patch"
-            if "Build command" in msg:
-                return "npm run build"
             if "Publish command" in msg:
                 return "npm publish"
             if "Hook command" in msg:
@@ -83,7 +81,6 @@ class TestRunShipStep:
         # Verify full configuration
         assert result["enabled"] is True
         assert result["commands"]["version_bump"] == "npm version patch"
-        assert result["commands"]["build"] == "npm run build"
         assert result["commands"]["publish"] == "npm publish"
         assert result["post_publish"] == ["git push --tags"]
         assert result["pr"]["merge_on_success"] is True

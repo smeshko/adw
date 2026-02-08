@@ -76,7 +76,6 @@ class TestSummaryPanelGeneration:
                 "enabled": True,
                 "commands": {
                     "version_bump": "npm version patch",
-                    "build": "npm run build",
                 },
                 "post_publish": ["git push --tags"],
                 "pr": {
@@ -229,8 +228,8 @@ class TestProjectYamlGeneration:
         config = yaml.safe_load(yaml_content)
 
         assert config["name"] == "my-project"
-        assert config["commands"]["test"] == "pytest"
-        assert config["commands"]["build"] == "python -m build"
+        assert config["test_command"] == "pytest"
+        assert config["build_command"] == "python -m build"
 
     def test_generate_project_yaml_with_git(self) -> None:
         """Test project.yaml includes git config when enabled."""
@@ -381,7 +380,6 @@ class TestProjectYamlGeneration:
                 "enabled": True,
                 "commands": {
                     "version_bump": "npm version patch",
-                    "build": "npm run build",
                     "publish": "npm publish",
                 },
                 "post_publish": ["git push --tags", "echo 'deployed'"],

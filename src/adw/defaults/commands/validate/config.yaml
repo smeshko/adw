@@ -13,7 +13,7 @@ enable_review: true     # Run code review validator
 enable_tests: true      # Run test validator
 
 # Test execution settings
-# test_command: null    # Custom test command (auto-detect if null)
+# Note: test_command is configured at the project level in project.yaml
 test_timeout_seconds: 300  # Timeout for test execution
 
 # Code review settings

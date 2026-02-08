@@ -203,18 +203,19 @@ class CommandConfig(BaseModel):
 class ShipCommandsConfig(BaseModel):
     """Configuration for shell commands executed during ship phase.
 
-    Defines optional shell commands for version bump, build, and publish
+    Defines optional shell commands for version bump and publish
     steps during deployment. Each command is executed in sequence if defined.
+
+    Note: build_command is configured at the project level (ProjectConfig.build_command)
+    and injected into the template context by PhaseRunner, not here.
 
     Attributes:
         version_bump: Command to bump version (e.g., "npm version patch")
-        build: Command to build project (e.g., "npm run build")
         publish: Command to publish package (e.g., "npm publish")
 
     Example:
         >>> config = ShipCommandsConfig(
         ...     version_bump="npm version patch",
-        ...     build="npm run build",
         ...     publish="npm publish"
         ... )
         >>> config.version_bump
@@ -224,7 +225,6 @@ class ShipCommandsConfig(BaseModel):
         ship:
           commands:
             version_bump: npm version patch
-            build: npm run build
             publish: npm publish
     """
 
@@ -233,10 +233,6 @@ class ShipCommandsConfig(BaseModel):
     version_bump: str | None = Field(
         default=None,
         description="Command to bump version (e.g., 'npm version patch')",
-    )
-    build: str | None = Field(
-        default=None,
-        description="Command to build project for deployment",
     )
     publish: str | None = Field(
         default=None,
@@ -298,11 +294,13 @@ class ValidateCommandConfig(CommandConfig):
     Contains all settings from the original ValidationConfig that control
     validation phase behavior, validators, and iteration settings.
 
+    Note: test_command is configured at the project level (ProjectConfig.test_command)
+    and injected into the template context by PhaseRunner, not here.
+
     Attributes:
         enable_evidence: Whether to run evidence validator.
         enable_review: Whether to run code review validator.
         enable_tests: Whether to run test validator.
-        test_command: Custom test command (auto-detect if None).
         test_timeout_seconds: Timeout for test execution.
         review_prompt: Path to custom review prompt (optional).
         review_focus: Areas to focus code review on.
@@ -315,7 +313,6 @@ class ValidateCommandConfig(CommandConfig):
     Example:
         >>> config = ValidateCommandConfig(
         ...     enable_tests=True,
-        ...     test_command="pytest",
         ...     max_iterations=5,
         ... )
         >>> config.enable_tests
@@ -325,7 +322,6 @@ class ValidateCommandConfig(CommandConfig):
         enabled: true
         timeout_seconds: 600
         enable_tests: true
-        test_command: pytest
         max_iterations: 5
         triage_mode: auto
     """
@@ -340,9 +336,6 @@ class ValidateCommandConfig(CommandConfig):
     )
     enable_tests: bool = Field(
         default=True, description="Whether to run test validator"
-    )
-    test_command: str | None = Field(
-        default=None, description="Custom test command (auto-detect if None)"
     )
     test_timeout_seconds: int = Field(
         default=300, description="Timeout for test execution in seconds"
@@ -475,7 +468,6 @@ class ShipCommandConfig(CommandConfig):
         timeout_seconds: 900
         commands:
           version_bump: npm version patch
-          build: npm run build
           publish: npm publish
         post_publish:
           - git push --tags
