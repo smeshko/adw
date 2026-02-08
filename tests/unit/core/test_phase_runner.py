@@ -1412,8 +1412,34 @@ class TestConfigMerging:
         assert result.pre_hook == "echo 'pre'"
         assert result.post_hook == "echo 'post'"
 
-    # NOTE: Tests for project phase config merging removed in ISS-029.
-    # Phase configuration is now delegated entirely to command configs.
+    def test_merge_configs_with_llm(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """Command config llm is converted to PhaseConfig.llm."""
+        from adw.models.command import CommandConfig, PhaseLLMConfig
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        command_config = CommandConfig(
+            llm=PhaseLLMConfig(model="claude-3-opus", temperature=0.3),
+        )
+
+        result = runner._merge_configs(command_config)
+
+        assert result.llm is not None
+        assert result.llm.model == "claude-3-opus"
+        assert result.llm.temperature == 0.3
 
 
 class TestProjectConfigLoading:
@@ -1616,6 +1642,90 @@ class TestMergeConfigsWithProject:
             "prd": "project/custom-prd.md",
             "arch": "bundled/arch.md",
         }
+
+
+    def test_merge_llm_project_overrides_command(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """Project LLM config overrides command LLM config."""
+        from adw.models.command import CommandConfig, PhaseLLMConfig
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        command_config = CommandConfig(
+            llm=PhaseLLMConfig(model="claude-3-haiku", temperature=0.5),
+        )
+        project_config = CommandConfig(
+            llm=PhaseLLMConfig(model="claude-3-opus"),  # Override model only
+        )
+
+        result = runner._merge_configs_with_project(command_config, project_config)
+
+        # Project model overrides command model
+        assert result.llm is not None
+        assert result.llm.model == "claude-3-opus"
+        # Command temperature preserved (project didn't set it)
+        assert result.llm.temperature == 0.5
+
+    def test_merge_llm_model_flows_to_executor(
+        self,
+        tmp_path: Path,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+        sample_context: RunContext,
+    ) -> None:
+        """LLM model from phase config flows through to executor.execute()."""
+        # Create command directory with config.yaml that has llm settings
+        cmd_dir = tmp_path / ".adw" / "commands" / "plan"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Test prompt")
+        (cmd_dir / "config.yaml").write_text(
+            "llm:\n  model: claude-3-opus\n  temperature: 0.3\n"
+        )
+
+        resolver = MagicMock(spec=CommandResolver)
+        resolver.project_root = tmp_path
+        resolved = ResolvedCommand(
+            name="plan",
+            path=cmd_dir,
+            tier="project",
+            has_config=True,
+        )
+        resolver.resolve.return_value = resolved
+
+        mock_executor.execute.return_value = LLMResult(
+            success=True,
+            content="Output",
+            tokens_used=100,
+            duration_ms=1000,
+        )
+
+        runner = PhaseRunner(
+            command_resolver=resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        runner.run("plan", sample_context)
+
+        # Verify executor.execute was called with model parameter
+        call_kwargs = mock_executor.execute.call_args
+        assert call_kwargs.kwargs.get("model") == "claude-3-opus"
 
 
 class TestPhaseEnabledWithProjectConfig:

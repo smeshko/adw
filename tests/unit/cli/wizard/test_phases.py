@@ -221,14 +221,15 @@ class TestBasePhaseConfiguration:
         ):
             # enabled=True
             mock_confirm.return_value = True
-            # timeout (default)
-            mock_prompt.side_effect = ["300"]
+            # timeout, model override, temperature override
+            mock_prompt.side_effect = ["300", "", ""]
 
             config = _configure_phase("plan", console)
 
         assert config["enabled"] is True
         assert config["timeout_seconds"] == 300
         assert config["input_files"] is None
+        assert "llm" not in config  # No LLM settings when both empty
 
     def test_configure_phase_custom_timeout(self) -> None:
         """Test phase configuration with custom timeout."""
@@ -241,8 +242,8 @@ class TestBasePhaseConfiguration:
         ):
             # enabled=False
             mock_confirm.return_value = False
-            # timeout=120
-            mock_prompt.side_effect = ["120"]
+            # timeout=120, model override, temperature override
+            mock_prompt.side_effect = ["120", "", ""]
 
             config = _configure_phase("build", console)
 
@@ -259,13 +260,30 @@ class TestBasePhaseConfiguration:
             patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
             mock_confirm.return_value = True
-            # User just hits enter for timeout (uses default)
-            mock_prompt.side_effect = ["600"]
+            # User just hits enter for timeout (uses default), skip LLM
+            mock_prompt.side_effect = ["600", "", ""]
 
             config = _configure_phase("build", console)
 
         # Build default is 600
         assert config["timeout_seconds"] == 600
+
+    def test_configure_phase_with_llm_settings(self) -> None:
+        """Test phase configuration with LLM model and temperature."""
+        console = Console(force_terminal=True)
+
+        with (
+            patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
+            patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
+            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
+        ):
+            mock_confirm.return_value = True
+            # timeout, model override, temperature override
+            mock_prompt.side_effect = ["300", "claude-3-opus", "0.3"]
+
+            config = _configure_phase("build", console)
+
+        assert config["llm"] == {"model": "claude-3-opus", "temperature": 0.3}
 
 
 class TestValidatePhaseSpecialOptions:
@@ -290,6 +308,8 @@ class TestValidatePhaseSpecialOptions:
             ]
             mock_prompt.side_effect = [
                 "900",  # timeout
+                "",  # model override (skip)
+                "",  # temperature override (skip)
                 "300",  # test_timeout
                 "5",  # max_iterations
                 "auto",  # triage_mode
@@ -326,6 +346,8 @@ class TestValidatePhaseSpecialOptions:
             ]
             mock_prompt.side_effect = [
                 "1800",  # timeout 30 min
+                "",  # model override (skip)
+                "",  # temperature override (skip)
                 "600",  # test_timeout
                 "3",  # max_iterations
                 "manual",  # triage_mode
@@ -561,6 +583,8 @@ class TestDocumentPhaseSpecialOptions:
             ]
             mock_prompt.side_effect = [
                 "300",  # timeout
+                "",  # model override (skip)
+                "",  # temperature override (skip)
                 "src/**/*.py=docs/src",  # mapping
                 "",  # finish mappings
             ]
@@ -661,6 +685,8 @@ class TestFullFlow:
             mock_prompt.side_effect = [
                 "1",  # select plan phase
                 "300",  # timeout
+                "",  # model override (skip)
+                "",  # temperature override (skip)
             ]
 
             result = run_phases_step(state, console)
@@ -690,6 +716,8 @@ class TestFullFlow:
             mock_prompt.side_effect = [
                 "3",  # select validate phase
                 "900",  # timeout
+                "",  # model override (skip)
+                "",  # temperature override (skip)
                 "300",  # test_timeout
                 "5",  # max_iterations
                 "auto",  # triage_mode

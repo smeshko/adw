@@ -267,7 +267,6 @@ class YAMLWithComments:
             lines.append('#   path: "claude"  # Path to Claude Code executable')
             lines.append("#   timeout_seconds: 300  # Max execution time")
             lines.append("#   max_retries: 3  # Retry attempts on failure")
-            lines.append("#   model: null  # Model override")
 
         lines.append("")
 
@@ -389,6 +388,34 @@ class YAMLWithComments:
 
         lines.append("")
 
+        # LLM settings
+        llm_config = phase_config.get("llm", {})
+        llm_model = llm_config.get("model") if llm_config else None
+        llm_temperature = llm_config.get("temperature") if llm_config else None
+
+        if llm_model or llm_temperature is not None:
+            lines.append("llm:")
+            if llm_model:
+                lines.append(f"  model: {llm_model}")
+            else:
+                lines.append("  # model: null  # Model identifier for this phase")
+            if llm_temperature is not None:
+                lines.append(f"  temperature: {llm_temperature}")
+            else:
+                default_temp = self._get_default_phase_temperature(phase)
+                lines.append(
+                    f"  # temperature: {default_temp}  # Sampling temperature"
+                )
+        else:
+            default_temp = self._get_default_phase_temperature(phase)
+            lines.append("# llm:")
+            lines.append("#   model: null  # Model identifier for this phase")
+            lines.append(
+                f"#   temperature: {default_temp}  # Sampling temperature"
+            )
+
+        lines.append("")
+
         # Phase-specific settings
         if phase == "validate":
             self._add_validate_phase_settings(lines, phase_config)
@@ -414,6 +441,24 @@ class YAMLWithComments:
             "ship": 900,
         }
         return defaults.get(phase, 300)
+
+    def _get_default_phase_temperature(self, phase: str) -> float:
+        """Get default temperature hint for a phase.
+
+        Args:
+            phase: Phase name.
+
+        Returns:
+            Suggested default temperature.
+        """
+        defaults: dict[str, float] = {
+            "plan": 0.7,
+            "build": 0.3,
+            "validate": 0.0,
+            "document": 0.5,
+            "ship": 0.3,
+        }
+        return defaults.get(phase, 0.5)
 
     def _add_validate_phase_settings(
         self, lines: list[str], config: dict[str, Any]

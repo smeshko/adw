@@ -55,3 +55,6 @@ def test_llm_executor_execute_has_correct_signature() -> None:
 
     # Check timeout is int | None
     assert hints.get("timeout") == (int | None)
+
+    # Check model is str | None
+    assert hints.get("model") == (str | None)

@@ -102,6 +102,7 @@ class MockExecutor:
         timeout: int | None = None,
         phase: str | None = None,
         cwd: Path | None = None,
+        model: str | None = None,
     ) -> LLMResult:
         """Execute a mock prompt.
 
@@ -111,6 +112,7 @@ class MockExecutor:
             phase: Ignored in mock (for interface compatibility).
             cwd: Ignored in mock (for interface compatibility).
                  Added for worktree support (Story 10.5).
+            model: Ignored in mock (for interface compatibility).
 
         Returns:
             LLMResult from configured responses or a default.

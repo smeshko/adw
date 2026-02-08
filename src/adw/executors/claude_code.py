@@ -105,6 +105,7 @@ class ClaudeCodeExecutor:
         timeout: int | None = None,
         phase: str | None = None,
         cwd: Path | None = None,
+        model: str | None = None,
     ) -> LLMResult:
         """Execute a prompt using Claude Code CLI.
 
@@ -119,6 +120,8 @@ class ClaudeCodeExecutor:
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
                  Used for worktree isolation support (Story 10.5).
+            model: Optional model identifier to use for this call.
+                 If None, no --model flag is passed.
 
         Returns:
             LLMResult with success status, content, tool calls, and metrics.
@@ -133,7 +136,7 @@ class ClaudeCodeExecutor:
             self.live_stream.write_llm_start(phase)
 
         result = asyncio.run(
-            self._stream_subprocess(prompt, effective_timeout, cwd=cwd)
+            self._stream_subprocess(prompt, effective_timeout, cwd=cwd, model=model)
         )
 
         # Log LLM end to live stream
@@ -148,6 +151,7 @@ class ClaudeCodeExecutor:
         timeout: int,
         *,
         cwd: Path | None = None,
+        model: str | None = None,
     ) -> LLMResult:
         """Execute Claude Code subprocess with streaming output.
 
@@ -160,6 +164,7 @@ class ClaudeCodeExecutor:
             timeout: Timeout in seconds.
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
+            model: Optional model identifier. If set, passes --model flag.
 
         Returns:
             LLMResult with execution results.
@@ -184,15 +189,15 @@ class ClaudeCodeExecutor:
             prompt,
         ]
 
-        # Add model if configured
-        if self.config.model:
-            args.extend(["--model", self.config.model])
+        # Add model if specified per-call
+        if model:
+            args.extend(["--model", model])
 
         logger.debug(
             "Executing Claude Code",
             extra={
                 "path": str(claude_path),
-                "model": self.config.model,
+                "model": model,
                 "timeout": timeout,
                 "prompt_length": len(prompt),
                 "cwd": str(cwd) if cwd else None,
