@@ -32,11 +32,7 @@ class TestTaskManagerConfig:
         assert config.type == "none"
         assert config.team_key is None
         assert config.sync_comments is False
-        assert config.comment_on_failure_only is False
-        assert config.pr_title_format == "{task_id}: {description}"
         assert config.auto_close is False
-        assert config.include_labels is True
-        assert config.include_parent is True
         assert config.labels.enabled is True
         assert config.labels.prefix == "adw:"
 
@@ -120,7 +116,6 @@ task_manager:
     document: "Doc Review"
     failed: "Blocked"
   sync_comments: true
-  pr_title_format: "[{task_id}] {description}"
   labels:
     enabled: true
     prefix: "ci:"
@@ -132,6 +127,5 @@ task_manager:
         assert config.task_manager.state_mapping["plan"] == "Backlog"
         assert config.task_manager.state_mapping["validate"] == "QA Review"
         assert config.task_manager.sync_comments is True
-        assert config.task_manager.pr_title_format == "[{task_id}] {description}"
         assert config.task_manager.labels.prefix == "ci:"
         assert config.task_manager.auto_close is False

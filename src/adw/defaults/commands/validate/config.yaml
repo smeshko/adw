@@ -14,11 +14,6 @@ enable_tests: true      # Run test validator
 
 # Test execution settings
 # Note: test_command is configured at the project level in project.yaml
-test_timeout_seconds: 300  # Timeout for test execution
-
-# Code review settings
-# review_prompt: null   # Path to custom review prompt
-review_focus: ["security", "error_handling", "edge_cases"]
 
 # Iteration and fix attempt limits
 max_iterations: 5               # Maximum validation loop iterations

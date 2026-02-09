@@ -233,13 +233,6 @@ def _configure_validate_phase(console: Console) -> dict[str, Any]:
     code_review = Confirm.ask("Enable code review?", default=True, console=console)
     tests = Confirm.ask("Enable tests?", default=True, console=console)
 
-    test_timeout_str = Prompt.ask(
-        "Test timeout (seconds)",
-        default="300",
-        console=console,
-    )
-    test_timeout = _parse_int(test_timeout_str, 300)
-
     max_iterations_str = Prompt.ask(
         "Max validation iterations",
         default="5",
@@ -260,7 +253,6 @@ def _configure_validate_phase(console: Console) -> dict[str, Any]:
     config: dict[str, Any] = {
         "enable_review": code_review,
         "enable_tests": tests,
-        "test_timeout_seconds": test_timeout,
         "max_iterations": max_iterations,
         "triage_mode": triage_mode,
     }

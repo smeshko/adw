@@ -1758,10 +1758,9 @@ class TestWorktreeNoAutoDelete:
         mock_phase_runner: MagicMock,
         tmp_path: Path,
     ) -> None:
-        """Failed runs preserve worktree regardless of preserve_on_failure config (ISS-020).
+        """Failed runs preserve worktree (ISS-020).
 
         Worktrees are NEVER automatically deleted, even on failure.
-        The preserve_on_failure config option is deprecated and ignored.
         """
         from adw.core.orchestrator import Orchestrator
         from adw.exceptions import PhaseError
@@ -1770,11 +1769,9 @@ class TestWorktreeNoAutoDelete:
         runs_dir = tmp_path / ".adw" / "runs"
         runs_dir.mkdir(parents=True)
 
-        # Explicitly set preserve_on_failure=False to verify it's ignored
         worktree_config = WorktreeConfig(
             enabled=True,
             base_dir="trees",
-            preserve_on_failure=False,  # This should be ignored per ISS-020
         )
 
         orchestrator = Orchestrator(

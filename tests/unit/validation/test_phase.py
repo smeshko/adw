@@ -157,14 +157,12 @@ class TestValidationPhaseIntegration:
             enable_tests=True,
             enable_review=False,
             enable_evidence=True,
-            test_timeout_seconds=600,
         )
         phase = ValidationPhase(config=config, run_id="int-test")
 
         assert phase.config.enable_tests is True
         assert phase.config.enable_review is False
         assert phase.config.enable_evidence is True
-        assert phase.config.test_timeout_seconds == 600
 
     def test_full_validation_flow(self) -> None:
         """Test full validation flow from LLM response to result."""

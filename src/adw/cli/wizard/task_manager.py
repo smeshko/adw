@@ -28,9 +28,6 @@ DEFAULT_STATE_MAPPINGS: dict[str, str] = {
     "failed": "In Progress",
 }
 
-# Default PR title format
-DEFAULT_PR_TITLE_FORMAT = "{task_id}: {description}"
-
 # Default label prefix
 DEFAULT_LABEL_PREFIX = "adw:"
 
@@ -123,21 +120,15 @@ def run_task_manager_step(
     team_key = _prompt_team_key(console)
 
     # Step 4: Comment sync options
-    sync_comments, comment_failures_only = _prompt_comment_options(console)
+    sync_comments = _prompt_comment_options(console)
 
-    # Step 5: PR title format
-    pr_title_format = _prompt_pr_title_format(console)
-
-    # Step 6: Label management
+    # Step 5: Label management
     labels_enabled, label_prefix = _prompt_label_options(console)
 
-    # Step 7: Auto-close option
+    # Step 6: Auto-close option
     auto_close = _prompt_auto_close(console)
 
-    # Step 8: Context options
-    include_labels, include_parent = _prompt_context_options(console)
-
-    # Step 9: State mapping configuration
+    # Step 7: State mapping configuration
     state_mapping = _prompt_state_mapping(console)
 
     return {
@@ -145,13 +136,9 @@ def run_task_manager_step(
         "type": task_manager_type,
         "team_key": team_key,
         "sync_comments": sync_comments,
-        "comment_on_failure_only": comment_failures_only,
-        "pr_title_format": pr_title_format,
         "labels_enabled": labels_enabled,
         "label_prefix": label_prefix,
         "auto_close": auto_close,
-        "include_labels": include_labels,
-        "include_parent": include_parent,
         "state_mapping": state_mapping,
     }
 
@@ -167,13 +154,9 @@ def _disabled_config() -> dict[str, Any]:
         "type": "none",
         "team_key": None,
         "sync_comments": False,
-        "comment_on_failure_only": False,
-        "pr_title_format": DEFAULT_PR_TITLE_FORMAT,
         "labels_enabled": True,
         "label_prefix": DEFAULT_LABEL_PREFIX,
         "auto_close": False,
-        "include_labels": True,
-        "include_parent": True,
         "state_mapping": None,
     }
 
@@ -223,49 +206,21 @@ def _prompt_team_key(console: Console) -> str:
         console.print(f"[yellow]{result}[/]")
 
 
-def _prompt_comment_options(console: Console) -> tuple[bool, bool]:
+def _prompt_comment_options(console: Console) -> bool:
     """Prompt for comment sync options.
 
     Args:
         console: Console for output.
 
     Returns:
-        Tuple of (sync_comments, comment_failures_only).
+        Whether to sync comments on status changes.
     """
     console.print()
-    sync_comments = Confirm.ask(
+    return Confirm.ask(
         "Sync comments on status changes?",
         default=False,
         console=console,
     )
-
-    comment_failures_only = False
-    if sync_comments:
-        comment_failures_only = Confirm.ask(
-            "Comment on failures only?",
-            default=False,
-            console=console,
-        )
-
-    return sync_comments, comment_failures_only
-
-
-def _prompt_pr_title_format(console: Console) -> str:
-    """Prompt for PR title format.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        PR title format string.
-    """
-    console.print()
-    pr_title = Prompt.ask(
-        "PR title format",
-        default=DEFAULT_PR_TITLE_FORMAT,
-        console=console,
-    )
-    return pr_title.strip() or DEFAULT_PR_TITLE_FORMAT
 
 
 def _prompt_label_options(console: Console) -> tuple[bool, str | None]:
@@ -311,31 +266,6 @@ def _prompt_auto_close(console: Console) -> bool:
         default=False,
         console=console,
     )
-
-
-def _prompt_context_options(console: Console) -> tuple[bool, bool]:
-    """Prompt for context inclusion options.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        Tuple of (include_labels, include_parent).
-    """
-    console.print()
-    include_labels = Confirm.ask(
-        "Include task labels in context?",
-        default=True,
-        console=console,
-    )
-
-    include_parent = Confirm.ask(
-        "Include parent task info?",
-        default=True,
-        console=console,
-    )
-
-    return include_labels, include_parent
 
 
 def _prompt_state_mapping(console: Console) -> dict[str, str] | None:
