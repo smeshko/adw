@@ -281,3 +281,86 @@ class TestPhaseYAMLGeneration:
         assert parsed is not None
         assert parsed.get("enabled") is True
         assert parsed.get("timeout_seconds") == 600
+
+
+class TestYAMLGeneratorRetryKeys:
+    """Tests for correct retry config key names in generated YAML."""
+
+    @pytest.fixture
+    def registry(self) -> ConfigRegistry:
+        """Create registry fixture."""
+        return ConfigRegistry()
+
+    @pytest.fixture
+    def generator(self, registry: ConfigRegistry) -> YAMLWithComments:
+        """Create generator fixture."""
+        return YAMLWithComments(registry)
+
+    def test_custom_retry_uses_correct_key_names(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test that retry config uses base_delay_seconds/max_delay_seconds."""
+        state = MockWizardState(
+            {
+                "llm_retry": {
+                    "retry_custom": True,
+                    "retry_max_retries": 5,
+                    "retry_base_delay": 2.0,
+                    "retry_max_delay": 120.0,
+                    "retry_multiplier": 3.0,
+                },
+            }
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "base_delay_seconds: 2.0" in yaml_content
+        assert "max_delay_seconds: 120.0" in yaml_content
+        # Old (wrong) names must NOT appear
+        assert "base_delay:" not in yaml_content.replace("base_delay_seconds", "")
+        assert "max_delay:" not in yaml_content.replace("max_delay_seconds", "")
+
+    def test_custom_retry_round_trips_through_config(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test that generated retry YAML can be parsed by LLMConfig."""
+        state = MockWizardState(
+            {
+                "llm_retry": {
+                    "retry_custom": True,
+                    "retry_max_retries": 5,
+                    "retry_base_delay": 2.0,
+                    "retry_max_delay": 120.0,
+                    "retry_multiplier": 3.0,
+                },
+            }
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        # Extract just the llm section and parse it
+        lines = yaml_content.split("\n")
+        llm_lines: list[str] = []
+        in_llm = False
+        for line in lines:
+            if line.startswith("llm:"):
+                in_llm = True
+                llm_lines.append(line)
+            elif in_llm and (line.startswith("  ") or line.startswith("    ")):
+                # Uncomment commented lines within llm section
+                if line.startswith("  # "):
+                    llm_lines.append("  " + line[4:])
+                else:
+                    llm_lines.append(line)
+            elif in_llm and line and not line.startswith(" ") and not line.startswith("#"):
+                break
+
+        llm_yaml = "\n".join(llm_lines)
+        parsed = yaml.safe_load(llm_yaml)
+        assert parsed is not None
+
+        from adw.models.config import LLMConfig
+
+        llm_config = LLMConfig.model_validate(parsed["llm"])
+        assert llm_config.retry.max_retries == 5
+        assert llm_config.retry.base_delay_seconds == 2.0
+        assert llm_config.retry.max_delay_seconds == 120.0
+        assert llm_config.retry.multiplier == 3.0

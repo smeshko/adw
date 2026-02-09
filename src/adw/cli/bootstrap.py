@@ -30,6 +30,7 @@ from adw.core.phase_runner import PhaseRunner
 from adw.exceptions import ConfigError
 from adw.executors.base import LLMExecutor
 from adw.executors.claude_code import ClaudeCodeExecutor
+from adw.executors.retry import RetryExecutor
 from adw.hooks.runner import HookRunner
 from adw.logging import LogManager, LogManagerHandler, create_redactor_from_config
 from adw.logging.console import ConsoleTransport
@@ -209,7 +210,7 @@ def create_orchestrator(
     runs_dir = get_runs_dir(project_root)
     console = console or Console()
 
-    # Load project configuration for worktree, git, and task manager settings
+    # Load project configuration for worktree, git, task manager, and LLM settings
     # (Story 10.1, ISS-011, Story 12.7, Story 12.8)
     worktree_config: WorktreeConfig | None = None
     git_config: GitConfig | None = None
@@ -225,6 +226,8 @@ def create_orchestrator(
         worktree_config = WorktreeConfig()
         git_config = GitConfig()
         task_manager_config = TaskManagerConfig()
+
+    llm_config = config.llm if config else LLMConfig()
 
     # Create managers
     context_manager = ContextManager(runs_dir)
@@ -258,18 +261,23 @@ def create_orchestrator(
 
     # Use MockExecutor in test mode to avoid hitting real Claude API
     # Set ADW_MOCK_EXECUTOR=1 to enable mock mode (used by tests)
+    # MockExecutor is NOT wrapped with RetryExecutor — tests should fail fast
     llm_executor: LLMExecutor
     if os.environ.get("ADW_MOCK_EXECUTOR"):
         from adw.executors.mock import MockExecutor
 
         llm_executor = MockExecutor()
     else:
-        llm_executor = ClaudeCodeExecutor(
-            config=LLMConfig(),
+        base_executor = ClaudeCodeExecutor(
+            config=llm_config,
             console=console,
             security_interceptor=security_interceptor,
             allow_dangerous=allow_dangerous,
             live_stream=live_stream,
+        )
+        llm_executor = RetryExecutor(
+            executor=base_executor,
+            config=llm_config.retry,
         )
 
     # Create extension registry with built-in extensions (Phase Extensions)

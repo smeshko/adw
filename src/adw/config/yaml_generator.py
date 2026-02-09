@@ -16,6 +16,16 @@ if TYPE_CHECKING:
     from adw.config.registry import ConfigRegistry, SettingDefinition
     from adw.models.wizard import WizardState
 
+# Default state mapping used for comparison when determining active vs commented
+_DEFAULT_STATE_MAPPING = {
+    "plan": "In Progress",
+    "build": "In Progress",
+    "validate": "In Review",
+    "document": "In Review",
+    "ship": "Done",
+    "failed": "In Progress",
+}
+
 
 def _format_yaml_value(value: Any) -> str:
     """Format a Python value for YAML output.
@@ -164,39 +174,12 @@ class YAMLWithComments:
         lines.append("")
 
         # === Git Integration ===
-        lines.append("# === Git Integration ===")
-        lines.append("git:")
-        lines.append(f"  branch_prefix: {git.get('git_branch_prefix', 'feature/')}")
-        lines.append("  # skip_hooks: false  # Skip pre-commit hooks")
-        lines.append("  # base_branch: null  # PR base branch (defaults to main)")
+        self._add_git_section(lines, git)
 
         lines.append("")
 
         # === Task Manager ===
-        lines.append("# === Task Manager ===")
-        tm_enabled = task_manager.get("enabled", False)
-        tm_type = task_manager.get("type", "none")
-
-        if tm_enabled and tm_type != "none":
-            lines.append("task_manager:")
-            lines.append(f"  type: {tm_type}")
-            if task_manager.get("team_key"):
-                lines.append(f"  team_key: {task_manager['team_key']}")
-            else:
-                lines.append(
-                    "  # team_key: null  # Team prefix (e.g., RULE for RULE-123)"
-                )
-            if task_manager.get("sync_comments"):
-                lines.append("  sync_comments: true")
-            else:
-                lines.append("  # sync_comments: false  # Post status comments")
-            lines.append("  # auto_close: false  # Close task when PR merged")
-        else:
-            lines.append("# task_manager:")
-            lines.append('#   type: "none"  # Task manager type (none, linear)')
-            lines.append("#   team_key: null  # Team prefix (e.g., RULE for RULE-123)")
-            lines.append("#   sync_comments: false  # Post status comments")
-            lines.append("#   auto_close: false  # Close task when PR merged")
+        self._add_task_manager_section(lines, task_manager)
 
         lines.append("")
 
@@ -236,8 +219,8 @@ class YAMLWithComments:
             lines.append("  # timeout_seconds: 300  # Max execution time")
             lines.append("  retry:")
             lines.append(f"    max_retries: {llm_retry.get('retry_max_retries', 3)}")
-            lines.append(f"    base_delay: {llm_retry.get('retry_base_delay', 1.0)}")
-            lines.append(f"    max_delay: {llm_retry.get('retry_max_delay', 60.0)}")
+            lines.append(f"    base_delay_seconds: {llm_retry.get('retry_base_delay', 1.0)}")
+            lines.append(f"    max_delay_seconds: {llm_retry.get('retry_max_delay', 60.0)}")
             lines.append(f"    multiplier: {llm_retry.get('retry_multiplier', 2.0)}")
         else:
             lines.append("# llm:")
@@ -255,6 +238,119 @@ class YAMLWithComments:
         lines.append("")
 
         # === Webhook ===
+        self._add_webhook_section(lines, webhooks)
+
+        lines.append("")
+
+        # Ship phase config is now in .adw/commands/ship/config.yaml
+
+        return "\n".join(lines)
+
+    def _add_git_section(self, lines: list[str], git: dict[str, Any]) -> None:
+        """Add git integration section.
+
+        Args:
+            lines: List of output lines to append to.
+            git: Git configuration dict from wizard state.
+        """
+        lines.append("# === Git Integration ===")
+        lines.append("git:")
+        lines.append(f"  branch_prefix: {git.get('git_branch_prefix', 'feature/')}")
+
+        skip_hooks = git.get("git_skip_hooks", False)
+        if skip_hooks:
+            lines.append(f"  skip_hooks: {_format_yaml_value(skip_hooks)}")
+        else:
+            lines.append("  # skip_hooks: false  # Skip pre-commit hooks")
+
+        base_branch = git.get("git_base_branch")
+        if base_branch:
+            lines.append(f"  base_branch: {base_branch}")
+        else:
+            lines.append("  # base_branch: null  # PR base branch (defaults to main)")
+
+    def _add_task_manager_section(
+        self, lines: list[str], task_manager: dict[str, Any]
+    ) -> None:
+        """Add task manager section.
+
+        Args:
+            lines: List of output lines to append to.
+            task_manager: Task manager configuration dict from wizard state.
+        """
+        lines.append("# === Task Manager ===")
+        tm_enabled = task_manager.get("enabled", False)
+        tm_type = task_manager.get("type", "none")
+
+        if tm_enabled and tm_type != "none":
+            lines.append("task_manager:")
+            lines.append(f"  type: {tm_type}")
+            if task_manager.get("team_key"):
+                lines.append(f"  team_key: {task_manager['team_key']}")
+            else:
+                lines.append(
+                    "  # team_key: null  # Team prefix (e.g., RULE for RULE-123)"
+                )
+            if task_manager.get("sync_comments"):
+                lines.append("  sync_comments: true")
+            else:
+                lines.append("  # sync_comments: false  # Post status comments")
+            lines.append("  # auto_close: false  # Close task when PR merged")
+
+            # State mapping
+            state_mapping = task_manager.get("state_mapping")
+            if state_mapping and state_mapping != _DEFAULT_STATE_MAPPING:
+                lines.append("  state_mapping:")
+                for phase_name, state_value in state_mapping.items():
+                    lines.append(
+                        f"    {phase_name}: {_format_yaml_value(state_value)}"
+                    )
+            else:
+                lines.append("  # state_mapping:")
+                for phase_name, state_value in _DEFAULT_STATE_MAPPING.items():
+                    lines.append(
+                        f"  #   {phase_name}: {_format_yaml_value(state_value)}"
+                    )
+
+            # Labels
+            labels_enabled = task_manager.get("labels_enabled", True)
+            label_prefix = task_manager.get("label_prefix", "adw:")
+            if labels_enabled is not True or label_prefix != "adw:":
+                lines.append("  labels:")
+                lines.append(
+                    f"    enabled: {_format_yaml_value(labels_enabled)}"
+                )
+                lines.append(
+                    f"    prefix: {_format_yaml_value(label_prefix)}"
+                )
+            else:
+                lines.append("  # labels:")
+                lines.append("  #   enabled: true  # Enable label management")
+                lines.append('  #   prefix: "adw:"  # Prefix for ADW-managed labels')
+        else:
+            lines.append("# task_manager:")
+            lines.append('#   type: "none"  # Task manager type (none, linear)')
+            lines.append("#   team_key: null  # Team prefix (e.g., RULE for RULE-123)")
+            lines.append("#   sync_comments: false  # Post status comments")
+            lines.append("#   auto_close: false  # Close task when PR merged")
+            lines.append("#   state_mapping:")
+            for phase_name, state_value in _DEFAULT_STATE_MAPPING.items():
+                lines.append(
+                    f"#     {phase_name}: {_format_yaml_value(state_value)}"
+                )
+            lines.append("#   labels:")
+            lines.append("#     enabled: true  # Enable label management")
+            lines.append('#     prefix: "adw:"  # Prefix for ADW-managed labels')
+
+    def _add_webhook_section(
+        self, lines: list[str], webhooks: dict[str, Any]
+    ) -> None:
+        """Add webhook server section.
+
+        Args:
+            lines: List of output lines to append to.
+            webhooks: Webhook configuration dict from wizard state.
+        """
         lines.append("# === Webhook Server ===")
         webhook_enabled = webhooks.get("enabled", False)
 
@@ -272,17 +368,46 @@ class YAMLWithComments:
                         lines.append("      enabled: true")
                         if pcfg.get("secret_env"):
                             lines.append(f"      secret_env: {pcfg['secret_env']}")
+
+                        # command_prefix
+                        cmd_prefix = pcfg.get("command_prefix", "/adw")
+                        if cmd_prefix != "/adw":
+                            lines.append(
+                                f"      command_prefix: {_format_yaml_value(cmd_prefix)}"
+                            )
+                        else:
+                            lines.append(
+                                '      # command_prefix: "/adw"  # Command prefix'
+                            )
+
+                        # trigger_label
+                        trig_label = pcfg.get("trigger_label", "adw")
+                        if trig_label != "adw":
+                            lines.append(
+                                f"      trigger_label: {_format_yaml_value(trig_label)}"
+                            )
+                        else:
+                            lines.append(
+                                "      # trigger_label: adw  # Trigger label"
+                            )
+
+            # Mappings
+            mappings = webhooks.get("mappings")
+            if mappings:
+                lines.append("  mappings:")
+                for provider_name, events in mappings.items():
+                    lines.append(f"    {provider_name}:")
+                    for event_type, event_cfg in events.items():
+                        lines.append(f"      {event_type}:")
+                        for cfg_key, cfg_val in event_cfg.items():
+                            lines.append(
+                                f"        {cfg_key}: {_format_yaml_value(cfg_val)}"
+                            )
         else:
             lines.append("# webhook:")
             lines.append("#   enabled: false  # Enable webhook server")
             lines.append("#   port: 8000")
             lines.append('#   host: "0.0.0.0"')
-
-        lines.append("")
-
-        # Ship phase config is now in .adw/commands/ship/config.yaml
-
-        return "\n".join(lines)
 
     def generate_phase_yaml(
         self,
@@ -354,7 +479,9 @@ class YAMLWithComments:
         lines.append("")
 
         # Phase-specific settings
-        if phase == "ship":
+        if phase == "document":
+            self._add_document_phase_settings(lines, phase_config)
+        elif phase == "ship":
             self._add_ship_phase_settings(lines, phase_config)
 
         return "\n".join(lines)
@@ -376,6 +503,32 @@ class YAMLWithComments:
             "ship": 900,
         }
         return defaults.get(phase, 300)
+
+    def _add_document_phase_settings(
+        self, lines: list[str], config: dict[str, Any]
+    ) -> None:
+        """Add document phase specific settings.
+
+        Outputs doc_mappings list from DocumentCommandConfig.
+
+        Args:
+            lines: List of output lines to append to.
+            config: Phase configuration dict.
+        """
+        lines.append("# === Document Phase Settings ===")
+
+        doc_mappings = config.get("doc_mappings")
+        if doc_mappings:
+            lines.append("doc_mappings:")
+            for mapping in doc_mappings:
+                lines.append(f"  - source_pattern: {mapping['source_pattern']}")
+                lines.append(f"    docs_dir: {mapping['docs_dir']}")
+        else:
+            lines.append("# doc_mappings:  # Source-to-docs directory mappings")
+            lines.append('#   - source_pattern: "src/**/*.py"')
+            lines.append("#     docs_dir: docs/api")
+
+        lines.append("")
 
     def _add_ship_phase_settings(
         self, lines: list[str], config: dict[str, Any]

@@ -442,3 +442,52 @@ class TestErrorMessages:
         # Should fail after just 1 attempt
         assert "after 1 attempt" in str(exc_info.value.message)
         assert mock.call_count == 1
+
+
+class TestModelParamForwarding:
+    """Tests for model parameter forwarding to wrapped executor."""
+
+    def test_model_param_forwarded_to_wrapped_executor(self) -> None:
+        """Test that model parameter is passed through to the wrapped executor."""
+        mock = MockExecutor()
+        mock.configure_responses([{"content": "Response"}])
+        retry = RetryExecutor(executor=mock)
+
+        result = retry.execute("test prompt", model="claude-sonnet-4-5-20250929")
+
+        assert result.success
+        assert mock.call_count == 1
+
+    def test_model_param_none_by_default(self) -> None:
+        """Test that model defaults to None when not specified."""
+        mock = MockExecutor()
+        mock.configure_responses([{"content": "Response"}])
+        retry = RetryExecutor(executor=mock)
+
+        result = retry.execute("test prompt")
+
+        assert result.success
+
+    def test_model_param_forwarded_on_retry(self) -> None:
+        """Test that model parameter is forwarded on retry attempts too."""
+        mock = MockExecutor()
+        mock.configure_failures(
+            [
+                LLMTimeoutError(
+                    code="LLM_TIMEOUT",
+                    message="Timeout",
+                    timeout_seconds=300,
+                    elapsed_seconds=300,
+                ),
+            ]
+        )
+        mock.configure_responses([{"content": "Success after retry"}])
+
+        config = RetryConfig(base_delay_seconds=0.001)
+        retry = RetryExecutor(executor=mock, config=config)
+
+        result = retry.execute("test prompt", model="claude-sonnet-4-5-20250929")
+
+        assert result.success
+        assert result.attempt_count == 2
+        assert mock.call_count == 2

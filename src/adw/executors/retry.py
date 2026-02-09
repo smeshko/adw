@@ -52,6 +52,7 @@ class RetryExecutor:
         timeout: int | None = None,
         phase: str | None = None,
         cwd: Path | None = None,
+        model: str | None = None,
     ) -> LLMResult:
         """Execute a prompt with automatic retry on transient failures.
 
@@ -61,6 +62,7 @@ class RetryExecutor:
             phase: Optional phase name for logging and debugging purposes.
             cwd: Optional working directory for subprocess execution.
                  Passed through to wrapped executor (Story 10.5).
+            model: Optional model identifier to use for this call.
 
         Returns:
             LLMResult with success status, content, and attempt count.
@@ -68,7 +70,9 @@ class RetryExecutor:
         Raises:
             LLMError: If all retry attempts fail or a non-retryable error occurs.
         """
-        return asyncio.run(self._execute_with_retry(prompt, timeout, phase, cwd=cwd))
+        return asyncio.run(
+            self._execute_with_retry(prompt, timeout, phase, cwd=cwd, model=model)
+        )
 
     async def _execute_with_retry(
         self,
@@ -77,6 +81,7 @@ class RetryExecutor:
         phase: str | None = None,
         *,
         cwd: Path | None = None,
+        model: str | None = None,
     ) -> LLMResult:
         """Execute prompt with retry logic (async implementation).
 
@@ -85,6 +90,7 @@ class RetryExecutor:
             timeout: Optional timeout in seconds.
             phase: Optional phase name for logging and debugging purposes.
             cwd: Optional working directory for subprocess execution.
+            model: Optional model identifier to use for this call.
 
         Returns:
             LLMResult with attempt count set.
@@ -97,7 +103,7 @@ class RetryExecutor:
         for attempt in range(1, self.config.max_retries + 1):
             try:
                 result = self.executor.execute(
-                    prompt, timeout=timeout, phase=phase, cwd=cwd
+                    prompt, timeout=timeout, phase=phase, cwd=cwd, model=model
                 )
                 result.attempt_count = attempt
                 return result
