@@ -393,7 +393,6 @@
     <step n="3" goal="Execute deployment commands">
       <critical>Execute commands in strict order: version_bump → build → publish</critical>
       <critical>First failure stops the sequence - do NOT continue after failure</critical>
-      <critical>Post-publish hooks continue on failure (best-effort)</critical>
 
       <output>
       ```
@@ -558,7 +557,6 @@ Proceeding to release notes generation...
         <check if="{{publish_command}} is not set or empty">
           <output>**Publish:** Skipped (not configured)</output>
           <action>Set {{deployment_status}} = "SUCCESS"</action>
-          <action>Continue to post-publish hooks</action>
         </check>
 
         <check if="{{publish_command}} is set and not empty AND {{deployment_status}} != 'FAILED'">
@@ -602,52 +600,7 @@ Proceeding to release notes generation...
         </check>
       </substep>
 
-      <!-- 3e: Execute Post-Publish Hooks -->
-      <substep name="execute-post-publish-hooks">
-        <check if="{{deployment_status}} == 'FAILED'">
-          <action>Skip post-publish hooks - deployment failed</action>
-        </check>
-
-        <check if="{{post_publish_hooks}} is empty or not configured">
-          <output>**Post-Publish Hooks:** None configured</output>
-        </check>
-
-        <check if="{{post_publish_hooks}} is not empty AND {{deployment_status}} == 'SUCCESS'">
-          <output>
-### Post-Publish Hooks
-
-Executing {{post_publish_hooks.length}} configured hooks...
-          </output>
-
-          <action>For each hook in {{post_publish_hooks}}:</action>
-          <iterate over="{{post_publish_hooks}}" as="hook">
-            <output>**Running:** `{{hook}}`</output>
-
-            <action>Execute via Bash:
-              ```bash
-              {{hook}}
-              ```
-            </action>
-            <action>Capture exit code as {{hook_exit_code}}</action>
-            <action>Capture output as {{hook_output}}</action>
-
-            <check if="{{hook_exit_code}} != 0">
-              <output>⚠️ **Warning:** Post-publish hook failed: `{{hook}}`
-Exit code: {{hook_exit_code}}
-Output: {{hook_output}}
-(Continuing with remaining hooks...)</output>
-              <action>Add to {{hook_warnings}}: "Hook '{{hook}}' failed with exit code {{hook_exit_code}}"</action>
-              <!-- Continue to next hook - do NOT abort -->
-            </check>
-
-            <check if="{{hook_exit_code}} == 0">
-              <output>✓ `{{hook}}` completed</output>
-            </check>
-          </iterate>
-        </check>
-      </substep>
-
-      <!-- 3f: Display Execution Summary -->
+      <!-- 3e: Display Execution Summary -->
       <substep name="execution-summary">
         <check if="{{deployment_status}} == 'SUCCESS'">
           <output>
@@ -661,13 +614,6 @@ Output: {{hook_output}}
 
 {{#if version_deployed}}
 **Version Deployed:** {{version_deployed}}
-{{/if}}
-
-{{#if hook_warnings}}
-### Post-Publish Hook Warnings
-{{#each hook_warnings}}
-- {{this}}
-{{/each}}
 {{/if}}
 
 **Proceeding to release notes generation...**
@@ -1494,7 +1440,6 @@ The post.sh hook will now:
             - Version Bump: command={{version_bump_command}}, exit_code={{version_bump_exit_code}}, result
             - Build: command={{build_command}}, exit_code={{build_exit_code}}, result
             - Publish: command={{publish_command}}, exit_code={{publish_exit_code}}, result
-            - Post-publish hooks: {{hook_warnings}} if any
           </action>
         </check>
       </substep>
@@ -1622,19 +1567,6 @@ _No deployment commands configured_
 | Version Bump | {{version_bump_command | default: "skipped"}} | {{version_bump_exit_code | default: "-"}} | {{version_bump_result}} |
 | Build | {{build_command | default: "skipped"}} | {{build_exit_code | default: "-"}} | {{build_result}} |
 | Publish | {{publish_command | default: "skipped"}} | {{publish_exit_code | default: "-"}} | {{publish_result}} |
-{{/if}}
-
-### Post-Publish Hooks
-{{#if hook_warnings}}
-{{#each hook_warnings}}
-- ⚠️ {{this}}
-{{/each}}
-{{else}}
-{{#if post_publish_hooks}}
-All hooks completed successfully
-{{else}}
-None configured
-{{/if}}
 {{/if}}
 
 ---

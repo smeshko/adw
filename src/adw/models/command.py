@@ -233,12 +233,11 @@ class DocumentCommandConfig(CommandConfig):
 class ShipCommandConfig(CommandConfig):
     """Ship phase configuration extending CommandConfig.
 
-    Contains all settings for the ship phase including deployment commands,
-    post-publish hooks, and CI bypass settings.
+    Contains all settings for the ship phase including deployment commands
+    and CI bypass settings.
 
     Attributes:
         commands: Shell commands for version bump, build, and publish steps.
-        post_publish: List of commands to run after publishing.
         bypass_ci: Bypass CI checks using --admin flag (default: True).
 
     Example:
@@ -255,8 +254,6 @@ class ShipCommandConfig(CommandConfig):
         commands:
           version_bump: npm version patch
           publish: npm publish
-        post_publish:
-          - git push --tags
         bypass_ci: true
     """
 
@@ -265,10 +262,6 @@ class ShipCommandConfig(CommandConfig):
     commands: ShipCommandsConfig = Field(
         default_factory=ShipCommandsConfig,
         description="Shell commands for deployment steps",
-    )
-    post_publish: list[str] = Field(
-        default_factory=list,
-        description="Commands to run after publishing (e.g., git push --tags)",
     )
     bypass_ci: bool = Field(
         default=True,

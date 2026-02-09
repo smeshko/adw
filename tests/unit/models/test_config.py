@@ -124,7 +124,6 @@ class TestShipCommandConfig:
         assert config.enabled is True
         assert config.commands.version_bump is None
         assert config.commands.publish is None
-        assert config.post_publish == []
         assert config.bypass_ci is True
 
     def test_ship_command_config_with_values(self) -> None:
@@ -135,18 +134,11 @@ class TestShipCommandConfig:
                 "version_bump": "npm version patch",
                 "publish": "npm publish",
             },
-            post_publish=["git push --tags", "echo Done"],
             bypass_ci=False,
         )
         assert config.commands.version_bump == "npm version patch"
         assert config.commands.publish == "npm publish"
-        assert config.post_publish == ["git push --tags", "echo Done"]
         assert config.bypass_ci is False
-
-    def test_ship_command_config_post_publish_defaults_to_empty(self) -> None:
-        """ShipCommandConfig.post_publish defaults to empty list."""
-        config = ShipCommandConfig()
-        assert config.post_publish == []
 
 
 class TestProjectConfig:

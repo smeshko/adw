@@ -158,7 +158,6 @@ class TestConfigRegistry:
         setting_names = {s.name for s in settings}
 
         assert "enabled" in setting_names
-        assert "post_publish" in setting_names
 
     def test_ports_section_has_defaults(self, registry: ConfigRegistry) -> None:
         """Test ports section has expected defaults."""
