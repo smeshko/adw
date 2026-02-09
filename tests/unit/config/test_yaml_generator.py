@@ -243,16 +243,16 @@ class TestPhaseYAMLGeneration:
         assert "prd: docs/prd.md" in content
         assert "arch: docs/arch.md" in content
 
-    def test_generate_phase_yaml_validate_phase_settings(
+    def test_generate_phase_yaml_validate_has_no_special_settings(
         self, generator: YAMLWithComments
     ) -> None:
-        """Test validate phase has specific settings."""
+        """Test validate phase has no special settings (fields removed)."""
         content = generator.generate_phase_yaml("validate", {})
 
-        assert "# === Validate Phase Settings ===" in content
-        assert "# enable_review:" in content
-        assert "# enable_tests:" in content
-        assert "# max_iterations:" in content
+        assert "# === Validate Phase Settings ===" not in content
+        assert "enable_review" not in content
+        assert "enable_tests" not in content
+        assert "max_iterations" not in content
 
     def test_generate_phase_yaml_is_valid_yaml(
         self, generator: YAMLWithComments

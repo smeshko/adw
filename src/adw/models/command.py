@@ -136,55 +136,18 @@ class ShipCommandsConfig(BaseModel):
 class ValidateCommandConfig(CommandConfig):
     """Validate phase configuration extending CommandConfig.
 
-    Contains all settings from the original ValidationConfig that control
-    validation phase behavior, validators, and iteration settings.
+    Typed marker subclass for the validate phase. Preserves the per-phase
+    config class pattern used by loader.py for config.yaml validation.
 
     Note: test_command is configured at the project level (ProjectConfig.test_command)
     and injected into the template context by PhaseRunner, not here.
 
-    Attributes:
-        enable_evidence: Whether to run evidence validator.
-        enable_review: Whether to run code review validator.
-        enable_tests: Whether to run test validator.
-        max_iterations: Maximum validation loop iterations.
-        max_fix_attempts_per_issue: Max attempts to fix a single issue.
-        stall_threshold: Consecutive iterations without progress before stall.
-
-    Example:
-        >>> config = ValidateCommandConfig(
-        ...     enable_tests=True,
-        ...     max_iterations=5,
-        ... )
-        >>> config.enable_tests
-        True
-
     YAML example (in .adw/commands/validate/config.yaml):
         enabled: true
         timeout_seconds: 600
-        enable_tests: true
-        max_iterations: 5
     """
 
     model_config = ConfigDict(extra="forbid")
-
-    enable_evidence: bool = Field(
-        default=True, description="Whether to run evidence validator"
-    )
-    enable_review: bool = Field(
-        default=True, description="Whether to run code review validator"
-    )
-    enable_tests: bool = Field(
-        default=True, description="Whether to run test validator"
-    )
-    max_iterations: int = Field(
-        default=5, description="Maximum validation loop iterations"
-    )
-    max_fix_attempts_per_issue: int = Field(
-        default=2, description="Max attempts to fix a single issue"
-    )
-    stall_threshold: int = Field(
-        default=2, description="Consecutive iterations without progress before stall"
-    )
 
 
 class DocMappingConfig(BaseModel):

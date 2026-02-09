@@ -38,7 +38,6 @@ from adw.models.command import (
     DocumentCommandConfig,
     PhaseLLMConfig,
     ShipCommandConfig,
-    ValidateCommandConfig,
 )
 from adw.models.config import GitConfig, PhaseConfig, ProjectConfig
 
@@ -384,18 +383,8 @@ class PhaseRunner:
         }
 
         # Load phase-specific typed config for templates (ISS-031)
-        # This provides {{validation_config.*}} and {{ship_config.*}} access
+        # This provides {{ship_config.*}} access
         typed_config = self._load_project_config(phase)
-
-        # Build validation_config dict and inject project-level test_command
-        validation_dict = (
-            typed_config.model_dump()
-            if isinstance(typed_config, ValidateCommandConfig)
-            else {}
-        )
-        if self.project_config and self.project_config.test_command:
-            validation_dict["test_command"] = self.project_config.test_command
-        variables["validation_config"] = validation_dict
 
         # Build ship_config dict and inject project-level build_command
         ship_dict = (

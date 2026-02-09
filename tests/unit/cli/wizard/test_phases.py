@@ -16,7 +16,6 @@ from adw.cli.wizard.phases import (
     PhasesStepHandler,
     _configure_document_phase,
     _configure_phase,
-    _configure_validate_phase,
     _parse_int,
     _parse_phase_selection,
     _prompt_doc_mappings,
@@ -281,11 +280,11 @@ class TestBasePhaseConfiguration:
         assert config["llm"] == {"model": "claude-3-opus"}
 
 
-class TestValidatePhaseSpecialOptions:
-    """Tests for validate phase special options."""
+class TestValidatePhaseNoSpecialOptions:
+    """Tests that validate phase has no special options (fields removed)."""
 
-    def test_validate_phase_includes_special_options(self) -> None:
-        """Test that validate phase config includes special options."""
+    def test_validate_phase_has_only_base_options(self) -> None:
+        """Test that validate phase config only has base options."""
         console = Console(force_terminal=True)
 
         with (
@@ -293,105 +292,23 @@ class TestValidatePhaseSpecialOptions:
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
             patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
-            # Base config: enabled=True
-            # Validate special: code_review=True, tests=True, no linters
-            mock_confirm.side_effect = [
-                True,  # enabled
-                True,  # code_review
-                True,  # tests
-                False,  # add linter commands
-            ]
+            mock_confirm.return_value = True  # enabled
             mock_prompt.side_effect = [
                 "900",  # timeout
                 "",  # model override (skip)
-                "5",  # max_iterations
             ]
 
             config = _configure_phase("validate", console)
 
-        # Base options
+        # Base options only
         assert config["enabled"] is True
         assert config["timeout_seconds"] == 900
 
-        # Validate-specific options
-        assert config["enable_review"] is True
-        assert config["enable_tests"] is True
-        assert config["max_iterations"] == 5
-        assert "linter_commands" not in config  # Not added when declined
-
-    def test_validate_phase_custom_special_options(self) -> None:
-        """Test validate phase with custom special options."""
-        console = Console(force_terminal=True)
-
-        with (
-            patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
-            patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
-        ):
-            mock_confirm.side_effect = [
-                True,  # enabled
-                False,  # code_review disabled
-                True,  # tests
-                False,  # add linter commands
-            ]
-            mock_prompt.side_effect = [
-                "1800",  # timeout 30 min
-                "",  # model override (skip)
-                "3",  # max_iterations
-            ]
-
-            config = _configure_phase("validate", console)
-
-        assert config["enable_review"] is False
-        assert config["enable_tests"] is True
-        assert config["max_iterations"] == 3
-
-    def test_configure_validate_phase_directly(self) -> None:
-        """Test _configure_validate_phase function directly."""
-        console = Console(force_terminal=True)
-
-        with (
-            patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
-            patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
-        ):
-            mock_confirm.side_effect = [
-                True,  # code_review
-                False,  # tests disabled
-                False,  # add linter commands
-            ]
-            mock_prompt.side_effect = [
-                "10",  # max_iterations
-            ]
-
-            config = _configure_validate_phase(console)
-
-        assert config["enable_review"] is True
-        assert config["enable_tests"] is False
-        assert config["max_iterations"] == 10
-
-    def test_validate_phase_with_linter_commands(self) -> None:
-        """Test validate phase with linter commands added."""
-        console = Console(force_terminal=True)
-
-        with (
-            patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
-            patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
-        ):
-            mock_confirm.side_effect = [
-                True,  # code_review
-                True,  # tests
-                True,  # add linter commands
-            ]
-            mock_prompt.side_effect = [
-                "5",  # max_iterations
-                "ruff check .",  # first linter
-                "mypy src/",  # second linter
-                "",  # done adding linters
-            ]
-
-            config = _configure_validate_phase(console)
-
-        assert config["linter_commands"] == ["ruff check .", "mypy src/"]
+        # Validate-specific options should NOT be present
+        assert "enable_review" not in config
+        assert "enable_tests" not in config
+        assert "max_iterations" not in config
+        assert "linter_commands" not in config
 
 
 class TestInputFileLoop:
@@ -674,7 +591,7 @@ class TestFullFlow:
         assert result["phases"]["plan"]["timeout_seconds"] == 300
 
     def test_full_flow_customize_validate_phase(self) -> None:
-        """Test full flow customizing only the validate phase."""
+        """Test full flow customizing only the validate phase (base options only)."""
         console = Console(force_terminal=True)
         state = WizardState()
 
@@ -686,15 +603,11 @@ class TestFullFlow:
             mock_confirm.side_effect = [
                 True,  # customize phases
                 True,  # enabled
-                True,  # code_review
-                True,  # tests
-                False,  # add linter commands
             ]
             mock_prompt.side_effect = [
                 "3",  # select validate phase
                 "900",  # timeout
                 "",  # model override (skip)
-                "5",  # max_iterations
             ]
 
             result = run_phases_step(state, console)
@@ -702,9 +615,11 @@ class TestFullFlow:
         assert result["customized"] is True
         assert "validate" in result["phases"]
         validate_config = result["phases"]["validate"]
-        assert validate_config["enable_review"] is True
-        assert validate_config["enable_tests"] is True
-        assert "linter_commands" not in validate_config
+        assert validate_config["enabled"] is True
+        assert validate_config["timeout_seconds"] == 900
+        # No validate-specific options
+        assert "enable_review" not in validate_config
+        assert "enable_tests" not in validate_config
 
 
 class TestStateIntegration:
