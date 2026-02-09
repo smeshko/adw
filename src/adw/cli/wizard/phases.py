@@ -172,6 +172,9 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
     # Base configuration
     enabled = Confirm.ask("Enabled?", default=True, console=console)
 
+    if not enabled:
+        return {"enabled": False}
+
     default_timeout = DEFAULT_TIMEOUTS.get(phase, 300)
     timeout_str = Prompt.ask(
         "Timeout (seconds)",

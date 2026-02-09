@@ -226,24 +226,23 @@ class TestBasePhaseConfiguration:
         # Empty model input now selects phase default (opus for plan)
         assert config["llm"] == {"model": "opus"}
 
-    def test_configure_phase_custom_timeout(self) -> None:
-        """Test phase configuration with custom timeout."""
+    def test_disabled_phase_skips_remaining_questions(self) -> None:
+        """Test that disabling a phase returns immediately without further prompts."""
         console = Console(force_terminal=True)
 
         with (
             patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
+            patch("adw.cli.wizard.phases.nav_confirm_ask") as mock_nav,
         ):
-            # enabled=False
-            mock_confirm.return_value = False
-            # timeout=120, model override
-            mock_prompt.side_effect = ["120", ""]
+            mock_confirm.return_value = False  # enabled=False
 
             config = _configure_phase("build", console)
 
-        assert config["enabled"] is False
-        assert config["timeout_seconds"] == 120
+        assert config == {"enabled": False}
+        # No further prompts should have been called
+        mock_prompt.assert_not_called()
+        mock_nav.assert_not_called()
 
     def test_configure_phase_uses_phase_default_timeout(self) -> None:
         """Test that phase configuration uses phase-specific default timeout."""
