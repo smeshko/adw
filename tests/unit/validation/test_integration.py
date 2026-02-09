@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 import pytest
 
 from adw.models import RunContext
-from adw.validation import ValidationConfig, ValidationPhase
+from adw.validation import ValidationPhase
 from adw.validation.models import ValidationResult
 
 
@@ -36,12 +36,7 @@ class TestValidationPhaseIntegration:
 
     def test_phase_returns_validation_result(self, mock_context: RunContext) -> None:
         """Phase returns ValidationResult."""
-        config = ValidationConfig(
-            enable_tests=True,
-            enable_review=True,
-            enable_evidence=True,
-        )
-        phase = ValidationPhase(config=config)
+        phase = ValidationPhase()
 
         result = phase.run(mock_context)
 
@@ -96,32 +91,6 @@ class TestValidationPhaseIntegration:
         assert result.passed is False
         assert result.tests_passed is False
         assert len(result.issues_remaining) == 2
-
-
-class TestConfigBasedBehavior:
-    """Tests for configuration-based validation behavior."""
-
-    def test_config_settings_preserved(self) -> None:
-        """ValidationPhase preserves config settings."""
-        config = ValidationConfig(
-            enable_tests=False,
-            enable_review=True,
-            enable_evidence=False,
-        )
-        phase = ValidationPhase(config=config)
-
-        assert phase.config.enable_tests is False
-        assert phase.config.enable_review is True
-        assert phase.config.enable_evidence is False
-
-    def test_default_config_enables_all(self) -> None:
-        """Default config enables all validation types."""
-        config = ValidationConfig()
-        phase = ValidationPhase(config=config)
-
-        assert phase.config.enable_tests is True
-        assert phase.config.enable_review is True
-        assert phase.config.enable_evidence is True
 
 
 class TestValidationResultCreation:

@@ -28,9 +28,9 @@ class TestValidationPhaseInit:
 
     def test_custom_config(self) -> None:
         """ValidationPhase accepts custom config."""
-        config = ValidationConfig(enable_tests=False)
+        config = ValidationConfig(timeout_seconds=1200)
         phase = ValidationPhase(config=config)
-        assert phase.config.enable_tests is False
+        assert phase.config.timeout_seconds == 1200
 
     def test_run_id_stored(self) -> None:
         """ValidationPhase stores run_id for logging."""
@@ -150,19 +150,6 @@ class TestFromLLMResponse:
 
 class TestValidationPhaseIntegration:
     """Integration tests for ValidationPhase with other components."""
-
-    def test_phase_with_config_settings(self) -> None:
-        """ValidationPhase respects config settings."""
-        config = ValidationConfig(
-            enable_tests=True,
-            enable_review=False,
-            enable_evidence=True,
-        )
-        phase = ValidationPhase(config=config, run_id="int-test")
-
-        assert phase.config.enable_tests is True
-        assert phase.config.enable_review is False
-        assert phase.config.enable_evidence is True
 
     def test_full_validation_flow(self) -> None:
         """Test full validation flow from LLM response to result."""

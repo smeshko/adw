@@ -42,7 +42,6 @@ class PhasesStepHandler:
       - Pre-hook script path
       - Post-hook script path
       - Input files (key=path pairs)
-    - For validate phase, additional prompts for code review settings
     """
 
     def execute(self, state: WizardState, console: Console) -> dict[str, Any]:
@@ -196,11 +195,6 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
     if llm_config:
         config["llm"] = llm_config
 
-    # Validate phase special options
-    if phase == "validate":
-        validate_config = _configure_validate_phase(console)
-        config.update(validate_config)
-
     # Document phase special options
     if phase == "document":
         document_config = _configure_document_phase(console)
@@ -212,80 +206,6 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
         config.update(ship_config)
 
     return config
-
-
-def _configure_validate_phase(console: Console) -> dict[str, Any]:
-    """Configure validate phase special options.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        Validate-specific configuration dict.
-    """
-    console.print()
-    console.print("[dim]Validation phase options:[/]")
-
-    code_review = Confirm.ask("Enable code review?", default=True, console=console)
-    tests = Confirm.ask("Enable tests?", default=True, console=console)
-
-    max_iterations_str = Prompt.ask(
-        "Max validation iterations",
-        default="5",
-        console=console,
-    )
-    max_iterations = _parse_int(max_iterations_str, 5)
-
-    # Linter commands
-    linter_commands = _prompt_linter_commands(console)
-
-    config: dict[str, Any] = {
-        "enable_review": code_review,
-        "enable_tests": tests,
-        "max_iterations": max_iterations,
-    }
-
-    if linter_commands:
-        config["linter_commands"] = linter_commands
-
-    return config
-
-
-def _prompt_linter_commands(console: Console) -> list[str]:
-    """Collect multiple linter commands for validate phase.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        List of linter commands.
-    """
-    add_linters = Confirm.ask(
-        "Add linter commands?",
-        default=False,
-        console=console,
-    )
-
-    if not add_linters:
-        return []
-
-    linters: list[str] = []
-    console.print("[dim]Enter linter commands (empty to finish):[/]")
-    console.print("[dim]Examples: 'ruff check .', 'mypy src/', 'eslint .'[/]")
-
-    while True:
-        cmd = Prompt.ask(
-            "Linter command",
-            default="",
-            console=console,
-        ).strip()
-
-        if not cmd:
-            break
-
-        linters.append(cmd)
-
-    return linters
 
 
 def _configure_document_phase(console: Console) -> dict[str, Any]:

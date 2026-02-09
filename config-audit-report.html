@@ -229,9 +229,9 @@
   <p class="subtitle">Setting-by-setting analysis across models, init wizard, YAML generator &amp; runtime</p>
   <p class="date">Updated 2026-02-09 &middot; adw-final &middot; branch: refactoring/remove-hook-config-strings &middot; commit: 9416217 + uncommitted</p>
   <div class="stats-bar">
-    <div class="stat-card blue"><div class="num">58</div><div class="label">Total Fields</div></div>
+    <div class="stat-card blue"><div class="num">52</div><div class="label">Total Fields</div></div>
     <div class="stat-card green"><div class="num">51</div><div class="label">Used at Runtime</div></div>
-    <div class="stat-card cyan"><div class="num">7</div><div class="label">Template Only</div></div>
+    <div class="stat-card cyan"><div class="num">1</div><div class="label">Template Only</div></div>
     <div class="stat-card yellow"><div class="num">0</div><div class="label">Partial Use</div></div>
     <div class="stat-card red"><div class="num">0</div><div class="label">Unused</div></div>
     <div class="stat-card orange"><div class="num">0</div><div class="label">Disconnect</div></div>
@@ -478,17 +478,9 @@
     <span class="section-chevron">&#9662;</span>
   </div>
   <div class="section-body">
-    <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">All fields injected into template context as <code style="background:var(--surface2); padding:1px 5px; border-radius:3px; font-size:11.5px; color:var(--text);">{{validation_config.&lt;field&gt;}}</code> via <code style="background:var(--surface2); padding:1px 5px; border-radius:3px; font-size:11.5px; color:var(--text);">typed_config.model_dump()</code> at <code style="background:var(--surface2); padding:1px 5px; border-radius:3px; font-size:11.5px; color:var(--text);">phase_runner.py:391-394</code>.</p>
-    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
-      <tr data-runtime="template" data-wizard="yes"><td>enable_evidence</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">true</td><td class="notes">Available as <code>{{validation_config.enable_evidence}}</code> in validate prompt.</td></tr>
-      <tr data-runtime="template" data-wizard="yes"><td>enable_review</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">true</td><td class="notes">Available as <code>{{validation_config.enable_review}}</code>.</td></tr>
-      <tr data-runtime="template" data-wizard="yes"><td>enable_tests</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">true</td><td class="notes">Available as <code>{{validation_config.enable_tests}}</code>.</td></tr>
-      <tr data-runtime="template" data-wizard="yes"><td>max_iterations</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">5</td><td class="notes">Available as <code>{{validation_config.max_iterations}}</code>.</td></tr>
-      <tr data-runtime="template" data-wizard="yes"><td>max_fix_attempts_per_issue</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">2</td><td class="notes">Available as <code>{{validation_config.max_fix_attempts_per_issue}}</code>.</td></tr>
-      <tr data-runtime="template" data-wizard="yes"><td>stall_threshold</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">2</td><td class="notes">Available as <code>{{validation_config.stall_threshold}}</code>.</td></tr>
-    </tbody></table>
+    <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">Empty typed marker subclass of <code style="background:var(--surface2); padding:1px 5px; border-radius:3px; font-size:11.5px; color:var(--text);">CommandConfig</code>. Preserves the per-phase config class pattern used by <code style="background:var(--surface2); padding:1px 5px; border-radius:3px; font-size:11.5px; color:var(--text);">loader.py</code>. No phase-specific fields.</p>
     <p class="removed-note">Removed in PR #159: <s>test_timeout_seconds</s>, <s>review_prompt</s>, <s>review_focus</s></p>
-    <p class="removed-note">Removed in this branch: <s>triage_mode</s> (was TEMPLATE only &mdash; <code>"auto"</code>/<code>"manual"</code>/<code>"hybrid"</code>), <s>auto_dismiss_info</s> (was TEMPLATE only &mdash; auto-dismiss info-level issues)</p>
+    <p class="removed-note">Removed in this branch: <s>triage_mode</s>, <s>auto_dismiss_info</s>, <s>enable_evidence</s>, <s>enable_review</s>, <s>enable_tests</s>, <s>max_iterations</s>, <s>max_fix_attempts_per_issue</s>, <s>stall_threshold</s> (all were TEMPLATE only &mdash; injected but never consumed by any prompt template)</p>
   </div>
 </div>
 
@@ -581,6 +573,7 @@
           <li>security.allow_dangerous &rarr; removed (was DISCONNECT)</li>
           <li>llm.temperature &rarr; removed (was PARTIAL)</li>
           <li>triage_mode, auto_dismiss_info &rarr; removed (were TEMPLATE only)</li>
+          <li>enable_evidence, enable_review, enable_tests, max_iterations, max_fix_attempts_per_issue, stall_threshold &rarr; removed (were TEMPLATE only, no template consumed them)</li>
           <li>ShipPRConfig (4 fields) &rarr; removed, simplified to flat bypass_ci</li>
           <li>pre_hook, post_hook (strings) &rarr; removed (runtime uses file-based hooks)</li>
         </ul>

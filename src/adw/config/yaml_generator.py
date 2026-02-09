@@ -354,9 +354,7 @@ class YAMLWithComments:
         lines.append("")
 
         # Phase-specific settings
-        if phase == "validate":
-            self._add_validate_phase_settings(lines, phase_config)
-        elif phase == "ship":
+        if phase == "ship":
             self._add_ship_phase_settings(lines, phase_config)
 
         return "\n".join(lines)
@@ -378,64 +376,6 @@ class YAMLWithComments:
             "ship": 900,
         }
         return defaults.get(phase, 300)
-
-    def _add_validate_phase_settings(
-        self, lines: list[str], config: dict[str, Any]
-    ) -> None:
-        """Add validate phase specific settings.
-
-        Outputs all 11 validation fields from ValidateCommandConfig,
-        showing configured values as active YAML and defaults as comments.
-
-        Args:
-            lines: List of output lines to append to.
-            config: Phase configuration dict.
-        """
-        lines.append("# === Validate Phase Settings ===")
-
-        # enable_evidence
-        enable_evidence = config.get("enable_evidence")
-        if enable_evidence is not None:
-            lines.append(f"enable_evidence: {_format_yaml_value(enable_evidence)}")
-        else:
-            lines.append("# enable_evidence: true  # Run evidence validator")
-
-        # enable_review
-        enable_review = config.get("enable_review")
-        if enable_review is not None:
-            lines.append(f"enable_review: {_format_yaml_value(enable_review)}")
-        else:
-            lines.append("# enable_review: true  # Run code review validator")
-
-        # enable_tests
-        enable_tests = config.get("enable_tests")
-        if enable_tests is not None:
-            lines.append(f"enable_tests: {_format_yaml_value(enable_tests)}")
-        else:
-            lines.append("# enable_tests: true  # Run test validator")
-
-        # max_iterations
-        max_iterations = config.get("max_iterations")
-        if max_iterations is not None:
-            lines.append(f"max_iterations: {max_iterations}")
-        else:
-            lines.append("# max_iterations: 5  # Maximum validation loop iterations")
-
-        # max_fix_attempts_per_issue
-        max_fix_attempts = config.get("max_fix_attempts_per_issue")
-        if max_fix_attempts is not None:
-            lines.append(f"max_fix_attempts_per_issue: {max_fix_attempts}")
-        else:
-            lines.append("# max_fix_attempts_per_issue: 2  # Max attempts per issue")
-
-        # stall_threshold
-        stall_threshold = config.get("stall_threshold")
-        if stall_threshold is not None:
-            lines.append(f"stall_threshold: {stall_threshold}")
-        else:
-            lines.append("# stall_threshold: 2  # Iterations before stall")
-
-        lines.append("")
 
     def _add_ship_phase_settings(
         self, lines: list[str], config: dict[str, Any]
