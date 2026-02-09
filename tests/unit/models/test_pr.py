@@ -73,8 +73,8 @@ class TestPRDescriptionModel:
         assert any("testing" in str(e) for e in errors)
 
     def test_summary_max_length_validation(self):
-        """Test that summary enforces maximum length of 500 chars."""
-        long_summary = "A" * 501  # Exceeds 500 char limit
+        """Test that summary enforces maximum length of 1000 chars."""
+        long_summary = "A" * 1001  # Exceeds 1000 char limit
         with pytest.raises(ValidationError) as exc_info:
             PRDescription(
                 summary=long_summary,
@@ -478,7 +478,7 @@ class TestPRDescriptionLengthConstraints:
         """Test that PR description at max field lengths stays reasonable."""
         # Use maximum allowed lengths for fields
         pr = PRDescription(
-            summary="A" * 500,  # Max summary length
+            summary="A" * 1000,  # Max summary length
             changes=["Change " + str(i) for i in range(50)],  # Many changes
             testing="T" * 500,  # Long testing description
             evidence="E" * 500,  # Long evidence section
@@ -487,5 +487,5 @@ class TestPRDescriptionLengthConstraints:
         markdown = pr.to_markdown()
 
         # Even with max field lengths, should stay under a reasonable limit
-        # The combined max would be around 500 + (50*10) + 500 + 500 + headers = ~2000
+        # The combined max would be around 1000 + (50*10) + 500 + 500 + headers = ~2500
         assert len(markdown) < 4000, f"PR description too long: {len(markdown)} chars"
