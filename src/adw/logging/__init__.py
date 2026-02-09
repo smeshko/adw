@@ -109,60 +109,6 @@ def create_redactor_from_config(
     )
 
 
-def configure_default_logger(
-    *,
-    level: LogLevel = LogLevel.INFO,
-    console: bool = True,
-    live_log: str | None = None,
-    redaction_enabled: bool = True,
-    redaction_patterns: list[str] | None = None,
-    redaction_disable_defaults: bool = False,
-) -> LogManager:
-    """Configure and return the default logger with common transports.
-
-    This is a convenience function for quick setup. Creates a new default
-    logger with the specified transports and redaction settings.
-
-    Args:
-        level: Minimum log level (default: INFO)
-        console: Whether to add console transport (default: True)
-        live_log: Path to live.log file for real-time streaming (optional)
-        redaction_enabled: Whether to enable secret redaction (default: True)
-        redaction_patterns: Additional custom patterns for redaction
-        redaction_disable_defaults: If True, only use custom patterns
-
-    Returns:
-        The configured default LogManager instance
-
-    Example:
-        >>> logger = configure_default_logger(
-        ...     level=LogLevel.DEBUG,
-        ...     live_log=".adw/runs/123/live.log",
-        ...     redaction_enabled=True,
-        ...     redaction_patterns=["ACME_[A-Z0-9]+"],
-        ... )
-    """
-    global _default_logger
-    from pathlib import Path
-
-    # Create redactor based on configuration
-    redactor = create_redactor_from_config(
-        enabled=redaction_enabled,
-        patterns=redaction_patterns,
-        disable_defaults=redaction_disable_defaults,
-    )
-
-    _default_logger = LogManager(level=level, redactor=redactor)
-
-    if console:
-        _default_logger.register(ConsoleTransport())
-
-    if live_log:
-        _default_logger.register(LiveStreamTransport(Path(live_log)))
-
-    return _default_logger
-
-
 __all__ = [
     # Core classes
     "LogManager",
@@ -186,7 +132,6 @@ __all__ = [
     "LogLevel",
     # Functions
     "get_logger",
-    "configure_default_logger",
     "create_redactor_from_config",
     "reset_logger",
 ]

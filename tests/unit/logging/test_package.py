@@ -2,14 +2,10 @@
 # Kept only tests that verify actual logging behavior.
 """Tests for the logging package convenience functions."""
 
-from pathlib import Path
-
 from adw.logging import (
-    ConsoleTransport,
-    LiveStreamTransport,
-    LogLevel,
     LogManager,
-    configure_default_logger,
+    Redactor,
+    create_redactor_from_config,
     get_logger,
     reset_logger,
 )
@@ -34,52 +30,40 @@ class TestGetLogger:
         assert logger1 is logger2
 
 
-class TestConfigureDefaultLogger:
-    """Tests for configure_default_logger function."""
+class TestCreateRedactorFromConfig:
+    """Tests for create_redactor_from_config function."""
 
-    def test_configure_with_custom_level(self) -> None:
-        """configure_default_logger accepts custom level."""
-        reset_logger()
+    def test_enabled_returns_redactor(self) -> None:
+        """When enabled (default), returns a Redactor instance."""
+        redactor = create_redactor_from_config()
+        assert isinstance(redactor, Redactor)
 
-        logger = configure_default_logger(level=LogLevel.DEBUG)
-        assert logger.level == LogLevel.DEBUG
+    def test_disabled_returns_none(self) -> None:
+        """When disabled, returns None."""
+        redactor = create_redactor_from_config(enabled=False)
+        assert redactor is None
 
-    def test_configure_with_console_true(self) -> None:
-        """configure_default_logger adds console transport by default."""
-        reset_logger()
+    def test_custom_patterns_merged_with_defaults(self) -> None:
+        """Custom patterns are merged with default patterns."""
+        redactor = create_redactor_from_config(patterns=["CUSTOM_SECRET_[A-Z]+"])
+        assert redactor is not None
+        # Should have default patterns plus the custom one
+        assert len(redactor.patterns) > 1
 
-        logger = configure_default_logger(console=True)
-        assert len(logger.transports) == 1
-        assert isinstance(logger.transports[0], ConsoleTransport)
-
-    def test_configure_with_console_false(self) -> None:
-        """configure_default_logger can skip console transport."""
-        reset_logger()
-
-        logger = configure_default_logger(console=False)
-        assert len(logger.transports) == 0
-
-    def test_configure_with_live_log(self, tmp_path: Path) -> None:
-        """configure_default_logger adds live stream transport."""
-        reset_logger()
-        log_path = tmp_path / "live.log"
-
-        logger = configure_default_logger(
-            console=False,
-            live_log=str(log_path),
+    def test_disable_defaults_uses_only_custom(self) -> None:
+        """When disable_defaults=True, only custom patterns are used."""
+        redactor = create_redactor_from_config(
+            patterns=["MY_PATTERN_[0-9]+"],
+            disable_defaults=True,
         )
-        assert len(logger.transports) == 1
-        assert isinstance(logger.transports[0], LiveStreamTransport)
+        assert redactor is not None
+        assert len(redactor.patterns) == 1
 
-    def test_configure_replaces_previous_logger(self) -> None:
-        """configure_default_logger replaces the previous default logger."""
-        reset_logger()
-
-        logger1 = configure_default_logger(level=LogLevel.INFO)
-        logger2 = configure_default_logger(level=LogLevel.DEBUG)
-
-        assert logger1 is not logger2
-        assert get_logger() is logger2
+    def test_disable_defaults_no_patterns_returns_empty(self) -> None:
+        """When disable_defaults=True with no patterns, returns redactor with no patterns."""
+        redactor = create_redactor_from_config(disable_defaults=True)
+        assert redactor is not None
+        assert len(redactor.patterns) == 0
 
 
 class TestResetLogger:

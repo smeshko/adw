@@ -31,13 +31,14 @@ from adw.exceptions import ConfigError
 from adw.executors.base import LLMExecutor
 from adw.executors.claude_code import ClaudeCodeExecutor
 from adw.hooks.runner import HookRunner
-from adw.logging import LogManager, LogManagerHandler
+from adw.logging import LogManager, LogManagerHandler, create_redactor_from_config
 from adw.logging.console import ConsoleTransport
 from adw.logging.live_stream import LiveStreamTransport
 from adw.models.config import (
     GitConfig,
     HookConfig,
     LLMConfig,
+    RedactionConfig,
     TaskManagerConfig,
     WorktreeConfig,
 )
@@ -80,6 +81,7 @@ def create_log_manager(
     console: Console | None = None,
     verbosity: Verbosity = Verbosity.NORMAL,
     run_dir: Path | None = None,
+    redaction_config: RedactionConfig | None = None,
 ) -> LogManager:
     """Create a LogManager configured for CLI use.
 
@@ -104,7 +106,18 @@ def create_log_manager(
         >>> logger.debug(LogCategory.PHASE, "Detailed info")
     """
     console = console or Console()
-    log_manager = LogManager(verbosity=verbosity)
+
+    # Create redactor from config (defaults to enabled with default patterns)
+    if redaction_config is None:
+        redactor = create_redactor_from_config()
+    else:
+        redactor = create_redactor_from_config(
+            enabled=redaction_config.enabled,
+            patterns=redaction_config.patterns or None,
+            disable_defaults=redaction_config.disable_defaults,
+        )
+
+    log_manager = LogManager(verbosity=verbosity, redactor=redactor)
 
     # Add console transport with verbosity filtering
     console_transport = ConsoleTransport(

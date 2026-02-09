@@ -255,11 +255,13 @@ def run(
     # Load config for task manager configuration (Story 12.8)
 
     task_manager_config = None
+    redaction_config = None
     try:
         config = ConfigLoader().load()
         task_manager_config = config.task_manager
+        redaction_config = config.logging.redaction
     except ConfigError:
-        # No config or invalid - use default
+        # No config or invalid - use defaults
         pass
 
     # Resolve input: task ID vs feature string (Story 12.4 Task 4)
@@ -368,7 +370,12 @@ def run(
     # Create log manager with file transports (Story 7.2, ISS-003, ISS-006 fix)
     # This wires up Python logging to LogManager, so all logging.getLogger() calls
     # in ADW modules flow through to live.log for debugging via `adw logs follow`
-    create_log_manager(console, verbosity=verbosity, run_dir=run_dir)
+    create_log_manager(
+        console,
+        verbosity=verbosity,
+        run_dir=run_dir,
+        redaction_config=redaction_config,
+    )
 
     try:
         # Pass task_manager and task_info for StatusSyncService/LabelManager
