@@ -14,10 +14,3 @@ timeout_seconds: 600
 # llm:
 #   model: claude-sonnet-4-20250514
 #   temperature: 0.7
-
-# Artifacts to capture from this phase
-artifacts:
-  - name: plan
-    pattern: "plan_output.md"
-    required: true
-    description: "Generated implementation plan"

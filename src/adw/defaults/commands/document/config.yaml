@@ -25,18 +25,3 @@ timeout_seconds: 600
 #     docs_dir: "docs/cli"
 #   - source_pattern: "src/adw/models/**/*.py"
 #     docs_dir: "docs/models"
-
-# Artifacts to capture from this phase
-artifacts:
-  - name: document_output
-    pattern: "document_output.md"
-    required: true
-    description: "Document phase output including analysis report"
-  - name: pr_description
-    pattern: "pr_description.md"
-    required: true
-    description: "Generated PR description"
-  - name: feature_doc
-    pattern: "feature_doc.md"
-    required: false
-    description: "Feature documentation if significant changes detected"

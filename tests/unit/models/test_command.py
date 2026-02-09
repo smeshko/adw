@@ -2,13 +2,12 @@
 # Only testing validation logic, boundary conditions, and error handling.
 # NOT testing: default values, simple attribute assignment, Pydantic serialization.
 
-"""Tests for command models (CommandConfig, PhaseLLMConfig, ArtifactConfig, DocumentCommandConfig)."""
+"""Tests for command models (CommandConfig, PhaseLLMConfig, DocumentCommandConfig)."""
 
 import pytest
 from pydantic import ValidationError
 
 from adw.models.command import (
-    ArtifactConfig,
     CommandConfig,
     DocMappingConfig,
     DocumentCommandConfig,
@@ -48,46 +47,6 @@ class TestPhaseLLMConfig:
         assert "extra" in str(exc_info.value).lower()
 
 
-class TestArtifactConfig:
-    """Tests for ArtifactConfig validation rules."""
-
-    def test_name_required(self) -> None:
-        """ArtifactConfig requires name field."""
-        with pytest.raises(ValidationError) as exc_info:
-            ArtifactConfig(pattern="output/*.md")  # type: ignore[call-arg]
-        assert "name" in str(exc_info.value).lower()
-
-    def test_pattern_required(self) -> None:
-        """ArtifactConfig requires pattern field."""
-        with pytest.raises(ValidationError) as exc_info:
-            ArtifactConfig(name="plan")  # type: ignore[call-arg]
-        assert "pattern" in str(exc_info.value).lower()
-
-    def test_name_empty_string_rejected(self) -> None:
-        """ArtifactConfig rejects empty name string."""
-        with pytest.raises(ValidationError) as exc_info:
-            ArtifactConfig(name="", pattern="output/*.md")
-        assert (
-            "min_length" in str(exc_info.value).lower()
-            or "string_too_short" in str(exc_info.value).lower()
-        )
-
-    def test_pattern_empty_string_rejected(self) -> None:
-        """ArtifactConfig rejects empty pattern string."""
-        with pytest.raises(ValidationError) as exc_info:
-            ArtifactConfig(name="plan", pattern="")
-        assert (
-            "min_length" in str(exc_info.value).lower()
-            or "string_too_short" in str(exc_info.value).lower()
-        )
-
-    def test_extra_fields_rejected(self) -> None:
-        """ArtifactConfig rejects unknown fields (extra='forbid')."""
-        with pytest.raises(ValidationError) as exc_info:
-            ArtifactConfig(name="plan", pattern="*.md", unknown="value")  # type: ignore[call-arg]
-        assert "extra" in str(exc_info.value).lower()
-
-
 class TestCommandConfig:
     """Tests for CommandConfig validation rules."""
 
@@ -102,42 +61,6 @@ class TestCommandConfig:
         with pytest.raises(ValidationError) as exc_info:
             CommandConfig(timeout_seconds=-1)
         assert "greater than 0" in str(exc_info.value)
-
-    def test_artifact_names_must_be_unique(self) -> None:
-        """CommandConfig rejects duplicate artifact names."""
-        with pytest.raises(ValidationError) as exc_info:
-            CommandConfig(
-                artifacts=[
-                    ArtifactConfig(name="plan", pattern="a.md"),
-                    ArtifactConfig(name="plan", pattern="b.md"),  # duplicate
-                ]
-            )
-        assert "Duplicate artifact names found: plan" in str(exc_info.value)
-
-    def test_multiple_duplicate_artifact_names_reported(self) -> None:
-        """CommandConfig reports all duplicate artifact names."""
-        with pytest.raises(ValidationError) as exc_info:
-            CommandConfig(
-                artifacts=[
-                    ArtifactConfig(name="plan", pattern="a.md"),
-                    ArtifactConfig(name="plan", pattern="b.md"),
-                    ArtifactConfig(name="code", pattern="c.md"),
-                    ArtifactConfig(name="code", pattern="d.md"),
-                ]
-            )
-        error_msg = str(exc_info.value)
-        assert "code" in error_msg
-        assert "plan" in error_msg
-
-    def test_unique_artifact_names_accepted(self) -> None:
-        """CommandConfig accepts unique artifact names."""
-        config = CommandConfig(
-            artifacts=[
-                ArtifactConfig(name="plan", pattern="plan.md"),
-                ArtifactConfig(name="code", pattern="code/*.py"),
-            ]
-        )
-        assert len(config.artifacts) == 2
 
     def test_extra_fields_rejected(self) -> None:
         """CommandConfig rejects unknown fields (extra='forbid')."""
@@ -157,14 +80,6 @@ class TestCommandConfig:
             timeout_seconds=600,
             input_files={"prd": "docs/prd.md"},
             llm=PhaseLLMConfig(model="claude-3-opus", temperature=0.7),
-            artifacts=[
-                ArtifactConfig(
-                    name="plan",
-                    pattern="output/plan.md",
-                    required=True,
-                    description="Implementation plan",
-                )
-            ],
             pre_hook="echo 'start'",
             post_hook="echo 'done'",
         )
@@ -172,8 +87,6 @@ class TestCommandConfig:
         assert config.input_files == {"prd": "docs/prd.md"}
         assert config.llm.model == "claude-3-opus"
         assert config.llm.temperature == 0.7
-        assert len(config.artifacts) == 1
-        assert config.artifacts[0].name == "plan"
 
 
 class TestDocMappingConfig:
@@ -295,16 +208,7 @@ class TestDocumentCommandConfig:
                     docs_dir="docs/architecture/deep-dive",
                 )
             ],
-            artifacts=[
-                ArtifactConfig(
-                    name="document_output",
-                    pattern="document_output.md",
-                    required=True,
-                )
-            ],
         )
         assert config.timeout_seconds == 600
         assert config.doc_mappings is not None
         assert len(config.doc_mappings) == 1
-        assert config.artifacts is not None
-        assert len(config.artifacts) == 1

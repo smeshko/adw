@@ -12,18 +12,3 @@ timeout_seconds: 1200
 # llm:
 #   model: claude-sonnet-4-20250514
 #   temperature: 0.3  # Lower temperature for code generation
-
-# Artifacts to capture from this phase
-artifacts:
-  - name: build_output
-    pattern: "build_output.md"
-    required: true
-    description: "Build phase LLM output"
-  - name: diff
-    pattern: "diff.txt"
-    required: false
-    description: "Git diff of changes made during build"
-  - name: diff_stats
-    pattern: "diff_stats.json"
-    required: false
-    description: "Statistics about the git diff"

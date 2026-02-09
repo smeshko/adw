@@ -330,50 +330,6 @@ class TestVerificationSection:
         assert "tag" in step_7_text.lower()
 
 
-class TestArtifactConfiguration:
-    """Tests validating artifact configuration for ship report."""
-
-    @pytest.fixture
-    def config_path(self) -> Path:
-        """Path to ship phase config.yaml."""
-        return Path(__file__).parents[3] / "src/adw/defaults/commands/ship/config.yaml"
-
-    @pytest.fixture
-    def config_text(self, config_path: Path) -> str:
-        """Get config.yaml as raw text."""
-        return config_path.read_text()
-
-    def test_ship_report_artifact_defined(self, config_text: str) -> None:
-        """ship_report artifact is defined in config."""
-        assert "ship_report" in config_text
-
-    def test_ship_report_pattern_defined(self, config_text: str) -> None:
-        """ship_report pattern is ship_report.md."""
-        assert "ship_report.md" in config_text
-
-    def test_ship_report_is_required(self, config_text: str) -> None:
-        """ship_report artifact is marked as required."""
-        # Find ship_report section and check required: true
-        ship_report_start = config_text.find("name: ship_report")
-        release_notes_start = config_text.find("name: release_notes")
-        ship_report_section = config_text[ship_report_start:release_notes_start]
-        assert "required: true" in ship_report_section
-
-    def test_release_notes_artifact_defined(self, config_text: str) -> None:
-        """release_notes artifact is defined in config."""
-        assert "release_notes" in config_text
-
-    def test_release_notes_pattern_defined(self, config_text: str) -> None:
-        """release_notes pattern is release_notes.md."""
-        assert "release_notes.md" in config_text
-
-    def test_release_notes_is_optional(self, config_text: str) -> None:
-        """release_notes artifact is marked as optional."""
-        release_notes_start = config_text.find("name: release_notes")
-        release_notes_section = config_text[release_notes_start:]
-        assert "required: false" in release_notes_section
-
-
 class TestReportTemplate:
     """Tests validating the ship report template structure."""
 

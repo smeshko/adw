@@ -244,7 +244,6 @@ class YAMLWithComments:
             lines.append("# llm:")
             lines.append('#   path: "claude"  # Path to Claude Code executable')
             lines.append("#   timeout_seconds: 300  # Max execution time")
-            lines.append("#   max_retries: 3  # Retry attempts on failure")
 
         lines.append("")
 

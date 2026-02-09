@@ -32,10 +32,3 @@ auto_dismiss_info: true # Automatically dismiss info-level issues
 # llm:
 #   model: claude-sonnet-4-20250514
 #   temperature: 0.0  # Zero temperature for deterministic validation
-
-# Artifacts to capture from this phase
-artifacts:
-  - name: validate_output
-    pattern: "validate_output.md"
-    required: true
-    description: "Validation results"

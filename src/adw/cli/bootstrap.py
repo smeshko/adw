@@ -281,7 +281,9 @@ def create_orchestrator(
         executor=llm_executor,
         artifact_manager=artifact_manager,
         progress_display=None,
+        project_config=config,
         extension_registry=extension_registry,
+        git_config=git_config,
     )
 
     # Progress display for CLI feedback (ISS-036: filter to enabled phases)

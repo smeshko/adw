@@ -40,7 +40,7 @@ from adw.models.command import (
     ShipCommandConfig,
     ValidateCommandConfig,
 )
-from adw.models.config import PhaseConfig, ProjectConfig
+from adw.models.config import GitConfig, PhaseConfig, ProjectConfig
 
 if TYPE_CHECKING:
     from adw.cli.progress import ProgressDisplay
@@ -72,7 +72,6 @@ class PhaseRunner:
         hook_runner: Executes pre/post hooks
         executor: LLM executor (Claude Code or Mock)
         artifact_manager: Stores phase artifacts
-        strict_artifacts: If True, raise ConfigError for missing artifact refs
 
     Example:
         >>> runner = PhaseRunner(
@@ -81,7 +80,6 @@ class PhaseRunner:
         ...     hook_runner=hook_runner,
         ...     executor=executor,
         ...     artifact_manager=artifact_manager,
-        ...     strict_artifacts=True,
         ... )
         >>> result = runner.run("plan", context)
         >>> print(result.status)
@@ -96,10 +94,10 @@ class PhaseRunner:
         executor: "LLMExecutor",
         artifact_manager: "ArtifactManager",
         *,
-        strict_artifacts: bool = False,
         progress_display: "ProgressDisplay | None" = None,
         project_config: ProjectConfig | None = None,
         extension_registry: ExtensionRegistry | None = None,
+        git_config: GitConfig | None = None,
     ) -> None:
         """Initialize the PhaseRunner.
 
@@ -109,24 +107,23 @@ class PhaseRunner:
             hook_runner: Executes pre/post hooks.
             executor: LLM executor (Claude Code or Mock).
             artifact_manager: Stores phase artifacts.
-            strict_artifacts: If True, raise ConfigError when a template
-                references a missing artifact. If False (default), missing
-                artifacts are replaced with empty strings.
             progress_display: Display for LLM progress (optional, Story 5.5).
             project_config: Project configuration containing phase-specific
                 settings like input_files. Optional for backward compatibility.
             extension_registry: Registry for phase extensions. If None, creates
                 an empty registry (no extensions). (Phase Extensions)
+            git_config: Git configuration for skip_hooks, branch_prefix, etc.
+                Optional for backward compatibility.
         """
         self.command_resolver = command_resolver
         self.template_engine = template_engine
         self.hook_runner = hook_runner
         self.executor = executor
         self.artifact_manager = artifact_manager
-        self.strict_artifacts = strict_artifacts
         self.progress_display = progress_display
         self.project_config = project_config
         self.extension_registry = extension_registry or ExtensionRegistry()
+        self.git_config = git_config
 
     def run(
         self,
@@ -296,8 +293,7 @@ class PhaseRunner:
         """Load prompt template and render with variables.
 
         Includes artifact content from previous phases for template access.
-        Validates artifact references before rendering and raises ARTIFACT_NOT_FOUND
-        if strict_artifacts is enabled and an artifact is missing.
+        Validates artifact references before rendering.
 
         Template Artifact Access:
             - {{artifacts.phase.name}} - Access specific artifact content
@@ -319,7 +315,7 @@ class PhaseRunner:
 
         Raises:
             CommandError: If resolution or rendering fails.
-            ConfigError: If strict_artifacts=True and artifact not found.
+            ConfigError: If strict mode enabled and artifact not found.
         """
         logger.debug("Loading prompt", extra={"phase": phase})
 
@@ -338,11 +334,11 @@ class PhaseRunner:
             artifacts_map = self._build_artifacts_map(context.run_id, phase)
 
         # Validate artifact references in template (ISS-017: template module)
-        # Raises ConfigError if strict_artifacts=True and artifact missing
+        # Validates artifact references (lenient mode - missing refs replaced with empty)
         validate_artifact_references(
             prompt_template,
             artifacts_map,
-            strict=self.strict_artifacts,
+            strict=False,
             template_path=str(prompt_path),
         )
 
@@ -412,6 +408,20 @@ class PhaseRunner:
                 ship_dict["commands"] = {}
             ship_dict["commands"]["build"] = self.project_config.build_command
         variables["ship_config"] = ship_dict
+
+        # Inject flat template variables expected by ship instructions.xml
+        if isinstance(typed_config, ShipCommandConfig):
+            if typed_config.commands.version_bump:
+                variables["version_bump_command"] = typed_config.commands.version_bump
+            if typed_config.commands.publish:
+                variables["publish_command"] = typed_config.commands.publish
+        # build_command as flat variable for template access
+        if self.project_config and self.project_config.build_command:
+            variables["build_command"] = self.project_config.build_command
+        # test_command as flat variable for template access
+        if self.project_config and self.project_config.test_command:
+            variables["test_command"] = self.project_config.test_command
+
         variables["doc_mappings"] = (
             [m.model_dump() for m in typed_config.doc_mappings]
             if isinstance(typed_config, DocumentCommandConfig)
@@ -427,13 +437,11 @@ class PhaseRunner:
             variables["schema"] = ""  # Empty string if no schema defined
 
         # ISS-017: Pass command_root and shared_root as params, not state
-        # Render template with strict matching artifact mode:
-        # - strict_artifacts=True: We validated artifacts, use strict=True for all vars
-        # - strict_artifacts=False: Lenient mode, allow missing refs to pass through
+        # Render template in lenient mode - allow missing refs to pass through
         rendered = self.template_engine.render(
             prompt_template,
             variables,
-            strict=self.strict_artifacts,
+            strict=False,
             command_root=command.path,
             shared_root=command.path.parent,
         )
@@ -1177,6 +1185,7 @@ class PhaseRunner:
                 phase=phase,
                 feature=context.feature_description,
                 run_id=context.run_id,
+                skip_hooks=self.git_config.skip_hooks if self.git_config else False,
                 working_dir=context.worktree_path,
                 expected_branch=context.branch_name,
             )
