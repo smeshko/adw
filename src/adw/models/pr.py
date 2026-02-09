@@ -7,10 +7,41 @@ generated during the document phase (Story 9.4).
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, cast
 
 from pydantic import BaseModel, Field
+
+# Pattern to strip leading emoji and special characters from header text.
+# Matches common emoji, symbols, and non-ASCII at the start of a string.
+_LEADING_NON_ALPHA = re.compile(r"^[^a-zA-Z]+")
+
+
+def _find_section(sections: dict[str, str], prefix: str) -> str:
+    """Find a section by exact key or prefix match.
+
+    Tries an exact match first, then falls back to finding the first key
+    that starts with the given prefix. This handles LLM-generated headers
+    like "## Testing Evidence" when we expect "## Testing".
+
+    Args:
+        sections: Mapping of lowercased header names to content.
+        prefix: The section prefix to search for (lowercase).
+
+    Returns:
+        The section content, or empty string if not found.
+    """
+    # Exact match first
+    if prefix in sections:
+        return sections[prefix].strip()
+
+    # Prefix match fallback
+    for key, value in sections.items():
+        if key.startswith(prefix):
+            return value.strip()
+
+    return ""
 
 
 class PRDescription(BaseModel):
@@ -131,12 +162,21 @@ class PRDescription(BaseModel):
         current_content: list[str] = []
 
         for line in markdown.split("\n"):
-            # Check for section header
-            if line.startswith("## "):
+            # Check for section header (## or ###).
+            # LLMs sometimes use ### instead of ## for sections.
+            header_text: str | None = None
+            if line.startswith("### "):
+                header_text = line[4:]
+            elif line.startswith("## "):
+                header_text = line[3:]
+
+            if header_text is not None:
                 # Save previous section
                 if current_section:
                     sections[current_section] = "\n".join(current_content).strip()
-                current_section = line[3:].strip().lower()
+                # Normalise: lowercase, strip emoji/symbols from start
+                key = _LEADING_NON_ALPHA.sub("", header_text.strip().lower())
+                current_section = key
                 current_content = []
             elif current_section:
                 current_content.append(line)
@@ -145,12 +185,14 @@ class PRDescription(BaseModel):
         if current_section:
             sections[current_section] = "\n".join(current_content).strip()
 
-        # Extract required fields
-        summary = sections.get("summary", "").strip()
+        # Extract required fields using prefix matching.
+        # LLMs sometimes generate headers like "## Testing Evidence" instead
+        # of "## Testing", so we match by prefix to be resilient.
+        summary = _find_section(sections, "summary")
         if not summary:
             raise ValueError("Missing required section: Summary")
 
-        changes_text = sections.get("changes", "").strip()
+        changes_text = _find_section(sections, "changes")
         if not changes_text:
             raise ValueError("Missing required section: Changes")
 
@@ -167,11 +209,13 @@ class PRDescription(BaseModel):
         if not changes:
             raise ValueError("Changes section must contain at least one item")
 
-        testing = sections.get("testing", "").strip()
+        testing = _find_section(sections, "testing")
         if not testing:
             raise ValueError("Missing required section: Testing")
 
-        evidence = sections.get("evidence", "No visual evidence captured").strip()
+        evidence = (
+            _find_section(sections, "evidence") or "No visual evidence captured"
+        )
 
         return cls(
             summary=summary,

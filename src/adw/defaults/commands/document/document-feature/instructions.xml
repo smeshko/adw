@@ -785,7 +785,7 @@ Standard documentation updates only - changes not significant enough for feature
   <!-- STEP 5: PR DESCRIPTION - Generate final PR description              -->
   <!-- ================================================================== -->
   <step n="5" goal="Generate PR description as final output">
-    <critical>This is the FINAL OUTPUT - generate comprehensive PR description</critical>
+    <critical>This is the FINAL OUTPUT. Output ONLY the raw PR description markdown below - no preamble, no commentary, no wrapper sections, no "Documentation Phase Complete" headers. Start directly with "## Summary".</critical>
 
     <action>Generate PR description incorporating:
       - Feature description from context
@@ -793,6 +793,16 @@ Standard documentation updates only - changes not significant enough for feature
       - Testing from validate artifacts
       - Documentation updates made in this phase
     </action>
+
+    <critical>
+      FORMAT RULES - your output will be machine-parsed, so follow these exactly:
+      1. Use EXACTLY these ## (h2) headers: "## Summary", "## Changes", "## Testing", "## Evidence"
+      2. Do NOT use ### (h3) for these sections - they MUST be ## (h2)
+      3. Do NOT rename or embellish headers (not "## Testing Evidence", not "## Changes Made")
+      4. Do NOT add emoji to headers (not "## 📋 Summary")
+      5. Do NOT wrap the PR description inside other sections or narrative text
+      6. The FIRST line of your output MUST be "## Summary"
+    </critical>
 
     <output>
 ## Summary

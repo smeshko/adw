@@ -216,6 +216,168 @@ Tests pass
         pr = PRDescription.from_markdown(markdown)
         assert pr.evidence == "No visual evidence captured"
 
+    def test_parse_markdown_with_embellished_headers(self):
+        """Test that headers like 'Testing Evidence' match 'Testing' by prefix."""
+        markdown = """## Summary
+
+Add rules database persistence for project rulebook.
+
+## Changes
+
+- Add GameRepository with Room DAO integration
+- Add transaction-based save logic
+
+## Testing Evidence
+
+All 15 unit tests pass. Code review completed.
+
+## Evidence
+
+No visual evidence captured
+"""
+
+        pr = PRDescription.from_markdown(markdown)
+
+        assert "rules database" in pr.summary
+        assert len(pr.changes) == 2
+        assert "15 unit tests pass" in pr.testing
+
+    def test_parse_markdown_with_embellished_changes_header(self):
+        """Test that 'Changes Made' header matches 'Changes' by prefix."""
+        markdown = """## Summary
+
+Fix authentication bug in login module.
+
+## Changes Made
+
+- Update password validation
+- Fix session handling
+
+## Testing
+
+All tests pass
+"""
+
+        pr = PRDescription.from_markdown(markdown)
+
+        assert len(pr.changes) == 2
+        assert "Update password validation" in pr.changes
+
+    def test_parse_markdown_exact_headers_preferred(self):
+        """Test that exact header match takes precedence over prefix match."""
+        markdown = """## Summary
+
+Fix a bug in the system today.
+
+## Changes
+
+- Primary change
+
+## Changes Made Later
+
+- Secondary change
+
+## Testing
+
+All tests pass
+"""
+
+        pr = PRDescription.from_markdown(markdown)
+
+        # Exact "changes" match should win over "changes made later"
+        assert len(pr.changes) == 1
+        assert "Primary change" in pr.changes
+
+    def test_parse_markdown_with_h3_headers(self):
+        """Test that ### (h3) headers are recognized as sections."""
+        markdown = """### Summary
+
+Implement fallback AI model handling for the app.
+
+### Changes
+
+- Added fallback endpoint
+- Added fallback logic in ViewModel
+
+### Testing
+
+All 10 tests pass covering fallback scenarios.
+
+### Evidence
+
+No visual evidence captured
+"""
+
+        pr = PRDescription.from_markdown(markdown)
+
+        assert "fallback AI model" in pr.summary
+        assert len(pr.changes) == 2
+        assert "10 tests pass" in pr.testing
+
+    def test_parse_markdown_with_preamble_and_h3_sections(self):
+        """Test real-world LLM output with preamble and h3 PR sections."""
+        markdown = """Perfect! Now let me generate the final PR description:
+
+---
+
+## 📋 Documentation Phase Complete
+
+### Summary
+
+Documentation analysis notes here.
+
+## 🎯 Final PR Description
+
+### Summary
+
+This PR implements fallback AI model handling.
+
+### Changes
+
+- Added POST /analyze/fallback endpoint
+- Implemented fallback logic in ScanRepository
+
+### Testing
+
+Unit tests for fallback trigger logic pass. All 119 existing tests pass.
+
+### Evidence
+
+No visual evidence captured
+"""
+
+        pr = PRDescription.from_markdown(markdown)
+
+        assert "fallback AI model" in pr.summary
+        assert len(pr.changes) == 2
+        assert "119 existing tests pass" in pr.testing
+
+    def test_parse_markdown_with_emoji_headers(self):
+        """Test that emoji in headers are stripped for matching."""
+        markdown = """## 📋 Summary
+
+Add authentication feature to the app.
+
+## 🔄 Changes
+
+- Add login endpoint
+- Add token refresh
+
+## ✅ Testing
+
+All tests pass
+
+## 📸 Evidence
+
+No visual evidence captured
+"""
+
+        pr = PRDescription.from_markdown(markdown)
+
+        assert "authentication" in pr.summary
+        assert len(pr.changes) == 2
+        assert "All tests pass" in pr.testing
+
     def test_roundtrip_markdown(self):
         """Test that to_markdown and from_markdown are consistent."""
         original = PRDescription(
