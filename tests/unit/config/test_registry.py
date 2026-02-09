@@ -111,12 +111,10 @@ class TestConfigRegistry:
 
         assert "path" in settings_dict
         assert "timeout_seconds" in settings_dict
-        assert "max_retries" in settings_dict
 
         # Check defaults
         assert settings_dict["path"].default == "claude"
         assert settings_dict["timeout_seconds"].default == 300
-        assert settings_dict["max_retries"].default == 3
 
     def test_unknown_section_raises_keyerror(self, registry: ConfigRegistry) -> None:
         """Test accessing unknown section raises KeyError."""

@@ -217,7 +217,6 @@ build_command: python -m build
 llm:
   path: /usr/local/bin/claude
   timeout_seconds: 600
-  max_retries: 5
 """
         config = ProjectConfig.from_yaml(yaml_content)
         assert config.name == "my-api"
@@ -228,7 +227,6 @@ llm:
         assert config.build_command == "python -m build"
         assert config.llm.path == "/usr/local/bin/claude"
         assert config.llm.timeout_seconds == 600
-        assert config.llm.max_retries == 5
 
     def test_from_yaml_missing_name(self) -> None:
         """ProjectConfig validates required name field."""

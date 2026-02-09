@@ -81,7 +81,6 @@ class LLMConfig(BaseModel):
     Attributes:
         path: Path to the Claude Code executable
         timeout_seconds: Maximum time for LLM calls
-        max_retries: Number of retry attempts on failure
     """
 
     path: str = Field(
@@ -91,10 +90,6 @@ class LLMConfig(BaseModel):
     timeout_seconds: int = Field(
         default=300,
         description="Maximum time for LLM calls in seconds",
-    )
-    max_retries: int = Field(
-        default=3,
-        description="Number of retry attempts on failure",
     )
 
 

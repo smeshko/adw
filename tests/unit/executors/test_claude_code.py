@@ -42,7 +42,6 @@ class TestClaudeCodeExecutorClass:
         config = LLMConfig(
             path="/usr/bin/claude",
             timeout_seconds=600,
-            max_retries=5,
         )
         executor = ClaudeCodeExecutor(config)
         assert executor.config == config

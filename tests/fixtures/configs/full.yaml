@@ -8,7 +8,6 @@ build_command: uv build
 llm:
   path: /usr/local/bin/claude
   timeout_seconds: 300
-  max_retries: 3
 
 phases:
   plan:
