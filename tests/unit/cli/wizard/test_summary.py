@@ -354,8 +354,8 @@ class TestProjectYamlGeneration:
         config = yaml.safe_load(yaml_content)
 
         assert config["llm"]["retry"]["max_retries"] == 5
-        assert config["llm"]["retry"]["base_delay"] == 2.0
-        assert config["llm"]["retry"]["max_delay"] == 120.0
+        assert config["llm"]["retry"]["base_delay_seconds"] == 2.0
+        assert config["llm"]["retry"]["max_delay_seconds"] == 120.0
         assert config["llm"]["retry"]["multiplier"] == 3.0
 
     def test_generate_project_yaml_ship_moved_to_phase_config(self) -> None:
