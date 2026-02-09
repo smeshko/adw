@@ -183,8 +183,8 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
     # Input files
     input_files = _prompt_input_files(console)
 
-    # LLM settings
-    llm_config = _prompt_llm_settings(console)
+    # LLM model selection
+    model = _prompt_model_for_phase(phase, console)
 
     config: dict[str, Any] = {
         "enabled": enabled,
@@ -192,8 +192,8 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
         "input_files": input_files if input_files else None,
     }
 
-    if llm_config:
-        config["llm"] = llm_config
+    if model:
+        config["llm"] = {"model": model}
 
     # Document phase special options
     if phase == "document":
@@ -375,24 +375,73 @@ def _prompt_doc_mappings(console: Console) -> list[dict[str, str]]:
     return mappings
 
 
-def _prompt_llm_settings(console: Console) -> dict[str, Any] | None:
-    """Prompt for phase-specific LLM settings.
+def _prompt_model_for_phase(phase: str, console: Console) -> str | None:
+    """Prompt for phase-specific model selection.
+
+    Shows a numbered list of model options with descriptions and phase-specific defaults.
+    Accepts numeric selection, direct model name, or empty input for default.
 
     Args:
+        phase: Phase name (e.g., "plan", "build").
         console: Console for output.
 
     Returns:
-        LLM config dict with model, or None if nothing set.
+        Model name string, or None if empty input with no preferred default.
     """
-    model = Prompt.ask(
-        "Model override (empty to skip)",
-        default="",
-        console=console,
-    ).strip()
+    # Model options and descriptions
+    models = ["opus", "sonnet", "haiku"]
+    model_descriptions = {
+        "opus": "Most capable, slower, higher cost",
+        "sonnet": "Balanced performance and cost",
+        "haiku": "Fastest, lowest cost",
+    }
 
-    if model:
-        return {"model": model}
-    return None
+    # Phase-specific defaults
+    defaults = {
+        "plan": "opus",
+        "build": "sonnet",
+        "validate": "opus",
+        "document": "haiku",
+        "ship": "sonnet",
+    }
+    default = defaults.get(phase)
+
+    # Display numbered list
+    console.print()
+    console.print(f"[dim]LLM Model for {phase} phase:[/]")
+    for i, model in enumerate(models, 1):
+        desc = model_descriptions[model]
+        default_marker = f" [cyan](default)[/]" if model == default else ""
+        console.print(f"  [cyan]{i}[/]. {model:7} - {desc}{default_marker}")
+    console.print()
+
+    while True:
+        prompt_text = f"Model (1-{len(models)} or name)"
+        selection = Prompt.ask(
+            prompt_text,
+            default="" if default else "",
+            console=console,
+        ).strip()
+
+        # Empty input - use default if available
+        if not selection:
+            return default
+
+        # Try numeric input
+        if selection.isdigit():
+            idx = int(selection)
+            if 1 <= idx <= len(models):
+                return models[idx - 1]
+            console.print(f"[yellow]Invalid number. Use 1-{len(models)} or type a model name.[/]")
+            continue
+
+        # Accept direct model name (case insensitive)
+        selection_lower = selection.lower()
+        if selection_lower in models:
+            return selection_lower
+
+        # Allow any string for custom/full model IDs
+        return selection
 
 
 def _prompt_input_files(console: Console) -> dict[str, str]:

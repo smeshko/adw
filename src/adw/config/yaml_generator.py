@@ -474,7 +474,8 @@ class YAMLWithComments:
             lines.append(f"  model: {llm_model}")
         else:
             lines.append("# llm:")
-            lines.append("#   model: null  # Model identifier for this phase")
+            lines.append("#   model: null  # Options: opus (most capable), sonnet (balanced), haiku (fastest)")
+            lines.append("#                # Defaults: plan/validate→opus, build/ship→sonnet, document→haiku")
 
         lines.append("")
 

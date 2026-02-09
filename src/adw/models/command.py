@@ -6,7 +6,7 @@ This module defines models for command resolution, representation, and configura
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 if TYPE_CHECKING:
     pass
@@ -33,6 +33,30 @@ class PhaseLLMConfig(BaseModel):
         default=None,
         description="Model identifier to use for this phase",
     )
+
+    @field_validator("model")
+    @classmethod
+    def validate_model(cls, v: str | None) -> str | None:
+        """Validate and normalize model identifier.
+
+        Normalizes common model names to lowercase while allowing
+        full model IDs for backwards compatibility.
+
+        Args:
+            v: Model identifier string or None.
+
+        Returns:
+            Normalized model identifier or None.
+        """
+        if v is None:
+            return v
+
+        valid_models = {"opus", "sonnet", "haiku"}
+        if v.lower() in valid_models:
+            return v.lower()
+
+        # Allow full model IDs for backwards compatibility
+        return v
 
 
 class CommandConfig(BaseModel):

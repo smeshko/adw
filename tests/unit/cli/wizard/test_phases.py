@@ -215,7 +215,7 @@ class TestBasePhaseConfiguration:
         ):
             # enabled=True
             mock_confirm.return_value = True
-            # timeout, model override
+            # timeout, model selection (empty = use default)
             mock_prompt.side_effect = ["300", ""]
 
             config = _configure_phase("plan", console)
@@ -223,7 +223,8 @@ class TestBasePhaseConfiguration:
         assert config["enabled"] is True
         assert config["timeout_seconds"] == 300
         assert config["input_files"] is None
-        assert "llm" not in config  # No LLM settings when both empty
+        # Empty model input now selects phase default (opus for plan)
+        assert config["llm"] == {"model": "opus"}
 
     def test_configure_phase_custom_timeout(self) -> None:
         """Test phase configuration with custom timeout."""
@@ -280,6 +281,114 @@ class TestBasePhaseConfiguration:
         assert config["llm"] == {"model": "claude-3-opus"}
 
 
+class TestModelSelection:
+    """Tests for the new model selection prompt."""
+
+    def test_model_selection_numeric_opus(self) -> None:
+        """Test selecting opus via numeric input."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask", return_value="1"):
+            from adw.cli.wizard.phases import _prompt_model_for_phase
+
+            model = _prompt_model_for_phase("plan", console)
+
+        assert model == "opus"
+
+    def test_model_selection_numeric_sonnet(self) -> None:
+        """Test selecting sonnet via numeric input."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask", return_value="2"):
+            from adw.cli.wizard.phases import _prompt_model_for_phase
+
+            model = _prompt_model_for_phase("build", console)
+
+        assert model == "sonnet"
+
+    def test_model_selection_numeric_haiku(self) -> None:
+        """Test selecting haiku via numeric input."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask", return_value="3"):
+            from adw.cli.wizard.phases import _prompt_model_for_phase
+
+            model = _prompt_model_for_phase("document", console)
+
+        assert model == "haiku"
+
+    def test_model_selection_direct_text(self) -> None:
+        """Test selecting model by typing name directly."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask", return_value="opus"):
+            from adw.cli.wizard.phases import _prompt_model_for_phase
+
+            model = _prompt_model_for_phase("plan", console)
+
+        assert model == "opus"
+
+    def test_model_selection_case_insensitive(self) -> None:
+        """Test model selection is case insensitive."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask", return_value="SONNET"):
+            from adw.cli.wizard.phases import _prompt_model_for_phase
+
+            model = _prompt_model_for_phase("build", console)
+
+        assert model == "sonnet"
+
+    def test_model_selection_empty_uses_default(self) -> None:
+        """Test empty input uses phase default."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask", return_value=""):
+            from adw.cli.wizard.phases import _prompt_model_for_phase
+
+            # Plan defaults to opus
+            model = _prompt_model_for_phase("plan", console)
+            assert model == "opus"
+
+            # Build defaults to sonnet
+            model = _prompt_model_for_phase("build", console)
+            assert model == "sonnet"
+
+            # Validate defaults to opus
+            model = _prompt_model_for_phase("validate", console)
+            assert model == "opus"
+
+            # Document defaults to haiku
+            model = _prompt_model_for_phase("document", console)
+            assert model == "haiku"
+
+            # Ship defaults to sonnet
+            model = _prompt_model_for_phase("ship", console)
+            assert model == "sonnet"
+
+    def test_model_selection_custom_model_id(self) -> None:
+        """Test accepting custom/full model ID."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask", return_value="claude-opus-4-6"):
+            from adw.cli.wizard.phases import _prompt_model_for_phase
+
+            model = _prompt_model_for_phase("plan", console)
+
+        assert model == "claude-opus-4-6"
+
+    def test_model_selection_invalid_number_reprompts(self) -> None:
+        """Test invalid number prompts again."""
+        console = Console(force_terminal=True)
+
+        with patch("adw.cli.wizard.phases.Prompt.ask", side_effect=["5", "1"]):
+            from adw.cli.wizard.phases import _prompt_model_for_phase
+
+            model = _prompt_model_for_phase("plan", console)
+
+        assert model == "opus"
+
+
 class TestValidatePhaseNoSpecialOptions:
     """Tests that validate phase has no special options (fields removed)."""
 
@@ -303,6 +412,8 @@ class TestValidatePhaseNoSpecialOptions:
         # Base options only
         assert config["enabled"] is True
         assert config["timeout_seconds"] == 900
+        # Empty model input selects default (opus for validate)
+        assert config["llm"] == {"model": "opus"}
 
         # Validate-specific options should NOT be present
         assert "enable_review" not in config
