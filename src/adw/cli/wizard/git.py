@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Prompt
+from rich.prompt import Confirm, Prompt
 
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
@@ -51,6 +51,39 @@ class GitStepHandler:
         return run_git_step(state, console)
 
 
+def prompt_skip_hooks(console: Console) -> bool:
+    """Prompt user whether to skip pre-commit hooks.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        True if hooks should be skipped, False otherwise.
+    """
+    return Confirm.ask(
+        "Skip pre-commit hooks?",
+        default=False,
+        console=console,
+    )
+
+
+def prompt_base_branch(console: Console) -> str | None:
+    """Prompt user for PR base branch.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        Branch name string, or None if left empty (use default).
+    """
+    value = Prompt.ask(
+        "PR base branch (empty for default)",
+        default="",
+        console=console,
+    )
+    return value if value else None
+
+
 def run_git_step(
     state: WizardState,  # noqa: ARG001 - state reserved for future use
     console: Console,
@@ -65,7 +98,7 @@ def run_git_step(
         console: Console for output.
 
     Returns:
-        Configuration dict containing git_branch_prefix.
+        Configuration dict containing git settings.
 
     Raises:
         SystemExit: If not in a git repository.
@@ -76,8 +109,14 @@ def run_git_step(
     # Step 2: Configure branch prefix
     branch_prefix = prompt_branch_prefix(console)
 
+    # Step 3: Configure skip_hooks and base_branch
+    skip_hooks = prompt_skip_hooks(console)
+    base_branch = prompt_base_branch(console)
+
     return {
         "git_branch_prefix": branch_prefix,
+        "git_skip_hooks": skip_hooks,
+        "git_base_branch": base_branch if base_branch else None,
     }
 
 
@@ -219,5 +258,3 @@ def prompt_branch_prefix(console: Console) -> str:
 
         # Show error and re-prompt
         console.print(f"[red]Error:[/] {result}")
-
-
