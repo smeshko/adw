@@ -221,8 +221,7 @@ class DryRunDisplay:
         table.add_row("LLM Timeout", f"{config.llm.timeout_seconds}s")
 
         # Git integration
-        git_status = "enabled" if config.git.enabled else "disabled"
-        table.add_row("Git Integration", git_status)
+        table.add_row("Git Integration", "enabled")
 
         self.console.print(table)
 

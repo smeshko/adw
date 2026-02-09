@@ -199,13 +199,8 @@ def generate_summary_panel(state: WizardState) -> Panel:
         lines.append("[dim]Global Dashboard:[/] ✗ Not registered")
 
     # Git section
-    # Git step returns: git_enabled, git_branch_prefix, git_auto_create_pr
-    if git.get("git_enabled", False):
-        branch_prefix = git.get("git_branch_prefix", "feature/")
-        auto_pr = "auto-PR" if git.get("git_auto_create_pr", True) else "manual PR"
-        lines.append(f"[green]Git:[/] \u2713 Enabled ({branch_prefix}, {auto_pr})")
-    else:
-        lines.append("[dim]Git:[/] \u2717 Disabled")
+    branch_prefix = git.get("git_branch_prefix", "feature/")
+    lines.append(f"[green]Git:[/] \u2713 Enabled ({branch_prefix})")
 
     # Ports section
     # Ports step returns: port_config_custom, backend_port_start, frontend_port_start

@@ -153,45 +153,23 @@ class YAMLWithComments:
         test_cmd = basics.get("test_command")
         build_cmd = basics.get("build_command")
 
-        if test_cmd or build_cmd:
-            lines.append("commands:")
-            if test_cmd:
-                lines.append(f"  test: {test_cmd}")
-            else:
-                lines.append("  # test: null  # Command to run tests")
-            if build_cmd:
-                lines.append(f"  build: {build_cmd}")
-            else:
-                lines.append("  # build: null  # Command to build the project")
+        if test_cmd:
+            lines.append(f"test_command: {test_cmd}")
         else:
-            lines.append("# commands:")
-            lines.append("#   test: null  # Command to run tests")
-            lines.append("#   build: null  # Command to build the project")
+            lines.append("# test_command: null  # Command to run tests")
+        if build_cmd:
+            lines.append(f"build_command: {build_cmd}")
+        else:
+            lines.append("# build_command: null  # Command to build the project")
 
         lines.append("")
 
         # === Git Integration ===
         lines.append("# === Git Integration ===")
-        git_enabled = git.get("git_enabled", False)
-
-        if git_enabled:
-            lines.append("git:")
-            lines.append("  enabled: true")
-            lines.append(f"  branch_prefix: {git.get('git_branch_prefix', 'feature/')}")
-            auto_pr = _format_yaml_value(git.get("git_auto_create_pr", True))
-            lines.append(f"  auto_create_pr: {auto_pr}")
-            # Show remaining settings as comments
-            lines.append("  # auto_commit: true  # Auto-commit after phases")
-            lines.append("  # skip_hooks: false  # Skip pre-commit hooks")
-            lines.append("  # base_branch: null  # PR base branch (defaults to main)")
-        else:
-            lines.append("# git:")
-            lines.append("#   enabled: false  # Enable git automation")
-            lines.append('#   branch_prefix: "feature/"  # Branch name prefix')
-            lines.append("#   auto_commit: true  # Auto-commit after phases")
-            lines.append("#   skip_hooks: false  # Skip pre-commit hooks")
-            lines.append("#   auto_create_pr: true  # Create PR after run")
-            lines.append("#   base_branch: null  # PR base branch (defaults to main)")
+        lines.append("git:")
+        lines.append(f"  branch_prefix: {git.get('git_branch_prefix', 'feature/')}")
+        lines.append("  # skip_hooks: false  # Skip pre-commit hooks")
+        lines.append("  # base_branch: null  # PR base branch (defaults to main)")
 
         lines.append("")
 
@@ -495,13 +473,6 @@ class YAMLWithComments:
         else:
             lines.append("# enable_tests: true  # Run test validator")
 
-        # test_command
-        test_command = config.get("test_command")
-        if test_command is not None:
-            lines.append(f"test_command: {test_command}")
-        else:
-            lines.append("# test_command: null  # Custom test command (auto-detect)")
-
         # test_timeout_seconds
         test_timeout = config.get("test_timeout_seconds")
         if test_timeout is not None:
@@ -582,11 +553,7 @@ class YAMLWithComments:
         post_publish = config.get("post_publish") or []
         pr = config.get("pr", {})
 
-        has_commands = (
-            commands.get("version_bump")
-            or commands.get("build")
-            or commands.get("publish")
-        )
+        has_commands = commands.get("version_bump") or commands.get("publish")
         has_pr_config = pr.get("merge_on_success")
 
         # Commands section
@@ -596,10 +563,6 @@ class YAMLWithComments:
                 lines.append(f"  version_bump: {commands['version_bump']}")
             else:
                 lines.append("  # version_bump: null  # Version bump command")
-            if commands.get("build"):
-                lines.append(f"  build: {commands['build']}")
-            else:
-                lines.append("  # build: null  # Build command for deployment")
             if commands.get("publish"):
                 lines.append(f"  publish: {commands['publish']}")
             else:
@@ -607,7 +570,6 @@ class YAMLWithComments:
         else:
             lines.append("# commands:")
             lines.append("#   version_bump: null  # Version bump command")
-            lines.append("#   build: null  # Build command for deployment")
             lines.append("#   publish: null  # Publish/deploy command")
 
         lines.append("")

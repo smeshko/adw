@@ -46,7 +46,7 @@ def create_default_registry(
     - ShipExtension: Skip logic based on PR state, hook env from config
 
     Args:
-        git_config: Git configuration with auto_create_pr setting.
+        git_config: Git configuration.
         runs_dir: Path to .adw/runs directory.
         project_root: Path to project root for loading phase configs.
 
@@ -55,7 +55,7 @@ def create_default_registry(
 
     Example:
         >>> registry = create_default_registry(
-        ...     git_config=GitConfig(auto_create_pr=True),
+        ...     git_config=GitConfig(),
         ...     runs_dir=Path(".adw/runs"),
         ...     project_root=Path("/project"),
         ... )

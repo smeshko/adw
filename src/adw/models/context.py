@@ -114,8 +114,7 @@ class RunContext(BaseModel):
     pr_url: str | None = Field(
         default=None,
         description="URL of the pull request created for this run. "
-        "Set after document phase completes when auto_create_pr is enabled. "
-        "(ISS-031)",
+        "Set after document phase completes. (ISS-031)",
     )
     pr_creation_attempted: bool = Field(
         default=False,

@@ -267,7 +267,7 @@ def phase_runner(
     artifact_manager = ArtifactManager(runs_dir=runs_dir)
 
     # Create extension registry with DocumentExtension for pr_description.md
-    git_config = GitConfig(auto_create_pr=False)  # Don't attempt PR creation in tests
+    git_config = GitConfig()  # Don't attempt PR creation in tests
     extension_registry = ExtensionRegistry()
     extension_registry.register(DocumentExtension(git_config, runs_dir))
 
@@ -490,7 +490,7 @@ No visual evidence captured
         artifact_manager = ArtifactManager(runs_dir=runs_dir)
 
         # Create extension registry with DocumentExtension for pr_description.md
-        git_config = GitConfig(auto_create_pr=False)
+        git_config = GitConfig()
         extension_registry = ExtensionRegistry()
         extension_registry.register(DocumentExtension(git_config, runs_dir))
 

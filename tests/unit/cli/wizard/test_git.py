@@ -139,29 +139,10 @@ class TestRunGitStep:
         with (
             patch("adw.cli.wizard.git.require_git_repo", return_value=True),
             patch("adw.cli.wizard.git.prompt_branch_prefix", return_value="feature/"),
-            patch("adw.cli.wizard.git.prompt_auto_create_pr", return_value=True),
         ):
             result = run_git_step(state, console)
 
-        assert "git_enabled" in result
         assert "git_branch_prefix" in result
-        assert "git_auto_create_pr" in result
-
-    def test_git_enabled_always_true(self) -> None:
-        """run_git_step always sets git_enabled to True."""
-        from adw.models.wizard import WizardState
-
-        state = WizardState()
-        console = Console()
-
-        with (
-            patch("adw.cli.wizard.git.require_git_repo", return_value=True),
-            patch("adw.cli.wizard.git.prompt_branch_prefix", return_value="custom/"),
-            patch("adw.cli.wizard.git.prompt_auto_create_pr", return_value=False),
-        ):
-            result = run_git_step(state, console)
-
-        assert result["git_enabled"] is True
 
     def test_propagates_prompt_values(self) -> None:
         """run_git_step returns values from prompt functions."""
@@ -173,12 +154,10 @@ class TestRunGitStep:
         with (
             patch("adw.cli.wizard.git.require_git_repo", return_value=True),
             patch("adw.cli.wizard.git.prompt_branch_prefix", return_value="bugfix/"),
-            patch("adw.cli.wizard.git.prompt_auto_create_pr", return_value=False),
         ):
             result = run_git_step(state, console)
 
         assert result["git_branch_prefix"] == "bugfix/"
-        assert result["git_auto_create_pr"] is False
 
 
 class TestGitStepHandler:
@@ -195,12 +174,10 @@ class TestGitStepHandler:
         with patch(
             "adw.cli.wizard.git.run_git_step",
             return_value={
-                "git_enabled": True,
                 "git_branch_prefix": "test/",
-                "git_auto_create_pr": True,
             },
         ) as mock_run:
             result = handler.execute(state, console)
 
         mock_run.assert_called_once_with(state, console)
-        assert result["git_enabled"] is True
+        assert result["git_branch_prefix"] == "test/"

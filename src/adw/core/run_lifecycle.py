@@ -602,9 +602,9 @@ class RunLifecycle:
         if self._concurrent_run_manager is not None:
             self._concurrent_run_manager.check_can_start_or_raise()
 
-        # Calculate feature branch name if git integration is enabled (ISS-032)
+        # Calculate feature branch name (ISS-032)
         feature_branch_name: str | None = None
-        if self.git_config.enabled and feature_description:
+        if feature_description:
             sanitized = sanitize_branch_name(feature_description)
             if sanitized:
                 feature_branch_name = self.git_config.branch_prefix + sanitized

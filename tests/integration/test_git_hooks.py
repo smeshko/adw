@@ -409,10 +409,10 @@ class TestCreateCommitIntegration:
 
         assert sha is None
 
-    def test_create_commit_with_custom_template(
+    def test_create_commit_uses_default_template(
         self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Should use custom template for commit message."""
+        """Should use default template for commit message."""
         monkeypatch.chdir(git_repo)
 
         # Create and stage a file
@@ -421,21 +421,20 @@ class TestCreateCommitIntegration:
 
         sha = create_commit(
             phase="validate",
-            feature="Custom template",
+            feature="Default template",
             run_id="01HQ789",
-            template="{phase}: {feature}",
         )
 
         assert sha is not None
 
-        # Verify commit message uses custom template
+        # Verify commit message uses default template
         result = subprocess.run(
             ["git", "log", "-1", "--format=%s"],
             capture_output=True,
             text=True,
             check=True,
         )
-        assert result.stdout.strip() == "validate: Custom template"
+        assert result.stdout.strip() == "[adw] Validate: Default template"
 
     def test_create_commit_includes_run_id(
         self, git_repo: Path, monkeypatch: pytest.MonkeyPatch

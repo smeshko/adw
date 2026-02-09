@@ -390,16 +390,28 @@ class PhaseRunner:
         # Load phase-specific typed config for templates (ISS-031)
         # This provides {{validation_config.*}} and {{ship_config.*}} access
         typed_config = self._load_project_config(phase)
-        variables["validation_config"] = (
+
+        # Build validation_config dict and inject project-level test_command
+        validation_dict = (
             typed_config.model_dump()
             if isinstance(typed_config, ValidateCommandConfig)
             else {}
         )
-        variables["ship_config"] = (
+        if self.project_config and self.project_config.test_command:
+            validation_dict["test_command"] = self.project_config.test_command
+        variables["validation_config"] = validation_dict
+
+        # Build ship_config dict and inject project-level build_command
+        ship_dict = (
             typed_config.model_dump()
             if isinstance(typed_config, ShipCommandConfig)
             else {}
         )
+        if self.project_config and self.project_config.build_command:
+            if "commands" not in ship_dict:
+                ship_dict["commands"] = {}
+            ship_dict["commands"]["build"] = self.project_config.build_command
+        variables["ship_config"] = ship_dict
         variables["doc_mappings"] = (
             [m.model_dump() for m in typed_config.doc_mappings]
             if isinstance(typed_config, DocumentCommandConfig)

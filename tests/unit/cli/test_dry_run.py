@@ -200,7 +200,7 @@ class TestDryRunDisplayWithConfig:
         config = ProjectConfig(
             name="test-project",
             language="python",
-            git=GitConfig(enabled=True, branch_prefix="feat/"),
+            git=GitConfig(branch_prefix="feat/"),
         )
 
         display.show_execution_preview(

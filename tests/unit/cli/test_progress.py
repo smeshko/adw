@@ -799,35 +799,8 @@ class TestEnabledPhasesFiltering:
 class TestTryAutoCreatePr:
     """Tests for try_auto_create_pr method (Story ISS-011)."""
 
-    def test_returns_none_when_disabled(self, tmp_path: Path) -> None:
-        """Test returns None when auto-PR is disabled."""
-        from datetime import UTC, datetime
-
-        from adw.models import RunContext
-
-        output = StringIO()
-        console = Console(file=output, force_terminal=True, width=100)
-        progress = ProgressDisplay(console)
-
-        context = RunContext(
-            run_id="01JFTEST000000000000000001",
-            feature_description="Test feature",
-            current_phase="document",
-            started_at=datetime.now(UTC),
-            status="completed",
-        )
-
-        result = progress.try_auto_create_pr(
-            run_id=context.run_id,
-            context=context,
-            runs_dir=tmp_path,
-            auto_create_pr_enabled=False,
-        )
-
-        assert result is None
-
-    def test_returns_result_when_enabled(self, tmp_path: Path) -> None:
-        """Test returns AutoPRResult when enabled."""
+    def test_returns_result_when_called(self, tmp_path: Path) -> None:
+        """Test returns AutoPRResult when called."""
         from datetime import UTC, datetime
         from unittest.mock import patch
 
@@ -856,7 +829,6 @@ class TestTryAutoCreatePr:
                 run_id=context.run_id,
                 context=context,
                 runs_dir=tmp_path,
-                auto_create_pr_enabled=True,
             )
 
             assert result is not None
@@ -889,7 +861,6 @@ class TestTryAutoCreatePr:
                 run_id=context.run_id,
                 context=context,
                 runs_dir=tmp_path,
-                auto_create_pr_enabled=True,
             )
 
             assert result is not None

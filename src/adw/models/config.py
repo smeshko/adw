@@ -509,63 +509,36 @@ class TaskManagerConfig(BaseModel):
 class GitConfig(BaseModel):
     """Configuration for git integration.
 
-    Controls automatic git branch management and commit automation
-    during workflow execution. When enabled, ADW will automatically
-    create or switch to feature branches based on the feature description
-    and optionally commit changes after each phase.
+    Controls automatic git branch management during workflow execution.
+    ADW will automatically create or switch to feature branches based
+    on the feature description and commit changes after each phase.
 
     Attributes:
-        enabled: Whether git integration is enabled (default: False)
         branch_prefix: Prefix for auto-created branches (default: "feature/")
-        auto_commit: Whether to auto-commit after phases (default: True)
-        commit_template: Custom commit message template (optional)
         skip_hooks: Skip pre-commit hooks with --no-verify (default: False)
-        auto_create_pr: Whether to auto-create PR after successful run (default: True)
         base_branch: Base branch for PRs (e.g., 'main', 'develop'). Falls back to 'main'
 
     Example:
-        >>> config = GitConfig(enabled=True, branch_prefix="feat/")
+        >>> config = GitConfig(branch_prefix="feat/")
         >>> config.branch_prefix
         'feat/'
-        >>> config.auto_commit
-        True
-        >>> config.auto_create_pr
-        True
+        >>> config.skip_hooks
+        False
 
     YAML example:
         git:
-          enabled: true
           branch_prefix: "feature/"
-          auto_commit: true
-          commit_template: "{phase}: {feature}"
           skip_hooks: false
-          auto_create_pr: true
           base_branch: main
     """
 
-    enabled: bool = Field(
-        default=False,
-        description="Whether git integration is enabled",
-    )
     branch_prefix: str = Field(
         default="feature/",
         description="Prefix for auto-created branches",
     )
-    auto_commit: bool = Field(
-        default=True,
-        description="Whether to auto-commit after phases",
-    )
-    commit_template: str | None = Field(
-        default=None,
-        description="Custom commit message template ({phase}, {feature}, {run_id})",
-    )
     skip_hooks: bool = Field(
         default=False,
         description="Skip pre-commit hooks with --no-verify (use with caution)",
-    )
-    auto_create_pr: bool = Field(
-        default=True,
-        description="Whether to auto-create PR after successful run (requires gh CLI)",
     )
     base_branch: str | None = Field(
         default=None,
@@ -731,12 +704,8 @@ class ProjectConfig(BaseModel):
                     "blocked_patterns": [],
                 },
                 "git": {
-                    "enabled": False,
                     "branch_prefix": "feature/",
-                    "auto_commit": True,
-                    "commit_template": None,
                     "skip_hooks": False,
-                    "auto_create_pr": True,
                 },
             }
         },

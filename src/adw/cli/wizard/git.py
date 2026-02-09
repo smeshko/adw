@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Prompt
 
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
@@ -31,7 +31,6 @@ class GitStepHandler:
     This step:
     - Requires a git repository (exits wizard if not)
     - Prompts for branch prefix configuration
-    - Prompts for auto-PR creation setting
     - Git is always enabled (not optional)
     """
 
@@ -44,9 +43,7 @@ class GitStepHandler:
 
         Returns:
             Configuration collected from this step containing:
-            - git_enabled: Always True (git is mandatory)
             - git_branch_prefix: The configured branch prefix
-            - git_auto_create_pr: Whether to auto-create PRs
 
         Raises:
             SystemExit: If not in a git repository.
@@ -68,8 +65,7 @@ def run_git_step(
         console: Console for output.
 
     Returns:
-        Configuration dict containing git_enabled, git_branch_prefix,
-        and git_auto_create_pr values.
+        Configuration dict containing git_branch_prefix.
 
     Raises:
         SystemExit: If not in a git repository.
@@ -80,13 +76,8 @@ def run_git_step(
     # Step 2: Configure branch prefix
     branch_prefix = prompt_branch_prefix(console)
 
-    # Step 3: Configure auto-PR creation
-    auto_create_pr = prompt_auto_create_pr(console)
-
     return {
-        "git_enabled": True,  # Always enabled - git is mandatory
         "git_branch_prefix": branch_prefix,
-        "git_auto_create_pr": auto_create_pr,
     }
 
 
@@ -230,22 +221,3 @@ def prompt_branch_prefix(console: Console) -> str:
         console.print(f"[red]Error:[/] {result}")
 
 
-def prompt_auto_create_pr(console: Console) -> bool:
-    """Prompt user for auto-PR creation setting.
-
-    Prompts the user whether to automatically create a pull request
-    after a successful run.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        True if user wants auto-PR creation, False otherwise.
-    """
-    console.print()
-
-    return Confirm.ask(
-        "Auto-create PR after successful run?",
-        default=True,
-        console=console,
-    )

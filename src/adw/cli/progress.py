@@ -342,7 +342,6 @@ class ProgressDisplay:
         run_id: str,
         context: RunContext,
         runs_dir: Path,
-        auto_create_pr_enabled: bool = True,
     ) -> AutoPRResult | None:
         """Attempt automatic PR creation after successful run.
 
@@ -353,14 +352,10 @@ class ProgressDisplay:
             run_id: ID of the completed run.
             context: RunContext with feature description.
             runs_dir: Path to runs directory.
-            auto_create_pr_enabled: Whether auto-PR is enabled in config.
 
         Returns:
-            AutoPRResult with outcome, or None if auto-PR is disabled.
+            AutoPRResult with outcome, or None on failure.
         """
-        if not auto_create_pr_enabled:
-            return None
-
         # Import here to avoid circular imports
         from adw.cli.pr import AutoPRResult, auto_create_pr
 

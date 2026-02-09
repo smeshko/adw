@@ -37,7 +37,7 @@ class TestSummaryPanelGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {},
             "task_manager": {},
             "phases": {},
@@ -62,9 +62,7 @@ class TestSummaryPanelGeneration:
                 "build_command": "python -m build",
             },
             "git": {
-                "git_enabled": True,
                 "git_branch_prefix": "feature/",
-                "git_auto_create_pr": True,
             },
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": True, "type": "linear", "team_key": "RULE"},
@@ -76,7 +74,6 @@ class TestSummaryPanelGeneration:
                 "enabled": True,
                 "commands": {
                     "version_bump": "npm version patch",
-                    "build": "npm run build",
                 },
                 "post_publish": ["git push --tags"],
                 "pr": {
@@ -122,7 +119,7 @@ class TestSummaryPanelGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "javascript", "platform": "web"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "phases": {"customized": False, "phases": {}},
@@ -156,7 +153,7 @@ class TestSummaryPanelGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {},
             "task_manager": {},
             "phases": {
@@ -191,7 +188,7 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
@@ -217,7 +214,7 @@ class TestProjectYamlGeneration:
                 "test_command": "pytest",
                 "build_command": "python -m build",
             },
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
@@ -229,18 +226,16 @@ class TestProjectYamlGeneration:
         config = yaml.safe_load(yaml_content)
 
         assert config["name"] == "my-project"
-        assert config["commands"]["test"] == "pytest"
-        assert config["commands"]["build"] == "python -m build"
+        assert config["test_command"] == "pytest"
+        assert config["build_command"] == "python -m build"
 
     def test_generate_project_yaml_with_git(self) -> None:
-        """Test project.yaml includes git config when enabled."""
+        """Test project.yaml includes git config."""
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
             "git": {
-                "git_enabled": True,
                 "git_branch_prefix": "feat/",
-                "git_auto_create_pr": True,
             },
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
@@ -252,16 +247,14 @@ class TestProjectYamlGeneration:
         yaml_content = generate_project_yaml(state)
         config = yaml.safe_load(yaml_content)
 
-        assert config["git"]["enabled"] is True
         assert config["git"]["branch_prefix"] == "feat/"
-        assert config["git"]["auto_create_pr"] is True
 
-    def test_generate_project_yaml_omits_git_when_disabled(self) -> None:
-        """Test project.yaml omits git section when disabled."""
+    def test_generate_project_yaml_always_has_git_section(self) -> None:
+        """Test project.yaml always includes git section with defaults."""
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
@@ -272,14 +265,15 @@ class TestProjectYamlGeneration:
         yaml_content = generate_project_yaml(state)
         config = yaml.safe_load(yaml_content)
 
-        assert "git" not in config
+        assert "git" in config
+        assert config["git"]["branch_prefix"] == "feature/"
 
     def test_generate_project_yaml_with_task_manager(self) -> None:
         """Test project.yaml includes task manager when configured."""
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {
                 "enabled": True,
@@ -304,7 +298,7 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {"backend_port_start": 8000, "frontend_port_start": 8100},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
@@ -324,7 +318,7 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
@@ -342,7 +336,7 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {
@@ -374,14 +368,13 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "ship": {
                 "enabled": True,
                 "commands": {
                     "version_bump": "npm version patch",
-                    "build": "npm run build",
                     "publish": "npm publish",
                 },
                 "post_publish": ["git push --tags", "echo 'deployed'"],
@@ -411,7 +404,7 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "ship": {
@@ -439,7 +432,7 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
@@ -472,7 +465,7 @@ class TestProjectYamlGeneration:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
             "task_manager": {"enabled": False, "type": "none"},
             "llm_retry": {"retry_custom": False},
@@ -744,7 +737,7 @@ class TestRunSummaryStep:
             state = WizardState()
             state.collected_config = {
                 "basics": {"language": "python", "platform": "cli"},
-                "git": {"git_enabled": False},
+                "git": {},
                 "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
                 "task_manager": {"enabled": False, "type": "none"},
                 "phases": {"customized": False, "phases": {}},
@@ -771,7 +764,7 @@ class TestRunSummaryStep:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {},
             "task_manager": {},
             "phases": {},
@@ -796,7 +789,7 @@ class TestRunSummaryStep:
         state = WizardState()
         state.collected_config = {
             "basics": {"language": "python", "platform": "cli"},
-            "git": {"git_enabled": False},
+            "git": {},
             "ports": {},
             "task_manager": {},
             "phases": {},
@@ -827,7 +820,7 @@ class TestSummaryStepHandler:
             state = WizardState()
             state.collected_config = {
                 "basics": {"language": "python", "platform": "cli"},
-                "git": {"git_enabled": False},
+                "git": {},
                 "ports": {"backend_port_start": 9100, "frontend_port_start": 9200},
                 "task_manager": {"enabled": False, "type": "none"},
                 "phases": {"customized": False, "phases": {}},

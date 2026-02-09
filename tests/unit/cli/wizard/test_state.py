@@ -193,10 +193,10 @@ class TestConfigManagement:
     def test_get_step_config(self) -> None:
         """Get step config returns stored values."""
         state = WizardState()
-        state.update_config("git", {"auto_commit": True})
+        state.update_config("git", {"branch_prefix": "feature/"})
 
         result = state.get_step_config("git")
-        assert result == {"auto_commit": True}
+        assert result == {"branch_prefix": "feature/"}
 
     def test_get_step_config_not_found(self) -> None:
         """Get step config returns empty dict for unknown step."""

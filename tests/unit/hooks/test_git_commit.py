@@ -57,16 +57,14 @@ class TestFormatCommitMessage:
         )
         assert "Fix bug #123 (critical)" in result
 
-    def test_custom_template(self) -> None:
-        """Should use custom template when provided."""
-        template = "{phase}: {feature} [{run_id}]"
+    def test_uses_default_template(self) -> None:
+        """Should always use the default template."""
         result = format_commit_message(
             phase="build",
             feature="Add auth",
             run_id="01HQ123",
-            template=template,
         )
-        assert result == "build: Add auth [01HQ123]"
+        assert result == "[adw] Build: Add auth\n\nRun: 01HQ123"
 
     def test_long_feature_preserved(self) -> None:
         """Should preserve long feature descriptions."""
@@ -259,8 +257,8 @@ class TestCreateCommit:
                 assert exc_info.value.code == "GIT_COMMIT_FAILED"
                 assert "pre-commit" in exc_info.value.stderr
 
-    def test_uses_custom_template(self) -> None:
-        """Should use custom commit template when provided."""
+    def test_uses_default_template_in_commit(self) -> None:
+        """Should use default commit template."""
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = [
                 MagicMock(returncode=0, stdout="file.py\n"),  # staged files
@@ -273,12 +271,11 @@ class TestCreateCommit:
                     phase="build",
                     feature="Add auth",
                     run_id="01HQ123",
-                    template="{phase}: {feature}",
                 )
             # Verify the commit message used (second call is the commit)
             commit_call = mock_run.call_args_list[1]
             commit_msg = commit_call[0][0][3]
-            assert commit_msg == "build: Add auth"
+            assert commit_msg == "[adw] Build: Add auth\n\nRun: 01HQ123"
 
     def test_skip_hooks_adds_no_verify(self) -> None:
         """Should add --no-verify flag when skip_hooks=True."""

@@ -2292,7 +2292,7 @@ class TestPRCreationAfterDocumentPhase:
         mock_progress_display.console = mock_console
 
         worktree_config = WorktreeConfig(enabled=False)
-        git_config = GitConfig(auto_create_pr=True)
+        git_config = GitConfig()
 
         # Create extension registry with DocumentExtension
         extension_registry = ExtensionRegistry()
@@ -2400,7 +2400,7 @@ class TestPRCreationAfterDocumentPhase:
         mock_progress_display.console = mock_console
 
         worktree_config = WorktreeConfig(enabled=False)
-        git_config = GitConfig(auto_create_pr=True)
+        git_config = GitConfig()
 
         # Create extension registry with DocumentExtension and ShipExtension
         extension_registry = ExtensionRegistry()
@@ -2482,7 +2482,7 @@ class TestPRCreationAfterDocumentPhase:
         mock_progress_display.console = mock_console
 
         worktree_config = WorktreeConfig(enabled=False)
-        git_config = GitConfig(auto_create_pr=True)
+        git_config = GitConfig()
 
         # Create extension registry with DocumentExtension
         extension_registry = ExtensionRegistry()
@@ -2530,7 +2530,7 @@ class TestPRCreationAfterDocumentPhase:
 
         assert pr_url_saved, "pr_url should be saved in context"
 
-    def test_ship_runs_when_auto_create_pr_disabled(
+    def test_ship_runs_with_default_git_config(
         self,
         tmp_path: Path,
         mock_context_manager: MagicMock,
@@ -2541,10 +2541,9 @@ class TestPRCreationAfterDocumentPhase:
         mock_interruption_handler: MagicMock,
         mock_index_manager: MagicMock,
     ) -> None:
-        """Ship phase runs normally when auto_create_pr is disabled.
+        """Ship phase runs normally with default git config.
 
-        ISS-031: Backward compatibility - when auto_create_pr is disabled,
-        all phases including ship should run without any PR checks.
+        All phases including ship should run without any issues.
         """
         from adw.core.orchestrator import Orchestrator
         from adw.models.config import GitConfig, WorktreeConfig
@@ -2573,7 +2572,7 @@ class TestPRCreationAfterDocumentPhase:
         mock_phase_runner.run.side_effect = track_phase_run
 
         worktree_config = WorktreeConfig(enabled=False)
-        git_config = GitConfig(auto_create_pr=False)  # Disabled
+        git_config = GitConfig()
 
         orchestrator = Orchestrator(
             runs_dir=runs_dir,
@@ -2637,7 +2636,7 @@ class TestPRCreationAfterDocumentPhase:
         mock_phase_runner.run.side_effect = track_phase_run
 
         worktree_config = WorktreeConfig(enabled=False)
-        git_config = GitConfig(auto_create_pr=True)  # Enabled but no display
+        git_config = GitConfig()
 
         orchestrator = Orchestrator(
             runs_dir=runs_dir,

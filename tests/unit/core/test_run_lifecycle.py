@@ -1099,7 +1099,7 @@ class TestCreateWorktreeForRunFetch:
             lifecycle._create_worktree_for_run("RUN123", "test feature")
 
         mock_worktree_manager.create_worktree.assert_called_once_with(
-            "RUN123", source_branch="origin/staging", branch_name=None
+            "RUN123", source_branch="origin/staging", branch_name="feature/test-feature"
         )
 
     def test_passes_configured_base_branch_as_source(

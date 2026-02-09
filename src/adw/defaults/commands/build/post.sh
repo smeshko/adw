@@ -17,7 +17,7 @@
 #   1 - Error (commit failed or git error)
 #
 # This hook is designed to be run as a post-hook for any phase.
-# It respects the git.auto_commit and git.skip_hooks configuration settings.
+# It respects the git.skip_hooks configuration setting.
 
 set -e
 
@@ -91,7 +91,7 @@ except ImportError as e:
         print(f'ADW not available: {e}', file=sys.stderr)
     sys.exit(0)
 
-# Load project config to check if git and auto_commit are enabled
+# Load project config
 try:
     loader = ConfigLoader()
     config = loader.load()
@@ -103,18 +103,6 @@ except FileNotFoundError:
 except Exception as e:
     # Unexpected error loading config - log it
     log_error(f'Failed to load config: {e}', e)
-    sys.exit(0)
-
-if not config.git.enabled:
-    # Git integration disabled, skip
-    if DEBUG:
-        print('Git integration disabled', file=sys.stderr)
-    sys.exit(0)
-
-if not config.git.auto_commit:
-    # Auto-commit disabled, skip
-    if DEBUG:
-        print('Auto-commit disabled', file=sys.stderr)
     sys.exit(0)
 
 # Get phase, feature, run_id from environment
@@ -137,15 +125,13 @@ except Exception as e:
     log_error(f'Failed to stage changes: {e}', e)
     sys.exit(1)
 
-# Create commit with optional custom template and skip_hooks setting
+# Create commit with skip_hooks setting
 try:
-    template = config.git.commit_template
     skip_hooks = config.git.skip_hooks
     sha = create_commit(
         phase=phase,
         feature=feature,
         run_id=run_id,
-        template=template,
         skip_hooks=skip_hooks,
     )
     if sha:

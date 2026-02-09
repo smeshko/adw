@@ -83,36 +83,23 @@ class TestYAMLWithComments:
         assert "# name:" not in yaml_content
         assert "# language:" not in yaml_content
 
-    def test_generate_project_yaml_git_disabled_shows_comments(
+    def test_generate_project_yaml_git_shows_active(
         self, generator: YAMLWithComments
     ) -> None:
-        """Test that disabled git config shows as comments."""
-        state = MockWizardState({"git": {"git_enabled": False}})
-        yaml_content = generator.generate_project_yaml(state)
-
-        assert "# git:" in yaml_content
-        assert "#   enabled: false" in yaml_content
-
-    def test_generate_project_yaml_git_enabled_shows_active(
-        self, generator: YAMLWithComments
-    ) -> None:
-        """Test that enabled git config shows as active YAML."""
+        """Test that git config always shows as active YAML."""
         state = MockWizardState(
             {
                 "git": {
-                    "git_enabled": True,
                     "git_branch_prefix": "feature/",
-                    "git_auto_create_pr": True,
                 }
             }
         )
         yaml_content = generator.generate_project_yaml(state)
 
         assert "git:" in yaml_content
-        assert "  enabled: true" in yaml_content
         assert "  branch_prefix: feature/" in yaml_content
         # Non-configured settings still shown as comments
-        assert "  # auto_commit:" in yaml_content
+        assert "  # skip_hooks:" in yaml_content
 
     def test_generate_project_yaml_has_all_sections(
         self, generator: YAMLWithComments

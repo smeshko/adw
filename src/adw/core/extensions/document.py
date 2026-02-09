@@ -20,8 +20,7 @@ logger = logging.getLogger(__name__)
 class DocumentExtension:
     """Extension for document phase that handles PR creation.
 
-    Creates pr_description.md artifact and attempts automatic PR
-    creation when enabled in GitConfig.
+    Creates pr_description.md artifact and attempts automatic PR creation.
 
     This extension:
     - Saves pr_description.md as an extra artifact
@@ -29,7 +28,7 @@ class DocumentExtension:
     - Updates context with PR state fields
 
     Dependencies:
-    - git_config: For auto_create_pr setting
+    - git_config: For git settings
     - runs_dir: For artifact path resolution
 
     Example:
@@ -50,7 +49,7 @@ class DocumentExtension:
         """Initialize DocumentExtension.
 
         Args:
-            git_config: Git configuration with auto_create_pr setting.
+            git_config: Git configuration.
             runs_dir: Path to .adw/runs directory.
         """
         self._git_config = git_config
@@ -71,8 +70,7 @@ class DocumentExtension:
     def on_complete(self, context: "RunContext", result: "PhaseResult") -> "RunContext":
         """Handle PR creation after document phase completes.
 
-        If auto_create_pr is enabled in git_config, attempts to create
-        a PR and updates context with the result.
+        Attempts to create a PR and updates context with the result.
 
         Context fields updated:
         - pr_creation_attempted: Set to True
@@ -88,13 +86,6 @@ class DocumentExtension:
             Updated RunContext with PR state fields.
         """
         del result  # Unused
-        if not self._git_config.auto_create_pr:
-            logger.debug(
-                "Auto-PR disabled, skipping PR creation",
-                extra={"run_id": context.run_id},
-            )
-            return context
-
         logger.info(
             "Attempting PR creation after document phase",
             extra={"run_id": context.run_id},

@@ -122,21 +122,16 @@ def format_commit_message(
     phase: str,
     feature: str,
     run_id: str,
-    *,
-    template: str | None = None,
 ) -> str:
     """Format a commit message for an ADW phase.
 
     Creates a commit message using the provided phase name, feature
-    description, and run ID. Supports custom templates for projects
-    that need different commit message formats.
+    description, and run ID using the default template.
 
     Args:
         phase: The phase name (e.g., "build", "validate").
         feature: The feature description for this run.
         run_id: The unique run identifier.
-        template: Optional custom template. Supports placeholders:
-            {phase}, {Phase} (capitalized), {feature}, {run_id}
 
     Returns:
         Formatted commit message string (UTF-8 encoded).
@@ -144,13 +139,7 @@ def format_commit_message(
     Example:
         >>> format_commit_message("build", "Add auth", "01HQ123")
         '[adw] Build: Add auth\\n\\nRun: 01HQ123'
-        >>> format_commit_message("build", "Add auth", "01HQ123",
-        ...                       template="{phase}: {feature}")
-        'build: Add auth'
     """
-    if template is None:
-        template = DEFAULT_COMMIT_TEMPLATE
-
     # Create format dict with both lowercase and capitalized phase
     format_dict = {
         "phase": phase,
@@ -159,7 +148,7 @@ def format_commit_message(
         "run_id": run_id,
     }
 
-    return template.format(**format_dict)
+    return DEFAULT_COMMIT_TEMPLATE.format(**format_dict)
 
 
 def stage_changes(*, working_dir: Path | None = None) -> list[str]:
@@ -322,7 +311,6 @@ def create_commit(
     feature: str,
     run_id: str,
     *,
-    template: str | None = None,
     skip_hooks: bool = False,
     working_dir: Path | None = None,
     expected_branch: str | None = None,
@@ -340,7 +328,6 @@ def create_commit(
         phase: The phase name (e.g., "build", "validate").
         feature: The feature description for this run.
         run_id: The unique run identifier.
-        template: Optional custom commit message template.
         skip_hooks: If True, use --no-verify to skip pre-commit hooks.
         working_dir: Directory to run git commands in (default: current dir).
             Essential for worktree support.
@@ -379,7 +366,6 @@ def create_commit(
         phase=phase,
         feature=feature,
         run_id=run_id,
-        template=template,
     )
 
     # Build commit command

@@ -59,10 +59,6 @@ except Exception:
     # No config or error loading, skip
     sys.exit(0)
 
-if not config.git.enabled:
-    # Git integration disabled, skip
-    sys.exit(0)
-
 # Get feature from environment
 feature = os.environ.get('ADW_FEATURE', '')
 if not feature:

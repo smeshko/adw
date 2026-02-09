@@ -85,16 +85,12 @@ class TestConfigRegistry:
         settings_dict = {s.name: s for s in settings}
 
         # Check expected fields exist
-        assert "enabled" in settings_dict
         assert "branch_prefix" in settings_dict
-        assert "auto_commit" in settings_dict
-        assert "auto_create_pr" in settings_dict
+        assert "skip_hooks" in settings_dict
 
         # Check defaults
-        assert settings_dict["enabled"].default is False
         assert settings_dict["branch_prefix"].default == "feature/"
-        assert settings_dict["auto_commit"].default is True
-        assert settings_dict["auto_create_pr"].default is True
+        assert settings_dict["skip_hooks"].default is False
 
     def test_phase_settings(self, registry: ConfigRegistry) -> None:
         """Test phase settings are available."""

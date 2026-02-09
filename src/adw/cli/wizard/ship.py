@@ -25,7 +25,7 @@ class ShipStepHandler:
 
     This step:
     - Prompts if user wants to configure ship phase settings
-    - If yes, collects deployment commands (version_bump, build, publish)
+    - If yes, collects deployment commands (version_bump, publish)
     - Collects post-publish hooks
     - Configures PR merge settings (auto-merge, strategy, delete branch)
     """
@@ -136,14 +136,7 @@ def _prompt_deployment_commands(console: Console) -> dict[str, str]:
     if version_bump:
         commands["version_bump"] = version_bump
 
-    # Build command
-    build = Prompt.ask(
-        "Build command",
-        default="",
-        console=console,
-    ).strip()
-    if build:
-        commands["build"] = build
+    # Note: build_command is configured at the project level in project.yaml
 
     # Publish command
     publish = Prompt.ask(

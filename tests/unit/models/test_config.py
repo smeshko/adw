@@ -157,7 +157,6 @@ class TestShipCommandConfig:
         config = ShipCommandConfig()
         assert config.enabled is True
         assert config.commands.version_bump is None
-        assert config.commands.build is None
         assert config.commands.publish is None
         assert config.post_publish == []
         assert config.pr.merge_on_success is False
@@ -170,7 +169,6 @@ class TestShipCommandConfig:
             enabled=True,
             commands={
                 "version_bump": "npm version patch",
-                "build": "npm run build",
                 "publish": "npm publish",
             },
             post_publish=["git push --tags", "echo Done"],
@@ -181,7 +179,6 @@ class TestShipCommandConfig:
             },
         )
         assert config.commands.version_bump == "npm version patch"
-        assert config.commands.build == "npm run build"
         assert config.commands.publish == "npm publish"
         assert config.post_publish == ["git push --tags", "echo Done"]
         assert config.pr.merge_on_success is True
@@ -271,16 +268,14 @@ platform: api
             ProjectConfig.from_yaml("")
 
     def test_with_git_config(self) -> None:
-        """ProjectConfig with git integration enabled."""
+        """ProjectConfig with git integration configured."""
         yaml_content = """
 name: git-enabled
 language: python
 git:
-  enabled: true
   branch_prefix: "feat/"
 """
         config = ProjectConfig.from_yaml(yaml_content)
-        assert config.git.enabled is True
         assert config.git.branch_prefix == "feat/"
 
     # NOTE: test_with_phase_config removed in ISS-029

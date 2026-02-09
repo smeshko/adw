@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADW Config Parameter Audit</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #161922;
+    --surface2: #1e2130;
+    --border: #2a2d3e;
+    --text: #c9cdd8;
+    --text-muted: #6b7084;
+    --heading: #e4e7f0;
+    --green: #34d399;
+    --green-bg: rgba(52,211,153,.08);
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,.08);
+    --yellow: #fbbf24;
+    --yellow-bg: rgba(251,191,36,.08);
+    --blue: #60a5fa;
+    --blue-bg: rgba(96,165,250,.08);
+    --purple: #a78bfa;
+    --purple-bg: rgba(167,139,250,.08);
+    --cyan: #22d3ee;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  h1 {
+    color: var(--heading);
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: .25rem;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: .9rem;
+    margin-bottom: 2rem;
+  }
+
+  /* Stats bar */
+  .stats {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    flex: 1;
+    min-width: 140px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+  }
+  .stat-card .number {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .stat-card .label {
+    font-size: .8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .stat-card.active .number { color: var(--green); }
+  .stat-card.leftover .number { color: var(--red); }
+  .stat-card.mismatch .number { color: var(--yellow); }
+  .stat-card.deprecated .number { color: var(--purple); }
+  .stat-card.hidden .number { color: var(--blue); }
+
+  /* Navigation */
+  nav {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 2rem;
+  }
+  nav .nav-title {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+    margin-bottom: .5rem;
+  }
+  nav ul { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem; }
+  nav a {
+    display: inline-block;
+    color: var(--blue);
+    text-decoration: none;
+    font-size: .85rem;
+    padding: .3rem .7rem;
+    border-radius: 6px;
+    background: var(--blue-bg);
+    transition: background .15s;
+  }
+  nav a:hover { background: rgba(96,165,250,.18); }
+
+  /* Sections */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-header h2 {
+    color: var(--heading);
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  .section-header .file-badge {
+    font-size: .75rem;
+    color: var(--text-muted);
+    background: var(--surface2);
+    padding: .2rem .6rem;
+    border-radius: 5px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  /* Rows */
+  .param-row {
+    display: grid;
+    grid-template-columns: minmax(200px, 1.2fr) 100px 100px minmax(200px, 2fr);
+    align-items: start;
+    padding: .75rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    font-size: .875rem;
+    gap: .75rem;
+  }
+  .param-row:last-child { border-bottom: none; }
+  .param-row:hover { background: var(--surface2); }
+
+  .param-row .param-name {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: .82rem;
+    color: var(--cyan);
+    word-break: break-all;
+  }
+  .param-row .param-name .model-field {
+    display: block;
+    font-size: .72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-block;
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: .2rem .55rem;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+  .badge.active     { color: var(--green);  background: var(--green-bg);  }
+  .badge.commented  { color: var(--text-muted); background: var(--surface2); }
+  .badge.not-shown  { color: var(--purple); background: var(--purple-bg); }
+
+  .badge.used       { color: var(--green);  background: var(--green-bg);  }
+  .badge.not-used   { color: var(--red);    background: var(--red-bg);    }
+  .badge.partial    { color: var(--yellow); background: var(--yellow-bg); }
+  .badge.deprecated { color: var(--purple); background: var(--purple-bg); }
+  .badge.mismatch   { color: var(--yellow); background: var(--yellow-bg); }
+
+  .param-row .notes {
+    color: var(--text-muted);
+    font-size: .82rem;
+    line-height: 1.5;
+  }
+  .param-row .notes strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* Column headers */
+  .col-headers {
+    display: grid;
+    grid-template-columns: minmax(200px, 1.2fr) 100px 100px minmax(200px, 2fr);
+    padding: .5rem 1.25rem;
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-muted);
+    background: var(--surface2);
+    gap: .75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Issues callout */
+  .callout {
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    font-size: .875rem;
+  }
+  .callout.warn {
+    background: var(--yellow-bg);
+    border: 1px solid rgba(251,191,36,.2);
+  }
+  .callout.warn .callout-title { color: var(--yellow); font-weight: 600; margin-bottom: .35rem; }
+  .callout.error {
+    background: var(--red-bg);
+    border: 1px solid rgba(248,113,113,.2);
+  }
+  .callout.error .callout-title { color: var(--red); font-weight: 600; margin-bottom: .35rem; }
+
+  .callout ul { padding-left: 1.2rem; margin-top: .35rem; }
+  .callout li { margin-bottom: .25rem; }
+  .callout code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: .8rem;
+    background: rgba(0,0,0,.3);
+    padding: .1rem .35rem;
+    border-radius: 3px;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    margin-bottom: 1.5rem;
+    font-size: .8rem;
+    color: var(--text-muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: .35rem; }
+
+  @media (max-width: 800px) {
+    .param-row { grid-template-columns: 1fr; gap: .3rem; }
+    .col-headers { display: none; }
+    .stats { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<h1>ADW Config Parameter Audit</h1>
+<p class="subtitle">Generated 2026-02-08 &mdash; Cross-referencing generated YAML files against Pydantic models and runtime usage in the ADW codebase</p>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat-card active">
+    <div class="number">38</div>
+    <div class="label">Active &amp; Used</div>
+  </div>
+  <div class="stat-card leftover">
+    <div class="number">10</div>
+    <div class="label">Leftovers (unused)</div>
+  </div>
+  <div class="stat-card mismatch">
+    <div class="number">3</div>
+    <div class="label">YAML Mismatches</div>
+  </div>
+  <div class="stat-card deprecated">
+    <div class="number">1</div>
+    <div class="label">Deprecated</div>
+  </div>
+  <div class="stat-card hidden">
+    <div class="number">9</div>
+    <div class="label">Hidden (in model, not in YAML)</div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><span class="badge active">active</span> Enabled in YAML</div>
+  <div class="legend-item"><span class="badge commented">commented</span> Commented out in YAML</div>
+  <div class="legend-item"><span class="badge not-shown">hidden</span> In model but not generated in YAML</div>
+  <div class="legend-item"><span class="badge used">used</span> Used in runtime code</div>
+  <div class="legend-item"><span class="badge not-used">not used</span> Not found in runtime code</div>
+  <div class="legend-item"><span class="badge mismatch">mismatch</span> YAML key doesn't match model</div>
+</div>
+
+<!-- Navigation -->
+<nav>
+  <div class="nav-title">Jump to section</div>
+  <ul>
+    <li><a href="#issues">Critical Issues</a></li>
+    <li><a href="#core">Core Settings</a></li>
+    <li><a href="#commands-section">Commands</a></li>
+    <li><a href="#git">Git Integration</a></li>
+    <li><a href="#task-manager">Task Manager</a></li>
+    <li><a href="#worktree">Worktree &amp; Ports</a></li>
+    <li><a href="#llm">LLM Configuration</a></li>
+    <li><a href="#security">Security</a></li>
+    <li><a href="#webhook">Webhook Server</a></li>
+    <li><a href="#hidden">Hidden Model-Only</a></li>
+    <li><a href="#phase-common">Phase Common</a></li>
+    <li><a href="#validate">Validate Phase</a></li>
+    <li><a href="#ship">Ship Phase</a></li>
+  </ul>
+</nav>
+
+<!-- Critical Issues -->
+<div id="issues"></div>
+<div class="callout warn">
+  <div class="callout-title">YAML Mismatches &mdash; 3 issues</div>
+  These parameters appear in generated YAML but don't match the Pydantic model, meaning they'd either be silently ignored or cause validation errors.
+  <ul>
+    <li><code>commands.test</code> / <code>commands.build</code> &mdash; Generated YAML nests these under a <code>commands:</code> key. The model expects top-level <code>test_command</code> / <code>build_command</code>. If a user uncomments these, they will be <strong>silently ignored</strong> (Pydantic doesn't have a <code>commands</code> field).</li>
+    <li><code>webhook.enabled</code> &mdash; Generated YAML shows <code># enabled: false</code> under webhook but <code>WebhookConfig</code> has no <code>enabled</code> field. The webhook is active if <code>providers</code> have <code>enabled: true</code>.</li>
+  </ul>
+</div>
+
+<div class="callout error">
+  <div class="callout-title">Leftovers &mdash; 10 parameters defined but never used at runtime</div>
+  These exist in Pydantic models (and some in generated YAML) but no runtime code actually reads them.
+  <ul>
+    <li><code>git.commit_template</code> &mdash; <code>create_commit()</code> always uses <code>DEFAULT_COMMIT_TEMPLATE</code></li>
+    <li><code>task_manager.pr_title_format</code> &mdash; PR title formatting never implemented</li>
+    <li><code>task_manager.include_labels</code> &mdash; Label context enrichment not implemented</li>
+    <li><code>task_manager.include_parent</code> &mdash; Parent task context not implemented</li>
+    <li><code>security.blocked_env_files</code> &mdash; Env file blocking not wired up (defaults are hardcoded)</li>
+    <li><code>worktree.preserve_on_failure</code> &mdash; Explicitly deprecated; worktrees always preserved now</li>
+    <li><code>validate.review_prompt</code> &mdash; Custom review prompt loading not implemented</li>
+    <li><code>validate.review_focus</code> &mdash; Review focus areas not implemented</li>
+    <li><code>validate.test_timeout_seconds</code> &mdash; Defined in model but never accessed during test execution</li>
+    <li><code>logging.redaction.*</code> &mdash; Full model hierarchy exists but bootstrap never wires it through</li>
+  </ul>
+</div>
+
+<!-- ==================== project.yaml sections ==================== -->
+
+<!-- Core Settings -->
+<div class="section" id="core">
+  <div class="section-header">
+    <h2>Core Settings</h2>
+    <span class="file-badge">project.yaml</span>
+  </div>
+  <div class="col-headers">
+    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
+  </div>
+  <div class="param-row">
+    <div class="param-name">name<span class="model-field">ProjectConfig.name</span></div>
+    <span class="badge active">active</span>
+    <span class="badge used">used</span>
+    <div class="notes">Required. Used for display, run naming, branch naming.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">language<span class="model-field">ProjectConfig.language</span></div>
+    <span class="badge active">active</span>
+    <span class="badge used">used</span>
+    <div class="notes">Required. Injected into prompt templates as context.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">platform<span class="model-field">ProjectConfig.platform</span></div>
+    <span class="badge active">active</span>
+    <span class="badge used">used</span>
+    <div class="notes">Injected into prompt templates. Default: <code>"cli"</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">framework<span class="model-field">ProjectConfig.framework</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Optional. Injected into prompt templates when set.</div>
+  </div>
+</div>
+
+<!-- Commands Section -->
+<div class="section" id="commands-section">
+  <div class="section-header">
+    <h2>Commands</h2>
+    <span class="file-badge">project.yaml</span>
+  </div>
+  <div class="col-headers">
+    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
+  </div>
+  <div class="param-row" style="background: var(--yellow-bg);">
+    <div class="param-name">commands.test<span class="model-field">Expected: test_command</span></div>
+    <span class="badge mismatch">mismatch</span>
+    <span class="badge not-used">ignored</span>
+    <div class="notes"><strong>YAML key wrong.</strong> Generated as <code>commands: test:</code> but model expects top-level <code>test_command</code>. Uncommenting this would be silently ignored.</div>
+  </div>
+  <div class="param-row" style="background: var(--yellow-bg);">
+    <div class="param-name">commands.build<span class="model-field">Expected: build_command</span></div>
+    <span class="badge mismatch">mismatch</span>
+    <span class="badge not-used">ignored</span>
+    <div class="notes"><strong>YAML key wrong.</strong> Same issue. Model expects top-level <code>build_command</code>.</div>
+  </div>
+</div>
+
+<!-- Git Integration -->
+<div class="section" id="git">
+  <div class="section-header">
+    <h2>Git Integration</h2>
+    <span class="file-badge">project.yaml &rarr; git:</span>
+  </div>
+  <div class="col-headers">
+    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
+  </div>
+  <div class="param-row">
+    <div class="param-name">git.enabled<span class="model-field">GitConfig.enabled</span></div>
+    <span class="badge active">active</span>
+    <span class="badge used">used</span>
+    <div class="notes">Gates branch creation, auto-commit, and PR creation.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">git.branch_prefix<span class="model-field">GitConfig.branch_prefix</span></div>
+    <span class="badge active">active</span>
+    <span class="badge used">used</span>
+    <div class="notes">Prefix for auto-created branches. Default: <code>"feature/"</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">git.auto_create_pr<span class="model-field">GitConfig.auto_create_pr</span></div>
+    <span class="badge active">active</span>
+    <span class="badge used">used</span>
+    <div class="notes">Creates PR via <code>gh</code> CLI after successful run.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">git.auto_commit<span class="model-field">GitConfig.auto_commit</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Auto-commit changes after each phase completes.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">git.skip_hooks<span class="model-field">GitConfig.skip_hooks</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Passes <code>--no-verify</code> to git commit.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">git.base_branch<span class="model-field">GitConfig.base_branch</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">PR target branch. Falls back to <code>"main"</code> if unset.</div>
+  </div>
+  <div class="param-row" style="background: var(--red-bg);">
+    <div class="param-name">git.commit_template<span class="model-field">GitConfig.commit_template</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge not-used">not used</span>
+    <div class="notes"><strong>Leftover.</strong> Model field exists but <code>create_commit()</code> in <code>git_commit.py</code> always uses <code>DEFAULT_COMMIT_TEMPLATE</code>. Never read from config.</div>
+  </div>
+</div>
+
+<!-- Task Manager -->
+<div class="section" id="task-manager">
+  <div class="section-header">
+    <h2>Task Manager</h2>
+    <span class="file-badge">project.yaml &rarr; task_manager:</span>
+  </div>
+  <div class="col-headers">
+    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
+  </div>
+  <div class="param-row">
+    <div class="param-name">task_manager.type<span class="model-field">TaskManagerConfig.type</span></div>
+    <span class="badge active">active</span>
+    <span class="badge used">used</span>
+    <div class="notes">Selects task manager: <code>"none"</code> or <code>"linear"</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">task_manager.team_key<span class="model-field">TaskManagerConfig.team_key</span></div>
+    <span class="badge active">active</span>
+    <span class="badge used">used</span>
+    <div class="notes">Team prefix for task ID detection (e.g. <code>"SCA"</code> for SCA-123).</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">task_manager.sync_comments<span class="model-field">TaskManagerConfig.sync_comments</span></div>
+    <span class="badge active">active</span>
+    <span class="badge used">used</span>
+    <div class="notes">Posts status transition comments to Linear issues.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">task_manager.auto_close<span class="model-field">TaskManagerConfig.auto_close</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Closes task when PR is merged. Used by <code>TaskCloser</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">task_manager.state_mapping<span class="model-field">TaskManagerConfig.state_mapping</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge used">used</span>
+    <div class="notes">Maps ADW phases to Linear workflow states. Used in <code>linear.py</code> and <code>sync.py</code>. Not exposed in generated YAML.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">task_manager.comment_on_failure_only<span class="model-field">TaskManagerConfig.comment_on_failure_only</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge used">used</span>
+    <div class="notes">Skips success comments. Used in <code>StatusSyncService</code>. Not exposed in generated YAML.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">task_manager.labels.enabled<span class="model-field">TaskManagerLabelsConfig.enabled</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge used">used</span>
+    <div class="notes">Enables label management on Linear issues. Not exposed in generated YAML.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">task_manager.labels.prefix<span class="model-field">TaskManagerLabelsConfig.prefix</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge used">used</span>
+    <div class="notes">Prefix for ADW-managed labels. Default: <code>"adw:"</code>. Not in generated YAML.</div>
+  </div>
+  <div class="param-row" style="background: var(--red-bg);">
+    <div class="param-name">task_manager.pr_title_format<span class="model-field">TaskManagerConfig.pr_title_format</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge not-used">not used</span>
+    <div class="notes"><strong>Leftover.</strong> Format string <code>"{task_id}: {description}"</code> defined but PR title formatting is not implemented anywhere.</div>
+  </div>
+  <div class="param-row" style="background: var(--red-bg);">
+    <div class="param-name">task_manager.include_labels<span class="model-field">TaskManagerConfig.include_labels</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge not-used">not used</span>
+    <div class="notes"><strong>Leftover.</strong> Task label context enrichment was planned but never implemented.</div>
+  </div>
+  <div class="param-row" style="background: var(--red-bg);">
+    <div class="param-name">task_manager.include_parent<span class="model-field">TaskManagerConfig.include_parent</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge not-used">not used</span>
+    <div class="notes"><strong>Leftover.</strong> Parent task context enrichment was planned but never implemented.</div>
+  </div>
+</div>
+
+<!-- Worktree & Ports -->
+<div class="section" id="worktree">
+  <div class="section-header">
+    <h2>Worktree &amp; Ports</h2>
+    <span class="file-badge">project.yaml &rarr; worktree:</span>
+  </div>
+  <div class="col-headers">
+    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
+  </div>
+  <div class="param-row">
+    <div class="param-name">worktree.enabled<span class="model-field">WorktreeConfig.enabled</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Gates worktree isolation. Default: <code>true</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">worktree.base_dir<span class="model-field">WorktreeConfig.base_dir</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Directory for worktrees relative to project root. Default: <code>"trees"</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">worktree.max_concurrent<span class="model-field">WorktreeConfig.max_concurrent</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Slot count for concurrent runs. Default: <code>15</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">worktree.port_range.backend_start<span class="model-field">PortRangeConfig.backend_start</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Base port for backend services. Default: <code>9100</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">worktree.port_range.frontend_start<span class="model-field">PortRangeConfig.frontend_start</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Base port for frontend services. Default: <code>9200</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">worktree.cleanup_branch_on_remove<span class="model-field">WorktreeConfig.cleanup_branch_on_remove</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge used">used</span>
+    <div class="notes">Deletes <code>adw/&lt;run_id&gt;</code> branch when removing worktree. Used in orchestrator.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">worktree.preserve_artifacts<span class="model-field">WorktreeConfig.preserve_artifacts</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge used">used</span>
+    <div class="notes">Artifact names to copy out before worktree removal. Used in <code>WorktreeManager</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">worktree.artifact_manifest_file<span class="model-field">WorktreeConfig.artifact_manifest_file</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge used">used</span>
+    <div class="notes">Manifest filename for preserved artifacts. Default: <code>"worktree-artifacts.json"</code>.</div>
+  </div>
+  <div class="param-row" style="background: var(--purple-bg);">
+    <div class="param-name">worktree.preserve_on_failure<span class="model-field">WorktreeConfig.preserve_on_failure</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge deprecated">deprecated</span>
+    <div class="notes"><strong>Deprecated (ISS-020).</strong> Explicitly ignored. Worktrees are now always preserved. Should be removed from model.</div>
+  </div>
+</div>
+
+<!-- LLM Configuration -->
+<div class="section" id="llm">
+  <div class="section-header">
+    <h2>LLM Configuration</h2>
+    <span class="file-badge">project.yaml &rarr; llm:</span>
+  </div>
+  <div class="col-headers">
+    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
+  </div>
+  <div class="param-row">
+    <div class="param-name">llm.path<span class="model-field">LLMConfig.path</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Path to Claude Code executable. Default: <code>"claude"</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">llm.timeout_seconds<span class="model-field">LLMConfig.timeout_seconds</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Max time for LLM calls. Default: <code>300</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">llm.max_retries<span class="model-field">LLMConfig.max_retries</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Retry attempts on failure. Default: <code>3</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">llm.model<span class="model-field">LLMConfig.model</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Model override. Passed to executor.</div>
+  </div>
+</div>
+
+<!-- Security -->
+<div class="section" id="security">
+  <div class="section-header">
+    <h2>Security</h2>
+    <span class="file-badge">project.yaml &rarr; security:</span>
+  </div>
+  <div class="col-headers">
+    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
+  </div>
+  <div class="param-row">
+    <div class="param-name">security.allow_dangerous<span class="model-field">SecurityConfig.allow_dangerous</span></div>
+    <span class="badge active">active</span>
+    <span class="badge used">used</span>
+    <div class="notes">Log warnings instead of blocking. Used by <code>SecurityInterceptor</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">security.blocked_patterns<span class="model-field">SecurityConfig.blocked_patterns</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge used">used</span>
+    <div class="notes">Custom patterns merged with defaults in <code>PatternMatcher</code>.</div>
+  </div>
+  <div class="param-row" style="background: var(--red-bg);">
+    <div class="param-name">security.blocked_env_files<span class="model-field">SecurityConfig.blocked_env_files</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge not-used">not used</span>
+    <div class="notes"><strong>Leftover.</strong> Env file patterns are hardcoded in <code>security/defaults.py</code>. This list is never read.</div>
+  </div>
+</div>
+
+<!-- Webhook Server -->
+<div class="section" id="webhook">
+  <div class="section-header">
+    <h2>Webhook Server</h2>
+    <span class="file-badge">project.yaml &rarr; webhook:</span>
+  </div>
+  <div class="col-headers">
+    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
+  </div>
+  <div class="param-row" style="background: var(--yellow-bg);">
+    <div class="param-name">webhook.enabled<span class="model-field">&mdash; no model field</span></div>
+    <span class="badge mismatch">mismatch</span>
+    <span class="badge not-used">not used</span>
+    <div class="notes"><strong>YAML Mismatch.</strong> Generated as <code># enabled: false</code> but <code>WebhookConfig</code> has no <code>enabled</code> field. Webhook availability is driven by provider <code>enabled</code> flags.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">webhook.port<span class="model-field">WebhookConfig.port</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Server port. Default: <code>8000</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">webhook.host<span class="model-field">WebhookConfig.host</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Server bind host. Default: <code>"0.0.0.0"</code>.</div>
+  </div>
+</div>
+
+<!-- Hidden Model-Only -->
+<div class="section" id="hidden">
+  <div class="section-header">
+    <h2>Hidden: In Model but Not in Generated YAML</h2>
+    <span class="file-badge">ProjectConfig &rarr; various</span>
+  </div>
+  <div class="col-headers">
+    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
+  </div>
+  <div class="param-row">
+    <div class="param-name">hooks.shell<span class="model-field">HookConfig.shell</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge used">used</span>
+    <div class="notes">Shell for hook execution. Default: <code>"/bin/bash"</code>. Used in <code>HookRunner</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">hooks.timeout_seconds<span class="model-field">HookConfig.timeout_seconds</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge used">used</span>
+    <div class="notes">Hook timeout. Default: <code>60</code>. Used in <code>HookRunner</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">pipeline.strict_artifacts<span class="model-field">PipelineConfig.strict_artifacts</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge used">used</span>
+    <div class="notes">Raise error on missing artifact refs in templates. Used in <code>PhaseRunner</code>.</div>
+  </div>
+  <div class="param-row" style="background: var(--red-bg);">
+    <div class="param-name">logging.redaction.enabled<span class="model-field">RedactionConfig.enabled</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge not-used">not used</span>
+    <div class="notes"><strong>Leftover.</strong> Full <code>LoggingConfig</code>/<code>RedactionConfig</code> hierarchy exists but bootstrap never wires project config through to the logging system.</div>
+  </div>
+  <div class="param-row" style="background: var(--red-bg);">
+    <div class="param-name">logging.redaction.patterns<span class="model-field">RedactionConfig.patterns</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge not-used">not used</span>
+    <div class="notes"><strong>Leftover.</strong> Custom redaction patterns. Same plumbing issue as above.</div>
+  </div>
+  <div class="param-row" style="background: var(--red-bg);">
+    <div class="param-name">logging.redaction.disable_defaults<span class="model-field">RedactionConfig.disable_defaults</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge not-used">not used</span>
+    <div class="notes"><strong>Leftover.</strong> Skip default patterns. Same plumbing issue.</div>
+  </div>
+</div>
+
+<!-- ==================== Phase configs ==================== -->
+
+<!-- Phase Common Fields -->
+<div class="section" id="phase-common">
+  <div class="section-header">
+    <h2>Phase Common Fields</h2>
+    <span class="file-badge">.adw/commands/*/config.yaml</span>
+  </div>
+  <div class="col-headers">
+    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
+  </div>
+  <div class="param-row">
+    <div class="param-name">enabled<span class="model-field">CommandConfig.enabled</span></div>
+    <span class="badge active">active</span>
+    <span class="badge used">used</span>
+    <div class="notes">Disabled phases are skipped. Present in all phase configs.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">timeout_seconds<span class="model-field">CommandConfig.timeout_seconds</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Phase-specific timeout override. Defaults vary by phase (300&ndash;1200s).</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">pre_hook<span class="model-field">CommandConfig.pre_hook</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Shell command executed before phase.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">post_hook<span class="model-field">CommandConfig.post_hook</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Shell command executed after phase.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">input_files<span class="model-field">CommandConfig.input_files</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Variable &rarr; file mappings for Jinja2 template injection (<code>{{ inputs.prd }}</code>).</div>
+  </div>
+</div>
+
+<!-- Validate Phase -->
+<div class="section" id="validate">
+  <div class="section-header">
+    <h2>Validate Phase Settings</h2>
+    <span class="file-badge">.adw/commands/validate/config.yaml</span>
+  </div>
+  <div class="col-headers">
+    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
+  </div>
+  <div class="param-row">
+    <div class="param-name">enable_evidence<span class="model-field">ValidateCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Run evidence validator. Default: <code>true</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">enable_review<span class="model-field">ValidateCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Run code review validator. Default: <code>true</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">enable_tests<span class="model-field">ValidateCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Run test validator. Default: <code>true</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">test_command<span class="model-field">ValidateCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Custom test command. Auto-detects if null.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">max_iterations<span class="model-field">ValidateCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Max validation loop iterations. Default: <code>5</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">max_fix_attempts_per_issue<span class="model-field">ValidateCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Max fix attempts per issue. Default: <code>2</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">stall_threshold<span class="model-field">ValidateCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Iterations without progress before stall. Default: <code>2</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">triage_mode<span class="model-field">ValidateCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Issue triage mode: <code>auto</code> / <code>manual</code> / <code>hybrid</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">auto_dismiss_info<span class="model-field">ValidateCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Auto-dismiss info-level issues. Default: <code>true</code>.</div>
+  </div>
+  <div class="param-row" style="background: var(--red-bg);">
+    <div class="param-name">test_timeout_seconds<span class="model-field">ValidateCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge not-used">not used</span>
+    <div class="notes"><strong>Leftover.</strong> Defined in model (default: <code>300</code>) but never accessed during test execution.</div>
+  </div>
+  <div class="param-row" style="background: var(--red-bg);">
+    <div class="param-name">review_prompt<span class="model-field">ValidateCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge not-used">not used</span>
+    <div class="notes"><strong>Leftover.</strong> Path to custom review prompt. Loading logic not implemented.</div>
+  </div>
+  <div class="param-row" style="background: var(--red-bg);">
+    <div class="param-name">review_focus<span class="model-field">ValidateCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge not-used">not used</span>
+    <div class="notes"><strong>Leftover.</strong> Focus areas list. Never passed to code review logic.</div>
+  </div>
+</div>
+
+<!-- Ship Phase -->
+<div class="section" id="ship">
+  <div class="section-header">
+    <h2>Ship Phase Settings</h2>
+    <span class="file-badge">.adw/commands/ship/config.yaml</span>
+  </div>
+  <div class="col-headers">
+    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
+  </div>
+  <div class="param-row">
+    <div class="param-name">commands.version_bump<span class="model-field">ShipCommandsConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Version bump command. Exported as env var for ship script.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">commands.build<span class="model-field">ShipCommandsConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Build command for deployment.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">commands.publish<span class="model-field">ShipCommandsConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Publish/deploy command.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">post_publish<span class="model-field">ShipCommandConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Commands after publishing (e.g. <code>git push --tags</code>).</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">pr.merge_on_success<span class="model-field">ShipPRConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Auto-merge PR after validation. Default: <code>false</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">pr.delete_branch_on_merge<span class="model-field">ShipPRConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Delete feature branch after merge. Default: <code>true</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">pr.merge_method<span class="model-field">ShipPRConfig</span></div>
+    <span class="badge commented">commented</span>
+    <span class="badge used">used</span>
+    <div class="notes">Merge strategy: <code>merge</code> / <code>squash</code> / <code>rebase</code>.</div>
+  </div>
+  <div class="param-row">
+    <div class="param-name">pr.bypass_ci<span class="model-field">ShipPRConfig</span></div>
+    <span class="badge not-shown">hidden</span>
+    <span class="badge used">used</span>
+    <div class="notes">Exports <code>ADW_SHIP_BYPASS_CI</code> env var. Adds <code>--admin</code> flag to <code>gh pr merge</code>. Not in generated YAML.</div>
+  </div>
+</div>
+
+</body>
+</html>

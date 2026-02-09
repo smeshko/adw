@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 import pytest
 
 from adw.models import RunContext
-from adw.validation.config import ValidationConfig
+from adw.validation import ValidationConfig
 from adw.validation.models import ValidationResult
 from adw.validation.phase import ValidationPhase
 
