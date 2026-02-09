@@ -5,9 +5,9 @@ handles transient failures through automatic retries with exponential
 backoff and jitter.
 """
 
-import asyncio
 import logging
 import random
+import time
 from pathlib import Path
 
 from adw.exceptions import LLMError, LLMRateLimitError
@@ -70,34 +70,6 @@ class RetryExecutor:
         Raises:
             LLMError: If all retry attempts fail or a non-retryable error occurs.
         """
-        return asyncio.run(
-            self._execute_with_retry(prompt, timeout, phase, cwd=cwd, model=model)
-        )
-
-    async def _execute_with_retry(
-        self,
-        prompt: str,
-        timeout: int | None,
-        phase: str | None = None,
-        *,
-        cwd: Path | None = None,
-        model: str | None = None,
-    ) -> LLMResult:
-        """Execute prompt with retry logic (async implementation).
-
-        Args:
-            prompt: The prompt to send to the LLM.
-            timeout: Optional timeout in seconds.
-            phase: Optional phase name for logging and debugging purposes.
-            cwd: Optional working directory for subprocess execution.
-            model: Optional model identifier to use for this call.
-
-        Returns:
-            LLMResult with attempt count set.
-
-        Raises:
-            LLMError: If all retries fail or non-retryable error occurs.
-        """
         last_error: LLMError | None = None
 
         for attempt in range(1, self.config.max_retries + 1):
@@ -131,7 +103,7 @@ class RetryExecutor:
                         "error_code": e.code,
                     },
                 )
-                await asyncio.sleep(delay)
+                time.sleep(delay)
 
         # Should never reach here, but satisfy type checker
         if last_error is not None:
