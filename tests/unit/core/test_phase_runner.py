@@ -606,7 +606,7 @@ class TestPhaseRunnerGitDiffCapture:
             hook_runner=mock_hook_runner,
             executor=mock_executor,
             artifact_manager=mock_artifact_manager,
-            strict_artifacts=False,
+
             extension_registry=extension_registry,
         )
 

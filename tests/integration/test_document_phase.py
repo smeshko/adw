@@ -277,7 +277,7 @@ def phase_runner(
         hook_runner=hook_runner,
         executor=mock_executor,
         artifact_manager=artifact_manager,
-        strict_artifacts=False,
+
         extension_registry=extension_registry,
     )
 
@@ -418,7 +418,7 @@ No visual evidence captured
             hook_runner=hook_runner,
             executor=mock_executor_no_evidence,
             artifact_manager=artifact_manager,
-            strict_artifacts=False,
+    
         )
 
     def test_document_phase_handles_missing_evidence(
@@ -500,7 +500,7 @@ No visual evidence captured
             hook_runner=hook_runner,
             executor=mock_executor_no_build,
             artifact_manager=artifact_manager,
-            strict_artifacts=False,
+    
             extension_registry=extension_registry,
         )
 

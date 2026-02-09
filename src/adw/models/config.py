@@ -155,21 +155,6 @@ class HookConfig(BaseModel):
     )
 
 
-class PipelineConfig(BaseModel):
-    """Configuration for pipeline behavior.
-
-    Attributes:
-        strict_artifacts: If True, raise ConfigError when a template references
-            a missing artifact. If False, use empty string for missing artifacts.
-            Default is False for lenient behavior.
-    """
-
-    strict_artifacts: bool = Field(
-        default=False,
-        description="Raise error for missing artifact references in templates",
-    )
-
-
 class RedactionConfig(BaseModel):
     """Configuration for secret redaction in logs.
 
@@ -258,10 +243,6 @@ class WorktreeConfig(BaseModel):
         base_dir: Directory for storing worktrees, relative to project root
         cleanup_branch_on_remove: Delete the adw/<run_id> branch when removing
             the worktree (default: False)
-        preserve_artifacts: List of artifact names to preserve when cleaning up
-            worktrees (default: ["context.json", "logs", "artifacts", "llm"])
-        artifact_manifest_file: Name of manifest file created during preservation
-            (default: "worktree-artifacts.json")
         port_range: Configuration for port allocation ranges
         max_concurrent: Maximum number of concurrent runs (determines slot count)
 
@@ -271,21 +252,12 @@ class WorktreeConfig(BaseModel):
         True
         >>> config.base_dir
         '.worktrees'
-        >>> config.preserve_artifacts
-        ['context.json', 'logs', 'artifacts', 'llm']
 
     YAML example:
         worktree:
           enabled: true
           base_dir: "trees"
           cleanup_branch_on_remove: false
-          preserve_artifacts:
-            - context.json
-            - logs
-            - artifacts
-            - llm
-            - custom-output.json
-          artifact_manifest_file: "worktree-artifacts.json"
           port_range:
             backend_start: 9100
             frontend_start: 9200
@@ -303,14 +275,6 @@ class WorktreeConfig(BaseModel):
     cleanup_branch_on_remove: bool = Field(
         default=False,
         description="Delete the adw/<run_id> branch when removing worktree",
-    )
-    preserve_artifacts: list[str] = Field(
-        default=["context.json", "logs", "artifacts", "llm"],
-        description="List of artifact names to preserve when cleaning up worktrees",
-    )
-    artifact_manifest_file: str = Field(
-        default="worktree-artifacts.json",
-        description="Name of manifest file created during artifact preservation",
     )
     port_range: PortRangeConfig = Field(
         default_factory=PortRangeConfig,
@@ -533,7 +497,6 @@ class ProjectConfig(BaseModel):
         build_command: Command to build the project
         llm: LLM configuration section
         hooks: Hook configuration
-        pipeline: Pipeline behavior configuration
         logging: Logging configuration (includes redaction settings)
         security: Security configuration (blocked patterns, allow_dangerous)
         git: Git integration configuration (branch management)
@@ -564,9 +527,6 @@ class ProjectConfig(BaseModel):
     # entirely to command configs (.adw/commands/<phase>/config.yaml).
     hooks: HookConfig = Field(
         default_factory=HookConfig, description="Hook configuration"
-    )
-    pipeline: PipelineConfig = Field(
-        default_factory=PipelineConfig, description="Pipeline behavior configuration"
     )
     logging: LoggingConfig = Field(
         default_factory=LoggingConfig, description="Logging configuration"

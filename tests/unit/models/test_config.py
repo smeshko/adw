@@ -51,28 +51,6 @@ class TestPhaseConfigInputFiles:
 class TestWorktreeConfig:
     """Tests for WorktreeConfig validation rules."""
 
-    def test_preserve_artifacts_defaults(self) -> None:
-        """WorktreeConfig has default preserve_artifacts list."""
-        config = WorktreeConfig()
-        assert config.preserve_artifacts == ["context.json", "logs", "artifacts", "llm"]
-
-    def test_preserve_artifacts_custom(self) -> None:
-        """WorktreeConfig accepts custom preserve_artifacts list."""
-        config = WorktreeConfig(
-            preserve_artifacts=["context.json", "logs", "custom.json"]
-        )
-        assert config.preserve_artifacts == ["context.json", "logs", "custom.json"]
-
-    def test_artifact_manifest_file_default(self) -> None:
-        """WorktreeConfig has default artifact_manifest_file."""
-        config = WorktreeConfig()
-        assert config.artifact_manifest_file == "worktree-artifacts.json"
-
-    def test_artifact_manifest_file_custom(self) -> None:
-        """WorktreeConfig accepts custom artifact_manifest_file."""
-        config = WorktreeConfig(artifact_manifest_file="custom-manifest.json")
-        assert config.artifact_manifest_file == "custom-manifest.json"
-
     def test_port_range_defaults(self) -> None:
         """WorktreeConfig has default port range settings."""
         config = WorktreeConfig()

@@ -6,7 +6,7 @@ This module defines models for command resolution, representation, and configura
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 if TYPE_CHECKING:
     pass
@@ -42,58 +42,6 @@ class PhaseLLMConfig(BaseModel):
     )
 
 
-class ArtifactConfig(BaseModel):
-    """Configuration for capturing artifacts from a phase.
-
-    Defines rules for capturing files produced by a phase command,
-    enabling config-driven artifact capture (unifies with ISS-012).
-
-    Attributes:
-        name: Unique identifier for the artifact (used in templates).
-        pattern: Glob pattern or path to capture (e.g., "output/*.json").
-        required: Whether the artifact must exist after phase completion.
-        description: Human-readable description of the artifact purpose.
-
-    Example:
-        >>> artifact = ArtifactConfig(
-        ...     name="plan",
-        ...     pattern="output/plan.md",
-        ...     required=True,
-        ...     description="Generated implementation plan"
-        ... )
-        >>> artifact.name
-        'plan'
-
-    YAML example in config.yaml:
-        artifacts:
-          - name: plan
-            pattern: output/plan.md
-            required: true
-            description: Generated implementation plan
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    name: str = Field(
-        ...,
-        min_length=1,
-        description="Unique identifier for the artifact",
-    )
-    pattern: str = Field(
-        ...,
-        min_length=1,
-        description="Glob pattern or path to capture",
-    )
-    required: bool = Field(
-        default=False,
-        description="Whether the artifact must exist after phase completion",
-    )
-    description: str | None = Field(
-        default=None,
-        description="Human-readable description of the artifact purpose",
-    )
-
-
 class CommandConfig(BaseModel):
     """Phase command configuration loaded from config.yaml.
 
@@ -107,7 +55,6 @@ class CommandConfig(BaseModel):
         input_files: Mapping of variable names to file paths for template injection.
             Files are loaded at phase start and available as {{ inputs.name }}.
         llm: Phase-specific LLM settings (model, temperature).
-        artifacts: List of artifact capture rules for this phase.
         pre_hook: Default pre-execution shell command.
         post_hook: Default post-execution shell command.
 
@@ -130,10 +77,6 @@ class CommandConfig(BaseModel):
         llm:
           model: claude-3-opus
           temperature: 0.7
-        artifacts:
-          - name: plan
-            pattern: output/plan.md
-            required: true
         pre_hook: echo "Starting plan phase"
         post_hook: echo "Plan phase complete"
 
@@ -162,10 +105,6 @@ class CommandConfig(BaseModel):
         default=None,
         description="Phase-specific LLM settings",
     )
-    artifacts: list[ArtifactConfig] | None = Field(
-        default=None,
-        description="List of artifact capture rules for this phase",
-    )
     pre_hook: str | None = Field(
         default=None,
         description="Default pre-execution shell command",
@@ -174,30 +113,6 @@ class CommandConfig(BaseModel):
         default=None,
         description="Default post-execution shell command",
     )
-
-    @model_validator(mode="after")
-    def validate_artifact_names_unique(self) -> "CommandConfig":
-        """Validate that artifact names are unique within the configuration.
-
-        Returns:
-            Self if validation passes.
-
-        Raises:
-            ValueError: If duplicate artifact names are found.
-        """
-        if self.artifacts is None:
-            return self
-
-        names = [artifact.name for artifact in self.artifacts]
-        duplicates = [name for name in names if names.count(name) > 1]
-
-        if duplicates:
-            unique_duplicates = sorted(set(duplicates))
-            raise ValueError(
-                f"Duplicate artifact names found: {', '.join(unique_duplicates)}"
-            )
-
-        return self
 
 
 class ShipCommandsConfig(BaseModel):

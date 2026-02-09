@@ -72,7 +72,6 @@ class PhaseRunner:
         hook_runner: Executes pre/post hooks
         executor: LLM executor (Claude Code or Mock)
         artifact_manager: Stores phase artifacts
-        strict_artifacts: If True, raise ConfigError for missing artifact refs
 
     Example:
         >>> runner = PhaseRunner(
@@ -81,7 +80,6 @@ class PhaseRunner:
         ...     hook_runner=hook_runner,
         ...     executor=executor,
         ...     artifact_manager=artifact_manager,
-        ...     strict_artifacts=True,
         ... )
         >>> result = runner.run("plan", context)
         >>> print(result.status)
@@ -96,7 +94,6 @@ class PhaseRunner:
         executor: "LLMExecutor",
         artifact_manager: "ArtifactManager",
         *,
-        strict_artifacts: bool = False,
         progress_display: "ProgressDisplay | None" = None,
         project_config: ProjectConfig | None = None,
         extension_registry: ExtensionRegistry | None = None,
@@ -110,9 +107,6 @@ class PhaseRunner:
             hook_runner: Executes pre/post hooks.
             executor: LLM executor (Claude Code or Mock).
             artifact_manager: Stores phase artifacts.
-            strict_artifacts: If True, raise ConfigError when a template
-                references a missing artifact. If False (default), missing
-                artifacts are replaced with empty strings.
             progress_display: Display for LLM progress (optional, Story 5.5).
             project_config: Project configuration containing phase-specific
                 settings like input_files. Optional for backward compatibility.
@@ -126,7 +120,6 @@ class PhaseRunner:
         self.hook_runner = hook_runner
         self.executor = executor
         self.artifact_manager = artifact_manager
-        self.strict_artifacts = strict_artifacts
         self.progress_display = progress_display
         self.project_config = project_config
         self.extension_registry = extension_registry or ExtensionRegistry()
@@ -300,8 +293,7 @@ class PhaseRunner:
         """Load prompt template and render with variables.
 
         Includes artifact content from previous phases for template access.
-        Validates artifact references before rendering and raises ARTIFACT_NOT_FOUND
-        if strict_artifacts is enabled and an artifact is missing.
+        Validates artifact references before rendering.
 
         Template Artifact Access:
             - {{artifacts.phase.name}} - Access specific artifact content
@@ -323,7 +315,7 @@ class PhaseRunner:
 
         Raises:
             CommandError: If resolution or rendering fails.
-            ConfigError: If strict_artifacts=True and artifact not found.
+            ConfigError: If strict mode enabled and artifact not found.
         """
         logger.debug("Loading prompt", extra={"phase": phase})
 
@@ -342,11 +334,11 @@ class PhaseRunner:
             artifacts_map = self._build_artifacts_map(context.run_id, phase)
 
         # Validate artifact references in template (ISS-017: template module)
-        # Raises ConfigError if strict_artifacts=True and artifact missing
+        # Validates artifact references (lenient mode - missing refs replaced with empty)
         validate_artifact_references(
             prompt_template,
             artifacts_map,
-            strict=self.strict_artifacts,
+            strict=False,
             template_path=str(prompt_path),
         )
 
@@ -445,13 +437,11 @@ class PhaseRunner:
             variables["schema"] = ""  # Empty string if no schema defined
 
         # ISS-017: Pass command_root and shared_root as params, not state
-        # Render template with strict matching artifact mode:
-        # - strict_artifacts=True: We validated artifacts, use strict=True for all vars
-        # - strict_artifacts=False: Lenient mode, allow missing refs to pass through
+        # Render template in lenient mode - allow missing refs to pass through
         rendered = self.template_engine.render(
             prompt_template,
             variables,
-            strict=self.strict_artifacts,
+            strict=False,
             command_root=command.path,
             shared_root=command.path.parent,
         )

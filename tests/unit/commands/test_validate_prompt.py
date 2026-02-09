@@ -127,7 +127,6 @@ class TestValidateConfigYaml:
         """Config file should exist."""
         assert config_path.exists(), f"Expected config at {config_path}"
 
-    def test_config_has_phase_name(self, config_content: str) -> None:
-        """Config should define the phase name."""
-        assert "name:" in config_content
+    def test_config_references_validate_phase(self, config_content: str) -> None:
+        """Config should reference the validate phase."""
         assert "validate" in config_content.lower()

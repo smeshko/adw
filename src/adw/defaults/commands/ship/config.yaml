@@ -35,14 +35,3 @@ timeout_seconds: 900
 # llm:
 #   model: claude-sonnet-4-20250514
 #   temperature: 0.3  # Lower temperature for deployment decisions
-
-# Artifacts to capture from this phase
-artifacts:
-  - name: ship_report
-    pattern: "ship_report.md"
-    required: true
-    description: "Full deployment report from LLM"
-  - name: release_notes
-    pattern: "release_notes.md"
-    required: false
-    description: "Generated release notes"
