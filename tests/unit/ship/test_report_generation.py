@@ -238,7 +238,6 @@ class TestExecutionLogSection:
         assert "commands_skipped" in step_7_text
 
 
-
 class TestReleaseNotesSection:
     """Tests validating release notes in Step 7."""
 

@@ -213,9 +213,7 @@ class PRDescription(BaseModel):
         if not testing:
             raise ValueError("Missing required section: Testing")
 
-        evidence = (
-            _find_section(sections, "evidence") or "No visual evidence captured"
-        )
+        evidence = _find_section(sections, "evidence") or "No visual evidence captured"
 
         return cls(
             summary=summary,

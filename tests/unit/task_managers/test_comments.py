@@ -397,9 +397,7 @@ class TestFormatPhaseTimeline:
         from adw.task_managers.comments import CommentFormatter
 
         seq = ["plan", "build"]
-        result = CommentFormatter._format_phase_timeline(
-            seq, [], failed_phase="plan"
-        )
+        result = CommentFormatter._format_phase_timeline(seq, [], failed_phase="plan")
         assert result == "plan ✗ → build ⊘"
 
     def test_no_failure(self) -> None:

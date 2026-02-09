@@ -241,9 +241,7 @@ class TestDashboardLayout:
         assert panel is not None
         # Should show no runs message
 
-    def test_create_projects_panel(
-        self, sample_global_stats: GlobalStatistics
-    ) -> None:
+    def test_create_projects_panel(self, sample_global_stats: GlobalStatistics) -> None:
         """Projects panel displays per-project breakdown."""
         console = Console()
         layout = DashboardLayout(console)
@@ -269,7 +267,9 @@ class TestDashboardLayout:
         panel = layout.create_empty_state()
         assert panel is not None
         # Should contain guidance text
-        panel_str = str(panel.renderable) if hasattr(panel, "renderable") else str(panel)
+        panel_str = (
+            str(panel.renderable) if hasattr(panel, "renderable") else str(panel)
+        )
         assert "register" in panel_str.lower() or "init" in panel_str.lower()
 
     def test_create_run_detail(self, sample_index_entries: list[IndexEntry]) -> None:
@@ -295,7 +295,9 @@ class TestDashboardLayout:
 
         assert panel is not None
         # Should show running indicator
-        panel_str = str(panel.renderable) if hasattr(panel, "renderable") else str(panel)
+        panel_str = (
+            str(panel.renderable) if hasattr(panel, "renderable") else str(panel)
+        )
         assert "running" in panel_str.lower() or "RUNNING" in panel_str
 
 
@@ -748,7 +750,9 @@ class TestDashboardLayoutSizing:
     """Tests for ISS-041: Dashboard layout and sizing fixes."""
 
     def test_recent_runs_table_uses_ratio_sizing(
-        self, sample_global_stats: GlobalStatistics, sample_index_entries: list[IndexEntry]
+        self,
+        sample_global_stats: GlobalStatistics,
+        sample_index_entries: list[IndexEntry],
     ) -> None:
         """Runs section should use ratio-based sizing, not fill remaining space."""
         controller = DashboardController()

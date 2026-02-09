@@ -24,12 +24,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-from rich.console import Console
+from rich.console import Console, RenderableType
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+
+if TYPE_CHECKING:
+    from rich.console import Group
 
 from adw.models.index import IndexEntry
 from adw.models.stats import GlobalStatistics
@@ -347,9 +350,7 @@ class DashboardLayout:
 
         for i, run in enumerate(runs[:max_rows]):
             # Status indicator
-            indicator, color = STATUS_INDICATORS.get(
-                run.status, ("?", "white")
-            )
+            indicator, color = STATUS_INDICATORS.get(run.status, ("?", "white"))
             status_text = f"[{color}]{indicator} {run.status.upper()}[/]"
 
             # Duration
@@ -819,7 +820,7 @@ class DashboardController:
         elif key == "3":
             self.state.view_mode = "projects"
 
-    def render(self) -> "Panel | Group":
+    def render(self) -> Panel | Group:
         """Generate Rich renderable for current state.
 
         Returns:
@@ -838,12 +839,10 @@ class DashboardController:
             return self.layout.create_run_detail(selected_run)
 
         # Build components list - Group sizes to content automatically
-        components: list = []
+        components: list[RenderableType] = []
 
         # Header
-        components.append(
-            self.layout.create_header(project_filter=self.project_filter)
-        )
+        components.append(self.layout.create_header(project_filter=self.project_filter))
 
         # Build body based on data availability
         if self.data.stats is None and not self.data.recent_runs:
@@ -855,13 +854,9 @@ class DashboardController:
             if self.state.view_mode == "projects":
                 # Projects-only view
                 components.append(Text())  # Spacing
-                components.append(
-                    self.layout.create_summary_panel(self.data.stats)
-                )
+                components.append(self.layout.create_summary_panel(self.data.stats))
                 components.append(Text())  # Spacing between sections
-                components.append(
-                    self.layout.create_projects_panel(self.data.stats)
-                )
+                components.append(self.layout.create_projects_panel(self.data.stats))
             elif self.state.view_mode == "runs":
                 # Runs-only view (no summary)
                 active_panel = self.layout.create_active_runs_panel(
@@ -881,9 +876,7 @@ class DashboardController:
                 # Summary view (default) - shows summary, runs, and projects
                 # Summary panel
                 components.append(Text())  # Spacing after header
-                components.append(
-                    self.layout.create_summary_panel(self.data.stats)
-                )
+                components.append(self.layout.create_summary_panel(self.data.stats))
 
                 # Active runs section (if any)
                 active_panel = self.layout.create_active_runs_panel(
@@ -904,9 +897,7 @@ class DashboardController:
 
                 # Projects panel
                 components.append(Text())  # Spacing between sections
-                components.append(
-                    self.layout.create_projects_panel(self.data.stats)
-                )
+                components.append(self.layout.create_projects_panel(self.data.stats))
 
         # Footer - show faster interval when active runs exist
         effective_interval = 5 if self.data.active_runs else self.refresh_interval
@@ -967,7 +958,7 @@ class DashboardController:
                         if not self.state.paused:
                             now = datetime.now(UTC)
                             elapsed = (now - last_refresh_time).total_seconds()
-                            # Refresh every 5s when active runs exist, else use normal interval
+                            # Refresh every 5s when active runs exist
                             effective_interval = (
                                 5 if self.data.active_runs else self.refresh_interval
                             )

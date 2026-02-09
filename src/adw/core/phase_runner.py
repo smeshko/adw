@@ -332,8 +332,8 @@ class PhaseRunner:
         else:
             artifacts_map = self._build_artifacts_map(context.run_id, phase)
 
-        # Validate artifact references in template (ISS-017: template module)
-        # Validates artifact references (lenient mode - missing refs replaced with empty)
+        # Validate artifact references in template (ISS-017)
+        # Lenient mode - missing refs replaced with empty
         validate_artifact_references(
             prompt_template,
             artifacts_map,

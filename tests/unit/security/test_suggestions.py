@@ -19,7 +19,6 @@ class TestSuggestionFormatter:
             severity="critical",
             category="destructive",
             alternative="Use specific paths: rm -rf ./node_modules",
-
         )
         formatter = SuggestionFormatter()
         result = formatter.format_single(match)
@@ -38,7 +37,6 @@ class TestSuggestionFormatter:
             severity="warning",
             category="permission",
             alternative="Use chmod 755 instead",
-
         )
         formatter = SuggestionFormatter()
         result = formatter.format_single(match)
@@ -56,7 +54,6 @@ class TestSuggestionFormatter:
             severity="warning",
             category="git_dangerous",
             alternative="Use --force-with-lease",
-
         )
         formatter = SuggestionFormatter()
         result = formatter.format_single(match)
@@ -75,7 +72,6 @@ class TestSuggestionFormatter:
                 severity="critical",
                 category="destructive",
                 alternative="Use specific paths",
-    
             ),
             PatternMatch(
                 pattern=r"chmod\s+777",
@@ -83,7 +79,6 @@ class TestSuggestionFormatter:
                 severity="warning",
                 category="permission",
                 alternative="Use chmod 755",
-    
             ),
         ]
         formatter = SuggestionFormatter()
@@ -167,7 +162,6 @@ class TestSuggestionFormatterAdvanced:
             severity="info",
             category="destructive",
             alternative="",  # Empty alternative
-
         )
         formatter = SuggestionFormatter()
         result = formatter.format_single(match)
@@ -189,7 +183,6 @@ class TestSuggestionFormatterAdvanced:
             severity="critical",
             category="destructive",
             alternative="Alternative",
-
         )
         formatter = SuggestionFormatter(include_override=False)
         result = formatter.format_single(match)
@@ -207,7 +200,6 @@ class TestSuggestionFormatterAdvanced:
             severity="critical",
             category="destructive",
             alternative="Use specific paths",
-
         )
         formatter = SuggestionFormatter()
         result = formatter.format_error_message([match], command="rm -rf /")
@@ -227,7 +219,6 @@ class TestSuggestionFormatterAdvanced:
             severity="warning",
             category="secret_access",
             alternative="Use env vars",
-
         )
         formatter = SuggestionFormatter()
         result = formatter.format_error_message([match], file_path=".env")
@@ -246,7 +237,6 @@ class TestSuggestionFormatterAdvanced:
             severity="warning",
             category="permission",
             alternative="Alternative",
-
         )
         formatter = SuggestionFormatter()
         result = formatter.format_error_message(
@@ -267,7 +257,6 @@ class TestSuggestionFormatterAdvanced:
             severity="warning",
             category="permission",
             alternative="Alt",
-
         )
         formatter = SuggestionFormatter()
         result = formatter.format_multiple([match])

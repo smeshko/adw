@@ -70,13 +70,13 @@ from adw.models.phase import (
 )
 from adw.models.pr import PRDescription
 from adw.models.registry import ProjectRegistry, RegisteredProject
-from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
 from adw.models.resume import ResumeInfo, ResumeStatus
 from adw.models.security import (
     BlockedPattern,
     SecurityConfig,
     ToolCallLog,
 )
+from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
 from adw.models.task import TaskInfo
 from adw.models.webhook import ProviderConfig, WebhookConfig
 from adw.models.wizard import WizardState

@@ -179,9 +179,8 @@ class DryRunDisplay:
 
             # Get enabled status from command config, hooks from file-based resolution
             command_config = self._load_command_config(phase_name)
-            if command_config:
-                if not command_config.enabled:
-                    enabled = "[red]✗[/]"
+            if command_config and not command_config.enabled:
+                enabled = "[red]✗[/]"
 
             # Check for file-based hooks via command resolver
             try:

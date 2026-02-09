@@ -302,9 +302,7 @@ def list_runs(
     registry_manager = ProjectRegistryManager()
 
     # Build lookup of registered project names
-    registered_names = {
-        p.path: p.name for p in registry_manager.get_all()
-    }
+    registered_names = {p.path: p.name for p in registry_manager.get_all()}
 
     # Request more entries to handle offset
     entries = index_manager.get_recent_runs(
@@ -796,7 +794,9 @@ def _run_exists(project_path: str, run_id: str) -> bool:
 _DEFAULT_STALE_HOURS = 24
 
 
-def _is_stale_running(entry: IndexEntry, stale_hours: int = _DEFAULT_STALE_HOURS) -> bool:
+def _is_stale_running(
+    entry: IndexEntry, stale_hours: int = _DEFAULT_STALE_HOURS
+) -> bool:
     """Check if a run entry is stale (running status for too long).
 
     A run is considered stale if it has status "running" but has been
@@ -934,11 +934,13 @@ def clean_command(
     total_updated = len(stale_running)
 
     if total_removed == 0 and total_updated == 0:
-        console.print("[green]Global index is clean. No entries to remove or update.[/]")
+        console.print(
+            "[green]Global index is clean. No entries to remove or update.[/]"
+        )
         return
 
     # Show summary
-    console.print(f"\n[bold]Index Cleanup Summary[/]")
+    console.print("\n[bold]Index Cleanup Summary[/]")
     console.print(f"Total entries: {total_count:,}")
     console.print(f"Entries to keep: {len(entries_to_keep):,}")
     if total_removed > 0:
@@ -955,9 +957,7 @@ def clean_command(
     if removed_orphaned:
         console.print(f"  - Orphaned runs (no local data): {len(removed_orphaned):,}")
     if stale_running:
-        console.print(
-            f"  - Stale 'running' → 'interrupted': {len(stale_running):,}"
-        )
+        console.print(f"  - Stale 'running' → 'interrupted': {len(stale_running):,}")
 
     # Show samples of what will be removed
     if dry_run:
@@ -987,7 +987,9 @@ def clean_command(
         if removed_orphaned:
             console.print("\n[dim]Orphaned runs (sample):[/]")
             for entry in removed_orphaned[:5]:
-                console.print(f"  {entry.run_id}: {entry.project_name} ({entry.status})")
+                console.print(
+                    f"  {entry.run_id}: {entry.project_name} ({entry.status})"
+                )
             if len(removed_orphaned) > 5:
                 console.print(f"  ... and {len(removed_orphaned) - 5} more")
 
@@ -1014,7 +1016,8 @@ def clean_command(
         if total_updated > 0:
             actions.append(f"update {total_updated:,}")
         action_str = " and ".join(actions)
-        confirm = typer.confirm(f"{action_str.capitalize()} entries in the global index?")
+        msg = f"{action_str.capitalize()} entries in the global index?"
+        confirm = typer.confirm(msg)
         if not confirm:
             console.print("[dim]Cancelled.[/]")
             raise typer.Exit(code=0)

@@ -66,9 +66,7 @@ class TestStatsCommand:
 
     def test_stats_default_output(self, mock_stats: GlobalStatistics) -> None:
         """stats command displays table output by default."""
-        with patch(
-            "adw.cli.global_commands.StatsAggregator"
-        ) as mock_aggregator_class:
+        with patch("adw.cli.global_commands.StatsAggregator") as mock_aggregator_class:
             mock_aggregator = MagicMock()
             mock_aggregator.get_global_stats.return_value = mock_stats
             mock_aggregator_class.return_value = mock_aggregator
@@ -82,9 +80,7 @@ class TestStatsCommand:
 
     def test_stats_project_filter(self, mock_stats: GlobalStatistics) -> None:
         """stats --project filters to specific project."""
-        with patch(
-            "adw.cli.global_commands.StatsAggregator"
-        ) as mock_aggregator_class:
+        with patch("adw.cli.global_commands.StatsAggregator") as mock_aggregator_class:
             mock_aggregator = MagicMock()
             mock_aggregator.get_global_stats.return_value = mock_stats
             mock_aggregator_class.return_value = mock_aggregator
@@ -100,9 +96,7 @@ class TestStatsCommand:
 
     def test_stats_force_flag(self, mock_stats: GlobalStatistics) -> None:
         """stats --force bypasses cache."""
-        with patch(
-            "adw.cli.global_commands.StatsAggregator"
-        ) as mock_aggregator_class:
+        with patch("adw.cli.global_commands.StatsAggregator") as mock_aggregator_class:
             mock_aggregator = MagicMock()
             mock_aggregator.get_global_stats.return_value = mock_stats
             mock_aggregator_class.return_value = mock_aggregator
@@ -118,9 +112,7 @@ class TestStatsCommand:
 
     def test_stats_since_filter(self, mock_stats: GlobalStatistics) -> None:
         """stats --since filters by time period."""
-        with patch(
-            "adw.cli.global_commands.StatsAggregator"
-        ) as mock_aggregator_class:
+        with patch("adw.cli.global_commands.StatsAggregator") as mock_aggregator_class:
             mock_aggregator = MagicMock()
             mock_aggregator.get_global_stats.return_value = mock_stats
             mock_aggregator_class.return_value = mock_aggregator
@@ -149,9 +141,7 @@ class TestStatsCommand:
 
     def test_stats_json_format(self, mock_stats: GlobalStatistics) -> None:
         """stats --format json outputs JSON."""
-        with patch(
-            "adw.cli.global_commands.StatsAggregator"
-        ) as mock_aggregator_class:
+        with patch("adw.cli.global_commands.StatsAggregator") as mock_aggregator_class:
             mock_aggregator = MagicMock()
             mock_aggregator.get_global_stats.return_value = mock_stats
             mock_aggregator_class.return_value = mock_aggregator
@@ -166,9 +156,7 @@ class TestStatsCommand:
 
     def test_stats_json_includes_all_fields(self, mock_stats: GlobalStatistics) -> None:
         """JSON output includes all expected fields."""
-        with patch(
-            "adw.cli.global_commands.StatsAggregator"
-        ) as mock_aggregator_class:
+        with patch("adw.cli.global_commands.StatsAggregator") as mock_aggregator_class:
             mock_aggregator = MagicMock()
             mock_aggregator.get_global_stats.return_value = mock_stats
             mock_aggregator_class.return_value = mock_aggregator
@@ -190,9 +178,7 @@ class TestStatsCommand:
         """stats command handles empty statistics gracefully."""
         empty_stats = GlobalStatistics(generated_at=datetime.now(UTC))
 
-        with patch(
-            "adw.cli.global_commands.StatsAggregator"
-        ) as mock_aggregator_class:
+        with patch("adw.cli.global_commands.StatsAggregator") as mock_aggregator_class:
             mock_aggregator = MagicMock()
             mock_aggregator.get_global_stats.return_value = empty_stats
             mock_aggregator_class.return_value = mock_aggregator
@@ -205,9 +191,7 @@ class TestStatsCommand:
 
     def test_stats_combined_filters(self, mock_stats: GlobalStatistics) -> None:
         """stats command accepts multiple filters together."""
-        with patch(
-            "adw.cli.global_commands.StatsAggregator"
-        ) as mock_aggregator_class:
+        with patch("adw.cli.global_commands.StatsAggregator") as mock_aggregator_class:
             mock_aggregator = MagicMock()
             mock_aggregator.get_global_stats.return_value = mock_stats
             mock_aggregator_class.return_value = mock_aggregator

@@ -215,7 +215,11 @@ def _prompt_language(console: Console, detected: str) -> str:
             idx = int(selection)
             if 1 <= idx <= len(display_languages):
                 return display_languages[idx - 1]
-            console.print(f"[yellow]Invalid number. Use 1-{len(display_languages)} or type a name.[/]")
+            console.print(
+                f"[yellow]Invalid number."
+                f" Use 1-{len(display_languages)}"
+                " or type a name.[/]"
+            )
             continue
 
         # Accept as custom language
@@ -260,7 +264,11 @@ def _prompt_platform(console: Console) -> str:
             idx = int(selection)
             if 1 <= idx <= len(display_platforms):
                 return display_platforms[idx - 1]
-            console.print(f"[yellow]Invalid number. Use 1-{len(display_platforms)} or type a name.[/]")
+            console.print(
+                f"[yellow]Invalid number."
+                f" Use 1-{len(display_platforms)}"
+                " or type a name.[/]"
+            )
             continue
 
         # Accept as custom platform

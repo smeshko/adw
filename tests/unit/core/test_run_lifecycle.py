@@ -1054,9 +1054,7 @@ class TestFetchBaseBranch:
         )
 
         with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=1, stderr="Connection refused"
-            )
+            mock_run.return_value = MagicMock(returncode=1, stderr="Connection refused")
 
             with pytest.raises(WorktreeError) as exc_info:
                 lifecycle._fetch_base_branch()
@@ -1159,9 +1157,7 @@ class TestCreateWorktreeForRunFetch:
         )
 
         with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=128, stderr="fatal: no remote"
-            )
+            mock_run.return_value = MagicMock(returncode=128, stderr="fatal: no remote")
 
             with pytest.raises(WorktreeError) as exc_info:
                 lifecycle._create_worktree_for_run("RUN123", "test feature")

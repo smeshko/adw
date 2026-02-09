@@ -54,6 +54,13 @@ from adw.cli.wizard.global_registry import (
     GlobalRegistryStepHandler,
     run_global_registry_step,
 )
+from adw.cli.wizard.navigation import (
+    NavigationError,
+    NavigationSignal,
+    check_navigation,
+    nav_confirm_ask,
+    nav_prompt_ask,
+)
 from adw.cli.wizard.phases import (
     PhasesStepHandler,
     run_phases_step,
@@ -102,13 +109,6 @@ from adw.cli.wizard.task_manager import (
 from adw.cli.wizard.webhooks import (
     WebhooksStepHandler,
     run_webhooks_step,
-)
-from adw.cli.wizard.navigation import (
-    NavigationError,
-    NavigationSignal,
-    check_navigation,
-    nav_confirm_ask,
-    nav_prompt_ask,
 )
 
 __all__ = [

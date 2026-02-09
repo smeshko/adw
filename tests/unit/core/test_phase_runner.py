@@ -606,7 +606,6 @@ class TestPhaseRunnerGitDiffCapture:
             hook_runner=mock_hook_runner,
             executor=mock_executor,
             artifact_manager=mock_artifact_manager,
-
             extension_registry=extension_registry,
         )
 
@@ -1635,7 +1634,6 @@ class TestMergeConfigsWithProject:
             "arch": "bundled/arch.md",
         }
 
-
     def test_merge_llm_project_overrides_command(
         self,
         mock_command_resolver: MagicMock,
@@ -1682,9 +1680,7 @@ class TestMergeConfigsWithProject:
         cmd_dir = tmp_path / ".adw" / "commands" / "plan"
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "prompt.md").write_text("Test prompt")
-        (cmd_dir / "config.yaml").write_text(
-            "llm:\n  model: claude-3-opus\n"
-        )
+        (cmd_dir / "config.yaml").write_text("llm:\n  model: claude-3-opus\n")
 
         resolver = MagicMock(spec=CommandResolver)
         resolver.project_root = tmp_path
@@ -1903,9 +1899,7 @@ class TestShipCommandFlatVariables:
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "prompt.md").write_text("Ship prompt")
         (cmd_dir / "config.yaml").write_text(
-            "commands:\n"
-            "  version_bump: npm version patch\n"
-            "  publish: npm publish\n"
+            "commands:\n  version_bump: npm version patch\n  publish: npm publish\n"
         )
 
         resolver = MagicMock(spec=CommandResolver)

@@ -287,13 +287,9 @@ See run logs for details.
             items: list[str] = []
             for phase, names in artifacts_by_phase.items():
                 if names:
-                    items.append(
-                        f"- **{phase}**: {', '.join(f'`{n}`' for n in names)}"
-                    )
+                    items.append(f"- **{phase}**: {', '.join(f'`{n}`' for n in names)}")
             if items:
-                artifacts_section = (
-                    "\n**Artifacts:**\n" + "\n".join(items) + "\n"
-                )
+                artifacts_section = "\n**Artifacts:**\n" + "\n".join(items) + "\n"
 
         return f"""**✓ ADW Run Complete**
 

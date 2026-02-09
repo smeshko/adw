@@ -119,5 +119,3 @@ def _prompt_deployment_commands(console: Console) -> dict[str, str]:
         commands["publish"] = publish
 
     return commands
-
-

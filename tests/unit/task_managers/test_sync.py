@@ -402,7 +402,9 @@ class TestStatusSyncServiceComments:
             tokens_used=12000,
             tool_calls=[
                 ToolCall(tool_name="write_file", arguments={"path": "src/main.py"}),
-                ToolCall(tool_name="write_file", arguments={"path": "tests/test_main.py"}),
+                ToolCall(
+                    tool_name="write_file", arguments={"path": "tests/test_main.py"}
+                ),
             ],
         )
 
@@ -596,6 +598,7 @@ class TestStatusSyncServiceComments:
 
         mock_task_manager.post_comment.assert_not_called()
 
+
 class TestStatusSyncServiceRunStartedComment:
     """Tests for post_run_started_comment."""
 
@@ -684,13 +687,12 @@ class TestStatusSyncServiceRunStartedComment:
         context_with_task: RunContext,
     ) -> None:
         """post_run_started_comment is no-op when sync_comments is False."""
-        config = TaskManagerConfig(
-            type="linear", team_key="RULE", sync_comments=False
-        )
+        config = TaskManagerConfig(type="linear", team_key="RULE", sync_comments=False)
         service = StatusSyncService(mock_task_manager, config)
         service.post_run_started_comment(context_with_task)
 
         mock_task_manager.post_comment.assert_not_called()
+
 
 class TestStatusSyncServiceTaskInfo:
     """Tests for ISS-039: StatusSyncService task_info storage and usage."""

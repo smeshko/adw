@@ -350,7 +350,12 @@ class TestYAMLGeneratorRetryKeys:
                     llm_lines.append("  " + line[4:])
                 else:
                     llm_lines.append(line)
-            elif in_llm and line and not line.startswith(" ") and not line.startswith("#"):
+            elif (
+                in_llm
+                and line
+                and not line.startswith(" ")
+                and not line.startswith("#")
+            ):
                 break
 
         llm_yaml = "\n".join(llm_lines)
@@ -379,9 +384,7 @@ class TestGitFieldEmission:
         """Create generator fixture."""
         return YAMLWithComments(registry)
 
-    def test_skip_hooks_true_emitted_active(
-        self, generator: YAMLWithComments
-    ) -> None:
+    def test_skip_hooks_true_emitted_active(self, generator: YAMLWithComments) -> None:
         """Test skip_hooks=True is emitted as active YAML."""
         state = MockWizardState(
             {"git": {"git_branch_prefix": "feature/", "git_skip_hooks": True}}
@@ -402,9 +405,7 @@ class TestGitFieldEmission:
 
         assert "  # skip_hooks: false" in yaml_content
 
-    def test_base_branch_set_emitted_active(
-        self, generator: YAMLWithComments
-    ) -> None:
+    def test_base_branch_set_emitted_active(self, generator: YAMLWithComments) -> None:
         """Test base_branch with value is emitted as active YAML."""
         state = MockWizardState(
             {"git": {"git_branch_prefix": "feature/", "git_base_branch": "develop"}}
@@ -469,16 +470,12 @@ class TestTaskManagerFieldEmission:
         self, generator: YAMLWithComments
     ) -> None:
         """Test default state_mapping is emitted as commented YAML."""
-        state = MockWizardState(
-            {"task_manager": {"enabled": True, "type": "linear"}}
-        )
+        state = MockWizardState({"task_manager": {"enabled": True, "type": "linear"}})
         yaml_content = generator.generate_project_yaml(state)
 
         assert "  # state_mapping:" in yaml_content
 
-    def test_custom_labels_emitted_active(
-        self, generator: YAMLWithComments
-    ) -> None:
+    def test_custom_labels_emitted_active(self, generator: YAMLWithComments) -> None:
         """Test custom labels config emits active YAML."""
         state = MockWizardState(
             {
@@ -500,9 +497,7 @@ class TestTaskManagerFieldEmission:
         self, generator: YAMLWithComments
     ) -> None:
         """Test default labels config is emitted as commented YAML."""
-        state = MockWizardState(
-            {"task_manager": {"enabled": True, "type": "linear"}}
-        )
+        state = MockWizardState({"task_manager": {"enabled": True, "type": "linear"}})
         yaml_content = generator.generate_project_yaml(state)
 
         assert "  # labels:" in yaml_content
@@ -639,9 +634,7 @@ class TestDocumentPhaseEmission:
         """Create generator fixture."""
         return YAMLWithComments(registry)
 
-    def test_doc_mappings_emitted_as_list(
-        self, generator: YAMLWithComments
-    ) -> None:
+    def test_doc_mappings_emitted_as_list(self, generator: YAMLWithComments) -> None:
         """Test doc_mappings emits YAML list items."""
         content = generator.generate_phase_yaml(
             "document",
@@ -654,9 +647,9 @@ class TestDocumentPhaseEmission:
         )
 
         assert "doc_mappings:" in content
-        assert '  - source_pattern: src/**/*.py' in content
+        assert "  - source_pattern: src/**/*.py" in content
         assert "    docs_dir: docs/api" in content
-        assert '  - source_pattern: lib/**/*.ts' in content
+        assert "  - source_pattern: lib/**/*.ts" in content
         assert "    docs_dir: docs/lib" in content
 
     def test_doc_mappings_default_emitted_as_comment(

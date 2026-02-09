@@ -247,17 +247,14 @@ class StatsAggregator:
         durations = []
         for e in entries:
             if e.status == "completed" and e.completed_at:
-                duration_ms = int((e.completed_at - e.started_at).total_seconds() * 1000)
+                elapsed = e.completed_at - e.started_at
+                duration_ms = int(elapsed.total_seconds() * 1000)
                 durations.append(duration_ms)
 
-        average_duration_ms = (
-            int(sum(durations) / len(durations)) if durations else 0
-        )
+        average_duration_ms = int(sum(durations) / len(durations)) if durations else 0
 
         # Build lookup of registered project names
-        registered_names = {
-            p.path: p.name for p in registered_projects
-        }
+        registered_names = {p.path: p.name for p in registered_projects}
 
         # Collect token usage from LLM files
         total_tokens = TokenUsage()

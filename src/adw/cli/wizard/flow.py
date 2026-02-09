@@ -188,13 +188,9 @@ class WizardFlowController:
                         # Go back to previous step if possible
                         if self.current_index > 0:
                             self.current_index -= 1
-                            self.console.print(
-                                "[dim]Going back to previous step...[/]"
-                            )
+                            self.console.print("[dim]Going back to previous step...[/]")
                         else:
-                            self.console.print(
-                                "[yellow]Already at the first step.[/]"
-                            )
+                            self.console.print("[yellow]Already at the first step.[/]")
                     elif nav_err.signal == NavigationSignal.CANCEL:
                         self.console.print("[yellow]Wizard cancelled.[/]")
                         return False

@@ -31,6 +31,11 @@ def temp_index(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> IndexManager:
     """Create a temporary index for testing."""
     index_path = tmp_path / "test-index.jsonl"
     monkeypatch.setenv("ADW_TEST_INDEX_PATH", str(index_path))
+    # Use empty temp registry so stats aggregator doesn't filter
+    # test entries against real registered projects
+    monkeypatch.setenv("ADW_TEST_REGISTRY_PATH", str(tmp_path / "test-projects.yaml"))
+    # Use temp stats cache to avoid stale cached results
+    monkeypatch.setenv("ADW_TEST_STATS_CACHE_PATH", str(tmp_path / "stats-cache.json"))
     return IndexManager(index_path=index_path)
 
 
@@ -483,9 +488,7 @@ class TestDashboardIndexClamping:
         controller.state.show_run_detail = True
 
         # Empty refresh
-        with patch.object(
-            controller.index_manager, "get_recent_runs", return_value=[]
-        ):
+        with patch.object(controller.index_manager, "get_recent_runs", return_value=[]):
             controller.refresh_data()
 
         # Detail view should be disabled

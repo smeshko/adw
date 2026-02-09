@@ -136,9 +136,7 @@ class TestNavPromptAsk:
         console = Console(force_terminal=True)
 
         with patch("adw.cli.wizard.navigation.Prompt.ask", return_value="opt1") as mock:
-            nav_prompt_ask(
-                "Question", console=console, choices=["opt1", "opt2"]
-            )
+            nav_prompt_ask("Question", console=console, choices=["opt1", "opt2"])
             mock.assert_called_once()
             assert mock.call_args.kwargs["choices"] == ["opt1", "opt2"]
 

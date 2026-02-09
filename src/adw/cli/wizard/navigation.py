@@ -12,7 +12,7 @@ from enum import Enum
 from typing import Any
 
 from rich.console import Console
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Prompt
 
 
 class NavigationSignal(Enum):
@@ -84,13 +84,13 @@ def nav_prompt_ask(
     prompt_kwargs: dict[str, Any] = {**kwargs}
     if console is not None:
         prompt_kwargs["console"] = console
-    if default is not ...:
+    if default is not ...:  # type: ignore[comparison-overlap]
         prompt_kwargs["default"] = default
     if choices is not None:
         prompt_kwargs["choices"] = choices
         prompt_kwargs["show_choices"] = show_choices
 
-    result = Prompt.ask(question, **prompt_kwargs)
+    result: str = Prompt.ask(question, **prompt_kwargs)
 
     # Check for navigation commands
     nav = check_navigation(result)

@@ -30,6 +30,7 @@ DEFAULT_TIMEOUTS: dict[str, int] = {
     "ship": 1200,  # 20 minutes
 }
 
+
 class PhasesStepHandler:
     """Handler for the phases configuration wizard step.
 
@@ -341,8 +342,9 @@ def _prompt_doc_mappings(console: Console) -> list[dict[str, str]]:
 def _prompt_model_for_phase(phase: str, console: Console) -> str | None:
     """Prompt for phase-specific model selection.
 
-    Shows a numbered list of model options with descriptions and phase-specific defaults.
-    Accepts numeric selection, direct model name, or empty input for default.
+    Shows a numbered list of model options with descriptions
+    and phase-specific defaults. Accepts numeric selection,
+    direct model name, or empty input for default.
 
     Args:
         phase: Phase name (e.g., "plan", "build").
@@ -374,7 +376,7 @@ def _prompt_model_for_phase(phase: str, console: Console) -> str | None:
     console.print(f"[dim]LLM Model for {phase} phase:[/]")
     for i, model in enumerate(models, 1):
         desc = model_descriptions[model]
-        default_marker = f" [cyan](default)[/]" if model == default else ""
+        default_marker = " [cyan](default)[/]" if model == default else ""
         console.print(f"  [cyan]{i}[/]. {model:7} - {desc}{default_marker}")
     console.print()
 
@@ -395,7 +397,9 @@ def _prompt_model_for_phase(phase: str, console: Console) -> str | None:
             idx = int(selection)
             if 1 <= idx <= len(models):
                 return models[idx - 1]
-            console.print(f"[yellow]Invalid number. Use 1-{len(models)} or type a model name.[/]")
+            console.print(
+                f"[yellow]Invalid number. Use 1-{len(models)} or type a model name.[/]"
+            )
             continue
 
         # Accept direct model name (case insensitive)

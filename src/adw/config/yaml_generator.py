@@ -219,8 +219,10 @@ class YAMLWithComments:
             lines.append("  # timeout_seconds: 300  # Max execution time")
             lines.append("  retry:")
             lines.append(f"    max_retries: {llm_retry.get('retry_max_retries', 3)}")
-            lines.append(f"    base_delay_seconds: {llm_retry.get('retry_base_delay', 1.0)}")
-            lines.append(f"    max_delay_seconds: {llm_retry.get('retry_max_delay', 60.0)}")
+            base_delay = llm_retry.get("retry_base_delay", 1.0)
+            lines.append(f"    base_delay_seconds: {base_delay}")
+            max_delay = llm_retry.get("retry_max_delay", 60.0)
+            lines.append(f"    max_delay_seconds: {max_delay}")
             lines.append(f"    multiplier: {llm_retry.get('retry_multiplier', 2.0)}")
         else:
             lines.append("# llm:")
@@ -302,9 +304,7 @@ class YAMLWithComments:
             if state_mapping and state_mapping != _DEFAULT_STATE_MAPPING:
                 lines.append("  state_mapping:")
                 for phase_name, state_value in state_mapping.items():
-                    lines.append(
-                        f"    {phase_name}: {_format_yaml_value(state_value)}"
-                    )
+                    lines.append(f"    {phase_name}: {_format_yaml_value(state_value)}")
             else:
                 lines.append("  # state_mapping:")
                 for phase_name, state_value in _DEFAULT_STATE_MAPPING.items():
@@ -317,12 +317,8 @@ class YAMLWithComments:
             label_prefix = task_manager.get("label_prefix", "adw:")
             if labels_enabled is not True or label_prefix != "adw:":
                 lines.append("  labels:")
-                lines.append(
-                    f"    enabled: {_format_yaml_value(labels_enabled)}"
-                )
-                lines.append(
-                    f"    prefix: {_format_yaml_value(label_prefix)}"
-                )
+                lines.append(f"    enabled: {_format_yaml_value(labels_enabled)}")
+                lines.append(f"    prefix: {_format_yaml_value(label_prefix)}")
             else:
                 lines.append("  # labels:")
                 lines.append("  #   enabled: true  # Enable label management")
@@ -335,16 +331,12 @@ class YAMLWithComments:
             lines.append("#   auto_close: false  # Close task when PR merged")
             lines.append("#   state_mapping:")
             for phase_name, state_value in _DEFAULT_STATE_MAPPING.items():
-                lines.append(
-                    f"#     {phase_name}: {_format_yaml_value(state_value)}"
-                )
+                lines.append(f"#     {phase_name}: {_format_yaml_value(state_value)}")
             lines.append("#   labels:")
             lines.append("#     enabled: true  # Enable label management")
             lines.append('#     prefix: "adw:"  # Prefix for ADW-managed labels')
 
-    def _add_webhook_section(
-        self, lines: list[str], webhooks: dict[str, Any]
-    ) -> None:
+    def _add_webhook_section(self, lines: list[str], webhooks: dict[str, Any]) -> None:
         """Add webhook server section.
 
         Args:
@@ -372,9 +364,8 @@ class YAMLWithComments:
                         # command_prefix
                         cmd_prefix = pcfg.get("command_prefix", "/adw")
                         if cmd_prefix != "/adw":
-                            lines.append(
-                                f"      command_prefix: {_format_yaml_value(cmd_prefix)}"
-                            )
+                            val = _format_yaml_value(cmd_prefix)
+                            lines.append(f"      command_prefix: {val}")
                         else:
                             lines.append(
                                 '      # command_prefix: "/adw"  # Command prefix'
@@ -387,9 +378,7 @@ class YAMLWithComments:
                                 f"      trigger_label: {_format_yaml_value(trig_label)}"
                             )
                         else:
-                            lines.append(
-                                "      # trigger_label: adw  # Trigger label"
-                            )
+                            lines.append("      # trigger_label: adw  # Trigger label")
 
             # Mappings
             mappings = webhooks.get("mappings")
@@ -474,8 +463,10 @@ class YAMLWithComments:
             lines.append(f"  model: {llm_model}")
         else:
             lines.append("# llm:")
-            lines.append("#   model: null  # Options: opus (most capable), sonnet (balanced), haiku (fastest)")
-            lines.append("#                # Defaults: plan/validate→opus, build/ship→sonnet, document→haiku")
+            lines.append("#   model: null  # Options: opus, sonnet, haiku")
+            lines.append(
+                "#   # Defaults: plan/validate→opus, build/ship→sonnet, document→haiku"
+            )
 
         lines.append("")
 

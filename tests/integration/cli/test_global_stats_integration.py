@@ -109,6 +109,7 @@ def _create_mock_aggregator_class(test_env: dict):
     This creates a class-like callable that, when instantiated,
     returns a properly configured StatsAggregator instance.
     """
+
     class MockStatsAggregator:
         """Mock aggregator that uses test environment paths."""
 
@@ -136,7 +137,9 @@ def _create_mock_aggregator_class(test_env: dict):
     return MockStatsAggregator
 
 
-def register_project(test_env: dict, project_path: Path, name: str | None = None) -> None:
+def register_project(
+    test_env: dict, project_path: Path, name: str | None = None
+) -> None:
     """Register a project in the test registry."""
     registry = ProjectRegistryManager(registry_path=test_env["registry_path"])
     registry.register(project_path, name=name)
@@ -150,7 +153,10 @@ class TestStatsIntegration:
         # Create empty index file
         test_env["index_path"].write_text("")
 
-        with patch("adw.cli.global_commands.StatsAggregator", _create_mock_aggregator_class(test_env)):
+        with patch(
+            "adw.cli.global_commands.StatsAggregator",
+            _create_mock_aggregator_class(test_env),
+        ):
             result = runner.invoke(global_app, ["stats"])
 
         assert result.exit_code == 0
@@ -202,7 +208,10 @@ class TestStatsIntegration:
             create_llm_response_file(run_dir, "plan", 1000, 500)
             create_llm_response_file(run_dir, "build", 2000, 1000)
 
-        with patch("adw.cli.global_commands.StatsAggregator", _create_mock_aggregator_class(test_env)):
+        with patch(
+            "adw.cli.global_commands.StatsAggregator",
+            _create_mock_aggregator_class(test_env),
+        ):
             result = runner.invoke(global_app, ["stats"])
 
         assert result.exit_code == 0
@@ -224,9 +233,15 @@ class TestStatsIntegration:
 
         now = datetime.now(UTC)
         entries = [
-            create_index_entry("01ABC001", "project-a", str(project_a), "completed", now),
-            create_index_entry("01ABC002", "project-a", str(project_a), "completed", now),
-            create_index_entry("01ABC003", "project-b", str(project_b), "completed", now),
+            create_index_entry(
+                "01ABC001", "project-a", str(project_a), "completed", now
+            ),
+            create_index_entry(
+                "01ABC002", "project-a", str(project_a), "completed", now
+            ),
+            create_index_entry(
+                "01ABC003", "project-b", str(project_b), "completed", now
+            ),
         ]
 
         with open(test_env["index_path"], "w") as f:
@@ -234,7 +249,10 @@ class TestStatsIntegration:
                 f.write(json.dumps(entry) + "\n")
 
         # Filter to project-a only
-        with patch("adw.cli.global_commands.StatsAggregator", _create_mock_aggregator_class(test_env)):
+        with patch(
+            "adw.cli.global_commands.StatsAggregator",
+            _create_mock_aggregator_class(test_env),
+        ):
             result = runner.invoke(global_app, ["stats", "--project", "project-a"])
 
         assert result.exit_code == 0
@@ -261,7 +279,10 @@ class TestStatsIntegration:
         with open(test_env["index_path"], "w") as f:
             f.write(json.dumps(entry) + "\n")
 
-        with patch("adw.cli.global_commands.StatsAggregator", _create_mock_aggregator_class(test_env)):
+        with patch(
+            "adw.cli.global_commands.StatsAggregator",
+            _create_mock_aggregator_class(test_env),
+        ):
             result = runner.invoke(global_app, ["stats", "--format", "json"])
 
         assert result.exit_code == 0
@@ -279,7 +300,10 @@ class TestStatsIntegration:
         # Ensure no cache exists
         assert not test_env["cache_path"].exists()
 
-        with patch("adw.cli.global_commands.StatsAggregator", _create_mock_aggregator_class(test_env)):
+        with patch(
+            "adw.cli.global_commands.StatsAggregator",
+            _create_mock_aggregator_class(test_env),
+        ):
             result = runner.invoke(global_app, ["stats"])
 
         assert result.exit_code == 0
@@ -307,7 +331,10 @@ class TestStatsIntegration:
             json.dump(cache_data, f)
 
         # With force, should recalculate (0 runs from empty index)
-        with patch("adw.cli.global_commands.StatsAggregator", _create_mock_aggregator_class(test_env)):
+        with patch(
+            "adw.cli.global_commands.StatsAggregator",
+            _create_mock_aggregator_class(test_env),
+        ):
             result = runner.invoke(global_app, ["stats", "--format", "json", "--force"])
 
         output = json.loads(result.stdout)
@@ -334,7 +361,10 @@ class TestStatsIntegration:
             f.write(json.dumps(entry) + "\n")
 
         # No LLM files created - should still work
-        with patch("adw.cli.global_commands.StatsAggregator", _create_mock_aggregator_class(test_env)):
+        with patch(
+            "adw.cli.global_commands.StatsAggregator",
+            _create_mock_aggregator_class(test_env),
+        ):
             result = runner.invoke(global_app, ["stats", "--format", "json"])
 
         assert result.exit_code == 0
@@ -372,7 +402,10 @@ class TestStatsIntegration:
         create_llm_response_file(run_dir, "plan", 1000, 500)
         create_llm_response_file(run_dir, "build", 2000, 1000)
 
-        with patch("adw.cli.global_commands.StatsAggregator", _create_mock_aggregator_class(test_env)):
+        with patch(
+            "adw.cli.global_commands.StatsAggregator",
+            _create_mock_aggregator_class(test_env),
+        ):
             result = runner.invoke(global_app, ["stats", "--format", "json"])
 
         assert result.exit_code == 0
@@ -416,8 +449,13 @@ class TestStatsIntegration:
                 f.write(json.dumps(entry) + "\n")
 
         # Filter to last 7 days
-        with patch("adw.cli.global_commands.StatsAggregator", _create_mock_aggregator_class(test_env)):
-            result = runner.invoke(global_app, ["stats", "--since", "7d", "--format", "json"])
+        with patch(
+            "adw.cli.global_commands.StatsAggregator",
+            _create_mock_aggregator_class(test_env),
+        ):
+            result = runner.invoke(
+                global_app, ["stats", "--since", "7d", "--format", "json"]
+            )
 
         assert result.exit_code == 0
         output = json.loads(result.stdout)
