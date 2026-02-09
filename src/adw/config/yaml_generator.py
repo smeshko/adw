@@ -336,22 +336,6 @@ class YAMLWithComments:
 
         lines.append("")
 
-        # Hooks
-        pre_hook = phase_config.get("pre_hook")
-        post_hook = phase_config.get("post_hook")
-
-        if pre_hook:
-            lines.append(f"pre_hook: {pre_hook}")
-        else:
-            lines.append("# pre_hook: null  # Shell command before phase")
-
-        if post_hook:
-            lines.append(f"post_hook: {post_hook}")
-        else:
-            lines.append("# post_hook: null  # Shell command after phase")
-
-        lines.append("")
-
         # Input files
         input_files = phase_config.get("input_files")
         if input_files:

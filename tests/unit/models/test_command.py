@@ -80,8 +80,6 @@ class TestCommandConfig:
             timeout_seconds=600,
             input_files={"prd": "docs/prd.md"},
             llm=PhaseLLMConfig(model="claude-3-opus", temperature=0.7),
-            pre_hook="echo 'start'",
-            post_hook="echo 'done'",
         )
         assert config.timeout_seconds == 600
         assert config.input_files == {"prd": "docs/prd.md"}

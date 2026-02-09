@@ -55,9 +55,6 @@ class CommandConfig(BaseModel):
         input_files: Mapping of variable names to file paths for template injection.
             Files are loaded at phase start and available as {{ inputs.name }}.
         llm: Phase-specific LLM settings (model, temperature).
-        pre_hook: Default pre-execution shell command.
-        post_hook: Default post-execution shell command.
-
     Example:
         >>> config = CommandConfig(
         ...     enabled=True,
@@ -77,9 +74,6 @@ class CommandConfig(BaseModel):
         llm:
           model: claude-3-opus
           temperature: 0.7
-        pre_hook: echo "Starting plan phase"
-        post_hook: echo "Plan phase complete"
-
     Merging behavior:
         When merged with project's PhaseConfig, project settings override command
         defaults. For dictionaries (input_files), values are merged with project
@@ -104,14 +98,6 @@ class CommandConfig(BaseModel):
     llm: PhaseLLMConfig | None = Field(
         default=None,
         description="Phase-specific LLM settings",
-    )
-    pre_hook: str | None = Field(
-        default=None,
-        description="Default pre-execution shell command",
-    )
-    post_hook: str | None = Field(
-        default=None,
-        description="Default post-execution shell command",
     )
 
 

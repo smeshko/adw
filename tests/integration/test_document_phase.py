@@ -607,7 +607,6 @@ input_files:
 doc_mappings:
   - source_pattern: "src/**/*.py"
     docs_dir: "docs/src"
-pre_hook: echo "Starting document phase"
 """
         )
 
@@ -627,7 +626,6 @@ pre_hook: echo "Starting document phase"
         assert loaded.config.enabled is True
         assert loaded.config.timeout_seconds == 900
         assert loaded.config.input_files == {"prd": "docs/prd.md"}
-        assert loaded.config.pre_hook == 'echo "Starting document phase"'
 
         # Verify doc_mappings specific field
         assert loaded.config.doc_mappings is not None

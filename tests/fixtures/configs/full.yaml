@@ -19,8 +19,6 @@ phases:
       architecture: docs/architecture.md
   build:
     enabled: true
-    pre_hook: "echo 'Starting build'"
-    post_hook: "echo 'Build complete'"
 
 hooks:
   shell: /bin/bash

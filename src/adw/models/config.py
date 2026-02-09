@@ -99,8 +99,6 @@ class PhaseConfig(BaseModel):
     Attributes:
         enabled: Whether this phase is enabled
         timeout_seconds: Phase-specific timeout override
-        pre_hook: Shell command to run before phase
-        post_hook: Shell command to run after phase
         input_files: Optional mapping of variable names to file paths for template
             injection. Files are loaded at phase start and made available as
             {{ inputs.name }} in prompt templates.
@@ -124,12 +122,6 @@ class PhaseConfig(BaseModel):
     enabled: bool = Field(default=True, description="Whether this phase is enabled")
     timeout_seconds: int | None = Field(
         default=None, description="Phase-specific timeout override"
-    )
-    pre_hook: str | None = Field(
-        default=None, description="Shell command to run before phase"
-    )
-    post_hook: str | None = Field(
-        default=None, description="Shell command to run after phase"
     )
     input_files: dict[str, str] | None = Field(
         default=None,
