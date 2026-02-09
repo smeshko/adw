@@ -1894,3 +1894,194 @@ class TestPhaseEnabledWithProjectConfig:
         # Phase should STILL be disabled (command config says false,
         # project config doesn't explicitly override enabled)
         assert runner.is_phase_enabled("build") is False
+
+
+class TestShipCommandFlatVariables:
+    """Tests for ship command flat template variable injection (Phase 1)."""
+
+    def test_ship_config_injects_flat_version_bump_command(
+        self,
+        tmp_path: Path,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+    ) -> None:
+        """version_bump_command appears as flat key when ship config has it."""
+        # Create ship command dir with config.yaml
+        cmd_dir = tmp_path / ".adw" / "commands" / "ship"
+        cmd_dir.mkdir(parents=True)
+        (cmd_dir / "prompt.md").write_text("Ship prompt")
+        (cmd_dir / "config.yaml").write_text(
+            "commands:\n"
+            "  version_bump: npm version patch\n"
+            "  publish: npm publish\n"
+        )
+
+        resolver = MagicMock(spec=CommandResolver)
+        resolver.project_root = tmp_path
+        resolved = ResolvedCommand(
+            name="ship",
+            path=cmd_dir,
+            tier="project",
+            has_config=True,
+        )
+        resolver.resolve.return_value = resolved
+
+        from adw.models.config import ProjectConfig
+
+        project_config = ProjectConfig(
+            name="test", language="python", build_command="python -m build"
+        )
+        runner = PhaseRunner(
+            command_resolver=resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+            project_config=project_config,
+        )
+
+        sample_ctx = RunContext(
+            run_id="01HQXH9Z8G2K4M5N6P7R8S9T0V",
+            feature_description="Ship feature",
+            current_phase="ship",
+            started_at=datetime.now(UTC),
+        )
+
+        runner.run("ship", sample_ctx)
+
+        call_args = mock_template_engine.render.call_args
+        variables = call_args[0][1]
+
+        assert variables["version_bump_command"] == "npm version patch"
+        assert variables["publish_command"] == "npm publish"
+        assert variables["build_command"] == "python -m build"
+
+    def test_flat_variables_absent_when_no_ship_config(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_template_engine: MagicMock,
+    ) -> None:
+        """Flat ship variables not set when running non-ship phase."""
+        phase_runner.run("plan", sample_context)
+
+        call_args = mock_template_engine.render.call_args
+        variables = call_args[0][1]
+
+        assert "version_bump_command" not in variables
+        assert "publish_command" not in variables
+
+    def test_test_command_injected_as_flat_variable(
+        self,
+        tmp_path: Path,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: ArtifactManager,
+        command_dir: Path,
+    ) -> None:
+        """test_command from project_config appears as flat variable."""
+        from adw.models.config import ProjectConfig
+
+        project_config = ProjectConfig(
+            name="test", language="python", test_command="pytest"
+        )
+        resolver = MagicMock(spec=CommandResolver)
+        resolver.project_root = tmp_path
+        resolver.resolve.return_value = ResolvedCommand(
+            name="plan", path=command_dir, tier="project"
+        )
+
+        runner = PhaseRunner(
+            command_resolver=resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+            project_config=project_config,
+        )
+
+        sample_ctx = RunContext(
+            run_id="01HQXH9Z8G2K4M5N6P7R8S9T0V",
+            feature_description="Test feature",
+            current_phase="plan",
+            started_at=datetime.now(UTC),
+        )
+        runner.run("plan", sample_ctx)
+
+        call_args = mock_template_engine.render.call_args
+        variables = call_args[0][1]
+        assert variables["test_command"] == "pytest"
+
+
+class TestGitSkipHooksWiring:
+    """Tests for git.skip_hooks wiring through to create_commit (Phase 2)."""
+
+    def test_skip_hooks_true_passed_to_create_commit(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: MagicMock,
+        sample_context: RunContext,
+    ) -> None:
+        """PhaseRunner with git_config=GitConfig(skip_hooks=True) passes skip_hooks=True."""
+        from unittest.mock import patch
+
+        from adw.models.config import GitConfig
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+            git_config=GitConfig(skip_hooks=True),
+        )
+
+        with (
+            patch("adw.core.phase_runner.stage_changes") as mock_stage,
+            patch("adw.core.phase_runner.create_commit") as mock_commit,
+        ):
+            mock_stage.return_value = ["file.py"]
+            mock_commit.return_value = "abc123"
+
+            runner._auto_commit_changes("build", sample_context)
+
+            mock_commit.assert_called_once()
+            assert mock_commit.call_args.kwargs["skip_hooks"] is True
+
+    def test_default_skip_hooks_false(
+        self,
+        mock_command_resolver: MagicMock,
+        mock_template_engine: MagicMock,
+        mock_hook_runner: MagicMock,
+        mock_executor: MagicMock,
+        mock_artifact_manager: MagicMock,
+        sample_context: RunContext,
+    ) -> None:
+        """PhaseRunner without git_config passes skip_hooks=False."""
+        from unittest.mock import patch
+
+        runner = PhaseRunner(
+            command_resolver=mock_command_resolver,
+            template_engine=mock_template_engine,
+            hook_runner=mock_hook_runner,
+            executor=mock_executor,
+            artifact_manager=mock_artifact_manager,
+        )
+
+        with (
+            patch("adw.core.phase_runner.stage_changes") as mock_stage,
+            patch("adw.core.phase_runner.create_commit") as mock_commit,
+        ):
+            mock_stage.return_value = ["file.py"]
+            mock_commit.return_value = "abc123"
+
+            runner._auto_commit_changes("build", sample_context)
+
+            mock_commit.assert_called_once()
+            assert mock_commit.call_args.kwargs["skip_hooks"] is False

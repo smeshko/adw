@@ -40,7 +40,7 @@ from adw.models.command import (
     ShipCommandConfig,
     ValidateCommandConfig,
 )
-from adw.models.config import PhaseConfig, ProjectConfig
+from adw.models.config import GitConfig, PhaseConfig, ProjectConfig
 
 if TYPE_CHECKING:
     from adw.cli.progress import ProgressDisplay
@@ -100,6 +100,7 @@ class PhaseRunner:
         progress_display: "ProgressDisplay | None" = None,
         project_config: ProjectConfig | None = None,
         extension_registry: ExtensionRegistry | None = None,
+        git_config: GitConfig | None = None,
     ) -> None:
         """Initialize the PhaseRunner.
 
@@ -117,6 +118,8 @@ class PhaseRunner:
                 settings like input_files. Optional for backward compatibility.
             extension_registry: Registry for phase extensions. If None, creates
                 an empty registry (no extensions). (Phase Extensions)
+            git_config: Git configuration for skip_hooks, branch_prefix, etc.
+                Optional for backward compatibility.
         """
         self.command_resolver = command_resolver
         self.template_engine = template_engine
@@ -127,6 +130,7 @@ class PhaseRunner:
         self.progress_display = progress_display
         self.project_config = project_config
         self.extension_registry = extension_registry or ExtensionRegistry()
+        self.git_config = git_config
 
     def run(
         self,
@@ -412,6 +416,20 @@ class PhaseRunner:
                 ship_dict["commands"] = {}
             ship_dict["commands"]["build"] = self.project_config.build_command
         variables["ship_config"] = ship_dict
+
+        # Inject flat template variables expected by ship instructions.xml
+        if isinstance(typed_config, ShipCommandConfig):
+            if typed_config.commands.version_bump:
+                variables["version_bump_command"] = typed_config.commands.version_bump
+            if typed_config.commands.publish:
+                variables["publish_command"] = typed_config.commands.publish
+        # build_command as flat variable for template access
+        if self.project_config and self.project_config.build_command:
+            variables["build_command"] = self.project_config.build_command
+        # test_command as flat variable for template access
+        if self.project_config and self.project_config.test_command:
+            variables["test_command"] = self.project_config.test_command
+
         variables["doc_mappings"] = (
             [m.model_dump() for m in typed_config.doc_mappings]
             if isinstance(typed_config, DocumentCommandConfig)
@@ -1177,6 +1195,7 @@ class PhaseRunner:
                 phase=phase,
                 feature=context.feature_description,
                 run_id=context.run_id,
+                skip_hooks=self.git_config.skip_hooks if self.git_config else False,
                 working_dir=context.worktree_path,
                 expected_branch=context.branch_name,
             )
