@@ -229,9 +229,9 @@
   <p class="subtitle">Setting-by-setting analysis across models, init wizard, YAML generator &amp; runtime</p>
   <p class="date">Updated 2026-02-09 &middot; adw-final &middot; branch: refactoring/remove-hook-config-strings &middot; commit: 9416217 + uncommitted</p>
   <div class="stats-bar">
-    <div class="stat-card blue"><div class="num">52</div><div class="label">Total Fields</div></div>
+    <div class="stat-card blue"><div class="num">51</div><div class="label">Total Fields</div></div>
     <div class="stat-card green"><div class="num">51</div><div class="label">Used at Runtime</div></div>
-    <div class="stat-card cyan"><div class="num">1</div><div class="label">Template Only</div></div>
+    <div class="stat-card cyan"><div class="num">0</div><div class="label">Template Only</div></div>
     <div class="stat-card yellow"><div class="num">0</div><div class="label">Partial Use</div></div>
     <div class="stat-card red"><div class="num">0</div><div class="label">Unused</div></div>
     <div class="stat-card orange"><div class="num">0</div><div class="label">Disconnect</div></div>
@@ -514,12 +514,11 @@
       <tr data-runtime="used" data-wizard="yes"><td>commands.publish</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">None</td><td class="notes"><code>phase_runner.py:416-417</code> &mdash; Injected as <code>{{publish_command}}</code> flat variable. Wired in PR #161.</td></tr>
     </tbody></table>
 
-    <p class="subsection-title">post_publish &amp; bypass_ci</p>
+    <p class="subsection-title">bypass_ci</p>
     <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
-      <tr data-runtime="template" data-wizard="yes"><td>post_publish</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">[]</td><td class="notes">Available via <code>{{ship_config.post_publish}}</code> in template (<code>model_dump</code> injection).</td></tr>
       <tr data-runtime="used" data-wizard="no"><td>bypass_ci</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">true</td><td class="notes"><code>extensions/ship.py:160</code> &mdash; Exposed as <code>ADW_SHIP_BYPASS_CI</code> env var for <code>post.sh</code>. Requires admin access. Default changed to <code>true</code> in this branch.</td></tr>
     </tbody></table>
-    <p class="removed-note">Removed in this branch: <s>ShipPRConfig</s> class with <s>pr.merge_on_success</s>, <s>pr.delete_branch_on_merge</s>, <s>pr.merge_method</s> (post.sh now always uses squash + delete-branch; merge is LLM-approved). <s>pr.bypass_ci</s> moved to flat <code>bypass_ci</code> field on ShipCommandConfig with default <code>true</code>.</p>
+    <p class="removed-note">Removed in this branch: <s>ShipPRConfig</s> class with <s>pr.merge_on_success</s>, <s>pr.delete_branch_on_merge</s>, <s>pr.merge_method</s> (post.sh now always uses squash + delete-branch; merge is LLM-approved). <s>pr.bypass_ci</s> moved to flat <code>bypass_ci</code> field on ShipCommandConfig with default <code>true</code>. <s>post_publish</s> removed (was TEMPLATE only &mdash; never consumed by any prompt template; superseded by <code>post.sh</code> hook).</p>
   </div>
 </div>
 
@@ -575,6 +574,7 @@
           <li>triage_mode, auto_dismiss_info &rarr; removed (were TEMPLATE only)</li>
           <li>enable_evidence, enable_review, enable_tests, max_iterations, max_fix_attempts_per_issue, stall_threshold &rarr; removed (were TEMPLATE only, no template consumed them)</li>
           <li>ShipPRConfig (4 fields) &rarr; removed, simplified to flat bypass_ci</li>
+          <li>post_publish &rarr; removed (was TEMPLATE only, never consumed; superseded by post.sh)</li>
           <li>pre_hook, post_hook (strings) &rarr; removed (runtime uses file-based hooks)</li>
         </ul>
       </div>

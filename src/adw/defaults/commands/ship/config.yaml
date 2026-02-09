@@ -12,12 +12,6 @@ timeout_seconds: 900
 #   version_bump: npm version patch  # Command to bump version
 #   publish: npm publish             # Command to publish/deploy
 
-# === Post-Publish Hooks ===
-# Commands to run after publishing (e.g., push tags)
-# post_publish:
-#   - git push --tags
-#   - echo "Deployed successfully!"
-
 # === CI Bypass ===
 # Bypass CI checks using --admin flag when merging PR (requires admin access)
 # bypass_ci: true

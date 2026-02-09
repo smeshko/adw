@@ -229,21 +229,16 @@ def generate_summary_panel(state: WizardState) -> Panel:
         lines.append("[dim]Phases:[/] Default")
 
     # Ship section
-    # Ship step returns: enabled, commands (dict), post_publish (list), pr (dict)
+    # Ship step returns: enabled, commands (dict), pr (dict)
     ship_commands = ship.get("commands", {})
-    ship_post_publish = ship.get("post_publish", [])
     ship_pr = ship.get("pr", {})
-    has_ship_config = (
-        ship_commands or ship_post_publish or ship_pr.get("merge_on_success")
-    )
+    has_ship_config = ship_commands or ship_pr.get("merge_on_success")
 
     if has_ship_config:
         parts = []
         if ship_commands:
             cmd_names = list(ship_commands.keys())
             parts.append(", ".join(cmd_names))
-        if ship_post_publish:
-            parts.append(f"{len(ship_post_publish)} hook(s)")
         if ship_pr.get("merge_on_success"):
             merge_method = ship_pr.get("merge_method", "squash")
             delete_on_merge = ship_pr.get("delete_branch_on_merge", True)
