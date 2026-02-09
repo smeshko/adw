@@ -558,10 +558,6 @@ class PhaseRunner:
                 merged_data["timeout_seconds"] = command_config.timeout_seconds
             if command_config.input_files is not None:
                 merged_data["input_files"] = dict(command_config.input_files)
-            if command_config.pre_hook is not None:
-                merged_data["pre_hook"] = command_config.pre_hook
-            if command_config.post_hook is not None:
-                merged_data["post_hook"] = command_config.post_hook
             if command_config.llm is not None:
                 merged_data["llm"] = command_config.llm
 
@@ -605,10 +601,6 @@ class PhaseRunner:
                 merged_data["timeout_seconds"] = command_config.timeout_seconds
             if command_config.input_files is not None:
                 merged_data["input_files"] = dict(command_config.input_files)
-            if command_config.pre_hook is not None:
-                merged_data["pre_hook"] = command_config.pre_hook
-            if command_config.post_hook is not None:
-                merged_data["post_hook"] = command_config.post_hook
             if command_config.llm is not None:
                 merged_data["llm"] = command_config.llm
 
@@ -616,10 +608,6 @@ class PhaseRunner:
         if project_config:
             if project_config.timeout_seconds is not None:
                 merged_data["timeout_seconds"] = project_config.timeout_seconds
-            if project_config.pre_hook is not None:
-                merged_data["pre_hook"] = project_config.pre_hook
-            if project_config.post_hook is not None:
-                merged_data["post_hook"] = project_config.post_hook
 
             # Merge input_files dicts: project values override command values
             if project_config.input_files is not None:

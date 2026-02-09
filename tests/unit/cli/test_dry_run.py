@@ -100,21 +100,24 @@ class TestDryRunDisplayWithConfig:
     """Tests for DryRunDisplay with configuration."""
 
     def test_show_phases_with_hooks(self, tmp_path: Path) -> None:
-        """Test phase display shows pre and post hooks from command configs (ISS-029)."""
+        """Test phase display shows file-based hooks from resolved commands."""
         from adw.commands.resolver import CommandResolver
 
-        # Create command directories with config.yaml containing hooks (ISS-029)
+        # Create command directories with file-based hooks
         for phase in ["plan", "build", "validate", "document", "ship"]:
             cmd_dir = tmp_path / ".adw" / "commands" / phase
             cmd_dir.mkdir(parents=True)
             (cmd_dir / "prompt.md").write_text(f"Test prompt for {phase}")
 
-        # Add hooks to build and validate configs
-        (tmp_path / ".adw" / "commands" / "build" / "config.yaml").write_text(
-            "pre_hook: npm install\npost_hook: npm run lint\n"
+        # Add file-based hooks to build and validate
+        (tmp_path / ".adw" / "commands" / "build" / "pre-hook.sh").write_text(
+            "#!/bin/bash\nnpm install\n"
         )
-        (tmp_path / ".adw" / "commands" / "validate" / "config.yaml").write_text(
-            "post_hook: pytest\n"
+        (tmp_path / ".adw" / "commands" / "build" / "post-hook.sh").write_text(
+            "#!/bin/bash\nnpm run lint\n"
+        )
+        (tmp_path / ".adw" / "commands" / "validate" / "post-hook.sh").write_text(
+            "#!/bin/bash\npytest\n"
         )
 
         command_resolver = CommandResolver(project_root=tmp_path)
@@ -136,9 +139,8 @@ class TestDryRunDisplayWithConfig:
         )
 
         result = output.getvalue()
-        assert "npm install" in result
-        assert "npm run lint" in result
-        assert "pytest" in result
+        assert "pre-hook.sh" in result
+        assert "post-hook.sh" in result
 
     def test_show_phases_without_config(self) -> None:
         """Test phase display works without config (shows dashes)."""

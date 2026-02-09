@@ -224,14 +224,14 @@ class TestPhaseYAMLGeneration:
 
         assert "# timeout_seconds:" in content
 
-    def test_generate_phase_yaml_hooks_commented_by_default(
+    def test_generate_phase_yaml_no_hook_fields(
         self, generator: YAMLWithComments
     ) -> None:
-        """Test hooks are commented when not configured."""
+        """Test hooks fields are not present in generated YAML."""
         content = generator.generate_phase_yaml("build", {})
 
-        assert "# pre_hook:" in content
-        assert "# post_hook:" in content
+        assert "pre_hook" not in content
+        assert "post_hook" not in content
 
     def test_generate_phase_yaml_input_files(self, generator: YAMLWithComments) -> None:
         """Test input_files configuration."""

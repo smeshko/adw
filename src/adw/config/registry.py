@@ -68,8 +68,6 @@ class ConfigRegistry:
     PHASE_SETTINGS = [
         "enabled",
         "timeout_seconds",
-        "pre_hook",
-        "post_hook",
         "input_files",
     ]
 
@@ -319,8 +317,8 @@ class ConfigRegistry:
         """Get settings available for a specific phase.
 
         All phases share the same base settings (enabled, timeout_seconds,
-        pre_hook, post_hook, input_files). Phase-specific settings may be
-        added via the phase name for validation phases.
+        input_files). Phase-specific settings may be added via the phase
+        name for validation phases.
 
         Args:
             phase: Phase name (e.g., "plan", "build", "validate").

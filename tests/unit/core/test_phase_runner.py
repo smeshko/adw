@@ -1401,16 +1401,12 @@ class TestConfigMerging:
         command_config = CommandConfig(
             timeout_seconds=600,
             input_files={"prd": "defaults/prd.md"},
-            pre_hook="echo 'pre'",
-            post_hook="echo 'post'",
         )
 
         result = runner._merge_configs(command_config)
 
         assert result.timeout_seconds == 600
         assert result.input_files == {"prd": "defaults/prd.md"}
-        assert result.pre_hook == "echo 'pre'"
-        assert result.post_hook == "echo 'post'"
 
     def test_merge_configs_with_llm(
         self,
@@ -1567,7 +1563,6 @@ class TestMergeConfigsWithProject:
 
         command_config = CommandConfig(
             timeout_seconds=300,
-            pre_hook="echo 'command pre'",
         )
         project_config = CommandConfig(
             timeout_seconds=600,  # Should override
@@ -1577,8 +1572,6 @@ class TestMergeConfigsWithProject:
 
         # Project timeout overrides command timeout
         assert result.timeout_seconds == 600
-        # Command pre_hook preserved (project didn't override)
-        assert result.pre_hook == "echo 'command pre'"
 
     def test_merge_preserves_command_when_project_not_set(
         self,

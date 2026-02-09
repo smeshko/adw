@@ -177,15 +177,21 @@ class DryRunDisplay:
             pre_hook = "—"
             post_hook = "—"
 
-            # Get hooks and enabled status from command config (ISS-029)
+            # Get enabled status from command config, hooks from file-based resolution
             command_config = self._load_command_config(phase_name)
             if command_config:
                 if not command_config.enabled:
                     enabled = "[red]✗[/]"
-                if command_config.pre_hook:
-                    pre_hook = command_config.pre_hook
-                if command_config.post_hook:
-                    post_hook = command_config.post_hook
+
+            # Check for file-based hooks via command resolver
+            try:
+                command = self._command_resolver.resolve(phase_name)
+                if command.pre_hook_path:
+                    pre_hook = command.pre_hook_path.name
+                if command.post_hook_path:
+                    post_hook = command.post_hook_path.name
+            except Exception:
+                pass  # Don't break dry run if resolution fails
 
             table.add_row(phase_name, enabled, pre_hook, post_hook)
 

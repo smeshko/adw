@@ -158,7 +158,7 @@ class TestSummaryPanelGeneration:
             "task_manager": {},
             "phases": {
                 "customized": True,
-                "phases": {"plan": {"timeout": 600}, "build": {"pre_hook": "test"}},
+                "phases": {"plan": {"timeout": 600}, "build": {"timeout_seconds": 300}},
             },
             "ship": {"enabled": True, "commands": {}, "post_publish": [], "pr": {}},
             "llm_retry": {},
@@ -510,8 +510,8 @@ class TestPhaseConfigGeneration:
             "phases": {
                 "customized": True,
                 "phases": {
-                    "plan": {"timeout_seconds": 600, "pre_hook": "echo starting"},
-                    "build": {"post_hook": "npm test"},
+                    "plan": {"timeout_seconds": 600},
+                    "build": {"timeout_seconds": 300},
                 },
             },
         }
@@ -523,10 +523,9 @@ class TestPhaseConfigGeneration:
 
         plan_config = yaml.safe_load(files["commands/plan/config.yaml"])
         assert plan_config["timeout_seconds"] == 600
-        assert plan_config["pre_hook"] == "echo starting"
 
         build_config = yaml.safe_load(files["commands/build/config.yaml"])
-        assert build_config["post_hook"] == "npm test"
+        assert build_config["timeout_seconds"] == 300
 
     def test_generate_phase_configs_with_input_files(self) -> None:
         """Test phase config with input_files mapping."""
