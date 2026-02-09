@@ -536,7 +536,7 @@ class YAMLWithComments:
         """Add ship phase specific settings.
 
         Outputs all ship-specific fields from ShipCommandConfig,
-        including commands, post_publish, and bypass_ci.
+        including commands and bypass_ci.
 
         Args:
             lines: List of output lines to append to.
@@ -546,7 +546,6 @@ class YAMLWithComments:
 
         # Get nested config sections (handle None values explicitly)
         commands = config.get("commands") or {}
-        post_publish = config.get("post_publish") or []
 
         has_commands = commands.get("version_bump") or commands.get("publish")
 
@@ -565,17 +564,6 @@ class YAMLWithComments:
             lines.append("# commands:")
             lines.append("#   version_bump: null  # Version bump command")
             lines.append("#   publish: null  # Publish/deploy command")
-
-        lines.append("")
-
-        # Post-publish hooks
-        if post_publish:
-            lines.append("post_publish:")
-            for cmd in post_publish:
-                lines.append(f"  - {cmd}")
-        else:
-            lines.append("# post_publish:  # Commands after publishing")
-            lines.append("#   - git push --tags")
 
         lines.append("")
 
@@ -604,7 +592,7 @@ def generate_all_phase_configs(
     phases with customized=True, this generates for all phases.
 
     Ship phase config is merged from both the phases step and the
-    dedicated ship step (which collects commands, post_publish, pr).
+    dedicated ship step (which collects commands, pr).
 
     Args:
         state: WizardState containing collected configuration.
@@ -631,12 +619,10 @@ def generate_all_phase_configs(
 
         # For ship phase, merge in the ship step config
         if phase == "ship" and ship_step_config:
-            # Merge ship step settings (commands, post_publish)
+            # Merge ship step settings (commands)
             phase_config = {**phase_config}  # Shallow copy to avoid mutation
             if ship_step_config.get("commands"):
                 phase_config["commands"] = ship_step_config["commands"]
-            if ship_step_config.get("post_publish"):
-                phase_config["post_publish"] = ship_step_config["post_publish"]
 
         content = generator.generate_phase_yaml(phase, phase_config)
         files[f"commands/{phase}/config.yaml"] = content

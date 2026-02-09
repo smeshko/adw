@@ -243,7 +243,7 @@ def _configure_document_phase(console: Console) -> dict[str, Any]:
 def _configure_ship_phase(console: Console) -> dict[str, Any]:
     """Configure ship phase special options.
 
-    Prompts for deployment commands, post-publish hooks, and PR settings.
+    Prompts for deployment commands and PR settings.
     This follows the same pattern as the ship.py standalone step but integrated
     into the common phase configuration flow.
 
@@ -284,49 +284,9 @@ def _configure_ship_phase(console: Console) -> dict[str, Any]:
     if publish_cmd:
         commands["publish"] = publish_cmd
 
-    # Post-publish hooks
-    post_publish = _prompt_post_publish_hooks(console)
-
     return {
         "commands": commands if commands else None,
-        "post_publish": post_publish if post_publish else None,
     }
-
-
-def _prompt_post_publish_hooks(console: Console) -> list[str]:
-    """Prompt for post-publish hooks.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        List of hook commands.
-    """
-    add_hooks = Confirm.ask(
-        "Add post-publish hooks?",
-        default=False,
-        console=console,
-    )
-
-    if not add_hooks:
-        return []
-
-    hooks: list[str] = []
-    console.print("[dim]Enter hook commands (empty to finish):[/]")
-
-    while True:
-        hook = Prompt.ask(
-            "Hook command",
-            default="",
-            console=console,
-        ).strip()
-
-        if not hook:
-            break
-
-        hooks.append(hook)
-
-    return hooks
 
 
 def _prompt_doc_mappings(console: Console) -> list[dict[str, str]]:

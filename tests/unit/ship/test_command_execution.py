@@ -170,50 +170,6 @@ class TestFailureHandling:
         pass
 
 
-class TestPostPublishHooks:
-    """Tests for post-publish hook execution."""
-
-    def test_post_publish_hooks_execute_after_success(self) -> None:
-        """Post-publish hooks should execute only after successful deployment.
-
-        Expected behavior:
-        - Only run if deployment_status == "SUCCESS"
-        - Execute each hook in post_publish_hooks list in order
-        """
-        pass
-
-    def test_post_publish_continues_on_failure(self) -> None:
-        """Post-publish hooks should continue even if one fails.
-
-        Expected behavior:
-        - If a hook fails, log a warning
-        - Continue to next hook in list
-        - Do NOT set deployment_status to FAILED
-        - Do NOT abort remaining hooks
-        """
-        pass
-
-    def test_post_publish_captures_hook_output(self) -> None:
-        """Each hook's output should be captured.
-
-        Expected behavior:
-        - Capture exit code for each hook
-        - Capture output for each hook
-        - Display status per hook (success checkmark or warning)
-        """
-        pass
-
-    def test_post_publish_logs_failures_as_warnings(self) -> None:
-        """Failed hooks should be logged as warnings, not errors.
-
-        Expected behavior:
-        - Output warning emoji and message for failed hooks
-        - Add to hook_warnings list
-        - Show warnings in execution summary
-        """
-        pass
-
-
 class TestExecutionSummary:
     """Tests for execution summary output."""
 
@@ -236,12 +192,3 @@ class TestExecutionSummary:
         """
         pass
 
-    def test_summary_includes_hook_warnings(self) -> None:
-        """Summary should include any post-publish hook warnings.
-
-        Expected behavior:
-        - If hook_warnings list is not empty
-        - Display "Post-Publish Hook Warnings" section
-        - List each warning
-        """
-        pass

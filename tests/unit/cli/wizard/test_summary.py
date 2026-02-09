@@ -75,7 +75,6 @@ class TestSummaryPanelGeneration:
                 "commands": {
                     "version_bump": "npm version patch",
                 },
-                "post_publish": ["git push --tags"],
                 "pr": {
                     "merge_on_success": True,
                     "delete_branch_on_merge": True,
@@ -126,7 +125,6 @@ class TestSummaryPanelGeneration:
             "ship": {
                 "enabled": True,
                 "commands": {},
-                "post_publish": [],
                 "pr": {
                     "merge_on_success": False,
                     "delete_branch_on_merge": True,
@@ -160,7 +158,7 @@ class TestSummaryPanelGeneration:
                 "customized": True,
                 "phases": {"plan": {"timeout": 600}, "build": {"timeout_seconds": 300}},
             },
-            "ship": {"enabled": True, "commands": {}, "post_publish": [], "pr": {}},
+            "ship": {"enabled": True, "commands": {}, "pr": {}},
             "llm_retry": {},
             "security": {},
             "webhooks": {},
@@ -377,7 +375,6 @@ class TestProjectYamlGeneration:
                     "version_bump": "npm version patch",
                     "publish": "npm publish",
                 },
-                "post_publish": ["git push --tags", "echo 'deployed'"],
                 "pr": {
                     "merge_on_success": True,
                     "delete_branch_on_merge": True,
@@ -410,7 +407,6 @@ class TestProjectYamlGeneration:
             "ship": {
                 "enabled": True,
                 "commands": {},
-                "post_publish": [],
                 "pr": {
                     "merge_on_success": False,
                     "delete_branch_on_merge": True,

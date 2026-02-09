@@ -1,7 +1,7 @@
 """Ship phase configuration step for the wizard.
 
 This module handles the ship phase configuration step where users can set up
-deployment commands and post-publish hooks.
+deployment commands.
 """
 
 from __future__ import annotations
@@ -22,7 +22,6 @@ class ShipStepHandler:
     This step:
     - Prompts if user wants to configure ship phase settings
     - If yes, collects deployment commands (version_bump, publish)
-    - Collects post-publish hooks
     """
 
     def execute(self, state: WizardState, console: Console) -> dict[str, Any]:
@@ -36,7 +35,6 @@ class ShipStepHandler:
             Configuration collected from this step containing:
             - enabled: Whether ship phase is enabled
             - commands: Dict of deployment commands
-            - post_publish: List of post-publish hooks
         """
         return run_ship_step(state, console)
 
@@ -73,7 +71,6 @@ def run_ship_step(
         return {
             "enabled": True,  # Ship phase is enabled by default
             "commands": {},
-            "post_publish": [],
         }
 
     # Step 2: Collect deployment commands
@@ -81,15 +78,9 @@ def run_ship_step(
     console.print(Rule("[bold cyan]Deployment Commands[/]", style="cyan"))
     commands = _prompt_deployment_commands(console)
 
-    # Step 3: Collect post-publish hooks
-    console.print()
-    console.print(Rule("[bold cyan]Post-Publish Hooks[/]", style="cyan"))
-    post_publish = _prompt_post_publish_hooks(console)
-
     return {
         "enabled": True,
         "commands": commands,
-        "post_publish": post_publish,
     }
 
 
@@ -128,43 +119,5 @@ def _prompt_deployment_commands(console: Console) -> dict[str, str]:
         commands["publish"] = publish
 
     return commands
-
-
-def _prompt_post_publish_hooks(console: Console) -> list[str]:
-    """Prompt for post-publish hooks.
-
-    Allows user to add multiple hooks in a loop until they enter an empty line.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        List of hook commands.
-    """
-    add_hooks = Confirm.ask(
-        "Add post-publish hooks?",
-        default=False,
-        console=console,
-    )
-
-    if not add_hooks:
-        return []
-
-    hooks: list[str] = []
-    console.print("[dim]Enter hook commands (empty to finish):[/]")
-
-    while True:
-        hook = Prompt.ask(
-            "Hook command",
-            default="",
-            console=console,
-        ).strip()
-
-        if not hook:
-            break
-
-        hooks.append(hook)
-
-    return hooks
 
 

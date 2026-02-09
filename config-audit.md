@@ -238,14 +238,13 @@ No phase-specific fields — all 6 previous fields (`enable_evidence`, `enable_r
 | `commands.version_bump` | USED | PHASES | Conditional | `None` | `phase_runner.py:414-415` — Injected as `{{version_bump_command}}` flat variable. Wired in PR #161. |
 | `commands.publish` | USED | PHASES | Conditional | `None` | `phase_runner.py:416-417` — Injected as `{{publish_command}}` flat variable. Wired in PR #161. |
 
-### post_publish & bypass_ci
+### bypass_ci
 
 | Setting | Runtime | Wizard | Generated YAML | Default | Notes |
 |---------|---------|--------|----------------|---------|-------|
-| `post_publish` | TEMPLATE | PHASES | Conditional | `[]` | Available via `{{ship_config.post_publish}}` in template (model_dump injection). No explicit runtime extraction. |
 | `bypass_ci` | USED | -- | Commented | `true` | `extensions/ship.py:160` — Exposed as `ADW_SHIP_BYPASS_CI` env var for `post.sh`. Default changed to `true` in this branch. |
 
-*Removed in this branch:* ~~`ShipPRConfig`~~ class with ~~`pr.merge_on_success`~~, ~~`pr.delete_branch_on_merge`~~, ~~`pr.merge_method`~~ (post.sh now always uses squash + delete-branch; merge is LLM-approved). ~~`pr.bypass_ci`~~ moved to flat `bypass_ci` field on ShipCommandConfig with default `true`.
+*Removed in this branch:* ~~`ShipPRConfig`~~ class with ~~`pr.merge_on_success`~~, ~~`pr.delete_branch_on_merge`~~, ~~`pr.merge_method`~~ (post.sh now always uses squash + delete-branch; merge is LLM-approved). ~~`pr.bypass_ci`~~ moved to flat `bypass_ci` field on ShipCommandConfig with default `true`. ~~`post_publish`~~ removed (was TEMPLATE only — never consumed by any prompt template; superseded by `post.sh` hook).
 
 ---
 
@@ -254,11 +253,11 @@ No phase-specific fields — all 6 previous fields (`enable_evidence`, `enable_r
 | Category | Count | Description |
 |----------|-------|-------------|
 | USED at Runtime | 51 | Explicitly consumed by running Python code |
-| TEMPLATE only | 1 | Injected via model_dump() into prompt templates (`post_publish` only) |
+| TEMPLATE only | 0 | (`post_publish` removed — was last TEMPLATE-only field) |
 | PARTIAL | 0 | (temperature removed in this branch) |
 | UNUSED | 0 | (blocked_patterns/blocked_env_files wired in this branch) |
 | DISCONNECT | 0 | (allow_dangerous removed in this branch) |
-| **Total fields** | **52** | Down from 58 (removed 6 dead ValidateCommandConfig TEMPLATE fields) |
+| **Total fields** | **51** | Down from 58 (removed 6 dead ValidateCommandConfig fields + `post_publish`) |
 
 ---
 

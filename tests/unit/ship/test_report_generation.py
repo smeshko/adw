@@ -237,9 +237,6 @@ class TestExecutionLogSection:
         """Execution log handles case when no commands configured."""
         assert "commands_skipped" in step_7_text
 
-    def test_post_publish_hooks_logged(self, step_7_text: str) -> None:
-        """Execution log includes post-publish hook results."""
-        assert "hook_warnings" in step_7_text
 
 
 class TestReleaseNotesSection:
