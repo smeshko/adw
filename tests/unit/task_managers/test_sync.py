@@ -596,43 +596,6 @@ class TestStatusSyncServiceComments:
 
         mock_task_manager.post_comment.assert_not_called()
 
-    def test_success_comments_skipped_when_comment_on_failure_only(
-        self,
-        mock_task_manager: MagicMock,
-        context_with_task: RunContext,
-    ) -> None:
-        """Success comments are skipped when comment_on_failure_only is True."""
-        config_failure_only = TaskManagerConfig(
-            type="linear",
-            team_key="RULE",
-            sync_comments=True,
-            comment_on_failure_only=True,
-        )
-        service = StatusSyncService(mock_task_manager, config_failure_only)
-
-        # Success comments should be skipped
-        service.post_completion_comment(context_with_task, summary="Test")
-        mock_task_manager.post_comment.assert_not_called()
-
-    def test_failure_comments_posted_even_with_comment_on_failure_only(
-        self,
-        mock_task_manager: MagicMock,
-        context_with_task: RunContext,
-    ) -> None:
-        """Failure comments are still posted when comment_on_failure_only is True."""
-        config_failure_only = TaskManagerConfig(
-            type="linear",
-            team_key="RULE",
-            sync_comments=True,
-            comment_on_failure_only=True,
-        )
-        service = StatusSyncService(mock_task_manager, config_failure_only)
-
-        # Failure comments should be posted
-        service.post_failure_comment(context_with_task, "build", "Error")
-        mock_task_manager.post_comment.assert_called_once()
-
-
 class TestStatusSyncServiceRunStartedComment:
     """Tests for post_run_started_comment."""
 
@@ -728,24 +691,6 @@ class TestStatusSyncServiceRunStartedComment:
         service.post_run_started_comment(context_with_task)
 
         mock_task_manager.post_comment.assert_not_called()
-
-    def test_post_run_started_skipped_when_comment_on_failure_only(
-        self,
-        mock_task_manager: MagicMock,
-        context_with_task: RunContext,
-    ) -> None:
-        """post_run_started_comment is no-op when comment_on_failure_only is True."""
-        config = TaskManagerConfig(
-            type="linear",
-            team_key="RULE",
-            sync_comments=True,
-            comment_on_failure_only=True,
-        )
-        service = StatusSyncService(mock_task_manager, config)
-        service.post_run_started_comment(context_with_task)
-
-        mock_task_manager.post_comment.assert_not_called()
-
 
 class TestStatusSyncServiceTaskInfo:
     """Tests for ISS-039: StatusSyncService task_info storage and usage."""

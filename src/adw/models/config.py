@@ -261,8 +261,6 @@ class WorktreeConfig(BaseModel):
     Attributes:
         enabled: Whether worktree isolation is enabled (default: True)
         base_dir: Directory for storing worktrees, relative to project root
-        preserve_on_failure: DEPRECATED (ISS-020). Worktrees are now always
-            preserved. Use 'adw cleanup <run_id>' to remove worktrees.
         cleanup_branch_on_remove: Delete the adw/<run_id> branch when removing
             the worktree (default: False)
         preserve_artifacts: List of artifact names to preserve when cleaning up
@@ -285,7 +283,6 @@ class WorktreeConfig(BaseModel):
         worktree:
           enabled: true
           base_dir: "trees"
-          # preserve_on_failure is deprecated - worktrees are always preserved
           cleanup_branch_on_remove: false
           preserve_artifacts:
             - context.json
@@ -307,11 +304,6 @@ class WorktreeConfig(BaseModel):
     base_dir: str = Field(
         default="trees",
         description="Directory for storing worktrees (relative to project root)",
-    )
-    preserve_on_failure: bool = Field(
-        default=True,
-        description="DEPRECATED (ISS-020): This option is ignored. Worktrees are "
-        "now always preserved. Use 'adw cleanup <run_id>' to remove worktrees.",
     )
     cleanup_branch_on_remove: bool = Field(
         default=False,
@@ -417,12 +409,8 @@ class TaskManagerConfig(BaseModel):
         team_key: Team prefix for ID detection (e.g., "RULE" for RULE-123)
         state_mapping: Phase-based mapping from ADW phases to external system states
         sync_comments: Whether to post comments on status transitions
-        comment_on_failure_only: Only post comments when runs fail
-        pr_title_format: Format for PR titles when task ID is present
         labels: Label management configuration
         auto_close: Whether to close task when PR is merged (default: false)
-        include_labels: Include task labels in context
-        include_parent: Include parent task info in context
 
     Example:
         >>> config = TaskManagerConfig(
@@ -445,7 +433,6 @@ class TaskManagerConfig(BaseModel):
             ship: "Done"
             failed: "In Progress"
           sync_comments: true
-          pr_title_format: "{task_id}: {description}"
           labels:
             enabled: true
             prefix: "adw:"
@@ -475,14 +462,6 @@ class TaskManagerConfig(BaseModel):
         default=False,
         description="Whether to post comments on status transitions",
     )
-    comment_on_failure_only: bool = Field(
-        default=False,
-        description="Only post comments when runs fail",
-    )
-    pr_title_format: str = Field(
-        default="{task_id}: {description}",
-        description="Format for PR titles when task ID is present",
-    )
     labels: TaskManagerLabelsConfig = Field(
         default_factory=TaskManagerLabelsConfig,
         description="Label management configuration",
@@ -490,14 +469,6 @@ class TaskManagerConfig(BaseModel):
     auto_close: bool = Field(
         default=False,
         description="Whether to close task when PR is merged",
-    )
-    include_labels: bool = Field(
-        default=True,
-        description="Include task labels in context",
-    )
-    include_parent: bool = Field(
-        default=True,
-        description="Include parent task info in context",
     )
 
 

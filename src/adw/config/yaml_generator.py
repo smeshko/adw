@@ -473,30 +473,6 @@ class YAMLWithComments:
         else:
             lines.append("# enable_tests: true  # Run test validator")
 
-        # test_timeout_seconds
-        test_timeout = config.get("test_timeout_seconds")
-        if test_timeout is not None:
-            lines.append(f"test_timeout_seconds: {test_timeout}")
-        else:
-            lines.append("# test_timeout_seconds: 300  # Timeout for test execution")
-
-        # review_prompt
-        review_prompt = config.get("review_prompt")
-        if review_prompt is not None:
-            lines.append(f"review_prompt: {review_prompt}")
-        else:
-            lines.append("# review_prompt: null  # Path to custom review prompt")
-
-        # review_focus
-        review_focus = config.get("review_focus")
-        if review_focus is not None:
-            lines.append(f"review_focus: {_format_yaml_value(review_focus)}")
-        else:
-            lines.append(
-                '# review_focus: ["security", "error_handling", "edge_cases"]  '
-                "# Code review focus areas"
-            )
-
         # max_iterations
         max_iterations = config.get("max_iterations")
         if max_iterations is not None:

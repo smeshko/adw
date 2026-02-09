@@ -310,7 +310,6 @@ class TestValidatePhaseSpecialOptions:
                 "900",  # timeout
                 "",  # model override (skip)
                 "",  # temperature override (skip)
-                "300",  # test_timeout
                 "5",  # max_iterations
                 "auto",  # triage_mode
             ]
@@ -324,7 +323,6 @@ class TestValidatePhaseSpecialOptions:
         # Validate-specific options
         assert config["enable_review"] is True
         assert config["enable_tests"] is True
-        assert config["test_timeout_seconds"] == 300
         assert config["max_iterations"] == 5
         assert config["triage_mode"] == "auto"
         assert "linter_commands" not in config  # Not added when declined
@@ -348,7 +346,6 @@ class TestValidatePhaseSpecialOptions:
                 "1800",  # timeout 30 min
                 "",  # model override (skip)
                 "",  # temperature override (skip)
-                "600",  # test_timeout
                 "3",  # max_iterations
                 "manual",  # triage_mode
             ]
@@ -357,7 +354,6 @@ class TestValidatePhaseSpecialOptions:
 
         assert config["enable_review"] is False
         assert config["enable_tests"] is True
-        assert config["test_timeout_seconds"] == 600
         assert config["max_iterations"] == 3
         assert config["triage_mode"] == "manual"
 
@@ -375,7 +371,6 @@ class TestValidatePhaseSpecialOptions:
                 False,  # add linter commands
             ]
             mock_prompt.side_effect = [
-                "180",  # test_timeout
                 "10",  # max_iterations
                 "hybrid",  # triage_mode
             ]
@@ -384,7 +379,6 @@ class TestValidatePhaseSpecialOptions:
 
         assert config["enable_review"] is True
         assert config["enable_tests"] is False
-        assert config["test_timeout_seconds"] == 180
         assert config["max_iterations"] == 10
         assert config["triage_mode"] == "hybrid"
 
@@ -402,7 +396,6 @@ class TestValidatePhaseSpecialOptions:
                 True,  # add linter commands
             ]
             mock_prompt.side_effect = [
-                "300",  # test_timeout
                 "5",  # max_iterations
                 "auto",  # triage_mode
                 "ruff check .",  # first linter
@@ -718,7 +711,6 @@ class TestFullFlow:
                 "900",  # timeout
                 "",  # model override (skip)
                 "",  # temperature override (skip)
-                "300",  # test_timeout
                 "5",  # max_iterations
                 "auto",  # triage_mode
             ]

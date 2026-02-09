@@ -301,9 +301,6 @@ class ValidateCommandConfig(CommandConfig):
         enable_evidence: Whether to run evidence validator.
         enable_review: Whether to run code review validator.
         enable_tests: Whether to run test validator.
-        test_timeout_seconds: Timeout for test execution.
-        review_prompt: Path to custom review prompt (optional).
-        review_focus: Areas to focus code review on.
         max_iterations: Maximum validation loop iterations.
         max_fix_attempts_per_issue: Max attempts to fix a single issue.
         stall_threshold: Consecutive iterations without progress before stall.
@@ -336,16 +333,6 @@ class ValidateCommandConfig(CommandConfig):
     )
     enable_tests: bool = Field(
         default=True, description="Whether to run test validator"
-    )
-    test_timeout_seconds: int = Field(
-        default=300, description="Timeout for test execution in seconds"
-    )
-    review_prompt: str | None = Field(
-        default=None, description="Path to custom review prompt"
-    )
-    review_focus: list[str] = Field(
-        default_factory=lambda: ["security", "error_handling", "edge_cases"],
-        description="Areas to focus code review on",
     )
     max_iterations: int = Field(
         default=5, description="Maximum validation loop iterations"
