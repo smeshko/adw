@@ -364,3 +364,306 @@ class TestYAMLGeneratorRetryKeys:
         assert llm_config.retry.base_delay_seconds == 2.0
         assert llm_config.retry.max_delay_seconds == 120.0
         assert llm_config.retry.multiplier == 3.0
+
+
+class TestGitFieldEmission:
+    """Tests for git skip_hooks and base_branch emission in generated YAML."""
+
+    @pytest.fixture
+    def registry(self) -> ConfigRegistry:
+        """Create registry fixture."""
+        return ConfigRegistry()
+
+    @pytest.fixture
+    def generator(self, registry: ConfigRegistry) -> YAMLWithComments:
+        """Create generator fixture."""
+        return YAMLWithComments(registry)
+
+    def test_skip_hooks_true_emitted_active(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test skip_hooks=True is emitted as active YAML."""
+        state = MockWizardState(
+            {"git": {"git_branch_prefix": "feature/", "git_skip_hooks": True}}
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "  skip_hooks: true" in yaml_content
+        assert "  # skip_hooks:" not in yaml_content
+
+    def test_skip_hooks_false_emitted_as_comment(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test skip_hooks=False is emitted as commented default."""
+        state = MockWizardState(
+            {"git": {"git_branch_prefix": "feature/", "git_skip_hooks": False}}
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "  # skip_hooks: false" in yaml_content
+
+    def test_base_branch_set_emitted_active(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test base_branch with value is emitted as active YAML."""
+        state = MockWizardState(
+            {"git": {"git_branch_prefix": "feature/", "git_base_branch": "develop"}}
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "  base_branch: develop" in yaml_content
+        assert "  # base_branch:" not in yaml_content
+
+    def test_base_branch_none_emitted_as_comment(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test base_branch=None is emitted as commented default."""
+        state = MockWizardState(
+            {"git": {"git_branch_prefix": "feature/", "git_base_branch": None}}
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "  # base_branch: null" in yaml_content
+
+
+class TestTaskManagerFieldEmission:
+    """Tests for task manager state_mapping and labels emission."""
+
+    @pytest.fixture
+    def registry(self) -> ConfigRegistry:
+        """Create registry fixture."""
+        return ConfigRegistry()
+
+    @pytest.fixture
+    def generator(self, registry: ConfigRegistry) -> YAMLWithComments:
+        """Create generator fixture."""
+        return YAMLWithComments(registry)
+
+    def test_custom_state_mapping_emitted_active(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test custom state_mapping emits active YAML lines."""
+        state = MockWizardState(
+            {
+                "task_manager": {
+                    "enabled": True,
+                    "type": "linear",
+                    "state_mapping": {
+                        "plan": "To Do",
+                        "build": "In Progress",
+                        "validate": "In Review",
+                        "document": "In Review",
+                        "ship": "Done",
+                        "failed": "Blocked",
+                    },
+                }
+            }
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "  state_mapping:" in yaml_content
+        assert "    plan: To Do" in yaml_content
+        assert "    failed: Blocked" in yaml_content
+
+    def test_default_state_mapping_emitted_as_comment(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test default state_mapping is emitted as commented YAML."""
+        state = MockWizardState(
+            {"task_manager": {"enabled": True, "type": "linear"}}
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "  # state_mapping:" in yaml_content
+
+    def test_custom_labels_emitted_active(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test custom labels config emits active YAML."""
+        state = MockWizardState(
+            {
+                "task_manager": {
+                    "enabled": True,
+                    "type": "linear",
+                    "labels_enabled": False,
+                    "label_prefix": "custom:",
+                }
+            }
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "  labels:" in yaml_content
+        assert "    enabled: false" in yaml_content
+        assert '    prefix: "custom:"' in yaml_content
+
+    def test_default_labels_emitted_as_comment(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test default labels config is emitted as commented YAML."""
+        state = MockWizardState(
+            {"task_manager": {"enabled": True, "type": "linear"}}
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "  # labels:" in yaml_content
+        assert '  #   prefix: "adw:"' in yaml_content
+
+    def test_disabled_task_manager_has_commented_mappings_and_labels(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test disabled task manager shows commented state_mapping and labels."""
+        state = MockWizardState({"task_manager": {}})
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "# task_manager:" in yaml_content
+        assert "#   state_mapping:" in yaml_content
+        assert "#   labels:" in yaml_content
+
+
+class TestWebhookFieldEmission:
+    """Tests for webhook command_prefix, trigger_label, and mappings emission."""
+
+    @pytest.fixture
+    def registry(self) -> ConfigRegistry:
+        """Create registry fixture."""
+        return ConfigRegistry()
+
+    @pytest.fixture
+    def generator(self, registry: ConfigRegistry) -> YAMLWithComments:
+        """Create generator fixture."""
+        return YAMLWithComments(registry)
+
+    def test_custom_command_prefix_emitted_active(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test custom command_prefix is emitted as active YAML."""
+        state = MockWizardState(
+            {
+                "webhooks": {
+                    "enabled": True,
+                    "port": 8000,
+                    "providers": {
+                        "github": {
+                            "enabled": True,
+                            "command_prefix": "/mybot",
+                        }
+                    },
+                }
+            }
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "command_prefix:" in yaml_content
+        assert "/mybot" in yaml_content
+
+    def test_default_command_prefix_emitted_as_comment(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test default command_prefix is emitted as commented YAML."""
+        state = MockWizardState(
+            {
+                "webhooks": {
+                    "enabled": True,
+                    "port": 8000,
+                    "providers": {
+                        "github": {"enabled": True, "command_prefix": "/adw"}
+                    },
+                }
+            }
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert '      # command_prefix: "/adw"' in yaml_content
+
+    def test_custom_trigger_label_emitted_active(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test custom trigger_label is emitted as active YAML."""
+        state = MockWizardState(
+            {
+                "webhooks": {
+                    "enabled": True,
+                    "port": 8000,
+                    "providers": {
+                        "github": {
+                            "enabled": True,
+                            "trigger_label": "deploy",
+                        }
+                    },
+                }
+            }
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "trigger_label: deploy" in yaml_content
+
+    def test_mappings_emitted_as_nested_structure(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test webhook mappings emits nested YAML structure."""
+        state = MockWizardState(
+            {
+                "webhooks": {
+                    "enabled": True,
+                    "port": 8000,
+                    "mappings": {
+                        "github": {
+                            "pull_request": {
+                                "command": "validate",
+                                "auto_run": True,
+                            }
+                        }
+                    },
+                }
+            }
+        )
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "  mappings:" in yaml_content
+        assert "    github:" in yaml_content
+        assert "      pull_request:" in yaml_content
+        assert "        command: validate" in yaml_content
+        assert "        auto_run: true" in yaml_content
+
+
+class TestDocumentPhaseEmission:
+    """Tests for document phase doc_mappings emission."""
+
+    @pytest.fixture
+    def registry(self) -> ConfigRegistry:
+        """Create registry fixture."""
+        return ConfigRegistry()
+
+    @pytest.fixture
+    def generator(self, registry: ConfigRegistry) -> YAMLWithComments:
+        """Create generator fixture."""
+        return YAMLWithComments(registry)
+
+    def test_doc_mappings_emitted_as_list(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test doc_mappings emits YAML list items."""
+        content = generator.generate_phase_yaml(
+            "document",
+            {
+                "doc_mappings": [
+                    {"source_pattern": "src/**/*.py", "docs_dir": "docs/api"},
+                    {"source_pattern": "lib/**/*.ts", "docs_dir": "docs/lib"},
+                ]
+            },
+        )
+
+        assert "doc_mappings:" in content
+        assert '  - source_pattern: src/**/*.py' in content
+        assert "    docs_dir: docs/api" in content
+        assert '  - source_pattern: lib/**/*.ts' in content
+        assert "    docs_dir: docs/lib" in content
+
+    def test_doc_mappings_default_emitted_as_comment(
+        self, generator: YAMLWithComments
+    ) -> None:
+        """Test default doc_mappings is emitted as commented YAML."""
+        content = generator.generate_phase_yaml("document", {})
+
+        assert "# doc_mappings:" in content
+        assert "# === Document Phase Settings ===" in content

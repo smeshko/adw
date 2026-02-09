@@ -130,7 +130,7 @@ class TestRunGitStep:
     """Tests for run_git_step() function."""
 
     def test_returns_correct_structure(self) -> None:
-        """run_git_step returns dict with required keys."""
+        """run_git_step returns dict with all required keys."""
         from adw.models.wizard import WizardState
 
         state = WizardState()
@@ -139,10 +139,14 @@ class TestRunGitStep:
         with (
             patch("adw.cli.wizard.git.require_git_repo", return_value=True),
             patch("adw.cli.wizard.git.prompt_branch_prefix", return_value="feature/"),
+            patch("adw.cli.wizard.git.prompt_skip_hooks", return_value=False),
+            patch("adw.cli.wizard.git.prompt_base_branch", return_value=None),
         ):
             result = run_git_step(state, console)
 
         assert "git_branch_prefix" in result
+        assert "git_skip_hooks" in result
+        assert "git_base_branch" in result
 
     def test_propagates_prompt_values(self) -> None:
         """run_git_step returns values from prompt functions."""
@@ -154,10 +158,75 @@ class TestRunGitStep:
         with (
             patch("adw.cli.wizard.git.require_git_repo", return_value=True),
             patch("adw.cli.wizard.git.prompt_branch_prefix", return_value="bugfix/"),
+            patch("adw.cli.wizard.git.prompt_skip_hooks", return_value=True),
+            patch("adw.cli.wizard.git.prompt_base_branch", return_value="develop"),
         ):
             result = run_git_step(state, console)
 
         assert result["git_branch_prefix"] == "bugfix/"
+        assert result["git_skip_hooks"] is True
+        assert result["git_base_branch"] == "develop"
+
+    def test_empty_base_branch_converts_to_none(self) -> None:
+        """run_git_step converts empty base_branch to None."""
+        from adw.models.wizard import WizardState
+
+        state = WizardState()
+        console = Console()
+
+        with (
+            patch("adw.cli.wizard.git.require_git_repo", return_value=True),
+            patch("adw.cli.wizard.git.prompt_branch_prefix", return_value="feature/"),
+            patch("adw.cli.wizard.git.prompt_skip_hooks", return_value=False),
+            patch("adw.cli.wizard.git.prompt_base_branch", return_value=None),
+        ):
+            result = run_git_step(state, console)
+
+        assert result["git_base_branch"] is None
+
+
+class TestPromptSkipHooks:
+    """Tests for prompt_skip_hooks() function."""
+
+    def test_returns_false_by_default(self) -> None:
+        """prompt_skip_hooks returns False when user accepts default."""
+        from adw.cli.wizard.git import prompt_skip_hooks
+
+        console = Console()
+        with patch("adw.cli.wizard.git.Confirm.ask", return_value=False):
+            result = prompt_skip_hooks(console)
+        assert result is False
+
+    def test_returns_true_when_confirmed(self) -> None:
+        """prompt_skip_hooks returns True when user confirms."""
+        from adw.cli.wizard.git import prompt_skip_hooks
+
+        console = Console()
+        with patch("adw.cli.wizard.git.Confirm.ask", return_value=True):
+            result = prompt_skip_hooks(console)
+        assert result is True
+
+
+class TestPromptBaseBranch:
+    """Tests for prompt_base_branch() function."""
+
+    def test_returns_none_for_empty_input(self) -> None:
+        """prompt_base_branch returns None when user enters empty string."""
+        from adw.cli.wizard.git import prompt_base_branch
+
+        console = Console()
+        with patch("adw.cli.wizard.git.Prompt.ask", return_value=""):
+            result = prompt_base_branch(console)
+        assert result is None
+
+    def test_returns_branch_name(self) -> None:
+        """prompt_base_branch returns branch name when provided."""
+        from adw.cli.wizard.git import prompt_base_branch
+
+        console = Console()
+        with patch("adw.cli.wizard.git.Prompt.ask", return_value="develop"):
+            result = prompt_base_branch(console)
+        assert result == "develop"
 
 
 class TestGitStepHandler:
@@ -175,6 +244,8 @@ class TestGitStepHandler:
             "adw.cli.wizard.git.run_git_step",
             return_value={
                 "git_branch_prefix": "test/",
+                "git_skip_hooks": False,
+                "git_base_branch": None,
             },
         ) as mock_run:
             result = handler.execute(state, console)
