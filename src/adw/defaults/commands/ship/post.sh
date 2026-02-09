@@ -4,8 +4,9 @@
 # This hook:
 # 1. Parses LLM output for deployment status markers
 # 2. Extracts ship report and release notes
-# 3. Optionally merges the PR based on LLM decision
-# 4. Updates task manager status (if configured)
+# 3. Merges the PR (squash + delete-branch) if LLM approves
+# 4. Runs publish commands if configured
+# 5. Updates task manager status (if configured)
 #
 # Environment variables provided by ADW:
 #   ADW_FEATURE      - The feature description for this run
@@ -17,10 +18,7 @@
 #   ADW_TASK_ID      - Task ID from task manager (if configured)
 #
 # Ship configuration (from project config):
-#   ADW_SHIP_AUTO_MERGE       - Whether to auto-merge (true/false, default: true)
-#   ADW_SHIP_DELETE_BRANCH    - Delete branch after merge (true/false, default: true)
-#   ADW_SHIP_MERGE_STRATEGY   - Merge method (merge/squash/rebase, default: squash)
-#   ADW_SHIP_BYPASS_CI        - Bypass CI checks using --admin (true/false, default: false)
+#   ADW_SHIP_BYPASS_CI - Bypass CI checks using --admin (true/false, default: true)
 #
 # Exit codes:
 #   0 - Success
@@ -151,7 +149,7 @@ if [[ "$deployment_status" == "FAILED" ]]; then
     echo "=========================================="
     echo "Reason: $merge_reason"
     echo ""
-    echo "The PR will NOT be merged automatically."
+    echo "The PR will NOT be merged."
     echo "Please review the failure diagnosis in the ship report."
     exit 1
 fi
@@ -163,13 +161,13 @@ if [[ "$deployment_status" == "BLOCKED" ]]; then
     echo "=========================================="
     echo "Reason: $merge_reason"
     echo ""
-    echo "PR #$pr_number will not be merged automatically."
+    echo "PR #$pr_number will not be merged."
     echo "Please resolve blocking issues and retry."
     exit 0  # Not an error, just blocked
 fi
 
 # =============================================================================
-# STEP 4: Handle PR merge (if approved and configured)
+# STEP 4: Merge PR (always squash + delete-branch)
 # =============================================================================
 
 if [[ "$pr_merge_approved" == "true" ]]; then
@@ -182,33 +180,7 @@ if [[ "$pr_merge_approved" == "true" ]]; then
         exit 1
     fi
 
-    # Check if auto-merge is enabled (default: true)
-    auto_merge="${ADW_SHIP_AUTO_MERGE:-true}"
-
-    if [[ "$auto_merge" != "true" ]]; then
-        echo ""
-        echo "=========================================="
-        echo "AUTO-MERGE DISABLED"
-        echo "=========================================="
-        echo "Auto-merge is disabled in ship.pr.auto_merge config."
-        echo ""
-        echo "PR #$pr_number is ready for manual merge."
-        # Try to get PR URL for convenience
-        pr_url=$(gh pr view "$pr_number" --json url -q '.url' 2>/dev/null || echo "")
-        if [[ -n "$pr_url" ]]; then
-            echo "PR URL: $pr_url"
-        fi
-        echo ""
-        echo "To merge manually:"
-        echo "  gh pr merge $pr_number --squash"
-        exit 0
-    fi
-
-    # Get merge configuration
-    merge_strategy="${ADW_SHIP_MERGE_STRATEGY:-squash}"
-    delete_branch="${ADW_SHIP_DELETE_BRANCH:-true}"
-
-    echo "Merging PR #$pr_number with strategy: $merge_strategy"
+    echo "Merging PR #$pr_number (squash + delete-branch)"
 
     # Build merge body message
     if [[ "$version_deployed" != "N/A" && -n "$version_deployed" ]]; then
@@ -217,34 +189,11 @@ if [[ "$pr_merge_approved" == "true" ]]; then
         merge_body="Shipped via ADW"
     fi
 
-    # Build merge command using array (safer than eval with strings)
-    merge_cmd=(gh pr merge "$pr_number")
-
-    case "$merge_strategy" in
-        squash)
-            merge_cmd+=(--squash --body "$merge_body")
-            ;;
-        merge)
-            merge_cmd+=(--merge --body "$merge_body")
-            ;;
-        rebase)
-            # Rebase doesn't support --body
-            merge_cmd+=(--rebase)
-            ;;
-        *)
-            echo "Warning: Unknown merge strategy '$merge_strategy', using squash"
-            merge_cmd+=(--squash --body "$merge_body")
-            ;;
-    esac
-
-    # Add delete-branch flag if configured
-    if [[ "$delete_branch" == "true" ]]; then
-        merge_cmd+=(--delete-branch)
-        echo "Branch will be deleted after merge"
-    fi
+    # Build merge command — always squash + delete-branch
+    merge_cmd=(gh pr merge "$pr_number" --squash --delete-branch --body "$merge_body")
 
     # Add --admin flag to bypass CI checks if configured (requires admin access)
-    bypass_ci="${ADW_SHIP_BYPASS_CI:-false}"
+    bypass_ci="${ADW_SHIP_BYPASS_CI:-true}"
     if [[ "$bypass_ci" == "true" ]]; then
         merge_cmd+=(--admin)
         echo "Bypassing CI checks with --admin flag (requires admin access)"
@@ -268,23 +217,16 @@ if [[ "$pr_merge_approved" == "true" ]]; then
         echo "=========================================="
         echo "PR MERGED SUCCESSFULLY"
         echo "=========================================="
-        echo "PR #$pr_number merged with strategy: $merge_strategy"
+        echo "PR #$pr_number merged (squash, branch deleted)"
         if [[ "$version_deployed" != "N/A" ]]; then
             echo "Version deployed: $version_deployed"
-        fi
-        if [[ "$delete_branch" == "true" ]]; then
-            echo "Branch deleted: yes"
         fi
 
         # Save merge record for task manager sync
         if [[ -n "$ADW_ARTIFACTS_DIR" ]]; then
             merge_record_file="$ADW_ARTIFACTS_DIR/merge_record.json"
 
-            # Convert string boolean to JSON boolean
-            delete_branch_json="false"
-            [[ "$delete_branch" == "true" ]] && delete_branch_json="true"
-
-            # Escape merge_body for JSON (reuse json_escape if in scope, otherwise inline)
+            # Escape merge_body for JSON
             merge_body_escaped="${merge_body//\\/\\\\}"
             merge_body_escaped="${merge_body_escaped//\"/\\\"}"
 
@@ -292,9 +234,9 @@ if [[ "$pr_merge_approved" == "true" ]]; then
 {
   "merged": true,
   "pr_number": $pr_number,
-  "merge_strategy": "$merge_strategy",
+  "merge_strategy": "squash",
   "version": "$version_deployed",
-  "branch_deleted": $delete_branch_json,
+  "branch_deleted": true,
   "merge_body": "$merge_body_escaped"
 }
 EOF
@@ -319,28 +261,28 @@ EOF
             echo "Remediation:"
             echo "  1. Resolve conflicts locally: git pull origin main && git merge main"
             echo "  2. Push the resolved branch"
-            echo "  3. Retry: gh pr merge $pr_number --$merge_strategy"
+            echo "  3. Retry: gh pr merge $pr_number --squash --delete-branch"
         elif echo "$merge_output" | grep -qi "status check"; then
             echo "Error: Required status checks have not passed"
             echo ""
             echo "Remediation:"
             echo "  1. Wait for CI checks to complete"
             echo "  2. Fix any failing checks"
-            echo "  3. Retry: gh pr merge $pr_number --$merge_strategy"
+            echo "  3. Retry: gh pr merge $pr_number --squash --delete-branch"
         elif echo "$merge_output" | grep -qi "review"; then
             echo "Error: PR requires review approval"
             echo ""
             echo "Remediation:"
             echo "  1. Request review from team members"
             echo "  2. Address any review comments"
-            echo "  3. Retry: gh pr merge $pr_number --$merge_strategy"
+            echo "  3. Retry: gh pr merge $pr_number --squash --delete-branch"
         elif echo "$merge_output" | grep -qi "protected"; then
             echo "Error: Branch protection rules violated"
             echo ""
             echo "Remediation:"
             echo "  1. Check branch protection settings"
             echo "  2. Ensure all requirements are met"
-            echo "  3. Retry: gh pr merge $pr_number --$merge_strategy"
+            echo "  3. Retry: gh pr merge $pr_number --squash --delete-branch"
         else
             echo "Error output:"
             echo "$merge_output"
@@ -348,7 +290,7 @@ EOF
             echo "Manual merge instructions:"
             echo "  1. Review the error above"
             echo "  2. Fix any issues"
-            echo "  3. Merge manually: gh pr merge $pr_number --$merge_strategy"
+            echo "  3. Merge manually: gh pr merge $pr_number --squash --delete-branch"
         fi
 
         exit 1
@@ -359,7 +301,7 @@ else
     echo "Reason: $merge_reason"
     echo ""
     if [[ -n "$pr_number" ]]; then
-        echo "PR #$pr_number will not be merged automatically."
+        echo "PR #$pr_number will not be merged."
         echo "Please review the ship report and merge manually if appropriate."
     fi
 fi

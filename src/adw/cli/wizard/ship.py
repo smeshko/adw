@@ -1,7 +1,7 @@
 """Ship phase configuration step for the wizard.
 
 This module handles the ship phase configuration step where users can set up
-deployment commands, post-publish hooks, and PR merge settings.
+deployment commands and post-publish hooks.
 """
 
 from __future__ import annotations
@@ -16,10 +16,6 @@ if TYPE_CHECKING:
     from adw.models.wizard import WizardState
 
 
-# Merge strategy options
-MERGE_STRATEGIES: list[str] = ["squash", "merge", "rebase"]
-
-
 class ShipStepHandler:
     """Handler for the ship phase configuration wizard step.
 
@@ -27,7 +23,6 @@ class ShipStepHandler:
     - Prompts if user wants to configure ship phase settings
     - If yes, collects deployment commands (version_bump, publish)
     - Collects post-publish hooks
-    - Configures PR merge settings (auto-merge, strategy, delete branch)
     """
 
     def execute(self, state: WizardState, console: Console) -> dict[str, Any]:
@@ -42,7 +37,6 @@ class ShipStepHandler:
             - enabled: Whether ship phase is enabled
             - commands: Dict of deployment commands
             - post_publish: List of post-publish hooks
-            - pr: Dict of PR merge settings
         """
         return run_ship_step(state, console)
 
@@ -74,20 +68,12 @@ def run_ship_step(
         console=console,
     )
 
-    # Default PR settings (used both when skipping and as base for config)
-    default_pr: dict[str, Any] = {
-        "merge_on_success": False,
-        "delete_branch_on_merge": True,
-        "merge_method": "squash",
-    }
-
     if not configure:
         # Return defaults when user skips configuration
         return {
             "enabled": True,  # Ship phase is enabled by default
             "commands": {},
             "post_publish": [],
-            "pr": default_pr,
         }
 
     # Step 2: Collect deployment commands
@@ -100,16 +86,10 @@ def run_ship_step(
     console.print(Rule("[bold cyan]Post-Publish Hooks[/]", style="cyan"))
     post_publish = _prompt_post_publish_hooks(console)
 
-    # Step 4: Configure PR merge settings
-    console.print()
-    console.print(Rule("[bold cyan]PR Merge Settings[/]", style="cyan"))
-    pr_config = _prompt_pr_settings(console)
-
     return {
         "enabled": True,
         "commands": commands,
         "post_publish": post_publish,
-        "pr": pr_config,
     }
 
 
@@ -188,45 +168,3 @@ def _prompt_post_publish_hooks(console: Console) -> list[str]:
     return hooks
 
 
-def _prompt_pr_settings(console: Console) -> dict[str, Any]:
-    """Prompt for PR merge settings.
-
-    Only prompts for merge strategy and delete branch if auto-merge is enabled.
-    This prevents asking redundant questions when auto-merge is disabled.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        Dictionary of PR settings.
-    """
-    merge_on_success = Confirm.ask(
-        "Auto-merge after successful ship?",
-        default=False,
-        console=console,
-    )
-
-    # Defaults
-    merge_method = "squash"
-    delete_branch = True
-
-    # Only ask follow-up questions if auto-merge is enabled
-    if merge_on_success:
-        merge_method = Prompt.ask(
-            "Merge strategy",
-            choices=MERGE_STRATEGIES,
-            default="squash",
-            console=console,
-        )
-
-        delete_branch = Confirm.ask(
-            "Delete branch after merge?",
-            default=True,
-            console=console,
-        )
-
-    return {
-        "merge_on_success": merge_on_success,
-        "delete_branch_on_merge": delete_branch,
-        "merge_method": merge_method,
-    }

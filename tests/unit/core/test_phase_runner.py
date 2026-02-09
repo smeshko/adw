@@ -1428,14 +1428,13 @@ class TestConfigMerging:
         )
 
         command_config = CommandConfig(
-            llm=PhaseLLMConfig(model="claude-3-opus", temperature=0.3),
+            llm=PhaseLLMConfig(model="claude-3-opus"),
         )
 
         result = runner._merge_configs(command_config)
 
         assert result.llm is not None
         assert result.llm.model == "claude-3-opus"
-        assert result.llm.temperature == 0.3
 
 
 class TestProjectConfigLoading:
@@ -1657,7 +1656,7 @@ class TestMergeConfigsWithProject:
         )
 
         command_config = CommandConfig(
-            llm=PhaseLLMConfig(model="claude-3-haiku", temperature=0.5),
+            llm=PhaseLLMConfig(model="claude-3-haiku"),
         )
         project_config = CommandConfig(
             llm=PhaseLLMConfig(model="claude-3-opus"),  # Override model only
@@ -1668,8 +1667,6 @@ class TestMergeConfigsWithProject:
         # Project model overrides command model
         assert result.llm is not None
         assert result.llm.model == "claude-3-opus"
-        # Command temperature preserved (project didn't set it)
-        assert result.llm.temperature == 0.5
 
     def test_merge_llm_model_flows_to_executor(
         self,
@@ -1686,7 +1683,7 @@ class TestMergeConfigsWithProject:
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "prompt.md").write_text("Test prompt")
         (cmd_dir / "config.yaml").write_text(
-            "llm:\n  model: claude-3-opus\n  temperature: 0.3\n"
+            "llm:\n  model: claude-3-opus\n"
         )
 
         resolver = MagicMock(spec=CommandResolver)

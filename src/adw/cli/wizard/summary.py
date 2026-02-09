@@ -265,11 +265,15 @@ def generate_summary_panel(state: WizardState) -> Panel:
         lines.append("[dim]LLM Retry:[/] Default")
 
     # Security section
-    # Security step returns: security_custom, security_allow_dangerous, etc.
-    if security.get("security_allow_dangerous", False):
-        lines.append("[yellow]Security:[/] Dangerous mode")
+    blocked_cmds = security.get("security_blocked_commands", [])
+    blocked_files = security.get("security_blocked_env_files", [])
+    if blocked_cmds or blocked_files:
+        lines.append(
+            f"[cyan]Security:[/] Custom ({len(blocked_cmds)} cmd, "
+            f"{len(blocked_files)} file patterns)"
+        )
     else:
-        lines.append("[dim]Security:[/] Default (safe mode)")
+        lines.append("[dim]Security:[/] Default")
 
     # Webhooks section
     if webhooks.get("enabled", False):

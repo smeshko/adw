@@ -141,7 +141,6 @@ class SuggestionFormatter:
             ...     severity="critical",
             ...     category="destructive",
             ...     alternative="Use specific paths",
-            ...     allowed=False,
             ... )
             >>> result = formatter.format_single(match)
             >>> "Recursive delete" in result
@@ -165,7 +164,7 @@ class SuggestionFormatter:
             lines.append("")
 
         # Override instruction
-        if self.include_override and not match.allowed:
+        if self.include_override:
             lines.append(OVERRIDE_INSTRUCTION)
 
         return "\n".join(lines)

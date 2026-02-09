@@ -82,7 +82,6 @@ class ConfigRegistry:
         from adw.models.command import (
             ShipCommandConfig,
             ShipCommandsConfig,
-            ShipPRConfig,
         )
         from adw.models.config import (
             GitConfig,
@@ -116,10 +115,9 @@ class ConfigRegistry:
         self._settings["webhook"] = self._extract_webhook_settings(WebhookConfig)
         self._settings["webhook_provider"] = self._extract_from_model(ProviderConfig)
         self._settings["ship"] = self._extract_from_model(
-            ShipCommandConfig, skip_nested=["commands", "pr"]
+            ShipCommandConfig, skip_nested=["commands"]
         )
         self._settings["ship_commands"] = self._extract_from_model(ShipCommandsConfig)
-        self._settings["ship_pr"] = self._extract_from_model(ShipPRConfig)
 
         # Phase-specific settings
         self._settings["phase"] = self._extract_from_model(PhaseConfig)

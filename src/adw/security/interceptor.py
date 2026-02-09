@@ -25,7 +25,6 @@ class SecurityCheckResult(Enum):
 
     ALLOWED = "allowed"
     BLOCKED = "blocked"
-    WARNING = "warning"  # Used when allow_dangerous is True
 
 
 @dataclass
@@ -58,9 +57,8 @@ class SecurityCheckResponse:
 class SecurityInterceptor:
     """Validates and blocks dangerous LLM tool calls.
 
-    Wraps PatternMatcher to add blocking capability. When allow_dangerous
-    is False, dangerous tool calls raise SecurityError. When True,
-    warnings are logged but execution continues.
+    Wraps PatternMatcher to add blocking capability. Dangerous tool calls
+    raise SecurityError.
 
     Example:
         >>> interceptor = SecurityInterceptor()
@@ -72,19 +70,17 @@ class SecurityInterceptor:
     def __init__(
         self,
         additional_patterns: list[BlockedPattern] | None = None,
-        *,
-        allow_dangerous: bool = False,
+        additional_file_patterns: list[str] | None = None,
     ) -> None:
         """Initialize the security interceptor.
 
         Args:
             additional_patterns: Custom patterns to add to defaults.
-            allow_dangerous: If True, issue warnings instead of blocking.
+            additional_file_patterns: Additional file path patterns to block.
         """
-        self.allow_dangerous = allow_dangerous
         self._matcher = PatternMatcher(
             additional_patterns=additional_patterns,
-            allow_dangerous=allow_dangerous,
+            additional_file_patterns=additional_file_patterns,
         )
 
     def check_tool_call(
@@ -135,14 +131,8 @@ class SecurityInterceptor:
                 command_or_path=command,
             )
 
-        result = (
-            SecurityCheckResult.WARNING
-            if self.allow_dangerous
-            else SecurityCheckResult.BLOCKED
-        )
-
         return SecurityCheckResponse(
-            result=result,
+            result=SecurityCheckResult.BLOCKED,
             matches=matches,
             tool_name=tool_name,
             command_or_path=command,
@@ -164,14 +154,8 @@ class SecurityInterceptor:
                 command_or_path=file_path,
             )
 
-        result = (
-            SecurityCheckResult.WARNING
-            if self.allow_dangerous
-            else SecurityCheckResult.BLOCKED
-        )
-
         return SecurityCheckResponse(
-            result=result,
+            result=SecurityCheckResult.BLOCKED,
             matches=matches,
             tool_name=tool_name,
             command_or_path=file_path,
@@ -192,7 +176,7 @@ class SecurityInterceptor:
             arguments: Arguments passed to the tool.
 
         Raises:
-            SecurityError: If the tool call is blocked and allow_dangerous is False.
+            SecurityError: If the tool call is blocked.
         """
         response = self.check_tool_call(tool_name, arguments)
 
@@ -209,15 +193,4 @@ class SecurityInterceptor:
                 override_instruction=get_override_instruction(),
                 severity=match.severity if match else "warning",
                 suggestion="Use --allow-dangerous flag to override security checks",
-            )
-
-        if response.result == SecurityCheckResult.WARNING:
-            match = response.matches[0] if response.matches else None
-            logger.warning(
-                "Tool call triggered security warning (allow_dangerous=True)",
-                extra={
-                    "tool_name": tool_name,
-                    "pattern": match.pattern if match else None,
-                    "description": match.description if match else None,
-                },
             )

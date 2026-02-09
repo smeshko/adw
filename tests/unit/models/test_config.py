@@ -12,7 +12,7 @@ import pytest
 from pydantic import ValidationError
 
 from adw.models import ProjectConfig
-from adw.models.command import ShipCommandConfig, ShipPRConfig
+from adw.models.command import ShipCommandConfig
 from adw.models.config import PhaseConfig, WorktreeConfig
 
 
@@ -118,18 +118,6 @@ class TestShipCommandConfig:
     now validate the ShipCommandConfig class directly.
     """
 
-    def test_merge_method_rejects_invalid(self) -> None:
-        """ShipPRConfig rejects invalid merge_method values."""
-        with pytest.raises(ValidationError) as exc_info:
-            ShipPRConfig(merge_method="invalid")  # type: ignore[arg-type]
-        assert "merge_method" in str(exc_info.value)
-
-    def test_merge_method_accepts_valid_values(self) -> None:
-        """ShipPRConfig accepts all valid merge_method values."""
-        for method in ["merge", "squash", "rebase"]:
-            config = ShipPRConfig(merge_method=method)  # type: ignore[arg-type]
-            assert config.merge_method == method
-
     def test_ship_command_config_defaults(self) -> None:
         """ShipCommandConfig has expected defaults."""
         config = ShipCommandConfig()
@@ -137,9 +125,7 @@ class TestShipCommandConfig:
         assert config.commands.version_bump is None
         assert config.commands.publish is None
         assert config.post_publish == []
-        assert config.pr.merge_on_success is False
-        assert config.pr.delete_branch_on_merge is True
-        assert config.pr.merge_method == "squash"
+        assert config.bypass_ci is True
 
     def test_ship_command_config_with_values(self) -> None:
         """ShipCommandConfig accepts all ship-specific fields."""
@@ -150,17 +136,12 @@ class TestShipCommandConfig:
                 "publish": "npm publish",
             },
             post_publish=["git push --tags", "echo Done"],
-            pr={
-                "merge_on_success": True,
-                "delete_branch_on_merge": True,
-                "merge_method": "squash",
-            },
+            bypass_ci=False,
         )
         assert config.commands.version_bump == "npm version patch"
         assert config.commands.publish == "npm publish"
         assert config.post_publish == ["git push --tags", "echo Done"]
-        assert config.pr.merge_on_success is True
-        assert config.pr.merge_method == "squash"
+        assert config.bypass_ci is False
 
     def test_ship_command_config_post_publish_defaults_to_empty(self) -> None:
         """ShipCommandConfig.post_publish defaults to empty list."""

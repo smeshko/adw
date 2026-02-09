@@ -78,23 +78,17 @@ class TestShipPostHookStatusParsing:
 
 ```
 DEPLOYMENT_STATUS: SUCCESS
-PR_MERGE_APPROVED: true
+PR_MERGE_APPROVED: false
 VERSION_DEPLOYED: 1.2.3
 MERGE_REASON: Deployment successful, all checks passed
 PR_NUMBER: 123
 ```
 """
-        # Need to mock gh pr merge since auto_merge defaults to true
-        env = {
-            "ADW_SHIP_AUTO_MERGE": "false",  # Disable auto-merge to avoid gh call
-            "ADW_PR_NUMBER": "123",
-        }
-
-        result = self.run_post_hook(post_hook_path, llm_output, tmp_artifacts_dir, env)
+        result = self.run_post_hook(post_hook_path, llm_output, tmp_artifacts_dir)
 
         assert result.returncode == 0
         assert "Deployment Status: SUCCESS" in result.stdout
-        assert "PR Merge Approved: true" in result.stdout
+        assert "PR Merge Approved: false" in result.stdout
         assert "Version Deployed: 1.2.3" in result.stdout
         assert "PR Number: 123" in result.stdout
 
@@ -103,7 +97,7 @@ PR_NUMBER: 123
         assert status_file.exists()
         status = json.loads(status_file.read_text())
         assert status["deployment_status"] == "SUCCESS"
-        assert status["pr_merge_approved"] is True
+        assert status["pr_merge_approved"] is False
         assert status["version_deployed"] == "1.2.3"
 
     def test_parse_failed_status(
@@ -207,29 +201,6 @@ class TestShipPostHookAutoMergeDisabled:
             timeout=30,
         )
 
-    def test_auto_merge_disabled_skips_merge(
-        self, post_hook_path: Path, tmp_artifacts_dir: Path
-    ) -> None:
-        """Test that auto_merge: false skips PR merge."""
-        llm_output = """
-DEPLOYMENT_STATUS: SUCCESS
-PR_MERGE_APPROVED: true
-VERSION_DEPLOYED: 2.0.0
-MERGE_REASON: Deployment successful
-PR_NUMBER: 789
-"""
-        env = {
-            "ADW_SHIP_AUTO_MERGE": "false",
-            "ADW_PR_NUMBER": "789",
-        }
-
-        result = self.run_post_hook(post_hook_path, llm_output, tmp_artifacts_dir, env)
-
-        assert result.returncode == 0
-        assert "AUTO-MERGE DISABLED" in result.stdout
-        assert "PR #789 is ready for manual merge" in result.stdout
-        assert "gh pr merge 789 --squash" in result.stdout
-
     def test_pr_not_approved_skips_merge(
         self, post_hook_path: Path, tmp_artifacts_dir: Path
     ) -> None:
@@ -310,7 +281,7 @@ class TestShipPostHookArtifacts:
 ## Ship Phase Report
 
 DEPLOYMENT_STATUS: SUCCESS
-PR_MERGE_APPROVED: true
+PR_MERGE_APPROVED: false
 VERSION_DEPLOYED: 1.0.0
 MERGE_REASON: All good
 PR_NUMBER: 42
@@ -332,7 +303,7 @@ Detailed report content...
         """Test that release notes are extracted to separate artifact."""
         llm_output = """
 DEPLOYMENT_STATUS: SUCCESS
-PR_MERGE_APPROVED: true
+PR_MERGE_APPROVED: false
 VERSION_DEPLOYED: 1.1.0
 MERGE_REASON: Success
 PR_NUMBER: 55
@@ -361,7 +332,7 @@ PR_NUMBER: 55
         """Test that ship_status.json is valid JSON with correct values."""
         llm_output = """
 DEPLOYMENT_STATUS: SUCCESS
-PR_MERGE_APPROVED: true
+PR_MERGE_APPROVED: false
 VERSION_DEPLOYED: 3.0.0
 MERGE_REASON: Deployment successful
 PR_NUMBER: 42
@@ -374,7 +345,7 @@ PR_NUMBER: 42
 
         status = json.loads(status_file.read_text())
         assert status["deployment_status"] == "SUCCESS"
-        assert status["pr_merge_approved"] is True
+        assert status["pr_merge_approved"] is False
         assert status["version_deployed"] == "3.0.0"
         assert status["merge_reason"] == "Deployment successful"
         assert status["pr_number"] == 42
@@ -437,17 +408,16 @@ class TestShipPostHookTaskManager:
     def test_task_update_request_created_when_task_id_present(
         self, post_hook_path: Path, tmp_artifacts_dir: Path
     ) -> None:
-        """Test that task_update_request.json is created when ADW_TASK_ID is set."""
+        """Test that task_update_request.json is NOT created when merge doesn't happen."""
         llm_output = """
 DEPLOYMENT_STATUS: SUCCESS
-PR_MERGE_APPROVED: true
+PR_MERGE_APPROVED: false
 VERSION_DEPLOYED: 1.0.0
 MERGE_REASON: Success
 PR_NUMBER: 100
 """
-        # Note: This test is tricky because task update only happens after successful merge
-        # With auto_merge=false, the task update request won't be created
-        # This is expected behavior - task manager updates require actual merge
+        # Task update only happens after successful merge
+        # With PR_MERGE_APPROVED=false, the task update request won't be created
         env = {
             "ADW_TASK_ID": "TASK-123",
             "ADW_PR_NUMBER": "100",
@@ -457,13 +427,12 @@ PR_NUMBER: 100
 
         assert result.returncode == 0
         # Task update request is NOT created because merge didn't happen
-        # (auto_merge is false)
         task_update = tmp_artifacts_dir / "task_update_request.json"
         assert not task_update.exists()  # Expected - no merge means no task update
 
 
-class TestShipPostHookMergeStrategies:
-    """Tests for different merge strategies (unit tests that don't call gh)."""
+class TestShipPostHookMergeCommand:
+    """Tests for merge command construction (always squash + delete-branch)."""
 
     @pytest.fixture
     def post_hook_path(self) -> Path:
@@ -478,10 +447,10 @@ class TestShipPostHookMergeStrategies:
             / "post.sh"
         )
 
-    def test_merge_strategy_squash_default(
+    def test_merge_command_uses_squash_and_delete_branch(
         self, post_hook_path: Path, tmp_path: Path
     ) -> None:
-        """Test that squash is the default merge strategy."""
+        """Test that merge command always uses --squash --delete-branch."""
         artifacts_dir = tmp_path / "artifacts"
         artifacts_dir.mkdir()
 
@@ -498,7 +467,6 @@ PR_NUMBER: 50
             "ADW_RUN_ID": "test-run",
             "ADW_FEATURE": "Test",
             "ADW_ARTIFACTS_DIR": str(artifacts_dir),
-            "ADW_SHIP_AUTO_MERGE": "false",  # Check output without calling gh
             "ADW_PR_NUMBER": "50",
             "PATH": "/usr/bin:/bin",
         }
@@ -511,33 +479,29 @@ PR_NUMBER: 50
             timeout=30,
         )
 
-        assert result.returncode == 0
-        # Default strategy is squash
-        assert "gh pr merge 50 --squash" in result.stdout
+        # gh is not in PATH so merge fails, but command is still printed
+        assert "gh pr merge 50 --squash --delete-branch" in result.stdout
 
-    def test_merge_body_includes_version(
+    def test_merge_output_includes_version(
         self, post_hook_path: Path, tmp_path: Path
     ) -> None:
-        """Test that merge body includes version when deployed."""
+        """Test that version is parsed and displayed in output."""
         artifacts_dir = tmp_path / "artifacts"
         artifacts_dir.mkdir()
 
         llm_output = """
 DEPLOYMENT_STATUS: SUCCESS
-PR_MERGE_APPROVED: true
+PR_MERGE_APPROVED: false
 VERSION_DEPLOYED: 2.5.0
 MERGE_REASON: Success
 PR_NUMBER: 60
 """
-        # We can't easily test the merge body without mocking gh
-        # But we verify the version is parsed correctly
         env = {
             "ADW_LLM_OUTPUT": llm_output,
             "ADW_PHASE": "ship",
             "ADW_RUN_ID": "test-run",
             "ADW_FEATURE": "Test",
             "ADW_ARTIFACTS_DIR": str(artifacts_dir),
-            "ADW_SHIP_AUTO_MERGE": "false",
             "ADW_PR_NUMBER": "60",
             "PATH": "/usr/bin:/bin",
         }
@@ -630,7 +594,7 @@ MERGE_REASON: Success
 
         llm_output = """
 DEPLOYMENT_STATUS: SUCCESS
-PR_MERGE_APPROVED: true
+PR_MERGE_APPROVED: false
 VERSION_DEPLOYED: 1.0.0
 MERGE_REASON: Success
 PR_NUMBER: 999
@@ -641,7 +605,6 @@ PR_NUMBER: 999
             "ADW_RUN_ID": "test-run",
             "ADW_FEATURE": "Test",
             "ADW_ARTIFACTS_DIR": str(artifacts_dir),
-            "ADW_SHIP_AUTO_MERGE": "false",
             "ADW_PR_NUMBER": "123",  # Should be overridden by LLM output
             "PATH": "/usr/bin:/bin",
         }

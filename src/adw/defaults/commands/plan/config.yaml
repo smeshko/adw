@@ -13,4 +13,3 @@ timeout_seconds: 600
 # LLM settings for this phase
 # llm:
 #   model: claude-sonnet-4-20250514
-#   temperature: 0.7

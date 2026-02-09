@@ -19,7 +19,7 @@ class TestSuggestionFormatter:
             severity="critical",
             category="destructive",
             alternative="Use specific paths: rm -rf ./node_modules",
-            allowed=False,
+
         )
         formatter = SuggestionFormatter()
         result = formatter.format_single(match)
@@ -38,7 +38,7 @@ class TestSuggestionFormatter:
             severity="warning",
             category="permission",
             alternative="Use chmod 755 instead",
-            allowed=False,
+
         )
         formatter = SuggestionFormatter()
         result = formatter.format_single(match)
@@ -56,7 +56,7 @@ class TestSuggestionFormatter:
             severity="warning",
             category="git_dangerous",
             alternative="Use --force-with-lease",
-            allowed=False,
+
         )
         formatter = SuggestionFormatter()
         result = formatter.format_single(match)
@@ -75,7 +75,7 @@ class TestSuggestionFormatter:
                 severity="critical",
                 category="destructive",
                 alternative="Use specific paths",
-                allowed=False,
+    
             ),
             PatternMatch(
                 pattern=r"chmod\s+777",
@@ -83,7 +83,7 @@ class TestSuggestionFormatter:
                 severity="warning",
                 category="permission",
                 alternative="Use chmod 755",
-                allowed=False,
+    
             ),
         ]
         formatter = SuggestionFormatter()
@@ -167,7 +167,7 @@ class TestSuggestionFormatterAdvanced:
             severity="info",
             category="destructive",
             alternative="",  # Empty alternative
-            allowed=False,
+
         )
         formatter = SuggestionFormatter()
         result = formatter.format_single(match)
@@ -177,25 +177,6 @@ class TestSuggestionFormatterAdvanced:
         has_no_alt = "Suggested alternative" not in result
         alt_count_zero = result.count("Suggested alternative") == 0
         assert has_no_alt or alt_count_zero
-
-    def test_format_single_allowed_no_override(self) -> None:
-        """Test that allowed matches don't show override instruction."""
-        from adw.security.patterns import PatternMatch
-        from adw.security.suggestions import SuggestionFormatter
-
-        match = PatternMatch(
-            pattern=r"test",
-            description="Test pattern",
-            severity="warning",
-            category="permission",
-            alternative="Use something else",
-            allowed=True,  # Already allowed
-        )
-        formatter = SuggestionFormatter()
-        result = formatter.format_single(match)
-
-        # Should NOT include override instruction since already allowed
-        assert "--allow-dangerous" not in result
 
     def test_format_single_without_override_instruction(self) -> None:
         """Test formatter with include_override=False."""
@@ -208,7 +189,7 @@ class TestSuggestionFormatterAdvanced:
             severity="critical",
             category="destructive",
             alternative="Alternative",
-            allowed=False,
+
         )
         formatter = SuggestionFormatter(include_override=False)
         result = formatter.format_single(match)
@@ -226,7 +207,7 @@ class TestSuggestionFormatterAdvanced:
             severity="critical",
             category="destructive",
             alternative="Use specific paths",
-            allowed=False,
+
         )
         formatter = SuggestionFormatter()
         result = formatter.format_error_message([match], command="rm -rf /")
@@ -246,7 +227,7 @@ class TestSuggestionFormatterAdvanced:
             severity="warning",
             category="secret_access",
             alternative="Use env vars",
-            allowed=False,
+
         )
         formatter = SuggestionFormatter()
         result = formatter.format_error_message([match], file_path=".env")
@@ -265,7 +246,7 @@ class TestSuggestionFormatterAdvanced:
             severity="warning",
             category="permission",
             alternative="Alternative",
-            allowed=False,
+
         )
         formatter = SuggestionFormatter()
         result = formatter.format_error_message(
@@ -286,7 +267,7 @@ class TestSuggestionFormatterAdvanced:
             severity="warning",
             category="permission",
             alternative="Alt",
-            allowed=False,
+
         )
         formatter = SuggestionFormatter()
         result = formatter.format_multiple([match])

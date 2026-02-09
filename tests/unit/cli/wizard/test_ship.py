@@ -27,9 +27,6 @@ class TestRunShipStep:
         assert result["enabled"] is True  # Ship is enabled by default
         assert result["commands"] == {}  # No commands configured
         assert result["post_publish"] == []  # No post-publish hooks
-        assert result["pr"]["merge_on_success"] is False
-        assert result["pr"]["delete_branch_on_merge"] is True
-        assert result["pr"]["merge_method"] == "squash"
 
     def test_full_config_all_options(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test ship step with all options configured."""
@@ -83,9 +80,6 @@ class TestRunShipStep:
         assert result["commands"]["version_bump"] == "npm version patch"
         assert result["commands"]["publish"] == "npm publish"
         assert result["post_publish"] == ["git push --tags"]
-        assert result["pr"]["merge_on_success"] is True
-        assert result["pr"]["delete_branch_on_merge"] is True
-        assert result["pr"]["merge_method"] == "squash"
 
     def test_commands_empty_skipped(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that empty command inputs result in no commands in config."""
@@ -150,84 +144,6 @@ class TestRunShipStep:
 
         # Should have both hooks
         assert result["post_publish"] == ["git push --tags", "echo 'deployed'"]
-
-    def test_pr_merge_strategies(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test all merge strategy values are accepted when auto-merge is enabled."""
-        from adw.cli.wizard.ship import run_ship_step
-        from adw.models.wizard import WizardState
-
-        for strategy in ["squash", "merge", "rebase"]:
-
-            def mock_confirm(*args: Any, **kwargs: Any) -> bool:
-                msg = str(args[0]) if args else ""
-                if "Configure ship phase" in msg:
-                    return True
-                if "Add post-publish" in msg:
-                    return False
-                if "Auto-merge after" in msg:
-                    return True  # Enable auto-merge so merge strategy is asked
-                if "Delete branch" in msg:
-                    return True
-                return False
-
-            def make_mock_prompt(strat: str):
-                def mock_prompt(*args: Any, **kwargs: Any) -> str:
-                    msg = str(args[0]) if args else ""
-                    if "Merge strategy" in msg:
-                        return strat
-                    return kwargs.get("default", "")
-
-                return mock_prompt
-
-            monkeypatch.setattr("adw.cli.wizard.ship.Confirm.ask", mock_confirm)
-            monkeypatch.setattr(
-                "adw.cli.wizard.ship.Prompt.ask", make_mock_prompt(strategy)
-            )
-
-            state = WizardState()
-            console = Console()
-            result = run_ship_step(state, console)
-
-            assert result["pr"]["merge_method"] == strategy
-
-    def test_pr_settings_skipped_when_no_auto_merge(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test that merge strategy and delete branch are not asked when auto-merge is disabled."""
-        from adw.cli.wizard.ship import run_ship_step
-        from adw.models.wizard import WizardState
-
-        confirm_calls: list[str] = []
-
-        def mock_confirm(*args: Any, **kwargs: Any) -> bool:
-            msg = str(args[0]) if args else ""
-            confirm_calls.append(msg)
-            if "Configure ship phase" in msg:
-                return True
-            if "Add post-publish" in msg:
-                return False
-            if "Auto-merge after" in msg:
-                return False  # Disable auto-merge
-            return False
-
-        def mock_prompt(*args: Any, **kwargs: Any) -> str:
-            return kwargs.get("default", "")
-
-        monkeypatch.setattr("adw.cli.wizard.ship.Confirm.ask", mock_confirm)
-        monkeypatch.setattr("adw.cli.wizard.ship.Prompt.ask", mock_prompt)
-
-        state = WizardState()
-        console = Console()
-        result = run_ship_step(state, console)
-
-        # Should use defaults when auto-merge is disabled
-        assert result["pr"]["merge_on_success"] is False
-        assert result["pr"]["merge_method"] == "squash"  # Default
-        assert result["pr"]["delete_branch_on_merge"] is True  # Default
-
-        # Verify that delete branch was NOT asked
-        assert not any("Delete branch" in call for call in confirm_calls)
-
 
 class TestShipStepHandler:
     """Tests for ShipStepHandler class."""

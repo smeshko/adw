@@ -11,4 +11,3 @@ timeout_seconds: 1200
 # LLM settings for this phase
 # llm:
 #   model: claude-sonnet-4-20250514
-#   temperature: 0.3  # Lower temperature for code generation

@@ -1,8 +1,7 @@
 """Security configuration step for the wizard.
 
 This module handles the security configuration step where users can
-customize security settings including dangerous operation permissions
-and blocked patterns for commands and environment files.
+customize blocked patterns for commands and environment files.
 """
 
 from __future__ import annotations
@@ -12,7 +11,6 @@ from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 from rich.markup import escape
-from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 
 if TYPE_CHECKING:
@@ -62,8 +60,6 @@ class SecurityStepHandler:
 
     This step:
     - Prompts user if they want to configure custom security settings
-    - If yes, prompts for dangerous operations permission
-    - Shows warning and requires confirmation for dangerous operations
     - Allows adding custom blocked command patterns (regex)
     - Allows adding custom blocked env file patterns (glob-style)
     """
@@ -78,7 +74,6 @@ class SecurityStepHandler:
         Returns:
             Configuration collected from this step containing:
             - security_custom: Whether user customized security
-            - security_allow_dangerous: Whether dangerous operations are allowed
             - security_blocked_commands: List of additional blocked command patterns
             - security_blocked_env_files: List of additional blocked env file patterns
         """
@@ -99,7 +94,7 @@ def run_security_step(
         console: Console for output.
 
     Returns:
-        Configuration dict containing security_custom, security_allow_dangerous,
+        Configuration dict containing security_custom,
         security_blocked_commands, and security_blocked_env_files values.
     """
     console.print()
@@ -122,16 +117,12 @@ def run_security_step(
         # Use safe defaults
         return {
             "security_custom": False,
-            "security_allow_dangerous": False,
             "security_blocked_commands": [],
             "security_blocked_env_files": [],
         }
 
     # Interactive configuration
     console.print()
-
-    # Handle dangerous operations
-    allow_dangerous = _prompt_dangerous_operations(console)
 
     # Handle blocked command patterns
     blocked_commands = _prompt_blocked_commands(console)
@@ -141,53 +132,9 @@ def run_security_step(
 
     return {
         "security_custom": True,
-        "security_allow_dangerous": allow_dangerous,
         "security_blocked_commands": blocked_commands,
         "security_blocked_env_files": blocked_env_files,
     }
-
-
-def _prompt_dangerous_operations(console: Console) -> bool:
-    """Prompt for dangerous operations permission.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        True if dangerous operations are allowed, False otherwise.
-    """
-    allow_dangerous = Confirm.ask(
-        "Allow dangerous operations (warns instead of blocking)?",
-        default=False,
-        console=console,
-    )
-
-    if not allow_dangerous:
-        return False
-
-    # Show warning panel
-    console.print()
-    console.print(
-        Panel(
-            "[yellow bold]Warning: Reduced Safety Mode[/]\n\n"
-            "Enabling this option means:\n"
-            "  - Dangerous commands will show warnings but WILL NOT be blocked\n"
-            "  - LLM may execute destructive commands without confirmation\n"
-            "  - Built-in protections (rm -rf /, sudo rm, etc.) remain active\n\n"
-            "[dim]Only enable if you understand the risks.[/]",
-            title="Security Warning",
-            border_style="yellow",
-        )
-    )
-
-    # Require explicit confirmation
-    really_sure = Confirm.ask(
-        "Are you sure you want to enable dangerous operations?",
-        default=False,
-        console=console,
-    )
-
-    return really_sure
 
 
 def _prompt_blocked_commands(console: Console) -> list[str]:
