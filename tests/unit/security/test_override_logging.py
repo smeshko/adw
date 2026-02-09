@@ -27,7 +27,7 @@ class TestOverrideLogger:
             severity="critical",
             category="destructive",
             alternative="Use specific paths",
-            allowed=True,
+
         )
         logger.log_override(match, command="rm -rf /")
 
@@ -46,7 +46,7 @@ class TestOverrideLogger:
             severity="critical",
             category="destructive",
             alternative="",
-            allowed=True,
+
         )
         match2 = PatternMatch(
             pattern=r"chmod\s+777",
@@ -54,7 +54,7 @@ class TestOverrideLogger:
             severity="warning",
             category="permission",
             alternative="",
-            allowed=True,
+
         )
         logger.log_override(match1, command="rm -rf /tmp")
         logger.log_override(match2, command="chmod 777 /var/log")
@@ -74,7 +74,7 @@ class TestOverrideLogger:
             severity="warning",
             category="permission",
             alternative="",
-            allowed=True,
+
         )
         logger.log_override(match, command="test")
 
@@ -91,7 +91,7 @@ class TestOverrideLogger:
             severity="critical",
             category="destructive",
             alternative="",
-            allowed=True,
+
         )
         permission = PatternMatch(
             pattern=r"chmod",
@@ -99,7 +99,7 @@ class TestOverrideLogger:
             severity="warning",
             category="permission",
             alternative="",
-            allowed=True,
+
         )
         logger.log_override(destructive, command="rm file")
         logger.log_override(permission, command="chmod 777 file")
@@ -118,7 +118,7 @@ class TestOverrideLogger:
             severity="critical",
             category="destructive",
             alternative="",
-            allowed=True,
+
         )
         logger.log_override(match, command="rm -rf /tmp")
 
@@ -137,7 +137,7 @@ class TestOverrideLogger:
             severity="warning",
             category="permission",
             alternative="",
-            allowed=True,
+
         )
         logger.log_override(match, command="test")
         assert logger.get_override_count() == 1
@@ -161,7 +161,7 @@ class TestOverrideLoggerWithStructuredLogging:
             severity="critical",
             category="destructive",
             alternative="",
-            allowed=True,
+
         )
         logger.log_override(match, command="rm -rf /tmp")
         # Logging is side-effect tested, count is the main assertion
@@ -196,7 +196,7 @@ class TestModuleLevelFunctions:
             severity="warning",
             category="permission",
             alternative="",
-            allowed=True,
+
         )
         logger1.log_override(match, command="test")
         assert logger1.get_override_count() == 1
@@ -222,7 +222,7 @@ class TestModuleLevelFunctions:
                 severity="critical",
                 category="destructive",
                 alternative="",
-                allowed=True,
+    
             ),
             command="rm -rf /",
         )
@@ -233,7 +233,7 @@ class TestModuleLevelFunctions:
                 severity="warning",
                 category="permission",
                 alternative="",
-                allowed=True,
+    
             ),
             command="chmod 777 /",
         )

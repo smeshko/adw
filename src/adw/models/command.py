@@ -20,10 +20,9 @@ class PhaseLLMConfig(BaseModel):
 
     Attributes:
         model: Model identifier to use for this phase (e.g., "claude-3-opus").
-        temperature: Sampling temperature (0.0-1.0). Lower = more deterministic.
 
     Example:
-        >>> llm_config = PhaseLLMConfig(model="claude-3-opus", temperature=0.7)
+        >>> llm_config = PhaseLLMConfig(model="claude-3-opus")
         >>> llm_config.model
         'claude-3-opus'
     """
@@ -33,12 +32,6 @@ class PhaseLLMConfig(BaseModel):
     model: str | None = Field(
         default=None,
         description="Model identifier to use for this phase",
-    )
-    temperature: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        description="Sampling temperature (0.0-1.0)",
     )
 
 
@@ -54,7 +47,7 @@ class CommandConfig(BaseModel):
         timeout_seconds: Default timeout for this command in seconds.
         input_files: Mapping of variable names to file paths for template injection.
             Files are loaded at phase start and available as {{ inputs.name }}.
-        llm: Phase-specific LLM settings (model, temperature).
+        llm: Phase-specific LLM settings (model).
     Example:
         >>> config = CommandConfig(
         ...     enabled=True,
@@ -73,7 +66,6 @@ class CommandConfig(BaseModel):
           architecture: docs/architecture.md
         llm:
           model: claude-3-opus
-          temperature: 0.7
     Merging behavior:
         When merged with project's PhaseConfig, project settings override command
         defaults. For dictionaries (input_files), values are merged with project
@@ -141,54 +133,6 @@ class ShipCommandsConfig(BaseModel):
     )
 
 
-class ShipPRConfig(BaseModel):
-    """Configuration for PR automation during ship phase.
-
-    Controls how pull requests are handled during the ship phase,
-    including automatic merging and branch cleanup.
-
-    Attributes:
-        merge_on_success: Whether to auto-merge PR after validation (default: False)
-        delete_branch_on_merge: Delete feature branch after merge (default: True)
-        merge_method: Method for merging PR (default: "squash")
-        bypass_ci: Bypass CI checks using --admin flag (default: False, requires admin)
-
-    Example:
-        >>> config = ShipPRConfig(merge_on_success=True, merge_method="squash")
-        >>> config.merge_on_success
-        True
-        >>> config.merge_method
-        'squash'
-
-    YAML example:
-        ship:
-          pr:
-            merge_on_success: true
-            delete_branch_on_merge: true
-            merge_method: squash
-            bypass_ci: false
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    merge_on_success: bool = Field(
-        default=False,
-        description="Whether to auto-merge PR after successful validation",
-    )
-    delete_branch_on_merge: bool = Field(
-        default=True,
-        description="Delete feature branch after merge",
-    )
-    merge_method: Literal["merge", "squash", "rebase"] = Field(
-        default="squash",
-        description="Method for merging PR (merge, squash, or rebase)",
-    )
-    bypass_ci: bool = Field(
-        default=False,
-        description="Bypass CI checks using --admin flag (requires admin access)",
-    )
-
-
 class ValidateCommandConfig(CommandConfig):
     """Validate phase configuration extending CommandConfig.
 
@@ -205,8 +149,6 @@ class ValidateCommandConfig(CommandConfig):
         max_iterations: Maximum validation loop iterations.
         max_fix_attempts_per_issue: Max attempts to fix a single issue.
         stall_threshold: Consecutive iterations without progress before stall.
-        triage_mode: How to handle issue triage (auto, manual, hybrid).
-        auto_dismiss_info: Automatically dismiss info-level issues.
 
     Example:
         >>> config = ValidateCommandConfig(
@@ -221,7 +163,6 @@ class ValidateCommandConfig(CommandConfig):
         timeout_seconds: 600
         enable_tests: true
         max_iterations: 5
-        triage_mode: auto
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -243,12 +184,6 @@ class ValidateCommandConfig(CommandConfig):
     )
     stall_threshold: int = Field(
         default=2, description="Consecutive iterations without progress before stall"
-    )
-    triage_mode: Literal["auto", "manual", "hybrid"] = Field(
-        default="auto", description="How to handle issue triage"
-    )
-    auto_dismiss_info: bool = Field(
-        default=True, description="Automatically dismiss info-level issues"
     )
 
 
@@ -336,17 +271,17 @@ class ShipCommandConfig(CommandConfig):
     """Ship phase configuration extending CommandConfig.
 
     Contains all settings for the ship phase including deployment commands,
-    post-publish hooks, and PR automation settings.
+    post-publish hooks, and CI bypass settings.
 
     Attributes:
         commands: Shell commands for version bump, build, and publish steps.
         post_publish: List of commands to run after publishing.
-        pr: PR automation configuration (merge settings).
+        bypass_ci: Bypass CI checks using --admin flag (default: True).
 
     Example:
         >>> config = ShipCommandConfig(
         ...     commands=ShipCommandsConfig(version_bump="npm version patch"),
-        ...     pr=ShipPRConfig(merge_on_success=True),
+        ...     bypass_ci=True,
         ... )
         >>> config.commands.version_bump
         'npm version patch'
@@ -359,9 +294,7 @@ class ShipCommandConfig(CommandConfig):
           publish: npm publish
         post_publish:
           - git push --tags
-        pr:
-          merge_on_success: true
-          merge_method: squash
+        bypass_ci: true
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -374,9 +307,9 @@ class ShipCommandConfig(CommandConfig):
         default_factory=list,
         description="Commands to run after publishing (e.g., git push --tags)",
     )
-    pr: ShipPRConfig = Field(
-        default_factory=ShipPRConfig,
-        description="PR automation configuration",
+    bypass_ci: bool = Field(
+        default=True,
+        description="Bypass CI checks using --admin flag (requires admin access)",
     )
 
 

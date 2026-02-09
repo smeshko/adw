@@ -72,6 +72,7 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
+        mock_project_config.security = None
         mock_project_config.task_manager = mock_config_with_labels
         mock_config_loader.return_value.load.return_value = mock_project_config
 
@@ -141,6 +142,7 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
+        mock_project_config.security = None
         mock_project_config.task_manager = mock_config_with_labels
         mock_config_loader.return_value.load.return_value = mock_project_config
 
@@ -182,6 +184,7 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
+        mock_project_config.security = None
         mock_project_config.task_manager = mock_config_with_labels
         mock_config_loader.return_value.load.return_value = mock_project_config
 
@@ -216,6 +219,7 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config = MagicMock(spec=ProjectConfig)
         mock_project_config.worktree = None
         mock_project_config.git = None
+        mock_project_config.security = None
         mock_project_config.task_manager = mock_config_without_labels
         mock_config_loader.return_value.load.return_value = mock_project_config
 

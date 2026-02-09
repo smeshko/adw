@@ -20,10 +20,6 @@ max_iterations: 5               # Maximum validation loop iterations
 max_fix_attempts_per_issue: 2   # Max attempts to fix a single issue
 stall_threshold: 2              # Iterations without progress before stall
 
-# Issue triage behavior
-triage_mode: auto       # How to handle issues (auto/manual/hybrid)
-auto_dismiss_info: true # Automatically dismiss info-level issues
-
 # Input files for validate phase
 # input_files:
 #   output: artifacts/validate/validate_output.md
@@ -31,4 +27,3 @@ auto_dismiss_info: true # Automatically dismiss info-level issues
 # LLM settings for this phase
 # llm:
 #   model: claude-sonnet-4-20250514
-#   temperature: 0.0  # Zero temperature for deterministic validation

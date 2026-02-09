@@ -13,7 +13,6 @@ from rich.console import Console
 from adw.cli.wizard.phases import (
     AVAILABLE_PHASES,
     DEFAULT_TIMEOUTS,
-    TRIAGE_MODES,
     PhasesStepHandler,
     _configure_document_phase,
     _configure_phase,
@@ -47,10 +46,6 @@ class TestConstants:
         assert DEFAULT_TIMEOUTS["validate"] == 900  # 15 minutes
         assert DEFAULT_TIMEOUTS["document"] == 900  # 15 minutes
         assert DEFAULT_TIMEOUTS["ship"] == 1200  # 20 minutes
-
-    def test_triage_modes(self) -> None:
-        """Test triage modes list."""
-        assert TRIAGE_MODES == ["auto", "manual", "hybrid"]
 
 
 class TestNoCustomization:
@@ -221,8 +216,8 @@ class TestBasePhaseConfiguration:
         ):
             # enabled=True
             mock_confirm.return_value = True
-            # timeout, model override, temperature override
-            mock_prompt.side_effect = ["300", "", ""]
+            # timeout, model override
+            mock_prompt.side_effect = ["300", ""]
 
             config = _configure_phase("plan", console)
 
@@ -242,8 +237,8 @@ class TestBasePhaseConfiguration:
         ):
             # enabled=False
             mock_confirm.return_value = False
-            # timeout=120, model override, temperature override
-            mock_prompt.side_effect = ["120", "", ""]
+            # timeout=120, model override
+            mock_prompt.side_effect = ["120", ""]
 
             config = _configure_phase("build", console)
 
@@ -261,7 +256,7 @@ class TestBasePhaseConfiguration:
         ):
             mock_confirm.return_value = True
             # User just hits enter for timeout (uses default), skip LLM
-            mock_prompt.side_effect = ["600", "", ""]
+            mock_prompt.side_effect = ["600", ""]
 
             config = _configure_phase("build", console)
 
@@ -269,7 +264,7 @@ class TestBasePhaseConfiguration:
         assert config["timeout_seconds"] == 600
 
     def test_configure_phase_with_llm_settings(self) -> None:
-        """Test phase configuration with LLM model and temperature."""
+        """Test phase configuration with LLM model override."""
         console = Console(force_terminal=True)
 
         with (
@@ -278,12 +273,12 @@ class TestBasePhaseConfiguration:
             patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
             mock_confirm.return_value = True
-            # timeout, model override, temperature override
-            mock_prompt.side_effect = ["300", "claude-3-opus", "0.3"]
+            # timeout, model override
+            mock_prompt.side_effect = ["300", "claude-3-opus"]
 
             config = _configure_phase("build", console)
 
-        assert config["llm"] == {"model": "claude-3-opus", "temperature": 0.3}
+        assert config["llm"] == {"model": "claude-3-opus"}
 
 
 class TestValidatePhaseSpecialOptions:
@@ -309,9 +304,7 @@ class TestValidatePhaseSpecialOptions:
             mock_prompt.side_effect = [
                 "900",  # timeout
                 "",  # model override (skip)
-                "",  # temperature override (skip)
                 "5",  # max_iterations
-                "auto",  # triage_mode
             ]
 
             config = _configure_phase("validate", console)
@@ -324,7 +317,6 @@ class TestValidatePhaseSpecialOptions:
         assert config["enable_review"] is True
         assert config["enable_tests"] is True
         assert config["max_iterations"] == 5
-        assert config["triage_mode"] == "auto"
         assert "linter_commands" not in config  # Not added when declined
 
     def test_validate_phase_custom_special_options(self) -> None:
@@ -345,9 +337,7 @@ class TestValidatePhaseSpecialOptions:
             mock_prompt.side_effect = [
                 "1800",  # timeout 30 min
                 "",  # model override (skip)
-                "",  # temperature override (skip)
                 "3",  # max_iterations
-                "manual",  # triage_mode
             ]
 
             config = _configure_phase("validate", console)
@@ -355,7 +345,6 @@ class TestValidatePhaseSpecialOptions:
         assert config["enable_review"] is False
         assert config["enable_tests"] is True
         assert config["max_iterations"] == 3
-        assert config["triage_mode"] == "manual"
 
     def test_configure_validate_phase_directly(self) -> None:
         """Test _configure_validate_phase function directly."""
@@ -372,7 +361,6 @@ class TestValidatePhaseSpecialOptions:
             ]
             mock_prompt.side_effect = [
                 "10",  # max_iterations
-                "hybrid",  # triage_mode
             ]
 
             config = _configure_validate_phase(console)
@@ -380,7 +368,6 @@ class TestValidatePhaseSpecialOptions:
         assert config["enable_review"] is True
         assert config["enable_tests"] is False
         assert config["max_iterations"] == 10
-        assert config["triage_mode"] == "hybrid"
 
     def test_validate_phase_with_linter_commands(self) -> None:
         """Test validate phase with linter commands added."""
@@ -397,7 +384,6 @@ class TestValidatePhaseSpecialOptions:
             ]
             mock_prompt.side_effect = [
                 "5",  # max_iterations
-                "auto",  # triage_mode
                 "ruff check .",  # first linter
                 "mypy src/",  # second linter
                 "",  # done adding linters
@@ -577,7 +563,6 @@ class TestDocumentPhaseSpecialOptions:
             mock_prompt.side_effect = [
                 "300",  # timeout
                 "",  # model override (skip)
-                "",  # temperature override (skip)
                 "src/**/*.py=docs/src",  # mapping
                 "",  # finish mappings
             ]
@@ -679,7 +664,6 @@ class TestFullFlow:
                 "1",  # select plan phase
                 "300",  # timeout
                 "",  # model override (skip)
-                "",  # temperature override (skip)
             ]
 
             result = run_phases_step(state, console)
@@ -710,9 +694,7 @@ class TestFullFlow:
                 "3",  # select validate phase
                 "900",  # timeout
                 "",  # model override (skip)
-                "",  # temperature override (skip)
                 "5",  # max_iterations
-                "auto",  # triage_mode
             ]
 
             result = run_phases_step(state, console)
@@ -722,7 +704,6 @@ class TestFullFlow:
         validate_config = result["phases"]["validate"]
         assert validate_config["enable_review"] is True
         assert validate_config["enable_tests"] is True
-        assert validate_config["triage_mode"] == "auto"
         assert "linter_commands" not in validate_config
 
 

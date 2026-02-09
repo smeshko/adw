@@ -122,7 +122,6 @@ class YAMLWithComments:
         ports = state.get_step_config("ports")
         task_manager = state.get_step_config("task_manager")
         llm_retry = state.get_step_config("llm_retry")
-        security = state.get_step_config("security")
         webhooks = state.get_step_config("webhooks")
 
         # === Core Settings ===
@@ -249,17 +248,9 @@ class YAMLWithComments:
 
         # === Security ===
         lines.append("# === Security ===")
-        allow_dangerous = security.get("security_allow_dangerous", False)
-
-        if allow_dangerous:
-            lines.append("security:")
-            lines.append("  allow_dangerous: true  # Log warnings instead of blocking")
-        else:
-            lines.append("# security:")
-            lines.append(
-                "#   allow_dangerous: false  # Log warnings instead of blocking"
-            )
-            lines.append("#   blocked_patterns: []  # Additional patterns to block")
+        lines.append("# security:")
+        lines.append("#   blocked_patterns: []  # Additional patterns to block")
+        lines.append("#   blocked_env_files: []  # Additional file patterns to block")
 
         lines.append("")
 
@@ -352,28 +343,13 @@ class YAMLWithComments:
         # LLM settings
         llm_config = phase_config.get("llm", {})
         llm_model = llm_config.get("model") if llm_config else None
-        llm_temperature = llm_config.get("temperature") if llm_config else None
 
-        if llm_model or llm_temperature is not None:
+        if llm_model:
             lines.append("llm:")
-            if llm_model:
-                lines.append(f"  model: {llm_model}")
-            else:
-                lines.append("  # model: null  # Model identifier for this phase")
-            if llm_temperature is not None:
-                lines.append(f"  temperature: {llm_temperature}")
-            else:
-                default_temp = self._get_default_phase_temperature(phase)
-                lines.append(
-                    f"  # temperature: {default_temp}  # Sampling temperature"
-                )
+            lines.append(f"  model: {llm_model}")
         else:
-            default_temp = self._get_default_phase_temperature(phase)
             lines.append("# llm:")
             lines.append("#   model: null  # Model identifier for this phase")
-            lines.append(
-                f"#   temperature: {default_temp}  # Sampling temperature"
-            )
 
         lines.append("")
 
@@ -402,24 +378,6 @@ class YAMLWithComments:
             "ship": 900,
         }
         return defaults.get(phase, 300)
-
-    def _get_default_phase_temperature(self, phase: str) -> float:
-        """Get default temperature hint for a phase.
-
-        Args:
-            phase: Phase name.
-
-        Returns:
-            Suggested default temperature.
-        """
-        defaults: dict[str, float] = {
-            "plan": 0.7,
-            "build": 0.3,
-            "validate": 0.0,
-            "document": 0.5,
-            "ship": 0.3,
-        }
-        return defaults.get(phase, 0.5)
 
     def _add_validate_phase_settings(
         self, lines: list[str], config: dict[str, Any]
@@ -477,20 +435,6 @@ class YAMLWithComments:
         else:
             lines.append("# stall_threshold: 2  # Iterations before stall")
 
-        # triage_mode
-        triage_mode = config.get("triage_mode")
-        if triage_mode is not None:
-            lines.append(f"triage_mode: {triage_mode}")
-        else:
-            lines.append("# triage_mode: auto  # auto/manual/hybrid")
-
-        # auto_dismiss_info
-        auto_dismiss_info = config.get("auto_dismiss_info")
-        if auto_dismiss_info is not None:
-            lines.append(f"auto_dismiss_info: {_format_yaml_value(auto_dismiss_info)}")
-        else:
-            lines.append("# auto_dismiss_info: true  # Auto-dismiss info-level issues")
-
         lines.append("")
 
     def _add_ship_phase_settings(
@@ -499,7 +443,7 @@ class YAMLWithComments:
         """Add ship phase specific settings.
 
         Outputs all ship-specific fields from ShipCommandConfig,
-        including commands, post_publish, and PR settings.
+        including commands, post_publish, and bypass_ci.
 
         Args:
             lines: List of output lines to append to.
@@ -510,10 +454,8 @@ class YAMLWithComments:
         # Get nested config sections (handle None values explicitly)
         commands = config.get("commands") or {}
         post_publish = config.get("post_publish") or []
-        pr = config.get("pr", {})
 
         has_commands = commands.get("version_bump") or commands.get("publish")
-        has_pr_config = pr.get("merge_on_success")
 
         # Commands section
         if has_commands:
@@ -544,19 +486,17 @@ class YAMLWithComments:
 
         lines.append("")
 
-        # PR automation settings
-        if has_pr_config:
-            lines.append("pr:")
-            merge_val = _format_yaml_value(pr.get("merge_on_success", False))
-            delete_val = _format_yaml_value(pr.get("delete_branch_on_merge", True))
-            lines.append(f"  merge_on_success: {merge_val}")
-            lines.append(f"  delete_branch_on_merge: {delete_val}")
-            lines.append(f"  merge_method: {pr.get('merge_method', 'squash')}")
+        # Bypass CI setting
+        bypass_ci = config.get("bypass_ci")
+        if bypass_ci is not None:
+            lines.append(
+                f"bypass_ci: {_format_yaml_value(bypass_ci)}  "
+                "# Bypass CI checks with --admin"
+            )
         else:
-            lines.append("# pr:")
-            lines.append("#   merge_on_success: false  # Auto-merge PR")
-            lines.append("#   delete_branch_on_merge: true  # Delete branch")
-            lines.append("#   merge_method: squash  # merge/squash/rebase")
+            lines.append(
+                "# bypass_ci: true  # Bypass CI checks with --admin (requires admin)"
+            )
 
         lines.append("")
 
@@ -598,14 +538,12 @@ def generate_all_phase_configs(
 
         # For ship phase, merge in the ship step config
         if phase == "ship" and ship_step_config:
-            # Merge ship step settings (commands, post_publish, pr)
+            # Merge ship step settings (commands, post_publish)
             phase_config = {**phase_config}  # Shallow copy to avoid mutation
             if ship_step_config.get("commands"):
                 phase_config["commands"] = ship_step_config["commands"]
             if ship_step_config.get("post_publish"):
                 phase_config["post_publish"] = ship_step_config["post_publish"]
-            if ship_step_config.get("pr"):
-                phase_config["pr"] = ship_step_config["pr"]
 
         content = generator.generate_phase_yaml(phase, phase_config)
         files[f"commands/{phase}/config.yaml"] = content

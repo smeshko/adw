@@ -18,28 +18,6 @@ from adw.models.command import (
 class TestPhaseLLMConfig:
     """Tests for PhaseLLMConfig validation rules."""
 
-    def test_temperature_boundary_zero(self) -> None:
-        """Temperature accepts minimum value 0.0."""
-        config = PhaseLLMConfig(temperature=0.0)
-        assert config.temperature == 0.0
-
-    def test_temperature_boundary_one(self) -> None:
-        """Temperature accepts maximum value 1.0."""
-        config = PhaseLLMConfig(temperature=1.0)
-        assert config.temperature == 1.0
-
-    def test_temperature_below_zero_rejected(self) -> None:
-        """Temperature rejects values below 0.0."""
-        with pytest.raises(ValidationError) as exc_info:
-            PhaseLLMConfig(temperature=-0.1)
-        assert "greater than or equal to 0" in str(exc_info.value)
-
-    def test_temperature_above_one_rejected(self) -> None:
-        """Temperature rejects values above 1.0."""
-        with pytest.raises(ValidationError) as exc_info:
-            PhaseLLMConfig(temperature=1.1)
-        assert "less than or equal to 1" in str(exc_info.value)
-
     def test_extra_fields_rejected(self) -> None:
         """PhaseLLMConfig rejects unknown fields (extra='forbid')."""
         with pytest.raises(ValidationError) as exc_info:
@@ -68,23 +46,16 @@ class TestCommandConfig:
             CommandConfig(unknown_field="value")  # type: ignore[call-arg]
         assert "extra" in str(exc_info.value).lower()
 
-    def test_nested_llm_config_validated(self) -> None:
-        """CommandConfig validates nested PhaseLLMConfig."""
-        with pytest.raises(ValidationError) as exc_info:
-            CommandConfig(llm=PhaseLLMConfig(temperature=2.0))  # invalid
-        assert "less than or equal to 1" in str(exc_info.value)
-
     def test_valid_complete_config(self) -> None:
         """CommandConfig accepts valid complete configuration."""
         config = CommandConfig(
             timeout_seconds=600,
             input_files={"prd": "docs/prd.md"},
-            llm=PhaseLLMConfig(model="claude-3-opus", temperature=0.7),
+            llm=PhaseLLMConfig(model="claude-3-opus"),
         )
         assert config.timeout_seconds == 600
         assert config.input_files == {"prd": "docs/prd.md"}
         assert config.llm.model == "claude-3-opus"
-        assert config.llm.temperature == 0.7
 
 
 class TestDocMappingConfig:

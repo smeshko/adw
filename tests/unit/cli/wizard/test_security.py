@@ -85,80 +85,29 @@ class TestRunSecurityStepDefaults:
             result = run_security_step(state, console)
 
         assert result["security_custom"] is False
-        assert result["security_allow_dangerous"] is False
+        assert "security_allow_dangerous" not in result
         assert result["security_blocked_commands"] == []
         assert result["security_blocked_env_files"] == []
 
 
-class TestRunSecurityStepDangerousOperations:
-    """Tests for dangerous operations configuration flow."""
+class TestRunSecurityStepCustomConfiguration:
+    """Tests for custom security configuration flow."""
 
-    def test_dangerous_operations_declined(self) -> None:
-        """Test when user declines dangerous operations."""
+    def test_custom_configuration_no_patterns(self) -> None:
+        """Test when user enables custom config but adds no patterns."""
         console = Console(force_terminal=True)
         state = WizardState()
 
         with (
             patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
         ):
-            # Configure custom: Yes, Allow dangerous: No, Add blocked commands: No, Add blocked env: No
-            mock_confirm.side_effect = [True, False, False, False]
+            # Configure custom: Yes, Add blocked commands: No, Add blocked env: No
+            mock_confirm.side_effect = [True, False, False]
             result = run_security_step(state, console)
 
         assert result["security_custom"] is True
-        assert result["security_allow_dangerous"] is False
-
-    def test_dangerous_operations_accepted_then_declined_confirm(self) -> None:
-        """Test when user says yes to dangerous but no to confirmation."""
-        console = Console(force_terminal=True)
-        state = WizardState()
-
-        with (
-            patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
-        ):
-            # Configure: Yes, Allow dangerous: Yes, Really sure: No, Add blocked: No, No
-            mock_confirm.side_effect = [True, True, False, False, False]
-            result = run_security_step(state, console)
-
-        assert result["security_custom"] is True
-        assert result["security_allow_dangerous"] is False
-
-    def test_dangerous_operations_fully_confirmed(self) -> None:
-        """Test when user confirms dangerous operations twice."""
-        console = Console(force_terminal=True)
-        state = WizardState()
-
-        with (
-            patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
-        ):
-            # Configure: Yes, Allow dangerous: Yes, Really sure: Yes, Add blocked: No, No
-            mock_confirm.side_effect = [True, True, True, False, False]
-            result = run_security_step(state, console)
-
-        assert result["security_custom"] is True
-        assert result["security_allow_dangerous"] is True
-
-    def test_dangerous_operations_shows_warning_panel(self) -> None:
-        """Test that enabling dangerous operations displays warning panel."""
-        from io import StringIO
-
-        console = Console(force_terminal=True, file=StringIO())
-        state = WizardState()
-
-        with (
-            patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
-            patch("adw.cli.wizard.security.Panel") as mock_panel,
-        ):
-            # Configure: Yes, Allow dangerous: Yes, Really sure: No, Add blocked: No, No
-            mock_confirm.side_effect = [True, True, False, False, False]
-            run_security_step(state, console)
-
-        # Verify Panel was called with warning content
-        mock_panel.assert_called_once()
-        call_args = mock_panel.call_args
-        panel_content = call_args[0][0]
-        assert "Warning" in panel_content or "warning" in panel_content.lower()
-        assert "dangerous" in panel_content.lower() or "Dangerous" in panel_content
+        assert result["security_blocked_commands"] == []
+        assert result["security_blocked_env_files"] == []
 
 
 class TestRunSecurityStepBlockedCommands:
@@ -173,8 +122,8 @@ class TestRunSecurityStepBlockedCommands:
             patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.security.Prompt.ask") as mock_prompt,
         ):
-            # Configure: Yes, Dangerous: No, Add blocked commands: Yes, Add env: No
-            mock_confirm.side_effect = [True, False, True, False]
+            # Configure: Yes, Add blocked commands: Yes, Add env: No
+            mock_confirm.side_effect = [True, True, False]
             # Pattern, then empty to finish
             mock_prompt.side_effect = [r"npm\s+publish", ""]
             result = run_security_step(state, console)
@@ -190,8 +139,8 @@ class TestRunSecurityStepBlockedCommands:
             patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.security.Prompt.ask") as mock_prompt,
         ):
-            # Configure: Yes, Dangerous: No, Add blocked commands: Yes, Add env: No
-            mock_confirm.side_effect = [True, False, True, False]
+            # Configure: Yes, Add blocked commands: Yes, Add env: No
+            mock_confirm.side_effect = [True, True, False]
             # Multiple patterns, then empty to finish
             mock_prompt.side_effect = [r"npm\s+publish", r"docker\s+push", ""]
             result = run_security_step(state, console)
@@ -210,8 +159,8 @@ class TestRunSecurityStepBlockedCommands:
             patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.security.Prompt.ask") as mock_prompt,
         ):
-            # Configure: Yes, Dangerous: No, Add blocked commands: Yes, Add env: No
-            mock_confirm.side_effect = [True, False, True, False]
+            # Configure: Yes, Add blocked commands: Yes, Add env: No
+            mock_confirm.side_effect = [True, True, False]
             # Invalid pattern, valid pattern, empty to finish
             mock_prompt.side_effect = [r"[invalid", r"valid\s+pattern", ""]
             result = run_security_step(state, console)
@@ -232,8 +181,8 @@ class TestRunSecurityStepBlockedCommands:
             patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.security.Prompt.ask") as mock_prompt,
         ):
-            # Configure: Yes, Dangerous: No, Add blocked commands: Yes, Add env: No
-            mock_confirm.side_effect = [True, False, True, False]
+            # Configure: Yes, Add blocked commands: Yes, Add env: No
+            mock_confirm.side_effect = [True, True, False]
             # Pattern with brackets (valid regex), then empty to finish
             mock_prompt.side_effect = [r"[a-z]+", r"file[0-9]+\.txt", ""]
             result = run_security_step(state, console)
@@ -254,8 +203,8 @@ class TestRunSecurityStepBlockedEnvFiles:
             patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.security.Prompt.ask") as mock_prompt,
         ):
-            # Configure: Yes, Dangerous: No, Add blocked commands: No, Add env: Yes
-            mock_confirm.side_effect = [True, False, False, True]
+            # Configure: Yes, Add blocked commands: No, Add env: Yes
+            mock_confirm.side_effect = [True, False, True]
             # Pattern, then empty to finish
             mock_prompt.side_effect = [".secrets", ""]
             result = run_security_step(state, console)
@@ -271,8 +220,8 @@ class TestRunSecurityStepBlockedEnvFiles:
             patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.security.Prompt.ask") as mock_prompt,
         ):
-            # Configure: Yes, Dangerous: No, Add blocked commands: No, Add env: Yes
-            mock_confirm.side_effect = [True, False, False, True]
+            # Configure: Yes, Add blocked commands: No, Add env: Yes
+            mock_confirm.side_effect = [True, False, True]
             # Multiple patterns, then empty to finish
             mock_prompt.side_effect = [".secrets", "config/*.json", ""]
             result = run_security_step(state, console)
@@ -293,7 +242,6 @@ class TestSecurityStepHandler:
             result = handler.execute(state, console)
 
         assert result["security_custom"] is False
-        assert result["security_allow_dangerous"] is False
 
 
 class TestBuiltinDefaults:
@@ -342,19 +290,17 @@ class TestStateIntegration:
             patch("adw.cli.wizard.security.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.security.Prompt.ask") as mock_prompt,
         ):
-            # Full custom configuration
-            mock_confirm.side_effect = [True, True, True, True, True]
+            # Full custom configuration: Configure: Yes, Add commands: Yes, Add env: Yes
+            mock_confirm.side_effect = [True, True, True]
             mock_prompt.side_effect = [r"npm\s+publish", "", ".secrets", ""]
             result = run_security_step(state, console)
 
         # Verify all keys present
         assert "security_custom" in result
-        assert "security_allow_dangerous" in result
         assert "security_blocked_commands" in result
         assert "security_blocked_env_files" in result
 
         # Verify values
         assert result["security_custom"] is True
-        assert result["security_allow_dangerous"] is True
         assert result["security_blocked_commands"] == [r"npm\s+publish"]
         assert result["security_blocked_env_files"] == [".secrets"]

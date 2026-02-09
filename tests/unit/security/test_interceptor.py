@@ -75,23 +75,12 @@ class TestFileAccessBlocking:
         assert response.result == SecurityCheckResult.BLOCKED
 
 
-class TestAllowDangerous:
-    """Tests for allow_dangerous mode."""
-
-    def test_warning_instead_of_block(self) -> None:
-        """Test that allow_dangerous issues warnings instead of blocking."""
-        interceptor = SecurityInterceptor(allow_dangerous=True)
-        response = interceptor.check_tool_call("Bash", {"command": "rm -rf /"})
-        assert response.result == SecurityCheckResult.WARNING
-        assert response.blocked_pattern is not None
-
-
 class TestValidateAndRaise:
     """Tests for validate_and_raise method."""
 
     def test_raises_security_error_when_blocked(self) -> None:
         """Test that validate_and_raise raises SecurityError."""
-        interceptor = SecurityInterceptor(allow_dangerous=False)
+        interceptor = SecurityInterceptor()
 
         with pytest.raises(SecurityError) as exc_info:
             interceptor.validate_and_raise("Bash", {"command": "rm -rf /"})
@@ -99,14 +88,8 @@ class TestValidateAndRaise:
         assert exc_info.value.code == "DANGEROUS_COMMAND_BLOCKED"
         assert exc_info.value.tool_name == "Bash"
 
-    def test_does_not_raise_with_allow_dangerous(self) -> None:
-        """Test that validate_and_raise doesn't raise with allow_dangerous."""
-        interceptor = SecurityInterceptor(allow_dangerous=True)
-        # Should not raise
-        interceptor.validate_and_raise("Bash", {"command": "rm -rf /"})
-
     def test_does_not_raise_for_safe_command(self) -> None:
         """Test that validate_and_raise doesn't raise for safe commands."""
-        interceptor = SecurityInterceptor(allow_dangerous=False)
+        interceptor = SecurityInterceptor()
         # Should not raise
         interceptor.validate_and_raise("Bash", {"command": "ls -la"})

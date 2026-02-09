@@ -30,10 +30,6 @@ DEFAULT_TIMEOUTS: dict[str, int] = {
     "ship": 1200,  # 20 minutes
 }
 
-# Triage modes for validate phase
-TRIAGE_MODES: list[str] = ["auto", "manual", "hybrid"]
-
-
 class PhasesStepHandler:
     """Handler for the phases configuration wizard step.
 
@@ -240,13 +236,6 @@ def _configure_validate_phase(console: Console) -> dict[str, Any]:
     )
     max_iterations = _parse_int(max_iterations_str, 5)
 
-    triage_mode = Prompt.ask(
-        "Triage mode",
-        choices=TRIAGE_MODES,
-        default="auto",
-        console=console,
-    )
-
     # Linter commands
     linter_commands = _prompt_linter_commands(console)
 
@@ -254,7 +243,6 @@ def _configure_validate_phase(console: Console) -> dict[str, Any]:
         "enable_review": code_review,
         "enable_tests": tests,
         "max_iterations": max_iterations,
-        "triage_mode": triage_mode,
     }
 
     if linter_commands:
@@ -379,13 +367,9 @@ def _configure_ship_phase(console: Console) -> dict[str, Any]:
     # Post-publish hooks
     post_publish = _prompt_post_publish_hooks(console)
 
-    # PR settings
-    pr_config = _prompt_ship_pr_settings(console)
-
     return {
         "commands": commands if commands else None,
         "post_publish": post_publish if post_publish else None,
-        "pr": pr_config,
     }
 
 
@@ -423,49 +407,6 @@ def _prompt_post_publish_hooks(console: Console) -> list[str]:
         hooks.append(hook)
 
     return hooks
-
-
-def _prompt_ship_pr_settings(console: Console) -> dict[str, Any]:
-    """Prompt for ship phase PR merge settings.
-
-    Only prompts for merge strategy and delete branch if auto-merge is enabled.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        Dictionary of PR settings.
-    """
-    merge_on_success = Confirm.ask(
-        "Auto-merge after successful ship?",
-        default=False,
-        console=console,
-    )
-
-    # Defaults
-    merge_method = "squash"
-    delete_branch = True
-
-    # Only ask follow-up questions if auto-merge is enabled
-    if merge_on_success:
-        merge_method = Prompt.ask(
-            "Merge strategy",
-            choices=["squash", "merge", "rebase"],
-            default="squash",
-            console=console,
-        )
-
-        delete_branch = Confirm.ask(
-            "Delete branch after merge?",
-            default=True,
-            console=console,
-        )
-
-    return {
-        "merge_on_success": merge_on_success,
-        "delete_branch_on_merge": delete_branch,
-        "merge_method": merge_method,
-    }
 
 
 def _prompt_doc_mappings(console: Console) -> list[dict[str, str]]:
@@ -521,7 +462,7 @@ def _prompt_llm_settings(console: Console) -> dict[str, Any] | None:
         console: Console for output.
 
     Returns:
-        LLM config dict with model/temperature, or None if nothing set.
+        LLM config dict with model, or None if nothing set.
     """
     model = Prompt.ask(
         "Model override (empty to skip)",
@@ -529,22 +470,9 @@ def _prompt_llm_settings(console: Console) -> dict[str, Any] | None:
         console=console,
     ).strip()
 
-    temp_str = Prompt.ask(
-        "Temperature override (empty to skip)",
-        default="",
-        console=console,
-    ).strip()
-
-    llm: dict[str, Any] = {}
     if model:
-        llm["model"] = model
-    if temp_str:
-        try:
-            llm["temperature"] = float(temp_str)
-        except ValueError:
-            console.print("[yellow]Invalid temperature, skipping.[/]")
-
-    return llm if llm else None
+        return {"model": model}
+    return None
 
 
 def _prompt_input_files(console: Console) -> dict[str, str]:

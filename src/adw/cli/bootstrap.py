@@ -239,7 +239,16 @@ def create_orchestrator(
     hook_runner = HookRunner(config=HookConfig())
 
     # Create security components (Story 3.6)
-    security_interceptor = SecurityInterceptor(allow_dangerous=allow_dangerous)
+    # Wire user-configured blocked patterns from project config security section
+    additional_patterns = None
+    additional_file_patterns = None
+    if config and config.security:
+        additional_patterns = config.security.blocked_patterns or None
+        additional_file_patterns = config.security.blocked_env_files or None
+    security_interceptor = SecurityInterceptor(
+        additional_patterns=additional_patterns,
+        additional_file_patterns=additional_file_patterns,
+    )
 
     # Set up live stream transport for LLM output logging
     live_stream = None

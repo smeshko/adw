@@ -3,922 +3,651 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ADW Config Parameter Audit</title>
+<title>ADW Configuration Audit Report</title>
 <style>
   :root {
-    --bg: #0f1117;
-    --surface: #161922;
-    --surface2: #1e2130;
-    --border: #2a2d3e;
-    --text: #c9cdd8;
-    --text-muted: #6b7084;
-    --heading: #e4e7f0;
-    --green: #34d399;
-    --green-bg: rgba(52,211,153,.08);
-    --red: #f87171;
-    --red-bg: rgba(248,113,113,.08);
-    --yellow: #fbbf24;
-    --yellow-bg: rgba(251,191,36,.08);
-    --blue: #60a5fa;
-    --blue-bg: rgba(96,165,250,.08);
-    --purple: #a78bfa;
-    --purple-bg: rgba(167,139,250,.08);
-    --cyan: #22d3ee;
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2129;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --green: #3fb950;
+    --green-bg: rgba(63,185,80,0.1);
+    --red: #f85149;
+    --red-bg: rgba(248,81,73,0.1);
+    --yellow: #d29922;
+    --yellow-bg: rgba(210,153,34,0.1);
+    --blue: #58a6ff;
+    --blue-bg: rgba(88,166,255,0.1);
+    --purple: #bc8cff;
+    --purple-bg: rgba(188,140,255,0.1);
+    --orange: #f0883e;
+    --orange-bg: rgba(240,136,62,0.1);
+    --cyan: #39d2c0;
+    --cyan-bg: rgba(57,210,192,0.1);
   }
-  * { margin:0; padding:0; box-sizing:border-box; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  h1 {
-    color: var(--heading);
-    font-size: 1.75rem;
-    font-weight: 700;
-    margin-bottom: .25rem;
-  }
-  .subtitle {
-    color: var(--text-muted);
-    font-size: .9rem;
-    margin-bottom: 2rem;
   }
 
-  /* Stats bar */
-  .stats {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
+  /* ── Header ── */
+  .hero {
+    background: linear-gradient(135deg, #161b22 0%, #1a2332 50%, #161b22 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 0 40px;
+    text-align: center;
+  }
+  .hero h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .hero .subtitle { color: var(--text-muted); font-size: 16px; margin-bottom: 24px; }
+  .hero .date { color: var(--text-dim); font-size: 13px; }
+
+  .stats-bar {
+    display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 28px;
   }
   .stat-card {
-    flex: 1;
-    min-width: 140px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 22px; min-width: 120px; text-align: center;
   }
-  .stat-card .number {
-    font-size: 1.75rem;
-    font-weight: 700;
-    line-height: 1.2;
-  }
+  .stat-card .num { font-size: 28px; font-weight: 700; line-height: 1.2; }
   .stat-card .label {
-    font-size: .8rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: .05em;
+    font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;
   }
-  .stat-card.active .number { color: var(--green); }
-  .stat-card.leftover .number { color: var(--red); }
-  .stat-card.mismatch .number { color: var(--yellow); }
-  .stat-card.deprecated .number { color: var(--purple); }
-  .stat-card.hidden .number { color: var(--blue); }
+  .stat-card.green .num  { color: var(--green); }
+  .stat-card.red .num    { color: var(--red); }
+  .stat-card.yellow .num { color: var(--yellow); }
+  .stat-card.blue .num   { color: var(--blue); }
+  .stat-card.purple .num { color: var(--purple); }
+  .stat-card.orange .num { color: var(--orange); }
+  .stat-card.cyan .num   { color: var(--cyan); }
 
-  /* Navigation */
-  nav {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 2rem;
-  }
-  nav .nav-title {
-    font-size: .75rem;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--text-muted);
-    margin-bottom: .5rem;
-  }
-  nav ul { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem; }
-  nav a {
-    display: inline-block;
-    color: var(--blue);
-    text-decoration: none;
-    font-size: .85rem;
-    padding: .3rem .7rem;
-    border-radius: 6px;
-    background: var(--blue-bg);
-    transition: background .15s;
-  }
-  nav a:hover { background: rgba(96,165,250,.18); }
+  .container { max-width: 1280px; margin: 0 auto; padding: 32px 24px 80px; }
 
-  /* Sections */
-  .section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 1.5rem;
-    overflow: hidden;
+  /* ── Filter Controls ── */
+  .controls {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px;
+    position: sticky; top: 0; z-index: 100; background: var(--bg);
+    padding: 16px 0; border-bottom: 1px solid var(--border);
   }
+  .filter-btn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-muted);
+    padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer;
+    transition: all 0.15s; user-select: none;
+  }
+  .filter-btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .filter-btn.active { background: var(--blue-bg); border-color: var(--blue); color: var(--blue); }
+  .filter-btn.active-red { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+  .filter-btn.active-yellow { background: var(--yellow-bg); border-color: var(--yellow); color: var(--yellow); }
+  .filter-btn.active-green { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+  .filter-btn.active-purple { background: var(--purple-bg); border-color: var(--purple); color: var(--purple); }
+  .filter-btn.active-orange { background: var(--orange-bg); border-color: var(--orange); color: var(--orange); }
+  .filter-btn.active-cyan { background: var(--cyan-bg); border-color: var(--cyan); color: var(--cyan); }
+
+  .search-box {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 14px; border-radius: 20px; font-size: 13px; outline: none;
+    width: 220px; transition: border-color 0.15s;
+  }
+  .search-box:focus { border-color: var(--blue); }
+  .search-box::placeholder { color: var(--text-dim); }
+
+  /* ── Sections ── */
+  .section { margin-bottom: 36px; }
   .section-header {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    cursor: pointer; user-select: none;
   }
-  .section-header h2 {
-    color: var(--heading);
-    font-size: 1.1rem;
-    font-weight: 600;
+  .section-header:hover .section-title { color: var(--blue); }
+  .section-num {
+    background: var(--blue-bg); color: var(--blue); font-size: 12px; font-weight: 600;
+    padding: 3px 10px; border-radius: 12px; white-space: nowrap;
   }
-  .section-header .file-badge {
-    font-size: .75rem;
-    color: var(--text-muted);
-    background: var(--surface2);
-    padding: .2rem .6rem;
-    border-radius: 5px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+  .section-title { font-size: 18px; font-weight: 600; transition: color 0.15s; }
+  .section-meta {
+    color: var(--text-dim); font-size: 12px;
+    font-family: 'SF Mono', 'Fira Code', monospace; margin-left: auto;
   }
-
-  /* Rows */
-  .param-row {
-    display: grid;
-    grid-template-columns: minmax(200px, 1.2fr) 100px 100px minmax(200px, 2fr);
-    align-items: start;
-    padding: .75rem 1.25rem;
-    border-bottom: 1px solid var(--border);
-    font-size: .875rem;
-    gap: .75rem;
+  .section-chevron { color: var(--text-dim); font-size: 14px; transition: transform 0.2s; }
+  .section.collapsed .section-chevron { transform: rotate(-90deg); }
+  .section.collapsed .section-body { display: none; }
+  .subsection-title {
+    margin-top: 20px; margin-bottom: 10px; font-size: 14px; color: var(--text-muted); font-weight: 600;
   }
-  .param-row:last-child { border-bottom: none; }
-  .param-row:hover { background: var(--surface2); }
-
-  .param-row .param-name {
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: .82rem;
-    color: var(--cyan);
-    word-break: break-all;
+  .removed-note {
+    margin-top: 12px; font-size: 12px; color: var(--text-dim); font-style: italic;
   }
-  .param-row .param-name .model-field {
-    display: block;
-    font-size: .72rem;
-    color: var(--text-muted);
-    margin-top: 2px;
+  .removed-note s { color: var(--red); opacity: 0.6; }
+  .warning-banner {
+    margin-top: 12px; padding: 10px 14px; border-radius: 6px;
+    background: var(--yellow-bg); border: 1px solid rgba(210,153,34,0.25);
+    font-size: 12.5px; color: var(--yellow); line-height: 1.5;
+  }
+  .warning-banner code {
+    background: rgba(210,153,34,0.15); padding: 1px 5px; border-radius: 3px;
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px;
   }
 
-  /* Badges */
+  /* ── Table ── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .tbl thead th {
+    text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--text-dim); border-bottom: 1px solid var(--border);
+    background: var(--bg); z-index: 10;
+  }
+  .tbl tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .tbl tbody tr:hover { background: var(--surface); }
+  .tbl tbody tr.hidden { display: none; }
+  .tbl td { padding: 10px 14px; vertical-align: top; }
+  .tbl td:first-child {
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px;
+    color: var(--cyan); white-space: nowrap;
+  }
+
+  /* ── Badges ── */
   .badge {
-    display: inline-block;
-    font-size: .7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    padding: .2rem .55rem;
-    border-radius: 5px;
-    white-space: nowrap;
+    display: inline-block; padding: 2px 9px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+    white-space: nowrap; line-height: 1.6;
   }
-  .badge.active     { color: var(--green);  background: var(--green-bg);  }
-  .badge.commented  { color: var(--text-muted); background: var(--surface2); }
-  .badge.not-shown  { color: var(--purple); background: var(--purple-bg); }
+  .badge-used       { background: var(--green-bg); color: var(--green); border: 1px solid rgba(63,185,80,0.25); }
+  .badge-template   { background: var(--cyan-bg); color: var(--cyan); border: 1px solid rgba(57,210,192,0.25); }
+  .badge-unused     { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,81,73,0.25); }
+  .badge-partial    { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.25); }
+  .badge-disconnect { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(240,136,62,0.25); }
+  .badge-yes        { background: var(--green-bg); color: var(--green); border: 1px solid rgba(63,185,80,0.25); }
+  .badge-no         { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+  .badge-active     { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(88,166,255,0.25); }
+  .badge-comment    { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+  .badge-skip       { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+  .badge-cond       { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(188,140,255,0.25); }
 
-  .badge.used       { color: var(--green);  background: var(--green-bg);  }
-  .badge.not-used   { color: var(--red);    background: var(--red-bg);    }
-  .badge.partial    { color: var(--yellow); background: var(--yellow-bg); }
-  .badge.deprecated { color: var(--purple); background: var(--purple-bg); }
-  .badge.mismatch   { color: var(--yellow); background: var(--yellow-bg); }
-
-  .param-row .notes {
-    color: var(--text-muted);
-    font-size: .82rem;
-    line-height: 1.5;
+  .notes { color: var(--text-muted); font-size: 12.5px; line-height: 1.5; }
+  .notes code {
+    background: var(--surface2); padding: 1px 5px; border-radius: 3px;
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px; color: var(--text);
   }
-  .param-row .notes strong {
-    color: var(--text);
-    font-weight: 500;
-  }
-
-  /* Column headers */
-  .col-headers {
-    display: grid;
-    grid-template-columns: minmax(200px, 1.2fr) 100px 100px minmax(200px, 2fr);
-    padding: .5rem 1.25rem;
-    font-size: .7rem;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    color: var(--text-muted);
-    background: var(--surface2);
-    gap: .75rem;
-    border-bottom: 1px solid var(--border);
+  .tag-leftover { color: var(--red); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+  .tag-disconnect { color: var(--orange); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+  .tag-bug { color: var(--yellow); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+  .default-val {
+    color: var(--text-dim); font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px;
   }
 
-  /* Issues callout */
-  .callout {
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 1.5rem;
-    font-size: .875rem;
+  /* ── Issue Cards ── */
+  .issues-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: 20px;
   }
-  .callout.warn {
-    background: var(--yellow-bg);
-    border: 1px solid rgba(251,191,36,.2);
+  .issue-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 18px 20px; border-left: 3px solid;
   }
-  .callout.warn .callout-title { color: var(--yellow); font-weight: 600; margin-bottom: .35rem; }
-  .callout.error {
-    background: var(--red-bg);
-    border: 1px solid rgba(248,113,113,.2);
-  }
-  .callout.error .callout-title { color: var(--red); font-weight: 600; margin-bottom: .35rem; }
-
-  .callout ul { padding-left: 1.2rem; margin-top: .35rem; }
-  .callout li { margin-bottom: .25rem; }
-  .callout code {
+  .issue-card.dead       { border-left-color: var(--red); }
+  .issue-card.disconnect { border-left-color: var(--orange); }
+  .issue-card.hidden-use { border-left-color: var(--purple); }
+  .issue-card.bug        { border-left-color: var(--yellow); }
+  .issue-card.partial    { border-left-color: var(--cyan); }
+  .issue-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .issue-card ul { list-style: none; padding: 0; }
+  .issue-card li {
+    font-size: 12.5px; color: var(--text-muted); padding: 3px 0;
     font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: .8rem;
-    background: rgba(0,0,0,.3);
-    padding: .1rem .35rem;
-    border-radius: 3px;
   }
+  .issue-card li::before { content: ">"; color: var(--text-dim); margin-right: 8px; }
+  .issue-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .issue-label.cat-a { color: var(--red); }
+  .issue-label.cat-b { color: var(--orange); }
+  .issue-label.cat-c { color: var(--purple); }
+  .issue-label.cat-d { color: var(--yellow); }
+  .issue-label.cat-e { color: var(--cyan); }
+  .issue-description { font-size: 12.5px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
 
-  /* Legend */
-  .legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .75rem;
-    margin-bottom: 1.5rem;
-    font-size: .8rem;
-    color: var(--text-muted);
-  }
-  .legend-item { display: flex; align-items: center; gap: .35rem; }
-
-  @media (max-width: 800px) {
-    .param-row { grid-template-columns: 1fr; gap: .3rem; }
-    .col-headers { display: none; }
-    .stats { flex-direction: column; }
+  @media (max-width: 768px) {
+    .stats-bar { gap: 8px; }
+    .stat-card { min-width: 100px; padding: 10px 14px; }
+    .stat-card .num { font-size: 22px; }
+    .tbl { font-size: 12px; }
+    .tbl td, .tbl th { padding: 8px 10px; }
+    .container { padding: 20px 14px 60px; }
+    .controls { gap: 6px; }
+    .search-box { width: 160px; }
   }
 </style>
 </head>
 <body>
 
-<h1>ADW Config Parameter Audit</h1>
-<p class="subtitle">Generated 2026-02-08 &mdash; Cross-referencing generated YAML files against Pydantic models and runtime usage in the ADW codebase</p>
-
-<!-- Stats -->
-<div class="stats">
-  <div class="stat-card active">
-    <div class="number">38</div>
-    <div class="label">Active &amp; Used</div>
-  </div>
-  <div class="stat-card leftover">
-    <div class="number">10</div>
-    <div class="label">Leftovers (unused)</div>
-  </div>
-  <div class="stat-card mismatch">
-    <div class="number">3</div>
-    <div class="label">YAML Mismatches</div>
-  </div>
-  <div class="stat-card deprecated">
-    <div class="number">1</div>
-    <div class="label">Deprecated</div>
-  </div>
-  <div class="stat-card hidden">
-    <div class="number">9</div>
-    <div class="label">Hidden (in model, not in YAML)</div>
+<!-- ════════════════════ HERO ════════════════════ -->
+<div class="hero">
+  <h1>ADW Configuration Audit</h1>
+  <p class="subtitle">Setting-by-setting analysis across models, init wizard, YAML generator &amp; runtime</p>
+  <p class="date">Updated 2026-02-09 &middot; adw-final &middot; branch: refactoring/remove-hook-config-strings &middot; commit: 9416217 + uncommitted</p>
+  <div class="stats-bar">
+    <div class="stat-card blue"><div class="num">58</div><div class="label">Total Fields</div></div>
+    <div class="stat-card green"><div class="num">51</div><div class="label">Used at Runtime</div></div>
+    <div class="stat-card cyan"><div class="num">7</div><div class="label">Template Only</div></div>
+    <div class="stat-card yellow"><div class="num">0</div><div class="label">Partial Use</div></div>
+    <div class="stat-card red"><div class="num">0</div><div class="label">Unused</div></div>
+    <div class="stat-card orange"><div class="num">0</div><div class="label">Disconnect</div></div>
+    <div class="stat-card purple"><div class="num">13</div><div class="label">Hidden</div></div>
   </div>
 </div>
 
-<!-- Legend -->
-<div class="legend">
-  <div class="legend-item"><span class="badge active">active</span> Enabled in YAML</div>
-  <div class="legend-item"><span class="badge commented">commented</span> Commented out in YAML</div>
-  <div class="legend-item"><span class="badge not-shown">hidden</span> In model but not generated in YAML</div>
-  <div class="legend-item"><span class="badge used">used</span> Used in runtime code</div>
-  <div class="legend-item"><span class="badge not-used">not used</span> Not found in runtime code</div>
-  <div class="legend-item"><span class="badge mismatch">mismatch</span> YAML key doesn't match model</div>
+<!-- ════════════════════ MAIN ════════════════════ -->
+<div class="container">
+
+<!-- Filters -->
+<div class="controls">
+  <input type="text" class="search-box" id="search" placeholder="Search settings...">
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="used" data-active-class="active-green">Used</button>
+  <button class="filter-btn" data-filter="template" data-active-class="active-cyan">Template</button>
+  <button class="filter-btn" data-filter="wizard-yes" data-active-class="active-green">In Wizard</button>
+  <button class="filter-btn" data-filter="wizard-no" data-active-class="active-purple">Not in Wizard</button>
 </div>
 
-<!-- Navigation -->
-<nav>
-  <div class="nav-title">Jump to section</div>
-  <ul>
-    <li><a href="#issues">Critical Issues</a></li>
-    <li><a href="#core">Core Settings</a></li>
-    <li><a href="#commands-section">Commands</a></li>
-    <li><a href="#git">Git Integration</a></li>
-    <li><a href="#task-manager">Task Manager</a></li>
-    <li><a href="#worktree">Worktree &amp; Ports</a></li>
-    <li><a href="#llm">LLM Configuration</a></li>
-    <li><a href="#security">Security</a></li>
-    <li><a href="#webhook">Webhook Server</a></li>
-    <li><a href="#hidden">Hidden Model-Only</a></li>
-    <li><a href="#phase-common">Phase Common</a></li>
-    <li><a href="#validate">Validate Phase</a></li>
-    <li><a href="#ship">Ship Phase</a></li>
-  </ul>
-</nav>
-
-<!-- Critical Issues -->
-<div id="issues"></div>
-<div class="callout warn">
-  <div class="callout-title">YAML Mismatches &mdash; 3 issues</div>
-  These parameters appear in generated YAML but don't match the Pydantic model, meaning they'd either be silently ignored or cause validation errors.
-  <ul>
-    <li><code>commands.test</code> / <code>commands.build</code> &mdash; Generated YAML nests these under a <code>commands:</code> key. The model expects top-level <code>test_command</code> / <code>build_command</code>. If a user uncomments these, they will be <strong>silently ignored</strong> (Pydantic doesn't have a <code>commands</code> field).</li>
-    <li><code>webhook.enabled</code> &mdash; Generated YAML shows <code># enabled: false</code> under webhook but <code>WebhookConfig</code> has no <code>enabled</code> field. The webhook is active if <code>providers</code> have <code>enabled: true</code>.</li>
-  </ul>
-</div>
-
-<div class="callout error">
-  <div class="callout-title">Leftovers &mdash; 10 parameters defined but never used at runtime</div>
-  These exist in Pydantic models (and some in generated YAML) but no runtime code actually reads them.
-  <ul>
-    <li><code>git.commit_template</code> &mdash; <code>create_commit()</code> always uses <code>DEFAULT_COMMIT_TEMPLATE</code></li>
-    <li><code>task_manager.pr_title_format</code> &mdash; PR title formatting never implemented</li>
-    <li><code>task_manager.include_labels</code> &mdash; Label context enrichment not implemented</li>
-    <li><code>task_manager.include_parent</code> &mdash; Parent task context not implemented</li>
-    <li><code>security.blocked_env_files</code> &mdash; Env file blocking not wired up (defaults are hardcoded)</li>
-    <li><code>worktree.preserve_on_failure</code> &mdash; Explicitly deprecated; worktrees always preserved now</li>
-    <li><code>validate.review_prompt</code> &mdash; Custom review prompt loading not implemented</li>
-    <li><code>validate.review_focus</code> &mdash; Review focus areas not implemented</li>
-    <li><code>validate.test_timeout_seconds</code> &mdash; Defined in model but never accessed during test execution</li>
-    <li><code>logging.redaction.*</code> &mdash; Full model hierarchy exists but bootstrap never wires it through</li>
-  </ul>
-</div>
-
-<!-- ==================== project.yaml sections ==================== -->
-
-<!-- Core Settings -->
-<div class="section" id="core">
-  <div class="section-header">
-    <h2>Core Settings</h2>
-    <span class="file-badge">project.yaml</span>
+<!-- ═════════════ 1. ProjectConfig ═════════════ -->
+<div class="section" id="sec-project">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">1</span>
+    <span class="section-title">ProjectConfig &mdash; Top-Level</span>
+    <span class="section-meta">models/config.py:472</span>
+    <span class="section-chevron">&#9662;</span>
   </div>
-  <div class="col-headers">
-    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
-  </div>
-  <div class="param-row">
-    <div class="param-name">name<span class="model-field">ProjectConfig.name</span></div>
-    <span class="badge active">active</span>
-    <span class="badge used">used</span>
-    <div class="notes">Required. Used for display, run naming, branch naming.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">language<span class="model-field">ProjectConfig.language</span></div>
-    <span class="badge active">active</span>
-    <span class="badge used">used</span>
-    <div class="notes">Required. Injected into prompt templates as context.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">platform<span class="model-field">ProjectConfig.platform</span></div>
-    <span class="badge active">active</span>
-    <span class="badge used">used</span>
-    <div class="notes">Injected into prompt templates. Default: <code>"cli"</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">framework<span class="model-field">ProjectConfig.framework</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Optional. Injected into prompt templates when set.</div>
+  <div class="section-body">
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="yes"><td>name</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">BASICS</span></td><td><span class="badge badge-active">Active</span></td><td class="default-val">required</td><td class="notes"><code>dry_run.py:213</code> &mdash; Display in dry-run table. Directory name auto-detected.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>language</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">BASICS</span></td><td><span class="badge badge-active">Active</span></td><td class="default-val">required</td><td class="notes"><code>dry_run.py:214</code> &mdash; Auto-detected from marker files (pyproject.toml, package.json, etc.)</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>framework</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">BASICS</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">None</td><td class="notes"><code>dry_run.py:215</code> &mdash; Active if set, <code># framework: null</code> otherwise</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>platform</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">BASICS</span></td><td><span class="badge badge-active">Active</span></td><td class="default-val">"cli"</td><td class="notes"><code>dry_run.py:217</code> &mdash; Choices: cli, web, api, or custom</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>test_command</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">BASICS</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">None</td><td class="notes"><code>phase_runner.py:396-397,422-423</code> &mdash; Injected into validate &amp; ship template context.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>build_command</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">BASICS</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">None</td><td class="notes"><code>phase_runner.py:406-409,419-420</code> &mdash; Injected into ship template context.</td></tr>
+    </tbody></table>
   </div>
 </div>
 
-<!-- Commands Section -->
-<div class="section" id="commands-section">
-  <div class="section-header">
-    <h2>Commands</h2>
-    <span class="file-badge">project.yaml</span>
+<!-- ═════════════ 2. LLMConfig ═════════════ -->
+<div class="section" id="sec-llm">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">2</span>
+    <span class="section-title">LLMConfig</span>
+    <span class="section-meta">models/config.py:78</span>
+    <span class="section-chevron">&#9662;</span>
   </div>
-  <div class="col-headers">
-    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
-  </div>
-  <div class="param-row" style="background: var(--yellow-bg);">
-    <div class="param-name">commands.test<span class="model-field">Expected: test_command</span></div>
-    <span class="badge mismatch">mismatch</span>
-    <span class="badge not-used">ignored</span>
-    <div class="notes"><strong>YAML key wrong.</strong> Generated as <code>commands: test:</code> but model expects top-level <code>test_command</code>. Uncommenting this would be silently ignored.</div>
-  </div>
-  <div class="param-row" style="background: var(--yellow-bg);">
-    <div class="param-name">commands.build<span class="model-field">Expected: build_command</span></div>
-    <span class="badge mismatch">mismatch</span>
-    <span class="badge not-used">ignored</span>
-    <div class="notes"><strong>YAML key wrong.</strong> Same issue. Model expects top-level <code>build_command</code>.</div>
+  <div class="section-body">
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="no"><td>llm.path</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">"claude"</td><td class="notes"><code>dry_run.py:226</code>, <code>executors/claude_code.py:652</code> &mdash; Path to Claude Code executable.</td></tr>
+      <tr data-runtime="used" data-wizard="no"><td>llm.timeout_seconds</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">300</td><td class="notes"><code>executors/claude_code.py:97-98</code> &mdash; Timeout for LLM subprocess calls.</td></tr>
+    </tbody></table>
+    <p class="removed-note">Removed in PR #161: <s>llm.max_retries</s> (was shadowed by RetryConfig.max_retries)</p>
   </div>
 </div>
 
-<!-- Git Integration -->
-<div class="section" id="git">
-  <div class="section-header">
-    <h2>Git Integration</h2>
-    <span class="file-badge">project.yaml &rarr; git:</span>
+<!-- ═════════════ 3. RetryConfig ═════════════ -->
+<div class="section" id="sec-retry">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">3</span>
+    <span class="section-title">RetryConfig</span>
+    <span class="section-meta">models/config.py:21</span>
+    <span class="section-chevron">&#9662;</span>
   </div>
-  <div class="col-headers">
-    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
-  </div>
-  <div class="param-row">
-    <div class="param-name">git.enabled<span class="model-field">GitConfig.enabled</span></div>
-    <span class="badge active">active</span>
-    <span class="badge used">used</span>
-    <div class="notes">Gates branch creation, auto-commit, and PR creation.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">git.branch_prefix<span class="model-field">GitConfig.branch_prefix</span></div>
-    <span class="badge active">active</span>
-    <span class="badge used">used</span>
-    <div class="notes">Prefix for auto-created branches. Default: <code>"feature/"</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">git.auto_create_pr<span class="model-field">GitConfig.auto_create_pr</span></div>
-    <span class="badge active">active</span>
-    <span class="badge used">used</span>
-    <div class="notes">Creates PR via <code>gh</code> CLI after successful run.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">git.auto_commit<span class="model-field">GitConfig.auto_commit</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Auto-commit changes after each phase completes.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">git.skip_hooks<span class="model-field">GitConfig.skip_hooks</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Passes <code>--no-verify</code> to git commit.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">git.base_branch<span class="model-field">GitConfig.base_branch</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">PR target branch. Falls back to <code>"main"</code> if unset.</div>
-  </div>
-  <div class="param-row" style="background: var(--red-bg);">
-    <div class="param-name">git.commit_template<span class="model-field">GitConfig.commit_template</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge not-used">not used</span>
-    <div class="notes"><strong>Leftover.</strong> Model field exists but <code>create_commit()</code> in <code>git_commit.py</code> always uses <code>DEFAULT_COMMIT_TEMPLATE</code>. Never read from config.</div>
+  <div class="section-body">
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="yes"><td>retry.max_retries</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">LLM_RETRY</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">3</td><td class="notes"><code>executors/retry.py:97</code> &mdash; Loop count in RetryExecutor.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>retry.base_delay_seconds</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">LLM_RETRY</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">1.0</td><td class="notes"><code>executors/retry.py:166</code> &mdash; Exponential backoff initial delay. <span class="tag-bug">KEY MISMATCH</span> &mdash; generator emits <code>base_delay</code> instead</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>retry.max_delay_seconds</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">LLM_RETRY</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">60.0</td><td class="notes"><code>executors/retry.py:188</code> &mdash; Caps backoff delay. <span class="tag-bug">KEY MISMATCH</span> &mdash; generator emits <code>max_delay</code> instead</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>retry.multiplier</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">LLM_RETRY</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">2.0</td><td class="notes"><code>executors/retry.py:167</code> &mdash; Backoff multiplier (must be &gt; 1.0).</td></tr>
+    </tbody></table>
+    <div class="warning-banner">
+      <strong>Key Name Mismatch Bug:</strong> <code>yaml_generator.py:239-241</code> emits <code>base_delay</code> and <code>max_delay</code>, but the model expects <code>base_delay_seconds</code> and <code>max_delay_seconds</code>. Generated YAML silently fails to apply these values.
+    </div>
   </div>
 </div>
 
-<!-- Task Manager -->
-<div class="section" id="task-manager">
-  <div class="section-header">
-    <h2>Task Manager</h2>
-    <span class="file-badge">project.yaml &rarr; task_manager:</span>
+<!-- ═════════════ 4. HookConfig ═════════════ -->
+<div class="section" id="sec-hooks">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">4</span>
+    <span class="section-title">HookConfig</span>
+    <span class="section-meta">models/config.py:136</span>
+    <span class="section-chevron">&#9662;</span>
   </div>
-  <div class="col-headers">
-    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
-  </div>
-  <div class="param-row">
-    <div class="param-name">task_manager.type<span class="model-field">TaskManagerConfig.type</span></div>
-    <span class="badge active">active</span>
-    <span class="badge used">used</span>
-    <div class="notes">Selects task manager: <code>"none"</code> or <code>"linear"</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">task_manager.team_key<span class="model-field">TaskManagerConfig.team_key</span></div>
-    <span class="badge active">active</span>
-    <span class="badge used">used</span>
-    <div class="notes">Team prefix for task ID detection (e.g. <code>"SCA"</code> for SCA-123).</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">task_manager.sync_comments<span class="model-field">TaskManagerConfig.sync_comments</span></div>
-    <span class="badge active">active</span>
-    <span class="badge used">used</span>
-    <div class="notes">Posts status transition comments to Linear issues.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">task_manager.auto_close<span class="model-field">TaskManagerConfig.auto_close</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Closes task when PR is merged. Used by <code>TaskCloser</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">task_manager.state_mapping<span class="model-field">TaskManagerConfig.state_mapping</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge used">used</span>
-    <div class="notes">Maps ADW phases to Linear workflow states. Used in <code>linear.py</code> and <code>sync.py</code>. Not exposed in generated YAML.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">task_manager.comment_on_failure_only<span class="model-field">TaskManagerConfig.comment_on_failure_only</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge used">used</span>
-    <div class="notes">Skips success comments. Used in <code>StatusSyncService</code>. Not exposed in generated YAML.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">task_manager.labels.enabled<span class="model-field">TaskManagerLabelsConfig.enabled</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge used">used</span>
-    <div class="notes">Enables label management on Linear issues. Not exposed in generated YAML.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">task_manager.labels.prefix<span class="model-field">TaskManagerLabelsConfig.prefix</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge used">used</span>
-    <div class="notes">Prefix for ADW-managed labels. Default: <code>"adw:"</code>. Not in generated YAML.</div>
-  </div>
-  <div class="param-row" style="background: var(--red-bg);">
-    <div class="param-name">task_manager.pr_title_format<span class="model-field">TaskManagerConfig.pr_title_format</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge not-used">not used</span>
-    <div class="notes"><strong>Leftover.</strong> Format string <code>"{task_id}: {description}"</code> defined but PR title formatting is not implemented anywhere.</div>
-  </div>
-  <div class="param-row" style="background: var(--red-bg);">
-    <div class="param-name">task_manager.include_labels<span class="model-field">TaskManagerConfig.include_labels</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge not-used">not used</span>
-    <div class="notes"><strong>Leftover.</strong> Task label context enrichment was planned but never implemented.</div>
-  </div>
-  <div class="param-row" style="background: var(--red-bg);">
-    <div class="param-name">task_manager.include_parent<span class="model-field">TaskManagerConfig.include_parent</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge not-used">not used</span>
-    <div class="notes"><strong>Leftover.</strong> Parent task context enrichment was planned but never implemented.</div>
+  <div class="section-body">
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="no"><td>hooks.shell</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">"/bin/bash"</td><td class="notes"><code>hooks/runner.py:196</code> &mdash; Shell executable for hook subprocess. Manual edit only.</td></tr>
+      <tr data-runtime="used" data-wizard="no"><td>hooks.timeout_seconds</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">60</td><td class="notes"><code>hooks/runner.py:77-78</code> &mdash; Timeout hierarchy fallback. Manual edit only.</td></tr>
+    </tbody></table>
   </div>
 </div>
 
-<!-- Worktree & Ports -->
-<div class="section" id="worktree">
-  <div class="section-header">
-    <h2>Worktree &amp; Ports</h2>
-    <span class="file-badge">project.yaml &rarr; worktree:</span>
+<!-- ═════════════ 5. LoggingConfig / RedactionConfig ═════════════ -->
+<div class="section" id="sec-logging">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">5</span>
+    <span class="section-title">LoggingConfig / RedactionConfig</span>
+    <span class="section-meta">models/config.py:150&ndash;193</span>
+    <span class="section-chevron">&#9662;</span>
   </div>
-  <div class="col-headers">
-    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
-  </div>
-  <div class="param-row">
-    <div class="param-name">worktree.enabled<span class="model-field">WorktreeConfig.enabled</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Gates worktree isolation. Default: <code>true</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">worktree.base_dir<span class="model-field">WorktreeConfig.base_dir</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Directory for worktrees relative to project root. Default: <code>"trees"</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">worktree.max_concurrent<span class="model-field">WorktreeConfig.max_concurrent</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Slot count for concurrent runs. Default: <code>15</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">worktree.port_range.backend_start<span class="model-field">PortRangeConfig.backend_start</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Base port for backend services. Default: <code>9100</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">worktree.port_range.frontend_start<span class="model-field">PortRangeConfig.frontend_start</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Base port for frontend services. Default: <code>9200</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">worktree.cleanup_branch_on_remove<span class="model-field">WorktreeConfig.cleanup_branch_on_remove</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge used">used</span>
-    <div class="notes">Deletes <code>adw/&lt;run_id&gt;</code> branch when removing worktree. Used in orchestrator.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">worktree.preserve_artifacts<span class="model-field">WorktreeConfig.preserve_artifacts</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge used">used</span>
-    <div class="notes">Artifact names to copy out before worktree removal. Used in <code>WorktreeManager</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">worktree.artifact_manifest_file<span class="model-field">WorktreeConfig.artifact_manifest_file</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge used">used</span>
-    <div class="notes">Manifest filename for preserved artifacts. Default: <code>"worktree-artifacts.json"</code>.</div>
-  </div>
-  <div class="param-row" style="background: var(--purple-bg);">
-    <div class="param-name">worktree.preserve_on_failure<span class="model-field">WorktreeConfig.preserve_on_failure</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge deprecated">deprecated</span>
-    <div class="notes"><strong>Deprecated (ISS-020).</strong> Explicitly ignored. Worktrees are now always preserved. Should be removed from model.</div>
+  <div class="section-body">
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="no"><td>logging.redaction.enabled</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">true</td><td class="notes"><code>bootstrap.py:115</code> &mdash; Passed to <code>create_redactor_from_config()</code>. Wired in PR #160.</td></tr>
+      <tr data-runtime="used" data-wizard="no"><td>logging.redaction.patterns</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">[]</td><td class="notes"><code>bootstrap.py:116</code> &mdash; Custom regex patterns for log redaction. Manual edit only.</td></tr>
+      <tr data-runtime="used" data-wizard="no"><td>logging.redaction.disable_defaults</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">false</td><td class="notes"><code>bootstrap.py:117</code> &mdash; Skip default redaction patterns. Manual edit only.</td></tr>
+    </tbody></table>
   </div>
 </div>
 
-<!-- LLM Configuration -->
-<div class="section" id="llm">
-  <div class="section-header">
-    <h2>LLM Configuration</h2>
-    <span class="file-badge">project.yaml &rarr; llm:</span>
+<!-- ═════════════ 6. SecurityConfig ═════════════ -->
+<div class="section" id="sec-security">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">6</span>
+    <span class="section-title">SecurityConfig</span>
+    <span class="section-meta">models/security.py:55</span>
+    <span class="section-chevron">&#9662;</span>
   </div>
-  <div class="col-headers">
-    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
-  </div>
-  <div class="param-row">
-    <div class="param-name">llm.path<span class="model-field">LLMConfig.path</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Path to Claude Code executable. Default: <code>"claude"</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">llm.timeout_seconds<span class="model-field">LLMConfig.timeout_seconds</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Max time for LLM calls. Default: <code>300</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">llm.max_retries<span class="model-field">LLMConfig.max_retries</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Retry attempts on failure. Default: <code>3</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">llm.model<span class="model-field">LLMConfig.model</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Model override. Passed to executor.</div>
+  <div class="section-body">
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="yes"><td>security.blocked_patterns</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">SECURITY</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">[]</td><td class="notes"><code>bootstrap.py:243-246</code> &mdash; Passed to <code>SecurityInterceptor(additional_patterns=...)</code>. Merged with hardcoded defaults. Wired in this branch.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>security.blocked_env_files</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">SECURITY</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">[]</td><td class="notes"><code>bootstrap.py:243-247</code> &mdash; Passed to <code>SecurityInterceptor(additional_file_patterns=...)</code>. Merged with hardcoded defaults. Wired in this branch.</td></tr>
+    </tbody></table>
+    <p class="removed-note">Removed in this branch: <s>security.allow_dangerous</s> (was DISCONNECT &mdash; wizard wrote to config but runtime read from CLI <code>--allow-dangerous</code> flag)</p>
   </div>
 </div>
 
-<!-- Security -->
-<div class="section" id="security">
-  <div class="section-header">
-    <h2>Security</h2>
-    <span class="file-badge">project.yaml &rarr; security:</span>
+<!-- ═════════════ 7. GitConfig ═════════════ -->
+<div class="section" id="sec-git">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">7</span>
+    <span class="section-title">GitConfig</span>
+    <span class="section-meta">models/config.py:431</span>
+    <span class="section-chevron">&#9662;</span>
   </div>
-  <div class="col-headers">
-    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
-  </div>
-  <div class="param-row">
-    <div class="param-name">security.allow_dangerous<span class="model-field">SecurityConfig.allow_dangerous</span></div>
-    <span class="badge active">active</span>
-    <span class="badge used">used</span>
-    <div class="notes">Log warnings instead of blocking. Used by <code>SecurityInterceptor</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">security.blocked_patterns<span class="model-field">SecurityConfig.blocked_patterns</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge used">used</span>
-    <div class="notes">Custom patterns merged with defaults in <code>PatternMatcher</code>.</div>
-  </div>
-  <div class="param-row" style="background: var(--red-bg);">
-    <div class="param-name">security.blocked_env_files<span class="model-field">SecurityConfig.blocked_env_files</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge not-used">not used</span>
-    <div class="notes"><strong>Leftover.</strong> Env file patterns are hardcoded in <code>security/defaults.py</code>. This list is never read.</div>
+  <div class="section-body">
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="yes"><td>git.branch_prefix</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">GIT</span></td><td><span class="badge badge-active">Active</span></td><td class="default-val">"feature/"</td><td class="notes"><code>run_lifecycle.py:610</code> &mdash; Prefix for feature branch naming.</td></tr>
+      <tr data-runtime="used" data-wizard="no"><td>git.skip_hooks</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">false</td><td class="notes"><code>phase_runner.py:1176</code> &mdash; Passed to <code>create_commit(skip_hooks=...)</code>. Wired in PR #161.</td></tr>
+      <tr data-runtime="used" data-wizard="no"><td>git.base_branch</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">None</td><td class="notes"><code>cli/pr.py:604-605</code> &mdash; Base branch for PR creation. Falls back to <code>"main"</code>.</td></tr>
+    </tbody></table>
   </div>
 </div>
 
-<!-- Webhook Server -->
-<div class="section" id="webhook">
-  <div class="section-header">
-    <h2>Webhook Server</h2>
-    <span class="file-badge">project.yaml &rarr; webhook:</span>
+<!-- ═════════════ 8. WorktreeConfig ═════════════ -->
+<div class="section" id="sec-worktree">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">8</span>
+    <span class="section-title">WorktreeConfig</span>
+    <span class="section-meta">models/config.py:226</span>
+    <span class="section-chevron">&#9662;</span>
   </div>
-  <div class="col-headers">
-    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
-  </div>
-  <div class="param-row" style="background: var(--yellow-bg);">
-    <div class="param-name">webhook.enabled<span class="model-field">&mdash; no model field</span></div>
-    <span class="badge mismatch">mismatch</span>
-    <span class="badge not-used">not used</span>
-    <div class="notes"><strong>YAML Mismatch.</strong> Generated as <code># enabled: false</code> but <code>WebhookConfig</code> has no <code>enabled</code> field. Webhook availability is driven by provider <code>enabled</code> flags.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">webhook.port<span class="model-field">WebhookConfig.port</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Server port. Default: <code>8000</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">webhook.host<span class="model-field">WebhookConfig.host</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Server bind host. Default: <code>"0.0.0.0"</code>.</div>
+  <div class="section-body">
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="no"><td>worktree.enabled</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">true</td><td class="notes"><code>orchestrator.py:216</code>, <code>run_lifecycle.py:190</code> &mdash; Gates worktree isolation.</td></tr>
+      <tr data-runtime="used" data-wizard="no"><td>worktree.base_dir</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">"trees"</td><td class="notes"><code>orchestrator.py:219</code> &mdash; Passed to WorktreeManager constructor.</td></tr>
+      <tr data-runtime="used" data-wizard="no"><td>worktree.cleanup_branch_on_remove</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">false</td><td class="notes"><code>orchestrator.py:1061</code> &mdash; Passed to <code>remove_worktree(delete_branch=...)</code>. Manual edit only.</td></tr>
+      <tr data-runtime="used" data-wizard="no"><td>worktree.max_concurrent</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">15</td><td class="notes"><code>orchestrator.py:224</code> &mdash; Passed to ConcurrentRunManager for slot limiting.</td></tr>
+    </tbody></table>
+
+    <p class="subsection-title">PortRangeConfig (worktree.port_range)</p>
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="yes"><td>port_range.backend_start</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">PORTS</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">9100</td><td class="notes"><code>worktree/ports.py:61,89</code> &mdash; Starting port for backend services.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>port_range.frontend_start</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">PORTS</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">9200</td><td class="notes"><code>worktree/ports.py:62,89</code> &mdash; Starting port for frontend services.</td></tr>
+    </tbody></table>
+    <p class="removed-note">Removed in PRs #159/#161: <s>worktree.preserve_artifacts</s>, <s>worktree.artifact_manifest_file</s>, <s>worktree.preserve_on_failure</s></p>
   </div>
 </div>
 
-<!-- Hidden Model-Only -->
-<div class="section" id="hidden">
-  <div class="section-header">
-    <h2>Hidden: In Model but Not in Generated YAML</h2>
-    <span class="file-badge">ProjectConfig &rarr; various</span>
+<!-- ═════════════ 9. TaskManagerConfig ═════════════ -->
+<div class="section" id="sec-taskmanager">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">9</span>
+    <span class="section-title">TaskManagerConfig</span>
+    <span class="section-meta">models/config.py:351</span>
+    <span class="section-chevron">&#9662;</span>
   </div>
-  <div class="col-headers">
-    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
-  </div>
-  <div class="param-row">
-    <div class="param-name">hooks.shell<span class="model-field">HookConfig.shell</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge used">used</span>
-    <div class="notes">Shell for hook execution. Default: <code>"/bin/bash"</code>. Used in <code>HookRunner</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">hooks.timeout_seconds<span class="model-field">HookConfig.timeout_seconds</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge used">used</span>
-    <div class="notes">Hook timeout. Default: <code>60</code>. Used in <code>HookRunner</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">pipeline.strict_artifacts<span class="model-field">PipelineConfig.strict_artifacts</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge used">used</span>
-    <div class="notes">Raise error on missing artifact refs in templates. Used in <code>PhaseRunner</code>.</div>
-  </div>
-  <div class="param-row" style="background: var(--red-bg);">
-    <div class="param-name">logging.redaction.enabled<span class="model-field">RedactionConfig.enabled</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge not-used">not used</span>
-    <div class="notes"><strong>Leftover.</strong> Full <code>LoggingConfig</code>/<code>RedactionConfig</code> hierarchy exists but bootstrap never wires project config through to the logging system.</div>
-  </div>
-  <div class="param-row" style="background: var(--red-bg);">
-    <div class="param-name">logging.redaction.patterns<span class="model-field">RedactionConfig.patterns</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge not-used">not used</span>
-    <div class="notes"><strong>Leftover.</strong> Custom redaction patterns. Same plumbing issue as above.</div>
-  </div>
-  <div class="param-row" style="background: var(--red-bg);">
-    <div class="param-name">logging.redaction.disable_defaults<span class="model-field">RedactionConfig.disable_defaults</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge not-used">not used</span>
-    <div class="notes"><strong>Leftover.</strong> Skip default patterns. Same plumbing issue.</div>
+  <div class="section-body">
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="yes"><td>task_manager.type</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">TASK_MANAGER</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">"none"</td><td class="notes"><code>app.py:274</code>, <code>run_lifecycle.py:220,833</code> &mdash; Passed to <code>TaskManagerFactory.create()</code>.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>task_manager.team_key</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">TASK_MANAGER</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">None</td><td class="notes"><code>linear.py:304</code> &mdash; Team prefix for issue ID detection (e.g., <code>"RULE"</code> &rarr; <code>RULE-123</code>).</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>task_manager.state_mapping</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">TASK_MANAGER</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">{plan: "In Progress", ...}</td><td class="notes"><code>sync.py:194</code>, <code>linear.py:204,394</code> &mdash; Maps ADW phases to external system states.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>task_manager.sync_comments</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">TASK_MANAGER</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">false</td><td class="notes"><code>sync.py:225,266,318,367</code> &mdash; Gates comment posting on status transitions.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>task_manager.auto_close</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">TASK_MANAGER</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">false</td><td class="notes"><code>closer.py:71</code> &mdash; Checked before closing task on PR merge.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>task_manager.labels.enabled</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">TASK_MANAGER</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">true</td><td class="notes"><code>bootstrap.py:314</code> &mdash; Gates LabelManager creation. Not emitted by generator.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>task_manager.labels.prefix</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">TASK_MANAGER</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">"adw:"</td><td class="notes"><code>labels.py:61</code> &mdash; Prefix for label names like <code>"adw:running"</code>. Not emitted by generator.</td></tr>
+    </tbody></table>
   </div>
 </div>
 
-<!-- ==================== Phase configs ==================== -->
+<!-- ═════════════ 10. WebhookConfig ═════════════ -->
+<div class="section" id="sec-webhook">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">10</span>
+    <span class="section-title">WebhookConfig</span>
+    <span class="section-meta">models/webhook.py:76</span>
+    <span class="section-chevron">&#9662;</span>
+  </div>
+  <div class="section-body">
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="yes"><td>webhook.port</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">WEBHOOKS</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">8000</td><td class="notes"><code>webhook/server.py:72</code>, <code>cli/webhook.py:69</code> &mdash; Server port, overridable via CLI.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>webhook.host</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">WEBHOOKS</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">"0.0.0.0"</td><td class="notes"><code>webhook/server.py:71</code>, <code>cli/webhook.py:68</code> &mdash; Server bind address.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>webhook.providers</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">WEBHOOKS</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">{}</td><td class="notes"><code>providers/loader.py:66-67</code> &mdash; Iterated to load enabled providers.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>webhook.mappings</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">None</td><td class="notes"><code>webhook/server.py:109</code> &mdash; Passed to EventMapper. Complex nested structure, manual edit only.</td></tr>
+    </tbody></table>
 
-<!-- Phase Common Fields -->
-<div class="section" id="phase-common">
-  <div class="section-header">
-    <h2>Phase Common Fields</h2>
-    <span class="file-badge">.adw/commands/*/config.yaml</span>
-  </div>
-  <div class="col-headers">
-    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
-  </div>
-  <div class="param-row">
-    <div class="param-name">enabled<span class="model-field">CommandConfig.enabled</span></div>
-    <span class="badge active">active</span>
-    <span class="badge used">used</span>
-    <div class="notes">Disabled phases are skipped. Present in all phase configs.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">timeout_seconds<span class="model-field">CommandConfig.timeout_seconds</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Phase-specific timeout override. Defaults vary by phase (300&ndash;1200s).</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">pre_hook<span class="model-field">CommandConfig.pre_hook</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Shell command executed before phase.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">post_hook<span class="model-field">CommandConfig.post_hook</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Shell command executed after phase.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">input_files<span class="model-field">CommandConfig.input_files</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Variable &rarr; file mappings for Jinja2 template injection (<code>{{ inputs.prd }}</code>).</div>
+    <p class="subsection-title">ProviderConfig (per provider)</p>
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="yes"><td>provider.enabled</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">WEBHOOKS</span></td><td><span class="badge badge-active">Active</span></td><td class="default-val">false</td><td class="notes"><code>providers/loader.py:67</code> &mdash; Gates provider initialization.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>provider.secret_env</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">WEBHOOKS</span></td><td><span class="badge badge-active">Active</span></td><td class="default-val">None</td><td class="notes"><code>github.py:97</code>, <code>linear.py:77</code> &mdash; Via <code>get_secret()</code> for webhook signature verification.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>provider.command_prefix</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">WEBHOOKS</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">"/adw"</td><td class="notes"><code>github.py:99,102</code> &mdash; Used to build command pattern for comment parsing. Not emitted by generator.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>provider.trigger_label</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">WEBHOOKS</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">"adw"</td><td class="notes"><code>github.py:98,295</code> &mdash; Label name that triggers ADW on issues. Not emitted by generator.</td></tr>
+    </tbody></table>
   </div>
 </div>
 
-<!-- Validate Phase -->
-<div class="section" id="validate">
-  <div class="section-header">
-    <h2>Validate Phase Settings</h2>
-    <span class="file-badge">.adw/commands/validate/config.yaml</span>
+<!-- ═════════════ 11. CommandConfig (Phase Shared) ═════════════ -->
+<div class="section" id="sec-command">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">11</span>
+    <span class="section-title">CommandConfig &mdash; Phase Shared Fields</span>
+    <span class="section-meta">models/command.py:38</span>
+    <span class="section-chevron">&#9662;</span>
   </div>
-  <div class="col-headers">
-    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
-  </div>
-  <div class="param-row">
-    <div class="param-name">enable_evidence<span class="model-field">ValidateCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Run evidence validator. Default: <code>true</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">enable_review<span class="model-field">ValidateCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Run code review validator. Default: <code>true</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">enable_tests<span class="model-field">ValidateCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Run test validator. Default: <code>true</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">test_command<span class="model-field">ValidateCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Custom test command. Auto-detects if null.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">max_iterations<span class="model-field">ValidateCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Max validation loop iterations. Default: <code>5</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">max_fix_attempts_per_issue<span class="model-field">ValidateCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Max fix attempts per issue. Default: <code>2</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">stall_threshold<span class="model-field">ValidateCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Iterations without progress before stall. Default: <code>2</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">triage_mode<span class="model-field">ValidateCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Issue triage mode: <code>auto</code> / <code>manual</code> / <code>hybrid</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">auto_dismiss_info<span class="model-field">ValidateCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Auto-dismiss info-level issues. Default: <code>true</code>.</div>
-  </div>
-  <div class="param-row" style="background: var(--red-bg);">
-    <div class="param-name">test_timeout_seconds<span class="model-field">ValidateCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge not-used">not used</span>
-    <div class="notes"><strong>Leftover.</strong> Defined in model (default: <code>300</code>) but never accessed during test execution.</div>
-  </div>
-  <div class="param-row" style="background: var(--red-bg);">
-    <div class="param-name">review_prompt<span class="model-field">ValidateCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge not-used">not used</span>
-    <div class="notes"><strong>Leftover.</strong> Path to custom review prompt. Loading logic not implemented.</div>
-  </div>
-  <div class="param-row" style="background: var(--red-bg);">
-    <div class="param-name">review_focus<span class="model-field">ValidateCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge not-used">not used</span>
-    <div class="notes"><strong>Leftover.</strong> Focus areas list. Never passed to code review logic.</div>
+  <div class="section-body">
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="yes"><td>enabled</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-active">Active</span></td><td class="default-val">true</td><td class="notes"><code>phase_runner.py:839-850</code> &mdash; Gates phase execution.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>timeout_seconds</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">plan:600 build:1200 validate:600 doc:600 ship:900</td><td class="notes"><code>phase_runner.py:180</code> &mdash; Merged config timeout passed to LLM executor.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>input_files</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">None</td><td class="notes"><code>phase_runner.py:351-362</code> &mdash; Files loaded and injected into template as <code>{{inputs.name}}</code>.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>llm.model</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">None</td><td class="notes"><code>phase_runner.py:181</code> &mdash; Extracted and passed to executor for model selection.</td></tr>
+    </tbody></table>
+    <p class="removed-note">Removed in PR #161: <s>artifacts</s> (list of ArtifactConfig)</p>
+    <p class="removed-note">Removed in this branch: <s>pre_hook</s>, <s>post_hook</s> (string fields &mdash; phase_runner uses file-based hooks via <code>pre_hook_path</code>/<code>post_hook_path</code> from command resolution, not config strings), <s>llm.temperature</s> (was PARTIAL &mdash; included in model_dump but never extracted by executor)</p>
   </div>
 </div>
 
-<!-- Ship Phase -->
-<div class="section" id="ship">
-  <div class="section-header">
-    <h2>Ship Phase Settings</h2>
-    <span class="file-badge">.adw/commands/ship/config.yaml</span>
+<!-- ═════════════ 12. ValidateCommandConfig ═════════════ -->
+<div class="section" id="sec-validate">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">12</span>
+    <span class="section-title">ValidateCommandConfig</span>
+    <span class="section-meta">models/command.py:136</span>
+    <span class="section-chevron">&#9662;</span>
   </div>
-  <div class="col-headers">
-    <span>Parameter</span><span>YAML</span><span>Runtime</span><span>Notes</span>
-  </div>
-  <div class="param-row">
-    <div class="param-name">commands.version_bump<span class="model-field">ShipCommandsConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Version bump command. Exported as env var for ship script.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">commands.build<span class="model-field">ShipCommandsConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Build command for deployment.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">commands.publish<span class="model-field">ShipCommandsConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Publish/deploy command.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">post_publish<span class="model-field">ShipCommandConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Commands after publishing (e.g. <code>git push --tags</code>).</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">pr.merge_on_success<span class="model-field">ShipPRConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Auto-merge PR after validation. Default: <code>false</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">pr.delete_branch_on_merge<span class="model-field">ShipPRConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Delete feature branch after merge. Default: <code>true</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">pr.merge_method<span class="model-field">ShipPRConfig</span></div>
-    <span class="badge commented">commented</span>
-    <span class="badge used">used</span>
-    <div class="notes">Merge strategy: <code>merge</code> / <code>squash</code> / <code>rebase</code>.</div>
-  </div>
-  <div class="param-row">
-    <div class="param-name">pr.bypass_ci<span class="model-field">ShipPRConfig</span></div>
-    <span class="badge not-shown">hidden</span>
-    <span class="badge used">used</span>
-    <div class="notes">Exports <code>ADW_SHIP_BYPASS_CI</code> env var. Adds <code>--admin</code> flag to <code>gh pr merge</code>. Not in generated YAML.</div>
+  <div class="section-body">
+    <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">All fields injected into template context as <code style="background:var(--surface2); padding:1px 5px; border-radius:3px; font-size:11.5px; color:var(--text);">{{validation_config.&lt;field&gt;}}</code> via <code style="background:var(--surface2); padding:1px 5px; border-radius:3px; font-size:11.5px; color:var(--text);">typed_config.model_dump()</code> at <code style="background:var(--surface2); padding:1px 5px; border-radius:3px; font-size:11.5px; color:var(--text);">phase_runner.py:391-394</code>.</p>
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="template" data-wizard="yes"><td>enable_evidence</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">true</td><td class="notes">Available as <code>{{validation_config.enable_evidence}}</code> in validate prompt.</td></tr>
+      <tr data-runtime="template" data-wizard="yes"><td>enable_review</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">true</td><td class="notes">Available as <code>{{validation_config.enable_review}}</code>.</td></tr>
+      <tr data-runtime="template" data-wizard="yes"><td>enable_tests</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">true</td><td class="notes">Available as <code>{{validation_config.enable_tests}}</code>.</td></tr>
+      <tr data-runtime="template" data-wizard="yes"><td>max_iterations</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">5</td><td class="notes">Available as <code>{{validation_config.max_iterations}}</code>.</td></tr>
+      <tr data-runtime="template" data-wizard="yes"><td>max_fix_attempts_per_issue</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">2</td><td class="notes">Available as <code>{{validation_config.max_fix_attempts_per_issue}}</code>.</td></tr>
+      <tr data-runtime="template" data-wizard="yes"><td>stall_threshold</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">2</td><td class="notes">Available as <code>{{validation_config.stall_threshold}}</code>.</td></tr>
+    </tbody></table>
+    <p class="removed-note">Removed in PR #159: <s>test_timeout_seconds</s>, <s>review_prompt</s>, <s>review_focus</s></p>
+    <p class="removed-note">Removed in this branch: <s>triage_mode</s> (was TEMPLATE only &mdash; <code>"auto"</code>/<code>"manual"</code>/<code>"hybrid"</code>), <s>auto_dismiss_info</s> (was TEMPLATE only &mdash; auto-dismiss info-level issues)</p>
   </div>
 </div>
+
+<!-- ═════════════ 13. DocumentCommandConfig ═════════════ -->
+<div class="section" id="sec-document">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">13</span>
+    <span class="section-title">DocumentCommandConfig</span>
+    <span class="section-meta">models/command.py:228</span>
+    <span class="section-chevron">&#9662;</span>
+  </div>
+  <div class="section-body">
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="no"><td>doc_mappings</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-skip">Not generated</span></td><td class="default-val">None</td><td class="notes"><code>phase_runner.py:425-428</code> &mdash; Serialized and injected as <code>{{doc_mappings}}</code> list. Manual edit only.</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ═════════════ 14. ShipCommandConfig ═════════════ -->
+<div class="section" id="sec-ship">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num">14</span>
+    <span class="section-title">ShipCommandConfig</span>
+    <span class="section-meta">models/command.py:270</span>
+    <span class="section-chevron">&#9662;</span>
+  </div>
+  <div class="section-body">
+    <p class="subsection-title">ShipCommandsConfig (commands:)</p>
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="used" data-wizard="yes"><td>commands.version_bump</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">None</td><td class="notes"><code>phase_runner.py:414-415</code> &mdash; Injected as <code>{{version_bump_command}}</code> flat variable. Wired in PR #161.</td></tr>
+      <tr data-runtime="used" data-wizard="yes"><td>commands.publish</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">None</td><td class="notes"><code>phase_runner.py:416-417</code> &mdash; Injected as <code>{{publish_command}}</code> flat variable. Wired in PR #161.</td></tr>
+    </tbody></table>
+
+    <p class="subsection-title">post_publish &amp; bypass_ci</p>
+    <table class="tbl"><thead><tr><th>Setting</th><th>Runtime</th><th>Wizard</th><th>Generated YAML</th><th>Default</th><th>Notes</th></tr></thead><tbody>
+      <tr data-runtime="template" data-wizard="yes"><td>post_publish</td><td><span class="badge badge-template">TEMPLATE</span></td><td><span class="badge badge-yes">PHASES</span></td><td><span class="badge badge-cond">Conditional</span></td><td class="default-val">[]</td><td class="notes">Available via <code>{{ship_config.post_publish}}</code> in template (<code>model_dump</code> injection).</td></tr>
+      <tr data-runtime="used" data-wizard="no"><td>bypass_ci</td><td><span class="badge badge-used">USED</span></td><td><span class="badge badge-no">No</span></td><td><span class="badge badge-comment">Commented</span></td><td class="default-val">true</td><td class="notes"><code>extensions/ship.py:160</code> &mdash; Exposed as <code>ADW_SHIP_BYPASS_CI</code> env var for <code>post.sh</code>. Requires admin access. Default changed to <code>true</code> in this branch.</td></tr>
+    </tbody></table>
+    <p class="removed-note">Removed in this branch: <s>ShipPRConfig</s> class with <s>pr.merge_on_success</s>, <s>pr.delete_branch_on_merge</s>, <s>pr.merge_method</s> (post.sh now always uses squash + delete-branch; merge is LLM-approved). <s>pr.bypass_ci</s> moved to flat <code>bypass_ci</code> field on ShipCommandConfig with default <code>true</code>.</p>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════ -->
+<!-- ═════════════ ISSUES SUMMARY ═════════════ -->
+<!-- ═════════════════════════════════════════════════════ -->
+<div class="section" id="sec-issues" style="margin-top:48px;">
+  <div class="section-header" onclick="toggleSection(this)">
+    <span class="section-num" style="background:var(--red-bg); color:var(--red);">!</span>
+    <span class="section-title">Issues &amp; Findings</span>
+    <span class="section-chevron">&#9662;</span>
+  </div>
+  <div class="section-body">
+    <div class="issues-grid">
+
+      <div class="issue-card hidden-use">
+        <h4><span class="issue-label cat-c">Category C</span> Hidden &mdash; Used but Not Discoverable</h4>
+        <p class="issue-description">Runtime reads these, but they&rsquo;re not emitted by the YAML generator. Must be manually edited into config files.</p>
+        <ul>
+          <li>hooks.shell</li>
+          <li>hooks.timeout_seconds</li>
+          <li>worktree.cleanup_branch_on_remove</li>
+          <li>logging.redaction.enabled</li>
+          <li>logging.redaction.patterns</li>
+          <li>logging.redaction.disable_defaults</li>
+          <li>task_manager.state_mapping</li>
+          <li>task_manager.labels.enabled</li>
+          <li>task_manager.labels.prefix</li>
+          <li>doc_mappings</li>
+          <li>webhook.mappings</li>
+          <li>provider.command_prefix</li>
+          <li>provider.trigger_label</li>
+        </ul>
+      </div>
+
+      <div class="issue-card bug">
+        <h4><span class="issue-label cat-d">Category D</span> Key Name Mismatch Bug</h4>
+        <p class="issue-description"><code style="background:rgba(210,153,34,0.15); padding:1px 5px; border-radius:3px; font-size:11.5px;">yaml_generator.py:239-241</code> emits <code style="background:rgba(210,153,34,0.15); padding:1px 5px; border-radius:3px; font-size:11.5px;">base_delay</code> / <code style="background:rgba(210,153,34,0.15); padding:1px 5px; border-radius:3px; font-size:11.5px;">max_delay</code> but <code style="background:rgba(210,153,34,0.15); padding:1px 5px; border-radius:3px; font-size:11.5px;">RetryConfig</code> expects <code style="background:rgba(210,153,34,0.15); padding:1px 5px; border-radius:3px; font-size:11.5px;">base_delay_seconds</code> / <code style="background:rgba(210,153,34,0.15); padding:1px 5px; border-radius:3px; font-size:11.5px;">max_delay_seconds</code>. Generated retry config silently fails to apply.</p>
+        <ul>
+          <li>retry.base_delay_seconds &rarr; generated as base_delay</li>
+          <li>retry.max_delay_seconds &rarr; generated as max_delay</li>
+        </ul>
+      </div>
+
+      <div class="issue-card dead" style="border-left-color: var(--green);">
+        <h4><span class="issue-label" style="color:var(--green);">Resolved</span> Previously Dead/Disconnected &mdash; Fixed in This Branch</h4>
+        <p class="issue-description">Categories A, B, and E from the previous audit have been fully resolved:</p>
+        <ul>
+          <li>security.blocked_patterns &rarr; now USED (wired to SecurityInterceptor)</li>
+          <li>security.blocked_env_files &rarr; now USED (wired to SecurityInterceptor)</li>
+          <li>security.allow_dangerous &rarr; removed (was DISCONNECT)</li>
+          <li>llm.temperature &rarr; removed (was PARTIAL)</li>
+          <li>triage_mode, auto_dismiss_info &rarr; removed (were TEMPLATE only)</li>
+          <li>ShipPRConfig (4 fields) &rarr; removed, simplified to flat bypass_ci</li>
+          <li>pre_hook, post_hook (strings) &rarr; removed (runtime uses file-based hooks)</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<!-- ═════════════════ JS ═════════════════ -->
+<script>
+function toggleSection(header) {
+  header.parentElement.classList.toggle('collapsed');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const buttons = document.querySelectorAll('.filter-btn');
+  const searchBox = document.getElementById('search');
+  let currentFilter = 'all';
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active','active-red','active-yellow','active-green','active-purple','active-orange','active-cyan'));
+      btn.classList.add(btn.dataset.activeClass || 'active');
+      currentFilter = btn.dataset.filter;
+      applyFilters();
+    });
+  });
+
+  searchBox.addEventListener('input', () => applyFilters());
+
+  function applyFilters() {
+    const query = searchBox.value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.tbl tbody tr');
+
+    rows.forEach(row => {
+      const runtime = row.dataset.runtime || '';
+      const wizard = row.dataset.wizard || '';
+      const text = row.textContent.toLowerCase();
+
+      let filterMatch = true;
+      switch (currentFilter) {
+        case 'used': filterMatch = runtime === 'used'; break;
+        case 'template': filterMatch = runtime === 'template'; break;
+        case 'unused': filterMatch = runtime === 'unused'; break;
+        case 'partial': filterMatch = runtime === 'partial'; break;
+        case 'disconnect': filterMatch = runtime === 'disconnect'; break;
+        case 'wizard-yes': filterMatch = wizard === 'yes'; break;
+        case 'wizard-no': filterMatch = wizard === 'no'; break;
+        default: filterMatch = true;
+      }
+
+      const searchMatch = !query || text.includes(query);
+      row.classList.toggle('hidden', !(filterMatch && searchMatch));
+    });
+
+    // Show/hide empty sections
+    document.querySelectorAll('.section').forEach(sec => {
+      if (sec.id === 'sec-issues') return;
+      const visible = sec.querySelectorAll('.tbl tbody tr:not(.hidden)');
+      sec.style.display = visible.length === 0 ? 'none' : '';
+    });
+  }
+});
+</script>
 
 </body>
 </html>

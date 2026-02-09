@@ -119,7 +119,6 @@ class TestSecurityConfig:
         """Test creating config with all defaults."""
         config = SecurityConfig()
         assert config.blocked_patterns == []
-        assert config.allow_dangerous is False
         assert config.blocked_env_files == []
 
     def test_config_with_patterns(self) -> None:
@@ -132,11 +131,6 @@ class TestSecurityConfig:
         config = SecurityConfig(blocked_patterns=[pattern])
         assert len(config.blocked_patterns) == 1
         assert config.blocked_patterns[0].pattern == r"custom\s+pattern"
-
-    def test_allow_dangerous_flag(self) -> None:
-        """Test allow_dangerous configuration."""
-        config = SecurityConfig(allow_dangerous=True)
-        assert config.allow_dangerous is True
 
     def test_blocked_env_files(self) -> None:
         """Test custom blocked env file patterns."""

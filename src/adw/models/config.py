@@ -423,7 +423,7 @@ class TaskManagerConfig(BaseModel):
     )
 
 
-# NOTE: ShipCommandsConfig, ShipPRConfig, ShipConfig classes moved to command.py
+# NOTE: ShipCommandsConfig, ShipCommandConfig classes are in command.py
 # as part of ISS-031 phase-specific config refactoring. Use ShipCommandConfig
 # from adw.models.command instead.
 
@@ -490,7 +490,7 @@ class ProjectConfig(BaseModel):
         llm: LLM configuration section
         hooks: Hook configuration
         logging: Logging configuration (includes redaction settings)
-        security: Security configuration (blocked patterns, allow_dangerous)
+        security: Security configuration (blocked patterns, blocked env files)
         git: Git integration configuration (branch management)
         task_manager: Task manager integration configuration (Linear, Jira, etc.)
         ship: Ship phase configuration (version bump, build, publish, PR merge)
@@ -618,7 +618,6 @@ class ProjectConfig(BaseModel):
                     "timeout_seconds": 300,
                 },
                 "security": {
-                    "allow_dangerous": False,
                     "blocked_patterns": [],
                 },
                 "git": {

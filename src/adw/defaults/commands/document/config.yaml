@@ -12,7 +12,6 @@ timeout_seconds: 600
 # LLM settings for this phase
 # llm:
 #   model: claude-sonnet-4-20250514
-#   temperature: 0.5  # Moderate temperature for documentation
 
 # Map source files to documentation directories for automatic updates
 # When files matching source_pattern change, the document phase looks for

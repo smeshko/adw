@@ -55,17 +55,15 @@ class BlockedPattern(BaseModel):
 class SecurityConfig(BaseModel):
     """Security configuration for the ADW runner.
 
-    Configures which patterns are blocked, whether blocking is enforced,
-    and which files are protected from access.
+    Configures which patterns are blocked and which files are
+    protected from access.
 
     Attributes:
         blocked_patterns: Additional patterns to block (merged with defaults)
-        allow_dangerous: If True, log warnings instead of blocking
         blocked_env_files: File patterns to block (in addition to defaults)
 
     Example:
         >>> config = SecurityConfig(
-        ...     allow_dangerous=False,
         ...     blocked_patterns=[
         ...         BlockedPattern(
         ...             pattern=r"npm\\s+publish",
@@ -79,9 +77,6 @@ class SecurityConfig(BaseModel):
     blocked_patterns: list[BlockedPattern] = Field(
         default_factory=list,
         description="Additional patterns to block (merged with defaults)",
-    )
-    allow_dangerous: bool = Field(
-        default=False, description="If True, log warnings instead of blocking"
     )
     blocked_env_files: list[str] = Field(
         default_factory=list,

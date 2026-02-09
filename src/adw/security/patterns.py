@@ -32,7 +32,6 @@ class PatternMatch(NamedTuple):
         severity: Severity level (critical/warning/info)
         category: Category of the pattern
         alternative: Suggested safe alternative
-        allowed: Whether this was allowed due to allow_dangerous mode
     """
 
     pattern: str
@@ -40,7 +39,6 @@ class PatternMatch(NamedTuple):
     severity: str
     category: str
     alternative: str
-    allowed: bool = False
 
 
 class CompiledPattern:
@@ -69,11 +67,8 @@ class CompiledPattern:
         """
         return bool(self._compiled.search(text))
 
-    def to_match(self, *, allowed: bool = False) -> PatternMatch:
+    def to_match(self) -> PatternMatch:
         """Convert to a PatternMatch result.
-
-        Args:
-            allowed: Whether the match was allowed due to allow_dangerous
 
         Returns:
             PatternMatch with pattern metadata
@@ -84,7 +79,6 @@ class CompiledPattern:
             severity=self.blocked_pattern.severity,
             category=self.blocked_pattern.category,
             alternative=self.blocked_pattern.alternative,
-            allowed=allowed,
         )
 
 
@@ -94,9 +88,6 @@ class PatternMatcher:
     The PatternMatcher maintains compiled regex patterns for efficient
     matching and supports both shell command matching and file access
     pattern matching.
-
-    Attributes:
-        allow_dangerous: If True, matches are still detected but marked as allowed
 
     Example:
         >>> matcher = PatternMatcher()
@@ -109,17 +100,14 @@ class PatternMatcher:
     def __init__(
         self,
         additional_patterns: list[BlockedPattern] | None = None,
-        *,
-        allow_dangerous: bool = False,
+        additional_file_patterns: list[str] | None = None,
     ) -> None:
         """Initialize the pattern matcher.
 
         Args:
-            additional_patterns: Custom patterns to add to defaults
-            allow_dangerous: If True, still detect but don't block
+            additional_patterns: Custom patterns to add to default shell patterns
+            additional_file_patterns: Additional file path patterns to block
         """
-        self.allow_dangerous = allow_dangerous
-
         # Compile shell patterns
         all_shell_patterns = list(DEFAULT_SHELL_PATTERNS)
         if additional_patterns:
@@ -130,8 +118,20 @@ class PatternMatcher:
         ]
 
         # Compile file patterns
+        all_file_patterns = list(DEFAULT_FILE_PATTERNS)
+        if additional_file_patterns:
+            for pat in additional_file_patterns:
+                all_file_patterns.append(
+                    BlockedPattern(
+                        pattern=pat,
+                        description=f"Custom blocked file pattern: {pat}",
+                        severity="warning",
+                        category="secret_access",
+                    )
+                )
+
         self._file_patterns: list[CompiledPattern] = [
-            CompiledPattern(p) for p in DEFAULT_FILE_PATTERNS
+            CompiledPattern(p) for p in all_file_patterns
         ]
 
         # Compile allowed patterns (for exceptions like .env.example)
@@ -162,7 +162,7 @@ class PatternMatcher:
 
         for compiled in self._shell_patterns:
             if compiled.matches(command):
-                matches.append(compiled.to_match(allowed=self.allow_dangerous))
+                matches.append(compiled.to_match())
 
         return matches
 
@@ -197,7 +197,7 @@ class PatternMatcher:
 
         for compiled in self._file_patterns:
             if compiled.matches(path):
-                matches.append(compiled.to_match(allowed=self.allow_dangerous))
+                matches.append(compiled.to_match())
 
         return matches
 
@@ -215,7 +215,6 @@ class PatternMatcher:
 
         Returns:
             Tuple of (is_blocked, list of matches)
-            is_blocked is False if allow_dangerous or no matches
 
         Example:
             >>> matcher = PatternMatcher()
@@ -231,7 +230,6 @@ class PatternMatcher:
         if file_path:
             matches.extend(self.match_file_access(file_path))
 
-        # Not blocked if allow_dangerous or no matches
-        is_blocked = len(matches) > 0 and not self.allow_dangerous
+        is_blocked = len(matches) > 0
 
         return is_blocked, matches

@@ -236,27 +236,6 @@ class TestPatternMatcherCustomPatterns:
         assert len(custom_matches) > 0
 
 
-class TestPatternMatcherAllowDangerous:
-    """Tests for allow_dangerous mode."""
-
-    def test_allow_dangerous_still_detects(self) -> None:
-        """Test allow_dangerous mode still detects patterns."""
-        from adw.security.patterns import PatternMatcher
-
-        matcher = PatternMatcher(allow_dangerous=True)
-        matches = matcher.match_command("rm -rf /")
-        assert len(matches) > 0
-
-    def test_allow_dangerous_flag_in_match(self) -> None:
-        """Test PatternMatch includes allowed flag when allow_dangerous is True."""
-        from adw.security.patterns import PatternMatch, PatternMatcher
-
-        matcher = PatternMatcher(allow_dangerous=True)
-        matches = matcher.match_command("rm -rf /")
-        # When allow_dangerous, matches should have allowed=True
-        assert all(isinstance(m, PatternMatch) for m in matches)
-
-
 class TestPatternMatcherIsBlocked:
     """Tests for is_blocked convenience method."""
 
@@ -297,16 +276,6 @@ class TestPatternMatcherIsBlocked:
             file_path=".env",  # Dangerous
         )
         assert blocked is True
-        assert len(matches) > 0
-
-    def test_is_blocked_with_allow_dangerous(self) -> None:
-        """Test is_blocked returns False when allow_dangerous is True."""
-        from adw.security.patterns import PatternMatcher
-
-        matcher = PatternMatcher(allow_dangerous=True)
-        blocked, matches = matcher.is_blocked(command="rm -rf /")
-        # Still detects matches but not blocked
-        assert blocked is False
         assert len(matches) > 0
 
     def test_is_blocked_with_no_args(self) -> None:

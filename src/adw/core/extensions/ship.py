@@ -143,9 +143,6 @@ class ShipExtension:
 
         Loads the ship config and returns environment variables that
         the ship phase post-hook expects:
-        - ADW_SHIP_AUTO_MERGE: Whether to auto-merge PR
-        - ADW_SHIP_DELETE_BRANCH: Whether to delete branch after merge
-        - ADW_SHIP_MERGE_STRATEGY: Merge method (merge/squash/rebase)
         - ADW_SHIP_BYPASS_CI: Whether to bypass CI checks
 
         Args:
@@ -160,8 +157,5 @@ class ShipExtension:
             return {}
 
         return {
-            "ADW_SHIP_AUTO_MERGE": str(config.pr.merge_on_success).lower(),
-            "ADW_SHIP_DELETE_BRANCH": str(config.pr.delete_branch_on_merge).lower(),
-            "ADW_SHIP_MERGE_STRATEGY": config.pr.merge_method,
-            "ADW_SHIP_BYPASS_CI": str(config.pr.bypass_ci).lower(),
+            "ADW_SHIP_BYPASS_CI": str(config.bypass_ci).lower(),
         }
