@@ -447,10 +447,10 @@ class TestShipPostHookMergeCommand:
             / "post.sh"
         )
 
-    def test_merge_command_uses_squash_and_delete_branch(
+    def test_merge_command_uses_squash_without_delete_branch(
         self, post_hook_path: Path, tmp_path: Path
     ) -> None:
-        """Test that merge command always uses --squash --delete-branch."""
+        """Test that merge command uses --squash without --delete-branch."""
         artifacts_dir = tmp_path / "artifacts"
         artifacts_dir.mkdir()
 
@@ -480,7 +480,8 @@ PR_NUMBER: 50
         )
 
         # gh is not in PATH so merge fails, but command is still printed
-        assert "gh pr merge 50 --squash --delete-branch" in result.stdout
+        assert "gh pr merge 50 --squash" in result.stdout
+        assert "--delete-branch" not in result.stdout
 
     def test_merge_output_includes_version(
         self, post_hook_path: Path, tmp_path: Path
