@@ -1,10 +1,13 @@
 """Ship Phase Extension.
 
 This module provides the ShipExtension class that controls
-ship phase execution based on PR creation state.
+ship phase execution based on PR creation state and handles
+post-merge cleanup (worktree removal, branch deletion, checkout).
 """
 
+import json
 import logging
+import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
@@ -111,17 +114,94 @@ class ShipExtension:
         return False, None
 
     def on_complete(self, context: "RunContext", result: "PhaseResult") -> "RunContext":
-        """No post-processing needed for ship phase.
+        """Handle post-merge cleanup after ship phase completes.
+
+        If the post-hook successfully merged a PR (merge_record.json exists),
+        clean up the worktree, delete the local branch, checkout the base
+        branch, and pull latest changes.
 
         Args:
             context: Current run context.
-            result: Result from the completed phase (unused).
+            result: Result from the completed phase.
 
         Returns:
-            Unchanged context.
+            Updated context with worktree_path cleared if cleanup succeeded.
         """
         del result  # Unused
-        return context
+
+        if not (context.use_worktree and context.worktree_path and self._project_root):
+            return context
+
+        # Check if ship phase merged a PR
+        merge_record_path = (
+            context.worktree_path
+            / ".adw"
+            / "runs"
+            / context.run_id
+            / "artifacts"
+            / "ship"
+            / "merge_record.json"
+        )
+        if not merge_record_path.exists():
+            return context
+
+        try:
+            merge_record = json.loads(
+                merge_record_path.read_text(encoding="utf-8")
+            )
+        except (json.JSONDecodeError, OSError):
+            return context
+
+        if not merge_record.get("merged"):
+            return context
+
+        base_branch = merge_record.get("base_branch", "staging")
+
+        logger.info(
+            "Post-merge cleanup: removing worktree and switching to base branch",
+            extra={
+                "run_id": context.run_id,
+                "base_branch": base_branch,
+                "branch_name": context.branch_name,
+            },
+        )
+
+        # 1. Remove worktree + delete local branch
+        from adw.worktree.manager import WorktreeManager
+
+        worktree_manager = WorktreeManager(self._project_root)
+        worktree_manager.remove_worktree(
+            context.run_id,
+            force=True,
+            delete_branch=True,
+            branch_name=context.branch_name,
+            preserve=True,
+        )
+
+        # 2. Checkout base branch and pull latest
+        subprocess.run(
+            ["git", "checkout", base_branch],
+            cwd=self._project_root,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "pull", "origin", base_branch],
+            cwd=self._project_root,
+            capture_output=True,
+            check=True,
+        )
+
+        logger.info(
+            "Post-merge cleanup complete",
+            extra={
+                "run_id": context.run_id,
+                "base_branch": base_branch,
+            },
+        )
+
+        # 3. Clear worktree_path so finalize_success skips "preserved" message
+        return context.model_copy(update={"worktree_path": None})
 
     def extra_artifacts(
         self, context: "RunContext", llm_result: "LLMResult"

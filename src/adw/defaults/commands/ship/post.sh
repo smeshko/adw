@@ -4,8 +4,8 @@
 # This hook:
 # 1. Parses LLM output for deployment status markers
 # 2. Extracts ship report and release notes
-# 3. Merges the PR (squash + delete-branch) if LLM approves
-# 4. Runs publish commands if configured
+# 3. Merges the PR (squash) if LLM approves
+# 4. Deletes remote branch after successful merge
 # 5. Updates task manager status (if configured)
 #
 # Environment variables provided by ADW:
@@ -180,7 +180,10 @@ if [[ "$pr_merge_approved" == "true" ]]; then
         exit 1
     fi
 
-    echo "Merging PR #$pr_number (squash + delete-branch)"
+    echo "Merging PR #$pr_number (squash)"
+
+    # Query base branch for post-merge cleanup
+    base_branch=$(gh pr view "$pr_number" --json baseRefName --jq '.baseRefName' 2>/dev/null || echo "staging")
 
     # Build merge body message
     if [[ "$version_deployed" != "N/A" && -n "$version_deployed" ]]; then
@@ -189,8 +192,9 @@ if [[ "$pr_merge_approved" == "true" ]]; then
         merge_body="Shipped via ADW"
     fi
 
-    # Build merge command — always squash + delete-branch
-    merge_cmd=(gh pr merge "$pr_number" --squash --delete-branch --body "$merge_body")
+    # Build merge command — squash only (no --delete-branch to avoid
+    # local git operations that fail inside worktrees)
+    merge_cmd=(gh pr merge "$pr_number" --squash --body "$merge_body")
 
     # Add --admin flag to bypass CI checks if configured (requires admin access)
     bypass_ci="${ADW_SHIP_BYPASS_CI:-true}"
@@ -217,12 +221,25 @@ if [[ "$pr_merge_approved" == "true" ]]; then
         echo "=========================================="
         echo "PR MERGED SUCCESSFULLY"
         echo "=========================================="
-        echo "PR #$pr_number merged (squash, branch deleted)"
+        echo "PR #$pr_number merged (squash)"
         if [[ "$version_deployed" != "N/A" ]]; then
             echo "Version deployed: $version_deployed"
         fi
 
-        # Save merge record for task manager sync
+        # Delete remote branch (worktree-safe — no local git switch needed)
+        branch_deleted=false
+        branch_name="${ADW_BRANCH_NAME}"
+        if [[ -n "$branch_name" ]]; then
+            echo "Deleting remote branch: $branch_name"
+            if git push origin --delete "$branch_name" 2>/dev/null; then
+                echo "Remote branch deleted: $branch_name"
+                branch_deleted=true
+            else
+                echo "Warning: Failed to delete remote branch (may have been auto-deleted)"
+            fi
+        fi
+
+        # Save merge record for task manager sync and post-ship cleanup
         if [[ -n "$ADW_ARTIFACTS_DIR" ]]; then
             merge_record_file="$ADW_ARTIFACTS_DIR/merge_record.json"
 
@@ -236,7 +253,8 @@ if [[ "$pr_merge_approved" == "true" ]]; then
   "pr_number": $pr_number,
   "merge_strategy": "squash",
   "version": "$version_deployed",
-  "branch_deleted": true,
+  "branch_deleted": $branch_deleted,
+  "base_branch": "$base_branch",
   "merge_body": "$merge_body_escaped"
 }
 EOF
@@ -261,28 +279,28 @@ EOF
             echo "Remediation:"
             echo "  1. Resolve conflicts locally: git pull origin main && git merge main"
             echo "  2. Push the resolved branch"
-            echo "  3. Retry: gh pr merge $pr_number --squash --delete-branch"
+            echo "  3. Retry: gh pr merge $pr_number --squash"
         elif echo "$merge_output" | grep -qi "status check"; then
             echo "Error: Required status checks have not passed"
             echo ""
             echo "Remediation:"
             echo "  1. Wait for CI checks to complete"
             echo "  2. Fix any failing checks"
-            echo "  3. Retry: gh pr merge $pr_number --squash --delete-branch"
+            echo "  3. Retry: gh pr merge $pr_number --squash"
         elif echo "$merge_output" | grep -qi "review"; then
             echo "Error: PR requires review approval"
             echo ""
             echo "Remediation:"
             echo "  1. Request review from team members"
             echo "  2. Address any review comments"
-            echo "  3. Retry: gh pr merge $pr_number --squash --delete-branch"
+            echo "  3. Retry: gh pr merge $pr_number --squash"
         elif echo "$merge_output" | grep -qi "protected"; then
             echo "Error: Branch protection rules violated"
             echo ""
             echo "Remediation:"
             echo "  1. Check branch protection settings"
             echo "  2. Ensure all requirements are met"
-            echo "  3. Retry: gh pr merge $pr_number --squash --delete-branch"
+            echo "  3. Retry: gh pr merge $pr_number --squash"
         else
             echo "Error output:"
             echo "$merge_output"
@@ -290,7 +308,7 @@ EOF
             echo "Manual merge instructions:"
             echo "  1. Review the error above"
             echo "  2. Fix any issues"
-            echo "  3. Merge manually: gh pr merge $pr_number --squash --delete-branch"
+            echo "  3. Merge manually: gh pr merge $pr_number --squash"
         fi
 
         exit 1

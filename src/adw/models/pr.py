@@ -73,7 +73,7 @@ class PRDescription(BaseModel):
         ...,
         description="1-2 sentence summary of what the PR accomplishes",
         min_length=10,
-        max_length=500,
+        max_length=1000,
     )
 
     changes: list[str] = Field(
