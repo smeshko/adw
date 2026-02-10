@@ -5,6 +5,7 @@ of executing a single phase: pre-hook → prompt loading → LLM execution →
 post-hook → artifact capture.
 """
 
+import json
 import logging
 import os
 from collections.abc import Callable
@@ -158,8 +159,19 @@ class PhaseRunner:
         merged_config = self._get_merged_config(phase, command)
 
         try:
-            # Step 1: Run pre-hook
-            pre_hook_output = self._run_pre_hook(phase, context, command)
+            # Compute artifacts_dir for pre-hook file-based variable passing
+            artifacts_dir = (
+                self.artifact_manager.runs_dir
+                / context.run_id
+                / "artifacts"
+                / phase
+            )
+            artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+            # Step 1: Run pre-hook (with artifacts_dir for file-based variable passing)
+            pre_hook_output = self._run_pre_hook(
+                phase, context, command, artifacts_dir=artifacts_dir
+            )
 
             # Step 2: Load and render prompt
             rendered_prompt = self._load_and_render_prompt(
@@ -169,6 +181,7 @@ class PhaseRunner:
                 command,
                 merged_config=merged_config,
                 artifacts_override=artifacts_override,
+                artifacts_dir=artifacts_dir,
             )
 
             # Step 3: Execute LLM (ISS-029: pass timeout from merged config)
@@ -241,7 +254,12 @@ class PhaseRunner:
             raise
 
     def _run_pre_hook(
-        self, phase: str, context: RunContext, command: ResolvedCommand
+        self,
+        phase: str,
+        context: RunContext,
+        command: ResolvedCommand,
+        *,
+        artifacts_dir: Path | None = None,
     ) -> str:
         """Execute pre-hook and capture stdout.
 
@@ -249,6 +267,7 @@ class PhaseRunner:
             phase: Phase name.
             context: Run context.
             command: Resolved command configuration.
+            artifacts_dir: Artifacts directory for file-based variable passing.
 
         Returns:
             Pre-hook stdout (empty string if no hook).
@@ -268,6 +287,7 @@ class PhaseRunner:
                 context=context,
                 phase=phase,
                 hook_type="pre",
+                artifacts_dir=artifacts_dir,
                 working_dir=context.worktree_path,
             )
             logger.debug(
@@ -288,6 +308,7 @@ class PhaseRunner:
         *,
         merged_config: PhaseConfig | None = None,
         artifacts_override: dict[str, dict[str, str]] | None = None,
+        artifacts_dir: Path | None = None,
     ) -> str:
         """Load prompt template and render with variables.
 
@@ -308,6 +329,7 @@ class PhaseRunner:
                 If None, falls back to empty PhaseConfig (backward compatibility).
             artifacts_override: Pre-loaded artifacts to use instead of loading
                 from the current run. Used for single-phase execution.
+            artifacts_dir: Artifacts directory for reading pre-hook variables.
 
         Returns:
             Rendered prompt string.
@@ -381,6 +403,18 @@ class PhaseRunner:
                 self.project_config.model_dump() if self.project_config else {}
             ),
         }
+
+        # Load pre-hook variables from file (if pre-hook wrote them)
+        if artifacts_dir:
+            pre_hook_vars_file = artifacts_dir / "pre_hook_vars.json"
+            if pre_hook_vars_file.exists():
+                try:
+                    pre_hook_vars = json.loads(
+                        pre_hook_vars_file.read_text(encoding="utf-8")
+                    )
+                    variables.update(pre_hook_vars)
+                except (json.JSONDecodeError, OSError):
+                    pass  # Graceful fallback - pre-hook vars are informational
 
         # Load phase-specific typed config for templates (ISS-031)
         # This provides {{ship_config.*}} access

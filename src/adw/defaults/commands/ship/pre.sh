@@ -97,6 +97,22 @@ echo "State: $pr_state"
 echo "Mergeable: $pr_mergeable"
 
 # =============================================================================
+# STEP 5b: Write variables to artifacts dir for template rendering
+# =============================================================================
+
+if [[ -n "$ADW_ARTIFACTS_DIR" ]]; then
+    mkdir -p "$ADW_ARTIFACTS_DIR"
+    cat > "$ADW_ARTIFACTS_DIR/pre_hook_vars.json" <<EOF
+{
+  "pr_number": "$pr_number",
+  "pr_url": "$pr_url",
+  "pr_state": "$pr_state",
+  "pr_mergeable": "$pr_mergeable"
+}
+EOF
+fi
+
+# =============================================================================
 # STEP 6: Validate PR state
 # =============================================================================
 
