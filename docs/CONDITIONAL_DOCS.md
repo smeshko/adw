@@ -171,3 +171,10 @@ This guide helps you find relevant documentation based on what you're working on
     - When implementing new HTMX partial endpoints with empty-state polling patterns
     - When using the phase pipeline component macro in dashboard templates
     - When loading RunContext data in dashboard partials with fallback handling
+
+- docs/features/run-detail-page-layout-metadata.md
+  - Conditions:
+    - When implementing a new detail or drill-down page in the dashboard
+    - When loading RunContext data for enriched display on dashboard run detail pages
+    - When adding context-aware back navigation between dashboard pages
+    - When displaying full metadata cards with clipboard copy functionality in the dashboard
