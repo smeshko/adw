@@ -2654,3 +2654,215 @@ class TestPRCreationAfterDocumentPhase:
         # All phases should run since PR creation wasn't attempted
         assert "ship" in executed_phases
         assert executed_phases == list(PHASE_SEQUENCE)
+
+
+class TestContinueFromRun:
+    """Tests for the continue_from_run() method."""
+
+    def _make_source_context(
+        self,
+        run_id: str = "01TEST00000000000000000001",
+        *,
+        worktree_path: Path | None = None,
+        use_worktree: bool = False,
+        phase_history: list[str] | None = None,
+    ) -> RunContext:
+        """Create a source RunContext for testing."""
+        return RunContext(
+            run_id=run_id,
+            feature_description="Original feature description",
+            current_phase="plan",
+            phase_history=phase_history or ["plan"],
+            started_at=datetime.now(UTC),
+            status="completed",
+            worktree_path=worktree_path,
+            use_worktree=use_worktree,
+        )
+
+    def test_loads_existing_context(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that continue_from_run loads the source run's context."""
+        source_ctx = self._make_source_context()
+        mock_context_manager.load.return_value = source_ctx
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Plan Content"
+
+        context = orchestrator.continue_from_run(
+            "build", "01TEST00000000000000000001"
+        )
+
+        mock_context_manager.load.assert_called_with("01TEST00000000000000000001")
+        assert context.run_id == "01TEST00000000000000000001"
+
+    def test_reuses_feature_description_from_source(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that feature description is loaded from source run."""
+        source_ctx = self._make_source_context()
+        mock_context_manager.load.return_value = source_ctx
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Plan Content"
+
+        context = orchestrator.continue_from_run(
+            "build", "01TEST00000000000000000001"
+        )
+
+        assert context.feature_description == "Original feature description"
+
+    def test_allows_feature_description_override(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that user can override the feature description."""
+        source_ctx = self._make_source_context()
+        mock_context_manager.load.return_value = source_ctx
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Plan Content"
+
+        context = orchestrator.continue_from_run(
+            "build",
+            "01TEST00000000000000000001",
+            feature_description="Overridden feature",
+        )
+
+        assert context.feature_description == "Overridden feature"
+
+    def test_reuses_worktree_path_from_source(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Test that worktree path from source context is reused."""
+        worktree_dir = tmp_path / "worktrees" / "01TEST00000000000000000001"
+        worktree_dir.mkdir(parents=True)
+
+        source_ctx = self._make_source_context(
+            worktree_path=worktree_dir,
+            use_worktree=True,
+        )
+        mock_context_manager.load.return_value = source_ctx
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Plan Content"
+
+        context = orchestrator.continue_from_run(
+            "build", "01TEST00000000000000000001"
+        )
+
+        assert context.worktree_path == worktree_dir
+        assert context.use_worktree is True
+
+    def test_loads_artifacts_from_source_run(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that artifacts from previous phases are loaded."""
+        source_ctx = self._make_source_context(phase_history=["plan"])
+        mock_context_manager.load.return_value = source_ctx
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Plan Content"
+
+        orchestrator.continue_from_run("build", "01TEST00000000000000000001")
+
+        # Should have loaded plan artifacts for build phase
+        mock_artifact_manager.list_artifacts.assert_called_with(
+            "01TEST00000000000000000001", "plan"
+        )
+
+    def test_errors_when_source_run_not_found(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+    ) -> None:
+        """Test that a missing source run raises an error."""
+        from adw.exceptions import StateError
+
+        mock_context_manager.load.side_effect = StateError(
+            code="CONTEXT_NOT_FOUND",
+            message="Context not found for run NONEXISTENT00000000000001",
+            suggestion="Check if run ID is correct",
+            recoverable=False,
+        )
+
+        with pytest.raises(StateError, match="CONTEXT_NOT_FOUND"):
+            orchestrator.continue_from_run(
+                "build", "NONEXISTENT00000000000001"
+            )
+
+    def test_errors_when_worktree_missing(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+    ) -> None:
+        """Test that a cleaned-up worktree raises ConfigError."""
+        source_ctx = self._make_source_context(
+            worktree_path=Path("/nonexistent/worktree/path"),
+            use_worktree=True,
+        )
+        mock_context_manager.load.return_value = source_ctx
+
+        with pytest.raises(ConfigError, match="WORKTREE_MISSING"):
+            orchestrator.continue_from_run(
+                "build", "01TEST00000000000000000001"
+            )
+
+    def test_executes_only_specified_phase(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that only the target phase is executed."""
+        source_ctx = self._make_source_context(
+            phase_history=["plan", "build", "validate"]
+        )
+        mock_context_manager.load.return_value = source_ctx
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "output.md"}]
+        mock_artifact_manager.get.return_value = "# Content"
+
+        orchestrator.continue_from_run(
+            "document", "01TEST00000000000000000001"
+        )
+
+        # Should only execute "document" phase
+        assert mock_phase_runner.run.call_count == 1
+        call_args = mock_phase_runner.run.call_args[0]
+        assert call_args[0] == "document"
+
+    def test_sets_status_to_completed(
+        self,
+        orchestrator: "Orchestrator",
+        mock_context_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+        mock_artifact_manager: MagicMock,
+    ) -> None:
+        """Test that context status is set to completed after success."""
+        source_ctx = self._make_source_context()
+        mock_context_manager.load.return_value = source_ctx
+        mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
+        mock_artifact_manager.get.return_value = "# Plan Content"
+
+        context = orchestrator.continue_from_run(
+            "build", "01TEST00000000000000000001"
+        )
+
+        assert context.status == "completed"
+        assert context.completed_at is not None

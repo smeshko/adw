@@ -11,6 +11,7 @@ of feature description handling.
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 from ulid import ULID
 
@@ -206,6 +207,120 @@ class TestFeatureDescriptionInGlobalIndex:
         assert len(entries) == 1
         assert entries[0].feature_description == feature
         assert entries[0].status == "completed"
+
+
+class TestFeatureDescriptionWithFromRun:
+    """Tests for feature description behavior with --from-run."""
+
+    def test_feature_optional_with_from_run(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
+        """Test that feature can be omitted when --from-run is provided."""
+        monkeypatch.chdir(tmp_path)
+
+        # Set up a source run with context.json
+        run_id = _generate_test_run_id()
+        runs_dir = tmp_path / ".adw" / "runs"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+
+        source_feature = "Original feature from source run"
+        source_context = RunContext(
+            run_id=run_id,
+            feature_description=source_feature,
+            current_phase="plan",
+            phase_history=["plan"],
+            started_at=datetime.now(UTC),
+            status="completed",
+        )
+        manager = ContextManager(runs_dir)
+        manager.save(source_context)
+
+        # Create minimal project marker
+        (tmp_path / "pyproject.toml").touch()
+
+        # Invoke with --from-run but without feature argument, use --dry-run
+        result = runner.invoke(
+            app,
+            ["run", "--phase", "build", "--from-run", run_id, "--dry-run"],
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code == 0
+        assert "Feature loaded from source run" in result.output
+        assert source_feature in result.output
+
+    def test_feature_still_required_without_from_run(self, tmp_path: Path) -> None:
+        """Test that feature is still required when --from-run is not provided."""
+        (tmp_path / "pyproject.toml").touch()
+
+        result = runner.invoke(
+            app,
+            ["run"],
+            catch_exceptions=False,
+        )
+
+        # Should error — no feature and no --from-run
+        assert result.exit_code != 0
+
+    def test_feature_override_with_from_run(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
+        """Test that explicit feature overrides source run feature in display."""
+        monkeypatch.chdir(tmp_path)
+
+        run_id = _generate_test_run_id()
+        runs_dir = tmp_path / ".adw" / "runs"
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+
+        source_context = RunContext(
+            run_id=run_id,
+            feature_description="Original feature",
+            current_phase="plan",
+            phase_history=["plan"],
+            started_at=datetime.now(UTC),
+            status="completed",
+        )
+        manager = ContextManager(runs_dir)
+        manager.save(source_context)
+
+        (tmp_path / "pyproject.toml").touch()
+
+        # Invoke with --from-run AND a feature argument
+        result = runner.invoke(
+            app,
+            [
+                "run",
+                "Override feature description",
+                "--phase",
+                "build",
+                "--from-run",
+                run_id,
+                "--dry-run",
+            ],
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code == 0
+        assert "Override feature description" in result.output
+
+    def test_from_run_invalid_run_id_errors(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
+        """Test that an invalid --from-run ID produces an error."""
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "pyproject.toml").touch()
+        (tmp_path / ".adw" / "runs").mkdir(parents=True)
+
+        result = runner.invoke(
+            app,
+            ["run", "--phase", "build", "--from-run", "NONEXISTENT00000000000001"],
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code != 0
+        assert "Error" in result.output
 
 
 class TestEndToEndFeatureDescription:
