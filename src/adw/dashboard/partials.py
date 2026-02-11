@@ -313,7 +313,9 @@ def build_analytics_context(
         phase_data = stats_aggregator.get_phase_breakdown(  # type: ignore[union-attr]
             project_name=project_name, since=since,
         )
-        phase_total = sum(phase_data.values())
+        phase_total = sum(
+            phase_data.get(p, 0) for p in canonical_phases
+        )
         for phase_key in canonical_phases:
             tokens_val = phase_data.get(phase_key, 0)
             if tokens_val > 0:
