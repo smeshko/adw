@@ -132,3 +132,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When reviewing implementation epics
     - When planning story work
     - When understanding feature scope
+
+- docs/features/dashboard-base-template-navigation-theme.md
+  - Conditions:
+    - When adding a new page route to the dashboard
+    - When implementing HTMX partial endpoints for the dashboard
+    - When modifying the dashboard navigation header or status bar footer
+    - When working with the dashboard theme toggle or design tokens
+    - When troubleshooting the dashboard dual-response pattern (full page vs HTMX partial)
