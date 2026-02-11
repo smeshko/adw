@@ -756,3 +756,13 @@ class TestRunsFilterBar:
         text = response.text
         assert 'name="sort"' in text
         assert 'value="oldest"' in text
+
+    def test_empty_state_with_filters_shows_descriptive_message(self) -> None:
+        """Empty state when filters active shows descriptive message."""
+        client = _make_client_with_mocks(
+            index_manager=_mock_index_manager(entries=[]),
+        )
+        response = client.get("/runs?status=failed")
+        assert "No runs match your filters." in response.text
+        assert "Try adjusting the status or date range." in response.text
+        assert "Clear filters" in response.text
