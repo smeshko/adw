@@ -59,13 +59,17 @@ def _build_page_context(
     project_names = [p.name for p in all_projects]
 
     # Status bar data (for full-page renders that include the footer)
-    active_runs = index_manager.get_recent_runs(status="running")  # type: ignore[union-attr]
-    active_run_count = len(active_runs)
-
-    recent = index_manager.get_recent_runs(limit=1)  # type: ignore[union-attr]
+    active_run_count = 0
     last_updated_dt = None
-    if recent:
-        last_updated_dt = recent[0].completed_at or recent[0].started_at
+    try:
+        active_runs = index_manager.get_recent_runs(status="running")  # type: ignore[union-attr]
+        active_run_count = len(active_runs)
+
+        recent = index_manager.get_recent_runs(limit=1)  # type: ignore[union-attr]
+        if recent:
+            last_updated_dt = recent[0].completed_at or recent[0].started_at
+    except Exception:
+        pass  # Graceful degradation — page renders with defaults
 
     return {
         "request": request,
