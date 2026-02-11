@@ -151,3 +151,41 @@ async def stats_partial(
     context["request"] = request
 
     return templates.TemplateResponse(request, "partials/stats_row.html", context)
+
+
+@router.get("/recent-runs", response_class=HTMLResponse)
+async def recent_runs(
+    request: Request,
+    project: str = Query("", alias="project"),
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return the recent runs table HTML fragment for polling updates."""
+    templates = request.app.state.templates
+
+    project_name = project or None
+    entries = index_manager.get_recent_runs(limit=5, project_name=project_name)  # type: ignore[union-attr]
+
+    recent_runs_data = []
+    for entry in entries:
+        if entry.completed_at and entry.started_at:
+            delta_seconds = (entry.completed_at - entry.started_at).total_seconds()
+            duration_display = _format_duration(int(delta_seconds * 1000))
+        else:
+            duration_display = "—"
+
+        recent_runs_data.append({
+            "run_id": entry.run_id,
+            "project_name": entry.project_name,
+            "feature_description": entry.feature_description,
+            "status": entry.status,
+            "duration_display": duration_display,
+            "started_ago": _relative_time(entry.started_at),
+        })
+
+    context = {
+        "request": request,
+        "recent_runs": recent_runs_data,
+        "selected_project": project_name,
+    }
+
+    return templates.TemplateResponse(request, "partials/recent_runs.html", context)
