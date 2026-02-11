@@ -1044,11 +1044,11 @@ class TestRerunButton:
         # Find the Re-run button and verify it's not disabled
         text = response.text
         rerun_pos = text.find(">Re-run</button>")
-        if rerun_pos != -1:
-            # Look backwards to find the button opening tag
-            button_start = text.rfind("<button", 0, rerun_pos)
-            button_html = text[button_start:rerun_pos + len(">Re-run</button>")]
-            assert "disabled" not in button_html
+        assert rerun_pos != -1, "Re-run button not found in response"
+        # Look backwards to find the button opening tag
+        button_start = text.rfind("<button", 0, rerun_pos)
+        button_html = text[button_start:rerun_pos + len(">Re-run</button>")]
+        assert "disabled" not in button_html
 
     def test_rerun_button_has_htmx_get(self) -> None:
         """Re-run button has hx-get attribute with from param."""
@@ -1069,10 +1069,10 @@ class TestRerunButton:
         text = response.text
         # Find the Re-run button context and verify hx-target
         rerun_pos = text.find(">Re-run</button>")
-        if rerun_pos != -1:
-            button_start = text.rfind("<button", 0, rerun_pos)
-            button_html = text[button_start:rerun_pos]
-            assert 'hx-target="#modal-container"' in button_html
+        assert rerun_pos != -1, "Re-run button not found in response"
+        button_start = text.rfind("<button", 0, rerun_pos)
+        button_html = text[button_start:rerun_pos]
+        assert 'hx-target="#modal-container"' in button_html
 
 
 # ── Re-run Full Flow Integration ─────────────────────────────────
