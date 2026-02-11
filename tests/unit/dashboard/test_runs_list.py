@@ -517,7 +517,7 @@ class TestRunsListEmptyState:
         )
         response = client.get("/runs?status=failed")
         assert "No runs match your filters." in response.text
-        assert "Try adjusting the status or date range." in response.text
+        assert "Try adjusting your filter criteria." in response.text
 
     def test_clear_filters_link_when_filters_active(self) -> None:
         """Empty state includes clear filters link when filters active."""
@@ -772,5 +772,5 @@ class TestRunsFilterBar:
         )
         response = client.get("/runs?status=failed")
         assert "No runs match your filters." in response.text
-        assert "Try adjusting the status or date range." in response.text
+        assert "Try adjusting your filter criteria." in response.text
         assert "Clear filters" in response.text

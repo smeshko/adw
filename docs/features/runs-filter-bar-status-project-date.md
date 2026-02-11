@@ -9,10 +9,10 @@ The runs list filter bar provides controls for narrowing the run history by stat
 
 ## What Was Built
 
-- `runs_filter_bar.html` partial template with Status dropdown, Project dropdown, Date From/To inputs, hidden sort preservation, and conditional "Clear all" link
+- `runs_filter_bar.html` partial template with Status dropdown, Project dropdown, Date From/To inputs, combined `hx-include` selector for sort preservation, and conditional "Clear all" link
 - Integration into `runs_list.html` via `{% include %}` outside `#runs-content`
-- Enhanced empty state message with filter adjustment suggestion
-- 17 integration tests covering filter rendering, pre-population, HTMX attributes, structural correctness, and combined filter scenarios
+- Conditional empty state message (filter-aware vs no-runs-yet)
+- 20 integration tests covering filter rendering, pre-population, HTMX attributes, structural correctness, and combined filter scenarios
 
 ## Technical Implementation
 
