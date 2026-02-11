@@ -1,0 +1,88 @@
+{# Filter bar partial — Status, Project & Date Range filters for the runs list.
+   Renders inside runs_list.html OUTSIDE #runs-content so it persists across
+   table-only HTMX swaps. Filter changes target #runs-content only. #}
+
+<div class="card card-compact bg-base-200 p-4 mb-4">
+  <form id="filter-form" class="flex flex-wrap items-end gap-4">
+    {# Hidden sort input — preserves current sort when filters change #}
+    <input type="hidden" name="sort" value="{{ sort }}">
+
+    {# Status filter #}
+    <div class="form-control">
+      <label class="label label-text text-xs pb-1">Status</label>
+      <select class="select select-bordered select-sm"
+              name="status"
+              hx-get="/runs"
+              hx-trigger="change"
+              hx-target="#runs-content"
+              hx-swap="innerHTML"
+              hx-push-url="true"
+              hx-include="#filter-form">
+        <option value="">All Statuses</option>
+        <option value="running" {% if status_filter == "running" %}selected{% endif %}>Running</option>
+        <option value="completed" {% if status_filter == "completed" %}selected{% endif %}>Completed</option>
+        <option value="failed" {% if status_filter == "failed" %}selected{% endif %}>Failed</option>
+        <option value="interrupted" {% if status_filter == "interrupted" %}selected{% endif %}>Interrupted</option>
+        <option value="aborted" {% if status_filter == "aborted" %}selected{% endif %}>Aborted</option>
+      </select>
+    </div>
+
+    {# Project filter #}
+    <div class="form-control">
+      <label class="label label-text text-xs pb-1">Project</label>
+      <select class="select select-bordered select-sm"
+              name="project"
+              hx-get="/runs"
+              hx-trigger="change"
+              hx-target="#runs-content"
+              hx-swap="innerHTML"
+              hx-push-url="true"
+              hx-include="#filter-form">
+        <option value="">All Projects</option>
+        {% for p in projects %}
+        <option value="{{ p }}" {% if project_filter == p %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {# Date From #}
+    <div class="form-control">
+      <label class="label label-text text-xs pb-1">From</label>
+      <input type="date"
+             class="input input-bordered input-sm"
+             name="from"
+             value="{{ from_date }}"
+             hx-get="/runs"
+             hx-trigger="change"
+             hx-target="#runs-content"
+             hx-swap="innerHTML"
+             hx-push-url="true"
+             hx-include="#filter-form">
+    </div>
+
+    {# Date To #}
+    <div class="form-control">
+      <label class="label label-text text-xs pb-1">To</label>
+      <input type="date"
+             class="input input-bordered input-sm"
+             name="to"
+             value="{{ to_date }}"
+             hx-get="/runs"
+             hx-trigger="change"
+             hx-target="#runs-content"
+             hx-swap="innerHTML"
+             hx-push-url="true"
+             hx-include="#filter-form">
+    </div>
+
+    {# Clear all link — only shown when any filter is active #}
+    {% if status_filter or project_filter or from_date or to_date %}
+    <div class="form-control justify-end">
+      <a hx-get="/runs"
+         hx-target="#main"
+         hx-push-url="/runs"
+         class="btn btn-ghost btn-xs">Clear all</a>
+    </div>
+    {% endif %}
+  </form>
+</div>

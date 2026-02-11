@@ -374,11 +374,13 @@ class TestRunsListSortDropdown:
         """Newest is selected by default."""
         client = _make_client_with_mocks()
         response = client.get("/runs")
-        # Check that newest option has selected attribute
+        # Check that newest option has selected attribute in the sort dropdown
         text = response.text
-        newest_pos = text.find('value="newest"')
+        # Find the sort select element (select-xs class distinguishes it from filter bar selects)
+        sort_select_pos = text.find("select-xs")
+        assert sort_select_pos > 0
+        newest_pos = text.find('value="newest"', sort_select_pos)
         assert newest_pos > 0
-        # Find the option tag before this position
         option_start = text.rfind("<option", 0, newest_pos)
         option_chunk = text[option_start:newest_pos + 30]
         assert "selected" in option_chunk
@@ -596,3 +598,160 @@ class TestRunsListQueryParams:
         client.get("/runs?status=")
         call_kwargs = im.get_paginated_runs.call_args.kwargs
         assert call_kwargs["status"] is None
+
+
+# ── Filter Bar ────────────────────────────────────────────────────
+
+
+class TestRunsFilterBar:
+    """Tests for the filter bar with status, project & date range."""
+
+    def test_filter_bar_container_renders(self) -> None:
+        """Filter bar renders with card card-compact bg-base-200 classes."""
+        client = _make_client_with_mocks()
+        response = client.get("/runs")
+        assert "card card-compact bg-base-200" in response.text
+
+    def test_status_select_renders(self) -> None:
+        """Status dropdown renders with all 6 options."""
+        client = _make_client_with_mocks()
+        response = client.get("/runs")
+        assert 'name="status"' in response.text
+        assert "All Statuses" in response.text
+        assert ">Running<" in response.text
+        assert ">Completed<" in response.text
+        assert ">Failed<" in response.text
+        assert ">Interrupted<" in response.text
+        assert ">Aborted<" in response.text
+
+    def test_project_select_renders(self) -> None:
+        """Project dropdown renders with 'All Projects' + registered names."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(project_names=["my-api", "web-app"]),
+        )
+        response = client.get("/runs")
+        text = response.text
+        # Find the filter bar's project select (name="project")
+        # The header also has a project filter, so we check the filter bar section
+        assert "All Projects" in text
+        assert "my-api" in text
+        assert "web-app" in text
+
+    def test_date_from_input_renders(self) -> None:
+        """Date From input renders with type=date."""
+        client = _make_client_with_mocks()
+        response = client.get("/runs")
+        assert 'name="from"' in response.text
+        assert 'type="date"' in response.text
+
+    def test_date_to_input_renders(self) -> None:
+        """Date To input renders with type=date."""
+        client = _make_client_with_mocks()
+        response = client.get("/runs")
+        assert 'name="to"' in response.text
+
+    def test_filter_controls_have_htmx_attributes(self) -> None:
+        """Filter controls have correct HTMX attributes."""
+        client = _make_client_with_mocks()
+        response = client.get("/runs")
+        text = response.text
+        assert 'hx-get="/runs"' in text
+        assert 'hx-trigger="change"' in text
+        assert 'hx-target="#runs-content"' in text
+
+    def test_status_preselects_from_url(self) -> None:
+        """Status filter pre-selects from URL param."""
+        client = _make_client_with_mocks()
+        response = client.get("/runs?status=failed")
+        text = response.text
+        # The filter bar's status select should have "failed" selected
+        failed_pos = text.find('value="failed"')
+        assert failed_pos > 0
+        option_start = text.rfind("<option", 0, failed_pos)
+        option_chunk = text[option_start:failed_pos + 30]
+        assert "selected" in option_chunk
+
+    def test_project_preselects_from_url(self) -> None:
+        """Project filter pre-selects from URL param."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(project_names=["my-api", "web-app"]),
+        )
+        response = client.get("/runs?project=my-api")
+        text = response.text
+        # Find "my-api" option in the filter bar and check it's selected
+        # The filter bar project select has name="project" inside the filter-bar div
+        my_api_pos = text.find('value="my-api"')
+        assert my_api_pos > 0
+        option_start = text.rfind("<option", 0, my_api_pos)
+        option_chunk = text[option_start:my_api_pos + 30]
+        assert "selected" in option_chunk
+
+    def test_date_inputs_prefill_from_url(self) -> None:
+        """Date inputs pre-fill from URL params."""
+        client = _make_client_with_mocks()
+        response = client.get("/runs?from=2026-01-01&to=2026-02-01")
+        text = response.text
+        assert 'value="2026-01-01"' in text
+        assert 'value="2026-02-01"' in text
+
+    def test_clear_all_link_when_filter_active(self) -> None:
+        """'Clear all' link appears when any filter is active."""
+        client = _make_client_with_mocks()
+        response = client.get("/runs?status=failed")
+        assert "Clear all" in response.text
+
+    def test_no_clear_all_link_when_no_filters(self) -> None:
+        """'Clear all' link does NOT appear when no filters are active."""
+        client = _make_client_with_mocks()
+        response = client.get("/runs")
+        # "Clear all" should not appear (note: "Clear filters" is in empty state, different)
+        assert "Clear all" not in response.text
+
+    def test_table_partial_excludes_filter_bar(self) -> None:
+        """Table-only response (HX-Target=runs-content) does NOT include filter bar."""
+        entries = [_make_entry()]
+        client = _make_client_with_mocks(
+            index_manager=_mock_index_manager(entries=entries),
+        )
+        response = client.get(
+            "/runs",
+            headers={"HX-Request": "true", "HX-Target": "runs-content"},
+        )
+        assert "card card-compact bg-base-200" not in response.text
+
+    def test_page_partial_includes_filter_bar(self) -> None:
+        """Page partial response (HX-Request without runs-content target) includes filter bar."""
+        client = _make_client_with_mocks()
+        response = client.get("/runs", headers={"HX-Request": "true"})
+        assert "card card-compact bg-base-200" in response.text
+
+    def test_filter_bar_outside_runs_content(self) -> None:
+        """Filter bar is NOT inside #runs-content div."""
+        client = _make_client_with_mocks()
+        response = client.get("/runs")
+        text = response.text
+        # Find #runs-content div
+        runs_content_pos = text.find('id="runs-content"')
+        # Find filter bar
+        filter_bar_pos = text.find("card card-compact bg-base-200")
+        # Filter bar should appear BEFORE #runs-content
+        assert filter_bar_pos < runs_content_pos
+
+    def test_combined_filters_work(self) -> None:
+        """Combined filters produce correct response."""
+        entries = [
+            _make_entry(run_id="run1", status="failed", project_name="my-api"),
+            _make_entry(run_id="run2", status="completed", project_name="web-app"),
+        ]
+        im = _mock_index_manager(entries=entries)
+        client = _make_client_with_mocks(index_manager=im)
+        response = client.get("/runs?status=failed&project=my-api&from=2026-01-01")
+        assert response.status_code == 200
+
+    def test_hidden_sort_input_in_filter_bar(self) -> None:
+        """Filter bar includes a hidden sort input to preserve sort on filter changes."""
+        client = _make_client_with_mocks()
+        response = client.get("/runs?sort=oldest")
+        text = response.text
+        assert 'name="sort"' in text
+        assert 'value="oldest"' in text
