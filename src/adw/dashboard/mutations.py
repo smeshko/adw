@@ -14,6 +14,7 @@ from fastapi.responses import HTMLResponse
 
 from adw.dashboard.dependencies import (
     generate_csrf_token,
+    get_index_manager,
     get_project_registry,
     get_run_trigger,
     validate_csrf,
@@ -24,13 +25,60 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _build_rerun_context(
+    from_run: str,
+    index_manager: object,
+) -> dict:
+    """Look up source run and build re-run template context.
+
+    Args:
+        from_run: The source run_id to look up.
+        index_manager: IndexManager instance for run lookup.
+
+    Returns:
+        Dict with is_rerun, rerun_project_path, rerun_project_name,
+        rerun_feature, and from_run keys.
+    """
+    if not from_run:
+        return {
+            "is_rerun": False,
+            "rerun_project_path": "",
+            "rerun_project_name": "",
+            "rerun_feature": "",
+            "from_run": "",
+        }
+
+    recent_runs = index_manager.get_recent_runs(limit=10000)  # type: ignore[union-attr]
+    source_entry = next(
+        (r for r in recent_runs if r.run_id == from_run), None
+    )
+    if source_entry is not None:
+        return {
+            "is_rerun": True,
+            "rerun_project_path": source_entry.project_path,
+            "rerun_project_name": source_entry.project_name,
+            "rerun_feature": source_entry.feature_description,
+            "from_run": from_run,
+        }
+
+    return {
+        "is_rerun": False,
+        "rerun_project_path": "",
+        "rerun_project_name": "",
+        "rerun_feature": "",
+        "from_run": "",
+    }
+
+
 @router.post("/runs/start", response_class=HTMLResponse, dependencies=[Depends(validate_csrf)])
 async def start_run(
     request: Request,
     project: str = Form(""),
     feature: str = Form(""),
+    from_run: str = Form(""),
     project_registry: object = Depends(get_project_registry),
     run_trigger: object = Depends(get_run_trigger),
+    index_manager: object = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Start a new ADW run from the dashboard.
 
@@ -42,6 +90,7 @@ async def start_run(
     # Strip whitespace
     project = project.strip()
     feature = feature.strip()
+    from_run = from_run.strip()
 
     # Validate inputs
     errors: dict[str, str] = {}
@@ -70,6 +119,7 @@ async def start_run(
             "errors": errors,
             "form_project": project,
             "form_feature": feature,
+            **_build_rerun_context(from_run, index_manager),
         }
         response = templates.TemplateResponse(
             request, "partials/new_run_modal.html", context,
@@ -98,6 +148,7 @@ async def start_run(
             "errors": {"feature": f"Failed to start run: {result.error}"},
             "form_project": project,
             "form_feature": feature,
+            **_build_rerun_context(from_run, index_manager),
         }
         response = templates.TemplateResponse(
             request, "partials/new_run_modal.html", context,
