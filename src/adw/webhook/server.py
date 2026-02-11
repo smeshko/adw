@@ -1,14 +1,18 @@
-"""FastAPI webhook server application."""
+"""FastAPI webhook server application.
+
+Uses the shared ``server.app.create_app`` factory and layers on
+webhook-specific routes, middleware, and provider configuration.
+"""
 
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from rich.console import Console
 
+from adw.server.app import create_app as _create_base_app
 from adw.webhook.config import WebhookConfig
 from adw.webhook.mapping import EventMapper
 from adw.webhook.middleware import WebhookLoggingMiddleware
@@ -18,9 +22,6 @@ from adw.webhook.middleware import WebhookLoggingMiddleware
 from adw.webhook.providers import load_providers_from_config
 from adw.webhook.providers.registry import ProviderRegistry
 from adw.webhook.routes import router
-
-if TYPE_CHECKING:
-    pass
 
 # Rich console for CLI output
 console = Console()
@@ -92,6 +93,10 @@ def create_app(
 ) -> FastAPI:
     """Create and configure the FastAPI application.
 
+    Uses the shared ``server.app.create_app`` factory for common
+    infrastructure (RequestIDMiddleware, state seeding) and layers on
+    webhook-specific routes, middleware, and provider configuration.
+
     Args:
         config: Webhook configuration. If None, uses default config.
         log_func: Optional logging function for the middleware.
@@ -108,19 +113,19 @@ def create_app(
     # Create event mapper from config mappings if not provided
     mapper = event_mapper or EventMapper(webhook_config.mappings)
 
-    webhook_app = FastAPI(
+    webhook_app = _create_base_app(
         title="ADW Webhook Server",
         description="Webhook receiver for ADW external integrations",
         version="0.1.0",
         lifespan=lifespan,
+        state={
+            "webhook_config": webhook_config,
+            "provider_registry": provider_registry,
+            "event_mapper": mapper,
+        },
     )
 
-    # Store config, registry, and mapper in app state for access in routes
-    webhook_app.state.webhook_config = webhook_config
-    webhook_app.state.provider_registry = provider_registry
-    webhook_app.state.event_mapper = mapper
-
-    # Add request logging middleware
+    # Add request logging middleware (runs after RequestIDMiddleware)
     webhook_app.add_middleware(WebhookLoggingMiddleware, log_func=log_func)
 
     # Include routes
