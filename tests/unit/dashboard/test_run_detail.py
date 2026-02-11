@@ -1000,6 +1000,190 @@ class TestPhaseAccordionContext:
         assert 'id="artifact-viewer"' in response.text
 
 
+# ── Phase Detail Route ──────────────────────────────────────────────
+
+
+class TestPhaseDetailRoute:
+    """Tests for GET /runs/{id}/phases/{phase} route (Task 3)."""
+
+    def test_phase_detail_returns_200(self) -> None:
+        """Phase detail route returns 200 for a valid phase."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {"plan": ["plan_output.md"]}
+        mock_ctx.phase_tokens = {"plan": 50000}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 200
+
+    def test_phase_detail_shows_hooks_section(self) -> None:
+        """Phase detail includes a hooks section."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {}
+        mock_ctx.phase_tokens = {}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "Hooks" in response.text
+
+    def test_phase_detail_shows_artifacts_section(self) -> None:
+        """Phase detail includes an artifacts section."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {"plan": ["plan_output.md"]}
+        mock_ctx.phase_tokens = {}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = mock_ctx
+            mock_am.return_value.list_artifacts.return_value = [
+                {"phase": "plan", "name": "plan_output.md", "size": 1234, "path": "/tmp/a"},
+            ]
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "Artifacts" in response.text
+        assert "plan_output.md" in response.text
+
+    def test_phase_detail_no_hooks_message(self) -> None:
+        """Phase detail shows 'no hooks' message when none configured."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {}
+        mock_ctx.phase_tokens = {}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "No hooks configured" in response.text
+
+    def test_phase_detail_no_artifacts_message(self) -> None:
+        """Phase detail shows 'no artifacts' message when none exist."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {}
+        mock_ctx.phase_tokens = {}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = mock_ctx
+            mock_am.return_value.list_artifacts.return_value = []
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "No artifacts produced" in response.text
+
+    def test_phase_detail_artifact_has_view_button(self) -> None:
+        """Each artifact has a [View] button with hx-get."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {"plan": ["output.md"]}
+        mock_ctx.phase_tokens = {}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = mock_ctx
+            mock_am.return_value.list_artifacts.return_value = [
+                {"phase": "plan", "name": "output.md", "size": 500, "path": "/tmp/a"},
+            ]
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "View" in response.text
+        assert f'hx-get="/runs/{entry.run_id}/artifacts/plan/output.md"' in response.text
+        assert 'hx-target="#artifact-viewer"' in response.text
+
+    def test_phase_detail_uses_card_classes(self) -> None:
+        """Phase detail sections use card card-compact bg-base-300."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {}
+        mock_ctx.phase_tokens = {}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "card card-compact bg-base-300" in response.text
+
+    def test_phase_detail_context_unavailable_returns_error(self) -> None:
+        """Phase detail gracefully handles unavailable RunContext."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("not found")
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        # Should return 200 with fallback content
+        assert response.status_code == 200
+
+    def test_phase_detail_run_not_found(self) -> None:
+        """Phase detail for non-existent run returns 404."""
+        client = _make_client_with_mocks(entries=[])
+        response = client.get(
+            "/runs/01HQXK5P3Z7V8R2M4N6T9W1Y00/phases/plan",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 404
+
+
 class TestFormatDurationFromSeconds:
     """Tests for _format_duration_from_seconds helper."""
 

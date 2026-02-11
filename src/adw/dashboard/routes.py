@@ -14,6 +14,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 
+from adw.core.artifact_manager import ArtifactManager
 from adw.core.constants import PHASE_SEQUENCE
 from adw.core.context_manager import ContextManager
 from adw.dashboard.dependencies import (
@@ -656,6 +657,99 @@ async def run_detail(
     context.update(detail_context)
     return templates.TemplateResponse(
         request, "pages/run_detail.html", context,
+    )
+
+
+def _format_file_size(size_bytes: int) -> str:
+    """Format file size in human-readable form."""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    if size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
+def _find_run_entry(
+    index_manager: object,
+    run_id: str,
+) -> object | None:
+    """Look up a run entry by ID from the index.
+
+    Args:
+        index_manager: IndexManager instance.
+        run_id: The run ID to find.
+
+    Returns:
+        IndexEntry or None if not found.
+    """
+    try:
+        all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    except Exception:
+        return None
+    for entry in all_runs:
+        if entry.run_id == run_id:
+            return entry
+    return None
+
+
+@router.get("/runs/{run_id}/phases/{phase}", response_class=HTMLResponse)
+async def phase_detail(
+    request: Request,
+    run_id: str,
+    phase: str,
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return phase detail HTML fragment for lazy-loaded accordion content.
+
+    Loads hooks and artifacts data for the specified phase of a run.
+    """
+    from adw.dashboard.partials import _format_tokens
+
+    templates = request.app.state.templates
+
+    # Find the run in the index
+    run_entry = _find_run_entry(index_manager, run_id)
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    # Load RunContext for phase data
+    hooks: list[dict] = []
+    artifacts_list: list[dict] = []
+
+    try:
+        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        runs_dir = project_path / ".adw" / "runs"
+        cm = ContextManager(runs_dir)
+        ctx = cm.load(run_id)
+
+        # Load artifacts from disk
+        am = ArtifactManager(runs_dir)
+        raw_artifacts = am.list_artifacts(run_id, phase)
+        for art in raw_artifacts:
+            artifacts_list.append({
+                "name": art["name"],
+                "size": art["size"],
+                "size_display": _format_file_size(art["size"]),
+            })
+    except (StateError, OSError):
+        logger.debug(
+            "RunContext unavailable for phase detail",
+            extra={"run_id": run_id, "phase": phase},
+        )
+
+    context = {
+        "request": request,
+        "run_id": run_id,
+        "phase": phase,
+        "hooks": hooks,
+        "artifacts": artifacts_list,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/phase_detail.html", context,
     )
 
 
