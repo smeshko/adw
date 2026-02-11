@@ -10,9 +10,11 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from rich.console import Console
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from adw.server.app import create_app as _create_base_app
 
@@ -85,8 +87,41 @@ def create_dashboard_app(
         app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
     # Include dashboard routes
+    from adw.dashboard.partials import router as partials_router
     from adw.dashboard.routes import router as pages_router
 
     app.include_router(pages_router)
+    app.include_router(partials_router)
+
+    # HTML-only exception handlers – never return JSON from the dashboard
+    def _render_error(request: Request, status_code: int, detail: str) -> HTMLResponse:
+        context = {
+            "request": request,
+            "status_code": status_code,
+            "error_message": detail,
+            "page": "",
+            "projects": [],
+            "selected_project": None,
+            "active_run_count": 0,
+            "last_updated_ago": "—",
+        }
+        if request.headers.get("HX-Request"):
+            return HTMLResponse(
+                content=templates.get_template("partials/error_banner.html").render(context),
+                status_code=status_code,
+            )
+        return HTMLResponse(
+            content=templates.get_template("pages/error.html").render(context),
+            status_code=status_code,
+        )
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_exception_handler(request: Request, exc: StarletteHTTPException) -> HTMLResponse:
+        detail = str(exc.detail) if exc.detail else "An unexpected error occurred."
+        return _render_error(request, exc.status_code, detail)
+
+    @app.exception_handler(Exception)
+    async def _generic_exception_handler(request: Request, exc: Exception) -> HTMLResponse:
+        return _render_error(request, 500, "An unexpected error occurred.")
 
     return app
