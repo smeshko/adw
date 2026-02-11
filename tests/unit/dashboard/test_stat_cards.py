@@ -548,3 +548,40 @@ class TestStatsPartialRoute:
         client = _make_client_with_mocks(stats_aggregator=sa)
         client.get("/partials/stats")
         sa.get_global_stats.assert_called_once_with(project_name=None)
+
+
+# ── Task 5: Stats Row in Overview ─────────────────────────────────
+
+
+class TestStatsRowInOverview:
+    """Tests for stats row inclusion in the overview page."""
+
+    def test_overview_full_page_contains_stats_row(self) -> None:
+        """Full-page overview contains the stats row with id='stats-row'."""
+        client = _make_client_with_mocks()
+        response = client.get("/")
+        assert 'id="stats-row"' in response.text
+
+    def test_overview_htmx_partial_contains_stats_row(self) -> None:
+        """HTMX partial overview contains the stats row."""
+        client = _make_client_with_mocks()
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert 'id="stats-row"' in response.text
+
+    def test_overview_stats_row_has_stat_cards(self) -> None:
+        """Overview stats row contains 5 stat cards."""
+        client = _make_client_with_mocks()
+        response = client.get("/")
+        assert response.text.count("stat-title") == 5
+
+    def test_overview_stats_show_formatted_values(self) -> None:
+        """Overview stats show properly formatted values."""
+        client = _make_client_with_mocks(
+            stats_aggregator=_mock_stats_aggregator(
+                total_runs=142,
+                success_rate=0.875,
+            ),
+        )
+        response = client.get("/")
+        assert "142" in response.text
+        assert "87.5%" in response.text

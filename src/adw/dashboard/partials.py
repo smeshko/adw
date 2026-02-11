@@ -95,6 +95,46 @@ def _format_tokens(total: int) -> str:
     return str(total)
 
 
+def build_stats_context(stats: object, selected_project: str | None) -> dict:
+    """Build template context dict for the stats row partial.
+
+    Args:
+        stats: A GlobalStatistics instance from StatsAggregator.
+        selected_project: Current project filter value or None.
+
+    Returns:
+        Dict of pre-formatted values ready for the stats_row.html template.
+    """
+    runs_trend = stats.runs_this_week - stats.previous_week_total_runs  # type: ignore[union-attr]
+    success_trend = round(
+        (stats.success_rate - stats.previous_week_success_rate) * 100, 1  # type: ignore[union-attr]
+    )
+    duration_trend_ms = (
+        stats.average_duration_ms - stats.previous_week_average_duration_ms  # type: ignore[union-attr]
+    )
+    abs_duration_trend_ms = abs(duration_trend_ms)
+    duration_trend_display = _format_duration(abs_duration_trend_ms)
+
+    return {
+        "selected_project": selected_project,
+        # Stat values
+        "total_runs": stats.total_runs,  # type: ignore[union-attr]
+        "success_rate_display": f"{stats.success_rate * 100:.1f}%",  # type: ignore[union-attr]
+        "duration_display": _format_duration(stats.average_duration_ms),  # type: ignore[union-attr]
+        "tokens_display": _format_tokens(stats.tokens.total_tokens),  # type: ignore[union-attr]
+        "cost_display": f"{stats.estimated_cost:.2f}",  # type: ignore[union-attr]
+        # Trend data
+        "runs_trend": runs_trend,
+        "success_trend": success_trend,
+        "success_trend_display": f"{abs(success_trend):.1f}",
+        "duration_trend_ms": duration_trend_ms,
+        "duration_trend_display": duration_trend_display,
+        # This week totals
+        "tokens_week_display": _format_tokens(stats.tokens_this_week.total_tokens),  # type: ignore[union-attr]
+        "cost_week_display": f"{stats.cost_this_week:.2f}",  # type: ignore[union-attr]
+    }
+
+
 @router.get("/stats", response_class=HTMLResponse)
 async def stats_partial(
     request: Request,
@@ -107,35 +147,7 @@ async def stats_partial(
     project_name = project or None
     stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
 
-    # Compute trend deltas
-    runs_trend = stats.runs_this_week - stats.previous_week_total_runs
-    success_trend = round(
-        (stats.success_rate - stats.previous_week_success_rate) * 100, 1
-    )
-    duration_trend_ms = stats.average_duration_ms - stats.previous_week_average_duration_ms
-
-    # Format duration trend as absolute value
-    abs_duration_trend_ms = abs(duration_trend_ms)
-    duration_trend_display = _format_duration(abs_duration_trend_ms)
-
-    context = {
-        "request": request,
-        "selected_project": project_name,
-        # Stat values
-        "total_runs": stats.total_runs,
-        "success_rate_display": f"{stats.success_rate * 100:.1f}%",
-        "duration_display": _format_duration(stats.average_duration_ms),
-        "tokens_display": _format_tokens(stats.tokens.total_tokens),
-        "cost_display": f"{stats.estimated_cost:.2f}",
-        # Trend data
-        "runs_trend": runs_trend,
-        "success_trend": success_trend,
-        "success_trend_display": f"{abs(success_trend):.1f}",
-        "duration_trend_ms": duration_trend_ms,
-        "duration_trend_display": duration_trend_display,
-        # This week totals
-        "tokens_week_display": _format_tokens(stats.tokens_this_week.total_tokens),
-        "cost_week_display": f"{stats.cost_this_week:.2f}",
-    }
+    context = build_stats_context(stats, project_name)
+    context["request"] = request
 
     return templates.TemplateResponse(request, "partials/stats_row.html", context)
