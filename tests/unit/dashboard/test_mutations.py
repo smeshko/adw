@@ -1,7 +1,8 @@
-"""Tests for Story 3.1: Dashboard mutations (POST /runs/start).
+"""Tests for Story 3.1: New Run Modal & Form Submission.
 
 Covers CSRF validation, form validation, run trigger invocation,
-success response, and error handling.
+success response, error handling, modal partial route, template
+structure, modal-container in base.html, and enabled buttons.
 """
 
 from __future__ import annotations
@@ -379,3 +380,285 @@ class TestRunTriggerFailure:
         assert response.status_code == 200
         assert "Failed to start run" in response.text
         assert "new-run-dialog" in response.text
+
+
+# ── GET /partials/new-run Route ────────────────────────────────────
+
+
+class TestNewRunPartialRoute:
+    """Tests for GET /partials/new-run modal route."""
+
+    def test_returns_200(self) -> None:
+        """New-run partial returns HTTP 200."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert response.status_code == 200
+
+    def test_returns_html(self) -> None:
+        """New-run partial returns HTML content type."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert "text/html" in response.headers["content-type"]
+
+    def test_contains_modal_dialog(self) -> None:
+        """Response contains the DaisyUI modal dialog element."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert 'id="new-run-dialog"' in response.text
+        assert "modal" in response.text
+
+    def test_contains_title(self) -> None:
+        """Modal contains 'Start New Run' title."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert "Start New Run" in response.text
+
+    def test_populates_project_select(self) -> None:
+        """Project select is populated with registered projects."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["alpha", "beta"]),
+        )
+        response = client.get("/partials/new-run")
+        assert "alpha" in response.text
+        assert "beta" in response.text
+
+    def test_contains_csrf_token(self) -> None:
+        """Modal includes a hidden CSRF token input."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert 'name="csrf_token"' in response.text
+        assert 'type="hidden"' in response.text
+
+    def test_contains_feature_textarea(self) -> None:
+        """Modal includes the feature textarea with placeholder."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert 'name="feature"' in response.text
+        assert "Describe the feature to build" in response.text
+
+    def test_contains_submit_button(self) -> None:
+        """Modal has the Start Run submit button."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert "Start Run" in response.text
+        assert "btn-primary" in response.text
+
+    def test_contains_cancel_button(self) -> None:
+        """Modal has a Cancel button."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert "Cancel" in response.text
+        assert "btn-ghost" in response.text
+
+    def test_form_targets_main(self) -> None:
+        """Form submits to /runs/start targeting #main."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert 'hx-post="/runs/start"' in response.text
+        assert 'hx-target="#main"' in response.text
+
+    def test_contains_loading_indicator(self) -> None:
+        """Submit button has a loading spinner indicator."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert "loading loading-spinner" in response.text
+
+    def test_no_errors_on_initial_load(self) -> None:
+        """Initial modal load shows no error messages."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert "text-error" not in response.text
+
+    def test_contains_close_button(self) -> None:
+        """Modal has a close (✕) button."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert "✕" in response.text
+
+    def test_empty_project_list(self) -> None:
+        """Modal renders with no projects in select."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry([]),
+        )
+        response = client.get("/partials/new-run")
+        assert response.status_code == 200
+        assert "Select a project" in response.text
+
+
+# ── Modal Container in Base Template ──────────────────────────────
+
+
+class TestModalContainerInBase:
+    """Tests for #modal-container in base.html."""
+
+    def test_base_has_modal_container(self) -> None:
+        """Full page has #modal-container div."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/")
+        assert 'id="modal-container"' in response.text
+
+    def test_modal_container_outside_main(self) -> None:
+        """#modal-container appears after </main> in the HTML."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/")
+        text = response.text
+        main_end = text.index("</main>")
+        container_pos = text.index('id="modal-container"')
+        assert container_pos > main_end
+
+    def test_modal_container_before_footer(self) -> None:
+        """#modal-container appears before <footer> in the HTML."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/")
+        text = response.text
+        container_pos = text.index('id="modal-container"')
+        footer_pos = text.index('id="status-bar"')
+        assert container_pos < footer_pos
+
+
+# ── Enabled New Run Buttons ───────────────────────────────────────
+
+
+class TestNewRunButtons:
+    """Tests for enabled + New Run buttons in overview."""
+
+    def test_full_overview_button_has_htmx(self) -> None:
+        """Full overview + New Run button has HTMX attributes."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert 'hx-get="/partials/new-run"' in response.text
+        assert 'hx-target="#modal-container"' in response.text
+
+    def test_buttons_not_disabled(self) -> None:
+        """+ New Run buttons are no longer disabled."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        # The disabled attribute should not appear on New Run buttons
+        # Check that data-action="new-run" buttons don't have disabled
+        text = response.text
+        # Find all occurrences of data-action="new-run"
+        idx = 0
+        while True:
+            pos = text.find('data-action="new-run"', idx)
+            if pos == -1:
+                break
+            # Look at surrounding 200 chars before to check for disabled
+            context = text[max(0, pos - 200):pos]
+            assert "disabled" not in context, \
+                "New Run button should not be disabled"
+            idx = pos + 1
+
+
+# ── Integration: Full Flow ────────────────────────────────────────
+
+
+class TestFullFlow:
+    """Integration test for the complete new run flow."""
+
+    def test_open_modal_then_submit(self) -> None:
+        """Open modal via GET, then submit form via POST."""
+        rt = _mock_run_trigger(success=True, process_id=77)
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            run_trigger=rt,
+        )
+
+        # Step 1: Open modal
+        modal_response = client.get("/partials/new-run")
+        assert modal_response.status_code == 200
+        assert "Start New Run" in modal_response.text
+
+        # Step 2: Submit form
+        token = _get_csrf_token(client)
+        submit_response = client.post(
+            "/runs/start",
+            data={
+                "project": "/projects/my-project",
+                "feature": "Add authentication",
+                "csrf_token": token,
+            },
+        )
+        assert submit_response.status_code == 200
+        assert "Run Started" in submit_response.text
+        rt.start_run.assert_called_once()
+
+    def test_open_modal_submit_invalid_resubmit(self) -> None:
+        """Open modal, submit invalid, fix, resubmit successfully."""
+        rt = _mock_run_trigger(success=True, process_id=88)
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            run_trigger=rt,
+        )
+
+        # Step 1: Submit invalid (empty feature)
+        token = _get_csrf_token(client)
+        invalid_response = client.post(
+            "/runs/start",
+            data={
+                "project": "/projects/my-project",
+                "feature": "",
+                "csrf_token": token,
+            },
+        )
+        assert "describe the feature" in invalid_response.text.lower()
+
+        # Step 2: Resubmit with valid data
+        token2 = _get_csrf_token(client)
+        valid_response = client.post(
+            "/runs/start",
+            data={
+                "project": "/projects/my-project",
+                "feature": "Add dark mode",
+                "csrf_token": token2,
+            },
+        )
+        assert "Run Started" in valid_response.text
+
+
+# ── DI Provider Test ─────────────────────────────────────────────
+
+
+class TestRunTriggerDI:
+    """Tests for the get_run_trigger dependency provider."""
+
+    def test_get_run_trigger_returns_instance(self) -> None:
+        """get_run_trigger returns a RunTrigger instance."""
+        from adw.core.run_trigger import RunTrigger
+        from adw.dashboard.dependencies import get_run_trigger
+
+        result = get_run_trigger()
+        assert isinstance(result, RunTrigger)
