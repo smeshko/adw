@@ -12,9 +12,9 @@
     {% endif %}
   </div>
 
-  {% if projects %}
+  {% if project_stats %}
     <div class="flex gap-3 flex-wrap">
-      {% for p in projects %}
+      {% for p in project_stats %}
         <div class="card card-compact bg-base-100 shadow-sm cursor-pointer{% if selected_project == p.name %} ring ring-primary{% endif %}"
              hx-get="/?project={{ p.name | urlencode }}"
              hx-target="#main"

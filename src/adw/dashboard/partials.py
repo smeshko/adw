@@ -205,7 +205,7 @@ async def project_breakdown(
 
     context = {
         "request": request,
-        "projects": stats.projects,  # type: ignore[union-attr]
+        "project_stats": stats.projects,  # type: ignore[union-attr]
         "selected_project": project_name,
     }
 

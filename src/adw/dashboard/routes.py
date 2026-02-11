@@ -91,7 +91,11 @@ async def overview(
     Returns the full page or just the ``#main`` partial depending on
     whether the request came from HTMX.
     """
-    from adw.dashboard.partials import build_stats_context
+    from adw.dashboard.partials import (
+        _format_duration,
+        _relative_time,
+        build_stats_context,
+    )
 
     templates = request.app.state.templates
     context = _build_page_context(
@@ -105,6 +109,28 @@ async def overview(
     project_name = project or None
     stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
     context.update(build_stats_context(stats, project_name))
+
+    # Add recent runs data for the recent runs partial
+    entries = index_manager.get_recent_runs(limit=5, project_name=project_name)  # type: ignore[union-attr]
+    recent_runs_data = []
+    for entry in entries:
+        if entry.completed_at and entry.started_at:
+            delta_seconds = (entry.completed_at - entry.started_at).total_seconds()
+            duration_display = _format_duration(int(delta_seconds * 1000))
+        else:
+            duration_display = "—"
+        recent_runs_data.append({
+            "run_id": entry.run_id,
+            "project_name": entry.project_name,
+            "feature_description": entry.feature_description,
+            "status": entry.status,
+            "duration_display": duration_display,
+            "started_ago": _relative_time(entry.started_at),
+        })
+    context["recent_runs"] = recent_runs_data
+
+    # Add project breakdown data from stats
+    context["project_stats"] = stats.projects  # type: ignore[union-attr]
 
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "partials/overview.html", context)
