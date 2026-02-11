@@ -268,6 +268,21 @@ class TestGetDailyTokenCounts:
         assert all("date" in d for d in result)
         assert all("tokens" in d for d in result)
 
+    def test_returns_input_output_split(self) -> None:
+        """Returns input_tokens and output_tokens per day."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+        mock_im.get_recent_runs.return_value = []
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        result = aggregator.get_daily_token_counts()
+
+        assert all("input_tokens" in d for d in result)
+        assert all("output_tokens" in d for d in result)
+
     def test_all_zeros_when_no_runs(self) -> None:
         """Returns all-zero token counts when no runs exist."""
         from adw.core.stats_aggregator import StatsAggregator
@@ -281,6 +296,8 @@ class TestGetDailyTokenCounts:
         result = aggregator.get_daily_token_counts()
 
         assert all(d["tokens"] == 0 for d in result)
+        assert all(d["input_tokens"] == 0 for d in result)
+        assert all(d["output_tokens"] == 0 for d in result)
 
     def test_sums_tokens_per_day(self) -> None:
         """Tokens are summed correctly per day with multiple runs."""
@@ -319,6 +336,33 @@ class TestGetDailyTokenCounts:
         for d in result:
             if d["date"] != yesterday:
                 assert d["tokens"] == 0, f"Expected 0 tokens on {d['date']}, got {d['tokens']}"
+
+    def test_input_output_split_per_day(self) -> None:
+        """Input and output tokens are split correctly per day."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.models.stats import TokenUsage
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+
+        e = MagicMock()
+        e.run_id = "01ABCDEFGHIJKLMNOPQRSTUV0"
+        e.started_at = now - timedelta(days=1)
+        e.project_path = "/projects/test"
+        mock_im.get_recent_runs.return_value = [e]
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        aggregator._parse_llm_response_files = lambda _: TokenUsage(
+            input_tokens=700, output_tokens=300,
+        )
+        result = aggregator.get_daily_token_counts()
+
+        yesterday = (now - timedelta(days=1)).date()
+        day_map = {d["date"]: d for d in result}
+        assert day_map[yesterday]["input_tokens"] == 700
+        assert day_map[yesterday]["output_tokens"] == 300
 
     def test_respects_project_filter(self) -> None:
         """Project name filter is passed to get_recent_runs."""
@@ -797,3 +841,309 @@ class TestStatisticsCache:
         stats = aggregator.get_global_stats(force_refresh=True)
 
         assert stats.total_runs == 0  # Fresh, not cached 66666
+
+
+class TestGetPhaseBreakdown:
+    """Tests for get_phase_breakdown method."""
+
+    def test_returns_empty_dict_when_no_runs(self) -> None:
+        """Returns empty dict when no runs exist."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+        mock_im.get_recent_runs.return_value = []
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        result = aggregator.get_phase_breakdown()
+
+        assert result == {}
+
+    def test_aggregates_by_phase(self, tmp_path: Path) -> None:
+        """Aggregates tokens by phase from context.json files."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+
+        # Set up project directory with context.json
+        project_path = tmp_path / "my-project"
+        run_dir = project_path / ".adw" / "runs" / "01ABCDEFGHIJKLMNOPQRSTUV0"
+        run_dir.mkdir(parents=True)
+
+        context_data = {
+            "run_id": "01ABCDEFGHIJKLMNOPQRSTUV0",
+            "feature_description": "test",
+            "current_phase": "build",
+            "phase_history": ["plan", "build"],
+            "started_at": now.isoformat(),
+            "status": "completed",
+            "phase_tokens": {"plan": 5000, "build": 15000},
+        }
+        (run_dir / "context.json").write_text(json.dumps(context_data))
+
+        proj = MagicMock()
+        proj.path = str(project_path)
+        mock_pr.get_all.return_value = [proj]
+
+        e = MagicMock()
+        e.run_id = "01ABCDEFGHIJKLMNOPQRSTUV0"
+        e.started_at = now - timedelta(days=1)
+        e.project_path = str(project_path)
+        mock_im.get_recent_runs.return_value = [e]
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        result = aggregator.get_phase_breakdown()
+
+        assert result["plan"] == 5000
+        assert result["build"] == 15000
+
+    def test_sums_across_multiple_runs(self, tmp_path: Path) -> None:
+        """Sums phase tokens across multiple runs."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+
+        project_path = tmp_path / "my-project"
+        entries = []
+
+        for i in range(2):
+            run_id = f"01ABCDEFGHIJKLMNOPQRSTUV{i}"
+            run_dir = project_path / ".adw" / "runs" / run_id
+            run_dir.mkdir(parents=True)
+
+            context_data = {
+                "run_id": run_id,
+                "feature_description": "test",
+                "current_phase": "build",
+                "phase_history": ["plan"],
+                "started_at": now.isoformat(),
+                "status": "completed",
+                "phase_tokens": {"plan": 3000, "build": 7000},
+            }
+            (run_dir / "context.json").write_text(json.dumps(context_data))
+
+            e = MagicMock()
+            e.run_id = run_id
+            e.started_at = now - timedelta(days=1)
+            e.project_path = str(project_path)
+            entries.append(e)
+
+        proj = MagicMock()
+        proj.path = str(project_path)
+        mock_pr.get_all.return_value = [proj]
+        mock_im.get_recent_runs.return_value = entries
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        result = aggregator.get_phase_breakdown()
+
+        assert result["plan"] == 6000  # 3000 * 2
+        assert result["build"] == 14000  # 7000 * 2
+
+    def test_respects_project_filter(self, tmp_path: Path) -> None:
+        """Project filter is passed to get_recent_runs."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+        mock_im.get_recent_runs.return_value = []
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        aggregator.get_phase_breakdown(project_name="my-project")
+
+        call_kwargs = mock_im.get_recent_runs.call_args.kwargs
+        assert call_kwargs.get("project_name") == "my-project"
+
+    def test_handles_missing_context_gracefully(self, tmp_path: Path) -> None:
+        """Skips runs where context.json is missing."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+
+        project_path = tmp_path / "my-project"
+        run_dir = project_path / ".adw" / "runs" / "01ABCDEFGHIJKLMNOPQRSTUV0"
+        run_dir.mkdir(parents=True)
+        # No context.json created
+
+        proj = MagicMock()
+        proj.path = str(project_path)
+        mock_pr.get_all.return_value = [proj]
+
+        e = MagicMock()
+        e.run_id = "01ABCDEFGHIJKLMNOPQRSTUV0"
+        e.started_at = now - timedelta(days=1)
+        e.project_path = str(project_path)
+        mock_im.get_recent_runs.return_value = [e]
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        result = aggregator.get_phase_breakdown()
+
+        assert result == {}
+
+
+class TestGetModelBreakdown:
+    """Tests for get_model_breakdown method."""
+
+    def test_returns_empty_dict_when_no_runs(self) -> None:
+        """Returns empty dict when no runs exist."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+        mock_im.get_recent_runs.return_value = []
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        result = aggregator.get_model_breakdown()
+
+        assert result == {}
+
+    def test_aggregates_by_model(self, tmp_path: Path) -> None:
+        """Aggregates tokens by model from LLM response files."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+
+        project_path = tmp_path / "my-project"
+        run_id = "01ABCDEFGHIJKLMNOPQRSTUV0"
+        llm_dir = project_path / ".adw" / "runs" / run_id / "llm"
+        llm_dir.mkdir(parents=True)
+
+        # Two response files with different models
+        resp1 = {
+            "timestamp": now.isoformat(),
+            "phase": "plan",
+            "model": "claude-3-5-sonnet",
+            "stats": {"input_tokens": 1000, "output_tokens": 500, "duration_ms": 5000},
+        }
+        resp2 = {
+            "timestamp": now.isoformat(),
+            "phase": "build",
+            "model": "claude-3-haiku",
+            "stats": {"input_tokens": 2000, "output_tokens": 800, "duration_ms": 3000},
+        }
+        (llm_dir / "001_plan_response.json").write_text(json.dumps(resp1))
+        (llm_dir / "002_build_response.json").write_text(json.dumps(resp2))
+
+        proj = MagicMock()
+        proj.path = str(project_path)
+        mock_pr.get_all.return_value = [proj]
+
+        e = MagicMock()
+        e.run_id = run_id
+        e.started_at = now - timedelta(days=1)
+        e.project_path = str(project_path)
+        mock_im.get_recent_runs.return_value = [e]
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        result = aggregator.get_model_breakdown()
+
+        assert "claude-3-5-sonnet" in result
+        assert result["claude-3-5-sonnet"]["input_tokens"] == 1000
+        assert result["claude-3-5-sonnet"]["output_tokens"] == 500
+        assert "claude-3-haiku" in result
+        assert result["claude-3-haiku"]["input_tokens"] == 2000
+        assert result["claude-3-haiku"]["output_tokens"] == 800
+
+    def test_defaults_model_when_missing(self, tmp_path: Path) -> None:
+        """Uses 'default' model when field is absent (backward compat)."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+
+        project_path = tmp_path / "my-project"
+        run_id = "01ABCDEFGHIJKLMNOPQRSTUV0"
+        llm_dir = project_path / ".adw" / "runs" / run_id / "llm"
+        llm_dir.mkdir(parents=True)
+
+        # Response file WITHOUT model field
+        resp = {
+            "timestamp": now.isoformat(),
+            "phase": "plan",
+            "stats": {"input_tokens": 1000, "output_tokens": 500, "duration_ms": 5000},
+        }
+        (llm_dir / "001_plan_response.json").write_text(json.dumps(resp))
+
+        proj = MagicMock()
+        proj.path = str(project_path)
+        mock_pr.get_all.return_value = [proj]
+
+        e = MagicMock()
+        e.run_id = run_id
+        e.started_at = now - timedelta(days=1)
+        e.project_path = str(project_path)
+        mock_im.get_recent_runs.return_value = [e]
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        result = aggregator.get_model_breakdown()
+
+        assert "default" in result
+        assert result["default"]["input_tokens"] == 1000
+        assert result["default"]["output_tokens"] == 500
+
+    def test_sums_across_multiple_runs(self, tmp_path: Path) -> None:
+        """Sums model tokens across multiple runs."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+
+        project_path = tmp_path / "my-project"
+        entries = []
+
+        for i in range(2):
+            run_id = f"01ABCDEFGHIJKLMNOPQRSTUV{i}"
+            llm_dir = project_path / ".adw" / "runs" / run_id / "llm"
+            llm_dir.mkdir(parents=True)
+
+            resp = {
+                "timestamp": now.isoformat(),
+                "phase": "plan",
+                "model": "claude-3-5-sonnet",
+                "stats": {"input_tokens": 1000, "output_tokens": 500, "duration_ms": 5000},
+            }
+            (llm_dir / "001_plan_response.json").write_text(json.dumps(resp))
+
+            e = MagicMock()
+            e.run_id = run_id
+            e.started_at = now - timedelta(days=1)
+            e.project_path = str(project_path)
+            entries.append(e)
+
+        proj = MagicMock()
+        proj.path = str(project_path)
+        mock_pr.get_all.return_value = [proj]
+        mock_im.get_recent_runs.return_value = entries
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        result = aggregator.get_model_breakdown()
+
+        assert result["claude-3-5-sonnet"]["input_tokens"] == 2000
+        assert result["claude-3-5-sonnet"]["output_tokens"] == 1000
+
+    def test_respects_project_filter(self) -> None:
+        """Project filter is passed to get_recent_runs."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+        mock_im.get_recent_runs.return_value = []
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        aggregator.get_model_breakdown(project_name="my-project")
+
+        call_kwargs = mock_im.get_recent_runs.call_args.kwargs
+        assert call_kwargs.get("project_name") == "my-project"
