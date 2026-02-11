@@ -274,7 +274,13 @@ def _build_detail_phase_pipeline(
         if phase in completed_set:
             phase_status = "completed"
         elif phase == current_phase:
-            phase_status = "active" if status == "running" else "failed"
+            if status == "running":
+                phase_status = "active"
+            elif status in ("failed", "aborted"):
+                phase_status = "failed"
+            else:
+                # completed/interrupted: treat current phase as completed
+                phase_status = "completed"
         else:
             phase_status = "pending"
 
@@ -342,7 +348,6 @@ def _build_run_detail_context(
     pr_url: str | None = None
     task_id: str | None = None
     task_manager: str | None = None
-    phase_tokens: dict[str, int] = {}
     artifacts_path: str | None = None
 
     # Try loading RunContext for enriched data
@@ -356,7 +361,6 @@ def _build_run_detail_context(
         phases_completed = list(ctx.phase_history)
         branch_name = ctx.branch_name
         total_tokens = ctx.total_tokens
-        phase_tokens = dict(ctx.phase_tokens)
         pr_url = ctx.pr_url
         task_id = ctx.task_id
         task_manager = ctx.task_manager
@@ -402,12 +406,11 @@ def _build_run_detail_context(
         back_label = "Back to Overview"
         back_url = "/"
 
-    # Build phase pipeline with duration data
+    # Build phase pipeline (phase durations not yet tracked in RunContext)
     phases = _build_detail_phase_pipeline(
         phases_completed=phases_completed,
         current_phase=current_phase,
         status=status,
-        phase_durations=phase_tokens,  # Use token counts as proxy (actual phase durations not stored separately)
     )
 
     # Linear link (if task_id present and task_manager is linear)
@@ -452,7 +455,11 @@ async def run_detail(
     templates = request.app.state.templates
 
     # Look up the run in the index
-    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    try:
+        all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    except Exception:
+        logger.exception("Failed to query index for run detail", extra={"run_id": run_id})
+        all_runs = []
     run_entry = None
     for entry in all_runs:
         if entry.run_id == run_id:
