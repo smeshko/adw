@@ -17,15 +17,15 @@
 
 /* Design tokens – CSS custom properties (UX §14) */
 :root {
-  /* Phase status colors – mapped to DaisyUI semantic colors */
-  --phase-success: oklch(var(--su));
-  --phase-error: oklch(var(--er));
-  --phase-active: oklch(var(--wa));
-  --phase-pending: oklch(var(--bc) / 0.2);
+  /* Phase status colors – mapped to DaisyUI v5 semantic colors */
+  --phase-success: var(--color-success);
+  --phase-error: var(--color-error);
+  --phase-active: var(--color-warning);
+  --phase-pending: color-mix(in oklch, var(--color-base-content) 20%, transparent);
 
   /* Chart colors */
-  --chart-primary: oklch(var(--p));
-  --chart-primary-light: oklch(var(--p) / 0.4);
+  --chart-primary: var(--color-primary);
+  --chart-primary-light: color-mix(in oklch, var(--color-primary) 40%, transparent);
 
   /* Layout tokens */
   --table-row-height: 2.25rem;

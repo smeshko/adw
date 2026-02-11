@@ -211,6 +211,7 @@ class StatsAggregator:
         """
         now = datetime.now(UTC)
         week_ago = now - timedelta(days=7)
+        two_weeks_ago = now - timedelta(days=14)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
         # Get registered project paths for filtering
@@ -253,11 +254,35 @@ class StatsAggregator:
 
         average_duration_ms = int(sum(durations) / len(durations)) if durations else 0
 
+        # --- Previous week comparison (7–14 days ago) ---
+        prev_week_entries = [
+            e for e in entries
+            if two_weeks_ago <= e.started_at < week_ago
+        ]
+        previous_week_total_runs = len(prev_week_entries)
+
+        prev_completed = sum(1 for e in prev_week_entries if e.status == "completed")
+        prev_failed = sum(1 for e in prev_week_entries if e.status == "failed")
+        prev_finished = prev_completed + prev_failed
+        previous_week_success_rate = (
+            round(prev_completed / prev_finished, 3) if prev_finished > 0 else 0.0
+        )
+
+        prev_durations = []
+        for e in prev_week_entries:
+            if e.status == "completed" and e.completed_at:
+                elapsed = e.completed_at - e.started_at
+                prev_durations.append(int(elapsed.total_seconds() * 1000))
+        previous_week_average_duration_ms = (
+            int(sum(prev_durations) / len(prev_durations)) if prev_durations else 0
+        )
+
         # Build lookup of registered project names
         registered_names = {p.path: p.name for p in registered_projects}
 
         # Collect token usage from LLM files
         total_tokens = TokenUsage()
+        tokens_this_week = TokenUsage()
         project_stats: dict[str, ProjectStatistics] = {}
 
         for entry in entries:
@@ -272,6 +297,13 @@ class StatsAggregator:
                 input_tokens=total_tokens.input_tokens + run_tokens.input_tokens,
                 output_tokens=total_tokens.output_tokens + run_tokens.output_tokens,
             )
+
+            # Accumulate this-week tokens
+            if entry.started_at >= week_ago:
+                tokens_this_week = TokenUsage(
+                    input_tokens=tokens_this_week.input_tokens + run_tokens.input_tokens,
+                    output_tokens=tokens_this_week.output_tokens + run_tokens.output_tokens,
+                )
 
             # Update project statistics - use registered name if available
             proj_name = registered_names.get(entry.project_path, entry.project_name)
@@ -301,6 +333,7 @@ class StatsAggregator:
 
         # Calculate total estimated cost
         estimated_cost = self.calculate_cost(total_tokens)
+        cost_this_week = self.calculate_cost(tokens_this_week)
 
         return GlobalStatistics(
             generated_at=now,
@@ -314,6 +347,11 @@ class StatsAggregator:
             tokens=total_tokens,
             estimated_cost=estimated_cost,
             projects=list(project_stats.values()),
+            previous_week_total_runs=previous_week_total_runs,
+            previous_week_success_rate=previous_week_success_rate,
+            previous_week_average_duration_ms=previous_week_average_duration_ms,
+            tokens_this_week=tokens_this_week,
+            cost_this_week=cost_this_week,
         )
 
     def _load_cache(

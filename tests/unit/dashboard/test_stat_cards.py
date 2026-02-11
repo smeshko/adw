@@ -180,3 +180,218 @@ class TestGlobalStatisticsTrendFields:
         assert stats.previous_week_success_rate == 0.9
         assert stats.tokens_this_week.total_tokens == 550_000
         assert stats.cost_this_week == 2.75
+
+
+# ── Task 2: StatsAggregator Trend Computation ─────────────────────
+
+
+def _make_index_entry(
+    run_id: str,
+    started_at: datetime,
+    status: str = "completed",
+    completed_at: datetime | None = None,
+    project_path: str = "/projects/test",
+    project_name: str = "test",
+) -> MagicMock:
+    """Build a mock IndexEntry for testing stats aggregation."""
+    entry = MagicMock()
+    entry.run_id = run_id
+    entry.started_at = started_at
+    entry.completed_at = completed_at or (started_at + timedelta(minutes=3))
+    entry.status = status
+    entry.project_path = project_path
+    entry.project_name = project_name
+    return entry
+
+
+class TestStatsAggregatorTrendComputation:
+    """Tests for StatsAggregator computing previous-week comparison data."""
+
+    def test_previous_week_runs_counted(self) -> None:
+        """Runs from 7-14 days ago are counted as previous_week_total_runs."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+
+        entries = [
+            # This week (0-7 days ago)
+            _make_index_entry("R1", now - timedelta(days=1)),
+            _make_index_entry("R2", now - timedelta(days=3)),
+            # Previous week (7-14 days ago)
+            _make_index_entry("R3", now - timedelta(days=8)),
+            _make_index_entry("R4", now - timedelta(days=10)),
+            _make_index_entry("R5", now - timedelta(days=12)),
+        ]
+        mock_im.get_recent_runs.return_value = entries
+
+        aggregator = StatsAggregator(
+            index_manager=mock_im,
+            project_registry=mock_pr,
+        )
+        stats = aggregator._collect_statistics(None, None)
+
+        assert stats.previous_week_total_runs == 3
+        assert stats.runs_this_week == 2
+
+    def test_previous_week_success_rate(self) -> None:
+        """Success rate is computed correctly for previous-week runs."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+
+        entries = [
+            # Previous week: 2 completed, 1 failed → 66.7%
+            _make_index_entry("R1", now - timedelta(days=8), status="completed"),
+            _make_index_entry("R2", now - timedelta(days=9), status="completed"),
+            _make_index_entry("R3", now - timedelta(days=10), status="failed",
+                              completed_at=now - timedelta(days=10) + timedelta(minutes=1)),
+        ]
+        mock_im.get_recent_runs.return_value = entries
+
+        aggregator = StatsAggregator(
+            index_manager=mock_im,
+            project_registry=mock_pr,
+        )
+        stats = aggregator._collect_statistics(None, None)
+
+        assert abs(stats.previous_week_success_rate - 0.667) < 0.01
+
+    def test_previous_week_average_duration(self) -> None:
+        """Average duration is computed for completed runs in previous week."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+
+        eight_days_ago = now - timedelta(days=8)
+        nine_days_ago = now - timedelta(days=9)
+
+        entries = [
+            _make_index_entry("R1", eight_days_ago, status="completed",
+                              completed_at=eight_days_ago + timedelta(minutes=2)),
+            _make_index_entry("R2", nine_days_ago, status="completed",
+                              completed_at=nine_days_ago + timedelta(minutes=4)),
+        ]
+        mock_im.get_recent_runs.return_value = entries
+
+        aggregator = StatsAggregator(
+            index_manager=mock_im,
+            project_registry=mock_pr,
+        )
+        stats = aggregator._collect_statistics(None, None)
+
+        # Average of 2min (120s=120000ms) and 4min (240s=240000ms) = 180000ms
+        assert stats.previous_week_average_duration_ms == 180000
+
+    def test_tokens_this_week_computed(self) -> None:
+        """tokens_this_week accumulates tokens from runs in the last 7 days."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+
+        entries = [
+            _make_index_entry("R1", now - timedelta(days=1)),  # This week
+            _make_index_entry("R2", now - timedelta(days=10)),  # Previous week
+        ]
+        mock_im.get_recent_runs.return_value = entries
+
+        aggregator = StatsAggregator(
+            index_manager=mock_im,
+            project_registry=mock_pr,
+        )
+        # Mock _parse_llm_response_files to return controlled token counts
+        call_count = [0]
+        def mock_parse(run_dir):
+            call_count[0] += 1
+            if call_count[0] == 1:  # R1 - this week
+                return TokenUsage(input_tokens=1000, output_tokens=500)
+            return TokenUsage(input_tokens=2000, output_tokens=800)  # R2 - previous week
+
+        aggregator._parse_llm_response_files = mock_parse
+        stats = aggregator._collect_statistics(None, None)
+
+        assert stats.tokens_this_week.input_tokens == 1000
+        assert stats.tokens_this_week.output_tokens == 500
+
+    def test_cost_this_week_computed(self) -> None:
+        """cost_this_week is computed from this week's tokens."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+
+        entries = [
+            _make_index_entry("R1", now - timedelta(days=1)),  # This week
+        ]
+        mock_im.get_recent_runs.return_value = entries
+
+        aggregator = StatsAggregator(
+            index_manager=mock_im,
+            project_registry=mock_pr,
+        )
+        # 1M input at $3/1M + 0.5M output at $15/1M = $3 + $7.5 = $10.5
+        aggregator._parse_llm_response_files = lambda _: TokenUsage(
+            input_tokens=1_000_000, output_tokens=500_000
+        )
+        stats = aggregator._collect_statistics(None, None)
+
+        assert stats.cost_this_week == 10.50
+
+    def test_no_previous_week_data(self) -> None:
+        """Zero-value previous week stats when no runs in that window."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+
+        entries = [
+            _make_index_entry("R1", now - timedelta(days=1)),  # Only this week
+        ]
+        mock_im.get_recent_runs.return_value = entries
+
+        aggregator = StatsAggregator(
+            index_manager=mock_im,
+            project_registry=mock_pr,
+        )
+        aggregator._parse_llm_response_files = lambda _: TokenUsage()
+        stats = aggregator._collect_statistics(None, None)
+
+        assert stats.previous_week_total_runs == 0
+        assert stats.previous_week_success_rate == 0.0
+        assert stats.previous_week_average_duration_ms == 0
+
+    def test_zero_runs_returns_defaults(self) -> None:
+        """Zero runs returns all default trend values."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+        mock_im.get_recent_runs.return_value = []
+
+        aggregator = StatsAggregator(
+            index_manager=mock_im,
+            project_registry=mock_pr,
+        )
+        stats = aggregator._collect_statistics(None, None)
+
+        assert stats.previous_week_total_runs == 0
+        assert stats.previous_week_success_rate == 0.0
+        assert stats.previous_week_average_duration_ms == 0
+        assert stats.tokens_this_week.total_tokens == 0
+        assert stats.cost_this_week == 0.0
