@@ -171,3 +171,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When implementing new HTMX partial endpoints with empty-state polling patterns
     - When using the phase pipeline component macro in dashboard templates
     - When loading RunContext data in dashboard partials with fallback handling
+
+- docs/features/runs-list-pagination-sorting.md
+  - Conditions:
+    - When adding a new paginated list page to the dashboard
+    - When implementing sort or filter controls with HTMX in the dashboard
+    - When using the triple-response pattern (full page / partial / table-only) for dashboard routes
+    - When building DaisyUI join-based pagination with HTMX for the dashboard
+    - When adding paginated query methods to the IndexManager
