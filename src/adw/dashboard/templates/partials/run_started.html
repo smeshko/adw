@@ -1,0 +1,19 @@
+<div id="overview">
+  <div class="flex justify-center items-center min-h-[40vh]">
+    <div class="card bg-base-100 shadow-sm p-8 text-center max-w-lg">
+      <div class="text-success text-4xl mb-4">✓</div>
+      <h2 class="text-xl font-semibold mb-2">Run Started</h2>
+      <p class="text-base-content/60 mb-1">
+        <span class="font-semibold">{{ project_name }}</span>
+      </p>
+      <p class="text-base-content/60 mb-4 italic">"{{ feature|truncate(80) }}"</p>
+      {% if process_id %}
+      <p class="text-base-content/40 text-xs mb-4">PID: {{ process_id }}</p>
+      {% endif %}
+      <a hx-get="/"
+         hx-target="#main"
+         hx-push-url="/"
+         class="btn btn-ghost btn-sm">&larr; Back to Overview</a>
+    </div>
+  </div>
+</div>

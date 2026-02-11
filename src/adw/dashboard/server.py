@@ -87,11 +87,13 @@ def create_dashboard_app(
         app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
     # Include dashboard routes
+    from adw.dashboard.mutations import router as mutations_router
     from adw.dashboard.partials import router as partials_router
     from adw.dashboard.routes import router as pages_router
 
     app.include_router(pages_router)
     app.include_router(partials_router)
+    app.include_router(mutations_router)
 
     # HTML-only exception handlers – never return JSON from the dashboard
     def _render_error(request: Request, status_code: int, detail: str) -> HTMLResponse:
