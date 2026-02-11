@@ -12,15 +12,24 @@
 {%- if td %}&to={{ td | urlencode }}{% endif %}
 {%- endmacro %}
 
+{#- Base URL without sort param — used by sort dropdown with hx-include -#}
+{% macro runs_base_url(p=1, st=status_filter, proj=project_filter, fd=from_date, td=to_date) -%}
+/runs?page={{ p }}
+{%- if st %}&status={{ st | urlencode }}{% endif %}
+{%- if proj %}&project={{ proj | urlencode }}{% endif %}
+{%- if fd %}&from={{ fd | urlencode }}{% endif %}
+{%- if td %}&to={{ td | urlencode }}{% endif %}
+{%- endmacro %}
+
 {# ── Summary Line ────────────────────────────────────────── #}
 <div class="flex items-center justify-between mb-3">
   <span class="text-sm text-base-content/70">Showing {{ total_count }} run{{ "s" if total_count != 1 }}</span>
   <select class="select select-bordered select-xs"
-          hx-get="{{ runs_url(p=1) }}"
+          hx-get="{{ runs_base_url() }}"
           hx-trigger="change"
           hx-target="#runs-content"
           hx-swap="innerHTML"
-          hx-push-url="{{ runs_url(p=1) }}"
+          hx-push-url="true"
           name="sort"
           hx-include="this">
     <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest</option>
