@@ -1,18 +1,21 @@
-"""Tests for Story 3.1: New Run Modal & Form Submission.
+"""Tests for Story 3.1 & 3.2: New Run Modal, Form Submission, and Re-run Flow.
 
 Covers CSRF validation, form validation, run trigger invocation,
 success response, error handling, modal partial route, template
-structure, modal-container in base.html, and enabled buttons.
+structure, modal-container in base.html, enabled buttons, and
+the re-run flow with pre-populated modal context.
 """
 
 from __future__ import annotations
 
+from typing import Literal
 from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
 from adw.dashboard.dependencies import generate_csrf_token
 from adw.dashboard.server import create_dashboard_app
+from adw.models.index import IndexEntry
 
 
 # ── Helpers ────────────────────────────────────────────────────────
@@ -58,11 +61,39 @@ def _mock_run_trigger(success: bool = True, process_id: int = 42, error: str | N
     return mock
 
 
-def _mock_index_manager() -> MagicMock:
-    """Build a minimal mock IndexManager."""
+def _mock_index_manager(entries: list | None = None) -> MagicMock:
+    """Build a minimal mock IndexManager.
+
+    Args:
+        entries: Optional list of IndexEntry objects to return from
+            get_recent_runs(). Defaults to empty list.
+    """
     mock = MagicMock()
-    mock.get_recent_runs.return_value = []
+    mock.get_recent_runs.return_value = entries or []
     return mock
+
+
+def _make_index_entry(
+    run_id: str = "01KDSG2VDHNK0W4HSCZWJZXWSQ",
+    project_path: str = "/projects/my-project",
+    project_name: str = "my-project",
+    feature_description: str = "Add user authentication",
+    status: Literal["running", "completed", "failed", "interrupted", "aborted"] = "completed",
+) -> IndexEntry:
+    """Build a mock IndexEntry for re-run tests."""
+    from datetime import UTC, datetime
+
+    return IndexEntry(
+        run_id=run_id,
+        project_path=project_path,
+        project_name=project_name,
+        feature_description=feature_description,
+        started_at=datetime(2026, 1, 15, 10, 0, 0, tzinfo=UTC),
+        completed_at=datetime(2026, 1, 15, 10, 30, 0, tzinfo=UTC),
+        status=status,
+        phase_reached="ship",
+        phases_completed=["plan", "build", "validate", "document", "ship"],
+    )
 
 
 def _mock_stats_aggregator() -> MagicMock:
@@ -80,6 +111,7 @@ def _mock_stats_aggregator() -> MagicMock:
 def _make_client_with_mocks(
     project_registry: MagicMock | None = None,
     run_trigger: MagicMock | None = None,
+    index_manager: MagicMock | None = None,
 ) -> TestClient:
     """Create a TestClient with dependency overrides for mutations testing."""
     from adw.dashboard import dependencies
@@ -87,7 +119,7 @@ def _make_client_with_mocks(
     app = create_dashboard_app()
     pr = project_registry or _mock_project_registry()
     rt = run_trigger or _mock_run_trigger()
-    im = _mock_index_manager()
+    im = index_manager or _mock_index_manager()
     sa = _mock_stats_aggregator()
 
     app.dependency_overrides[dependencies.get_project_registry] = lambda: pr
@@ -725,3 +757,366 @@ class TestRunTriggerDI:
 
         result = get_run_trigger()
         assert isinstance(result, RunTrigger)
+
+
+# ── Re-run Partial Route Tests ────────────────────────────────────
+
+
+class TestRerunPartialRoute:
+    """Tests for GET /partials/new-run?from={run_id} re-run modal."""
+
+    def test_rerun_returns_200(self) -> None:
+        """Re-run partial with valid from param returns 200."""
+        entry = _make_index_entry()
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=im,
+        )
+        response = client.get(f"/partials/new-run?from={entry.run_id}")
+        assert response.status_code == 200
+
+    def test_rerun_title_shows_rerun(self) -> None:
+        """Modal title shows 'Re-run' when from param is valid."""
+        entry = _make_index_entry()
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=im,
+        )
+        response = client.get(f"/partials/new-run?from={entry.run_id}")
+        assert "Re-run" in response.text
+        assert "Start New Run" not in response.text
+
+    def test_rerun_project_select_disabled(self) -> None:
+        """Project select is disabled when re-run context active."""
+        entry = _make_index_entry()
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=im,
+        )
+        response = client.get(f"/partials/new-run?from={entry.run_id}")
+        assert "disabled" in response.text
+
+    def test_rerun_project_preselected(self) -> None:
+        """Project name is shown in disabled select."""
+        entry = _make_index_entry(project_name="alpha-project")
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["alpha-project"]),
+            index_manager=im,
+        )
+        response = client.get(f"/partials/new-run?from={entry.run_id}")
+        assert "alpha-project" in response.text
+
+    def test_rerun_hidden_project_input(self) -> None:
+        """Hidden input for project path is present when re-run active."""
+        entry = _make_index_entry(project_path="/projects/alpha")
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["alpha"]),
+            index_manager=im,
+        )
+        response = client.get(f"/partials/new-run?from={entry.run_id}")
+        assert 'name="project"' in response.text
+        assert 'value="/projects/alpha"' in response.text
+
+    def test_rerun_feature_prefilled(self) -> None:
+        """Feature textarea is pre-filled with source run's feature."""
+        entry = _make_index_entry(feature_description="Implement dark mode toggle")
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=im,
+        )
+        response = client.get(f"/partials/new-run?from={entry.run_id}")
+        assert "Implement dark mode toggle" in response.text
+
+    def test_rerun_csrf_token_present(self) -> None:
+        """CSRF token is still included in re-run modal."""
+        entry = _make_index_entry()
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=im,
+        )
+        response = client.get(f"/partials/new-run?from={entry.run_id}")
+        assert 'name="csrf_token"' in response.text
+
+    def test_rerun_from_run_hidden_input(self) -> None:
+        """Hidden from_run input is present in re-run modal."""
+        entry = _make_index_entry()
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=im,
+        )
+        response = client.get(f"/partials/new-run?from={entry.run_id}")
+        assert 'name="from_run"' in response.text
+        assert f'value="{entry.run_id}"' in response.text
+
+    def test_invalid_from_falls_back_to_new_run(self) -> None:
+        """Invalid from run_id falls back to standard new-run modal."""
+        im = _mock_index_manager(entries=[])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=im,
+        )
+        response = client.get("/partials/new-run?from=01NONEXISTENT000000000000")
+        assert response.status_code == 200
+        assert "Start New Run" in response.text
+        assert "Re-run" not in response.text.split("Start New Run")[0]
+
+    def test_empty_from_shows_standard_modal(self) -> None:
+        """Empty from param shows standard new-run modal."""
+        im = _mock_index_manager(entries=[])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=im,
+        )
+        response = client.get("/partials/new-run?from=")
+        assert "Start New Run" in response.text
+
+    def test_no_from_param_shows_standard_modal(self) -> None:
+        """No from param at all shows standard new-run modal."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/partials/new-run")
+        assert "Start New Run" in response.text
+
+
+# ── Re-run Submission Tests ──────────────────────────────────────
+
+
+class TestRerunSubmission:
+    """Tests for POST /runs/start with re-run context."""
+
+    def test_rerun_submission_creates_run(self) -> None:
+        """Successful re-run submission creates a new run."""
+        entry = _make_index_entry()
+        im = _mock_index_manager(entries=[entry])
+        rt = _mock_run_trigger(success=True, process_id=55)
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            run_trigger=rt,
+            index_manager=im,
+        )
+        token = _get_csrf_token(client)
+        response = client.post(
+            "/runs/start",
+            data={
+                "project": "/projects/my-project",
+                "feature": "Add user authentication",
+                "csrf_token": token,
+                "from_run": entry.run_id,
+            },
+        )
+        assert response.status_code == 200
+        assert "Run Started" in response.text
+        rt.start_run.assert_called_once()
+
+    def test_rerun_modified_feature(self) -> None:
+        """Re-run with modified feature uses updated text."""
+        entry = _make_index_entry(feature_description="Original feature")
+        im = _mock_index_manager(entries=[entry])
+        rt = _mock_run_trigger(success=True, process_id=66)
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            run_trigger=rt,
+            index_manager=im,
+        )
+        token = _get_csrf_token(client)
+        response = client.post(
+            "/runs/start",
+            data={
+                "project": "/projects/my-project",
+                "feature": "Modified feature text",
+                "csrf_token": token,
+                "from_run": entry.run_id,
+            },
+        )
+        assert response.status_code == 200
+        assert "Run Started" in response.text
+        rt.start_run.assert_called_once_with(
+            project_path="/projects/my-project",
+            feature="Modified feature text",
+        )
+
+    def test_rerun_validation_error_preserves_context(self) -> None:
+        """Validation error on re-run preserves re-run context."""
+        entry = _make_index_entry()
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=im,
+        )
+        token = _get_csrf_token(client)
+        response = client.post(
+            "/runs/start",
+            data={
+                "project": "/projects/my-project",
+                "feature": "",
+                "csrf_token": token,
+                "from_run": entry.run_id,
+            },
+        )
+        assert response.status_code == 200
+        # Re-run title should be preserved
+        assert "Re-run" in response.text
+        # Project should still be locked (disabled select)
+        assert "disabled" in response.text
+
+    def test_rerun_csrf_still_enforced(self) -> None:
+        """CSRF validation still enforced on re-run submissions."""
+        entry = _make_index_entry()
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=im,
+        )
+        response = client.post(
+            "/runs/start",
+            data={
+                "project": "/projects/my-project",
+                "feature": "Add login",
+                "from_run": entry.run_id,
+            },
+        )
+        assert response.status_code == 403
+
+    def test_rerun_trigger_failure_preserves_context(self) -> None:
+        """Trigger failure on re-run preserves re-run context."""
+        entry = _make_index_entry()
+        im = _mock_index_manager(entries=[entry])
+        rt = _mock_run_trigger(success=False, error="spawn failed")
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            run_trigger=rt,
+            index_manager=im,
+        )
+        token = _get_csrf_token(client)
+        response = client.post(
+            "/runs/start",
+            data={
+                "project": "/projects/my-project",
+                "feature": "Add login",
+                "csrf_token": token,
+                "from_run": entry.run_id,
+            },
+        )
+        assert response.status_code == 200
+        assert "Failed to start run" in response.text
+        # Re-run context preserved
+        assert "Re-run" in response.text
+        assert "disabled" in response.text
+
+
+# ── Re-run Button Tests ──────────────────────────────────────────
+
+
+class TestRerunButton:
+    """Tests for the Re-run button on run detail page."""
+
+    def _make_run_detail_client(self) -> tuple:
+        """Create client with a mock run for detail page testing."""
+        entry = _make_index_entry(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+            project_path="/projects/my-project",
+            project_name="my-project",
+            feature_description="Test feature",
+        )
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=im,
+        )
+        return client, entry
+
+    def test_rerun_button_not_disabled(self) -> None:
+        """Run detail page has an enabled Re-run button."""
+        client, entry = self._make_run_detail_client()
+        response = client.get(
+            f"/runs/{entry.run_id}",
+            headers={"HX-Request": "true"},
+        )
+        # Find the Re-run button and verify it's not disabled
+        text = response.text
+        rerun_pos = text.find(">Re-run</button>")
+        if rerun_pos != -1:
+            # Look backwards to find the button opening tag
+            button_start = text.rfind("<button", 0, rerun_pos)
+            button_html = text[button_start:rerun_pos + len(">Re-run</button>")]
+            assert "disabled" not in button_html
+
+    def test_rerun_button_has_htmx_get(self) -> None:
+        """Re-run button has hx-get attribute with from param."""
+        client, entry = self._make_run_detail_client()
+        response = client.get(
+            f"/runs/{entry.run_id}",
+            headers={"HX-Request": "true"},
+        )
+        assert f'hx-get="/partials/new-run?from={entry.run_id}"' in response.text
+
+    def test_rerun_button_targets_modal_container(self) -> None:
+        """Re-run button targets #modal-container."""
+        client, entry = self._make_run_detail_client()
+        response = client.get(
+            f"/runs/{entry.run_id}",
+            headers={"HX-Request": "true"},
+        )
+        text = response.text
+        # Find the Re-run button context and verify hx-target
+        rerun_pos = text.find(">Re-run</button>")
+        if rerun_pos != -1:
+            button_start = text.rfind("<button", 0, rerun_pos)
+            button_html = text[button_start:rerun_pos]
+            assert 'hx-target="#modal-container"' in button_html
+
+
+# ── Re-run Full Flow Integration ─────────────────────────────────
+
+
+class TestRerunFullFlow:
+    """Integration test for the complete re-run flow."""
+
+    def test_rerun_full_flow(self) -> None:
+        """Open re-run modal → verify pre-population → modify → submit → success."""
+        entry = _make_index_entry(
+            project_path="/projects/my-project",
+            project_name="my-project",
+            feature_description="Original feature description",
+        )
+        im = _mock_index_manager(entries=[entry])
+        rt = _mock_run_trigger(success=True, process_id=101)
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            run_trigger=rt,
+            index_manager=im,
+        )
+
+        # Step 1: Open re-run modal
+        modal_response = client.get(f"/partials/new-run?from={entry.run_id}")
+        assert modal_response.status_code == 200
+        assert "Re-run" in modal_response.text
+        assert "Original feature description" in modal_response.text
+        assert "my-project" in modal_response.text
+
+        # Step 2: Submit with modified feature
+        token = _get_csrf_token(client)
+        submit_response = client.post(
+            "/runs/start",
+            data={
+                "project": "/projects/my-project",
+                "feature": "Improved feature description",
+                "csrf_token": token,
+                "from_run": entry.run_id,
+            },
+        )
+        assert submit_response.status_code == 200
+        assert "Run Started" in submit_response.text
+        rt.start_run.assert_called_once_with(
+            project_path="/projects/my-project",
+            feature="Improved feature description",
+        )
