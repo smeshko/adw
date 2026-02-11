@@ -39,6 +39,9 @@ class WebhookLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable) -> Response:  # type: ignore[type-arg]
         """Process the request and log webhook details.
 
+        The request ID is set by the shared ``RequestIDMiddleware`` which
+        runs before this middleware. We read it from ``request.state``.
+
         Args:
             request: The incoming request.
             call_next: The next handler in the chain.
@@ -46,9 +49,8 @@ class WebhookLoggingMiddleware(BaseHTTPMiddleware):
         Returns:
             The response from the handler.
         """
-        # Generate request ID if not already present
-        request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
-        request.state.request_id = request_id
+        # Request ID is set by RequestIDMiddleware; fall back for safety
+        request_id = getattr(request.state, "request_id", None) or str(uuid.uuid4())
 
         # Record start time
         start_time = time.time()
@@ -61,9 +63,6 @@ class WebhookLoggingMiddleware(BaseHTTPMiddleware):
 
         # Log the request
         self._log_request(request, response, request_id, duration_ms)
-
-        # Add request ID to response headers
-        response.headers["x-request-id"] = request_id
 
         return response
 

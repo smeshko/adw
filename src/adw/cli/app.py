@@ -22,6 +22,7 @@ from adw.cli.run_display import RunDisplay
 from adw.cli.status import status as status_command
 from adw.cli.unregister import unregister as unregister_command
 from adw.cli.validators import validate_phase
+from adw.cli.dashboard_web import dashboard_web_app
 from adw.cli.webhook import webhook_app
 from adw.commands.template import escape_feature_description
 from adw.config.loader import ConfigLoader
@@ -515,6 +516,9 @@ app.command()(unregister_command)
 
 # Register the projects command (Story 16.1)
 app.command()(projects_command)
+
+# Register the dashboard subapp (Story ADW-6)
+app.add_typer(dashboard_web_app, name="dashboard")
 
 # Register the webhook subapp (Story 13.1)
 app.add_typer(webhook_app, name="webhook")
