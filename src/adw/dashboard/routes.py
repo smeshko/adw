@@ -171,6 +171,11 @@ async def overview(
 async def runs_list(
     request: Request,
     project: str = Query("", alias="project"),
+    status_filter: str = Query("", alias="status"),
+    from_date: str = Query("", alias="from"),
+    to_date: str = Query("", alias="to"),
+    sort: str = Query("newest"),
+    page: int = Query(1, ge=1),
     index_manager: object = Depends(get_index_manager),
     stats_aggregator: object = Depends(get_stats_aggregator),
     project_registry: object = Depends(get_project_registry),
@@ -178,8 +183,12 @@ async def runs_list(
     """Render the runs list page.
 
     Returns the full page or just the ``#main`` partial depending on
-    whether the request came from HTMX.
+    whether the request came from HTMX.  When the HX-Request header
+    targets ``#runs-content`` (sort/pagination change), only the table
+    partial is returned.
     """
+    from adw.dashboard.partials import build_recent_runs_context
+
     templates = request.app.state.templates
     context = _build_page_context(
         request, "runs",
@@ -188,7 +197,52 @@ async def runs_list(
         project=project,
     )
 
+    # Parse date filters
+    since = None
+    until = None
+    if from_date:
+        try:
+            since = datetime.fromisoformat(from_date)
+            if since.tzinfo is None:
+                since = since.replace(tzinfo=UTC)
+        except ValueError:
+            since = None
+    if to_date:
+        try:
+            until = datetime.fromisoformat(to_date)
+            if until.tzinfo is None:
+                until = until.replace(tzinfo=UTC)
+        except ValueError:
+            until = None
+
+    # Fetch paginated runs
+    paginated = index_manager.get_paginated_runs(  # type: ignore[union-attr]
+        page=page,
+        page_size=15,
+        status=status_filter or None,
+        project_name=project or None,
+        since=since,
+        until=until,
+        sort=sort,
+    )
+
+    context["runs"] = build_recent_runs_context(paginated["entries"])
+    context["total_count"] = paginated["total_count"]
+    context["page"] = paginated["page"]
+    context["total_pages"] = paginated["total_pages"]
+    context["sort"] = sort
+    context["status_filter"] = status_filter
+    context["project_filter"] = project or ""
+    context["from_date"] = from_date
+    context["to_date"] = to_date
+
+    # Determine response template based on request type
+    hx_target = request.headers.get("HX-Target", "")
     if request.headers.get("HX-Request"):
+        if hx_target == "runs-content":
+            return templates.TemplateResponse(
+                request, "partials/runs_table.html", context,
+            )
         return templates.TemplateResponse(request, "partials/runs_list.html", context)
     return templates.TemplateResponse(request, "pages/runs_list.html", context)
 
