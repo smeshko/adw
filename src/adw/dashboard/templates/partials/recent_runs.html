@@ -1,0 +1,52 @@
+{% import "components/status_badge.html" as badge %}
+
+<section id="recent-runs" class="mt-6"
+         hx-get="/partials/recent-runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
+         hx-trigger="every 15s"
+         hx-swap="outerHTML">
+
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-lg font-semibold">Recent Runs</h2>
+    <a hx-get="/runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
+       hx-target="#main"
+       hx-push-url="/runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
+       class="btn btn-ghost btn-xs">View All →</a>
+  </div>
+
+  <div class="card card-compact bg-base-100 shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Project</th>
+            <th>Feature</th>
+            <th>Status</th>
+            <th>Duration</th>
+            <th>Started</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if recent_runs %}
+            {% for run in recent_runs %}
+            <tr hx-get="/runs/{{ run.run_id }}"
+                hx-target="#main"
+                hx-push-url="/runs/{{ run.run_id }}"
+                class="hover cursor-pointer">
+              <td class="text-sm">{{ run.project_name }}</td>
+              <td class="text-sm text-base-content/70 truncate max-w-[200px]">{{ run.feature_description }}</td>
+              <td>{{ badge.status_badge(run.status) }}</td>
+              <td class="font-mono text-xs">{{ run.duration_display }}</td>
+              <td class="text-xs text-base-content/50">{{ run.started_ago }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="5" class="text-center text-base-content/50 py-4">No runs found</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
