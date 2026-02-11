@@ -1,9 +1,9 @@
 <footer id="status-bar" class="footer footer-center p-2 bg-base-100 text-base-content/60 text-xs">
   <div class="flex items-center gap-4"
-       hx-get="/partials/status-bar"
+       hx-get="/partials/status-bar{% if selected_project %}?project={{ selected_project }}{% endif %}"
        hx-trigger="every 10s"
-       hx-swap="outerHTML"
-       hx-target="#status-bar">
+       hx-target="#status-bar"
+       hx-swap="outerHTML">
     <span>Last updated <span class="font-mono">{{ last_updated_ago }}</span></span>
     <span class="font-mono">{{ active_run_count }} active run{{ 's' if active_run_count != 1 }}</span>
     <button class="btn btn-ghost btn-xs"

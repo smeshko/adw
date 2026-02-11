@@ -29,24 +29,27 @@
 
     <div class="flex items-center gap-1">
       {# Navigation links #}
-      <a href="/"
-         hx-get="/"
+      <a href="/{% if selected_project %}?project={{ selected_project }}{% endif %}"
+         hx-get="/{% if selected_project %}?project={{ selected_project }}{% endif %}"
          hx-target="#main"
-         hx-push-url="/"
+         hx-push-url="/{% if selected_project %}?project={{ selected_project }}{% endif %}"
          hx-indicator="#nav-loading"
-         class="btn btn-ghost btn-sm {% if page == 'overview' %}font-semibold border-b-2 border-primary{% endif %}">Overview</a>
-      <a href="/runs"
-         hx-get="/runs"
+         data-page="overview"
+         class="nav-link btn btn-ghost btn-sm {% if page == 'overview' %}font-semibold border-b-2 border-primary{% endif %}">Overview</a>
+      <a href="/runs{% if selected_project %}?project={{ selected_project }}{% endif %}"
+         hx-get="/runs{% if selected_project %}?project={{ selected_project }}{% endif %}"
          hx-target="#main"
-         hx-push-url="/runs"
+         hx-push-url="/runs{% if selected_project %}?project={{ selected_project }}{% endif %}"
          hx-indicator="#nav-loading"
-         class="btn btn-ghost btn-sm {% if page == 'runs' %}font-semibold border-b-2 border-primary{% endif %}">Runs</a>
-      <a href="/analytics"
-         hx-get="/analytics"
+         data-page="runs"
+         class="nav-link btn btn-ghost btn-sm {% if page == 'runs' %}font-semibold border-b-2 border-primary{% endif %}">Runs</a>
+      <a href="/analytics{% if selected_project %}?project={{ selected_project }}{% endif %}"
+         hx-get="/analytics{% if selected_project %}?project={{ selected_project }}{% endif %}"
          hx-target="#main"
-         hx-push-url="/analytics"
+         hx-push-url="/analytics{% if selected_project %}?project={{ selected_project }}{% endif %}"
          hx-indicator="#nav-loading"
-         class="btn btn-ghost btn-sm {% if page == 'analytics' %}font-semibold border-b-2 border-primary{% endif %}">Analytics</a>
+         data-page="analytics"
+         class="nav-link btn btn-ghost btn-sm {% if page == 'analytics' %}font-semibold border-b-2 border-primary{% endif %}">Analytics</a>
 
       {# Loading indicator for navigation #}
       <span id="nav-loading" class="loading loading-spinner loading-sm htmx-indicator"></span>
@@ -90,10 +93,10 @@
 
   <footer id="status-bar" class="footer footer-center p-2 bg-base-100 text-base-content/60 text-xs">
     <div class="flex items-center gap-4"
-         hx-get="/partials/status-bar"
+         hx-get="/partials/status-bar{% if selected_project %}?project={{ selected_project }}{% endif %}"
          hx-trigger="every 10s"
-         hx-swap="outerHTML"
-         hx-target="#status-bar">
+         hx-target="#status-bar"
+         hx-swap="outerHTML">
       <span>Last updated <span class="font-mono">{{ last_updated_ago | default('—') }}</span></span>
       <span class="font-mono">{{ active_run_count | default(0) }} active run{{ 's' if (active_run_count | default(0)) != 1 }}</span>
       <button class="btn btn-ghost btn-xs"
@@ -119,6 +122,23 @@
       var cb = document.getElementById('theme-toggle');
       if (cb) cb.checked = (current === 'light');
     })();
+
+    /* Update active nav indicator and project filter after HTMX content swap */
+    document.body.addEventListener('htmx:pushedIntoHistory', function() {
+      var path = window.location.pathname;
+      var pageMap = {'/': 'overview', '/runs': 'runs', '/analytics': 'analytics'};
+      var currentPage = pageMap[path] || '';
+      document.querySelectorAll('.nav-link').forEach(function(link) {
+        var isActive = link.getAttribute('data-page') === currentPage;
+        link.classList.toggle('font-semibold', isActive);
+        link.classList.toggle('border-b-2', isActive);
+        link.classList.toggle('border-primary', isActive);
+      });
+      /* Update project filter hx-get to target the current path */
+      var filter = document.getElementById('project-filter');
+      if (filter) filter.setAttribute('hx-get', path);
+      htmx.process(filter);
+    });
 
     /* HTMX error handling – show toast on response errors */
     document.body.addEventListener('htmx:responseError', function(e) {

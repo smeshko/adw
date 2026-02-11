@@ -7,6 +7,7 @@ return a fragment — they never wrap in the full page layout.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
@@ -58,12 +59,17 @@ async def status_bar(
     if recent:
         last_updated_dt = recent[0].completed_at or recent[0].started_at
 
+    # Derive current page path from HX-Current-URL header (set by HTMX on
+    # every request) so the refresh button targets the correct page.
+    hx_current_url = request.headers.get("HX-Current-URL", "")
+    current_path = urlparse(hx_current_url).path if hx_current_url else "/"
+
     context = {
         "request": request,
         "last_updated_ago": _relative_time(last_updated_dt),
         "active_run_count": active_run_count,
         "selected_project": project or None,
-        "current_path": "/",
+        "current_path": current_path or "/",
     }
 
     return templates.TemplateResponse(request, "partials/status_bar.html", context)

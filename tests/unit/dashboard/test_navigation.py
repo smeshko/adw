@@ -525,3 +525,106 @@ class TestNavigationHTMXAttributes:
         client = _make_client()
         response = client.get("/")
         assert 'hx-indicator="#nav-loading"' in response.text
+
+    def test_nav_links_have_data_page(self) -> None:
+        """Nav links have data-page attribute for client-side active indicator updates."""
+        client = _make_client()
+        response = client.get("/")
+        assert 'data-page="overview"' in response.text
+        assert 'data-page="runs"' in response.text
+        assert 'data-page="analytics"' in response.text
+
+    def test_nav_links_preserve_project_filter(self) -> None:
+        """Nav links include ?project= when a project is selected."""
+        client = _make_client()
+        response = client.get("/?project=myproject")
+        text = response.text
+        assert 'hx-get="/?project=myproject"' in text
+        assert 'hx-get="/runs?project=myproject"' in text
+        assert 'hx-get="/analytics?project=myproject"' in text
+
+    def test_nav_links_no_project_when_unselected(self) -> None:
+        """Nav links omit project param when no project is selected."""
+        client = _make_client()
+        response = client.get("/")
+        # Should have clean URLs without ?project=
+        assert 'hx-get="/"' in response.text
+        assert 'hx-get="/runs"' in response.text
+        assert 'hx-get="/analytics"' in response.text
+
+
+# ── Status Bar Project Filter Persistence ──────────────────────────
+
+class TestStatusBarProjectPersistence:
+    """Tests for status bar preserving project filter during polling."""
+
+    def test_status_bar_polling_includes_project(self) -> None:
+        """Status bar polling URL includes project parameter when set."""
+        client = _make_client()
+        response = client.get("/?project=myproject")
+        assert 'hx-get="/partials/status-bar?project=myproject"' in response.text
+
+    def test_status_bar_polling_no_project_when_unset(self) -> None:
+        """Status bar polling URL has no project param when unselected."""
+        client = _make_client()
+        response = client.get("/")
+        assert 'hx-get="/partials/status-bar"' in response.text
+
+    def test_status_bar_partial_uses_hx_current_url(self) -> None:
+        """Status bar partial derives current_path from HX-Current-URL header."""
+        client = _make_client()
+        response = client.get(
+            "/partials/status-bar",
+            headers={"HX-Current-URL": "http://localhost:8100/runs"},
+        )
+        assert 'hx-get="/runs"' in response.text
+
+    def test_status_bar_partial_defaults_to_root(self) -> None:
+        """Status bar partial defaults current_path to / without HX-Current-URL."""
+        client = _make_client()
+        response = client.get("/partials/status-bar")
+        # Refresh button should target /
+        assert 'hx-get="/"' in response.text
+
+
+# ── HTMX Attribute Order ───────────────────────────────────────────
+
+class TestHTMXAttributeOrder:
+    """Tests for correct HTMX attribute ordering per project convention."""
+
+    def test_status_bar_attribute_order(self) -> None:
+        """Status bar polling has correct HTMX attribute order: get, trigger, target, swap."""
+        client = _make_client()
+        response = client.get("/")
+        text = response.text
+        # hx-target should come before hx-swap in the status bar
+        target_pos = text.index('hx-target="#status-bar"')
+        swap_pos = text.index('hx-swap="outerHTML"')
+        assert target_pos < swap_pos
+
+    def test_status_bar_partial_attribute_order(self) -> None:
+        """Status bar partial has correct HTMX attribute order."""
+        client = _make_client()
+        response = client.get("/partials/status-bar")
+        text = response.text
+        target_pos = text.index('hx-target="#status-bar"')
+        swap_pos = text.index('hx-swap="outerHTML"')
+        assert target_pos < swap_pos
+
+
+# ── Client-side Nav Indicator Update ────────────────────────────────
+
+class TestClientSideNavUpdate:
+    """Tests for client-side active nav indicator update after HTMX swap."""
+
+    def test_pushed_into_history_listener_exists(self) -> None:
+        """Page contains htmx:pushedIntoHistory event listener for nav updates."""
+        client = _make_client()
+        response = client.get("/")
+        assert "htmx:pushedIntoHistory" in response.text
+
+    def test_nav_links_have_nav_link_class(self) -> None:
+        """Nav links have the 'nav-link' class for JS selection."""
+        client = _make_client()
+        response = client.get("/")
+        assert "nav-link" in response.text
