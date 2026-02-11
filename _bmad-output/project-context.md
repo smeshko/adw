@@ -22,6 +22,11 @@ _Critical rules and patterns for implementing adw-sdk. Read this before writing 
 | PyYAML | 6.0+ | Config parsing |
 | filelock | latest | Concurrency control |
 | python-ulid | latest | Run ID generation |
+| FastAPI | latest | Server framework (webhook + dashboard) |
+| Jinja2 | 3.1.6 | Template engine for dashboard |
+| HTMX | 2.0.8 | Hypermedia interactions (vendored) |
+| DaisyUI | 5 | Component library (CDN) |
+| Tailwind CSS | v4 | Utility CSS (CDN) |
 | pytest | latest | Testing |
 | ruff | latest | Linting |
 | mypy | latest | Type checking |
@@ -148,20 +153,25 @@ f = open(path)  # NO - use context manager
 ```
 src/adw/
 ├── cli/           # Typer commands ONLY - no business logic
-├── core/          # Orchestration logic
+├── core/          # Orchestration logic + shared services
 ├── commands/      # Command resolution
 ├── executors/     # LLM abstraction (Protocol-based)
 ├── hooks/         # Shell script execution
 ├── logging/       # Multi-tier logging
 ├── models/        # ALL Pydantic models here
 ├── exceptions.py  # Exception hierarchy
-└── utils/         # Shared utilities
+├── utils/         # Shared utilities
+├── server/        # Shared FastAPI infrastructure (factory, config, middleware)
+├── dashboard/     # Web dashboard (routes, templates, static assets)
+└── webhook/       # Webhook server (routes, providers)
 ```
 
 **Boundary Rules:**
 - CLI layer: Parse input, format output, delegate to core
 - Core layer: All business logic, no CLI dependencies
 - Executors: Protocol-based for testability
+- Dashboard: NEVER imports from webhook — both use shared server/ and core/
+- Server: Shared factory creates app with feature flags; no feature-specific logic
 
 ---
 
@@ -213,6 +223,101 @@ context.model_dump_json()
 
 ---
 
+## Web Dashboard Rules
+
+_Architecture: `architecture-web-dashboard.md`. These rules apply to all code in `server/`, `dashboard/`, and related templates._
+
+### Dual-Response Pattern (MANDATORY for all page routes)
+
+```python
+@router.get("/runs/{run_id}")
+async def run_detail(
+    request: Request,
+    run_id: str,
+    index: IndexManager = Depends(get_index_manager),
+) -> HTMLResponse:
+    run = index.get_run(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    context = {"run": run, "request": request}
+    template = "pages/run_detail.html"
+    if request.headers.get("HX-Request"):
+        return templates.TemplateResponse(template, context)
+    return templates.TemplateResponse("base.html", {**context, "page_template": template})
+```
+
+### Route Organization
+
+| Category | File | Response Type |
+|----------|------|--------------|
+| Page routes | `dashboard/routes.py` | Dual-response (full page or fragment) |
+| Partial routes | `dashboard/partials.py` | Always HTML fragment |
+| SSE routes | `dashboard/sse.py` | `StreamingResponse` |
+| Mutation routes | `dashboard/mutations.py` | Redirect or HTMX swap |
+
+### Data Access — Always via Depends()
+
+```python
+# CORRECT
+@router.get("/")
+async def overview(
+    index: IndexManager = Depends(get_index_manager),
+    stats: StatsAggregator = Depends(get_stats_aggregator),
+): ...
+
+# WRONG — direct import in route handler
+index = IndexManager()  # NO
+```
+
+### Template Context — Plain Dicts
+
+```python
+# CORRECT
+context = {"runs": index.get_recent_runs(), "request": request}
+
+# WRONG — no Pydantic models for template context
+class OverviewContext(BaseModel): ...  # NO
+```
+
+### Dashboard Error Handling — HTML Only
+
+```python
+# Dashboard routes NEVER return JSON errors
+# HTMX requests → HTML error banner fragment
+# Full page requests → HTML error page
+```
+
+### Naming Conventions (Dashboard-Specific)
+
+- Template files: `snake_case.html` (match route function name)
+- SSE event names: `kebab-case` (e.g., `phase-update`, `run-complete`)
+- Custom CSS classes: `kebab-case` (e.g., `chart-bar`, `phase-active`)
+- HTMX target IDs match partial template names
+
+### HTMX Attribute Order
+
+```html
+<div hx-get="/partials/active-runs"
+     hx-trigger="every 3s"
+     hx-target="#active-runs"
+     hx-swap="outerHTML"
+     hx-indicator="#loading">
+```
+
+Order: action → trigger → target → swap → push-url (if nav) → indicator
+
+### SSE Events Carry HTML Fragments
+
+```python
+# CORRECT — SSE data is rendered HTML
+yield f"event: phase-update\ndata: {html_fragment}\n\n"
+
+# WRONG — SSE data is JSON
+yield f"event: phase-update\ndata: {json.dumps(data)}\n\n"  # NO
+```
+
+---
+
 ## Anti-Patterns to Avoid
 
 | Don't | Do Instead |
@@ -225,6 +330,12 @@ context.model_dump_json()
 | Manual file cleanup | Context managers |
 | Untyped functions | Full type annotations |
 | `def run(phases=[])` | `def run(phases=None)` |
+| JSON from dashboard routes | HTML (full page or fragment) |
+| Pydantic models for template context | Plain dicts with existing model objects |
+| `hx-push-url` on polling | Only on navigation actions |
+| Import from `webhook/` in dashboard | Use shared `server/` and `core/` |
+| Inline styles for layout | Tailwind utility classes |
+| Mix route categories in one file | Separate pages, partials, SSE, mutations |
 
 ---
 
@@ -258,7 +369,15 @@ def execute(self, prompt: str) -> LLMResult:
 6. [ ] Tests in correct location?
 7. [ ] Following naming conventions?
 
+**Before writing dashboard code, also verify:**
+8. [ ] Page routes use dual-response pattern?
+9. [ ] Data access via `Depends()` only?
+10. [ ] Template context is plain dict (no Pydantic)?
+11. [ ] Routes in correct file (pages/partials/SSE/mutations)?
+12. [ ] No imports from `webhook/`?
+13. [ ] Error responses are HTML, not JSON?
+
 ---
 
-_Last updated: 2025-12-31_
-_Source: architecture.md_
+_Last updated: 2026-02-11_
+_Sources: architecture.md, architecture-web-dashboard.md_
