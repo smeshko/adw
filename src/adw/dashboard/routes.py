@@ -381,7 +381,7 @@ def _build_run_detail_context(
 
     # Duration
     if completed_at and started_at:
-        delta_seconds = int((completed_at - started_at).total_seconds())
+        delta_seconds = max(0, int((completed_at - started_at).total_seconds()))
         duration_display = _format_duration_from_seconds(delta_seconds)
     elif started_at:
         elapsed = int((datetime.now(UTC) - started_at).total_seconds())
@@ -416,8 +416,10 @@ def _build_run_detail_context(
     # Linear link (if task_id present and task_manager is linear)
     linear_url: str | None = None
     if task_id and task_manager == "linear":
-        # Linear URLs use the issue identifier format
-        linear_url = f"https://linear.app/issue/{task_id}"
+        # Extract team key from identifier (e.g., "ADW" from "ADW-17")
+        team_key = task_id.split("-")[0].lower() if "-" in task_id else ""
+        if team_key:
+            linear_url = f"https://linear.app/{team_key}/issue/{task_id}"
 
     return {
         "run_id": run_id,
