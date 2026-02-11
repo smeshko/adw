@@ -228,7 +228,7 @@ async def runs_list(
 
     context["runs"] = build_recent_runs_context(paginated["entries"])
     context["total_count"] = paginated["total_count"]
-    context["page"] = paginated["page"]
+    context["current_page"] = paginated["page"]
     context["total_pages"] = paginated["total_pages"]
     context["sort"] = sort
     context["status_filter"] = status_filter

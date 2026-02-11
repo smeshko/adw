@@ -4,7 +4,7 @@
 {% import "components/status_badge.html" as badge %}
 
 {#- Macro to build /runs URL preserving current filter/sort/page params -#}
-{% macro runs_url(p=page, s=sort, st=status_filter, proj=project_filter, fd=from_date, td=to_date) -%}
+{% macro runs_url(p=current_page, s=sort, st=status_filter, proj=project_filter, fd=from_date, td=to_date) -%}
 /runs?page={{ p }}&sort={{ s }}
 {%- if st %}&status={{ st | urlencode }}{% endif %}
 {%- if proj %}&project={{ proj | urlencode }}{% endif %}
@@ -75,7 +75,7 @@
 <div class="flex justify-center mt-4">
   <div class="join">
     {# First page #}
-    {% if page > 1 %}
+    {% if current_page > 1 %}
     <a hx-get="{{ runs_url(p=1) }}"
        hx-target="#runs-content"
        hx-swap="innerHTML"
@@ -86,19 +86,19 @@
     {% endif %}
 
     {# Previous page #}
-    {% if page > 1 %}
-    <a hx-get="{{ runs_url(p=page - 1) }}"
+    {% if current_page > 1 %}
+    <a hx-get="{{ runs_url(p=current_page - 1) }}"
        hx-target="#runs-content"
        hx-swap="innerHTML"
-       hx-push-url="{{ runs_url(p=page - 1) }}"
+       hx-push-url="{{ runs_url(p=current_page - 1) }}"
        class="join-item btn btn-sm">‹</a>
     {% else %}
     <button class="join-item btn btn-sm btn-disabled" disabled>‹</button>
     {% endif %}
 
     {# Page numbers with ellipsis #}
-    {% set start_page = [1, page - 2] | max %}
-    {% set end_page = [total_pages, page + 2] | min %}
+    {% set start_page = [1, current_page - 2] | max %}
+    {% set end_page = [total_pages, current_page + 2] | min %}
 
     {% if start_page > 1 %}
     <a hx-get="{{ runs_url(p=1) }}"
@@ -112,7 +112,7 @@
     {% endif %}
 
     {% for p in range(start_page, end_page + 1) %}
-    {% if p == page %}
+    {% if p == current_page %}
     <button class="join-item btn btn-sm btn-active">{{ p }}</button>
     {% else %}
     <a hx-get="{{ runs_url(p=p) }}"
@@ -135,18 +135,18 @@
     {% endif %}
 
     {# Next page #}
-    {% if page < total_pages %}
-    <a hx-get="{{ runs_url(p=page + 1) }}"
+    {% if current_page < total_pages %}
+    <a hx-get="{{ runs_url(p=current_page + 1) }}"
        hx-target="#runs-content"
        hx-swap="innerHTML"
-       hx-push-url="{{ runs_url(p=page + 1) }}"
+       hx-push-url="{{ runs_url(p=current_page + 1) }}"
        class="join-item btn btn-sm">›</a>
     {% else %}
     <button class="join-item btn btn-sm btn-disabled" disabled>›</button>
     {% endif %}
 
     {# Last page #}
-    {% if page < total_pages %}
+    {% if current_page < total_pages %}
     <a hx-get="{{ runs_url(p=total_pages) }}"
        hx-target="#runs-content"
        hx-swap="innerHTML"
