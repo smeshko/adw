@@ -198,3 +198,10 @@ This guide helps you find relevant documentation based on what you're working on
     - When loading RunContext data for enriched display on dashboard run detail pages
     - When adding context-aware back navigation between dashboard pages
     - When displaying full metadata cards with clipboard copy functionality in the dashboard
+- docs/features/runs-filter-bar-status-project-date.md
+  - Conditions:
+    - When adding filter controls to dashboard list pages
+    - When implementing HTMX filter bars that persist across table-only swaps
+    - When combining multiple filter params with hx-include for HTMX requests
+    - When adding "Clear all" reset functionality to filtered dashboard views
+    - When syncing filter state between global header controls and page-level filters
