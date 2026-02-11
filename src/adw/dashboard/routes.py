@@ -92,6 +92,7 @@ async def overview(
     whether the request came from HTMX.
     """
     from adw.dashboard.partials import (
+        _load_active_run_details,
         build_recent_runs_context,
         build_stats_context,
     )
@@ -116,6 +117,12 @@ async def overview(
     # Add project breakdown data — always unfiltered so all cards are visible
     all_stats = stats_aggregator.get_global_stats(project_name=None)  # type: ignore[union-attr]
     context["project_stats"] = all_stats.projects  # type: ignore[union-attr]
+
+    # Add active runs data for the active runs section
+    active_entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
+        status="running", project_name=project_name
+    )
+    context["active_runs"] = _load_active_run_details(active_entries)
 
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "partials/overview.html", context)

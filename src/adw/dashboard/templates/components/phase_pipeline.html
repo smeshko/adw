@@ -1,0 +1,16 @@
+{#
+  Phase Pipeline Component
+  Usage: {% import "components/phase_pipeline.html" as pipeline %}
+         {{ pipeline.phase_pipeline(phases) }}
+
+  Args:
+    phases: list of dicts with keys "name" (str) and "status" ("completed"|"active"|"pending")
+#}
+
+{% macro phase_pipeline(phases) -%}
+<ul class="steps steps-horizontal text-xs">
+  {%- for phase in phases %}
+  <li data-content="{{ '✓' if phase.status == 'completed' else '●' if phase.status == 'active' else '' }}" class="step{{ ' step-success' if phase.status == 'completed' else ' step-warning' if phase.status == 'active' else '' }}{{ ' phase-active' if phase.status == 'active' else '' }}">{{ phase.name }}</li>
+  {%- endfor %}
+</ul>
+{%- endmacro %}
