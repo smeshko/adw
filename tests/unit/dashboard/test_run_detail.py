@@ -1330,6 +1330,62 @@ class TestArtifactViewerRoute:
         assert "prose" in response.text
 
 
+# ── Helper Function Tests (New) ─────────────────────────────────────
+
+
+class TestFormatFileSize:
+    """Tests for _format_file_size helper."""
+
+    def test_bytes(self) -> None:
+        """Small files show bytes."""
+        from adw.dashboard.routes import _format_file_size
+
+        assert _format_file_size(512) == "512 B"
+
+    def test_kilobytes(self) -> None:
+        """Medium files show KB."""
+        from adw.dashboard.routes import _format_file_size
+
+        assert _format_file_size(2048) == "2.0 KB"
+
+    def test_megabytes(self) -> None:
+        """Large files show MB."""
+        from adw.dashboard.routes import _format_file_size
+
+        assert _format_file_size(1048576) == "1.0 MB"
+
+
+class TestFindRunEntry:
+    """Tests for _find_run_entry helper."""
+
+    def test_finds_existing_run(self) -> None:
+        """Returns entry when run exists."""
+        from adw.dashboard.routes import _find_run_entry
+
+        entry = _make_index_entry()
+        mock_im = _mock_index_manager(entries=[entry])
+        result = _find_run_entry(mock_im, entry.run_id)
+        assert result is not None
+        assert result.run_id == entry.run_id
+
+    def test_returns_none_for_missing_run(self) -> None:
+        """Returns None when run not found."""
+        from adw.dashboard.routes import _find_run_entry
+
+        mock_im = _mock_index_manager(entries=[])
+        result = _find_run_entry(mock_im, "01HQXK5P3Z7V8R2M4N6T9W1Y00")
+        assert result is None
+
+    def test_handles_exception_gracefully(self) -> None:
+        """Returns None when index manager throws."""
+        from adw.dashboard.routes import _find_run_entry
+
+        mock_im = MagicMock()
+        mock_im.get_recent_runs.side_effect = RuntimeError("db error")
+        result = _find_run_entry(mock_im, "test-id")
+        assert result is None
+
+
 class TestFormatDurationFromSeconds:
     """Tests for _format_duration_from_seconds helper."""
 
