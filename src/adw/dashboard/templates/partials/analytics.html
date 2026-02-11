@@ -130,6 +130,64 @@
     </div>
     {% endif %}
 
+    {# ── Breakdown Panels ── #}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+
+      {# By Project #}
+      {% if project_breakdown %}
+      <div class="card card-bordered bg-base-100 p-4">
+        <h3 class="text-base font-semibold mb-3">By Project</h3>
+        {% for proj in project_breakdown %}
+        <div class="flex items-center gap-2 mb-2">
+          <a class="w-24 text-sm truncate link link-hover"
+             hx-get="/analytics?range={{ selected_range }}{% if proj.name %}&project={{ proj.name | urlencode }}{% endif %}"
+             hx-target="#analytics"
+             hx-swap="outerHTML"
+             hx-push-url="/analytics?range={{ selected_range }}&project={{ proj.name | urlencode }}">{{ proj.name }}</a>
+          <div class="flex-1 bg-base-300 rounded-full h-4">
+            <div class="bg-primary rounded-full h-4" style="width: {{ proj.percentage }}%"></div>
+          </div>
+          <span class="w-12 text-right text-sm font-mono">{{ proj.percentage }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# By Phase #}
+      {% if phase_breakdown %}
+      <div class="card card-bordered bg-base-100 p-4">
+        <h3 class="text-base font-semibold mb-3">By Phase</h3>
+        {% for phase in phase_breakdown %}
+        <div class="flex items-center gap-2 mb-2">
+          <span class="w-24 text-sm truncate">{{ phase.name }}</span>
+          <div class="flex-1 bg-base-300 rounded-full h-4">
+            <div class="bg-primary rounded-full h-4" style="width: {{ phase.percentage }}%"></div>
+          </div>
+          <span class="w-12 text-right text-sm font-mono">{{ phase.percentage }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+
+    {# ── By Model ── #}
+    {% if model_breakdown %}
+    <div class="card card-bordered bg-base-100 p-4 mb-6">
+      <h3 class="text-base font-semibold mb-3">By Model</h3>
+      {% for model in model_breakdown %}
+      <div class="flex items-center gap-2 mb-2">
+        <span class="w-32 text-sm truncate">{{ model.name }}</span>
+        <div class="flex-1 bg-base-300 rounded-full h-4">
+          <div class="bg-primary rounded-full h-4" style="width: {{ model.percentage }}%"></div>
+        </div>
+        <span class="w-12 text-right text-sm font-mono">{{ model.percentage }}%</span>
+        <span class="w-16 text-right text-sm font-mono text-base-content/60">{{ model.cost_display }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     {% endif %}
 
   </div>
