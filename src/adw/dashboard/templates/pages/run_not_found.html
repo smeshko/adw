@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Run Not Found — ADW Dashboard{% endblock %}
+
+{% block content %}
+<div class="flex justify-center items-center min-h-[40vh]">
+  <div class="card bg-base-100 shadow-sm p-8 text-center max-w-lg">
+    <p class="text-base-content/70 mb-4">Run not found. It may have been deleted.</p>
+    <a hx-get="/" hx-target="#main" hx-push-url="/"
+       class="btn btn-ghost btn-sm">&larr; Back to Overview</a>
+  </div>
+</div>
+{% endblock %}

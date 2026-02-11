@@ -200,6 +200,64 @@ async def analytics(
     return templates.TemplateResponse(request, "pages/analytics.html", context)
 
 
+_RUN_NOT_FOUND_FRAGMENT = (
+    '<div class="flex justify-center items-center min-h-[40vh]">'
+    '<div class="card bg-base-100 shadow-sm p-8 text-center max-w-lg">'
+    '<p class="text-base-content/70 mb-4">Run not found. It may have been deleted.</p>'
+    '<a hx-get="/" hx-target="#main" hx-push-url="/" '
+    'class="btn btn-ghost btn-sm">&larr; Back to Overview</a>'
+    '</div></div>'
+)
+
+
+@router.get("/runs/{run_id}", response_class=HTMLResponse)
+async def run_detail(
+    request: Request,
+    run_id: str,
+    index_manager: object = Depends(get_index_manager),
+    project_registry: object = Depends(get_project_registry),
+) -> HTMLResponse:
+    """Render run detail page, or a 404 message if not found."""
+    templates = request.app.state.templates
+
+    # Look up the run in the index
+    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    run_entry = None
+    for entry in all_runs:
+        if entry.run_id == run_id:
+            run_entry = entry
+            break
+
+    if run_entry is None:
+        if request.headers.get("HX-Request"):
+            return HTMLResponse(content=_RUN_NOT_FOUND_FRAGMENT, status_code=404)
+        # Full page: wrap in base template
+        context = _build_page_context(
+            request, "",
+            index_manager=index_manager,
+            project_registry=project_registry,
+            project="",
+        )
+        context["run_not_found"] = True
+        return templates.TemplateResponse(
+            request, "pages/run_not_found.html", context, status_code=404,
+        )
+
+    # For now, redirect to runs list (run detail page is a later story)
+    if request.headers.get("HX-Request"):
+        return HTMLResponse(content=_RUN_NOT_FOUND_FRAGMENT, status_code=404)
+    context = _build_page_context(
+        request, "",
+        index_manager=index_manager,
+        project_registry=project_registry,
+        project="",
+    )
+    context["run_not_found"] = True
+    return templates.TemplateResponse(
+        request, "pages/run_not_found.html", context, status_code=404,
+    )
+
+
 @router.get("/health")
 async def health() -> dict[str, str]:
     """Dashboard health check."""
