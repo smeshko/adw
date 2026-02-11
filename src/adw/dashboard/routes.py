@@ -7,17 +7,24 @@ handled in ``partials.py``.
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 
+from adw.core.constants import PHASE_SEQUENCE
+from adw.core.context_manager import ContextManager
 from adw.dashboard.dependencies import (
     generate_csrf_token,
     get_index_manager,
     get_project_registry,
     get_stats_aggregator,
 )
+from adw.exceptions import StateError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -242,6 +249,216 @@ _RUN_NOT_FOUND_FRAGMENT = (
 )
 
 
+# Display labels for each phase in the pipeline
+_PHASE_LABELS: dict[str, str] = {
+    "plan": "Plan",
+    "build": "Build",
+    "validate": "Valid",
+    "document": "Doc",
+    "ship": "Ship",
+}
+
+
+def _build_detail_phase_pipeline(
+    *,
+    phases_completed: list[str],
+    current_phase: str | None,
+    status: str,
+    phase_durations: dict[str, int] | None = None,
+) -> list[dict[str, str]]:
+    """Build phase pipeline data for the run detail page.
+
+    Includes duration information for each phase when available.
+
+    Args:
+        phases_completed: List of phase names that completed successfully.
+        current_phase: The currently active phase name.
+        status: The run status (used to determine failed phase).
+        phase_durations: Optional mapping of phase name to duration in ms.
+
+    Returns:
+        List of dicts with 'name', 'status', and 'duration' for each phase.
+    """
+    completed_set = set(phases_completed)
+    durations = phase_durations or {}
+    pipeline: list[dict[str, str]] = []
+
+    for phase in PHASE_SEQUENCE:
+        if phase in completed_set:
+            phase_status = "completed"
+        elif phase == current_phase:
+            if status == "running":
+                phase_status = "active"
+            elif status in ("failed", "aborted"):
+                phase_status = "failed"
+            else:
+                # completed/interrupted: treat current phase as completed
+                phase_status = "completed"
+        else:
+            phase_status = "pending"
+
+        duration_ms = durations.get(phase)
+        if duration_ms is not None:
+            total_seconds = duration_ms // 1000
+            minutes = total_seconds // 60
+            seconds = total_seconds % 60
+            duration_display = f"{minutes}m {seconds}s"
+        else:
+            duration_display = ""
+
+        pipeline.append({
+            "name": _PHASE_LABELS.get(phase, phase.capitalize()),
+            "status": phase_status,
+            "duration": duration_display,
+        })
+    return pipeline
+
+
+def _format_duration_from_seconds(total_seconds: int) -> str:
+    """Format seconds as 'Xm Ys' or 'Xh Ym'."""
+    if total_seconds < 60:
+        return f"0m {total_seconds}s"
+    minutes = total_seconds // 60
+    seconds = total_seconds % 60
+    if minutes < 60:
+        return f"{minutes}m {seconds}s"
+    hours = minutes // 60
+    remaining_minutes = minutes % 60
+    return f"{hours}h {remaining_minutes}m"
+
+
+def _build_run_detail_context(
+    run_entry: object,
+    request: Request,
+) -> dict:
+    """Build the template context for the run detail page.
+
+    Attempts to load RunContext from disk for enriched data.
+    Falls back to IndexEntry data if RunContext is unavailable.
+
+    Args:
+        run_entry: An IndexEntry from the global index.
+        request: The current FastAPI request.
+
+    Returns:
+        Dict with all template variables for run_detail.html.
+    """
+    from adw.dashboard.partials import _format_tokens
+
+    run_id = run_entry.run_id  # type: ignore[union-attr]
+    project_name = run_entry.project_name  # type: ignore[union-attr]
+    feature = run_entry.feature_description  # type: ignore[union-attr]
+    status = run_entry.status  # type: ignore[union-attr]
+    started_at = run_entry.started_at  # type: ignore[union-attr]
+    completed_at = run_entry.completed_at  # type: ignore[union-attr]
+    phases_completed = list(run_entry.phases_completed)  # type: ignore[union-attr]
+    current_phase = run_entry.phase_reached  # type: ignore[union-attr]
+
+    # Enriched data from RunContext (populated below if available)
+    branch_name: str | None = None
+    total_tokens: int = 0
+    estimated_cost: float = 0.0
+    pr_url: str | None = None
+    task_id: str | None = None
+    task_manager: str | None = None
+    artifacts_path: str | None = None
+
+    # Try loading RunContext for enriched data
+    try:
+        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        runs_dir = project_path / ".adw" / "runs"
+        cm = ContextManager(runs_dir)
+        ctx = cm.load(run_id)
+        # Override with live data
+        current_phase = ctx.current_phase
+        phases_completed = list(ctx.phase_history)
+        branch_name = ctx.branch_name
+        total_tokens = ctx.total_tokens
+        pr_url = ctx.pr_url
+        task_id = ctx.task_id
+        task_manager = ctx.task_manager
+
+        # Estimate cost at $3/$15 per 1M input/output tokens (approximate)
+        estimated_cost = total_tokens * 0.000009  # rough average
+
+        # Artifacts path
+        if ctx.worktree_path:
+            artifacts_path = str(ctx.worktree_path / ".adw" / "runs" / run_id / "artifacts")
+        else:
+            artifacts_path = str(runs_dir / run_id / "artifacts")
+    except (StateError, OSError):
+        logger.debug(
+            "RunContext unavailable for detail page, using IndexEntry fallback",
+            extra={"run_id": run_id},
+        )
+
+    # Duration
+    if completed_at and started_at:
+        delta_seconds = max(0, int((completed_at - started_at).total_seconds()))
+        duration_display = _format_duration_from_seconds(delta_seconds)
+    elif started_at:
+        elapsed = int((datetime.now(UTC) - started_at).total_seconds())
+        duration_display = _format_duration_from_seconds(elapsed)
+    else:
+        duration_display = "—"
+
+    # Truncated run ID (first 8 chars)
+    run_id_short = run_id[:8] + "…"
+
+    # Back link: determine from Referer or ?from= param
+    from_param = request.query_params.get("from", "")
+    referer = request.headers.get("referer", "")
+
+    if from_param == "runs":
+        back_label = "Back to Runs"
+        back_url = "/runs"
+    elif "/runs" in referer and f"/runs/{run_id}" not in referer:
+        back_label = "Back to Runs"
+        back_url = "/runs"
+    else:
+        back_label = "Back to Overview"
+        back_url = "/"
+
+    # Build phase pipeline (phase durations not yet tracked in RunContext)
+    phases = _build_detail_phase_pipeline(
+        phases_completed=phases_completed,
+        current_phase=current_phase,
+        status=status,
+    )
+
+    # Linear link (if task_id present and task_manager is linear)
+    linear_url: str | None = None
+    if task_id and task_manager == "linear":
+        # Extract team key from identifier (e.g., "ADW" from "ADW-17")
+        team_key = task_id.split("-")[0].lower() if "-" in task_id else ""
+        if team_key:
+            linear_url = f"https://linear.app/{team_key}/issue/{task_id}"
+
+    return {
+        "run_id": run_id,
+        "run_id_short": run_id_short,
+        "project_name": project_name,
+        "feature": feature,
+        "status": status,
+        "started_at": started_at,
+        "completed_at": completed_at,
+        "started_ago": _relative_time(started_at),
+        "duration_display": duration_display,
+        "branch_name": branch_name,
+        "total_tokens": total_tokens,
+        "tokens_display": _format_tokens(total_tokens) if total_tokens else "—",
+        "estimated_cost": f"${estimated_cost:.2f}" if estimated_cost > 0 else "—",
+        "pr_url": pr_url,
+        "linear_url": linear_url,
+        "task_id": task_id,
+        "artifacts_path": artifacts_path,
+        "phases": phases,
+        "back_label": back_label,
+        "back_url": back_url,
+        "is_active": status == "running",
+    }
+
+
 @router.get("/runs/{run_id}", response_class=HTMLResponse)
 async def run_detail(
     request: Request,
@@ -253,7 +470,11 @@ async def run_detail(
     templates = request.app.state.templates
 
     # Look up the run in the index
-    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    try:
+        all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    except Exception:
+        logger.exception("Failed to query index for run detail", extra={"run_id": run_id})
+        all_runs = []
     run_entry = None
     for entry in all_runs:
         if entry.run_id == run_id:
@@ -263,7 +484,6 @@ async def run_detail(
     if run_entry is None:
         if request.headers.get("HX-Request"):
             return HTMLResponse(content=_RUN_NOT_FOUND_FRAGMENT, status_code=404)
-        # Full page: wrap in base template
         context = _build_page_context(
             request, "",
             index_manager=index_manager,
@@ -275,18 +495,25 @@ async def run_detail(
             request, "pages/run_not_found.html", context, status_code=404,
         )
 
-    # For now, redirect to runs list (run detail page is a later story)
+    # Build run detail context
+    detail_context = _build_run_detail_context(run_entry, request)
+
     if request.headers.get("HX-Request"):
-        return HTMLResponse(content=_RUN_NOT_FOUND_FRAGMENT, status_code=404)
+        detail_context["request"] = request
+        return templates.TemplateResponse(
+            request, "partials/run_detail.html", detail_context,
+        )
+
+    # Full page: merge with base page context
     context = _build_page_context(
-        request, "",
+        request, "run_detail",
         index_manager=index_manager,
         project_registry=project_registry,
         project="",
     )
-    context["run_not_found"] = True
+    context.update(detail_context)
     return templates.TemplateResponse(
-        request, "pages/run_not_found.html", context, status_code=404,
+        request, "pages/run_detail.html", context,
     )
 
 

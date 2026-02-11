@@ -179,3 +179,9 @@ This guide helps you find relevant documentation based on what you're working on
     - When extracting shared logic from webhook module to core for dashboard use
     - When implementing HTMX form validation with inline error re-rendering in the dashboard
     - When triggering ADW runs programmatically from new entry points
+- docs/features/run-detail-page-layout-metadata.md
+  - Conditions:
+    - When implementing a new detail or drill-down page in the dashboard
+    - When loading RunContext data for enriched display on dashboard run detail pages
+    - When adding context-aware back navigation between dashboard pages
+    - When displaying full metadata cards with clipboard copy functionality in the dashboard
