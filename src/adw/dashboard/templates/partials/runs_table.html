@@ -1,0 +1,162 @@
+{# Runs table partial — HTMX swap target for filter/sort/pagination changes.
+   Includes summary line, data table, and pagination controls.
+   Swapped into #runs-content by sort dropdown and pagination links. #}
+{% import "components/status_badge.html" as badge %}
+
+{#- Macro to build /runs URL preserving current filter/sort/page params -#}
+{% macro runs_url(p=page, s=sort, st=status_filter, proj=project_filter, fd=from_date, td=to_date) -%}
+/runs?page={{ p }}&sort={{ s }}
+{%- if st %}&status={{ st | urlencode }}{% endif %}
+{%- if proj %}&project={{ proj | urlencode }}{% endif %}
+{%- if fd %}&from={{ fd | urlencode }}{% endif %}
+{%- if td %}&to={{ td | urlencode }}{% endif %}
+{%- endmacro %}
+
+{# ── Summary Line ────────────────────────────────────────── #}
+<div class="flex items-center justify-between mb-3">
+  <span class="text-sm text-base-content/70">Showing {{ total_count }} run{{ "s" if total_count != 1 }}</span>
+  <select class="select select-bordered select-xs"
+          hx-get="{{ runs_url(p=1) }}"
+          hx-trigger="change"
+          hx-target="#runs-content"
+          hx-swap="innerHTML"
+          hx-push-url="{{ runs_url(p=1) }}"
+          name="sort"
+          hx-include="this">
+    <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest</option>
+    <option value="oldest" {% if sort == "oldest" %}selected{% endif %}>Oldest</option>
+    <option value="duration_longest" {% if sort == "duration_longest" %}selected{% endif %}>Duration (longest)</option>
+    <option value="duration_shortest" {% if sort == "duration_shortest" %}selected{% endif %}>Duration (shortest)</option>
+    <option value="project_az" {% if sort == "project_az" %}selected{% endif %}>Project (A-Z)</option>
+  </select>
+</div>
+
+{# ── Runs Table ──────────────────────────────────────────── #}
+{% if runs %}
+<div class="overflow-x-auto">
+  <table class="table table-zebra table-sm hover">
+    <thead>
+      <tr>
+        <th class="w-28">Project</th>
+        <th>Feature</th>
+        <th class="w-24">Status</th>
+        <th class="w-24">Duration</th>
+        <th class="w-28">Started</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for run in runs %}
+      <tr hx-get="/runs/{{ run.run_id | urlencode }}"
+          hx-target="#main"
+          hx-push-url="/runs/{{ run.run_id | urlencode }}"
+          class="hover cursor-pointer">
+        <td class="text-sm w-28">{{ run.project_name }}</td>
+        <td class="text-sm text-base-content/70 truncate">{{ run.feature_description }}</td>
+        <td class="w-24">{{ badge.status_badge(run.status) }}</td>
+        <td class="font-mono text-xs w-24">{{ run.duration_display }}</td>
+        <td class="text-xs text-base-content/50 w-28">{{ run.started_ago }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# ── Pagination ──────────────────────────────────────────── #}
+{% if total_pages > 1 %}
+<div class="flex justify-center mt-4">
+  <div class="join">
+    {# First page #}
+    {% if page > 1 %}
+    <a hx-get="{{ runs_url(p=1) }}"
+       hx-target="#runs-content"
+       hx-swap="innerHTML"
+       hx-push-url="{{ runs_url(p=1) }}"
+       class="join-item btn btn-sm">«</a>
+    {% else %}
+    <button class="join-item btn btn-sm btn-disabled" disabled>«</button>
+    {% endif %}
+
+    {# Previous page #}
+    {% if page > 1 %}
+    <a hx-get="{{ runs_url(p=page - 1) }}"
+       hx-target="#runs-content"
+       hx-swap="innerHTML"
+       hx-push-url="{{ runs_url(p=page - 1) }}"
+       class="join-item btn btn-sm">‹</a>
+    {% else %}
+    <button class="join-item btn btn-sm btn-disabled" disabled>‹</button>
+    {% endif %}
+
+    {# Page numbers with ellipsis #}
+    {% set start_page = [1, page - 2] | max %}
+    {% set end_page = [total_pages, page + 2] | min %}
+
+    {% if start_page > 1 %}
+    <a hx-get="{{ runs_url(p=1) }}"
+       hx-target="#runs-content"
+       hx-swap="innerHTML"
+       hx-push-url="{{ runs_url(p=1) }}"
+       class="join-item btn btn-sm">1</a>
+    {% if start_page > 2 %}
+    <button class="join-item btn btn-sm btn-disabled" disabled>…</button>
+    {% endif %}
+    {% endif %}
+
+    {% for p in range(start_page, end_page + 1) %}
+    {% if p == page %}
+    <button class="join-item btn btn-sm btn-active">{{ p }}</button>
+    {% else %}
+    <a hx-get="{{ runs_url(p=p) }}"
+       hx-target="#runs-content"
+       hx-swap="innerHTML"
+       hx-push-url="{{ runs_url(p=p) }}"
+       class="join-item btn btn-sm">{{ p }}</a>
+    {% endif %}
+    {% endfor %}
+
+    {% if end_page < total_pages %}
+    {% if end_page < total_pages - 1 %}
+    <button class="join-item btn btn-sm btn-disabled" disabled>…</button>
+    {% endif %}
+    <a hx-get="{{ runs_url(p=total_pages) }}"
+       hx-target="#runs-content"
+       hx-swap="innerHTML"
+       hx-push-url="{{ runs_url(p=total_pages) }}"
+       class="join-item btn btn-sm">{{ total_pages }}</a>
+    {% endif %}
+
+    {# Next page #}
+    {% if page < total_pages %}
+    <a hx-get="{{ runs_url(p=page + 1) }}"
+       hx-target="#runs-content"
+       hx-swap="innerHTML"
+       hx-push-url="{{ runs_url(p=page + 1) }}"
+       class="join-item btn btn-sm">›</a>
+    {% else %}
+    <button class="join-item btn btn-sm btn-disabled" disabled>›</button>
+    {% endif %}
+
+    {# Last page #}
+    {% if page < total_pages %}
+    <a hx-get="{{ runs_url(p=total_pages) }}"
+       hx-target="#runs-content"
+       hx-swap="innerHTML"
+       hx-push-url="{{ runs_url(p=total_pages) }}"
+       class="join-item btn btn-sm">»</a>
+    {% else %}
+    <button class="join-item btn btn-sm btn-disabled" disabled>»</button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+{# ── Empty State ─────────────────────────────────────────── #}
+<div class="text-center py-12">
+  <p class="text-base-content/50 mb-4">No runs match your filters.</p>
+  <a hx-get="/runs"
+     hx-target="#main"
+     hx-push-url="/runs"
+     class="btn btn-ghost btn-sm">Clear filters</a>
+</div>
+{% endif %}
