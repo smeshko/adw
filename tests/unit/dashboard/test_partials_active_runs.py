@@ -462,8 +462,15 @@ class TestActiveRunsInOverview:
         """Overview page with no active runs shows empty active runs div."""
         from adw.dashboard.dependencies import get_index_manager
 
+        entry = _make_index_entry()
         mock_im = MagicMock()
-        mock_im.get_recent_runs.return_value = []
+
+        def get_recent_side_effect(**kwargs):
+            if kwargs.get("status") == "running":
+                return []  # No active runs
+            return [entry]  # Has runs (for has_runs check)
+
+        mock_im.get_recent_runs.side_effect = get_recent_side_effect
 
         app = create_dashboard_app()
         app.dependency_overrides[get_index_manager] = lambda: mock_im

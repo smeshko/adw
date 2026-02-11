@@ -91,6 +91,8 @@
     {% block content %}{% endblock %}
   </main>
 
+  <div id="modal-container"></div>
+
   <footer id="status-bar" class="footer footer-center p-2 bg-base-100 text-base-content/60 text-xs">
     <div class="flex items-center gap-4"
          hx-get="/partials/status-bar{% if selected_project %}?project={{ selected_project }}{% endif %}"

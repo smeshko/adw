@@ -17,6 +17,7 @@ from fastapi import Depends, HTTPException, Request, status
 if TYPE_CHECKING:
     from adw.core.index_manager import IndexManager
     from adw.core.project_registry import ProjectRegistryManager
+    from adw.core.run_trigger import RunTrigger
     from adw.core.stats_aggregator import StatsAggregator
 
 # ── CSRF ────────────────────────────────────────────────────────────────────
@@ -121,3 +122,10 @@ def get_project_registry() -> ProjectRegistryManager:
     from adw.core.project_registry import ProjectRegistryManager as _PRM
 
     return _PRM()
+
+
+def get_run_trigger() -> RunTrigger:
+    """Provide a RunTrigger instance via Depends()."""
+    from adw.core.run_trigger import RunTrigger as _RT
+
+    return _RT()
