@@ -463,6 +463,7 @@ def _build_run_detail_context(
     task_id: str | None = None
     task_manager: str | None = None
     artifacts_path: str | None = None
+    phase_tokens: dict[str, int] = {}
 
     # Try loading RunContext for enriched data
     try:
@@ -478,6 +479,7 @@ def _build_run_detail_context(
         pr_url = ctx.pr_url
         task_id = ctx.task_id
         task_manager = ctx.task_manager
+        phase_tokens = dict(ctx.phase_tokens)
 
         # Estimate cost at $3/$15 per 1M input/output tokens (approximate)
         estimated_cost = total_tokens * 0.000009  # rough average
@@ -527,6 +529,44 @@ def _build_run_detail_context(
         status=status,
     )
 
+    # Build per-phase detail data for accordion section
+    completed_set = set(phases_completed)
+    all_phases_with_data = list(completed_set)
+    if current_phase and current_phase not in completed_set:
+        all_phases_with_data.append(current_phase)
+
+    phases_detail: list[dict] = []
+    for phase_key in PHASE_SEQUENCE:
+        if phase_key not in all_phases_with_data:
+            continue
+        tokens = phase_tokens.get(phase_key, 0)
+        cost = tokens * 0.000009
+        phase_status = "completed" if phase_key in completed_set else (
+            "active" if phase_key == current_phase and status == "running"
+            else "failed" if phase_key == current_phase and status in ("failed", "aborted")
+            else "completed"
+        )
+        # Status icon
+        if phase_status == "completed":
+            status_icon = "✓"
+        elif phase_status == "active":
+            status_icon = "●"
+        elif phase_status == "failed":
+            status_icon = "✗"
+        else:
+            status_icon = "—"
+
+        phases_detail.append({
+            "phase_key": phase_key,
+            "name": _PHASE_LABELS.get(phase_key, phase_key.capitalize()),
+            "status": phase_status,
+            "status_icon": status_icon,
+            "tokens": tokens,
+            "tokens_display": _format_tokens(tokens) if tokens else "—",
+            "cost_display": f"${cost:.2f}" if cost > 0 else "—",
+            "duration": "",  # Duration per phase not yet tracked
+        })
+
     # Linear link (if task_id present and task_manager is linear)
     linear_url: str | None = None
     if task_id and task_manager == "linear":
@@ -554,6 +594,7 @@ def _build_run_detail_context(
         "task_id": task_id,
         "artifacts_path": artifacts_path,
         "phases": phases,
+        "phases_detail": phases_detail,
         "back_label": back_label,
         "back_url": back_url,
         "is_active": status == "running",

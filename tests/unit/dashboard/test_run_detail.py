@@ -806,6 +806,200 @@ class TestBuildDetailPhasePipeline:
         assert result[1]["duration"] == ""
 
 
+# ── Phase Accordion Context ─────────────────────────────────────────
+
+
+class TestPhaseAccordionContext:
+    """Tests for per-phase data in run detail context (Task 1)."""
+
+    def test_phases_detail_present_when_context_available(self) -> None:
+        """phases_detail list is present in template context."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.branch_name = "feature/test"
+        mock_ctx.total_tokens = 80000
+        mock_ctx.phase_tokens = {"plan": 50000, "build": 30000}
+        mock_ctx.pr_url = None
+        mock_ctx.task_id = None
+        mock_ctx.task_manager = None
+        mock_ctx.worktree_path = None
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        # phases_detail data should populate accordion section
+        assert response.status_code == 200
+        # Check that phase names appear in accordion context
+        assert "Plan" in response.text
+        assert "Build" in response.text
+
+    def test_phases_detail_shows_token_counts(self) -> None:
+        """Per-phase token counts are displayed."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.branch_name = "feature/test"
+        mock_ctx.total_tokens = 80000
+        mock_ctx.phase_tokens = {"plan": 50000, "build": 30000}
+        mock_ctx.pr_url = None
+        mock_ctx.task_id = None
+        mock_ctx.task_manager = None
+        mock_ctx.worktree_path = None
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        # Token counts should appear in accordion (50000 → "50K", 30000 → "30K")
+        assert "50K" in response.text  # plan tokens
+        assert "30K" in response.text  # build tokens
+
+    def test_phases_detail_shows_cost_estimates(self) -> None:
+        """Per-phase cost estimates are displayed."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.branch_name = "feature/test"
+        mock_ctx.total_tokens = 80000
+        mock_ctx.phase_tokens = {"plan": 50000, "build": 30000}
+        mock_ctx.pr_url = None
+        mock_ctx.task_id = None
+        mock_ctx.task_manager = None
+        mock_ctx.worktree_path = None
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        # Cost estimates should appear (50000 * 0.000009 = $0.45)
+        assert "$0.45" in response.text
+        assert "$0.27" in response.text
+
+    def test_phases_detail_includes_phase_key(self) -> None:
+        """Phase accordion uses phase_key for HTMX URLs."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.branch_name = "feature/test"
+        mock_ctx.total_tokens = 80000
+        mock_ctx.phase_tokens = {"plan": 50000, "build": 30000}
+        mock_ctx.pr_url = None
+        mock_ctx.task_id = None
+        mock_ctx.task_manager = None
+        mock_ctx.worktree_path = None
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        # HTMX URLs should use lowercase phase keys
+        assert f"/runs/{entry.run_id}/phases/plan" in response.text
+        assert f"/runs/{entry.run_id}/phases/build" in response.text
+
+    def test_phases_detail_fallback_when_no_context(self) -> None:
+        """phases_detail works with fallback data when RunContext unavailable."""
+        entry = _make_index_entry(
+            phases_completed=["plan", "build"],
+            phase_reached="validate",
+        )
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("not found")
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        # Should still render accordion with phase names
+        assert response.status_code == 200
+        # Accordion section should be present
+        assert "collapse collapse-arrow" in response.text
+
+    def test_accordion_has_collapse_classes(self) -> None:
+        """Phase accordion uses collapse collapse-arrow bg-base-200."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("not found")
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "collapse collapse-arrow bg-base-200" in response.text
+
+    def test_accordion_has_htmx_lazy_loading(self) -> None:
+        """Phase accordion uses hx-trigger='click once' for lazy loading."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("not found")
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        assert 'hx-trigger="click once"' in response.text
+        assert 'hx-swap="innerHTML"' in response.text
+
+    def test_accordion_has_loading_indicator(self) -> None:
+        """Phase accordion includes loading-dots indicator."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("not found")
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "loading loading-dots" in response.text
+
+    def test_artifact_viewer_panel_present(self) -> None:
+        """Artifact viewer target div is present on the page."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("not found")
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        assert 'id="artifact-viewer"' in response.text
+
+
 class TestFormatDurationFromSeconds:
     """Tests for _format_duration_from_seconds helper."""
 

@@ -135,6 +135,38 @@
     </div>
   </div>
 
+  {# ── Phase Accordion ── #}
+  {% if phases_detail %}
+  <div class="mt-6">
+    <h2 class="text-lg font-semibold mb-4">Phases</h2>
+    {% for phase in phases_detail %}
+    <div class="collapse collapse-arrow bg-base-200 mb-2">
+      <input type="checkbox" />
+      <div class="collapse-title">
+        <div class="flex items-center gap-3">
+          <span class="font-semibold">{{ phase.name }}</span>
+          {% if phase.duration %}<span class="font-mono text-sm">{{ phase.duration }}</span>{% endif %}
+          <span class="{{ 'text-success' if phase.status == 'completed' else 'text-warning' if phase.status == 'active' else 'text-error' if phase.status == 'failed' else '' }}">{{ phase.status_icon }}</span>
+          <span class="font-mono text-sm text-base-content/60">{{ phase.tokens_display }}</span>
+          <span class="font-mono text-sm text-base-content/60">{{ phase.cost_display }}</span>
+        </div>
+      </div>
+      <div class="collapse-content"
+           hx-get="/runs/{{ run_id }}/phases/{{ phase.phase_key }}"
+           hx-trigger="click once"
+           hx-swap="innerHTML">
+        <div class="flex justify-center py-4">
+          <span class="loading loading-dots loading-md"></span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ── Artifact Viewer Panel ── #}
+  <div id="artifact-viewer" class="mt-4"></div>
+
 </div>
 
 <script>
