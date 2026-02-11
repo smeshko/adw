@@ -255,6 +255,99 @@ def build_analytics_context(
         runs_delta = total_runs - prev_total_runs
         avg_tokens_delta = avg_tokens_per_run - prev_avg_tokens
 
+    # ── Daily chart bars ──
+    daily_chart_bars: list[dict] = []
+    if has_data:
+        daily_counts = stats_aggregator.get_daily_token_counts(  # type: ignore[union-attr]
+            project_name=project_name, days=days or 30,
+        )
+        max_daily = max(
+            (d["input_tokens"] + d["output_tokens"] for d in daily_counts),
+            default=0,
+        )
+        for d in daily_counts:
+            inp = d["input_tokens"]
+            out = d["output_tokens"]
+            total = inp + out
+            if max_daily > 0:
+                out_h = int((out / max_daily) * 100)
+                inp_h = int((inp / max_daily) * 100)
+                # Ensure the tallest bar sums to exactly 100
+                if total == max_daily:
+                    inp_h = 100 - out_h
+            else:
+                out_h = 0
+                inp_h = 0
+            daily_chart_bars.append({
+                "day_label": _DAY_LABELS[d["date"].weekday()],
+                "output_height": out_h,
+                "input_height": inp_h,
+                "tokens": total,
+            })
+
+    # ── Project breakdown ──
+    project_breakdown: list[dict] = []
+    if has_data:
+        proj_stats = current_stats.projects
+        proj_total = sum(p.tokens.total_tokens for p in proj_stats)
+        sorted_projects = sorted(proj_stats, key=lambda p: p.tokens.total_tokens, reverse=True)
+        for proj in sorted_projects:
+            pct = int((proj.tokens.total_tokens / proj_total) * 100) if proj_total > 0 else 0
+            project_breakdown.append({
+                "name": proj.name,
+                "percentage": pct,
+            })
+
+    # ── Phase breakdown ──
+    _CANONICAL_PHASES = ["plan", "build", "validate", "document", "ship"]
+    _PHASE_DISPLAY = {"plan": "Plan", "build": "Build", "validate": "Validate", "document": "Document", "ship": "Ship"}
+    phase_breakdown: list[dict] = []
+    if has_data:
+        phase_data = stats_aggregator.get_phase_breakdown(  # type: ignore[union-attr]
+            project_name=project_name, since=since,
+        )
+        phase_total = sum(phase_data.values())
+        for phase_key in _CANONICAL_PHASES:
+            tokens_val = phase_data.get(phase_key, 0)
+            if tokens_val > 0:
+                pct = int((tokens_val / phase_total) * 100) if phase_total > 0 else 0
+                phase_breakdown.append({
+                    "name": _PHASE_DISPLAY.get(phase_key, phase_key.capitalize()),
+                    "percentage": pct,
+                })
+
+    # ── Model breakdown ──
+    from adw.models.stats import TokenUsage as _TokenUsage
+
+    model_breakdown: list[dict] = []
+    if has_data:
+        model_data = stats_aggregator.get_model_breakdown(  # type: ignore[union-attr]
+            project_name=project_name, since=since,
+        )
+        model_total_tokens = sum(
+            v["input_tokens"] + v["output_tokens"] for v in model_data.values()
+        )
+        sorted_models = sorted(
+            model_data.items(),
+            key=lambda kv: kv[1]["input_tokens"] + kv[1]["output_tokens"],
+            reverse=True,
+        )
+        for model_name, model_tokens in sorted_models:
+            total_m = model_tokens["input_tokens"] + model_tokens["output_tokens"]
+            pct = int((total_m / model_total_tokens) * 100) if model_total_tokens > 0 else 0
+            cost = stats_aggregator.calculate_cost(  # type: ignore[union-attr]
+                _TokenUsage(
+                    input_tokens=model_tokens["input_tokens"],
+                    output_tokens=model_tokens["output_tokens"],
+                ),
+                model=model_name,
+            )
+            model_breakdown.append({
+                "name": model_name,
+                "percentage": pct,
+                "cost_display": f"${cost:.2f}",
+            })
+
     return {
         "has_analytics_data": has_data,
         # Stat card values
@@ -270,6 +363,11 @@ def build_analytics_context(
         "runs_delta": runs_delta,
         "avg_tokens_delta": avg_tokens_delta,
         "avg_tokens_delta_display": _format_tokens(abs(avg_tokens_delta)),
+        # Chart and breakdown data
+        "daily_chart_bars": daily_chart_bars,
+        "project_breakdown": project_breakdown,
+        "phase_breakdown": phase_breakdown,
+        "model_breakdown": model_breakdown,
     }
 
 

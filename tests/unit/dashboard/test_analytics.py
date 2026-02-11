@@ -32,12 +32,17 @@ def _mock_stats_aggregator_for_analytics(
     prev_total_runs: int = 80,
     prev_tokens: TokenUsage | None = None,
     prev_cost: float = 18.00,
+    daily_counts: list[dict] | None = None,
+    phase_breakdown: dict[str, int] | None = None,
+    model_breakdown: dict[str, dict[str, int]] | None = None,
 ) -> MagicMock:
     """Build a mock StatsAggregator for analytics testing.
 
     When called with since=now-N days, returns current_* stats.
     When called with since=now-2N days, returns combined (prev + current) stats.
     """
+    import datetime as dt_module
+
     mock = MagicMock()
 
     cur_tok = current_tokens or TokenUsage(
@@ -78,6 +83,49 @@ def _mock_stats_aggregator_for_analytics(
         return current_stats
 
     mock.get_global_stats.side_effect = get_global_stats_side_effect
+
+    # Daily token counts with input/output split
+    if daily_counts is not None:
+        mock.get_daily_token_counts.return_value = daily_counts
+    else:
+        now = datetime.now(UTC)
+        mock.get_daily_token_counts.return_value = [
+            {
+                "date": (now - __import__("datetime").timedelta(days=6 - i)).date(),
+                "tokens": 1000 * (i + 1),
+                "input_tokens": 700 * (i + 1),
+                "output_tokens": 300 * (i + 1),
+            }
+            for i in range(7)
+        ]
+
+    # Phase breakdown
+    mock.get_phase_breakdown.return_value = phase_breakdown or {
+        "plan": 5000, "build": 15000, "validate": 3000,
+    }
+
+    # Model breakdown
+    mock.get_model_breakdown.return_value = model_breakdown or {
+        "claude-3-5-sonnet": {"input_tokens": 10000, "output_tokens": 5000},
+        "claude-3-haiku": {"input_tokens": 3000, "output_tokens": 1000},
+    }
+
+    # calculate_cost for model breakdown
+    def calc_cost_side_effect(tokens, model="default"):
+        pricing = {
+            "claude-3-5-sonnet": {"input": 3.00, "output": 15.00},
+            "claude-3-haiku": {"input": 0.25, "output": 1.25},
+            "default": {"input": 3.00, "output": 15.00},
+        }
+        p = pricing.get(model, pricing["default"])
+        return round(
+            (tokens.input_tokens / 1_000_000) * p["input"]
+            + (tokens.output_tokens / 1_000_000) * p["output"],
+            2,
+        )
+
+    mock.calculate_cost.side_effect = calc_cost_side_effect
+
     return mock
 
 
@@ -278,6 +326,95 @@ class TestBuildAnalyticsContext:
         # All calls should include project_name="my-api"
         for call in calls:
             assert call.kwargs["project_name"] == "my-api"
+
+    def test_daily_chart_bars_present(self) -> None:
+        """Daily chart bar data is included in context."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert "daily_chart_bars" in result
+        assert len(result["daily_chart_bars"]) == 7
+
+    def test_daily_chart_bar_has_heights(self) -> None:
+        """Each daily bar has output_height and input_height percentages."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        bar = result["daily_chart_bars"][0]
+        assert "output_height" in bar
+        assert "input_height" in bar
+        assert "day_label" in bar
+
+    def test_daily_chart_max_bar_is_100(self) -> None:
+        """The tallest bar sums to 100% height."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        bars = result["daily_chart_bars"]
+        max_total = max(b["output_height"] + b["input_height"] for b in bars)
+        assert max_total == 100
+
+    def test_project_breakdown_present(self) -> None:
+        """Project breakdown data is included in context."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert "project_breakdown" in result
+
+    def test_phase_breakdown_present(self) -> None:
+        """Phase breakdown data is included in context."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert "phase_breakdown" in result
+        # Check canonical order maintained
+        phases = [p["name"] for p in result["phase_breakdown"]]
+        assert phases == ["Plan", "Build", "Validate"]
+
+    def test_model_breakdown_present(self) -> None:
+        """Model breakdown data is included in context."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert "model_breakdown" in result
+        assert len(result["model_breakdown"]) == 2
+
+    def test_model_breakdown_has_cost(self) -> None:
+        """Model breakdown entries include cost."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        for entry in result["model_breakdown"]:
+            assert "cost_display" in entry
+            assert "percentage" in entry
 
 
 # ── Analytics Route Tests ──────────────────────────────────────────
