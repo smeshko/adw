@@ -585,3 +585,96 @@ class TestStatsRowInOverview:
         response = client.get("/")
         assert "142" in response.text
         assert "87.5%" in response.text
+
+
+# ── Task 6: Status Badge Component ────────────────────────────────
+
+
+def _render_badge(status: str, size: str = "sm") -> str:
+    """Render the status badge macro for a given status."""
+    from jinja2 import Environment, FileSystemLoader
+    from adw.dashboard.server import _TEMPLATE_DIR
+
+    env = Environment(loader=FileSystemLoader(str(_TEMPLATE_DIR)))
+    template = env.from_string(
+        '{%- import "components/status_badge.html" as badge -%}'
+        '{{ badge.status_badge(status, size) }}'
+    )
+    return template.render(status=status, size=size)
+
+
+class TestStatusBadge:
+    """Tests for the reusable status badge component."""
+
+    def test_running_badge_class(self) -> None:
+        """Running status uses badge-warning."""
+        html = _render_badge("running")
+        assert "badge-warning" in html
+        assert "badge-outline" not in html
+
+    def test_running_badge_icon(self) -> None:
+        """Running status shows pulsing dot icon."""
+        html = _render_badge("running")
+        assert "●" in html
+
+    def test_running_badge_pulse(self) -> None:
+        """Running status has phase-active pulsing animation."""
+        html = _render_badge("running")
+        assert "phase-active" in html
+
+    def test_completed_badge_class(self) -> None:
+        """Completed status uses badge-success."""
+        html = _render_badge("completed")
+        assert "badge-success" in html
+
+    def test_completed_badge_icon(self) -> None:
+        """Completed status shows checkmark icon."""
+        html = _render_badge("completed")
+        assert "✓" in html
+
+    def test_failed_badge_class(self) -> None:
+        """Failed status uses badge-error."""
+        html = _render_badge("failed")
+        assert "badge-error" in html
+
+    def test_failed_badge_icon(self) -> None:
+        """Failed status shows X icon."""
+        html = _render_badge("failed")
+        assert "✗" in html
+
+    def test_interrupted_badge_class(self) -> None:
+        """Interrupted status uses badge-warning badge-outline."""
+        html = _render_badge("interrupted")
+        assert "badge-warning" in html
+        assert "badge-outline" in html
+
+    def test_interrupted_badge_icon(self) -> None:
+        """Interrupted status shows ⊘ icon."""
+        html = _render_badge("interrupted")
+        assert "⊘" in html
+
+    def test_aborted_badge_class(self) -> None:
+        """Aborted status uses badge-ghost."""
+        html = _render_badge("aborted")
+        assert "badge-ghost" in html
+
+    def test_aborted_badge_icon(self) -> None:
+        """Aborted status shows ⦻ icon."""
+        html = _render_badge("aborted")
+        assert "⦻" in html
+
+    def test_non_running_no_pulse(self) -> None:
+        """Non-running statuses do NOT have pulse animation."""
+        for status in ("completed", "failed", "interrupted", "aborted"):
+            html = _render_badge(status)
+            assert "phase-active" not in html, f"{status} should not pulse"
+
+    def test_badge_sm_size(self) -> None:
+        """Badge supports sm size variant."""
+        html = _render_badge("completed", size="sm")
+        assert "badge-sm" in html
+
+    def test_badge_lg_size(self) -> None:
+        """Badge supports lg size variant."""
+        html = _render_badge("completed", size="lg")
+        assert "badge-lg" in html
