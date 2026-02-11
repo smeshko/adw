@@ -148,19 +148,32 @@ async def overview(
     else:
         context["has_runs"] = False
 
-    # Add recent runs data for the recent runs partial
-    entries = index_manager.get_recent_runs(limit=5, project_name=project_name)  # type: ignore[union-attr]
-    context["recent_runs"] = build_recent_runs_context(entries)
+    # Add recent runs, project breakdown, and active runs data
+    # Skip if data layer is already in error state
+    if not context.get("data_error"):
+        try:
+            entries = index_manager.get_recent_runs(limit=5, project_name=project_name)  # type: ignore[union-attr]
+            context["recent_runs"] = build_recent_runs_context(entries)
 
-    # Add project breakdown data — always unfiltered so all cards are visible
-    all_stats = stats_aggregator.get_global_stats(project_name=None)  # type: ignore[union-attr]
-    context["project_stats"] = all_stats.projects  # type: ignore[union-attr]
+            all_stats = stats_aggregator.get_global_stats(project_name=None)  # type: ignore[union-attr]
+            context["project_stats"] = all_stats.projects  # type: ignore[union-attr]
 
-    # Add active runs data for the active runs section
-    active_entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
-        status="running", project_name=project_name
-    )
-    context["active_runs"] = _load_active_run_details(active_entries)
+            active_entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
+                status="running", project_name=project_name
+            )
+            context["active_runs"] = _load_active_run_details(active_entries)
+        except Exception:
+            context["data_error"] = True
+            context["data_error_message"] = (
+                "Unable to load run data. The index file may be corrupted or locked."
+            )
+            context.setdefault("recent_runs", [])
+            context.setdefault("project_stats", [])
+            context.setdefault("active_runs", [])
+    else:
+        context.setdefault("recent_runs", [])
+        context.setdefault("project_stats", [])
+        context.setdefault("active_runs", [])
 
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "partials/overview.html", context)
