@@ -144,7 +144,8 @@
     document.body.addEventListener('htmx:responseError', function(e) {
       var toast = document.createElement('div');
       toast.className = 'alert alert-error fixed top-16 right-4 w-auto z-50 shadow-lg';
-      toast.textContent = 'Request failed: ' + (e.detail.xhr ? e.detail.xhr.status : 'network error');
+      toast.innerHTML = 'Request failed: ' + (e.detail.xhr ? e.detail.xhr.status : 'network error')
+        + ' <a class="link link-neutral underline ml-2" onclick="htmx.ajax(\'GET\', \'' + (e.detail.pathInfo ? e.detail.pathInfo.requestPath : '/') + '\', {target:\'#main\'})">Retry</a>';
       document.body.appendChild(toast);
       setTimeout(function() { toast.remove(); }, 5000);
     });
