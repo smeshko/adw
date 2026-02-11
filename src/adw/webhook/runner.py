@@ -2,51 +2,42 @@
 
 This module provides functionality to trigger ADW runs asynchronously
 from webhook handlers, allowing non-blocking webhook responses.
+
+The core subprocess logic lives in ``adw.core.run_trigger``. This
+module adds webhook-specific concerns (correlation IDs, source info
+logging, sync convenience wrappers).
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
-import subprocess
 import uuid
-from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+from adw.core.run_trigger import RunTrigger, RunTriggerResult
 
 if TYPE_CHECKING:
     from adw.models.webhook import RunParams
 
 logger = logging.getLogger(__name__)
 
-
-@dataclass
-class RunTriggerResult:
-    """Result of triggering an ADW run.
-
-    Attributes:
-        success: Whether the run was successfully triggered.
-        run_id: The ADW run ID if successful.
-        error: Error message if not successful.
-        process_id: The subprocess PID if launched in background.
-    """
-
-    success: bool
-    run_id: str | None = None
-    error: str | None = None
-    process_id: int | None = None
+# Re-export so existing consumers of `from adw.webhook.runner import RunTriggerResult`
+# continue to work without changes.
+__all__ = ["RunTriggerResult", "WebhookRunTrigger", "trigger_run_async",
+           "trigger_from_params_async", "trigger_from_params"]
 
 
 class WebhookRunTrigger:
     """Triggers ADW runs from webhook events.
 
-    Provides async methods for triggering ADW runs in the background,
-    allowing webhook handlers to respond quickly without waiting for
-    run completion.
+    Thin wrapper around :class:`adw.core.run_trigger.RunTrigger` that
+    adds webhook-specific logging (correlation IDs, source info).
 
     Attributes:
+        _trigger: The core RunTrigger instance.
         _project_dir: The project directory to run ADW in.
-        _adw_command: The ADW command to execute.
 
     Example:
         >>> trigger = WebhookRunTrigger(project_dir="/my/project")
@@ -71,7 +62,10 @@ class WebhookRunTrigger:
             adw_command: The ADW CLI command to execute.
         """
         self._project_dir = Path(project_dir) if project_dir else Path.cwd()
-        self._adw_command = adw_command
+        self._trigger = RunTrigger(
+            project_dir=self._project_dir,
+            adw_command=adw_command,
+        )
 
     async def trigger_async(
         self,
@@ -115,11 +109,11 @@ class WebhookRunTrigger:
         )
 
         try:
-            # Build the ADW command
-            cmd = self._build_command(feature_request, phases)
-
-            # Run ADW as a background subprocess
-            result = await self._run_subprocess(cmd, correlation_id)
+            result = await self._trigger.start_run(
+                project_path=str(self._project_dir),
+                feature=feature_request,
+                phases=phases,
+            )
 
             if result.success:
                 logger.info(
@@ -187,109 +181,6 @@ class WebhookRunTrigger:
                 metadata=metadata,
             )
         )
-
-    def _build_command(
-        self,
-        feature_request: str,
-        phases: list[str] | None,
-    ) -> list[str]:
-        """Build the ADW CLI command.
-
-        Args:
-            feature_request: The feature to implement.
-            phases: Optional phases to run. If multiple phases are specified,
-                   only the first phase is used (CLI limitation).
-
-        Returns:
-            Command as list of strings for subprocess.
-        """
-        cmd = [self._adw_command, "run"]
-
-        # Add phase flag if specified
-        if phases:
-            if len(phases) == 1:
-                cmd.extend(["--phase", phases[0]])
-            else:
-                # CLI only supports single --phase flag
-                # Use first phase and log warning about limitation
-                logger.warning(
-                    "Multiple phases specified but CLI only supports single phase; "
-                    "using first phase only",
-                    extra={
-                        "requested_phases": phases,
-                        "selected_phase": phases[0],
-                    },
-                )
-                cmd.extend(["--phase", phases[0]])
-
-        # Add the feature request (quoted for shell safety)
-        cmd.append(feature_request)
-
-        return cmd
-
-    async def _run_subprocess(
-        self,
-        cmd: list[str],
-        correlation_id: str,
-    ) -> RunTriggerResult:
-        """Run the ADW command as a subprocess.
-
-        Launches ADW in the background without blocking on output.
-        The subprocess runs detached with stdout/stderr going to
-        DEVNULL to avoid pipe buffer deadlocks.
-
-        Args:
-            cmd: The command to execute.
-            correlation_id: Correlation ID for logging.
-
-        Returns:
-            RunTriggerResult with subprocess details.
-        """
-        logger.debug(
-            "Executing ADW command",
-            extra={
-                "correlation_id": correlation_id,
-                "command": cmd,
-                "cwd": str(self._project_dir),
-            },
-        )
-
-        try:
-            # Start the subprocess in background with output discarded
-            # We redirect to DEVNULL to avoid pipe buffer deadlock:
-            # if we used PIPE but didn't drain it, the child would block
-            # once the ~64KB buffer fills, causing the run to hang
-            process = await asyncio.to_thread(
-                subprocess.Popen,
-                cmd,
-                cwd=self._project_dir,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                # Detach from parent's process group so it continues
-                # running even if the webhook server restarts
-                start_new_session=True,
-            )
-
-            # Note: We can't capture the run_id from output anymore
-            # since we redirect to DEVNULL. The run_id can be looked up
-            # via `adw list-runs` or the ADW logs directory if needed.
-
-            return RunTriggerResult(
-                success=True,
-                run_id=None,  # Not available without reading output
-                process_id=process.pid,
-            )
-
-        except FileNotFoundError:
-            return RunTriggerResult(
-                success=False,
-                error=f"ADW command not found: {cmd[0]}",
-            )
-        except OSError as e:
-            return RunTriggerResult(
-                success=False,
-                error=f"Failed to start subprocess: {e}",
-            )
 
 
 async def trigger_run_async(

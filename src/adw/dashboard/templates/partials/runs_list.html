@@ -1,6 +1,10 @@
 <div id="runs-list">
-  <h1 class="text-2xl font-bold mb-4">Runs</h1>
-  <div class="card bg-base-100 shadow-sm p-6">
-    <p class="text-base-content/70">Run listing coming in Epic 4.</p>
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-bold">All Runs</h1>
+    <a href="#" class="btn btn-primary btn-sm">+ New Run</a>
+  </div>
+
+  <div id="runs-content">
+    {% include "partials/runs_table.html" %}
   </div>
 </div>

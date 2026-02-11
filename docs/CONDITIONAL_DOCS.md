@@ -178,3 +178,23 @@ This guide helps you find relevant documentation based on what you're working on
     - When implementing time-range filtering for analytics data
     - When computing period-over-period delta comparisons for dashboard statistics
     - When adding bookmarkable HTMX tab navigation with query parameter preservation
+- docs/features/runs-list-pagination-sorting.md
+  - Conditions:
+    - When adding a new paginated list page to the dashboard
+    - When implementing sort or filter controls with HTMX in the dashboard
+    - When using the triple-response pattern (full page / partial / table-only) for dashboard routes
+    - When building DaisyUI join-based pagination with HTMX for the dashboard
+    - When adding paginated query methods to the IndexManager
+- docs/features/new-run-modal-form-submission.md
+  - Conditions:
+    - When adding new modal dialogs to the ADW dashboard
+    - When creating CSRF-protected form submission endpoints in the dashboard
+    - When extracting shared logic from webhook module to core for dashboard use
+    - When implementing HTMX form validation with inline error re-rendering in the dashboard
+    - When triggering ADW runs programmatically from new entry points
+- docs/features/run-detail-page-layout-metadata.md
+  - Conditions:
+    - When implementing a new detail or drill-down page in the dashboard
+    - When loading RunContext data for enriched display on dashboard run detail pages
+    - When adding context-aware back navigation between dashboard pages
+    - When displaying full metadata cards with clipboard copy functionality in the dashboard

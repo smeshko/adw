@@ -17,7 +17,9 @@ from fastapi.responses import HTMLResponse
 from adw.core.constants import PHASE_SEQUENCE
 from adw.core.context_manager import ContextManager
 from adw.dashboard.dependencies import (
+    generate_csrf_token,
     get_index_manager,
+    get_project_registry,
     get_stats_aggregator,
 )
 from adw.exceptions import StateError
@@ -492,4 +494,33 @@ async def active_runs_partial(
 
     return templates.TemplateResponse(
         request, "partials/active_runs.html", context
+    )
+
+
+# ── New Run Modal ────────────────────────────────────────────────
+
+
+@router.get("/new-run", response_class=HTMLResponse)
+async def new_run_modal(
+    request: Request,
+    project_registry: object = Depends(get_project_registry),
+) -> HTMLResponse:
+    """Return the new run modal HTML fragment."""
+    templates = request.app.state.templates
+
+    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    project_list = [{"path": p.path, "name": p.name} for p in all_projects]
+    csrf_token = generate_csrf_token(request)
+
+    context = {
+        "request": request,
+        "projects": project_list,
+        "csrf_token": csrf_token,
+        "errors": {},
+        "form_project": "",
+        "form_feature": "",
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/new_run_modal.html", context
     )

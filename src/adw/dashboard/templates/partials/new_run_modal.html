@@ -1,0 +1,62 @@
+<dialog id="new-run-dialog" class="modal modal-open">
+  <div class="modal-box">
+    <form method="dialog">
+      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+    </form>
+    <h3 class="text-lg font-bold mb-4">Start New Run</h3>
+
+    <form hx-post="/runs/start"
+          hx-target="#main"
+          hx-swap="innerHTML"
+          class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+      {# Project select #}
+      <div>
+        <label class="label" for="project-select">
+          <span class="label-text">Project</span>
+        </label>
+        <select id="project-select"
+                name="project"
+                class="select select-bordered w-full{% if errors is defined and errors.project %} select-error{% endif %}">
+          <option value="" disabled {% if not (form_project is defined and form_project) %}selected{% endif %}>Select a project…</option>
+          {% for p in projects %}
+          <option value="{{ p.path }}" {% if form_project is defined and form_project == p.path %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+        {% if errors is defined and errors.project %}
+        <p class="text-error text-sm mt-1">{{ errors.project }}</p>
+        {% endif %}
+      </div>
+
+      {# Feature textarea #}
+      <div>
+        <label class="label" for="feature-input">
+          <span class="label-text">Feature</span>
+        </label>
+        <textarea id="feature-input"
+                  name="feature"
+                  class="textarea textarea-bordered w-full{% if errors is defined and errors.feature %} textarea-error{% endif %}"
+                  rows="3"
+                  placeholder="Describe the feature to build...">{% if form_feature is defined %}{{ form_feature }}{% endif %}</textarea>
+        {% if errors is defined and errors.feature %}
+        <p class="text-error text-sm mt-1">{{ errors.feature }}</p>
+        {% endif %}
+      </div>
+
+      {# Actions #}
+      <div class="modal-action">
+        <button type="button"
+                class="btn btn-ghost"
+                onclick="document.getElementById('new-run-dialog').close(); document.getElementById('modal-container').innerHTML = '';">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="start-run-btn">
+          <span class="loading loading-spinner loading-sm htmx-indicator" id="start-loading"></span>
+          Start Run
+        </button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
