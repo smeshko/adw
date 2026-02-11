@@ -6,16 +6,23 @@ return a fragment — they never wrap in the full page layout.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import logging
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 
+from adw.core.constants import PHASE_SEQUENCE
+from adw.core.context_manager import ContextManager
 from adw.dashboard.dependencies import (
     get_index_manager,
     get_stats_aggregator,
 )
+from adw.exceptions import StateError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/partials")
 
@@ -225,4 +232,135 @@ async def project_breakdown(
 
     return templates.TemplateResponse(
         request, "partials/project_breakdown.html", context
+    )
+
+
+# ── Active Runs ─────────────────────────────────────────────────────
+
+# Display labels for each phase in the pipeline
+_PHASE_LABELS: dict[str, str] = {
+    "plan": "Plan",
+    "build": "Build",
+    "validate": "Valid",
+    "document": "Doc",
+    "ship": "Ship",
+}
+
+
+def _format_elapsed(delta: timedelta) -> str:
+    """Format a timedelta as 'Xm Ys'."""
+    total_seconds = int(delta.total_seconds())
+    minutes = total_seconds // 60
+    seconds = total_seconds % 60
+    return f"{minutes}m {seconds}s"
+
+
+def _build_phase_pipeline(
+    *,
+    phases_completed: list[str],
+    current_phase: str | None,
+) -> list[dict[str, str]]:
+    """Build phase pipeline data for template rendering.
+
+    Args:
+        phases_completed: List of phase names that completed successfully.
+        current_phase: The currently active phase name.
+
+    Returns:
+        List of dicts with 'name' (display label) and 'status'
+        ('completed', 'active', or 'pending') for each phase.
+    """
+    completed_set = set(phases_completed)
+    pipeline: list[dict[str, str]] = []
+    for phase in PHASE_SEQUENCE:
+        if phase in completed_set:
+            status = "completed"
+        elif phase == current_phase:
+            status = "active"
+        else:
+            status = "pending"
+        pipeline.append({
+            "name": _PHASE_LABELS.get(phase, phase.capitalize()),
+            "status": status,
+        })
+    return pipeline
+
+
+def _load_active_run_details(
+    entries: list[object],
+) -> list[dict]:
+    """Load active run details from IndexEntry objects.
+
+    For each running IndexEntry, attempts to load the RunContext from
+    disk to get the live current_phase. Falls back to IndexEntry data
+    if the RunContext cannot be loaded.
+
+    Args:
+        entries: List of IndexEntry objects with status="running".
+
+    Returns:
+        List of dicts with run display data for the template.
+    """
+    now = datetime.now(UTC)
+    runs: list[dict] = []
+
+    for entry in entries:
+        current_phase = entry.phase_reached  # type: ignore[union-attr]
+        phases_completed = list(entry.phases_completed)  # type: ignore[union-attr]
+
+        # Try loading RunContext for live phase data
+        try:
+            project_path = Path(entry.project_path)  # type: ignore[union-attr]
+            runs_dir = project_path / ".adw" / "runs"
+            cm = ContextManager(runs_dir)
+            ctx = cm.load(entry.run_id)  # type: ignore[union-attr]
+            current_phase = ctx.current_phase
+            phases_completed = list(ctx.phase_history)
+        except (StateError, OSError):
+            logger.debug(
+                "RunContext unavailable, using IndexEntry fallback",
+                extra={"run_id": entry.run_id},  # type: ignore[union-attr]
+            )
+
+        elapsed = now - entry.started_at  # type: ignore[union-attr]
+
+        runs.append({
+            "run_id": entry.run_id,  # type: ignore[union-attr]
+            "project_name": entry.project_name,  # type: ignore[union-attr]
+            "feature_description": entry.feature_description,  # type: ignore[union-attr]
+            "elapsed": _format_elapsed(elapsed),
+            "phases": _build_phase_pipeline(
+                phases_completed=phases_completed,
+                current_phase=current_phase,
+            ),
+            "started_at": entry.started_at,  # type: ignore[union-attr]
+        })
+
+    return runs
+
+
+@router.get("/active-runs", response_class=HTMLResponse)
+async def active_runs_partial(
+    request: Request,
+    project: str = Query("", alias="project"),
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return the active runs section HTML fragment for polling updates."""
+    templates = request.app.state.templates
+
+    project_name = project or None
+    entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
+        status="running", project_name=project_name
+    )
+
+    active_runs = _load_active_run_details(entries)
+
+    context = {
+        "request": request,
+        "active_runs": active_runs,
+        "selected_project": project_name,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/active_runs.html", context
     )
