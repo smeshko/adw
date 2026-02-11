@@ -1,11 +1,11 @@
 {# Filter bar partial — Status, Project & Date Range filters for the runs list.
    Renders inside runs_list.html OUTSIDE #runs-content so it persists across
-   table-only HTMX swaps. Filter changes target #runs-content only. #}
+   table-only HTMX swaps. Filter changes target #runs-content only.
+   hx-include uses a combined selector to pick up both filter inputs AND the
+   sort dropdown inside #runs-content, avoiding a stale hidden sort value. #}
 
 <div class="card card-compact bg-base-200 p-4 mb-4">
   <form id="filter-form" class="flex flex-wrap items-end gap-4">
-    {# Hidden sort input — preserves current sort when filters change #}
-    <input type="hidden" name="sort" value="{{ sort }}">
 
     {# Status filter #}
     <div class="form-control">
@@ -17,7 +17,7 @@
               hx-target="#runs-content"
               hx-swap="innerHTML"
               hx-push-url="true"
-              hx-include="#filter-form">
+              hx-include="#filter-form, #runs-content [name='sort']">
         <option value="">All Statuses</option>
         <option value="running" {% if status_filter == "running" %}selected{% endif %}>Running</option>
         <option value="completed" {% if status_filter == "completed" %}selected{% endif %}>Completed</option>
@@ -37,7 +37,7 @@
               hx-target="#runs-content"
               hx-swap="innerHTML"
               hx-push-url="true"
-              hx-include="#filter-form">
+              hx-include="#filter-form, #runs-content [name='sort']">
         <option value="">All Projects</option>
         {% for p in projects %}
         <option value="{{ p }}" {% if project_filter == p %}selected{% endif %}>{{ p }}</option>
@@ -57,7 +57,7 @@
              hx-target="#runs-content"
              hx-swap="innerHTML"
              hx-push-url="true"
-             hx-include="#filter-form">
+             hx-include="#filter-form, #runs-content [name='sort']">
     </div>
 
     {# Date To #}
@@ -72,7 +72,7 @@
              hx-target="#runs-content"
              hx-swap="innerHTML"
              hx-push-url="true"
-             hx-include="#filter-form">
+             hx-include="#filter-form, #runs-content [name='sort']">
     </div>
 
     {# Clear all link — only shown when any filter is active #}

@@ -162,10 +162,14 @@
 {% else %}
 {# ── Empty State ─────────────────────────────────────────── #}
 <div class="text-center py-12">
+  {% if status_filter or project_filter or from_date or to_date %}
   <p class="text-base-content/50 mb-4">No runs match your filters. Try adjusting the status or date range.</p>
   <a hx-get="/runs"
      hx-target="#main"
      hx-push-url="/runs"
      class="btn btn-ghost btn-sm">Clear filters</a>
+  {% else %}
+  <p class="text-base-content/50 mb-4">No runs recorded yet.</p>
+  {% endif %}
 </div>
 {% endif %}

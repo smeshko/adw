@@ -501,21 +501,30 @@ class TestRunsListPagination:
 class TestRunsListEmptyState:
     """Tests for empty state when no runs match."""
 
-    def test_empty_state_message(self) -> None:
-        """Shows enhanced empty state message with filter suggestion."""
+    def test_empty_state_no_filters_shows_no_runs_message(self) -> None:
+        """Shows 'No runs recorded yet' when empty and no filters active."""
         client = _make_client_with_mocks(
             index_manager=_mock_index_manager(entries=[]),
         )
         response = client.get("/runs")
+        assert "No runs recorded yet." in response.text
+        assert "Clear filters" not in response.text
+
+    def test_empty_state_with_filters_shows_filter_message(self) -> None:
+        """Shows filter suggestion message when empty and filters active."""
+        client = _make_client_with_mocks(
+            index_manager=_mock_index_manager(entries=[]),
+        )
+        response = client.get("/runs?status=failed")
         assert "No runs match your filters." in response.text
         assert "Try adjusting the status or date range." in response.text
 
-    def test_clear_filters_link(self) -> None:
-        """Empty state includes clear filters link."""
+    def test_clear_filters_link_when_filters_active(self) -> None:
+        """Empty state includes clear filters link when filters active."""
         client = _make_client_with_mocks(
             index_manager=_mock_index_manager(entries=[]),
         )
-        response = client.get("/runs")
+        response = client.get("/runs?status=failed")
         assert "Clear filters" in response.text
 
 
@@ -749,13 +758,12 @@ class TestRunsFilterBar:
         response = client.get("/runs?status=failed&project=my-api&from=2026-01-01")
         assert response.status_code == 200
 
-    def test_hidden_sort_input_in_filter_bar(self) -> None:
-        """Filter bar includes a hidden sort input to preserve sort on filter changes."""
+    def test_filter_controls_include_sort_dropdown(self) -> None:
+        """Filter controls use hx-include that references the sort dropdown in #runs-content."""
         client = _make_client_with_mocks()
-        response = client.get("/runs?sort=oldest")
+        response = client.get("/runs")
         text = response.text
-        assert 'name="sort"' in text
-        assert 'value="oldest"' in text
+        assert "#runs-content [name='sort']" in text
 
     def test_empty_state_with_filters_shows_descriptive_message(self) -> None:
         """Empty state when filters active shows descriptive message."""
