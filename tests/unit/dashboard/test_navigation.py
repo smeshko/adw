@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
 from adw.dashboard.server import create_dashboard_app
+from adw.models.stats import GlobalStatistics, TokenUsage
 
 
 def _make_client() -> TestClient:
@@ -22,9 +23,15 @@ def _make_client() -> TestClient:
 def _mock_index_manager(
     active_count: int = 0,
     last_completed: datetime | None = None,
+    has_runs: bool = True,
+    raise_on_call: bool = False,
 ) -> MagicMock:
     """Build a mock IndexManager with configurable run data."""
     mock = MagicMock()
+
+    if raise_on_call:
+        mock.get_recent_runs.side_effect = RuntimeError("Index corrupted")
+        return mock
 
     # get_recent_runs(status="running") → active runs
     running_runs = [MagicMock() for _ in range(active_count)]
@@ -33,6 +40,11 @@ def _mock_index_manager(
         recent_entry = MagicMock()
         recent_entry.completed_at = last_completed
         recent_entry.started_at = last_completed - timedelta(minutes=5)
+        recent_runs = [recent_entry]
+    elif has_runs:
+        recent_entry = MagicMock()
+        recent_entry.completed_at = datetime.now(UTC) - timedelta(minutes=5)
+        recent_entry.started_at = datetime.now(UTC) - timedelta(minutes=10)
         recent_runs = [recent_entry]
     else:
         recent_runs = []
@@ -56,6 +68,55 @@ def _mock_project_registry(project_names: list[str] | None = None) -> MagicMock:
         projects.append(p)
     mock.get_all.return_value = projects
     return mock
+
+
+def _mock_stats_aggregator(
+    cost_this_week: float = 5.67,
+    tokens_this_week: TokenUsage | None = None,
+) -> MagicMock:
+    """Build a mock StatsAggregator for overview route testing."""
+    mock = MagicMock()
+    stats = GlobalStatistics(
+        generated_at=datetime.now(UTC),
+        total_runs=10,
+        runs_this_week=3,
+        runs_today=1,
+        completed_runs=8,
+        failed_runs=2,
+        success_rate=0.8,
+        average_duration_ms=120000,
+        tokens=tokens_this_week or TokenUsage(input_tokens=900_000, output_tokens=300_000),
+        estimated_cost=12.0,
+        tokens_this_week=tokens_this_week or TokenUsage(input_tokens=900_000, output_tokens=300_000),
+        cost_this_week=cost_this_week,
+    )
+    mock.get_global_stats.return_value = stats
+    today = datetime.now(UTC).date()
+    mock.get_daily_token_counts.return_value = [
+        {"date": today - timedelta(days=i), "tokens": 0}
+        for i in range(6, -1, -1)
+    ]
+    return mock
+
+
+def _make_client_with_mocks(
+    stats_aggregator: MagicMock | None = None,
+    index_manager: MagicMock | None = None,
+    project_registry: MagicMock | None = None,
+) -> TestClient:
+    """Create a TestClient with dependency overrides."""
+    from adw.dashboard import dependencies
+
+    app = create_dashboard_app()
+    im = index_manager or _mock_index_manager()
+    sa = stats_aggregator or _mock_stats_aggregator()
+    pr = project_registry or _mock_project_registry()
+
+    app.dependency_overrides[dependencies.get_index_manager] = lambda: im
+    app.dependency_overrides[dependencies.get_stats_aggregator] = lambda: sa
+    app.dependency_overrides[dependencies.get_project_registry] = lambda: pr
+
+    return TestClient(app)
 
 
 # ── Overview Route ──────────────────────────────────────────────────
@@ -661,3 +722,203 @@ class TestClientSideNavUpdate:
         client = _make_client()
         response = client.get("/")
         assert "nav-link" in response.text
+
+
+# ── Story 1.6: Empty States & Cost Strip ──────────────────────────
+
+
+class TestOverviewWelcomeEmptyState:
+    """Tests for 'no projects' welcome empty state on overview."""
+
+    def test_no_projects_shows_welcome(self) -> None:
+        """Overview shows welcome message when no projects are registered."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry([]),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert response.status_code == 200
+        assert "Welcome to ADW Dashboard" in response.text
+
+    def test_no_projects_shows_cli_hint(self) -> None:
+        """Welcome state shows CLI command hint."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry([]),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert "adw global register" in response.text
+
+    def test_no_projects_hides_stats_row(self) -> None:
+        """Welcome state does not render stats row."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry([]),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert 'id="stats-row"' not in response.text
+
+    def test_no_projects_hides_cost_strip(self) -> None:
+        """Welcome state does not render cost strip."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry([]),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert "Cost This Week" not in response.text
+
+
+class TestOverviewNoRunsEmptyState:
+    """Tests for 'no runs' empty state on overview (projects exist but no runs)."""
+
+    def test_no_runs_shows_message(self) -> None:
+        """Overview shows 'No runs yet' when projects exist but no runs."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=_mock_index_manager(has_runs=False),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert response.status_code == 200
+        assert "No runs yet" in response.text
+
+    def test_no_runs_shows_new_run_button(self) -> None:
+        """No-runs state shows the New Run button."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=_mock_index_manager(has_runs=False),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert "New Run" in response.text
+
+    def test_no_runs_hides_stats_row(self) -> None:
+        """No-runs state does not render stats row."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=_mock_index_manager(has_runs=False),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert 'id="stats-row"' not in response.text
+
+
+class TestOverviewDataErrorBanner:
+    """Tests for data error banner when data layer raises exceptions."""
+
+    def test_data_error_shows_banner(self) -> None:
+        """Overview shows error banner when index_manager raises."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=_mock_index_manager(raise_on_call=True),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert response.status_code == 200
+        assert "Unable to load run data" in response.text
+
+    def test_data_error_banner_has_error_class(self) -> None:
+        """Error banner uses alert-error styling."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=_mock_index_manager(raise_on_call=True),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert "alert-error" in response.text
+
+    def test_data_error_hides_no_runs_message(self) -> None:
+        """Error state does not show misleading 'No runs yet' message."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=_mock_index_manager(raise_on_call=True),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert "No runs yet" not in response.text
+
+
+class TestOverviewFullContent:
+    """Tests for overview with full content (projects and runs exist)."""
+
+    def test_full_overview_has_new_run_button(self) -> None:
+        """Full overview shows the + New Run button."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert "New Run" in response.text
+
+    def test_full_overview_has_cost_strip(self) -> None:
+        """Full overview renders the cost summary strip."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert "Cost This Week" in response.text
+
+    def test_full_overview_cost_strip_shows_amount(self) -> None:
+        """Cost strip shows formatted cost amount."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            stats_aggregator=_mock_stats_aggregator(cost_this_week=23.45),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert "$23.45" in response.text
+
+
+class TestRunNotFound:
+    """Tests for 404 run not found responses."""
+
+    def test_htmx_run_not_found_returns_404(self) -> None:
+        """HTMX request for non-existent run returns 404 status."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get(
+            "/runs/nonexistent-id",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 404
+
+    def test_htmx_run_not_found_returns_fragment(self) -> None:
+        """HTMX request for non-existent run returns HTML fragment."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get(
+            "/runs/nonexistent-id",
+            headers={"HX-Request": "true"},
+        )
+        assert "<!DOCTYPE" not in response.text
+        assert "Run not found" in response.text
+
+    def test_htmx_run_not_found_has_back_link(self) -> None:
+        """HTMX 404 fragment includes back-to-overview link."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get(
+            "/runs/nonexistent-id",
+            headers={"HX-Request": "true"},
+        )
+        assert "Back to Overview" in response.text
+
+    def test_full_page_run_not_found_returns_404(self) -> None:
+        """Full page request for non-existent run returns 404 with full HTML."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/runs/nonexistent-id")
+        assert response.status_code == 404
+        assert "<!DOCTYPE html>" in response.text
+        assert "Run not found" in response.text
+
+    def test_full_page_run_not_found_has_title(self) -> None:
+        """Full page 404 has correct page title."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        response = client.get("/runs/nonexistent-id")
+        assert "Run Not Found" in response.text
+
+
+class TestHTMXErrorToast:
+    """Tests for the enhanced HTMX error toast with retry link."""
+
+    def test_error_toast_has_retry_link(self) -> None:
+        """Error toast handler includes a Retry link using htmx.ajax."""
+        client = _make_client()
+        response = client.get("/")
+        assert "htmx.ajax" in response.text
+        assert "Retry" in response.text

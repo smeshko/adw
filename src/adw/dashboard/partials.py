@@ -142,6 +142,45 @@ def build_stats_context(stats: object, selected_project: str | None) -> dict:
     }
 
 
+_DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+
+def build_cost_strip_context(
+    stats_aggregator: object,
+    project_name: str | None,
+) -> dict:
+    """Build template context for the cost summary strip.
+
+    Args:
+        stats_aggregator: A StatsAggregator instance.
+        project_name: Current project filter value or None.
+
+    Returns:
+        Dict with cost_week_display, tokens_week_display, and daily_bars.
+    """
+    stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
+    daily_counts = stats_aggregator.get_daily_token_counts(project_name=project_name)  # type: ignore[union-attr]
+
+    # Compute bar heights as percentages
+    max_tokens = max((d["tokens"] for d in daily_counts), default=0)
+    daily_bars = []
+    for d in daily_counts:
+        tokens: int = d["tokens"]  # type: ignore[assignment]
+        height_pct = int((tokens / max_tokens) * 100) if max_tokens > 0 else 0
+        day_label = _DAY_LABELS[d["date"].weekday()]  # type: ignore[union-attr]
+        daily_bars.append({
+            "date_label": day_label,
+            "height_pct": height_pct,
+            "tokens": tokens,
+        })
+
+    return {
+        "cost_strip_cost_display": f"${stats.cost_this_week:.2f}",  # type: ignore[union-attr]
+        "cost_strip_tokens_display": _format_tokens(stats.tokens_this_week.total_tokens),  # type: ignore[union-attr]
+        "daily_bars": daily_bars,
+    }
+
+
 @router.get("/stats", response_class=HTMLResponse)
 async def stats_partial(
     request: Request,

@@ -59,13 +59,17 @@ def _build_page_context(
     project_names = [p.name for p in all_projects]
 
     # Status bar data (for full-page renders that include the footer)
-    active_runs = index_manager.get_recent_runs(status="running")  # type: ignore[union-attr]
-    active_run_count = len(active_runs)
-
-    recent = index_manager.get_recent_runs(limit=1)  # type: ignore[union-attr]
+    active_run_count = 0
     last_updated_dt = None
-    if recent:
-        last_updated_dt = recent[0].completed_at or recent[0].started_at
+    try:
+        active_runs = index_manager.get_recent_runs(status="running")  # type: ignore[union-attr]
+        active_run_count = len(active_runs)
+
+        recent = index_manager.get_recent_runs(limit=1)  # type: ignore[union-attr]
+        if recent:
+            last_updated_dt = recent[0].completed_at or recent[0].started_at
+    except Exception:
+        pass  # Graceful degradation — page renders with defaults
 
     return {
         "request": request,
@@ -93,6 +97,7 @@ async def overview(
     """
     from adw.dashboard.partials import (
         _load_active_run_details,
+        build_cost_strip_context,
         build_recent_runs_context,
         build_stats_context,
     )
@@ -105,10 +110,43 @@ async def overview(
         project=project,
     )
 
-    # Add stats data for the stats row partial included in the overview
     project_name = project or None
-    stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
-    context.update(build_stats_context(stats, project_name))
+
+    # Detect empty states
+    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    has_projects = len(all_projects) > 0
+    context["has_projects"] = has_projects
+
+    if has_projects:
+        # Check for runs and load stats with error resilience
+        context["data_error"] = False
+        context["data_error_message"] = ""
+        try:
+            recent_check = index_manager.get_recent_runs(  # type: ignore[union-attr]
+                limit=1, project_name=project_name,
+            )
+            has_runs = len(recent_check) > 0
+        except Exception:
+            has_runs = False
+            context["data_error"] = True
+            context["data_error_message"] = (
+                "Unable to load run data. The index file may be corrupted or locked."
+            )
+
+        context["has_runs"] = has_runs
+
+        if has_runs:
+            try:
+                stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
+                context.update(build_stats_context(stats, project_name))
+                context.update(build_cost_strip_context(stats_aggregator, project_name))
+            except Exception:
+                context["data_error"] = True
+                context["data_error_message"] = (
+                    "Unable to load run data. The index file may be corrupted or locked."
+                )
+    else:
+        context["has_runs"] = False
 
     # Add recent runs data for the recent runs partial
     entries = index_manager.get_recent_runs(limit=5, project_name=project_name)  # type: ignore[union-attr]
@@ -179,6 +217,64 @@ async def analytics(
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "partials/analytics.html", context)
     return templates.TemplateResponse(request, "pages/analytics.html", context)
+
+
+_RUN_NOT_FOUND_FRAGMENT = (
+    '<div class="flex justify-center items-center min-h-[40vh]">'
+    '<div class="card bg-base-100 shadow-sm p-8 text-center max-w-lg">'
+    '<p class="text-base-content/70 mb-4">Run not found. It may have been deleted.</p>'
+    '<a hx-get="/" hx-target="#main" hx-push-url="/" '
+    'class="btn btn-ghost btn-sm">&larr; Back to Overview</a>'
+    '</div></div>'
+)
+
+
+@router.get("/runs/{run_id}", response_class=HTMLResponse)
+async def run_detail(
+    request: Request,
+    run_id: str,
+    index_manager: object = Depends(get_index_manager),
+    project_registry: object = Depends(get_project_registry),
+) -> HTMLResponse:
+    """Render run detail page, or a 404 message if not found."""
+    templates = request.app.state.templates
+
+    # Look up the run in the index
+    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    run_entry = None
+    for entry in all_runs:
+        if entry.run_id == run_id:
+            run_entry = entry
+            break
+
+    if run_entry is None:
+        if request.headers.get("HX-Request"):
+            return HTMLResponse(content=_RUN_NOT_FOUND_FRAGMENT, status_code=404)
+        # Full page: wrap in base template
+        context = _build_page_context(
+            request, "",
+            index_manager=index_manager,
+            project_registry=project_registry,
+            project="",
+        )
+        context["run_not_found"] = True
+        return templates.TemplateResponse(
+            request, "pages/run_not_found.html", context, status_code=404,
+        )
+
+    # For now, redirect to runs list (run detail page is a later story)
+    if request.headers.get("HX-Request"):
+        return HTMLResponse(content=_RUN_NOT_FOUND_FRAGMENT, status_code=404)
+    context = _build_page_context(
+        request, "",
+        index_manager=index_manager,
+        project_registry=project_registry,
+        project="",
+    )
+    context["run_not_found"] = True
+    return templates.TemplateResponse(
+        request, "pages/run_not_found.html", context, status_code=404,
+    )
 
 
 @router.get("/health")

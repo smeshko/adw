@@ -144,7 +144,14 @@
     document.body.addEventListener('htmx:responseError', function(e) {
       var toast = document.createElement('div');
       toast.className = 'alert alert-error fixed top-16 right-4 w-auto z-50 shadow-lg';
-      toast.textContent = 'Request failed: ' + (e.detail.xhr ? e.detail.xhr.status : 'network error');
+      var msg = document.createTextNode('Request failed: ' + (e.detail.xhr ? e.detail.xhr.status : 'network error') + ' ');
+      toast.appendChild(msg);
+      var retryPath = (e.detail.pathInfo ? e.detail.pathInfo.requestPath : '/');
+      var retry = document.createElement('a');
+      retry.className = 'link link-neutral underline ml-2';
+      retry.textContent = 'Retry';
+      retry.addEventListener('click', function() { htmx.ajax('GET', retryPath, {target:'#main'}); });
+      toast.appendChild(retry);
       document.body.appendChild(toast);
       setTimeout(function() { toast.remove(); }, 5000);
     });

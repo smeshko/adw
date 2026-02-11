@@ -1,0 +1,27 @@
+<div class="card card-compact bg-base-100 shadow-sm mt-4">
+  <div class="card-body flex-row items-center justify-between gap-6">
+
+    {# Left: Cost & Token Summary #}
+    <div class="flex flex-col gap-1">
+      <span class="text-xs text-base-content/60">Cost This Week</span>
+      <span class="font-mono font-semibold text-lg">{{ cost_strip_cost_display }}</span>
+      <span class="text-xs text-base-content/60">{{ cost_strip_tokens_display }} tokens</span>
+    </div>
+
+    {# Center: Mini Bar Chart (7 days) #}
+    <div class="flex items-end gap-1 h-8" title="Daily token usage (last 7 days)">
+      {% for bar in daily_bars %}
+      <div class="bg-primary rounded-t w-3"
+           style="height: {{ bar.height_pct }}%; min-height: 2px"
+           title="{{ bar.date_label }}: {{ bar.tokens }} tokens"></div>
+      {% endfor %}
+    </div>
+
+    {# Right: View Details Link #}
+    <a hx-get="/analytics{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
+       hx-target="#main"
+       hx-push-url="/analytics{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
+       class="text-sm link link-primary whitespace-nowrap">View Details &rarr;</a>
+
+  </div>
+</div>

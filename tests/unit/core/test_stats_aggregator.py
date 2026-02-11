@@ -249,6 +249,144 @@ class TestParseLLMResponseFiles:
         assert usage.output_tokens == 13266
 
 
+class TestGetDailyTokenCounts:
+    """Tests for get_daily_token_counts method."""
+
+    def test_returns_seven_days(self) -> None:
+        """Returns 7 entries by default (one per day)."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+        mock_im.get_recent_runs.return_value = []
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        result = aggregator.get_daily_token_counts()
+
+        assert len(result) == 7
+        assert all("date" in d for d in result)
+        assert all("tokens" in d for d in result)
+
+    def test_all_zeros_when_no_runs(self) -> None:
+        """Returns all-zero token counts when no runs exist."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+        mock_im.get_recent_runs.return_value = []
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        result = aggregator.get_daily_token_counts()
+
+        assert all(d["tokens"] == 0 for d in result)
+
+    def test_sums_tokens_per_day(self) -> None:
+        """Tokens are summed correctly per day with multiple runs."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.models.stats import TokenUsage
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+
+        entries = []
+        for i in range(3):
+            e = MagicMock()
+            e.run_id = f"01ABCDEFGHIJKLMNOPQRSTUV{i:01d}"
+            e.started_at = now - timedelta(days=1)
+            e.project_path = "/projects/test"
+            entries.append(e)
+
+        mock_im.get_recent_runs.return_value = entries
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        aggregator._parse_llm_response_files = lambda _: TokenUsage(
+            input_tokens=500, output_tokens=500,
+        )
+        result = aggregator.get_daily_token_counts()
+
+        total = sum(d["tokens"] for d in result)
+        assert total == 3000  # 3 runs * 1000 tokens each
+
+        # Verify tokens are assigned to the correct day (yesterday)
+        yesterday = (now - timedelta(days=1)).date()
+        day_map = {d["date"]: d["tokens"] for d in result}
+        assert day_map[yesterday] == 3000
+        # All other days should be zero
+        for d in result:
+            if d["date"] != yesterday:
+                assert d["tokens"] == 0, f"Expected 0 tokens on {d['date']}, got {d['tokens']}"
+
+    def test_respects_project_filter(self) -> None:
+        """Project name filter is passed to get_recent_runs."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+        mock_im.get_recent_runs.return_value = []
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        aggregator.get_daily_token_counts(project_name="my-project")
+
+        mock_im.get_recent_runs.assert_called_once()
+        call_kwargs = mock_im.get_recent_runs.call_args
+        assert call_kwargs.kwargs.get("project_name") == "my-project"
+
+    def test_filters_to_registered_projects(self) -> None:
+        """Only includes runs from registered project paths."""
+        from adw.core.stats_aggregator import StatsAggregator
+        from adw.models.stats import TokenUsage
+
+        now = datetime.now(UTC)
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+
+        # Register one project
+        proj = MagicMock()
+        proj.path = "/projects/registered"
+        mock_pr.get_all.return_value = [proj]
+
+        # Two entries: one registered, one not
+        e1 = MagicMock()
+        e1.run_id = "01ABCDEFGHIJKLMNOPQRSTUV0"
+        e1.started_at = now - timedelta(days=1)
+        e1.project_path = "/projects/registered"
+
+        e2 = MagicMock()
+        e2.run_id = "01ABCDEFGHIJKLMNOPQRSTUV1"
+        e2.started_at = now - timedelta(days=1)
+        e2.project_path = "/projects/unregistered"
+
+        mock_im.get_recent_runs.return_value = [e1, e2]
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        aggregator._parse_llm_response_files = lambda _: TokenUsage(
+            input_tokens=500, output_tokens=500,
+        )
+        result = aggregator.get_daily_token_counts()
+
+        total = sum(d["tokens"] for d in result)
+        assert total == 1000  # Only the registered project's run
+
+    def test_custom_days_parameter(self) -> None:
+        """Respects custom days parameter."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        mock_im = MagicMock()
+        mock_pr = MagicMock()
+        mock_pr.get_all.return_value = []
+        mock_im.get_recent_runs.return_value = []
+
+        aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
+        result = aggregator.get_daily_token_counts(days=3)
+
+        assert len(result) == 3
+
+
 class TestStatsAggregatorInit:
     """Tests for StatsAggregator initialization."""
 

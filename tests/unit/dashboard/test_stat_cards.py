@@ -26,6 +26,7 @@ def _make_client() -> TestClient:
 def _mock_index_manager(
     active_count: int = 0,
     last_completed: datetime | None = None,
+    has_runs: bool = True,
 ) -> MagicMock:
     """Build a mock IndexManager with configurable run data."""
     mock = MagicMock()
@@ -35,6 +36,12 @@ def _mock_index_manager(
         recent_entry = MagicMock()
         recent_entry.completed_at = last_completed
         recent_entry.started_at = last_completed - timedelta(minutes=5)
+        recent_runs = [recent_entry]
+    elif has_runs:
+        # Provide a default run entry so the overview detects runs exist
+        recent_entry = MagicMock()
+        recent_entry.completed_at = datetime.now(UTC) - timedelta(minutes=5)
+        recent_entry.started_at = datetime.now(UTC) - timedelta(minutes=10)
         recent_runs = [recent_entry]
     else:
         recent_runs = []
@@ -93,6 +100,13 @@ def _mock_stats_aggregator(
         cost_this_week=cost_this_week,
     )
     mock.get_global_stats.return_value = stats
+    # Provide sensible default for get_daily_token_counts (used by cost strip)
+    from datetime import date as date_type
+    today = datetime.now(UTC).date()
+    mock.get_daily_token_counts.return_value = [
+        {"date": today - timedelta(days=i), "tokens": 0}
+        for i in range(6, -1, -1)
+    ]
     return mock
 
 
@@ -558,19 +572,25 @@ class TestStatsRowInOverview:
 
     def test_overview_full_page_contains_stats_row(self) -> None:
         """Full-page overview contains the stats row with id='stats-row'."""
-        client = _make_client_with_mocks()
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["test-project"]),
+        )
         response = client.get("/")
         assert 'id="stats-row"' in response.text
 
     def test_overview_htmx_partial_contains_stats_row(self) -> None:
         """HTMX partial overview contains the stats row."""
-        client = _make_client_with_mocks()
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["test-project"]),
+        )
         response = client.get("/", headers={"HX-Request": "true"})
         assert 'id="stats-row"' in response.text
 
     def test_overview_stats_row_has_stat_cards(self) -> None:
         """Overview stats row contains 5 stat cards."""
-        client = _make_client_with_mocks()
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["test-project"]),
+        )
         response = client.get("/")
         assert response.text.count("stat-title") == 5
 
@@ -581,6 +601,7 @@ class TestStatsRowInOverview:
                 total_runs=142,
                 success_rate=0.875,
             ),
+            project_registry=_mock_project_registry(["test-project"]),
         )
         response = client.get("/")
         assert "142" in response.text

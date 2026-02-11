@@ -1,5 +1,50 @@
 <div id="overview">
-  <h1 class="text-2xl font-bold mb-4">Overview</h1>
+
+  {# Data error banner #}
+  {% if data_error is defined and data_error %}
+  {% include "partials/data_error_banner.html" %}
+  {% endif %}
+
+  {% if not has_projects %}
+  {# ── Welcome Empty State (no projects registered) ── #}
+  <div class="flex justify-center items-center min-h-[40vh]">
+    <div class="card bg-base-100 shadow-sm p-8 text-center max-w-lg">
+      <h2 class="text-xl font-semibold mb-2">Welcome to ADW Dashboard</h2>
+      <p class="text-base-content/60 mb-4">No projects registered yet. Register a project from the CLI to get started:</p>
+      <code class="bg-base-200 px-3 py-1 rounded font-mono text-sm">$ adw global register</code>
+    </div>
+  </div>
+
+  {% elif not has_runs %}
+  {# ── No Runs Empty State (projects exist but no runs) ── #}
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">Overview</h1>
+    {% if has_projects %}
+    <button class="btn btn-primary btn-sm" disabled data-action="new-run">+ New Run</button>
+    {% endif %}
+  </div>
+
+  {% if not (data_error is defined and data_error) %}
+  <div class="flex justify-center items-center min-h-[30vh]">
+    <div class="card bg-base-100 shadow-sm p-8 text-center max-w-lg">
+      <h2 class="text-xl font-semibold mb-2">No runs yet</h2>
+      <p class="text-base-content/60 mb-4">Start your first run from the CLI or use the New Run button above.</p>
+      <button class="btn btn-primary btn-sm mt-2" disabled data-action="new-run">+ Start a Run</button>
+    </div>
+  </div>
+  {% endif %}
+
+  {# Project breakdown cards still display even in no-runs state #}
+  <div class="card bg-base-100 shadow-sm p-6 mt-4">
+    <p class="text-base-content/70">Project breakdown coming in Stories 1.4–1.5.</p>
+  </div>
+
+  {% else %}
+  {# ── Full Overview (projects and runs exist) ── #}
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">Overview</h1>
+    <button class="btn btn-primary btn-sm" disabled data-action="new-run">+ New Run</button>
+  </div>
 
   {% include "partials/stats_row.html" %}
 
@@ -8,4 +53,8 @@
   {% include "partials/recent_runs.html" %}
 
   {% include "partials/project_breakdown.html" %}
+
+  {% include "partials/cost_strip.html" %}
+
+  {% endif %}
 </div>
