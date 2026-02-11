@@ -71,9 +71,13 @@ async def start_run(
             "form_project": project,
             "form_feature": feature,
         }
-        return templates.TemplateResponse(
+        response = templates.TemplateResponse(
             request, "partials/new_run_modal.html", context,
         )
+        # Retarget to modal container so the modal re-renders in place
+        response.headers["HX-Retarget"] = "#modal-container"
+        response.headers["HX-Reswap"] = "innerHTML"
+        return response
 
     # Start the run
     result = await run_trigger.start_run(  # type: ignore[union-attr]
@@ -95,9 +99,12 @@ async def start_run(
             "form_project": project,
             "form_feature": feature,
         }
-        return templates.TemplateResponse(
+        response = templates.TemplateResponse(
             request, "partials/new_run_modal.html", context,
         )
+        response.headers["HX-Retarget"] = "#modal-container"
+        response.headers["HX-Reswap"] = "innerHTML"
+        return response
 
     # Success – return confirmation view for #main and close modal
     context = {

@@ -271,6 +271,31 @@ class TestFormValidation:
         )
         assert "My awesome feature" in response.text
 
+    def test_validation_error_retargets_modal_container(self) -> None:
+        """Validation error retargets response to #modal-container."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        token = _get_csrf_token(client)
+        response = client.post(
+            "/runs/start",
+            data={"project": "", "feature": "", "csrf_token": token},
+        )
+        assert response.headers.get("hx-retarget") == "#modal-container"
+        assert response.headers.get("hx-reswap") == "innerHTML"
+
+    def test_validation_error_does_not_push_url(self) -> None:
+        """Validation error does not set HX-Push-Url header."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+        )
+        token = _get_csrf_token(client)
+        response = client.post(
+            "/runs/start",
+            data={"project": "", "feature": "", "csrf_token": token},
+        )
+        assert response.headers.get("hx-push-url") is None
+
 
 # ── Successful Run Start ───────────────────────────────────────────
 
@@ -354,6 +379,25 @@ class TestSuccessfulRunStart:
         )
         assert response.headers.get("hx-push-url") == "/"
 
+    def test_success_clears_modal_via_oob(self) -> None:
+        """Successful response clears modal via out-of-band swap."""
+        rt = _mock_run_trigger(success=True, process_id=99)
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            run_trigger=rt,
+        )
+        token = _get_csrf_token(client)
+        response = client.post(
+            "/runs/start",
+            data={
+                "project": "/projects/my-project",
+                "feature": "Add dark mode",
+                "csrf_token": token,
+            },
+        )
+        assert 'id="modal-container"' in response.text
+        assert "hx-swap-oob" in response.text
+
 
 # ── Run Trigger Failure ────────────────────────────────────────────
 
@@ -380,6 +424,25 @@ class TestRunTriggerFailure:
         assert response.status_code == 200
         assert "Failed to start run" in response.text
         assert "new-run-dialog" in response.text
+
+    def test_trigger_failure_retargets_modal_container(self) -> None:
+        """Failed trigger retargets response to #modal-container."""
+        rt = _mock_run_trigger(success=False, error="ADW command not found: adw")
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            run_trigger=rt,
+        )
+        token = _get_csrf_token(client)
+        response = client.post(
+            "/runs/start",
+            data={
+                "project": "/projects/my-project",
+                "feature": "Add dark mode",
+                "csrf_token": token,
+            },
+        )
+        assert response.headers.get("hx-retarget") == "#modal-container"
+        assert response.headers.get("hx-reswap") == "innerHTML"
 
 
 # ── GET /partials/new-run Route ────────────────────────────────────
