@@ -1,5 +1,5 @@
 <div id="stats-row" class="flex flex-wrap gap-4 mb-6"
-     hx-get="/partials/stats{% if selected_project %}?project={{ selected_project }}{% endif %}"
+     hx-get="/partials/stats{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
      hx-trigger="every 30s"
      hx-swap="outerHTML">
 
