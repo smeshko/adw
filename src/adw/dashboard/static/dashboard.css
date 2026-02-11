@@ -1,0 +1,18 @@
+/* ADW Dashboard custom styles */
+
+/* HTMX swap transitions */
+.htmx-swapping { opacity: 0; transition: opacity 100ms ease-out; }
+.htmx-settling { opacity: 1; transition: opacity 200ms ease-in; }
+
+/* Phase pipeline pulse animation */
+@keyframes phase-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.phase-active { animation: phase-pulse 2s ease-in-out infinite; }
+
+/* Custom CSS properties for design tokens */
+:root {
+  --table-row-height: 2.5rem;
+  --card-padding-compact: 0.75rem;
+}
