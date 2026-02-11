@@ -178,7 +178,9 @@ def build_cost_strip_context(
 
     return {
         "cost_strip_cost_display": f"${stats.cost_this_week:.2f}",  # type: ignore[union-attr]
-        "cost_strip_tokens_display": _format_tokens(stats.tokens_this_week.total_tokens),  # type: ignore[union-attr]
+        "cost_strip_tokens_display": _format_tokens(  # type: ignore[union-attr]
+            stats.tokens_this_week.total_tokens,
+        ),
         "daily_bars": daily_bars,
     }
 
@@ -213,10 +215,7 @@ def build_analytics_context(
     )
 
     # Previous equivalent period for delta comparison
-    if days is not None:
-        prev_since = now - timedelta(days=days * 2)
-    else:
-        prev_since = None
+    prev_since = now - timedelta(days=days * 2) if days is not None else None
 
     has_data = current_stats.total_runs > 0
 
@@ -245,7 +244,9 @@ def build_analytics_context(
         prev_total_tokens = max(
             0, prev_stats.tokens.total_tokens - current_stats.tokens.total_tokens,
         )
-        prev_total_cost = max(0.0, prev_stats.estimated_cost - current_stats.estimated_cost)
+        prev_total_cost = max(
+            0.0, prev_stats.estimated_cost - current_stats.estimated_cost,
+        )
         prev_avg_tokens = (
             prev_total_tokens // prev_total_runs if prev_total_runs > 0 else 0
         )
@@ -290,29 +291,35 @@ def build_analytics_context(
     if has_data:
         proj_stats = current_stats.projects
         proj_total = sum(p.tokens.total_tokens for p in proj_stats)
-        sorted_projects = sorted(proj_stats, key=lambda p: p.tokens.total_tokens, reverse=True)
+        sorted_projects = sorted(
+            proj_stats, key=lambda p: p.tokens.total_tokens, reverse=True,
+        )
         for proj in sorted_projects:
-            pct = int((proj.tokens.total_tokens / proj_total) * 100) if proj_total > 0 else 0
+            proj_tok = proj.tokens.total_tokens
+            pct = int((proj_tok / proj_total) * 100) if proj_total else 0
             project_breakdown.append({
                 "name": proj.name,
                 "percentage": pct,
             })
 
     # ── Phase breakdown ──
-    _CANONICAL_PHASES = ["plan", "build", "validate", "document", "ship"]
-    _PHASE_DISPLAY = {"plan": "Plan", "build": "Build", "validate": "Validate", "document": "Document", "ship": "Ship"}
+    canonical_phases = ["plan", "build", "validate", "document", "ship"]
+    phase_display = {
+        "plan": "Plan", "build": "Build", "validate": "Validate",
+        "document": "Document", "ship": "Ship",
+    }
     phase_breakdown: list[dict] = []
     if has_data:
         phase_data = stats_aggregator.get_phase_breakdown(  # type: ignore[union-attr]
             project_name=project_name, since=since,
         )
         phase_total = sum(phase_data.values())
-        for phase_key in _CANONICAL_PHASES:
+        for phase_key in canonical_phases:
             tokens_val = phase_data.get(phase_key, 0)
             if tokens_val > 0:
                 pct = int((tokens_val / phase_total) * 100) if phase_total > 0 else 0
                 phase_breakdown.append({
-                    "name": _PHASE_DISPLAY.get(phase_key, phase_key.capitalize()),
+                    "name": phase_display.get(phase_key, phase_key.capitalize()),
                     "percentage": pct,
                 })
 
@@ -334,7 +341,7 @@ def build_analytics_context(
         )
         for model_name, model_tokens in sorted_models:
             total_m = model_tokens["input_tokens"] + model_tokens["output_tokens"]
-            pct = int((total_m / model_total_tokens) * 100) if model_total_tokens > 0 else 0
+            pct = int((total_m / model_total_tokens) * 100) if model_total_tokens else 0
             cost = stats_aggregator.calculate_cost(  # type: ignore[union-attr]
                 _TokenUsage(
                     input_tokens=model_tokens["input_tokens"],

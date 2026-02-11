@@ -207,8 +207,8 @@ class StatsAggregator:
             entries = [e for e in entries if e.project_path in registered_paths]
 
         # Group tokens by date with input/output split
-        daily_input: dict[dt_module.date, int] = {d: 0 for d in date_list}
-        daily_output: dict[dt_module.date, int] = {d: 0 for d in date_list}
+        daily_input: dict[dt_module.date, int] = dict.fromkeys(date_list, 0)
+        daily_output: dict[dt_module.date, int] = dict.fromkeys(date_list, 0)
         for entry in entries:
             entry_date = entry.started_at.date()
             if entry_date in daily_input:
@@ -473,9 +473,10 @@ class StatsAggregator:
 
             # Accumulate this-week tokens
             if entry.started_at >= week_ago:
+                inp = tokens_this_week.input_tokens + run_tokens.input_tokens
+                out = tokens_this_week.output_tokens + run_tokens.output_tokens
                 tokens_this_week = TokenUsage(
-                    input_tokens=tokens_this_week.input_tokens + run_tokens.input_tokens,
-                    output_tokens=tokens_this_week.output_tokens + run_tokens.output_tokens,
+                    input_tokens=inp, output_tokens=out,
                 )
 
             # Update project statistics - use registered name if available
