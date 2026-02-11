@@ -14,6 +14,7 @@ from fastapi.responses import HTMLResponse
 
 from adw.dashboard.dependencies import (
     get_index_manager,
+    get_stats_aggregator,
 )
 
 router = APIRouter(prefix="/partials")
@@ -73,3 +74,68 @@ async def status_bar(
     }
 
     return templates.TemplateResponse(request, "partials/status_bar.html", context)
+
+
+def _format_duration(ms: int) -> str:
+    """Format milliseconds as 'Xm Ys'."""
+    total_seconds = ms // 1000
+    minutes = total_seconds // 60
+    seconds = total_seconds % 60
+    return f"{minutes}m {seconds}s"
+
+
+def _format_tokens(total: int) -> str:
+    """Format token count with abbreviation (2.4M, 340K)."""
+    if total >= 1_000_000:
+        value = total / 1_000_000
+        return f"{value:.1f}M" if value != int(value) else f"{int(value)}M"
+    if total >= 1_000:
+        value = total / 1_000
+        return f"{value:.0f}K" if value >= 10 else f"{value:.1f}K"
+    return str(total)
+
+
+@router.get("/stats", response_class=HTMLResponse)
+async def stats_partial(
+    request: Request,
+    project: str = Query("", alias="project"),
+    stats_aggregator: object = Depends(get_stats_aggregator),
+) -> HTMLResponse:
+    """Return the stats row HTML fragment for polling updates."""
+    templates = request.app.state.templates
+
+    project_name = project or None
+    stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
+
+    # Compute trend deltas
+    runs_trend = stats.runs_this_week - stats.previous_week_total_runs
+    success_trend = round(
+        (stats.success_rate - stats.previous_week_success_rate) * 100, 1
+    )
+    duration_trend_ms = stats.average_duration_ms - stats.previous_week_average_duration_ms
+
+    # Format duration trend as absolute value
+    abs_duration_trend_ms = abs(duration_trend_ms)
+    duration_trend_display = _format_duration(abs_duration_trend_ms)
+
+    context = {
+        "request": request,
+        "selected_project": project_name,
+        # Stat values
+        "total_runs": stats.total_runs,
+        "success_rate_display": f"{stats.success_rate * 100:.1f}%",
+        "duration_display": _format_duration(stats.average_duration_ms),
+        "tokens_display": _format_tokens(stats.tokens.total_tokens),
+        "cost_display": f"{stats.estimated_cost:.2f}",
+        # Trend data
+        "runs_trend": runs_trend,
+        "success_trend": success_trend,
+        "success_trend_display": f"{abs(success_trend):.1f}",
+        "duration_trend_ms": duration_trend_ms,
+        "duration_trend_display": duration_trend_display,
+        # This week totals
+        "tokens_week_display": _format_tokens(stats.tokens_this_week.total_tokens),
+        "cost_week_display": f"{stats.cost_this_week:.2f}",
+    }
+
+    return templates.TemplateResponse(request, "partials/stats_row.html", context)

@@ -395,3 +395,156 @@ class TestStatsAggregatorTrendComputation:
         assert stats.previous_week_average_duration_ms == 0
         assert stats.tokens_this_week.total_tokens == 0
         assert stats.cost_this_week == 0.0
+
+
+# ── Task 4: Stats Partial Route ───────────────────────────────────
+
+
+class TestStatsPartialRoute:
+    """Tests for GET /partials/stats route."""
+
+    def test_returns_200(self) -> None:
+        """Stats partial returns HTTP 200."""
+        client = _make_client_with_mocks()
+        response = client.get("/partials/stats")
+        assert response.status_code == 200
+
+    def test_returns_html(self) -> None:
+        """Stats partial returns HTML content type."""
+        client = _make_client_with_mocks()
+        response = client.get("/partials/stats")
+        assert "text/html" in response.headers["content-type"]
+
+    def test_contains_five_stat_cards(self) -> None:
+        """Stats partial contains 5 stat cards."""
+        client = _make_client_with_mocks()
+        response = client.get("/partials/stats")
+        assert response.text.count("stat-title") == 5
+        assert response.text.count("stat-value") == 5
+
+    def test_has_stats_row_id(self) -> None:
+        """Stats row has id='stats-row' for OOB swap."""
+        client = _make_client_with_mocks()
+        response = client.get("/partials/stats")
+        assert 'id="stats-row"' in response.text
+
+    def test_has_polling_attributes(self) -> None:
+        """Stats row has HTMX polling at 30s interval."""
+        client = _make_client_with_mocks()
+        response = client.get("/partials/stats")
+        assert 'hx-get="/partials/stats"' in response.text
+        assert 'hx-trigger="every 30s"' in response.text
+
+    def test_has_outerhtml_swap(self) -> None:
+        """Stats row swaps outerHTML on poll."""
+        client = _make_client_with_mocks()
+        response = client.get("/partials/stats")
+        assert 'hx-swap="outerHTML"' in response.text
+
+    def test_has_flex_wrap_layout(self) -> None:
+        """Stats row uses flex wrap for responsive layout."""
+        client = _make_client_with_mocks()
+        response = client.get("/partials/stats")
+        assert "flex flex-wrap gap-4" in response.text
+
+    def test_total_runs_displayed(self) -> None:
+        """Total runs value is displayed."""
+        client = _make_client_with_mocks(
+            stats_aggregator=_mock_stats_aggregator(total_runs=142),
+        )
+        response = client.get("/partials/stats")
+        assert "142" in response.text
+        assert "Total Runs" in response.text
+
+    def test_success_rate_formatted(self) -> None:
+        """Success rate is formatted as percentage with 1 decimal."""
+        client = _make_client_with_mocks(
+            stats_aggregator=_mock_stats_aggregator(success_rate=0.875),
+        )
+        response = client.get("/partials/stats")
+        assert "87.5%" in response.text
+        assert "Success Rate" in response.text
+
+    def test_duration_formatted(self) -> None:
+        """Average duration is formatted as Xm Ys."""
+        client = _make_client_with_mocks(
+            stats_aggregator=_mock_stats_aggregator(average_duration_ms=185000),
+        )
+        response = client.get("/partials/stats")
+        assert "3m 5s" in response.text
+        assert "Avg Duration" in response.text
+
+    def test_tokens_abbreviated(self) -> None:
+        """Tokens are abbreviated (2.4M, 340K)."""
+        client = _make_client_with_mocks(
+            stats_aggregator=_mock_stats_aggregator(
+                tokens=TokenUsage(input_tokens=1_800_000, output_tokens=600_000),
+            ),
+        )
+        response = client.get("/partials/stats")
+        assert "2.4M" in response.text
+        assert "Tokens Used" in response.text
+
+    def test_cost_formatted(self) -> None:
+        """Cost is formatted as $X.XX."""
+        client = _make_client_with_mocks(
+            stats_aggregator=_mock_stats_aggregator(estimated_cost=12.45),
+        )
+        response = client.get("/partials/stats")
+        assert "$12.45" in response.text
+        assert "Estimated Cost" in response.text
+
+    def test_positive_run_trend(self) -> None:
+        """Positive run trend shows green with up arrow."""
+        client = _make_client_with_mocks(
+            stats_aggregator=_mock_stats_aggregator(
+                runs_this_week=42,
+                previous_week_total_runs=35,
+            ),
+        )
+        response = client.get("/partials/stats")
+        assert "text-success" in response.text
+        assert "▲" in response.text or "&#x25B2;" in response.text
+
+    def test_negative_run_trend(self) -> None:
+        """Negative run trend shows red with down arrow."""
+        client = _make_client_with_mocks(
+            stats_aggregator=_mock_stats_aggregator(
+                runs_this_week=20,
+                previous_week_total_runs=35,
+            ),
+        )
+        response = client.get("/partials/stats")
+        assert "text-error" in response.text
+        assert "▼" in response.text or "&#x25BC;" in response.text
+
+    def test_neutral_run_trend(self) -> None:
+        """Neutral run trend shows default color."""
+        client = _make_client_with_mocks(
+            stats_aggregator=_mock_stats_aggregator(
+                runs_this_week=35,
+                previous_week_total_runs=35,
+            ),
+        )
+        response = client.get("/partials/stats")
+        assert "No change" in response.text
+
+    def test_project_filter_passed_to_stats(self) -> None:
+        """Project filter is passed to stats aggregator."""
+        sa = _mock_stats_aggregator()
+        client = _make_client_with_mocks(stats_aggregator=sa)
+        client.get("/partials/stats?project=myproject")
+        sa.get_global_stats.assert_called_once_with(project_name="myproject")
+
+    def test_project_filter_in_polling_url(self) -> None:
+        """Polling URL includes project parameter when set."""
+        client = _make_client_with_mocks()
+        response = client.get("/partials/stats?project=myproject")
+        assert 'hx-get="/partials/stats?project=myproject"' in response.text
+
+    def test_no_project_filter(self) -> None:
+        """Stats aggregator called with None when no project filter."""
+        sa = _mock_stats_aggregator()
+        client = _make_client_with_mocks(stats_aggregator=sa)
+        client.get("/partials/stats")
+        sa.get_global_stats.assert_called_once_with(project_name=None)
