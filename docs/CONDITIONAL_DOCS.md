@@ -198,3 +198,9 @@ This guide helps you find relevant documentation based on what you're working on
     - When loading RunContext data for enriched display on dashboard run detail pages
     - When adding context-aware back navigation between dashboard pages
     - When displaying full metadata cards with clipboard copy functionality in the dashboard
+- docs/features/rerun-flow.md
+  - Conditions:
+    - When implementing re-run or retry functionality for dashboard runs
+    - When pre-populating modal forms with data from existing records in the dashboard
+    - When using disabled form elements with hidden input workarounds in HTMX forms
+    - When preserving form state across validation error re-rendering in the dashboard
