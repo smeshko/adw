@@ -28,9 +28,9 @@
         <tbody>
           {% if recent_runs %}
             {% for run in recent_runs %}
-            <tr hx-get="/runs/{{ run.run_id }}"
+            <tr hx-get="/runs/{{ run.run_id | urlencode }}"
                 hx-target="#main"
-                hx-push-url="/runs/{{ run.run_id }}"
+                hx-push-url="/runs/{{ run.run_id | urlencode }}"
                 class="hover cursor-pointer">
               <td class="text-sm">{{ run.project_name }}</td>
               <td class="text-sm text-base-content/70 truncate max-w-[200px]">{{ run.feature_description }}</td>

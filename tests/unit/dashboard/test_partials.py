@@ -503,6 +503,30 @@ class TestProjectBreakdownPartial:
         assert "Projects</h2>" in response.text
         assert "Filtered" not in response.text
 
+    def test_all_cards_visible_when_filtered(self) -> None:
+        """All project cards remain visible even when a filter is active."""
+        projects = [
+            ProjectStatistics(
+                name="alpha", path="/p/a", total_runs=10, success_rate=0.8,
+            ),
+            ProjectStatistics(
+                name="beta", path="/p/b", total_runs=5, success_rate=0.6,
+            ),
+            ProjectStatistics(
+                name="gamma", path="/p/g", total_runs=3, success_rate=0.9,
+            ),
+        ]
+        client = _make_client_with_mocks(
+            stats_aggregator=_mock_stats_aggregator(projects=projects),
+        )
+        response = client.get("/partials/projects?project=alpha")
+        # All three projects should be visible (unfiltered card list)
+        assert "alpha" in response.text
+        assert "beta" in response.text
+        assert "gamma" in response.text
+        # Only alpha should have the ring highlight
+        assert "ring ring-primary" in response.text
+
 
 # ── Overview Integration ──────────────────────────────────────────
 

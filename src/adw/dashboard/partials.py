@@ -153,6 +153,35 @@ async def stats_partial(
     return templates.TemplateResponse(request, "partials/stats_row.html", context)
 
 
+def build_recent_runs_context(entries: list) -> list[dict]:
+    """Transform IndexEntry objects into template-ready dicts.
+
+    Args:
+        entries: List of IndexEntry objects from IndexManager.
+
+    Returns:
+        List of dicts with run_id, project_name, feature_description,
+        status, duration_display, and started_ago keys.
+    """
+    result = []
+    for entry in entries:
+        if entry.completed_at and entry.started_at:
+            delta_seconds = (entry.completed_at - entry.started_at).total_seconds()
+            duration_display = _format_duration(int(delta_seconds * 1000))
+        else:
+            duration_display = "—"
+
+        result.append({
+            "run_id": entry.run_id,
+            "project_name": entry.project_name,
+            "feature_description": entry.feature_description,
+            "status": entry.status,
+            "duration_display": duration_display,
+            "started_ago": _relative_time(entry.started_at),
+        })
+    return result
+
+
 @router.get("/recent-runs", response_class=HTMLResponse)
 async def recent_runs(
     request: Request,
@@ -165,26 +194,9 @@ async def recent_runs(
     project_name = project or None
     entries = index_manager.get_recent_runs(limit=5, project_name=project_name)  # type: ignore[union-attr]
 
-    recent_runs_data = []
-    for entry in entries:
-        if entry.completed_at and entry.started_at:
-            delta_seconds = (entry.completed_at - entry.started_at).total_seconds()
-            duration_display = _format_duration(int(delta_seconds * 1000))
-        else:
-            duration_display = "—"
-
-        recent_runs_data.append({
-            "run_id": entry.run_id,
-            "project_name": entry.project_name,
-            "feature_description": entry.feature_description,
-            "status": entry.status,
-            "duration_display": duration_display,
-            "started_ago": _relative_time(entry.started_at),
-        })
-
     context = {
         "request": request,
-        "recent_runs": recent_runs_data,
+        "recent_runs": build_recent_runs_context(entries),
         "selected_project": project_name,
     }
 
@@ -201,7 +213,9 @@ async def project_breakdown(
     templates = request.app.state.templates
 
     project_name = project or None
-    stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
+    # Always fetch unfiltered stats so all project cards remain visible,
+    # allowing the user to switch projects by clicking any card.
+    stats = stats_aggregator.get_global_stats(project_name=None)  # type: ignore[union-attr]
 
     context = {
         "request": request,
