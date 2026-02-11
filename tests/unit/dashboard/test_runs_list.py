@@ -502,12 +502,13 @@ class TestRunsListEmptyState:
     """Tests for empty state when no runs match."""
 
     def test_empty_state_message(self) -> None:
-        """Shows 'No runs match your filters' when empty."""
+        """Shows enhanced empty state message with filter suggestion."""
         client = _make_client_with_mocks(
             index_manager=_mock_index_manager(entries=[]),
         )
         response = client.get("/runs")
-        assert "No runs match your filters" in response.text
+        assert "No runs match your filters." in response.text
+        assert "Try adjusting the status or date range." in response.text
 
     def test_clear_filters_link(self) -> None:
         """Empty state includes clear filters link."""
