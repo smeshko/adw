@@ -162,6 +162,64 @@ class StatsAggregator:
 
         return TokenUsage(input_tokens=total_input, output_tokens=total_output)
 
+    def get_daily_token_counts(
+        self,
+        project_name: str | None = None,
+        days: int = 7,
+    ) -> list[dict[str, object]]:
+        """Get daily token counts for the last N days.
+
+        Queries the index for recent entries, groups by UTC date, and
+        sums tokens per day via ``_parse_llm_response_files()``.
+
+        Args:
+            project_name: Filter to specific project.
+            days: Number of days to include (default 7).
+
+        Returns:
+            List of dicts ``[{"date": date, "tokens": int}]`` — one per
+            day for the last ``days`` days, with 0 for days without runs.
+        """
+        import datetime as dt_module
+
+        now = datetime.now(UTC)
+        start = now - timedelta(days=days)
+
+        # Build list of dates (oldest first)
+        date_list: list[dt_module.date] = []
+        for i in range(days - 1, -1, -1):
+            date_list.append((now - timedelta(days=i)).date())
+
+        # Get registered project paths for filtering
+        registered_projects = self.project_registry.get_all()
+        registered_paths = {p.path for p in registered_projects}
+
+        # Get entries in the time window
+        entries = self.index_manager.get_recent_runs(
+            limit=100000,
+            project_name=project_name,
+            since=start,
+        )
+
+        # Filter to registered projects
+        if registered_paths:
+            entries = [e for e in entries if e.project_path in registered_paths]
+
+        # Group tokens by date
+        daily_tokens: dict[dt_module.date, int] = {d: 0 for d in date_list}
+        for entry in entries:
+            entry_date = entry.started_at.date()
+            if entry_date in daily_tokens:
+                project_path = Path(entry.project_path)
+                run_dir = project_path / ".adw" / "runs" / entry.run_id
+                run_tokens = self._parse_llm_response_files(run_dir)
+                daily_tokens[entry_date] += run_tokens.total_tokens
+
+        return [
+            {"date": d, "tokens": daily_tokens[d]}
+            for d in date_list
+        ]
+
     def get_global_stats(
         self,
         project_name: str | None = None,
