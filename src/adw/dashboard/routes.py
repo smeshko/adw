@@ -212,19 +212,31 @@ async def runs_list(
             until = datetime.fromisoformat(to_date)
             if until.tzinfo is None:
                 until = until.replace(tzinfo=UTC)
+            # If date-only (no time component), expand to end of day
+            if until.hour == 0 and until.minute == 0 and until.second == 0:
+                until = until.replace(hour=23, minute=59, second=59)
         except ValueError:
             until = None
 
-    # Fetch paginated runs
-    paginated = index_manager.get_paginated_runs(  # type: ignore[union-attr]
-        page=page,
-        page_size=15,
-        status=status_filter or None,
-        project_name=project or None,
-        since=since,
-        until=until,
-        sort=sort,
-    )
+    # Fetch paginated runs with graceful degradation
+    try:
+        paginated = index_manager.get_paginated_runs(  # type: ignore[union-attr]
+            page=page,
+            page_size=15,
+            status=status_filter or None,
+            project_name=project or None,
+            since=since,
+            until=until,
+            sort=sort,
+        )
+    except Exception:
+        paginated = {
+            "entries": [],
+            "total_count": 0,
+            "page": 1,
+            "page_size": 15,
+            "total_pages": 0,
+        }
 
     context["runs"] = build_recent_runs_context(paginated["entries"])
     context["total_count"] = paginated["total_count"]

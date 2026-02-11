@@ -500,17 +500,18 @@ class TestGetPaginatedRuns:
         result = manager.get_paginated_runs(page_size=15)
         assert result["total_pages"] == 2
 
-    def test_page_beyond_total_returns_empty(self, tmp_path: Path) -> None:
-        """Requesting page beyond total_pages returns empty entries."""
+    def test_page_beyond_total_clamps_to_last(self, tmp_path: Path) -> None:
+        """Requesting page beyond total_pages clamps to last page."""
         index_path = tmp_path / "index.jsonl"
         manager = IndexManager(index_path=index_path)
         ctx = _create_test_context()
         manager.register_run(ctx, Path("/test/project"))
 
         result = manager.get_paginated_runs(page=99)
-        assert result["entries"] == []
+        assert len(result["entries"]) == 1
         assert result["total_count"] == 1
         assert result["total_pages"] == 1
+        assert result["page"] == 1
 
     def test_empty_index_returns_zero_results(self, tmp_path: Path) -> None:
         """Empty index returns empty result with zero counts."""
