@@ -703,8 +703,6 @@ async def phase_detail(
 
     Loads hooks and artifacts data for the specified phase of a run.
     """
-    from adw.dashboard.partials import _format_tokens
-
     templates = request.app.state.templates
 
     # Validate phase against known phases (NFR10: no arbitrary path access)
@@ -729,8 +727,6 @@ async def phase_detail(
     try:
         project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
         runs_dir = project_path / ".adw" / "runs"
-        cm = ContextManager(runs_dir)
-        ctx = cm.load(run_id)
 
         # Load artifacts from disk
         am = ArtifactManager(runs_dir)
@@ -743,7 +739,7 @@ async def phase_detail(
             })
     except (StateError, OSError):
         logger.debug(
-            "RunContext unavailable for phase detail",
+            "Failed to load artifacts for phase detail",
             extra={"run_id": run_id, "phase": phase},
         )
 
