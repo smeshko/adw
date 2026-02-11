@@ -48,23 +48,13 @@
 
   {% include "partials/stats_row.html" %}
 
-  {# Active runs placeholder #}
-  <div class="card bg-base-100 shadow-sm p-6 mt-4">
-    <p class="text-base-content/70">Active runs coming in Story 1.4.</p>
-  </div>
+  {% include "partials/active_runs.html" %}
 
-  {# Recent runs placeholder #}
-  <div class="card bg-base-100 shadow-sm p-6 mt-4">
-    <p class="text-base-content/70">Recent runs coming in Story 1.5.</p>
-  </div>
+  {% include "partials/recent_runs.html" %}
 
-  {# Projects placeholder #}
-  <div class="card bg-base-100 shadow-sm p-6 mt-4">
-    <p class="text-base-content/70">Project breakdown coming in Stories 1.4–1.5.</p>
-  </div>
+  {% include "partials/project_breakdown.html" %}
 
   {% include "partials/cost_strip.html" %}
 
   {% endif %}
-
 </div>

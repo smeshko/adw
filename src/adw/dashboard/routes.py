@@ -95,7 +95,12 @@ async def overview(
     Returns the full page or just the ``#main`` partial depending on
     whether the request came from HTMX.
     """
-    from adw.dashboard.partials import build_cost_strip_context, build_stats_context
+    from adw.dashboard.partials import (
+        _load_active_run_details,
+        build_cost_strip_context,
+        build_recent_runs_context,
+        build_stats_context,
+    )
 
     templates = request.app.state.templates
     context = _build_page_context(
@@ -142,6 +147,20 @@ async def overview(
                 )
     else:
         context["has_runs"] = False
+
+    # Add recent runs data for the recent runs partial
+    entries = index_manager.get_recent_runs(limit=5, project_name=project_name)  # type: ignore[union-attr]
+    context["recent_runs"] = build_recent_runs_context(entries)
+
+    # Add project breakdown data — always unfiltered so all cards are visible
+    all_stats = stats_aggregator.get_global_stats(project_name=None)  # type: ignore[union-attr]
+    context["project_stats"] = all_stats.projects  # type: ignore[union-attr]
+
+    # Add active runs data for the active runs section
+    active_entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
+        status="running", project_name=project_name
+    )
+    context["active_runs"] = _load_active_run_details(active_entries)
 
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "partials/overview.html", context)
