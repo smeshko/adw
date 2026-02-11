@@ -4,6 +4,10 @@
 .htmx-swapping { opacity: 0; transition: opacity 100ms ease-out; }
 .htmx-settling { opacity: 1; transition: opacity 200ms ease-in; }
 
+/* HTMX loading indicator (hidden by default, shown when .htmx-request added) */
+.htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+
 /* Phase pipeline pulse animation */
 @keyframes phase-pulse {
   0%, 100% { opacity: 1; }
@@ -11,8 +15,24 @@
 }
 .phase-active { animation: phase-pulse 2s ease-in-out infinite; }
 
-/* Custom CSS properties for design tokens */
+/* Design tokens – CSS custom properties (UX §14) */
 :root {
-  --table-row-height: 2.5rem;
+  /* Phase status colors – mapped to DaisyUI semantic colors */
+  --phase-success: oklch(var(--su));
+  --phase-error: oklch(var(--er));
+  --phase-active: oklch(var(--wa));
+  --phase-pending: oklch(var(--bc) / 0.2);
+
+  /* Chart colors */
+  --chart-primary: oklch(var(--p));
+  --chart-primary-light: oklch(var(--p) / 0.4);
+
+  /* Layout tokens */
+  --table-row-height: 2.25rem;
   --card-padding-compact: 0.75rem;
+}
+
+/* Responsive: minimum supported width 1024px */
+@media (max-width: 1023px) {
+  body { min-width: 1024px; }
 }
