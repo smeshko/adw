@@ -10,7 +10,8 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from rich.console import Console
 
@@ -90,5 +91,31 @@ def create_dashboard_app(
 
     app.include_router(pages_router)
     app.include_router(partials_router)
+
+    # HTML-only exception handler – never return JSON from the dashboard
+    @app.exception_handler(Exception)
+    async def _html_exception_handler(request: Request, exc: Exception) -> HTMLResponse:
+        status_code = getattr(exc, "status_code", 500)
+        detail = getattr(exc, "detail", str(exc)) or "An unexpected error occurred."
+        context = {
+            "request": request,
+            "status_code": status_code,
+            "error_message": str(detail),
+            "page": "",
+            "projects": [],
+            "selected_project": None,
+            "active_run_count": 0,
+            "last_updated_ago": "—",
+        }
+
+        if request.headers.get("HX-Request"):
+            return HTMLResponse(
+                content=templates.get_template("partials/error_banner.html").render(context),
+                status_code=status_code,
+            )
+        return HTMLResponse(
+            content=templates.get_template("pages/error.html").render(context),
+            status_code=status_code,
+        )
 
     return app
