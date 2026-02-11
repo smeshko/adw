@@ -279,19 +279,36 @@ async def runs_list(
     return templates.TemplateResponse(request, "pages/runs_list.html", context)
 
 
+_RANGE_DAYS: dict[str, int | None] = {
+    "7d": 7,
+    "30d": 30,
+    "90d": 90,
+    "all": None,
+}
+
+_VALID_RANGES = list(_RANGE_DAYS.keys())
+
+
 @router.get("/analytics", response_class=HTMLResponse)
 async def analytics(
     request: Request,
     project: str = Query("", alias="project"),
+    range_: str = Query("7d", alias="range"),
     index_manager: object = Depends(get_index_manager),
     stats_aggregator: object = Depends(get_stats_aggregator),
     project_registry: object = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Render the analytics page.
 
-    Returns the full page or just the ``#main`` partial depending on
-    whether the request came from HTMX.
+    Returns the full page or just the ``#analytics-content`` partial
+    depending on whether the request came from HTMX.
     """
+    from adw.dashboard.partials import build_analytics_context
+
+    # Normalise range
+    if range_ not in _RANGE_DAYS:
+        range_ = "7d"
+
     templates = request.app.state.templates
     context = _build_page_context(
         request, "analytics",
@@ -299,6 +316,24 @@ async def analytics(
         project_registry=project_registry,
         project=project,
     )
+
+    project_name = project or None
+
+    # Build analytics-specific context
+    try:
+        context.update(
+            build_analytics_context(
+                stats_aggregator=stats_aggregator,
+                project_name=project_name,
+                range_key=range_,
+                range_days=_RANGE_DAYS,
+            )
+        )
+    except Exception:
+        context["has_analytics_data"] = False
+
+    context["selected_range"] = range_
+    context["valid_ranges"] = _VALID_RANGES
 
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "partials/analytics.html", context)

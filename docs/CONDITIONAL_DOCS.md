@@ -172,6 +172,12 @@ This guide helps you find relevant documentation based on what you're working on
     - When using the phase pipeline component macro in dashboard templates
     - When loading RunContext data in dashboard partials with fallback handling
 
+- docs/features/analytics-time-range-stat-cards.md
+  - Conditions:
+    - When adding new stat cards or metrics to the analytics page
+    - When implementing time-range filtering for analytics data
+    - When computing period-over-period delta comparisons for dashboard statistics
+    - When adding bookmarkable HTMX tab navigation with query parameter preservation
 - docs/features/runs-list-pagination-sorting.md
   - Conditions:
     - When adding a new paginated list page to the dashboard

@@ -1,6 +1,111 @@
 <div id="analytics">
-  <h1 class="text-2xl font-bold mb-4">Analytics</h1>
-  <div class="card bg-base-100 shadow-sm p-6">
-    <p class="text-base-content/70">Analytics dashboard coming in Epic 5.</p>
+
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">Token &amp; Cost Analytics</h1>
+  </div>
+
+  {# Time Range Tabs #}
+  <div class="tabs tabs-box mb-6">
+    <a class="tab {% if selected_range == '7d' %}tab-active{% endif %}"
+       hx-get="/analytics?range=7d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}"
+       hx-target="#analytics"
+       hx-swap="outerHTML"
+       hx-push-url="/analytics?range=7d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}">7 days</a>
+    <a class="tab {% if selected_range == '30d' %}tab-active{% endif %}"
+       hx-get="/analytics?range=30d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}"
+       hx-target="#analytics"
+       hx-swap="outerHTML"
+       hx-push-url="/analytics?range=30d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}">30 days</a>
+    <a class="tab {% if selected_range == '90d' %}tab-active{% endif %}"
+       hx-get="/analytics?range=90d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}"
+       hx-target="#analytics"
+       hx-swap="outerHTML"
+       hx-push-url="/analytics?range=90d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}">90 days</a>
+    <a class="tab {% if selected_range == 'all' %}tab-active{% endif %}"
+       hx-get="/analytics?range=all{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}"
+       hx-target="#analytics"
+       hx-swap="outerHTML"
+       hx-push-url="/analytics?range=all{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}">All time</a>
+  </div>
+
+  {# Analytics Content (HTMX swap target) #}
+  <div id="analytics-content">
+
+    {% if not has_analytics_data %}
+    {# ── Empty State ── #}
+    <div class="flex justify-center items-center min-h-[30vh]">
+      <div class="card bg-base-100 shadow-sm p-8 text-center max-w-lg">
+        <h2 class="text-xl font-semibold mb-2">No data available</h2>
+        <p class="text-base-content/60">No data for the selected period. Try a wider time range.</p>
+      </div>
+    </div>
+
+    {% else %}
+    {# ── Stat Cards ── #}
+    <div class="flex flex-wrap gap-4 mb-6">
+
+      {# Total Tokens #}
+      <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
+        <div class="stat-title">Total Tokens</div>
+        <div class="stat-value text-2xl font-mono">{{ analytics_total_tokens }}</div>
+        <div class="stat-desc">
+          {% if tokens_delta > 0 %}
+            <span class="text-success">&#x25B2; +{{ tokens_delta_display }} vs prev period</span>
+          {% elif tokens_delta < 0 %}
+            <span class="text-error">&#x25BC; {{ tokens_delta_display }} vs prev period</span>
+          {% else %}
+            <span>No change vs prev period</span>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Total Cost #}
+      <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
+        <div class="stat-title">Total Cost</div>
+        <div class="stat-value text-2xl font-mono">{{ analytics_total_cost }}</div>
+        <div class="stat-desc">
+          {% if cost_delta > 0 %}
+            <span class="text-success">&#x25B2; +{{ cost_delta_display }} vs prev period</span>
+          {% elif cost_delta < 0 %}
+            <span class="text-error">&#x25BC; {{ cost_delta_display }} vs prev period</span>
+          {% else %}
+            <span>No change vs prev period</span>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Avg Tokens/Run #}
+      <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
+        <div class="stat-title">Avg Tokens/Run</div>
+        <div class="stat-value text-2xl font-mono">{{ analytics_avg_tokens }}</div>
+        <div class="stat-desc">
+          {% if avg_tokens_delta > 0 %}
+            <span class="text-success">&#x25B2; +{{ avg_tokens_delta_display }} vs prev period</span>
+          {% elif avg_tokens_delta < 0 %}
+            <span class="text-error">&#x25BC; {{ avg_tokens_delta_display }} vs prev period</span>
+          {% else %}
+            <span>No change vs prev period</span>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Total Runs #}
+      <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
+        <div class="stat-title">Total Runs</div>
+        <div class="stat-value text-2xl font-mono">{{ analytics_total_runs }}</div>
+        <div class="stat-desc">
+          {% if runs_delta > 0 %}
+            <span class="text-success">&#x25B2; +{{ runs_delta }} vs prev period</span>
+          {% elif runs_delta < 0 %}
+            <span class="text-error">&#x25BC; {{ runs_delta | abs }} vs prev period</span>
+          {% else %}
+            <span>No change vs prev period</span>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+    {% endif %}
+
   </div>
 </div>
