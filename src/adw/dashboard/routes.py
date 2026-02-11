@@ -234,14 +234,18 @@ async def analytics(
     project_name = project or None
 
     # Build analytics-specific context
-    context.update(
-        build_analytics_context(
-            stats_aggregator=stats_aggregator,
-            project_name=project_name,
-            range_key=range_,
-            range_days=_RANGE_DAYS,
+    try:
+        context.update(
+            build_analytics_context(
+                stats_aggregator=stats_aggregator,
+                project_name=project_name,
+                range_key=range_,
+                range_days=_RANGE_DAYS,
+            )
         )
-    )
+    except Exception:
+        context["has_analytics_data"] = False
+
     context["selected_range"] = range_
     context["valid_ranges"] = _VALID_RANGES
 

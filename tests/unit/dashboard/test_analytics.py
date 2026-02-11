@@ -381,10 +381,11 @@ class TestAnalyticsRoute:
         assert "tab-active" in section
 
     def test_tabs_have_htmx_attributes(self) -> None:
-        """Time range tabs have hx-get, hx-target, hx-push-url."""
+        """Time range tabs have hx-get, hx-target, hx-swap, hx-push-url."""
         client = _make_client()
         response = client.get("/analytics")
-        assert 'hx-target="#analytics-content"' in response.text
+        assert 'hx-target="#analytics"' in response.text
+        assert 'hx-swap="outerHTML"' in response.text
         assert "hx-push-url" in response.text
 
     def test_tab_urls_include_range(self) -> None:

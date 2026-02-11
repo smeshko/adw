@@ -8,19 +8,23 @@
   <div class="tabs tabs-box mb-6">
     <a class="tab {% if selected_range == '7d' %}tab-active{% endif %}"
        hx-get="/analytics?range=7d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}"
-       hx-target="#analytics-content"
+       hx-target="#analytics"
+       hx-swap="outerHTML"
        hx-push-url="/analytics?range=7d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}">7 days</a>
     <a class="tab {% if selected_range == '30d' %}tab-active{% endif %}"
        hx-get="/analytics?range=30d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}"
-       hx-target="#analytics-content"
+       hx-target="#analytics"
+       hx-swap="outerHTML"
        hx-push-url="/analytics?range=30d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}">30 days</a>
     <a class="tab {% if selected_range == '90d' %}tab-active{% endif %}"
        hx-get="/analytics?range=90d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}"
-       hx-target="#analytics-content"
+       hx-target="#analytics"
+       hx-swap="outerHTML"
        hx-push-url="/analytics?range=90d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}">90 days</a>
     <a class="tab {% if selected_range == 'all' %}tab-active{% endif %}"
        hx-get="/analytics?range=all{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}"
-       hx-target="#analytics-content"
+       hx-target="#analytics"
+       hx-swap="outerHTML"
        hx-push-url="/analytics?range=all{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}">All time</a>
   </div>
 

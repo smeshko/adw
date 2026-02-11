@@ -239,11 +239,11 @@ def build_analytics_context(
         # We need only runs between prev_since and prev_until.
         # Since get_global_stats doesn't support an "until" param,
         # compute: prev_period = prev_all - current_period
-        prev_total_runs = prev_stats.total_runs - current_stats.total_runs
-        prev_total_tokens = (
-            prev_stats.tokens.total_tokens - current_stats.tokens.total_tokens
+        prev_total_runs = max(0, prev_stats.total_runs - current_stats.total_runs)
+        prev_total_tokens = max(
+            0, prev_stats.tokens.total_tokens - current_stats.tokens.total_tokens,
         )
-        prev_total_cost = prev_stats.estimated_cost - current_stats.estimated_cost
+        prev_total_cost = max(0.0, prev_stats.estimated_cost - current_stats.estimated_cost)
         prev_avg_tokens = (
             prev_total_tokens // prev_total_runs if prev_total_runs > 0 else 0
         )
