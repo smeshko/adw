@@ -181,6 +181,96 @@ def build_cost_strip_context(
     }
 
 
+def build_analytics_context(
+    stats_aggregator: object,
+    project_name: str | None,
+    range_key: str,
+    range_days: dict[str, int | None],
+) -> dict:
+    """Build template context for the analytics page stat cards.
+
+    Fetches stats for the selected time range and computes delta values
+    by comparing against the previous equivalent period.
+
+    Args:
+        stats_aggregator: A StatsAggregator instance.
+        project_name: Current project filter value or None.
+        range_key: Selected range key (e.g., "7d", "30d", "90d", "all").
+        range_days: Mapping of range keys to day counts (None = all time).
+
+    Returns:
+        Dict with analytics stat card values and delta indicators.
+    """
+    now = datetime.now(UTC)
+    days = range_days.get(range_key)
+
+    # Current period
+    since = (now - timedelta(days=days)) if days is not None else None
+    current_stats = stats_aggregator.get_global_stats(  # type: ignore[union-attr]
+        project_name=project_name, since=since, force_refresh=True,
+    )
+
+    # Previous equivalent period for delta comparison
+    if days is not None:
+        prev_since = now - timedelta(days=days * 2)
+    else:
+        prev_since = None
+
+    has_data = current_stats.total_runs > 0
+
+    # Compute current period values
+    total_tokens = current_stats.tokens.total_tokens
+    total_cost = current_stats.estimated_cost
+    total_runs = current_stats.total_runs
+    avg_tokens_per_run = total_tokens // total_runs if total_runs > 0 else 0
+
+    # Compute previous period values for deltas
+    tokens_delta = 0
+    cost_delta = 0.0
+    runs_delta = 0
+    avg_tokens_delta = 0
+
+    if days is not None:
+        # Fetch stats for the previous equivalent period
+        prev_stats = stats_aggregator.get_global_stats(  # type: ignore[union-attr]
+            project_name=project_name, since=prev_since, force_refresh=True,
+        )
+        # The prev_stats includes ALL runs since prev_since.
+        # We need only runs between prev_since and prev_until.
+        # Since get_global_stats doesn't support an "until" param,
+        # compute: prev_period = prev_all - current_period
+        prev_total_runs = prev_stats.total_runs - current_stats.total_runs
+        prev_total_tokens = (
+            prev_stats.tokens.total_tokens - current_stats.tokens.total_tokens
+        )
+        prev_total_cost = prev_stats.estimated_cost - current_stats.estimated_cost
+        prev_avg_tokens = (
+            prev_total_tokens // prev_total_runs if prev_total_runs > 0 else 0
+        )
+
+        tokens_delta = total_tokens - prev_total_tokens
+        cost_delta = total_cost - prev_total_cost
+        runs_delta = total_runs - prev_total_runs
+        avg_tokens_delta = avg_tokens_per_run - prev_avg_tokens
+
+    return {
+        "has_analytics_data": has_data,
+        # Stat card values
+        "analytics_total_tokens": _format_tokens(total_tokens),
+        "analytics_total_cost": f"${total_cost:.2f}",
+        "analytics_avg_tokens": _format_tokens(avg_tokens_per_run),
+        "analytics_total_runs": total_runs,
+        # Delta values
+        "tokens_delta": tokens_delta,
+        "tokens_delta_display": _format_tokens(abs(tokens_delta)),
+        "cost_delta": cost_delta,
+        "cost_delta_display": f"${abs(cost_delta):.2f}",
+        "runs_delta": runs_delta,
+        "avg_tokens_delta": avg_tokens_delta,
+        "avg_tokens_delta_display": _format_tokens(abs(avg_tokens_delta)),
+    }
+
+
 @router.get("/stats", response_class=HTMLResponse)
 async def stats_partial(
     request: Request,
