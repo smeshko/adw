@@ -311,6 +311,15 @@ class TestGetDailyTokenCounts:
         total = sum(d["tokens"] for d in result)
         assert total == 3000  # 3 runs * 1000 tokens each
 
+        # Verify tokens are assigned to the correct day (yesterday)
+        yesterday = (now - timedelta(days=1)).date()
+        day_map = {d["date"]: d["tokens"] for d in result}
+        assert day_map[yesterday] == 3000
+        # All other days should be zero
+        for d in result:
+            if d["date"] != yesterday:
+                assert d["tokens"] == 0, f"Expected 0 tokens on {d['date']}, got {d['tokens']}"
+
     def test_respects_project_filter(self) -> None:
         """Project name filter is passed to get_recent_runs."""
         from adw.core.stats_aggregator import StatsAggregator

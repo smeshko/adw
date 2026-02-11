@@ -93,17 +93,20 @@ class TestBuildCostStripContext:
         assert all(bar["height_pct"] == 0 for bar in result["daily_bars"])
 
     def test_bars_have_date_labels(self) -> None:
-        """Each bar has a weekday label (Mon, Tue, etc.)."""
-        today = datetime.now(UTC).date()
+        """Each bar has the correct weekday label for its date."""
+        from datetime import date
+
+        # Use a known Monday (2026-02-09) so labels are deterministic
+        monday = date(2026, 2, 9)
         daily = [
-            {"date": today - timedelta(days=i), "tokens": 0}
-            for i in range(6, -1, -1)
+            {"date": monday + timedelta(days=i), "tokens": 0}
+            for i in range(7)
         ]
         sa = _mock_stats_aggregator(daily_tokens=daily)
         result = build_cost_strip_context(sa, None)
-        valid_labels = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
-        for bar in result["daily_bars"]:
-            assert bar["date_label"] in valid_labels
+        expected_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        actual_labels = [bar["date_label"] for bar in result["daily_bars"]]
+        assert actual_labels == expected_labels
 
     def test_project_filter_passed(self) -> None:
         """Project name is passed to stats_aggregator methods."""
