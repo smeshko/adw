@@ -220,6 +220,98 @@ class IndexManager:
         # Apply limit
         return entries[:limit]
 
+    def get_paginated_runs(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 15,
+        status: str | None = None,
+        project_name: str | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
+        sort: str = "newest",
+    ) -> dict:
+        """Query runs with filtering, sorting, and pagination.
+
+        Args:
+            page: Page number (1-based).
+            page_size: Number of entries per page.
+            status: Filter to runs with this status.
+            project_name: Filter to runs matching this project name.
+            since: Filter to runs started on or after this time.
+            until: Filter to runs started on or before this time.
+            sort: Sort order — one of 'newest', 'oldest', 'duration_longest',
+                  'duration_shortest', 'project_az'.
+
+        Returns:
+            Dict with keys: entries, total_count, page, page_size, total_pages.
+        """
+        if not self.index_path.exists():
+            return {
+                "entries": [],
+                "total_count": 0,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": 0,
+            }
+
+        entries = self._read_all_entries()
+
+        # Apply filters
+        if status is not None:
+            entries = [e for e in entries if e.status == status]
+
+        if project_name is not None:
+            entries = [e for e in entries if e.project_name == project_name]
+
+        if since is not None:
+            entries = [e for e in entries if e.started_at >= since]
+
+        if until is not None:
+            entries = [e for e in entries if e.started_at <= until]
+
+        # Apply sorting
+        if sort == "newest":
+            entries.sort(key=lambda e: e.started_at, reverse=True)
+        elif sort == "oldest":
+            entries.sort(key=lambda e: e.started_at)
+        elif sort == "duration_longest":
+            entries.sort(
+                key=lambda e: (
+                    (e.completed_at - e.started_at).total_seconds()
+                    if e.completed_at
+                    else 0.0
+                ),
+                reverse=True,
+            )
+        elif sort == "duration_shortest":
+            entries.sort(
+                key=lambda e: (
+                    (e.completed_at - e.started_at).total_seconds()
+                    if e.completed_at
+                    else float("inf")
+                ),
+            )
+        elif sort == "project_az":
+            entries.sort(key=lambda e: (e.project_name, e.started_at))
+
+        # Calculate pagination
+        total_count = len(entries)
+        total_pages = (total_count + page_size - 1) // page_size if total_count > 0 else 0
+
+        # Slice to requested page
+        start = (page - 1) * page_size
+        end = start + page_size
+        page_entries = entries[start:end]
+
+        return {
+            "entries": page_entries,
+            "total_count": total_count,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        }
+
     def _archive_old_entries(self) -> None:
         """Archive old entries when index exceeds threshold.
 
