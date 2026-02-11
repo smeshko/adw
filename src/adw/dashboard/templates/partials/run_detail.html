@@ -1,0 +1,153 @@
+{% import "components/status_badge.html" as badge %}
+
+<div id="run-detail">
+
+  {# ── Back link ── #}
+  <div class="mb-4">
+    <a hx-get="{{ back_url }}"
+       hx-target="#main"
+       hx-push-url="{{ back_url }}"
+       class="btn btn-ghost btn-sm gap-1 text-base-content/60 hover:text-base-content">
+      &larr; {{ back_label }}
+    </a>
+  </div>
+
+  {# ── Title section ── #}
+  <div class="flex items-start justify-between mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="text-2xl">
+        <span class="font-semibold">{{ project_name }}</span> / {{ feature }}
+      </h1>
+      <p class="text-sm text-base-content/60 font-mono mt-1">
+        <span class="run-id-short" title="{{ run_id }}">{{ run_id_short }}</span>
+        {% if branch_name %}<span class="mx-1">·</span> <span>{{ branch_name }}</span>{% endif %}
+        <span class="mx-1">·</span> <span>{{ duration_display }}</span>
+        <span class="mx-1">·</span> <span>{{ started_ago }}</span>
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      {{ badge.status_badge(status, "lg") }}
+    </div>
+  </div>
+
+  {# ── Action buttons ── #}
+  <div class="flex gap-2 mb-6">
+    {% if is_active %}
+    <button class="btn btn-error btn-outline btn-sm" disabled>Abort</button>
+    {% endif %}
+    <button class="btn btn-primary btn-outline btn-sm" disabled>Re-run</button>
+  </div>
+
+  {# ── Phase pipeline ── #}
+  <div class="card card-bordered bg-base-200 p-4 mb-6">
+    <ul class="steps steps-horizontal w-full">
+      {%- for phase in phases %}
+      <li data-content="{{ '✓' if phase.status == 'completed' else '●' if phase.status == 'active' else '✗' if phase.status == 'failed' else '' }}"
+          class="step{{ ' step-success' if phase.status == 'completed' else ' step-warning' if phase.status == 'active' else ' step-error' if phase.status == 'failed' else '' }}{{ ' phase-active' if phase.status == 'active' else '' }}">
+        <div class="flex flex-col items-center">
+          <span>{{ phase.name }}</span>
+          {% if phase.duration %}<span class="font-mono text-xs text-base-content/50">{{ phase.duration }}</span>{% endif %}
+        </div>
+      </li>
+      {%- endfor %}
+    </ul>
+  </div>
+
+  {# ── Metadata card ── #}
+  <div class="card card-bordered bg-base-200 p-6">
+    <h2 class="text-lg font-semibold mb-4">Metadata</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Run ID</span>
+        <span class="font-mono flex items-center gap-1">
+          {{ run_id }}
+          <button class="btn btn-ghost btn-xs copy-btn" data-copy="{{ run_id }}" title="Copy Run ID">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </button>
+        </span>
+      </div>
+
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Project</span>
+        <span>{{ project_name }}</span>
+      </div>
+
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Feature</span>
+        <span class="text-right max-w-[250px] truncate" title="{{ feature }}">{{ feature }}</span>
+      </div>
+
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Branch</span>
+        <span class="font-mono">{{ branch_name or '—' }}</span>
+      </div>
+
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Started</span>
+        <span class="font-mono">{{ started_at.strftime('%Y-%m-%d %H:%M:%S UTC') if started_at else '—' }}</span>
+      </div>
+
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Completed</span>
+        <span class="font-mono">{{ completed_at.strftime('%Y-%m-%d %H:%M:%S UTC') if completed_at else '—' }}</span>
+      </div>
+
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Duration</span>
+        <span class="font-mono">{{ duration_display }}</span>
+      </div>
+
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Tokens</span>
+        <span class="font-mono">{{ tokens_display }}</span>
+      </div>
+
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Cost</span>
+        <span class="font-mono">{{ estimated_cost }}</span>
+      </div>
+
+      {% if pr_url %}
+      <div class="flex justify-between">
+        <span class="text-base-content/60">PR</span>
+        <a href="{{ pr_url }}" target="_blank" rel="noopener" class="link link-primary truncate max-w-[250px]">{{ pr_url }}</a>
+      </div>
+      {% endif %}
+
+      {% if linear_url %}
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Linear</span>
+        <a href="{{ linear_url }}" target="_blank" rel="noopener" class="link link-primary">{{ task_id }}</a>
+      </div>
+      {% endif %}
+
+      {% if artifacts_path %}
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Artifacts</span>
+        <span class="font-mono text-xs truncate max-w-[250px]" title="{{ artifacts_path }}">{{ artifacts_path }}</span>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* Clipboard copy for run ID */
+document.querySelectorAll('.copy-btn').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    var text = btn.getAttribute('data-copy');
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function() {
+        btn.classList.add('text-success');
+        setTimeout(function() { btn.classList.remove('text-success'); }, 1500);
+      });
+    }
+  });
+});
+</script>
