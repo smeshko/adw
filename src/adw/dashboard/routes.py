@@ -212,9 +212,9 @@ async def runs_list(
             until = datetime.fromisoformat(to_date)
             if until.tzinfo is None:
                 until = until.replace(tzinfo=UTC)
-            # If date-only (no time component), expand to end of day
-            if until.hour == 0 and until.minute == 0 and until.second == 0:
-                until = until.replace(hour=23, minute=59, second=59)
+            # If date-only input (no 'T' separator), expand to end of day
+            if "T" not in to_date:
+                until = until.replace(hour=23, minute=59, second=59, microsecond=999999)
         except ValueError:
             until = None
 
