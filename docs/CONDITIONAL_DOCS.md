@@ -155,3 +155,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When implementing project filter behavior for dashboard sections
     - When creating clickable card layouts with DaisyUI for the dashboard
     - When building partial routes that share context builders with full page routes
+
+- docs/features/active-runs-phase-pipeline.md
+  - Conditions:
+    - When adding real-time polling sections to the dashboard overview
+    - When displaying phase progression for ADW runs in the dashboard
+    - When implementing new HTMX partial endpoints with empty-state polling patterns
+    - When using the phase pipeline component macro in dashboard templates
+    - When loading RunContext data in dashboard partials with fallback handling
