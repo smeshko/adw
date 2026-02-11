@@ -433,6 +433,298 @@ class TestGetRecentRuns:
         assert entries[0].run_id == "01KDSG2VDHNK0W4HSCZWJZXWS2"
 
 
+class TestGetPaginatedRuns:
+    """Tests for IndexManager.get_paginated_runs()."""
+
+    def test_returns_correct_structure(self, tmp_path: Path) -> None:
+        """Result dict contains entries, total_count, page, page_size, total_pages."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        context = _create_test_context()
+        manager.register_run(context, Path("/test/project"))
+
+        result = manager.get_paginated_runs()
+        assert "entries" in result
+        assert "total_count" in result
+        assert "page" in result
+        assert "page_size" in result
+        assert "total_pages" in result
+
+    def test_default_pagination(self, tmp_path: Path) -> None:
+        """Defaults to page=1, page_size=15."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        for i in range(20):
+            ctx = _create_test_context(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}")
+            manager.register_run(ctx, Path("/test/project"))
+
+        result = manager.get_paginated_runs()
+        assert result["page"] == 1
+        assert result["page_size"] == 15
+        assert len(result["entries"]) == 15
+        assert result["total_count"] == 20
+        assert result["total_pages"] == 2
+
+    def test_second_page(self, tmp_path: Path) -> None:
+        """Page 2 returns remaining entries."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        for i in range(20):
+            ctx = _create_test_context(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}")
+            manager.register_run(ctx, Path("/test/project"))
+
+        result = manager.get_paginated_runs(page=2)
+        assert result["page"] == 2
+        assert len(result["entries"]) == 5
+        assert result["total_count"] == 20
+
+    def test_total_pages_calculation(self, tmp_path: Path) -> None:
+        """Total pages calculated correctly (ceiling division)."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        for i in range(31):
+            ctx = _create_test_context(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}")
+            manager.register_run(ctx, Path("/test/project"))
+
+        result = manager.get_paginated_runs(page_size=15)
+        assert result["total_pages"] == 3  # 31 / 15 = 2.07 → 3
+
+    def test_exact_page_boundary(self, tmp_path: Path) -> None:
+        """Exact multiples of page_size produce correct total_pages."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        for i in range(30):
+            ctx = _create_test_context(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}")
+            manager.register_run(ctx, Path("/test/project"))
+
+        result = manager.get_paginated_runs(page_size=15)
+        assert result["total_pages"] == 2
+
+    def test_page_beyond_total_clamps_to_last(self, tmp_path: Path) -> None:
+        """Requesting page beyond total_pages clamps to last page."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        ctx = _create_test_context()
+        manager.register_run(ctx, Path("/test/project"))
+
+        result = manager.get_paginated_runs(page=99)
+        assert len(result["entries"]) == 1
+        assert result["total_count"] == 1
+        assert result["total_pages"] == 1
+        assert result["page"] == 1
+
+    def test_empty_index_returns_zero_results(self, tmp_path: Path) -> None:
+        """Empty index returns empty result with zero counts."""
+        index_path = tmp_path / "index.jsonl"
+        index_path.parent.mkdir(parents=True, exist_ok=True)
+        index_path.touch()
+        manager = IndexManager(index_path=index_path)
+
+        result = manager.get_paginated_runs()
+        assert result["entries"] == []
+        assert result["total_count"] == 0
+        assert result["total_pages"] == 0
+
+    def test_missing_file_returns_zero_results(self, tmp_path: Path) -> None:
+        """Missing index file returns empty result."""
+        index_path = tmp_path / "nonexistent" / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+
+        result = manager.get_paginated_runs()
+        assert result["entries"] == []
+        assert result["total_count"] == 0
+        assert result["total_pages"] == 0
+
+    def test_sort_newest(self, tmp_path: Path) -> None:
+        """Sort 'newest' returns entries by started_at descending."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        ctx1 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS1",
+            started_at=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+        ctx2 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS2",
+            started_at=datetime(2024, 6, 1, tzinfo=UTC),
+        )
+        manager.register_run(ctx1, Path("/test/project"))
+        manager.register_run(ctx2, Path("/test/project"))
+
+        result = manager.get_paginated_runs(sort="newest")
+        assert result["entries"][0].run_id == "01KDSG2VDHNK0W4HSCZWJZXWS2"
+
+    def test_sort_oldest(self, tmp_path: Path) -> None:
+        """Sort 'oldest' returns entries by started_at ascending."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        ctx1 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS1",
+            started_at=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+        ctx2 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS2",
+            started_at=datetime(2024, 6, 1, tzinfo=UTC),
+        )
+        manager.register_run(ctx1, Path("/test/project"))
+        manager.register_run(ctx2, Path("/test/project"))
+
+        result = manager.get_paginated_runs(sort="oldest")
+        assert result["entries"][0].run_id == "01KDSG2VDHNK0W4HSCZWJZXWS1"
+
+    def test_sort_duration_longest(self, tmp_path: Path) -> None:
+        """Sort 'duration_longest' orders by computed duration descending."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        ctx1 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS1",
+            started_at=datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC),
+        )
+        ctx2 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS2",
+            started_at=datetime(2024, 1, 2, 0, 0, 0, tzinfo=UTC),
+        )
+        manager.register_run(ctx1, Path("/test/project"))
+        manager.register_run(ctx2, Path("/test/project"))
+        # Short duration for ctx1 (1 minute)
+        manager.update_run(ctx1.run_id, status="completed",
+                           completed_at=datetime(2024, 1, 1, 0, 1, 0, tzinfo=UTC))
+        # Long duration for ctx2 (1 hour)
+        manager.update_run(ctx2.run_id, status="completed",
+                           completed_at=datetime(2024, 1, 2, 1, 0, 0, tzinfo=UTC))
+
+        result = manager.get_paginated_runs(sort="duration_longest")
+        assert result["entries"][0].run_id == "01KDSG2VDHNK0W4HSCZWJZXWS2"
+
+    def test_sort_duration_shortest(self, tmp_path: Path) -> None:
+        """Sort 'duration_shortest' orders by computed duration ascending."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        ctx1 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS1",
+            started_at=datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC),
+        )
+        ctx2 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS2",
+            started_at=datetime(2024, 1, 2, 0, 0, 0, tzinfo=UTC),
+        )
+        manager.register_run(ctx1, Path("/test/project"))
+        manager.register_run(ctx2, Path("/test/project"))
+        # Short duration for ctx1 (1 minute)
+        manager.update_run(ctx1.run_id, status="completed",
+                           completed_at=datetime(2024, 1, 1, 0, 1, 0, tzinfo=UTC))
+        # Long duration for ctx2 (1 hour)
+        manager.update_run(ctx2.run_id, status="completed",
+                           completed_at=datetime(2024, 1, 2, 1, 0, 0, tzinfo=UTC))
+
+        result = manager.get_paginated_runs(sort="duration_shortest")
+        assert result["entries"][0].run_id == "01KDSG2VDHNK0W4HSCZWJZXWS1"
+
+    def test_sort_project_az(self, tmp_path: Path) -> None:
+        """Sort 'project_az' orders by project_name ascending."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        ctx1 = _create_test_context(run_id="01KDSG2VDHNK0W4HSCZWJZXWS1")
+        ctx2 = _create_test_context(run_id="01KDSG2VDHNK0W4HSCZWJZXWS2")
+        manager.register_run(ctx1, Path("/projects/zebra"))
+        manager.register_run(ctx2, Path("/projects/alpha"))
+
+        result = manager.get_paginated_runs(sort="project_az")
+        assert result["entries"][0].project_name == "alpha"
+        assert result["entries"][1].project_name == "zebra"
+
+    def test_filter_by_status(self, tmp_path: Path) -> None:
+        """Status filter narrows results."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        ctx1 = _create_test_context(run_id="01KDSG2VDHNK0W4HSCZWJZXWS1")
+        ctx2 = _create_test_context(run_id="01KDSG2VDHNK0W4HSCZWJZXWS2")
+        manager.register_run(ctx1, Path("/test/project"))
+        manager.register_run(ctx2, Path("/test/project"))
+        manager.update_run(ctx1.run_id, status="completed")
+
+        result = manager.get_paginated_runs(status="completed")
+        assert result["total_count"] == 1
+        assert result["entries"][0].run_id == "01KDSG2VDHNK0W4HSCZWJZXWS1"
+
+    def test_filter_by_project_name(self, tmp_path: Path) -> None:
+        """Project name filter narrows results."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        ctx1 = _create_test_context(run_id="01KDSG2VDHNK0W4HSCZWJZXWS1")
+        ctx2 = _create_test_context(run_id="01KDSG2VDHNK0W4HSCZWJZXWS2")
+        manager.register_run(ctx1, Path("/projects/alpha"))
+        manager.register_run(ctx2, Path("/projects/beta"))
+
+        result = manager.get_paginated_runs(project_name="alpha")
+        assert result["total_count"] == 1
+        assert result["entries"][0].project_name == "alpha"
+
+    def test_filter_by_since(self, tmp_path: Path) -> None:
+        """Since filter excludes entries before threshold."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        ctx1 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS1",
+            started_at=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+        ctx2 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS2",
+            started_at=datetime(2024, 6, 15, tzinfo=UTC),
+        )
+        manager.register_run(ctx1, Path("/test/project"))
+        manager.register_run(ctx2, Path("/test/project"))
+
+        result = manager.get_paginated_runs(since=datetime(2024, 6, 1, tzinfo=UTC))
+        assert result["total_count"] == 1
+        assert result["entries"][0].run_id == "01KDSG2VDHNK0W4HSCZWJZXWS2"
+
+    def test_filter_by_until(self, tmp_path: Path) -> None:
+        """Until filter excludes entries after threshold."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        ctx1 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS1",
+            started_at=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+        ctx2 = _create_test_context(
+            run_id="01KDSG2VDHNK0W4HSCZWJZXWS2",
+            started_at=datetime(2024, 6, 15, tzinfo=UTC),
+        )
+        manager.register_run(ctx1, Path("/test/project"))
+        manager.register_run(ctx2, Path("/test/project"))
+
+        result = manager.get_paginated_runs(until=datetime(2024, 3, 1, tzinfo=UTC))
+        assert result["total_count"] == 1
+        assert result["entries"][0].run_id == "01KDSG2VDHNK0W4HSCZWJZXWS1"
+
+    def test_combined_filters_with_pagination(self, tmp_path: Path) -> None:
+        """Filters and pagination work together correctly."""
+        index_path = tmp_path / "index.jsonl"
+        manager = IndexManager(index_path=index_path)
+        # Create 20 entries for "alpha" project, all completed
+        for i in range(20):
+            ctx = _create_test_context(
+                run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}",
+                started_at=datetime(2024, 6, 1 + i, tzinfo=UTC),
+            )
+            manager.register_run(ctx, Path("/projects/alpha"))
+            manager.update_run(ctx.run_id, status="completed")
+        # Create 5 entries for "beta" project
+        for i in range(5):
+            ctx = _create_test_context(
+                run_id=f"01KDSG2VDHNK0W4HSCZWJZXWA{i:1d}",
+                started_at=datetime(2024, 6, 1 + i, tzinfo=UTC),
+            )
+            manager.register_run(ctx, Path("/projects/beta"))
+
+        result = manager.get_paginated_runs(
+            status="completed", project_name="alpha", page=1, page_size=10,
+        )
+        assert result["total_count"] == 20
+        assert result["total_pages"] == 2
+        assert len(result["entries"]) == 10
+
+
 class TestArchiveOldEntries:
     """Tests for IndexManager._archive_old_entries()."""
 
