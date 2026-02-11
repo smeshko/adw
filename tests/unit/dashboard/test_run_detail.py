@@ -1184,6 +1184,152 @@ class TestPhaseDetailRoute:
         assert response.status_code == 404
 
 
+# ── Artifact Viewer Route ───────────────────────────────────────────
+
+
+class TestArtifactViewerRoute:
+    """Tests for GET /runs/{id}/artifacts/{phase}/{filename} route (Task 5)."""
+
+    def test_artifact_viewer_returns_200(self) -> None:
+        """Artifact viewer returns 200 for existing artifact."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "# Plan Output\nSome content here"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/plan_output.md",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 200
+
+    def test_artifact_viewer_shows_filename(self) -> None:
+        """Artifact viewer shows the filename in header."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "content"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/output.txt",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "output.txt" in response.text
+
+    def test_artifact_viewer_shows_content(self) -> None:
+        """Artifact viewer displays the file content."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "Hello World Content"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/test.txt",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "Hello World Content" in response.text
+
+    def test_artifact_viewer_uses_card_classes(self) -> None:
+        """Artifact viewer uses card bg-base-300 styling."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "content"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/test.txt",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "card bg-base-300" in response.text
+
+    def test_artifact_viewer_has_close_button(self) -> None:
+        """Artifact viewer has a close button."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "content"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/test.txt",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "Close" in response.text or "close" in response.text.lower()
+
+    def test_artifact_viewer_pre_block_for_text(self) -> None:
+        """Non-markdown files render in pre block."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "plain text content"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/output.txt",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "<pre" in response.text
+
+    def test_artifact_viewer_404_for_missing_artifact(self) -> None:
+        """Missing artifact returns 404 fragment."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = None
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/nonexistent.txt",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 404
+
+    def test_artifact_viewer_404_for_missing_run(self) -> None:
+        """Artifact viewer for non-existent run returns 404."""
+        client = _make_client_with_mocks(entries=[])
+        response = client.get(
+            "/runs/01HQXK5P3Z7V8R2M4N6T9W1Y00/artifacts/plan/test.txt",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 404
+
+    def test_artifact_viewer_markdown_rendered(self) -> None:
+        """Markdown files are rendered as HTML with prose class."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "# Heading\n\nParagraph text"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/output.md",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 200
+        # Should have prose class for markdown rendering
+        assert "prose" in response.text
+
+
 class TestFormatDurationFromSeconds:
     """Tests for _format_duration_from_seconds helper."""
 

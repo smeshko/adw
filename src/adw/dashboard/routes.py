@@ -753,6 +753,72 @@ async def phase_detail(
     )
 
 
+@router.get("/runs/{run_id}/artifacts/{phase}/{filename:path}", response_class=HTMLResponse)
+async def artifact_viewer(
+    request: Request,
+    run_id: str,
+    phase: str,
+    filename: str,
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return artifact content HTML fragment for inline viewer.
+
+    Renders markdown files as HTML; all other files in a pre block.
+    """
+    templates = request.app.state.templates
+
+    # Find the run in the index
+    run_entry = _find_run_entry(index_manager, run_id)
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    # Load artifact content
+    content: str | None = None
+    try:
+        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        runs_dir = project_path / ".adw" / "runs"
+        am = ArtifactManager(runs_dir)
+        content = am.get(run_id, phase, filename)  # type: ignore[assignment]
+    except (StateError, OSError):
+        logger.debug(
+            "Failed to load artifact",
+            extra={"run_id": run_id, "phase": phase, "filename": filename},
+        )
+
+    if content is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Artifact not found</p>',
+            status_code=404,
+        )
+
+    # Determine if markdown and render accordingly
+    is_markdown = filename.endswith(".md")
+    content_html = ""
+    if is_markdown:
+        # Simple markdown-to-HTML: wrap paragraphs, handle headings
+        try:
+            import markdown
+            content_html = markdown.markdown(content, extensions=["fenced_code", "tables"])
+        except ImportError:
+            # Fallback: just use pre block if markdown library not available
+            is_markdown = False
+
+    context = {
+        "request": request,
+        "filename": filename,
+        "content": content,
+        "content_html": content_html,
+        "is_markdown": is_markdown,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/artifact_viewer.html", context,
+    )
+
+
 @router.get("/health")
 async def health() -> dict[str, str]:
     """Dashboard health check."""
