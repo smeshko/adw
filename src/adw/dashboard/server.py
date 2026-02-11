@@ -85,8 +85,10 @@ def create_dashboard_app(
         app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
     # Include dashboard routes
+    from adw.dashboard.partials import router as partials_router
     from adw.dashboard.routes import router as pages_router
 
     app.include_router(pages_router)
+    app.include_router(partials_router)
 
     return app
