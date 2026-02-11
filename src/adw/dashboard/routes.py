@@ -707,6 +707,13 @@ async def phase_detail(
 
     templates = request.app.state.templates
 
+    # Validate phase against known phases (NFR10: no arbitrary path access)
+    if phase not in PHASE_SEQUENCE:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Invalid phase</p>',
+            status_code=400,
+        )
+
     # Find the run in the index
     run_entry = _find_run_entry(index_manager, run_id)
     if run_entry is None:
@@ -767,6 +774,20 @@ async def artifact_viewer(
     """
     templates = request.app.state.templates
 
+    # Validate phase against known phases (NFR10: no arbitrary path access)
+    if phase not in PHASE_SEQUENCE:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Invalid phase</p>',
+            status_code=400,
+        )
+
+    # Validate filename to prevent path traversal (NFR10)
+    if ".." in filename or filename.startswith("/"):
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Invalid filename</p>',
+            status_code=400,
+        )
+
     # Find the run in the index
     run_entry = _find_run_entry(index_manager, run_id)
     if run_entry is None:
@@ -782,7 +803,7 @@ async def artifact_viewer(
         runs_dir = project_path / ".adw" / "runs"
         am = ArtifactManager(runs_dir)
         content = am.get(run_id, phase, filename)  # type: ignore[assignment]
-    except (StateError, OSError):
+    except (StateError, OSError, UnicodeDecodeError):
         logger.debug(
             "Failed to load artifact",
             extra={"run_id": run_id, "phase": phase, "filename": filename},
@@ -798,10 +819,18 @@ async def artifact_viewer(
     is_markdown = filename.endswith(".md")
     content_html = ""
     if is_markdown:
-        # Simple markdown-to-HTML: wrap paragraphs, handle headings
         try:
             import markdown
-            content_html = markdown.markdown(content, extensions=["fenced_code", "tables"])
+            # Escape raw HTML in source before rendering to prevent XSS (NFR10).
+            # Only escape angle brackets and ampersand; preserve quotes for code.
+            safe_content = (
+                content.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+            )
+            content_html = markdown.markdown(
+                safe_content, extensions=["fenced_code", "tables"],
+            )
         except ImportError:
             # Fallback: just use pre block if markdown library not available
             is_markdown = False

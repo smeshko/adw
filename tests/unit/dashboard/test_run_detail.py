@@ -1330,6 +1330,104 @@ class TestArtifactViewerRoute:
         assert "prose" in response.text
 
 
+# ── Security Tests (Path Traversal & XSS) ──────────────────────────
+
+
+class TestPathTraversalProtection:
+    """Tests for path traversal and input validation (NFR10)."""
+
+    def test_phase_detail_rejects_invalid_phase(self) -> None:
+        """Phase detail returns 400 for phase not in PHASE_SEQUENCE."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+        response = client.get(
+            f"/runs/{entry.run_id}/phases/notaphase",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 400
+
+    def test_phase_detail_rejects_dotdot_phase(self) -> None:
+        """Phase detail returns 400 for '..' as phase value."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+        # Use %2e%2e to bypass URL normalization
+        response = client.get(
+            f"/runs/{entry.run_id}/phases/%2e%2e",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 400
+
+    def test_artifact_viewer_rejects_invalid_phase(self) -> None:
+        """Artifact viewer returns 400 for invalid phase."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+        response = client.get(
+            f"/runs/{entry.run_id}/artifacts/badphase/test.txt",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 400
+
+    def test_artifact_viewer_rejects_dotdot_filename(self) -> None:
+        """Artifact viewer returns 400 for '..' in filename."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+        response = client.get(
+            f"/runs/{entry.run_id}/artifacts/plan/%2e%2e%2fetc%2fpasswd",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 400
+
+    def test_artifact_viewer_rejects_absolute_filename(self) -> None:
+        """Artifact viewer returns 400 for filename starting with /."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+        response = client.get(
+            f"/runs/{entry.run_id}/artifacts/plan//etc/passwd",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 400
+
+    def test_artifact_viewer_markdown_xss_prevention(self) -> None:
+        """Markdown rendering escapes script tags to prevent XSS."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = '<script>alert("xss")</script>\n# Hello'
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/evil.md",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 200
+        assert "<script>" not in response.text
+        assert "&lt;script&gt;" in response.text
+
+
+class TestBinaryArtifactHandling:
+    """Tests for handling binary/non-UTF8 artifacts gracefully."""
+
+    def test_artifact_viewer_handles_unicode_error(self) -> None:
+        """Binary files that cause UnicodeDecodeError return 404."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.side_effect = UnicodeDecodeError(
+                "utf-8", b"\xff\xfe", 0, 1, "invalid start byte",
+            )
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/binary.bin",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 404
+
+
 # ── Helper Function Tests (New) ─────────────────────────────────────
 
 
