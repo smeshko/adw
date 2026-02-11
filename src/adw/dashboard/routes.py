@@ -91,6 +91,8 @@ async def overview(
     Returns the full page or just the ``#main`` partial depending on
     whether the request came from HTMX.
     """
+    from adw.dashboard.partials import build_stats_context
+
     templates = request.app.state.templates
     context = _build_page_context(
         request, "overview",
@@ -98,6 +100,11 @@ async def overview(
         project_registry=project_registry,
         project=project,
     )
+
+    # Add stats data for the stats row partial included in the overview
+    project_name = project or None
+    stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
+    context.update(build_stats_context(stats, project_name))
 
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "partials/overview.html", context)

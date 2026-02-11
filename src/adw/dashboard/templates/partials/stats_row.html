@@ -1,0 +1,65 @@
+<div id="stats-row" class="flex flex-wrap gap-4 mb-6"
+     hx-get="/partials/stats{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
+     hx-trigger="every 30s"
+     hx-swap="outerHTML">
+
+  {# Total Runs #}
+  <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
+    <div class="stat-title">Total Runs</div>
+    <div class="stat-value text-2xl font-mono">{{ total_runs }}</div>
+    <div class="stat-desc">
+      {% if runs_trend > 0 %}
+        <span class="text-success">&#x25B2; +{{ runs_trend }} vs last week</span>
+      {% elif runs_trend < 0 %}
+        <span class="text-error">&#x25BC; {{ runs_trend | abs }} vs last week</span>
+      {% else %}
+        <span>No change vs last week</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Success Rate #}
+  <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
+    <div class="stat-title">Success Rate</div>
+    <div class="stat-value text-2xl font-mono">{{ success_rate_display }}</div>
+    <div class="stat-desc">
+      {% if success_trend > 0 %}
+        <span class="text-success">&#x25B2; +{{ success_trend_display }}pp vs last week</span>
+      {% elif success_trend < 0 %}
+        <span class="text-error">&#x25BC; {{ success_trend_display }}pp vs last week</span>
+      {% else %}
+        <span>No change vs last week</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Avg Duration #}
+  <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
+    <div class="stat-title">Avg Duration</div>
+    <div class="stat-value text-2xl font-mono">{{ duration_display }}</div>
+    <div class="stat-desc">
+      {% if duration_trend_ms < 0 %}
+        <span class="text-success">&#x25B2; {{ duration_trend_display }} faster</span>
+      {% elif duration_trend_ms > 0 %}
+        <span class="text-error">&#x25BC; {{ duration_trend_display }} slower</span>
+      {% else %}
+        <span>No change vs last week</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Tokens Used #}
+  <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
+    <div class="stat-title">Tokens Used</div>
+    <div class="stat-value text-2xl font-mono">{{ tokens_display }}</div>
+    <div class="stat-desc">{{ tokens_week_display }} this week</div>
+  </div>
+
+  {# Estimated Cost #}
+  <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
+    <div class="stat-title">Estimated Cost</div>
+    <div class="stat-value text-2xl font-mono">${{ cost_display }}</div>
+    <div class="stat-desc">${{ cost_week_display }} this week</div>
+  </div>
+
+</div>

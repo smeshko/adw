@@ -113,3 +113,10 @@ class GlobalStatistics(BaseModel):
     tokens: TokenUsage = Field(default_factory=TokenUsage)
     estimated_cost: float = 0.0
     projects: list[ProjectStatistics] = Field(default_factory=list)
+
+    # Trend comparison fields (previous week = 7–14 days ago)
+    previous_week_total_runs: int = 0
+    previous_week_success_rate: float = 0.0
+    previous_week_average_duration_ms: int = 0
+    tokens_this_week: TokenUsage = Field(default_factory=TokenUsage)
+    cost_this_week: float = 0.0

@@ -140,3 +140,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When modifying the dashboard navigation header or status bar footer
     - When working with the dashboard theme toggle or design tokens
     - When troubleshooting the dashboard dual-response pattern (full page vs HTMX partial)
+
+- docs/features/stat-cards-status-vocabulary.md
+  - Conditions:
+    - When adding or modifying stat cards on the dashboard overview page
+    - When rendering run status badges anywhere in the dashboard
+    - When adding new status types to the ADW status vocabulary
+    - When implementing trend comparison data for dashboard statistics
+    - When creating new HTMX polling partials that refresh via OOB swap

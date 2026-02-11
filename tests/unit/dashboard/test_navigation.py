@@ -629,9 +629,10 @@ class TestHTMXAttributeOrder:
         client = _make_client()
         response = client.get("/")
         text = response.text
-        # hx-target should come before hx-swap in the status bar
+        # Search within the footer status bar section specifically
         target_pos = text.index('hx-target="#status-bar"')
-        swap_pos = text.index('hx-swap="outerHTML"')
+        # Find hx-swap="outerHTML" that comes AFTER hx-target="#status-bar"
+        swap_pos = text.index('hx-swap="outerHTML"', target_pos)
         assert target_pos < swap_pos
 
     def test_status_bar_partial_attribute_order(self) -> None:
