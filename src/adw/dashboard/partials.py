@@ -189,3 +189,26 @@ async def recent_runs(
     }
 
     return templates.TemplateResponse(request, "partials/recent_runs.html", context)
+
+
+@router.get("/projects", response_class=HTMLResponse)
+async def project_breakdown(
+    request: Request,
+    project: str = Query("", alias="project"),
+    stats_aggregator: object = Depends(get_stats_aggregator),
+) -> HTMLResponse:
+    """Return the project breakdown cards HTML fragment."""
+    templates = request.app.state.templates
+
+    project_name = project or None
+    stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
+
+    context = {
+        "request": request,
+        "projects": stats.projects,  # type: ignore[union-attr]
+        "selected_project": project_name,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/project_breakdown.html", context
+    )
