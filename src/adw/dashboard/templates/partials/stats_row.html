@@ -11,7 +11,7 @@
       {% if runs_trend > 0 %}
         <span class="text-success">&#x25B2; +{{ runs_trend }} vs last week</span>
       {% elif runs_trend < 0 %}
-        <span class="text-error">&#x25BC; {{ runs_trend }} vs last week</span>
+        <span class="text-error">&#x25BC; {{ runs_trend | abs }} vs last week</span>
       {% else %}
         <span>No change vs last week</span>
       {% endif %}
