@@ -24,6 +24,7 @@
     {% endif %}
   </div>
 
+  {% if not (data_error is defined and data_error) %}
   <div class="flex justify-center items-center min-h-[30vh]">
     <div class="card bg-base-100 shadow-sm p-8 text-center max-w-lg">
       <h2 class="text-xl font-semibold mb-2">No runs yet</h2>
@@ -31,6 +32,7 @@
       <button class="btn btn-primary btn-sm mt-2" disabled data-action="new-run">+ Start a Run</button>
     </div>
   </div>
+  {% endif %}
 
   {# Project breakdown cards still display even in no-runs state #}
   <div class="card bg-base-100 shadow-sm p-6 mt-4">

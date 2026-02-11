@@ -818,6 +818,15 @@ class TestOverviewDataErrorBanner:
         response = client.get("/", headers={"HX-Request": "true"})
         assert "alert-error" in response.text
 
+    def test_data_error_hides_no_runs_message(self) -> None:
+        """Error state does not show misleading 'No runs yet' message."""
+        client = _make_client_with_mocks(
+            project_registry=_mock_project_registry(["my-project"]),
+            index_manager=_mock_index_manager(raise_on_call=True),
+        )
+        response = client.get("/", headers={"HX-Request": "true"})
+        assert "No runs yet" not in response.text
+
 
 class TestOverviewFullContent:
     """Tests for overview with full content (projects and runs exist)."""
