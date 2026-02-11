@@ -151,3 +151,78 @@ async def stats_partial(
     context["request"] = request
 
     return templates.TemplateResponse(request, "partials/stats_row.html", context)
+
+
+def build_recent_runs_context(entries: list) -> list[dict]:
+    """Transform IndexEntry objects into template-ready dicts.
+
+    Args:
+        entries: List of IndexEntry objects from IndexManager.
+
+    Returns:
+        List of dicts with run_id, project_name, feature_description,
+        status, duration_display, and started_ago keys.
+    """
+    result = []
+    for entry in entries:
+        if entry.completed_at and entry.started_at:
+            delta_seconds = (entry.completed_at - entry.started_at).total_seconds()
+            duration_display = _format_duration(int(delta_seconds * 1000))
+        else:
+            duration_display = "—"
+
+        result.append({
+            "run_id": entry.run_id,
+            "project_name": entry.project_name,
+            "feature_description": entry.feature_description,
+            "status": entry.status,
+            "duration_display": duration_display,
+            "started_ago": _relative_time(entry.started_at),
+        })
+    return result
+
+
+@router.get("/recent-runs", response_class=HTMLResponse)
+async def recent_runs(
+    request: Request,
+    project: str = Query("", alias="project"),
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return the recent runs table HTML fragment for polling updates."""
+    templates = request.app.state.templates
+
+    project_name = project or None
+    entries = index_manager.get_recent_runs(limit=5, project_name=project_name)  # type: ignore[union-attr]
+
+    context = {
+        "request": request,
+        "recent_runs": build_recent_runs_context(entries),
+        "selected_project": project_name,
+    }
+
+    return templates.TemplateResponse(request, "partials/recent_runs.html", context)
+
+
+@router.get("/projects", response_class=HTMLResponse)
+async def project_breakdown(
+    request: Request,
+    project: str = Query("", alias="project"),
+    stats_aggregator: object = Depends(get_stats_aggregator),
+) -> HTMLResponse:
+    """Return the project breakdown cards HTML fragment."""
+    templates = request.app.state.templates
+
+    project_name = project or None
+    # Always fetch unfiltered stats so all project cards remain visible,
+    # allowing the user to switch projects by clicking any card.
+    stats = stats_aggregator.get_global_stats(project_name=None)  # type: ignore[union-attr]
+
+    context = {
+        "request": request,
+        "project_stats": stats.projects,  # type: ignore[union-attr]
+        "selected_project": project_name,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/project_breakdown.html", context
+    )

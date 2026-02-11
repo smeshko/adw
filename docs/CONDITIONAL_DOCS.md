@@ -148,3 +148,10 @@ This guide helps you find relevant documentation based on what you're working on
     - When adding new status types to the ADW status vocabulary
     - When implementing trend comparison data for dashboard statistics
     - When creating new HTMX polling partials that refresh via OOB swap
+
+- docs/features/recent-runs-project-breakdown.md
+  - Conditions:
+    - When adding data tables with HTMX polling to the dashboard overview
+    - When implementing project filter behavior for dashboard sections
+    - When creating clickable card layouts with DaisyUI for the dashboard
+    - When building partial routes that share context builders with full page routes
