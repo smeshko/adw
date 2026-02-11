@@ -91,7 +91,7 @@ async def overview(
     Returns the full page or just the ``#main`` partial depending on
     whether the request came from HTMX.
     """
-    from adw.dashboard.partials import build_stats_context
+    from adw.dashboard.partials import build_cost_strip_context, build_stats_context
 
     templates = request.app.state.templates
     context = _build_page_context(
@@ -101,10 +101,43 @@ async def overview(
         project=project,
     )
 
-    # Add stats data for the stats row partial included in the overview
     project_name = project or None
-    stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
-    context.update(build_stats_context(stats, project_name))
+
+    # Detect empty states
+    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    has_projects = len(all_projects) > 0
+    context["has_projects"] = has_projects
+
+    if has_projects:
+        # Check for runs and load stats with error resilience
+        context["data_error"] = False
+        context["data_error_message"] = ""
+        try:
+            recent_check = index_manager.get_recent_runs(  # type: ignore[union-attr]
+                limit=1, project_name=project_name,
+            )
+            has_runs = len(recent_check) > 0
+        except Exception:
+            has_runs = False
+            context["data_error"] = True
+            context["data_error_message"] = (
+                "Unable to load run data. The index file may be corrupted or locked."
+            )
+
+        context["has_runs"] = has_runs
+
+        if has_runs:
+            try:
+                stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
+                context.update(build_stats_context(stats, project_name))
+                context.update(build_cost_strip_context(stats_aggregator, project_name))
+            except Exception:
+                context["data_error"] = True
+                context["data_error_message"] = (
+                    "Unable to load run data. The index file may be corrupted or locked."
+                )
+    else:
+        context["has_runs"] = False
 
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "partials/overview.html", context)
