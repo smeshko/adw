@@ -165,9 +165,9 @@ def main(
 @app.command()
 def run(
     ctx: typer.Context,
-    feature: str = typer.Argument(
-        ...,
-        help="Feature description to implement",
+    feature: str | None = typer.Argument(
+        None,
+        help="Feature description to implement (optional with --from-run)",
         metavar="FEATURE_DESCRIPTION",
     ),
     phase: str | None = typer.Option(
@@ -181,7 +181,7 @@ def run(
         None,
         "--from-run",
         "-f",
-        help="Load artifacts from this run ID (required for phases after plan)",
+        help="Continue from this run ID (reuses its worktree, branch, and artifacts)",
     ),
     dry_run: bool = typer.Option(
         False,
@@ -220,8 +220,11 @@ def run(
         # Single phase (plan doesn't need --from-run)
         adw run --phase plan "Add login"
 
-        # Single phase with artifacts from previous run
-        adw run --phase build --from-run 01HQXK5P3Z7V "Add login"
+        # Continue from previous run (reuses worktree/branch)
+        adw run --phase document --from-run 01HQXK5P3Z7V
+
+        # Continue with overridden feature description
+        adw run --phase build --from-run 01HQXK5P3Z7V "New description"
 
         # Dry run to see what would happen
         adw run "Add login" --dry-run
@@ -240,8 +243,21 @@ def run(
         adw run RULE-123 --task-id          # Force task ID interpretation
         adw run RULE-123 --no-task-manager  # Force feature string
     """
-    # Validate feature description is not empty (Story 6.1)
-    if not feature.strip():
+    # When --from-run is provided, load feature from source run if not given
+    if from_run is not None and feature is None:
+        from adw.core.context_manager import ContextManager
+
+        runs_dir = Path.cwd() / ".adw" / "runs"
+        try:
+            source_context = ContextManager(runs_dir).load(from_run)
+            feature = source_context.feature_description
+            console.print(f"[dim]Feature loaded from source run:[/] {feature}")
+        except Exception as e:
+            console.print(f"[red]Error:[/] Could not load source run '{from_run}': {e}")
+            raise typer.Exit(code=1) from None
+
+    # Validate feature description is provided and not empty (Story 6.1)
+    if feature is None or not feature.strip():
         console.print("[red]Error:[/] Feature description cannot be empty")
         raise typer.Exit(code=1)
 
@@ -324,8 +340,8 @@ def run(
     # Note: safe_feature will be used when templates need the escaped version
     _ = escape_feature_description(feature)
 
-    # Generate run ID and timestamp (Story 6.1)
-    run_id = str(ULID())
+    # When --from-run is set, reuse the source run_id; otherwise generate new
+    run_id = from_run if from_run is not None else str(ULID())
     started_at = datetime.now(UTC)
 
     # Show run header using RunDisplay (UX-12, Story 6.1)
@@ -387,9 +403,17 @@ def run(
             task_info=task_info,
         )
 
-        if phase:
+        if phase and from_run is not None:
+            # Continue from existing run — reuse its worktree, branch, artifacts
+            context = orchestrator.continue_from_run(
+                phase, from_run, feature_description=feature
+            )
+            console.print(
+                f"[green]✓[/] Phase '{phase}' completed: {context.run_id}"
+            )
+        elif phase:
             # Validate --from-run requirement for non-plan phases (Story 5.4)
-            if phase != "plan" and from_run is None:
+            if phase != "plan":
                 console.print(
                     f"[red]Error:[/] Phase '{phase}' requires artifacts "
                     "from previous phases"
@@ -401,7 +425,7 @@ def run(
 
             # Single phase execution (Story 5.4, Story 10.1: pass use_worktree flag)
             context = orchestrator.run_single_phase(
-                phase, feature, from_run, run_id=run_id, use_worktree=not no_worktree
+                phase, feature, run_id=run_id, use_worktree=not no_worktree
             )
             console.print(
                 f"[green]✓[/] Single phase '{phase}' completed: {context.run_id}"

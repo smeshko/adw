@@ -33,7 +33,8 @@ class TestRunCommand:
         assert result.exit_code != 0
         has_missing = "Missing argument" in result.output
         has_feature = "FEATURE_DESCRIPTION" in result.output
-        assert has_missing or has_feature
+        has_empty = "empty" in result.output.lower()
+        assert has_missing or has_feature or has_empty
 
     def test_run_rejects_empty_description(self) -> None:
         """Test that empty feature description is rejected."""

@@ -551,6 +551,137 @@ class Orchestrator:
 
         return context
 
+    def continue_from_run(
+        self,
+        phase: str,
+        source_run_id: str,
+        feature_description: str | None = None,
+    ) -> RunContext:
+        """Continue from a previous run, reusing its environment.
+
+        Loads the existing run context (worktree, branch, run directory)
+        from source_run_id and executes the specified phase within that
+        same environment. Unlike run_single_phase(), this does NOT create
+        a new run — it reuses the source run's context entirely.
+
+        Args:
+            phase: Phase to execute (must be in PHASE_SEQUENCE).
+            source_run_id: Run ID to continue from.
+            feature_description: Optional override for the feature description.
+                If None, uses the source run's feature_description.
+
+        Returns:
+            Updated RunContext after phase execution.
+
+        Raises:
+            ConfigError: If source run not found or worktree missing.
+            ADWError: If phase execution fails.
+
+        Example:
+            >>> context = orchestrator.continue_from_run("document", "01HQXK5P3Z...")
+            >>> context = orchestrator.continue_from_run(
+            ...     "build", "01HQXK5P3Z...", "Override feature"
+            ... )
+        """
+        # Load existing context
+        context = self.context_manager.load(source_run_id)
+
+        # Validate worktree still exists if the run used worktrees
+        if context.use_worktree and context.worktree_path:
+            if not context.worktree_path.exists():
+                raise ConfigError(
+                    code="WORKTREE_MISSING",
+                    message=(
+                        f"Worktree for run '{source_run_id}' no longer exists "
+                        f"at {context.worktree_path}"
+                    ),
+                    suggestion=(
+                        "The worktree may have been cleaned up. "
+                        "Run a fresh 'adw run' instead."
+                    ),
+                    recoverable=False,
+                )
+
+        # Override feature description if provided
+        if feature_description:
+            context = context.model_copy(
+                update={"feature_description": feature_description}
+            )
+
+        # Prepare context for continuation
+        context = context.model_copy(
+            update={
+                "status": "running",
+                "current_phase": phase,
+            }
+        )
+        self.context_manager.save(context)
+
+        logger.info(
+            "Continuing from run",
+            extra={
+                "run_id": source_run_id,
+                "phase": phase,
+                "feature": context.feature_description,
+                "worktree_path": str(context.worktree_path),
+            },
+        )
+
+        # Load artifacts from the run's own previous phases
+        source_artifacts = self._load_artifacts_from_source(source_run_id, phase)
+        self._validate_required_artifacts(phase, source_artifacts, source_run_id)
+
+        try:
+            # Execute only the specified phase with source artifacts
+            context = self._execute_phase_with_transitions(
+                context, phase, artifacts_override=source_artifacts
+            )
+
+            # Mark as completed
+            context = context.model_copy(
+                update={
+                    "status": "completed",
+                    "completed_at": datetime.now(UTC),
+                }
+            )
+            self.context_manager.save(context)
+
+            # Update global index on completion (Story 7.0)
+            self.index_manager.update_run(
+                context.run_id,
+                status="completed",
+                completed_at=context.completed_at,
+                phase_reached=context.current_phase,
+                phases_completed=list(context.phase_history),
+            )
+
+            # Set completed label (Story 12.7)
+            if self._label_manager:
+                self._label_manager.set_completed()
+
+            logger.info(
+                "Continue-from-run completed",
+                extra={"run_id": context.run_id, "phase": phase},
+            )
+
+            # Preserve worktree for single-phase runs (ISS-018, ISS-020)
+            if context.use_worktree and context.worktree_path is not None:
+                if self.progress_display:
+                    self.progress_display.console.print(
+                        f"[green]✓[/green] Phase '{phase}' complete"
+                    )
+                self._lifecycle._show_worktree_preserved(context, outcome="success")
+
+        except ADWError as e:
+            self._lifecycle.handle_adw_error(context, e)
+            raise
+
+        except Exception as e:
+            self._lifecycle.handle_exception(context, e)
+            raise
+
+        return context
+
     def _execute_phases(
         self,
         context: RunContext,
