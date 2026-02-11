@@ -387,6 +387,7 @@ class TestErrorHandler:
 
         response = client.get("/test-error", headers={"HX-Request": "true"})
         assert response.status_code == 500
+        assert "text/html" in response.headers["content-type"]
         assert "<!DOCTYPE" not in response.text
         assert "error" in response.text.lower()
 
@@ -407,10 +408,11 @@ class TestErrorHandler:
 
         response = client.get("/test-error")
         assert response.status_code == 500
+        assert "text/html" in response.headers["content-type"]
         assert "error" in response.text.lower()
 
-    def test_http_exception_uses_status_code(self) -> None:
-        """HTTPException with custom status code is respected."""
+    def test_http_exception_returns_html(self) -> None:
+        """HTTPException returns HTML response, not JSON."""
         from fastapi import APIRouter, HTTPException
 
         app = create_dashboard_app()
@@ -425,7 +427,37 @@ class TestErrorHandler:
 
         response = client.get("/test-404")
         assert response.status_code == 404
+        assert "text/html" in response.headers["content-type"]
         assert "Page not found" in response.text
+        assert "application/json" not in response.headers["content-type"]
+
+    def test_http_exception_htmx_returns_banner(self) -> None:
+        """HTTPException via HTMX returns error banner fragment, not JSON."""
+        from fastapi import APIRouter, HTTPException
+
+        app = create_dashboard_app()
+        test_router = APIRouter()
+
+        @test_router.get("/test-403")
+        async def forbidden_route() -> None:
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+        app.include_router(test_router)
+        client = TestClient(app, raise_server_exceptions=False)
+
+        response = client.get("/test-403", headers={"HX-Request": "true"})
+        assert response.status_code == 403
+        assert "text/html" in response.headers["content-type"]
+        assert "<!DOCTYPE" not in response.text
+        assert "Forbidden" in response.text
+
+    def test_nonexistent_route_returns_html_404(self) -> None:
+        """Non-existent route returns HTML 404, not JSON."""
+        client = TestClient(create_dashboard_app(), raise_server_exceptions=False)
+        response = client.get("/this-does-not-exist")
+        assert response.status_code == 404
+        assert "text/html" in response.headers["content-type"]
+        assert "application/json" not in response.headers["content-type"]
 
 
 # ── CSRF Token in Template Context ──────────────────────────────────
