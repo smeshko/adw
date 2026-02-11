@@ -148,3 +148,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When adding new status types to the ADW status vocabulary
     - When implementing trend comparison data for dashboard statistics
     - When creating new HTMX polling partials that refresh via OOB swap
+
+- docs/features/cost-strip-empty-states-error-handling.md
+  - Conditions:
+    - When adding or modifying the cost summary strip on the dashboard overview
+    - When implementing empty states for new dashboard sections
+    - When adding error banners or error resilience to dashboard data loading
+    - When working with the HTMX error toast or retry mechanism
+    - When implementing 404 or not-found handling for dashboard resources
