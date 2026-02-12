@@ -6,12 +6,16 @@ requires CSRF validation via ``Depends(validate_csrf)``.
 
 from __future__ import annotations
 
+import html
 import logging
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import yaml
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
+from pydantic import ValidationError as PydanticValidationError
 
 from adw.core.context_manager import ContextManager
 from adw.core.interruption import InterruptionHandler
@@ -21,9 +25,11 @@ from adw.dashboard.dependencies import (
     get_index_manager,
     get_project_registry,
     get_run_trigger,
+    resolve_project_filter,
     validate_csrf,
 )
 from adw.exceptions import StateError
+from adw.models.config import ProjectConfig
 
 if TYPE_CHECKING:
     from starlette.templating import Jinja2Templates
@@ -303,3 +309,365 @@ async def abort_run(
     response = HTMLResponse(content=modal_clear + detail_html)
     response.headers["HX-Push-Url"] = f"/runs/{run_id}"
     return response
+
+
+# ── Settings save ───────────────────────────────────────────────────────────
+
+# Mapping of form field names to nested config dict paths per section.
+_SECTION_FIELD_MAP: dict[str, dict[str, list[str]]] = {
+    "project": {
+        "language": ["language"],
+        "platform": ["platform"],
+        "test_command": ["test_command"],
+        "build_command": ["build_command"],
+    },
+    "git": {
+        "branch_prefix": ["git", "branch_prefix"],
+        "skip_hooks": ["git", "skip_hooks"],
+        "base_branch": ["git", "base_branch"],
+    },
+    "worktree": {
+        "backend_start": ["worktree", "port_range", "backend_start"],
+        "frontend_start": ["worktree", "port_range", "frontend_start"],
+    },
+    "llm": {
+        "max_retries": ["llm", "retry", "max_retries"],
+        "base_delay_seconds": ["llm", "retry", "base_delay_seconds"],
+        "max_delay_seconds": ["llm", "retry", "max_delay_seconds"],
+        "multiplier": ["llm", "retry", "multiplier"],
+    },
+}
+
+# Fields that should be parsed as integers.
+_INT_FIELDS = {"max_retries", "backend_start", "frontend_start"}
+
+# Fields that should be parsed as floats.
+_FLOAT_FIELDS = {"base_delay_seconds", "max_delay_seconds", "multiplier"}
+
+# Fields that should be parsed as booleans.
+_BOOL_FIELDS = {"skip_hooks"}
+
+
+def _parse_form_value(field_name: str, raw_value: str) -> Any:
+    """Parse a raw form string value to its correct Python type.
+
+    Args:
+        field_name: Name of the form field.
+        raw_value: Raw string value from the form submission.
+
+    Returns:
+        Parsed value with correct type.
+    """
+    if field_name in _BOOL_FIELDS:
+        return raw_value.lower() in ("true", "1", "on", "yes")
+    if field_name in _INT_FIELDS:
+        return int(raw_value)
+    if field_name in _FLOAT_FIELDS:
+        return float(raw_value)
+    # String fields — empty string → None for optional fields
+    if raw_value == "":
+        return None
+    return raw_value
+
+
+def _deep_set(data: dict[str, Any], keys: list[str], value: Any) -> None:
+    """Set a value in a nested dict using a list of keys.
+
+    Args:
+        data: The dict to modify in place.
+        keys: Path of keys to the target value.
+        value: The value to set.
+    """
+    for key in keys[:-1]:
+        existing = data.get(key)
+        if not isinstance(existing, dict):
+            data[key] = {}
+        data = data.setdefault(key, {})
+    data[keys[-1]] = value
+
+
+def _atomic_write_config(path: Path, content: str) -> None:
+    """Write config file atomically using temp file + rename pattern.
+
+    Args:
+        path: Target file path.
+        content: YAML content to write.
+    """
+    temp_path = path.with_suffix(".tmp")
+    try:
+        with open(temp_path, "w") as f:
+            f.write(content)
+            f.flush()
+            os.fsync(f.fileno())
+        temp_path.replace(path)
+        logger.debug("Atomic config write completed", extra={"path": str(path)})
+    except OSError:
+        if temp_path.exists():
+            temp_path.unlink()
+        raise
+
+
+@router.post(
+    "/settings/save",
+    response_class=HTMLResponse,
+    dependencies=[Depends(validate_csrf)],
+)
+async def save_settings(
+    request: Request,
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
+) -> HTMLResponse:
+    """Save settings for a specific section of project configuration.
+
+    Accepts form data with ``_section``, ``_project``, and field values.
+    Loads the existing config, merges the submitted section, validates
+    via Pydantic, and writes atomically to disk.
+    """
+    from adw.config.loader import ConfigLoader
+    from adw.config.registry import ConfigRegistry
+    from adw.dashboard.routes import (
+        _SETTINGS_TABS,
+        _build_phase_settings,
+        build_settings_context,
+    )
+
+    templates: Jinja2Templates = request.app.state.templates
+    form = await request.form()
+
+    section = str(form.get("_section", ""))
+    project_display = str(form.get("_project", ""))
+
+    # Resolve project path from display name
+    project_path_str, _ = resolve_project_filter(
+        project_registry, project_display
+    )
+    if not project_path_str:
+        return _render_settings_error(
+            request, templates, "Project not found.", section, project_display,
+            project_registry=project_registry,
+        )
+
+    project_root = Path(project_path_str)
+
+    # Validate section is editable
+    if section not in _SECTION_FIELD_MAP:
+        return _render_settings_error(
+            request, templates, "Invalid section.", section, project_display,
+            project_registry=project_registry,
+        )
+
+    field_map = _SECTION_FIELD_MAP[section]
+
+    # Load existing config as raw dict (for merging)
+    config_path = project_root / ".adw" / "project.yaml"
+    existing_data: dict[str, Any] = {}
+    if config_path.exists():
+        try:
+            raw = config_path.read_text()
+            loaded = yaml.safe_load(raw)
+            if isinstance(loaded, dict):
+                existing_data = loaded
+            elif loaded is not None:
+                return _render_settings_error(
+                    request, templates,
+                    "Existing config file is malformed (not a YAML mapping).",
+                    section, project_display,
+                    project_registry=project_registry,
+                )
+        except yaml.YAMLError as e:
+            return _render_settings_error(
+                request, templates,
+                f"Failed to parse existing config: {e}",
+                section, project_display,
+                project_registry=project_registry,
+            )
+        except OSError as e:
+            logger.warning(
+                "Failed to read existing config for merge",
+                extra={"project": project_display, "error": str(e)},
+            )
+            return _render_settings_error(
+                request, templates,
+                f"Failed to read existing config: {e}",
+                section, project_display,
+                project_registry=project_registry,
+            )
+
+    # Seed required fields if missing (name, language are required by ProjectConfig)
+    if "name" not in existing_data:
+        existing_data["name"] = project_display or "unnamed"
+    if "language" not in existing_data:
+        existing_data["language"] = "python"
+
+    # Parse and map form values into the nested config structure
+    for field_name, path_keys in field_map.items():
+        raw_value = form.get(field_name)
+        if raw_value is None:
+            continue
+        try:
+            parsed = _parse_form_value(field_name, str(raw_value))
+        except (ValueError, TypeError) as e:
+            return _render_settings_error(
+                request,
+                templates,
+                f"Invalid value for {field_name}: {e}",
+                section,
+                project_display,
+                project_registry=project_registry,
+            )
+        _deep_set(existing_data, path_keys, parsed)
+
+    # Validate the complete merged config via Pydantic
+    try:
+        ProjectConfig.model_validate(existing_data)
+    except PydanticValidationError as e:
+        # Extract first user-facing error message
+        errors = e.errors()
+        error_msg = errors[0]["msg"] if errors else str(e)
+        return _render_settings_error(
+            request, templates, f"Validation failed: {error_msg}",
+            section, project_display,
+            project_registry=project_registry,
+        )
+
+    # Create .adw/ directory if it doesn't exist
+    adw_dir = project_root / ".adw"
+    adw_dir.mkdir(parents=True, exist_ok=True)
+
+    # Write config atomically
+    yaml_content = yaml.dump(
+        existing_data, default_flow_style=False, sort_keys=False
+    )
+    try:
+        _atomic_write_config(config_path, yaml_content)
+    except OSError as e:
+        logger.error(
+            "Failed to write config",
+            extra={"project": project_display, "error": str(e)},
+        )
+        return _render_settings_error(
+            request, templates, f"Failed to save: {e}",
+            section, project_display,
+            project_registry=project_registry,
+        )
+
+    logger.info(
+        "Settings saved successfully",
+        extra={"project": project_display, "section": section},
+    )
+
+    # Re-render the settings content with fresh data and success toast
+    loader = ConfigLoader(project_root=project_root)
+    config = loader.load()
+    registry = ConfigRegistry()
+
+    settings_sections = build_settings_context(config, registry)
+    phase_settings = _build_phase_settings(config, registry)
+
+    valid_tab_keys = [t[0] for t in _SETTINGS_TABS]
+    if section not in valid_tab_keys:
+        section = "project"
+
+    context = {
+        "request": request,
+        "active_tab": section,
+        "settings_sections": settings_sections,
+        "phase_settings": phase_settings,
+        "has_config": True,
+        "selected_settings_project": project_display,
+        "csrf_token": generate_csrf_token(request),
+    }
+
+    content_html = templates.get_template(
+        "partials/settings_content.html"
+    ).render(context)
+
+    toast_html = (
+        '<div id="toast-container" hx-swap-oob="innerHTML">'
+        '<div class="alert alert-success shadow-lg">'
+        "<span>Settings saved successfully.</span>"
+        "</div>"
+        "<script>setTimeout(function(){var t=document.getElementById("
+        "'toast-container');if(t)t.innerHTML='';},3000);</script>"
+        "</div>"
+    )
+
+    return HTMLResponse(content=content_html + toast_html)
+
+
+def _render_settings_error(
+    request: Request,
+    templates: Jinja2Templates,
+    error_message: str,
+    section: str,
+    project_display: str,
+    project_registry: ProjectRegistryManager | None = None,
+) -> HTMLResponse:
+    """Render settings content with an error toast via OOB swap.
+
+    Args:
+        request: The current request.
+        templates: Jinja2Templates instance.
+        error_message: User-facing error message.
+        section: The active settings tab.
+        project_display: The project display name.
+        project_registry: ProjectRegistryManager for resolving project paths.
+
+    Returns:
+        HTMLResponse with settings content and error toast.
+    """
+    from adw.config.loader import ConfigLoader
+    from adw.config.registry import ConfigRegistry
+    from adw.dashboard.routes import (
+        _SETTINGS_TABS,
+        _build_phase_settings,
+        build_settings_context,
+    )
+
+    # Try to load config for re-rendering the form
+    config = None
+    if project_registry is None:
+        project_registry = get_project_registry()
+    project_path_str, _ = resolve_project_filter(
+        project_registry, project_display
+    )
+    if project_path_str:
+        try:
+            loader = ConfigLoader(project_root=Path(project_path_str))
+            config = loader.load()
+        except Exception:
+            pass
+
+    registry = ConfigRegistry()
+    settings_sections = build_settings_context(config, registry)
+    phase_settings = _build_phase_settings(config, registry)
+
+    valid_tab_keys = [t[0] for t in _SETTINGS_TABS]
+    if section not in valid_tab_keys:
+        section = "project"
+
+    context = {
+        "request": request,
+        "active_tab": section,
+        "settings_sections": settings_sections,
+        "phase_settings": phase_settings,
+        "has_config": config is not None,
+        "selected_settings_project": project_display,
+        "csrf_token": generate_csrf_token(request),
+    }
+
+    content_html = templates.get_template(
+        "partials/settings_content.html"
+    ).render(context)
+
+    safe_message = html.escape(error_message)
+    toast_html = (
+        '<div id="toast-container" hx-swap-oob="innerHTML">'
+        '<div class="alert alert-error shadow-lg">'
+        f"<span>{safe_message}</span>"
+        "</div>"
+        "<script>setTimeout(function(){var t=document.getElementById("
+        "'toast-container');if(t)t.innerHTML='';},3000);</script>"
+        "</div>"
+    )
+
+    return HTMLResponse(content=content_html + toast_html)
