@@ -157,6 +157,144 @@
       document.body.appendChild(toast);
       setTimeout(function() { toast.remove(); }, 5000);
     });
+
+    /* Keyboard shortcuts (Story 6.1) */
+    (function() {
+      var pendingG = false;
+      var gTimer = null;
+      var selectedRowIndex = -1;
+
+      function clearPendingG() {
+        pendingG = false;
+        if (gTimer) { clearTimeout(gTimer); gTimer = null; }
+      }
+
+      function getNavigableRows() {
+        return document.querySelectorAll('[data-navigable-row]');
+      }
+
+      function highlightRow(rows, index) {
+        rows.forEach(function(r) { r.classList.remove('kbd-nav-active'); });
+        if (index >= 0 && index < rows.length) {
+          rows[index].classList.add('kbd-nav-active');
+          rows[index].scrollIntoView({block: 'nearest'});
+        }
+      }
+
+      document.addEventListener('keydown', function(e) {
+        /* Skip when typing in form inputs */
+        if (e.target.matches('input, textarea, select, [contenteditable]')) return;
+        /* Skip when modifier keys are held (allow Shift for ?) */
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+        var key = e.key;
+
+        /* Handle g-prefix sequences */
+        if (pendingG) {
+          clearPendingG();
+          var navLink = null;
+          if (key === 'h') navLink = document.querySelector('[data-page="overview"]');
+          else if (key === 'r') navLink = document.querySelector('[data-page="runs"]');
+          else if (key === 'a') navLink = document.querySelector('[data-page="analytics"]');
+          if (navLink) { e.preventDefault(); navLink.click(); }
+          return;
+        }
+
+        if (key === 'g') {
+          pendingG = true;
+          gTimer = setTimeout(clearPendingG, 1000);
+          return;
+        }
+
+        if (key === '?') {
+          e.preventDefault();
+          var helpDialog = document.getElementById('keyboard-help-dialog');
+          if (helpDialog) {
+            helpDialog.close();
+            document.getElementById('modal-container').innerHTML = '';
+          } else {
+            htmx.ajax('GET', '/partials/keyboard-help', {target:'#modal-container'});
+          }
+          return;
+        }
+
+        if (key === 'n') {
+          var path = window.location.pathname;
+          if (path === '/' || path === '/runs') {
+            e.preventDefault();
+            htmx.ajax('GET', '/partials/new-run', {target:'#modal-container'});
+          }
+          return;
+        }
+
+        if (key === 'j' || key === 'ArrowDown') {
+          var rows = getNavigableRows();
+          if (rows.length > 0) {
+            e.preventDefault();
+            selectedRowIndex = Math.min(selectedRowIndex + 1, rows.length - 1);
+            highlightRow(rows, selectedRowIndex);
+          }
+          return;
+        }
+
+        if (key === 'k' || key === 'ArrowUp') {
+          var rows = getNavigableRows();
+          if (rows.length > 0) {
+            e.preventDefault();
+            selectedRowIndex = Math.max(selectedRowIndex - 1, 0);
+            highlightRow(rows, selectedRowIndex);
+          }
+          return;
+        }
+
+        if (key === 'Enter') {
+          var rows = getNavigableRows();
+          if (selectedRowIndex >= 0 && selectedRowIndex < rows.length) {
+            e.preventDefault();
+            var row = rows[selectedRowIndex];
+            var url = row.getAttribute('hx-get');
+            if (url) {
+              htmx.ajax('GET', url, {target:'#main', pushUrl: url});
+            }
+          }
+          return;
+        }
+
+        if (key === 'Escape') {
+          var mc = document.getElementById('modal-container');
+          if (mc && mc.innerHTML.trim()) {
+            var dialog = mc.querySelector('dialog');
+            if (dialog) dialog.close();
+            mc.innerHTML = '';
+          } else {
+            history.back();
+          }
+          return;
+        }
+
+        if (key === '/') {
+          var input = document.querySelector('#main input');
+          if (input) {
+            e.preventDefault();
+            input.focus();
+          }
+          return;
+        }
+
+        if (key === 'r') {
+          e.preventDefault();
+          htmx.ajax('GET', window.location.pathname, {target:'#main'});
+          return;
+        }
+      });
+
+      /* Reset row selection when HTMX swaps #main content */
+      document.body.addEventListener('htmx:afterSettle', function(e) {
+        if (e.detail.target && e.detail.target.id === 'main') {
+          selectedRowIndex = -1;
+        }
+      });
+    })();
   </script>
 </body>
 </html>
