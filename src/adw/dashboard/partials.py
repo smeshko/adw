@@ -865,3 +865,235 @@ async def abort_modal(
     return templates.TemplateResponse(
         request, "partials/abort_modal.html", context
     )
+
+
+# ── Terminal Mode & Focus Mode (Story 6.2) ─────────────────────
+
+
+@router.get("/terminal-mode/{run_id}", response_class=HTMLResponse)
+async def terminal_mode(
+    request: Request,
+    run_id: str,
+    index_manager: object = Depends(get_index_manager),
+    project_registry: object = Depends(get_project_registry),
+) -> HTMLResponse:
+    """Return the terminal mode HTML fragment for a given run."""
+    templates = request.app.state.templates
+
+    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    run_entry = None
+    for entry in all_runs:
+        if entry.run_id == run_id:
+            run_entry = entry
+            break
+
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    # Resolve display name
+    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    name_map = {str(p.path): p.name for p in all_projects}
+    project_name = name_map.get(
+        run_entry.project_path, run_entry.project_name,
+    )
+
+    is_active = run_entry.status == "running"
+
+    # Check if logs exist
+    has_logs = False
+    try:
+        project_path = Path(run_entry.project_path)
+        log_file = project_path / ".adw" / "runs" / run_id / "logs" / "live.log"
+        has_logs = log_file.exists()
+    except OSError:
+        pass
+
+    context = {
+        "request": request,
+        "run_id": run_id,
+        "project_name": project_name,
+        "feature": run_entry.feature_description,
+        "is_active": is_active,
+        "has_logs": has_logs,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/terminal_mode.html", context
+    )
+
+
+@router.get("/terminal-logs/{run_id}", response_class=HTMLResponse)
+async def terminal_logs(
+    run_id: str,
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return static log entries formatted for terminal mode display."""
+    import re
+
+    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    run_entry = None
+    for entry in all_runs:
+        if entry.run_id == run_id:
+            run_entry = entry
+            break
+
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    try:
+        project_path = Path(run_entry.project_path)
+        log_file = project_path / ".adw" / "runs" / run_id / "logs" / "live.log"
+    except OSError:
+        return HTMLResponse(
+            content='<p class="text-base-content/40 text-sm">'
+            "No logs available</p>",
+        )
+
+    if not log_file.exists():
+        return HTMLResponse(
+            content='<p class="text-base-content/40 text-sm">'
+            "No logs available</p>",
+        )
+
+    line_pattern = re.compile(
+        r"^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s+\[(\w+)\]\s+(.*)"
+    )
+    ansi_pattern = re.compile(r"\x1b\[[0-9;]*m")
+    error_categories = {"ERROR", "FATAL"}
+    warn_categories = {"WARN", "WARNING"}
+
+    lines: list[str] = []
+    try:
+        content = log_file.read_text(errors="replace")
+        for line in content.splitlines():
+            clean_line = ansi_pattern.sub("", line).strip()
+            if not clean_line:
+                continue
+            match = line_pattern.match(clean_line)
+            if not match:
+                continue
+
+            timestamp = match.group(1)
+            category = match.group(2).upper()
+            message = ansi_pattern.sub("", match.group(3)).strip()
+
+            if category in error_categories:
+                level_class = "log-error"
+            elif category in warn_categories:
+                level_class = "log-warn"
+            else:
+                level_class = "log-info"
+
+            safe_msg = (
+                message.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+            )
+
+            lines.append(
+                f'<div class="log-entry {level_class}">'
+                f'<span class="log-ts">{timestamp}</span> '
+                f'{safe_msg}'
+                f'</div>'
+            )
+    except OSError:
+        return HTMLResponse(
+            content='<p class="text-base-content/40 text-sm">'
+            "Error reading logs</p>",
+        )
+
+    if not lines:
+        return HTMLResponse(
+            content='<p class="text-base-content/40 text-sm">'
+            "No log entries</p>",
+        )
+
+    return HTMLResponse(content="\n".join(lines))
+
+
+@router.get("/focus-mode/{run_id}", response_class=HTMLResponse)
+async def focus_mode(
+    request: Request,
+    run_id: str,
+    index_manager: object = Depends(get_index_manager),
+    project_registry: object = Depends(get_project_registry),
+) -> HTMLResponse:
+    """Return the focus mode HTML fragment for a given run."""
+    templates = request.app.state.templates
+
+    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    run_entry = None
+    for entry in all_runs:
+        if entry.run_id == run_id:
+            run_entry = entry
+            break
+
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    # Resolve display name
+    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    name_map = {str(p.path): p.name for p in all_projects}
+    project_name = name_map.get(
+        run_entry.project_path, run_entry.project_name,
+    )
+
+    status = run_entry.status
+    is_active = status == "running"
+    phases_completed = list(run_entry.phases_completed)
+    current_phase = run_entry.phase_reached
+
+    # Try loading RunContext for live data
+    try:
+        project_path = Path(run_entry.project_path)
+        runs_dir = project_path / ".adw" / "runs"
+        cm = ContextManager(runs_dir)
+        ctx = cm.load(run_id)
+        current_phase = ctx.current_phase
+        phases_completed = list(ctx.phase_history)
+        status = ctx.status
+        is_active = status == "running"
+    except (StateError, OSError):
+        logger.debug(
+            "RunContext unavailable for focus mode, using IndexEntry fallback",
+            extra={"run_id": run_id},
+        )
+
+    # Elapsed time
+    if run_entry.completed_at and run_entry.started_at:
+        elapsed = run_entry.completed_at - run_entry.started_at
+    elif run_entry.started_at:
+        elapsed = datetime.now(UTC) - run_entry.started_at
+    else:
+        elapsed = timedelta(0)
+    elapsed_display = _format_elapsed(elapsed)
+
+    # Build phase pipeline
+    phases = _build_phase_pipeline(
+        phases_completed=phases_completed,
+        current_phase=current_phase,
+    )
+
+    context = {
+        "request": request,
+        "run_id": run_id,
+        "project_name": project_name,
+        "feature": run_entry.feature_description,
+        "status": status,
+        "is_active": is_active,
+        "elapsed_display": elapsed_display,
+        "phases": phases,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/focus_mode.html", context
+    )
