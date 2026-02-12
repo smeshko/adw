@@ -3,7 +3,7 @@
 /analytics?range={{ range }}{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}&sort={{ sort }}
 {%- endmacro %}
 
-<div id="analytics">
+<div id="analytics" data-page-title="Analytics — ADW Dashboard">
 
   <div class="flex justify-between items-center mb-4">
     <h1 class="text-2xl font-bold">Token &amp; Cost Analytics</h1>
@@ -53,6 +53,7 @@
       <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
         <div class="stat-title">Total Tokens</div>
         <div class="stat-value text-2xl font-mono">{{ analytics_total_tokens }}</div>
+        {% if show_deltas %}
         <div class="stat-desc">
           {% if tokens_delta > 0 %}
             <span class="text-success">&#x25B2; +{{ tokens_delta_display }} vs prev period</span>
@@ -62,12 +63,14 @@
             <span>No change vs prev period</span>
           {% endif %}
         </div>
+        {% endif %}
       </div>
 
       {# Total Cost #}
       <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
         <div class="stat-title">Total Cost</div>
         <div class="stat-value text-2xl font-mono">{{ analytics_total_cost }}</div>
+        {% if show_deltas %}
         <div class="stat-desc">
           {% if cost_delta > 0 %}
             <span class="text-success">&#x25B2; +{{ cost_delta_display }} vs prev period</span>
@@ -77,12 +80,14 @@
             <span>No change vs prev period</span>
           {% endif %}
         </div>
+        {% endif %}
       </div>
 
       {# Avg Tokens/Run #}
       <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
         <div class="stat-title">Avg Tokens/Run</div>
         <div class="stat-value text-2xl font-mono">{{ analytics_avg_tokens }}</div>
+        {% if show_deltas %}
         <div class="stat-desc">
           {% if avg_tokens_delta > 0 %}
             <span class="text-success">&#x25B2; +{{ avg_tokens_delta_display }} vs prev period</span>
@@ -92,12 +97,14 @@
             <span>No change vs prev period</span>
           {% endif %}
         </div>
+        {% endif %}
       </div>
 
       {# Total Runs #}
       <div class="stat bg-base-100 shadow rounded-box flex-1 min-w-[180px]">
         <div class="stat-title">Total Runs</div>
         <div class="stat-value text-2xl font-mono">{{ analytics_total_runs }}</div>
+        {% if show_deltas %}
         <div class="stat-desc">
           {% if runs_delta > 0 %}
             <span class="text-success">&#x25B2; +{{ runs_delta }} vs prev period</span>
@@ -107,6 +114,7 @@
             <span>No change vs prev period</span>
           {% endif %}
         </div>
+        {% endif %}
       </div>
 
     </div>

@@ -101,6 +101,35 @@ async def validate_csrf(request: Request) -> None:
         )
 
 
+# ── Project filter resolution ────────────────────────────────────────────────
+
+
+def resolve_project_filter(
+    project_registry: object,
+    display_name: str | None,
+) -> tuple[str | None, str | None]:
+    """Resolve a project display name to its path string.
+
+    The dropdown shows registered display names (e.g., "adw") but the index
+    stores the directory name (e.g., "adw-final"). This helper bridges the gap.
+
+    Args:
+        project_registry: ProjectRegistry instance.
+        display_name: The display name from the filter dropdown, or None.
+
+    Returns:
+        Tuple of (project_path_str, display_name). Both None if no filter.
+    """
+    if not display_name:
+        return None, None
+    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    for p in all_projects:
+        if p.name == display_name:
+            return str(p.path), display_name
+    # Fallback: treat as literal name (backward compat)
+    return None, display_name
+
+
 # ── Data layer DI ───────────────────────────────────────────────────────────
 
 def get_index_manager() -> IndexManager:

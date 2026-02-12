@@ -59,8 +59,8 @@
           hx-target="#main"
           hx-push-url="/runs/{{ run.run_id | urlencode }}"
           class="hover cursor-pointer">
-        <td class="text-sm w-28">{{ run.project_name }}</td>
-        <td class="text-sm text-base-content/70 truncate">{{ run.feature_description }}</td>
+        <td class="text-sm w-28" title="{{ run.project_name }}">{{ run.project_name }}</td>
+        <td class="text-sm text-base-content/70 truncate" title="{{ run.feature_description }}">{{ run.feature_description }}</td>
         <td class="w-24">{{ badge.status_badge(run.status) }}</td>
         <td class="font-mono text-xs w-24">{{ run.duration_display }}</td>
         <td class="text-xs text-base-content/50 w-28">{{ run.started_ago }}</td>
@@ -76,7 +76,8 @@
   <div class="join">
     {# First page #}
     {% if current_page > 1 %}
-    <a hx-get="{{ runs_url(p=1) }}"
+    <a href="{{ runs_url(p=1) }}"
+       hx-get="{{ runs_url(p=1) }}"
        hx-target="#runs-content"
        hx-swap="innerHTML"
        hx-push-url="{{ runs_url(p=1) }}"
@@ -87,7 +88,8 @@
 
     {# Previous page #}
     {% if current_page > 1 %}
-    <a hx-get="{{ runs_url(p=current_page - 1) }}"
+    <a href="{{ runs_url(p=current_page - 1) }}"
+       hx-get="{{ runs_url(p=current_page - 1) }}"
        hx-target="#runs-content"
        hx-swap="innerHTML"
        hx-push-url="{{ runs_url(p=current_page - 1) }}"
@@ -101,7 +103,8 @@
     {% set end_page = [total_pages, current_page + 2] | min %}
 
     {% if start_page > 1 %}
-    <a hx-get="{{ runs_url(p=1) }}"
+    <a href="{{ runs_url(p=1) }}"
+       hx-get="{{ runs_url(p=1) }}"
        hx-target="#runs-content"
        hx-swap="innerHTML"
        hx-push-url="{{ runs_url(p=1) }}"
@@ -115,7 +118,8 @@
     {% if p == current_page %}
     <button class="join-item btn btn-sm btn-active">{{ p }}</button>
     {% else %}
-    <a hx-get="{{ runs_url(p=p) }}"
+    <a href="{{ runs_url(p=p) }}"
+       hx-get="{{ runs_url(p=p) }}"
        hx-target="#runs-content"
        hx-swap="innerHTML"
        hx-push-url="{{ runs_url(p=p) }}"
@@ -127,7 +131,8 @@
     {% if end_page < total_pages - 1 %}
     <button class="join-item btn btn-sm btn-disabled" disabled>…</button>
     {% endif %}
-    <a hx-get="{{ runs_url(p=total_pages) }}"
+    <a href="{{ runs_url(p=total_pages) }}"
+       hx-get="{{ runs_url(p=total_pages) }}"
        hx-target="#runs-content"
        hx-swap="innerHTML"
        hx-push-url="{{ runs_url(p=total_pages) }}"
@@ -136,7 +141,8 @@
 
     {# Next page #}
     {% if current_page < total_pages %}
-    <a hx-get="{{ runs_url(p=current_page + 1) }}"
+    <a href="{{ runs_url(p=current_page + 1) }}"
+       hx-get="{{ runs_url(p=current_page + 1) }}"
        hx-target="#runs-content"
        hx-swap="innerHTML"
        hx-push-url="{{ runs_url(p=current_page + 1) }}"
@@ -147,7 +153,8 @@
 
     {# Last page #}
     {% if current_page < total_pages %}
-    <a hx-get="{{ runs_url(p=total_pages) }}"
+    <a href="{{ runs_url(p=total_pages) }}"
+       hx-get="{{ runs_url(p=total_pages) }}"
        hx-target="#runs-content"
        hx-swap="innerHTML"
        hx-push-url="{{ runs_url(p=total_pages) }}"
@@ -164,7 +171,8 @@
 <div class="text-center py-12">
   {% if status_filter or project_filter or from_date or to_date %}
   <p class="text-base-content/50 mb-4">No runs match your filters. Try adjusting your filter criteria.</p>
-  <a hx-get="/runs"
+  <a href="/runs"
+     hx-get="/runs"
      hx-target="#main"
      hx-push-url="/runs"
      class="btn btn-ghost btn-sm">Clear filters</a>

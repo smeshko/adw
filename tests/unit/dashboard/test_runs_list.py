@@ -133,6 +133,7 @@ def _mock_project_registry(
     for name in project_names or []:
         p = MagicMock()
         p.name = name
+        p.path = f"/projects/{name}"
         projects.append(p)
     mock.get_all.return_value = projects
     return mock
@@ -553,13 +554,16 @@ class TestRunsListQueryParams:
         assert call_kwargs["status"] == "completed"
 
     def test_project_filter_forwarded(self) -> None:
-        """Project filter is forwarded to IndexManager."""
+        """Project filter is resolved to project_path for IndexManager."""
+        from pathlib import Path
+
         entries = [_make_entry()]
         im = _mock_index_manager(entries=entries)
-        client = _make_client_with_mocks(index_manager=im)
+        pr = _mock_project_registry(project_names=["my-api"])
+        client = _make_client_with_mocks(index_manager=im, project_registry=pr)
         client.get("/runs?project=my-api")
         call_kwargs = im.get_paginated_runs.call_args.kwargs
-        assert call_kwargs["project_name"] == "my-api"
+        assert call_kwargs["project_path"] == Path("/projects/my-api")
 
     def test_page_param_forwarded(self) -> None:
         """Page parameter is forwarded to IndexManager."""
@@ -580,7 +584,7 @@ class TestRunsListQueryParams:
         assert call_kwargs["page"] == 1
         assert call_kwargs["sort"] == "newest"
         assert call_kwargs["status"] is None
-        assert call_kwargs["project_name"] is None
+        assert call_kwargs["project_path"] is None
 
     def test_from_date_forwarded(self) -> None:
         """From date filter is forwarded as since parameter."""

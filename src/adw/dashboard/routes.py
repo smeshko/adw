@@ -23,6 +23,7 @@ from adw.dashboard.dependencies import (
     get_index_manager,
     get_project_registry,
     get_stats_aggregator,
+    resolve_project_filter,
 )
 from adw.exceptions import StateError
 
@@ -71,7 +72,11 @@ def _build_page_context(
     active_run_count = 0
     last_updated_dt = None
     try:
-        active_runs = index_manager.get_recent_runs(status="running")  # type: ignore[union-attr]
+        project_path_str, _ = resolve_project_filter(project_registry, project)
+        active_runs = index_manager.get_recent_runs(  # type: ignore[union-attr]
+            status="running",
+            **({"project_path": Path(project_path_str)} if project_path_str else {}),
+        )
         active_run_count = len(active_runs)
 
         recent = index_manager.get_recent_runs(limit=1)  # type: ignore[union-attr]
@@ -120,9 +125,11 @@ async def overview(
     )
 
     project_name = project or None
+    project_path_str, _ = resolve_project_filter(project_registry, project_name)
 
-    # Detect empty states
+    # Build path→name map for display name resolution
     all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    name_map = {str(p.path): p.name for p in all_projects}
     has_projects = len(all_projects) > 0
     context["has_projects"] = has_projects
 
@@ -132,7 +139,8 @@ async def overview(
         context["data_error_message"] = ""
         try:
             recent_check = index_manager.get_recent_runs(  # type: ignore[union-attr]
-                limit=1, project_name=project_name,
+                limit=1,
+                project_path=Path(project_path_str) if project_path_str else None,
             )
             has_runs = len(recent_check) > 0
         except Exception:
@@ -161,16 +169,20 @@ async def overview(
     # Skip if data layer is already in error state
     if not context.get("data_error"):
         try:
-            entries = index_manager.get_recent_runs(limit=5, project_name=project_name)  # type: ignore[union-attr]
-            context["recent_runs"] = build_recent_runs_context(entries)
+            entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
+                limit=5,
+                project_path=Path(project_path_str) if project_path_str else None,
+            )
+            context["recent_runs"] = build_recent_runs_context(entries, name_map)
 
             all_stats = stats_aggregator.get_global_stats(project_name=None)  # type: ignore[union-attr]
             context["project_stats"] = all_stats.projects  # type: ignore[union-attr]
 
             active_entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
-                status="running", project_name=project_name
+                status="running",
+                project_path=Path(project_path_str) if project_path_str else None,
             )
-            context["active_runs"] = _load_active_run_details(active_entries)
+            context["active_runs"] = _load_active_run_details(active_entries, name_map)
         except Exception:
             context["data_error"] = True
             context["data_error_message"] = (
@@ -240,13 +252,16 @@ async def runs_list(
         except ValueError:
             until = None
 
+    # Resolve project filter
+    project_path_str, _ = resolve_project_filter(project_registry, project or None)
+
     # Fetch paginated runs with graceful degradation
     try:
         paginated = index_manager.get_paginated_runs(  # type: ignore[union-attr]
             page=page,
             page_size=15,
             status=status_filter or None,
-            project_name=project or None,
+            project_path=Path(project_path_str) if project_path_str else None,
             since=since,
             until=until,
             sort=sort,
@@ -260,7 +275,10 @@ async def runs_list(
             "total_pages": 0,
         }
 
-    context["runs"] = build_recent_runs_context(paginated["entries"])
+    # Build path→name map for display name resolution
+    all_proj = project_registry.get_all()  # type: ignore[union-attr]
+    name_map = {str(p.path): p.name for p in all_proj}
+    context["runs"] = build_recent_runs_context(paginated["entries"], name_map)
     context["total_count"] = paginated["total_count"]
     context["current_page"] = paginated["page"]
     context["total_pages"] = paginated["total_pages"]
@@ -429,9 +447,9 @@ def _build_detail_phase_pipeline(
 
 
 def _format_duration_from_seconds(total_seconds: int) -> str:
-    """Format seconds as 'Xm Ys' or 'Xh Ym'."""
+    """Format seconds as 'Xs', 'Xm Ys', or 'Xh Ym'."""
     if total_seconds < 60:
-        return f"0m {total_seconds}s"
+        return f"{total_seconds}s"
     minutes = total_seconds // 60
     seconds = total_seconds % 60
     if minutes < 60:
@@ -444,6 +462,7 @@ def _format_duration_from_seconds(total_seconds: int) -> str:
 def _build_run_detail_context(
     run_entry: object,
     request: Request,
+    name_map: dict[str, str] | None = None,
 ) -> dict:
     """Build the template context for the run detail page.
 
@@ -453,6 +472,7 @@ def _build_run_detail_context(
     Args:
         run_entry: An IndexEntry from the global index.
         request: The current FastAPI request.
+        name_map: Optional mapping of project_path -> display_name.
 
     Returns:
         Dict with all template variables for run_detail.html.
@@ -461,6 +481,10 @@ def _build_run_detail_context(
 
     run_id = run_entry.run_id  # type: ignore[union-attr]
     project_name = run_entry.project_name  # type: ignore[union-attr]
+    if name_map:
+        project_name = name_map.get(
+            run_entry.project_path, project_name,  # type: ignore[union-attr]
+        )
     feature = run_entry.feature_description  # type: ignore[union-attr]
     status = run_entry.status  # type: ignore[union-attr]
     started_at = run_entry.started_at  # type: ignore[union-attr]
@@ -650,8 +674,10 @@ async def run_detail(
             request, "pages/run_not_found.html", context, status_code=404,
         )
 
-    # Build run detail context
-    detail_context = _build_run_detail_context(run_entry, request)
+    # Build run detail context with display name resolution
+    all_proj = project_registry.get_all()  # type: ignore[union-attr]
+    detail_name_map = {str(p.path): p.name for p in all_proj}
+    detail_context = _build_run_detail_context(run_entry, request, detail_name_map)
 
     if request.headers.get("HX-Request"):
         detail_context["request"] = request
@@ -779,6 +805,22 @@ def _load_llm_content(
                 return prompt_file.read_text()
             except OSError:
                 return None
+
+        # Fall back to LLM request JSON files (e.g., 001_plan_request.json)
+        llm_dir = runs_dir / run_id / "llm"
+        if llm_dir.exists():
+            result: str | None = None
+            for f in sorted(llm_dir.iterdir()):
+                if f.name.endswith(f"_{phase}_request.json") and f.is_file():
+                    try:
+                        data = json.loads(f.read_text())
+                        prompt = data.get("prompt")
+                        if prompt:
+                            result = prompt
+                    except (json.JSONDecodeError, OSError):
+                        continue
+            if result is not None:
+                return result
 
     return None
 
@@ -1067,7 +1109,7 @@ def _load_log_entries(
     """
     import re
 
-    log_file = runs_dir / run_id / "logs" / "live.log"
+    log_file = runs_dir / run_id / "live.log"
     if not log_file.exists():
         return []
 

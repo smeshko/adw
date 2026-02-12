@@ -127,7 +127,7 @@ class TestRunDetailRoute:
 
         assert response.status_code == 200
         assert "<!DOCTYPE" not in response.text
-        assert '<div id="run-detail">' in response.text
+        assert '<div id="run-detail"' in response.text
 
     def test_not_found_returns_404(self) -> None:
         """Non-existent run_id returns 404."""
@@ -957,7 +957,7 @@ class TestPhaseAccordionContext:
         assert "collapse collapse-arrow bg-base-200" in response.text
 
     def test_accordion_has_htmx_lazy_loading(self) -> None:
-        """Phase accordion uses hx-trigger='click once' for lazy loading."""
+        """Phase accordion uses hx-trigger='change once' for lazy loading."""
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
@@ -968,7 +968,7 @@ class TestPhaseAccordionContext:
                 headers={"HX-Request": "true"},
             )
 
-        assert 'hx-trigger="click once"' in response.text
+        assert 'hx-trigger="change once"' in response.text
         assert 'hx-swap="innerHTML"' in response.text
 
     def test_accordion_has_loading_indicator(self) -> None:
@@ -1488,10 +1488,10 @@ class TestFormatDurationFromSeconds:
     """Tests for _format_duration_from_seconds helper."""
 
     def test_seconds_only(self) -> None:
-        """Under 60 seconds shows 0m Xs."""
+        """Under 60 seconds shows Xs."""
         from adw.dashboard.routes import _format_duration_from_seconds
 
-        assert _format_duration_from_seconds(45) == "0m 45s"
+        assert _format_duration_from_seconds(45) == "45s"
 
     def test_minutes_and_seconds(self) -> None:
         """Minutes and seconds format."""

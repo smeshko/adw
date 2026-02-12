@@ -18,7 +18,8 @@
     </div>
 
     {# Right: View Details Link #}
-    <a hx-get="/analytics{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
+    <a href="/analytics{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
+       hx-get="/analytics{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
        hx-target="#main"
        hx-push-url="/analytics{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
        class="text-sm link link-primary whitespace-nowrap">View Details &rarr;</a>

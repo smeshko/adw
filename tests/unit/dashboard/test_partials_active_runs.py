@@ -156,19 +156,28 @@ class TestActiveRunsPartialRoute:
 
     @patch("adw.dashboard.partials.ContextManager")
     def test_project_filter_scopes_results(self, mock_cm_cls: MagicMock) -> None:
-        """Project filter query parameter is passed to index manager."""
-        from adw.dashboard.dependencies import get_index_manager
+        """Project filter query parameter is resolved to project_path."""
+        from pathlib import Path
+
+        from adw.dashboard.dependencies import get_index_manager, get_project_registry
 
         mock_im = MagicMock()
         mock_im.get_recent_runs.return_value = []
 
+        mock_pr = MagicMock()
+        proj = MagicMock()
+        proj.name = "my-api"
+        proj.path = "/projects/my-api"
+        mock_pr.get_all.return_value = [proj]
+
         app = create_dashboard_app()
         app.dependency_overrides[get_index_manager] = lambda: mock_im
+        app.dependency_overrides[get_project_registry] = lambda: mock_pr
         client = TestClient(app)
 
         client.get("/partials/active-runs?project=my-api")
         mock_im.get_recent_runs.assert_called_with(
-            status="running", project_name="my-api"
+            status="running", project_path=Path("/projects/my-api"),
         )
 
     @patch("adw.dashboard.partials.ContextManager")
@@ -254,10 +263,11 @@ class TestActiveRunsPartialRoute:
         client = TestClient(app)
 
         response = client.get("/partials/active-runs")
-        # The full description should NOT appear
-        assert long_desc not in response.text
-        # An ellipsis character should appear
+        # The full description appears only in the title attribute for tooltip,
+        # but the visible text is truncated with ellipsis
         assert "…" in response.text
+        # Full text in title attr for tooltip (Bug 14 fix)
+        assert f'title="{long_desc}"' in response.text
 
     @patch("adw.dashboard.partials.ContextManager")
     def test_graceful_fallback_when_context_unavailable(
@@ -330,7 +340,7 @@ class TestActiveRunsPartialRoute:
 
         client.get("/partials/active-runs")
         mock_im.get_recent_runs.assert_called_with(
-            status="running", project_name=None
+            status="running", project_path=None,
         )
 
     @patch("adw.dashboard.partials.ContextManager")
@@ -399,11 +409,11 @@ class TestElapsedTimeFormatting:
     """Tests for elapsed time formatting."""
 
     def test_format_elapsed_seconds_only(self) -> None:
-        """Elapsed time under a minute shows 0m Xs."""
+        """Elapsed time under a minute shows Xs."""
         from adw.dashboard.partials import _format_elapsed
 
         result = _format_elapsed(timedelta(seconds=42))
-        assert result == "0m 42s"
+        assert result == "42s"
 
     def test_format_elapsed_minutes_and_seconds(self) -> None:
         """Elapsed time with minutes shows Xm Ys."""
@@ -420,11 +430,11 @@ class TestElapsedTimeFormatting:
         assert result == "65m 30s"
 
     def test_format_elapsed_zero(self) -> None:
-        """Zero elapsed time shows 0m 0s."""
+        """Zero elapsed time shows 0s."""
         from adw.dashboard.partials import _format_elapsed
 
         result = _format_elapsed(timedelta(seconds=0))
-        assert result == "0m 0s"
+        assert result == "0s"
 
 
 class TestActiveRunsInOverview:

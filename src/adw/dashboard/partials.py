@@ -23,6 +23,7 @@ from adw.dashboard.dependencies import (
     get_project_registry,
     get_stats_aggregator,
 )
+from adw.dashboard.dependencies import resolve_project_filter
 from adw.exceptions import StateError
 
 logger = logging.getLogger(__name__)
@@ -87,8 +88,10 @@ async def status_bar(
 
 
 def _format_duration(ms: int) -> str:
-    """Format milliseconds as 'Xm Ys'."""
+    """Format milliseconds as 'Xm Ys' or 'Xs' when under a minute."""
     total_seconds = ms // 1000
+    if total_seconds < 60:
+        return f"{total_seconds}s"
     minutes = total_seconds // 60
     seconds = total_seconds % 60
     return f"{minutes}m {seconds}s"
@@ -129,7 +132,7 @@ def build_stats_context(stats: object, selected_project: str | None) -> dict:
         "selected_project": selected_project,
         # Stat values
         "total_runs": stats.total_runs,  # type: ignore[union-attr]
-        "success_rate_display": f"{stats.success_rate * 100:.1f}%",  # type: ignore[union-attr]
+        "success_rate_display": f"{stats.success_rate * 100:.1f}%" if stats.total_runs > 0 else "—",  # type: ignore[union-attr]
         "duration_display": _format_duration(stats.average_duration_ms),  # type: ignore[union-attr]
         "tokens_display": _format_tokens(stats.tokens.total_tokens),  # type: ignore[union-attr]
         "cost_display": f"{stats.estimated_cost:.2f}",  # type: ignore[union-attr]
@@ -428,8 +431,12 @@ def build_analytics_context(
         reverse = direction == "desc"
         breakdown_table.sort(key=lambda r: r[sort_field], reverse=reverse)
 
+    # Hide delta indicators for "all time" (no meaningful previous period)
+    show_deltas = days is not None
+
     return {
         "has_analytics_data": has_data,
+        "show_deltas": show_deltas,
         # Stat card values
         "analytics_total_tokens": _format_tokens(total_tokens),
         "analytics_total_cost": f"${total_cost:.2f}",
@@ -479,11 +486,15 @@ async def stats_partial(
     return templates.TemplateResponse(request, "partials/stats_row.html", context)
 
 
-def build_recent_runs_context(entries: list) -> list[dict]:
+def build_recent_runs_context(
+    entries: list,
+    name_map: dict[str, str] | None = None,
+) -> list[dict]:
     """Transform IndexEntry objects into template-ready dicts.
 
     Args:
         entries: List of IndexEntry objects from IndexManager.
+        name_map: Optional mapping of project_path -> display_name.
 
     Returns:
         List of dicts with run_id, project_name, feature_description,
@@ -497,9 +508,13 @@ def build_recent_runs_context(entries: list) -> list[dict]:
         else:
             duration_display = "—"
 
+        display_name = entry.project_name
+        if name_map:
+            display_name = name_map.get(entry.project_path, entry.project_name)
+
         result.append({
             "run_id": entry.run_id,
-            "project_name": entry.project_name,
+            "project_name": display_name,
             "feature_description": entry.feature_description,
             "status": entry.status,
             "duration_display": duration_display,
@@ -513,16 +528,24 @@ async def recent_runs(
     request: Request,
     project: str = Query("", alias="project"),
     index_manager: object = Depends(get_index_manager),
+    project_registry: object = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Return the recent runs table HTML fragment for polling updates."""
     templates = request.app.state.templates
 
     project_name = project or None
-    entries = index_manager.get_recent_runs(limit=5, project_name=project_name)  # type: ignore[union-attr]
+    project_path_str, _ = resolve_project_filter(project_registry, project_name)
+    entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
+        limit=5,
+        project_path=Path(project_path_str) if project_path_str else None,
+    )
+
+    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    name_map = {str(p.path): p.name for p in all_projects}
 
     context = {
         "request": request,
-        "recent_runs": build_recent_runs_context(entries),
+        "recent_runs": build_recent_runs_context(entries, name_map),
         "selected_project": project_name,
     }
 
@@ -567,8 +590,10 @@ _PHASE_LABELS: dict[str, str] = {
 
 
 def _format_elapsed(delta: timedelta) -> str:
-    """Format a timedelta as 'Xm Ys'."""
+    """Format a timedelta as 'Xm Ys' or 'Xs' when under a minute."""
     total_seconds = int(delta.total_seconds())
+    if total_seconds < 60:
+        return f"{total_seconds}s"
     minutes = total_seconds // 60
     seconds = total_seconds % 60
     return f"{minutes}m {seconds}s"
@@ -607,6 +632,7 @@ def _build_phase_pipeline(
 
 def _load_active_run_details(
     entries: list[object],
+    name_map: dict[str, str] | None = None,
 ) -> list[dict]:
     """Load active run details from IndexEntry objects.
 
@@ -616,6 +642,7 @@ def _load_active_run_details(
 
     Args:
         entries: List of IndexEntry objects with status="running".
+        name_map: Optional mapping of project_path -> display_name.
 
     Returns:
         List of dicts with run display data for the template.
@@ -643,9 +670,15 @@ def _load_active_run_details(
 
         elapsed = now - entry.started_at  # type: ignore[union-attr]
 
+        display_name = entry.project_name  # type: ignore[union-attr]
+        if name_map:
+            display_name = name_map.get(
+                entry.project_path, entry.project_name,  # type: ignore[union-attr]
+            )
+
         runs.append({
             "run_id": entry.run_id,  # type: ignore[union-attr]
-            "project_name": entry.project_name,  # type: ignore[union-attr]
+            "project_name": display_name,
             "feature_description": entry.feature_description,  # type: ignore[union-attr]
             "elapsed": _format_elapsed(elapsed),
             "phases": _build_phase_pipeline(
@@ -663,16 +696,21 @@ async def active_runs_partial(
     request: Request,
     project: str = Query("", alias="project"),
     index_manager: object = Depends(get_index_manager),
+    project_registry: object = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Return the active runs section HTML fragment for polling updates."""
     templates = request.app.state.templates
 
     project_name = project or None
+    project_path_str, _ = resolve_project_filter(project_registry, project_name)
     entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
-        status="running", project_name=project_name
+        status="running",
+        project_path=Path(project_path_str) if project_path_str else None,
     )
 
-    active_runs = _load_active_run_details(entries)
+    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    name_map = {str(p.path): p.name for p in all_projects}
+    active_runs = _load_active_run_details(entries, name_map)
 
     context = {
         "request": request,

@@ -78,7 +78,8 @@
     {# Clear all link — only shown when any filter is active #}
     {% if status_filter or project_filter or from_date or to_date %}
     <div class="form-control justify-end">
-      <a hx-get="/runs"
+      <a href="/runs"
+         hx-get="/runs"
          hx-target="#main"
          hx-push-url="/runs"
          class="btn btn-ghost btn-xs">Clear all</a>

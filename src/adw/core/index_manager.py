@@ -227,6 +227,7 @@ class IndexManager:
         page_size: int = 15,
         status: str | None = None,
         project_name: str | None = None,
+        project_path: Path | None = None,
         since: datetime | None = None,
         until: datetime | None = None,
         sort: str = "newest",
@@ -238,6 +239,8 @@ class IndexManager:
             page_size: Number of entries per page.
             status: Filter to runs with this status.
             project_name: Filter to runs matching this project name.
+            project_path: Filter to runs from this project path.
+                Takes precedence over project_name when both are given.
             since: Filter to runs started on or after this time.
             until: Filter to runs started on or before this time.
             sort: Sort order — one of 'newest', 'oldest', 'duration_longest',
@@ -261,7 +264,10 @@ class IndexManager:
         if status is not None:
             entries = [e for e in entries if e.status == status]
 
-        if project_name is not None:
+        if project_path is not None:
+            project_path_str = str(project_path)
+            entries = [e for e in entries if e.project_path == project_path_str]
+        elif project_name is not None:
             entries = [e for e in entries if e.project_name == project_name]
 
         if since is not None:
