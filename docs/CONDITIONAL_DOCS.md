@@ -248,3 +248,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When using the `analytics_url` macro to preserve query parameters across analytics interactions
     - When configuring the `ADW_MONTHLY_BUDGET` environment variable
     - When adding new columns or sort options to the analytics breakdown table
+
+- docs/features/active-failed-run-sse-streaming.md
+  - Conditions:
+    - When adding SSE streaming endpoints to the ADW dashboard
+    - When implementing real-time log tailing for active runs in the dashboard
+    - When rendering OOB (out-of-band) swap HTML fragments for live HTMX updates
+    - When implementing failed run diagnostics with auto-expanded accordions in the dashboard
+    - When using `overflow-anchor` CSS for auto-scrolling streaming content
