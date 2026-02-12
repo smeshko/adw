@@ -205,3 +205,17 @@ This guide helps you find relevant documentation based on what you're working on
     - When combining multiple filter params with hx-include for HTMX requests
     - When adding "Clear all" reset functionality to filtered dashboard views
     - When syncing filter state between global header controls and page-level filters
+- docs/features/rerun-flow.md
+  - Conditions:
+    - When implementing re-run or retry functionality for dashboard runs
+    - When pre-populating modal forms with data from existing records in the dashboard
+    - When using disabled form elements with hidden input workarounds in HTMX forms
+    - When preserving form state across validation error re-rendering in the dashboard
+
+- docs/features/phase-accordion-artifact-viewer.md
+  - Conditions:
+    - When adding lazy-loaded HTMX accordion sections to the dashboard
+    - When implementing artifact browsing or file viewing in the ADW dashboard
+    - When adding new phase detail routes with security validation for the dashboard
+    - When rendering user-supplied markdown content safely in the dashboard
+    - When extending the run detail page with new expandable sections

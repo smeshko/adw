@@ -503,22 +503,52 @@ async def active_runs_partial(
 @router.get("/new-run", response_class=HTMLResponse)
 async def new_run_modal(
     request: Request,
+    from_run: str = Query("", alias="from"),
     project_registry: object = Depends(get_project_registry),
+    index_manager: object = Depends(get_index_manager),
 ) -> HTMLResponse:
-    """Return the new run modal HTML fragment."""
+    """Return the new run modal HTML fragment.
+
+    When ``from`` query parameter is provided with a valid run_id,
+    the modal is pre-populated with the source run's project and
+    feature description for re-run context.
+    """
     templates = request.app.state.templates
 
     all_projects = project_registry.get_all()  # type: ignore[union-attr]
     project_list = [{"path": p.path, "name": p.name} for p in all_projects]
     csrf_token = generate_csrf_token(request)
 
+    # Re-run context defaults
+    is_rerun = False
+    rerun_project_path = ""
+    rerun_project_name = ""
+    rerun_feature = ""
+
+    if from_run:
+        # Look up the source run in the global index
+        recent_runs = index_manager.get_recent_runs(limit=10000)  # type: ignore[union-attr]
+        source_entry = next(
+            (r for r in recent_runs if r.run_id == from_run), None
+        )
+        if source_entry is not None:
+            is_rerun = True
+            rerun_project_path = source_entry.project_path
+            rerun_project_name = source_entry.project_name
+            rerun_feature = source_entry.feature_description
+
     context = {
         "request": request,
         "projects": project_list,
         "csrf_token": csrf_token,
         "errors": {},
-        "form_project": "",
-        "form_feature": "",
+        "form_project": rerun_project_path if is_rerun else "",
+        "form_feature": rerun_feature if is_rerun else "",
+        "is_rerun": is_rerun,
+        "rerun_project_path": rerun_project_path,
+        "rerun_project_name": rerun_project_name,
+        "rerun_feature": rerun_feature,
+        "from_run": from_run if is_rerun else "",
     }
 
     return templates.TemplateResponse(
