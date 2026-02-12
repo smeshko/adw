@@ -712,19 +712,21 @@ def _load_llm_stats(
     if not llm_dir.exists():
         return None
 
-    # Find the response file for this phase (e.g., 001_plan_response.json)
+    # Find the latest response file for this phase (e.g., 002_plan_response.json
+    # takes precedence over 001_plan_response.json for retries).
+    result: dict | None = None
     for f in sorted(llm_dir.iterdir()):
         if f.name.endswith(f"_{phase}_response.json") and f.is_file():
             try:
                 data = json.loads(f.read_text())
                 stats = data.get("stats", {})
-                return {
+                result = {
                     "input_tokens": stats.get("input_tokens", 0),
                     "output_tokens": stats.get("output_tokens", 0),
                 }
             except (json.JSONDecodeError, OSError):
-                return None
-    return None
+                continue
+    return result
 
 
 def _load_llm_content(
@@ -1096,9 +1098,11 @@ def _load_log_entries(
     except OSError:
         return []
 
-    # Apply phase filter
+    # Apply phase filter using word-boundary matching to avoid false positives
+    # (e.g., "plan" should not match "explain").
     if phase:
-        entries = [e for e in entries if phase in e["message"]]
+        phase_pattern = re.compile(rf"\b{re.escape(phase)}\b")
+        entries = [e for e in entries if phase_pattern.search(e["message"])]
 
     return entries
 

@@ -416,6 +416,27 @@ class TestLoadLogEntries:
         assert len(entries) == 1
         assert "plan" in entries[0]["message"]
 
+    def test_phase_filter_uses_word_boundary(self, tmp_path: Path) -> None:
+        """Phase filter uses word-boundary match to avoid false positives."""
+        from adw.dashboard.routes import _load_log_entries
+
+        logs_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A" / "logs"
+        logs_dir.mkdir(parents=True)
+
+        log_content = (
+            "[2025-01-15 10:30:00] [PHASE] Phase 'plan' started\n"
+            "[2025-01-15 10:30:05] [INFO] Let me explain the approach\n"
+            "[2025-01-15 10:30:10] [LLM] Token stream begins(plan)\n"
+        )
+        (logs_dir / "live.log").write_text(log_content)
+
+        runs_dir = tmp_path / "runs"
+        entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A", phase="plan")
+        # "explain" should NOT match, but "Phase 'plan'" and "(plan)" should
+        assert len(entries) == 2
+        assert all("plan" in e["message"] for e in entries)
+        assert not any("explain" in e["message"] for e in entries)
+
     def test_handles_malformed_lines(self, tmp_path: Path) -> None:
         """Skips lines that don't match the expected format."""
         from adw.dashboard.routes import _load_log_entries
