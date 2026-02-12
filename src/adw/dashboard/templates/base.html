@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="brutalist-dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,11 +9,17 @@
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="/static/htmx.min.js"></script>
   <script src="/static/htmx-sse.js"></script>
+  <link rel="stylesheet" href="/static/brutalist-theme.css" />
   <link rel="stylesheet" href="/static/dashboard.css" />
   <script>
     /* Restore theme from localStorage before paint */
     (function() {
       var t = localStorage.getItem('adw-theme');
+      /* Migrate legacy DaisyUI built-in 'dark' to brutalist-dark */
+      if (t === 'dark') {
+        t = 'brutalist-dark';
+        localStorage.setItem('adw-theme', t);
+      }
       if (t) document.documentElement.setAttribute('data-theme', t);
     })();
   </script>
@@ -113,9 +119,9 @@
   </footer>
 
   <script>
-    /* Theme toggle logic */
+    /* Theme toggle logic — brutalist dark is the default */
     function toggleTheme(el) {
-      var theme = el.checked ? 'light' : 'dark';
+      var theme = el.checked ? 'light' : 'brutalist-dark';
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem('adw-theme', theme);
     }
@@ -125,6 +131,12 @@
       var cb = document.getElementById('theme-toggle');
       if (cb) cb.checked = (current === 'light');
     })();
+
+    /* Update browser tab title from data-page-title attribute after HTMX swap */
+    document.body.addEventListener('htmx:afterSettle', function() {
+      var el = document.querySelector('[data-page-title]');
+      if (el) document.title = el.getAttribute('data-page-title');
+    });
 
     /* Update active nav indicator and project filter after HTMX content swap */
     document.body.addEventListener('htmx:pushedIntoHistory', function() {
@@ -139,8 +151,14 @@
       });
       /* Update project filter hx-get to target the current path */
       var filter = document.getElementById('project-filter');
-      if (filter) filter.setAttribute('hx-get', path);
-      htmx.process(filter);
+      if (filter) {
+        filter.setAttribute('hx-get', path);
+        /* Sync dropdown value with URL project param */
+        var params = new URLSearchParams(window.location.search);
+        var projectVal = params.get('project') || '';
+        filter.value = projectVal;
+        htmx.process(filter);
+      }
     });
 
     /* HTMX error handling – show toast on response errors */
@@ -158,6 +176,148 @@
       document.body.appendChild(toast);
       setTimeout(function() { toast.remove(); }, 5000);
     });
+
+    /* Keyboard shortcuts (Story 6.1) */
+    (function() {
+      var pendingG = false;
+      var gTimer = null;
+      var selectedRowIndex = -1;
+
+      function clearPendingG() {
+        pendingG = false;
+        if (gTimer) { clearTimeout(gTimer); gTimer = null; }
+      }
+
+      function getNavigableRows() {
+        return document.querySelectorAll('[data-navigable-row]');
+      }
+
+      function highlightRow(rows, index) {
+        rows.forEach(function(r) { r.classList.remove('kbd-nav-active'); });
+        if (index >= 0 && index < rows.length) {
+          rows[index].classList.add('kbd-nav-active');
+          rows[index].scrollIntoView({block: 'nearest'});
+        }
+      }
+
+      document.addEventListener('keydown', function(e) {
+        /* Skip when typing in form inputs */
+        if (e.target.matches('input, textarea, select, [contenteditable]')) return;
+        /* Skip when modifier keys are held (allow Shift for ?) */
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+        var key = e.key;
+        var modalOpen = document.querySelector('#modal-container dialog[open]');
+
+        /* When a modal is open, only allow ? (toggle) and Escape (close) */
+        if (modalOpen && key !== '?' && key !== 'Escape') return;
+
+        /* Handle g-prefix sequences */
+        if (pendingG) {
+          clearPendingG();
+          var navLink = null;
+          if (key === 'h') navLink = document.querySelector('[data-page="overview"]');
+          else if (key === 'r') navLink = document.querySelector('[data-page="runs"]');
+          else if (key === 'a') navLink = document.querySelector('[data-page="analytics"]');
+          if (navLink) { e.preventDefault(); navLink.click(); }
+          return;
+        }
+
+        if (key === 'g') {
+          pendingG = true;
+          gTimer = setTimeout(clearPendingG, 1000);
+          return;
+        }
+
+        if (key === '?') {
+          e.preventDefault();
+          var helpDialog = document.getElementById('keyboard-help-dialog');
+          if (helpDialog) {
+            helpDialog.close();
+            document.getElementById('modal-container').innerHTML = '';
+          } else {
+            htmx.ajax('GET', '/partials/keyboard-help', {target:'#modal-container'});
+          }
+          return;
+        }
+
+        if (key === 'n') {
+          var path = window.location.pathname;
+          if (path === '/' || path === '/runs') {
+            e.preventDefault();
+            htmx.ajax('GET', '/partials/new-run', {target:'#modal-container'});
+          }
+          return;
+        }
+
+        if (key === 'j' || key === 'ArrowDown') {
+          var rows = getNavigableRows();
+          if (rows.length > 0) {
+            e.preventDefault();
+            selectedRowIndex = Math.min(selectedRowIndex + 1, rows.length - 1);
+            highlightRow(rows, selectedRowIndex);
+          }
+          return;
+        }
+
+        if (key === 'k' || key === 'ArrowUp') {
+          var rows = getNavigableRows();
+          if (rows.length > 0) {
+            e.preventDefault();
+            selectedRowIndex = Math.max(selectedRowIndex - 1, 0);
+            highlightRow(rows, selectedRowIndex);
+          }
+          return;
+        }
+
+        if (key === 'Enter') {
+          var rows = getNavigableRows();
+          if (selectedRowIndex >= 0 && selectedRowIndex < rows.length) {
+            e.preventDefault();
+            var row = rows[selectedRowIndex];
+            var url = row.getAttribute('hx-get');
+            if (url) {
+              htmx.ajax('GET', url, {target:'#main', push: url});
+            }
+          }
+          return;
+        }
+
+        if (key === 'Escape') {
+          var mc = document.getElementById('modal-container');
+          if (mc && mc.innerHTML.trim()) {
+            var dialog = mc.querySelector('dialog');
+            if (dialog) dialog.close();
+            mc.innerHTML = '';
+          } else {
+            history.back();
+          }
+          return;
+        }
+
+        if (key === '/') {
+          var input = document.querySelector('#main input');
+          if (input) {
+            e.preventDefault();
+            input.focus();
+          }
+          return;
+        }
+
+        if (key === 'r') {
+          e.preventDefault();
+          htmx.ajax('GET', window.location.pathname + window.location.search, {target:'#main'});
+          return;
+        }
+      });
+
+      /* Reset row selection when HTMX swaps #main content */
+      document.body.addEventListener('htmx:afterSettle', function(e) {
+        if (e.detail.target && e.detail.target.id === 'main') {
+          selectedRowIndex = -1;
+        }
+      });
+    })();
   </script>
 </body>
 </html>

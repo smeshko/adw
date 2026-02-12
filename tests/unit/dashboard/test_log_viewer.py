@@ -373,15 +373,15 @@ class TestLoadLogEntries:
         """Parses entries from live.log file."""
         from adw.dashboard.routes import _load_log_entries
 
-        logs_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A" / "logs"
-        logs_dir.mkdir(parents=True)
+        run_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A"
+        run_dir.mkdir(parents=True)
 
         log_content = (
             "[2025-01-15 10:30:00] [PHASE] Phase 'plan' started\n"
             "[2025-01-15 10:30:05] [LLM] Token stream begins\n"
             "[2025-01-15 10:31:00] [ERROR] Something went wrong\n"
         )
-        (logs_dir / "live.log").write_text(log_content)
+        (run_dir / "live.log").write_text(log_content)
 
         runs_dir = tmp_path / "runs"
         entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A")
@@ -402,14 +402,14 @@ class TestLoadLogEntries:
         """Filters entries containing the phase name."""
         from adw.dashboard.routes import _load_log_entries
 
-        logs_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A" / "logs"
-        logs_dir.mkdir(parents=True)
+        run_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A"
+        run_dir.mkdir(parents=True)
 
         log_content = (
             "[2025-01-15 10:30:00] [PHASE] Phase 'plan' started\n"
             "[2025-01-15 10:31:00] [PHASE] Phase 'build' started\n"
         )
-        (logs_dir / "live.log").write_text(log_content)
+        (run_dir / "live.log").write_text(log_content)
 
         runs_dir = tmp_path / "runs"
         entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A", phase="plan")
@@ -420,15 +420,15 @@ class TestLoadLogEntries:
         """Phase filter uses word-boundary match to avoid false positives."""
         from adw.dashboard.routes import _load_log_entries
 
-        logs_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A" / "logs"
-        logs_dir.mkdir(parents=True)
+        run_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A"
+        run_dir.mkdir(parents=True)
 
         log_content = (
             "[2025-01-15 10:30:00] [PHASE] Phase 'plan' started\n"
             "[2025-01-15 10:30:05] [INFO] Let me explain the approach\n"
             "[2025-01-15 10:30:10] [LLM] Token stream begins(plan)\n"
         )
-        (logs_dir / "live.log").write_text(log_content)
+        (run_dir / "live.log").write_text(log_content)
 
         runs_dir = tmp_path / "runs"
         entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A", phase="plan")
@@ -441,15 +441,15 @@ class TestLoadLogEntries:
         """Skips lines that don't match the expected format."""
         from adw.dashboard.routes import _load_log_entries
 
-        logs_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A" / "logs"
-        logs_dir.mkdir(parents=True)
+        run_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A"
+        run_dir.mkdir(parents=True)
 
         log_content = (
             "random text without brackets\n"
             "[2025-01-15 10:30:00] [INFO] Valid log line\n"
             "\n"
         )
-        (logs_dir / "live.log").write_text(log_content)
+        (run_dir / "live.log").write_text(log_content)
 
         runs_dir = tmp_path / "runs"
         entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A")

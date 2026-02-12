@@ -256,3 +256,10 @@ This guide helps you find relevant documentation based on what you're working on
     - When rendering OOB (out-of-band) swap HTML fragments for live HTMX updates
     - When implementing failed run diagnostics with auto-expanded accordions in the dashboard
     - When using `overflow-anchor` CSS for auto-scrolling streaming content
+- docs/features/keyboard-shortcuts-navigation-overlay.md
+  - Conditions:
+    - When adding new keyboard shortcuts to the ADW dashboard
+    - When implementing j/k list navigation for new table views in the dashboard
+    - When modifying the keyboard shortcut overlay modal content
+    - When adding two-key sequence shortcuts (g-prefix pattern) to the dashboard
+    - When using the `data-navigable-row` attribute for keyboard-navigable lists

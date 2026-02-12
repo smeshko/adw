@@ -15,24 +15,26 @@
 }
 .phase-active { animation: phase-pulse 2s ease-in-out infinite; }
 
-/* Design tokens – CSS custom properties (UX §14) */
+/* Design tokens – CSS custom properties
+   These reference brutalist theme custom properties when available,
+   with DaisyUI semantic fallbacks for non-brutalist themes. */
 :root {
-  /* Phase status colors – mapped to DaisyUI v5 semantic colors */
-  --phase-success: var(--color-success);
-  --phase-error: var(--color-error);
-  --phase-active: var(--color-warning);
+  /* Phase status colors */
+  --phase-success: var(--accent-green, var(--color-success));
+  --phase-error:   var(--accent-red, var(--color-error));
+  --phase-active:  var(--accent-orange, var(--color-warning));
   --phase-pending: color-mix(in oklch, var(--color-base-content) 20%, transparent);
 
   /* Chart colors */
-  --chart-primary: var(--color-primary);
-  --chart-primary-light: color-mix(in oklch, var(--color-primary) 40%, transparent);
+  --chart-primary:       var(--accent-red, var(--color-primary));
+  --chart-primary-light: var(--accent-orange, color-mix(in oklch, var(--color-primary) 40%, transparent));
 
   /* Layout tokens */
   --table-row-height: 2.25rem;
   --card-padding-compact: 0.75rem;
 }
 
-/* Daily usage chart (UX §7.3) */
+/* Daily usage chart */
 .chart-daily { min-height: 10rem; }
 .chart-bar > div { min-height: 2px; transition: height 200ms ease; }
 
@@ -42,6 +44,12 @@
 }
 .log-stream-container > :last-child {
   overflow-anchor: auto;  /* Anchor to the last child to keep scroll at bottom */
+}
+
+/* Keyboard navigation focus highlight (Story 6.1) */
+.kbd-nav-active {
+  outline: 2px solid oklch(var(--p));
+  outline-offset: -2px;
 }
 
 /* Responsive: minimum supported width 1024px */

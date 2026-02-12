@@ -494,8 +494,8 @@ class TestDataLayerIntegration:
         """_load_log_entries strips ANSI codes from live.log."""
         from adw.dashboard.routes import _load_log_entries
 
-        logs_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A" / "logs"
-        logs_dir.mkdir(parents=True)
+        run_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A"
+        run_dir.mkdir(parents=True)
 
         # Simulate ANSI-colored log output
         log_content = (
@@ -503,7 +503,7 @@ class TestDataLayerIntegration:
             "\x1b[36m[2025-01-15 10:30:01] [LLM] \x1b[0m\x1b[36mToken stream begins(plan)\x1b[0m\n"
             "\x1b[31m[2025-01-15 10:31:00] [ERROR] \x1b[0mExecution timeout\n"
         )
-        (logs_dir / "live.log").write_text(log_content)
+        (run_dir / "live.log").write_text(log_content)
 
         entries = _load_log_entries(tmp_path / "runs", "01TESTRUNID0000000000000A")
         assert len(entries) == 3
@@ -519,8 +519,8 @@ class TestDataLayerIntegration:
         """Phase filter correctly isolates entries for a specific phase."""
         from adw.dashboard.routes import _load_log_entries
 
-        logs_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A" / "logs"
-        logs_dir.mkdir(parents=True)
+        run_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A"
+        run_dir.mkdir(parents=True)
 
         log_content = (
             "[2025-01-15 10:30:00] [PHASE] Phase 'plan' started\n"
@@ -530,7 +530,7 @@ class TestDataLayerIntegration:
             "[2025-01-15 10:31:30] [LLM] Token stream begins(build)\n"
             "[2025-01-15 10:32:00] [PHASE] Phase 'build' completed\n"
         )
-        (logs_dir / "live.log").write_text(log_content)
+        (run_dir / "live.log").write_text(log_content)
 
         plan_entries = _load_log_entries(
             tmp_path / "runs", "01TESTRUNID0000000000000A", phase="plan"

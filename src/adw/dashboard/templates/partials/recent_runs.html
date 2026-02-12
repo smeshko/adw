@@ -6,8 +6,9 @@
          hx-swap="outerHTML">
 
   <div class="flex items-center justify-between mb-3">
-    <h2 class="text-lg font-semibold">Recent Runs</h2>
-    <a hx-get="/runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
+    <h2 class="text-lg font-semibold section-header">Recent Runs</h2>
+    <a href="/runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
+       hx-get="/runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
        hx-target="#main"
        hx-push-url="/runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
        class="btn btn-ghost btn-xs">View All →</a>
@@ -28,7 +29,8 @@
         <tbody>
           {% if recent_runs %}
             {% for run in recent_runs %}
-            <tr hx-get="/runs/{{ run.run_id | urlencode }}"
+            <tr data-navigable-row
+                hx-get="/runs/{{ run.run_id | urlencode }}"
                 hx-target="#main"
                 hx-push-url="/runs/{{ run.run_id | urlencode }}"
                 class="hover cursor-pointer">

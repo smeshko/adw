@@ -172,7 +172,7 @@ class TestOverviewRoute:
         response = client.get("/", headers={"HX-Request": "true"})
         assert response.status_code == 200
         assert "<!DOCTYPE" not in response.text
-        assert '<div id="overview">' in response.text
+        assert '<div id="overview"' in response.text
 
     def test_full_page_has_localStorage_theme_script(self) -> None:
         """Full page has inline script to restore theme from localStorage."""
@@ -229,7 +229,7 @@ class TestRunsRoute:
         response = client.get("/runs", headers={"HX-Request": "true"})
         assert response.status_code == 200
         assert "<!DOCTYPE" not in response.text
-        assert '<div id="runs-list">' in response.text
+        assert '<div id="runs-list"' in response.text
 
     def test_full_page_has_title(self) -> None:
         """Full page has correct title."""
@@ -264,7 +264,7 @@ class TestAnalyticsRoute:
         response = client.get("/analytics", headers={"HX-Request": "true"})
         assert response.status_code == 200
         assert "<!DOCTYPE" not in response.text
-        assert '<div id="analytics">' in response.text
+        assert '<div id="analytics"' in response.text
 
     def test_full_page_has_title(self) -> None:
         """Full page has correct title."""
@@ -413,10 +413,10 @@ class TestThemeToggle:
         assert "swap-off" in response.text  # moon icon class
 
     def test_default_theme_is_dark(self) -> None:
-        """Default data-theme on <html> is 'dark'."""
+        """Default data-theme on <html> is 'brutalist-dark'."""
         client = _make_client()
         response = client.get("/")
-        assert 'data-theme="dark"' in response.text
+        assert 'data-theme="brutalist-dark"' in response.text
 
     def test_toggle_function_exists(self) -> None:
         """toggleTheme JavaScript function exists in the page."""
