@@ -177,11 +177,13 @@
       setTimeout(function() { toast.remove(); }, 5000);
     });
 
-    /* Keyboard shortcuts (Story 6.1) */
+    /* Keyboard shortcuts (Story 6.1 + 6.2) */
     (function() {
       var pendingG = false;
       var gTimer = null;
       var selectedRowIndex = -1;
+      var terminalModeActive = false;
+      var focusModeActive = false;
 
       function clearPendingG() {
         pendingG = false;
@@ -198,6 +200,33 @@
           rows[index].classList.add('kbd-nav-active');
           rows[index].scrollIntoView({block: 'nearest'});
         }
+      }
+
+      /* Extract run ID from current page context */
+      function getRunId() {
+        /* Check run-detail element's data attribute first */
+        var detail = document.querySelector('#run-detail');
+        if (detail) {
+          var sseConn = detail.getAttribute('sse-connect');
+          if (sseConn) {
+            var m = sseConn.match(/\/runs\/([^\/]+)\/events/);
+            if (m) return m[1];
+          }
+        }
+        /* Fallback: extract from URL */
+        var m = window.location.pathname.match(/\/runs\/([^\/]+)/);
+        return m ? m[1] : null;
+      }
+
+      /* Check if we're on a run detail page */
+      function isRunDetailPage() {
+        return !!document.querySelector('#run-detail');
+      }
+
+      /* Check if the current run is active */
+      function isActiveRun() {
+        var el = document.querySelector('#run-detail[sse-connect]');
+        return !!el;
       }
 
       document.addEventListener('keydown', function(e) {
@@ -250,6 +279,42 @@
           return;
         }
 
+        /* Terminal mode toggle (Story 6.2) */
+        if (key === 't') {
+          e.preventDefault();
+          if (terminalModeActive) {
+            /* Exit terminal mode */
+            document.body.classList.remove('terminal-mode-active');
+            terminalModeActive = false;
+            history.back();
+          } else {
+            var runId = getRunId();
+            if (runId) {
+              terminalModeActive = true;
+              document.body.classList.add('terminal-mode-active');
+              htmx.ajax('GET', '/partials/terminal-mode/' + runId, {target:'#main'});
+            }
+          }
+          return;
+        }
+
+        /* Focus mode (Story 6.2) — only on run detail pages with active runs */
+        if (key === 'f') {
+          if (focusModeActive) {
+            e.preventDefault();
+            focusModeActive = false;
+            history.back();
+          } else if (isRunDetailPage()) {
+            var runId = getRunId();
+            if (runId) {
+              e.preventDefault();
+              focusModeActive = true;
+              htmx.ajax('GET', '/partials/focus-mode/' + runId, {target:'#main'});
+            }
+          }
+          return;
+        }
+
         if (key === 'j' || key === 'ArrowDown') {
           var rows = getNavigableRows();
           if (rows.length > 0) {
@@ -284,6 +349,21 @@
         }
 
         if (key === 'Escape') {
+          /* Check for active view modes first (Story 6.2) */
+          if (terminalModeActive || document.querySelector('[data-terminal-mode]')) {
+            e.preventDefault();
+            document.body.classList.remove('terminal-mode-active');
+            terminalModeActive = false;
+            history.back();
+            return;
+          }
+          if (focusModeActive || document.querySelector('[data-focus-mode]')) {
+            e.preventDefault();
+            focusModeActive = false;
+            history.back();
+            return;
+          }
+          /* Modal close */
           var mc = document.getElementById('modal-container');
           if (mc && mc.innerHTML.trim()) {
             var dialog = mc.querySelector('dialog');
@@ -311,10 +391,18 @@
         }
       });
 
-      /* Reset row selection when HTMX swaps #main content */
+      /* Reset state when HTMX swaps #main content */
       document.body.addEventListener('htmx:afterSettle', function(e) {
         if (e.detail.target && e.detail.target.id === 'main') {
           selectedRowIndex = -1;
+          /* Reset mode flags if the mode container is gone */
+          if (!document.querySelector('[data-terminal-mode]')) {
+            terminalModeActive = false;
+            document.body.classList.remove('terminal-mode-active');
+          }
+          if (!document.querySelector('[data-focus-mode]')) {
+            focusModeActive = false;
+          }
         }
       });
     })();
