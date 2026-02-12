@@ -543,10 +543,12 @@ class TestAnalyticsRoute:
         """Tab hx-get URLs include the range parameter."""
         client = _make_client()
         response = client.get("/analytics")
-        assert 'hx-get="/analytics?range=7d"' in response.text
-        assert 'hx-get="/analytics?range=30d"' in response.text
-        assert 'hx-get="/analytics?range=90d"' in response.text
-        assert 'hx-get="/analytics?range=all"' in response.text
+        text = response.text
+        # Tab URLs now include sort param too
+        assert "range=7d" in text
+        assert "range=30d" in text
+        assert "range=90d" in text
+        assert "range=all" in text
 
     def test_analytics_content_div_exists(self) -> None:
         """The analytics-content swap target div exists."""
