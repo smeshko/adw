@@ -488,6 +488,7 @@ async def save_settings(
     from adw.dashboard.routes import (
         _SETTINGS_TABS,
         _build_phase_settings,
+        build_complex_settings_context,
         build_settings_context,
     )
 
@@ -647,6 +648,7 @@ async def save_settings(
 
     settings_sections = build_settings_context(config, registry)
     phase_settings = _build_phase_settings(config, registry)
+    complex_ctx = build_complex_settings_context(config)
 
     valid_tab_keys = [t[0] for t in _SETTINGS_TABS]
     if section not in valid_tab_keys:
@@ -661,6 +663,7 @@ async def save_settings(
         "selected_settings_project": project_display,
         "csrf_token": generate_csrf_token(request),
     }
+    context.update(complex_ctx)
 
     content_html = templates.get_template(
         "partials/settings_content.html"
@@ -705,6 +708,7 @@ def _render_settings_error(
     from adw.dashboard.routes import (
         _SETTINGS_TABS,
         _build_phase_settings,
+        build_complex_settings_context,
         build_settings_context,
     )
 
@@ -725,6 +729,7 @@ def _render_settings_error(
     registry = ConfigRegistry()
     settings_sections = build_settings_context(config, registry)
     phase_settings = _build_phase_settings(config, registry)
+    complex_ctx = build_complex_settings_context(config)
 
     valid_tab_keys = [t[0] for t in _SETTINGS_TABS]
     if section not in valid_tab_keys:
@@ -739,6 +744,7 @@ def _render_settings_error(
         "selected_settings_project": project_display,
         "csrf_token": generate_csrf_token(request),
     }
+    context.update(complex_ctx)
 
     content_html = templates.get_template(
         "partials/settings_content.html"

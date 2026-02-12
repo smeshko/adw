@@ -1233,6 +1233,7 @@ async def settings_content(
     from adw.dashboard.routes import (
         _SETTINGS_TABS,
         _build_phase_settings,
+        build_complex_settings_context,
         build_settings_context,
     )
 
@@ -1254,6 +1255,7 @@ async def settings_content(
     registry = ConfigRegistry()
     settings_sections = build_settings_context(config, registry)
     phase_settings = _build_phase_settings(config, registry)
+    complex_ctx = build_complex_settings_context(config)
 
     valid_tab_keys = [t[0] for t in _SETTINGS_TABS]
     if tab not in valid_tab_keys:
@@ -1268,6 +1270,7 @@ async def settings_content(
         "selected_settings_project": project or None,
         "csrf_token": generate_csrf_token(request),
     }
+    context.update(complex_ctx)
 
     return templates.TemplateResponse(
         request, "partials/settings_content.html", context
