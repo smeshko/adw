@@ -145,10 +145,10 @@
         {% for proj in project_breakdown %}
         <div class="flex items-center gap-2 mb-2">
           <a class="w-24 text-sm truncate link link-hover"
-             hx-get="/analytics?range={{ selected_range }}{% if proj.name %}&project={{ proj.name | urlencode }}{% endif %}"
+             hx-get="/analytics?range={{ selected_range }}{% if proj.name %}&project={{ proj.name | urlencode }}{% endif %}&sort={{ breakdown_sort }}"
              hx-target="#analytics"
              hx-swap="outerHTML"
-             hx-push-url="/analytics?range={{ selected_range }}&project={{ proj.name | urlencode }}">{{ proj.name }}</a>
+             hx-push-url="/analytics?range={{ selected_range }}&project={{ proj.name | urlencode }}&sort={{ breakdown_sort }}">{{ proj.name }}</a>
           <div class="flex-1 bg-base-300 rounded-full h-4">
             <div class="bg-primary rounded-full h-4" style="width: {{ proj.percentage }}%"></div>
           </div>
