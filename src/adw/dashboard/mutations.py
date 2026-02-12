@@ -336,6 +336,15 @@ _SECTION_FIELD_MAP: dict[str, dict[str, list[str]]] = {
         "max_delay_seconds": ["llm", "retry", "max_delay_seconds"],
         "multiplier": ["llm", "retry", "multiplier"],
     },
+    "task_manager": {
+        "type": ["task_manager", "type"],
+        "team_key": ["task_manager", "team_key"],
+        "sync_comments": ["task_manager", "sync_comments"],
+        "auto_close": ["task_manager", "auto_close"],
+        "labels_enabled": ["task_manager", "labels", "enabled"],
+        "label_prefix": ["task_manager", "labels", "prefix"],
+    },
+    "security": {},
 }
 
 # Fields that should be parsed as integers.
@@ -345,7 +354,7 @@ _INT_FIELDS = {"max_retries", "backend_start", "frontend_start"}
 _FLOAT_FIELDS = {"base_delay_seconds", "max_delay_seconds", "multiplier"}
 
 # Fields that should be parsed as booleans.
-_BOOL_FIELDS = {"skip_hooks"}
+_BOOL_FIELDS = {"skip_hooks", "sync_comments", "auto_close", "labels_enabled"}
 
 
 def _parse_form_value(field_name: str, raw_value: str) -> Any:
@@ -368,6 +377,58 @@ def _parse_form_value(field_name: str, raw_value: str) -> Any:
     if raw_value == "":
         return None
     return raw_value
+
+
+def _collect_indexed_fields(form: Any, prefix: str) -> list[str]:
+    """Collect indexed form fields into an ordered list.
+
+    Scans form data for keys like ``prefix.0``, ``prefix.1``, etc.
+    and returns values in index order, filtering out empty strings.
+
+    Args:
+        form: The form data (Starlette FormData or dict-like).
+        prefix: Field name prefix (e.g., ``blocked_env_files``).
+
+    Returns:
+        Ordered list of non-empty string values.
+    """
+    items: list[tuple[int, str]] = []
+    for key in form:
+        if not key.startswith(prefix + "."):
+            continue
+        suffix = key[len(prefix) + 1 :]
+        try:
+            idx = int(suffix)
+        except ValueError:
+            continue
+        val = str(form[key]).strip()
+        if val:
+            items.append((idx, val))
+    items.sort(key=lambda x: x[0])
+    return [v for _, v in items]
+
+
+def _collect_mapping_fields(form: Any, prefix: str) -> dict[str, str]:
+    """Collect dot-prefixed form fields into a dict.
+
+    Scans form data for keys like ``prefix.plan``, ``prefix.build``, etc.
+    and returns a dict mapping the suffix to the string value.
+
+    Args:
+        form: The form data (Starlette FormData or dict-like).
+        prefix: Field name prefix (e.g., ``state_mapping``).
+
+    Returns:
+        Dict mapping suffix keys to string values.
+    """
+    result: dict[str, str] = {}
+    for key in form:
+        if not key.startswith(prefix + "."):
+            continue
+        suffix = key[len(prefix) + 1 :]
+        val = str(form[key]).strip()
+        result[suffix] = val
+    return result
 
 
 def _deep_set(data: dict[str, Any], keys: list[str], value: Any) -> None:
@@ -497,6 +558,30 @@ async def save_settings(
         existing_data["name"] = project_display or "unnamed"
     if "language" not in existing_data:
         existing_data["language"] = "python"
+
+    # Handle complex field types (indexed lists, mapping dicts) before
+    # the standard scalar field loop.
+    if section == "task_manager":
+        mapping = _collect_mapping_fields(form, "state_mapping")
+        if mapping:
+            _deep_set(existing_data, ["task_manager", "state_mapping"], mapping)
+
+    if section == "security":
+        blocked_commands = _collect_indexed_fields(form, "blocked_commands")
+        # Wrap plain pattern strings into BlockedPattern-compatible dicts
+        blocked_patterns = [
+            {
+                "pattern": p,
+                "description": "Custom pattern",
+                "severity": "warning",
+                "category": "destructive",
+            }
+            for p in blocked_commands
+        ]
+        _deep_set(existing_data, ["security", "blocked_patterns"], blocked_patterns)
+
+        blocked_env = _collect_indexed_fields(form, "blocked_env_files")
+        _deep_set(existing_data, ["security", "blocked_env_files"], blocked_env)
 
     # Parse and map form values into the nested config structure
     for field_name, path_keys in field_map.items():

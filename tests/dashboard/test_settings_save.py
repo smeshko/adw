@@ -18,6 +18,8 @@ from adw.dashboard.dependencies import (
 )
 from adw.dashboard.mutations import (
     _SECTION_FIELD_MAP,
+    _collect_indexed_fields,
+    _collect_mapping_fields,
     _deep_set,
     _parse_form_value,
 )
@@ -719,3 +721,120 @@ class TestResolveConfigValueExtended:
 
         config = ProjectConfig(name="test", language="python")
         assert _resolve_config_value(config, "llm", "multiplier") == 2.0
+
+
+# ── Helper function tests for complex field parsing ───────────────
+
+
+class TestCollectIndexedFields:
+    """Tests for _collect_indexed_fields."""
+
+    def test_collects_sequential_fields(self) -> None:
+        form = {"blocked_env_files.0": ".env", "blocked_env_files.1": ".secret"}
+        result = _collect_indexed_fields(form, "blocked_env_files")
+        assert result == [".env", ".secret"]
+
+    def test_filters_empty_strings(self) -> None:
+        form = {"blocked_env_files.0": ".env", "blocked_env_files.1": "  "}
+        result = _collect_indexed_fields(form, "blocked_env_files")
+        assert result == [".env"]
+
+    def test_returns_empty_list_when_none(self) -> None:
+        form = {"other_field": "value"}
+        result = _collect_indexed_fields(form, "blocked_env_files")
+        assert result == []
+
+    def test_sorts_by_index(self) -> None:
+        form = {"items.2": "c", "items.0": "a", "items.1": "b"}
+        result = _collect_indexed_fields(form, "items")
+        assert result == ["a", "b", "c"]
+
+    def test_ignores_non_numeric_suffixes(self) -> None:
+        form = {"items.0": "a", "items.plan": "b"}
+        result = _collect_indexed_fields(form, "items")
+        assert result == ["a"]
+
+
+class TestCollectMappingFields:
+    """Tests for _collect_mapping_fields."""
+
+    def test_collects_mapping(self) -> None:
+        form = {"state_mapping.plan": "Todo", "state_mapping.build": "Doing"}
+        result = _collect_mapping_fields(form, "state_mapping")
+        assert result == {"plan": "Todo", "build": "Doing"}
+
+    def test_returns_empty_dict_when_none(self) -> None:
+        form = {"other": "value"}
+        result = _collect_mapping_fields(form, "state_mapping")
+        assert result == {}
+
+    def test_strips_whitespace(self) -> None:
+        form = {"state_mapping.plan": "  In Progress  "}
+        result = _collect_mapping_fields(form, "state_mapping")
+        assert result == {"plan": "In Progress"}
+
+
+# ── Section field map extension tests ─────────────────────────────
+
+
+class TestSectionFieldMapTaskManager:
+    """Tests for task_manager entries in _SECTION_FIELD_MAP."""
+
+    def test_task_manager_section_exists(self) -> None:
+        assert "task_manager" in _SECTION_FIELD_MAP
+
+    def test_task_manager_type_field(self) -> None:
+        assert _SECTION_FIELD_MAP["task_manager"]["type"] == ["task_manager", "type"]
+
+    def test_task_manager_team_key_field(self) -> None:
+        assert _SECTION_FIELD_MAP["task_manager"]["team_key"] == [
+            "task_manager",
+            "team_key",
+        ]
+
+    def test_task_manager_boolean_fields(self) -> None:
+        assert _SECTION_FIELD_MAP["task_manager"]["sync_comments"] == [
+            "task_manager",
+            "sync_comments",
+        ]
+        assert _SECTION_FIELD_MAP["task_manager"]["auto_close"] == [
+            "task_manager",
+            "auto_close",
+        ]
+
+    def test_task_manager_labels_fields(self) -> None:
+        assert _SECTION_FIELD_MAP["task_manager"]["labels_enabled"] == [
+            "task_manager",
+            "labels",
+            "enabled",
+        ]
+        assert _SECTION_FIELD_MAP["task_manager"]["label_prefix"] == [
+            "task_manager",
+            "labels",
+            "prefix",
+        ]
+
+
+class TestSectionFieldMapSecurity:
+    """Tests for security entry in _SECTION_FIELD_MAP."""
+
+    def test_security_section_exists(self) -> None:
+        assert "security" in _SECTION_FIELD_MAP
+
+    def test_security_has_empty_field_map(self) -> None:
+        """Security uses complex field parsing, not scalar field map."""
+        assert _SECTION_FIELD_MAP["security"] == {}
+
+
+class TestBoolFieldsExtended:
+    """Tests for extended _BOOL_FIELDS set."""
+
+    def test_sync_comments_is_bool(self) -> None:
+        assert _parse_form_value("sync_comments", "true") is True
+        assert _parse_form_value("sync_comments", "false") is False
+
+    def test_auto_close_is_bool(self) -> None:
+        assert _parse_form_value("auto_close", "true") is True
+
+    def test_labels_enabled_is_bool(self) -> None:
+        assert _parse_form_value("labels_enabled", "on") is True
