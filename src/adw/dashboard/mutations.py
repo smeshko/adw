@@ -413,13 +413,14 @@ def _collect_mapping_fields(form: Any, prefix: str) -> dict[str, str]:
 
     Scans form data for keys like ``prefix.plan``, ``prefix.build``, etc.
     and returns a dict mapping the suffix to the string value.
+    Empty string values are excluded.
 
     Args:
         form: The form data (Starlette FormData or dict-like).
         prefix: Field name prefix (e.g., ``state_mapping``).
 
     Returns:
-        Dict mapping suffix keys to string values.
+        Dict mapping suffix keys to non-empty string values.
     """
     result: dict[str, str] = {}
     for key in form:
@@ -427,7 +428,8 @@ def _collect_mapping_fields(form: Any, prefix: str) -> dict[str, str]:
             continue
         suffix = key[len(prefix) + 1 :]
         val = str(form[key]).strip()
-        result[suffix] = val
+        if val:
+            result[suffix] = val
     return result
 
 
@@ -569,16 +571,30 @@ async def save_settings(
 
     if section == "security":
         blocked_commands = _collect_indexed_fields(form, "blocked_commands")
-        # Wrap plain pattern strings into BlockedPattern-compatible dicts
-        blocked_patterns = [
-            {
-                "pattern": p,
-                "description": "Custom pattern",
-                "severity": "warning",
-                "category": "destructive",
-            }
-            for p in blocked_commands
-        ]
+        # Preserve existing BlockedPattern metadata when possible.
+        # Build a lookup from pattern string → existing dict so that
+        # unchanged patterns keep their description/severity/category.
+        existing_bp = (
+            existing_data.get("security", {}).get("blocked_patterns", [])
+        )
+        existing_bp_map: dict[str, dict[str, Any]] = {}
+        if isinstance(existing_bp, list):
+            for entry in existing_bp:
+                if isinstance(entry, dict) and "pattern" in entry:
+                    existing_bp_map[entry["pattern"]] = entry
+        blocked_patterns = []
+        for p in blocked_commands:
+            if p in existing_bp_map:
+                blocked_patterns.append(existing_bp_map[p])
+            else:
+                blocked_patterns.append(
+                    {
+                        "pattern": p,
+                        "description": "Custom pattern",
+                        "severity": "warning",
+                        "category": "destructive",
+                    }
+                )
         _deep_set(existing_data, ["security", "blocked_patterns"], blocked_patterns)
 
         blocked_env = _collect_indexed_fields(form, "blocked_env_files")
