@@ -1135,6 +1135,84 @@ async def focus_mode(
     return templates.TemplateResponse(request, "partials/focus_mode.html", context)
 
 
+# ── Task Manager Conditional Partial ────────────────────────────
+
+
+@router.get("/settings-section/task-manager", response_class=HTMLResponse)
+async def task_manager_fields(
+    request: Request,
+    type: str = Query("none", alias="type"),
+    project: str = Query("", alias="project"),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
+) -> HTMLResponse:
+    """Return Task Manager conditional fields based on type selection.
+
+    When ``type=none``, returns only helper text.
+    When ``type=linear``, returns all Task Manager configuration fields
+    including the state_mapping key-value editor.
+    """
+    from adw.config.loader import ConfigLoader
+    from adw.config.registry import ConfigRegistry
+
+    templates: Jinja2Templates = request.app.state.templates
+    config = None
+
+    if project:
+        project_path_str, _ = resolve_project_filter(project_registry, project)
+        if project_path_str:
+            try:
+                loader = ConfigLoader(project_root=Path(project_path_str))
+                config = loader.load()
+            except Exception:
+                logger.warning(
+                    "Failed to load config for task-manager partial",
+                    extra={"project": project},
+                )
+
+    # Build context for the partial
+    task_manager_type = type
+    state_mapping = {
+        "plan": "In Progress",
+        "build": "In Progress",
+        "validate": "In Review",
+        "document": "In Review",
+        "ship": "Done",
+        "failed": "In Progress",
+    }
+    team_key = ""
+    sync_comments = False
+    auto_close = False
+    labels_enabled = True
+    label_prefix = "adw:"
+
+    if config and config.task_manager:
+        tm = config.task_manager
+        if tm.state_mapping:
+            state_mapping = dict(tm.state_mapping)
+        team_key = tm.team_key or ""
+        sync_comments = tm.sync_comments
+        auto_close = tm.auto_close
+        if tm.labels:
+            labels_enabled = tm.labels.enabled
+            label_prefix = tm.labels.prefix
+
+    context = {
+        "request": request,
+        "task_manager_type": task_manager_type,
+        "state_mapping": state_mapping,
+        "team_key": team_key,
+        "sync_comments": sync_comments,
+        "auto_close": auto_close,
+        "labels_enabled": labels_enabled,
+        "label_prefix": label_prefix,
+        "selected_settings_project": project or None,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/settings_task_manager_fields.html", context
+    )
+
+
 # ── Settings Content Partial ────────────────────────────────────
 
 
