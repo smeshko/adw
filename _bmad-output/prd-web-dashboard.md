@@ -475,39 +475,39 @@ See Functional Requirements section for complete list. Key feature groups:
 - **FR43:** User can drill down from a project into its recent runs
 - **FR44:** User can see per-project success rates and usage trends
 
+### Dashboard Infrastructure
+
+- **FR45:** User can launch the web dashboard from the CLI
+- **FR46:** System automatically opens the user's default browser when the dashboard server starts
+- **FR47:** User can configure the server port
+- **FR48:** System serves the dashboard on localhost by default (127.0.0.1)
+- **FR49:** User can customize the dashboard appearance (dark mode as default)
+- **FR50:** Dashboard layout adapts to screen widths down to 1024px
+- **FR51:** User can navigate between dashboard views without full page reload
+- **FR52:** User can bookmark specific dashboard views via URL
+- **FR53:** System provides CSRF protection on all mutation endpoints
+
 ### Settings & Configuration
 
-- **FR45:** User can access a Settings page from the main dashboard navigation
-- **FR46:** User can select which registered project's configuration to edit from a project dropdown
-- **FR47:** User can view and edit project-level settings (`project.yaml`) organized in sections:
+- **FR54:** User can access a Settings page from the main dashboard navigation
+- **FR55:** User can select which registered project's configuration to edit from a project dropdown
+- **FR56:** User can view and edit project-level settings (`project.yaml`) organized in sections:
   - **Basics:** language, platform, test_command, build_command
   - **Git:** branch_prefix, skip_hooks, base_branch
   - **Ports:** backend_port_start, frontend_port_start
   - **Task Manager:** type, team_key, sync_comments, auto_close, labels_enabled, label_prefix, state_mapping (key-value editor mapping phases to Linear statuses)
   - **LLM Retry:** max_retries, base_delay_seconds, max_delay_seconds, multiplier
   - **Security:** blocked_commands (list editor), blocked_env_files (list editor)
-- **FR48:** User can view and edit command-level settings for each of the 5 phases (plan, build, validate, document, ship): enabled, timeout_seconds, input_files (key-value editor), llm.model (dropdown: opus, sonnet, haiku)
-- **FR49:** User can view and edit phase-specific settings: doc_mappings for document phase (source_pattern → docs_dir list), commands (version_bump, publish) and bypass_ci for ship phase
-- **FR50:** Each setting displays its current value, default value, and a description of what it controls
-- **FR51:** Settings that differ from their default value are visually indicated (e.g., bold label or accent marker)
-- **FR52:** System validates all settings inline before allowing save — type checking, range validation (e.g., port 1-65535, max_retries 1-10), and cross-field validation (e.g., max_delay_seconds >= base_delay_seconds, port range overlap detection)
-- **FR53:** User can save configuration changes, which writes well-formatted YAML (with section headers) back to the corresponding files on disk using the existing YAMLWithComments generator
-- **FR54:** System displays a success or error toast notification after save attempts
-- **FR55:** User can reset an individual setting to its default value
-- **FR56:** Settings changes take effect on the next ADW run (no live reload required; documented in UI)
-- **FR57:** System creates config files that don't yet exist when saving (e.g., if a phase config.yaml was never generated)
-
-### Dashboard Infrastructure
-
-- **FR58:** User can launch the web dashboard from the CLI
-- **FR59:** System automatically opens the user's default browser when the dashboard server starts
-- **FR60:** User can configure the server port
-- **FR61:** System serves the dashboard on localhost by default (127.0.0.1)
-- **FR62:** User can customize the dashboard appearance (dark mode as default)
-- **FR63:** Dashboard layout adapts to screen widths down to 1024px
-- **FR64:** User can navigate between dashboard views without full page reload
-- **FR65:** User can bookmark specific dashboard views via URL
-- **FR66:** System provides CSRF protection on all mutation endpoints
+- **FR57:** User can view and edit command-level settings for each of the 5 phases (plan, build, validate, document, ship): enabled, timeout_seconds, input_files (key-value editor), llm.model (dropdown: opus, sonnet, haiku)
+- **FR58:** User can view and edit phase-specific settings: doc_mappings for document phase (source_pattern → docs_dir list), commands (version_bump, publish) and bypass_ci for ship phase
+- **FR59:** Each setting displays its current value, default value, and a description of what it controls
+- **FR60:** Settings that differ from their default value are visually indicated (e.g., bold label or accent marker)
+- **FR61:** System validates all settings inline before allowing save — type checking, range validation (e.g., port 1-65535, max_retries 1-10), and cross-field validation (e.g., max_delay_seconds >= base_delay_seconds, port range overlap detection)
+- **FR62:** User can save configuration changes, which writes well-formatted YAML (with section headers) back to the corresponding files on disk using the existing YAMLWithComments generator
+- **FR63:** System displays a success or error toast notification after save attempts
+- **FR64:** User can reset an individual setting to its default value
+- **FR65:** Settings changes take effect on the next ADW run (no live reload required; documented in UI)
+- **FR66:** System creates config files that don't yet exist when saving (e.g., if a phase config.yaml was never generated)
 
 ---
 

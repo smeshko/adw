@@ -53,3 +53,12 @@ Power users can navigate the dashboard with keyboard shortcuts, toggle terminal 
 **Architecture scope:** Inline JavaScript (~30 lines) for keyboard event handling, CSS classes for terminal mode and focus mode in `dashboard.css`, `keyboard_help.html` component.
 
 **UX scope:** Keyboard shortcut overlay (`?` toggle, DaisyUI modal with `kbd` badges), navigation shortcuts (`g h/r/a`), list navigation (`j/k`, `Enter` to open), action shortcuts (`n` new run, `/` search focus, `r` refresh, `Esc` close/back), terminal mode (monospace scrolling view), focus mode (replaces dashboard with single-run live view).
+
+## Epic 7: Settings & Configuration
+User can view, edit, validate, and save project and phase configuration for any registered project directly from the dashboard — replacing manual YAML file editing with a curated form-based editor that mirrors the init wizard's settings structure, with inline validation and visual indicators for non-default values.
+
+**FRs covered:** FR54-FR66 (13 FRs)
+
+**Architecture scope:** New page route (`/settings`) with dual-response, settings section partials for tab swaps, save mutation endpoint in `mutations.py`, new `Depends()` providers for `ConfigLoader` and `ConfigRegistry`, `pages/settings.html`, `partials/settings_*.html` section forms, Pydantic validation on save, atomic YAML writes via `YAMLWithComments`.
+
+**UX scope:** Settings nav link + `g s` keyboard shortcut, project selector dropdown, tabbed sections for project-level settings (Basics, Git, Ports, Task Manager, LLM Retry, Security), phase config tabs with per-phase forms, form controls (inputs, selects, toggles, list editors, key-value editor for state_mapping), inline validation with error text, changed-from-default indicators, save button with loading spinner, success/error toast, reset-to-default per-field buttons.
