@@ -8,13 +8,14 @@
   <h2 class="text-lg font-semibold mb-3">Active Runs <span class="badge badge-warning badge-sm">{{ active_runs | length }}</span></h2>
   <div class="flex gap-4 flex-wrap mb-6">
     {%- for run in active_runs %}
-    <a class="card card-compact card-bordered border-l-4 border-warning cursor-pointer hover:shadow-md transition-shadow flex-1 min-w-[280px] max-w-[400px]"
+    <a href="/runs/{{ run.run_id }}"
+       class="card card-compact card-bordered border-l-4 border-warning cursor-pointer hover:shadow-md transition-shadow flex-1 min-w-[280px] max-w-[400px]"
        hx-get="/runs/{{ run.run_id }}"
        hx-target="#main"
        hx-push-url="/runs/{{ run.run_id }}">
       <div class="card-body gap-1">
         <span class="font-semibold text-sm">{{ run.project_name }}</span>
-        <span class="text-sm text-base-content/70">{{ run.feature_description[:40] }}{% if run.feature_description | length > 40 %}…{% endif %}</span>
+        <span class="text-sm text-base-content/70" title="{{ run.feature_description }}">{{ run.feature_description[:40] }}{% if run.feature_description | length > 40 %}…{% endif %}</span>
         {{ pipeline.phase_pipeline(run.phases) }}
         <span class="font-mono text-xs">{{ run.elapsed }}</span>
       </div>

@@ -263,10 +263,11 @@ class TestActiveRunsPartialRoute:
         client = TestClient(app)
 
         response = client.get("/partials/active-runs")
-        # The full description should NOT appear
-        assert long_desc not in response.text
-        # An ellipsis character should appear
+        # The full description appears only in the title attribute for tooltip,
+        # but the visible text is truncated with ellipsis
         assert "…" in response.text
+        # Full text in title attr for tooltip (Bug 14 fix)
+        assert f'title="{long_desc}"' in response.text
 
     @patch("adw.dashboard.partials.ContextManager")
     def test_graceful_fallback_when_context_unavailable(
@@ -408,11 +409,11 @@ class TestElapsedTimeFormatting:
     """Tests for elapsed time formatting."""
 
     def test_format_elapsed_seconds_only(self) -> None:
-        """Elapsed time under a minute shows 0m Xs."""
+        """Elapsed time under a minute shows Xs."""
         from adw.dashboard.partials import _format_elapsed
 
         result = _format_elapsed(timedelta(seconds=42))
-        assert result == "0m 42s"
+        assert result == "42s"
 
     def test_format_elapsed_minutes_and_seconds(self) -> None:
         """Elapsed time with minutes shows Xm Ys."""
@@ -429,11 +430,11 @@ class TestElapsedTimeFormatting:
         assert result == "65m 30s"
 
     def test_format_elapsed_zero(self) -> None:
-        """Zero elapsed time shows 0m 0s."""
+        """Zero elapsed time shows 0s."""
         from adw.dashboard.partials import _format_elapsed
 
         result = _format_elapsed(timedelta(seconds=0))
-        assert result == "0m 0s"
+        assert result == "0s"
 
 
 class TestActiveRunsInOverview:

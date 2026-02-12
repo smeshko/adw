@@ -126,6 +126,12 @@
       if (cb) cb.checked = (current === 'light');
     })();
 
+    /* Update browser tab title from data-page-title attribute after HTMX swap */
+    document.body.addEventListener('htmx:afterSettle', function() {
+      var el = document.querySelector('[data-page-title]');
+      if (el) document.title = el.getAttribute('data-page-title');
+    });
+
     /* Update active nav indicator and project filter after HTMX content swap */
     document.body.addEventListener('htmx:pushedIntoHistory', function() {
       var path = window.location.pathname;
@@ -139,8 +145,14 @@
       });
       /* Update project filter hx-get to target the current path */
       var filter = document.getElementById('project-filter');
-      if (filter) filter.setAttribute('hx-get', path);
-      htmx.process(filter);
+      if (filter) {
+        filter.setAttribute('hx-get', path);
+        /* Sync dropdown value with URL project param */
+        var params = new URLSearchParams(window.location.search);
+        var projectVal = params.get('project') || '';
+        filter.value = projectVal;
+        htmx.process(filter);
+      }
     });
 
     /* HTMX error handling – show toast on response errors */

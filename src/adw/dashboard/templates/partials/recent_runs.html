@@ -7,7 +7,8 @@
 
   <div class="flex items-center justify-between mb-3">
     <h2 class="text-lg font-semibold">Recent Runs</h2>
-    <a hx-get="/runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
+    <a href="/runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
+       hx-get="/runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
        hx-target="#main"
        hx-push-url="/runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
        class="btn btn-ghost btn-xs">View All →</a>

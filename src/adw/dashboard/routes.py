@@ -123,8 +123,9 @@ async def overview(
     project_name = project or None
     project_path_str, _ = resolve_project_filter(project_registry, project_name)
 
-    # Detect empty states
+    # Build path→name map for display name resolution
     all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    name_map = {str(p.path): p.name for p in all_projects}
     has_projects = len(all_projects) > 0
     context["has_projects"] = has_projects
 
@@ -168,7 +169,7 @@ async def overview(
                 limit=5,
                 project_path=Path(project_path_str) if project_path_str else None,
             )
-            context["recent_runs"] = build_recent_runs_context(entries)
+            context["recent_runs"] = build_recent_runs_context(entries, name_map)
 
             all_stats = stats_aggregator.get_global_stats(project_name=None)  # type: ignore[union-attr]
             context["project_stats"] = all_stats.projects  # type: ignore[union-attr]
@@ -177,7 +178,7 @@ async def overview(
                 status="running",
                 project_path=Path(project_path_str) if project_path_str else None,
             )
-            context["active_runs"] = _load_active_run_details(active_entries)
+            context["active_runs"] = _load_active_run_details(active_entries, name_map)
         except Exception:
             context["data_error"] = True
             context["data_error_message"] = (
@@ -270,7 +271,10 @@ async def runs_list(
             "total_pages": 0,
         }
 
-    context["runs"] = build_recent_runs_context(paginated["entries"])
+    # Build path→name map for display name resolution
+    all_proj = project_registry.get_all()  # type: ignore[union-attr]
+    name_map = {str(p.path): p.name for p in all_proj}
+    context["runs"] = build_recent_runs_context(paginated["entries"], name_map)
     context["total_count"] = paginated["total_count"]
     context["current_page"] = paginated["page"]
     context["total_pages"] = paginated["total_pages"]
@@ -439,9 +443,9 @@ def _build_detail_phase_pipeline(
 
 
 def _format_duration_from_seconds(total_seconds: int) -> str:
-    """Format seconds as 'Xm Ys' or 'Xh Ym'."""
+    """Format seconds as 'Xs', 'Xm Ys', or 'Xh Ym'."""
     if total_seconds < 60:
-        return f"0m {total_seconds}s"
+        return f"{total_seconds}s"
     minutes = total_seconds // 60
     seconds = total_seconds % 60
     if minutes < 60:
@@ -454,6 +458,7 @@ def _format_duration_from_seconds(total_seconds: int) -> str:
 def _build_run_detail_context(
     run_entry: object,
     request: Request,
+    name_map: dict[str, str] | None = None,
 ) -> dict:
     """Build the template context for the run detail page.
 
@@ -463,6 +468,7 @@ def _build_run_detail_context(
     Args:
         run_entry: An IndexEntry from the global index.
         request: The current FastAPI request.
+        name_map: Optional mapping of project_path -> display_name.
 
     Returns:
         Dict with all template variables for run_detail.html.
@@ -471,6 +477,10 @@ def _build_run_detail_context(
 
     run_id = run_entry.run_id  # type: ignore[union-attr]
     project_name = run_entry.project_name  # type: ignore[union-attr]
+    if name_map:
+        project_name = name_map.get(
+            run_entry.project_path, project_name,  # type: ignore[union-attr]
+        )
     feature = run_entry.feature_description  # type: ignore[union-attr]
     status = run_entry.status  # type: ignore[union-attr]
     started_at = run_entry.started_at  # type: ignore[union-attr]
@@ -660,8 +670,10 @@ async def run_detail(
             request, "pages/run_not_found.html", context, status_code=404,
         )
 
-    # Build run detail context
-    detail_context = _build_run_detail_context(run_entry, request)
+    # Build run detail context with display name resolution
+    all_proj = project_registry.get_all()  # type: ignore[union-attr]
+    detail_name_map = {str(p.path): p.name for p in all_proj}
+    detail_context = _build_run_detail_context(run_entry, request, detail_name_map)
 
     if request.headers.get("HX-Request"):
         detail_context["request"] = request

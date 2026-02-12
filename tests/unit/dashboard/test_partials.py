@@ -737,7 +737,7 @@ class TestDurationFormatting:
         from adw.dashboard.partials import _format_duration
 
         # 45 seconds = 45000ms
-        assert _format_duration(45000) == "0m 45s"
+        assert _format_duration(45000) == "45s"
 
     def test_long_duration(self) -> None:
         """Long duration shows minutes and seconds."""

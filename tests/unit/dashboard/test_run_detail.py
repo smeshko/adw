@@ -127,7 +127,7 @@ class TestRunDetailRoute:
 
         assert response.status_code == 200
         assert "<!DOCTYPE" not in response.text
-        assert '<div id="run-detail">' in response.text
+        assert '<div id="run-detail"' in response.text
 
     def test_not_found_returns_404(self) -> None:
         """Non-existent run_id returns 404."""
@@ -1488,10 +1488,10 @@ class TestFormatDurationFromSeconds:
     """Tests for _format_duration_from_seconds helper."""
 
     def test_seconds_only(self) -> None:
-        """Under 60 seconds shows 0m Xs."""
+        """Under 60 seconds shows Xs."""
         from adw.dashboard.routes import _format_duration_from_seconds
 
-        assert _format_duration_from_seconds(45) == "0m 45s"
+        assert _format_duration_from_seconds(45) == "45s"
 
     def test_minutes_and_seconds(self) -> None:
         """Minutes and seconds format."""
