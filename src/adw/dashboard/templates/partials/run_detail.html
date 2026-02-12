@@ -36,7 +36,10 @@
     {% if is_active %}
     <button class="btn btn-error btn-outline btn-sm" disabled>Abort</button>
     {% endif %}
-    <button class="btn btn-primary btn-outline btn-sm" disabled>Re-run</button>
+    <button class="btn btn-primary btn-outline btn-sm"
+            hx-get="/partials/new-run?from={{ run_id }}"
+            hx-target="#modal-container"
+            hx-swap="innerHTML">Re-run</button>
   </div>
 
   {# ── Phase pipeline ── #}
