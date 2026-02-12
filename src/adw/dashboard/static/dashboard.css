@@ -36,6 +36,14 @@
 .chart-daily { min-height: 10rem; }
 .chart-bar > div { min-height: 2px; transition: height 200ms ease; }
 
+/* Auto-scroll streaming log container (Story 2.4) */
+.log-stream-container {
+  overflow-anchor: none;  /* Disable browser anchor scrolling */
+}
+.log-stream-container > :last-child {
+  overflow-anchor: auto;  /* Anchor to the last child to keep scroll at bottom */
+}
+
 /* Responsive: minimum supported width 1024px */
 @media (max-width: 1023px) {
   body { min-width: 1024px; }
