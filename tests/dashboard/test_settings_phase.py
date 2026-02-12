@@ -11,7 +11,6 @@ import yaml
 from fastapi.testclient import TestClient
 
 from adw.dashboard.dependencies import (
-    generate_csrf_token,
     get_index_manager,
     get_project_registry,
     validate_csrf,
@@ -369,3 +368,128 @@ class TestPhaseConfigIntegration:
         assert PHASE_DEFAULTS["validate"] == {"timeout": 900, "model": "opus"}
         assert PHASE_DEFAULTS["document"] == {"timeout": 900, "model": "haiku"}
         assert PHASE_DEFAULTS["ship"] == {"timeout": 1200, "model": "sonnet"}
+
+    def test_disabled_phase_renders_dimmed(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """When phase is disabled, fields container has opacity-50 class."""
+        # Save a disabled phase config
+        phase_dir = project_dir / ".adw" / "commands" / "plan"
+        phase_dir.mkdir(parents=True)
+        config = {"enabled": False, "timeout_seconds": 900}
+        (phase_dir / "config.yaml").write_text(yaml.dump(config, sort_keys=False))
+
+        resp = phase_client.get(
+            "/partials/settings-phase/plan",
+            params={"project": "test-app"},
+        )
+        assert resp.status_code == 200
+        assert "opacity-50" in resp.text
+        assert "pointer-events-none" in resp.text
+
+    def test_save_no_input_files_omits_section(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """When no input_files are submitted, they are not in config."""
+        resp = phase_client.post(
+            "/settings/phase/plan/save",
+            data={
+                "csrf_token": "test",
+                "_project": "test-app",
+                "enabled": "true",
+                "timeout_seconds": "900",
+                "llm_model": "opus",
+            },
+        )
+        assert resp.status_code == 200
+        config_path = project_dir / ".adw" / "commands" / "plan" / "config.yaml"
+        data = yaml.safe_load(config_path.read_text())
+        assert "input_files" not in data or data.get("input_files") is None
+
+    def test_save_ship_bypass_ci_false(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """Ship bypass_ci=false is correctly persisted."""
+        resp = phase_client.post(
+            "/settings/phase/ship/save",
+            data={
+                "csrf_token": "test",
+                "_project": "test-app",
+                "enabled": "true",
+                "timeout_seconds": "1200",
+                "llm_model": "sonnet",
+                "bypass_ci": "false",
+            },
+        )
+        assert resp.status_code == 200
+        config_path = project_dir / ".adw" / "commands" / "ship" / "config.yaml"
+        data = yaml.safe_load(config_path.read_text())
+        assert data["bypass_ci"] is False
+
+    def test_save_validate_phase(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """Validate phase saves correctly (marker subclass)."""
+        resp = phase_client.post(
+            "/settings/phase/validate/save",
+            data={
+                "csrf_token": "test",
+                "_project": "test-app",
+                "enabled": "true",
+                "timeout_seconds": "900",
+                "llm_model": "opus",
+            },
+        )
+        assert resp.status_code == 200
+        config_path = project_dir / ".adw" / "commands" / "validate" / "config.yaml"
+        assert config_path.exists()
+        data = yaml.safe_load(config_path.read_text())
+        assert data["enabled"] is True
+
+    def test_document_phase_loads_existing_doc_mappings(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """Document phase loads existing doc_mappings from config."""
+        phase_dir = project_dir / ".adw" / "commands" / "document"
+        phase_dir.mkdir(parents=True)
+        config = {
+            "enabled": True,
+            "timeout_seconds": 900,
+            "doc_mappings": [
+                {"source_pattern": "src/**/*.py", "docs_dir": "docs/api"},
+            ],
+        }
+        (phase_dir / "config.yaml").write_text(yaml.dump(config, sort_keys=False))
+
+        resp = phase_client.get(
+            "/partials/settings-phase/document",
+            params={"project": "test-app"},
+        )
+        assert resp.status_code == 200
+        assert "src/**/*.py" in resp.text
+        assert "docs/api" in resp.text
+
+    def test_ship_phase_loads_existing_commands(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """Ship phase loads existing commands from config."""
+        phase_dir = project_dir / ".adw" / "commands" / "ship"
+        phase_dir.mkdir(parents=True)
+        config = {
+            "enabled": True,
+            "timeout_seconds": 1200,
+            "commands": {
+                "version_bump": "npm version patch",
+                "publish": "npm publish",
+            },
+            "bypass_ci": False,
+        }
+        (phase_dir / "config.yaml").write_text(yaml.dump(config, sort_keys=False))
+
+        resp = phase_client.get(
+            "/partials/settings-phase/ship",
+            params={"project": "test-app"},
+        )
+        assert resp.status_code == 200
+        assert "npm version patch" in resp.text
+        assert "npm publish" in resp.text
