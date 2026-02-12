@@ -220,6 +220,13 @@ This guide helps you find relevant documentation based on what you're working on
     - When rendering user-supplied markdown content safely in the dashboard
     - When extending the run detail page with new expandable sections
 
+- docs/features/llm-interaction-log-viewer.md
+  - Conditions:
+    - When adding LLM prompt or response viewers to the ADW dashboard
+    - When implementing log search or filtering functionality in the dashboard
+    - When building HTMX debounced multi-filter controls for the dashboard
+    - When parsing or displaying ADW live.log content in the dashboard
+    - When loading LLM token statistics from run response JSON files
 - docs/features/abort-active-run.md
   - Conditions:
     - When implementing destructive action confirmation modals in the ADW dashboard

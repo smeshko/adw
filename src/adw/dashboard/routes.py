@@ -7,6 +7,7 @@ handled in ``partials.py``.
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
@@ -703,6 +704,85 @@ def _find_run_entry(
     return None
 
 
+def _load_llm_stats(
+    runs_dir: Path,
+    run_id: str,
+    phase: str,
+) -> dict | None:
+    """Load LLM token stats for a phase from the response JSON file.
+
+    Args:
+        runs_dir: Path to the .adw/runs directory.
+        run_id: The run ID.
+        phase: The phase name.
+
+    Returns:
+        Dict with input_tokens and output_tokens, or None if unavailable.
+    """
+    llm_dir = runs_dir / run_id / "llm"
+    if not llm_dir.exists():
+        return None
+
+    # Find the latest response file for this phase (e.g., 002_plan_response.json
+    # takes precedence over 001_plan_response.json for retries).
+    result: dict | None = None
+    for f in sorted(llm_dir.iterdir()):
+        if f.name.endswith(f"_{phase}_response.json") and f.is_file():
+            try:
+                data = json.loads(f.read_text())
+                stats = data.get("stats", {})
+                result = {
+                    "input_tokens": stats.get("input_tokens", 0),
+                    "output_tokens": stats.get("output_tokens", 0),
+                }
+            except (json.JSONDecodeError, OSError):
+                continue
+    return result
+
+
+def _load_llm_content(
+    runs_dir: Path,
+    run_id: str,
+    phase: str,
+    content_type: str,
+) -> str | None:
+    """Load LLM prompt or response content for a phase.
+
+    For 'response', reads the phase output artifact ({phase}_output.md).
+    For 'prompt', reads {phase}_prompt.txt from the artifacts directory
+    (if persisted by the phase runner).
+
+    Args:
+        runs_dir: Path to the .adw/runs directory.
+        run_id: The run ID.
+        phase: The phase name.
+        content_type: Either 'prompt' or 'response'.
+
+    Returns:
+        Text content or None if not found.
+    """
+    artifacts_dir = runs_dir / run_id / "artifacts" / phase
+
+    if content_type == "response":
+        # LLM response is stored as {phase}_output.md
+        response_file = artifacts_dir / f"{phase}_output.md"
+        if response_file.exists():
+            try:
+                return response_file.read_text()
+            except OSError:
+                return None
+    elif content_type == "prompt":
+        # Prompt is stored as {phase}_prompt.txt if available
+        prompt_file = artifacts_dir / f"{phase}_prompt.txt"
+        if prompt_file.exists():
+            try:
+                return prompt_file.read_text()
+            except OSError:
+                return None
+
+    return None
+
+
 @router.get("/runs/{run_id}/phases/{phase}", response_class=HTMLResponse)
 async def phase_detail(
     request: Request,
@@ -734,25 +814,39 @@ async def phase_detail(
     # Load RunContext for phase data
     hooks: list[dict] = []
     artifacts_list: list[dict] = []
+    llm_stats: dict | None = None
 
     try:
         project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
         runs_dir = project_path / ".adw" / "runs"
+    except (AttributeError, OSError):
+        runs_dir = None
 
+    if runs_dir is not None:
         # Load artifacts from disk
-        am = ArtifactManager(runs_dir)
-        raw_artifacts = am.list_artifacts(run_id, phase)
-        for art in raw_artifacts:
-            artifacts_list.append({
-                "name": art["name"],
-                "size": art["size"],
-                "size_display": _format_file_size(art["size"]),
-            })
-    except (StateError, OSError):
-        logger.debug(
-            "Failed to load artifacts for phase detail",
-            extra={"run_id": run_id, "phase": phase},
-        )
+        try:
+            am = ArtifactManager(runs_dir)
+            raw_artifacts = am.list_artifacts(run_id, phase)
+            for art in raw_artifacts:
+                artifacts_list.append({
+                    "name": art["name"],
+                    "size": art["size"],
+                    "size_display": _format_file_size(art["size"]),
+                })
+        except (StateError, OSError):
+            logger.debug(
+                "Failed to load artifacts for phase detail",
+                extra={"run_id": run_id, "phase": phase},
+            )
+
+        # Load LLM token stats independently of artifacts
+        try:
+            llm_stats = _load_llm_stats(runs_dir, run_id, phase)
+        except (StateError, OSError):
+            logger.debug(
+                "Failed to load LLM stats for phase detail",
+                extra={"run_id": run_id, "phase": phase},
+            )
 
     context = {
         "request": request,
@@ -760,11 +854,108 @@ async def phase_detail(
         "phase": phase,
         "hooks": hooks,
         "artifacts": artifacts_list,
+        "llm_stats": llm_stats,
     }
 
     return templates.TemplateResponse(
         request, "partials/phase_detail.html", context,
     )
+
+
+@router.get("/runs/{run_id}/phases/{phase}/prompt", response_class=HTMLResponse)
+async def llm_prompt(
+    request: Request,
+    run_id: str,
+    phase: str,
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return LLM prompt content HTML fragment for inline viewer."""
+    # Validate phase
+    if phase not in PHASE_SEQUENCE:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Invalid phase</p>',
+            status_code=400,
+        )
+
+    run_entry = _find_run_entry(index_manager, run_id)
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    try:
+        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        runs_dir = project_path / ".adw" / "runs"
+        content = _load_llm_content(runs_dir, run_id, phase, "prompt")
+    except OSError:
+        content = None
+
+    if content is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Prompt not found</p>',
+            status_code=404,
+        )
+
+    # Escape HTML for safe rendering in pre block
+    safe_content = (
+        content.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+    html = (
+        f'<pre class="max-h-96 overflow-y-auto font-mono text-xs '
+        f'bg-base-300 rounded-lg p-4 whitespace-pre-wrap">{safe_content}</pre>'
+    )
+    return HTMLResponse(content=html)
+
+
+@router.get("/runs/{run_id}/phases/{phase}/response", response_class=HTMLResponse)
+async def llm_response(
+    request: Request,
+    run_id: str,
+    phase: str,
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return LLM response content HTML fragment for inline viewer."""
+    # Validate phase
+    if phase not in PHASE_SEQUENCE:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Invalid phase</p>',
+            status_code=400,
+        )
+
+    run_entry = _find_run_entry(index_manager, run_id)
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    try:
+        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        runs_dir = project_path / ".adw" / "runs"
+        content = _load_llm_content(runs_dir, run_id, phase, "response")
+    except OSError:
+        content = None
+
+    if content is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Response not found</p>',
+            status_code=404,
+        )
+
+    # Escape HTML for safe rendering in pre block
+    safe_content = (
+        content.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+    html = (
+        f'<pre class="max-h-96 overflow-y-auto font-mono text-xs '
+        f'bg-base-300 rounded-lg p-4 whitespace-pre-wrap">{safe_content}</pre>'
+    )
+    return HTMLResponse(content=html)
 
 
 @router.get("/runs/{run_id}/artifacts/{phase}/{filename:path}", response_class=HTMLResponse)
@@ -853,6 +1044,165 @@ async def artifact_viewer(
     return templates.TemplateResponse(
         request, "partials/artifact_viewer.html", context,
     )
+
+
+def _load_log_entries(
+    runs_dir: Path,
+    run_id: str,
+    *,
+    phase: str | None = None,
+) -> list[dict]:
+    """Load and parse log entries from the live.log file.
+
+    Parses lines in the format: [timestamp] [CATEGORY] message
+    Maps categories to severity levels for display.
+
+    Args:
+        runs_dir: Path to the .adw/runs directory.
+        run_id: The run ID.
+        phase: Optional phase filter — only return entries mentioning this phase.
+
+    Returns:
+        List of dicts with timestamp, level, and message keys.
+    """
+    import re
+
+    log_file = runs_dir / run_id / "logs" / "live.log"
+    if not log_file.exists():
+        return []
+
+    # Pattern: [timestamp] [CATEGORY] message
+    line_pattern = re.compile(
+        r"^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s+\[(\w+)\]\s+(.*)"
+    )
+
+    # Strip ANSI escape codes
+    ansi_pattern = re.compile(r"\x1b\[[0-9;]*m")
+
+    # Map log categories to severity levels
+    error_categories = {"ERROR", "FATAL"}
+    warn_categories = {"WARN", "WARNING"}
+
+    entries: list[dict] = []
+    try:
+        content = log_file.read_text(errors="replace")
+        for line in content.splitlines():
+            # Strip ANSI codes
+            clean_line = ansi_pattern.sub("", line).strip()
+            if not clean_line:
+                continue
+
+            match = line_pattern.match(clean_line)
+            if not match:
+                continue
+
+            timestamp = match.group(1)
+            category = match.group(2).upper()
+            message = match.group(3).strip()
+
+            # Strip ANSI from message too
+            message = ansi_pattern.sub("", message).strip()
+
+            # Determine severity level
+            if category in error_categories:
+                level = "ERROR"
+            elif category in warn_categories:
+                level = "WARN"
+            else:
+                level = "INFO"
+
+            entries.append({
+                "timestamp": timestamp,
+                "level": level,
+                "message": message,
+            })
+    except OSError:
+        return []
+
+    # Apply phase filter using word-boundary matching to avoid false positives
+    # (e.g., "plan" should not match "explain").
+    if phase:
+        phase_pattern = re.compile(rf"\b{re.escape(phase)}\b")
+        entries = [e for e in entries if phase_pattern.search(e["message"])]
+
+    return entries
+
+
+@router.get("/runs/{run_id}/logs", response_class=HTMLResponse)
+async def log_search(
+    request: Request,
+    run_id: str,
+    q: str = Query(""),
+    level: str = Query(""),
+    phase: str = Query(""),
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return filtered log entries as HTML fragment.
+
+    Supports filtering by keyword (q), severity level, and phase.
+    Returns an HTML fragment for HTMX swap into the log content div.
+    """
+    run_entry = _find_run_entry(index_manager, run_id)
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    try:
+        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        runs_dir = project_path / ".adw" / "runs"
+        entries = _load_log_entries(runs_dir, run_id, phase=phase or None)
+    except OSError:
+        entries = []
+
+    # Apply level filter
+    if level:
+        entries = [e for e in entries if e["level"] == level.upper()]
+
+    # Apply keyword search filter
+    if q:
+        q_lower = q.lower()
+        entries = [e for e in entries if q_lower in e["message"].lower()]
+
+    # Build HTML fragment
+    if not entries:
+        return HTMLResponse(
+            content='<p class="text-sm text-base-content/60 py-4">No log entries found</p>'
+        )
+
+    lines: list[str] = []
+    lines.append(
+        '<div class="bg-base-300 rounded-lg p-4 font-mono text-xs '
+        'max-h-80 overflow-y-auto">'
+    )
+    for entry in entries:
+        level_class = ""
+        if entry["level"] == "WARN":
+            level_class = " text-warning"
+        elif entry["level"] == "ERROR":
+            level_class = " text-error"
+
+        # Escape HTML in message
+        safe_msg = (
+            entry["message"]
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        )
+        safe_ts = entry["timestamp"]
+        safe_level = entry["level"]
+
+        lines.append(
+            f'<div class="py-0.5{level_class}">'
+            f'<span class="text-base-content/50">{safe_ts}</span> '
+            f'<span class="font-semibold">{safe_level}</span> '
+            f'{safe_msg}'
+            f'</div>'
+        )
+    lines.append('</div>')
+
+    return HTMLResponse(content="\n".join(lines))
 
 
 @router.get("/health")
