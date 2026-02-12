@@ -188,7 +188,7 @@
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 
         var key = e.key;
-        var modalOpen = document.querySelector('#modal-container dialog');
+        var modalOpen = document.querySelector('#modal-container dialog[open]');
 
         /* When a modal is open, only allow ? (toggle) and Escape (close) */
         if (modalOpen && key !== '?' && key !== 'Escape') return;
@@ -258,7 +258,7 @@
             var row = rows[selectedRowIndex];
             var url = row.getAttribute('hx-get');
             if (url) {
-              htmx.ajax('GET', url, {target:'#main', pushUrl: url});
+              htmx.ajax('GET', url, {target:'#main', push: url});
             }
           }
           return;
