@@ -723,6 +723,18 @@ async def active_runs_partial(
     )
 
 
+# ── Keyboard Help Modal ──────────────────────────────────────────
+
+
+@router.get("/keyboard-help", response_class=HTMLResponse)
+async def keyboard_help(request: Request) -> HTMLResponse:
+    """Return the keyboard shortcut overlay modal HTML fragment."""
+    templates = request.app.state.templates
+    return templates.TemplateResponse(
+        request, "partials/keyboard_help.html", {"request": request}
+    )
+
+
 # ── New Run Modal ────────────────────────────────────────────────
 
 
