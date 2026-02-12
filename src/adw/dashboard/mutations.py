@@ -6,6 +6,7 @@ requires CSRF validation via ``Depends(validate_csrf)``.
 
 from __future__ import annotations
 
+import html
 import logging
 import os
 from pathlib import Path
@@ -459,12 +460,34 @@ async def save_settings(
     if config_path.exists():
         try:
             raw = config_path.read_text()
-            existing_data = yaml.safe_load(raw) or {}
-        except (yaml.YAMLError, OSError) as e:
+            loaded = yaml.safe_load(raw)
+            if isinstance(loaded, dict):
+                existing_data = loaded
+            elif loaded is not None:
+                return _render_settings_error(
+                    request, templates,
+                    "Existing config file is malformed (not a YAML mapping).",
+                    section, project_display,
+                    project_registry=project_registry,
+                )
+        except yaml.YAMLError as e:
+            return _render_settings_error(
+                request, templates,
+                f"Failed to parse existing config: {e}",
+                section, project_display,
+                project_registry=project_registry,
+            )
+        except OSError as e:
             logger.warning(
-                "Failed to load existing config for merge",
+                "Failed to read existing config for merge",
                 extra={"project": project_display, "error": str(e)},
             )
+
+    # Seed required fields if missing (name, language are required by ProjectConfig)
+    if "name" not in existing_data:
+        existing_data["name"] = project_display or "unnamed"
+    if "language" not in existing_data:
+        existing_data["language"] = "python"
 
     # Parse and map form values into the nested config structure
     for field_name, path_keys in field_map.items():
@@ -627,10 +650,11 @@ def _render_settings_error(
         "partials/settings_content.html"
     ).render(context)
 
+    safe_message = html.escape(error_message)
     toast_html = (
         '<div id="toast-container" hx-swap-oob="innerHTML">'
         '<div class="alert alert-error shadow-lg">'
-        f"<span>{error_message}</span>"
+        f"<span>{safe_message}</span>"
         "</div>"
         "<script>setTimeout(function(){var t=document.getElementById("
         "'toast-container');if(t)t.innerHTML='';},3000);</script>"

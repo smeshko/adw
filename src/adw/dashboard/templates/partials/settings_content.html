@@ -89,6 +89,9 @@
                   name="{{ setting.name }}"
                   class="select select-bordered select-sm w-full"
                   data-default="{{ setting.default_value or '' }}">
+            {% if setting.current_value and setting.current_value not in language_options %}
+            <option value="{{ setting.current_value }}" selected>{{ setting.current_value }}</option>
+            {% endif %}
             {% for opt in language_options %}
             <option value="{{ opt }}" {% if setting.current_value == opt %}selected{% endif %}>{{ opt }}</option>
             {% endfor %}
@@ -100,6 +103,9 @@
                   name="{{ setting.name }}"
                   class="select select-bordered select-sm w-full"
                   data-default="{{ setting.default_value or '' }}">
+            {% if setting.current_value and setting.current_value not in platform_options %}
+            <option value="{{ setting.current_value }}" selected>{{ setting.current_value }}</option>
+            {% endif %}
             {% for opt in platform_options %}
             <option value="{{ opt }}" {% if setting.current_value == opt %}selected{% endif %}>{{ opt }}</option>
             {% endfor %}

@@ -470,8 +470,8 @@ class TestSaveSettingsFileCreation:
     """Tests for file creation when no config exists."""
 
     def test_creates_adw_dir_and_file(self, tmp_path: Path) -> None:
-        """Save creates .adw/ directory and project.yaml when they don't exist."""
-        # Create bare project dir WITHOUT .adw/project.yaml
+        """Save creates .adw/ directory and project.yaml when they don't exist (FR66)."""
+        # Bare project dir — NO .adw/ directory at all
         app = create_dashboard_app()
         mock_reg = _make_mock_registry([(str(tmp_path), "new-app")])
         mock_idx = _make_mock_index_manager()
@@ -480,21 +480,9 @@ class TestSaveSettingsFileCreation:
         app.dependency_overrides[validate_csrf] = lambda: None
         client = TestClient(app)
 
-        # The project section requires name and language, but the form
-        # only sends the section's editable fields. The merge starts from
-        # an empty dict, so we need name + language to validate.
-        # Since the form for "project" section sends language/platform/test_command/build_command
-        # but NOT name, we need to pre-seed the config or ensure validation passes.
-        # Actually, the existing_data will be {} since no file exists.
-        # Setting language alone won't pass validation (needs name).
-        # This tests the FR66 requirement: system should create the file.
-        # For a real save, the config must have name+language.
-        # Let's pre-seed a minimal config so the merge succeeds:
-        adw_dir = tmp_path / ".adw"
-        adw_dir.mkdir()
-        minimal = {"name": "new-app", "language": "python"}
-        (adw_dir / "project.yaml").write_text(yaml.dump(minimal))
-
+        # The save endpoint seeds required 'name' from display name and
+        # 'language' defaults to 'python' when missing, so saving from
+        # scratch should work.
         response = client.post(
             "/settings/save",
             data={
@@ -508,10 +496,11 @@ class TestSaveSettingsFileCreation:
         assert response.status_code == 200
         assert "Settings saved successfully" in response.text
 
-        # Verify file was created/updated
-        config_path = adw_dir / "project.yaml"
+        # Verify .adw/ directory and file were created
+        config_path = tmp_path / ".adw" / "project.yaml"
         assert config_path.exists()
         config = yaml.safe_load(config_path.read_text())
+        assert config["name"] == "new-app"
         assert config["language"] == "go"
         assert config["platform"] == "api"
         app.dependency_overrides.clear()
