@@ -271,3 +271,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When reusing SSE streams in new dashboard view contexts
     - When adding mode-specific CSS styling with theme variable integration in the dashboard
     - When implementing Escape-key exit hierarchies for modal/mode layering in the dashboard
+
+- docs/features/settings-page-config-viewing.md
+  - Conditions:
+    - When adding configuration editing capabilities to the Settings page
+    - When adding new config sections or tabs to the Settings page
+    - When integrating ConfigLoader or ConfigRegistry in new dashboard routes
+    - When implementing HTMX tab-based content switching in the dashboard
+    - When displaying project config field metadata with defaults and descriptions
