@@ -601,6 +601,12 @@ async def abort_modal(
         cm = ContextManager(runs_dir)
         ctx = cm.load(run_id)
         current_phase = ctx.current_phase
+        # Verify live status in case index is stale
+        if ctx.status != "running":
+            return HTMLResponse(
+                content='<p class="text-error text-sm">Run cannot be aborted — it is no longer active</p>',
+                status_code=400,
+            )
     except (StateError, OSError):
         logger.debug(
             "RunContext unavailable for abort modal, using IndexEntry fallback",

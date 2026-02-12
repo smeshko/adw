@@ -381,6 +381,22 @@ class TestAbortModalPartialRoute:
             assert response.status_code == 200
             assert "plan" in response.text
 
+    def test_returns_error_when_context_status_not_running(self) -> None:
+        """If RunContext status is not running (stale index), returns 400."""
+        entry = _make_index_entry(status="running")
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(index_manager=im)
+
+        with patch("adw.dashboard.partials.ContextManager") as mock_cm_cls:
+            mock_cm = MagicMock()
+            # Index says running, but context says aborted (stale index)
+            mock_cm.load.return_value = _mock_run_context(status="aborted")
+            mock_cm_cls.return_value = mock_cm
+
+            response = client.get(f"/partials/abort/{entry.run_id}")
+            assert response.status_code == 400
+            assert "no longer active" in response.text.lower() or "cannot be aborted" in response.text.lower()
+
 
 # ── POST /runs/{run_id}/abort Tests ───────────────────────────────
 
@@ -476,6 +492,43 @@ class TestAbortMutation:
 
             mock_handler.abort_gracefully.assert_called_once_with(
                 mock_ctx, reason="dashboard_abort",
+            )
+
+    def test_successful_abort_updates_index(self) -> None:
+        """Successful abort calls index_manager.update_run to persist status."""
+        entry = _make_index_entry(status="running")
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(index_manager=im)
+        token = _get_csrf_token()
+
+        with (
+            patch("adw.dashboard.mutations.ContextManager") as mock_cm_cls,
+            patch("adw.dashboard.mutations.SnapshotManager") as mock_sm_cls,
+            patch("adw.dashboard.mutations.InterruptionHandler") as mock_ih_cls,
+        ):
+            mock_cm = MagicMock()
+            mock_ctx = _mock_run_context()
+            mock_cm.load.return_value = mock_ctx
+            mock_cm_cls.return_value = mock_cm
+
+            mock_sm = MagicMock()
+            mock_sm_cls.return_value = mock_sm
+
+            mock_handler = MagicMock()
+            aborted_ctx = _mock_run_context(status="aborted")
+            aborted_ctx.completed_at = datetime(2026, 1, 15, 10, 30, 0, tzinfo=UTC)
+            mock_handler.abort_gracefully.return_value = aborted_ctx
+            mock_ih_cls.return_value = mock_handler
+
+            client.post(
+                f"/runs/{entry.run_id}/abort",
+                data={"csrf_token": token},
+            )
+
+            im.update_run.assert_called_once_with(
+                entry.run_id,
+                status="aborted",
+                completed_at=aborted_ctx.completed_at,
             )
 
     def test_successful_abort_clears_modal_via_oob(self) -> None:

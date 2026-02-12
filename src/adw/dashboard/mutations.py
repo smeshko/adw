@@ -239,7 +239,7 @@ async def abort_run(
             context_manager=cm,
             snapshot_manager=sm,
         )
-        handler.abort_gracefully(context, reason="dashboard_abort")
+        aborted_ctx = handler.abort_gracefully(context, reason="dashboard_abort")
     except (StateError, OSError) as e:
         logger.error("Failed to abort run", extra={"run_id": run_id, "error": str(e)})
         return HTMLResponse(
@@ -247,8 +247,19 @@ async def abort_run(
             status_code=500,
         )
 
-    # Update the index entry status to reflect the abort
+    # Update the index entry to reflect the abort
     run_entry.status = "aborted"  # type: ignore[assignment]
+    run_entry.completed_at = aborted_ctx.completed_at  # type: ignore[assignment]
+
+    # Persist the status change to the global index
+    try:
+        index_manager.update_run(  # type: ignore[union-attr]
+            run_id,
+            status="aborted",
+            completed_at=aborted_ctx.completed_at,
+        )
+    except (StateError, OSError):
+        logger.warning("Failed to update index after abort", extra={"run_id": run_id})
 
     # Build refreshed run detail context
     detail_context = _build_run_detail_context(run_entry, request)
