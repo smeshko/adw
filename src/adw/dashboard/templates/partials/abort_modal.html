@@ -1,0 +1,39 @@
+<dialog id="abort-dialog" class="modal modal-open">
+  <div class="modal-box">
+    <form method="dialog">
+      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+    </form>
+    <h3 class="text-lg font-bold mb-4 text-error">Abort Run?</h3>
+
+    <p class="mb-4">This will stop the current phase and mark the run as aborted. This cannot be undone.</p>
+
+    <div class="bg-base-200 rounded-lg p-3 mb-4 text-sm font-mono">
+      <div class="flex justify-between mb-1">
+        <span class="text-base-content/60">Run ID</span>
+        <span>{{ run_id_short }}</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Current Phase</span>
+        <span>{{ current_phase }}</span>
+      </div>
+    </div>
+
+    <form hx-post="/runs/{{ run_id }}/abort"
+          hx-target="#main"
+          hx-swap="innerHTML">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+      <div class="modal-action">
+        <button type="button"
+                class="btn btn-ghost"
+                onclick="document.getElementById('abort-dialog').close(); document.getElementById('modal-container').innerHTML = '';">Cancel</button>
+        <button type="submit" class="btn btn-error">
+          Abort Run
+        </button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
