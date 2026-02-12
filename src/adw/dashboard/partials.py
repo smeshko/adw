@@ -7,6 +7,7 @@ return a fragment — they never wrap in the full page layout.
 from __future__ import annotations
 
 import logging
+import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
@@ -190,6 +191,7 @@ def build_analytics_context(
     project_name: str | None,
     range_key: str,
     range_days: dict[str, int | None],
+    sort: str = "cost_desc",
 ) -> dict:
     """Build template context for the analytics page stat cards.
 
@@ -201,6 +203,7 @@ def build_analytics_context(
         project_name: Current project filter value or None.
         range_key: Selected range key (e.g., "7d", "30d", "90d", "all").
         range_days: Mapping of range keys to day counts (None = all time).
+        sort: Sort key for breakdown table (e.g., "cost_desc", "runs_asc").
 
     Returns:
         Dict with analytics stat card values and delta indicators.
@@ -357,6 +360,71 @@ def build_analytics_context(
                 "cost_display": f"${cost:.2f}",
             })
 
+    # ── Budget section ──
+    budget_env = os.environ.get("ADW_MONTHLY_BUDGET")
+    has_budget = False
+    budget_amount = 0.0
+    budget_spent = "$0.00"
+    budget_percentage = 0.0
+    budget_progress_class = "progress-primary"
+    budget_days_remaining: int | None = None
+
+    if budget_env:
+        try:
+            budget_amount = float(budget_env)
+            if budget_amount > 0:
+                has_budget = True
+                budget_spent = f"${total_cost:.2f}"
+                budget_percentage = round((total_cost / budget_amount) * 100, 1)
+
+                if budget_percentage > 90:
+                    budget_progress_class = "progress-error"
+                elif budget_percentage >= 70:
+                    budget_progress_class = "progress-warning"
+
+                # Estimate days remaining based on daily average
+                if days is not None and total_cost > 0:
+                    daily_avg_cost = total_cost / days
+                    remaining = budget_amount - total_cost
+                    budget_days_remaining = int(remaining / daily_avg_cost)
+        except ValueError:
+            pass
+
+    # ── Detailed breakdown table ──
+    breakdown_table: list[dict] = []
+    if has_data:
+        for proj in current_stats.projects:
+            proj_tokens = proj.tokens.total_tokens
+            proj_cost = stats_aggregator.calculate_cost(proj.tokens)  # type: ignore[union-attr]
+            proj_runs = proj.total_runs
+            avg_tok = proj_tokens // proj_runs if proj_runs > 0 else 0
+            breakdown_table.append({
+                "name": proj.name,
+                "runs": proj_runs,
+                "tokens_display": _format_tokens(proj_tokens),
+                "cost_display": f"${proj_cost:.2f}",
+                "avg_tokens_display": _format_tokens(avg_tok),
+                "tokens_raw": proj_tokens,
+                "cost_raw": proj_cost,
+                "runs_raw": proj_runs,
+                "avg_tokens_raw": avg_tok,
+            })
+
+        # Sort breakdown table
+        sort_key_map: dict[str, str] = {
+            "cost": "cost_raw",
+            "tokens": "tokens_raw",
+            "runs": "runs_raw",
+            "project": "name",
+            "avg": "avg_tokens_raw",
+        }
+        parts = sort.rsplit("_", 1)
+        col = parts[0] if len(parts) == 2 else "cost"
+        direction = parts[1] if len(parts) == 2 else "desc"
+        sort_field = sort_key_map.get(col, "cost_raw")
+        reverse = direction == "desc"
+        breakdown_table.sort(key=lambda r: r[sort_field], reverse=reverse)
+
     return {
         "has_analytics_data": has_data,
         # Stat card values
@@ -377,6 +445,16 @@ def build_analytics_context(
         "project_breakdown": project_breakdown,
         "phase_breakdown": phase_breakdown,
         "model_breakdown": model_breakdown,
+        # Budget section
+        "has_budget": has_budget,
+        "budget_amount": budget_amount,
+        "budget_spent": budget_spent,
+        "budget_percentage": budget_percentage,
+        "budget_progress_class": budget_progress_class,
+        "budget_days_remaining": budget_days_remaining,
+        # Breakdown table
+        "breakdown_table": breakdown_table,
+        "breakdown_sort": sort,
     }
 
 
