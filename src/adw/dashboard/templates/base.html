@@ -57,6 +57,13 @@
          hx-indicator="#nav-loading"
          data-page="analytics"
          class="nav-link btn btn-ghost btn-sm {% if page == 'analytics' %}font-semibold border-b-2 border-primary{% endif %}">Analytics</a>
+      <a href="/settings"
+         hx-get="/settings"
+         hx-target="#main"
+         hx-push-url="/settings"
+         hx-indicator="#nav-loading"
+         data-page="settings"
+         class="nav-link btn btn-ghost btn-sm {% if page == 'settings' %}font-semibold border-b-2 border-primary{% endif %}">Settings</a>
 
       {# Loading indicator for navigation #}
       <span id="nav-loading" class="loading loading-spinner loading-sm htmx-indicator"></span>
@@ -141,7 +148,7 @@
     /* Update active nav indicator and project filter after HTMX content swap */
     document.body.addEventListener('htmx:pushedIntoHistory', function() {
       var path = window.location.pathname;
-      var pageMap = {'/': 'overview', '/runs': 'runs', '/analytics': 'analytics'};
+      var pageMap = {'/': 'overview', '/runs': 'runs', '/analytics': 'analytics', '/settings': 'settings'};
       var currentPage = pageMap[path] || '';
       document.querySelectorAll('.nav-link').forEach(function(link) {
         var isActive = link.getAttribute('data-page') === currentPage;
@@ -248,6 +255,7 @@
           if (key === 'h') navLink = document.querySelector('[data-page="overview"]');
           else if (key === 'r') navLink = document.querySelector('[data-page="runs"]');
           else if (key === 'a') navLink = document.querySelector('[data-page="analytics"]');
+          else if (key === 's') navLink = document.querySelector('[data-page="settings"]');
           if (navLink) { e.preventDefault(); navLink.click(); }
           return;
         }
