@@ -808,24 +808,34 @@ async def phase_detail(
     try:
         project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
         runs_dir = project_path / ".adw" / "runs"
+    except (AttributeError, OSError):
+        runs_dir = None
 
+    if runs_dir is not None:
         # Load artifacts from disk
-        am = ArtifactManager(runs_dir)
-        raw_artifacts = am.list_artifacts(run_id, phase)
-        for art in raw_artifacts:
-            artifacts_list.append({
-                "name": art["name"],
-                "size": art["size"],
-                "size_display": _format_file_size(art["size"]),
-            })
+        try:
+            am = ArtifactManager(runs_dir)
+            raw_artifacts = am.list_artifacts(run_id, phase)
+            for art in raw_artifacts:
+                artifacts_list.append({
+                    "name": art["name"],
+                    "size": art["size"],
+                    "size_display": _format_file_size(art["size"]),
+                })
+        except (StateError, OSError):
+            logger.debug(
+                "Failed to load artifacts for phase detail",
+                extra={"run_id": run_id, "phase": phase},
+            )
 
-        # Load LLM token stats for this phase
-        llm_stats = _load_llm_stats(runs_dir, run_id, phase)
-    except (StateError, OSError):
-        logger.debug(
-            "Failed to load artifacts for phase detail",
-            extra={"run_id": run_id, "phase": phase},
-        )
+        # Load LLM token stats independently of artifacts
+        try:
+            llm_stats = _load_llm_stats(runs_dir, run_id, phase)
+        except (StateError, OSError):
+            logger.debug(
+                "Failed to load LLM stats for phase detail",
+                extra={"run_id": run_id, "phase": phase},
+            )
 
     context = {
         "request": request,
