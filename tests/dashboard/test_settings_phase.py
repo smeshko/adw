@@ -328,3 +328,44 @@ class TestPhaseSaveEndpoint:
         )
         assert resp.status_code == 200
         assert "alert-success" in resp.text or "saved" in resp.text.lower()
+
+
+# ── Integration tests ─────────────────────────────────────────────
+
+
+class TestPhaseConfigIntegration:
+    """Integration tests for the save→reload flow."""
+
+    def test_save_then_reload_shows_saved_values(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """Save config, then GET the phase partial to verify saved values render."""
+        # Save first
+        phase_client.post(
+            "/settings/phase/build/save",
+            data={
+                "csrf_token": "test",
+                "_project": "test-app",
+                "enabled": "true",
+                "timeout_seconds": "2400",
+                "llm_model": "haiku",
+            },
+        )
+        # Reload
+        resp = phase_client.get(
+            "/partials/settings-phase/build",
+            params={"project": "test-app"},
+        )
+        assert resp.status_code == 200
+        assert "2400" in resp.text
+        assert "haiku" in resp.text
+
+    def test_phase_defaults_constants(self) -> None:
+        """Verify PHASE_DEFAULTS has correct values per story spec."""
+        from adw.dashboard.partials import PHASE_DEFAULTS
+
+        assert PHASE_DEFAULTS["plan"] == {"timeout": 900, "model": "opus"}
+        assert PHASE_DEFAULTS["build"] == {"timeout": 1800, "model": "sonnet"}
+        assert PHASE_DEFAULTS["validate"] == {"timeout": 900, "model": "opus"}
+        assert PHASE_DEFAULTS["document"] == {"timeout": 900, "model": "haiku"}
+        assert PHASE_DEFAULTS["ship"] == {"timeout": 1200, "model": "sonnet"}
