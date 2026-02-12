@@ -72,7 +72,11 @@ def _build_page_context(
     active_run_count = 0
     last_updated_dt = None
     try:
-        active_runs = index_manager.get_recent_runs(status="running")  # type: ignore[union-attr]
+        project_path_str, _ = resolve_project_filter(project_registry, project)
+        active_runs = index_manager.get_recent_runs(  # type: ignore[union-attr]
+            status="running",
+            **({"project_path": Path(project_path_str)} if project_path_str else {}),
+        )
         active_run_count = len(active_runs)
 
         recent = index_manager.get_recent_runs(limit=1)  # type: ignore[union-attr]
