@@ -1,0 +1,626 @@
+/* ==========================================================================
+   ADW Design System — Industrial Brutalist Dark
+   ==========================================================================
+   Layered on top of DaisyUI v5 + Tailwind CSS v4.
+   Provides a custom DaisyUI theme, extended CSS custom properties,
+   utility classes, and component overrides.
+   ========================================================================== */
+
+/* ── Google Fonts ───────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;500;600;700;800;900&family=Inconsolata:wght@400;500;600;700&display=swap');
+
+/* ==========================================================================
+   1. DaisyUI Theme — [data-theme="brutalist-dark"]
+   ==========================================================================
+   Maps brutalist palette onto DaisyUI semantic color slots so all DaisyUI
+   components (badges, buttons, stats, etc.) inherit the aesthetic.          */
+
+[data-theme="brutalist-dark"] {
+  /* ── Base colors ──────────────────────────────────────────────────────── */
+  --color-base-100:         #1E1E1E;  /* card bg */
+  --color-base-200:         #181818;  /* page bg elevated */
+  --color-base-300:         #111111;  /* page bg void */
+  --color-base-content:     #E8E4DF;  /* primary text — cream */
+
+  /* ── Semantic colors ──────────────────────────────────────────────────── */
+  --color-primary:          #C43018;  /* accent red */
+  --color-primary-content:  #E8E4DF;  /* text on primary */
+  --color-secondary:        #D4602A;  /* accent orange */
+  --color-secondary-content:#E8E4DF;
+  --color-accent:           #D49A20;  /* accent amber */
+  --color-accent-content:   #111111;
+  --color-neutral:          #252525;  /* neutral surfaces */
+  --color-neutral-content:  #E8E4DF;
+
+  /* ── Feedback colors ──────────────────────────────────────────────────── */
+  --color-info:             #E8E4DF;  /* cream — informational */
+  --color-info-content:     #111111;
+  --color-success:          #2ECC40;  /* green */
+  --color-success-content:  #111111;
+  --color-warning:          #D4602A;  /* orange — active/running */
+  --color-warning-content:  #111111;
+  --color-error:            #C43018;  /* red */
+  --color-error-content:    #E8E4DF;
+
+  /* ── Border radius — brutalist: none everywhere ───────────────────── */
+  --radius-selector:  0;
+  --radius-field:     0;
+  --radius-box:       0;
+  --radius-btn:       0;
+  --radius-badge:     0;
+
+  /* ── Border ───────────────────────────────────────────────────────────── */
+  --border: 2px;
+
+  /* ── Depth / shadow — DaisyUI shadow tokens ───────────────────────── */
+  --depth-1: 4px 4px 0 #C43018;
+  --depth-2: 6px 6px 0 #C43018;
+}
+
+/* ==========================================================================
+   2. Brutalist Custom Properties
+   ==========================================================================
+   Tokens beyond DaisyUI that our utility classes and components reference. */
+
+[data-theme="brutalist-dark"] {
+  /* ── Palette ──────────────────────────────────────────────────────────── */
+  --bg-void:          #111111;
+  --bg-surface:       #181818;
+  --bg-card:          #1E1E1E;
+  --bg-card-hover:    #252525;
+  --bg-header:        #0A0A0A;
+  --border-color:     #E8E4DF;
+  --text-primary:     #E8E4DF;
+  --text-secondary:   #999999;
+  --text-muted:       #666666;
+  --accent-red:       #C43018;
+  --accent-orange:    #D4602A;
+  --accent-green:     #2ECC40;
+  --accent-amber:     #D49A20;
+  --accent-cream:     #E8E4DF;
+
+  /* ── Shadow / depth ───────────────────────────────────────────────────── */
+  --shadow-brutal:      4px 4px 0 var(--accent-red);
+  --shadow-brutal-hover:6px 6px 0 var(--accent-red);
+  --shadow-brutal-sm:   2px 2px 0 var(--accent-red);
+
+  /* ── Stripe / accent borders ──────────────────────────────────────────── */
+  --stripe-accent:    4px solid var(--accent-red);
+
+  /* ── Typography ───────────────────────────────────────────────────────── */
+  --font-display:     'Azeret Mono', ui-monospace, monospace;
+  --font-body:        'Inconsolata', ui-monospace, monospace;
+
+  /* ── Heatmap scale (5 stops) ──────────────────────────────────────────── */
+  --heat-0:  #1E1E1E;
+  --heat-1:  #3D1A12;
+  --heat-2:  #5C2518;
+  --heat-3:  #8A3520;
+  --heat-4:  #C43018;
+
+  /* ── Noise overlay opacity ────────────────────────────────────────────── */
+  --noise-opacity: 0.03;
+}
+
+/* ==========================================================================
+   3. Base / Reset — Typography & Page Background
+   ========================================================================== */
+
+[data-theme="brutalist-dark"] body,
+[data-theme="brutalist-dark"] {
+  font-family: var(--font-body);
+  background-color: var(--bg-void);
+  color: var(--text-primary);
+}
+
+/* ── Headings ───────────────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] h1,
+[data-theme="brutalist-dark"] h2,
+[data-theme="brutalist-dark"] h3,
+[data-theme="brutalist-dark"] h4 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+[data-theme="brutalist-dark"] h1 { letter-spacing: 0.12em; font-weight: 900; }
+[data-theme="brutalist-dark"] h2 { letter-spacing: 0.10em; font-weight: 800; }
+
+/* ==========================================================================
+   4. Noise Texture Overlay
+   ==========================================================================
+   Subtle film-grain effect across the entire page.
+   Uses an inline SVG data-URI so no external asset is needed.             */
+
+[data-theme="brutalist-dark"] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* ==========================================================================
+   5. Utility Classes
+   ========================================================================== */
+
+/* ── Shadow utilities ───────────────────────────────────────────────────── */
+.shadow-brutal       { box-shadow: var(--shadow-brutal); }
+.shadow-brutal-hover { box-shadow: var(--shadow-brutal-hover); }
+.shadow-brutal-sm    { box-shadow: var(--shadow-brutal-sm); }
+
+/* ── Typography utilities ───────────────────────────────────────────────── */
+.font-display     { font-family: var(--font-display); }
+.font-body        { font-family: var(--font-body); }
+.uppercase-brutal {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+/* ── Section header — "// PREFIX" pattern ───────────────────────────────── */
+.section-header {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  font-weight: 800;
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+}
+.section-header::before {
+  content: '// ';
+  color: var(--accent-red);
+  font-weight: 900;
+}
+
+/* ── Stripe accent — top or bottom border ───────────────────────────────── */
+.stripe-top    { border-top:    var(--stripe-accent); }
+.stripe-bottom { border-bottom: var(--stripe-accent); }
+.stripe-left   { border-left:   var(--stripe-accent); }
+
+/* ── Card border — standard cream ───────────────────────────────────────── */
+.border-brutal {
+  border: 2px solid var(--border-color);
+}
+
+/* ── Diagonal hatching corner accent (stat cards) ───────────────────────── */
+.hatch-corner {
+  position: relative;
+  overflow: hidden;
+}
+.hatch-corner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--accent-red),
+    var(--accent-red) 2px,
+    transparent 2px,
+    transparent 6px
+  );
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   6. Component Overrides — DaisyUI + Custom
+   ========================================================================== */
+
+/* ── Navbar ─────────────────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .navbar {
+  background-color: var(--bg-header);
+  border-bottom: var(--stripe-accent);
+  border-radius: 0;
+  font-family: var(--font-display);
+}
+
+[data-theme="brutalist-dark"] .navbar .text-lg {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 900;
+}
+
+/* ── Footer / Status Bar ────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .footer {
+  background-color: var(--bg-header);
+  border-top: var(--stripe-accent);
+  border-radius: 0;
+  font-family: var(--font-body);
+}
+
+/* ── Stat Cards ─────────────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .stat {
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 0;
+  box-shadow: var(--shadow-brutal);
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 150ms ease, transform 150ms ease;
+}
+
+[data-theme="brutalist-dark"] .stat:hover {
+  box-shadow: var(--shadow-brutal-hover);
+  transform: translate(-1px, -1px);
+}
+
+/* Hatching on stat cards */
+[data-theme="brutalist-dark"] .stat::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--accent-red),
+    var(--accent-red) 2px,
+    transparent 2px,
+    transparent 6px
+  );
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+[data-theme="brutalist-dark"] .stat-title {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+[data-theme="brutalist-dark"] .stat-value {
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+[data-theme="brutalist-dark"] .stat-desc {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .card {
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 0;
+  box-shadow: var(--shadow-brutal);
+}
+
+[data-theme="brutalist-dark"] .card-bordered {
+  border: 2px solid var(--border-color);
+}
+
+[data-theme="brutalist-dark"] .card:hover {
+  box-shadow: var(--shadow-brutal-hover);
+}
+
+/* ── Active Run Cards — orange accent ───────────────────────────────────── */
+[data-theme="brutalist-dark"] .card.border-l-4.border-warning {
+  border-left: 4px solid var(--accent-orange);
+  box-shadow: 4px 4px 0 var(--accent-orange);
+}
+
+[data-theme="brutalist-dark"] .card.border-l-4.border-warning:hover {
+  box-shadow: 6px 6px 0 var(--accent-orange);
+}
+
+/* ── Project Cards — selected state ─────────────────────────────────────── */
+[data-theme="brutalist-dark"] .card.ring-primary {
+  --tw-ring-color: var(--accent-red);
+  box-shadow: var(--shadow-brutal);
+}
+
+/* ── Tables ─────────────────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .table {
+  font-family: var(--font-body);
+  border-radius: 0;
+}
+
+[data-theme="brutalist-dark"] .table thead tr {
+  background-color: var(--bg-header);
+  border-bottom: 3px solid var(--accent-red);
+}
+
+[data-theme="brutalist-dark"] .table thead th {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: var(--accent-cream);
+  background-color: transparent;
+}
+
+[data-theme="brutalist-dark"] .table tbody tr {
+  border-bottom: 1px solid #2A2A2A;
+  transition: background-color 100ms ease;
+}
+
+[data-theme="brutalist-dark"] .table tbody tr:hover,
+[data-theme="brutalist-dark"] .table tbody tr.hover:hover {
+  background-color: var(--bg-card-hover);
+}
+
+/* Zebra override */
+[data-theme="brutalist-dark"] .table-zebra tbody tr:nth-child(even) {
+  background-color: #1A1A1A;
+}
+
+/* ── Badges — outline style ─────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .badge {
+  border-radius: 0;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  font-size: 0.65rem;
+  border-width: 2px;
+}
+
+[data-theme="brutalist-dark"] .badge-success {
+  background-color: transparent;
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+[data-theme="brutalist-dark"] .badge-warning {
+  background-color: transparent;
+  border-color: var(--accent-orange);
+  color: var(--accent-orange);
+}
+
+[data-theme="brutalist-dark"] .badge-error {
+  background-color: transparent;
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+}
+
+[data-theme="brutalist-dark"] .badge-ghost {
+  background-color: transparent;
+  border-color: var(--text-muted);
+  color: var(--text-muted);
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .btn {
+  border-radius: 0;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  transition: box-shadow 100ms ease, transform 100ms ease;
+}
+
+[data-theme="brutalist-dark"] .btn-primary {
+  background-color: transparent;
+  border: 2px solid var(--accent-cream);
+  color: var(--accent-cream);
+  box-shadow: var(--shadow-brutal-sm);
+}
+
+[data-theme="brutalist-dark"] .btn-primary:hover {
+  background-color: var(--accent-red);
+  border-color: var(--accent-red);
+  color: var(--accent-cream);
+  box-shadow: var(--shadow-brutal);
+  transform: translate(-1px, -1px);
+}
+
+[data-theme="brutalist-dark"] .btn-error,
+[data-theme="brutalist-dark"] .btn-danger {
+  background-color: transparent;
+  border: 2px solid var(--accent-red);
+  color: var(--accent-red);
+}
+
+[data-theme="brutalist-dark"] .btn-error:hover,
+[data-theme="brutalist-dark"] .btn-danger:hover {
+  background-color: var(--accent-red);
+  color: var(--accent-cream);
+}
+
+[data-theme="brutalist-dark"] .btn-ghost {
+  color: var(--text-secondary);
+}
+
+[data-theme="brutalist-dark"] .btn-ghost:hover {
+  background-color: var(--bg-card-hover);
+  color: var(--accent-cream);
+}
+
+/* Active nav button */
+[data-theme="brutalist-dark"] .btn-ghost.border-b-2.border-primary {
+  border-bottom-color: var(--accent-red);
+  color: var(--accent-cream);
+}
+
+/* ── Selects / Inputs ───────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .select,
+[data-theme="brutalist-dark"] .input {
+  border-radius: 0;
+  border: 2px solid var(--border-color);
+  background-color: var(--bg-card);
+  font-family: var(--font-body);
+  color: var(--text-primary);
+}
+
+[data-theme="brutalist-dark"] .select:focus,
+[data-theme="brutalist-dark"] .input:focus {
+  outline: 2px solid var(--accent-red);
+  outline-offset: 0;
+  border-color: var(--accent-red);
+}
+
+/* ── Tabs (analytics time range) ────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .tabs-box {
+  border-radius: 0;
+  background-color: var(--bg-surface);
+  border: 2px solid var(--border-color);
+}
+
+[data-theme="brutalist-dark"] .tabs-box .tab {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  font-size: 0.75rem;
+  border-radius: 0;
+  color: var(--text-secondary);
+}
+
+[data-theme="brutalist-dark"] .tabs-box .tab-active,
+[data-theme="brutalist-dark"] .tabs-box .tab.tab-active {
+  background-color: var(--accent-red);
+  color: var(--accent-cream);
+  border-radius: 0;
+}
+
+/* ── Steps (phase pipeline) ─────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .steps .step {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.65rem;
+}
+
+[data-theme="brutalist-dark"] .steps .step-success::after {
+  background-color: var(--accent-green);
+}
+
+[data-theme="brutalist-dark"] .steps .step-warning::after {
+  background-color: var(--accent-orange);
+}
+
+/* ── Pagination (join group) ────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .join .btn {
+  border-radius: 0;
+}
+
+[data-theme="brutalist-dark"] .join .btn-active {
+  background-color: var(--accent-red);
+  border-color: var(--accent-red);
+  color: var(--accent-cream);
+  box-shadow: var(--shadow-brutal-sm);
+}
+
+/* ── Progress bars (budget) ─────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .progress {
+  border-radius: 0;
+  height: 0.75rem;
+  background-color: #2A2A2A;
+}
+
+/* ── Alerts (error toasts) ──────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .alert {
+  border-radius: 0;
+  border: 2px solid;
+  font-family: var(--font-body);
+}
+
+/* ── Breakdown bars (analytics) ─────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .rounded-full {
+  border-radius: 0;
+}
+
+/* ── Charts — bar colors ────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .chart-bar .bg-primary {
+  border-radius: 0;
+}
+
+/* Alternating red/orange bars in daily chart */
+[data-theme="brutalist-dark"] .chart-daily .chart-bar:nth-child(odd) > div:first-child {
+  background-color: var(--accent-red);
+}
+[data-theme="brutalist-dark"] .chart-daily .chart-bar:nth-child(even) > div:first-child {
+  background-color: var(--accent-orange);
+}
+
+/* ── Cost strip ─────────────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .card-body .bg-primary {
+  background-color: var(--accent-red);
+  border-radius: 0;
+}
+
+/* ── Swap (theme toggle) ────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .swap {
+  color: var(--text-secondary);
+}
+
+/* ── Divider ────────────────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .divider {
+  opacity: 0.3;
+}
+
+/* ── Loading spinner ────────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .loading {
+  color: var(--accent-red);
+}
+
+/* ── Links ──────────────────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .link-primary {
+  color: var(--accent-cream);
+}
+
+[data-theme="brutalist-dark"] .link-primary:hover {
+  color: var(--accent-red);
+}
+
+/* ── Form labels ────────────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .label-text {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+/* ── Empty states ───────────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] .text-base-content\/50 {
+  color: var(--text-muted);
+}
+
+/* ── Scrollbar styling ──────────────────────────────────────────────────── */
+[data-theme="brutalist-dark"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme="brutalist-dark"] ::-webkit-scrollbar-track {
+  background: var(--bg-void);
+}
+
+[data-theme="brutalist-dark"] ::-webkit-scrollbar-thumb {
+  background: #333;
+  border: 1px solid var(--accent-red);
+}
+
+[data-theme="brutalist-dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* ==========================================================================
+   7. Animation overrides
+   ========================================================================== */
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="brutalist-dark"] .stat:hover,
+  [data-theme="brutalist-dark"] .btn-primary:hover {
+    transform: none;
+  }
+}
