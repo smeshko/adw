@@ -157,6 +157,27 @@ class TestPhasePartialRoute:
         assert "bypass_ci" in resp.text
 
 
+# ── Phases tab sub-tab navigation ─────────────────────────────────
+
+
+class TestPhasesTabNavigation:
+    """Tests for the phases tab rendering sub-tab navigation."""
+
+    def test_phases_tab_shows_sub_tabs(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """When phases tab is active, sub-tabs for all 5 phases are shown."""
+        resp = phase_client.get(
+            "/partials/settings-content",
+            params={"project": "test-app", "tab": "phases"},
+        )
+        assert resp.status_code == 200
+        for phase_name in ["Plan", "Build", "Validate", "Document", "Ship"]:
+            assert phase_name in resp.text
+        assert "phase-content" in resp.text
+        assert "hx-trigger" in resp.text
+
+
 # ── POST /settings/phase/{phase}/save ─────────────────────────────
 
 
