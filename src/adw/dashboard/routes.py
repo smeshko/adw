@@ -806,11 +806,16 @@ async def phase_detail(
     request: Request,
     run_id: str,
     phase: str,
+    severity: str = Query(""),
     index_manager: object = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Return phase detail HTML fragment for lazy-loaded accordion content.
 
     Loads hooks and artifacts data for the specified phase of a run.
+
+    Args:
+        severity: Optional default severity filter for the log viewer
+                  (e.g., "ERROR" for failed phases).
     """
     templates = request.app.state.templates
 
@@ -866,6 +871,24 @@ async def phase_detail(
                 extra={"run_id": run_id, "phase": phase},
             )
 
+    # Determine if this is the active phase of a running run
+    run_status = run_entry.status  # type: ignore[union-attr]
+    run_current_phase = run_entry.phase_reached  # type: ignore[union-attr]
+
+    # Try to get live phase from RunContext
+    if runs_dir is not None:
+        try:
+            cm = ContextManager(runs_dir)
+            ctx = cm.load(run_id)
+            run_status = ctx.status
+            run_current_phase = ctx.current_phase
+        except (StateError, OSError):
+            pass
+
+    is_active_phase = (
+        run_status == "running" and run_current_phase == phase
+    )
+
     context = {
         "request": request,
         "run_id": run_id,
@@ -873,6 +896,8 @@ async def phase_detail(
         "hooks": hooks,
         "artifacts": artifacts_list,
         "llm_stats": llm_stats,
+        "is_active_phase": is_active_phase,
+        "default_severity": severity.upper() if severity else "",
     }
 
     return templates.TemplateResponse(

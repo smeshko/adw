@@ -79,6 +79,23 @@
 <div class="card card-compact bg-base-300">
   <div class="card-body">
     <h3 class="card-title text-sm">Logs</h3>
+
+    {% if is_active_phase %}
+    {# ── Active phase: SSE streaming log viewer ── #}
+    <div class="bg-base-300 rounded-lg p-4 font-mono text-xs max-h-80 overflow-y-auto log-stream-container"
+         id="log-stream-{{ phase }}"
+         hx-ext="sse"
+         sse-connect="/runs/{{ run_id }}/logs/stream"
+         sse-swap="log-line"
+         hx-swap="beforeend">
+      <div class="flex justify-center py-4">
+        <span class="loading loading-dots loading-sm"></span>
+        <span class="text-base-content/60 ml-2">Streaming live logs...</span>
+      </div>
+    </div>
+
+    {% else %}
+    {# ── Completed/failed phase: static log viewer with filters ── #}
     <div class="flex flex-wrap gap-2 mb-3">
       <input type="text"
              placeholder="Search logs..."
@@ -98,19 +115,21 @@
               hx-swap="innerHTML"
               hx-include="closest .card-body">
         <option value="">All</option>
-        <option value="INFO">INFO</option>
-        <option value="WARN">WARN</option>
-        <option value="ERROR">ERROR</option>
+        <option value="INFO" {% if default_severity == 'INFO' %}selected{% endif %}>INFO</option>
+        <option value="WARN" {% if default_severity == 'WARN' %}selected{% endif %}>WARN</option>
+        <option value="ERROR" {% if default_severity == 'ERROR' %}selected{% endif %}>ERROR</option>
       </select>
       <input type="hidden" name="phase" value="{{ phase }}" />
     </div>
     <div id="log-content-{{ phase }}"
-         hx-get="/runs/{{ run_id }}/logs?phase={{ phase }}"
+         hx-get="/runs/{{ run_id }}/logs?phase={{ phase }}{% if default_severity %}&level={{ default_severity }}{% endif %}"
          hx-trigger="load"
          hx-swap="innerHTML">
       <div class="flex justify-center py-4">
         <span class="loading loading-dots loading-sm"></span>
       </div>
     </div>
+    {% endif %}
+
   </div>
 </div>
