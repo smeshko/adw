@@ -32,6 +32,10 @@
   --card-padding-compact: 0.75rem;
 }
 
+/* Daily usage chart (UX §7.3) */
+.chart-daily { min-height: 10rem; }
+.chart-bar > div { min-height: 2px; transition: height 200ms ease; }
+
 /* Responsive: minimum supported width 1024px */
 @media (max-width: 1023px) {
   body { min-width: 1024px; }
