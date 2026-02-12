@@ -28,7 +28,8 @@
         <tbody>
           {% if recent_runs %}
             {% for run in recent_runs %}
-            <tr hx-get="/runs/{{ run.run_id | urlencode }}"
+            <tr data-navigable-row
+                hx-get="/runs/{{ run.run_id | urlencode }}"
                 hx-target="#main"
                 hx-push-url="/runs/{{ run.run_id | urlencode }}"
                 class="hover cursor-pointer">
