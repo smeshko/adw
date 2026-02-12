@@ -543,10 +543,12 @@ class TestAnalyticsRoute:
         """Tab hx-get URLs include the range parameter."""
         client = _make_client()
         response = client.get("/analytics")
-        assert 'hx-get="/analytics?range=7d"' in response.text
-        assert 'hx-get="/analytics?range=30d"' in response.text
-        assert 'hx-get="/analytics?range=90d"' in response.text
-        assert 'hx-get="/analytics?range=all"' in response.text
+        text = response.text
+        # Tab URLs now include sort param too
+        assert "range=7d" in text
+        assert "range=30d" in text
+        assert "range=90d" in text
+        assert "range=all" in text
 
     def test_analytics_content_div_exists(self) -> None:
         """The analytics-content swap target div exists."""
@@ -817,3 +819,288 @@ class TestAnalyticsBreakdownPanels:
         assert "By Project" not in response.text
         assert "By Phase" not in response.text
         assert "By Model" not in response.text
+
+
+# ── Budget Section Tests ──────────────────────────────────────────
+
+
+class TestBudgetSection:
+    """Tests for budget section in analytics."""
+
+    def test_budget_context_when_env_set(self, monkeypatch: object) -> None:
+        """Budget context values present when ADW_MONTHLY_BUDGET is set."""
+        monkeypatch.setenv("ADW_MONTHLY_BUDGET", "100.00")  # type: ignore[attr-defined]
+        sa = _mock_stats_aggregator_for_analytics(current_cost=36.00)
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert result["has_budget"] is True
+        assert result["budget_amount"] == 100.00
+        assert result["budget_spent"] == "$36.00"
+        assert result["budget_percentage"] == 36.0
+
+    def test_budget_hidden_when_env_not_set(self, monkeypatch: object) -> None:
+        """Budget context has_budget=False when env var missing."""
+        monkeypatch.delenv("ADW_MONTHLY_BUDGET", raising=False)  # type: ignore[attr-defined]
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert result["has_budget"] is False
+
+    def test_budget_progress_class_primary_below_70(self, monkeypatch: object) -> None:
+        """Progress bar uses progress-primary when usage < 70%."""
+        monkeypatch.setenv("ADW_MONTHLY_BUDGET", "100.00")  # type: ignore[attr-defined]
+        sa = _mock_stats_aggregator_for_analytics(current_cost=69.00)
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert result["budget_progress_class"] == "progress-primary"
+
+    def test_budget_progress_class_warning_at_70(self, monkeypatch: object) -> None:
+        """Progress bar uses progress-warning when usage is 70%."""
+        monkeypatch.setenv("ADW_MONTHLY_BUDGET", "100.00")  # type: ignore[attr-defined]
+        sa = _mock_stats_aggregator_for_analytics(current_cost=70.00)
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert result["budget_progress_class"] == "progress-warning"
+
+    def test_budget_progress_class_warning_at_90(self, monkeypatch: object) -> None:
+        """Progress bar uses progress-warning when usage is exactly 90%."""
+        monkeypatch.setenv("ADW_MONTHLY_BUDGET", "100.00")  # type: ignore[attr-defined]
+        sa = _mock_stats_aggregator_for_analytics(current_cost=90.00)
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert result["budget_progress_class"] == "progress-warning"
+
+    def test_budget_progress_class_error_above_90(self, monkeypatch: object) -> None:
+        """Progress bar uses progress-error when usage > 90%."""
+        monkeypatch.setenv("ADW_MONTHLY_BUDGET", "100.00")  # type: ignore[attr-defined]
+        sa = _mock_stats_aggregator_for_analytics(current_cost=91.00)
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert result["budget_progress_class"] == "progress-error"
+
+    def test_budget_days_remaining(self, monkeypatch: object) -> None:
+        """Days remaining is calculated from daily average cost."""
+        monkeypatch.setenv("ADW_MONTHLY_BUDGET", "100.00")  # type: ignore[attr-defined]
+        # 7-day range with $35 spent => daily avg = $5, remaining = $65 => 13 days
+        sa = _mock_stats_aggregator_for_analytics(current_cost=35.00)
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert result["budget_days_remaining"] == 13
+
+    def test_budget_days_remaining_zero_cost(self, monkeypatch: object) -> None:
+        """Days remaining is None when cost is zero (no daily average)."""
+        monkeypatch.setenv("ADW_MONTHLY_BUDGET", "100.00")  # type: ignore[attr-defined]
+        sa = _mock_stats_aggregator_for_analytics(current_cost=0.00, current_total_runs=1)
+        # Force the mock to return 0 cost with data
+        zero_stats = GlobalStatistics(
+            generated_at=datetime.now(UTC),
+            total_runs=1,
+            tokens=TokenUsage(input_tokens=100, output_tokens=50),
+            estimated_cost=0.0,
+            projects=[],
+        )
+        sa.get_global_stats.side_effect = None
+        sa.get_global_stats.return_value = zero_stats
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert result["budget_days_remaining"] is None
+
+    def test_budget_section_shown_in_route(self, monkeypatch: object) -> None:
+        """Budget section HTML rendered when budget env var is set."""
+        monkeypatch.setenv("ADW_MONTHLY_BUDGET", "100.00")  # type: ignore[attr-defined]
+        sa = _mock_stats_aggregator_for_analytics(current_cost=36.00)
+        client = _make_client(stats_aggregator=sa)
+        response = client.get("/analytics")
+        assert "Monthly Budget" in response.text
+        assert "progress" in response.text
+
+    def test_budget_section_hidden_in_route(self, monkeypatch: object) -> None:
+        """Budget section not rendered when budget env var is absent."""
+        monkeypatch.delenv("ADW_MONTHLY_BUDGET", raising=False)  # type: ignore[attr-defined]
+        sa = _mock_stats_aggregator_for_analytics()
+        client = _make_client(stats_aggregator=sa)
+        response = client.get("/analytics")
+        assert "Monthly Budget" not in response.text
+
+    def test_budget_over_budget_clamps_days_remaining(self, monkeypatch: object) -> None:
+        """Days remaining is 0 when spend exceeds budget."""
+        monkeypatch.setenv("ADW_MONTHLY_BUDGET", "50.00")  # type: ignore[attr-defined]
+        sa = _mock_stats_aggregator_for_analytics(current_cost=75.00)
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert result["budget_days_remaining"] == 0
+        assert result["budget_percentage"] > 100
+
+    def test_budget_invalid_sort_defaults(self) -> None:
+        """Invalid sort param defaults to cost_desc in analytics route."""
+        client = _make_client()
+        response = client.get("/analytics?sort=malicious_value")
+        assert response.status_code == 200
+        assert "sort=cost_desc" in response.text
+
+
+# ── Breakdown Table Tests ─────────────────────────────────────────
+
+
+class TestBreakdownTable:
+    """Tests for detailed breakdown table in analytics."""
+
+    def test_breakdown_table_in_context(self) -> None:
+        """Breakdown table data is present in context."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert "breakdown_table" in result
+        assert len(result["breakdown_table"]) == 2
+
+    def test_breakdown_table_has_required_fields(self) -> None:
+        """Each breakdown row has name, runs, tokens, cost, avg fields."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        row = result["breakdown_table"][0]
+        assert "name" in row
+        assert "runs" in row
+        assert "tokens_display" in row
+        assert "cost_display" in row
+        assert "avg_tokens_display" in row
+
+    def test_breakdown_table_default_sort_cost_desc(self) -> None:
+        """Default sort is cost_desc (highest cost first)."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        # my-api has more tokens (900K+300K=1.2M) than my-web (600K+200K=800K)
+        # So my-api should have higher cost and be first
+        assert result["breakdown_table"][0]["name"] == "my-api"
+        assert result["breakdown_sort"] == "cost_desc"
+
+    def test_breakdown_table_sort_cost_asc(self) -> None:
+        """Sort cost_asc puts lowest cost first."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+            sort="cost_asc",
+        )
+        assert result["breakdown_table"][0]["name"] == "my-web"
+        assert result["breakdown_sort"] == "cost_asc"
+
+    def test_breakdown_table_sort_runs_desc(self) -> None:
+        """Sort runs_desc puts highest run count first."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+            sort="runs_desc",
+        )
+        # my-api has 30 runs, my-web has 20
+        assert result["breakdown_table"][0]["name"] == "my-api"
+
+    def test_breakdown_table_sort_project_asc(self) -> None:
+        """Sort project_asc puts alphabetically first project first."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+            sort="project_asc",
+        )
+        assert result["breakdown_table"][0]["name"] == "my-api"
+        assert result["breakdown_table"][1]["name"] == "my-web"
+
+    def test_breakdown_table_sort_project_desc(self) -> None:
+        """Sort project_desc puts alphabetically last project first."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+            sort="project_desc",
+        )
+        assert result["breakdown_table"][0]["name"] == "my-web"
+
+    def test_breakdown_table_empty_when_no_data(self) -> None:
+        """Breakdown table is empty when no analytics data."""
+        sa = _mock_empty_stats_aggregator()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert result["breakdown_table"] == []
+
+    def test_breakdown_table_rendered_in_route(self) -> None:
+        """Breakdown table HTML rendered in route response."""
+        client = _make_client()
+        response = client.get("/analytics")
+        assert "Detailed Breakdown" in response.text
+        assert "table-zebra" in response.text
+
+    def test_breakdown_sort_param_in_route(self) -> None:
+        """Sort parameter accepted by analytics route."""
+        client = _make_client()
+        response = client.get("/analytics?sort=runs_desc")
+        assert response.status_code == 200
+
+    def test_breakdown_sort_preserved_in_tab_urls(self) -> None:
+        """Sort parameter is preserved in time range tab URLs."""
+        client = _make_client()
+        response = client.get("/analytics?sort=tokens_desc")
+        # Tab URLs should include sort param
+        assert "sort=tokens_desc" in response.text
