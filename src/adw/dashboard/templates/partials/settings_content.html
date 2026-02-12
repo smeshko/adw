@@ -67,7 +67,7 @@
                 hx-trigger="change"
                 hx-target="#task-manager-fields"
                 hx-swap="innerHTML"
-                hx-include="[name='_project']">
+                hx-vals='{"project": "{{ selected_settings_project }}"}'>
           <option value="none" {% if task_manager_context.type == 'none' %}selected{% endif %}>none</option>
           <option value="linear" {% if task_manager_context.type == 'linear' %}selected{% endif %}>linear</option>
         </select>

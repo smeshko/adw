@@ -413,14 +413,13 @@ def _collect_mapping_fields(form: Any, prefix: str) -> dict[str, str]:
 
     Scans form data for keys like ``prefix.plan``, ``prefix.build``, etc.
     and returns a dict mapping the suffix to the string value.
-    Empty string values are excluded.
 
     Args:
         form: The form data (Starlette FormData or dict-like).
         prefix: Field name prefix (e.g., ``state_mapping``).
 
     Returns:
-        Dict mapping suffix keys to non-empty string values.
+        Dict mapping suffix keys to string values.
     """
     result: dict[str, str] = {}
     for key in form:
@@ -428,8 +427,7 @@ def _collect_mapping_fields(form: Any, prefix: str) -> dict[str, str]:
             continue
         suffix = key[len(prefix) + 1 :]
         val = str(form[key]).strip()
-        if val:
-            result[suffix] = val
+        result[suffix] = val
     return result
 
 
