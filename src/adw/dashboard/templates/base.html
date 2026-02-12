@@ -188,6 +188,10 @@
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 
         var key = e.key;
+        var modalOpen = document.querySelector('#modal-container dialog');
+
+        /* When a modal is open, only allow ? (toggle) and Escape (close) */
+        if (modalOpen && key !== '?' && key !== 'Escape') return;
 
         /* Handle g-prefix sequences */
         if (pendingG) {
@@ -283,7 +287,7 @@
 
         if (key === 'r') {
           e.preventDefault();
-          htmx.ajax('GET', window.location.pathname, {target:'#main'});
+          htmx.ajax('GET', window.location.pathname + window.location.search, {target:'#main'});
           return;
         }
       });
