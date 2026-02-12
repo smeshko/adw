@@ -1,4 +1,4 @@
-{# Phase detail partial: hooks + artifacts for a single phase #}
+{# Phase detail partial: hooks + LLM interaction + artifacts + logs for a single phase #}
 
 {# ── Hooks Sub-section ── #}
 <div class="card card-compact bg-base-300 mb-3">
@@ -22,8 +22,35 @@
   </div>
 </div>
 
+{# ── LLM Interaction Sub-section (FR25) ── #}
+<div class="card card-compact bg-base-300 mb-3">
+  <div class="card-body">
+    <h3 class="card-title text-sm">LLM Interaction</h3>
+    {% if llm_stats %}
+    <div class="flex items-center gap-4 text-sm">
+      <span class="text-base-content/60">Prompt:</span>
+      <span class="font-mono">{{ "{:,}".format(llm_stats.input_tokens) }} tokens</span>
+      <button class="btn btn-ghost btn-xs"
+              hx-get="/runs/{{ run_id }}/phases/{{ phase }}/prompt"
+              hx-target="#llm-prompt-{{ phase }}"
+              hx-swap="innerHTML">View</button>
+      <span class="text-base-content/60 ml-2">Response:</span>
+      <span class="font-mono">{{ "{:,}".format(llm_stats.output_tokens) }} tokens</span>
+      <button class="btn btn-ghost btn-xs"
+              hx-get="/runs/{{ run_id }}/phases/{{ phase }}/response"
+              hx-target="#llm-response-{{ phase }}"
+              hx-swap="innerHTML">View</button>
+    </div>
+    <div id="llm-prompt-{{ phase }}" class="mt-2"></div>
+    <div id="llm-response-{{ phase }}" class="mt-2"></div>
+    {% else %}
+    <p class="text-sm text-base-content/60">No LLM data available for this phase</p>
+    {% endif %}
+  </div>
+</div>
+
 {# ── Artifacts Sub-section ── #}
-<div class="card card-compact bg-base-300">
+<div class="card card-compact bg-base-300 mb-3">
   <div class="card-body">
     <h3 class="card-title text-sm">Artifacts</h3>
     {% if artifacts %}
@@ -45,5 +72,45 @@
     {% else %}
     <p class="text-sm text-base-content/60">No artifacts produced</p>
     {% endif %}
+  </div>
+</div>
+
+{# ── Log Viewer Sub-section (FR26) ── #}
+<div class="card card-compact bg-base-300">
+  <div class="card-body">
+    <h3 class="card-title text-sm">Logs</h3>
+    <div class="flex flex-wrap gap-2 mb-3">
+      <input type="text"
+             placeholder="Search logs..."
+             class="input input-bordered input-sm w-48"
+             name="q"
+             hx-get="/runs/{{ run_id }}/logs"
+             hx-trigger="keyup changed delay:300ms"
+             hx-target="#log-content-{{ phase }}"
+             hx-swap="innerHTML"
+             hx-include="closest .card-body"
+             value="" />
+      <select name="level"
+              class="select select-bordered select-sm"
+              hx-get="/runs/{{ run_id }}/logs"
+              hx-trigger="change"
+              hx-target="#log-content-{{ phase }}"
+              hx-swap="innerHTML"
+              hx-include="closest .card-body">
+        <option value="">All</option>
+        <option value="INFO">INFO</option>
+        <option value="WARN">WARN</option>
+        <option value="ERROR">ERROR</option>
+      </select>
+      <input type="hidden" name="phase" value="{{ phase }}" />
+    </div>
+    <div id="log-content-{{ phase }}"
+         hx-get="/runs/{{ run_id }}/logs?phase={{ phase }}"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+      <div class="flex justify-center py-4">
+        <span class="loading loading-dots loading-sm"></span>
+      </div>
+    </div>
   </div>
 </div>

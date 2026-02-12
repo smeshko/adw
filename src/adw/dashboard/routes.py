@@ -7,6 +7,7 @@ handled in ``partials.py``.
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
@@ -692,6 +693,83 @@ def _find_run_entry(
     return None
 
 
+def _load_llm_stats(
+    runs_dir: Path,
+    run_id: str,
+    phase: str,
+) -> dict | None:
+    """Load LLM token stats for a phase from the response JSON file.
+
+    Args:
+        runs_dir: Path to the .adw/runs directory.
+        run_id: The run ID.
+        phase: The phase name.
+
+    Returns:
+        Dict with input_tokens and output_tokens, or None if unavailable.
+    """
+    llm_dir = runs_dir / run_id / "llm"
+    if not llm_dir.exists():
+        return None
+
+    # Find the response file for this phase (e.g., 001_plan_response.json)
+    for f in sorted(llm_dir.iterdir()):
+        if f.name.endswith(f"_{phase}_response.json") and f.is_file():
+            try:
+                data = json.loads(f.read_text())
+                stats = data.get("stats", {})
+                return {
+                    "input_tokens": stats.get("input_tokens", 0),
+                    "output_tokens": stats.get("output_tokens", 0),
+                }
+            except (json.JSONDecodeError, OSError):
+                return None
+    return None
+
+
+def _load_llm_content(
+    runs_dir: Path,
+    run_id: str,
+    phase: str,
+    content_type: str,
+) -> str | None:
+    """Load LLM prompt or response content for a phase.
+
+    For 'response', reads the phase output artifact ({phase}_output.md).
+    For 'prompt', reads {phase}_prompt.txt from the artifacts directory
+    (if persisted by the phase runner).
+
+    Args:
+        runs_dir: Path to the .adw/runs directory.
+        run_id: The run ID.
+        phase: The phase name.
+        content_type: Either 'prompt' or 'response'.
+
+    Returns:
+        Text content or None if not found.
+    """
+    artifacts_dir = runs_dir / run_id / "artifacts" / phase
+
+    if content_type == "response":
+        # LLM response is stored as {phase}_output.md
+        response_file = artifacts_dir / f"{phase}_output.md"
+        if response_file.exists():
+            try:
+                return response_file.read_text()
+            except OSError:
+                return None
+    elif content_type == "prompt":
+        # Prompt is stored as {phase}_prompt.txt if available
+        prompt_file = artifacts_dir / f"{phase}_prompt.txt"
+        if prompt_file.exists():
+            try:
+                return prompt_file.read_text()
+            except OSError:
+                return None
+
+    return None
+
+
 @router.get("/runs/{run_id}/phases/{phase}", response_class=HTMLResponse)
 async def phase_detail(
     request: Request,
@@ -723,6 +801,7 @@ async def phase_detail(
     # Load RunContext for phase data
     hooks: list[dict] = []
     artifacts_list: list[dict] = []
+    llm_stats: dict | None = None
 
     try:
         project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
@@ -737,6 +816,9 @@ async def phase_detail(
                 "size": art["size"],
                 "size_display": _format_file_size(art["size"]),
             })
+
+        # Load LLM token stats for this phase
+        llm_stats = _load_llm_stats(runs_dir, run_id, phase)
     except (StateError, OSError):
         logger.debug(
             "Failed to load artifacts for phase detail",
@@ -749,11 +831,108 @@ async def phase_detail(
         "phase": phase,
         "hooks": hooks,
         "artifacts": artifacts_list,
+        "llm_stats": llm_stats,
     }
 
     return templates.TemplateResponse(
         request, "partials/phase_detail.html", context,
     )
+
+
+@router.get("/runs/{run_id}/phases/{phase}/prompt", response_class=HTMLResponse)
+async def llm_prompt(
+    request: Request,
+    run_id: str,
+    phase: str,
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return LLM prompt content HTML fragment for inline viewer."""
+    # Validate phase
+    if phase not in PHASE_SEQUENCE:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Invalid phase</p>',
+            status_code=400,
+        )
+
+    run_entry = _find_run_entry(index_manager, run_id)
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    try:
+        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        runs_dir = project_path / ".adw" / "runs"
+        content = _load_llm_content(runs_dir, run_id, phase, "prompt")
+    except OSError:
+        content = None
+
+    if content is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Prompt not found</p>',
+            status_code=404,
+        )
+
+    # Escape HTML for safe rendering in pre block
+    safe_content = (
+        content.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+    html = (
+        f'<pre class="max-h-96 overflow-y-auto font-mono text-xs '
+        f'bg-base-300 rounded-lg p-4 whitespace-pre-wrap">{safe_content}</pre>'
+    )
+    return HTMLResponse(content=html)
+
+
+@router.get("/runs/{run_id}/phases/{phase}/response", response_class=HTMLResponse)
+async def llm_response(
+    request: Request,
+    run_id: str,
+    phase: str,
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return LLM response content HTML fragment for inline viewer."""
+    # Validate phase
+    if phase not in PHASE_SEQUENCE:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Invalid phase</p>',
+            status_code=400,
+        )
+
+    run_entry = _find_run_entry(index_manager, run_id)
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    try:
+        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        runs_dir = project_path / ".adw" / "runs"
+        content = _load_llm_content(runs_dir, run_id, phase, "response")
+    except OSError:
+        content = None
+
+    if content is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Response not found</p>',
+            status_code=404,
+        )
+
+    # Escape HTML for safe rendering in pre block
+    safe_content = (
+        content.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+    html = (
+        f'<pre class="max-h-96 overflow-y-auto font-mono text-xs '
+        f'bg-base-300 rounded-lg p-4 whitespace-pre-wrap">{safe_content}</pre>'
+    )
+    return HTMLResponse(content=html)
 
 
 @router.get("/runs/{run_id}/artifacts/{phase}/{filename:path}", response_class=HTMLResponse)
