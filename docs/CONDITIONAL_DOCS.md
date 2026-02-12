@@ -248,3 +248,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When using the `analytics_url` macro to preserve query parameters across analytics interactions
     - When configuring the `ADW_MONTHLY_BUDGET` environment variable
     - When adding new columns or sort options to the analytics breakdown table
+
+- docs/features/keyboard-shortcuts-navigation-overlay.md
+  - Conditions:
+    - When adding new keyboard shortcuts to the ADW dashboard
+    - When implementing j/k list navigation for new table views in the dashboard
+    - When modifying the keyboard shortcut overlay modal content
+    - When adding two-key sequence shortcuts (g-prefix pattern) to the dashboard
+    - When using the `data-navigable-row` attribute for keyboard-navigable lists
