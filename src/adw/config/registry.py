@@ -89,6 +89,7 @@ class ConfigRegistry:
             PhaseConfig,
             PortRangeConfig,
             ProjectConfig,
+            RetryConfig,
             TaskManagerConfig,
             TaskManagerLabelsConfig,
             WorktreeConfig,
@@ -111,6 +112,7 @@ class ConfigRegistry:
             WorktreeConfig, skip_nested=["port_range"]
         )
         self._settings["ports"] = self._extract_from_model(PortRangeConfig)
+        self._settings["retry"] = self._extract_from_model(RetryConfig)
         self._settings["security"] = self._extract_security_settings()
         self._settings["webhook"] = self._extract_webhook_settings(WebhookConfig)
         self._settings["webhook_provider"] = self._extract_from_model(ProviderConfig)

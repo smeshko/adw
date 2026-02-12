@@ -274,8 +274,10 @@ This guide helps you find relevant documentation based on what you're working on
 
 - docs/features/settings-page-config-viewing.md
   - Conditions:
-    - When adding configuration editing capabilities to the Settings page
-    - When adding new config sections or tabs to the Settings page
+    - When adding new editable config sections or tabs to the Settings page
+    - When implementing HTMX form save endpoints with CSRF validation in the dashboard
+    - When using the load-merge-validate-write pattern for project.yaml modifications
+    - When adding toast notifications via HTMX OOB swap in the dashboard
+    - When mapping flat form field names to nested config paths in the dashboard
     - When integrating ConfigLoader or ConfigRegistry in new dashboard routes
-    - When implementing HTMX tab-based content switching in the dashboard
     - When displaying project config field metadata with defaults and descriptions

@@ -1717,6 +1717,25 @@ def _resolve_config_value(config: Any, section: str, field_name: str) -> Any:
     if sub_config is None:
         return None
 
+    # Handle port_range fields nested under worktree.port_range
+    if section == "worktree" and field_name in ("backend_start", "frontend_start"):
+        port_range = getattr(sub_config, "port_range", None)
+        if port_range is None:
+            return None
+        return getattr(port_range, field_name, None)
+
+    # Handle retry fields nested under llm.retry
+    if section == "llm" and field_name in (
+        "max_retries",
+        "base_delay_seconds",
+        "max_delay_seconds",
+        "multiplier",
+    ):
+        retry = getattr(sub_config, "retry", None)
+        if retry is None:
+            return None
+        return getattr(retry, field_name, None)
+
     return getattr(sub_config, field_name, None)
 
 
@@ -1794,6 +1813,76 @@ def build_settings_context(
                     "is_required": setting.is_required,
                 }
             )
+
+        # For the llm section, also include retry settings
+        if section_key == "llm":
+            try:
+                retry_settings = registry.get_all_settings("retry")
+            except KeyError:
+                retry_settings = []
+            for setting in retry_settings:
+                if setting.is_nested:
+                    continue
+                current_value = None
+                if config is not None:
+                    current_value = _resolve_config_value(
+                        config, "llm", setting.name
+                    )
+                default_value = setting.default
+                display_value = _format_display_value(current_value)
+                display_default = _format_display_value(default_value)
+                is_changed = False
+                if config is not None and current_value is not None:
+                    is_changed = current_value != default_value
+                section_settings.append(
+                    {
+                        "name": setting.name,
+                        "label": _humanize_field_name(setting.name),
+                        "current_value": current_value,
+                        "display_value": display_value,
+                        "default_value": default_value,
+                        "display_default": display_default,
+                        "description": setting.description,
+                        "type_hint": setting.type_hint,
+                        "is_changed": is_changed,
+                        "is_required": setting.is_required,
+                    }
+                )
+
+        # For the worktree section, also include port_range settings
+        if section_key == "worktree":
+            try:
+                port_settings = registry.get_all_settings("ports")
+            except KeyError:
+                port_settings = []
+            for setting in port_settings:
+                if setting.is_nested:
+                    continue
+                current_value = None
+                if config is not None:
+                    current_value = _resolve_config_value(
+                        config, "worktree", setting.name
+                    )
+                default_value = setting.default
+                display_value = _format_display_value(current_value)
+                display_default = _format_display_value(default_value)
+                is_changed = False
+                if config is not None and current_value is not None:
+                    is_changed = current_value != default_value
+                section_settings.append(
+                    {
+                        "name": setting.name,
+                        "label": _humanize_field_name(setting.name),
+                        "current_value": current_value,
+                        "display_value": display_value,
+                        "default_value": default_value,
+                        "display_default": display_default,
+                        "description": setting.description,
+                        "type_hint": setting.type_hint,
+                        "is_changed": is_changed,
+                        "is_required": setting.is_required,
+                    }
+                )
 
         sections[section_key] = section_settings
 
@@ -1902,6 +1991,9 @@ async def settings(
         context["phase_settings"] = _build_phase_settings(None, registry)
         context["has_config"] = False
         context["has_project_config"] = False
+
+    # CSRF token for editable settings forms
+    context["csrf_token"] = generate_csrf_token(request)
 
     # Tab state
     valid_tab_keys = [t[0] for t in _SETTINGS_TABS]

@@ -1188,6 +1188,7 @@ async def settings_content(
         "phase_settings": phase_settings,
         "has_config": config is not None,
         "selected_settings_project": project or None,
+        "csrf_token": generate_csrf_token(request),
     }
 
     return templates.TemplateResponse(

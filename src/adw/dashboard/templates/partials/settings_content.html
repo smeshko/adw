@@ -1,7 +1,24 @@
 {# Settings section content — rendered inside #settings-content container #}
 
+{# Editable sections: project, git, worktree (ports only), llm #}
+{% set editable_tabs = ['project', 'git', 'worktree', 'llm'] %}
+
+{# Language options for the project section #}
+{% set language_options = ['python', 'javascript', 'typescript', 'go', 'rust', 'java', 'ruby', 'php'] %}
+
+{# Platform options for the project section #}
+{% set platform_options = ['cli', 'web', 'api'] %}
+
+{# Define which fields are editable per section #}
+{% set editable_fields = {
+  'project': ['language', 'platform', 'test_command', 'build_command'],
+  'git': ['branch_prefix', 'skip_hooks', 'base_branch'],
+  'worktree': ['backend_start', 'frontend_start'],
+  'llm': ['max_retries', 'base_delay_seconds', 'max_delay_seconds', 'multiplier']
+} %}
+
 {% if active_tab == 'phases' %}
-  {# ── Phases Tab ── #}
+  {# ── Phases Tab (read-only) ── #}
   {% if phase_settings %}
   <div class="space-y-6">
     {% for phase in phase_settings %}
@@ -29,8 +46,222 @@
   </div>
   {% endif %}
 
+{% elif active_tab in editable_tabs and has_config %}
+  {# ── Editable Section Tab ── #}
+  {% set section_settings = settings_sections.get(active_tab, []) %}
+
+  {% if not section_settings %}
+  <div class="flex justify-center items-center min-h-[20vh]">
+    <p class="text-base-content/60 text-sm">No settings available for this section.</p>
+  </div>
+
+  {% else %}
+  <form hx-post="/settings/save"
+        hx-target="#settings-content"
+        hx-swap="innerHTML"
+        class="space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="_section" value="{{ active_tab }}">
+    <input type="hidden" name="_project" value="{{ selected_settings_project }}">
+
+    <div class="card card-bordered bg-base-100 p-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for setting in section_settings %}
+        {% set is_editable = setting.name in editable_fields.get(active_tab, []) %}
+
+        {% if is_editable %}
+        {# ── Editable field ── #}
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-2 mb-1">
+            {% if setting.is_changed %}
+            <span class="w-2 h-2 rounded-full bg-accent shrink-0" title="Modified from default"></span>
+            {% endif %}
+            <label class="font-semibold text-sm" for="field-{{ setting.name }}">{{ setting.label }}</label>
+            <span class="badge badge-ghost badge-xs font-mono">{{ setting.type_hint }}</span>
+            {% if setting.is_required %}
+            <span class="badge badge-error badge-xs">required</span>
+            {% endif %}
+          </div>
+
+          {# Select dropdown for language #}
+          {% if setting.name == 'language' %}
+          <select id="field-{{ setting.name }}"
+                  name="{{ setting.name }}"
+                  class="select select-bordered select-sm w-full"
+                  data-default="{{ setting.default_value or '' }}">
+            {% if setting.current_value and setting.current_value not in language_options %}
+            <option value="{{ setting.current_value }}" selected>{{ setting.current_value }}</option>
+            {% endif %}
+            {% for opt in language_options %}
+            <option value="{{ opt }}" {% if setting.current_value == opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+          </select>
+
+          {# Select dropdown for platform #}
+          {% elif setting.name == 'platform' %}
+          <select id="field-{{ setting.name }}"
+                  name="{{ setting.name }}"
+                  class="select select-bordered select-sm w-full"
+                  data-default="{{ setting.default_value or '' }}">
+            {% if setting.current_value and setting.current_value not in platform_options %}
+            <option value="{{ setting.current_value }}" selected>{{ setting.current_value }}</option>
+            {% endif %}
+            {% for opt in platform_options %}
+            <option value="{{ opt }}" {% if setting.current_value == opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+          </select>
+
+          {# Toggle for boolean fields #}
+          {% elif setting.type_hint == 'bool' %}
+          <input type="hidden" name="{{ setting.name }}" value="false">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox"
+                   id="field-{{ setting.name }}"
+                   name="{{ setting.name }}"
+                   value="true"
+                   class="toggle toggle-sm"
+                   data-default="{{ setting.default_value|lower if setting.default_value is not none else 'false' }}"
+                   {% if setting.current_value %}checked{% endif %}>
+            <span class="text-sm text-base-content/70">{{ setting.description }}</span>
+          </label>
+
+          {# Number input for numeric fields #}
+          {% elif setting.type_hint in ['int', 'float'] or setting.name in ['max_retries', 'base_delay_seconds', 'max_delay_seconds', 'multiplier', 'backend_start', 'frontend_start'] %}
+          <input type="number"
+                 id="field-{{ setting.name }}"
+                 name="{{ setting.name }}"
+                 class="input input-bordered input-sm w-full"
+                 value="{{ setting.current_value if setting.current_value is not none else setting.default_value or '' }}"
+                 data-default="{{ setting.default_value or '' }}"
+                 {% if setting.name == 'max_retries' %}min="1" max="10" step="1"
+                 {% elif setting.name == 'base_delay_seconds' %}min="0.1" max="300" step="0.1"
+                 {% elif setting.name == 'max_delay_seconds' %}min="0.1" max="300" step="0.1"
+                 {% elif setting.name == 'multiplier' %}min="1.01" max="5.0" step="0.1"
+                 {% elif setting.name in ['backend_start', 'frontend_start'] %}min="1" max="65535" step="1"
+                 {% endif %}>
+
+          {# Text input for string fields #}
+          {% else %}
+          <input type="text"
+                 id="field-{{ setting.name }}"
+                 name="{{ setting.name }}"
+                 class="input input-bordered input-sm w-full"
+                 value="{{ setting.current_value if setting.current_value is not none else '' }}"
+                 data-default="{{ setting.default_value or '' }}"
+                 {% if setting.name == 'branch_prefix' %}pattern=".*/$" title="Must end with /"{% endif %}>
+          {% endif %}
+
+          {# Validation error placeholder #}
+          <span class="text-error text-xs mt-1 hidden" id="error-{{ setting.name }}"></span>
+
+          {% if setting.description and setting.type_hint != 'bool' %}
+          <p class="text-xs text-base-content/60">{{ setting.description }}</p>
+          {% endif %}
+          {% if setting.display_default and setting.display_default != setting.display_value %}
+          <span class="text-base-content/50 text-xs">Default: {{ setting.display_default }}</span>
+          {% endif %}
+        </div>
+
+        {% else %}
+        {# ── Read-only field ── #}
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-2 mb-1">
+            {% if setting.is_changed %}
+            <span class="w-2 h-2 rounded-full bg-accent shrink-0" title="Modified from default"></span>
+            {% endif %}
+            <span class="font-semibold text-sm">{{ setting.label }}</span>
+            <span class="badge badge-ghost badge-xs font-mono">{{ setting.type_hint }}</span>
+            {% if setting.is_required %}
+            <span class="badge badge-error badge-xs">required</span>
+            {% endif %}
+          </div>
+          <div class="flex items-center gap-3">
+            {% if setting.display_value == 'true' %}
+              <span class="badge badge-success badge-sm font-mono">true</span>
+            {% elif setting.display_value == 'false' %}
+              <span class="badge badge-neutral badge-sm font-mono">false</span>
+            {% else %}
+              <span class="font-mono text-sm bg-base-200 px-2 py-0.5">{{ setting.display_value }}</span>
+            {% endif %}
+            {% if setting.display_default and setting.display_default != setting.display_value %}
+            <span class="text-base-content/50 text-xs">Default: {{ setting.display_default }}</span>
+            {% endif %}
+          </div>
+          {% if setting.description %}
+          <p class="text-xs text-base-content/60">{{ setting.description }}</p>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Save button #}
+    <div class="flex justify-end">
+      <button type="submit" class="btn btn-primary btn-sm" id="settings-save-btn">
+        <span class="loading loading-spinner loading-sm htmx-indicator"></span>
+        Save
+      </button>
+    </div>
+  </form>
+
+  {# ── Client-side validation ── #}
+  <script>
+  (function() {
+    var form = document.querySelector('#settings-content form');
+    if (!form) return;
+
+    var saveBtn = document.getElementById('settings-save-btn');
+    var rules = {
+      'branch_prefix': function(v) { return v && !v.endsWith('/') ? 'Must end with /' : ''; },
+      'max_retries': function(v) { var n = parseInt(v, 10); return isNaN(n) || n < 1 || n > 10 ? 'Must be 1\u201310' : ''; },
+      'base_delay_seconds': function(v) { var n = parseFloat(v); return isNaN(n) || n < 0.1 || n > 300 ? 'Must be 0.1\u2013300' : ''; },
+      'max_delay_seconds': function(v) { var n = parseFloat(v); return isNaN(n) || n < 0.1 || n > 300 ? 'Must be 0.1\u2013300' : ''; },
+      'multiplier': function(v) { var n = parseFloat(v); return isNaN(n) || n <= 1.0 || n > 5.0 ? 'Must be >1.0 and \u22645.0' : ''; },
+      'backend_start': function(v) { var n = parseInt(v, 10); return isNaN(n) || n < 1 || n > 65535 ? 'Must be 1\u201365535' : ''; },
+      'frontend_start': function(v) { var n = parseInt(v, 10); return isNaN(n) || n < 1 || n > 65535 ? 'Must be 1\u201365535' : ''; }
+    };
+
+    function validate(input) {
+      var name = input.name;
+      var errEl = document.getElementById('error-' + name);
+      if (!errEl) return;
+      var rule = rules[name];
+      var msg = rule ? rule(input.value) : '';
+      if (msg) {
+        errEl.textContent = msg;
+        errEl.classList.remove('hidden');
+        input.classList.add('input-error');
+      } else {
+        errEl.textContent = '';
+        errEl.classList.add('hidden');
+        input.classList.remove('input-error');
+      }
+      updateSaveBtn();
+    }
+
+    function updateSaveBtn() {
+      var hasErrors = form.querySelector('.text-error:not(.hidden)');
+      if (saveBtn) {
+        saveBtn.disabled = !!hasErrors;
+        saveBtn.classList.toggle('btn-disabled', !!hasErrors);
+        saveBtn.classList.toggle('opacity-50', !!hasErrors);
+      }
+    }
+
+    form.querySelectorAll('input[type="text"], input[type="number"]').forEach(function(input) {
+      input.addEventListener('blur', function() { validate(input); });
+    });
+    form.querySelectorAll('select').forEach(function(sel) {
+      sel.addEventListener('change', function() { validate(sel); });
+    });
+  })();
+  </script>
+  {% endif %}
+
 {% else %}
-  {# ── Regular Section Tab ── #}
+  {# ── Read-Only Section Tab ── #}
   {% set section_settings = settings_sections.get(active_tab, []) %}
 
   {% if not section_settings %}
