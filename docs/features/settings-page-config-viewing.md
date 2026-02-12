@@ -151,7 +151,7 @@ The settings tabs are defined in `_SETTINGS_TABS` in `routes.py`:
 | llm | LLM Retry | `config.llm.*` + `config.llm.retry.*` | Retry only |
 | task_manager | Task Manager | `config.task_manager.*` | Yes (custom editor) |
 | security | Security | `config.security.*` | Yes (list editors) |
-| phases | Phases | Phase-level settings via `ConfigRegistry.get_phase_settings()` | No |
+| phases | Phases | Per-phase config via `.adw/commands/{phase}/config.yaml` | Yes (phase editor) |
 
 ## Notes
 
