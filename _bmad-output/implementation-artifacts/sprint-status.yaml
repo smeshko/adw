@@ -50,13 +50,13 @@ development_status:
   #       recent runs, project breakdown, cost summary, dark theme, HTMX nav
   # FRs: FR1-FR11, FR42-FR44, FR45-FR53 (27 FRs)
   # ═══════════════════════════════════════════════════════════════════════════
-  wd-epic-1: backlog
-  wd-1-1-server-infrastructure-cli-launch: backlog
-  wd-1-2-base-template-navigation-theme: backlog
-  wd-1-3-overview-stat-cards-status-vocabulary: backlog
-  wd-1-4-active-runs-section-with-live-updates: backlog
-  wd-1-5-recent-runs-table-project-breakdown: backlog
-  wd-1-6-cost-summary-strip-empty-states: backlog
+  wd-epic-1: done
+  wd-1-1-server-infrastructure-cli-launch: done
+  wd-1-2-base-template-navigation-theme: done
+  wd-1-3-overview-stat-cards-status-vocabulary: done
+  wd-1-4-active-runs-section-with-live-updates: done
+  wd-1-5-recent-runs-table-project-breakdown: done
+  wd-1-6-cost-summary-strip-empty-states: done
   wd-epic-1-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -65,11 +65,11 @@ development_status:
   #       LLM exchanges, and searchable/streaming logs
   # FRs: FR16-FR27 (12 FRs)
   # ═══════════════════════════════════════════════════════════════════════════
-  wd-epic-2: backlog
-  wd-2-1-run-detail-page-layout-metadata: backlog
-  wd-2-2-phase-accordion-with-hooks-artifacts: backlog
-  wd-2-3-llm-interaction-viewer-log-viewer: backlog
-  wd-2-4-active-failed-run-variants-with-sse: backlog
+  wd-epic-2: done
+  wd-2-1-run-detail-page-layout-metadata: done
+  wd-2-2-phase-accordion-with-hooks-artifacts: done
+  wd-2-3-llm-interaction-viewer-log-viewer: done
+  wd-2-4-active-failed-run-variants-with-sse: done
   wd-epic-2-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -78,10 +78,10 @@ development_status:
   #       browser — dashboard becomes a full command center
   # FRs: FR12-FR15 (4 FRs)
   # ═══════════════════════════════════════════════════════════════════════════
-  wd-epic-3: backlog
-  wd-3-1-new-run-modal-form-submission: backlog
-  wd-3-2-re-run-flow: backlog
-  wd-3-3-abort-active-run: backlog
+  wd-epic-3: done
+  wd-3-1-new-run-modal-form-submission: done
+  wd-3-2-re-run-flow: done
+  wd-3-3-abort-active-run: done
   wd-epic-3-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -90,9 +90,9 @@ development_status:
   #       projects
   # FRs: FR28-FR31 (4 FRs)
   # ═══════════════════════════════════════════════════════════════════════════
-  wd-epic-4: backlog
-  wd-4-1-runs-list-page-with-table-pagination: backlog
-  wd-4-2-filter-bar-with-status-project-date-range: backlog
+  wd-epic-4: done
+  wd-4-1-runs-list-page-with-table-pagination: done
+  wd-4-2-filter-bar-with-status-project-date-range: done
   wd-epic-4-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -101,10 +101,10 @@ development_status:
   #       charts, breakdowns by project/phase/model
   # FRs: FR32-FR38 (7 FRs)
   # ═══════════════════════════════════════════════════════════════════════════
-  wd-epic-5: backlog
-  wd-5-1-analytics-page-layout-with-time-range-stat-cards: backlog
-  wd-5-2-daily-usage-chart-breakdown-panels: backlog
-  wd-5-3-budget-section-detailed-breakdown-table: backlog
+  wd-epic-5: done
+  wd-5-1-analytics-page-layout-with-time-range-stat-cards: done
+  wd-5-2-daily-usage-chart-breakdown-panels: done
+  wd-5-3-budget-section-detailed-breakdown-table: done
   wd-epic-5-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -112,7 +112,7 @@ development_status:
   # Goal: Keyboard shortcuts, terminal mode, focus mode for power users
   # FRs: FR39-FR41 (3 FRs)
   # ═══════════════════════════════════════════════════════════════════════════
-  wd-epic-6: backlog
-  wd-6-1-keyboard-shortcuts-overlay: backlog
-  wd-6-2-terminal-mode-focus-mode: backlog
+  wd-epic-6: done
+  wd-6-1-keyboard-shortcuts-overlay: done
+  wd-6-2-terminal-mode-focus-mode: done
   wd-epic-6-retrospective: optional

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADW — Run Detail (Brutalist Dark)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;500;600;700;800;900&family=Inconsolata:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-void: #111111;
+      --bg-surface: #181818;
+      --bg-card: #1E1E1E;
+      --bg-card-hover: #252525;
+      --bg-header: #0A0A0A;
+      --border-color: #E8E4DF;
+      --border-harsh: 2px solid var(--border-color);
+      --text-primary: #E8E4DF;
+      --text-secondary: #999;
+      --text-muted: #666;
+      --accent-red: #C43018;
+      --accent-orange: #D4602A;
+      --accent-green: #2ECC40;
+      --accent-amber: #D49A20;
+      --accent-cream: #E8E4DF;
+      --shadow-offset: 4px 4px 0 #C43018;
+      --font-display: 'Azeret Mono', monospace;
+      --font-body: 'Inconsolata', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-void);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      font-size: 14px; line-height: 1.5;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.6;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    }
+    header {
+      background: var(--bg-header); padding: 0 1.5rem; height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100; border-bottom: 4px solid var(--accent-red);
+    }
+    .logo { font-family: var(--font-display); font-weight: 900; font-size: 15px; text-transform: uppercase; letter-spacing: 0.15em; }
+    .logo span { color: var(--accent-red); }
+    .nav-right { display: flex; align-items: center; gap: 4px; }
+    .nav-links { display: flex; }
+    .nav-link {
+      padding: 6px 14px; font-family: var(--font-display); font-size: 11px;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-muted); text-decoration: none;
+    }
+    .nav-link:hover { color: var(--text-primary); }
+    .nav-link.active { color: var(--accent-red); border-bottom: 3px solid var(--accent-red); }
+    .nav-divider { width: 2px; height: 24px; background: #333; margin: 0 8px; }
+    select {
+      font-family: var(--font-display); font-size: 11px; font-weight: 600;
+      text-transform: uppercase; background: var(--bg-card); color: var(--text-secondary);
+      border: 2px solid #444; border-radius: 0; padding: 4px 8px; outline: none;
+    }
+    .theme-btn {
+      background: transparent; border: 2px solid #444; border-radius: 0;
+      color: var(--text-muted); width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px;
+    }
+    main { max-width: 1200px; width: 100%; margin: 0 auto; padding: 1.5rem; flex: 1; }
+
+    h2 {
+      font-family: var(--font-display); font-size: 13px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      display: inline-flex; align-items: center;
+    }
+    h2::before { content: '//'; color: var(--accent-red); margin-right: 8px; }
+
+    /* ── BREADCRUMB ── */
+    .breadcrumb {
+      font-family: var(--font-display); font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-muted); margin-bottom: 1rem;
+    }
+    .breadcrumb a { color: var(--text-muted); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--accent-red); }
+    .breadcrumb .sep { margin: 0 6px; }
+
+    /* ── RUN HEADER ── */
+    .run-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 1.5rem; padding-bottom: 14px;
+      border-bottom: 3px solid var(--accent-cream);
+    }
+    .run-title-block { display: flex; flex-direction: column; gap: 6px; }
+    .run-title {
+      font-family: var(--font-display); font-size: 22px; font-weight: 900;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .run-subtitle { font-size: 13px; color: var(--text-secondary); }
+    .run-id-tag {
+      font-family: var(--font-display); font-size: 10px; font-weight: 600;
+      color: var(--text-muted); background: #252525; border: 1px solid #444;
+      padding: 2px 8px;
+    }
+    .run-actions { display: flex; gap: 8px; align-items: flex-start; }
+    .btn-outline {
+      font-family: var(--font-display); font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 6px 14px; background: transparent; color: var(--text-secondary);
+      border: 2px solid #444; cursor: pointer; transition: all 0.1s;
+    }
+    .btn-outline:hover { border-color: var(--accent-cream); color: var(--text-primary); }
+    .btn-danger {
+      font-family: var(--font-display); font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 6px 14px; background: transparent; color: var(--accent-red);
+      border: 2px solid var(--accent-red); cursor: pointer; transition: all 0.1s;
+    }
+    .btn-danger:hover { background: var(--accent-red); color: white; }
+
+    /* ── STATUS BANNER ── */
+    .status-banner {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--bg-card); border: var(--border-harsh);
+      padding: 14px 18px; margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-offset);
+    }
+    .status-indicator {
+      width: 14px; height: 14px; background: var(--accent-green);
+      animation: none;
+    }
+    .status-indicator.running {
+      background: var(--accent-amber);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .status-text {
+      font-family: var(--font-display); font-size: 12px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .status-meta { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+
+    /* ── PHASE TIMELINE ── */
+    .phase-timeline {
+      display: flex; gap: 0; margin-bottom: 1.5rem;
+      border: var(--border-harsh); box-shadow: var(--shadow-offset);
+    }
+    .phase-step {
+      flex: 1; padding: 14px 16px; border-right: 1px solid #333;
+      background: var(--bg-card); position: relative;
+    }
+    .phase-step:last-child { border-right: none; }
+    .phase-step.completed { border-top: 3px solid var(--accent-green); }
+    .phase-step.active { border-top: 3px solid var(--accent-amber); background: var(--bg-card-hover); }
+    .phase-step.pending { border-top: 3px solid #333; }
+    .phase-step.failed { border-top: 3px solid var(--accent-red); }
+    .phase-name {
+      font-family: var(--font-display); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+    .phase-step.completed .phase-name { color: var(--accent-green); }
+    .phase-step.active .phase-name { color: var(--accent-amber); }
+    .phase-step.pending .phase-name { color: var(--text-muted); }
+    .phase-duration { font-size: 11px; color: var(--text-muted); }
+    .phase-icon { font-size: 14px; position: absolute; top: 12px; right: 12px; }
+
+    /* ── TWO-COLUMN LAYOUT ── */
+    .detail-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      margin-bottom: 1.5rem;
+    }
+    .detail-grid .full-width { grid-column: 1 / -1; }
+
+    .card {
+      background: var(--bg-card); border: var(--border-harsh);
+      box-shadow: var(--shadow-offset); padding: 16px 18px;
+    }
+    .card-header { margin-bottom: 14px; }
+
+    /* ── METADATA TABLE ── */
+    .meta-table { width: 100%; border-collapse: collapse; }
+    .meta-table tr { border-bottom: 1px solid #2A2A2A; }
+    .meta-table tr:last-child { border-bottom: none; }
+    .meta-table th {
+      font-family: var(--font-display); font-size: 9px; text-transform: uppercase;
+      letter-spacing: 0.12em; font-weight: 700; color: var(--text-muted);
+      padding: 8px 0; text-align: left; width: 140px;
+    }
+    .meta-table td { padding: 8px 0; font-size: 13px; }
+
+    /* ── LOG OUTPUT ── */
+    .log-output {
+      background: var(--bg-header); border: 1px solid #333;
+      padding: 14px; font-size: 12px; color: var(--text-secondary);
+      max-height: 260px; overflow-y: auto;
+      line-height: 1.7;
+    }
+    .log-line { display: flex; gap: 10px; }
+    .log-time { color: var(--text-muted); min-width: 70px; flex-shrink: 0; }
+    .log-phase {
+      font-family: var(--font-display); font-size: 9px; font-weight: 700;
+      text-transform: uppercase; min-width: 50px; flex-shrink: 0;
+    }
+    .log-msg { color: var(--text-secondary); }
+    .log-success { color: var(--accent-green); }
+    .log-error { color: var(--accent-red); }
+    .log-warn { color: var(--accent-amber); }
+
+    /* ── TOKEN BREAKDOWN ── */
+    .token-breakdown { display: flex; flex-direction: column; gap: 10px; }
+    .token-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .token-label { font-size: 12px; color: var(--text-secondary); min-width: 60px; }
+    .token-bar-track { flex: 1; height: 14px; background: #2A2A2A; }
+    .token-bar-fill { height: 100%; }
+    .token-bar-fill.input { background: var(--accent-red); }
+    .token-bar-fill.output { background: var(--accent-orange); }
+    .token-bar-fill.cache { background: var(--accent-amber); }
+    .token-count { font-size: 11px; color: var(--text-muted); min-width: 60px; text-align: right; font-variant-numeric: tabular-nums; }
+
+    footer {
+      background: var(--bg-header); border-top: 4px solid var(--accent-red);
+      padding: 8px 1.5rem; display: flex; align-items: center; justify-content: center;
+      gap: 16px; font-size: 10px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      font-family: var(--font-display); font-weight: 600;
+    }
+    footer strong { color: var(--accent-amber); }
+    .refresh-btn {
+      background: transparent; border: 2px solid #444; border-radius: 0;
+      color: var(--text-muted); cursor: pointer; padding: 2px 6px; font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo">ADW<span>_</span>DASHBOARD</span>
+    <div class="nav-right">
+      <nav class="nav-links">
+        <a class="nav-link" href="04-industrial-brutalist-dark.html">Overview</a>
+        <a class="nav-link active" href="04b-brutalist-runs-list.html">Runs</a>
+        <a class="nav-link" href="04c-brutalist-analytics.html">Analytics</a>
+      </nav>
+      <span class="nav-divider"></span>
+      <select><option>ALL PROJECTS</option></select>
+      <button class="theme-btn">☀</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="breadcrumb">
+      <a href="04b-brutalist-runs-list.html">Runs</a><span class="sep">/</span>
+      <span>#01KH4F</span>
+    </div>
+
+    <div class="run-header">
+      <div class="run-title-block">
+        <div class="run-title">Add phase pipeline validation</div>
+        <div class="run-subtitle">adw-core &middot; feature/adw-11</div>
+        <span class="run-id-tag">#01KH4F3SKGN3CJENGNPK3A3GB4</span>
+      </div>
+      <div class="run-actions">
+        <button class="btn-outline">↻ RE-RUN</button>
+        <button class="btn-danger">■ ABORT</button>
+      </div>
+    </div>
+
+    <!-- Status Banner -->
+    <div class="status-banner">
+      <div class="status-indicator"></div>
+      <span class="status-text" style="color: var(--accent-green);">Completed</span>
+      <span class="status-meta">Started 2 hours ago &middot; Duration 5m 12s</span>
+    </div>
+
+    <!-- Phase Timeline -->
+    <div class="phase-timeline">
+      <div class="phase-step completed">
+        <div class="phase-name">Plan</div>
+        <div class="phase-duration">0m 42s</div>
+        <span class="phase-icon" style="color:var(--accent-green)">✓</span>
+      </div>
+      <div class="phase-step completed">
+        <div class="phase-name">Build</div>
+        <div class="phase-duration">2m 18s</div>
+        <span class="phase-icon" style="color:var(--accent-green)">✓</span>
+      </div>
+      <div class="phase-step completed">
+        <div class="phase-name">Validate</div>
+        <div class="phase-duration">1m 05s</div>
+        <span class="phase-icon" style="color:var(--accent-green)">✓</span>
+      </div>
+      <div class="phase-step completed">
+        <div class="phase-name">Document</div>
+        <div class="phase-duration">0m 34s</div>
+        <span class="phase-icon" style="color:var(--accent-green)">✓</span>
+      </div>
+      <div class="phase-step completed">
+        <div class="phase-name">Ship</div>
+        <div class="phase-duration">0m 33s</div>
+        <span class="phase-icon" style="color:var(--accent-green)">✓</span>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <!-- Run Metadata -->
+      <div class="card">
+        <div class="card-header"><h2>Run Details</h2></div>
+        <table class="meta-table">
+          <tr><th>Run ID</th><td>#01KH4F3SKGN3CJENGNPK3A3GB4</td></tr>
+          <tr><th>Project</th><td>adw-core</td></tr>
+          <tr><th>Branch</th><td>feature/adw-11</td></tr>
+          <tr><th>Started</th><td>Feb 11, 2026 14:22:08 UTC</td></tr>
+          <tr><th>Duration</th><td>5m 12s</td></tr>
+          <tr><th>Model</th><td>claude-opus-4-6</td></tr>
+          <tr><th>Total Tokens</th><td>84,012</td></tr>
+          <tr><th>Est. Cost</th><td>$3.18</td></tr>
+        </table>
+      </div>
+
+      <!-- Token Breakdown -->
+      <div class="card">
+        <div class="card-header"><h2>Token Usage</h2></div>
+        <div class="token-breakdown">
+          <div class="token-row">
+            <span class="token-label">Input</span>
+            <div class="token-bar-track"><div class="token-bar-fill input" style="width:55%"></div></div>
+            <span class="token-count">46,200</span>
+          </div>
+          <div class="token-row">
+            <span class="token-label">Output</span>
+            <div class="token-bar-track"><div class="token-bar-fill output" style="width:30%"></div></div>
+            <span class="token-count">25,210</span>
+          </div>
+          <div class="token-row">
+            <span class="token-label">Cache</span>
+            <div class="token-bar-track"><div class="token-bar-fill cache" style="width:15%"></div></div>
+            <span class="token-count">12,602</span>
+          </div>
+        </div>
+        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #2A2A2A;">
+          <table class="meta-table">
+            <tr><th>API Calls</th><td>12</td></tr>
+            <tr><th>Avg per Call</th><td>7,001 tokens</td></tr>
+            <tr><th>Cache Hit %</th><td>15%</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Activity Log -->
+      <div class="card full-width">
+        <div class="card-header"><h2>Activity Log</h2></div>
+        <div class="log-output">
+          <div class="log-line"><span class="log-time">14:22:08</span><span class="log-phase" style="color:var(--accent-amber)">PLAN</span><span class="log-msg">Starting planning phase...</span></div>
+          <div class="log-line"><span class="log-time">14:22:15</span><span class="log-phase" style="color:var(--accent-amber)">PLAN</span><span class="log-msg">Reading story file: docs/stories/adw-11.md</span></div>
+          <div class="log-line"><span class="log-time">14:22:32</span><span class="log-phase" style="color:var(--accent-amber)">PLAN</span><span class="log-msg">Analyzing codebase structure (14 files scanned)</span></div>
+          <div class="log-line"><span class="log-time">14:22:50</span><span class="log-phase" style="color:var(--accent-amber)">PLAN</span><span class="log-msg log-success">Plan approved — 3 tasks identified</span></div>
+          <div class="log-line"><span class="log-time">14:22:51</span><span class="log-phase" style="color:var(--accent-orange)">BUILD</span><span class="log-msg">Starting implementation...</span></div>
+          <div class="log-line"><span class="log-time">14:23:04</span><span class="log-phase" style="color:var(--accent-orange)">BUILD</span><span class="log-msg">Created: src/adw/dashboard/templates/components/phase_pipeline.html</span></div>
+          <div class="log-line"><span class="log-time">14:23:28</span><span class="log-phase" style="color:var(--accent-orange)">BUILD</span><span class="log-msg">Modified: src/adw/dashboard/templates/partials/active_runs.html</span></div>
+          <div class="log-line"><span class="log-time">14:24:12</span><span class="log-phase" style="color:var(--accent-orange)">BUILD</span><span class="log-msg">Created: tests/dashboard/test_phase_pipeline.py</span></div>
+          <div class="log-line"><span class="log-time">14:25:09</span><span class="log-phase" style="color:var(--accent-orange)">BUILD</span><span class="log-msg log-success">Build complete — 2 created, 1 modified</span></div>
+          <div class="log-line"><span class="log-time">14:25:10</span><span class="log-phase" style="color:var(--accent-green)">VALID</span><span class="log-msg">Running test suite...</span></div>
+          <div class="log-line"><span class="log-time">14:25:38</span><span class="log-phase" style="color:var(--accent-green)">VALID</span><span class="log-msg log-warn">Warning: 1 test skipped (test_edge_case_empty_phases)</span></div>
+          <div class="log-line"><span class="log-time">14:26:15</span><span class="log-phase" style="color:var(--accent-green)">VALID</span><span class="log-msg log-success">All 14 tests passed</span></div>
+          <div class="log-line"><span class="log-time">14:26:16</span><span class="log-phase" style="color:var(--text-secondary)">DOC</span><span class="log-msg">Generating feature documentation...</span></div>
+          <div class="log-line"><span class="log-time">14:26:50</span><span class="log-phase" style="color:var(--text-secondary)">DOC</span><span class="log-msg log-success">Documentation written to docs/features/</span></div>
+          <div class="log-line"><span class="log-time">14:26:51</span><span class="log-phase" style="color:var(--accent-red)">SHIP</span><span class="log-msg">Creating commit and PR...</span></div>
+          <div class="log-line"><span class="log-time">14:27:14</span><span class="log-phase" style="color:var(--accent-red)">SHIP</span><span class="log-msg log-success">PR #42 created → staging</span></div>
+          <div class="log-line"><span class="log-time">14:27:20</span><span class="log-phase" style="color:var(--accent-green)">DONE</span><span class="log-msg log-success">Run completed successfully</span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>Last updated <strong>12s ago</strong></span>
+    <span>2 active runs</span>
+    <button class="refresh-btn">↻</button>
+  </footer>
+</body>
+</html>

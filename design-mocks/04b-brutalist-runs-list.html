@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADW — Runs List (Brutalist Dark)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;500;600;700;800;900&family=Inconsolata:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-void: #111111;
+      --bg-surface: #181818;
+      --bg-card: #1E1E1E;
+      --bg-card-hover: #252525;
+      --bg-header: #0A0A0A;
+      --border-color: #E8E4DF;
+      --border-harsh: 2px solid var(--border-color);
+      --border-thin: 1px solid #333;
+      --text-primary: #E8E4DF;
+      --text-secondary: #999;
+      --text-muted: #666;
+      --accent-red: #C43018;
+      --accent-orange: #D4602A;
+      --accent-green: #2ECC40;
+      --accent-amber: #D49A20;
+      --accent-cream: #E8E4DF;
+      --shadow-offset: 4px 4px 0 #C43018;
+      --shadow-offset-sm: 3px 3px 0 #C43018;
+      --shadow-offset-hover: 6px 6px 0 #C43018;
+      --font-display: 'Azeret Mono', monospace;
+      --font-body: 'Inconsolata', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-void);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 9999; opacity: 0.6;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    }
+
+    /* ── NAVBAR ── */
+    header {
+      background: var(--bg-header);
+      padding: 0 1.5rem; height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      border-bottom: 4px solid var(--accent-red);
+    }
+    .logo { font-family: var(--font-display); font-weight: 900; font-size: 15px; text-transform: uppercase; letter-spacing: 0.15em; }
+    .logo span { color: var(--accent-red); }
+    .nav-right { display: flex; align-items: center; gap: 4px; }
+    .nav-links { display: flex; gap: 0; }
+    .nav-link {
+      padding: 6px 14px; font-family: var(--font-display); font-size: 11px;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-muted); text-decoration: none; transition: all 0.1s;
+    }
+    .nav-link:hover { color: var(--text-primary); }
+    .nav-link.active { color: var(--accent-red); border-bottom: 3px solid var(--accent-red); }
+    .nav-divider { width: 2px; height: 24px; background: #333; margin: 0 8px; }
+    select {
+      font-family: var(--font-display); font-size: 11px; font-weight: 600;
+      text-transform: uppercase; background: var(--bg-card); color: var(--text-secondary);
+      border: 2px solid #444; border-radius: 0; padding: 4px 8px; outline: none; cursor: pointer;
+    }
+    .theme-btn {
+      background: transparent; border: 2px solid #444; border-radius: 0;
+      color: var(--text-muted); width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 14px;
+    }
+
+    /* ── MAIN ── */
+    main { max-width: 1200px; width: 100%; margin: 0 auto; padding: 1.5rem; flex: 1; }
+
+    .page-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 1.5rem; padding-bottom: 12px;
+      border-bottom: 3px solid var(--accent-cream);
+    }
+    h1 {
+      font-family: var(--font-display); font-size: 28px; font-weight: 900;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+
+    /* ── FILTERS BAR ── */
+    .filters {
+      display: flex; gap: 8px; margin-bottom: 1.25rem; align-items: center; flex-wrap: wrap;
+    }
+    .filter-group { display: flex; align-items: center; gap: 0; }
+    .filter-label {
+      font-family: var(--font-display); font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted);
+      padding: 6px 10px; background: #252525; border: 2px solid #444;
+      border-right: none;
+    }
+    .filter-select {
+      font-family: var(--font-display); font-size: 11px; font-weight: 600;
+      background: var(--bg-card); color: var(--text-secondary);
+      border: 2px solid #444; border-radius: 0; padding: 4px 8px; outline: none; cursor: pointer;
+    }
+    .filter-select:focus { border-color: var(--accent-red); color: var(--text-primary); }
+
+    .search-box {
+      font-family: var(--font-body); font-size: 12px;
+      background: var(--bg-card); color: var(--text-primary);
+      border: 2px solid #444; border-radius: 0; padding: 5px 10px;
+      outline: none; flex: 1; min-width: 200px;
+    }
+    .search-box::placeholder { color: var(--text-muted); }
+    .search-box:focus { border-color: var(--accent-red); }
+
+    .results-count {
+      font-family: var(--font-display); font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+      margin-left: auto;
+    }
+    .results-count strong { color: var(--accent-cream); }
+
+    /* ── TABLE ── */
+    .table-card {
+      background: var(--bg-card); border: var(--border-harsh);
+      box-shadow: var(--shadow-offset); overflow: hidden; margin-bottom: 1.25rem;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #252525; }
+    th {
+      font-family: var(--font-display); font-size: 9px; text-transform: uppercase;
+      letter-spacing: 0.15em; font-weight: 800; padding: 10px 16px;
+      text-align: left; color: var(--accent-cream); border-bottom: 3px solid var(--accent-red);
+      cursor: pointer; user-select: none;
+    }
+    th:hover { color: var(--accent-red); }
+    th .sort-arrow { font-size: 8px; margin-left: 4px; opacity: 0.4; }
+    th.sorted .sort-arrow { opacity: 1; color: var(--accent-red); }
+    td {
+      padding: 12px 16px; font-size: 13px;
+      border-bottom: 1px solid #2A2A2A; font-weight: 500;
+    }
+    tr { cursor: pointer; transition: background 0.05s; }
+    tr:hover td { background: var(--bg-card-hover); }
+
+    .badge {
+      font-family: var(--font-display); font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border: 2px solid;
+    }
+    .badge-success { background: transparent; color: var(--accent-green); border-color: var(--accent-green); }
+    .badge-warning { background: transparent; color: var(--accent-amber); border-color: var(--accent-amber); }
+    .badge-error { background: transparent; color: var(--accent-red); border-color: var(--accent-red); }
+    .badge-ghost { background: transparent; color: var(--text-muted); border-color: #444; }
+
+    .td-muted { color: var(--text-secondary); }
+    .td-dim { color: var(--text-muted); font-size: 12px; }
+    .td-mono { font-variant-numeric: tabular-nums; }
+
+    .run-id {
+      font-size: 11px; color: var(--text-muted); font-weight: 600;
+    }
+
+    /* ── PIPELINE INLINE ── */
+    .pipeline-inline { display: flex; gap: 2px; }
+    .pip {
+      width: 8px; height: 8px; border: 1px solid #444;
+    }
+    .pip.completed { background: var(--accent-green); border-color: var(--accent-green); }
+    .pip.active { background: var(--accent-amber); border-color: var(--accent-amber); }
+    .pip.failed { background: var(--accent-red); border-color: var(--accent-red); }
+
+    /* ── PAGINATION ── */
+    .pagination {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .page-info {
+      font-family: var(--font-display); font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+    }
+    .page-buttons { display: flex; gap: 4px; }
+    .page-btn {
+      font-family: var(--font-display); font-size: 11px; font-weight: 700;
+      padding: 6px 12px; background: var(--bg-card); color: var(--text-secondary);
+      border: 2px solid #444; border-radius: 0; cursor: pointer; transition: all 0.1s;
+    }
+    .page-btn:hover { border-color: var(--accent-cream); color: var(--text-primary); }
+    .page-btn.active { border-color: var(--accent-red); color: var(--accent-red); box-shadow: 2px 2px 0 var(--accent-red); }
+    .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--bg-header); border-top: 4px solid var(--accent-red);
+      padding: 8px 1.5rem; display: flex; align-items: center; justify-content: center;
+      gap: 16px; font-size: 10px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      font-family: var(--font-display); font-weight: 600;
+    }
+    footer strong { color: var(--accent-amber); }
+    .refresh-btn {
+      background: transparent; border: 2px solid #444; border-radius: 0;
+      color: var(--text-muted); cursor: pointer; padding: 2px 6px; font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo">ADW<span>_</span>DASHBOARD</span>
+    <div class="nav-right">
+      <nav class="nav-links">
+        <a class="nav-link" href="04-industrial-brutalist-dark.html">Overview</a>
+        <a class="nav-link active" href="#">Runs</a>
+        <a class="nav-link" href="04c-brutalist-analytics.html">Analytics</a>
+      </nav>
+      <span class="nav-divider"></span>
+      <select><option>ALL PROJECTS</option></select>
+      <button class="theme-btn">☀</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="page-header">
+      <h1>Runs</h1>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Status</span>
+        <select class="filter-select">
+          <option>ALL</option>
+          <option>COMPLETED</option>
+          <option>RUNNING</option>
+          <option>FAILED</option>
+          <option>ABORTED</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Project</span>
+        <select class="filter-select">
+          <option>ALL</option>
+          <option>ADW-CORE</option>
+          <option>ADW-DASHBOARD</option>
+          <option>ADW-CLI</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Period</span>
+        <select class="filter-select">
+          <option>LAST 7 DAYS</option>
+          <option>LAST 30 DAYS</option>
+          <option>ALL TIME</option>
+        </select>
+      </div>
+      <input class="search-box" placeholder="Search features..." />
+      <span class="results-count">Showing <strong>142</strong> runs</span>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Run ID</th>
+            <th class="sorted">Started <span class="sort-arrow">▼</span></th>
+            <th>Project</th>
+            <th>Feature</th>
+            <th>Status</th>
+            <th>Phases</th>
+            <th>Duration</th>
+            <th>Tokens</th>
+            <th>Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="run-id">#01KH6G</td>
+            <td class="td-dim">2 min ago</td>
+            <td>adw-core</td>
+            <td class="td-muted">Implement token bucketing for cost tracking</td>
+            <td><span class="badge badge-warning">● RUNNING</span></td>
+            <td><div class="pipeline-inline"><span class="pip completed"></span><span class="pip completed"></span><span class="pip active"></span><span class="pip"></span><span class="pip"></span></div></td>
+            <td class="td-mono">3m 21s</td>
+            <td class="td-mono">48.2K</td>
+            <td class="td-mono">$1.82</td>
+          </tr>
+          <tr>
+            <td class="run-id">#01KH5R</td>
+            <td class="td-dim">18 min ago</td>
+            <td>adw-dashboard</td>
+            <td class="td-muted">Add analytics chart components</td>
+            <td><span class="badge badge-warning">● RUNNING</span></td>
+            <td><div class="pipeline-inline"><span class="pip completed"></span><span class="pip active"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></div></td>
+            <td class="td-mono">1m 47s</td>
+            <td class="td-mono">22.1K</td>
+            <td class="td-mono">$0.84</td>
+          </tr>
+          <tr>
+            <td class="run-id">#01KH4F</td>
+            <td class="td-dim">2 hours ago</td>
+            <td>adw-core</td>
+            <td class="td-muted">Add phase pipeline validation</td>
+            <td><span class="badge badge-success">✓ COMPLETED</span></td>
+            <td><div class="pipeline-inline"><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span></div></td>
+            <td class="td-mono">5m 12s</td>
+            <td class="td-mono">84.0K</td>
+            <td class="td-mono">$3.18</td>
+          </tr>
+          <tr>
+            <td class="run-id">#01KH3A</td>
+            <td class="td-dim">3 hours ago</td>
+            <td>adw-dashboard</td>
+            <td class="td-muted">Cost strip empty states and error handling</td>
+            <td><span class="badge badge-success">✓ COMPLETED</span></td>
+            <td><div class="pipeline-inline"><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span></div></td>
+            <td class="td-mono">3m 48s</td>
+            <td class="td-mono">62.4K</td>
+            <td class="td-mono">$2.36</td>
+          </tr>
+          <tr>
+            <td class="run-id">#01KH2W</td>
+            <td class="td-dim">5 hours ago</td>
+            <td>adw-core</td>
+            <td class="td-muted">Fix token counting edge case in aggregator</td>
+            <td><span class="badge badge-error">✗ FAILED</span></td>
+            <td><div class="pipeline-inline"><span class="pip completed"></span><span class="pip completed"></span><span class="pip failed"></span><span class="pip"></span><span class="pip"></span></div></td>
+            <td class="td-mono">6m 01s</td>
+            <td class="td-mono">96.8K</td>
+            <td class="td-mono">$3.66</td>
+          </tr>
+          <tr>
+            <td class="run-id">#01KH1P</td>
+            <td class="td-dim">8 hours ago</td>
+            <td>adw-dashboard</td>
+            <td class="td-muted">Stat cards with trend calculations</td>
+            <td><span class="badge badge-success">✓ COMPLETED</span></td>
+            <td><div class="pipeline-inline"><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span></div></td>
+            <td class="td-mono">4m 15s</td>
+            <td class="td-mono">71.2K</td>
+            <td class="td-mono">$2.70</td>
+          </tr>
+          <tr>
+            <td class="run-id">#01KH0M</td>
+            <td class="td-dim">12 hours ago</td>
+            <td>adw-core</td>
+            <td class="td-muted">Register project CLI command</td>
+            <td><span class="badge badge-success">✓ COMPLETED</span></td>
+            <td><div class="pipeline-inline"><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span></div></td>
+            <td class="td-mono">7m 42s</td>
+            <td class="td-mono">112K</td>
+            <td class="td-mono">$4.24</td>
+          </tr>
+          <tr>
+            <td class="run-id">#01KGZK</td>
+            <td class="td-dim">1 day ago</td>
+            <td>adw-cli</td>
+            <td class="td-muted">Refactor config parsing module</td>
+            <td><span class="badge badge-ghost">⦻ ABORTED</span></td>
+            <td><div class="pipeline-inline"><span class="pip completed"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></div></td>
+            <td class="td-mono">1m 08s</td>
+            <td class="td-mono">18.4K</td>
+            <td class="td-mono">$0.70</td>
+          </tr>
+          <tr>
+            <td class="run-id">#01KGYA</td>
+            <td class="td-dim">1 day ago</td>
+            <td>adw-core</td>
+            <td class="td-muted">Add run history persistence layer</td>
+            <td><span class="badge badge-success">✓ COMPLETED</span></td>
+            <td><div class="pipeline-inline"><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span></div></td>
+            <td class="td-mono">8m 30s</td>
+            <td class="td-mono">138K</td>
+            <td class="td-mono">$5.22</td>
+          </tr>
+          <tr>
+            <td class="run-id">#01KGX2</td>
+            <td class="td-dim">2 days ago</td>
+            <td>adw-dashboard</td>
+            <td class="td-muted">Base template with navigation and theme toggle</td>
+            <td><span class="badge badge-success">✓ COMPLETED</span></td>
+            <td><div class="pipeline-inline"><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span><span class="pip completed"></span></div></td>
+            <td class="td-mono">6m 15s</td>
+            <td class="td-mono">102K</td>
+            <td class="td-mono">$3.86</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <span class="page-info">Page 1 of 15 — 142 total runs</span>
+      <div class="page-buttons">
+        <button class="page-btn" disabled>← PREV</button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <button class="page-btn">...</button>
+        <button class="page-btn">15</button>
+        <button class="page-btn">NEXT →</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>Last updated <strong>12s ago</strong></span>
+    <span>2 active runs</span>
+    <button class="refresh-btn">↻</button>
+  </footer>
+</body>
+</html>

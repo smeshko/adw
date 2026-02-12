@@ -105,7 +105,7 @@ ADW Web Dashboard is a browser-based command center for the ADW SDK, replacing t
 
 - **MVP success gate:** Users can monitor AND control ADW workflows from the browser, preferring it over CLI for day-to-day operations
 - **Go/No-Go for post-MVP:** >50% of weekly active users managing runs primarily through the web dashboard
-- **Architecture validation:** Post-MVP features (task manager, project config) can be added without restructuring MVP code
+- **Architecture validation:** Post-MVP features (task manager integration, webhook event mappings) can be added without restructuring MVP code
 
 ## Product Scope
 
@@ -129,18 +129,22 @@ ADW Web Dashboard is a browser-based command center for the ADW SDK, replacing t
 **Cost & Token Analytics:**
 12. **Analytics page** — Dedicated page with time range filtering, stat cards, daily usage chart, project/phase breakdowns, and detailed table (see UI Specifications)
 
+**Settings & Configuration:**
+13. **Settings page** — Per-project configuration editor for project.yaml and all 5 command config.yaml files
+14. **Inline validation** — Real-time validation matching Pydantic model rules before save
+15. **Config persistence** — Write changes back to YAML files on disk, effective on next run
+
 **UX & Infrastructure:**
-13. **Dark mode** — Developer-native aesthetic, dark by default
-14. **CLI launch** — `adw global dashboard --web` or `adw web` command
-15. **Responsive layout** — Usable on laptop screens (no mobile requirement)
+16. **Dark mode** — Developer-native aesthetic, dark by default
+17. **CLI launch** — `adw global dashboard --web` or `adw web` command
+18. **Responsive layout** — Usable on laptop screens (no mobile requirement)
 
 ### Post-MVP (Future)
 
 - Task manager integration (Linear issues as run sources)
-- Project configuration editor
 - Prompt template browser and editor
 - Team view (multiple developer activity)
-- Webhook status and configuration
+- Webhook status and configuration (event mappings, provider setup)
 
 ---
 
@@ -208,6 +212,27 @@ She checks the summary stats — the team has spent $89.40 on tokens this week a
 - Historical comparison (implied — post-MVP, but shapes data model)
 - Multi-project view as the default landing state
 
+### Journey 5: Alex Torres — The Configuration Tweaker
+
+Alex has been running ADW on his meal-planner project for a few weeks and it's time to fine-tune the setup. His larger features keep hitting the 30-minute build timeout, the validate phase should be using opus instead of the default, and he's finally ready to set up his Linear integration. Previously, that meant hunting through `.adw/project.yaml` and multiple `commands/*/config.yaml` files — remembering exact field names, nested YAML structure, and valid value ranges.
+
+Now he clicks **Settings** in the dashboard nav and selects his meal-planner project from the dropdown. The page loads with all configuration organized in the same familiar sections he saw during `adw init`: Basics, Git, Ports, Task Manager, LLM Retry, and Security. Each setting shows its current value (bold if changed from default) alongside a description and the default value for reference.
+
+He clicks the **Phases** tab and finds the build phase. The timeout field shows `1800` — he bumps it to `2400`. He switches to the validate phase and changes the LLM model from `sonnet` to `opus`. Both fields validate inline immediately — green check, valid. He goes back to the **Task Manager** section, enables Linear integration, enters his team key `MEAL`, enables `sync_comments`, and fills in the state mapping using the key-value editor. When he accidentally types `0` for LLM retry max_retries, a red indicator tells him the minimum is 1 before he can save.
+
+He hits Save, sees a green success toast, and his next run picks up all the new settings automatically. What would have been 10 minutes of YAML spelunking across 3 files took 60 seconds in the browser.
+
+**This journey reveals requirements for:**
+- Settings page accessible from main navigation
+- Per-project configuration selection
+- Project-level settings organized by section (matching init wizard)
+- Phase-level settings with per-phase tabs
+- Current value, default value, and description for each setting
+- Inline validation before save
+- Visual indicator for settings changed from defaults
+- Write-back to YAML files on save
+- Success/error feedback after save
+
 ### Journey Requirements Summary
 
 | Capability | Journeys | Priority |
@@ -224,6 +249,9 @@ She checks the summary stats — the team has spent $89.40 on tokens this week a
 | Artifact browser | 2 | Must have |
 | Run comparison (side-by-side) | 3 | Must have |
 | Auto-refresh / live updates | 1, 2 | Must have |
+| Settings page (per-project config editor) | 5 | Must have |
+| Inline validation before save | 5 | Must have |
+| Config write-back to YAML | 5 | Must have |
 | Dark mode | All | Must have |
 
 ---
@@ -316,8 +344,9 @@ Not applicable. The dashboard runs on localhost and is not publicly accessible. 
 - Journey 2 (Debug Detective) — Full support
 - Journey 3 (Comparison Shopper) — Deferred (run comparison moved to post-MVP)
 - Journey 4 (Team Pulse Check) — Partial support (multi-project view yes, historical trends post-MVP)
+- Journey 5 (Configuration Tweaker) — Full support
 
-**Must-Have Capabilities (53 FRs across 9 capability areas):**
+**Must-Have Capabilities (66 FRs across 10 capability areas):**
 
 See Functional Requirements section for complete list. Key feature groups:
 
@@ -329,6 +358,7 @@ See Functional Requirements section for complete list. Key feature groups:
 | Run Inspection | Detail view, artifacts, logs, LLM interactions | 2 |
 | Runs List & Filtering | Status/date filters, sorting, pagination | 2, 4 |
 | Cost & Token Analytics | Time range filtering, stat cards, daily chart, project/phase breakdown, detailed table | 4 |
+| Settings & Configuration | Per-project config editor, inline validation, YAML write-back | 5 |
 | View Modes | Keyboard shortcuts, terminal mode, focus mode | All |
 | Project Overview | Project list, drill-down, health trends | 4 |
 | Dashboard Infrastructure | CLI launch, dark mode, responsive, CSRF | All |
@@ -340,13 +370,12 @@ See Functional Requirements section for complete list. Key feature groups:
 **Phase 2 (Growth):**
 - Run comparison (side-by-side view, metric/artifact diff)
 - Task manager integration (Linear issues as run sources)
-- Project configuration editor (edit `.adw/project.yaml` from browser)
+- Webhook event mappings editor (provider → event → settings)
 - Light/dark theme toggle
 
 **Phase 3 (Expansion):**
 - Prompt template browser and editor
 - Team view (multi-developer activity across projects)
-- Webhook status and configuration management
 - Authentication for LAN/remote access
 - Notification system (browser notifications on run completion)
 
@@ -446,17 +475,39 @@ See Functional Requirements section for complete list. Key feature groups:
 - **FR43:** User can drill down from a project into its recent runs
 - **FR44:** User can see per-project success rates and usage trends
 
+### Settings & Configuration
+
+- **FR45:** User can access a Settings page from the main dashboard navigation
+- **FR46:** User can select which registered project's configuration to edit from a project dropdown
+- **FR47:** User can view and edit project-level settings (`project.yaml`) organized in sections:
+  - **Basics:** language, platform, test_command, build_command
+  - **Git:** branch_prefix, skip_hooks, base_branch
+  - **Ports:** backend_port_start, frontend_port_start
+  - **Task Manager:** type, team_key, sync_comments, auto_close, labels_enabled, label_prefix, state_mapping (key-value editor mapping phases to Linear statuses)
+  - **LLM Retry:** max_retries, base_delay_seconds, max_delay_seconds, multiplier
+  - **Security:** blocked_commands (list editor), blocked_env_files (list editor)
+- **FR48:** User can view and edit command-level settings for each of the 5 phases (plan, build, validate, document, ship): enabled, timeout_seconds, input_files (key-value editor), llm.model (dropdown: opus, sonnet, haiku)
+- **FR49:** User can view and edit phase-specific settings: doc_mappings for document phase (source_pattern → docs_dir list), commands (version_bump, publish) and bypass_ci for ship phase
+- **FR50:** Each setting displays its current value, default value, and a description of what it controls
+- **FR51:** Settings that differ from their default value are visually indicated (e.g., bold label or accent marker)
+- **FR52:** System validates all settings inline before allowing save — type checking, range validation (e.g., port 1-65535, max_retries 1-10), and cross-field validation (e.g., max_delay_seconds >= base_delay_seconds, port range overlap detection)
+- **FR53:** User can save configuration changes, which writes well-formatted YAML (with section headers) back to the corresponding files on disk using the existing YAMLWithComments generator
+- **FR54:** System displays a success or error toast notification after save attempts
+- **FR55:** User can reset an individual setting to its default value
+- **FR56:** Settings changes take effect on the next ADW run (no live reload required; documented in UI)
+- **FR57:** System creates config files that don't yet exist when saving (e.g., if a phase config.yaml was never generated)
+
 ### Dashboard Infrastructure
 
-- **FR45:** User can launch the web dashboard from the CLI
-- **FR46:** System automatically opens the user's default browser when the dashboard server starts
-- **FR47:** User can configure the server port
-- **FR48:** System serves the dashboard on localhost by default (127.0.0.1)
-- **FR49:** User can customize the dashboard appearance (dark mode as default)
-- **FR50:** Dashboard layout adapts to screen widths down to 1024px
-- **FR51:** User can navigate between dashboard views without full page reload
-- **FR52:** User can bookmark specific dashboard views via URL
-- **FR53:** System provides CSRF protection on all mutation endpoints
+- **FR58:** User can launch the web dashboard from the CLI
+- **FR59:** System automatically opens the user's default browser when the dashboard server starts
+- **FR60:** User can configure the server port
+- **FR61:** System serves the dashboard on localhost by default (127.0.0.1)
+- **FR62:** User can customize the dashboard appearance (dark mode as default)
+- **FR63:** Dashboard layout adapts to screen widths down to 1024px
+- **FR64:** User can navigate between dashboard views without full page reload
+- **FR65:** User can bookmark specific dashboard views via URL
+- **FR66:** System provides CSRF protection on all mutation endpoints
 
 ---
 
@@ -475,8 +526,9 @@ See Functional Requirements section for complete list. Key feature groups:
 ### Security
 
 - **NFR8:** Dashboard server binds to 127.0.0.1 by default (localhost only)
-- **NFR9:** All mutation endpoints (start run, abort run) include CSRF protection
+- **NFR9:** All mutation endpoints (start run, abort run, save settings) include CSRF protection
 - **NFR10:** Dashboard does not expose file system paths beyond what the existing data layer provides
+- **NFR10a:** Settings save endpoint validates all values server-side via Pydantic models before writing to disk (client-side validation is convenience, not the security boundary)
 - **NFR11:** No API keys, secrets, or credentials are logged or displayed in the dashboard UI
 - **NFR12:** If `--host 0.0.0.0` is used for LAN access, a warning is displayed at startup
 
@@ -489,6 +541,7 @@ See Functional Requirements section for complete list. Key feature groups:
 - **NFR17:** Dashboard server recovers gracefully from data layer errors (file locks, missing files)
 - **NFR18:** SSE connections automatically reconnect after network interruption
 - **NFR19:** Starting/aborting a run from the dashboard handles concurrent CLI operations without data corruption
+- **NFR19a:** Settings save operation uses atomic file writes to prevent partial config states (consistent with existing `atomic_write_config` pattern)
 
 ### Maintainability
 
@@ -504,6 +557,8 @@ See Functional Requirements section for complete list. Key feature groups:
 - **NFR26:** Starting a run from the dashboard produces identical results to starting via CLI
 - **NFR27:** Dashboard server can run concurrently with the existing webhook server without port conflicts
 - **NFR28:** Dashboard CLI command follows existing ADW CLI patterns (Typer, consistent flags and help text)
+- **NFR29:** Settings page reuses existing configuration infrastructure (ConfigLoader, ConfigRegistry, YAMLWithComments, Pydantic models) without duplicating validation logic
+- **NFR30:** Settings page reads and writes the same `.adw/project.yaml` and `.adw/commands/{phase}/config.yaml` files used by the CLI and init wizard
 
 ### Technical Decisions
 
@@ -519,4 +574,4 @@ See Functional Requirements section for complete list. Key feature groups:
 
 ---
 
-*PRD completed on 2026-02-10. Updated 2026-02-11: Cost & Token Analytics UI specification added (FR32-40). ADW Web Dashboard — 53 functional requirements, 28 non-functional requirements, 4 user journeys, 9 capability areas.*
+*PRD completed on 2026-02-10. Updated 2026-02-11: Cost & Token Analytics UI specification added (FR32-38). Updated 2026-02-12: Settings & Configuration capability added (FR45-57) — per-project config editor for project.yaml and all 5 command config.yaml files with inline validation and YAML write-back. ADW Web Dashboard — 66 functional requirements, 30 non-functional requirements, 5 user journeys, 10 capability areas.*
