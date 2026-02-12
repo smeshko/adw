@@ -1,0 +1,77 @@
+{# Settings section content — rendered inside #settings-content container #}
+
+{% if active_tab == 'phases' %}
+  {# ── Phases Tab ── #}
+  {% if phase_settings %}
+  <div class="space-y-6">
+    {% for phase in phase_settings %}
+    <div class="card card-bordered bg-base-100 p-4">
+      <h3 class="text-base font-semibold mb-3 section-header">{{ phase.label }}</h3>
+      <div class="space-y-3">
+        {% for setting in phase.settings %}
+        <div class="flex flex-col gap-1 py-2 border-b border-base-content/5 last:border-b-0">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-sm font-mono">{{ setting.name }}</span>
+            <span class="badge badge-ghost badge-xs font-mono">{{ setting.type_hint }}</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="font-mono text-sm bg-base-200 px-2 py-0.5">{{ setting.display_value }}</span>
+            <span class="text-base-content/50 text-xs">Default: {{ setting.display_default }}</span>
+          </div>
+          {% if setting.description %}
+          <p class="text-xs text-base-content/60">{{ setting.description }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+{% else %}
+  {# ── Regular Section Tab ── #}
+  {% set section_settings = settings_sections.get(active_tab, []) %}
+
+  {% if not section_settings %}
+  <div class="flex justify-center items-center min-h-[20vh]">
+    <p class="text-base-content/60 text-sm">No settings available for this section.</p>
+  </div>
+
+  {% else %}
+  <div class="card card-bordered bg-base-100 p-4">
+    <div class="space-y-1">
+      {% for setting in section_settings %}
+      <div class="flex flex-col gap-1 py-3 border-b border-base-content/5 last:border-b-0">
+        <div class="flex items-center gap-2">
+          {% if setting.is_changed %}
+          <span class="w-2 h-2 rounded-full bg-accent shrink-0" title="Modified from default"></span>
+          {% endif %}
+          <span class="font-semibold text-sm font-mono">{{ setting.name }}</span>
+          <span class="badge badge-ghost badge-xs font-mono">{{ setting.type_hint }}</span>
+          {% if setting.is_required %}
+          <span class="badge badge-error badge-xs">required</span>
+          {% endif %}
+        </div>
+        <div class="flex items-center gap-3 ml-{% if setting.is_changed %}4{% else %}0{% endif %}">
+          {% if setting.display_value == 'true' %}
+            <span class="badge badge-success badge-sm font-mono">true</span>
+          {% elif setting.display_value == 'false' %}
+            <span class="badge badge-neutral badge-sm font-mono">false</span>
+          {% else %}
+            <span class="font-mono text-sm bg-base-200 px-2 py-0.5">{{ setting.display_value }}</span>
+          {% endif %}
+          {% if setting.display_default and setting.display_default != setting.display_value %}
+          <span class="text-base-content/50 text-xs">Default: {{ setting.display_default }}</span>
+          {% endif %}
+        </div>
+        {% if setting.description %}
+        <p class="text-xs text-base-content/60 ml-{% if setting.is_changed %}4{% else %}0{% endif %}">{{ setting.description }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+{% endif %}
