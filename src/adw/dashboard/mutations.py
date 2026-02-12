@@ -801,9 +801,9 @@ async def save_phase_settings(
     except PydanticValidationError as e:
         errors = e.errors()
         error_msg = errors[0]["msg"] if errors else str(e)
-        return HTMLResponse(
-            content=f"Validation failed: {html.escape(error_msg)}",
-            status_code=400,
+        return _render_phase_editor_error(
+            request, templates, phase, config_data, project_display,
+            f"Validation failed: {html.escape(error_msg)}",
         )
 
     # Create directory and write atomically
@@ -821,9 +821,9 @@ async def save_phase_settings(
             "Failed to write phase config",
             extra={"phase": phase, "project": project_display, "error": str(e)},
         )
-        return HTMLResponse(
-            content=f"Failed to save: {html.escape(str(e))}",
-            status_code=500,
+        return _render_phase_editor_error(
+            request, templates, phase, config_data, project_display,
+            f"Failed to save: {html.escape(str(e))}",
         )
 
     logger.info(
@@ -895,6 +895,62 @@ async def save_phase_settings(
         "</div>"
         "<script>setTimeout(function(){var t=document.getElementById("
         "'toast-container');if(t)t.innerHTML='';},3000);</script>"
+        "</div>"
+    )
+
+    return HTMLResponse(content=content_html + toast_html)
+
+
+def _render_phase_editor_error(
+    request: Request,
+    templates: "Jinja2Templates",
+    phase: str,
+    config_data: dict[str, Any],
+    project_display: str,
+    error_message: str,
+) -> HTMLResponse:
+    """Re-render the phase editor with submitted data and an error toast.
+
+    Unlike returning raw error text, this preserves the form UI so the user
+    can correct their input and re-submit.
+    """
+    from adw.dashboard.partials import PHASE_DEFAULTS
+
+    defaults = PHASE_DEFAULTS.get(phase, {"timeout": 900, "model": "opus"})
+
+    # Extract values from the submitted config_data for re-rendering
+    llm_data = config_data.get("llm", {})
+    doc_mappings = config_data.get("doc_mappings", [])
+    commands = config_data.get("commands", {})
+
+    context = {
+        "phase": phase,
+        "has_config": True,
+        "enabled": config_data.get("enabled", True),
+        "timeout_seconds": config_data.get("timeout_seconds", defaults["timeout"]),
+        "llm_model": llm_data.get("model", defaults["model"]) if llm_data else defaults["model"],
+        "input_files": config_data.get("input_files", {}),
+        "doc_mappings": doc_mappings,
+        "ship_version_bump": commands.get("version_bump", "") if commands else "",
+        "ship_publish": commands.get("publish", "") if commands else "",
+        "bypass_ci": config_data.get("bypass_ci", True),
+        "default_timeout": defaults["timeout"],
+        "default_model": defaults["model"],
+        "selected_settings_project": project_display,
+        "csrf_token": generate_csrf_token(request),
+    }
+
+    content_html = templates.get_template(
+        "partials/settings_phase_editor.html"
+    ).render(context)
+
+    toast_html = (
+        '<div id="toast-container" hx-swap-oob="innerHTML">'
+        '<div class="alert alert-error shadow-lg">'
+        f"<span>{error_message}</span>"
+        "</div>"
+        "<script>setTimeout(function(){var t=document.getElementById("
+        "'toast-container');if(t)t.innerHTML='';},5000);</script>"
         "</div>"
     )
 

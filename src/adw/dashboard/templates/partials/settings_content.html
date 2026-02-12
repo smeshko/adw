@@ -25,7 +25,7 @@
     <div class="tabs tabs-box tabs-sm" id="phase-sub-tabs">
       {% for key, label in phase_sub_tabs %}
       <a class="tab {% if loop.first %}tab-active{% endif %}"
-         hx-get="/partials/settings-phase/{{ key }}?project={{ selected_settings_project }}"
+         hx-get="/partials/settings-phase/{{ key }}?project={{ selected_settings_project | urlencode }}"
          hx-target="#phase-content"
          hx-swap="innerHTML"
          onclick="document.querySelectorAll('#phase-sub-tabs .tab').forEach(function(t){t.classList.remove('tab-active')});this.classList.add('tab-active')">
@@ -36,7 +36,7 @@
 
     {# Phase content container — auto-loads Plan on render #}
     <div id="phase-content"
-         hx-get="/partials/settings-phase/plan?project={{ selected_settings_project }}"
+         hx-get="/partials/settings-phase/plan?project={{ selected_settings_project | urlencode }}"
          hx-trigger="load"
          hx-swap="innerHTML">
     </div>
