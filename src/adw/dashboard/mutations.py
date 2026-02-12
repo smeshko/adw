@@ -12,6 +12,9 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 
+from adw.core.context_manager import ContextManager
+from adw.core.interruption import InterruptionHandler
+from adw.core.snapshot_manager import SnapshotManager
 from adw.dashboard.dependencies import (
     generate_csrf_token,
     get_index_manager,
@@ -19,6 +22,7 @@ from adw.dashboard.dependencies import (
     get_run_trigger,
     validate_csrf,
 )
+from adw.exceptions import StateError
 
 logger = logging.getLogger(__name__)
 
@@ -168,4 +172,102 @@ async def start_run(
         request, "partials/run_started.html", context,
     )
     response.headers["HX-Push-Url"] = "/"
+    return response
+
+
+@router.post("/runs/{run_id}/abort", response_class=HTMLResponse, dependencies=[Depends(validate_csrf)])
+async def abort_run(
+    request: Request,
+    run_id: str,
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Abort an active run from the dashboard.
+
+    Validates the run exists and is active, then uses InterruptionHandler
+    to abort gracefully with state preservation and snapshot creation.
+    Returns the refreshed run detail page with OOB modal clear.
+    """
+    from adw.dashboard.routes import _build_run_detail_context
+
+    templates = request.app.state.templates
+
+    # Look up the run in the index
+    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    run_entry = None
+    for entry in all_runs:
+        if entry.run_id == run_id:
+            run_entry = entry
+            break
+
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    # Validate run is active
+    if run_entry.status != "running":
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run cannot be aborted — it is not active</p>',
+            status_code=400,
+        )
+
+    # Instantiate core managers for this run's project
+    project_path = Path(run_entry.project_path)
+    runs_dir = project_path / ".adw" / "runs"
+    cm = ContextManager(runs_dir)
+    sm = SnapshotManager(runs_dir)
+
+    # Load context and perform abort
+    try:
+        context = cm.load(run_id)
+    except (StateError, OSError) as e:
+        logger.error("Failed to load context for abort", extra={"run_id": run_id, "error": str(e)})
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Failed to load run context</p>',
+            status_code=500,
+        )
+
+    if context.status != "running":
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run cannot be aborted — it is not active</p>',
+            status_code=400,
+        )
+
+    try:
+        handler = InterruptionHandler(
+            context_manager=cm,
+            snapshot_manager=sm,
+        )
+        aborted_ctx = handler.abort_gracefully(context, reason="dashboard_abort")
+    except (StateError, OSError) as e:
+        logger.error("Failed to abort run", extra={"run_id": run_id, "error": str(e)})
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Failed to abort run — another process may be using it</p>',
+            status_code=500,
+        )
+
+    # Update the index entry to reflect the abort
+    run_entry.status = "aborted"  # type: ignore[assignment]
+    run_entry.completed_at = aborted_ctx.completed_at  # type: ignore[assignment]
+
+    # Persist the status change to the global index
+    try:
+        index_manager.update_run(  # type: ignore[union-attr]
+            run_id,
+            status="aborted",
+            completed_at=aborted_ctx.completed_at,
+        )
+    except (StateError, OSError):
+        logger.warning("Failed to update index after abort", extra={"run_id": run_id})
+
+    # Build refreshed run detail context
+    detail_context = _build_run_detail_context(run_entry, request)
+    detail_context["request"] = request
+
+    # Render OOB modal clear + run detail
+    modal_clear = '<div id="modal-container" hx-swap-oob="innerHTML"></div>\n'
+    detail_html = templates.get_template("partials/run_detail.html").render(detail_context)
+    response = HTMLResponse(content=modal_clear + detail_html)
+    response.headers["HX-Push-Url"] = f"/runs/{run_id}"
     return response

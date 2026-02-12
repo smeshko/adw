@@ -34,7 +34,10 @@
   {# ── Action buttons ── #}
   <div class="flex gap-2 mb-6">
     {% if is_active %}
-    <button class="btn btn-error btn-outline btn-sm" disabled>Abort</button>
+    <button class="btn btn-error btn-outline btn-sm"
+            hx-get="/partials/abort/{{ run_id }}"
+            hx-target="#modal-container"
+            hx-swap="innerHTML">Abort</button>
     {% endif %}
     <button class="btn btn-primary btn-outline btn-sm"
             hx-get="/partials/new-run?from={{ run_id }}"

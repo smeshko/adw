@@ -220,6 +220,12 @@ This guide helps you find relevant documentation based on what you're working on
     - When rendering user-supplied markdown content safely in the dashboard
     - When extending the run detail page with new expandable sections
 
+- docs/features/abort-active-run.md
+  - Conditions:
+    - When implementing destructive action confirmation modals in the ADW dashboard
+    - When adding abort or interruption functionality to ADW runs
+    - When using OOB swaps to clear modal containers after HTMX form submission
+    - When performing dual status validation (index + RunContext) for run operations
 - docs/features/daily-usage-chart-breakdown-panels.md
   - Conditions:
     - When adding new chart visualizations to the analytics page

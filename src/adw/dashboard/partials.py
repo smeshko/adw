@@ -661,3 +661,76 @@ async def new_run_modal(
     return templates.TemplateResponse(
         request, "partials/new_run_modal.html", context
     )
+
+
+# ── Abort Modal ──────────────────────────────────────────────────
+
+
+@router.get("/abort/{run_id}", response_class=HTMLResponse)
+async def abort_modal(
+    request: Request,
+    run_id: str,
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return the abort confirmation modal HTML fragment.
+
+    Validates the run exists and is active before rendering the modal.
+    Falls back to IndexEntry data if RunContext is unavailable.
+    """
+    templates = request.app.state.templates
+
+    # Look up the run in the index
+    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    run_entry = None
+    for entry in all_runs:
+        if entry.run_id == run_id:
+            run_entry = entry
+            break
+
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    # Validate run is active
+    if run_entry.status != "running":
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run cannot be aborted — it is not active</p>',
+            status_code=400,
+        )
+
+    # Load current phase from RunContext (live data), fall back to IndexEntry
+    current_phase = run_entry.phase_reached
+    try:
+        project_path = Path(run_entry.project_path)
+        runs_dir = project_path / ".adw" / "runs"
+        cm = ContextManager(runs_dir)
+        ctx = cm.load(run_id)
+        current_phase = ctx.current_phase
+        # Verify live status in case index is stale
+        if ctx.status != "running":
+            return HTMLResponse(
+                content='<p class="text-error text-sm">Run cannot be aborted — it is no longer active</p>',
+                status_code=400,
+            )
+    except (StateError, OSError):
+        logger.debug(
+            "RunContext unavailable for abort modal, using IndexEntry fallback",
+            extra={"run_id": run_id},
+        )
+
+    run_id_short = run_id[:8] + "…"
+    csrf_token = generate_csrf_token(request)
+
+    context = {
+        "request": request,
+        "run_id": run_id,
+        "run_id_short": run_id_short,
+        "current_phase": current_phase,
+        "csrf_token": csrf_token,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/abort_modal.html", context
+    )
