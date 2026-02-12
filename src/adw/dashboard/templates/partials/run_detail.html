@@ -52,6 +52,17 @@
             hx-get="/partials/new-run?from={{ run_id }}"
             hx-target="#modal-container"
             hx-swap="innerHTML">Re-run</button>
+    <button class="btn btn-ghost btn-outline btn-sm"
+            hx-get="/partials/terminal-mode/{{ run_id }}"
+            hx-target="#main"
+            hx-swap="innerHTML"
+            onclick="document.body.classList.add('terminal-mode-active')">Terminal</button>
+    {% if is_active %}
+    <button class="btn btn-ghost btn-outline btn-sm"
+            hx-get="/partials/focus-mode/{{ run_id }}"
+            hx-target="#main"
+            hx-swap="innerHTML">Focus</button>
+    {% endif %}
   </div>
 
   {# ── Failed run error banner ── #}

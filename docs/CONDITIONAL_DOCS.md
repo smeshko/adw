@@ -263,3 +263,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When modifying the keyboard shortcut overlay modal content
     - When adding two-key sequence shortcuts (g-prefix pattern) to the dashboard
     - When using the `data-navigable-row` attribute for keyboard-navigable lists
+
+- docs/features/terminal-focus-view-modes.md
+  - Conditions:
+    - When adding a new view mode or alternate display layout to the ADW dashboard
+    - When implementing keyboard-toggled UI modes in the dashboard
+    - When reusing SSE streams in new dashboard view contexts
+    - When adding mode-specific CSS styling with theme variable integration in the dashboard
+    - When implementing Escape-key exit hierarchies for modal/mode layering in the dashboard
