@@ -219,6 +219,26 @@ class TestPhaseSaveEndpoint:
         )
         assert resp.status_code == 400
 
+    def test_save_invalid_timeout_returns_editor_with_error(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """Non-numeric timeout re-renders editor with error toast."""
+        resp = phase_client.post(
+            "/settings/phase/plan/save",
+            data={
+                "csrf_token": "test",
+                "_project": "test-app",
+                "enabled": "true",
+                "timeout_seconds": "not-a-number",
+                "llm_model": "opus",
+            },
+        )
+        assert resp.status_code == 200
+        assert "Invalid timeout" in resp.text
+        assert "alert-error" in resp.text
+        # Form should still be present for correction
+        assert 'hx-post="/settings/phase/plan/save"' in resp.text
+
     def test_save_disabled_phase(
         self, phase_client: TestClient, project_dir: Path
     ) -> None:

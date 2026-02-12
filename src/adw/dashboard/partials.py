@@ -1386,7 +1386,7 @@ async def phase_config_partial(
         "bypass_ci": bypass_ci,
         "default_timeout": defaults["timeout"],
         "default_model": defaults["model"],
-        "selected_settings_project": project or None,
+        "selected_settings_project": project or "",
         "csrf_token": generate_csrf_token(request),
     }
 

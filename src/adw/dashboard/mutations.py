@@ -739,7 +739,15 @@ async def save_phase_settings(
     try:
         timeout_seconds = int(str(form.get("timeout_seconds", "900")))
     except (ValueError, TypeError):
-        return HTMLResponse(content="Invalid timeout value.", status_code=400)
+        from adw.dashboard.partials import PHASE_DEFAULTS as _PD
+
+        defaults = _PD.get(phase, {"timeout": 900, "model": "opus"})
+        return _render_phase_editor_error(
+            request, templates, phase,
+            {"enabled": enabled, "timeout_seconds": defaults["timeout"]},
+            project_display,
+            "Invalid timeout value.",
+        )
     llm_model = str(form.get("llm_model", ""))
 
     # Build config dict
