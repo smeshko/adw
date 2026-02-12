@@ -18,7 +18,7 @@ from fastapi.testclient import TestClient
 
 from adw.dashboard.partials import build_analytics_context
 from adw.dashboard.server import create_dashboard_app
-from adw.models.stats import GlobalStatistics, TokenUsage
+from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
 
 
 # ── Helpers ────────────────────────────────────────────────────────
@@ -32,12 +32,17 @@ def _mock_stats_aggregator_for_analytics(
     prev_total_runs: int = 80,
     prev_tokens: TokenUsage | None = None,
     prev_cost: float = 18.00,
+    daily_counts: list[dict] | None = None,
+    phase_breakdown: dict[str, int] | None = None,
+    model_breakdown: dict[str, dict[str, int]] | None = None,
 ) -> MagicMock:
     """Build a mock StatsAggregator for analytics testing.
 
     When called with since=now-N days, returns current_* stats.
     When called with since=now-2N days, returns combined (prev + current) stats.
     """
+    import datetime as dt_module
+
     mock = MagicMock()
 
     cur_tok = current_tokens or TokenUsage(
@@ -47,11 +52,24 @@ def _mock_stats_aggregator_for_analytics(
         input_tokens=2_500_000, output_tokens=1_000_000,
     )
 
+    # Default projects for breakdown
+    default_projects = [
+        ProjectStatistics(
+            name="my-api", path="/projects/my-api",
+            total_runs=30, tokens=TokenUsage(input_tokens=900_000, output_tokens=300_000),
+        ),
+        ProjectStatistics(
+            name="my-web", path="/projects/my-web",
+            total_runs=20, tokens=TokenUsage(input_tokens=600_000, output_tokens=200_000),
+        ),
+    ]
+
     current_stats = GlobalStatistics(
         generated_at=datetime.now(UTC),
         total_runs=current_total_runs,
         tokens=cur_tok,
         estimated_cost=current_cost,
+        projects=default_projects,
     )
 
     # Combined stats = current + previous period
@@ -63,6 +81,7 @@ def _mock_stats_aggregator_for_analytics(
             output_tokens=cur_tok.output_tokens + prev_tok.output_tokens,
         ),
         estimated_cost=current_cost + prev_cost,
+        projects=default_projects,
     )
 
     def get_global_stats_side_effect(**kwargs):
@@ -78,6 +97,49 @@ def _mock_stats_aggregator_for_analytics(
         return current_stats
 
     mock.get_global_stats.side_effect = get_global_stats_side_effect
+
+    # Daily token counts with input/output split
+    if daily_counts is not None:
+        mock.get_daily_token_counts.return_value = daily_counts
+    else:
+        now = datetime.now(UTC)
+        mock.get_daily_token_counts.return_value = [
+            {
+                "date": (now - __import__("datetime").timedelta(days=6 - i)).date(),
+                "tokens": 1000 * (i + 1),
+                "input_tokens": 700 * (i + 1),
+                "output_tokens": 300 * (i + 1),
+            }
+            for i in range(7)
+        ]
+
+    # Phase breakdown
+    mock.get_phase_breakdown.return_value = phase_breakdown or {
+        "plan": 5000, "build": 15000, "validate": 3000,
+    }
+
+    # Model breakdown
+    mock.get_model_breakdown.return_value = model_breakdown or {
+        "claude-3-5-sonnet": {"input_tokens": 10000, "output_tokens": 5000},
+        "claude-3-haiku": {"input_tokens": 3000, "output_tokens": 1000},
+    }
+
+    # calculate_cost for model breakdown
+    def calc_cost_side_effect(tokens, model="default"):
+        pricing = {
+            "claude-3-5-sonnet": {"input": 3.00, "output": 15.00},
+            "claude-3-haiku": {"input": 0.25, "output": 1.25},
+            "default": {"input": 3.00, "output": 15.00},
+        }
+        p = pricing.get(model, pricing["default"])
+        return round(
+            (tokens.input_tokens / 1_000_000) * p["input"]
+            + (tokens.output_tokens / 1_000_000) * p["output"],
+            2,
+        )
+
+    mock.calculate_cost.side_effect = calc_cost_side_effect
+
     return mock
 
 
@@ -278,6 +340,95 @@ class TestBuildAnalyticsContext:
         # All calls should include project_name="my-api"
         for call in calls:
             assert call.kwargs["project_name"] == "my-api"
+
+    def test_daily_chart_bars_present(self) -> None:
+        """Daily chart bar data is included in context."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert "daily_chart_bars" in result
+        assert len(result["daily_chart_bars"]) == 7
+
+    def test_daily_chart_bar_has_heights(self) -> None:
+        """Each daily bar has output_height and input_height percentages."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        bar = result["daily_chart_bars"][0]
+        assert "output_height" in bar
+        assert "input_height" in bar
+        assert "day_label" in bar
+
+    def test_daily_chart_max_bar_is_100(self) -> None:
+        """The tallest bar sums to 100% height."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        bars = result["daily_chart_bars"]
+        max_total = max(b["output_height"] + b["input_height"] for b in bars)
+        assert max_total == 100
+
+    def test_project_breakdown_present(self) -> None:
+        """Project breakdown data is included in context."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert "project_breakdown" in result
+
+    def test_phase_breakdown_present(self) -> None:
+        """Phase breakdown data is included in context."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert "phase_breakdown" in result
+        # Check canonical order maintained
+        phases = [p["name"] for p in result["phase_breakdown"]]
+        assert phases == ["Plan", "Build", "Validate"]
+
+    def test_model_breakdown_present(self) -> None:
+        """Model breakdown data is included in context."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert "model_breakdown" in result
+        assert len(result["model_breakdown"]) == 2
+
+    def test_model_breakdown_has_cost(self) -> None:
+        """Model breakdown entries include cost."""
+        sa = _mock_stats_aggregator_for_analytics()
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        for entry in result["model_breakdown"]:
+            assert "cost_display" in entry
+            assert "percentage" in entry
 
 
 # ── Analytics Route Tests ──────────────────────────────────────────
@@ -522,3 +673,147 @@ class TestAnalyticsProjectFilter:
         assert idx > 0
         section = text[max(0, idx - 300):idx + 100]
         assert "font-semibold" in section
+
+
+# ── Daily Chart Route Tests ────────────────────────────────────────
+
+
+class TestAnalyticsDailyChart:
+    """Tests for daily usage chart rendering."""
+
+    def test_chart_daily_class_rendered(self) -> None:
+        """Daily chart container has chart-daily class."""
+        client = _make_client()
+        response = client.get("/analytics")
+        assert "chart-daily" in response.text
+
+    def test_chart_has_bars(self) -> None:
+        """Daily chart contains chart-bar elements."""
+        client = _make_client()
+        response = client.get("/analytics")
+        assert "chart-bar" in response.text
+
+    def test_chart_has_legend(self) -> None:
+        """Daily chart has output/input token legend."""
+        client = _make_client()
+        response = client.get("/analytics")
+        assert "Output tokens" in response.text
+        assert "Input tokens" in response.text
+
+    def test_chart_bars_have_height_styles(self) -> None:
+        """Chart bars have inline height styles."""
+        client = _make_client()
+        response = client.get("/analytics")
+        assert 'style="height:' in response.text
+
+    def test_chart_has_day_labels(self) -> None:
+        """Chart has day labels (Mon, Tue, etc.)."""
+        client = _make_client()
+        response = client.get("/analytics")
+        text = response.text
+        # At least some day labels should appear
+        day_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        found_labels = sum(1 for label in day_labels if label in text)
+        assert found_labels >= 1
+
+    def test_empty_state_no_chart(self) -> None:
+        """Empty state does not show the daily chart."""
+        sa = _mock_empty_stats_aggregator()
+        client = _make_client(stats_aggregator=sa)
+        response = client.get("/analytics")
+        assert "chart-daily" not in response.text
+
+
+# ── Breakdown Panel Route Tests ────────────────────────────────────
+
+
+class TestAnalyticsBreakdownPanels:
+    """Tests for breakdown panel rendering."""
+
+    def test_project_breakdown_rendered(self) -> None:
+        """Project breakdown panel is rendered."""
+        client = _make_client()
+        response = client.get("/analytics")
+        assert "By Project" in response.text
+
+    def test_phase_breakdown_rendered(self) -> None:
+        """Phase breakdown panel is rendered."""
+        client = _make_client()
+        response = client.get("/analytics")
+        assert "By Phase" in response.text
+
+    def test_model_breakdown_rendered(self) -> None:
+        """Model breakdown panel is rendered."""
+        client = _make_client()
+        response = client.get("/analytics")
+        assert "By Model" in response.text
+
+    def test_phase_names_displayed(self) -> None:
+        """Phase breakdown shows phase names."""
+        client = _make_client()
+        response = client.get("/analytics")
+        assert "Plan" in response.text
+        assert "Build" in response.text
+
+    def test_model_names_displayed(self) -> None:
+        """Model breakdown shows model names."""
+        client = _make_client()
+        response = client.get("/analytics")
+        assert "claude-3-5-sonnet" in response.text
+        assert "claude-3-haiku" in response.text
+
+    def test_model_cost_displayed(self) -> None:
+        """Model breakdown shows cost values."""
+        client = _make_client()
+        response = client.get("/analytics")
+        # Cost display should contain $ sign
+        text = response.text
+        idx = text.find("By Model")
+        assert idx > 0
+        model_section = text[idx:]
+        assert "$" in model_section
+
+    def test_project_breakdown_clickable(self) -> None:
+        """Project names in breakdown have hx-get for filter."""
+        client = _make_client()
+        response = client.get("/analytics")
+        text = response.text
+        # Project links should have hx-get with project param
+        assert "hx-get" in text
+        # Check the breakdown area has project filter links
+        idx = text.find("By Project")
+        if idx > 0:
+            proj_section = text[idx:idx + 1000]
+            assert "hx-target" in proj_section
+
+    def test_phase_breakdown_not_clickable(self) -> None:
+        """Phase names are not clickable (plain span, not link)."""
+        client = _make_client()
+        response = client.get("/analytics")
+        text = response.text
+        idx = text.find("By Phase")
+        if idx > 0:
+            phase_section = text[idx:idx + 1000]
+            # Phase names should be in spans, not links
+            assert "link" not in phase_section
+
+    def test_breakdown_panels_in_grid(self) -> None:
+        """Breakdown panels use grid layout."""
+        client = _make_client()
+        response = client.get("/analytics")
+        assert "grid grid-cols-1 lg:grid-cols-2 gap-4" in response.text
+
+    def test_breakdown_bars_have_width_styles(self) -> None:
+        """Breakdown horizontal bars have inline width styles."""
+        client = _make_client()
+        response = client.get("/analytics")
+        assert 'style="width:' in response.text
+
+    def test_empty_state_no_breakdowns(self) -> None:
+        """Empty state does not show breakdown panels."""
+        sa = _mock_empty_stats_aggregator()
+        client = _make_client(stats_aggregator=sa)
+        response = client.get("/analytics")
+        assert "By Project" not in response.text
+        assert "By Phase" not in response.text
+        assert "By Model" not in response.text
