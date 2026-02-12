@@ -545,22 +545,32 @@ def _build_run_detail_context(
     )
 
     # Build per-phase detail data for accordion section
+    # For active runs, show all phases (including pending) so users see the full pipeline
+    # For completed/failed runs, only show phases that have data
     completed_set = set(phases_completed)
-    all_phases_with_data = list(completed_set)
-    if current_phase and current_phase not in completed_set:
-        all_phases_with_data.append(current_phase)
+    show_all_phases = status == "running"
 
     phases_detail: list[dict] = []
     for phase_key in PHASE_SEQUENCE:
-        if phase_key not in all_phases_with_data:
+        has_data = phase_key in completed_set or phase_key == current_phase
+        if not show_all_phases and not has_data:
             continue
+
         tokens = phase_tokens.get(phase_key, 0)
         cost = tokens * 0.000009
-        phase_status = "completed" if phase_key in completed_set else (
-            "active" if phase_key == current_phase and status == "running"
-            else "failed" if phase_key == current_phase and status in ("failed", "aborted")
-            else "completed"
-        )
+
+        if phase_key in completed_set:
+            phase_status = "completed"
+        elif phase_key == current_phase:
+            if status == "running":
+                phase_status = "active"
+            elif status in ("failed", "aborted"):
+                phase_status = "failed"
+            else:
+                phase_status = "completed"
+        else:
+            phase_status = "pending"
+
         # Status icon
         if phase_status == "completed":
             status_icon = "✓"
@@ -590,6 +600,11 @@ def _build_run_detail_context(
         if team_key:
             linear_url = f"https://linear.app/{team_key}/issue/{task_id}"
 
+    # Determine failed phase name for error banner
+    failed_phase_name: str | None = None
+    if status in ("failed", "aborted") and current_phase:
+        failed_phase_name = _PHASE_LABELS.get(current_phase, current_phase.capitalize())
+
     return {
         "run_id": run_id,
         "run_id_short": run_id_short,
@@ -613,6 +628,7 @@ def _build_run_detail_context(
         "back_label": back_label,
         "back_url": back_url,
         "is_active": status == "running",
+        "failed_phase_name": failed_phase_name,
     }
 
 
