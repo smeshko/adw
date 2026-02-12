@@ -7,6 +7,7 @@ handled in ``partials.py``.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from datetime import UTC, datetime
@@ -14,6 +15,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
+from starlette.responses import StreamingResponse
 
 from adw.core.artifact_manager import ArtifactManager
 from adw.core.constants import PHASE_SEQUENCE
@@ -567,22 +569,32 @@ def _build_run_detail_context(
     )
 
     # Build per-phase detail data for accordion section
+    # For active runs, show all phases (including pending) so users see the full pipeline
+    # For completed/failed runs, only show phases that have data
     completed_set = set(phases_completed)
-    all_phases_with_data = list(completed_set)
-    if current_phase and current_phase not in completed_set:
-        all_phases_with_data.append(current_phase)
+    show_all_phases = status == "running"
 
     phases_detail: list[dict] = []
     for phase_key in PHASE_SEQUENCE:
-        if phase_key not in all_phases_with_data:
+        has_data = phase_key in completed_set or phase_key == current_phase
+        if not show_all_phases and not has_data:
             continue
+
         tokens = phase_tokens.get(phase_key, 0)
         cost = tokens * 0.000009
-        phase_status = "completed" if phase_key in completed_set else (
-            "active" if phase_key == current_phase and status == "running"
-            else "failed" if phase_key == current_phase and status in ("failed", "aborted")
-            else "completed"
-        )
+
+        if phase_key in completed_set:
+            phase_status = "completed"
+        elif phase_key == current_phase:
+            if status == "running":
+                phase_status = "active"
+            elif status in ("failed", "aborted"):
+                phase_status = "failed"
+            else:
+                phase_status = "completed"
+        else:
+            phase_status = "pending"
+
         # Status icon
         if phase_status == "completed":
             status_icon = "✓"
@@ -612,6 +624,11 @@ def _build_run_detail_context(
         if team_key:
             linear_url = f"https://linear.app/{team_key}/issue/{task_id}"
 
+    # Determine failed phase name for error banner
+    failed_phase_name: str | None = None
+    if status in ("failed", "aborted") and current_phase:
+        failed_phase_name = _PHASE_LABELS.get(current_phase, current_phase.capitalize())
+
     return {
         "run_id": run_id,
         "run_id_short": run_id_short,
@@ -635,6 +652,7 @@ def _build_run_detail_context(
         "back_label": back_label,
         "back_url": back_url,
         "is_active": status == "running",
+        "failed_phase_name": failed_phase_name,
     }
 
 
@@ -830,11 +848,16 @@ async def phase_detail(
     request: Request,
     run_id: str,
     phase: str,
+    severity: str = Query(""),
     index_manager: object = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Return phase detail HTML fragment for lazy-loaded accordion content.
 
     Loads hooks and artifacts data for the specified phase of a run.
+
+    Args:
+        severity: Optional default severity filter for the log viewer
+                  (e.g., "ERROR" for failed phases).
     """
     templates = request.app.state.templates
 
@@ -890,6 +913,24 @@ async def phase_detail(
                 extra={"run_id": run_id, "phase": phase},
             )
 
+    # Determine if this is the active phase of a running run
+    run_status = run_entry.status  # type: ignore[union-attr]
+    run_current_phase = run_entry.phase_reached  # type: ignore[union-attr]
+
+    # Try to get live phase from RunContext
+    if runs_dir is not None:
+        try:
+            cm = ContextManager(runs_dir)
+            ctx = cm.load(run_id)
+            run_status = ctx.status
+            run_current_phase = ctx.current_phase
+        except (StateError, OSError):
+            pass
+
+    is_active_phase = (
+        run_status == "running" and run_current_phase == phase
+    )
+
     context = {
         "request": request,
         "run_id": run_id,
@@ -897,6 +938,8 @@ async def phase_detail(
         "hooks": hooks,
         "artifacts": artifacts_list,
         "llm_stats": llm_stats,
+        "is_active_phase": is_active_phase,
+        "default_severity": severity.upper() if severity else "",
     }
 
     return templates.TemplateResponse(
@@ -1245,6 +1288,349 @@ async def log_search(
     lines.append('</div>')
 
     return HTMLResponse(content="\n".join(lines))
+
+
+# ── SSE Streaming Endpoints ─────────────────────────────────────────
+
+
+def _format_sse_event(event: str, data: str) -> str:
+    """Format an SSE message with event type and data.
+
+    Args:
+        event: SSE event name (e.g., 'phase-update', 'log-line').
+        data: HTML content to send as the event data.
+
+    Returns:
+        SSE-formatted string ready to be yielded in a StreamingResponse.
+    """
+    # SSE spec: multi-line data needs each line prefixed with "data:"
+    data_lines = "\n".join(f"data:{line}" for line in data.split("\n"))
+    return f"event:{event}\n{data_lines}\n\n"
+
+
+@router.get("/runs/{run_id}/events")
+async def run_events_sse(
+    run_id: str,
+    index_manager: object = Depends(get_index_manager),
+) -> StreamingResponse:
+    """SSE stream for run-level events (phase updates, completion, failure).
+
+    Connects to ``/runs/{id}/events`` and emits:
+    - ``phase-update``: OOB HTML to update the phase pipeline and elapsed time
+    - ``run-complete``: OOB HTML to refresh the run header when completed
+    - ``run-failed``: OOB HTML to refresh the run header when failed
+
+    The stream polls the RunContext file every 2 seconds for state changes.
+    Automatically terminates when the run completes or fails.
+    """
+    run_entry = _find_run_entry(index_manager, run_id)
+    if run_entry is None:
+        return StreamingResponse(
+            iter([_format_sse_event("error", "Run not found")]),
+            media_type="text/event-stream",
+            status_code=404,
+        )
+
+    async def event_generator():
+        """Yield SSE events by polling RunContext for state changes."""
+        from adw.dashboard.partials import _format_elapsed
+
+        last_phase: str | None = None
+        last_status: str | None = None
+
+        try:
+            project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+            runs_dir = project_path / ".adw" / "runs"
+        except (AttributeError, OSError):
+            yield _format_sse_event("error", "Cannot resolve run path")
+            return
+
+        while True:
+            try:
+                cm = ContextManager(runs_dir)
+                ctx = cm.load(run_id)
+            except (StateError, OSError):
+                # Context file may not exist yet or be locked
+                await asyncio.sleep(2)
+                continue
+
+            current_phase = ctx.current_phase
+            current_status = ctx.status
+            phases_completed = list(ctx.phase_history)
+
+            # Emit phase-update if phase changed
+            if current_phase != last_phase:
+                elapsed = datetime.now(UTC) - ctx.started_at
+                elapsed_display = _format_elapsed(elapsed)
+
+                # Build updated phase pipeline HTML with OOB swap
+                phases = _build_detail_phase_pipeline(
+                    phases_completed=phases_completed,
+                    current_phase=current_phase,
+                    status=current_status,
+                )
+                pipeline_html = _render_phase_pipeline_oob(phases, elapsed_display)
+                yield _format_sse_event("phase-update", pipeline_html)
+                last_phase = current_phase
+
+            # Emit run-complete or run-failed if status changed to terminal
+            if current_status != last_status and current_status in (
+                "completed", "failed", "aborted",
+            ):
+                if current_status == "completed":
+                    yield _format_sse_event("run-complete", "")
+                else:
+                    yield _format_sse_event("run-failed", "")
+                # Terminal state — close the stream
+                return
+
+            last_status = current_status
+            await asyncio.sleep(2)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+def _render_phase_pipeline_oob(
+    phases: list[dict[str, str]],
+    elapsed_display: str,
+) -> str:
+    """Render OOB HTML fragment for the phase pipeline and elapsed time.
+
+    Args:
+        phases: Phase pipeline data from ``_build_detail_phase_pipeline``.
+        elapsed_display: Formatted elapsed time string.
+
+    Returns:
+        HTML string with hx-swap-oob attributes for the pipeline and elapsed time.
+    """
+    steps: list[str] = []
+    for phase in phases:
+        content_char = ""
+        step_class = "step"
+        if phase["status"] == "completed":
+            content_char = "✓"
+            step_class = "step step-success"
+        elif phase["status"] == "active":
+            content_char = "●"
+            step_class = "step step-warning phase-active"
+        elif phase["status"] == "failed":
+            content_char = "✗"
+            step_class = "step step-error"
+
+        duration_html = ""
+        if phase.get("duration"):
+            duration_html = (
+                f'<span class="font-mono text-xs text-base-content/50">'
+                f'{phase["duration"]}</span>'
+            )
+
+        loading_html = ""
+        if phase["status"] == "active":
+            loading_html = (
+                ' <span class="loading loading-dots loading-sm"></span>'
+            )
+
+        steps.append(
+            f'<li data-content="{content_char}" class="{step_class}">'
+            f'<div class="flex flex-col items-center">'
+            f'<span>{phase["name"]}{loading_html}</span>'
+            f'{duration_html}'
+            f'</div></li>'
+        )
+
+    pipeline_html = (
+        '<div id="run-phase-pipeline" hx-swap-oob="innerHTML">'
+        '<ul class="steps steps-horizontal w-full">'
+        + "".join(steps)
+        + "</ul></div>"
+    )
+
+    elapsed_html = (
+        f'<span id="run-elapsed" hx-swap-oob="innerHTML">{elapsed_display}</span>'
+    )
+
+    return pipeline_html + elapsed_html
+
+
+@router.get("/runs/{run_id}/logs/stream")
+async def log_stream_sse(
+    run_id: str,
+    index_manager: object = Depends(get_index_manager),
+) -> StreamingResponse:
+    """SSE stream for real-time log lines.
+
+    Connects to ``/runs/{id}/logs/stream`` and emits:
+    - ``log-line``: Individual log line HTML divs appended to the log viewer
+
+    Tails the live.log file and sends new lines as they appear.
+    Terminates when the run reaches a terminal state.
+    """
+    import re
+
+    run_entry = _find_run_entry(index_manager, run_id)
+    if run_entry is None:
+        return StreamingResponse(
+            iter([_format_sse_event("error", "Run not found")]),
+            media_type="text/event-stream",
+            status_code=404,
+        )
+
+    async def log_generator():
+        """Tail the live.log file and yield new lines as SSE events."""
+        try:
+            project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+            runs_dir = project_path / ".adw" / "runs"
+        except (AttributeError, OSError):
+            yield _format_sse_event("error", "Cannot resolve run path")
+            return
+
+        log_file = runs_dir / run_id / "logs" / "live.log"
+        line_pattern = re.compile(
+            r"^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s+\[(\w+)\]\s+(.*)"
+        )
+        ansi_pattern = re.compile(r"\x1b\[[0-9;]*m")
+        error_categories = {"ERROR", "FATAL"}
+        warn_categories = {"WARN", "WARNING"}
+
+        file_offset = 0
+
+        # If the log file already exists, start from the end
+        if log_file.exists():
+            try:
+                file_offset = log_file.stat().st_size
+            except OSError:
+                pass
+
+        while True:
+            # Check if run is still active
+            try:
+                cm = ContextManager(runs_dir)
+                ctx = cm.load(run_id)
+                if ctx.status in ("completed", "failed", "aborted"):
+                    # Flush any remaining lines then exit
+                    if log_file.exists():
+                        try:
+                            current_sz = log_file.stat().st_size
+                            if current_sz > file_offset:
+                                with open(log_file, errors="replace") as fh:
+                                    fh.seek(file_offset)
+                                    tail = fh.read()
+                                for tail_line in tail.splitlines():
+                                    cl = ansi_pattern.sub("", tail_line).strip()
+                                    m = line_pattern.match(cl)
+                                    if not m:
+                                        continue
+                                    ts = m.group(1)
+                                    cat = m.group(2).upper()
+                                    msg = ansi_pattern.sub("", m.group(3)).strip()
+                                    lvl = (
+                                        "ERROR" if cat in error_categories
+                                        else "WARN" if cat in warn_categories
+                                        else "INFO"
+                                    )
+                                    yield _format_sse_event(
+                                        "log-line",
+                                        _render_log_line_html(ts, lvl, msg),
+                                    )
+                        except OSError:
+                            pass
+                    return
+            except (StateError, OSError):
+                pass
+
+            # Read new lines from the log file
+            if not log_file.exists():
+                await asyncio.sleep(1)
+                continue
+
+            try:
+                current_size = log_file.stat().st_size
+            except OSError:
+                await asyncio.sleep(1)
+                continue
+
+            if current_size > file_offset:
+                try:
+                    with open(log_file, errors="replace") as f:
+                        f.seek(file_offset)
+                        new_content = f.read()
+                        file_offset = f.tell()
+
+                    for line in new_content.splitlines():
+                        clean_line = ansi_pattern.sub("", line).strip()
+                        if not clean_line:
+                            continue
+                        match = line_pattern.match(clean_line)
+                        if not match:
+                            continue
+
+                        timestamp = match.group(1)
+                        category = match.group(2).upper()
+                        message = ansi_pattern.sub("", match.group(3)).strip()
+
+                        if category in error_categories:
+                            level = "ERROR"
+                        elif category in warn_categories:
+                            level = "WARN"
+                        else:
+                            level = "INFO"
+
+                        html = _render_log_line_html(timestamp, level, message)
+                        yield _format_sse_event("log-line", html)
+                except OSError:
+                    pass
+
+            await asyncio.sleep(1)
+
+    return StreamingResponse(
+        log_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+def _render_log_line_html(timestamp: str, level: str, message: str) -> str:
+    """Render a single log line as an HTML div.
+
+    Args:
+        timestamp: Log timestamp string.
+        level: Severity level (INFO, WARN, ERROR).
+        message: Log message text.
+
+    Returns:
+        HTML string for a single log entry.
+    """
+    level_class = ""
+    if level == "WARN":
+        level_class = " text-warning"
+    elif level == "ERROR":
+        level_class = " text-error"
+
+    safe_msg = (
+        message.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+    return (
+        f'<div class="py-0.5{level_class}">'
+        f'<span class="text-base-content/50">{timestamp}</span> '
+        f'<span class="font-semibold">{level}</span> '
+        f'{safe_msg}'
+        f'</div>'
+    )
 
 
 @router.get("/health")

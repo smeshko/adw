@@ -38,6 +38,14 @@
 .chart-daily { min-height: 10rem; }
 .chart-bar > div { min-height: 2px; transition: height 200ms ease; }
 
+/* Auto-scroll streaming log container (Story 2.4) */
+.log-stream-container {
+  overflow-anchor: none;  /* Disable browser anchor scrolling */
+}
+.log-stream-container > :last-child {
+  overflow-anchor: auto;  /* Anchor to the last child to keep scroll at bottom */
+}
+
 /* Keyboard navigation focus highlight (Story 6.1) */
 .kbd-nav-active {
   outline: 2px solid oklch(var(--p));

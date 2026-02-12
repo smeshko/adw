@@ -1,6 +1,15 @@
 {% import "components/status_badge.html" as badge %}
 
+{# ── SSE wrapper for active runs ── #}
+{% if is_active %}
+<div id="run-detail"
+     data-page-title="{{ project_name }} / {{ feature }} — ADW Dashboard"
+     hx-ext="sse"
+     sse-connect="/runs/{{ run_id }}/events"
+     sse-close="run-complete,run-failed">
+{% else %}
 <div id="run-detail" data-page-title="{{ project_name }} / {{ feature }} — ADW Dashboard">
+{% endif %}
 
   {# ── Back link ── #}
   <div class="mb-4">
@@ -22,7 +31,7 @@
       <p class="text-sm text-base-content/60 font-mono mt-1">
         <span class="run-id-short" title="{{ run_id }}">{{ run_id_short }}</span>
         {% if branch_name %}<span class="mx-1">·</span> <span>{{ branch_name }}</span>{% endif %}
-        <span class="mx-1">·</span> <span>{{ duration_display }}</span>
+        <span class="mx-1">·</span> <span id="run-elapsed">{{ duration_display }}</span>
         <span class="mx-1">·</span> <span>{{ started_ago }}</span>
       </p>
     </div>
@@ -32,7 +41,7 @@
   </div>
 
   {# ── Action buttons ── #}
-  <div class="flex gap-2 mb-6">
+  <div id="run-action-buttons" class="flex gap-2 mb-6">
     {% if is_active %}
     <button class="btn btn-error btn-outline btn-sm"
             hx-get="/partials/abort/{{ run_id }}"
@@ -45,20 +54,48 @@
             hx-swap="innerHTML">Re-run</button>
   </div>
 
+  {# ── Failed run error banner ── #}
+  {% if status == 'failed' %}
+  <div class="alert alert-error mb-6">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>Run failed during <strong>{{ failed_phase_name or 'unknown' }}</strong> phase. See phase details below for error output.</span>
+  </div>
+  {% endif %}
+
   {# ── Phase pipeline ── #}
   <div class="card card-bordered bg-base-200 p-4 mb-6">
-    <ul class="steps steps-horizontal w-full">
-      {%- for phase in phases %}
-      <li data-content="{{ '✓' if phase.status == 'completed' else '●' if phase.status == 'active' else '✗' if phase.status == 'failed' else '' }}"
-          class="step{{ ' step-success' if phase.status == 'completed' else ' step-warning' if phase.status == 'active' else ' step-error' if phase.status == 'failed' else '' }}{{ ' phase-active' if phase.status == 'active' else '' }}">
-        <div class="flex flex-col items-center">
-          <span>{{ phase.name }}</span>
-          {% if phase.duration %}<span class="font-mono text-xs text-base-content/50">{{ phase.duration }}</span>{% endif %}
-        </div>
-      </li>
-      {%- endfor %}
-    </ul>
+    <div id="run-phase-pipeline">
+      <ul class="steps steps-horizontal w-full">
+        {%- for phase in phases %}
+        <li data-content="{{ '✓' if phase.status == 'completed' else '●' if phase.status == 'active' else '✗' if phase.status == 'failed' else '' }}"
+            class="step{{ ' step-success' if phase.status == 'completed' else ' step-warning' if phase.status == 'active' else ' step-error' if phase.status == 'failed' else '' }}{{ ' phase-active' if phase.status == 'active' else '' }}">
+          <div class="flex flex-col items-center">
+            <span>{{ phase.name }}{% if phase.status == 'active' %} <span class="loading loading-dots loading-sm"></span>{% endif %}</span>
+            {% if phase.duration %}<span class="font-mono text-xs text-base-content/50">{{ phase.duration }}</span>{% endif %}
+          </div>
+        </li>
+        {%- endfor %}
+      </ul>
+    </div>
   </div>
+
+  {# ── SSE event listeners for run-complete and run-failed ── #}
+  {% if is_active %}
+  <div sse-swap="run-complete"
+       hx-target="#main"
+       hx-swap="innerHTML"
+       hx-get="/runs/{{ run_id }}"
+       hx-trigger="sse:run-complete"
+       style="display:none;"></div>
+  <div sse-swap="run-failed"
+       hx-target="#main"
+       hx-swap="innerHTML"
+       hx-get="/runs/{{ run_id }}"
+       hx-trigger="sse:run-failed"
+       style="display:none;"></div>
+  {% endif %}
 
   {# ── Metadata card ── #}
   <div class="card card-bordered bg-base-200 p-6">
@@ -146,22 +183,33 @@
   <div class="mt-6">
     <h2 class="text-lg font-semibold mb-4 section-header">Phases</h2>
     {% for phase in phases_detail %}
-    <div class="collapse collapse-arrow bg-base-200 mb-2">
+    <div class="collapse collapse-arrow bg-base-200 mb-2"
+         {% if phase.status == 'failed' and status == 'failed' %}open{% endif %}>
       <input type="checkbox"
+             {% if phase.status == 'failed' and status == 'failed' %}checked{% endif %}
+             {% if not (phase.status == 'failed' and status == 'failed') %}
              hx-get="/runs/{{ run_id }}/phases/{{ phase.phase_key }}"
              hx-trigger="change once"
              hx-target="#phase-content-{{ loop.index }}"
-             hx-swap="innerHTML" />
+             hx-swap="innerHTML"
+             {% endif %} />
       <div class="collapse-title">
         <div class="flex items-center gap-3">
           <span class="font-semibold">{{ phase.name }}</span>
           {% if phase.duration %}<span class="font-mono text-sm">{{ phase.duration }}</span>{% endif %}
           <span class="{{ 'text-success' if phase.status == 'completed' else 'text-warning' if phase.status == 'active' else 'text-error' if phase.status == 'failed' else '' }}">{{ phase.status_icon }}</span>
+          {% if phase.status == 'active' %}<span class="loading loading-dots loading-sm"></span>{% endif %}
           <span class="font-mono text-sm text-base-content/60">{{ phase.tokens_display }}</span>
           <span class="font-mono text-sm text-base-content/60">{{ phase.cost_display }}</span>
+          {% if phase.status == 'pending' %}<span class="text-sm text-base-content/40 italic">Waiting...</span>{% endif %}
         </div>
       </div>
-      <div class="collapse-content" id="phase-content-{{ loop.index }}">
+      <div class="collapse-content" id="phase-content-{{ loop.index }}"
+           {% if phase.status == 'failed' and status == 'failed' %}
+           hx-get="/runs/{{ run_id }}/phases/{{ phase.phase_key }}?severity=ERROR"
+           hx-trigger="load"
+           hx-swap="innerHTML"
+           {% endif %}>
         <div class="flex justify-center py-4">
           <span class="loading loading-dots loading-md"></span>
         </div>
