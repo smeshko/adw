@@ -146,9 +146,7 @@ class ShipExtension:
             return context
 
         try:
-            merge_record = json.loads(
-                merge_record_path.read_text(encoding="utf-8")
-            )
+            merge_record = json.loads(merge_record_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             return context
 

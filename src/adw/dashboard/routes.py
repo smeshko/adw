@@ -8,10 +8,13 @@ handled in ``partials.py``.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
+from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
@@ -28,6 +31,14 @@ from adw.dashboard.dependencies import (
     resolve_project_filter,
 )
 from adw.exceptions import StateError
+
+if TYPE_CHECKING:
+    from starlette.templating import Jinja2Templates
+
+    from adw.core.index_manager import IndexManager
+    from adw.core.project_registry import ProjectRegistryManager
+    from adw.core.stats_aggregator import StatsAggregator
+    from adw.models.index import IndexEntry
 
 logger = logging.getLogger(__name__)
 
@@ -59,15 +70,15 @@ def _build_page_context(
     request: Request,
     page: str,
     *,
-    index_manager: object,
-    project_registry: object,
+    index_manager: IndexManager,
+    project_registry: ProjectRegistryManager,
     project: str,
-) -> dict:
+) -> dict[str, Any]:
     """Build the shared template context used by all page routes."""
     csrf_token = generate_csrf_token(request)
 
     # Project list for filter dropdown
-    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    all_projects = project_registry.get_all()
     project_names = [p.name for p in all_projects]
 
     # Status bar data (for full-page renders that include the footer)
@@ -75,13 +86,13 @@ def _build_page_context(
     last_updated_dt = None
     try:
         project_path_str, _ = resolve_project_filter(project_registry, project)
-        active_runs = index_manager.get_recent_runs(  # type: ignore[union-attr]
+        active_runs = index_manager.get_recent_runs(
             status="running",
-            **({"project_path": Path(project_path_str)} if project_path_str else {}),
+            project_path=Path(project_path_str) if project_path_str else None,
         )
         active_run_count = len(active_runs)
 
-        recent = index_manager.get_recent_runs(limit=1)  # type: ignore[union-attr]
+        recent = index_manager.get_recent_runs(limit=1)
         if recent:
             last_updated_dt = recent[0].completed_at or recent[0].started_at
     except Exception:
@@ -102,9 +113,9 @@ def _build_page_context(
 async def overview(
     request: Request,
     project: str = Query("", alias="project"),
-    index_manager: object = Depends(get_index_manager),
-    stats_aggregator: object = Depends(get_stats_aggregator),
-    project_registry: object = Depends(get_project_registry),
+    index_manager: IndexManager = Depends(get_index_manager),
+    stats_aggregator: StatsAggregator = Depends(get_stats_aggregator),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Render the overview / home page.
 
@@ -118,9 +129,10 @@ async def overview(
         build_stats_context,
     )
 
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
     context = _build_page_context(
-        request, "overview",
+        request,
+        "overview",
         index_manager=index_manager,
         project_registry=project_registry,
         project=project,
@@ -130,7 +142,7 @@ async def overview(
     project_path_str, _ = resolve_project_filter(project_registry, project_name)
 
     # Build path→name map for display name resolution
-    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    all_projects = project_registry.get_all()
     name_map = {str(p.path): p.name for p in all_projects}
     has_projects = len(all_projects) > 0
     context["has_projects"] = has_projects
@@ -140,7 +152,7 @@ async def overview(
         context["data_error"] = False
         context["data_error_message"] = ""
         try:
-            recent_check = index_manager.get_recent_runs(  # type: ignore[union-attr]
+            recent_check = index_manager.get_recent_runs(
                 limit=1,
                 project_path=Path(project_path_str) if project_path_str else None,
             )
@@ -156,13 +168,14 @@ async def overview(
 
         if has_runs:
             try:
-                stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
+                stats = stats_aggregator.get_global_stats(project_name=project_name)
                 context.update(build_stats_context(stats, project_name))
                 context.update(build_cost_strip_context(stats_aggregator, project_name))
             except Exception:
                 context["data_error"] = True
                 context["data_error_message"] = (
-                    "Unable to load run data. The index file may be corrupted or locked."
+                    "Unable to load run data."
+                    " The index file may be corrupted or locked."
                 )
     else:
         context["has_runs"] = False
@@ -171,16 +184,16 @@ async def overview(
     # Skip if data layer is already in error state
     if not context.get("data_error"):
         try:
-            entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
+            entries = index_manager.get_recent_runs(
                 limit=5,
                 project_path=Path(project_path_str) if project_path_str else None,
             )
             context["recent_runs"] = build_recent_runs_context(entries, name_map)
 
-            all_stats = stats_aggregator.get_global_stats(project_name=None)  # type: ignore[union-attr]
-            context["project_stats"] = all_stats.projects  # type: ignore[union-attr]
+            all_stats = stats_aggregator.get_global_stats(project_name=None)
+            context["project_stats"] = all_stats.projects
 
-            active_entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
+            active_entries = index_manager.get_recent_runs(
                 status="running",
                 project_path=Path(project_path_str) if project_path_str else None,
             )
@@ -212,9 +225,9 @@ async def runs_list(
     to_date: str = Query("", alias="to"),
     sort: str = Query("newest"),
     page: int = Query(1, ge=1),
-    index_manager: object = Depends(get_index_manager),
-    stats_aggregator: object = Depends(get_stats_aggregator),
-    project_registry: object = Depends(get_project_registry),
+    index_manager: IndexManager = Depends(get_index_manager),
+    stats_aggregator: StatsAggregator = Depends(get_stats_aggregator),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Render the runs list page.
 
@@ -225,9 +238,10 @@ async def runs_list(
     """
     from adw.dashboard.partials import build_recent_runs_context
 
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
     context = _build_page_context(
-        request, "runs",
+        request,
+        "runs",
         index_manager=index_manager,
         project_registry=project_registry,
         project=project,
@@ -259,7 +273,7 @@ async def runs_list(
 
     # Fetch paginated runs with graceful degradation
     try:
-        paginated = index_manager.get_paginated_runs(  # type: ignore[union-attr]
+        paginated = index_manager.get_paginated_runs(
             page=page,
             page_size=15,
             status=status_filter or None,
@@ -278,7 +292,7 @@ async def runs_list(
         }
 
     # Build path→name map for display name resolution
-    all_proj = project_registry.get_all()  # type: ignore[union-attr]
+    all_proj = project_registry.get_all()
     name_map = {str(p.path): p.name for p in all_proj}
     context["runs"] = build_recent_runs_context(paginated["entries"], name_map)
     context["total_count"] = paginated["total_count"]
@@ -295,7 +309,9 @@ async def runs_list(
     if request.headers.get("HX-Request"):
         if hx_target == "runs-content":
             return templates.TemplateResponse(
-                request, "partials/runs_table.html", context,
+                request,
+                "partials/runs_table.html",
+                context,
             )
         return templates.TemplateResponse(request, "partials/runs_list.html", context)
     return templates.TemplateResponse(request, "pages/runs_list.html", context)
@@ -311,9 +327,16 @@ _RANGE_DAYS: dict[str, int | None] = {
 _VALID_RANGES = list(_RANGE_DAYS.keys())
 
 _VALID_SORTS = {
-    "cost_desc", "cost_asc", "tokens_desc", "tokens_asc",
-    "runs_desc", "runs_asc", "project_desc", "project_asc",
-    "avg_desc", "avg_asc",
+    "cost_desc",
+    "cost_asc",
+    "tokens_desc",
+    "tokens_asc",
+    "runs_desc",
+    "runs_asc",
+    "project_desc",
+    "project_asc",
+    "avg_desc",
+    "avg_asc",
 }
 
 
@@ -323,9 +346,9 @@ async def analytics(
     project: str = Query("", alias="project"),
     range_: str = Query("7d", alias="range"),
     sort: str = Query("cost_desc"),
-    index_manager: object = Depends(get_index_manager),
-    stats_aggregator: object = Depends(get_stats_aggregator),
-    project_registry: object = Depends(get_project_registry),
+    index_manager: IndexManager = Depends(get_index_manager),
+    stats_aggregator: StatsAggregator = Depends(get_stats_aggregator),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Render the analytics page.
 
@@ -340,9 +363,10 @@ async def analytics(
     if sort not in _VALID_SORTS:
         sort = "cost_desc"
 
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
     context = _build_page_context(
-        request, "analytics",
+        request,
+        "analytics",
         index_manager=index_manager,
         project_registry=project_registry,
         project=project,
@@ -379,7 +403,7 @@ _RUN_NOT_FOUND_FRAGMENT = (
     '<p class="text-base-content/70 mb-4">Run not found. It may have been deleted.</p>'
     '<a hx-get="/" hx-target="#main" hx-push-url="/" '
     'class="btn btn-ghost btn-sm">&larr; Back to Overview</a>'
-    '</div></div>'
+    "</div></div>"
 )
 
 
@@ -440,11 +464,13 @@ def _build_detail_phase_pipeline(
         else:
             duration_display = ""
 
-        pipeline.append({
-            "name": _PHASE_LABELS.get(phase, phase.capitalize()),
-            "status": phase_status,
-            "duration": duration_display,
-        })
+        pipeline.append(
+            {
+                "name": _PHASE_LABELS.get(phase, phase.capitalize()),
+                "status": phase_status,
+                "duration": duration_display,
+            }
+        )
     return pipeline
 
 
@@ -462,10 +488,10 @@ def _format_duration_from_seconds(total_seconds: int) -> str:
 
 
 def _build_run_detail_context(
-    run_entry: object,
+    run_entry: IndexEntry,
     request: Request,
     name_map: dict[str, str] | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Build the template context for the run detail page.
 
     Attempts to load RunContext from disk for enriched data.
@@ -481,19 +507,19 @@ def _build_run_detail_context(
     """
     from adw.dashboard.partials import _format_tokens
 
-    run_id = run_entry.run_id  # type: ignore[union-attr]
-    project_name = run_entry.project_name  # type: ignore[union-attr]
+    run_id = run_entry.run_id
+    project_name: str = run_entry.project_name
     if name_map:
         project_name = name_map.get(
-            run_entry.project_path, project_name,  # type: ignore[union-attr]
+            run_entry.project_path,
+            project_name,
         )
-    feature = run_entry.feature_description  # type: ignore[union-attr]
-    status = run_entry.status  # type: ignore[union-attr]
-    started_at = run_entry.started_at  # type: ignore[union-attr]
-    completed_at = run_entry.completed_at  # type: ignore[union-attr]
-    phases_completed = list(run_entry.phases_completed)  # type: ignore[union-attr]
-    current_phase = run_entry.phase_reached  # type: ignore[union-attr]
-
+    feature = run_entry.feature_description
+    status = run_entry.status
+    started_at = run_entry.started_at
+    completed_at = run_entry.completed_at
+    phases_completed = list(run_entry.phases_completed)
+    current_phase = run_entry.phase_reached
     # Enriched data from RunContext (populated below if available)
     branch_name: str | None = None
     total_tokens: int = 0
@@ -506,7 +532,7 @@ def _build_run_detail_context(
 
     # Try loading RunContext for enriched data
     try:
-        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        project_path = Path(run_entry.project_path)
         runs_dir = project_path / ".adw" / "runs"
         cm = ContextManager(runs_dir)
         ctx = cm.load(run_id)
@@ -525,7 +551,9 @@ def _build_run_detail_context(
 
         # Artifacts path
         if ctx.worktree_path:
-            artifacts_path = str(ctx.worktree_path / ".adw" / "runs" / run_id / "artifacts")
+            artifacts_path = str(
+                ctx.worktree_path / ".adw" / "runs" / run_id / "artifacts"
+            )
         else:
             artifacts_path = str(runs_dir / run_id / "artifacts")
     except (StateError, OSError):
@@ -551,10 +579,7 @@ def _build_run_detail_context(
     from_param = request.query_params.get("from", "")
     referer = request.headers.get("referer", "")
 
-    if from_param == "runs":
-        back_label = "Back to Runs"
-        back_url = "/runs"
-    elif "/runs" in referer and f"/runs/{run_id}" not in referer:
+    if from_param == "runs" or "/runs" in referer and f"/runs/{run_id}" not in referer:
         back_label = "Back to Runs"
         back_url = "/runs"
     else:
@@ -568,13 +593,14 @@ def _build_run_detail_context(
         status=status,
     )
 
-    # Build per-phase detail data for accordion section
-    # For active runs, show all phases (including pending) so users see the full pipeline
+    # Build per-phase detail data for accordion section.
+    # For active runs, show all phases (including pending) so users see
+    # the full pipeline.
     # For completed/failed runs, only show phases that have data
     completed_set = set(phases_completed)
     show_all_phases = status == "running"
 
-    phases_detail: list[dict] = []
+    phases_detail: list[dict[str, Any]] = []
     for phase_key in PHASE_SEQUENCE:
         has_data = phase_key in completed_set or phase_key == current_phase
         if not show_all_phases and not has_data:
@@ -605,16 +631,18 @@ def _build_run_detail_context(
         else:
             status_icon = "—"
 
-        phases_detail.append({
-            "phase_key": phase_key,
-            "name": _PHASE_LABELS.get(phase_key, phase_key.capitalize()),
-            "status": phase_status,
-            "status_icon": status_icon,
-            "tokens": tokens,
-            "tokens_display": _format_tokens(tokens) if tokens else "—",
-            "cost_display": f"${cost:.2f}" if cost > 0 else "—",
-            "duration": "",  # Duration per phase not yet tracked
-        })
+        phases_detail.append(
+            {
+                "phase_key": phase_key,
+                "name": _PHASE_LABELS.get(phase_key, phase_key.capitalize()),
+                "status": phase_status,
+                "status_icon": status_icon,
+                "tokens": tokens,
+                "tokens_display": _format_tokens(tokens) if tokens else "—",
+                "cost_display": f"${cost:.2f}" if cost > 0 else "—",
+                "duration": "",  # Duration per phase not yet tracked
+            }
+        )
 
     # Linear link (if task_id present and task_manager is linear)
     linear_url: str | None = None
@@ -660,17 +688,19 @@ def _build_run_detail_context(
 async def run_detail(
     request: Request,
     run_id: str,
-    index_manager: object = Depends(get_index_manager),
-    project_registry: object = Depends(get_project_registry),
+    index_manager: IndexManager = Depends(get_index_manager),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Render run detail page, or a 404 message if not found."""
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
     # Look up the run in the index
     try:
-        all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+        all_runs = index_manager.get_recent_runs(limit=100000)
     except Exception:
-        logger.exception("Failed to query index for run detail", extra={"run_id": run_id})
+        logger.exception(
+            "Failed to query index for run detail", extra={"run_id": run_id}
+        )
         all_runs = []
     run_entry = None
     for entry in all_runs:
@@ -682,37 +712,46 @@ async def run_detail(
         if request.headers.get("HX-Request"):
             return HTMLResponse(content=_RUN_NOT_FOUND_FRAGMENT, status_code=404)
         context = _build_page_context(
-            request, "",
+            request,
+            "",
             index_manager=index_manager,
             project_registry=project_registry,
             project="",
         )
         context["run_not_found"] = True
         return templates.TemplateResponse(
-            request, "pages/run_not_found.html", context, status_code=404,
+            request,
+            "pages/run_not_found.html",
+            context,
+            status_code=404,
         )
 
     # Build run detail context with display name resolution
-    all_proj = project_registry.get_all()  # type: ignore[union-attr]
+    all_proj = project_registry.get_all()
     detail_name_map = {str(p.path): p.name for p in all_proj}
     detail_context = _build_run_detail_context(run_entry, request, detail_name_map)
 
     if request.headers.get("HX-Request"):
         detail_context["request"] = request
         return templates.TemplateResponse(
-            request, "partials/run_detail.html", detail_context,
+            request,
+            "partials/run_detail.html",
+            detail_context,
         )
 
     # Full page: merge with base page context
     context = _build_page_context(
-        request, "run_detail",
+        request,
+        "run_detail",
         index_manager=index_manager,
         project_registry=project_registry,
         project="",
     )
     context.update(detail_context)
     return templates.TemplateResponse(
-        request, "pages/run_detail.html", context,
+        request,
+        "pages/run_detail.html",
+        context,
     )
 
 
@@ -726,9 +765,9 @@ def _format_file_size(size_bytes: int) -> str:
 
 
 def _find_run_entry(
-    index_manager: object,
+    index_manager: IndexManager,
     run_id: str,
-) -> object | None:
+) -> IndexEntry | None:
     """Look up a run entry by ID from the index.
 
     Args:
@@ -739,7 +778,7 @@ def _find_run_entry(
         IndexEntry or None if not found.
     """
     try:
-        all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+        all_runs = index_manager.get_recent_runs(limit=100000)
     except Exception:
         return None
     for entry in all_runs:
@@ -752,7 +791,7 @@ def _load_llm_stats(
     runs_dir: Path,
     run_id: str,
     phase: str,
-) -> dict | None:
+) -> dict[str, int] | None:
     """Load LLM token stats for a phase from the response JSON file.
 
     Args:
@@ -769,7 +808,7 @@ def _load_llm_stats(
 
     # Find the latest response file for this phase (e.g., 002_plan_response.json
     # takes precedence over 001_plan_response.json for retries).
-    result: dict | None = None
+    result: dict[str, int] | None = None
     for f in sorted(llm_dir.iterdir()):
         if f.name.endswith(f"_{phase}_response.json") and f.is_file():
             try:
@@ -849,7 +888,7 @@ async def phase_detail(
     run_id: str,
     phase: str,
     severity: str = Query(""),
-    index_manager: object = Depends(get_index_manager),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Return phase detail HTML fragment for lazy-loaded accordion content.
 
@@ -859,7 +898,7 @@ async def phase_detail(
         severity: Optional default severity filter for the log viewer
                   (e.g., "ERROR" for failed phases).
     """
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
     # Validate phase against known phases (NFR10: no arbitrary path access)
     if phase not in PHASE_SEQUENCE:
@@ -877,12 +916,12 @@ async def phase_detail(
         )
 
     # Load RunContext for phase data
-    hooks: list[dict] = []
-    artifacts_list: list[dict] = []
-    llm_stats: dict | None = None
+    hooks: list[dict[str, Any]] = []
+    artifacts_list: list[dict[str, Any]] = []
+    llm_stats: dict[str, int] | None = None
 
     try:
-        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        project_path = Path(run_entry.project_path)
         runs_dir = project_path / ".adw" / "runs"
     except (AttributeError, OSError):
         runs_dir = None
@@ -893,11 +932,13 @@ async def phase_detail(
             am = ArtifactManager(runs_dir)
             raw_artifacts = am.list_artifacts(run_id, phase)
             for art in raw_artifacts:
-                artifacts_list.append({
-                    "name": art["name"],
-                    "size": art["size"],
-                    "size_display": _format_file_size(art["size"]),
-                })
+                artifacts_list.append(
+                    {
+                        "name": art["name"],
+                        "size": art["size"],
+                        "size_display": _format_file_size(art["size"]),
+                    }
+                )
         except (StateError, OSError):
             logger.debug(
                 "Failed to load artifacts for phase detail",
@@ -914,9 +955,8 @@ async def phase_detail(
             )
 
     # Determine if this is the active phase of a running run
-    run_status = run_entry.status  # type: ignore[union-attr]
-    run_current_phase = run_entry.phase_reached  # type: ignore[union-attr]
-
+    run_status = run_entry.status
+    run_current_phase = run_entry.phase_reached
     # Try to get live phase from RunContext
     if runs_dir is not None:
         try:
@@ -927,9 +967,7 @@ async def phase_detail(
         except (StateError, OSError):
             pass
 
-    is_active_phase = (
-        run_status == "running" and run_current_phase == phase
-    )
+    is_active_phase = run_status == "running" and run_current_phase == phase
 
     context = {
         "request": request,
@@ -943,7 +981,9 @@ async def phase_detail(
     }
 
     return templates.TemplateResponse(
-        request, "partials/phase_detail.html", context,
+        request,
+        "partials/phase_detail.html",
+        context,
     )
 
 
@@ -952,7 +992,7 @@ async def llm_prompt(
     request: Request,
     run_id: str,
     phase: str,
-    index_manager: object = Depends(get_index_manager),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Return LLM prompt content HTML fragment for inline viewer."""
     # Validate phase
@@ -970,7 +1010,7 @@ async def llm_prompt(
         )
 
     try:
-        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        project_path = Path(run_entry.project_path)
         runs_dir = project_path / ".adw" / "runs"
         content = _load_llm_content(runs_dir, run_id, phase, "prompt")
     except OSError:
@@ -984,9 +1024,7 @@ async def llm_prompt(
 
     # Escape HTML for safe rendering in pre block
     safe_content = (
-        content.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
+        content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     )
     html = (
         f'<pre class="max-h-96 overflow-y-auto font-mono text-xs '
@@ -1000,7 +1038,7 @@ async def llm_response(
     request: Request,
     run_id: str,
     phase: str,
-    index_manager: object = Depends(get_index_manager),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Return LLM response content HTML fragment for inline viewer."""
     # Validate phase
@@ -1018,7 +1056,7 @@ async def llm_response(
         )
 
     try:
-        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        project_path = Path(run_entry.project_path)
         runs_dir = project_path / ".adw" / "runs"
         content = _load_llm_content(runs_dir, run_id, phase, "response")
     except OSError:
@@ -1032,9 +1070,7 @@ async def llm_response(
 
     # Escape HTML for safe rendering in pre block
     safe_content = (
-        content.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
+        content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     )
     html = (
         f'<pre class="max-h-96 overflow-y-auto font-mono text-xs '
@@ -1043,19 +1079,21 @@ async def llm_response(
     return HTMLResponse(content=html)
 
 
-@router.get("/runs/{run_id}/artifacts/{phase}/{filename:path}", response_class=HTMLResponse)
+@router.get(
+    "/runs/{run_id}/artifacts/{phase}/{filename:path}", response_class=HTMLResponse
+)
 async def artifact_viewer(
     request: Request,
     run_id: str,
     phase: str,
     filename: str,
-    index_manager: object = Depends(get_index_manager),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Return artifact content HTML fragment for inline viewer.
 
     Renders markdown files as HTML; all other files in a pre block.
     """
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
     # Validate phase against known phases (NFR10: no arbitrary path access)
     if phase not in PHASE_SEQUENCE:
@@ -1082,14 +1120,14 @@ async def artifact_viewer(
     # Load artifact content
     content: str | None = None
     try:
-        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        project_path = Path(run_entry.project_path)
         runs_dir = project_path / ".adw" / "runs"
         am = ArtifactManager(runs_dir)
         content = am.get(run_id, phase, filename)  # type: ignore[assignment]
     except (StateError, OSError, UnicodeDecodeError):
         logger.debug(
             "Failed to load artifact",
-            extra={"run_id": run_id, "phase": phase, "filename": filename},
+            extra={"run_id": run_id, "phase": phase, "artifact_name": filename},
         )
 
     if content is None:
@@ -1104,15 +1142,15 @@ async def artifact_viewer(
     if is_markdown:
         try:
             import markdown
+
             # Escape raw HTML in source before rendering to prevent XSS (NFR10).
             # Only escape angle brackets and ampersand; preserve quotes for code.
             safe_content = (
-                content.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
+                content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             )
             content_html = markdown.markdown(
-                safe_content, extensions=["fenced_code", "tables"],
+                safe_content,
+                extensions=["fenced_code", "tables"],
             )
         except ImportError:
             # Fallback: just use pre block if markdown library not available
@@ -1127,7 +1165,9 @@ async def artifact_viewer(
     }
 
     return templates.TemplateResponse(
-        request, "partials/artifact_viewer.html", context,
+        request,
+        "partials/artifact_viewer.html",
+        context,
     )
 
 
@@ -1136,7 +1176,7 @@ def _load_log_entries(
     run_id: str,
     *,
     phase: str | None = None,
-) -> list[dict]:
+) -> list[dict[str, str]]:
     """Load and parse log entries from the live.log file.
 
     Parses lines in the format: [timestamp] [CATEGORY] message
@@ -1168,7 +1208,7 @@ def _load_log_entries(
     error_categories = {"ERROR", "FATAL"}
     warn_categories = {"WARN", "WARNING"}
 
-    entries: list[dict] = []
+    entries: list[dict[str, str]] = []
     try:
         content = log_file.read_text(errors="replace")
         for line in content.splitlines():
@@ -1196,11 +1236,13 @@ def _load_log_entries(
             else:
                 level = "INFO"
 
-            entries.append({
-                "timestamp": timestamp,
-                "level": level,
-                "message": message,
-            })
+            entries.append(
+                {
+                    "timestamp": timestamp,
+                    "level": level,
+                    "message": message,
+                }
+            )
     except OSError:
         return []
 
@@ -1220,7 +1262,7 @@ async def log_search(
     q: str = Query(""),
     level: str = Query(""),
     phase: str = Query(""),
-    index_manager: object = Depends(get_index_manager),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Return filtered log entries as HTML fragment.
 
@@ -1235,7 +1277,7 @@ async def log_search(
         )
 
     try:
-        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        project_path = Path(run_entry.project_path)
         runs_dir = project_path / ".adw" / "runs"
         entries = _load_log_entries(runs_dir, run_id, phase=phase or None)
     except OSError:
@@ -1253,7 +1295,9 @@ async def log_search(
     # Build HTML fragment
     if not entries:
         return HTMLResponse(
-            content='<p class="text-sm text-base-content/60 py-4">No log entries found</p>'
+            content=(
+                '<p class="text-sm text-base-content/60 py-4">No log entries found</p>'
+            )
         )
 
     lines: list[str] = []
@@ -1282,10 +1326,10 @@ async def log_search(
             f'<div class="py-0.5{level_class}">'
             f'<span class="text-base-content/50">{safe_ts}</span> '
             f'<span class="font-semibold">{safe_level}</span> '
-            f'{safe_msg}'
-            f'</div>'
+            f"{safe_msg}"
+            f"</div>"
         )
-    lines.append('</div>')
+    lines.append("</div>")
 
     return HTMLResponse(content="\n".join(lines))
 
@@ -1311,7 +1355,7 @@ def _format_sse_event(event: str, data: str) -> str:
 @router.get("/runs/{run_id}/events")
 async def run_events_sse(
     run_id: str,
-    index_manager: object = Depends(get_index_manager),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> StreamingResponse:
     """SSE stream for run-level events (phase updates, completion, failure).
 
@@ -1331,7 +1375,7 @@ async def run_events_sse(
             status_code=404,
         )
 
-    async def event_generator():
+    async def event_generator() -> AsyncGenerator[str]:
         """Yield SSE events by polling RunContext for state changes."""
         from adw.dashboard.partials import _format_elapsed
 
@@ -1339,7 +1383,7 @@ async def run_events_sse(
         last_status: str | None = None
 
         try:
-            project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+            project_path = Path(run_entry.project_path)
             runs_dir = project_path / ".adw" / "runs"
         except (AttributeError, OSError):
             yield _format_sse_event("error", "Cannot resolve run path")
@@ -1375,7 +1419,9 @@ async def run_events_sse(
 
             # Emit run-complete or run-failed if status changed to terminal
             if current_status != last_status and current_status in (
-                "completed", "failed", "aborted",
+                "completed",
+                "failed",
+                "aborted",
             ):
                 if current_status == "completed":
                     yield _format_sse_event("run-complete", "")
@@ -1429,28 +1475,24 @@ def _render_phase_pipeline_oob(
         if phase.get("duration"):
             duration_html = (
                 f'<span class="font-mono text-xs text-base-content/50">'
-                f'{phase["duration"]}</span>'
+                f"{phase['duration']}</span>"
             )
 
         loading_html = ""
         if phase["status"] == "active":
-            loading_html = (
-                ' <span class="loading loading-dots loading-sm"></span>'
-            )
+            loading_html = ' <span class="loading loading-dots loading-sm"></span>'
 
         steps.append(
             f'<li data-content="{content_char}" class="{step_class}">'
             f'<div class="flex flex-col items-center">'
-            f'<span>{phase["name"]}{loading_html}</span>'
-            f'{duration_html}'
-            f'</div></li>'
+            f"<span>{phase['name']}{loading_html}</span>"
+            f"{duration_html}"
+            f"</div></li>"
         )
 
     pipeline_html = (
         '<div id="run-phase-pipeline" hx-swap-oob="innerHTML">'
-        '<ul class="steps steps-horizontal w-full">'
-        + "".join(steps)
-        + "</ul></div>"
+        '<ul class="steps steps-horizontal w-full">' + "".join(steps) + "</ul></div>"
     )
 
     elapsed_html = (
@@ -1463,7 +1505,7 @@ def _render_phase_pipeline_oob(
 @router.get("/runs/{run_id}/logs/stream")
 async def log_stream_sse(
     run_id: str,
-    index_manager: object = Depends(get_index_manager),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> StreamingResponse:
     """SSE stream for real-time log lines.
 
@@ -1483,10 +1525,10 @@ async def log_stream_sse(
             status_code=404,
         )
 
-    async def log_generator():
+    async def log_generator() -> AsyncGenerator[str]:
         """Tail the live.log file and yield new lines as SSE events."""
         try:
-            project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+            project_path = Path(run_entry.project_path)
             runs_dir = project_path / ".adw" / "runs"
         except (AttributeError, OSError):
             yield _format_sse_event("error", "Cannot resolve run path")
@@ -1504,10 +1546,8 @@ async def log_stream_sse(
 
         # If the log file already exists, start from the end
         if log_file.exists():
-            try:
+            with contextlib.suppress(OSError):
                 file_offset = log_file.stat().st_size
-            except OSError:
-                pass
 
         while True:
             # Check if run is still active
@@ -1532,8 +1572,10 @@ async def log_stream_sse(
                                     cat = m.group(2).upper()
                                     msg = ansi_pattern.sub("", m.group(3)).strip()
                                     lvl = (
-                                        "ERROR" if cat in error_categories
-                                        else "WARN" if cat in warn_categories
+                                        "ERROR"
+                                        if cat in error_categories
+                                        else "WARN"
+                                        if cat in warn_categories
                                         else "INFO"
                                     )
                                     yield _format_sse_event(
@@ -1618,18 +1660,14 @@ def _render_log_line_html(timestamp: str, level: str, message: str) -> str:
     elif level == "ERROR":
         level_class = " text-error"
 
-    safe_msg = (
-        message.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-    )
+    safe_msg = message.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
     return (
         f'<div class="py-0.5{level_class}">'
         f'<span class="text-base-content/50">{timestamp}</span> '
         f'<span class="font-semibold">{level}</span> '
-        f'{safe_msg}'
-        f'</div>'
+        f"{safe_msg}"
+        f"</div>"
     )
 
 

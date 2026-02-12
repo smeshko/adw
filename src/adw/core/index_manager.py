@@ -231,7 +231,7 @@ class IndexManager:
         since: datetime | None = None,
         until: datetime | None = None,
         sort: str = "newest",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Query runs with filtering, sorting, and pagination.
 
         Args:
@@ -286,7 +286,9 @@ class IndexManager:
                 key=lambda e: (
                     (e.completed_at - e.started_at).total_seconds()
                     if e.completed_at
-                    else (datetime.now(e.started_at.tzinfo) - e.started_at).total_seconds()
+                    else (
+                        datetime.now(e.started_at.tzinfo) - e.started_at
+                    ).total_seconds()
                 ),
                 reverse=True,
             )
@@ -295,7 +297,9 @@ class IndexManager:
                 key=lambda e: (
                     (e.completed_at - e.started_at).total_seconds()
                     if e.completed_at
-                    else (datetime.now(e.started_at.tzinfo) - e.started_at).total_seconds()
+                    else (
+                        datetime.now(e.started_at.tzinfo) - e.started_at
+                    ).total_seconds()
                 ),
             )
         elif sort == "project_az":
@@ -303,7 +307,9 @@ class IndexManager:
 
         # Calculate pagination
         total_count = len(entries)
-        total_pages = (total_count + page_size - 1) // page_size if total_count > 0 else 0
+        total_pages = (
+            (total_count + page_size - 1) // page_size if total_count > 0 else 0
+        )
 
         # Clamp page to valid range
         if total_pages > 0:

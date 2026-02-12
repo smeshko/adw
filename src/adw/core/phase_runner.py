@@ -161,10 +161,7 @@ class PhaseRunner:
         try:
             # Compute artifacts_dir for pre-hook file-based variable passing
             artifacts_dir = (
-                self.artifact_manager.runs_dir
-                / context.run_id
-                / "artifacts"
-                / phase
+                self.artifact_manager.runs_dir / context.run_id / "artifacts" / phase
             )
             artifacts_dir.mkdir(parents=True, exist_ok=True)
 
@@ -196,7 +193,10 @@ class PhaseRunner:
             # Step 4: Capture artifacts
             model = merged_config.llm.model if merged_config.llm else None
             artifacts = self._capture_artifacts(
-                phase, context, llm_result, model=model,
+                phase,
+                context,
+                llm_result,
+                model=model,
             )
 
             # Step 5: Run post-hook (after artifacts exist)

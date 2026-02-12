@@ -331,14 +331,13 @@ class RunLifecycle:
         self._show_worktree_preserved(context, outcome="success")
 
         # Show cleanup message if ship extension cleaned up the worktree
-        if context.use_worktree and not context.worktree_path:
-            if self.progress_display:
-                self.progress_display.console.print()
-                self.progress_display.console.print(
-                    "[green]Worktree cleaned up, now on base branch"
-                    " with latest changes[/green]"
-                )
-                self.progress_display.console.print()
+        if context.use_worktree and not context.worktree_path and self.progress_display:
+            self.progress_display.console.print()
+            self.progress_display.console.print(
+                "[green]Worktree cleaned up, now on base branch"
+                " with latest changes[/green]"
+            )
+            self.progress_display.console.print()
 
         logger.info("Run completed", extra={"run_id": context.run_id})
 

@@ -14,6 +14,7 @@ dependencies = [
     "httpx>=0.28.1",
     "jinja2>=3.1.6",
     "jsonschema>=4.20.0",
+    "markdown>=3.7",
     "pydantic>=2.12.5",
     "python-dotenv>=1.0.0",
     "python-multipart>=0.0.22",
@@ -79,6 +80,7 @@ warn_unused_ignores = false
 module = [
     "httpx",
     "httpx.*",
+    "markdown",
     "playwright",
     "playwright.*",
 ]
@@ -96,6 +98,9 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "Depends", "fastapi.Query", "Query", "fastapi.Form", "Form"]
 
 [tool.ruff.lint.per-file-ignores]
 # HTML templates and multiline strings

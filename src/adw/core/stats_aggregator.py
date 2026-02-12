@@ -9,6 +9,7 @@ import logging
 import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from adw.core.index_manager import IndexManager
 from adw.core.project_registry import ProjectRegistryManager
@@ -166,7 +167,7 @@ class StatsAggregator:
         self,
         project_name: str | None = None,
         days: int = 7,
-    ) -> list[dict[str, object]]:
+    ) -> list[dict[str, Any]]:
         """Get daily token counts for the last N days.
 
         Queries the index for recent entries, groups by UTC date, and
@@ -429,8 +430,7 @@ class StatsAggregator:
 
         # --- Previous week comparison (7–14 days ago) ---
         prev_week_entries = [
-            e for e in entries
-            if two_weeks_ago <= e.started_at < week_ago
+            e for e in entries if two_weeks_ago <= e.started_at < week_ago
         ]
         previous_week_total_runs = len(prev_week_entries)
 
@@ -476,7 +476,8 @@ class StatsAggregator:
                 inp = tokens_this_week.input_tokens + run_tokens.input_tokens
                 out = tokens_this_week.output_tokens + run_tokens.output_tokens
                 tokens_this_week = TokenUsage(
-                    input_tokens=inp, output_tokens=out,
+                    input_tokens=inp,
+                    output_tokens=out,
                 )
 
             # Update project statistics - use registered name if available

@@ -587,20 +587,23 @@ class Orchestrator:
         context = self.context_manager.load(source_run_id)
 
         # Validate worktree still exists if the run used worktrees
-        if context.use_worktree and context.worktree_path:
-            if not context.worktree_path.exists():
-                raise ConfigError(
-                    code="WORKTREE_MISSING",
-                    message=(
-                        f"Worktree for run '{source_run_id}' no longer exists "
-                        f"at {context.worktree_path}"
-                    ),
-                    suggestion=(
-                        "The worktree may have been cleaned up. "
-                        "Run a fresh 'adw run' instead."
-                    ),
-                    recoverable=False,
-                )
+        if (
+            context.use_worktree
+            and context.worktree_path
+            and not context.worktree_path.exists()
+        ):
+            raise ConfigError(
+                code="WORKTREE_MISSING",
+                message=(
+                    f"Worktree for run '{source_run_id}' no longer exists "
+                    f"at {context.worktree_path}"
+                ),
+                suggestion=(
+                    "The worktree may have been cleaned up. "
+                    "Run a fresh 'adw run' instead."
+                ),
+                recoverable=False,
+            )
 
         # Override feature description if provided
         if feature_description:

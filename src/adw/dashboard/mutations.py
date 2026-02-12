@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
@@ -24,6 +25,13 @@ from adw.dashboard.dependencies import (
 )
 from adw.exceptions import StateError
 
+if TYPE_CHECKING:
+    from starlette.templating import Jinja2Templates
+
+    from adw.core.index_manager import IndexManager
+    from adw.core.project_registry import ProjectRegistryManager
+    from adw.core.run_trigger import RunTrigger
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -31,8 +39,8 @@ router = APIRouter()
 
 def _build_rerun_context(
     from_run: str,
-    index_manager: object,
-) -> dict:
+    index_manager: IndexManager,
+) -> dict[str, Any]:
     """Look up source run and build re-run template context.
 
     Args:
@@ -52,10 +60,8 @@ def _build_rerun_context(
             "from_run": "",
         }
 
-    recent_runs = index_manager.get_recent_runs(limit=10000)  # type: ignore[union-attr]
-    source_entry = next(
-        (r for r in recent_runs if r.run_id == from_run), None
-    )
+    recent_runs = index_manager.get_recent_runs(limit=10000)
+    source_entry = next((r for r in recent_runs if r.run_id == from_run), None)
     if source_entry is not None:
         return {
             "is_rerun": True,
@@ -74,22 +80,24 @@ def _build_rerun_context(
     }
 
 
-@router.post("/runs/start", response_class=HTMLResponse, dependencies=[Depends(validate_csrf)])
+@router.post(
+    "/runs/start", response_class=HTMLResponse, dependencies=[Depends(validate_csrf)]
+)
 async def start_run(
     request: Request,
     project: str = Form(""),
     feature: str = Form(""),
     from_run: str = Form(""),
-    project_registry: object = Depends(get_project_registry),
-    run_trigger: object = Depends(get_run_trigger),
-    index_manager: object = Depends(get_index_manager),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
+    run_trigger: RunTrigger = Depends(get_run_trigger),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Start a new ADW run from the dashboard.
 
     Validates the form data, starts the run via :class:`RunTrigger`,
     and returns either a success view or the modal with errors.
     """
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
     # Strip whitespace
     project = project.strip()
@@ -106,13 +114,13 @@ async def start_run(
     # Validate project exists in registry
     registered_project = None
     if project and not errors.get("project"):
-        registered_project = project_registry.get_by_path(Path(project))  # type: ignore[union-attr]
+        registered_project = project_registry.get_by_path(Path(project))
         if registered_project is None:
             errors["project"] = "Project not found or not registered."
 
     # On validation failure, re-render the modal with errors
     if errors:
-        all_projects = project_registry.get_all()  # type: ignore[union-attr]
+        all_projects = project_registry.get_all()
         project_list = [{"path": p.path, "name": p.name} for p in all_projects]
         csrf_token = generate_csrf_token(request)
 
@@ -126,7 +134,9 @@ async def start_run(
             **_build_rerun_context(from_run, index_manager),
         }
         response = templates.TemplateResponse(
-            request, "partials/new_run_modal.html", context,
+            request,
+            "partials/new_run_modal.html",
+            context,
         )
         # Retarget to modal container so the modal re-renders in place
         response.headers["HX-Retarget"] = "#modal-container"
@@ -134,14 +144,14 @@ async def start_run(
         return response
 
     # Start the run
-    result = await run_trigger.start_run(  # type: ignore[union-attr]
+    result = await run_trigger.start_run(
         project_path=project,
         feature=feature,
     )
 
     if not result.success:
         # Trigger failure – re-render modal with error
-        all_projects = project_registry.get_all()  # type: ignore[union-attr]
+        all_projects = project_registry.get_all()
         project_list = [{"path": p.path, "name": p.name} for p in all_projects]
         csrf_token = generate_csrf_token(request)
 
@@ -155,7 +165,9 @@ async def start_run(
             **_build_rerun_context(from_run, index_manager),
         }
         response = templates.TemplateResponse(
-            request, "partials/new_run_modal.html", context,
+            request,
+            "partials/new_run_modal.html",
+            context,
         )
         response.headers["HX-Retarget"] = "#modal-container"
         response.headers["HX-Reswap"] = "innerHTML"
@@ -169,17 +181,23 @@ async def start_run(
         "feature": feature,
     }
     response = templates.TemplateResponse(
-        request, "partials/run_started.html", context,
+        request,
+        "partials/run_started.html",
+        context,
     )
     response.headers["HX-Push-Url"] = "/"
     return response
 
 
-@router.post("/runs/{run_id}/abort", response_class=HTMLResponse, dependencies=[Depends(validate_csrf)])
+@router.post(
+    "/runs/{run_id}/abort",
+    response_class=HTMLResponse,
+    dependencies=[Depends(validate_csrf)],
+)
 async def abort_run(
     request: Request,
     run_id: str,
-    index_manager: object = Depends(get_index_manager),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Abort an active run from the dashboard.
 
@@ -189,10 +207,10 @@ async def abort_run(
     """
     from adw.dashboard.routes import _build_run_detail_context
 
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
     # Look up the run in the index
-    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    all_runs = index_manager.get_recent_runs(limit=100000)
     run_entry = None
     for entry in all_runs:
         if entry.run_id == run_id:
@@ -208,7 +226,10 @@ async def abort_run(
     # Validate run is active
     if run_entry.status != "running":
         return HTMLResponse(
-            content='<p class="text-error text-sm">Run cannot be aborted — it is not active</p>',
+            content=(
+                '<p class="text-error text-sm">'
+                "Run cannot be aborted — it is not active</p>"
+            ),
             status_code=400,
         )
 
@@ -222,7 +243,10 @@ async def abort_run(
     try:
         context = cm.load(run_id)
     except (StateError, OSError) as e:
-        logger.error("Failed to load context for abort", extra={"run_id": run_id, "error": str(e)})
+        logger.error(
+            "Failed to load context for abort",
+            extra={"run_id": run_id, "error": str(e)},
+        )
         return HTMLResponse(
             content='<p class="text-error text-sm">Failed to load run context</p>',
             status_code=500,
@@ -230,7 +254,10 @@ async def abort_run(
 
     if context.status != "running":
         return HTMLResponse(
-            content='<p class="text-error text-sm">Run cannot be aborted — it is not active</p>',
+            content=(
+                '<p class="text-error text-sm">'
+                "Run cannot be aborted — it is not active</p>"
+            ),
             status_code=400,
         )
 
@@ -243,7 +270,10 @@ async def abort_run(
     except (StateError, OSError) as e:
         logger.error("Failed to abort run", extra={"run_id": run_id, "error": str(e)})
         return HTMLResponse(
-            content='<p class="text-error text-sm">Failed to abort run — another process may be using it</p>',
+            content=(
+                '<p class="text-error text-sm">'
+                "Failed to abort run — another process may be using it</p>"
+            ),
             status_code=500,
         )
 
@@ -253,7 +283,7 @@ async def abort_run(
 
     # Persist the status change to the global index
     try:
-        index_manager.update_run(  # type: ignore[union-attr]
+        index_manager.update_run(
             run_id,
             status="aborted",
             completed_at=aborted_ctx.completed_at,
@@ -267,7 +297,9 @@ async def abort_run(
 
     # Render OOB modal clear + run detail
     modal_clear = '<div id="modal-container" hx-swap-oob="innerHTML"></div>\n'
-    detail_html = templates.get_template("partials/run_detail.html").render(detail_context)
+    detail_html = templates.get_template("partials/run_detail.html").render(
+        detail_context
+    )
     response = HTMLResponse(content=modal_clear + detail_html)
     response.headers["HX-Push-Url"] = f"/runs/{run_id}"
     return response

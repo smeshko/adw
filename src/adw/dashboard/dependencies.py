@@ -12,7 +12,7 @@ import hmac
 import secrets
 from typing import TYPE_CHECKING
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import HTTPException, Request, status
 
 if TYPE_CHECKING:
     from adw.core.index_manager import IndexManager
@@ -87,7 +87,10 @@ async def validate_csrf(request: Request) -> None:
     token: str | None = None
 
     content_type = request.headers.get("content-type", "")
-    if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+    if (
+        "application/x-www-form-urlencoded" in content_type
+        or "multipart/form-data" in content_type
+    ):
         form = await request.form()
         token = form.get(CSRF_FIELD_NAME)  # type: ignore[assignment]
 
@@ -105,7 +108,7 @@ async def validate_csrf(request: Request) -> None:
 
 
 def resolve_project_filter(
-    project_registry: object,
+    project_registry: ProjectRegistryManager,
     display_name: str | None,
 ) -> tuple[str | None, str | None]:
     """Resolve a project display name to its path string.
@@ -122,7 +125,7 @@ def resolve_project_filter(
     """
     if not display_name:
         return None, None
-    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    all_projects = project_registry.get_all()
     for p in all_projects:
         if p.name == display_name:
             return str(p.path), display_name
@@ -132,29 +135,30 @@ def resolve_project_filter(
 
 # ── Data layer DI ───────────────────────────────────────────────────────────
 
+
 def get_index_manager() -> IndexManager:
     """Provide an IndexManager instance via Depends()."""
-    from adw.core.index_manager import IndexManager as _IM
+    from adw.core.index_manager import IndexManager
 
-    return _IM()
+    return IndexManager()
 
 
 def get_stats_aggregator() -> StatsAggregator:
     """Provide a StatsAggregator instance via Depends()."""
-    from adw.core.stats_aggregator import StatsAggregator as _SA
+    from adw.core.stats_aggregator import StatsAggregator
 
-    return _SA()
+    return StatsAggregator()
 
 
 def get_project_registry() -> ProjectRegistryManager:
     """Provide a ProjectRegistryManager instance via Depends()."""
-    from adw.core.project_registry import ProjectRegistryManager as _PRM
+    from adw.core.project_registry import ProjectRegistryManager
 
-    return _PRM()
+    return ProjectRegistryManager()
 
 
 def get_run_trigger() -> RunTrigger:
     """Provide a RunTrigger instance via Depends()."""
-    from adw.core.run_trigger import RunTrigger as _RT
+    from adw.core.run_trigger import RunTrigger
 
-    return _RT()
+    return RunTrigger()

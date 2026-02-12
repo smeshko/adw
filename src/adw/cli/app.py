@@ -9,6 +9,7 @@ from rich.console import Console
 from ulid import ULID
 
 from adw.cli.bootstrap import create_log_manager, create_orchestrator
+from adw.cli.dashboard_web import dashboard_web_app
 from adw.cli.dry_run import DryRunDisplay
 from adw.cli.global_commands import global_app
 from adw.cli.init import init as init_impl
@@ -22,7 +23,6 @@ from adw.cli.run_display import RunDisplay
 from adw.cli.status import status as status_command
 from adw.cli.unregister import unregister as unregister_command
 from adw.cli.validators import validate_phase
-from adw.cli.dashboard_web import dashboard_web_app
 from adw.cli.webhook import webhook_app
 from adw.commands.template import escape_feature_description
 from adw.config.loader import ConfigLoader
@@ -409,9 +409,7 @@ def run(
             context = orchestrator.continue_from_run(
                 phase, from_run, feature_description=feature
             )
-            console.print(
-                f"[green]✓[/] Phase '{phase}' completed: {context.run_id}"
-            )
+            console.print(f"[green]✓[/] Phase '{phase}' completed: {context.run_id}")
         elif phase:
             # Validate --from-run requirement for non-plan phases (Story 5.4)
             if phase != "plan":

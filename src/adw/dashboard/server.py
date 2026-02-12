@@ -109,7 +109,9 @@ def create_dashboard_app(
         }
         if request.headers.get("HX-Request"):
             return HTMLResponse(
-                content=templates.get_template("partials/error_banner.html").render(context),
+                content=templates.get_template("partials/error_banner.html").render(
+                    context
+                ),
                 status_code=status_code,
             )
         return HTMLResponse(
@@ -118,12 +120,16 @@ def create_dashboard_app(
         )
 
     @app.exception_handler(StarletteHTTPException)
-    async def _http_exception_handler(request: Request, exc: StarletteHTTPException) -> HTMLResponse:
+    async def _http_exception_handler(
+        request: Request, exc: StarletteHTTPException
+    ) -> HTMLResponse:
         detail = str(exc.detail) if exc.detail else "An unexpected error occurred."
         return _render_error(request, exc.status_code, detail)
 
     @app.exception_handler(Exception)
-    async def _generic_exception_handler(request: Request, exc: Exception) -> HTMLResponse:
+    async def _generic_exception_handler(
+        request: Request, exc: Exception
+    ) -> HTMLResponse:
         return _render_error(request, 500, "An unexpected error occurred.")
 
     return app

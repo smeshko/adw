@@ -25,8 +25,13 @@ logger = logging.getLogger(__name__)
 
 # Re-export so existing consumers of `from adw.webhook.runner import RunTriggerResult`
 # continue to work without changes.
-__all__ = ["RunTriggerResult", "WebhookRunTrigger", "trigger_run_async",
-           "trigger_from_params_async", "trigger_from_params"]
+__all__ = [
+    "RunTriggerResult",
+    "WebhookRunTrigger",
+    "trigger_run_async",
+    "trigger_from_params_async",
+    "trigger_from_params",
+]
 
 
 class WebhookRunTrigger:

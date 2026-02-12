@@ -10,6 +10,7 @@ import logging
 import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -22,9 +23,18 @@ from adw.dashboard.dependencies import (
     get_index_manager,
     get_project_registry,
     get_stats_aggregator,
+    resolve_project_filter,
 )
-from adw.dashboard.dependencies import resolve_project_filter
 from adw.exceptions import StateError
+
+if TYPE_CHECKING:
+    from starlette.templating import Jinja2Templates
+
+    from adw.core.index_manager import IndexManager
+    from adw.core.project_registry import ProjectRegistryManager
+    from adw.core.stats_aggregator import StatsAggregator
+    from adw.models.index import IndexEntry
+    from adw.models.stats import GlobalStatistics
 
 logger = logging.getLogger(__name__)
 
@@ -56,17 +66,17 @@ def _relative_time(dt: datetime | None) -> str:
 async def status_bar(
     request: Request,
     project: str = Query("", alias="project"),
-    index_manager: object = Depends(get_index_manager),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Return the status bar HTML fragment for polling updates."""
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
     # Get active run count
-    active_runs = index_manager.get_recent_runs(status="running")  # type: ignore[union-attr]
+    active_runs = index_manager.get_recent_runs(status="running")
     active_run_count = len(active_runs)
 
     # Get last updated timestamp from most recent run
-    recent = index_manager.get_recent_runs(limit=1)  # type: ignore[union-attr]
+    recent = index_manager.get_recent_runs(limit=1)
     last_updated_dt = None
     if recent:
         last_updated_dt = recent[0].completed_at or recent[0].started_at
@@ -108,7 +118,9 @@ def _format_tokens(total: int) -> str:
     return str(total)
 
 
-def build_stats_context(stats: object, selected_project: str | None) -> dict:
+def build_stats_context(
+    stats: GlobalStatistics, selected_project: str | None
+) -> dict[str, Any]:
     """Build template context dict for the stats row partial.
 
     Args:
@@ -118,12 +130,13 @@ def build_stats_context(stats: object, selected_project: str | None) -> dict:
     Returns:
         Dict of pre-formatted values ready for the stats_row.html template.
     """
-    runs_trend = stats.runs_this_week - stats.previous_week_total_runs  # type: ignore[union-attr]
+    runs_trend = stats.runs_this_week - stats.previous_week_total_runs
     success_trend = round(
-        (stats.success_rate - stats.previous_week_success_rate) * 100, 1  # type: ignore[union-attr]
+        (stats.success_rate - stats.previous_week_success_rate) * 100,
+        1,
     )
     duration_trend_ms = (
-        stats.average_duration_ms - stats.previous_week_average_duration_ms  # type: ignore[union-attr]
+        stats.average_duration_ms - stats.previous_week_average_duration_ms
     )
     abs_duration_trend_ms = abs(duration_trend_ms)
     duration_trend_display = _format_duration(abs_duration_trend_ms)
@@ -131,11 +144,13 @@ def build_stats_context(stats: object, selected_project: str | None) -> dict:
     return {
         "selected_project": selected_project,
         # Stat values
-        "total_runs": stats.total_runs,  # type: ignore[union-attr]
-        "success_rate_display": f"{stats.success_rate * 100:.1f}%" if stats.total_runs > 0 else "—",  # type: ignore[union-attr]
-        "duration_display": _format_duration(stats.average_duration_ms),  # type: ignore[union-attr]
-        "tokens_display": _format_tokens(stats.tokens.total_tokens),  # type: ignore[union-attr]
-        "cost_display": f"{stats.estimated_cost:.2f}",  # type: ignore[union-attr]
+        "total_runs": stats.total_runs,
+        "success_rate_display": f"{stats.success_rate * 100:.1f}%"
+        if stats.total_runs > 0
+        else "—",
+        "duration_display": _format_duration(stats.average_duration_ms),
+        "tokens_display": _format_tokens(stats.tokens.total_tokens),
+        "cost_display": f"{stats.estimated_cost:.2f}",
         # Trend data
         "runs_trend": runs_trend,
         "success_trend": success_trend,
@@ -143,8 +158,8 @@ def build_stats_context(stats: object, selected_project: str | None) -> dict:
         "duration_trend_ms": duration_trend_ms,
         "duration_trend_display": duration_trend_display,
         # This week totals
-        "tokens_week_display": _format_tokens(stats.tokens_this_week.total_tokens),  # type: ignore[union-attr]
-        "cost_week_display": f"{stats.cost_this_week:.2f}",  # type: ignore[union-attr]
+        "tokens_week_display": _format_tokens(stats.tokens_this_week.total_tokens),
+        "cost_week_display": f"{stats.cost_this_week:.2f}",
     }
 
 
@@ -152,9 +167,9 @@ _DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 
 def build_cost_strip_context(
-    stats_aggregator: object,
+    stats_aggregator: StatsAggregator,
     project_name: str | None,
-) -> dict:
+) -> dict[str, Any]:
     """Build template context for the cost summary strip.
 
     Args:
@@ -164,8 +179,8 @@ def build_cost_strip_context(
     Returns:
         Dict with cost_week_display, tokens_week_display, and daily_bars.
     """
-    stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
-    daily_counts = stats_aggregator.get_daily_token_counts(project_name=project_name)  # type: ignore[union-attr]
+    stats = stats_aggregator.get_global_stats(project_name=project_name)
+    daily_counts = stats_aggregator.get_daily_token_counts(project_name=project_name)
 
     # Compute bar heights as percentages
     max_tokens = max((d["tokens"] for d in daily_counts), default=0)
@@ -174,15 +189,17 @@ def build_cost_strip_context(
         tokens: int = d["tokens"]  # type: ignore[assignment]
         height_pct = int((tokens / max_tokens) * 100) if max_tokens > 0 else 0
         day_label = _DAY_LABELS[d["date"].weekday()]  # type: ignore[union-attr]
-        daily_bars.append({
-            "date_label": day_label,
-            "height_pct": height_pct,
-            "tokens": tokens,
-        })
+        daily_bars.append(
+            {
+                "date_label": day_label,
+                "height_pct": height_pct,
+                "tokens": tokens,
+            }
+        )
 
     return {
-        "cost_strip_cost_display": f"${stats.cost_this_week:.2f}",  # type: ignore[union-attr]
-        "cost_strip_tokens_display": _format_tokens(  # type: ignore[union-attr]
+        "cost_strip_cost_display": f"${stats.cost_this_week:.2f}",
+        "cost_strip_tokens_display": _format_tokens(
             stats.tokens_this_week.total_tokens,
         ),
         "daily_bars": daily_bars,
@@ -190,12 +207,12 @@ def build_cost_strip_context(
 
 
 def build_analytics_context(
-    stats_aggregator: object,
+    stats_aggregator: StatsAggregator,
     project_name: str | None,
     range_key: str,
     range_days: dict[str, int | None],
     sort: str = "cost_desc",
-) -> dict:
+) -> dict[str, Any]:
     """Build template context for the analytics page stat cards.
 
     Fetches stats for the selected time range and computes delta values
@@ -216,8 +233,10 @@ def build_analytics_context(
 
     # Current period
     since = (now - timedelta(days=days)) if days is not None else None
-    current_stats = stats_aggregator.get_global_stats(  # type: ignore[union-attr]
-        project_name=project_name, since=since, force_refresh=True,
+    current_stats = stats_aggregator.get_global_stats(
+        project_name=project_name,
+        since=since,
+        force_refresh=True,
     )
 
     # Previous equivalent period for delta comparison
@@ -239,8 +258,10 @@ def build_analytics_context(
 
     if days is not None:
         # Fetch stats for the previous equivalent period
-        prev_stats = stats_aggregator.get_global_stats(  # type: ignore[union-attr]
-            project_name=project_name, since=prev_since, force_refresh=True,
+        prev_stats = stats_aggregator.get_global_stats(
+            project_name=project_name,
+            since=prev_since,
+            force_refresh=True,
         )
         # The prev_stats includes ALL runs since prev_since.
         # We need only runs between prev_since and prev_until.
@@ -248,10 +269,12 @@ def build_analytics_context(
         # compute: prev_period = prev_all - current_period
         prev_total_runs = max(0, prev_stats.total_runs - current_stats.total_runs)
         prev_total_tokens = max(
-            0, prev_stats.tokens.total_tokens - current_stats.tokens.total_tokens,
+            0,
+            prev_stats.tokens.total_tokens - current_stats.tokens.total_tokens,
         )
         prev_total_cost = max(
-            0.0, prev_stats.estimated_cost - current_stats.estimated_cost,
+            0.0,
+            prev_stats.estimated_cost - current_stats.estimated_cost,
         )
         prev_avg_tokens = (
             prev_total_tokens // prev_total_runs if prev_total_runs > 0 else 0
@@ -263,10 +286,11 @@ def build_analytics_context(
         avg_tokens_delta = avg_tokens_per_run - prev_avg_tokens
 
     # ── Daily chart bars ──
-    daily_chart_bars: list[dict] = []
+    daily_chart_bars: list[dict[str, Any]] = []
     if has_data:
-        daily_counts = stats_aggregator.get_daily_token_counts(  # type: ignore[union-attr]
-            project_name=project_name, days=days or 30,
+        daily_counts = stats_aggregator.get_daily_token_counts(
+            project_name=project_name,
+            days=days or 30,
         )
         max_daily = max(
             (d["input_tokens"] + d["output_tokens"] for d in daily_counts),
@@ -285,59 +309,70 @@ def build_analytics_context(
             else:
                 out_h = 0
                 inp_h = 0
-            daily_chart_bars.append({
-                "day_label": _DAY_LABELS[d["date"].weekday()],
-                "output_height": out_h,
-                "input_height": inp_h,
-                "tokens": total,
-            })
+            daily_chart_bars.append(
+                {
+                    "day_label": _DAY_LABELS[d["date"].weekday()],
+                    "output_height": out_h,
+                    "input_height": inp_h,
+                    "tokens": total,
+                }
+            )
 
     # ── Project breakdown ──
-    project_breakdown: list[dict] = []
+    project_breakdown: list[dict[str, Any]] = []
     if has_data:
         proj_stats = current_stats.projects
         proj_total = sum(p.tokens.total_tokens for p in proj_stats)
         sorted_projects = sorted(
-            proj_stats, key=lambda p: p.tokens.total_tokens, reverse=True,
+            proj_stats,
+            key=lambda p: p.tokens.total_tokens,
+            reverse=True,
         )
         for proj in sorted_projects:
             proj_tok = proj.tokens.total_tokens
             pct = int((proj_tok / proj_total) * 100) if proj_total else 0
-            project_breakdown.append({
-                "name": proj.name,
-                "percentage": pct,
-            })
+            project_breakdown.append(
+                {
+                    "name": proj.name,
+                    "percentage": pct,
+                }
+            )
 
     # ── Phase breakdown ──
     canonical_phases = ["plan", "build", "validate", "document", "ship"]
     phase_display = {
-        "plan": "Plan", "build": "Build", "validate": "Validate",
-        "document": "Document", "ship": "Ship",
+        "plan": "Plan",
+        "build": "Build",
+        "validate": "Validate",
+        "document": "Document",
+        "ship": "Ship",
     }
-    phase_breakdown: list[dict] = []
+    phase_breakdown: list[dict[str, Any]] = []
     if has_data:
-        phase_data = stats_aggregator.get_phase_breakdown(  # type: ignore[union-attr]
-            project_name=project_name, since=since,
+        phase_data = stats_aggregator.get_phase_breakdown(
+            project_name=project_name,
+            since=since,
         )
-        phase_total = sum(
-            phase_data.get(p, 0) for p in canonical_phases
-        )
+        phase_total = sum(phase_data.get(p, 0) for p in canonical_phases)
         for phase_key in canonical_phases:
             tokens_val = phase_data.get(phase_key, 0)
             if tokens_val > 0:
                 pct = int((tokens_val / phase_total) * 100) if phase_total > 0 else 0
-                phase_breakdown.append({
-                    "name": phase_display.get(phase_key, phase_key.capitalize()),
-                    "percentage": pct,
-                })
+                phase_breakdown.append(
+                    {
+                        "name": phase_display.get(phase_key, phase_key.capitalize()),
+                        "percentage": pct,
+                    }
+                )
 
     # ── Model breakdown ──
     from adw.models.stats import TokenUsage as _TokenUsage
 
-    model_breakdown: list[dict] = []
+    model_breakdown: list[dict[str, Any]] = []
     if has_data:
-        model_data = stats_aggregator.get_model_breakdown(  # type: ignore[union-attr]
-            project_name=project_name, since=since,
+        model_data = stats_aggregator.get_model_breakdown(
+            project_name=project_name,
+            since=since,
         )
         model_total_tokens = sum(
             v["input_tokens"] + v["output_tokens"] for v in model_data.values()
@@ -350,18 +385,20 @@ def build_analytics_context(
         for model_name, model_tokens in sorted_models:
             total_m = model_tokens["input_tokens"] + model_tokens["output_tokens"]
             pct = int((total_m / model_total_tokens) * 100) if model_total_tokens else 0
-            cost = stats_aggregator.calculate_cost(  # type: ignore[union-attr]
+            cost = stats_aggregator.calculate_cost(
                 _TokenUsage(
                     input_tokens=model_tokens["input_tokens"],
                     output_tokens=model_tokens["output_tokens"],
                 ),
                 model=model_name,
             )
-            model_breakdown.append({
-                "name": model_name,
-                "percentage": pct,
-                "cost_display": f"${cost:.2f}",
-            })
+            model_breakdown.append(
+                {
+                    "name": model_name,
+                    "percentage": pct,
+                    "cost_display": f"${cost:.2f}",
+                }
+            )
 
     # ── Budget section ──
     budget_env = os.environ.get("ADW_MONTHLY_BUDGET")
@@ -397,24 +434,26 @@ def build_analytics_context(
             pass
 
     # ── Detailed breakdown table ──
-    breakdown_table: list[dict] = []
+    breakdown_table: list[dict[str, Any]] = []
     if has_data:
         for proj in current_stats.projects:
             proj_tokens = proj.tokens.total_tokens
-            proj_cost = stats_aggregator.calculate_cost(proj.tokens)  # type: ignore[union-attr]
+            proj_cost = stats_aggregator.calculate_cost(proj.tokens)
             proj_runs = proj.total_runs
             avg_tok = proj_tokens // proj_runs if proj_runs > 0 else 0
-            breakdown_table.append({
-                "name": proj.name,
-                "runs": proj_runs,
-                "tokens_display": _format_tokens(proj_tokens),
-                "cost_display": f"${proj_cost:.2f}",
-                "avg_tokens_display": _format_tokens(avg_tok),
-                "tokens_raw": proj_tokens,
-                "cost_raw": proj_cost,
-                "runs_raw": proj_runs,
-                "avg_tokens_raw": avg_tok,
-            })
+            breakdown_table.append(
+                {
+                    "name": proj.name,
+                    "runs": proj_runs,
+                    "tokens_display": _format_tokens(proj_tokens),
+                    "cost_display": f"${proj_cost:.2f}",
+                    "avg_tokens_display": _format_tokens(avg_tok),
+                    "tokens_raw": proj_tokens,
+                    "cost_raw": proj_cost,
+                    "runs_raw": proj_runs,
+                    "avg_tokens_raw": avg_tok,
+                }
+            )
 
         # Sort breakdown table
         sort_key_map: dict[str, str] = {
@@ -472,13 +511,13 @@ def build_analytics_context(
 async def stats_partial(
     request: Request,
     project: str = Query("", alias="project"),
-    stats_aggregator: object = Depends(get_stats_aggregator),
+    stats_aggregator: StatsAggregator = Depends(get_stats_aggregator),
 ) -> HTMLResponse:
     """Return the stats row HTML fragment for polling updates."""
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
     project_name = project or None
-    stats = stats_aggregator.get_global_stats(project_name=project_name)  # type: ignore[union-attr]
+    stats = stats_aggregator.get_global_stats(project_name=project_name)
 
     context = build_stats_context(stats, project_name)
     context["request"] = request
@@ -487,9 +526,9 @@ async def stats_partial(
 
 
 def build_recent_runs_context(
-    entries: list,
+    entries: list[IndexEntry],
     name_map: dict[str, str] | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Transform IndexEntry objects into template-ready dicts.
 
     Args:
@@ -512,14 +551,16 @@ def build_recent_runs_context(
         if name_map:
             display_name = name_map.get(entry.project_path, entry.project_name)
 
-        result.append({
-            "run_id": entry.run_id,
-            "project_name": display_name,
-            "feature_description": entry.feature_description,
-            "status": entry.status,
-            "duration_display": duration_display,
-            "started_ago": _relative_time(entry.started_at),
-        })
+        result.append(
+            {
+                "run_id": entry.run_id,
+                "project_name": display_name,
+                "feature_description": entry.feature_description,
+                "status": entry.status,
+                "duration_display": duration_display,
+                "started_ago": _relative_time(entry.started_at),
+            }
+        )
     return result
 
 
@@ -527,20 +568,20 @@ def build_recent_runs_context(
 async def recent_runs(
     request: Request,
     project: str = Query("", alias="project"),
-    index_manager: object = Depends(get_index_manager),
-    project_registry: object = Depends(get_project_registry),
+    index_manager: IndexManager = Depends(get_index_manager),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Return the recent runs table HTML fragment for polling updates."""
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
     project_name = project or None
     project_path_str, _ = resolve_project_filter(project_registry, project_name)
-    entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
+    entries = index_manager.get_recent_runs(
         limit=5,
         project_path=Path(project_path_str) if project_path_str else None,
     )
 
-    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    all_projects = project_registry.get_all()
     name_map = {str(p.path): p.name for p in all_projects}
 
     context = {
@@ -556,19 +597,19 @@ async def recent_runs(
 async def project_breakdown(
     request: Request,
     project: str = Query("", alias="project"),
-    stats_aggregator: object = Depends(get_stats_aggregator),
+    stats_aggregator: StatsAggregator = Depends(get_stats_aggregator),
 ) -> HTMLResponse:
     """Return the project breakdown cards HTML fragment."""
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
     project_name = project or None
     # Always fetch unfiltered stats so all project cards remain visible,
     # allowing the user to switch projects by clicking any card.
-    stats = stats_aggregator.get_global_stats(project_name=None)  # type: ignore[union-attr]
+    stats = stats_aggregator.get_global_stats(project_name=None)
 
     context = {
         "request": request,
-        "project_stats": stats.projects,  # type: ignore[union-attr]
+        "project_stats": stats.projects,
         "selected_project": project_name,
     }
 
@@ -623,17 +664,19 @@ def _build_phase_pipeline(
             status = "active"
         else:
             status = "pending"
-        pipeline.append({
-            "name": _PHASE_LABELS.get(phase, phase.capitalize()),
-            "status": status,
-        })
+        pipeline.append(
+            {
+                "name": _PHASE_LABELS.get(phase, phase.capitalize()),
+                "status": status,
+            }
+        )
     return pipeline
 
 
 def _load_active_run_details(
-    entries: list[object],
+    entries: list[IndexEntry],
     name_map: dict[str, str] | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Load active run details from IndexEntry objects.
 
     For each running IndexEntry, attempts to load the RunContext from
@@ -648,45 +691,48 @@ def _load_active_run_details(
         List of dicts with run display data for the template.
     """
     now = datetime.now(UTC)
-    runs: list[dict] = []
+    runs: list[dict[str, Any]] = []
 
     for entry in entries:
-        current_phase = entry.phase_reached  # type: ignore[union-attr]
-        phases_completed = list(entry.phases_completed)  # type: ignore[union-attr]
+        current_phase = entry.phase_reached
+        phases_completed = list(entry.phases_completed)
 
         # Try loading RunContext for live phase data
         try:
-            project_path = Path(entry.project_path)  # type: ignore[union-attr]
+            project_path = Path(entry.project_path)
             runs_dir = project_path / ".adw" / "runs"
             cm = ContextManager(runs_dir)
-            ctx = cm.load(entry.run_id)  # type: ignore[union-attr]
+            ctx = cm.load(entry.run_id)
             current_phase = ctx.current_phase
             phases_completed = list(ctx.phase_history)
         except (StateError, OSError):
             logger.debug(
                 "RunContext unavailable, using IndexEntry fallback",
-                extra={"run_id": entry.run_id},  # type: ignore[union-attr]
+                extra={"run_id": entry.run_id},
             )
 
-        elapsed = now - entry.started_at  # type: ignore[union-attr]
+        elapsed = now - entry.started_at
 
-        display_name = entry.project_name  # type: ignore[union-attr]
+        display_name = entry.project_name
         if name_map:
             display_name = name_map.get(
-                entry.project_path, entry.project_name,  # type: ignore[union-attr]
+                entry.project_path,
+                entry.project_name,
             )
 
-        runs.append({
-            "run_id": entry.run_id,  # type: ignore[union-attr]
-            "project_name": display_name,
-            "feature_description": entry.feature_description,  # type: ignore[union-attr]
-            "elapsed": _format_elapsed(elapsed),
-            "phases": _build_phase_pipeline(
-                phases_completed=phases_completed,
-                current_phase=current_phase,
-            ),
-            "started_at": entry.started_at,  # type: ignore[union-attr]
-        })
+        runs.append(
+            {
+                "run_id": entry.run_id,
+                "project_name": display_name,
+                "feature_description": entry.feature_description,
+                "elapsed": _format_elapsed(elapsed),
+                "phases": _build_phase_pipeline(
+                    phases_completed=phases_completed,
+                    current_phase=current_phase,
+                ),
+                "started_at": entry.started_at,
+            }
+        )
 
     return runs
 
@@ -695,20 +741,20 @@ def _load_active_run_details(
 async def active_runs_partial(
     request: Request,
     project: str = Query("", alias="project"),
-    index_manager: object = Depends(get_index_manager),
-    project_registry: object = Depends(get_project_registry),
+    index_manager: IndexManager = Depends(get_index_manager),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Return the active runs section HTML fragment for polling updates."""
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
     project_name = project or None
     project_path_str, _ = resolve_project_filter(project_registry, project_name)
-    entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
+    entries = index_manager.get_recent_runs(
         status="running",
         project_path=Path(project_path_str) if project_path_str else None,
     )
 
-    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    all_projects = project_registry.get_all()
     name_map = {str(p.path): p.name for p in all_projects}
     active_runs = _load_active_run_details(entries, name_map)
 
@@ -718,9 +764,7 @@ async def active_runs_partial(
         "selected_project": project_name,
     }
 
-    return templates.TemplateResponse(
-        request, "partials/active_runs.html", context
-    )
+    return templates.TemplateResponse(request, "partials/active_runs.html", context)
 
 
 # ── Keyboard Help Modal ──────────────────────────────────────────
@@ -729,7 +773,7 @@ async def active_runs_partial(
 @router.get("/keyboard-help", response_class=HTMLResponse)
 async def keyboard_help(request: Request) -> HTMLResponse:
     """Return the keyboard shortcut overlay modal HTML fragment."""
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
     return templates.TemplateResponse(
         request, "partials/keyboard_help.html", {"request": request}
     )
@@ -742,8 +786,8 @@ async def keyboard_help(request: Request) -> HTMLResponse:
 async def new_run_modal(
     request: Request,
     from_run: str = Query("", alias="from"),
-    project_registry: object = Depends(get_project_registry),
-    index_manager: object = Depends(get_index_manager),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Return the new run modal HTML fragment.
 
@@ -751,9 +795,9 @@ async def new_run_modal(
     the modal is pre-populated with the source run's project and
     feature description for re-run context.
     """
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
-    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    all_projects = project_registry.get_all()
     project_list = [{"path": p.path, "name": p.name} for p in all_projects]
     csrf_token = generate_csrf_token(request)
 
@@ -765,10 +809,8 @@ async def new_run_modal(
 
     if from_run:
         # Look up the source run in the global index
-        recent_runs = index_manager.get_recent_runs(limit=10000)  # type: ignore[union-attr]
-        source_entry = next(
-            (r for r in recent_runs if r.run_id == from_run), None
-        )
+        recent_runs = index_manager.get_recent_runs(limit=10000)
+        source_entry = next((r for r in recent_runs if r.run_id == from_run), None)
         if source_entry is not None:
             is_rerun = True
             rerun_project_path = source_entry.project_path
@@ -789,9 +831,7 @@ async def new_run_modal(
         "from_run": from_run if is_rerun else "",
     }
 
-    return templates.TemplateResponse(
-        request, "partials/new_run_modal.html", context
-    )
+    return templates.TemplateResponse(request, "partials/new_run_modal.html", context)
 
 
 # ── Abort Modal ──────────────────────────────────────────────────
@@ -801,17 +841,17 @@ async def new_run_modal(
 async def abort_modal(
     request: Request,
     run_id: str,
-    index_manager: object = Depends(get_index_manager),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Return the abort confirmation modal HTML fragment.
 
     Validates the run exists and is active before rendering the modal.
     Falls back to IndexEntry data if RunContext is unavailable.
     """
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
     # Look up the run in the index
-    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    all_runs = index_manager.get_recent_runs(limit=100000)
     run_entry = None
     for entry in all_runs:
         if entry.run_id == run_id:
@@ -827,7 +867,10 @@ async def abort_modal(
     # Validate run is active
     if run_entry.status != "running":
         return HTMLResponse(
-            content='<p class="text-error text-sm">Run cannot be aborted — it is not active</p>',
+            content=(
+                '<p class="text-error text-sm">'
+                "Run cannot be aborted — it is not active</p>"
+            ),
             status_code=400,
         )
 
@@ -842,7 +885,10 @@ async def abort_modal(
         # Verify live status in case index is stale
         if ctx.status != "running":
             return HTMLResponse(
-                content='<p class="text-error text-sm">Run cannot be aborted — it is no longer active</p>',
+                content=(
+                    '<p class="text-error text-sm">'
+                    "Run cannot be aborted — it is no longer active</p>"
+                ),
                 status_code=400,
             )
     except (StateError, OSError):
@@ -862,9 +908,7 @@ async def abort_modal(
         "csrf_token": csrf_token,
     }
 
-    return templates.TemplateResponse(
-        request, "partials/abort_modal.html", context
-    )
+    return templates.TemplateResponse(request, "partials/abort_modal.html", context)
 
 
 # ── Terminal Mode & Focus Mode (Story 6.2) ─────────────────────
@@ -874,13 +918,13 @@ async def abort_modal(
 async def terminal_mode(
     request: Request,
     run_id: str,
-    index_manager: object = Depends(get_index_manager),
-    project_registry: object = Depends(get_project_registry),
+    index_manager: IndexManager = Depends(get_index_manager),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Return the terminal mode HTML fragment for a given run."""
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
-    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    all_runs = index_manager.get_recent_runs(limit=100000)
     run_entry = None
     for entry in all_runs:
         if entry.run_id == run_id:
@@ -894,10 +938,11 @@ async def terminal_mode(
         )
 
     # Resolve display name
-    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    all_projects = project_registry.get_all()
     name_map = {str(p.path): p.name for p in all_projects}
     project_name = name_map.get(
-        run_entry.project_path, run_entry.project_name,
+        run_entry.project_path,
+        run_entry.project_name,
     )
 
     is_active = run_entry.status == "running"
@@ -920,20 +965,18 @@ async def terminal_mode(
         "has_logs": has_logs,
     }
 
-    return templates.TemplateResponse(
-        request, "partials/terminal_mode.html", context
-    )
+    return templates.TemplateResponse(request, "partials/terminal_mode.html", context)
 
 
 @router.get("/terminal-logs/{run_id}", response_class=HTMLResponse)
 async def terminal_logs(
     run_id: str,
-    index_manager: object = Depends(get_index_manager),
+    index_manager: IndexManager = Depends(get_index_manager),
 ) -> HTMLResponse:
     """Return static log entries formatted for terminal mode display."""
     import re
 
-    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    all_runs = index_manager.get_recent_runs(limit=100000)
     run_entry = None
     for entry in all_runs:
         if entry.run_id == run_id:
@@ -951,14 +994,12 @@ async def terminal_logs(
         log_file = project_path / ".adw" / "runs" / run_id / "live.log"
     except OSError:
         return HTMLResponse(
-            content='<p class="text-base-content/40 text-sm">'
-            "No logs available</p>",
+            content='<p class="text-base-content/40 text-sm">No logs available</p>',
         )
 
     if not log_file.exists():
         return HTMLResponse(
-            content='<p class="text-base-content/40 text-sm">'
-            "No logs available</p>",
+            content='<p class="text-base-content/40 text-sm">No logs available</p>',
         )
 
     line_pattern = re.compile(
@@ -991,27 +1032,23 @@ async def terminal_logs(
                 level_class = "log-info"
 
             safe_msg = (
-                message.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
+                message.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             )
 
             lines.append(
                 f'<div class="log-entry {level_class}">'
                 f'<span class="log-ts">{timestamp}</span> '
-                f'{safe_msg}'
-                f'</div>'
+                f"{safe_msg}"
+                f"</div>"
             )
     except OSError:
         return HTMLResponse(
-            content='<p class="text-base-content/40 text-sm">'
-            "Error reading logs</p>",
+            content='<p class="text-base-content/40 text-sm">Error reading logs</p>',
         )
 
     if not lines:
         return HTMLResponse(
-            content='<p class="text-base-content/40 text-sm">'
-            "No log entries</p>",
+            content='<p class="text-base-content/40 text-sm">No log entries</p>',
         )
 
     return HTMLResponse(content="\n".join(lines))
@@ -1021,13 +1058,13 @@ async def terminal_logs(
 async def focus_mode(
     request: Request,
     run_id: str,
-    index_manager: object = Depends(get_index_manager),
-    project_registry: object = Depends(get_project_registry),
+    index_manager: IndexManager = Depends(get_index_manager),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Return the focus mode HTML fragment for a given run."""
-    templates = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
 
-    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    all_runs = index_manager.get_recent_runs(limit=100000)
     run_entry = None
     for entry in all_runs:
         if entry.run_id == run_id:
@@ -1041,10 +1078,11 @@ async def focus_mode(
         )
 
     # Resolve display name
-    all_projects = project_registry.get_all()  # type: ignore[union-attr]
+    all_projects = project_registry.get_all()
     name_map = {str(p.path): p.name for p in all_projects}
     project_name = name_map.get(
-        run_entry.project_path, run_entry.project_name,
+        run_entry.project_path,
+        run_entry.project_name,
     )
 
     status = run_entry.status
@@ -1094,6 +1132,4 @@ async def focus_mode(
         "phases": phases,
     }
 
-    return templates.TemplateResponse(
-        request, "partials/focus_mode.html", context
-    )
+    return templates.TemplateResponse(request, "partials/focus_mode.html", context)
