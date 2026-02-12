@@ -1133,3 +1133,63 @@ async def focus_mode(
     }
 
     return templates.TemplateResponse(request, "partials/focus_mode.html", context)
+
+
+# ── Settings Content Partial ────────────────────────────────────
+
+
+@router.get("/settings-content", response_class=HTMLResponse)
+async def settings_content(
+    request: Request,
+    project: str = Query("", alias="project"),
+    tab: str = Query("project", alias="tab"),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
+) -> HTMLResponse:
+    """Return the settings tab content fragment for a given project.
+
+    This is the HTMX target when the user clicks a settings tab —
+    it swaps out the content area without reloading the entire page.
+    """
+    from adw.config.loader import ConfigLoader
+    from adw.config.registry import ConfigRegistry
+    from adw.dashboard.routes import (
+        _SETTINGS_TABS,
+        _build_phase_settings,
+        build_settings_context,
+    )
+
+    templates: Jinja2Templates = request.app.state.templates
+    config = None
+
+    if project:
+        project_path_str, _ = resolve_project_filter(project_registry, project)
+        if project_path_str:
+            try:
+                loader = ConfigLoader(project_root=Path(project_path_str))
+                config = loader.load()
+            except Exception:
+                logger.warning(
+                    "Failed to load config for settings partial",
+                    extra={"project": project},
+                )
+
+    registry = ConfigRegistry()
+    settings_sections = build_settings_context(config, registry)
+    phase_settings = _build_phase_settings(config, registry)
+
+    valid_tab_keys = [t[0] for t in _SETTINGS_TABS]
+    if tab not in valid_tab_keys:
+        tab = "project"
+
+    context = {
+        "request": request,
+        "active_tab": tab,
+        "settings_sections": settings_sections,
+        "phase_settings": phase_settings,
+        "has_config": config is not None,
+        "selected_settings_project": project or None,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/settings_content.html", context
+    )

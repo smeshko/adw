@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING
 from fastapi import HTTPException, Request, status
 
 if TYPE_CHECKING:
+    from adw.config.loader import ConfigLoader
+    from adw.config.registry import ConfigRegistry
     from adw.core.index_manager import IndexManager
     from adw.core.project_registry import ProjectRegistryManager
     from adw.core.run_trigger import RunTrigger
@@ -162,3 +164,27 @@ def get_run_trigger() -> RunTrigger:
     from adw.core.run_trigger import RunTrigger
 
     return RunTrigger()
+
+
+def get_config_loader(project_path: str | None = None) -> ConfigLoader:
+    """Provide a ConfigLoader instance via Depends().
+
+    Args:
+        project_path: Optional project root path. When provided, the loader
+            targets that project's ``.adw/project.yaml``. Otherwise loads
+            from cwd.
+    """
+    from pathlib import Path
+
+    from adw.config.loader import ConfigLoader
+
+    if project_path:
+        return ConfigLoader(project_root=Path(project_path))
+    return ConfigLoader()
+
+
+def get_config_registry() -> ConfigRegistry:
+    """Provide a ConfigRegistry instance via Depends()."""
+    from adw.config.registry import ConfigRegistry
+
+    return ConfigRegistry()
