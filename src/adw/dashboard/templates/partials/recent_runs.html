@@ -6,7 +6,7 @@
          hx-swap="outerHTML">
 
   <div class="flex items-center justify-between mb-3">
-    <h2 class="text-lg font-semibold">Recent Runs</h2>
+    <h2 class="text-lg font-semibold section-header">Recent Runs</h2>
     <a href="/runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
        hx-get="/runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
        hx-target="#main"

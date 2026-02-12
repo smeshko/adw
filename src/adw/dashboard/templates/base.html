@@ -14,6 +14,11 @@
     /* Restore theme from localStorage before paint */
     (function() {
       var t = localStorage.getItem('adw-theme');
+      /* Migrate legacy DaisyUI built-in 'dark' to brutalist-dark */
+      if (t === 'dark') {
+        t = 'brutalist-dark';
+        localStorage.setItem('adw-theme', t);
+      }
       if (t) document.documentElement.setAttribute('data-theme', t);
     })();
   </script>

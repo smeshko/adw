@@ -16,6 +16,8 @@
    components (badges, buttons, stats, etc.) inherit the aesthetic.          */
 
 [data-theme="brutalist-dark"] {
+  color-scheme: dark;
+
   /* ── Base colors ──────────────────────────────────────────────────────── */
   --color-base-100:         #1E1E1E;  /* card bg */
   --color-base-200:         #181818;  /* page bg elevated */
@@ -165,7 +167,7 @@
 }
 
 /* ── Section header — "// PREFIX" pattern ───────────────────────────────── */
-.section-header {
+[data-theme="brutalist-dark"] .section-header {
   font-family: var(--font-display);
   text-transform: uppercase;
   letter-spacing: 0.10em;
@@ -173,7 +175,7 @@
   font-size: 1.125rem;
   line-height: 1.5rem;
 }
-.section-header::before {
+[data-theme="brutalist-dark"] .section-header::before {
   content: '// ';
   color: var(--accent-red);
   font-weight: 900;

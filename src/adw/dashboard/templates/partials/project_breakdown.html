@@ -2,13 +2,13 @@
 
   <div class="flex items-center gap-2 mb-3">
     {% if selected_project %}
-      <h2 class="text-lg font-semibold">Projects — Filtered: {{ selected_project }}</h2>
+      <h2 class="text-lg font-semibold section-header">Projects — Filtered: {{ selected_project }}</h2>
       <a hx-get="/"
          hx-target="#main"
          hx-push-url="/"
          class="btn btn-ghost btn-xs">×</a>
     {% else %}
-      <h2 class="text-lg font-semibold">Projects</h2>
+      <h2 class="text-lg font-semibold section-header">Projects</h2>
     {% endif %}
   </div>
 

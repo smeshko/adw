@@ -5,7 +5,7 @@
          hx-get="/partials/active-runs{% if selected_project %}?project={{ selected_project | urlencode }}{% endif %}"
          hx-trigger="every 3s"
          hx-swap="outerHTML">
-  <h2 class="text-lg font-semibold mb-3">Active Runs <span class="badge badge-warning badge-sm">{{ active_runs | length }}</span></h2>
+  <h2 class="text-lg font-semibold mb-3 section-header">Active Runs <span class="badge badge-warning badge-sm">{{ active_runs | length }}</span></h2>
   <div class="flex gap-4 flex-wrap mb-6">
     {%- for run in active_runs %}
     <a href="/runs/{{ run.run_id }}"
