@@ -382,6 +382,44 @@ class TestSettingsNavigation:
         assert "'/settings': 'settings'" in response.text
 
 
+class TestSettingsTabLinks:
+    """Tests verifying tab links target the correct partial endpoint."""
+
+    def test_tab_links_target_partial_endpoint(
+        self, populated_registry_client: TestClient
+    ) -> None:
+        """Tab links should use /partials/settings-content, not /settings."""
+        mock_cfg = MagicMock()
+        mock_cfg.name = "my-app"
+        mock_cfg.language = "python"
+        mock_cfg.framework = None
+        mock_cfg.platform = "cli"
+        mock_cfg.test_command = "pytest"
+        mock_cfg.build_command = None
+        mock_cfg.git = MagicMock()
+        mock_cfg.llm = MagicMock()
+        mock_cfg.task_manager = MagicMock()
+        mock_cfg.worktree = MagicMock()
+        mock_cfg.security = None
+
+        mock_loader = MagicMock()
+        mock_loader.load.return_value = mock_cfg
+        mock_loader.has_project_config = True
+
+        with patch(
+            "adw.config.loader.ConfigLoader", return_value=mock_loader
+        ):
+            response = populated_registry_client.get(
+                "/settings?project=my-app",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 200
+        # Tab links should point to the partial endpoint, not the full page route
+        assert "/partials/settings-content?" in response.text
+        assert 'hx-target="#settings-content"' in response.text
+
+
 class TestSettingsTabs:
     """Tests for the settings tab configuration."""
 
