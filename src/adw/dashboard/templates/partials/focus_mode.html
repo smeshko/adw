@@ -49,8 +49,7 @@
   {% if is_active %}
   <div class="focus-log-stream log-stream-container"
        hx-ext="sse"
-       sse-connect="/runs/{{ run_id }}/logs/stream"
-       sse-close="run-complete,run-failed">
+       sse-connect="/runs/{{ run_id }}/logs/stream">
     <div sse-swap="log-line" hx-swap="beforeend">
     </div>
   </div>
@@ -63,6 +62,11 @@
       <span class="loading loading-dots loading-md"></span>
     </div>
   </div>
+  {% endif %}
+
+  {# ── SSE listener for phase pipeline + elapsed time OOB updates ── #}
+  {% if is_active %}
+  <div sse-swap="phase-update" hx-swap="none" style="display:none;"></div>
   {% endif %}
 
   {# ── SSE listeners for completion/failure events ── #}
@@ -94,6 +98,10 @@
 
 <script>
 function exitFocusMode() {
-  history.back();
+  var el = document.querySelector('[data-focus-mode]');
+  var runId = el ? el.getAttribute('data-run-id') : null;
+  if (runId) {
+    htmx.ajax('GET', '/runs/' + runId, {target:'#main'});
+  }
 }
 </script>

@@ -906,7 +906,7 @@ async def terminal_mode(
     has_logs = False
     try:
         project_path = Path(run_entry.project_path)
-        log_file = project_path / ".adw" / "runs" / run_id / "logs" / "live.log"
+        log_file = project_path / ".adw" / "runs" / run_id / "live.log"
         has_logs = log_file.exists()
     except OSError:
         pass
@@ -948,7 +948,7 @@ async def terminal_logs(
 
     try:
         project_path = Path(run_entry.project_path)
-        log_file = project_path / ".adw" / "runs" / run_id / "logs" / "live.log"
+        log_file = project_path / ".adw" / "runs" / run_id / "live.log"
     except OSError:
         return HTMLResponse(
             content='<p class="text-base-content/40 text-sm">'

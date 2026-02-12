@@ -283,10 +283,14 @@
         if (key === 't') {
           e.preventDefault();
           if (terminalModeActive) {
-            /* Exit terminal mode */
+            /* Exit terminal mode — reload run detail */
+            var rid = document.querySelector('[data-terminal-mode]');
+            var exitRunId = rid ? rid.getAttribute('data-run-id') : getRunId();
             document.body.classList.remove('terminal-mode-active');
             terminalModeActive = false;
-            history.back();
+            if (exitRunId) {
+              htmx.ajax('GET', '/runs/' + exitRunId, {target:'#main'});
+            }
           } else {
             var runId = getRunId();
             if (runId) {
@@ -302,8 +306,12 @@
         if (key === 'f') {
           if (focusModeActive) {
             e.preventDefault();
+            var fEl = document.querySelector('[data-focus-mode]');
+            var exitRunId = fEl ? fEl.getAttribute('data-run-id') : getRunId();
             focusModeActive = false;
-            history.back();
+            if (exitRunId) {
+              htmx.ajax('GET', '/runs/' + exitRunId, {target:'#main'});
+            }
           } else if (isRunDetailPage()) {
             var runId = getRunId();
             if (runId) {
@@ -352,15 +360,23 @@
           /* Check for active view modes first (Story 6.2) */
           if (terminalModeActive || document.querySelector('[data-terminal-mode]')) {
             e.preventDefault();
+            var tmEl = document.querySelector('[data-terminal-mode]');
+            var exitRunId = tmEl ? tmEl.getAttribute('data-run-id') : getRunId();
             document.body.classList.remove('terminal-mode-active');
             terminalModeActive = false;
-            history.back();
+            if (exitRunId) {
+              htmx.ajax('GET', '/runs/' + exitRunId, {target:'#main'});
+            }
             return;
           }
           if (focusModeActive || document.querySelector('[data-focus-mode]')) {
             e.preventDefault();
+            var fmEl = document.querySelector('[data-focus-mode]');
+            var exitRunId = fmEl ? fmEl.getAttribute('data-run-id') : getRunId();
             focusModeActive = false;
-            history.back();
+            if (exitRunId) {
+              htmx.ajax('GET', '/runs/' + exitRunId, {target:'#main'});
+            }
             return;
           }
           /* Modal close */

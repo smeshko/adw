@@ -19,8 +19,7 @@
   {# Active run: stream logs via SSE #}
   <div class="terminal-log-area"
        hx-ext="sse"
-       sse-connect="/runs/{{ run_id }}/logs/stream"
-       sse-close="run-complete,run-failed">
+       sse-connect="/runs/{{ run_id }}/logs/stream">
     <div sse-swap="log-line" hx-swap="beforeend">
     </div>
   </div>
@@ -46,6 +45,10 @@
 <script>
 function exitTerminalMode() {
   document.body.classList.remove('terminal-mode-active');
-  history.back();
+  var el = document.querySelector('[data-terminal-mode]');
+  var runId = el ? el.getAttribute('data-run-id') : null;
+  if (runId) {
+    htmx.ajax('GET', '/runs/' + runId, {target:'#main'});
+  }
 }
 </script>
