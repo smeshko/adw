@@ -1078,3 +1078,82 @@ class TestSaveSettingsSecurity:
         assert config["language"] == "python"
         assert config["git"]["branch_prefix"] == "feature/"
         assert config["llm"]["retry"]["max_retries"] == 3
+
+
+# ── Cross-field validation integration tests ──────────────────────
+
+
+class TestSaveSettingsCrossFieldValidation:
+    """Integration tests for cross-field validation via Pydantic."""
+
+    def test_max_delay_less_than_base_delay_rejected(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Pydantic rejects max_delay_seconds < base_delay_seconds."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "llm",
+                "_project": "test-app",
+                "max_retries": "3",
+                "base_delay_seconds": "10.0",
+                "max_delay_seconds": "5.0",  # less than base
+                "multiplier": "2.0",
+            },
+        )
+        assert response.status_code == 200
+        assert "Validation failed" in response.text or "alert-error" in response.text
+
+    def test_valid_delay_values_accepted(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Valid delay values (max >= base) are accepted."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "llm",
+                "_project": "test-app",
+                "max_retries": "3",
+                "base_delay_seconds": "5.0",
+                "max_delay_seconds": "5.0",  # equal to base — valid
+                "multiplier": "2.0",
+            },
+        )
+        assert response.status_code == 200
+        assert "Settings saved successfully" in response.text
+
+    def test_overlapping_ports_rejected(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Pydantic rejects overlapping backend/frontend port ranges."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "worktree",
+                "_project": "test-app",
+                "backend_start": "9100",
+                "frontend_start": "9110",  # overlaps with 9100-9114
+            },
+        )
+        assert response.status_code == 200
+        assert "Validation failed" in response.text or "alert-error" in response.text
+
+    def test_non_overlapping_ports_accepted(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Non-overlapping port ranges are accepted."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "worktree",
+                "_project": "test-app",
+                "backend_start": "9100",
+                "frontend_start": "9200",  # no overlap
+            },
+        )
+        assert response.status_code == 200
+        assert "Settings saved successfully" in response.text

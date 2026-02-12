@@ -111,6 +111,49 @@ class TestWorktreeConfig:
         assert config.port_range.backend_start == 65506
         assert config.port_range.frontend_start == 65521
 
+    def test_port_range_overlap_rejected(self) -> None:
+        """WorktreeConfig rejects overlapping backend/frontend port ranges."""
+        from adw.models.config import PortRangeConfig
+
+        with pytest.raises(ValueError) as exc_info:
+            WorktreeConfig(
+                port_range=PortRangeConfig(
+                    backend_start=9100,
+                    frontend_start=9110,  # overlaps with 9100-9114
+                ),
+                max_concurrent=15,
+            )
+        assert "overlaps" in str(exc_info.value)
+
+    def test_port_range_adjacent_valid(self) -> None:
+        """WorktreeConfig accepts adjacent (non-overlapping) port ranges."""
+        from adw.models.config import PortRangeConfig
+
+        # Backend: 9100-9114, Frontend: 9115-9129 — adjacent, no overlap
+        config = WorktreeConfig(
+            port_range=PortRangeConfig(
+                backend_start=9100,
+                frontend_start=9115,
+            ),
+            max_concurrent=15,
+        )
+        assert config.port_range.backend_start == 9100
+        assert config.port_range.frontend_start == 9115
+
+    def test_port_range_overlap_same_start(self) -> None:
+        """WorktreeConfig rejects identical backend/frontend start ports."""
+        from adw.models.config import PortRangeConfig
+
+        with pytest.raises(ValueError) as exc_info:
+            WorktreeConfig(
+                port_range=PortRangeConfig(
+                    backend_start=9100,
+                    frontend_start=9100,
+                ),
+                max_concurrent=15,
+            )
+        assert "overlaps" in str(exc_info.value)
+
 
 class TestShipCommandConfig:
     """Tests for ShipCommandConfig validation (ISS-031 refactored from Story 15.1).
