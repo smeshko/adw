@@ -282,7 +282,8 @@
         /* Terminal mode toggle (Story 6.2) */
         if (key === 't') {
           e.preventDefault();
-          if (terminalModeActive) {
+          /* Check DOM state too — button-initiated mode won't set flag */
+          if (terminalModeActive || document.querySelector('[data-terminal-mode]')) {
             /* Exit terminal mode — reload run detail */
             var rid = document.querySelector('[data-terminal-mode]');
             var exitRunId = rid ? rid.getAttribute('data-run-id') : getRunId();
@@ -302,9 +303,10 @@
           return;
         }
 
-        /* Focus mode (Story 6.2) — only on run detail pages with active runs */
+        /* Focus mode (Story 6.2) — only on run detail pages */
         if (key === 'f') {
-          if (focusModeActive) {
+          /* Check DOM state too — button-initiated mode won't set flag */
+          if (focusModeActive || document.querySelector('[data-focus-mode]')) {
             e.preventDefault();
             var fEl = document.querySelector('[data-focus-mode]');
             var exitRunId = fEl ? fEl.getAttribute('data-run-id') : getRunId();

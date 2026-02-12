@@ -109,6 +109,30 @@
   color: var(--text-primary, #E8E4DF);
 }
 
+/* Terminal mode SSE log line styling — SSE stream uses different
+   classes than static logs; override here for consistent appearance */
+.terminal-mode .terminal-log-area [sse-swap] > div {
+  font-family: var(--font-body, 'Inconsolata', ui-monospace, monospace);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  padding: 1px 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text-primary, #E8E4DF);
+}
+
+.terminal-mode .terminal-log-area [sse-swap] > div .text-base-content\/50 {
+  color: var(--text-muted, #666666);
+}
+
+.terminal-mode .terminal-log-area [sse-swap] > div.text-error {
+  color: var(--accent-red, #C43018);
+}
+
+.terminal-mode .terminal-log-area [sse-swap] > div.text-warning {
+  color: var(--accent-orange, #D4602A);
+}
+
 /* Hide footer in terminal mode */
 body.terminal-mode-active #status-bar {
   display: none;
