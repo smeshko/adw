@@ -1023,6 +1023,163 @@ async def artifact_viewer(
     )
 
 
+def _load_log_entries(
+    runs_dir: Path,
+    run_id: str,
+    *,
+    phase: str | None = None,
+) -> list[dict]:
+    """Load and parse log entries from the live.log file.
+
+    Parses lines in the format: [timestamp] [CATEGORY] message
+    Maps categories to severity levels for display.
+
+    Args:
+        runs_dir: Path to the .adw/runs directory.
+        run_id: The run ID.
+        phase: Optional phase filter — only return entries mentioning this phase.
+
+    Returns:
+        List of dicts with timestamp, level, and message keys.
+    """
+    import re
+
+    log_file = runs_dir / run_id / "logs" / "live.log"
+    if not log_file.exists():
+        return []
+
+    # Pattern: [timestamp] [CATEGORY] message
+    line_pattern = re.compile(
+        r"^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s+\[(\w+)\]\s+(.*)"
+    )
+
+    # Strip ANSI escape codes
+    ansi_pattern = re.compile(r"\x1b\[[0-9;]*m")
+
+    # Map log categories to severity levels
+    error_categories = {"ERROR", "FATAL"}
+    warn_categories = {"WARN", "WARNING"}
+
+    entries: list[dict] = []
+    try:
+        content = log_file.read_text(errors="replace")
+        for line in content.splitlines():
+            # Strip ANSI codes
+            clean_line = ansi_pattern.sub("", line).strip()
+            if not clean_line:
+                continue
+
+            match = line_pattern.match(clean_line)
+            if not match:
+                continue
+
+            timestamp = match.group(1)
+            category = match.group(2).upper()
+            message = match.group(3).strip()
+
+            # Strip ANSI from message too
+            message = ansi_pattern.sub("", message).strip()
+
+            # Determine severity level
+            if category in error_categories:
+                level = "ERROR"
+            elif category in warn_categories:
+                level = "WARN"
+            else:
+                level = "INFO"
+
+            entries.append({
+                "timestamp": timestamp,
+                "level": level,
+                "message": message,
+            })
+    except OSError:
+        return []
+
+    # Apply phase filter
+    if phase:
+        entries = [e for e in entries if phase in e["message"]]
+
+    return entries
+
+
+@router.get("/runs/{run_id}/logs", response_class=HTMLResponse)
+async def log_search(
+    request: Request,
+    run_id: str,
+    q: str = Query(""),
+    level: str = Query(""),
+    phase: str = Query(""),
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return filtered log entries as HTML fragment.
+
+    Supports filtering by keyword (q), severity level, and phase.
+    Returns an HTML fragment for HTMX swap into the log content div.
+    """
+    run_entry = _find_run_entry(index_manager, run_id)
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    try:
+        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        runs_dir = project_path / ".adw" / "runs"
+        entries = _load_log_entries(runs_dir, run_id, phase=phase or None)
+    except OSError:
+        entries = []
+
+    # Apply level filter
+    if level:
+        entries = [e for e in entries if e["level"] == level.upper()]
+
+    # Apply keyword search filter
+    if q:
+        q_lower = q.lower()
+        entries = [e for e in entries if q_lower in e["message"].lower()]
+
+    # Build HTML fragment
+    if not entries:
+        return HTMLResponse(
+            content='<p class="text-sm text-base-content/60 py-4">No log entries found</p>'
+        )
+
+    lines: list[str] = []
+    lines.append(
+        '<div class="bg-base-300 rounded-lg p-4 font-mono text-xs '
+        'max-h-80 overflow-y-auto">'
+    )
+    for entry in entries:
+        level_class = ""
+        if entry["level"] == "WARN":
+            level_class = " text-warning"
+        elif entry["level"] == "ERROR":
+            level_class = " text-error"
+
+        # Escape HTML in message
+        safe_msg = (
+            entry["message"]
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        )
+        safe_ts = entry["timestamp"]
+        safe_level = entry["level"]
+
+        lines.append(
+            f'<div class="py-0.5{level_class}">'
+            f'<span class="text-base-content/50">{safe_ts}</span> '
+            f'<span class="font-semibold">{safe_level}</span> '
+            f'{safe_msg}'
+            f'</div>'
+        )
+    lines.append('</div>')
+
+    return HTMLResponse(content="\n".join(lines))
+
+
 @router.get("/health")
 async def health() -> dict[str, str]:
     """Dashboard health check."""
