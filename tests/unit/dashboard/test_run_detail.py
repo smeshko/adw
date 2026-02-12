@@ -806,6 +806,684 @@ class TestBuildDetailPhasePipeline:
         assert result[1]["duration"] == ""
 
 
+# ── Phase Accordion Context ─────────────────────────────────────────
+
+
+class TestPhaseAccordionContext:
+    """Tests for per-phase data in run detail context (Task 1)."""
+
+    def test_phases_detail_present_when_context_available(self) -> None:
+        """phases_detail list is present in template context."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.branch_name = "feature/test"
+        mock_ctx.total_tokens = 80000
+        mock_ctx.phase_tokens = {"plan": 50000, "build": 30000}
+        mock_ctx.pr_url = None
+        mock_ctx.task_id = None
+        mock_ctx.task_manager = None
+        mock_ctx.worktree_path = None
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        # phases_detail data should populate accordion section
+        assert response.status_code == 200
+        # Check that phase names appear in accordion context
+        assert "Plan" in response.text
+        assert "Build" in response.text
+
+    def test_phases_detail_shows_token_counts(self) -> None:
+        """Per-phase token counts are displayed."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.branch_name = "feature/test"
+        mock_ctx.total_tokens = 80000
+        mock_ctx.phase_tokens = {"plan": 50000, "build": 30000}
+        mock_ctx.pr_url = None
+        mock_ctx.task_id = None
+        mock_ctx.task_manager = None
+        mock_ctx.worktree_path = None
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        # Token counts should appear in accordion (50000 → "50K", 30000 → "30K")
+        assert "50K" in response.text  # plan tokens
+        assert "30K" in response.text  # build tokens
+
+    def test_phases_detail_shows_cost_estimates(self) -> None:
+        """Per-phase cost estimates are displayed."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.branch_name = "feature/test"
+        mock_ctx.total_tokens = 80000
+        mock_ctx.phase_tokens = {"plan": 50000, "build": 30000}
+        mock_ctx.pr_url = None
+        mock_ctx.task_id = None
+        mock_ctx.task_manager = None
+        mock_ctx.worktree_path = None
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        # Cost estimates should appear (50000 * 0.000009 = $0.45)
+        assert "$0.45" in response.text
+        assert "$0.27" in response.text
+
+    def test_phases_detail_includes_phase_key(self) -> None:
+        """Phase accordion uses phase_key for HTMX URLs."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.branch_name = "feature/test"
+        mock_ctx.total_tokens = 80000
+        mock_ctx.phase_tokens = {"plan": 50000, "build": 30000}
+        mock_ctx.pr_url = None
+        mock_ctx.task_id = None
+        mock_ctx.task_manager = None
+        mock_ctx.worktree_path = None
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        # HTMX URLs should use lowercase phase keys
+        assert f"/runs/{entry.run_id}/phases/plan" in response.text
+        assert f"/runs/{entry.run_id}/phases/build" in response.text
+
+    def test_phases_detail_fallback_when_no_context(self) -> None:
+        """phases_detail works with fallback data when RunContext unavailable."""
+        entry = _make_index_entry(
+            phases_completed=["plan", "build"],
+            phase_reached="validate",
+        )
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("not found")
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        # Should still render accordion with phase names
+        assert response.status_code == 200
+        # Accordion section should be present
+        assert "collapse collapse-arrow" in response.text
+
+    def test_accordion_has_collapse_classes(self) -> None:
+        """Phase accordion uses collapse collapse-arrow bg-base-200."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("not found")
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "collapse collapse-arrow bg-base-200" in response.text
+
+    def test_accordion_has_htmx_lazy_loading(self) -> None:
+        """Phase accordion uses hx-trigger='click once' for lazy loading."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("not found")
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        assert 'hx-trigger="click once"' in response.text
+        assert 'hx-swap="innerHTML"' in response.text
+
+    def test_accordion_has_loading_indicator(self) -> None:
+        """Phase accordion includes loading-dots indicator."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("not found")
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "loading loading-dots" in response.text
+
+    def test_artifact_viewer_panel_present(self) -> None:
+        """Artifact viewer target div is present on the page."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("not found")
+            response = client.get(
+                f"/runs/{entry.run_id}",
+                headers={"HX-Request": "true"},
+            )
+
+        assert 'id="artifact-viewer"' in response.text
+
+
+# ── Phase Detail Route ──────────────────────────────────────────────
+
+
+class TestPhaseDetailRoute:
+    """Tests for GET /runs/{id}/phases/{phase} route (Task 3)."""
+
+    def test_phase_detail_returns_200(self) -> None:
+        """Phase detail route returns 200 for a valid phase."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {"plan": ["plan_output.md"]}
+        mock_ctx.phase_tokens = {"plan": 50000}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 200
+
+    def test_phase_detail_shows_hooks_section(self) -> None:
+        """Phase detail includes a hooks section."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {}
+        mock_ctx.phase_tokens = {}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "Hooks" in response.text
+
+    def test_phase_detail_shows_artifacts_section(self) -> None:
+        """Phase detail includes an artifacts section."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {"plan": ["plan_output.md"]}
+        mock_ctx.phase_tokens = {}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = mock_ctx
+            mock_am.return_value.list_artifacts.return_value = [
+                {"phase": "plan", "name": "plan_output.md", "size": 1234, "path": "/tmp/a"},
+            ]
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "Artifacts" in response.text
+        assert "plan_output.md" in response.text
+
+    def test_phase_detail_no_hooks_message(self) -> None:
+        """Phase detail shows 'no hooks' message when none configured."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {}
+        mock_ctx.phase_tokens = {}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "No hooks configured" in response.text
+
+    def test_phase_detail_no_artifacts_message(self) -> None:
+        """Phase detail shows 'no artifacts' message when none exist."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {}
+        mock_ctx.phase_tokens = {}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = mock_ctx
+            mock_am.return_value.list_artifacts.return_value = []
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "No artifacts produced" in response.text
+
+    def test_phase_detail_artifact_has_view_button(self) -> None:
+        """Each artifact has a [View] button with hx-get."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {"plan": ["output.md"]}
+        mock_ctx.phase_tokens = {}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = mock_ctx
+            mock_am.return_value.list_artifacts.return_value = [
+                {"phase": "plan", "name": "output.md", "size": 500, "path": "/tmp/a"},
+            ]
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "View" in response.text
+        assert f'hx-get="/runs/{entry.run_id}/artifacts/plan/output.md"' in response.text
+        assert 'hx-target="#artifact-viewer"' in response.text
+
+    def test_phase_detail_uses_card_classes(self) -> None:
+        """Phase detail sections use card card-compact bg-base-300."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        mock_ctx = MagicMock()
+        mock_ctx.current_phase = "build"
+        mock_ctx.phase_history = ["plan"]
+        mock_ctx.artifacts = {}
+        mock_ctx.phase_tokens = {}
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = mock_ctx
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "card card-compact bg-base-300" in response.text
+
+    def test_phase_detail_context_unavailable_returns_error(self) -> None:
+        """Phase detail gracefully handles unavailable RunContext."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.side_effect = OSError("not found")
+            response = client.get(
+                f"/runs/{entry.run_id}/phases/plan",
+                headers={"HX-Request": "true"},
+            )
+
+        # Should return 200 with fallback content
+        assert response.status_code == 200
+
+    def test_phase_detail_run_not_found(self) -> None:
+        """Phase detail for non-existent run returns 404."""
+        client = _make_client_with_mocks(entries=[])
+        response = client.get(
+            "/runs/01HQXK5P3Z7V8R2M4N6T9W1Y00/phases/plan",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 404
+
+
+# ── Artifact Viewer Route ───────────────────────────────────────────
+
+
+class TestArtifactViewerRoute:
+    """Tests for GET /runs/{id}/artifacts/{phase}/{filename} route (Task 5)."""
+
+    def test_artifact_viewer_returns_200(self) -> None:
+        """Artifact viewer returns 200 for existing artifact."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "# Plan Output\nSome content here"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/plan_output.md",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 200
+
+    def test_artifact_viewer_shows_filename(self) -> None:
+        """Artifact viewer shows the filename in header."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "content"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/output.txt",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "output.txt" in response.text
+
+    def test_artifact_viewer_shows_content(self) -> None:
+        """Artifact viewer displays the file content."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "Hello World Content"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/test.txt",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "Hello World Content" in response.text
+
+    def test_artifact_viewer_uses_card_classes(self) -> None:
+        """Artifact viewer uses card bg-base-300 styling."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "content"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/test.txt",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "card bg-base-300" in response.text
+
+    def test_artifact_viewer_has_close_button(self) -> None:
+        """Artifact viewer has a close button."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "content"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/test.txt",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "Close" in response.text or "close" in response.text.lower()
+
+    def test_artifact_viewer_pre_block_for_text(self) -> None:
+        """Non-markdown files render in pre block."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "plain text content"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/output.txt",
+                headers={"HX-Request": "true"},
+            )
+
+        assert "<pre" in response.text
+
+    def test_artifact_viewer_404_for_missing_artifact(self) -> None:
+        """Missing artifact returns 404 fragment."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = None
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/nonexistent.txt",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 404
+
+    def test_artifact_viewer_404_for_missing_run(self) -> None:
+        """Artifact viewer for non-existent run returns 404."""
+        client = _make_client_with_mocks(entries=[])
+        response = client.get(
+            "/runs/01HQXK5P3Z7V8R2M4N6T9W1Y00/artifacts/plan/test.txt",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 404
+
+    def test_artifact_viewer_markdown_rendered(self) -> None:
+        """Markdown files are rendered as HTML with prose class."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = "# Heading\n\nParagraph text"
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/output.md",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 200
+        # Should have prose class for markdown rendering
+        assert "prose" in response.text
+
+
+# ── Security Tests (Path Traversal & XSS) ──────────────────────────
+
+
+class TestPathTraversalProtection:
+    """Tests for path traversal and input validation (NFR10)."""
+
+    def test_phase_detail_rejects_invalid_phase(self) -> None:
+        """Phase detail returns 400 for phase not in PHASE_SEQUENCE."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+        response = client.get(
+            f"/runs/{entry.run_id}/phases/notaphase",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 400
+
+    def test_phase_detail_rejects_dotdot_phase(self) -> None:
+        """Phase detail returns 400 for '..' as phase value."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+        # Use %2e%2e to bypass URL normalization
+        response = client.get(
+            f"/runs/{entry.run_id}/phases/%2e%2e",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 400
+
+    def test_artifact_viewer_rejects_invalid_phase(self) -> None:
+        """Artifact viewer returns 400 for invalid phase."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+        response = client.get(
+            f"/runs/{entry.run_id}/artifacts/badphase/test.txt",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 400
+
+    def test_artifact_viewer_rejects_dotdot_filename(self) -> None:
+        """Artifact viewer returns 400 for '..' in filename."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+        response = client.get(
+            f"/runs/{entry.run_id}/artifacts/plan/%2e%2e%2fetc%2fpasswd",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 400
+
+    def test_artifact_viewer_rejects_absolute_filename(self) -> None:
+        """Artifact viewer returns 400 for filename starting with /."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+        response = client.get(
+            f"/runs/{entry.run_id}/artifacts/plan//etc/passwd",
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 400
+
+    def test_artifact_viewer_markdown_xss_prevention(self) -> None:
+        """Markdown rendering escapes script tags to prevent XSS."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.return_value = '<script>alert("xss")</script>\n# Hello'
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/evil.md",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 200
+        assert "<script>" not in response.text
+        assert "&lt;script&gt;" in response.text
+
+
+class TestBinaryArtifactHandling:
+    """Tests for handling binary/non-UTF8 artifacts gracefully."""
+
+    def test_artifact_viewer_handles_unicode_error(self) -> None:
+        """Binary files that cause UnicodeDecodeError return 404."""
+        entry = _make_index_entry()
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
+             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+            mock_cm.return_value.load.return_value = MagicMock()
+            mock_am.return_value.get.side_effect = UnicodeDecodeError(
+                "utf-8", b"\xff\xfe", 0, 1, "invalid start byte",
+            )
+            response = client.get(
+                f"/runs/{entry.run_id}/artifacts/plan/binary.bin",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 404
+
+
+# ── Helper Function Tests (New) ─────────────────────────────────────
+
+
+class TestFormatFileSize:
+    """Tests for _format_file_size helper."""
+
+    def test_bytes(self) -> None:
+        """Small files show bytes."""
+        from adw.dashboard.routes import _format_file_size
+
+        assert _format_file_size(512) == "512 B"
+
+    def test_kilobytes(self) -> None:
+        """Medium files show KB."""
+        from adw.dashboard.routes import _format_file_size
+
+        assert _format_file_size(2048) == "2.0 KB"
+
+    def test_megabytes(self) -> None:
+        """Large files show MB."""
+        from adw.dashboard.routes import _format_file_size
+
+        assert _format_file_size(1048576) == "1.0 MB"
+
+
+class TestFindRunEntry:
+    """Tests for _find_run_entry helper."""
+
+    def test_finds_existing_run(self) -> None:
+        """Returns entry when run exists."""
+        from adw.dashboard.routes import _find_run_entry
+
+        entry = _make_index_entry()
+        mock_im = _mock_index_manager(entries=[entry])
+        result = _find_run_entry(mock_im, entry.run_id)
+        assert result is not None
+        assert result.run_id == entry.run_id
+
+    def test_returns_none_for_missing_run(self) -> None:
+        """Returns None when run not found."""
+        from adw.dashboard.routes import _find_run_entry
+
+        mock_im = _mock_index_manager(entries=[])
+        result = _find_run_entry(mock_im, "01HQXK5P3Z7V8R2M4N6T9W1Y00")
+        assert result is None
+
+    def test_handles_exception_gracefully(self) -> None:
+        """Returns None when index manager throws."""
+        from adw.dashboard.routes import _find_run_entry
+
+        mock_im = MagicMock()
+        mock_im.get_recent_runs.side_effect = RuntimeError("db error")
+        result = _find_run_entry(mock_im, "test-id")
+        assert result is None
+
+
 class TestFormatDurationFromSeconds:
     """Tests for _format_duration_from_seconds helper."""
 

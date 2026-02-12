@@ -1,0 +1,15 @@
+{# Artifact viewer: inline display of artifact content #}
+<div class="card bg-base-300 p-4">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="font-semibold text-sm font-mono">{{ filename }}</h3>
+    <button class="btn btn-ghost btn-xs"
+            onclick="document.getElementById('artifact-viewer').innerHTML=''">Close</button>
+  </div>
+  {% if is_markdown %}
+  <div class="prose prose-sm max-w-none max-h-96 overflow-y-auto">
+    {{ content_html | safe }}
+  </div>
+  {% else %}
+  <pre class="font-mono text-sm whitespace-pre-wrap overflow-x-auto max-h-96 overflow-y-auto">{{ content }}</pre>
+  {% endif %}
+</div>
