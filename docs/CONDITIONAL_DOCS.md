@@ -227,3 +227,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When extending the StatsAggregator with new aggregation methods
     - When computing server-side bar heights for CSS-only charts
     - When adding new phase or model tracking to the ADW pipeline
+
+- docs/features/budget-section-breakdown-table.md
+  - Conditions:
+    - When adding budget tracking or spending limits to the ADW analytics page
+    - When implementing server-side sortable tables with HTMX in the dashboard
+    - When using the `analytics_url` macro to preserve query parameters across analytics interactions
+    - When configuring the `ADW_MONTHLY_BUDGET` environment variable
+    - When adding new columns or sort options to the analytics breakdown table
