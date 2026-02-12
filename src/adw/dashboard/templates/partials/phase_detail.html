@@ -1,0 +1,49 @@
+{# Phase detail partial: hooks + artifacts for a single phase #}
+
+{# ── Hooks Sub-section ── #}
+<div class="card card-compact bg-base-300 mb-3">
+  <div class="card-body">
+    <h3 class="card-title text-sm">Hooks</h3>
+    {% if hooks %}
+    <div class="space-y-1">
+      {% for hook in hooks %}
+      <div class="flex items-center gap-2 text-sm">
+        <span class="badge badge-sm badge-outline">{{ hook.type }}</span>
+        <span class="{{ 'text-success' if hook.status == 'success' else 'text-error' }}">{{ hook.status_icon }}</span>
+        <span class="font-mono">{{ hook.script }}</span>
+        {% if hook.duration %}<span class="text-base-content/60 font-mono text-xs">{{ hook.duration }}</span>{% endif %}
+        {% if hook.error %}<span class="text-error text-xs">{{ hook.error }}</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-base-content/60">No hooks configured for this phase</p>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Artifacts Sub-section ── #}
+<div class="card card-compact bg-base-300">
+  <div class="card-body">
+    <h3 class="card-title text-sm">Artifacts</h3>
+    {% if artifacts %}
+    <div class="space-y-1">
+      {% for artifact in artifacts %}
+      <div class="flex items-center justify-between text-sm">
+        <div class="flex items-center gap-2">
+          <span class="text-base-content/60">•</span>
+          <span class="font-mono">{{ artifact.name }}</span>
+          <span class="text-base-content/60 text-xs">{{ artifact.size_display }}</span>
+        </div>
+        <button class="btn btn-ghost btn-xs"
+                hx-get="/runs/{{ run_id }}/artifacts/{{ phase }}/{{ artifact.name }}"
+                hx-target="#artifact-viewer"
+                hx-swap="innerHTML">View</button>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-base-content/60">No artifacts produced</p>
+    {% endif %}
+  </div>
+</div>

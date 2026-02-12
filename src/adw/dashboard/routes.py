@@ -14,6 +14,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 
+from adw.core.artifact_manager import ArtifactManager
 from adw.core.constants import PHASE_SEQUENCE
 from adw.core.context_manager import ContextManager
 from adw.dashboard.dependencies import (
@@ -463,6 +464,7 @@ def _build_run_detail_context(
     task_id: str | None = None
     task_manager: str | None = None
     artifacts_path: str | None = None
+    phase_tokens: dict[str, int] = {}
 
     # Try loading RunContext for enriched data
     try:
@@ -478,6 +480,7 @@ def _build_run_detail_context(
         pr_url = ctx.pr_url
         task_id = ctx.task_id
         task_manager = ctx.task_manager
+        phase_tokens = dict(ctx.phase_tokens)
 
         # Estimate cost at $3/$15 per 1M input/output tokens (approximate)
         estimated_cost = total_tokens * 0.000009  # rough average
@@ -527,6 +530,44 @@ def _build_run_detail_context(
         status=status,
     )
 
+    # Build per-phase detail data for accordion section
+    completed_set = set(phases_completed)
+    all_phases_with_data = list(completed_set)
+    if current_phase and current_phase not in completed_set:
+        all_phases_with_data.append(current_phase)
+
+    phases_detail: list[dict] = []
+    for phase_key in PHASE_SEQUENCE:
+        if phase_key not in all_phases_with_data:
+            continue
+        tokens = phase_tokens.get(phase_key, 0)
+        cost = tokens * 0.000009
+        phase_status = "completed" if phase_key in completed_set else (
+            "active" if phase_key == current_phase and status == "running"
+            else "failed" if phase_key == current_phase and status in ("failed", "aborted")
+            else "completed"
+        )
+        # Status icon
+        if phase_status == "completed":
+            status_icon = "✓"
+        elif phase_status == "active":
+            status_icon = "●"
+        elif phase_status == "failed":
+            status_icon = "✗"
+        else:
+            status_icon = "—"
+
+        phases_detail.append({
+            "phase_key": phase_key,
+            "name": _PHASE_LABELS.get(phase_key, phase_key.capitalize()),
+            "status": phase_status,
+            "status_icon": status_icon,
+            "tokens": tokens,
+            "tokens_display": _format_tokens(tokens) if tokens else "—",
+            "cost_display": f"${cost:.2f}" if cost > 0 else "—",
+            "duration": "",  # Duration per phase not yet tracked
+        })
+
     # Linear link (if task_id present and task_manager is linear)
     linear_url: str | None = None
     if task_id and task_manager == "linear":
@@ -554,6 +595,7 @@ def _build_run_detail_context(
         "task_id": task_id,
         "artifacts_path": artifacts_path,
         "phases": phases,
+        "phases_detail": phases_detail,
         "back_label": back_label,
         "back_url": back_url,
         "is_active": status == "running",
@@ -615,6 +657,190 @@ async def run_detail(
     context.update(detail_context)
     return templates.TemplateResponse(
         request, "pages/run_detail.html", context,
+    )
+
+
+def _format_file_size(size_bytes: int) -> str:
+    """Format file size in human-readable form."""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    if size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
+def _find_run_entry(
+    index_manager: object,
+    run_id: str,
+) -> object | None:
+    """Look up a run entry by ID from the index.
+
+    Args:
+        index_manager: IndexManager instance.
+        run_id: The run ID to find.
+
+    Returns:
+        IndexEntry or None if not found.
+    """
+    try:
+        all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    except Exception:
+        return None
+    for entry in all_runs:
+        if entry.run_id == run_id:
+            return entry
+    return None
+
+
+@router.get("/runs/{run_id}/phases/{phase}", response_class=HTMLResponse)
+async def phase_detail(
+    request: Request,
+    run_id: str,
+    phase: str,
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return phase detail HTML fragment for lazy-loaded accordion content.
+
+    Loads hooks and artifacts data for the specified phase of a run.
+    """
+    templates = request.app.state.templates
+
+    # Validate phase against known phases (NFR10: no arbitrary path access)
+    if phase not in PHASE_SEQUENCE:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Invalid phase</p>',
+            status_code=400,
+        )
+
+    # Find the run in the index
+    run_entry = _find_run_entry(index_manager, run_id)
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    # Load RunContext for phase data
+    hooks: list[dict] = []
+    artifacts_list: list[dict] = []
+
+    try:
+        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        runs_dir = project_path / ".adw" / "runs"
+
+        # Load artifacts from disk
+        am = ArtifactManager(runs_dir)
+        raw_artifacts = am.list_artifacts(run_id, phase)
+        for art in raw_artifacts:
+            artifacts_list.append({
+                "name": art["name"],
+                "size": art["size"],
+                "size_display": _format_file_size(art["size"]),
+            })
+    except (StateError, OSError):
+        logger.debug(
+            "Failed to load artifacts for phase detail",
+            extra={"run_id": run_id, "phase": phase},
+        )
+
+    context = {
+        "request": request,
+        "run_id": run_id,
+        "phase": phase,
+        "hooks": hooks,
+        "artifacts": artifacts_list,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/phase_detail.html", context,
+    )
+
+
+@router.get("/runs/{run_id}/artifacts/{phase}/{filename:path}", response_class=HTMLResponse)
+async def artifact_viewer(
+    request: Request,
+    run_id: str,
+    phase: str,
+    filename: str,
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return artifact content HTML fragment for inline viewer.
+
+    Renders markdown files as HTML; all other files in a pre block.
+    """
+    templates = request.app.state.templates
+
+    # Validate phase against known phases (NFR10: no arbitrary path access)
+    if phase not in PHASE_SEQUENCE:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Invalid phase</p>',
+            status_code=400,
+        )
+
+    # Validate filename to prevent path traversal (NFR10)
+    if ".." in filename or filename.startswith("/"):
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Invalid filename</p>',
+            status_code=400,
+        )
+
+    # Find the run in the index
+    run_entry = _find_run_entry(index_manager, run_id)
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    # Load artifact content
+    content: str | None = None
+    try:
+        project_path = Path(run_entry.project_path)  # type: ignore[union-attr]
+        runs_dir = project_path / ".adw" / "runs"
+        am = ArtifactManager(runs_dir)
+        content = am.get(run_id, phase, filename)  # type: ignore[assignment]
+    except (StateError, OSError, UnicodeDecodeError):
+        logger.debug(
+            "Failed to load artifact",
+            extra={"run_id": run_id, "phase": phase, "filename": filename},
+        )
+
+    if content is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Artifact not found</p>',
+            status_code=404,
+        )
+
+    # Determine if markdown and render accordingly
+    is_markdown = filename.endswith(".md")
+    content_html = ""
+    if is_markdown:
+        try:
+            import markdown
+            # Escape raw HTML in source before rendering to prevent XSS (NFR10).
+            # Only escape angle brackets and ampersand; preserve quotes for code.
+            safe_content = (
+                content.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+            )
+            content_html = markdown.markdown(
+                safe_content, extensions=["fenced_code", "tables"],
+            )
+        except ImportError:
+            # Fallback: just use pre block if markdown library not available
+            is_markdown = False
+
+    context = {
+        "request": request,
+        "filename": filename,
+        "content": content,
+        "content_html": content_html,
+        "is_markdown": is_markdown,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/artifact_viewer.html", context,
     )
 
 

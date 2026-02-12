@@ -198,3 +198,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When loading RunContext data for enriched display on dashboard run detail pages
     - When adding context-aware back navigation between dashboard pages
     - When displaying full metadata cards with clipboard copy functionality in the dashboard
+
+- docs/features/phase-accordion-artifact-viewer.md
+  - Conditions:
+    - When adding lazy-loaded HTMX accordion sections to the dashboard
+    - When implementing artifact browsing or file viewing in the ADW dashboard
+    - When adding new phase detail routes with security validation for the dashboard
+    - When rendering user-supplied markdown content safely in the dashboard
+    - When extending the run detail page with new expandable sections
