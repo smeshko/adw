@@ -281,3 +281,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When mapping flat form field names to nested config paths in the dashboard
     - When integrating ConfigLoader or ConfigRegistry in new dashboard routes
     - When displaying project config field metadata with defaults and descriptions
+
+- docs/features/complex-field-editors-task-manager-security.md
+  - Conditions:
+    - When adding new complex field editors (key-value or list) to the Settings page
+    - When implementing HTMX conditional partial swaps for type-dependent form fields in the dashboard
+    - When collecting indexed or mapping form fields from Starlette FormData in the dashboard
+    - When adding cross-field validation rules to Settings form sections
+    - When editing Task Manager integration or Security blocked patterns configuration

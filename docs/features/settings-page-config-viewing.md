@@ -28,20 +28,34 @@ The Settings page provides a config viewer and editor in the dashboard. Users se
 - Toast notification system via HTMX OOB swap (success/error, auto-dismiss after 3s)
 - Creates `.adw/` directory and `project.yaml` if they don't exist
 
+### Story 7.3: Complex Field Editors (Task Manager & Security)
+- Task Manager tab with type select (none/linear), HTMX conditional partial swap, team_key, sync_comments, auto_close, labels_enabled, label_prefix fields
+- State mapping key-value editor (read-only phase keys, editable status values) rendered as `table table-sm`
+- Security tab with list editors for blocked_commands (regex patterns) and blocked_env_files (glob patterns)
+- List editor with `<template>` cloning and `addRow()`/`reindex()` inline JS (~10 lines)
+- Cross-field validation: client-side + server-side for max_delay >= base_delay and port range overlap
+- `build_complex_settings_context()` provides structured data for Task Manager and Security templates
+- `_collect_indexed_fields()` and `_collect_mapping_fields()` helpers for complex form data collection
+- Server-side port overlap validator in `WorktreeConfig` Pydantic model
+
 ## Technical Implementation
 
 ### Key Files
 
-- `src/adw/dashboard/routes.py:1674-2006`: Settings route handler, `build_settings_context()`, `_build_phase_settings()`, helper functions (`_humanize_field_name`, `_resolve_config_value`, `_format_display_value`), and `_SETTINGS_TABS` constant. Extended to include port_range and retry settings in their parent sections.
-- `src/adw/dashboard/partials.py:1141-1196`: Settings content partial route for HTMX tab switching. Includes CSRF token in context.
-- `src/adw/dashboard/mutations.py:308-end`: `POST /settings/save` endpoint with `_SECTION_FIELD_MAP`, `_parse_form_value()`, `_deep_set()`, `_atomic_write_config()`, and `_render_settings_error()`.
+- `src/adw/dashboard/routes.py:1674-2006`: Settings route handler, `build_settings_context()`, `_build_phase_settings()`, `build_complex_settings_context()`, helper functions (`_humanize_field_name`, `_resolve_config_value`, `_format_display_value`), and `_SETTINGS_TABS` constant. Extended to include port_range and retry settings in their parent sections.
+- `src/adw/dashboard/partials.py:1141-1216`: Settings content partial route for HTMX tab switching. Task Manager conditional partial route at `GET /partials/settings-section/task-manager`. Includes CSRF token in context.
+- `src/adw/dashboard/mutations.py:308-end`: `POST /settings/save` endpoint with `_SECTION_FIELD_MAP`, `_parse_form_value()`, `_collect_indexed_fields()`, `_collect_mapping_fields()`, `_deep_set()`, `_atomic_write_config()`, and `_render_settings_error()`.
 - `src/adw/dashboard/dependencies.py:169-191`: `get_config_loader()` and `get_config_registry()` DI providers
 - `src/adw/dashboard/templates/partials/settings.html`: Main settings layout with project selector, info banner, tab navigation, and empty states
-- `src/adw/dashboard/templates/partials/settings_content.html`: Tab content renderer — editable form for supported sections, read-only display for others. Includes client-side validation script.
+- `src/adw/dashboard/templates/partials/settings_content.html`: Tab content renderer — editable form for supported sections, read-only display for others. Includes client-side validation script and cross-field validation. Custom layouts for Task Manager and Security tabs.
+- `src/adw/dashboard/templates/partials/settings_task_manager_fields.html`: HTMX conditional partial for Task Manager fields (type-dependent rendering, state mapping editor)
 - `src/adw/dashboard/templates/partials/toast.html`: Reusable toast notification partial for OOB swaps
 - `src/adw/dashboard/templates/base.html:60-66,109`: Nav link, `g s` shortcut wiring, and `#toast-container` for OOB toast swaps
 - `src/adw/config/registry.py:114`: Added `retry` section for RetryConfig settings extraction
-- `tests/dashboard/test_settings_save.py`: 44 tests for the save endpoint
+- `src/adw/models/config.py`: Port range overlap validator in `WorktreeConfig`
+- `tests/dashboard/test_settings_save.py`: 64 tests for the save endpoint (20 new for Task Manager/Security)
+- `tests/dashboard/test_settings_route.py`: 4 new tests for Task Manager conditional partial
+- `tests/unit/models/test_config.py`: 3 new tests for cross-field validation
 
 ### Key Patterns
 
@@ -135,8 +149,8 @@ The settings tabs are defined in `_SETTINGS_TABS` in `routes.py`:
 | git | Git | `config.git.*` | Yes |
 | worktree | Worktree | `config.worktree.*` + `config.worktree.port_range.*` | Ports only |
 | llm | LLM Retry | `config.llm.*` + `config.llm.retry.*` | Retry only |
-| task_manager | Task Manager | `config.task_manager.*` | No |
-| security | Security | `config.security.*` | No |
+| task_manager | Task Manager | `config.task_manager.*` | Yes (custom editor) |
+| security | Security | `config.security.*` | Yes (list editors) |
 | phases | Phases | Phase-level settings via `ConfigRegistry.get_phase_settings()` | No |
 
 ## Notes

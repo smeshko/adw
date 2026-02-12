@@ -18,6 +18,8 @@ from adw.dashboard.dependencies import (
 )
 from adw.dashboard.mutations import (
     _SECTION_FIELD_MAP,
+    _collect_indexed_fields,
+    _collect_mapping_fields,
     _deep_set,
     _parse_form_value,
 )
@@ -719,3 +721,439 @@ class TestResolveConfigValueExtended:
 
         config = ProjectConfig(name="test", language="python")
         assert _resolve_config_value(config, "llm", "multiplier") == 2.0
+
+
+# ── Helper function tests for complex field parsing ───────────────
+
+
+class TestCollectIndexedFields:
+    """Tests for _collect_indexed_fields."""
+
+    def test_collects_sequential_fields(self) -> None:
+        form = {"blocked_env_files.0": ".env", "blocked_env_files.1": ".secret"}
+        result = _collect_indexed_fields(form, "blocked_env_files")
+        assert result == [".env", ".secret"]
+
+    def test_filters_empty_strings(self) -> None:
+        form = {"blocked_env_files.0": ".env", "blocked_env_files.1": "  "}
+        result = _collect_indexed_fields(form, "blocked_env_files")
+        assert result == [".env"]
+
+    def test_returns_empty_list_when_none(self) -> None:
+        form = {"other_field": "value"}
+        result = _collect_indexed_fields(form, "blocked_env_files")
+        assert result == []
+
+    def test_sorts_by_index(self) -> None:
+        form = {"items.2": "c", "items.0": "a", "items.1": "b"}
+        result = _collect_indexed_fields(form, "items")
+        assert result == ["a", "b", "c"]
+
+    def test_ignores_non_numeric_suffixes(self) -> None:
+        form = {"items.0": "a", "items.plan": "b"}
+        result = _collect_indexed_fields(form, "items")
+        assert result == ["a"]
+
+
+class TestCollectMappingFields:
+    """Tests for _collect_mapping_fields."""
+
+    def test_collects_mapping(self) -> None:
+        form = {"state_mapping.plan": "Todo", "state_mapping.build": "Doing"}
+        result = _collect_mapping_fields(form, "state_mapping")
+        assert result == {"plan": "Todo", "build": "Doing"}
+
+    def test_returns_empty_dict_when_none(self) -> None:
+        form = {"other": "value"}
+        result = _collect_mapping_fields(form, "state_mapping")
+        assert result == {}
+
+    def test_strips_whitespace(self) -> None:
+        form = {"state_mapping.plan": "  In Progress  "}
+        result = _collect_mapping_fields(form, "state_mapping")
+        assert result == {"plan": "In Progress"}
+
+
+# ── Section field map extension tests ─────────────────────────────
+
+
+class TestSectionFieldMapTaskManager:
+    """Tests for task_manager entries in _SECTION_FIELD_MAP."""
+
+    def test_task_manager_section_exists(self) -> None:
+        assert "task_manager" in _SECTION_FIELD_MAP
+
+    def test_task_manager_type_field(self) -> None:
+        assert _SECTION_FIELD_MAP["task_manager"]["type"] == ["task_manager", "type"]
+
+    def test_task_manager_team_key_field(self) -> None:
+        assert _SECTION_FIELD_MAP["task_manager"]["team_key"] == [
+            "task_manager",
+            "team_key",
+        ]
+
+    def test_task_manager_boolean_fields(self) -> None:
+        assert _SECTION_FIELD_MAP["task_manager"]["sync_comments"] == [
+            "task_manager",
+            "sync_comments",
+        ]
+        assert _SECTION_FIELD_MAP["task_manager"]["auto_close"] == [
+            "task_manager",
+            "auto_close",
+        ]
+
+    def test_task_manager_labels_fields(self) -> None:
+        assert _SECTION_FIELD_MAP["task_manager"]["labels_enabled"] == [
+            "task_manager",
+            "labels",
+            "enabled",
+        ]
+        assert _SECTION_FIELD_MAP["task_manager"]["label_prefix"] == [
+            "task_manager",
+            "labels",
+            "prefix",
+        ]
+
+
+class TestSectionFieldMapSecurity:
+    """Tests for security entry in _SECTION_FIELD_MAP."""
+
+    def test_security_section_exists(self) -> None:
+        assert "security" in _SECTION_FIELD_MAP
+
+    def test_security_has_empty_field_map(self) -> None:
+        """Security uses complex field parsing, not scalar field map."""
+        assert _SECTION_FIELD_MAP["security"] == {}
+
+
+class TestBoolFieldsExtended:
+    """Tests for extended _BOOL_FIELDS set."""
+
+    def test_sync_comments_is_bool(self) -> None:
+        assert _parse_form_value("sync_comments", "true") is True
+        assert _parse_form_value("sync_comments", "false") is False
+
+    def test_auto_close_is_bool(self) -> None:
+        assert _parse_form_value("auto_close", "true") is True
+
+    def test_labels_enabled_is_bool(self) -> None:
+        assert _parse_form_value("labels_enabled", "on") is True
+
+
+# ── Integration tests for Task Manager save ───────────────────────
+
+
+class TestSaveSettingsTaskManager:
+    """Integration tests for saving Task Manager section."""
+
+    def test_save_type_and_team_key(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Saving type and team_key updates task_manager section."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "task_manager",
+                "_project": "test-app",
+                "type": "linear",
+                "team_key": "ADW",
+                "sync_comments": "false",
+                "auto_close": "false",
+                "labels_enabled": "true",
+                "label_prefix": "adw:",
+            },
+        )
+        assert response.status_code == 200
+        assert "Settings saved successfully" in response.text
+
+        config = yaml.safe_load(
+            (project_dir / ".adw" / "project.yaml").read_text()
+        )
+        assert config["task_manager"]["type"] == "linear"
+        assert config["task_manager"]["team_key"] == "ADW"
+
+    def test_save_boolean_fields(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Saving boolean fields (sync_comments, auto_close, labels_enabled)."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "task_manager",
+                "_project": "test-app",
+                "type": "linear",
+                "team_key": "TST",
+                "sync_comments": "true",
+                "auto_close": "true",
+                "labels_enabled": "false",
+                "label_prefix": "ci:",
+            },
+        )
+        assert response.status_code == 200
+        config = yaml.safe_load(
+            (project_dir / ".adw" / "project.yaml").read_text()
+        )
+        assert config["task_manager"]["sync_comments"] is True
+        assert config["task_manager"]["auto_close"] is True
+        assert config["task_manager"]["labels"]["enabled"] is False
+        assert config["task_manager"]["labels"]["prefix"] == "ci:"
+
+    def test_save_state_mapping(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Saving state_mapping updates the mapping dict."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "task_manager",
+                "_project": "test-app",
+                "type": "linear",
+                "team_key": "ADW",
+                "sync_comments": "false",
+                "auto_close": "false",
+                "labels_enabled": "true",
+                "label_prefix": "adw:",
+                "state_mapping.plan": "Todo",
+                "state_mapping.build": "In Dev",
+                "state_mapping.validate": "Review",
+                "state_mapping.document": "Review",
+                "state_mapping.ship": "Done",
+                "state_mapping.failed": "Backlog",
+            },
+        )
+        assert response.status_code == 200
+        config = yaml.safe_load(
+            (project_dir / ".adw" / "project.yaml").read_text()
+        )
+        mapping = config["task_manager"]["state_mapping"]
+        assert mapping["plan"] == "Todo"
+        assert mapping["build"] == "In Dev"
+        assert mapping["validate"] == "Review"
+        assert mapping["ship"] == "Done"
+        assert mapping["failed"] == "Backlog"
+
+    def test_save_type_none(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Saving type=none is valid and preserves defaults."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "task_manager",
+                "_project": "test-app",
+                "type": "none",
+                "sync_comments": "false",
+                "auto_close": "false",
+                "labels_enabled": "true",
+                "label_prefix": "adw:",
+            },
+        )
+        assert response.status_code == 200
+        assert "Settings saved successfully" in response.text
+        config = yaml.safe_load(
+            (project_dir / ".adw" / "project.yaml").read_text()
+        )
+        assert config["task_manager"]["type"] == "none"
+
+    def test_save_preserves_other_sections(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Saving task_manager doesn't clobber git/llm/worktree sections."""
+        save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "task_manager",
+                "_project": "test-app",
+                "type": "linear",
+                "team_key": "ADW",
+                "sync_comments": "false",
+                "auto_close": "false",
+                "labels_enabled": "true",
+                "label_prefix": "adw:",
+            },
+        )
+        config = yaml.safe_load(
+            (project_dir / ".adw" / "project.yaml").read_text()
+        )
+        # Other sections preserved
+        assert config["language"] == "python"
+        assert config["git"]["branch_prefix"] == "feature/"
+        assert config["llm"]["retry"]["max_retries"] == 3
+        assert config["worktree"]["port_range"]["backend_start"] == 9100
+
+
+# ── Integration tests for Security save ───────────────────────────
+
+
+class TestSaveSettingsSecurity:
+    """Integration tests for saving Security section."""
+
+    def test_save_blocked_env_files(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Saving blocked_env_files updates security section."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "security",
+                "_project": "test-app",
+                "blocked_env_files.0": ".env",
+                "blocked_env_files.1": "*.pem",
+                "blocked_env_files.2": "*.key",
+            },
+        )
+        assert response.status_code == 200
+        assert "Settings saved successfully" in response.text
+        config = yaml.safe_load(
+            (project_dir / ".adw" / "project.yaml").read_text()
+        )
+        assert config["security"]["blocked_env_files"] == [".env", "*.pem", "*.key"]
+
+    def test_save_empty_lists(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Saving with no list items results in empty lists."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "security",
+                "_project": "test-app",
+            },
+        )
+        assert response.status_code == 200
+        config = yaml.safe_load(
+            (project_dir / ".adw" / "project.yaml").read_text()
+        )
+        assert config["security"]["blocked_patterns"] == []
+        assert config["security"]["blocked_env_files"] == []
+
+    def test_save_blocked_commands(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Saving blocked_commands creates BlockedPattern-format entries."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "security",
+                "_project": "test-app",
+                "blocked_commands.0": r"rm\s+-rf\s+/",
+                "blocked_commands.1": r"sudo\s+",
+            },
+        )
+        assert response.status_code == 200
+        config = yaml.safe_load(
+            (project_dir / ".adw" / "project.yaml").read_text()
+        )
+        patterns = config["security"]["blocked_patterns"]
+        assert len(patterns) == 2
+        assert patterns[0]["pattern"] == r"rm\s+-rf\s+/"
+        assert patterns[0]["severity"] == "warning"
+        assert patterns[0]["category"] == "destructive"
+        assert patterns[1]["pattern"] == r"sudo\s+"
+
+    def test_save_preserves_other_sections(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Saving security doesn't clobber other sections."""
+        save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "security",
+                "_project": "test-app",
+                "blocked_env_files.0": ".env",
+            },
+        )
+        config = yaml.safe_load(
+            (project_dir / ".adw" / "project.yaml").read_text()
+        )
+        assert config["language"] == "python"
+        assert config["git"]["branch_prefix"] == "feature/"
+        assert config["llm"]["retry"]["max_retries"] == 3
+
+
+# ── Cross-field validation integration tests ──────────────────────
+
+
+class TestSaveSettingsCrossFieldValidation:
+    """Integration tests for cross-field validation via Pydantic."""
+
+    def test_max_delay_less_than_base_delay_rejected(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Pydantic rejects max_delay_seconds < base_delay_seconds."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "llm",
+                "_project": "test-app",
+                "max_retries": "3",
+                "base_delay_seconds": "10.0",
+                "max_delay_seconds": "5.0",  # less than base
+                "multiplier": "2.0",
+            },
+        )
+        assert response.status_code == 200
+        assert "Validation failed" in response.text or "alert-error" in response.text
+
+    def test_valid_delay_values_accepted(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Valid delay values (max >= base) are accepted."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "llm",
+                "_project": "test-app",
+                "max_retries": "3",
+                "base_delay_seconds": "5.0",
+                "max_delay_seconds": "5.0",  # equal to base — valid
+                "multiplier": "2.0",
+            },
+        )
+        assert response.status_code == 200
+        assert "Settings saved successfully" in response.text
+
+    def test_overlapping_ports_rejected(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Pydantic rejects overlapping backend/frontend port ranges."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "worktree",
+                "_project": "test-app",
+                "backend_start": "9100",
+                "frontend_start": "9110",  # overlaps with 9100-9114
+            },
+        )
+        assert response.status_code == 200
+        assert "Validation failed" in response.text or "alert-error" in response.text
+
+    def test_non_overlapping_ports_accepted(
+        self, save_client: TestClient, project_dir: Path
+    ) -> None:
+        """Non-overlapping port ranges are accepted."""
+        response = save_client.post(
+            "/settings/save",
+            data={
+                "csrf_token": _csrf_token(),
+                "_section": "worktree",
+                "_project": "test-app",
+                "backend_start": "9100",
+                "frontend_start": "9200",  # no overlap
+            },
+        )
+        assert response.status_code == 200
+        assert "Settings saved successfully" in response.text

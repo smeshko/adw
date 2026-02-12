@@ -1,7 +1,7 @@
 {# Settings section content — rendered inside #settings-content container #}
 
-{# Editable sections: project, git, worktree (ports only), llm #}
-{% set editable_tabs = ['project', 'git', 'worktree', 'llm'] %}
+{# Editable sections: project, git, worktree (ports only), llm, task_manager, security #}
+{% set editable_tabs = ['project', 'git', 'worktree', 'llm', 'task_manager', 'security'] %}
 
 {# Language options for the project section #}
 {% set language_options = ['python', 'javascript', 'typescript', 'go', 'rust', 'java', 'ruby', 'php'] %}
@@ -45,6 +45,137 @@
     {% endfor %}
   </div>
   {% endif %}
+
+{% elif active_tab == 'task_manager' and has_config %}
+  {# ── Task Manager Tab (custom layout) ── #}
+  <form hx-post="/settings/save"
+        hx-target="#settings-content"
+        hx-swap="innerHTML"
+        class="space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="_section" value="task_manager">
+    <input type="hidden" name="_project" value="{{ selected_settings_project }}">
+
+    <div class="card card-bordered bg-base-100 p-4">
+      {# Type Select with HTMX swap #}
+      <div class="flex flex-col gap-1 mb-4">
+        <label class="font-semibold text-sm" for="field-tm-type">Type</label>
+        <select id="field-tm-type"
+                name="type"
+                class="select select-bordered select-sm w-full max-w-xs"
+                hx-get="/partials/settings-section/task-manager"
+                hx-trigger="change"
+                hx-target="#task-manager-fields"
+                hx-swap="innerHTML"
+                hx-vals='{"project": "{{ selected_settings_project }}"}'>
+          <option value="none" {% if task_manager_context.type == 'none' %}selected{% endif %}>none</option>
+          <option value="linear" {% if task_manager_context.type == 'linear' %}selected{% endif %}>linear</option>
+        </select>
+        <p class="text-xs text-base-content/60">Task manager integration type</p>
+      </div>
+
+      {# Conditional fields container — initially rendered server-side #}
+      <div id="task-manager-fields">
+        {# Set variables for the included template from task_manager_context #}
+        {% set task_manager_type = task_manager_context.type %}
+        {% set state_mapping = task_manager_context.state_mapping %}
+        {% set team_key = task_manager_context.team_key %}
+        {% set sync_comments = task_manager_context.sync_comments %}
+        {% set auto_close = task_manager_context.auto_close %}
+        {% set labels_enabled = task_manager_context.labels_enabled %}
+        {% set label_prefix = task_manager_context.label_prefix %}
+        {% include "partials/settings_task_manager_fields.html" %}
+      </div>
+    </div>
+
+    {# Save button #}
+    <div class="flex justify-end">
+      <button type="submit" class="btn btn-primary btn-sm" id="settings-save-btn">
+        <span class="loading loading-spinner loading-sm htmx-indicator"></span>
+        Save
+      </button>
+    </div>
+  </form>
+
+{% elif active_tab == 'security' and has_config %}
+  {# ── Security Tab (custom layout with list editors) ── #}
+  <form hx-post="/settings/save"
+        hx-target="#settings-content"
+        hx-swap="innerHTML"
+        class="space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="_section" value="security">
+    <input type="hidden" name="_project" value="{{ selected_settings_project }}">
+
+    <div class="card card-bordered bg-base-100 p-4 space-y-6">
+      {# Blocked Commands (blocked_patterns) #}
+      <div>
+        <h4 class="font-semibold text-sm mb-2">Blocked Commands</h4>
+        <p class="text-xs text-base-content/60 mb-2">Regex patterns for commands to block</p>
+        <div id="list-blocked_commands" class="flex flex-col gap-2">
+          {% for pattern in security_context.blocked_commands %}
+          <div class="flex gap-2">
+            <input type="text" name="blocked_commands.{{ loop.index0 }}" value="{{ pattern }}" class="input input-bordered input-sm flex-1" placeholder="e.g. rm\s+-rf\s+/">
+            <button type="button" class="btn btn-ghost btn-sm btn-circle" onclick="this.parentElement.remove();reindex('blocked_commands')">&#215;</button>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm mt-2" onclick="addRow('blocked_commands')">+ Add Pattern</button>
+        <template id="tpl-blocked_commands">
+          <div class="flex gap-2">
+            <input type="text" name="blocked_commands.0" value="" class="input input-bordered input-sm flex-1" placeholder="e.g. rm\s+-rf\s+/">
+            <button type="button" class="btn btn-ghost btn-sm btn-circle" onclick="this.parentElement.remove();reindex('blocked_commands')">&#215;</button>
+          </div>
+        </template>
+      </div>
+
+      {# Blocked Env Files #}
+      <div>
+        <h4 class="font-semibold text-sm mb-2">Blocked Env Files</h4>
+        <p class="text-xs text-base-content/60 mb-2">Glob patterns for environment files to block</p>
+        <div id="list-blocked_env_files" class="flex flex-col gap-2">
+          {% for pattern in security_context.blocked_env_files %}
+          <div class="flex gap-2">
+            <input type="text" name="blocked_env_files.{{ loop.index0 }}" value="{{ pattern }}" class="input input-bordered input-sm flex-1" placeholder="e.g. .env, *.pem">
+            <button type="button" class="btn btn-ghost btn-sm btn-circle" onclick="this.parentElement.remove();reindex('blocked_env_files')">&#215;</button>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm mt-2" onclick="addRow('blocked_env_files')">+ Add Pattern</button>
+        <template id="tpl-blocked_env_files">
+          <div class="flex gap-2">
+            <input type="text" name="blocked_env_files.0" value="" class="input input-bordered input-sm flex-1" placeholder="e.g. .env, *.pem, *.key">
+            <button type="button" class="btn btn-ghost btn-sm btn-circle" onclick="this.parentElement.remove();reindex('blocked_env_files')">&#215;</button>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    {# Save button #}
+    <div class="flex justify-end">
+      <button type="submit" class="btn btn-primary btn-sm" id="settings-save-btn">
+        <span class="loading loading-spinner loading-sm htmx-indicator"></span>
+        Save
+      </button>
+    </div>
+  </form>
+
+  {# ── List editor inline JS ── #}
+  <script>
+  function addRow(id) {
+    var tpl = document.getElementById('tpl-' + id);
+    var list = document.getElementById('list-' + id);
+    var clone = tpl.content.cloneNode(true);
+    list.appendChild(clone);
+    reindex(id);
+  }
+  function reindex(id) {
+    var list = document.getElementById('list-' + id);
+    list.querySelectorAll('input[type="text"]').forEach(function(input, i) {
+      input.name = id + '.' + i;
+    });
+  }
+  </script>
 
 {% elif active_tab in editable_tabs and has_config %}
   {# ── Editable Section Tab ── #}
@@ -223,6 +354,38 @@
       'frontend_start': function(v) { var n = parseInt(v, 10); return isNaN(n) || n < 1 || n > 65535 ? 'Must be 1\u201365535' : ''; }
     };
 
+    // Cross-field validation rules
+    var crossRules = [
+      {
+        fields: ['max_delay_seconds', 'base_delay_seconds'],
+        target: 'max_delay_seconds',
+        check: function() {
+          var base = parseFloat((form.querySelector('[name="base_delay_seconds"]') || {}).value);
+          var max = parseFloat((form.querySelector('[name="max_delay_seconds"]') || {}).value);
+          if (!isNaN(base) && !isNaN(max) && max < base) {
+            return 'Must be \u2265 base delay (' + base + ')';
+          }
+          return '';
+        }
+      },
+      {
+        fields: ['backend_start', 'frontend_start'],
+        target: 'backend_start',
+        check: function() {
+          var be = parseInt((form.querySelector('[name="backend_start"]') || {}).value, 10);
+          var fe = parseInt((form.querySelector('[name="frontend_start"]') || {}).value, 10);
+          if (isNaN(be) || isNaN(fe)) return '';
+          var concurrent = 15;
+          var beEnd = be + concurrent - 1;
+          var feEnd = fe + concurrent - 1;
+          if (be <= feEnd && fe <= beEnd) {
+            return 'Port ranges overlap (each needs ' + concurrent + ' ports)';
+          }
+          return '';
+        }
+      }
+    ];
+
     function validate(input) {
       var name = input.name;
       var errEl = document.getElementById('error-' + name);
@@ -238,6 +401,26 @@
         errEl.classList.add('hidden');
         input.classList.remove('input-error');
       }
+      // Run cross-field rules that involve this field
+      crossRules.forEach(function(cr) {
+        if (cr.fields.indexOf(name) === -1) return;
+        var crossErr = document.getElementById('error-' + cr.target);
+        var crossInput = form.querySelector('[name="' + cr.target + '"]');
+        if (!crossErr || !crossInput) return;
+        // Only apply cross-rule if per-field rule passed
+        var perFieldMsg = rules[cr.target] ? rules[cr.target](crossInput.value) : '';
+        if (perFieldMsg) return;
+        var crossMsg = cr.check();
+        if (crossMsg) {
+          crossErr.textContent = crossMsg;
+          crossErr.classList.remove('hidden');
+          crossInput.classList.add('input-error');
+        } else {
+          crossErr.textContent = '';
+          crossErr.classList.add('hidden');
+          crossInput.classList.remove('input-error');
+        }
+      });
       updateSaveBtn();
     }
 

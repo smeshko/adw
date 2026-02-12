@@ -1925,6 +1925,84 @@ def _build_phase_settings(config: Any | None, registry: Any) -> list[dict[str, A
     return phases
 
 
+def build_complex_settings_context(
+    config: Any | None,
+) -> dict[str, Any]:
+    """Build context for complex settings fields (Task Manager, Security).
+
+    These sections have custom templates that need structured data beyond
+    the flat scalar fields handled by ``build_settings_context()``.
+
+    Args:
+        config: A ProjectConfig instance (or None if no project loaded).
+
+    Returns:
+        Dict with ``task_manager_context`` and ``security_context`` keys.
+    """
+    # Task Manager defaults
+    task_manager_context: dict[str, Any] = {
+        "type": "none",
+        "team_key": "",
+        "sync_comments": False,
+        "auto_close": False,
+        "labels_enabled": True,
+        "label_prefix": "adw:",
+        "state_mapping": {
+            "plan": "In Progress",
+            "build": "In Progress",
+            "validate": "In Review",
+            "document": "In Review",
+            "ship": "Done",
+            "failed": "In Progress",
+        },
+    }
+
+    # Security defaults
+    security_context: dict[str, Any] = {
+        "blocked_commands": [],
+        "blocked_env_files": [],
+    }
+
+    if config is not None:
+        # Populate task_manager context
+        tm = getattr(config, "task_manager", None)
+        if tm is not None:
+            task_manager_context["type"] = getattr(tm, "type", "none")
+            task_manager_context["team_key"] = getattr(tm, "team_key", "") or ""
+            task_manager_context["sync_comments"] = getattr(
+                tm, "sync_comments", False
+            )
+            task_manager_context["auto_close"] = getattr(tm, "auto_close", False)
+            sm = getattr(tm, "state_mapping", None)
+            if sm:
+                task_manager_context["state_mapping"] = dict(sm)
+            labels = getattr(tm, "labels", None)
+            if labels:
+                task_manager_context["labels_enabled"] = getattr(
+                    labels, "enabled", True
+                )
+                task_manager_context["label_prefix"] = getattr(
+                    labels, "prefix", "adw:"
+                )
+
+        # Populate security context
+        sec = getattr(config, "security", None)
+        if sec is not None:
+            bp = getattr(sec, "blocked_patterns", [])
+            if bp:
+                security_context["blocked_commands"] = [
+                    getattr(p, "pattern", str(p)) for p in bp
+                ]
+            bef = getattr(sec, "blocked_env_files", [])
+            if bef:
+                security_context["blocked_env_files"] = list(bef)
+
+    return {
+        "task_manager_context": task_manager_context,
+        "security_context": security_context,
+    }
+
+
 @router.get("/settings", response_class=HTMLResponse)
 async def settings(
     request: Request,
@@ -1977,6 +2055,7 @@ async def settings(
 
     # Build settings data if project is loaded
     registry = ConfigRegistry()
+    complex_ctx = build_complex_settings_context(config)
     if config is not None:
         context["settings_sections"] = build_settings_context(config, registry)
         context["phase_settings"] = _build_phase_settings(config, registry)
@@ -1991,6 +2070,7 @@ async def settings(
         context["phase_settings"] = _build_phase_settings(None, registry)
         context["has_config"] = False
         context["has_project_config"] = False
+    context.update(complex_ctx)
 
     # CSRF token for editable settings forms
     context["csrf_token"] = generate_csrf_token(request)

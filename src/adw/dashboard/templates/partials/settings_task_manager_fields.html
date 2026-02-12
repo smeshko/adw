@@ -1,0 +1,110 @@
+{# Task Manager conditional fields — swapped in via HTMX when type changes #}
+
+{% if task_manager_type == 'none' %}
+  <p class="text-base-content/60 text-sm py-4">Enable a task manager to configure integration settings.</p>
+
+{% else %}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {# Team Key #}
+    <div class="flex flex-col gap-1">
+      <label class="font-semibold text-sm" for="field-team_key">Team Key</label>
+      <input type="text"
+             id="field-team_key"
+             name="team_key"
+             class="input input-bordered input-sm w-full"
+             value="{{ team_key }}"
+             pattern="^[A-Z]{2,10}$"
+             title="2-10 uppercase letters"
+             placeholder="e.g. ADW">
+      <span class="text-error text-xs mt-1 hidden" id="error-team_key"></span>
+      <p class="text-xs text-base-content/60">Team prefix for ID detection (e.g., 'ADW' for ADW-123)</p>
+    </div>
+
+    {# Sync Comments #}
+    <div class="flex flex-col gap-1">
+      <label class="font-semibold text-sm">Sync Comments</label>
+      <input type="hidden" name="sync_comments" value="false">
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox"
+               id="field-sync_comments"
+               name="sync_comments"
+               value="true"
+               class="toggle toggle-sm"
+               {% if sync_comments %}checked{% endif %}>
+        <span class="text-sm text-base-content/70">Post comments on status transitions</span>
+      </label>
+    </div>
+
+    {# Auto Close #}
+    <div class="flex flex-col gap-1">
+      <label class="font-semibold text-sm">Auto Close</label>
+      <input type="hidden" name="auto_close" value="false">
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox"
+               id="field-auto_close"
+               name="auto_close"
+               value="true"
+               class="toggle toggle-sm"
+               {% if auto_close %}checked{% endif %}>
+        <span class="text-sm text-base-content/70">Close task when PR is merged</span>
+      </label>
+    </div>
+
+    {# Labels Enabled #}
+    <div class="flex flex-col gap-1">
+      <label class="font-semibold text-sm">Labels Enabled</label>
+      <input type="hidden" name="labels_enabled" value="false">
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox"
+               id="field-labels_enabled"
+               name="labels_enabled"
+               value="true"
+               class="toggle toggle-sm"
+               {% if labels_enabled %}checked{% endif %}>
+        <span class="text-sm text-base-content/70">Enable label management</span>
+      </label>
+    </div>
+
+    {# Label Prefix #}
+    <div class="flex flex-col gap-1">
+      <label class="font-semibold text-sm" for="field-label_prefix">Label Prefix</label>
+      <input type="text"
+             id="field-label_prefix"
+             name="label_prefix"
+             class="input input-bordered input-sm w-full"
+             value="{{ label_prefix }}"
+             placeholder="adw:">
+      <p class="text-xs text-base-content/60">Prefix for ADW-managed labels</p>
+    </div>
+  </div>
+
+  {# State Mapping Key-Value Editor #}
+  <div class="mt-4">
+    <h4 class="font-semibold text-sm mb-2">State Mapping</h4>
+    <p class="text-xs text-base-content/60 mb-2">Map ADW phases to task manager statuses</p>
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th class="w-1/3">Phase</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for phase_key in ['plan', 'build', 'validate', 'document', 'ship', 'failed'] %}
+        {% set defaults = {'plan': 'In Progress', 'build': 'In Progress', 'validate': 'In Review', 'document': 'In Review', 'ship': 'Done', 'failed': 'In Progress'} %}
+        <tr>
+          <td class="font-mono text-sm">{{ phase_key }}</td>
+          <td>
+            <input type="text"
+                   name="state_mapping.{{ phase_key }}"
+                   class="input input-bordered input-sm w-full"
+                   value="{{ state_mapping.get(phase_key, defaults[phase_key]) }}"
+                   placeholder="{{ defaults[phase_key] }}"
+                   data-default="{{ defaults[phase_key] }}">
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}

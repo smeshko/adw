@@ -438,3 +438,93 @@ class TestSettingsTabs:
         for key, label in _SETTINGS_TABS:
             assert label, f"Tab {key} has no label"
             assert isinstance(label, str)
+
+
+# ── Task Manager conditional partial tests ────────────────────────
+
+
+class TestTaskManagerFieldsPartial:
+    """Tests for GET /partials/settings-section/task-manager."""
+
+    def test_type_none_returns_helper_text(
+        self, empty_registry_client: TestClient
+    ) -> None:
+        """When type=none, returns helper text instead of fields."""
+        response = empty_registry_client.get(
+            "/partials/settings-section/task-manager?type=none"
+        )
+        assert response.status_code == 200
+        assert "Enable a task manager" in response.text
+        # Should NOT contain the configuration fields
+        assert 'name="team_key"' not in response.text
+        assert "State Mapping" not in response.text
+
+    def test_type_linear_returns_all_fields(
+        self, empty_registry_client: TestClient
+    ) -> None:
+        """When type=linear, returns full configuration fields."""
+        response = empty_registry_client.get(
+            "/partials/settings-section/task-manager?type=linear"
+        )
+        assert response.status_code == 200
+        # Should contain config fields
+        assert 'name="team_key"' in response.text
+        assert 'name="sync_comments"' in response.text
+        assert 'name="auto_close"' in response.text
+        assert 'name="labels_enabled"' in response.text
+        assert 'name="label_prefix"' in response.text
+        # Should contain state mapping with all 6 phases
+        assert "State Mapping" in response.text
+        assert 'name="state_mapping.plan"' in response.text
+        assert 'name="state_mapping.build"' in response.text
+        assert 'name="state_mapping.validate"' in response.text
+        assert 'name="state_mapping.document"' in response.text
+        assert 'name="state_mapping.ship"' in response.text
+        assert 'name="state_mapping.failed"' in response.text
+
+    def test_default_type_is_none(
+        self, empty_registry_client: TestClient
+    ) -> None:
+        """When no type param, defaults to none (helper text)."""
+        response = empty_registry_client.get(
+            "/partials/settings-section/task-manager"
+        )
+        assert response.status_code == 200
+        assert "Enable a task manager" in response.text
+
+    def test_with_project_loads_config(
+        self, populated_registry_client: TestClient
+    ) -> None:
+        """When project param is provided, loads config values."""
+        mock_cfg = MagicMock()
+        mock_cfg.task_manager = MagicMock()
+        mock_cfg.task_manager.type = "linear"
+        mock_cfg.task_manager.team_key = "ADW"
+        mock_cfg.task_manager.sync_comments = True
+        mock_cfg.task_manager.auto_close = False
+        mock_cfg.task_manager.state_mapping = {
+            "plan": "Todo",
+            "build": "Doing",
+            "validate": "Review",
+            "document": "Review",
+            "ship": "Done",
+            "failed": "Backlog",
+        }
+        mock_cfg.task_manager.labels = MagicMock()
+        mock_cfg.task_manager.labels.enabled = True
+        mock_cfg.task_manager.labels.prefix = "ci:"
+
+        mock_loader = MagicMock()
+        mock_loader.load.return_value = mock_cfg
+
+        with patch(
+            "adw.config.loader.ConfigLoader", return_value=mock_loader
+        ):
+            response = populated_registry_client.get(
+                "/partials/settings-section/task-manager?type=linear&project=my-app"
+            )
+
+        assert response.status_code == 200
+        # Config values should be reflected
+        assert 'value="ADW"' in response.text
+        assert "checked" in response.text  # sync_comments=True
