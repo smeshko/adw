@@ -7,6 +7,7 @@ return a fragment — they never wrap in the full page layout.
 from __future__ import annotations
 
 import logging
+import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
@@ -178,7 +179,9 @@ def build_cost_strip_context(
 
     return {
         "cost_strip_cost_display": f"${stats.cost_this_week:.2f}",  # type: ignore[union-attr]
-        "cost_strip_tokens_display": _format_tokens(stats.tokens_this_week.total_tokens),  # type: ignore[union-attr]
+        "cost_strip_tokens_display": _format_tokens(  # type: ignore[union-attr]
+            stats.tokens_this_week.total_tokens,
+        ),
         "daily_bars": daily_bars,
     }
 
@@ -188,6 +191,7 @@ def build_analytics_context(
     project_name: str | None,
     range_key: str,
     range_days: dict[str, int | None],
+    sort: str = "cost_desc",
 ) -> dict:
     """Build template context for the analytics page stat cards.
 
@@ -199,6 +203,7 @@ def build_analytics_context(
         project_name: Current project filter value or None.
         range_key: Selected range key (e.g., "7d", "30d", "90d", "all").
         range_days: Mapping of range keys to day counts (None = all time).
+        sort: Sort key for breakdown table (e.g., "cost_desc", "runs_asc").
 
     Returns:
         Dict with analytics stat card values and delta indicators.
@@ -213,10 +218,7 @@ def build_analytics_context(
     )
 
     # Previous equivalent period for delta comparison
-    if days is not None:
-        prev_since = now - timedelta(days=days * 2)
-    else:
-        prev_since = None
+    prev_since = now - timedelta(days=days * 2) if days is not None else None
 
     has_data = current_stats.total_runs > 0
 
@@ -245,7 +247,9 @@ def build_analytics_context(
         prev_total_tokens = max(
             0, prev_stats.tokens.total_tokens - current_stats.tokens.total_tokens,
         )
-        prev_total_cost = max(0.0, prev_stats.estimated_cost - current_stats.estimated_cost)
+        prev_total_cost = max(
+            0.0, prev_stats.estimated_cost - current_stats.estimated_cost,
+        )
         prev_avg_tokens = (
             prev_total_tokens // prev_total_runs if prev_total_runs > 0 else 0
         )
@@ -254,6 +258,175 @@ def build_analytics_context(
         cost_delta = total_cost - prev_total_cost
         runs_delta = total_runs - prev_total_runs
         avg_tokens_delta = avg_tokens_per_run - prev_avg_tokens
+
+    # ── Daily chart bars ──
+    daily_chart_bars: list[dict] = []
+    if has_data:
+        daily_counts = stats_aggregator.get_daily_token_counts(  # type: ignore[union-attr]
+            project_name=project_name, days=days or 30,
+        )
+        max_daily = max(
+            (d["input_tokens"] + d["output_tokens"] for d in daily_counts),
+            default=0,
+        )
+        for d in daily_counts:
+            inp = d["input_tokens"]
+            out = d["output_tokens"]
+            total = inp + out
+            if max_daily > 0:
+                out_h = int((out / max_daily) * 100)
+                inp_h = int((inp / max_daily) * 100)
+                # Ensure the tallest bar sums to exactly 100
+                if total == max_daily:
+                    inp_h = 100 - out_h
+            else:
+                out_h = 0
+                inp_h = 0
+            daily_chart_bars.append({
+                "day_label": _DAY_LABELS[d["date"].weekday()],
+                "output_height": out_h,
+                "input_height": inp_h,
+                "tokens": total,
+            })
+
+    # ── Project breakdown ──
+    project_breakdown: list[dict] = []
+    if has_data:
+        proj_stats = current_stats.projects
+        proj_total = sum(p.tokens.total_tokens for p in proj_stats)
+        sorted_projects = sorted(
+            proj_stats, key=lambda p: p.tokens.total_tokens, reverse=True,
+        )
+        for proj in sorted_projects:
+            proj_tok = proj.tokens.total_tokens
+            pct = int((proj_tok / proj_total) * 100) if proj_total else 0
+            project_breakdown.append({
+                "name": proj.name,
+                "percentage": pct,
+            })
+
+    # ── Phase breakdown ──
+    canonical_phases = ["plan", "build", "validate", "document", "ship"]
+    phase_display = {
+        "plan": "Plan", "build": "Build", "validate": "Validate",
+        "document": "Document", "ship": "Ship",
+    }
+    phase_breakdown: list[dict] = []
+    if has_data:
+        phase_data = stats_aggregator.get_phase_breakdown(  # type: ignore[union-attr]
+            project_name=project_name, since=since,
+        )
+        phase_total = sum(
+            phase_data.get(p, 0) for p in canonical_phases
+        )
+        for phase_key in canonical_phases:
+            tokens_val = phase_data.get(phase_key, 0)
+            if tokens_val > 0:
+                pct = int((tokens_val / phase_total) * 100) if phase_total > 0 else 0
+                phase_breakdown.append({
+                    "name": phase_display.get(phase_key, phase_key.capitalize()),
+                    "percentage": pct,
+                })
+
+    # ── Model breakdown ──
+    from adw.models.stats import TokenUsage as _TokenUsage
+
+    model_breakdown: list[dict] = []
+    if has_data:
+        model_data = stats_aggregator.get_model_breakdown(  # type: ignore[union-attr]
+            project_name=project_name, since=since,
+        )
+        model_total_tokens = sum(
+            v["input_tokens"] + v["output_tokens"] for v in model_data.values()
+        )
+        sorted_models = sorted(
+            model_data.items(),
+            key=lambda kv: kv[1]["input_tokens"] + kv[1]["output_tokens"],
+            reverse=True,
+        )
+        for model_name, model_tokens in sorted_models:
+            total_m = model_tokens["input_tokens"] + model_tokens["output_tokens"]
+            pct = int((total_m / model_total_tokens) * 100) if model_total_tokens else 0
+            cost = stats_aggregator.calculate_cost(  # type: ignore[union-attr]
+                _TokenUsage(
+                    input_tokens=model_tokens["input_tokens"],
+                    output_tokens=model_tokens["output_tokens"],
+                ),
+                model=model_name,
+            )
+            model_breakdown.append({
+                "name": model_name,
+                "percentage": pct,
+                "cost_display": f"${cost:.2f}",
+            })
+
+    # ── Budget section ──
+    budget_env = os.environ.get("ADW_MONTHLY_BUDGET")
+    has_budget = False
+    budget_amount = 0.0
+    budget_spent = "$0.00"
+    budget_percentage = 0.0
+    budget_progress_class = "progress-primary"
+    budget_days_remaining: int | None = None
+
+    if budget_env:
+        try:
+            budget_amount = float(budget_env)
+            if budget_amount > 0:
+                has_budget = True
+                budget_spent = f"${total_cost:.2f}"
+                budget_percentage = round((total_cost / budget_amount) * 100, 1)
+
+                if budget_percentage > 90:
+                    budget_progress_class = "progress-error"
+                elif budget_percentage >= 70:
+                    budget_progress_class = "progress-warning"
+
+                # Estimate days remaining based on daily average
+                if days is not None and total_cost > 0:
+                    remaining = budget_amount - total_cost
+                    if remaining > 0:
+                        daily_avg_cost = total_cost / days
+                        budget_days_remaining = int(remaining / daily_avg_cost)
+                    else:
+                        budget_days_remaining = 0
+        except ValueError:
+            pass
+
+    # ── Detailed breakdown table ──
+    breakdown_table: list[dict] = []
+    if has_data:
+        for proj in current_stats.projects:
+            proj_tokens = proj.tokens.total_tokens
+            proj_cost = stats_aggregator.calculate_cost(proj.tokens)  # type: ignore[union-attr]
+            proj_runs = proj.total_runs
+            avg_tok = proj_tokens // proj_runs if proj_runs > 0 else 0
+            breakdown_table.append({
+                "name": proj.name,
+                "runs": proj_runs,
+                "tokens_display": _format_tokens(proj_tokens),
+                "cost_display": f"${proj_cost:.2f}",
+                "avg_tokens_display": _format_tokens(avg_tok),
+                "tokens_raw": proj_tokens,
+                "cost_raw": proj_cost,
+                "runs_raw": proj_runs,
+                "avg_tokens_raw": avg_tok,
+            })
+
+        # Sort breakdown table
+        sort_key_map: dict[str, str] = {
+            "cost": "cost_raw",
+            "tokens": "tokens_raw",
+            "runs": "runs_raw",
+            "project": "name",
+            "avg": "avg_tokens_raw",
+        }
+        parts = sort.rsplit("_", 1)
+        col = parts[0] if len(parts) == 2 else "cost"
+        direction = parts[1] if len(parts) == 2 else "desc"
+        sort_field = sort_key_map.get(col, "cost_raw")
+        reverse = direction == "desc"
+        breakdown_table.sort(key=lambda r: r[sort_field], reverse=reverse)
 
     return {
         "has_analytics_data": has_data,
@@ -270,6 +443,21 @@ def build_analytics_context(
         "runs_delta": runs_delta,
         "avg_tokens_delta": avg_tokens_delta,
         "avg_tokens_delta_display": _format_tokens(abs(avg_tokens_delta)),
+        # Chart and breakdown data
+        "daily_chart_bars": daily_chart_bars,
+        "project_breakdown": project_breakdown,
+        "phase_breakdown": phase_breakdown,
+        "model_breakdown": model_breakdown,
+        # Budget section
+        "has_budget": has_budget,
+        "budget_amount": budget_amount,
+        "budget_spent": budget_spent,
+        "budget_percentage": budget_percentage,
+        "budget_progress_class": budget_progress_class,
+        "budget_days_remaining": budget_days_remaining,
+        # Breakdown table
+        "breakdown_table": breakdown_table,
+        "breakdown_sort": sort,
     }
 
 
@@ -553,4 +741,77 @@ async def new_run_modal(
 
     return templates.TemplateResponse(
         request, "partials/new_run_modal.html", context
+    )
+
+
+# ── Abort Modal ──────────────────────────────────────────────────
+
+
+@router.get("/abort/{run_id}", response_class=HTMLResponse)
+async def abort_modal(
+    request: Request,
+    run_id: str,
+    index_manager: object = Depends(get_index_manager),
+) -> HTMLResponse:
+    """Return the abort confirmation modal HTML fragment.
+
+    Validates the run exists and is active before rendering the modal.
+    Falls back to IndexEntry data if RunContext is unavailable.
+    """
+    templates = request.app.state.templates
+
+    # Look up the run in the index
+    all_runs = index_manager.get_recent_runs(limit=100000)  # type: ignore[union-attr]
+    run_entry = None
+    for entry in all_runs:
+        if entry.run_id == run_id:
+            run_entry = entry
+            break
+
+    if run_entry is None:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run not found</p>',
+            status_code=404,
+        )
+
+    # Validate run is active
+    if run_entry.status != "running":
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Run cannot be aborted — it is not active</p>',
+            status_code=400,
+        )
+
+    # Load current phase from RunContext (live data), fall back to IndexEntry
+    current_phase = run_entry.phase_reached
+    try:
+        project_path = Path(run_entry.project_path)
+        runs_dir = project_path / ".adw" / "runs"
+        cm = ContextManager(runs_dir)
+        ctx = cm.load(run_id)
+        current_phase = ctx.current_phase
+        # Verify live status in case index is stale
+        if ctx.status != "running":
+            return HTMLResponse(
+                content='<p class="text-error text-sm">Run cannot be aborted — it is no longer active</p>',
+                status_code=400,
+            )
+    except (StateError, OSError):
+        logger.debug(
+            "RunContext unavailable for abort modal, using IndexEntry fallback",
+            extra={"run_id": run_id},
+        )
+
+    run_id_short = run_id[:8] + "…"
+    csrf_token = generate_csrf_token(request)
+
+    context = {
+        "request": request,
+        "run_id": run_id,
+        "run_id_short": run_id_short,
+        "current_phase": current_phase,
+        "csrf_token": csrf_token,
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/abort_modal.html", context
     )

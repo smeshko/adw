@@ -177,8 +177,9 @@ class StatsAggregator:
             days: Number of days to include (default 7).
 
         Returns:
-            List of dicts ``[{"date": date, "tokens": int}]`` — one per
-            day for the last ``days`` days, with 0 for days without runs.
+            List of dicts with date, tokens, input_tokens, output_tokens
+            — one per day for the last ``days`` days, with 0 for days
+            without runs.
         """
         import datetime as dt_module
 
@@ -205,20 +206,134 @@ class StatsAggregator:
         if registered_paths:
             entries = [e for e in entries if e.project_path in registered_paths]
 
-        # Group tokens by date
-        daily_tokens: dict[dt_module.date, int] = {d: 0 for d in date_list}
+        # Group tokens by date with input/output split
+        daily_input: dict[dt_module.date, int] = dict.fromkeys(date_list, 0)
+        daily_output: dict[dt_module.date, int] = dict.fromkeys(date_list, 0)
         for entry in entries:
             entry_date = entry.started_at.date()
-            if entry_date in daily_tokens:
+            if entry_date in daily_input:
                 project_path = Path(entry.project_path)
                 run_dir = project_path / ".adw" / "runs" / entry.run_id
                 run_tokens = self._parse_llm_response_files(run_dir)
-                daily_tokens[entry_date] += run_tokens.total_tokens
+                daily_input[entry_date] += run_tokens.input_tokens
+                daily_output[entry_date] += run_tokens.output_tokens
 
         return [
-            {"date": d, "tokens": daily_tokens[d]}
+            {
+                "date": d,
+                "tokens": daily_input[d] + daily_output[d],
+                "input_tokens": daily_input[d],
+                "output_tokens": daily_output[d],
+            }
             for d in date_list
         ]
+
+    def get_phase_breakdown(
+        self,
+        project_name: str | None = None,
+        since: datetime | None = None,
+    ) -> dict[str, int]:
+        """Get token breakdown by phase.
+
+        Reads phase_tokens from each run's context.json to aggregate
+        token usage per phase.
+
+        Args:
+            project_name: Filter to specific project.
+            since: Only include runs after this time.
+
+        Returns:
+            Dict mapping phase name to total tokens.
+        """
+        registered_projects = self.project_registry.get_all()
+        registered_paths = {p.path for p in registered_projects}
+
+        entries = self.index_manager.get_recent_runs(
+            limit=100000,
+            project_name=project_name,
+            since=since,
+        )
+
+        if registered_paths:
+            entries = [e for e in entries if e.project_path in registered_paths]
+
+        phase_totals: dict[str, int] = {}
+        for entry in entries:
+            project_path = Path(entry.project_path)
+            context_path = (
+                project_path / ".adw" / "runs" / entry.run_id / "context.json"
+            )
+            if not context_path.exists():
+                continue
+            try:
+                with open(context_path) as f:
+                    data = json.load(f)
+                phase_tokens = data.get("phase_tokens", {})
+                for phase, tokens in phase_tokens.items():
+                    phase_totals[phase] = phase_totals.get(phase, 0) + tokens
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(
+                    "Failed to read context.json for phase breakdown",
+                    extra={"path": str(context_path), "error": str(e)},
+                )
+                continue
+
+        return phase_totals
+
+    def get_model_breakdown(
+        self,
+        project_name: str | None = None,
+        since: datetime | None = None,
+    ) -> dict[str, dict[str, int]]:
+        """Get token breakdown by LLM model.
+
+        Reads model info from each LLM response file.
+
+        Args:
+            project_name: Filter to specific project.
+            since: Only include runs after this time.
+
+        Returns:
+            Dict mapping model name to {"input_tokens": int, "output_tokens": int}.
+        """
+        registered_projects = self.project_registry.get_all()
+        registered_paths = {p.path for p in registered_projects}
+
+        entries = self.index_manager.get_recent_runs(
+            limit=100000,
+            project_name=project_name,
+            since=since,
+        )
+
+        if registered_paths:
+            entries = [e for e in entries if e.project_path in registered_paths]
+
+        model_totals: dict[str, dict[str, int]] = {}
+        for entry in entries:
+            project_path = Path(entry.project_path)
+            llm_dir = project_path / ".adw" / "runs" / entry.run_id / "llm"
+            if not llm_dir.exists():
+                continue
+            for response_file in llm_dir.glob("*_response.json"):
+                try:
+                    with open(response_file) as f:
+                        data = json.load(f)
+                    model = data.get("model", "default")
+                    stats = data.get("stats", {})
+                    input_tokens = stats.get("input_tokens", 0)
+                    output_tokens = stats.get("output_tokens", 0)
+                    if model not in model_totals:
+                        model_totals[model] = {"input_tokens": 0, "output_tokens": 0}
+                    model_totals[model]["input_tokens"] += input_tokens
+                    model_totals[model]["output_tokens"] += output_tokens
+                except (json.JSONDecodeError, OSError) as e:
+                    logger.warning(
+                        "Failed to parse LLM response file for model breakdown",
+                        extra={"file": str(response_file), "error": str(e)},
+                    )
+                    continue
+
+        return model_totals
 
     def get_global_stats(
         self,
@@ -358,9 +473,10 @@ class StatsAggregator:
 
             # Accumulate this-week tokens
             if entry.started_at >= week_ago:
+                inp = tokens_this_week.input_tokens + run_tokens.input_tokens
+                out = tokens_this_week.output_tokens + run_tokens.output_tokens
                 tokens_this_week = TokenUsage(
-                    input_tokens=tokens_this_week.input_tokens + run_tokens.input_tokens,
-                    output_tokens=tokens_this_week.output_tokens + run_tokens.output_tokens,
+                    input_tokens=inp, output_tokens=out,
                 )
 
             # Update project statistics - use registered name if available

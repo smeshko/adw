@@ -290,12 +290,19 @@ _RANGE_DAYS: dict[str, int | None] = {
 
 _VALID_RANGES = list(_RANGE_DAYS.keys())
 
+_VALID_SORTS = {
+    "cost_desc", "cost_asc", "tokens_desc", "tokens_asc",
+    "runs_desc", "runs_asc", "project_desc", "project_asc",
+    "avg_desc", "avg_asc",
+}
+
 
 @router.get("/analytics", response_class=HTMLResponse)
 async def analytics(
     request: Request,
     project: str = Query("", alias="project"),
     range_: str = Query("7d", alias="range"),
+    sort: str = Query("cost_desc"),
     index_manager: object = Depends(get_index_manager),
     stats_aggregator: object = Depends(get_stats_aggregator),
     project_registry: object = Depends(get_project_registry),
@@ -307,9 +314,11 @@ async def analytics(
     """
     from adw.dashboard.partials import build_analytics_context
 
-    # Normalise range
+    # Normalise range and sort
     if range_ not in _RANGE_DAYS:
         range_ = "7d"
+    if sort not in _VALID_SORTS:
+        sort = "cost_desc"
 
     templates = request.app.state.templates
     context = _build_page_context(
@@ -329,6 +338,7 @@ async def analytics(
                 project_name=project_name,
                 range_key=range_,
                 range_days=_RANGE_DAYS,
+                sort=sort,
             )
         )
     except Exception:
@@ -336,6 +346,7 @@ async def analytics(
 
     context["selected_range"] = range_
     context["valid_ranges"] = _VALID_RANGES
+    context["breakdown_sort"] = context.get("breakdown_sort", sort)
 
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "partials/analytics.html", context)

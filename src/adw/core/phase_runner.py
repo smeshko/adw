@@ -194,7 +194,10 @@ class PhaseRunner:
             )
 
             # Step 4: Capture artifacts
-            artifacts = self._capture_artifacts(phase, context, llm_result)
+            model = merged_config.llm.model if merged_config.llm else None
+            artifacts = self._capture_artifacts(
+                phase, context, llm_result, model=model,
+            )
 
             # Step 5: Run post-hook (after artifacts exist)
             self._run_post_hook(phase, context, llm_result.content, command)
@@ -1258,6 +1261,8 @@ class PhaseRunner:
         phase: str,
         context: RunContext,
         llm_result: LLMResult,
+        *,
+        model: str | None = None,
     ) -> list[str]:
         """Capture and store phase artifacts.
 
@@ -1265,6 +1270,7 @@ class PhaseRunner:
             phase: Phase name.
             context: Run context.
             llm_result: Result from LLM execution.
+            model: Optional model identifier for LLM response tracking.
 
         Returns:
             List of artifact filenames.
@@ -1313,6 +1319,7 @@ class PhaseRunner:
         response_data = {
             "timestamp": datetime.now(UTC).isoformat(),
             "phase": phase,
+            "model": model or "default",
             "stats": {
                 "input_tokens": llm_result.input_tokens,
                 "output_tokens": llm_result.output_tokens,

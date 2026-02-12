@@ -1,3 +1,8 @@
+{# Macro to build analytics URL preserving range, project, and sort params #}
+{% macro analytics_url(range=selected_range, sort=breakdown_sort) %}
+/analytics?range={{ range }}{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}&sort={{ sort }}
+{%- endmacro %}
+
 <div id="analytics">
 
   <div class="flex justify-between items-center mb-4">
@@ -7,25 +12,25 @@
   {# Time Range Tabs #}
   <div class="tabs tabs-box mb-6">
     <a class="tab {% if selected_range == '7d' %}tab-active{% endif %}"
-       hx-get="/analytics?range=7d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}"
+       hx-get="{{ analytics_url(range='7d') }}"
        hx-target="#analytics"
        hx-swap="outerHTML"
-       hx-push-url="/analytics?range=7d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}">7 days</a>
+       hx-push-url="{{ analytics_url(range='7d') }}">7 days</a>
     <a class="tab {% if selected_range == '30d' %}tab-active{% endif %}"
-       hx-get="/analytics?range=30d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}"
+       hx-get="{{ analytics_url(range='30d') }}"
        hx-target="#analytics"
        hx-swap="outerHTML"
-       hx-push-url="/analytics?range=30d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}">30 days</a>
+       hx-push-url="{{ analytics_url(range='30d') }}">30 days</a>
     <a class="tab {% if selected_range == '90d' %}tab-active{% endif %}"
-       hx-get="/analytics?range=90d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}"
+       hx-get="{{ analytics_url(range='90d') }}"
        hx-target="#analytics"
        hx-swap="outerHTML"
-       hx-push-url="/analytics?range=90d{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}">90 days</a>
+       hx-push-url="{{ analytics_url(range='90d') }}">90 days</a>
     <a class="tab {% if selected_range == 'all' %}tab-active{% endif %}"
-       hx-get="/analytics?range=all{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}"
+       hx-get="{{ analytics_url(range='all') }}"
        hx-target="#analytics"
        hx-swap="outerHTML"
-       hx-push-url="/analytics?range=all{% if selected_project %}&project={{ selected_project | urlencode }}{% endif %}">All time</a>
+       hx-push-url="{{ analytics_url(range='all') }}">All time</a>
   </div>
 
   {# Analytics Content (HTMX swap target) #}
@@ -105,6 +110,174 @@
       </div>
 
     </div>
+
+    {# ── Daily Usage Chart ── #}
+    {% if daily_chart_bars %}
+    <div class="mb-6">
+      <h2 class="text-lg font-semibold mb-3">Daily Usage</h2>
+      <div class="chart-daily flex items-end gap-1 h-40">
+        {% for bar in daily_chart_bars %}
+        <div class="chart-bar flex flex-col justify-end w-full">
+          <div class="bg-primary rounded-t" style="height: {{ bar.output_height }}%"></div>
+          <div class="bg-primary/40" style="height: {{ bar.input_height }}%"></div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="flex gap-1">
+        {% for bar in daily_chart_bars %}
+        <span class="text-xs text-center mt-1 w-full">{{ bar.day_label }}</span>
+        {% endfor %}
+      </div>
+      <div class="flex gap-4 mt-2 text-xs text-base-content/60">
+        <span><span class="inline-block w-3 h-3 bg-primary rounded-sm mr-1"></span>Output tokens</span>
+        <span><span class="inline-block w-3 h-3 bg-primary/40 rounded-sm mr-1"></span>Input tokens</span>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── Breakdown Panels ── #}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+
+      {# By Project #}
+      {% if project_breakdown %}
+      <div class="card card-bordered bg-base-100 p-4">
+        <h3 class="text-base font-semibold mb-3">By Project</h3>
+        {% for proj in project_breakdown %}
+        <div class="flex items-center gap-2 mb-2">
+          <a class="w-24 text-sm truncate link link-hover"
+             hx-get="/analytics?range={{ selected_range }}{% if proj.name %}&project={{ proj.name | urlencode }}{% endif %}&sort={{ breakdown_sort }}"
+             hx-target="#analytics"
+             hx-swap="outerHTML"
+             hx-push-url="/analytics?range={{ selected_range }}&project={{ proj.name | urlencode }}&sort={{ breakdown_sort }}">{{ proj.name }}</a>
+          <div class="flex-1 bg-base-300 rounded-full h-4">
+            <div class="bg-primary rounded-full h-4" style="width: {{ proj.percentage }}%"></div>
+          </div>
+          <span class="w-12 text-right text-sm font-mono">{{ proj.percentage }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# By Phase #}
+      {% if phase_breakdown %}
+      <div class="card card-bordered bg-base-100 p-4">
+        <h3 class="text-base font-semibold mb-3">By Phase</h3>
+        {% for phase in phase_breakdown %}
+        <div class="flex items-center gap-2 mb-2">
+          <span class="w-24 text-sm truncate">{{ phase.name }}</span>
+          <div class="flex-1 bg-base-300 rounded-full h-4">
+            <div class="bg-primary rounded-full h-4" style="width: {{ phase.percentage }}%"></div>
+          </div>
+          <span class="w-12 text-right text-sm font-mono">{{ phase.percentage }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+
+    {# ── By Model ── #}
+    {% if model_breakdown %}
+    <div class="card card-bordered bg-base-100 p-4 mb-6">
+      <h3 class="text-base font-semibold mb-3">By Model</h3>
+      {% for model in model_breakdown %}
+      <div class="flex items-center gap-2 mb-2">
+        <span class="w-32 text-sm truncate">{{ model.name }}</span>
+        <div class="flex-1 bg-base-300 rounded-full h-4">
+          <div class="bg-primary rounded-full h-4" style="width: {{ model.percentage }}%"></div>
+        </div>
+        <span class="w-12 text-right text-sm font-mono">{{ model.percentage }}%</span>
+        <span class="w-16 text-right text-sm font-mono text-base-content/60">{{ model.cost_display }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ── Budget Section ── #}
+    {% if has_budget %}
+    <div class="card card-bordered bg-base-100 p-4 mb-6">
+      <h3 class="text-base font-semibold mb-3">Monthly Budget</h3>
+      <progress class="progress {{ budget_progress_class }} w-full" value="{{ budget_percentage }}" max="100"></progress>
+      <div class="flex justify-between items-center mt-2">
+        <span class="text-sm font-mono">{{ budget_spent }} / ${{ "%.2f" | format(budget_amount) }}</span>
+        <span class="text-sm font-mono">{{ "%.1f" | format(budget_percentage) }}%</span>
+      </div>
+      {% if budget_days_remaining is not none %}
+      <p class="text-xs text-base-content/60 mt-1">~{{ budget_days_remaining }} days remaining at current rate</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# ── Detailed Breakdown Table ── #}
+    {% if breakdown_table %}
+    <div class="mb-6">
+      <h2 class="text-lg font-semibold mb-3">Detailed Breakdown</h2>
+      <div class="overflow-x-auto">
+        <table class="table table-sm table-zebra">
+          <thead>
+            <tr>
+              {# Sort helper macro #}
+              {% set sort_col = breakdown_sort.rsplit('_', 1)[0] if '_' in breakdown_sort else breakdown_sort %}
+              {% set sort_dir = breakdown_sort.rsplit('_', 1)[1] if '_' in breakdown_sort else 'desc' %}
+
+              <th>
+                <a class="link link-hover"
+                   hx-get="{{ analytics_url(sort='project_asc' if sort_col == 'project' and sort_dir == 'desc' else 'project_desc' if sort_col == 'project' else 'project_asc') }}"
+                   hx-target="#analytics" hx-swap="outerHTML"
+                   hx-push-url="{{ analytics_url(sort='project_asc' if sort_col == 'project' and sort_dir == 'desc' else 'project_desc' if sort_col == 'project' else 'project_asc') }}">
+                  Project{% if sort_col == 'project' %} {{ '▲' if sort_dir == 'asc' else '▼' }}{% endif %}
+                </a>
+              </th>
+              <th class="text-right">
+                <a class="link link-hover"
+                   hx-get="{{ analytics_url(sort='runs_asc' if sort_col == 'runs' and sort_dir == 'desc' else 'runs_desc') }}"
+                   hx-target="#analytics" hx-swap="outerHTML"
+                   hx-push-url="{{ analytics_url(sort='runs_asc' if sort_col == 'runs' and sort_dir == 'desc' else 'runs_desc') }}">
+                  Runs{% if sort_col == 'runs' %} {{ '▲' if sort_dir == 'asc' else '▼' }}{% endif %}
+                </a>
+              </th>
+              <th class="text-right">
+                <a class="link link-hover"
+                   hx-get="{{ analytics_url(sort='tokens_asc' if sort_col == 'tokens' and sort_dir == 'desc' else 'tokens_desc') }}"
+                   hx-target="#analytics" hx-swap="outerHTML"
+                   hx-push-url="{{ analytics_url(sort='tokens_asc' if sort_col == 'tokens' and sort_dir == 'desc' else 'tokens_desc') }}">
+                  Tokens{% if sort_col == 'tokens' %} {{ '▲' if sort_dir == 'asc' else '▼' }}{% endif %}
+                </a>
+              </th>
+              <th class="text-right">
+                <a class="link link-hover"
+                   hx-get="{{ analytics_url(sort='cost_asc' if sort_col == 'cost' and sort_dir == 'desc' else 'cost_desc') }}"
+                   hx-target="#analytics" hx-swap="outerHTML"
+                   hx-push-url="{{ analytics_url(sort='cost_asc' if sort_col == 'cost' and sort_dir == 'desc' else 'cost_desc') }}">
+                  Cost{% if sort_col == 'cost' %} {{ '▲' if sort_dir == 'asc' else '▼' }}{% endif %}
+                </a>
+              </th>
+              <th class="text-right">
+                <a class="link link-hover"
+                   hx-get="{{ analytics_url(sort='avg_asc' if sort_col == 'avg' and sort_dir == 'desc' else 'avg_desc') }}"
+                   hx-target="#analytics" hx-swap="outerHTML"
+                   hx-push-url="{{ analytics_url(sort='avg_asc' if sort_col == 'avg' and sort_dir == 'desc' else 'avg_desc') }}">
+                  Avg Tokens/Run{% if sort_col == 'avg' %} {{ '▲' if sort_dir == 'asc' else '▼' }}{% endif %}
+                </a>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in breakdown_table %}
+            <tr>
+              <td>{{ row.name }}</td>
+              <td class="text-right font-mono">{{ row.runs }}</td>
+              <td class="text-right font-mono">{{ row.tokens_display }}</td>
+              <td class="text-right font-mono">{{ row.cost_display }}</td>
+              <td class="text-right font-mono">{{ row.avg_tokens_display }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
     {% endif %}
 
   </div>

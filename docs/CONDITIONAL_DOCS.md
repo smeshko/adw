@@ -227,3 +227,24 @@ This guide helps you find relevant documentation based on what you're working on
     - When building HTMX debounced multi-filter controls for the dashboard
     - When parsing or displaying ADW live.log content in the dashboard
     - When loading LLM token statistics from run response JSON files
+- docs/features/abort-active-run.md
+  - Conditions:
+    - When implementing destructive action confirmation modals in the ADW dashboard
+    - When adding abort or interruption functionality to ADW runs
+    - When using OOB swaps to clear modal containers after HTMX form submission
+    - When performing dual status validation (index + RunContext) for run operations
+- docs/features/daily-usage-chart-breakdown-panels.md
+  - Conditions:
+    - When adding new chart visualizations to the analytics page
+    - When implementing breakdown panels for the analytics dashboard
+    - When extending the StatsAggregator with new aggregation methods
+    - When computing server-side bar heights for CSS-only charts
+    - When adding new phase or model tracking to the ADW pipeline
+
+- docs/features/budget-section-breakdown-table.md
+  - Conditions:
+    - When adding budget tracking or spending limits to the ADW analytics page
+    - When implementing server-side sortable tables with HTMX in the dashboard
+    - When using the `analytics_url` macro to preserve query parameters across analytics interactions
+    - When configuring the `ADW_MONTHLY_BUDGET` environment variable
+    - When adding new columns or sort options to the analytics breakdown table
