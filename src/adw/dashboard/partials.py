@@ -384,9 +384,12 @@ def build_analytics_context(
 
                 # Estimate days remaining based on daily average
                 if days is not None and total_cost > 0:
-                    daily_avg_cost = total_cost / days
                     remaining = budget_amount - total_cost
-                    budget_days_remaining = int(remaining / daily_avg_cost)
+                    if remaining > 0:
+                        daily_avg_cost = total_cost / days
+                        budget_days_remaining = int(remaining / daily_avg_cost)
+                    else:
+                        budget_days_remaining = 0
         except ValueError:
             pass
 

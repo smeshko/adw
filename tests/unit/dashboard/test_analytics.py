@@ -954,6 +954,26 @@ class TestBudgetSection:
         response = client.get("/analytics")
         assert "Monthly Budget" not in response.text
 
+    def test_budget_over_budget_clamps_days_remaining(self, monkeypatch: object) -> None:
+        """Days remaining is 0 when spend exceeds budget."""
+        monkeypatch.setenv("ADW_MONTHLY_BUDGET", "50.00")  # type: ignore[attr-defined]
+        sa = _mock_stats_aggregator_for_analytics(current_cost=75.00)
+        result = build_analytics_context(
+            stats_aggregator=sa,
+            project_name=None,
+            range_key="7d",
+            range_days=RANGE_DAYS,
+        )
+        assert result["budget_days_remaining"] == 0
+        assert result["budget_percentage"] > 100
+
+    def test_budget_invalid_sort_defaults(self) -> None:
+        """Invalid sort param defaults to cost_desc in analytics route."""
+        client = _make_client()
+        response = client.get("/analytics?sort=malicious_value")
+        assert response.status_code == 200
+        assert "sort=cost_desc" in response.text
+
 
 # ── Breakdown Table Tests ─────────────────────────────────────────
 
