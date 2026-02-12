@@ -156,19 +156,28 @@ class TestActiveRunsPartialRoute:
 
     @patch("adw.dashboard.partials.ContextManager")
     def test_project_filter_scopes_results(self, mock_cm_cls: MagicMock) -> None:
-        """Project filter query parameter is passed to index manager."""
-        from adw.dashboard.dependencies import get_index_manager
+        """Project filter query parameter is resolved to project_path."""
+        from pathlib import Path
+
+        from adw.dashboard.dependencies import get_index_manager, get_project_registry
 
         mock_im = MagicMock()
         mock_im.get_recent_runs.return_value = []
 
+        mock_pr = MagicMock()
+        proj = MagicMock()
+        proj.name = "my-api"
+        proj.path = "/projects/my-api"
+        mock_pr.get_all.return_value = [proj]
+
         app = create_dashboard_app()
         app.dependency_overrides[get_index_manager] = lambda: mock_im
+        app.dependency_overrides[get_project_registry] = lambda: mock_pr
         client = TestClient(app)
 
         client.get("/partials/active-runs?project=my-api")
         mock_im.get_recent_runs.assert_called_with(
-            status="running", project_name="my-api"
+            status="running", project_path=Path("/projects/my-api"),
         )
 
     @patch("adw.dashboard.partials.ContextManager")
@@ -330,7 +339,7 @@ class TestActiveRunsPartialRoute:
 
         client.get("/partials/active-runs")
         mock_im.get_recent_runs.assert_called_with(
-            status="running", project_name=None
+            status="running", project_path=None,
         )
 
     @patch("adw.dashboard.partials.ContextManager")

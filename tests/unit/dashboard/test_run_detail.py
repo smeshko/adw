@@ -957,7 +957,7 @@ class TestPhaseAccordionContext:
         assert "collapse collapse-arrow bg-base-200" in response.text
 
     def test_accordion_has_htmx_lazy_loading(self) -> None:
-        """Phase accordion uses hx-trigger='click once' for lazy loading."""
+        """Phase accordion uses hx-trigger='change once' for lazy loading."""
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
@@ -968,7 +968,7 @@ class TestPhaseAccordionContext:
                 headers={"HX-Request": "true"},
             )
 
-        assert 'hx-trigger="click once"' in response.text
+        assert 'hx-trigger="change once"' in response.text
         assert 'hx-swap="innerHTML"' in response.text
 
     def test_accordion_has_loading_indicator(self) -> None:

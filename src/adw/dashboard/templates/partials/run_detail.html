@@ -147,7 +147,11 @@
     <h2 class="text-lg font-semibold mb-4">Phases</h2>
     {% for phase in phases_detail %}
     <div class="collapse collapse-arrow bg-base-200 mb-2">
-      <input type="checkbox" />
+      <input type="checkbox"
+             hx-get="/runs/{{ run_id }}/phases/{{ phase.phase_key }}"
+             hx-trigger="change once"
+             hx-target="#phase-content-{{ loop.index }}"
+             hx-swap="innerHTML" />
       <div class="collapse-title">
         <div class="flex items-center gap-3">
           <span class="font-semibold">{{ phase.name }}</span>
@@ -157,10 +161,7 @@
           <span class="font-mono text-sm text-base-content/60">{{ phase.cost_display }}</span>
         </div>
       </div>
-      <div class="collapse-content"
-           hx-get="/runs/{{ run_id }}/phases/{{ phase.phase_key }}"
-           hx-trigger="click once"
-           hx-swap="innerHTML">
+      <div class="collapse-content" id="phase-content-{{ loop.index }}">
         <div class="flex justify-center py-4">
           <span class="loading loading-dots loading-md"></span>
         </div>

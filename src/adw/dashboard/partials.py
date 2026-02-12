@@ -23,6 +23,7 @@ from adw.dashboard.dependencies import (
     get_project_registry,
     get_stats_aggregator,
 )
+from adw.dashboard.dependencies import resolve_project_filter
 from adw.exceptions import StateError
 
 logger = logging.getLogger(__name__)
@@ -513,12 +514,17 @@ async def recent_runs(
     request: Request,
     project: str = Query("", alias="project"),
     index_manager: object = Depends(get_index_manager),
+    project_registry: object = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Return the recent runs table HTML fragment for polling updates."""
     templates = request.app.state.templates
 
     project_name = project or None
-    entries = index_manager.get_recent_runs(limit=5, project_name=project_name)  # type: ignore[union-attr]
+    project_path_str, _ = resolve_project_filter(project_registry, project_name)
+    entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
+        limit=5,
+        project_path=Path(project_path_str) if project_path_str else None,
+    )
 
     context = {
         "request": request,
@@ -663,13 +669,16 @@ async def active_runs_partial(
     request: Request,
     project: str = Query("", alias="project"),
     index_manager: object = Depends(get_index_manager),
+    project_registry: object = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Return the active runs section HTML fragment for polling updates."""
     templates = request.app.state.templates
 
     project_name = project or None
+    project_path_str, _ = resolve_project_filter(project_registry, project_name)
     entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
-        status="running", project_name=project_name
+        status="running",
+        project_path=Path(project_path_str) if project_path_str else None,
     )
 
     active_runs = _load_active_run_details(entries)

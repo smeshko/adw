@@ -23,6 +23,7 @@ from adw.dashboard.dependencies import (
     get_index_manager,
     get_project_registry,
     get_stats_aggregator,
+    resolve_project_filter,
 )
 from adw.exceptions import StateError
 
@@ -120,6 +121,7 @@ async def overview(
     )
 
     project_name = project or None
+    project_path_str, _ = resolve_project_filter(project_registry, project_name)
 
     # Detect empty states
     all_projects = project_registry.get_all()  # type: ignore[union-attr]
@@ -132,7 +134,8 @@ async def overview(
         context["data_error_message"] = ""
         try:
             recent_check = index_manager.get_recent_runs(  # type: ignore[union-attr]
-                limit=1, project_name=project_name,
+                limit=1,
+                project_path=Path(project_path_str) if project_path_str else None,
             )
             has_runs = len(recent_check) > 0
         except Exception:
@@ -161,14 +164,18 @@ async def overview(
     # Skip if data layer is already in error state
     if not context.get("data_error"):
         try:
-            entries = index_manager.get_recent_runs(limit=5, project_name=project_name)  # type: ignore[union-attr]
+            entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
+                limit=5,
+                project_path=Path(project_path_str) if project_path_str else None,
+            )
             context["recent_runs"] = build_recent_runs_context(entries)
 
             all_stats = stats_aggregator.get_global_stats(project_name=None)  # type: ignore[union-attr]
             context["project_stats"] = all_stats.projects  # type: ignore[union-attr]
 
             active_entries = index_manager.get_recent_runs(  # type: ignore[union-attr]
-                status="running", project_name=project_name
+                status="running",
+                project_path=Path(project_path_str) if project_path_str else None,
             )
             context["active_runs"] = _load_active_run_details(active_entries)
         except Exception:
@@ -240,13 +247,16 @@ async def runs_list(
         except ValueError:
             until = None
 
+    # Resolve project filter
+    project_path_str, _ = resolve_project_filter(project_registry, project or None)
+
     # Fetch paginated runs with graceful degradation
     try:
         paginated = index_manager.get_paginated_runs(  # type: ignore[union-attr]
             page=page,
             page_size=15,
             status=status_filter or None,
-            project_name=project or None,
+            project_path=Path(project_path_str) if project_path_str else None,
             since=since,
             until=until,
             sort=sort,
@@ -780,6 +790,22 @@ def _load_llm_content(
             except OSError:
                 return None
 
+        # Fall back to LLM request JSON files (e.g., 001_plan_request.json)
+        llm_dir = runs_dir / run_id / "llm"
+        if llm_dir.exists():
+            result: str | None = None
+            for f in sorted(llm_dir.iterdir()):
+                if f.name.endswith(f"_{phase}_request.json") and f.is_file():
+                    try:
+                        data = json.loads(f.read_text())
+                        prompt = data.get("prompt")
+                        if prompt:
+                            result = prompt
+                    except (json.JSONDecodeError, OSError):
+                        continue
+            if result is not None:
+                return result
+
     return None
 
 
@@ -1067,7 +1093,7 @@ def _load_log_entries(
     """
     import re
 
-    log_file = runs_dir / run_id / "logs" / "live.log"
+    log_file = runs_dir / run_id / "live.log"
     if not log_file.exists():
         return []
 

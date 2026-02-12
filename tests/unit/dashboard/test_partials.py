@@ -9,6 +9,7 @@ filter behavior.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
@@ -59,8 +60,12 @@ def _mock_index_manager(
             return running_runs
         limit = kwargs.get("limit", 10)
         project_name = kwargs.get("project_name")
+        project_path = kwargs.get("project_path")
         filtered = recent_entries
-        if project_name:
+        if project_path:
+            pp_str = str(project_path)
+            filtered = [e for e in filtered if getattr(e, "project_path", "") == pp_str]
+        elif project_name:
             filtered = [e for e in filtered if e.project_name == project_name]
         return filtered[:limit]
 
@@ -130,6 +135,7 @@ def _mock_project_registry(
     for name in project_names or []:
         p = MagicMock()
         p.name = name
+        p.path = f"/projects/{name}"
         projects.append(p)
     mock.get_all.return_value = projects
     return mock
@@ -406,13 +412,15 @@ class TestRecentRunsPartial:
         assert len(limit_call) == 1
 
     def test_respects_project_filter(self) -> None:
-        """Project filter parameter is passed to get_recent_runs."""
+        """Project filter parameter is resolved to project_path."""
         im = _mock_index_manager()
-        client = _make_client_with_mocks(index_manager=im)
+        pr = _mock_project_registry(project_names=["my-api"])
+        client = _make_client_with_mocks(index_manager=im, project_registry=pr)
         client.get("/partials/recent-runs?project=my-api")
         calls = im.get_recent_runs.call_args_list
         project_call = [
-            c for c in calls if c.kwargs.get("project_name") == "my-api"
+            c for c in calls
+            if c.kwargs.get("project_path") == Path("/projects/my-api")
         ]
         assert len(project_call) == 1
 
