@@ -1275,3 +1275,121 @@ async def settings_content(
     return templates.TemplateResponse(
         request, "partials/settings_content.html", context
     )
+
+
+# ── Phase Config Editor Partial ────────────────────────────────────
+
+# Phase defaults as specified in the story (independent of yaml_generator defaults)
+PHASE_DEFAULTS: dict[str, dict[str, Any]] = {
+    "plan": {"timeout": 900, "model": "opus"},
+    "build": {"timeout": 1800, "model": "sonnet"},
+    "validate": {"timeout": 900, "model": "opus"},
+    "document": {"timeout": 900, "model": "haiku"},
+    "ship": {"timeout": 1200, "model": "sonnet"},
+}
+
+_VALID_PHASES = frozenset(PHASE_DEFAULTS.keys())
+
+
+@router.get("/settings-phase/{phase}", response_class=HTMLResponse)
+async def phase_config_partial(
+    request: Request,
+    phase: str,
+    project: str = Query("", alias="project"),
+    project_registry: "ProjectRegistryManager" = Depends(get_project_registry),
+) -> HTMLResponse:
+    """Return the phase config editor partial for a specific phase.
+
+    Loads phase config from ``.adw/commands/{phase}/config.yaml`` if it exists,
+    otherwise falls back to phase defaults.
+    """
+    import yaml as _yaml
+
+    from adw.commands.loader import get_config_class
+
+    if phase not in _VALID_PHASES:
+        return HTMLResponse(content="Invalid phase.", status_code=400)
+
+    templates: Jinja2Templates = request.app.state.templates
+    defaults = PHASE_DEFAULTS[phase]
+
+    # Load phase config from disk if available
+    has_config = False
+    enabled = True
+    timeout_seconds = defaults["timeout"]
+    llm_model = defaults["model"]
+    input_files: dict[str, str] = {}
+    doc_mappings: list[dict[str, str]] = []
+    ship_version_bump = ""
+    ship_publish = ""
+    bypass_ci = True
+
+    if project:
+        project_path_str, _ = resolve_project_filter(project_registry, project)
+        if project_path_str:
+            config_path = (
+                Path(project_path_str) / ".adw" / "commands" / phase / "config.yaml"
+            )
+            if config_path.exists():
+                try:
+                    raw = config_path.read_text()
+                    data = _yaml.safe_load(raw) or {}
+                    config_class = get_config_class(phase)
+                    config_obj = config_class.model_validate(data)
+
+                    has_config = True
+                    enabled = config_obj.enabled
+                    if config_obj.timeout_seconds is not None:
+                        timeout_seconds = config_obj.timeout_seconds
+                    if config_obj.llm and config_obj.llm.model:
+                        llm_model = config_obj.llm.model
+                    if config_obj.input_files:
+                        input_files = dict(config_obj.input_files)
+
+                    # Document-specific
+                    if phase == "document" and hasattr(config_obj, "doc_mappings"):
+                        dm = config_obj.doc_mappings
+                        if dm:
+                            doc_mappings = [
+                                {
+                                    "source_pattern": m.source_pattern,
+                                    "docs_dir": m.docs_dir,
+                                }
+                                for m in dm
+                            ]
+
+                    # Ship-specific
+                    if phase == "ship" and hasattr(config_obj, "commands"):
+                        cmds = config_obj.commands
+                        if cmds:
+                            ship_version_bump = cmds.version_bump or ""
+                            ship_publish = cmds.publish or ""
+                        bypass_ci = getattr(config_obj, "bypass_ci", True)
+
+                except Exception:
+                    logger.warning(
+                        "Failed to load phase config",
+                        extra={"phase": phase, "project": project},
+                    )
+
+    context = {
+        "request": request,
+        "phase": phase,
+        "has_config": has_config,
+        "enabled": enabled,
+        "timeout_seconds": timeout_seconds,
+        "llm_model": llm_model,
+        "input_files": input_files,
+        "doc_mappings": doc_mappings,
+        "ship_version_bump": ship_version_bump,
+        "ship_publish": ship_publish,
+        "bypass_ci": bypass_ci,
+        "default_timeout": defaults["timeout"],
+        "default_model": defaults["model"],
+        "selected_settings_project": project or None,
+        "csrf_token": generate_csrf_token(request),
+    }
+
+    return templates.TemplateResponse(
+        request, "partials/settings_phase_editor.html", context
+    )
