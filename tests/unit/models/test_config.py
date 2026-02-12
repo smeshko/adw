@@ -100,14 +100,16 @@ class TestWorktreeConfig:
         from adw.models.config import PortRangeConfig
 
         # 65521 + 15 - 1 = 65535, which is the max valid port
+        # Use non-overlapping ranges (backend 65506-65520, frontend 65521-65535)
         config = WorktreeConfig(
             port_range=PortRangeConfig(
-                backend_start=65521,
+                backend_start=65506,
                 frontend_start=65521,
             ),
             max_concurrent=15,
         )
-        assert config.port_range.backend_start == 65521
+        assert config.port_range.backend_start == 65506
+        assert config.port_range.frontend_start == 65521
 
 
 class TestShipCommandConfig:

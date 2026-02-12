@@ -316,6 +316,20 @@ class WorktreeConfig(BaseModel):
             )
             raise ValueError(msg)
 
+        # Check for overlap between backend and frontend port ranges
+        backend_end = max_backend
+        frontend_end = max_frontend
+        backend_start = self.port_range.backend_start
+        frontend_start = self.port_range.frontend_start
+
+        if backend_start <= frontend_end and frontend_start <= backend_end:
+            msg = (
+                f"Backend port range ({backend_start}-{backend_end}) "
+                f"overlaps with frontend port range "
+                f"({frontend_start}-{frontend_end})"
+            )
+            raise ValueError(msg)
+
         return self
 
 

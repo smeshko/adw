@@ -354,6 +354,38 @@
       'frontend_start': function(v) { var n = parseInt(v, 10); return isNaN(n) || n < 1 || n > 65535 ? 'Must be 1\u201365535' : ''; }
     };
 
+    // Cross-field validation rules
+    var crossRules = [
+      {
+        fields: ['max_delay_seconds', 'base_delay_seconds'],
+        target: 'max_delay_seconds',
+        check: function() {
+          var base = parseFloat((form.querySelector('[name="base_delay_seconds"]') || {}).value);
+          var max = parseFloat((form.querySelector('[name="max_delay_seconds"]') || {}).value);
+          if (!isNaN(base) && !isNaN(max) && max < base) {
+            return 'Must be \u2265 base delay (' + base + ')';
+          }
+          return '';
+        }
+      },
+      {
+        fields: ['backend_start', 'frontend_start'],
+        target: 'backend_start',
+        check: function() {
+          var be = parseInt((form.querySelector('[name="backend_start"]') || {}).value, 10);
+          var fe = parseInt((form.querySelector('[name="frontend_start"]') || {}).value, 10);
+          if (isNaN(be) || isNaN(fe)) return '';
+          var concurrent = 15;
+          var beEnd = be + concurrent - 1;
+          var feEnd = fe + concurrent - 1;
+          if (be <= feEnd && fe <= beEnd) {
+            return 'Port ranges overlap (each needs ' + concurrent + ' ports)';
+          }
+          return '';
+        }
+      }
+    ];
+
     function validate(input) {
       var name = input.name;
       var errEl = document.getElementById('error-' + name);
@@ -369,6 +401,26 @@
         errEl.classList.add('hidden');
         input.classList.remove('input-error');
       }
+      // Run cross-field rules that involve this field
+      crossRules.forEach(function(cr) {
+        if (cr.fields.indexOf(name) === -1) return;
+        var crossErr = document.getElementById('error-' + cr.target);
+        var crossInput = form.querySelector('[name="' + cr.target + '"]');
+        if (!crossErr || !crossInput) return;
+        // Only apply cross-rule if per-field rule passed
+        var perFieldMsg = rules[cr.target] ? rules[cr.target](crossInput.value) : '';
+        if (perFieldMsg) return;
+        var crossMsg = cr.check();
+        if (crossMsg) {
+          crossErr.textContent = crossMsg;
+          crossErr.classList.remove('hidden');
+          crossInput.classList.add('input-error');
+        } else {
+          crossErr.textContent = '';
+          crossErr.classList.add('hidden');
+          crossInput.classList.remove('input-error');
+        }
+      });
       updateSaveBtn();
     }
 
