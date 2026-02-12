@@ -1,0 +1,99 @@
+{% import "components/status_badge.html" as badge %}
+
+{# Focus Mode — dedicated single-run monitoring view (Story 6.2) #}
+{% if is_active %}
+<div class="focus-mode" data-focus-mode data-run-id="{{ run_id }}"
+     hx-ext="sse"
+     sse-connect="/runs/{{ run_id }}/events"
+     sse-close="run-complete,run-failed">
+{% else %}
+<div class="focus-mode" data-focus-mode data-run-id="{{ run_id }}">
+{% endif %}
+
+  {# ── Header row: status + exit hint ── #}
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="font-display text-xs uppercase tracking-wider" style="color: var(--accent-cream);">// Focus Mode</span>
+      <span class="text-sm font-semibold">{{ project_name }} / {{ feature }}</span>
+      {{ badge.status_badge(status, "md") }}
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-base-content/40">Press <kbd class="kbd kbd-xs">Esc</kbd> to exit</span>
+      <button class="btn btn-ghost btn-sm text-base-content/60 hover:text-base-content"
+              onclick="exitFocusMode()"
+              title="Exit Focus Mode">✕</button>
+    </div>
+  </div>
+
+  {# ── Elapsed time ── #}
+  <div class="focus-elapsed" id="run-elapsed">{{ elapsed_display }}</div>
+
+  {# ── Phase pipeline (full-width, prominent) ── #}
+  <div class="focus-pipeline">
+    <div id="run-phase-pipeline">
+      <ul class="steps steps-horizontal w-full">
+        {%- for phase in phases %}
+        <li data-content="{{ '✓' if phase.status == 'completed' else '●' if phase.status == 'active' else '✗' if phase.status == 'failed' else '' }}"
+            class="step{{ ' step-success' if phase.status == 'completed' else ' step-warning' if phase.status == 'active' else ' step-error' if phase.status == 'failed' else '' }}{{ ' phase-active' if phase.status == 'active' else '' }}">
+          <div class="flex flex-col items-center">
+            <span>{{ phase.name }}{% if phase.status == 'active' %} <span class="loading loading-dots loading-sm"></span>{% endif %}</span>
+            {% if phase.duration %}<span class="font-mono text-xs text-base-content/50">{{ phase.duration }}</span>{% endif %}
+          </div>
+        </li>
+        {%- endfor %}
+      </ul>
+    </div>
+  </div>
+
+  {# ── Log stream ── #}
+  {% if is_active %}
+  <div class="focus-log-stream log-stream-container"
+       hx-ext="sse"
+       sse-connect="/runs/{{ run_id }}/logs/stream"
+       sse-close="run-complete,run-failed">
+    <div sse-swap="log-line" hx-swap="beforeend">
+    </div>
+  </div>
+  {% else %}
+  <div class="focus-log-stream"
+       hx-get="/partials/terminal-logs/{{ run_id }}"
+       hx-trigger="load"
+       hx-swap="innerHTML">
+    <div class="flex justify-center py-8">
+      <span class="loading loading-dots loading-md"></span>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── SSE listeners for completion/failure events ── #}
+  {% if is_active %}
+  <div sse-swap="run-complete" style="display:none;">
+    <div id="focus-completion-banner"
+         hx-get="/partials/focus-mode/{{ run_id }}"
+         hx-trigger="load"
+         hx-target="closest [data-focus-mode]"
+         hx-swap="outerHTML"></div>
+  </div>
+  <div sse-swap="run-failed" style="display:none;">
+    <div id="focus-failure-banner"
+         hx-get="/partials/focus-mode/{{ run_id }}"
+         hx-trigger="load"
+         hx-target="closest [data-focus-mode]"
+         hx-swap="outerHTML"></div>
+  </div>
+  {% endif %}
+
+  {# ── Final status banner (shown after completion/failure) ── #}
+  {% if not is_active and status in ['completed', 'failed', 'aborted'] %}
+  <div class="focus-status-banner {{ 'status-completed' if status == 'completed' else 'status-failed' }}">
+    Run {{ status }}
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function exitFocusMode() {
+  history.back();
+}
+</script>
