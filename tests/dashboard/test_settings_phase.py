@@ -155,3 +155,155 @@ class TestPhasePartialRoute:
         assert "version_bump" in resp.text
         assert "publish" in resp.text
         assert "bypass_ci" in resp.text
+
+
+# ── POST /settings/phase/{phase}/save ─────────────────────────────
+
+
+class TestPhaseSaveEndpoint:
+    """Tests for POST /settings/phase/{phase}/save."""
+
+    def test_save_creates_directory_and_file(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """Saving creates .adw/commands/{phase}/ and config.yaml."""
+        resp = phase_client.post(
+            "/settings/phase/plan/save",
+            data={
+                "csrf_token": "test",
+                "_project": "test-app",
+                "enabled": "true",
+                "timeout_seconds": "900",
+                "llm_model": "opus",
+            },
+        )
+        assert resp.status_code == 200
+        config_path = project_dir / ".adw" / "commands" / "plan" / "config.yaml"
+        assert config_path.exists()
+        data = yaml.safe_load(config_path.read_text())
+        assert data["enabled"] is True
+        assert data["timeout_seconds"] == 900
+
+    def test_save_invalid_phase_returns_400(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        resp = phase_client.post(
+            "/settings/phase/invalid/save",
+            data={
+                "csrf_token": "test",
+                "_project": "test-app",
+                "enabled": "true",
+                "timeout_seconds": "300",
+                "llm_model": "opus",
+            },
+        )
+        assert resp.status_code == 400
+
+    def test_save_disabled_phase(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """enabled=false is persisted correctly."""
+        resp = phase_client.post(
+            "/settings/phase/build/save",
+            data={
+                "csrf_token": "test",
+                "_project": "test-app",
+                "enabled": "false",
+                "timeout_seconds": "1800",
+                "llm_model": "sonnet",
+            },
+        )
+        assert resp.status_code == 200
+        config_path = project_dir / ".adw" / "commands" / "build" / "config.yaml"
+        data = yaml.safe_load(config_path.read_text())
+        assert data["enabled"] is False
+
+    def test_save_document_phase_doc_mappings(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """Document phase saves doc_mappings correctly."""
+        resp = phase_client.post(
+            "/settings/phase/document/save",
+            data={
+                "csrf_token": "test",
+                "_project": "test-app",
+                "enabled": "true",
+                "timeout_seconds": "900",
+                "llm_model": "haiku",
+                "doc_mappings_source.0": "src/**/*.py",
+                "doc_mappings_dir.0": "docs/api",
+                "doc_mappings_source.1": "tests/**/*.py",
+                "doc_mappings_dir.1": "docs/tests",
+            },
+        )
+        assert resp.status_code == 200
+        config_path = project_dir / ".adw" / "commands" / "document" / "config.yaml"
+        data = yaml.safe_load(config_path.read_text())
+        assert len(data["doc_mappings"]) == 2
+        assert data["doc_mappings"][0]["source_pattern"] == "src/**/*.py"
+        assert data["doc_mappings"][0]["docs_dir"] == "docs/api"
+
+    def test_save_ship_phase_commands(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """Ship phase saves commands and bypass_ci correctly."""
+        resp = phase_client.post(
+            "/settings/phase/ship/save",
+            data={
+                "csrf_token": "test",
+                "_project": "test-app",
+                "enabled": "true",
+                "timeout_seconds": "1200",
+                "llm_model": "sonnet",
+                "version_bump": "npm version patch",
+                "publish": "npm publish",
+                "bypass_ci": "true",
+            },
+        )
+        assert resp.status_code == 200
+        config_path = project_dir / ".adw" / "commands" / "ship" / "config.yaml"
+        data = yaml.safe_load(config_path.read_text())
+        assert data["commands"]["version_bump"] == "npm version patch"
+        assert data["commands"]["publish"] == "npm publish"
+        assert data["bypass_ci"] is True
+
+    def test_save_input_files(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """Input files key-value pairs are saved correctly."""
+        resp = phase_client.post(
+            "/settings/phase/plan/save",
+            data={
+                "csrf_token": "test",
+                "_project": "test-app",
+                "enabled": "true",
+                "timeout_seconds": "900",
+                "llm_model": "opus",
+                "input_files_key.0": "prd",
+                "input_files_val.0": "docs/prd.md",
+                "input_files_key.1": "arch",
+                "input_files_val.1": "docs/architecture.md",
+            },
+        )
+        assert resp.status_code == 200
+        config_path = project_dir / ".adw" / "commands" / "plan" / "config.yaml"
+        data = yaml.safe_load(config_path.read_text())
+        assert data["input_files"]["prd"] == "docs/prd.md"
+        assert data["input_files"]["arch"] == "docs/architecture.md"
+
+    def test_save_returns_success_toast(
+        self, phase_client: TestClient, project_dir: Path
+    ) -> None:
+        """Save returns a success toast OOB swap."""
+        resp = phase_client.post(
+            "/settings/phase/plan/save",
+            data={
+                "csrf_token": "test",
+                "_project": "test-app",
+                "enabled": "true",
+                "timeout_seconds": "900",
+                "llm_model": "opus",
+            },
+        )
+        assert resp.status_code == 200
+        assert "alert-success" in resp.text or "saved" in resp.text.lower()
