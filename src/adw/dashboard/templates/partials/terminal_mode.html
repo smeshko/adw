@@ -1,0 +1,51 @@
+{# Terminal Mode — full-screen monospace log view (Story 6.2) #}
+<div class="terminal-mode" data-terminal-mode data-run-id="{{ run_id }}">
+
+  {# ── Header bar ── #}
+  <div class="terminal-header">
+    <div class="flex items-center gap-3">
+      <span class="font-display text-xs uppercase tracking-wider text-accent-cream" style="color: var(--accent-cream);">// Terminal Mode</span>
+      {% if project_name %}
+      <span class="text-xs" style="color: var(--text-muted);">{{ project_name }}{% if feature %} / {{ feature }}{% endif %}</span>
+      {% endif %}
+    </div>
+    <button class="btn btn-ghost btn-sm text-base-content/60 hover:text-base-content"
+            onclick="exitTerminalMode()"
+            title="Exit Terminal Mode (Esc)">✕</button>
+  </div>
+
+  {# ── Log area ── #}
+  {% if is_active %}
+  {# Active run: stream logs via SSE #}
+  <div class="terminal-log-area"
+       hx-ext="sse"
+       sse-connect="/runs/{{ run_id }}/logs/stream"
+       sse-close="run-complete,run-failed">
+    <div sse-swap="log-line" hx-swap="beforeend">
+    </div>
+  </div>
+  {% elif has_logs %}
+  {# Completed/failed run: load static logs #}
+  <div class="terminal-log-area"
+       hx-get="/partials/terminal-logs/{{ run_id }}"
+       hx-trigger="load"
+       hx-swap="innerHTML">
+    <div class="flex justify-center py-8">
+      <span class="loading loading-dots loading-md"></span>
+    </div>
+  </div>
+  {% else %}
+  {# No run selected or no logs available #}
+  <div class="terminal-log-area flex items-center justify-center">
+    <p class="text-base-content/40 text-sm font-display uppercase tracking-wider">No logs available</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function exitTerminalMode() {
+  document.body.classList.remove('terminal-mode-active');
+  history.back();
+}
+</script>
