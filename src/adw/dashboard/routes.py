@@ -295,6 +295,7 @@ async def analytics(
     request: Request,
     project: str = Query("", alias="project"),
     range_: str = Query("7d", alias="range"),
+    sort: str = Query("cost_desc"),
     index_manager: object = Depends(get_index_manager),
     stats_aggregator: object = Depends(get_stats_aggregator),
     project_registry: object = Depends(get_project_registry),
@@ -328,6 +329,7 @@ async def analytics(
                 project_name=project_name,
                 range_key=range_,
                 range_days=_RANGE_DAYS,
+                sort=sort,
             )
         )
     except Exception:
@@ -335,6 +337,7 @@ async def analytics(
 
     context["selected_range"] = range_
     context["valid_ranges"] = _VALID_RANGES
+    context["breakdown_sort"] = context.get("breakdown_sort", sort)
 
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "partials/analytics.html", context)
