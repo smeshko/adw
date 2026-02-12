@@ -36,6 +36,12 @@
 .chart-daily { min-height: 10rem; }
 .chart-bar > div { min-height: 2px; transition: height 200ms ease; }
 
+/* Keyboard navigation focus highlight (Story 6.1) */
+.kbd-nav-active {
+  outline: 2px solid oklch(var(--p));
+  outline-offset: -2px;
+}
+
 /* Responsive: minimum supported width 1024px */
 @media (max-width: 1023px) {
   body { min-width: 1024px; }
