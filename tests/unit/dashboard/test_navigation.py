@@ -413,10 +413,10 @@ class TestThemeToggle:
         assert "swap-off" in response.text  # moon icon class
 
     def test_default_theme_is_dark(self) -> None:
-        """Default data-theme on <html> is 'dark'."""
+        """Default data-theme on <html> is 'brutalist-dark'."""
         client = _make_client()
         response = client.get("/")
-        assert 'data-theme="dark"' in response.text
+        assert 'data-theme="brutalist-dark"' in response.text
 
     def test_toggle_function_exists(self) -> None:
         """toggleTheme JavaScript function exists in the page."""
