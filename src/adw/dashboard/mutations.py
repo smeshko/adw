@@ -696,6 +696,275 @@ async def save_settings(
     return HTMLResponse(content=content_html + toast_html)
 
 
+# ── Phase config save ────────────────────────────────────────────────────────
+
+_VALID_PHASES = frozenset(["plan", "build", "validate", "document", "ship"])
+
+
+@router.post(
+    "/settings/phase/{phase}/save",
+    response_class=HTMLResponse,
+    dependencies=[Depends(validate_csrf)],
+)
+async def save_phase_settings(
+    request: Request,
+    phase: str,
+    project_registry: "ProjectRegistryManager" = Depends(get_project_registry),
+) -> HTMLResponse:
+    """Save phase config to .adw/commands/{phase}/config.yaml.
+
+    Parses form fields, validates via the phase-specific Pydantic model,
+    and writes atomically to disk.
+    """
+    from adw.commands.loader import get_config_class
+    from adw.config.registry import ConfigRegistry
+    from adw.config.yaml_generator import YAMLWithComments
+
+    if phase not in _VALID_PHASES:
+        return HTMLResponse(content="Invalid phase.", status_code=400)
+
+    templates: "Jinja2Templates" = request.app.state.templates
+    form = await request.form()
+    project_display = str(form.get("_project", ""))
+
+    project_path_str, _ = resolve_project_filter(project_registry, project_display)
+    if not project_path_str:
+        return HTMLResponse(content="Project not found.", status_code=400)
+
+    project_root = Path(project_path_str)
+
+    # Parse base fields
+    enabled_raw = str(form.get("enabled", "true"))
+    enabled = enabled_raw.lower() in ("true", "1", "on", "yes")
+    try:
+        timeout_seconds = int(str(form.get("timeout_seconds", "900")))
+    except (ValueError, TypeError):
+        from adw.dashboard.partials import PHASE_DEFAULTS as _PD
+
+        defaults = _PD.get(phase, {"timeout": 900, "model": "opus"})
+        return _render_phase_editor_error(
+            request, templates, phase,
+            {"enabled": enabled, "timeout_seconds": defaults["timeout"]},
+            project_display,
+            "Invalid timeout value.",
+        )
+    llm_model = str(form.get("llm_model", ""))
+
+    # Build config dict
+    config_data: dict[str, Any] = {
+        "enabled": enabled,
+        "timeout_seconds": timeout_seconds,
+    }
+
+    if llm_model:
+        config_data["llm"] = {"model": llm_model}
+
+    # Collect input_files key-value pairs
+    input_files: dict[str, str] = {}
+    for key in form:
+        if key.startswith("input_files_key."):
+            idx = key[len("input_files_key."):]
+            k = str(form[key]).strip()
+            v = str(form.get(f"input_files_val.{idx}", "")).strip()
+            if k and v:
+                input_files[k] = v
+    if input_files:
+        config_data["input_files"] = input_files
+
+    # Document phase: collect doc_mappings
+    if phase == "document":
+        doc_mappings: list[dict[str, str]] = []
+        for key in form:
+            if key.startswith("doc_mappings_source."):
+                idx = key[len("doc_mappings_source."):]
+                src = str(form[key]).strip()
+                docs_dir = str(form.get(f"doc_mappings_dir.{idx}", "")).strip()
+                if src and docs_dir:
+                    doc_mappings.append({
+                        "source_pattern": src,
+                        "docs_dir": docs_dir,
+                    })
+        if doc_mappings:
+            config_data["doc_mappings"] = doc_mappings
+
+    # Ship phase: collect commands and bypass_ci
+    if phase == "ship":
+        version_bump = str(form.get("version_bump", "")).strip()
+        publish = str(form.get("publish", "")).strip()
+        commands: dict[str, str | None] = {}
+        if version_bump:
+            commands["version_bump"] = version_bump
+        if publish:
+            commands["publish"] = publish
+        if commands:
+            config_data["commands"] = commands
+
+        bypass_raw = str(form.get("bypass_ci", "true"))
+        config_data["bypass_ci"] = bypass_raw.lower() in ("true", "1", "on", "yes")
+
+    # Validate via phase-specific Pydantic model
+    config_class = get_config_class(phase)
+    try:
+        config_class.model_validate(config_data)
+    except PydanticValidationError as e:
+        errors = e.errors()
+        error_msg = errors[0]["msg"] if errors else str(e)
+        return _render_phase_editor_error(
+            request, templates, phase, config_data, project_display,
+            f"Validation failed: {html.escape(error_msg)}",
+        )
+
+    # Create directory and write atomically
+    phase_dir = project_root / ".adw" / "commands" / phase
+    phase_dir.mkdir(parents=True, exist_ok=True)
+    config_path = phase_dir / "config.yaml"
+
+    yaml_gen = YAMLWithComments(ConfigRegistry())
+    yaml_content = yaml_gen.generate_phase_yaml(phase, config_data)
+
+    try:
+        _atomic_write_config(config_path, yaml_content)
+    except OSError as e:
+        logger.error(
+            "Failed to write phase config",
+            extra={"phase": phase, "project": project_display, "error": str(e)},
+        )
+        return _render_phase_editor_error(
+            request, templates, phase, config_data, project_display,
+            f"Failed to save: {html.escape(str(e))}",
+        )
+
+    logger.info(
+        "Phase settings saved",
+        extra={"phase": phase, "project": project_display},
+    )
+
+    # Re-render the phase editor partial with fresh data + success toast
+    from adw.dashboard.partials import PHASE_DEFAULTS
+
+    defaults = PHASE_DEFAULTS.get(phase, {"timeout": 900, "model": "opus"})
+
+    # Reload the config we just saved
+    loaded_data = yaml.safe_load(config_path.read_text()) or {}
+    loaded_obj = config_class.model_validate(loaded_data)
+
+    has_config = True
+    loaded_enabled = loaded_obj.enabled
+    loaded_timeout = loaded_obj.timeout_seconds or defaults["timeout"]
+    loaded_llm_model = defaults["model"]
+    if loaded_obj.llm and loaded_obj.llm.model:
+        loaded_llm_model = loaded_obj.llm.model
+    loaded_input_files = dict(loaded_obj.input_files) if loaded_obj.input_files else {}
+    loaded_doc_mappings: list[dict[str, str]] = []
+    loaded_ship_vb = ""
+    loaded_ship_pub = ""
+    loaded_bypass_ci = True
+
+    if phase == "document" and hasattr(loaded_obj, "doc_mappings"):
+        dm = loaded_obj.doc_mappings
+        if dm:
+            loaded_doc_mappings = [
+                {"source_pattern": m.source_pattern, "docs_dir": m.docs_dir}
+                for m in dm
+            ]
+
+    if phase == "ship" and hasattr(loaded_obj, "commands"):
+        cmds = loaded_obj.commands
+        if cmds:
+            loaded_ship_vb = cmds.version_bump or ""
+            loaded_ship_pub = cmds.publish or ""
+        loaded_bypass_ci = getattr(loaded_obj, "bypass_ci", True)
+
+    context = {
+        "phase": phase,
+        "has_config": has_config,
+        "enabled": loaded_enabled,
+        "timeout_seconds": loaded_timeout,
+        "llm_model": loaded_llm_model,
+        "input_files": loaded_input_files,
+        "doc_mappings": loaded_doc_mappings,
+        "ship_version_bump": loaded_ship_vb,
+        "ship_publish": loaded_ship_pub,
+        "bypass_ci": loaded_bypass_ci,
+        "default_timeout": defaults["timeout"],
+        "default_model": defaults["model"],
+        "selected_settings_project": project_display,
+        "csrf_token": generate_csrf_token(request),
+    }
+
+    content_html = templates.get_template(
+        "partials/settings_phase_editor.html"
+    ).render(context)
+
+    toast_html = (
+        '<div id="toast-container" hx-swap-oob="innerHTML">'
+        '<div class="alert alert-success shadow-lg">'
+        "<span>Phase settings saved successfully.</span>"
+        "</div>"
+        "<script>setTimeout(function(){var t=document.getElementById("
+        "'toast-container');if(t)t.innerHTML='';},3000);</script>"
+        "</div>"
+    )
+
+    return HTMLResponse(content=content_html + toast_html)
+
+
+def _render_phase_editor_error(
+    request: Request,
+    templates: "Jinja2Templates",
+    phase: str,
+    config_data: dict[str, Any],
+    project_display: str,
+    error_message: str,
+) -> HTMLResponse:
+    """Re-render the phase editor with submitted data and an error toast.
+
+    Unlike returning raw error text, this preserves the form UI so the user
+    can correct their input and re-submit.
+    """
+    from adw.dashboard.partials import PHASE_DEFAULTS
+
+    defaults = PHASE_DEFAULTS.get(phase, {"timeout": 900, "model": "opus"})
+
+    # Extract values from the submitted config_data for re-rendering
+    llm_data = config_data.get("llm", {})
+    doc_mappings = config_data.get("doc_mappings", [])
+    commands = config_data.get("commands", {})
+
+    context = {
+        "phase": phase,
+        "has_config": True,
+        "enabled": config_data.get("enabled", True),
+        "timeout_seconds": config_data.get("timeout_seconds", defaults["timeout"]),
+        "llm_model": llm_data.get("model", defaults["model"]) if llm_data else defaults["model"],
+        "input_files": config_data.get("input_files", {}),
+        "doc_mappings": doc_mappings,
+        "ship_version_bump": commands.get("version_bump", "") if commands else "",
+        "ship_publish": commands.get("publish", "") if commands else "",
+        "bypass_ci": config_data.get("bypass_ci", True),
+        "default_timeout": defaults["timeout"],
+        "default_model": defaults["model"],
+        "selected_settings_project": project_display,
+        "csrf_token": generate_csrf_token(request),
+    }
+
+    content_html = templates.get_template(
+        "partials/settings_phase_editor.html"
+    ).render(context)
+
+    toast_html = (
+        '<div id="toast-container" hx-swap-oob="innerHTML">'
+        '<div class="alert alert-error shadow-lg">'
+        f"<span>{error_message}</span>"
+        "</div>"
+        "<script>setTimeout(function(){var t=document.getElementById("
+        "'toast-container');if(t)t.innerHTML='';},5000);</script>"
+        "</div>"
+    )
+
+    return HTMLResponse(content=content_html + toast_html)
+
+
 def _render_settings_error(
     request: Request,
     templates: Jinja2Templates,

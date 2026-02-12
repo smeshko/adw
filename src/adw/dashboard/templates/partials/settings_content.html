@@ -18,33 +18,29 @@
 } %}
 
 {% if active_tab == 'phases' %}
-  {# ── Phases Tab (read-only) ── #}
-  {% if phase_settings %}
-  <div class="space-y-6">
-    {% for phase in phase_settings %}
-    <div class="card card-bordered bg-base-100 p-4">
-      <h3 class="text-base font-semibold mb-3 section-header">{{ phase.label }}</h3>
-      <div class="space-y-3">
-        {% for setting in phase.settings %}
-        <div class="flex flex-col gap-1 py-2 border-b border-base-content/5 last:border-b-0">
-          <div class="flex items-center gap-2">
-            <span class="font-semibold text-sm font-mono">{{ setting.name }}</span>
-            <span class="badge badge-ghost badge-xs font-mono">{{ setting.type_hint }}</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="font-mono text-sm bg-base-200 px-2 py-0.5">{{ setting.display_value }}</span>
-            <span class="text-base-content/50 text-xs">Default: {{ setting.display_default }}</span>
-          </div>
-          {% if setting.description %}
-          <p class="text-xs text-base-content/60">{{ setting.description }}</p>
-          {% endif %}
-        </div>
-        {% endfor %}
-      </div>
+  {# ── Phases Tab (interactive editor with sub-tabs) ── #}
+  {% set phase_sub_tabs = [('plan', 'Plan'), ('build', 'Build'), ('validate', 'Validate'), ('document', 'Document'), ('ship', 'Ship')] %}
+  <div class="space-y-4">
+    {# Phase sub-tab navigation #}
+    <div class="tabs tabs-box tabs-sm" id="phase-sub-tabs">
+      {% for key, label in phase_sub_tabs %}
+      <a class="tab {% if loop.first %}tab-active{% endif %}"
+         hx-get="/partials/settings-phase/{{ key }}?project={{ selected_settings_project | urlencode }}"
+         hx-target="#phase-content"
+         hx-swap="innerHTML"
+         onclick="document.querySelectorAll('#phase-sub-tabs .tab').forEach(function(t){t.classList.remove('tab-active')});this.classList.add('tab-active')">
+        {{ label }}
+      </a>
+      {% endfor %}
     </div>
-    {% endfor %}
+
+    {# Phase content container — auto-loads Plan on render #}
+    <div id="phase-content"
+         hx-get="/partials/settings-phase/plan?project={{ selected_settings_project | urlencode }}"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+    </div>
   </div>
-  {% endif %}
 
 {% elif active_tab == 'task_manager' and has_config %}
   {# ── Task Manager Tab (custom layout) ── #}

@@ -289,3 +289,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When collecting indexed or mapping form fields from Starlette FormData in the dashboard
     - When adding cross-field validation rules to Settings form sections
     - When editing Task Manager integration or Security blocked patterns configuration
+
+- docs/features/phase-config-editor.md
+  - Conditions:
+    - When adding or modifying phase-specific configuration editors on the Settings page
+    - When implementing per-phase config save to `.adw/commands/{phase}/config.yaml`
+    - When using the key-value pair editor pattern with `addKVRow()`/`reindexKV()` in dashboard templates
+    - When extending phase config models or adding new phase-specific fields
+    - When working with `PHASE_DEFAULTS` or `get_config_class()` for phase configuration

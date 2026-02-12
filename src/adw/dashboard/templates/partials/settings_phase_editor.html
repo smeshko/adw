@@ -1,0 +1,200 @@
+{# Phase config editor — rendered inside #phase-content container #}
+
+<form hx-post="/settings/phase/{{ phase }}/save"
+      hx-target="#phase-content"
+      hx-swap="innerHTML"
+      class="space-y-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="_project" value="{{ selected_settings_project }}">
+
+  {% if not has_config %}
+  <div class="alert alert-info text-sm py-2">
+    <span>Using defaults. Save to create phase config file.</span>
+  </div>
+  {% endif %}
+
+  <div class="card card-bordered bg-base-100 p-4 space-y-4">
+    {# ── Enabled Toggle ── #}
+    <div class="flex items-center gap-3">
+      <input type="hidden" name="enabled" value="false">
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox"
+               id="phase-enabled"
+               name="enabled"
+               value="true"
+               class="toggle toggle-sm"
+               {% if enabled %}checked{% endif %}
+               onchange="togglePhaseFields(this.checked)">
+        <span class="font-semibold text-sm">Enabled</span>
+      </label>
+      <p class="text-xs text-base-content/60">Whether this phase is active</p>
+    </div>
+
+    {# ── Dimmed wrapper for remaining fields ── #}
+    <div id="phase-fields" class="space-y-4 {% if not enabled %}opacity-50 pointer-events-none{% endif %}">
+
+      {# ── Timeout ── #}
+      <div class="flex flex-col gap-1">
+        <label class="font-semibold text-sm" for="phase-timeout">Timeout (seconds)</label>
+        <input type="number"
+               id="phase-timeout"
+               name="timeout_seconds"
+               class="input input-bordered input-sm w-full max-w-xs"
+               value="{{ timeout_seconds }}"
+               min="60"
+               max="7200"
+               step="60">
+        <p class="text-xs text-base-content/60">Default: {{ default_timeout }}s</p>
+      </div>
+
+      {# ── LLM Model ── #}
+      <div class="flex flex-col gap-1">
+        <label class="font-semibold text-sm" for="phase-llm-model">LLM Model</label>
+        <select id="phase-llm-model"
+                name="llm_model"
+                class="select select-bordered select-sm w-full max-w-xs">
+          <option value="opus" {% if llm_model == 'opus' %}selected{% endif %}>opus</option>
+          <option value="sonnet" {% if llm_model == 'sonnet' %}selected{% endif %}>sonnet</option>
+          <option value="haiku" {% if llm_model == 'haiku' %}selected{% endif %}>haiku</option>
+        </select>
+        <p class="text-xs text-base-content/60">Default: {{ default_model }}</p>
+      </div>
+
+      {# ── Input Files (key-value editor) ── #}
+      <div>
+        <h4 class="font-semibold text-sm mb-2">Input Files</h4>
+        <p class="text-xs text-base-content/60 mb-2">Variable name → file path mappings for template injection</p>
+        <div id="list-input_files" class="flex flex-col gap-2">
+          {% for var_name, file_path in input_files.items() %}
+          <div class="flex gap-2">
+            <input type="text" name="input_files_key.{{ loop.index0 }}" value="{{ var_name }}" class="input input-bordered input-sm flex-1" placeholder="Variable name">
+            <input type="text" name="input_files_val.{{ loop.index0 }}" value="{{ file_path }}" class="input input-bordered input-sm flex-1" placeholder="File path">
+            <button type="button" class="btn btn-ghost btn-sm btn-circle" onclick="this.parentElement.remove();reindexKV('input_files')">&#215;</button>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm mt-2" onclick="addKVRow('input_files')">+ Add Mapping</button>
+        <template id="tpl-input_files">
+          <div class="flex gap-2">
+            <input type="text" name="input_files_key.0" value="" class="input input-bordered input-sm flex-1" placeholder="Variable name">
+            <input type="text" name="input_files_val.0" value="" class="input input-bordered input-sm flex-1" placeholder="File path">
+            <button type="button" class="btn btn-ghost btn-sm btn-circle" onclick="this.parentElement.remove();reindexKV('input_files')">&#215;</button>
+          </div>
+        </template>
+      </div>
+
+      {% if phase == 'document' %}
+      {# ── Document Phase: Doc Mappings ── #}
+      <div>
+        <h4 class="font-semibold text-sm mb-2">Doc Mappings</h4>
+        <p class="text-xs text-base-content/60 mb-2">Source pattern → docs directory mappings</p>
+        <div id="list-doc_mappings" class="flex flex-col gap-2">
+          {% for mapping in doc_mappings %}
+          <div class="flex gap-2">
+            <input type="text" name="doc_mappings_source.{{ loop.index0 }}" value="{{ mapping.source_pattern }}" class="input input-bordered input-sm flex-1" placeholder="Source pattern (e.g. src/**/*.py)">
+            <input type="text" name="doc_mappings_dir.{{ loop.index0 }}" value="{{ mapping.docs_dir }}" class="input input-bordered input-sm flex-1" placeholder="Docs directory">
+            <button type="button" class="btn btn-ghost btn-sm btn-circle" onclick="this.parentElement.remove();reindexKV('doc_mappings')">&#215;</button>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm mt-2" onclick="addKVRow('doc_mappings')">+ Add Mapping</button>
+        <template id="tpl-doc_mappings">
+          <div class="flex gap-2">
+            <input type="text" name="doc_mappings_source.0" value="" class="input input-bordered input-sm flex-1" placeholder="Source pattern (e.g. src/**/*.py)">
+            <input type="text" name="doc_mappings_dir.0" value="" class="input input-bordered input-sm flex-1" placeholder="Docs directory">
+            <button type="button" class="btn btn-ghost btn-sm btn-circle" onclick="this.parentElement.remove();reindexKV('doc_mappings')">&#215;</button>
+          </div>
+        </template>
+      </div>
+      {% endif %}
+
+      {% if phase == 'ship' %}
+      {# ── Ship Phase: Commands & Bypass CI ── #}
+      <div class="space-y-4">
+        <h4 class="font-semibold text-sm">Ship Commands</h4>
+
+        <div class="flex flex-col gap-1">
+          <label class="font-semibold text-sm" for="ship-version-bump">Version Bump Command</label>
+          <input type="text"
+                 id="ship-version-bump"
+                 name="version_bump"
+                 class="input input-bordered input-sm w-full font-mono"
+                 value="{{ ship_version_bump }}"
+                 placeholder="e.g. npm version patch">
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="font-semibold text-sm" for="ship-publish">Publish Command</label>
+          <input type="text"
+                 id="ship-publish"
+                 name="publish"
+                 class="input input-bordered input-sm w-full font-mono"
+                 value="{{ ship_publish }}"
+                 placeholder="e.g. npm publish">
+        </div>
+
+        <div class="flex items-center gap-3">
+          <input type="hidden" name="bypass_ci" value="false">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox"
+                   name="bypass_ci"
+                   value="true"
+                   class="toggle toggle-sm"
+                   {% if bypass_ci %}checked{% endif %}>
+            <span class="text-sm">Bypass CI</span>
+          </label>
+          <p class="text-xs text-base-content/60">Skip CI checks using --admin flag</p>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  {# Save button #}
+  <div class="flex justify-end">
+    <button type="submit" class="btn btn-primary btn-sm">
+      <span class="loading loading-spinner loading-sm htmx-indicator"></span>
+      Save
+    </button>
+  </div>
+</form>
+
+<script>
+function togglePhaseFields(enabled) {
+  var fields = document.getElementById('phase-fields');
+  if (enabled) {
+    fields.classList.remove('opacity-50', 'pointer-events-none');
+  } else {
+    fields.classList.add('opacity-50', 'pointer-events-none');
+  }
+}
+
+function addKVRow(id) {
+  var tpl = document.getElementById('tpl-' + id);
+  var list = document.getElementById('list-' + id);
+  var clone = tpl.content.cloneNode(true);
+  list.appendChild(clone);
+  reindexKV(id);
+}
+
+function reindexKV(id) {
+  var list = document.getElementById('list-' + id);
+  var rows = list.querySelectorAll(':scope > div');
+  rows.forEach(function(row, i) {
+    var inputs = row.querySelectorAll('input[type="text"]');
+    if (inputs.length >= 2) {
+      var prefix0, prefix1;
+      if (id === 'input_files') {
+        prefix0 = 'input_files_key';
+        prefix1 = 'input_files_val';
+      } else if (id === 'doc_mappings') {
+        prefix0 = 'doc_mappings_source';
+        prefix1 = 'doc_mappings_dir';
+      }
+      inputs[0].name = prefix0 + '.' + i;
+      inputs[1].name = prefix1 + '.' + i;
+    }
+  });
+}
+</script>
