@@ -1992,6 +1992,9 @@ async def settings(
         context["has_config"] = False
         context["has_project_config"] = False
 
+    # CSRF token for editable settings forms
+    context["csrf_token"] = generate_csrf_token(request)
+
     # Tab state
     valid_tab_keys = [t[0] for t in _SETTINGS_TABS]
     if tab not in valid_tab_keys:
