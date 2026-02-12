@@ -1671,6 +1671,250 @@ def _render_log_line_html(timestamp: str, level: str, message: str) -> str:
     )
 
 
+# ── Settings Page ────────────────────────────────────────────────
+
+
+# Tab sections displayed on the settings page.
+# Maps internal section key → display label.
+_SETTINGS_TABS: list[tuple[str, str]] = [
+    ("project", "Basics"),
+    ("git", "Git"),
+    ("worktree", "Worktree"),
+    ("llm", "LLM Retry"),
+    ("task_manager", "Task Manager"),
+    ("security", "Security"),
+    ("phases", "Phases"),
+]
+
+
+def _humanize_field_name(name: str) -> str:
+    """Convert a snake_case field name to a human-readable label."""
+    return name.replace("_", " ").title()
+
+
+def _resolve_config_value(config: Any, section: str, field_name: str) -> Any:
+    """Resolve the current value of a config field from the ProjectConfig.
+
+    For nested sections (git, llm, etc.), access the sub-model attribute.
+    For the project section, access top-level attributes directly.
+    """
+    if section == "project":
+        return getattr(config, field_name, None)
+
+    # Map section keys to ProjectConfig attribute names
+    section_attr_map: dict[str, str] = {
+        "git": "git",
+        "llm": "llm",
+        "task_manager": "task_manager",
+        "worktree": "worktree",
+        "security": "security",
+    }
+    attr_name = section_attr_map.get(section)
+    if attr_name is None:
+        return None
+
+    sub_config = getattr(config, attr_name, None)
+    if sub_config is None:
+        return None
+
+    return getattr(sub_config, field_name, None)
+
+
+def _format_display_value(value: Any) -> str:
+    """Format a config value for display in the template."""
+    if value is None:
+        return "—"
+    if isinstance(value, bool):
+        return str(value).lower()
+    if isinstance(value, list):
+        if not value:
+            return "[]"
+        return ", ".join(str(v) for v in value)
+    if isinstance(value, dict):
+        if not value:
+            return "{}"
+        return ", ".join(f"{k}: {v}" for k, v in value.items())
+    return str(value)
+
+
+def build_settings_context(
+    config: Any | None,
+    registry: Any,
+) -> dict[str, list[dict[str, Any]]]:
+    """Build settings data for all sections.
+
+    Args:
+        config: A ProjectConfig instance (or None if no project loaded).
+        registry: A ConfigRegistry instance.
+
+    Returns:
+        Dict mapping section names to lists of setting dicts.
+    """
+    sections: dict[str, list[dict[str, Any]]] = {}
+
+    for section_key, _label in _SETTINGS_TABS:
+        if section_key == "phases":
+            continue  # Phases handled separately
+
+        try:
+            settings = registry.get_all_settings(section_key)
+        except KeyError:
+            continue
+
+        section_settings = []
+        for setting in settings:
+            if setting.is_nested:
+                continue  # Skip nested config objects
+
+            current_value = None
+            if config is not None:
+                current_value = _resolve_config_value(
+                    config, section_key, setting.name
+                )
+
+            default_value = setting.default
+            display_value = _format_display_value(current_value)
+            display_default = _format_display_value(default_value)
+
+            is_changed = False
+            if config is not None and current_value is not None:
+                is_changed = current_value != default_value
+
+            section_settings.append(
+                {
+                    "name": setting.name,
+                    "label": _humanize_field_name(setting.name),
+                    "current_value": current_value,
+                    "display_value": display_value,
+                    "default_value": default_value,
+                    "display_default": display_default,
+                    "description": setting.description,
+                    "type_hint": setting.type_hint,
+                    "is_changed": is_changed,
+                    "is_required": setting.is_required,
+                }
+            )
+
+        sections[section_key] = section_settings
+
+    return sections
+
+
+def _build_phase_settings(config: Any | None, registry: Any) -> list[dict[str, Any]]:
+    """Build phase-level settings for the Phases tab.
+
+    Returns a list of phase dicts with their settings.
+    """
+    phase_names = ["plan", "build", "validate", "document", "ship"]
+    phase_settings = registry.get_phase_settings("plan")  # Base phase settings
+
+    phases = []
+    for phase_name in phase_names:
+        settings = []
+        for setting in phase_settings:
+            settings.append(
+                {
+                    "name": setting.name,
+                    "label": _humanize_field_name(setting.name),
+                    "default_value": setting.default,
+                    "display_default": _format_display_value(setting.default),
+                    "description": setting.description,
+                    "type_hint": setting.type_hint,
+                    "current_value": None,
+                    "display_value": "—",
+                    "is_changed": False,
+                }
+            )
+        phases.append(
+            {
+                "name": phase_name,
+                "label": _humanize_field_name(phase_name),
+                "settings": settings,
+            }
+        )
+
+    return phases
+
+
+@router.get("/settings", response_class=HTMLResponse)
+async def settings(
+    request: Request,
+    project: str = Query("", alias="project"),
+    tab: str = Query("project", alias="tab"),
+    index_manager: IndexManager = Depends(get_index_manager),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
+) -> HTMLResponse:
+    """Render the settings page.
+
+    Returns the full page or just the ``#settings`` partial
+    depending on whether the request came from HTMX.
+    """
+    from adw.config.loader import ConfigLoader
+    from adw.config.registry import ConfigRegistry
+
+    templates: Jinja2Templates = request.app.state.templates
+    context = _build_page_context(
+        request,
+        "settings",
+        index_manager=index_manager,
+        project_registry=project_registry,
+        project=project,
+    )
+
+    # Build project list for settings-specific selector
+    all_projects = project_registry.get_all()
+    settings_projects = [{"path": str(p.path), "name": p.name} for p in all_projects]
+    context["settings_projects"] = settings_projects
+
+    # Resolve selected project
+    selected_settings_project: str | None = None
+    config = None
+
+    if project:
+        # Resolve display name to path
+        project_path_str, _ = resolve_project_filter(project_registry, project)
+        if project_path_str:
+            selected_settings_project = project
+            try:
+                loader = ConfigLoader(project_root=Path(project_path_str))
+                config = loader.load()
+            except Exception:
+                logger.warning(
+                    "Failed to load config for project",
+                    extra={"project": project},
+                )
+
+    context["selected_settings_project"] = selected_settings_project
+
+    # Build settings data if project is loaded
+    registry = ConfigRegistry()
+    if config is not None:
+        context["settings_sections"] = build_settings_context(config, registry)
+        context["phase_settings"] = _build_phase_settings(config, registry)
+        context["has_config"] = True
+        context["has_project_config"] = ConfigLoader(
+            project_root=Path(
+                resolve_project_filter(project_registry, project)[0] or ""
+            )
+        ).has_project_config
+    else:
+        context["settings_sections"] = build_settings_context(None, registry)
+        context["phase_settings"] = _build_phase_settings(None, registry)
+        context["has_config"] = False
+        context["has_project_config"] = False
+
+    # Tab state
+    valid_tab_keys = [t[0] for t in _SETTINGS_TABS]
+    if tab not in valid_tab_keys:
+        tab = "project"
+    context["active_tab"] = tab
+    context["settings_tabs"] = _SETTINGS_TABS
+
+    if request.headers.get("HX-Request"):
+        return templates.TemplateResponse(request, "partials/settings.html", context)
+    return templates.TemplateResponse(request, "pages/settings.html", context)
+
+
 @router.get("/health")
 async def health() -> dict[str, str]:
     """Dashboard health check."""
