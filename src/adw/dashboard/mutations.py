@@ -379,6 +379,9 @@ def _deep_set(data: dict[str, Any], keys: list[str], value: Any) -> None:
         value: The value to set.
     """
     for key in keys[:-1]:
+        existing = data.get(key)
+        if not isinstance(existing, dict):
+            data[key] = {}
         data = data.setdefault(key, {})
     data[keys[-1]] = value
 
@@ -481,6 +484,12 @@ async def save_settings(
             logger.warning(
                 "Failed to read existing config for merge",
                 extra={"project": project_display, "error": str(e)},
+            )
+            return _render_settings_error(
+                request, templates,
+                f"Failed to read existing config: {e}",
+                section, project_display,
+                project_registry=project_registry,
             )
 
     # Seed required fields if missing (name, language are required by ProjectConfig)
