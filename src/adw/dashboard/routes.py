@@ -1889,6 +1889,56 @@ def build_settings_context(
     return sections
 
 
+def compute_changed_counts(
+    settings_sections: dict[str, list[dict[str, Any]]],
+    task_manager_context: dict[str, Any],
+    security_context: dict[str, Any],
+) -> dict[str, int]:
+    """Compute the number of changed-from-default fields per settings section.
+
+    Args:
+        settings_sections: Output from ``build_settings_context()``.
+        task_manager_context: Output from ``build_complex_settings_context()``.
+        security_context: Output from ``build_complex_settings_context()``.
+
+    Returns:
+        Dict mapping section key to count of changed fields.
+    """
+    counts: dict[str, int] = {}
+
+    # Standard sections from build_settings_context
+    for section_key, section_settings in settings_sections.items():
+        counts[section_key] = sum(
+            1 for s in section_settings if s.get("is_changed")
+        )
+
+    # Task Manager section — compare against known defaults
+    tm_defaults: dict[str, Any] = {
+        "type": "none",
+        "team_key": "",
+        "sync_comments": False,
+        "auto_close": False,
+        "labels_enabled": True,
+        "label_prefix": "adw:",
+    }
+    tm_changed = 0
+    for field, default in tm_defaults.items():
+        if task_manager_context.get(field) != default:
+            tm_changed += 1
+    counts["task_manager"] = tm_changed
+
+    # Security section — non-empty lists mean changed
+    sec_changed = 0
+    if task_manager_context is not None:
+        if security_context.get("blocked_commands"):
+            sec_changed += 1
+        if security_context.get("blocked_env_files"):
+            sec_changed += 1
+    counts["security"] = sec_changed
+
+    return counts
+
+
 def _build_phase_settings(config: Any | None, registry: Any) -> list[dict[str, Any]]:
     """Build phase-level settings for the Phases tab.
 
@@ -2071,6 +2121,13 @@ async def settings(
         context["has_config"] = False
         context["has_project_config"] = False
     context.update(complex_ctx)
+
+    # Compute changed-from-default counts per section for tab badges
+    context["changed_counts"] = compute_changed_counts(
+        context["settings_sections"],
+        complex_ctx["task_manager_context"],
+        complex_ctx["security_context"],
+    )
 
     # CSRF token for editable settings forms
     context["csrf_token"] = generate_csrf_token(request)

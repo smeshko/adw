@@ -1235,6 +1235,7 @@ async def settings_content(
         _build_phase_settings,
         build_complex_settings_context,
         build_settings_context,
+        compute_changed_counts,
     )
 
     templates: Jinja2Templates = request.app.state.templates
@@ -1269,6 +1270,11 @@ async def settings_content(
         "has_config": config is not None,
         "selected_settings_project": project or None,
         "csrf_token": generate_csrf_token(request),
+        "changed_counts": compute_changed_counts(
+            settings_sections,
+            complex_ctx["task_manager_context"],
+            complex_ctx["security_context"],
+        ),
     }
     context.update(complex_ctx)
 

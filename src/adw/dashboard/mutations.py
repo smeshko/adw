@@ -490,6 +490,7 @@ async def save_settings(
         _build_phase_settings,
         build_complex_settings_context,
         build_settings_context,
+        compute_changed_counts,
     )
 
     templates: Jinja2Templates = request.app.state.templates
@@ -676,6 +677,11 @@ async def save_settings(
         "has_config": True,
         "selected_settings_project": project_display,
         "csrf_token": generate_csrf_token(request),
+        "changed_counts": compute_changed_counts(
+            settings_sections,
+            complex_ctx["task_manager_context"],
+            complex_ctx["security_context"],
+        ),
     }
     context.update(complex_ctx)
 
@@ -993,6 +999,7 @@ def _render_settings_error(
         _build_phase_settings,
         build_complex_settings_context,
         build_settings_context,
+        compute_changed_counts,
     )
 
     # Try to load config for re-rendering the form
@@ -1026,6 +1033,11 @@ def _render_settings_error(
         "has_config": config is not None,
         "selected_settings_project": project_display,
         "csrf_token": generate_csrf_token(request),
+        "changed_counts": compute_changed_counts(
+            settings_sections,
+            complex_ctx["task_manager_context"],
+            complex_ctx["security_context"],
+        ),
     }
     context.update(complex_ctx)
 
