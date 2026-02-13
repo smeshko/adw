@@ -200,10 +200,9 @@
         {# ── Editable field ── #}
         <div class="flex flex-col gap-1">
           <div class="flex items-center gap-2 mb-1">
-            {% if setting.is_changed %}
-            <span class="w-2 h-2 rounded-full bg-accent shrink-0" title="Modified from default"></span>
-            {% endif %}
+            <span class="w-2 h-2 rounded-full bg-accent shrink-0 {% if not setting.is_changed %}hidden{% endif %}" id="dot-{{ setting.name }}" title="Modified from default"></span>
             <label class="font-semibold text-sm" for="field-{{ setting.name }}">{{ setting.label }}</label>
+            <button type="button" class="btn btn-ghost btn-xs {% if not setting.is_changed %}hidden{% endif %}" id="reset-{{ setting.name }}" title="Reset to default">&#8634;</button>
             <span class="badge badge-ghost badge-xs font-mono">{{ setting.type_hint }}</span>
             {% if setting.is_required %}
             <span class="badge badge-error badge-xs">required</span>
@@ -429,11 +428,65 @@
       }
     }
 
+    // Dynamic changed-from-default indicators
+    function updateIndicators(input) {
+      var name = input.name;
+      var dot = document.getElementById('dot-' + name);
+      var resetBtn = document.getElementById('reset-' + name);
+      if (!dot || !resetBtn) return;
+      var defaultVal = input.dataset.default;
+      if (defaultVal === undefined || defaultVal === null) return;
+      var currentVal;
+      if (input.type === 'checkbox') {
+        currentVal = input.checked.toString();
+      } else {
+        currentVal = input.value;
+      }
+      var changed = currentVal !== defaultVal;
+      if (changed) {
+        dot.classList.remove('hidden');
+        resetBtn.classList.remove('hidden');
+      } else {
+        dot.classList.add('hidden');
+        resetBtn.classList.add('hidden');
+      }
+    }
+
+    // Reset button handler
+    function resetField(input) {
+      var defaultVal = input.dataset.default;
+      if (defaultVal === undefined || defaultVal === null) return;
+      if (input.type === 'checkbox') {
+        input.checked = (defaultVal === 'true');
+      } else {
+        input.value = defaultVal;
+      }
+      input.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+
+    // Wire up reset buttons
+    form.querySelectorAll('[id^="reset-"]').forEach(function(btn) {
+      var name = btn.id.replace('reset-', '');
+      var input = form.querySelector('#field-' + name);
+      if (!input) return;
+      btn.addEventListener('click', function() { resetField(input); });
+    });
+
+    // Wire up validation and indicator events
     form.querySelectorAll('input[type="text"], input[type="number"]').forEach(function(input) {
-      input.addEventListener('blur', function() { validate(input); });
+      input.addEventListener('blur', function() { validate(input); updateIndicators(input); });
+      input.addEventListener('change', function() { validate(input); updateIndicators(input); });
     });
     form.querySelectorAll('select').forEach(function(sel) {
-      sel.addEventListener('change', function() { validate(sel); });
+      sel.addEventListener('change', function() { validate(sel); updateIndicators(sel); });
+    });
+    form.querySelectorAll('input[type="checkbox"]').forEach(function(chk) {
+      chk.addEventListener('change', function() { updateIndicators(chk); });
+    });
+
+    // Run indicators on page load for initial state
+    form.querySelectorAll('[data-default]').forEach(function(input) {
+      updateIndicators(input);
     });
   })();
   </script>
