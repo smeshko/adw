@@ -266,9 +266,6 @@ class TestIsChangedFlags:
 
     def test_default_config_no_changed(self) -> None:
         """With default values, no field should be marked changed."""
-        from adw.config.loader import ConfigLoader
-
-        # Use a real loader with defaults
         mock_config = MagicMock()
         mock_config.name = "test-app"
         mock_config.language = "python"
