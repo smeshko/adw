@@ -1739,6 +1739,20 @@ def _resolve_config_value(config: Any, section: str, field_name: str) -> Any:
     return getattr(sub_config, field_name, None)
 
 
+def _normalize_default(value: Any) -> Any:
+    """Normalize PydanticUndefined sentinel to None.
+
+    Required fields in Pydantic have ``PydanticUndefined`` as default.
+    Templates would render this sentinel literally, so we convert it
+    to ``None`` which ``_format_display_value`` handles gracefully.
+    """
+    from pydantic_core import PydanticUndefined
+
+    if value is PydanticUndefined:
+        return None
+    return value
+
+
 def _format_display_value(value: Any) -> str:
     """Format a config value for display in the template."""
     if value is None:
@@ -1791,7 +1805,7 @@ def build_settings_context(
                     config, section_key, setting.name
                 )
 
-            default_value = setting.default
+            default_value = _normalize_default(setting.default)
             display_value = _format_display_value(current_value)
             display_default = _format_display_value(default_value)
 
@@ -1828,7 +1842,7 @@ def build_settings_context(
                     current_value = _resolve_config_value(
                         config, "llm", setting.name
                     )
-                default_value = setting.default
+                default_value = _normalize_default(setting.default)
                 display_value = _format_display_value(current_value)
                 display_default = _format_display_value(default_value)
                 is_changed = False
@@ -1863,7 +1877,7 @@ def build_settings_context(
                     current_value = _resolve_config_value(
                         config, "worktree", setting.name
                     )
-                default_value = setting.default
+                default_value = _normalize_default(setting.default)
                 display_value = _format_display_value(current_value)
                 display_default = _format_display_value(default_value)
                 is_changed = False
