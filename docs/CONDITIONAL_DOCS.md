@@ -297,3 +297,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When using the key-value pair editor pattern with `addKVRow()`/`reindexKV()` in dashboard templates
     - When extending phase config models or adding new phase-specific fields
     - When working with `PHASE_DEFAULTS` or `get_config_class()` for phase configuration
+
+- docs/features/reset-defaults-changed-indicators-validation.md
+  - Conditions:
+    - When adding reset-to-default functionality to settings fields
+    - When implementing changed-from-default indicators on the Settings page
+    - When extending client-side validation in Settings forms
+    - When computing changed-count badges for settings tab labels
+    - When adding dynamic accent dot or reset button UI patterns to editable fields

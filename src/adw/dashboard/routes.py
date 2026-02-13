@@ -1739,6 +1739,20 @@ def _resolve_config_value(config: Any, section: str, field_name: str) -> Any:
     return getattr(sub_config, field_name, None)
 
 
+def _normalize_default(value: Any) -> Any:
+    """Normalize PydanticUndefined sentinel to None.
+
+    Required fields in Pydantic have ``PydanticUndefined`` as default.
+    Templates would render this sentinel literally, so we convert it
+    to ``None`` which ``_format_display_value`` handles gracefully.
+    """
+    from pydantic_core import PydanticUndefined
+
+    if value is PydanticUndefined:
+        return None
+    return value
+
+
 def _format_display_value(value: Any) -> str:
     """Format a config value for display in the template."""
     if value is None:
@@ -1791,7 +1805,7 @@ def build_settings_context(
                     config, section_key, setting.name
                 )
 
-            default_value = setting.default
+            default_value = _normalize_default(setting.default)
             display_value = _format_display_value(current_value)
             display_default = _format_display_value(default_value)
 
@@ -1828,7 +1842,7 @@ def build_settings_context(
                     current_value = _resolve_config_value(
                         config, "llm", setting.name
                     )
-                default_value = setting.default
+                default_value = _normalize_default(setting.default)
                 display_value = _format_display_value(current_value)
                 display_default = _format_display_value(default_value)
                 is_changed = False
@@ -1863,7 +1877,7 @@ def build_settings_context(
                     current_value = _resolve_config_value(
                         config, "worktree", setting.name
                     )
-                default_value = setting.default
+                default_value = _normalize_default(setting.default)
                 display_value = _format_display_value(current_value)
                 display_default = _format_display_value(default_value)
                 is_changed = False
@@ -1887,6 +1901,56 @@ def build_settings_context(
         sections[section_key] = section_settings
 
     return sections
+
+
+def compute_changed_counts(
+    settings_sections: dict[str, list[dict[str, Any]]],
+    task_manager_context: dict[str, Any],
+    security_context: dict[str, Any],
+) -> dict[str, int]:
+    """Compute the number of changed-from-default fields per settings section.
+
+    Args:
+        settings_sections: Output from ``build_settings_context()``.
+        task_manager_context: Output from ``build_complex_settings_context()``.
+        security_context: Output from ``build_complex_settings_context()``.
+
+    Returns:
+        Dict mapping section key to count of changed fields.
+    """
+    counts: dict[str, int] = {}
+
+    # Standard sections from build_settings_context
+    for section_key, section_settings in settings_sections.items():
+        counts[section_key] = sum(
+            1 for s in section_settings if s.get("is_changed")
+        )
+
+    # Task Manager section — compare against known defaults
+    tm_defaults: dict[str, Any] = {
+        "type": "none",
+        "team_key": "",
+        "sync_comments": False,
+        "auto_close": False,
+        "labels_enabled": True,
+        "label_prefix": "adw:",
+    }
+    tm_changed = 0
+    for field, default in tm_defaults.items():
+        if task_manager_context.get(field) != default:
+            tm_changed += 1
+    counts["task_manager"] = tm_changed
+
+    # Security section — non-empty lists mean changed
+    sec_changed = 0
+    if security_context is not None:
+        if security_context.get("blocked_commands"):
+            sec_changed += 1
+        if security_context.get("blocked_env_files"):
+            sec_changed += 1
+    counts["security"] = sec_changed
+
+    return counts
 
 
 def _build_phase_settings(config: Any | None, registry: Any) -> list[dict[str, Any]]:
@@ -2071,6 +2135,13 @@ async def settings(
         context["has_config"] = False
         context["has_project_config"] = False
     context.update(complex_ctx)
+
+    # Compute changed-from-default counts per section for tab badges
+    context["changed_counts"] = compute_changed_counts(
+        context["settings_sections"],
+        complex_ctx["task_manager_context"],
+        complex_ctx["security_context"],
+    )
 
     # CSRF token for editable settings forms
     context["csrf_token"] = generate_csrf_token(request)
