@@ -250,6 +250,7 @@
                    {% if setting.current_value %}checked{% endif %}>
             <span class="text-sm text-base-content/70">{{ setting.description }}</span>
           </label>
+          <span class="text-base-content/50 text-xs" id="default-hint-{{ setting.name }}">Default: {{ setting.default_value|lower if setting.default_value is not none else 'false' }}</span>
 
           {# Number input for numeric fields #}
           {% elif setting.type_hint in ['int', 'float'] or setting.name in ['max_retries', 'base_delay_seconds', 'max_delay_seconds', 'multiplier', 'backend_start', 'frontend_start'] %}
@@ -283,8 +284,8 @@
           {% if setting.description and setting.type_hint != 'bool' %}
           <p class="text-xs text-base-content/60">{{ setting.description }}</p>
           {% endif %}
-          {% if setting.display_default and setting.display_default != setting.display_value %}
-          <span class="text-base-content/50 text-xs">Default: {{ setting.display_default }}</span>
+          {% if setting.display_default %}
+          <span class="text-base-content/50 text-xs" id="default-hint-{{ setting.name }}">Default: {{ setting.display_default }}</span>
           {% endif %}
         </div>
 
