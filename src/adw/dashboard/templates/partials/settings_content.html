@@ -469,7 +469,12 @@
       } else {
         currentVal = input.value;
       }
-      var changed = currentVal !== defaultVal;
+      var changed;
+      if (input.type === 'number' && !isNaN(parseFloat(currentVal)) && !isNaN(parseFloat(defaultVal))) {
+        changed = parseFloat(currentVal) !== parseFloat(defaultVal);
+      } else {
+        changed = currentVal !== defaultVal;
+      }
       if (changed) {
         dot.classList.remove('hidden');
         resetBtn.classList.remove('hidden');

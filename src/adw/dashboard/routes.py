@@ -1929,7 +1929,7 @@ def compute_changed_counts(
 
     # Security section — non-empty lists mean changed
     sec_changed = 0
-    if task_manager_context is not None:
+    if security_context is not None:
         if security_context.get("blocked_commands"):
             sec_changed += 1
         if security_context.get("blocked_env_files"):
