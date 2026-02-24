@@ -173,13 +173,15 @@ class TestCommandResolverOptionalFileDetection:
 
     def test_no_optional_files_detected_as_false(self, tmp_path: Path) -> None:
         """Should report False for missing optional files."""
-        project_cmd = tmp_path / ".adw" / "commands" / "plan"
+        # Use a custom command name with no bundled equivalent to avoid
+        # hook chaining picking up bundled hooks
+        project_cmd = tmp_path / ".adw" / "commands" / "custom-test-cmd"
         project_cmd.mkdir(parents=True)
-        (project_cmd / "prompt.md").write_text("# Plan")
+        (project_cmd / "prompt.md").write_text("# Custom")
         # No schema, hooks, or config
 
         resolver = CommandResolver(project_root=tmp_path)
-        result = resolver.resolve("plan")
+        result = resolver.resolve("custom-test-cmd")
 
         assert result.has_schema is False
         assert result.has_pre_hook is False

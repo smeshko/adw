@@ -280,27 +280,31 @@ class PhaseRunner:
         """
         logger.debug("Running pre-hook", extra={"phase": phase})
 
-        if command.pre_hook_path is None:
+        if not command.pre_hook_paths:
             logger.debug("No pre-hook for phase", extra={"phase": phase})
             return ""
 
-        try:
-            result = self.hook_runner.run_hook(
-                hook_path=command.pre_hook_path,
-                context=context,
-                phase=phase,
-                hook_type="pre",
-                artifacts_dir=artifacts_dir,
-                working_dir=context.worktree_path,
-            )
-            logger.debug(
-                "Pre-hook completed",
-                extra={"phase": phase, "stdout_len": len(result.stdout)},
-            )
-            return result.stdout
-        except HookError:
-            logger.error("Pre-hook failed", extra={"phase": phase})
-            raise
+        all_stdout = []
+        for hook_path in command.pre_hook_paths:
+            try:
+                result = self.hook_runner.run_hook(
+                    hook_path=hook_path,
+                    context=context,
+                    phase=phase,
+                    hook_type="pre",
+                    artifacts_dir=artifacts_dir,
+                    working_dir=context.worktree_path,
+                )
+                logger.debug(
+                    "Pre-hook completed",
+                    extra={"phase": phase, "hook": str(hook_path), "stdout_len": len(result.stdout)},
+                )
+                all_stdout.append(result.stdout)
+            except HookError:
+                logger.error("Pre-hook failed", extra={"phase": phase, "hook": str(hook_path)})
+                raise
+
+        return "\n".join(all_stdout)
 
     def _load_and_render_prompt(
         self,
@@ -1066,7 +1070,7 @@ class PhaseRunner:
         """
         logger.debug("Running post-hook", extra={"phase": phase})
 
-        if command.post_hook_path is None:
+        if not command.post_hook_paths:
             logger.debug("No post-hook for phase", extra={"phase": phase})
             return
 
@@ -1095,18 +1099,19 @@ class PhaseRunner:
                     extra={"phase": phase, "vars": extension_env_keys},
                 )
 
-            result = self.hook_runner.run_hook(
-                hook_path=command.post_hook_path,
-                context=context,
-                phase=phase,
-                hook_type="post",
-                artifacts_dir=artifacts_dir,
-                working_dir=context.worktree_path,
-            )
-            logger.debug(
-                "Post-hook completed",
-                extra={"phase": phase, "stdout_len": len(result.stdout)},
-            )
+            for hook_path in command.post_hook_paths:
+                result = self.hook_runner.run_hook(
+                    hook_path=hook_path,
+                    context=context,
+                    phase=phase,
+                    hook_type="post",
+                    artifacts_dir=artifacts_dir,
+                    working_dir=context.worktree_path,
+                )
+                logger.debug(
+                    "Post-hook completed",
+                    extra={"phase": phase, "hook": str(hook_path), "stdout_len": len(result.stdout)},
+                )
 
         except HookError as e:
             # Log hook output at ERROR level so it shows at normal verbosity

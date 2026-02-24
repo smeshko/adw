@@ -142,6 +142,41 @@ class CommandResolver:
                 return hook_path
         return None
 
+    def _collect_hook_paths(self, command_name: str, hook_type: str) -> list[Path]:
+        """Collect hooks from all tiers in execution order: bundled -> user -> project.
+
+        Args:
+            command_name: The command name (e.g., "ship").
+            hook_type: Type of hook ("pre" or "post").
+
+        Returns:
+            List of hook paths in execution order. Empty if no hooks exist.
+        """
+        paths: list[Path] = []
+
+        # Bundled tier
+        bundled_path = self._get_bundled_command_path(command_name)
+        if bundled_path:
+            hook = self._find_hook_path(bundled_path, hook_type)
+            if hook:
+                paths.append(hook)
+
+        # User tier
+        user_dir = Path.home() / ".adw" / "commands" / command_name
+        if user_dir.is_dir():
+            hook = self._find_hook_path(user_dir, hook_type)
+            if hook:
+                paths.append(hook)
+
+        # Project tier
+        project_dir = self.project_root / ".adw" / "commands" / command_name
+        if project_dir.is_dir():
+            hook = self._find_hook_path(project_dir, hook_type)
+            if hook:
+                paths.append(hook)
+
+        return paths
+
     def _create_resolved_command(
         self,
         name: str,
@@ -151,6 +186,7 @@ class CommandResolver:
         """Create a ResolvedCommand from a command directory.
 
         Detects presence of optional files (schema, hooks, config).
+        Collects hooks from all tiers (bundled -> user -> project).
 
         Args:
             name: The command name.
@@ -161,8 +197,8 @@ class CommandResolver:
             ResolvedCommand with detected optional files.
         """
         has_schema = (path / "schema.json").is_file()
-        pre_hook_path = self._find_hook_path(path, "pre")
-        post_hook_path = self._find_hook_path(path, "post")
+        pre_hook_paths = self._collect_hook_paths(name, "pre")
+        post_hook_paths = self._collect_hook_paths(name, "post")
         has_config = (path / "config.yaml").is_file()
 
         return ResolvedCommand(
@@ -170,7 +206,7 @@ class CommandResolver:
             path=path,
             tier=tier,
             has_schema=has_schema,
-            pre_hook_path=pre_hook_path,
-            post_hook_path=post_hook_path,
+            pre_hook_paths=pre_hook_paths,
+            post_hook_paths=post_hook_paths,
             has_config=has_config,
         )

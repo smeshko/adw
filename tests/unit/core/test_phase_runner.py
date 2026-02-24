@@ -80,8 +80,8 @@ def mock_command_resolver(command_dir: Path, tmp_path: Path) -> MagicMock:
         name="plan",
         path=command_dir,
         tier="project",
-        pre_hook_path=command_dir / "pre-hook.sh",
-        post_hook_path=command_dir / "post-hook.sh",
+        pre_hook_paths=[command_dir / "pre-hook.sh"],
+        post_hook_paths=[command_dir / "post-hook.sh"],
     )
     resolver.resolve.return_value = resolved
     return resolver
@@ -850,8 +850,8 @@ class TestPhaseRunnerWithMockExecutor:
             name="plan",
             path=command_dir,
             tier="project",
-            pre_hook_path=command_dir / "pre-hook.sh",
-            post_hook_path=command_dir / "post-hook.sh",
+            pre_hook_paths=[command_dir / "pre-hook.sh"],
+            post_hook_paths=[command_dir / "post-hook.sh"],
         )
         resolver.resolve.return_value = resolved
 
