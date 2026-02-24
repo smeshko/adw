@@ -43,73 +43,73 @@ class TestInstructionsXmlStructure:
         execution = instructions_xml.find("execution")
         assert execution is not None
 
-    def test_has_step_4_release_notes(self, instructions_xml: ET.Element) -> None:
-        """Step 4 for release notes generation exists."""
+    def test_has_step_3_release_notes(self, instructions_xml: ET.Element) -> None:
+        """Step 3 for release notes generation exists."""
         execution = instructions_xml.find("execution")
         steps = execution.findall("step") if execution is not None else []
-        step_4 = next((s for s in steps if s.get("n") == "4"), None)
-        assert step_4 is not None
-        assert "release notes" in step_4.get("goal", "").lower()
+        step_3 = next((s for s in steps if s.get("n") == "3"), None)
+        assert step_3 is not None
+        assert "release notes" in step_3.get("goal", "").lower()
 
 
 class TestReleaseNotesStep:
-    """Tests validating Step 4: Release Notes Generation."""
+    """Tests validating Step 3: Release Notes Generation."""
 
     @pytest.fixture
-    def step_4(self, instructions_xml: ET.Element) -> ET.Element:
-        """Get Step 4 element."""
+    def step_3(self, instructions_xml: ET.Element) -> ET.Element:
+        """Get Step 3 element."""
         execution = instructions_xml.find("execution")
         steps = execution.findall("step") if execution is not None else []
-        step = next((s for s in steps if s.get("n") == "4"), None)
-        assert step is not None, "Step 4 not found"
+        step = next((s for s in steps if s.get("n") == "3"), None)
+        assert step is not None, "Step 3 not found"
         return step
 
-    def test_has_version_header_substep(self, step_4: ET.Element) -> None:
-        """Step 4 has substep for version header determination."""
-        substeps = step_4.findall("substep")
+    def test_has_version_header_substep(self, step_3: ET.Element) -> None:
+        """Step 3 has substep for version header determination."""
+        substeps = step_3.findall("substep")
         version_header = next(
             (s for s in substeps if "version-header" in s.get("name", "")), None
         )
         assert version_header is not None
 
-    def test_has_categorize_commits_substep(self, step_4: ET.Element) -> None:
-        """Step 4 has substep for commit categorization."""
-        substeps = step_4.findall("substep")
+    def test_has_categorize_commits_substep(self, step_3: ET.Element) -> None:
+        """Step 3 has substep for commit categorization."""
+        substeps = step_3.findall("substep")
         categorize = next(
             (s for s in substeps if "categorize" in s.get("name", "")), None
         )
         assert categorize is not None
 
-    def test_has_clean_commit_messages_substep(self, step_4: ET.Element) -> None:
-        """Step 4 has substep for commit message cleaning."""
-        substeps = step_4.findall("substep")
+    def test_has_clean_commit_messages_substep(self, step_3: ET.Element) -> None:
+        """Step 3 has substep for commit message cleaning."""
+        substeps = step_3.findall("substep")
         clean = next((s for s in substeps if "clean" in s.get("name", "")), None)
         assert clean is not None
 
-    def test_has_changelog_format_substep(self, step_4: ET.Element) -> None:
-        """Step 4 has substep for Keep a Changelog format."""
-        substeps = step_4.findall("substep")
+    def test_has_changelog_format_substep(self, step_3: ET.Element) -> None:
+        """Step 3 has substep for Keep a Changelog format."""
+        substeps = step_3.findall("substep")
         changelog = next(
             (s for s in substeps if "changelog" in s.get("name", "")), None
         )
         assert changelog is not None
 
-    def test_has_save_artifact_substep(self, step_4: ET.Element) -> None:
-        """Step 4 has substep for saving release notes artifact."""
-        substeps = step_4.findall("substep")
+    def test_has_save_artifact_substep(self, step_3: ET.Element) -> None:
+        """Step 3 has substep for saving release notes artifact."""
+        substeps = step_3.findall("substep")
         artifact = next((s for s in substeps if "artifact" in s.get("name", "")), None)
         assert artifact is not None
 
 
 class TestCommitCategories:
-    """Tests validating commit categorization in Step 4."""
+    """Tests validating commit categorization in Step 3."""
 
     @pytest.fixture
-    def step_4_text(self, ship_instructions_path: Path) -> str:
-        """Get Step 4 content as raw text for pattern matching."""
+    def step_3_text(self, ship_instructions_path: Path) -> str:
+        """Get Step 3 content as raw text for pattern matching."""
         content = ship_instructions_path.read_text()
         # Find step 4 section
-        start = content.find('<step n="4"')
+        start = content.find('<step n="3"')
         if start == -1:
             return ""
         end = content.find("</step>", start)
@@ -138,76 +138,76 @@ class TestCommitCategories:
             "build:",
         ],
     )
-    def test_commit_prefix_documented(self, step_4_text: str, prefix: str) -> None:
+    def test_commit_prefix_documented(self, step_3_text: str, prefix: str) -> None:
         """All conventional commit prefixes are documented in categorization rules."""
         # Check prefix appears in the categorization section
-        assert prefix in step_4_text, f"Prefix '{prefix}' not found in Step 4"
+        assert prefix in step_3_text, f"Prefix '{prefix}' not found in Step 3"
 
 
 class TestVersionHeaderLogic:
-    """Tests validating version header logic in Step 4."""
+    """Tests validating version header logic in Step 3."""
 
     @pytest.fixture
-    def step_4_text(self, ship_instructions_path: Path) -> str:
-        """Get Step 4 content as raw text."""
+    def step_3_text(self, ship_instructions_path: Path) -> str:
+        """Get Step 3 content as raw text."""
         content = ship_instructions_path.read_text()
-        start = content.find('<step n="4"')
+        start = content.find('<step n="3"')
         end = content.find("</step>", start)
         return content[start : end + 7] if end != -1 and start != -1 else ""
 
-    def test_version_bump_check_exists(self, step_4_text: str) -> None:
+    def test_version_bump_check_exists(self, step_3_text: str) -> None:
         """Version header substep checks for version_bump_executed."""
-        assert "version_bump_executed" in step_4_text
+        assert "version_bump_executed" in step_3_text
 
-    def test_new_version_variable_used(self, step_4_text: str) -> None:
+    def test_new_version_variable_used(self, step_3_text: str) -> None:
         """Version header uses new_version variable when available."""
-        assert "new_version" in step_4_text
+        assert "new_version" in step_3_text
 
-    def test_unreleased_fallback_exists(self, step_4_text: str) -> None:
+    def test_unreleased_fallback_exists(self, step_3_text: str) -> None:
         """Version header falls back to 'Unreleased' when no version bump."""
-        assert "Unreleased" in step_4_text
+        assert "Unreleased" in step_3_text
 
-    def test_release_date_included(self, step_4_text: str) -> None:
+    def test_release_date_included(self, step_3_text: str) -> None:
         """Version header includes release_date variable."""
-        assert "release_date" in step_4_text
+        assert "release_date" in step_3_text
 
 
 class TestMessageCleaningRules:
-    """Tests validating commit message cleaning rules in Step 4."""
+    """Tests validating commit message cleaning rules in Step 3."""
 
     @pytest.fixture
-    def step_4_text(self, ship_instructions_path: Path) -> str:
-        """Get Step 4 content as raw text."""
+    def step_3_text(self, ship_instructions_path: Path) -> str:
+        """Get Step 3 content as raw text."""
         content = ship_instructions_path.read_text()
-        start = content.find('<step n="4"')
+        start = content.find('<step n="3"')
         end = content.find("</step>", start)
         return content[start : end + 7] if end != -1 and start != -1 else ""
 
-    def test_remove_prefix_rule_documented(self, step_4_text: str) -> None:
+    def test_remove_prefix_rule_documented(self, step_3_text: str) -> None:
         """Message cleaning includes rule to remove conventional commit prefix."""
         # Check for rule about removing prefix
         assert (
-            "Remove conventional commit prefix" in step_4_text
-            or "Rule 1" in step_4_text
+            "Remove conventional commit prefix" in step_3_text
+            or "Rule 1" in step_3_text
         )
 
-    def test_capitalize_rule_documented(self, step_4_text: str) -> None:
+    def test_capitalize_rule_documented(self, step_3_text: str) -> None:
         """Message cleaning includes rule to capitalize first letter."""
-        assert "Capitalize" in step_4_text or "capitalize" in step_4_text
+        assert "Capitalize" in step_3_text or "capitalize" in step_3_text
 
-    def test_first_line_rule_documented(self, step_4_text: str) -> None:
+    def test_first_line_rule_documented(self, step_3_text: str) -> None:
         """Message cleaning includes rule to use first line only."""
-        assert "first line" in step_4_text
+        assert "first line" in step_3_text
 
 
 class TestChangelogFormat:
-    """Tests validating Keep a Changelog format output in Step 4."""
+    """Tests validating Keep a Changelog format output in Step 3."""
 
     @pytest.fixture
-    def step_4_text(self, ship_instructions_path: Path) -> str:
-        """Get Step 4 content as raw text."""
+    def step_3_text(self, ship_instructions_path: Path) -> str:
+        """Get Step 3 content as raw text."""
         content = ship_instructions_path.read_text()
-        start = content.find('<step n="4"')
+        start = content.find('<step n="3"')
         end = content.find("</step>", start)
         return content[start : end + 7] if end != -1 and start != -1 else ""
 
@@ -215,30 +215,30 @@ class TestChangelogFormat:
         "section",
         ["### Added", "### Changed", "### Fixed", "### Documentation", "### Other"],
     )
-    def test_changelog_section_exists(self, step_4_text: str, section: str) -> None:
+    def test_changelog_section_exists(self, step_3_text: str, section: str) -> None:
         """Keep a Changelog sections are defined in format substep."""
-        assert section in step_4_text
+        assert section in step_3_text
 
-    def test_empty_section_omission_documented(self, step_4_text: str) -> None:
+    def test_empty_section_omission_documented(self, step_3_text: str) -> None:
         """Instructions document that empty sections should be omitted."""
-        assert "empty" in step_4_text.lower() or "NOT empty" in step_4_text
+        assert "empty" in step_3_text.lower() or "NOT empty" in step_3_text
 
 
 class TestArtifactOutput:
-    """Tests validating artifact output in Step 4."""
+    """Tests validating artifact output in Step 3."""
 
     @pytest.fixture
-    def step_4_text(self, ship_instructions_path: Path) -> str:
-        """Get Step 4 content as raw text."""
+    def step_3_text(self, ship_instructions_path: Path) -> str:
+        """Get Step 3 content as raw text."""
         content = ship_instructions_path.read_text()
-        start = content.find('<step n="4"')
+        start = content.find('<step n="3"')
         end = content.find("</step>", start)
         return content[start : end + 7] if end != -1 and start != -1 else ""
 
-    def test_artifact_path_specified(self, step_4_text: str) -> None:
+    def test_artifact_path_specified(self, step_3_text: str) -> None:
         """Release notes artifact path is specified."""
-        assert "release_notes.md" in step_4_text
+        assert "release_notes.md" in step_3_text
 
-    def test_artifacts_dir_variable_used(self, step_4_text: str) -> None:
+    def test_artifacts_dir_variable_used(self, step_3_text: str) -> None:
         """Artifact output uses artifacts_dir variable."""
-        assert "artifacts_dir" in step_4_text
+        assert "artifacts_dir" in step_3_text

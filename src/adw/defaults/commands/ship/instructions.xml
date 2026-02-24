@@ -14,7 +14,7 @@
   <universal-rules>
     <rule emoji="🛑">Execute autonomously - NEVER pause for user input</rule>
     <rule emoji="📖">Gather all context via tool calls before analysis</rule>
-    <rule emoji="🔄">Process phases sequentially: GATHER → ANALYZE → EXECUTE → REPORT</rule>
+    <rule emoji="🔄">Process phases sequentially: GATHER → ANALYZE → REPORT</rule>
     <rule emoji="🔒">BLOCKED status prevents all deployment actions</rule>
     <rule emoji="📋">Output status markers for post.sh hook parsing</rule>
     <rule emoji="🎯">Risk assessment is advisory; BLOCKED is definitive</rule>
@@ -28,10 +28,12 @@
     Your responsibilities:
     1. Gather comprehensive context about the PR and changes
     2. Perform pre-flight analysis to assess deployment risk
-    3. Execute configured deployment steps (version bump, build, publish)
-    4. Generate release notes when appropriate
-    5. Make the PR merge decision based on all evidence
-    6. Produce a structured ship report
+    3. Generate release notes when appropriate
+    4. Make the go/no-go merge decision based on risk assessment
+    5. Produce a structured ship report with status markers
+
+    NOTE: Deploy commands (version_bump, build, publish) are executed
+    deterministically by post.sh — NOT by the LLM.
   </role>
 
   <!-- ================================================================== -->
@@ -388,247 +390,18 @@
     </step>
 
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- STEP 3: DEPLOYMENT COMMAND EXECUTION                            -->
+    <!-- NOTE: Deploy commands (version_bump → build → publish) are     -->
+    <!-- executed deterministically by post.sh, NOT by the LLM.         -->
+    <!-- The LLM's role is risk assessment and go/no-go decision only.  -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <step n="3" goal="Execute deployment commands">
-      <critical>Execute commands in strict order: version_bump → build → publish</critical>
-      <critical>First failure stops the sequence - do NOT continue after failure</critical>
-
-      <output>
-      ```
-      ───────────────────────────────────────────────────────────────
-        STEP 3: DEPLOYMENT COMMAND EXECUTION
-      ───────────────────────────────────────────────────────────────
-      ```
-      </output>
-
-      <!-- 3a: Check if any commands are configured -->
-      <substep name="check-commands-configured">
-        <action>Check if ship.commands section has any configured commands:
-          - {{version_bump_command}} is set and not empty
-          - {{build_command}} is set and not empty
-          - {{publish_command}} is set and not empty
-        </action>
-
-        <check if="all three commands are empty or not configured">
-          <output>
-## Command Execution: SKIPPED
-
-No deployment commands configured in ship.commands section.
-Proceeding to release notes generation...
-          </output>
-          <action>Set {{commands_skipped}} = true</action>
-          <action>Set {{deployment_status}} = "SUCCESS"</action>
-          <action>Skip to Step 4 (Release Notes)</action>
-        </check>
-
-        <check if="at least one command is configured">
-          <action>Set {{commands_skipped}} = false</action>
-          <output>
-## Deployment Commands Configured
-
-| Step | Command | Status |
-|------|---------|--------|
-| Version Bump | {{version_bump_command | default: "not configured"}} | pending |
-| Build | {{build_command | default: "not configured"}} | pending |
-| Publish | {{publish_command | default: "not configured"}} | pending |
-          </output>
-        </check>
-      </substep>
-
-      <!-- 3b: Execute Version Bump Command -->
-      <substep name="execute-version-bump">
-        <check if="{{version_bump_command}} is not set or empty">
-          <output>**Version Bump:** Skipped (not configured)</output>
-          <action>Continue to build step</action>
-        </check>
-
-        <check if="{{version_bump_command}} is set and not empty">
-          <output>**Executing Version Bump:** `{{version_bump_command}}`</output>
-
-          <action>Execute via Bash:
-            ```bash
-            {{version_bump_command}}
-            ```
-          </action>
-          <action>Capture stdout as {{version_bump_stdout}}</action>
-          <action>Capture stderr as {{version_bump_stderr}}</action>
-          <action>Capture exit code as {{version_bump_exit_code}}</action>
-
-          <check if="{{version_bump_exit_code}} != 0">
-            <action>Set {{failed_command}} = "version_bump"</action>
-            <action>Set {{failed_command_name}} = "{{version_bump_command}}"</action>
-            <action>Set {{failed_exit_code}} = {{version_bump_exit_code}}</action>
-            <action>Set {{error_output}} = {{version_bump_stderr}} OR {{version_bump_stdout}}</action>
-            <action>Set {{deployment_status}} = "FAILED"</action>
-            <action>Set {{pr_merge_approved}} = false</action>
-            <output>
-### ❌ Version Bump FAILED
-
-**Command:** `{{version_bump_command}}`
-**Exit Code:** {{version_bump_exit_code}}
-**Error Output:**
-```
-{{error_output}}
-```
-
-**Skipping remaining commands. Proceeding to failure diagnosis...**
-            </output>
-            <action>Jump to Step 5 (Failure Diagnosis)</action>
-          </check>
-
-          <check if="{{version_bump_exit_code}} == 0">
-            <output>**Version Bump:** ✓ Success</output>
-
-            <!-- Re-read version file to capture new version -->
-            <action>Re-read {{version_file_path}} to get new version</action>
-            <action>Store new version as {{new_version}}</action>
-
-            <check if="{{new_version}} != {{current_version}}">
-              <output>**Version Updated:** {{current_version}} → {{new_version}}</output>
-              <action>Set {{version_deployed}} = {{new_version}}</action>
-            </check>
-
-            <check if="{{new_version}} == {{current_version}}">
-              <output>**Note:** Version unchanged after bump command</output>
-              <action>Set {{version_deployed}} = {{current_version}}</action>
-            </check>
-          </check>
-        </check>
-      </substep>
-
-      <!-- 3c: Execute Build Command -->
-      <substep name="execute-build">
-        <check if="{{deployment_status}} == 'FAILED'">
-          <action>Skip build - previous command failed</action>
-        </check>
-
-        <check if="{{build_command}} is not set or empty">
-          <output>**Build:** Skipped (not configured)</output>
-          <action>Continue to publish step</action>
-        </check>
-
-        <check if="{{build_command}} is set and not empty AND {{deployment_status}} != 'FAILED'">
-          <output>**Executing Build:** `{{build_command}}`</output>
-
-          <action>Execute via Bash:
-            ```bash
-            {{build_command}}
-            ```
-          </action>
-          <action>Capture stdout as {{build_stdout}}</action>
-          <action>Capture stderr as {{build_stderr}}</action>
-          <action>Capture exit code as {{build_exit_code}}</action>
-
-          <check if="{{build_exit_code}} != 0">
-            <action>Set {{failed_command}} = "build"</action>
-            <action>Set {{failed_command_name}} = "{{build_command}}"</action>
-            <action>Set {{failed_exit_code}} = {{build_exit_code}}</action>
-            <action>Set {{error_output}} = {{build_stderr}} OR {{build_stdout}}</action>
-            <action>Set {{deployment_status}} = "FAILED"</action>
-            <action>Set {{pr_merge_approved}} = false</action>
-            <output>
-### ❌ Build FAILED
-
-**Command:** `{{build_command}}`
-**Exit Code:** {{build_exit_code}}
-**Error Output:**
-```
-{{error_output}}
-```
-
-**Skipping remaining commands. Proceeding to failure diagnosis...**
-            </output>
-            <action>Jump to Step 5 (Failure Diagnosis)</action>
-          </check>
-
-          <check if="{{build_exit_code}} == 0">
-            <output>**Build:** ✓ Success</output>
-          </check>
-        </check>
-      </substep>
-
-      <!-- 3d: Execute Publish Command -->
-      <substep name="execute-publish">
-        <check if="{{deployment_status}} == 'FAILED'">
-          <action>Skip publish - previous command failed</action>
-        </check>
-
-        <check if="{{publish_command}} is not set or empty">
-          <output>**Publish:** Skipped (not configured)</output>
-          <action>Set {{deployment_status}} = "SUCCESS"</action>
-        </check>
-
-        <check if="{{publish_command}} is set and not empty AND {{deployment_status}} != 'FAILED'">
-          <output>**Executing Publish:** `{{publish_command}}`</output>
-
-          <action>Execute via Bash:
-            ```bash
-            {{publish_command}}
-            ```
-          </action>
-          <action>Capture stdout as {{publish_stdout}}</action>
-          <action>Capture stderr as {{publish_stderr}}</action>
-          <action>Capture exit code as {{publish_exit_code}}</action>
-
-          <check if="{{publish_exit_code}} != 0">
-            <action>Set {{failed_command}} = "publish"</action>
-            <action>Set {{failed_command_name}} = "{{publish_command}}"</action>
-            <action>Set {{failed_exit_code}} = {{publish_exit_code}}</action>
-            <action>Set {{error_output}} = {{publish_stderr}} OR {{publish_stdout}}</action>
-            <action>Set {{deployment_status}} = "FAILED"</action>
-            <action>Set {{pr_merge_approved}} = false</action>
-            <output>
-### ❌ Publish FAILED
-
-**Command:** `{{publish_command}}`
-**Exit Code:** {{publish_exit_code}}
-**Error Output:**
-```
-{{error_output}}
-```
-
-**Proceeding to failure diagnosis...**
-            </output>
-            <action>Jump to Step 5 (Failure Diagnosis)</action>
-          </check>
-
-          <check if="{{publish_exit_code}} == 0">
-            <output>**Publish:** ✓ Success</output>
-            <action>Set {{deployment_status}} = "SUCCESS"</action>
-          </check>
-        </check>
-      </substep>
-
-      <!-- 3e: Display Execution Summary -->
-      <substep name="execution-summary">
-        <check if="{{deployment_status}} == 'SUCCESS'">
-          <output>
-## Command Execution: SUCCESS
-
-| Step | Command | Result |
-|------|---------|--------|
-| Version Bump | {{version_bump_command | default: "skipped"}} | {{#if version_bump_exit_code}}{{version_bump_exit_code == 0 ? "✓" : "failed"}}{{else}}skipped{{/if}} |
-| Build | {{build_command | default: "skipped"}} | {{#if build_exit_code}}{{build_exit_code == 0 ? "✓" : "failed"}}{{else}}skipped{{/if}} |
-| Publish | {{publish_command | default: "skipped"}} | {{#if publish_exit_code}}{{publish_exit_code == 0 ? "✓" : "failed"}}{{else}}skipped{{/if}} |
-
-{{#if version_deployed}}
-**Version Deployed:** {{version_deployed}}
-{{/if}}
-
-**Proceeding to release notes generation...**
-          </output>
-        </check>
-      </substep>
-    </step>
 
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- STEP 4: RELEASE NOTES GENERATION                                -->
+    <!-- STEP 3: RELEASE NOTES GENERATION                                -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <step n="4" goal="Generate release notes">
+    <step n="3" goal="Generate release notes">
       <critical>Generate release notes from commits in Keep a Changelog format</critical>
       <critical>Use commit list gathered in Step 1</critical>
-      <critical>Use new version from Step 3 if version_bump executed, otherwise use "Unreleased"</critical>
+      <critical>Use current version detected in Step 1 (version_bump runs in post.sh, so use "Unreleased" header)</critical>
 
       <output>
       ```
@@ -845,425 +618,43 @@ Proceeding to release notes generation...
       </substep>
     </step>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- STEP 5: FAILURE DIAGNOSIS & RECOVERY                            -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <step n="5" goal="Diagnose deployment failure and provide recovery steps">
-      <critical>ONLY execute this step if {{deployment_status}} == "FAILED"</critical>
-      <critical>ALWAYS set PR_MERGE_APPROVED: false when deployment fails</critical>
-      <critical>Provide actionable remediation steps based on error analysis</critical>
-
-      <output>
-      ```
-      ───────────────────────────────────────────────────────────────
-        STEP 5: FAILURE DIAGNOSIS &amp; RECOVERY
-      ───────────────────────────────────────────────────────────────
-      ```
-      </output>
-
-      <!-- 5a: Validate Failure State -->
-      <substep name="validate-failure-state">
-        <check if="{{deployment_status}} != 'FAILED'">
-          <action>Skip this step - deployment did not fail</action>
-          <action>Jump to Step 6 (Ship Report)</action>
-        </check>
-
-        <check if="{{deployment_status}} == 'FAILED'">
-          <output>
-## Deployment Failure Diagnosis
-
-**Failed Step:** {{failed_command}}
-**Command:** `{{failed_command_name}}`
-**Exit Code:** {{failed_exit_code}}
-          </output>
-        </check>
-      </substep>
-
-      <!-- 5b: Analyze Version Bump Failures -->
-      <substep name="diagnose-version-bump">
-        <check if="{{failed_command}} == 'version_bump'">
-          <action>Analyze {{error_output}} for common version_bump failure patterns:</action>
-
-          <!-- Pattern: Uncommitted changes -->
-          <check if="{{error_output}} contains 'not clean' OR 'dirty' OR 'uncommitted' OR 'would be overwritten'">
-            <action>Set {{diagnosis}} = "Uncommitted changes in working directory"</action>
-            <action>Set {{diagnosis_details}} = "The version bump command cannot proceed because there are uncommitted changes that would be overwritten or cause conflicts."</action>
-            <action>Set {{remediation}} list:
-              1. Commit your current changes: `git add -A &amp;&amp; git commit -m 'WIP'`
-              2. Or stash changes temporarily: `git stash push -m 'before version bump'`
-              3. Then retry the ship phase: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Invalid version format -->
-          <check if="{{error_output}} contains 'Invalid version' OR 'invalid version' OR 'version format' OR 'semver' OR 'not valid'">
-            <action>Set {{diagnosis}} = "Invalid version format"</action>
-            <action>Set {{diagnosis_details}} = "The version string in {{version_file_path}} does not conform to the expected format (typically semver: MAJOR.MINOR.PATCH)."</action>
-            <action>Set {{remediation}} list:
-              1. Check the current version in {{version_file_path}}
-              2. Ensure it follows semver format: X.Y.Z (e.g., 1.2.3)
-              3. Fix any pre-release or build metadata formatting issues
-              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Tag already exists -->
-          <check if="{{error_output}} contains 'already exists' OR 'tag exists' OR 'duplicate tag' OR 'conflict'">
-            <action>Set {{diagnosis}} = "Git tag conflict"</action>
-            <action>Set {{diagnosis_details}} = "A git tag for the target version already exists, preventing the version bump from completing."</action>
-            <action>Set {{remediation}} list:
-              1. Check existing tags: `git tag -l`
-              2. If the tag is incorrect, delete it: `git tag -d v{{new_version}}`
-              3. Also delete from remote if pushed: `git push origin :refs/tags/v{{new_version}}`
-              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Permission denied -->
-          <check if="{{error_output}} contains 'Permission denied' OR 'EACCES' OR 'permission' OR 'read-only'">
-            <action>Set {{diagnosis}} = "File permission error"</action>
-            <action>Set {{diagnosis_details}} = "The version file {{version_file_path}} cannot be written due to file system permissions."</action>
-            <action>Set {{remediation}} list:
-              1. Check file permissions: `ls -la {{version_file_path}}`
-              2. Fix permissions if needed: `chmod 644 {{version_file_path}}`
-              3. Ensure you own the file: `chown $(whoami) {{version_file_path}}`
-              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Command not found -->
-          <check if="{{error_output}} contains 'command not found' OR 'not found' OR 'not recognized' OR 'ENOENT'">
-            <action>Set {{diagnosis}} = "Version bump tool not installed"</action>
-            <action>Set {{diagnosis_details}} = "The version bump command could not be found. The required tool may not be installed or not in PATH."</action>
-            <action>Set {{remediation}} list:
-              1. Verify the tool is installed (e.g., npm, cargo, uv)
-              2. Check your PATH includes the tool's location
-              3. Install if missing:
-                 - npm: `npm install -g npm-version` or similar
-                 - Python: `uv pip install bump2version`
-                 - Rust: Tool comes with cargo
-              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Default: Unknown version_bump error -->
-          <check if="{{diagnosis}} is NOT set">
-            <action>Set {{diagnosis}} = "Unknown version bump error"</action>
-            <action>Set {{diagnosis_details}} = "The version bump command failed with an unrecognized error pattern. Manual investigation required."</action>
-            <action>Set {{remediation}} list:
-              1. Review the full error output above
-              2. Try running the command manually: `{{version_bump_command}}`
-              3. Check the version file format in {{version_file_path}}
-              4. Consult the tool's documentation for this error
-              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-        </check>
-      </substep>
-
-      <!-- 5c: Analyze Build Failures -->
-      <substep name="diagnose-build">
-        <check if="{{failed_command}} == 'build'">
-          <action>Analyze {{error_output}} for common build failure patterns:</action>
-
-          <!-- Pattern: Missing dependency -->
-          <check if="{{error_output}} contains 'Module not found' OR 'Cannot find module' OR 'ModuleNotFoundError' OR 'No module named' OR 'could not find crate'">
-            <action>Set {{diagnosis}} = "Missing dependency"</action>
-            <action>Set {{diagnosis_details}} = "The build failed because a required module or package is not installed."</action>
-            <action>Set {{remediation}} list:
-              1. Install dependencies:
-                 - npm/node: `npm install` or `npm ci`
-                 - Python: `uv sync` or `pip install -e .`
-                 - Rust: `cargo build` (auto-installs)
-              2. Check if the missing module is in your dependencies
-              3. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Import/require error -->
-          <check if="{{error_output}} contains 'ImportError' OR 'import error' OR 'require(' OR 'cannot resolve'">
-            <action>Set {{diagnosis}} = "Import resolution error"</action>
-            <action>Set {{diagnosis_details}} = "The build failed due to an import path that cannot be resolved."</action>
-            <action>Set {{remediation}} list:
-              1. Check the import path in the error message
-              2. Verify the module name is spelled correctly
-              3. Ensure the file exists at the expected location
-              4. Check for circular imports
-              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Compilation/syntax error -->
-          <check if="{{error_output}} contains 'SyntaxError' OR 'syntax error' OR 'Compilation failed' OR 'error:' OR 'TypeError' OR 'parse error'">
-            <action>Set {{diagnosis}} = "Compilation or syntax error"</action>
-            <action>Set {{diagnosis_details}} = "The build failed due to a code syntax or type error."</action>
-            <action>Set {{remediation}} list:
-              1. Look for the file:line reference in the error
-              2. Fix the syntax or type error at that location
-              3. Run linter locally: `ruff check .` or `eslint .`
-              4. Run type checker: `mypy .` or `tsc --noEmit`
-              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Test failure -->
-          <check if="{{error_output}} contains 'test failed' OR 'FAILED' OR 'AssertionError' OR 'Expected' OR 'failed test'">
-            <action>Set {{diagnosis}} = "Test failure during build"</action>
-            <action>Set {{diagnosis_details}} = "The build process includes tests that are failing."</action>
-            <action>Set {{remediation}} list:
-              1. Run tests locally to see full output:
-                 - Python: `pytest -v`
-                 - Node: `npm test`
-                 - Rust: `cargo test`
-              2. Fix the failing tests
-              3. Ensure all tests pass before shipping
-              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Out of memory -->
-          <check if="{{error_output}} contains 'out of memory' OR 'heap' OR 'ENOMEM' OR 'JavaScript heap'">
-            <action>Set {{diagnosis}} = "Out of memory during build"</action>
-            <action>Set {{diagnosis_details}} = "The build process ran out of memory."</action>
-            <action>Set {{remediation}} list:
-              1. Increase Node.js memory: `NODE_OPTIONS=--max-old-space-size=4096`
-              2. Close other applications to free memory
-              3. Consider building in smaller chunks
-              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Missing file -->
-          <check if="{{error_output}} contains 'ENOENT' OR 'No such file' OR 'FileNotFoundError' OR 'not found'">
-            <action>Set {{diagnosis}} = "Missing file or directory"</action>
-            <action>Set {{diagnosis_details}} = "The build references a file or directory that does not exist."</action>
-            <action>Set {{remediation}} list:
-              1. Check the file path in the error message
-              2. Ensure the file exists and is committed to git
-              3. Check for case-sensitivity issues in file names
-              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Default: Unknown build error -->
-          <check if="{{diagnosis}} is NOT set">
-            <action>Set {{diagnosis}} = "Unknown build error"</action>
-            <action>Set {{diagnosis_details}} = "The build command failed with an unrecognized error pattern. Manual investigation required."</action>
-            <action>Set {{remediation}} list:
-              1. Review the full error output above
-              2. Try running the command manually: `{{build_command}}`
-              3. Check for recent changes that might have broken the build
-              4. Consult build tool documentation
-              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-        </check>
-      </substep>
-
-      <!-- 5d: Analyze Publish Failures -->
-      <substep name="diagnose-publish">
-        <check if="{{failed_command}} == 'publish'">
-          <action>Analyze {{error_output}} for common publish failure patterns:</action>
-
-          <!-- Pattern: Authentication error -->
-          <check if="{{error_output}} contains '403' OR '401' OR 'Forbidden' OR 'Unauthorized' OR 'authentication' OR 'not authorized'">
-            <action>Set {{diagnosis}} = "Authentication or permission error"</action>
-            <action>Set {{diagnosis_details}} = "The publish command failed due to missing or invalid authentication credentials."</action>
-            <action>Set {{remediation}} list:
-              1. Check your authentication:
-                 - npm: Verify NPM_TOKEN or run `npm login`
-                 - PyPI: Check PYPI_TOKEN or TWINE_USERNAME/TWINE_PASSWORD
-                 - Cargo: Run `cargo login`
-              2. Ensure token has publish permissions
-              3. Check if you have access to the package/org
-              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Version conflict -->
-          <check if="{{error_output}} contains '409' OR 'Conflict' OR 'already exists' OR 'version exists' OR 'Cannot publish over'">
-            <action>Set {{diagnosis}} = "Version already published"</action>
-            <action>Set {{diagnosis_details}} = "This version has already been published to the registry. You cannot overwrite existing versions."</action>
-            <action>Set {{remediation}} list:
-              1. Bump to a new version: `{{version_bump_command}}`
-              2. Or if this was a failed retry, check if it actually published
-              3. Verify current published version: `npm view &lt;pkg&gt; version` or similar
-              4. Then retry with new version: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Network error -->
-          <check if="{{error_output}} contains 'ECONNREFUSED' OR 'network' OR 'ETIMEDOUT' OR 'socket' OR 'connection refused'">
-            <action>Set {{diagnosis}} = "Network or registry connection error"</action>
-            <action>Set {{diagnosis_details}} = "Cannot connect to the package registry. This may be a temporary network issue."</action>
-            <action>Set {{remediation}} list:
-              1. Check your internet connection
-              2. Verify registry URL is correct
-              3. Check registry status page for outages
-              4. Try again in a few minutes
-              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Rate limiting -->
-          <check if="{{error_output}} contains 'rate limit' OR '429' OR 'Too Many Requests' OR 'throttle'">
-            <action>Set {{diagnosis}} = "Rate limited by registry"</action>
-            <action>Set {{diagnosis_details}} = "The package registry has temporarily blocked requests due to rate limiting."</action>
-            <action>Set {{remediation}} list:
-              1. Wait 5-10 minutes before retrying
-              2. Check if you're using automated tools that make many requests
-              3. Consider using authenticated requests (higher limits)
-              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Package name issues -->
-          <check if="{{error_output}} contains '404' OR 'not found' OR 'Invalid package name' OR 'name taken'">
-            <action>Set {{diagnosis}} = "Package name error"</action>
-            <action>Set {{diagnosis_details}} = "The package name is invalid, already taken, or the package doesn't exist."</action>
-            <action>Set {{remediation}} list:
-              1. Check package name in configuration
-              2. Verify you have access to this package name
-              3. For new packages, ensure the name is available
-              4. Check for typos in package name
-              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Payment required (npm) -->
-          <check if="{{error_output}} contains '402' OR 'Payment Required' OR 'paid' OR 'private package'">
-            <action>Set {{diagnosis}} = "Payment or subscription required"</action>
-            <action>Set {{diagnosis_details}} = "Publishing private packages or to org scopes may require a paid subscription."</action>
-            <action>Set {{remediation}} list:
-              1. Check if package is marked as private
-              2. Verify org subscription status
-              3. Consider publishing as public if appropriate
-              4. Upgrade to paid plan if private packages needed
-              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Pattern: Invalid metadata -->
-          <check if="{{error_output}} contains '400' OR 'Bad Request' OR 'invalid' OR 'metadata' OR 'manifest'">
-            <action>Set {{diagnosis}} = "Invalid package metadata"</action>
-            <action>Set {{diagnosis_details}} = "The package configuration file contains invalid metadata."</action>
-            <action>Set {{remediation}} list:
-              1. Validate your package configuration:
-                 - npm: Check package.json is valid JSON
-                 - Python: Validate pyproject.toml
-                 - Rust: Run `cargo verify-project`
-              2. Check all required fields are present
-              3. Verify URLs, license, and description are valid
-              4. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-
-          <!-- Default: Unknown publish error -->
-          <check if="{{diagnosis}} is NOT set">
-            <action>Set {{diagnosis}} = "Unknown publish error"</action>
-            <action>Set {{diagnosis_details}} = "The publish command failed with an unrecognized error pattern. Manual investigation required."</action>
-            <action>Set {{remediation}} list:
-              1. Review the full error output above
-              2. Try running the command manually: `{{publish_command}}`
-              3. Check registry documentation for this error
-              4. Verify all credentials and permissions
-              5. Then retry: `adw resume &lt;run-id&gt; --from ship`
-            </action>
-          </check>
-        </check>
-      </substep>
-
-      <!-- 5e: Output Diagnosis Report -->
-      <substep name="output-diagnosis">
-        <output>
-### Error Output
-```
-{{error_output}}
-```
-
-### Diagnosis
-**Problem:** {{diagnosis}}
-
-{{diagnosis_details}}
-
-### Remediation Steps
-{{#each remediation}}
-{{@index}}. {{this}}
-{{/each}}
-
-### Recovery
-After applying the fix:
-1. Verify the fix locally by running the failed command
-2. Resume the ship phase: `adw resume &lt;run-id&gt; --from ship`
-
-**Note:** The PR remains open and can be merged manually once the issue is resolved.
-
----
-**Status Confirmation**
-- DEPLOYMENT_STATUS: FAILED
-- PR_MERGE_APPROVED: false
-        </output>
-      </substep>
-
-      <!-- 5f: Confirm Failure Status Flags -->
-      <substep name="confirm-failure-status">
-        <critical>Ensure failure status flags are set correctly for post.sh parsing</critical>
-        <action>Confirm {{deployment_status}} = "FAILED"</action>
-        <action>Confirm {{pr_merge_approved}} = false</action>
-        <action>Proceed to Step 6 for final report generation</action>
-      </substep>
-    </step>
+    <!-- Step 5 (Failure Diagnosis) removed — deploy commands are now
+         executed deterministically by post.sh which handles its own errors. -->
+    <!-- PLACEHOLDER_STEP5_REMOVAL_START -->
 
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- STEP 6: FINALIZATION & PR MERGE DECISION                        -->
+    <!-- STEP 4: FINALIZATION & PR MERGE DECISION                        -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <step n="6" goal="Finalize deployment and determine PR merge approval">
-      <critical>Determine final status based on all prior execution results</critical>
+    <step n="4" goal="Finalize risk assessment and determine PR merge approval">
+      <critical>Determine final status based on risk assessment results</critical>
       <critical>Output structured status markers for post.sh parsing</critical>
       <critical>This step ALWAYS runs - even after failures - to produce final status</critical>
 
       <output>
       ```
       ───────────────────────────────────────────────────────────────
-        STEP 6: FINALIZATION &amp; PR MERGE DECISION
+        STEP 4: FINALIZATION &amp; PR MERGE DECISION
       ───────────────────────────────────────────────────────────────
       ```
       </output>
 
-      <!-- 6a: Determine PR Merge Approval -->
+      <!-- 4a: Determine PR Merge Approval -->
       <substep name="determine-merge-approval">
-        <critical>PR_MERGE_APPROVED is true ONLY when deployment succeeds with no blockers</critical>
+        <critical>PR_MERGE_APPROVED is true ONLY when risk assessment passes with no blockers</critical>
+        <critical>Deploy commands (version_bump, build, publish) run in post.sh AFTER this decision</critical>
 
-        <!-- SUCCESS case: All deployment steps passed -->
-        <check if="{{deployment_status}} == 'SUCCESS'">
-          <check if="{{blocking_issues}} is empty">
-            <action>Set {{pr_merge_approved}} = true</action>
-            <action>Set {{merge_reason}} = "Deployment successful, all checks passed"</action>
-          </check>
-
-          <check if="{{blocking_issues}} is NOT empty">
-            <action>Set {{pr_merge_approved}} = false</action>
-            <action>Set {{merge_reason}} = "Deployment succeeded but blocking issues remain: " + first {{blocking_issues}} item</action>
-          </check>
-        </check>
-
-        <!-- FAILED case: Command execution failed -->
-        <check if="{{deployment_status}} == 'FAILED'">
-          <action>Set {{pr_merge_approved}} = false</action>
-          <action>Set {{merge_reason}} = "Deployment failed at {{failed_command}} step"</action>
-        </check>
-
-        <!-- BLOCKED case: Pre-flight analysis blocked deployment -->
-        <check if="{{deployment_status}} == 'BLOCKED'">
-          <action>Set {{pr_merge_approved}} = false</action>
-          <action>Set {{merge_reason}} = "Deployment blocked: " + first {{blocking_issues}} item</action>
-        </check>
-
-        <!-- SKIPPED case: No commands configured but no blockers -->
-        <check if="{{commands_skipped}} == true AND {{blocking_issues}} is empty">
+        <!-- READY case: No blocking issues found -->
+        <check if="{{blocking_issues}} is empty">
           <action>Set {{deployment_status}} = "SUCCESS"</action>
           <action>Set {{pr_merge_approved}} = true</action>
-          <action>Set {{merge_reason}} = "No deployment commands configured, PR ready for merge"</action>
+          <action>Set {{merge_reason}} = "Risk assessment passed, all checks clear"</action>
+        </check>
+
+        <!-- BLOCKED case: Pre-flight analysis found blocking issues -->
+        <check if="{{blocking_issues}} is NOT empty">
+          <action>Set {{deployment_status}} = "BLOCKED"</action>
+          <action>Set {{pr_merge_approved}} = false</action>
+          <action>Set {{merge_reason}} = "Deployment blocked: " + first {{blocking_issues}} item</action>
         </check>
 
         <!-- Default case: Unknown status -->
@@ -1274,7 +665,7 @@ After applying the fix:
         </check>
       </substep>
 
-      <!-- 6b: Determine Version Deployed -->
+      <!-- 4b: Determine Version Deployed -->
       <substep name="determine-version-deployed">
         <check if="{{version_deployed}} is set AND {{version_deployed}} is NOT empty">
           <note>Using version from successful version bump</note>
@@ -1295,7 +686,7 @@ After applying the fix:
         </check>
       </substep>
 
-      <!-- 6c: Output Structured Status Markers -->
+      <!-- 4c: Output Structured Status Markers -->
       <substep name="output-status-markers">
         <critical>These markers are parsed by post.sh - format is EXACT</critical>
         <critical>Each marker MUST be on its own line with exact format: KEY: value</critical>
@@ -1317,7 +708,7 @@ PR_NUMBER: {{pr_number}}
         </output>
       </substep>
 
-      <!-- 6d: Generate Ship Summary -->
+      <!-- 4d: Generate Ship Summary -->
       <substep name="generate-ship-summary">
         <output>
 ---
@@ -1332,27 +723,20 @@ PR_NUMBER: {{pr_number}}
 | Version | {{version_deployed}} |
 | Risk Level | {{risk_level}} |
 
-### Execution Timeline
-{{#if version_bump_exit_code}}
-1. **Version Bump:** {{#if version_bump_exit_code == 0}}✓ Success{{else}}✗ Failed (exit {{version_bump_exit_code}}){{/if}}
-{{/if}}
-{{#if build_exit_code}}
-2. **Build:** {{#if build_exit_code == 0}}✓ Success{{else}}✗ Failed (exit {{build_exit_code}}){{/if}}
-{{/if}}
-{{#if publish_exit_code}}
-3. **Publish:** {{#if publish_exit_code == 0}}✓ Success{{else}}✗ Failed (exit {{publish_exit_code}}){{/if}}
-{{/if}}
-{{#if commands_skipped}}
-- Commands: Skipped (none configured)
-{{/if}}
+### Configured Deploy Commands
+| Step | Command |
+|------|---------|
+| Version Bump | {{version_bump_command | default: "not configured"}} |
+| Build | {{build_command | default: "not configured"}} |
+| Publish | {{publish_command | default: "not configured"}} |
+
+*Deploy commands will be executed by post.sh after this report.*
 
 ### Next Steps
 {{#if pr_merge_approved}}
-**PR will be merged automatically** (if `ship.pr.auto_merge: true` in config)
-- Merge method: {{merge_method | default: "squash"}}
-- Delete branch: {{delete_branch | default: "true"}}
+**Post-hook will:** execute deploy commands → commit artifacts → merge PR (squash)
 {{else}}
-**PR will NOT be merged automatically**
+**PR will NOT be merged**
 - Reason: {{merge_reason}}
 - Manual action required: Review blocking issues and merge manually when ready
 {{/if}}
@@ -1364,7 +748,7 @@ PR_NUMBER: {{pr_number}}
         </output>
       </substep>
 
-      <!-- 6e: Final Confirmation -->
+      <!-- 4e: Final Confirmation -->
       <substep name="final-confirmation">
         <output>
 ---
@@ -1374,10 +758,11 @@ PR_NUMBER: {{pr_number}}
 The post.sh hook will now:
 {{#if pr_merge_approved}}
 1. Parse the status markers above
-2. Check if auto-merge is enabled in ship config
-3. If enabled, merge PR #{{pr_number}} using configured method
-4. Delete the branch if configured
-5. Update task manager status if configured
+2. Execute deploy commands (version_bump → build → publish)
+3. Commit and push any file changes (e.g., version bump artifacts)
+4. Merge PR #{{pr_number}} (squash)
+5. Delete the remote branch
+6. Update task manager status if configured
 {{else}}
 1. Parse the status markers above
 2. Log the deployment status ({{deployment_status}})
@@ -1388,9 +773,9 @@ The post.sh hook will now:
     </step>
 
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- STEP 7: SHIP REPORT GENERATION                                   -->
+    <!-- STEP 5: SHIP REPORT GENERATION                                   -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <step n="7" goal="Generate comprehensive ship report artifact">
+    <step n="5" goal="Generate comprehensive ship report artifact">
       <critical>Generate ship_report.md artifact with structured fields for post.sh parsing</critical>
       <critical>This step ALWAYS runs to produce the required ship_report artifact</critical>
       <critical>Report must include machine-parseable status fields at the TOP</critical>
@@ -1398,12 +783,12 @@ The post.sh hook will now:
       <output>
       ```
       ───────────────────────────────────────────────────────────────
-        STEP 7: GENERATING SHIP REPORT
+        STEP 5: GENERATING SHIP REPORT
       ───────────────────────────────────────────────────────────────
       ```
       </output>
 
-      <!-- 7a: Compile Structured Status Fields -->
+      <!-- 5a: Compile Structured Status Fields -->
       <substep name="compile-status-fields">
         <critical>Status fields MUST be at the top of the report in exact format for parsing</critical>
         <critical>Format: FIELD_NAME: value (one per line, no additional formatting)</critical>
@@ -1416,7 +801,7 @@ The post.sh hook will now:
         </action>
       </substep>
 
-      <!-- 7b: Compile Pre-Flight Summary -->
+      <!-- 5b: Compile Pre-Flight Summary -->
       <substep name="compile-preflight-summary">
         <action>Compile pre-flight summary from Step 2 analysis:
           - Risk level: {{risk_level}} (LOW | MEDIUM | HIGH)
@@ -1427,27 +812,28 @@ The post.sh hook will now:
         </action>
       </substep>
 
-      <!-- 7c: Compile Execution Log -->
+      <!-- 5c: Compile Execution Log -->
       <substep name="compile-execution-log">
-        <action>Compile execution log from Step 3 results:</action>
+        <action>Compile configured deploy commands list:</action>
 
         <check if="{{commands_skipped}} == true">
           <action>Set {{execution_log}} = "No deployment commands configured"</action>
         </check>
 
         <check if="{{commands_skipped}} != true">
-          <action>Build execution log with:
-            - Version Bump: command={{version_bump_command}}, exit_code={{version_bump_exit_code}}, result
-            - Build: command={{build_command}}, exit_code={{build_exit_code}}, result
-            - Publish: command={{publish_command}}, exit_code={{publish_exit_code}}, result
+          <action>Build execution log listing configured deploy commands:
+            - Version Bump: {{version_bump_command | default: "not configured"}}
+            - Build: {{build_command | default: "not configured"}}
+            - Publish: {{publish_command | default: "not configured"}}
+            (Commands will be executed by post.sh)
           </action>
         </check>
       </substep>
 
-      <!-- 7d: Compile Release Notes Section -->
+      <!-- 5d: Compile Release Notes Section -->
       <substep name="compile-release-notes">
         <check if="{{release_notes_content}} is set AND NOT empty">
-          <action>Include full release notes content from Step 4</action>
+          <action>Include full release notes content from Step 3</action>
           <action>Reference artifact file: release_notes.md</action>
         </check>
 
@@ -1456,37 +842,33 @@ The post.sh hook will now:
         </check>
       </substep>
 
-      <!-- 7e: Compile Failure Analysis (Conditional) -->
-      <substep name="compile-failure-analysis">
-        <critical>Only include failure analysis when DEPLOYMENT_STATUS is FAILED</critical>
+      <!-- 5e: Compile Blocking Issues Analysis (Conditional) -->
+      <substep name="compile-blocking-analysis">
+        <critical>Only include blocking analysis when DEPLOYMENT_STATUS is BLOCKED</critical>
 
-        <check if="{{deployment_status}} == 'FAILED'">
-          <action>Include failure analysis from Step 5:
-            - Failed step: {{failed_command}}
-            - Failed command: {{failed_command_name}}
-            - Exit code: {{failed_exit_code}}
-            - Error output: {{error_output}}
-            - Diagnosis: {{diagnosis}}
-            - Diagnosis details: {{diagnosis_details}}
-            - Remediation steps: {{remediation}}
+        <check if="{{deployment_status}} == 'BLOCKED'">
+          <action>Include blocking issues analysis:
+            - List all blocking issues from risk assessment
+            - Explain why each blocks deployment
+            - Suggest remediation for each blocker
           </action>
         </check>
 
-        <check if="{{deployment_status}} != 'FAILED'">
-          <action>Omit failure analysis section from report</action>
+        <check if="{{deployment_status}} != 'BLOCKED'">
+          <action>Omit blocking analysis section from report</action>
         </check>
       </substep>
 
-      <!-- 7f: Compile Verification Recommendations -->
+      <!-- 5f: Compile Verification Recommendations -->
       <substep name="compile-verification">
         <action>Generate verification recommendations based on deployment results:</action>
 
         <check if="{{deployment_status}} == 'SUCCESS'">
           <action>Include verification steps:
-            - If publish succeeded: "Verify package in registry (npm/PyPI/crates.io)"
-            - If version bumped: "Confirm git tag created: git tag -l | grep {{version_deployed}}"
-            - If PR merge approved: "Monitor for branch deletion and merge completion"
-            - General: "Run smoke tests against deployed version"
+            - "Post-hook will execute deploy commands and merge PR"
+            - "Monitor post-hook output for any command failures"
+            - "Verify package in registry after publish completes"
+            - "Run smoke tests against deployed version"
           </action>
         </check>
 
@@ -1497,17 +879,9 @@ The post.sh hook will now:
             - "Re-run ship phase: adw resume &lt;run-id&gt; --from ship"
           </action>
         </check>
-
-        <check if="{{deployment_status}} == 'FAILED'">
-          <action>Include verification steps:
-            - "Apply remediation steps from Failure Analysis section"
-            - "Verify fix locally by running the failed command"
-            - "Re-run ship phase: adw resume &lt;run-id&gt; --from ship"
-          </action>
-        </check>
       </substep>
 
-      <!-- 7g: Generate and Save Ship Report -->
+      <!-- 5g: Generate and Save Ship Report -->
       <substep name="generate-ship-report">
         <critical>Generate the complete ship_report.md in required format</critical>
 
@@ -1556,18 +930,15 @@ None detected
 
 ---
 
-## Execution Log
+## Configured Deploy Commands
 
-### Commands Executed
-{{#if commands_skipped}}
-_No deployment commands configured_
-{{else}}
-| Step | Command | Exit Code | Result |
-|------|---------|-----------|--------|
-| Version Bump | {{version_bump_command | default: "skipped"}} | {{version_bump_exit_code | default: "-"}} | {{version_bump_result}} |
-| Build | {{build_command | default: "skipped"}} | {{build_exit_code | default: "-"}} | {{build_result}} |
-| Publish | {{publish_command | default: "skipped"}} | {{publish_exit_code | default: "-"}} | {{publish_result}} |
-{{/if}}
+| Step | Command |
+|------|---------|
+| Version Bump | {{version_bump_command | default: "not configured"}} |
+| Build | {{build_command | default: "not configured"}} |
+| Publish | {{publish_command | default: "not configured"}} |
+
+_Commands are executed by post.sh after this report._
 
 ---
 
@@ -1583,31 +954,11 @@ _Release notes generation skipped_
 
 ---
 
-{{#if deployment_status == 'FAILED'}}
-## Failure Analysis
+{{#if deployment_status == 'BLOCKED'}}
+## Blocking Issues
 
-### Failed Step
-{{failed_command}}
-
-### Failed Command
-`{{failed_command_name}}`
-
-### Exit Code
-{{failed_exit_code}}
-
-### Error Output
-```
-{{error_output}}
-```
-
-### Diagnosis
-**Problem:** {{diagnosis}}
-
-{{diagnosis_details}}
-
-### Remediation Steps
-{{#each remediation}}
-{{@index}}. {{this}}
+{{#each blocking_issues}}
+- {{this}}
 {{/each}}
 
 ---
@@ -1697,19 +1048,16 @@ _Timestamp: {{timestamp}}_
       <item>Commits categorized by conventional commit type</item>
       <item>Release notes artifact saved when artifacts_dir configured</item>
       <item>Status markers output for post.sh parsing</item>
-      <item>Failure diagnosis performed when deployment fails</item>
-      <item>Error patterns correctly identified for version_bump/build/publish</item>
-      <item>Actionable remediation steps provided for failures</item>
-      <item>PR_MERGE_APPROVED set to false on deployment failure</item>
-      <item>Step 6 finalization executed with proper PR merge decision</item>
-      <item>VERSION_DEPLOYED correctly set based on deployment results</item>
-      <item>Ship summary includes execution timeline and next steps</item>
-      <item>Step 7 generates comprehensive ship_report.md artifact</item>
+      <item>PR_MERGE_APPROVED set to false when blocking issues found</item>
+      <item>Step 4 finalization executed with proper PR merge decision</item>
+      <item>VERSION_DEPLOYED correctly set based on current version</item>
+      <item>Ship summary includes configured commands and next steps</item>
+      <item>Step 5 generates comprehensive ship_report.md artifact</item>
       <item>Ship report includes structured status fields at top for parsing</item>
       <item>Ship report includes pre-flight summary from Step 2</item>
-      <item>Ship report includes execution log from Step 3</item>
-      <item>Ship report includes release notes from Step 4</item>
-      <item>Ship report conditionally includes failure analysis from Step 5</item>
+      <item>Ship report includes configured deploy commands</item>
+      <item>Ship report includes release notes from Step 3</item>
+      <item>Ship report conditionally includes blocking analysis</item>
       <item>Ship report includes verification recommendations</item>
       <item>Ship report saved to artifacts/ship/ship_report.md</item>
     </success>
@@ -1717,22 +1065,18 @@ _Timestamp: {{timestamp}}_
       <item>Skipping context gathering steps</item>
       <item>Not detecting version file when one exists</item>
       <item>Missing risk level assessment</item>
-      <item>Proceeding when blocking issues exist</item>
       <item>Not generating release notes when commits available</item>
       <item>Incorrect commit categorization</item>
       <item>Missing status markers in output</item>
-      <item>Skipping failure diagnosis when deployment fails</item>
-      <item>Generic error messages without specific remediation</item>
-      <item>Not setting PR_MERGE_APPROVED: false on failure</item>
-      <item>Missing or incomplete Step 6 finalization</item>
+      <item>Not setting PR_MERGE_APPROVED: false when blocked</item>
+      <item>Missing or incomplete Step 4 finalization</item>
       <item>Status markers not in exact format for post.sh parsing</item>
-      <item>Step 7 not generating ship_report.md artifact</item>
+      <item>Step 5 not generating ship_report.md artifact</item>
       <item>Ship report missing structured status fields at top</item>
       <item>Ship report missing any required section</item>
-      <item>Failure analysis included when deployment succeeded</item>
       <item>Ship report not saved to artifacts directory</item>
     </failure>
   </metrics>
 
-  <master-rule>This is an AUTONOMOUS deployment workflow. Gather comprehensive context, analyze risks thoroughly, block when necessary, and provide clear status markers for pipeline automation.</master-rule>
+  <master-rule>This is an AUTONOMOUS risk assessment workflow. Gather comprehensive context, analyze risks thoroughly, block when necessary, and provide clear status markers for post.sh to execute deploy commands and merge the PR.</master-rule>
 </workflow>
