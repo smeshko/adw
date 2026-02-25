@@ -201,3 +201,29 @@ class TestShipCommandEnvVars:
         assert "ADW_SHIP_VERSION_BUMP_CMD" not in env
         assert "ADW_SHIP_PUBLISH_CMD" not in env
         assert "ADW_SHIP_BUILD_CMD" not in env
+
+    def test_wait_for_merge_env_var(self) -> None:
+        """ADW_SHIP_WAIT_FOR_MERGE should be in hook env."""
+        ext = ShipExtension()
+        config = ShipCommandConfig(
+            commands=ShipCommandsConfig(), wait_for_merge=True
+        )
+        context = MagicMock()
+
+        with patch.object(ext, "_load_ship_config", return_value=config):
+            with patch.object(ext, "_load_project_build_command", return_value=None):
+                env = ext.get_hook_env(context)
+
+        assert env.get("ADW_SHIP_WAIT_FOR_MERGE") == "true"
+
+    def test_wait_for_merge_default_false(self) -> None:
+        """ADW_SHIP_WAIT_FOR_MERGE defaults to false."""
+        ext = ShipExtension()
+        config = ShipCommandConfig(commands=ShipCommandsConfig())
+        context = MagicMock()
+
+        with patch.object(ext, "_load_ship_config", return_value=config):
+            with patch.object(ext, "_load_project_build_command", return_value=None):
+                env = ext.get_hook_env(context)
+
+        assert env.get("ADW_SHIP_WAIT_FOR_MERGE") == "false"

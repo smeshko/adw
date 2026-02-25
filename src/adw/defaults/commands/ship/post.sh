@@ -21,6 +21,7 @@
 #
 # Ship configuration (from project config):
 #   ADW_SHIP_BYPASS_CI        - Bypass CI checks using --admin (true/false, default: true)
+#   ADW_SHIP_WAIT_FOR_MERGE   - Use --auto merge and wait for CI (true/false, default: false)
 #   ADW_SHIP_VERSION_BUMP_CMD - Version bump command (optional)
 #   ADW_SHIP_BUILD_CMD        - Build command (optional)
 #   ADW_SHIP_PUBLISH_CMD      - Publish command (optional)
@@ -258,9 +259,16 @@ if [[ "$pr_merge_approved" == "true" ]]; then
     # local git operations that fail inside worktrees)
     merge_cmd=(gh pr merge "$pr_number" --squash --body "$merge_body")
 
-    # Add --admin flag to bypass CI checks if configured (requires admin access)
+    # Determine merge strategy
+    wait_for_merge="${ADW_SHIP_WAIT_FOR_MERGE:-false}"
     bypass_ci="${ADW_SHIP_BYPASS_CI:-true}"
-    if [[ "$bypass_ci" == "true" ]]; then
+
+    if [[ "$wait_for_merge" == "true" && "$bypass_ci" != "true" ]]; then
+        # Use GitHub auto-merge: enables merge when all checks pass
+        merge_cmd+=(--auto)
+        echo "Using --auto merge (will merge when CI checks pass)"
+    elif [[ "$bypass_ci" == "true" ]]; then
+        # Add --admin flag to bypass CI checks (requires admin access)
         merge_cmd+=(--admin)
         echo "Bypassing CI checks with --admin flag (requires admin access)"
     fi
@@ -274,6 +282,30 @@ if [[ "$pr_merge_approved" == "true" ]]; then
     merge_output=$("${merge_cmd[@]}" 2>&1) || merge_exit_code=$?
 
     if [[ $merge_exit_code -eq 0 ]]; then
+        # When using --auto, wait for CI checks then verify merge completed
+        if [[ "$wait_for_merge" == "true" && "$bypass_ci" != "true" ]]; then
+            echo ""
+            echo "Auto-merge enabled. Waiting for CI checks to pass..."
+            if gh pr checks "$pr_number" --watch 2>&1; then
+                echo "CI checks passed"
+            else
+                echo "Warning: CI checks may have failed — verifying PR state..."
+            fi
+
+            # Verify the PR actually merged
+            pr_state=$(gh pr view "$pr_number" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")
+            if [[ "$pr_state" != "MERGED" ]]; then
+                echo ""
+                echo "=========================================="
+                echo "PR AUTO-MERGE DID NOT COMPLETE"
+                echo "=========================================="
+                echo "PR #$pr_number state: $pr_state"
+                echo "The auto-merge was enabled but the PR has not merged yet."
+                echo "Check CI status and branch protection rules."
+                exit 1
+            fi
+        fi
+
         # PR merge succeeded - this is the critical success condition
         # Disable set -e so bookkeeping failures don't fail the entire hook
         set +e

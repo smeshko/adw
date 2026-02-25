@@ -272,6 +272,7 @@ class ShipCommandConfig(CommandConfig):
     Attributes:
         commands: Shell commands for version bump, build, and publish steps.
         bypass_ci: Bypass CI checks using --admin flag (default: True).
+        wait_for_merge: Use --auto merge and wait for CI checks (default: False).
 
     Example:
         >>> config = ShipCommandConfig(
@@ -288,6 +289,7 @@ class ShipCommandConfig(CommandConfig):
           version_bump: npm version patch
           publish: npm publish
         bypass_ci: true
+        wait_for_merge: false
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -299,6 +301,10 @@ class ShipCommandConfig(CommandConfig):
     bypass_ci: bool = Field(
         default=True,
         description="Bypass CI checks using --admin flag (requires admin access)",
+    )
+    wait_for_merge: bool = Field(
+        default=False,
+        description="Use --auto merge and wait for CI checks to pass before completing",
     )
 
 

@@ -519,6 +519,137 @@ PR_NUMBER: 60
         assert "Version Deployed: 2.5.0" in result.stdout
 
 
+class TestShipPostHookWaitForMerge:
+    """Tests for wait_for_merge auto-merge flow."""
+
+    @pytest.fixture
+    def post_hook_path(self) -> Path:
+        """Get the path to the ship post.sh hook."""
+        return (
+            Path(__file__).parent.parent.parent
+            / "src"
+            / "adw"
+            / "defaults"
+            / "commands"
+            / "ship"
+            / "post.sh"
+        )
+
+    def test_auto_flag_used_when_wait_for_merge_enabled(
+        self, post_hook_path: Path, tmp_path: Path
+    ) -> None:
+        """Test that --auto flag is used when wait_for_merge=true and bypass_ci=false."""
+        artifacts_dir = tmp_path / "artifacts"
+        artifacts_dir.mkdir()
+
+        llm_output = """
+DEPLOYMENT_STATUS: SUCCESS
+PR_MERGE_APPROVED: true
+VERSION_DEPLOYED: 1.0.0
+MERGE_REASON: Success
+PR_NUMBER: 50
+"""
+        env = {
+            "ADW_LLM_OUTPUT": llm_output,
+            "ADW_PHASE": "ship",
+            "ADW_RUN_ID": "test-run",
+            "ADW_FEATURE": "Test",
+            "ADW_ARTIFACTS_DIR": str(artifacts_dir),
+            "ADW_PR_NUMBER": "50",
+            "ADW_SHIP_WAIT_FOR_MERGE": "true",
+            "ADW_SHIP_BYPASS_CI": "false",
+            "PATH": "/usr/bin:/bin",
+        }
+
+        result = subprocess.run(
+            ["/bin/bash", str(post_hook_path)],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        # gh is not in PATH so merge fails, but command is still printed
+        assert "gh pr merge 50 --squash" in result.stdout
+        assert "--auto" in result.stdout
+        assert "--admin" not in result.stdout
+
+    def test_admin_flag_when_wait_for_merge_false(
+        self, post_hook_path: Path, tmp_path: Path
+    ) -> None:
+        """Test that --admin is used when wait_for_merge=false and bypass_ci=true."""
+        artifacts_dir = tmp_path / "artifacts"
+        artifacts_dir.mkdir()
+
+        llm_output = """
+DEPLOYMENT_STATUS: SUCCESS
+PR_MERGE_APPROVED: true
+VERSION_DEPLOYED: 1.0.0
+MERGE_REASON: Success
+PR_NUMBER: 50
+"""
+        env = {
+            "ADW_LLM_OUTPUT": llm_output,
+            "ADW_PHASE": "ship",
+            "ADW_RUN_ID": "test-run",
+            "ADW_FEATURE": "Test",
+            "ADW_ARTIFACTS_DIR": str(artifacts_dir),
+            "ADW_PR_NUMBER": "50",
+            "ADW_SHIP_WAIT_FOR_MERGE": "false",
+            "ADW_SHIP_BYPASS_CI": "true",
+            "PATH": "/usr/bin:/bin",
+        }
+
+        result = subprocess.run(
+            ["/bin/bash", str(post_hook_path)],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        assert "--admin" in result.stdout
+        assert "--auto" not in result.stdout
+
+    def test_bypass_ci_takes_precedence_over_wait_for_merge(
+        self, post_hook_path: Path, tmp_path: Path
+    ) -> None:
+        """Test that bypass_ci=true uses --admin even when wait_for_merge=true."""
+        artifacts_dir = tmp_path / "artifacts"
+        artifacts_dir.mkdir()
+
+        llm_output = """
+DEPLOYMENT_STATUS: SUCCESS
+PR_MERGE_APPROVED: true
+VERSION_DEPLOYED: 1.0.0
+MERGE_REASON: Success
+PR_NUMBER: 50
+"""
+        env = {
+            "ADW_LLM_OUTPUT": llm_output,
+            "ADW_PHASE": "ship",
+            "ADW_RUN_ID": "test-run",
+            "ADW_FEATURE": "Test",
+            "ADW_ARTIFACTS_DIR": str(artifacts_dir),
+            "ADW_PR_NUMBER": "50",
+            "ADW_SHIP_WAIT_FOR_MERGE": "true",
+            "ADW_SHIP_BYPASS_CI": "true",
+            "PATH": "/usr/bin:/bin",
+        }
+
+        result = subprocess.run(
+            ["/bin/bash", str(post_hook_path)],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        # bypass_ci=true takes precedence: use --admin, not --auto
+        assert "--admin" in result.stdout
+        assert "--auto" not in result.stdout
+
+
 class TestShipPostHookEdgeCases:
     """Tests for edge cases and error handling."""
 

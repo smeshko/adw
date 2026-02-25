@@ -239,6 +239,7 @@ class ShipExtension:
 
         env: dict[str, str] = {
             "ADW_SHIP_BYPASS_CI": str(config.bypass_ci).lower(),
+            "ADW_SHIP_WAIT_FOR_MERGE": str(config.wait_for_merge).lower(),
         }
 
         # Expose deploy commands so post-hook can execute them deterministically

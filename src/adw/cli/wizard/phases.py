@@ -319,9 +319,19 @@ def _configure_ship_phase(console: Console) -> dict[str, Any]:
     if publish_cmd:
         commands["publish"] = publish_cmd
 
-    return {
+    wait_for_merge = Confirm.ask(
+        "Wait for CI before merging PR?",
+        default=False,
+        console=console,
+    )
+
+    config: dict[str, Any] = {
         "commands": commands if commands else None,
     }
+    if wait_for_merge:
+        config["wait_for_merge"] = True
+
+    return config
 
 
 def _prompt_doc_mappings(console: Console) -> list[dict[str, str]]:

@@ -808,6 +808,9 @@ async def save_phase_settings(
         bypass_raw = str(form.get("bypass_ci", "true"))
         config_data["bypass_ci"] = bypass_raw.lower() in ("true", "1", "on", "yes")
 
+        wait_raw = str(form.get("wait_for_merge", "false"))
+        config_data["wait_for_merge"] = wait_raw.lower() in ("true", "1", "on", "yes")
+
     # Validate via phase-specific Pydantic model
     config_class = get_config_class(phase)
     try:

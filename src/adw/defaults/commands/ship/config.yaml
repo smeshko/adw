@@ -16,6 +16,10 @@ timeout_seconds: 900
 # Bypass CI checks using --admin flag when merging PR (requires admin access)
 # bypass_ci: true
 
+# === Wait for Merge ===
+# Use --auto merge and wait for CI checks to pass before completing
+# wait_for_merge: false
+
 # Input files for ship phase come from document phase artifacts
 # These are typically auto-loaded via artifact references in the prompt
 # input_files:

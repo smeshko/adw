@@ -145,6 +145,19 @@
           </label>
           <p class="text-xs text-base-content/60">Skip CI checks using --admin flag</p>
         </div>
+
+        <div class="flex items-center gap-3">
+          <input type="hidden" name="wait_for_merge" value="false">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox"
+                   name="wait_for_merge"
+                   value="true"
+                   class="toggle toggle-sm"
+                   {% if wait_for_merge %}checked{% endif %}>
+            <span class="text-sm">Wait for merge</span>
+          </label>
+          <p class="text-xs text-base-content/60">Use --auto merge and wait for CI checks to pass</p>
+        </div>
       </div>
       {% endif %}
 

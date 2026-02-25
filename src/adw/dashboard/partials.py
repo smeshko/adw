@@ -1329,6 +1329,7 @@ async def phase_config_partial(
     ship_version_bump = ""
     ship_publish = ""
     bypass_ci = True
+    wait_for_merge = False
 
     if project:
         project_path_str, _ = resolve_project_filter(project_registry, project)
@@ -1371,6 +1372,9 @@ async def phase_config_partial(
                             ship_version_bump = cmds.version_bump or ""
                             ship_publish = cmds.publish or ""
                         bypass_ci = getattr(config_obj, "bypass_ci", True)
+                        wait_for_merge = getattr(
+                            config_obj, "wait_for_merge", False
+                        )
 
                 except Exception:
                     logger.warning(
@@ -1390,6 +1394,7 @@ async def phase_config_partial(
         "ship_version_bump": ship_version_bump,
         "ship_publish": ship_publish,
         "bypass_ci": bypass_ci,
+        "wait_for_merge": wait_for_merge,
         "default_timeout": defaults["timeout"],
         "default_model": defaults["model"],
         "selected_settings_project": project or "",

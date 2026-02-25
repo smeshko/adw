@@ -596,6 +596,18 @@ class YAMLWithComments:
                 "# bypass_ci: true  # Bypass CI checks with --admin (requires admin)"
             )
 
+        # Wait for merge setting
+        wait_for_merge = config.get("wait_for_merge")
+        if wait_for_merge is not None:
+            lines.append(
+                f"wait_for_merge: {_format_yaml_value(wait_for_merge)}  "
+                "# Wait for CI checks before merge completes"
+            )
+        else:
+            lines.append(
+                "# wait_for_merge: false  # Wait for CI checks before merge completes"
+            )
+
         lines.append("")
 
 

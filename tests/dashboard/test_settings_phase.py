@@ -154,6 +154,7 @@ class TestPhasePartialRoute:
         assert "version_bump" in resp.text
         assert "publish" in resp.text
         assert "bypass_ci" in resp.text
+        assert "wait_for_merge" in resp.text
 
 
 # ── Phases tab sub-tab navigation ─────────────────────────────────
@@ -298,6 +299,7 @@ class TestPhaseSaveEndpoint:
                 "version_bump": "npm version patch",
                 "publish": "npm publish",
                 "bypass_ci": "true",
+                "wait_for_merge": "true",
             },
         )
         assert resp.status_code == 200
@@ -306,6 +308,7 @@ class TestPhaseSaveEndpoint:
         assert data["commands"]["version_bump"] == "npm version patch"
         assert data["commands"]["publish"] == "npm publish"
         assert data["bypass_ci"] is True
+        assert data["wait_for_merge"] is True
 
     def test_save_input_files(
         self, phase_client: TestClient, project_dir: Path

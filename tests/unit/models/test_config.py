@@ -170,6 +170,7 @@ class TestShipCommandConfig:
         assert config.commands.version_bump is None
         assert config.commands.publish is None
         assert config.bypass_ci is True
+        assert config.wait_for_merge is False
 
     def test_ship_command_config_with_values(self) -> None:
         """ShipCommandConfig accepts all ship-specific fields."""
@@ -180,10 +181,12 @@ class TestShipCommandConfig:
                 "publish": "npm publish",
             },
             bypass_ci=False,
+            wait_for_merge=True,
         )
         assert config.commands.version_bump == "npm version patch"
         assert config.commands.publish == "npm publish"
         assert config.bypass_ci is False
+        assert config.wait_for_merge is True
 
 
 class TestProjectConfig:
