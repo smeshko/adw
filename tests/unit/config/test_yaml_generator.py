@@ -243,16 +243,23 @@ class TestPhaseYAMLGeneration:
         assert "prd: docs/prd.md" in content
         assert "arch: docs/arch.md" in content
 
-    def test_generate_phase_yaml_validate_has_no_special_settings(
+    def test_generate_phase_yaml_validate_has_lint_command_setting(
         self, generator: YAMLWithComments
     ) -> None:
-        """Test validate phase has no special settings (fields removed)."""
+        """Test validate phase includes lint_command setting."""
         content = generator.generate_phase_yaml("validate", {})
 
-        assert "# === Validate Phase Settings ===" not in content
+        assert "# === Validate Phase Settings ===" in content
+        assert "# lint_command: null" in content
         assert "enable_review" not in content
         assert "enable_tests" not in content
         assert "max_iterations" not in content
+
+        # Test with lint_command provided
+        content_with_lint = generator.generate_phase_yaml(
+            "validate", {"lint_command": "ruff check ."}
+        )
+        assert "lint_command: ruff check ." in content_with_lint
 
     def test_generate_phase_yaml_is_valid_yaml(
         self, generator: YAMLWithComments

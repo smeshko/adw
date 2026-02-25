@@ -82,6 +82,7 @@ class ConfigRegistry:
         from adw.models.command import (
             ShipCommandConfig,
             ShipCommandsConfig,
+            ValidateCommandConfig,
         )
         from adw.models.config import (
             GitConfig,
@@ -120,6 +121,9 @@ class ConfigRegistry:
             ShipCommandConfig, skip_nested=["commands"]
         )
         self._settings["ship_commands"] = self._extract_from_model(ShipCommandsConfig)
+        self._settings["validate"] = self._extract_from_model(
+            ValidateCommandConfig, skip_nested=["llm"]
+        )
 
         # Phase-specific settings
         self._settings["phase"] = self._extract_from_model(PhaseConfig)

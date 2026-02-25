@@ -15,7 +15,7 @@
   <universal-rules>
     <rule emoji="🛑">Execute autonomously - NEVER pause for user input</rule>
     <rule emoji="📖">Context is injected in prompt - do NOT load from files</rule>
-    <rule emoji="🔄">Process phases sequentially: TESTS → CODE REVIEW → OUTPUT</rule>
+    <rule emoji="🔄">Process phases sequentially: LINT → TESTS → CODE REVIEW → OUTPUT</rule>
     <rule emoji="🧪">Run and fix tests BEFORE code review and AFTER every fix cycle</rule>
     <rule emoji="🔒">Commit after EVERY cycle that has fixes</rule>
     <rule emoji="📋">Track state in-memory, output JSON results at end</rule>
@@ -81,6 +81,7 @@
         ```
         cycle_count = 0
         max_cycles = 2
+        lint_passed = false
         tests_passed = false
         code_review_passed = false
         issues_fixed = []
@@ -98,6 +99,80 @@
         <check if="no test command detected">
           <action>Set {{test_command}} = null</action>
           <note>Will skip test phase if no test framework detected</note>
+        </check>
+      </step>
+
+      <step name="detect-lint-command">
+        <action>Check if lint command has been provided in the context.
+        If not, set to null.</action>
+        <action>Store as {{lint_command}}</action>
+        <check if="no lint command detected">
+          <action>Set {{lint_command}} = null</action>
+          <note>Will skip lint phase if no linter configured</note>
+        </check>
+      </step>
+    </phase>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- PHASE 1.5: LINT VALIDATION                                       -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <phase name="lint-validation">
+      <step name="check-lint-available">
+        <check if="{{lint_command}} is null">
+          <output>⚠️ No lint command configured - skipping lint phase</output>
+          <action>Set lint_passed = true (no linter to run)</action>
+          <action>Jump to phase: test-validation</action>
+        </check>
+      </step>
+
+      <step name="run-lint">
+        <output>
+        ```
+        ───────────────────────────────────────────────────────────────
+          RUNNING LINTER
+        ───────────────────────────────────────────────────────────────
+        ```
+        </output>
+        <action>Execute: {{lint_command}}</action>
+        <action>Capture lint output and exit code</action>
+      </step>
+
+      <step name="handle-lint-results">
+        <check if="lint passes">
+          <output>✅ Lint passes</output>
+          <action>Set lint_passed = true</action>
+          <action>Jump to phase: test-validation</action>
+        </check>
+
+        <check if="lint fails">
+          <output>❌ Lint failed - attempting to fix</output>
+          <action>Analyze lint errors from output</action>
+          <action>For each fixable lint issue:
+            1. Identify the file and issue
+            2. Fix the code
+            3. Track fix in issues_fixed
+          </action>
+        </check>
+      </step>
+
+      <step name="rerun-lint">
+        <action>Execute: {{lint_command}}</action>
+
+        <check if="lint still fails after fix attempt">
+          <output>❌ Lint still failing after fix attempt</output>
+          <action>Set lint_passed = false</action>
+          <action>Add remaining lint failures to issues_remaining</action>
+        </check>
+
+        <check if="lint passes">
+          <output>✅ Lint fixed and passing</output>
+          <action>Set lint_passed = true</action>
+          <action>Commit lint fixes:
+            ```bash
+            git add -A
+            git commit -m "fix(lint): resolve lint errors"
+            ```
+          </action>
         </check>
       </step>
     </phase>
@@ -434,10 +509,11 @@ Focus only on NEW issues not listed above.
     <phase name="finalize">
       <step name="compute-final-status">
         <action>Determine final passed status:
-          passed = tests_passed AND code_review_passed
+          passed = lint_passed AND tests_passed AND code_review_passed
         </action>
         <action>Generate summary message:
-          - If passed: "All tests pass, code review clean"
+          - If passed: "Lint clean, all tests pass, code review clean"
+          - If !lint_passed: "Lint failing"
           - If !tests_passed: "Tests failing"
           - If !code_review_passed: "Code review issues remain"
         </action>
@@ -451,6 +527,7 @@ Focus only on NEW issues not listed above.
 ```json
 {
   "passed": {{passed}},
+  "lint_passed": {{lint_passed}},
   "tests_passed": {{tests_passed}},
   "code_review_passed": {{code_review_passed}},
   "issues_fixed": [
@@ -485,7 +562,7 @@ Focus only on NEW issues not listed above.
       <item>Valid issues fixed, false positives dismissed</item>
       <item>Commits made after test fixes and review fixes</item>
       <item>Valid JSON output to stdout for pipeline consumption</item>
-      <item>passed=true when tests_passed AND code_review_passed</item>
+      <item>passed=true when lint_passed AND tests_passed AND code_review_passed</item>
     </success>
     <failure>
       <item>Attempting to load context from files instead of prompt</item>
@@ -503,5 +580,5 @@ Focus only on NEW issues not listed above.
     </failure>
   </metrics>
 
-  <master-rule>This is an AUTONOMOUS CI workflow. Execute without user input. Run tests first, fix failures. Then ATTEMPT to run Codex code review via `codex exec` Bash command. If Codex fails, fall back to adversarial self-review using the SAME prompt - do NOT rubber-stamp. Output valid JSON to stdout. passed=true only when tests_passed AND code_review_passed.</master-rule>
+  <master-rule>This is an AUTONOMOUS CI workflow. Execute without user input. Run linter first (if configured), then tests, fix failures. Then ATTEMPT to run Codex code review via `codex exec` Bash command. If Codex fails, fall back to adversarial self-review using the SAME prompt - do NOT rubber-stamp. Output valid JSON to stdout. passed=true only when lint_passed AND tests_passed AND code_review_passed.</master-rule>
 </workflow>

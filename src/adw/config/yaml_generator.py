@@ -471,7 +471,9 @@ class YAMLWithComments:
         lines.append("")
 
         # Phase-specific settings
-        if phase == "document":
+        if phase == "validate":
+            self._add_validate_phase_settings(lines, phase_config)
+        elif phase == "document":
             self._add_document_phase_settings(lines, phase_config)
         elif phase == "ship":
             self._add_ship_phase_settings(lines, phase_config)
@@ -495,6 +497,29 @@ class YAMLWithComments:
             "ship": 900,
         }
         return defaults.get(phase, 300)
+
+    def _add_validate_phase_settings(
+        self, lines: list[str], config: dict[str, Any]
+    ) -> None:
+        """Add validate phase specific settings.
+
+        Outputs lint_command from ValidateCommandConfig.
+
+        Args:
+            lines: List of output lines to append to.
+            config: Phase configuration dict.
+        """
+        lines.append("# === Validate Phase Settings ===")
+
+        lint_command = config.get("lint_command")
+        if lint_command:
+            lines.append(f"lint_command: {lint_command}")
+        else:
+            lines.append(
+                "# lint_command: null  # Command to run linter (e.g., ruff check .)"
+            )
+
+        lines.append("")
 
     def _add_document_phase_settings(
         self, lines: list[str], config: dict[str, Any]

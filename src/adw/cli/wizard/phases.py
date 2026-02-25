@@ -199,6 +199,11 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
     if model:
         config["llm"] = {"model": model}
 
+    # Validate phase special options
+    if phase == "validate":
+        validate_config = _configure_validate_phase(console)
+        config.update(validate_config)
+
     # Document phase special options
     if phase == "document":
         document_config = _configure_document_phase(console)
@@ -210,6 +215,32 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
         config.update(ship_config)
 
     return config
+
+
+def _configure_validate_phase(console: Console) -> dict[str, Any]:
+    """Configure validate phase special options.
+
+    Prompts user to configure lint_command for static analysis.
+
+    Args:
+        console: Console for output.
+
+    Returns:
+        Validate-specific configuration dict.
+    """
+    console.print()
+    console.print("[dim]Validate phase options:[/]")
+
+    lint_cmd = Prompt.ask(
+        "Lint command (Enter to skip)",
+        default="",
+        console=console,
+    ).strip()
+
+    if lint_cmd:
+        return {"lint_command": lint_cmd}
+
+    return {}
 
 
 def _configure_document_phase(console: Console) -> dict[str, Any]:
