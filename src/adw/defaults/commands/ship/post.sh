@@ -1,12 +1,14 @@
 #!/bin/bash
-# ADW Post-Hook: Process Ship Phase Output and Merge PR
+# ADW Post-Hook: Execute Deploy Commands, Commit, and Merge PR
 #
 # This hook:
 # 1. Parses LLM output for deployment status markers
 # 2. Extracts ship report and release notes
-# 3. Merges the PR (squash) if LLM approves
-# 4. Deletes remote branch after successful merge
-# 5. Updates task manager status (if configured)
+# 3. Executes deploy commands (version_bump → build → publish)
+# 4. Commits and pushes any file changes from deploy commands
+# 5. Merges the PR (squash) if LLM approves
+# 6. Deletes remote branch after successful merge
+# 7. Updates task manager status (if configured)
 #
 # Environment variables provided by ADW:
 #   ADW_FEATURE      - The feature description for this run
@@ -18,7 +20,10 @@
 #   ADW_TASK_ID      - Task ID from task manager (if configured)
 #
 # Ship configuration (from project config):
-#   ADW_SHIP_BYPASS_CI - Bypass CI checks using --admin (true/false, default: true)
+#   ADW_SHIP_BYPASS_CI        - Bypass CI checks using --admin (true/false, default: true)
+#   ADW_SHIP_VERSION_BUMP_CMD - Version bump command (optional)
+#   ADW_SHIP_BUILD_CMD        - Build command (optional)
+#   ADW_SHIP_PUBLISH_CMD      - Publish command (optional)
 #
 # Exit codes:
 #   0 - Success
@@ -167,7 +172,64 @@ if [[ "$deployment_status" == "BLOCKED" ]]; then
 fi
 
 # =============================================================================
-# STEP 4: Merge PR (always squash + delete-branch)
+# STEP 4: Execute deploy commands (version_bump → build → publish)
+# =============================================================================
+
+if [[ "$pr_merge_approved" == "true" ]]; then
+    echo ""
+    echo "=========================================="
+    echo "EXECUTING DEPLOY COMMANDS"
+    echo "=========================================="
+
+    # Execute version bump
+    if [[ -n "$ADW_SHIP_VERSION_BUMP_CMD" ]]; then
+        echo "Running version bump: $ADW_SHIP_VERSION_BUMP_CMD"
+        eval "$ADW_SHIP_VERSION_BUMP_CMD" || { echo "Error: Version bump failed"; exit 1; }
+        echo "Version bump: SUCCESS"
+    else
+        echo "Version bump: skipped (not configured)"
+    fi
+
+    # Execute build
+    if [[ -n "$ADW_SHIP_BUILD_CMD" ]]; then
+        echo "Running build: $ADW_SHIP_BUILD_CMD"
+        eval "$ADW_SHIP_BUILD_CMD" || { echo "Error: Build failed"; exit 1; }
+        echo "Build: SUCCESS"
+    else
+        echo "Build: skipped (not configured)"
+    fi
+
+    # Execute publish
+    if [[ -n "$ADW_SHIP_PUBLISH_CMD" ]]; then
+        echo "Running publish: $ADW_SHIP_PUBLISH_CMD"
+        eval "$ADW_SHIP_PUBLISH_CMD" || { echo "Error: Publish failed"; exit 1; }
+        echo "Publish: SUCCESS"
+    else
+        echo "Publish: skipped (not configured)"
+    fi
+
+    echo ""
+    echo "Deploy commands completed successfully"
+
+    # =========================================================================
+    # STEP 4b: Commit and push any file changes from deploy commands
+    # =========================================================================
+    # Deploy commands (e.g., version bump) may produce file changes that
+    # must be committed and pushed before the PR is merged.
+
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+        echo ""
+        echo "Committing deploy artifacts..."
+        if git add -A && git commit -m "chore: ship phase deploy artifacts [skip ci]" && git push; then
+            echo "Deploy artifacts committed and pushed"
+        else
+            echo "Warning: Failed to commit/push deploy artifacts (non-fatal)"
+        fi
+    fi
+fi
+
+# =============================================================================
+# STEP 5: Merge PR (always squash + delete-branch)
 # =============================================================================
 
 if [[ "$pr_merge_approved" == "true" ]]; then
@@ -325,7 +387,7 @@ else
 fi
 
 # =============================================================================
-# STEP 5: Task Manager Integration (if configured)
+# STEP 6: Task Manager Integration (if configured)
 # =============================================================================
 
 # Check if task manager integration is available via ADW_TASK_ID

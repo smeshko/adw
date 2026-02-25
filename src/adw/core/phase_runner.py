@@ -280,27 +280,31 @@ class PhaseRunner:
         """
         logger.debug("Running pre-hook", extra={"phase": phase})
 
-        if command.pre_hook_path is None:
+        if not command.pre_hook_paths:
             logger.debug("No pre-hook for phase", extra={"phase": phase})
             return ""
 
-        try:
-            result = self.hook_runner.run_hook(
-                hook_path=command.pre_hook_path,
-                context=context,
-                phase=phase,
-                hook_type="pre",
-                artifacts_dir=artifacts_dir,
-                working_dir=context.worktree_path,
-            )
-            logger.debug(
-                "Pre-hook completed",
-                extra={"phase": phase, "stdout_len": len(result.stdout)},
-            )
-            return result.stdout
-        except HookError:
-            logger.error("Pre-hook failed", extra={"phase": phase})
-            raise
+        all_stdout = []
+        for hook_path in command.pre_hook_paths:
+            try:
+                result = self.hook_runner.run_hook(
+                    hook_path=hook_path,
+                    context=context,
+                    phase=phase,
+                    hook_type="pre",
+                    artifacts_dir=artifacts_dir,
+                    working_dir=context.worktree_path,
+                )
+                logger.debug(
+                    "Pre-hook completed",
+                    extra={"phase": phase, "hook": str(hook_path), "stdout_len": len(result.stdout)},
+                )
+                all_stdout.append(result.stdout)
+            except HookError:
+                logger.error("Pre-hook failed", extra={"phase": phase, "hook": str(hook_path)})
+                raise
+
+        return "\n".join(all_stdout)
 
     def _load_and_render_prompt(
         self,
@@ -423,30 +427,33 @@ class PhaseRunner:
         # This provides {{ship_config.*}} access
         typed_config = self._load_project_config(phase)
 
-        # Build ship_config dict and inject project-level build_command
-        ship_dict = (
-            typed_config.model_dump()
-            if isinstance(typed_config, ShipCommandConfig)
-            else {}
-        )
-        if self.project_config and self.project_config.build_command:
-            if "commands" not in ship_dict:
-                ship_dict["commands"] = {}
-            ship_dict["commands"]["build"] = self.project_config.build_command
-        variables["ship_config"] = ship_dict
+        # Build ship_config — filter to relevant fields and render as YAML string
+        if isinstance(typed_config, ShipCommandConfig):
+            ship_dict: dict = {
+                "commands": typed_config.commands.model_dump(exclude_none=True),
+                "bypass_ci": typed_config.bypass_ci,
+            }
+            if self.project_config and self.project_config.build_command:
+                ship_dict["commands"]["build"] = self.project_config.build_command
+            variables["ship_config"] = yaml.dump(
+                ship_dict, default_flow_style=False
+            )
+        else:
+            variables["ship_config"] = ""
 
         # Inject flat template variables expected by ship instructions.xml
+        # Always set regardless of truthiness so Jinja `default` filter works
+        # (Jinja treats None as undefined, triggering the default)
         if isinstance(typed_config, ShipCommandConfig):
-            if typed_config.commands.version_bump:
-                variables["version_bump_command"] = typed_config.commands.version_bump
-            if typed_config.commands.publish:
-                variables["publish_command"] = typed_config.commands.publish
-        # build_command as flat variable for template access
-        if self.project_config and self.project_config.build_command:
-            variables["build_command"] = self.project_config.build_command
-        # test_command as flat variable for template access
-        if self.project_config and self.project_config.test_command:
-            variables["test_command"] = self.project_config.test_command
+            variables["version_bump_command"] = typed_config.commands.version_bump
+            variables["publish_command"] = typed_config.commands.publish
+        # build_command and test_command as flat variables for template access
+        variables["build_command"] = (
+            self.project_config.build_command if self.project_config else None
+        )
+        variables["test_command"] = (
+            self.project_config.test_command if self.project_config else None
+        )
 
         variables["doc_mappings"] = (
             [m.model_dump() for m in typed_config.doc_mappings]
@@ -1063,7 +1070,7 @@ class PhaseRunner:
         """
         logger.debug("Running post-hook", extra={"phase": phase})
 
-        if command.post_hook_path is None:
+        if not command.post_hook_paths:
             logger.debug("No post-hook for phase", extra={"phase": phase})
             return
 
@@ -1092,18 +1099,19 @@ class PhaseRunner:
                     extra={"phase": phase, "vars": extension_env_keys},
                 )
 
-            result = self.hook_runner.run_hook(
-                hook_path=command.post_hook_path,
-                context=context,
-                phase=phase,
-                hook_type="post",
-                artifacts_dir=artifacts_dir,
-                working_dir=context.worktree_path,
-            )
-            logger.debug(
-                "Post-hook completed",
-                extra={"phase": phase, "stdout_len": len(result.stdout)},
-            )
+            for hook_path in command.post_hook_paths:
+                result = self.hook_runner.run_hook(
+                    hook_path=hook_path,
+                    context=context,
+                    phase=phase,
+                    hook_type="post",
+                    artifacts_dir=artifacts_dir,
+                    working_dir=context.worktree_path,
+                )
+                logger.debug(
+                    "Post-hook completed",
+                    extra={"phase": phase, "hook": str(hook_path), "stdout_len": len(result.stdout)},
+                )
 
         except HookError as e:
             # Log hook output at ERROR level so it shows at normal verbosity

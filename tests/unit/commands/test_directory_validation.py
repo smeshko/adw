@@ -119,12 +119,14 @@ class TestCommandDirectoryValidation:
 
     def test_detects_hooks_absence(self, tmp_path: Path) -> None:
         """Should correctly detect missing hooks."""
-        project_cmd = tmp_path / ".adw" / "commands" / "plan"
+        # Use a custom command name with no bundled equivalent to avoid
+        # hook chaining picking up bundled hooks
+        project_cmd = tmp_path / ".adw" / "commands" / "custom-no-hooks"
         project_cmd.mkdir(parents=True)
-        (project_cmd / "prompt.md").write_text("# Plan")
+        (project_cmd / "prompt.md").write_text("# Custom")
 
         resolver = CommandResolver(project_root=tmp_path)
-        result = resolver.resolve("plan")
+        result = resolver.resolve("custom-no-hooks")
 
         assert result.has_pre_hook is False
         assert result.has_post_hook is False

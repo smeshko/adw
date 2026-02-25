@@ -286,8 +286,8 @@ class TestLoadedCommandModel:
             path=tmp_path,
             tier="project",
             has_schema=True,
-            pre_hook_path=pre_hook,
-            post_hook_path=None,
+            pre_hook_paths=[pre_hook],
+            post_hook_paths=[],
         )
         loaded = LoadedCommand(
             name="plan",

@@ -329,21 +329,31 @@ class ResolvedCommand(BaseModel):
     path: Path
     tier: Literal["project", "user", "bundled"]
     has_schema: bool = False
-    pre_hook_path: Path | None = None
-    post_hook_path: Path | None = None
+    pre_hook_paths: list[Path] = Field(default_factory=list)
+    post_hook_paths: list[Path] = Field(default_factory=list)
     has_config: bool = False
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def has_pre_hook(self) -> bool:
-        """Whether a pre-hook script exists."""
-        return self.pre_hook_path is not None
+        """Whether any pre-hook scripts exist."""
+        return len(self.pre_hook_paths) > 0
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def has_post_hook(self) -> bool:
-        """Whether a post-hook script exists."""
-        return self.post_hook_path is not None
+        """Whether any post-hook scripts exist."""
+        return len(self.post_hook_paths) > 0
+
+    @property
+    def pre_hook_path(self) -> Path | None:
+        """First pre-hook path (backward compat)."""
+        return self.pre_hook_paths[0] if self.pre_hook_paths else None
+
+    @property
+    def post_hook_path(self) -> Path | None:
+        """First post-hook path (backward compat)."""
+        return self.post_hook_paths[0] if self.post_hook_paths else None
 
 
 class LoadedCommand(BaseModel):

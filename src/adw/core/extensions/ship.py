@@ -222,6 +222,9 @@ class ShipExtension:
         Loads the ship config and returns environment variables that
         the ship phase post-hook expects:
         - ADW_SHIP_BYPASS_CI: Whether to bypass CI checks
+        - ADW_SHIP_VERSION_BUMP_CMD: Version bump command (if configured)
+        - ADW_SHIP_BUILD_CMD: Build command (if configured)
+        - ADW_SHIP_PUBLISH_CMD: Publish command (if configured)
 
         Args:
             context: Current run context (unused).
@@ -234,6 +237,40 @@ class ShipExtension:
         if config is None:
             return {}
 
-        return {
+        env: dict[str, str] = {
             "ADW_SHIP_BYPASS_CI": str(config.bypass_ci).lower(),
         }
+
+        # Expose deploy commands so post-hook can execute them deterministically
+        if config.commands.version_bump:
+            env["ADW_SHIP_VERSION_BUMP_CMD"] = config.commands.version_bump
+        if config.commands.publish:
+            env["ADW_SHIP_PUBLISH_CMD"] = config.commands.publish
+
+        # build_command lives at project level (project.yaml), not ship config
+        build_cmd = self._load_project_build_command()
+        if build_cmd:
+            env["ADW_SHIP_BUILD_CMD"] = build_cmd
+
+        return env
+
+    def _load_project_build_command(self) -> str | None:
+        """Load build_command from project.yaml.
+
+        Returns:
+            The build_command string if configured, None otherwise.
+        """
+        if self._project_root is None:
+            return None
+
+        project_yaml = self._project_root / "project.yaml"
+        if not project_yaml.exists():
+            return None
+
+        try:
+            data = yaml.safe_load(project_yaml.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return data.get("build_command")
+        except Exception:
+            pass
+        return None
