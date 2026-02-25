@@ -166,12 +166,21 @@ class ValidateCommandConfig(CommandConfig):
     Note: test_command is configured at the project level (ProjectConfig.test_command)
     and injected into the template context by PhaseRunner, not here.
 
+    Attributes:
+        lint_command: Optional command to run linter or static analysis.
+
     YAML example (in .adw/commands/validate/config.yaml):
         enabled: true
         timeout_seconds: 600
+        lint_command: ruff check .
     """
 
     model_config = ConfigDict(extra="forbid")
+
+    lint_command: str | None = Field(
+        default=None,
+        description="Command to run linter or static analysis",
+    )
 
 
 class DocMappingConfig(BaseModel):

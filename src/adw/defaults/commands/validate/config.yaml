@@ -8,6 +8,9 @@ timeout_seconds: 600
 # input_files:
 #   output: artifacts/validate/validate_output.md
 
+# Lint command (e.g., ruff check ., npm run lint)
+# lint_command: null
+
 # LLM settings for this phase
 # llm:
 #   model: claude-sonnet-4-20250514

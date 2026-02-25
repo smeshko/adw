@@ -39,6 +39,7 @@ from adw.models.command import (
     DocumentCommandConfig,
     PhaseLLMConfig,
     ShipCommandConfig,
+    ValidateCommandConfig,
 )
 from adw.models.config import GitConfig, PhaseConfig, ProjectConfig
 
@@ -453,6 +454,11 @@ class PhaseRunner:
         )
         variables["test_command"] = (
             self.project_config.test_command if self.project_config else None
+        )
+        variables["lint_command"] = (
+            typed_config.lint_command
+            if isinstance(typed_config, ValidateCommandConfig)
+            else None
         )
 
         variables["doc_mappings"] = (

@@ -404,6 +404,7 @@ class TestValidatePhaseNoSpecialOptions:
             mock_prompt.side_effect = [
                 "900",  # timeout
                 "",  # model override (skip)
+                "",  # lint command (skip)
             ]
 
             config = _configure_phase("validate", console)
@@ -414,7 +415,8 @@ class TestValidatePhaseNoSpecialOptions:
         # Empty model input selects default (opus for validate)
         assert config["llm"] == {"model": "opus"}
 
-        # Validate-specific options should NOT be present
+        # Validate-specific options should NOT be present when skipped
+        assert "lint_command" not in config
         assert "enable_review" not in config
         assert "enable_tests" not in config
         assert "max_iterations" not in config
@@ -718,6 +720,7 @@ class TestFullFlow:
                 "3",  # select validate phase
                 "900",  # timeout
                 "",  # model override (skip)
+                "",  # lint command (skip)
             ]
 
             result = run_phases_step(state, console)
@@ -727,7 +730,8 @@ class TestFullFlow:
         validate_config = result["phases"]["validate"]
         assert validate_config["enabled"] is True
         assert validate_config["timeout_seconds"] == 900
-        # No validate-specific options
+        # No validate-specific options when skipped
+        assert "lint_command" not in validate_config
         assert "enable_review" not in validate_config
         assert "enable_tests" not in validate_config
 
