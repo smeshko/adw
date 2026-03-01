@@ -767,6 +767,58 @@ class TestOutputParsing:
         assert "More debug info" in parsed["content"]
 
 
+    def test_accumulates_tokens_across_multiple_result_messages(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Should sum tokens from multiple result messages (multi-turn agentic runs)."""
+        import json
+
+        lines = [
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": [{"type": "text", "text": "Turn 1"}]},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "result",
+                    "usage": {"input_tokens": 1000, "output_tokens": 500},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": [{"type": "text", "text": "Turn 2"}]},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "result",
+                    "usage": {"input_tokens": 2000, "output_tokens": 800},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": [{"type": "text", "text": "Turn 3"}]},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "message_delta",
+                    "usage": {"input_tokens": 500, "output_tokens": 200},
+                }
+            ),
+        ]
+        raw_output = "\n".join(lines)
+        parsed = executor._parse_output(raw_output)
+
+        assert parsed["input_tokens"] == 3500  # 1000 + 2000 + 500
+        assert parsed["output_tokens"] == 1500  # 500 + 800 + 200
+        assert parsed["tokens_used"] == 5000
+
+
 class TestErrorHandling:
     """Tests for error handling (Task 5)."""
 

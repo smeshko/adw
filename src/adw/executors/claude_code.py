@@ -529,8 +529,8 @@ class ClaudeCodeExecutor:
             elif msg_type == "result":
                 # Result message may contain token usage
                 usage = data.get("usage", {})
-                input_tokens = usage.get("input_tokens", 0)
-                output_tokens = usage.get("output_tokens", 0)
+                input_tokens += usage.get("input_tokens", 0)
+                output_tokens += usage.get("output_tokens", 0)
                 # Also extract final text if present
                 if "text" in data:
                     text = data["text"]
@@ -553,8 +553,8 @@ class ClaudeCodeExecutor:
                 # Message delta with usage
                 usage = data.get("usage", {})
                 if usage:
-                    input_tokens = usage.get("input_tokens", 0)
-                    output_tokens = usage.get("output_tokens", 0)
+                    input_tokens += usage.get("input_tokens", 0)
+                    output_tokens += usage.get("output_tokens", 0)
 
         # Save the final assistant message text
         if current_message_text:
