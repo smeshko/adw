@@ -121,6 +121,21 @@ class PhaseResult(BaseModel):
     tokens_used: int = Field(
         default=0, description="Total tokens consumed during this phase"
     )
+    input_tokens: int = Field(
+        default=0, description="Input tokens consumed during this phase"
+    )
+    output_tokens: int = Field(
+        default=0, description="Output tokens generated during this phase"
+    )
+    cache_creation_input_tokens: int = Field(
+        default=0, description="Tokens used to create prompt cache"
+    )
+    cache_read_input_tokens: int = Field(
+        default=0, description="Tokens read from prompt cache"
+    )
+    total_cost_usd: float = Field(
+        default=0.0, description="Actual cost in USD from Claude Code"
+    )
     tool_calls: list[ToolCall] = Field(
         default_factory=list, description="Tool calls made during this phase"
     )

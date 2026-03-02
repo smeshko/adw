@@ -79,6 +79,15 @@ class LLMResult(BaseModel):
     output_tokens: int = 0
     """Number of output tokens generated."""
 
+    cache_creation_input_tokens: int = 0
+    """Number of tokens used to create prompt cache."""
+
+    cache_read_input_tokens: int = 0
+    """Number of tokens read from prompt cache."""
+
+    total_cost_usd: float = 0.0
+    """Actual cost in USD as reported by Claude Code."""
+
     duration_ms: int = 0
     """Execution duration in milliseconds."""
 

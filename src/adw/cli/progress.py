@@ -195,6 +195,32 @@ class ProgressDisplay:
         self._progress = None
         self._task_id = None
 
+    @staticmethod
+    def _format_duration(duration_ms: int | None) -> str:
+        """Format duration for display.
+
+        Returns '13m44s' for >= 60s, '45.2s' for < 60s, 'N/A' for None.
+        """
+        if duration_ms is None:
+            return "N/A"
+        total_seconds = duration_ms / 1000
+        if total_seconds >= 60:
+            minutes = int(total_seconds // 60)
+            seconds = int(total_seconds % 60)
+            return f"{minutes}m{seconds:02d}s"
+        return f"{total_seconds:.1f}s"
+
+    @staticmethod
+    def _format_tokens(count: int) -> str:
+        """Format token count with K/M abbreviation."""
+        if count >= 1_000_000:
+            value = count / 1_000_000
+            return f"{value:.1f}M" if value != int(value) else f"{int(value)}M"
+        if count >= 1_000:
+            value = count / 1_000
+            return f"{value:.0f}K" if value >= 10 else f"{value:.1f}K"
+        return str(count)
+
     def on_phase_complete(self, phase: str, result: PhaseResult) -> None:
         """Display phase completion.
 
@@ -208,12 +234,22 @@ class ProgressDisplay:
         self._total_tokens += result.tokens_used
 
         color = self.PHASE_COLORS.get(phase, "white")
-        duration = f"{result.duration_ms / 1000:.1f}s" if result.duration_ms else "N/A"
+        formatted_duration = self._format_duration(result.duration_ms)
         artifacts = len(result.artifacts)
+
+        # Build token display with input/output breakdown
+        input_display = self._format_tokens(result.input_tokens)
+        cached_total = (
+            result.cache_creation_input_tokens + result.cache_read_input_tokens
+        )
+        if cached_total > 0:
+            input_display += f" ({self._format_tokens(cached_total)} cached)"
+        output_display = self._format_tokens(result.output_tokens)
 
         self.console.print(
             f"[bold green]✓[/] [{color}]{phase.upper()}[/] completed "
-            f"[dim]({duration}, {artifacts} artifacts, {result.tokens_used} tokens)[/]"
+            f"[dim]({formatted_duration}, {artifacts} artifacts, "
+            f"in: {input_display}, out: {output_display})[/]"
         )
 
         # Show updated progress bar

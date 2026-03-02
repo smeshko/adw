@@ -222,6 +222,8 @@ class TestPhaseComplete:
             completed_at=datetime.now(UTC),
             artifacts=["plan.md"],
             tokens_used=500,
+            input_tokens=200,
+            output_tokens=300,
         )
 
         progress.on_phase_complete("plan", result)
@@ -229,7 +231,12 @@ class TestPhaseComplete:
         output_text = output.getvalue()
         assert "✓" in output_text
         assert "PLAN" in output_text
-        assert "500" in output_text  # tokens
+        # Strip ANSI codes for reliable matching
+        import re
+
+        plain = re.sub(r"\x1b\[[0-9;]*m", "", output_text)
+        assert "in: 200" in plain
+        assert "out: 300" in plain
 
     def test_on_phase_complete_shows_checkmark(self) -> None:
         """Test that phase completion shows green checkmark."""

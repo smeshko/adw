@@ -102,15 +102,21 @@ class StatsAggregator:
         tokens: TokenUsage,
         model: str = "default",
     ) -> float:
-        """Calculate estimated cost for token usage.
+        """Calculate cost for token usage.
+
+        Uses actual cost from Claude Code when available, otherwise
+        falls back to estimated pricing.
 
         Args:
             tokens: Token usage to price.
             model: Model name for pricing lookup.
 
         Returns:
-            Estimated cost in USD.
+            Cost in USD.
         """
+        if tokens.actual_cost_usd > 0:
+            return round(tokens.actual_cost_usd, 2)
+
         pricing = self.pricing.get(model, self.pricing["default"])
 
         input_cost = (tokens.input_tokens / 1_000_000) * pricing["input"]
@@ -139,6 +145,8 @@ class StatsAggregator:
         total_output = 0
         files_found = 0
 
+        total_cost = 0.0
+
         for response_file in llm_dir.glob("*_response.json"):
             files_found += 1
             try:
@@ -148,6 +156,7 @@ class StatsAggregator:
                 stats = data.get("stats", {})
                 total_input += stats.get("input_tokens", 0)
                 total_output += stats.get("output_tokens", 0)
+                total_cost += stats.get("total_cost_usd", 0.0)
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(
                     "Failed to parse LLM response file",
@@ -161,7 +170,11 @@ class StatsAggregator:
                 extra={"llm_dir": str(llm_dir)},
             )
 
-        return TokenUsage(input_tokens=total_input, output_tokens=total_output)
+        return TokenUsage(
+            input_tokens=total_input,
+            output_tokens=total_output,
+            actual_cost_usd=total_cost,
+        )
 
     def get_daily_token_counts(
         self,
@@ -469,15 +482,19 @@ class StatsAggregator:
             total_tokens = TokenUsage(
                 input_tokens=total_tokens.input_tokens + run_tokens.input_tokens,
                 output_tokens=total_tokens.output_tokens + run_tokens.output_tokens,
+                actual_cost_usd=total_tokens.actual_cost_usd
+                + run_tokens.actual_cost_usd,
             )
 
             # Accumulate this-week tokens
             if entry.started_at >= week_ago:
-                inp = tokens_this_week.input_tokens + run_tokens.input_tokens
-                out = tokens_this_week.output_tokens + run_tokens.output_tokens
                 tokens_this_week = TokenUsage(
-                    input_tokens=inp,
-                    output_tokens=out,
+                    input_tokens=tokens_this_week.input_tokens
+                    + run_tokens.input_tokens,
+                    output_tokens=tokens_this_week.output_tokens
+                    + run_tokens.output_tokens,
+                    actual_cost_usd=tokens_this_week.actual_cost_usd
+                    + run_tokens.actual_cost_usd,
                 )
 
             # Update project statistics - use registered name if available
@@ -498,6 +515,8 @@ class StatsAggregator:
             proj.tokens = TokenUsage(
                 input_tokens=proj.tokens.input_tokens + run_tokens.input_tokens,
                 output_tokens=proj.tokens.output_tokens + run_tokens.output_tokens,
+                actual_cost_usd=proj.tokens.actual_cost_usd
+                + run_tokens.actual_cost_usd,
             )
 
         # Calculate per-project metrics
