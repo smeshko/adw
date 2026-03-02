@@ -767,10 +767,13 @@ class TestOutputParsing:
         assert "More debug info" in parsed["content"]
 
 
-    def test_accumulates_tokens_across_multiple_result_messages(
+    def test_result_message_is_authoritative(
         self, executor: ClaudeCodeExecutor
     ) -> None:
-        """Should sum tokens from multiple result messages (multi-turn agentic runs)."""
+        """Result messages are authoritative/cumulative - last one wins.
+
+        message_delta tokens are still additive on top of the last result.
+        """
         import json
 
         lines = [
@@ -796,6 +799,7 @@ class TestOutputParsing:
                 {
                     "type": "result",
                     "usage": {"input_tokens": 2000, "output_tokens": 800},
+                    "total_cost_usd": 0.42,
                 }
             ),
             json.dumps(
@@ -814,9 +818,42 @@ class TestOutputParsing:
         raw_output = "\n".join(lines)
         parsed = executor._parse_output(raw_output)
 
-        assert parsed["input_tokens"] == 3500  # 1000 + 2000 + 500
-        assert parsed["output_tokens"] == 1500  # 500 + 800 + 200
-        assert parsed["tokens_used"] == 5000
+        # Last result (2000) overwrites first (1000), then message_delta adds 500
+        assert parsed["input_tokens"] == 2500  # 2000 + 500
+        assert parsed["output_tokens"] == 1000  # 800 + 200
+        assert parsed["tokens_used"] == 3500
+        assert parsed["total_cost_usd"] == 0.42
+
+    def test_cache_token_extraction(
+        self, executor: ClaudeCodeExecutor
+    ) -> None:
+        """Should extract cache_creation and cache_read tokens from result."""
+        import json
+
+        lines = [
+            json.dumps(
+                {
+                    "type": "result",
+                    "usage": {
+                        "input_tokens": 100,
+                        "output_tokens": 500,
+                        "cache_creation_input_tokens": 5000,
+                        "cache_read_input_tokens": 30000,
+                    },
+                    "total_cost_usd": 1.23,
+                }
+            ),
+        ]
+        raw_output = "\n".join(lines)
+        parsed = executor._parse_output(raw_output)
+
+        assert parsed["cache_creation_input_tokens"] == 5000
+        assert parsed["cache_read_input_tokens"] == 30000
+        # input_tokens = 100 + 5000 + 30000 = 35100
+        assert parsed["input_tokens"] == 35100
+        assert parsed["output_tokens"] == 500
+        assert parsed["tokens_used"] == 35600
+        assert parsed["total_cost_usd"] == 1.23
 
 
 class TestErrorHandling:

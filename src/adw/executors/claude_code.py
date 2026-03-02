@@ -427,34 +427,29 @@ class ClaudeCodeExecutor:
             },
         )
 
+        # Build common kwargs for LLMResult
+        common = {
+            "content": parsed["content"],
+            "final_output": parsed.get("final_output", ""),
+            "tool_calls": parsed["tool_calls"],
+            "tokens_used": parsed["tokens_used"],
+            "input_tokens": parsed["input_tokens"],
+            "output_tokens": parsed["output_tokens"],
+            "cache_creation_input_tokens": parsed["cache_creation_input_tokens"],
+            "cache_read_input_tokens": parsed["cache_read_input_tokens"],
+            "total_cost_usd": parsed["total_cost_usd"],
+            "duration_ms": duration_ms,
+        }
+
         # Build result
         if returncode == 0:
-            return LLMResult(
-                success=True,
-                content=parsed["content"],
-                final_output=parsed.get("final_output", ""),
-                tool_calls=parsed["tool_calls"],
-                tokens_used=parsed["tokens_used"],
-                input_tokens=parsed["input_tokens"],
-                output_tokens=parsed["output_tokens"],
-                duration_ms=duration_ms,
-            )
+            return LLMResult(success=True, **common)
         else:
             error_msg = stderr or f"Claude Code exited with code {returncode}"
             # Log error to live stream
             if self.live_stream:
                 self.live_stream.write_error(error_msg)
-            return LLMResult(
-                success=False,
-                content=parsed["content"],
-                final_output=parsed.get("final_output", ""),
-                tool_calls=parsed["tool_calls"],
-                tokens_used=parsed["tokens_used"],
-                input_tokens=parsed["input_tokens"],
-                output_tokens=parsed["output_tokens"],
-                duration_ms=duration_ms,
-                error=error_msg,
-            )
+            return LLMResult(success=False, error=error_msg, **common)
 
     def _parse_output(self, raw_output: str) -> dict[str, Any]:
         """Parse Claude Code --print output format.
@@ -480,6 +475,9 @@ class ClaudeCodeExecutor:
         tool_calls: list[ToolCall] = []
         input_tokens = 0
         output_tokens = 0
+        cache_creation_input_tokens = 0
+        cache_read_input_tokens = 0
+        total_cost_usd = 0.0
         # Track the last assistant message text separately (ISS-023)
         last_assistant_text: list[str] = []
         current_message_text: list[str] = []
@@ -527,10 +525,16 @@ class ClaudeCodeExecutor:
                         )
 
             elif msg_type == "result":
-                # Result message may contain token usage
+                # Result message contains authoritative cumulative token usage
                 usage = data.get("usage", {})
-                input_tokens += usage.get("input_tokens", 0)
-                output_tokens += usage.get("output_tokens", 0)
+                input_tokens = usage.get("input_tokens", 0)
+                output_tokens = usage.get("output_tokens", 0)
+                cache_creation_input_tokens = usage.get(
+                    "cache_creation_input_tokens", 0
+                )
+                cache_read_input_tokens = usage.get("cache_read_input_tokens", 0)
+                # total_cost_usd is at top level of result message
+                total_cost_usd = data.get("total_cost_usd", total_cost_usd)
                 # Also extract final text if present
                 if "text" in data:
                     text = data["text"]
@@ -563,13 +567,19 @@ class ClaudeCodeExecutor:
         # Build final output from last assistant message
         final_output = "".join(last_assistant_text)
 
+        # Total input includes all three input token types
+        total_input = input_tokens + cache_creation_input_tokens + cache_read_input_tokens
+
         return {
             "content": "".join(content_parts),
             "final_output": final_output,
             "tool_calls": tool_calls,
-            "input_tokens": input_tokens,
+            "input_tokens": total_input,
             "output_tokens": output_tokens,
-            "tokens_used": input_tokens + output_tokens,
+            "cache_creation_input_tokens": cache_creation_input_tokens,
+            "cache_read_input_tokens": cache_read_input_tokens,
+            "total_cost_usd": total_cost_usd,
+            "tokens_used": total_input + output_tokens,
         }
 
     def _extract_tool_context(

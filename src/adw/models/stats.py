@@ -35,6 +35,9 @@ class TokenUsage(BaseModel):
 
     input_tokens: int = Field(default=0, description="Input tokens consumed")
     output_tokens: int = Field(default=0, description="Output tokens generated")
+    actual_cost_usd: float = Field(
+        default=0.0, description="Actual cost in USD from Claude Code"
+    )
 
     @property
     def total_tokens(self) -> int:

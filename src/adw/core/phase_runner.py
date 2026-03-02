@@ -215,6 +215,11 @@ class PhaseRunner:
                 completed_at=completed_at,
                 artifacts=artifacts,
                 tokens_used=llm_result.tokens_used,
+                input_tokens=llm_result.input_tokens,
+                output_tokens=llm_result.output_tokens,
+                cache_creation_input_tokens=llm_result.cache_creation_input_tokens,
+                cache_read_input_tokens=llm_result.cache_read_input_tokens,
+                total_cost_usd=llm_result.total_cost_usd,
                 tool_calls=llm_result.tool_calls,
             )
 
@@ -1336,7 +1341,10 @@ class PhaseRunner:
             "model": model or "default",
             "stats": {
                 "input_tokens": llm_result.input_tokens,
+                "cache_creation_input_tokens": llm_result.cache_creation_input_tokens,
+                "cache_read_input_tokens": llm_result.cache_read_input_tokens,
                 "output_tokens": llm_result.output_tokens,
+                "total_cost_usd": llm_result.total_cost_usd,
                 "duration_ms": llm_result.duration_ms,
             },
         }
