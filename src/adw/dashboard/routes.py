@@ -1192,7 +1192,7 @@ def _load_log_entries(
     """
     import re
 
-    log_file = runs_dir / run_id / "live.log"
+    log_file = runs_dir / run_id / "logs" / "live.log"
     if not log_file.exists():
         return []
 
@@ -1544,10 +1544,10 @@ async def log_stream_sse(
 
         file_offset = 0
 
-        # If the log file already exists, start from the end
+        # If the log file already exists, start near the end to show recent history
         if log_file.exists():
             with contextlib.suppress(OSError):
-                file_offset = log_file.stat().st_size
+                file_offset = max(0, log_file.stat().st_size - 8192)
 
         while True:
             # Check if run is still active
@@ -1565,8 +1565,15 @@ async def log_stream_sse(
                                     tail = fh.read()
                                 for tail_line in tail.splitlines():
                                     cl = ansi_pattern.sub("", tail_line).strip()
+                                    if not cl:
+                                        continue
                                     m = line_pattern.match(cl)
                                     if not m:
+                                        # Emit non-matching lines (e.g. traceback continuations)
+                                        yield _format_sse_event(
+                                            "log-line",
+                                            _render_log_line_html("", "INFO", cl),
+                                        )
                                         continue
                                     ts = m.group(1)
                                     cat = m.group(2).upper()
@@ -1612,6 +1619,9 @@ async def log_stream_sse(
                             continue
                         match = line_pattern.match(clean_line)
                         if not match:
+                            # Emit non-matching lines (e.g. traceback continuations)
+                            html = _render_log_line_html("", "INFO", clean_line)
+                            yield _format_sse_event("log-line", html)
                             continue
 
                         timestamp = match.group(1)

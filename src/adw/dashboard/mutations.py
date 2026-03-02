@@ -601,7 +601,13 @@ async def save_settings(
 
     # Parse and map form values into the nested config structure
     for field_name, path_keys in field_map.items():
-        raw_value = form.get(field_name)
+        # HTML hidden+checkbox pattern sends ["false","true"] when checked;
+        # form.get() returns the first value ("false"). Use getlist and take last.
+        if field_name in _BOOL_FIELDS:
+            values = form.getlist(field_name)
+            raw_value = values[-1] if values else None
+        else:
+            raw_value = form.get(field_name)
         if raw_value is None:
             continue
         try:
@@ -636,7 +642,8 @@ async def save_settings(
 
     # Write config atomically
     yaml_content = yaml.dump(
-        existing_data, default_flow_style=False, sort_keys=False
+        existing_data, default_flow_style=False, sort_keys=False,
+        allow_unicode=True,
     )
     try:
         _atomic_write_config(config_path, yaml_content)
