@@ -311,7 +311,7 @@ class ProgressDisplay:
         status_line = " → ".join(phase_status)
 
         # Format duration
-        duration = f"{total_duration_ms / 1000:.1f}s"
+        duration = self._format_duration(total_duration_ms)
 
         # Status color: green for completed, orange for aborted, red for failed
         if status == "completed":
@@ -329,7 +329,7 @@ class ProgressDisplay:
             "",
             f"[bold]Status:[/] [{status_color}]{status}[/]",
             f"[bold]Duration:[/] {duration}",
-            f"[bold]Tokens:[/] {total_tokens:,}",
+            f"[bold]Tokens:[/] {self._format_tokens(total_tokens)}",
         ]
 
         # Add PR info if document phase completed (Story 9.4, enhanced by ISS-011)
