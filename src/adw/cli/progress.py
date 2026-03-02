@@ -243,7 +243,11 @@ class ProgressDisplay:
             result.cache_creation_input_tokens + result.cache_read_input_tokens
         )
         if cached_total > 0:
-            input_display += f" ({self._format_tokens(cached_total)} cached)"
+            new_tokens = result.input_tokens - cached_total
+            input_display += (
+                f" ({self._format_tokens(max(0, new_tokens))} new, "
+                f"{self._format_tokens(cached_total)} cached)"
+            )
         output_display = self._format_tokens(result.output_tokens)
 
         self.console.print(
