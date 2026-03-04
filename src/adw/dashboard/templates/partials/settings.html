@@ -58,7 +58,8 @@
     <a class="tab {% if active_tab == tab_key %}tab-active{% endif %}"
        hx-get="{{ tab_content_url(tab=tab_key) }}"
        hx-target="#settings-content"
-       hx-swap="innerHTML">{{ tab_label }}{% if changed_counts.get(tab_key, 0) > 0 %} <span class="badge badge-sm badge-ghost ml-1">{{ changed_counts[tab_key] }}</span>{% endif %}</a>
+       hx-swap="innerHTML"
+       onclick="document.querySelectorAll('.tabs.tabs-box .tab').forEach(function(t){t.classList.remove('tab-active')});this.classList.add('tab-active')">{{ tab_label }}{% if changed_counts.get(tab_key, 0) > 0 %} <span class="badge badge-sm badge-ghost ml-1">{{ changed_counts[tab_key] }}</span>{% endif %}</a>
     {% endfor %}
   </div>
 

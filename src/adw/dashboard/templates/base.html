@@ -150,17 +150,23 @@
     document.body.addEventListener('htmx:pushedIntoHistory', function() {
       var path = window.location.pathname;
       var pageMap = {'/': 'overview', '/runs': 'runs', '/analytics': 'analytics', '/settings': 'settings'};
+      /* For run detail URLs (/runs/<id>), map to 'runs' page */
       var currentPage = pageMap[path] || '';
+      if (!currentPage && path.startsWith('/runs/')) {
+        currentPage = 'runs';
+      }
       document.querySelectorAll('.nav-link').forEach(function(link) {
         var isActive = link.getAttribute('data-page') === currentPage;
         link.classList.toggle('font-semibold', isActive);
         link.classList.toggle('border-b-2', isActive);
         link.classList.toggle('border-primary', isActive);
       });
-      /* Update project filter hx-get to target the current path */
+      /* Update project filter hx-get to target the current page path (not run detail URLs) */
       var filter = document.getElementById('project-filter');
       if (filter) {
-        filter.setAttribute('hx-get', path);
+        var knownPages = ['/', '/runs', '/analytics', '/settings'];
+        var filterPath = knownPages.indexOf(path) !== -1 ? path : '/runs';
+        filter.setAttribute('hx-get', filterPath);
         /* Sync dropdown value with URL project param */
         var params = new URLSearchParams(window.location.search);
         var projectVal = params.get('project') || '';

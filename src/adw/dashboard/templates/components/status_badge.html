@@ -8,7 +8,7 @@
 {% macro status_badge(status, size="sm") -%}
 {%- set config = {
   "running":     {"class": "badge-warning",                "icon": "●", "pulse": true},
-  "completed":   {"class": "badge-success",                "icon": "✓", "pulse": false},
+  "completed":   {"class": "badge-success badge-soft",      "icon": "✓", "pulse": false},
   "failed":      {"class": "badge-error",                  "icon": "✗", "pulse": false},
   "interrupted": {"class": "badge-warning badge-outline",  "icon": "⊘", "pulse": false},
   "aborted":     {"class": "badge-ghost",                  "icon": "⦻", "pulse": false}

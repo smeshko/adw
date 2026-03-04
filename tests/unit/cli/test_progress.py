@@ -384,7 +384,9 @@ class TestPipelineSummary:
         )
 
         output_text = output.getvalue()
-        assert "12,345" in output_text  # Formatted with commas
+        import re
+        plain = re.sub(r"\x1b\[[0-9;]*m", "", output_text)
+        assert "12K" in plain  # Formatted with abbreviation
 
     def test_show_pipeline_summary_shows_pending_phases(self) -> None:
         """Test that pipeline summary shows pending phases with dots."""

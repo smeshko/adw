@@ -46,7 +46,7 @@
   <table class="table table-zebra table-sm hover">
     <thead>
       <tr>
-        <th class="w-28">Project</th>
+        <th class="w-40">Project</th>
         <th>Feature</th>
         <th class="w-24">Status</th>
         <th class="w-24">Duration</th>
@@ -60,7 +60,7 @@
           hx-target="#main"
           hx-push-url="/runs/{{ run.run_id | urlencode }}"
           class="hover cursor-pointer">
-        <td class="text-sm w-28" title="{{ run.project_name }}">{{ run.project_name }}</td>
+        <td class="text-sm w-40" title="{{ run.project_name }}">{{ run.project_name }}</td>
         <td class="text-sm text-base-content/70 truncate" title="{{ run.feature_description }}">{{ run.feature_description }}</td>
         <td class="w-24">{{ badge.status_badge(run.status) }}</td>
         <td class="font-mono text-xs w-24">{{ run.duration_display }}</td>
