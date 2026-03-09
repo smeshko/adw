@@ -182,12 +182,11 @@ class PhaseRunner:
                 artifacts_dir=artifacts_dir,
             )
 
-            # Step 3: Execute LLM (ISS-029: pass timeout from merged config)
+            # Step 3: Execute LLM
             llm_result = self._execute_llm(
                 phase,
                 context,
                 rendered_prompt,
-                timeout=merged_config.timeout_seconds,
                 model=merged_config.llm.model if merged_config.llm else None,
             )
 
@@ -586,20 +585,15 @@ class PhaseRunner:
 
         Example:
             >>> command_config = CommandConfig(
-            ...     timeout_seconds=600,
             ...     input_files={"prd": "defaults/prd.md"},
             ... )
             >>> merged = runner._merge_configs(command_config)
-            >>> merged.timeout_seconds
-            600
         """
         # Start with empty config
         merged_data: dict[str, Any] = {}
 
         # Apply command settings (if any)
         if command_config:
-            if command_config.timeout_seconds is not None:
-                merged_data["timeout_seconds"] = command_config.timeout_seconds
             if command_config.input_files is not None:
                 merged_data["input_files"] = dict(command_config.input_files)
             if command_config.llm is not None:
@@ -633,16 +627,14 @@ class PhaseRunner:
             PhaseConfig with merged settings.
 
         Example:
-            >>> # Command config: timeout=300, enabled=True
+            >>> # Command config: enabled=True
             >>> # Project config: enabled=False
-            >>> # Result: timeout=300, enabled=False (project overrides)
+            >>> # Result: enabled=False (project overrides)
         """
         merged_data: dict[str, Any] = {}
 
         # Start with command config values
         if command_config:
-            if command_config.timeout_seconds is not None:
-                merged_data["timeout_seconds"] = command_config.timeout_seconds
             if command_config.input_files is not None:
                 merged_data["input_files"] = dict(command_config.input_files)
             if command_config.llm is not None:
@@ -650,9 +642,6 @@ class PhaseRunner:
 
         # Override with project config values (when set)
         if project_config:
-            if project_config.timeout_seconds is not None:
-                merged_data["timeout_seconds"] = project_config.timeout_seconds
-
             # Merge input_files dicts: project values override command values
             if project_config.input_files is not None:
                 existing_inputs = merged_data.get("input_files", {})
@@ -992,7 +981,6 @@ class PhaseRunner:
         phase: str,
         context: RunContext,
         prompt: str,
-        timeout: int | None = None,
         model: str | None = None,
     ) -> LLMResult:
         """Execute LLM with rendered prompt.
@@ -1001,7 +989,6 @@ class PhaseRunner:
             phase: Phase name.
             context: Run context.
             prompt: Rendered prompt.
-            timeout: Optional timeout in seconds. If None, uses executor's default.
             model: Optional model identifier from phase config.
 
         Returns:
@@ -1017,7 +1004,6 @@ class PhaseRunner:
                 "worktree_path": (
                     str(context.worktree_path) if context.worktree_path else None
                 ),
-                "timeout": timeout,
                 "model": model,
             },
         )
@@ -1028,13 +1014,11 @@ class PhaseRunner:
 
         try:
             # Pass worktree_path for isolated execution (Story 10.5)
-            # Pass timeout from merged config (ISS-029)
             # Pass model from phase LLM config
             result = self.executor.execute(
                 prompt,
                 phase=phase,
                 cwd=context.worktree_path,
-                timeout=timeout,
                 model=model,
             )
 

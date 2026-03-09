@@ -223,7 +223,6 @@ class DryRunDisplay:
 
         # LLM settings
         table.add_row("LLM Path", config.llm.path)
-        table.add_row("LLM Timeout", f"{config.llm.timeout_seconds}s")
 
         # Git integration
         table.add_row("Git Integration", "enabled")

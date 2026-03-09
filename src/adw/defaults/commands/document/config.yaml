@@ -1,9 +1,6 @@
 # Configuration for the document phase
 # Analyzes changes, updates documentation, creates feature docs, generates PR description
 
-# Timeout for the document phase (10 minutes - includes doc analysis and updates)
-timeout_seconds: 600
-
 # Input files for document phase come from previous phase artifacts
 # These are typically auto-loaded via artifact references in the prompt
 # input_files:

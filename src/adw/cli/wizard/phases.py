@@ -22,14 +22,6 @@ if TYPE_CHECKING:
 AVAILABLE_PHASES: list[str] = ["plan", "build", "validate", "document", "ship"]
 
 # Default timeouts by phase (in seconds)
-DEFAULT_TIMEOUTS: dict[str, int] = {
-    "plan": 900,  # 15 minutes
-    "build": 1800,  # 30 minutes
-    "validate": 900,  # 15 minutes
-    "document": 900,  # 15 minutes
-    "ship": 1200,  # 20 minutes
-}
-
 
 class PhasesStepHandler:
     """Handler for the phases configuration wizard step.
@@ -176,14 +168,6 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
     if not enabled:
         return {"enabled": False}
 
-    default_timeout = DEFAULT_TIMEOUTS.get(phase, 300)
-    timeout_str = Prompt.ask(
-        "Timeout (seconds)",
-        default=str(default_timeout),
-        console=console,
-    )
-    timeout = _parse_int(timeout_str, default_timeout)
-
     # Input files
     input_files = _prompt_input_files(console)
 
@@ -192,7 +176,6 @@ def _configure_phase(phase: str, console: Console) -> dict[str, Any]:
 
     config: dict[str, Any] = {
         "enabled": enabled,
-        "timeout_seconds": timeout,
         "input_files": input_files if input_files else None,
     }
 

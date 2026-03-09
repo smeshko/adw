@@ -7,12 +7,10 @@ build_command: uv build
 
 llm:
   path: /usr/local/bin/claude
-  timeout_seconds: 300
 
 phases:
   plan:
     enabled: true
-    timeout_seconds: 600
     # ISS-015: Input files are loaded at phase start and available as {{ inputs.name }}
     input_files:
       prd: docs/prd.md

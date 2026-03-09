@@ -1287,11 +1287,11 @@ async def settings_content(
 
 # Phase defaults as specified in the story (independent of yaml_generator defaults)
 PHASE_DEFAULTS: dict[str, dict[str, Any]] = {
-    "plan": {"timeout": 900, "model": "opus"},
-    "build": {"timeout": 1800, "model": "sonnet"},
-    "validate": {"timeout": 900, "model": "opus"},
-    "document": {"timeout": 900, "model": "haiku"},
-    "ship": {"timeout": 1200, "model": "sonnet"},
+    "plan": {"model": "opus"},
+    "build": {"model": "sonnet"},
+    "validate": {"model": "opus"},
+    "document": {"model": "haiku"},
+    "ship": {"model": "sonnet"},
 }
 
 _VALID_PHASES = frozenset(PHASE_DEFAULTS.keys())
@@ -1322,7 +1322,6 @@ async def phase_config_partial(
     # Load phase config from disk if available
     has_config = False
     enabled = True
-    timeout_seconds = defaults["timeout"]
     llm_model = defaults["model"]
     input_files: dict[str, str] = {}
     doc_mappings: list[dict[str, str]] = []
@@ -1346,8 +1345,6 @@ async def phase_config_partial(
 
                     has_config = True
                     enabled = config_obj.enabled
-                    if config_obj.timeout_seconds is not None:
-                        timeout_seconds = config_obj.timeout_seconds
                     if config_obj.llm and config_obj.llm.model:
                         llm_model = config_obj.llm.model
                     if config_obj.input_files:
@@ -1387,7 +1384,6 @@ async def phase_config_partial(
         "phase": phase,
         "has_config": has_config,
         "enabled": enabled,
-        "timeout_seconds": timeout_seconds,
         "llm_model": llm_model,
         "input_files": input_files,
         "doc_mappings": doc_mappings,
@@ -1395,7 +1391,6 @@ async def phase_config_partial(
         "ship_publish": ship_publish,
         "bypass_ci": bypass_ci,
         "wait_for_merge": wait_for_merge,
-        "default_timeout": defaults["timeout"],
         "default_model": defaults["model"],
         "selected_settings_project": project or "",
         "csrf_token": generate_csrf_token(request),

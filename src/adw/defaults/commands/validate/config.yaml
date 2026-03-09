@@ -1,9 +1,6 @@
 # Default configuration for the validate phase
 # These defaults can be overridden in project's .adw/commands/validate/config.yaml
 
-# Timeout for the validate phase (10 minutes for full validation loop)
-timeout_seconds: 600
-
 # Input files for validate phase
 # input_files:
 #   output: artifacts/validate/validate_output.md

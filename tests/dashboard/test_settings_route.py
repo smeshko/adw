@@ -87,7 +87,6 @@ def mock_config() -> MagicMock:
     config.git.base_branch = "main"
     config.llm = MagicMock()
     config.llm.path = "claude"
-    config.llm.timeout_seconds = 300
     config.task_manager = MagicMock()
     config.task_manager.type = "linear"
     config.worktree = MagicMock()

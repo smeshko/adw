@@ -38,7 +38,7 @@ class TestClaudeCodeIntegration:
     @pytest.fixture
     def executor(self) -> ClaudeCodeExecutor:
         """Create executor with default config."""
-        config = LLMConfig(path="claude", timeout_seconds=60)
+        config = LLMConfig(path="claude")
         return ClaudeCodeExecutor(config)
 
     def test_simple_prompt_execution(self, executor: ClaudeCodeExecutor) -> None:
@@ -95,96 +95,7 @@ class TestClaudeCodeNotInstalled:
 
 
 class TestTimeoutIntegration:
-    """Integration tests for timeout behavior (Story 3-4).
-
-    These tests use real subprocesses to verify timeout handling works
-    correctly with actual process management.
-    """
-
-    def test_timeout_with_slow_subprocess(self) -> None:
-        """Timeout should work with a real slow subprocess.
-
-        Uses a shell script that sleeps to simulate slow execution.
-        This verifies the asyncio timeout and process cleanup work
-        together correctly.
-        """
-        import tempfile
-        from pathlib import Path
-
-        from adw.exceptions import LLMTimeoutError
-
-        # Create a temporary script that runs slowly
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as f:
-            f.write("#!/bin/bash\nsleep 10\necho 'done'\n")
-            script_path = Path(f.name)
-
-        try:
-            # Make it executable
-            script_path.chmod(0o755)
-
-            # Create executor pointing to our slow script
-            config = LLMConfig(path=str(script_path), timeout_seconds=1)
-            executor = ClaudeCodeExecutor(config)
-
-            # Should timeout
-            with pytest.raises(LLMTimeoutError) as exc_info:
-                executor.execute("test")
-
-            assert exc_info.value.code == "LLM_TIMEOUT"
-            assert exc_info.value.timeout_seconds == 1
-            assert exc_info.value.elapsed_seconds >= 0
-
-        finally:
-            # Cleanup
-            script_path.unlink()
-
-    def test_no_zombie_process_after_timeout(self) -> None:
-        """Process should not become zombie after timeout kill.
-
-        Verifies that the process is properly reaped after being killed
-        due to timeout, preventing zombie processes.
-        """
-        import os
-        import tempfile
-        from pathlib import Path
-
-        from adw.exceptions import LLMTimeoutError
-
-        # Create a temporary script that runs slowly
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as f:
-            # Script that captures its own PID for verification
-            f.write("#!/bin/bash\necho $$\nsleep 10\n")
-            script_path = Path(f.name)
-
-        try:
-            script_path.chmod(0o755)
-
-            config = LLMConfig(path=str(script_path), timeout_seconds=1)
-            executor = ClaudeCodeExecutor(config)
-
-            with pytest.raises(LLMTimeoutError):
-                executor.execute("test")
-
-            # After exception, give a moment for cleanup
-            import time
-
-            time.sleep(0.5)
-
-            # Check there are no zombie children
-            # This is platform-specific but works on Unix
-            import subprocess
-
-            result = subprocess.run(
-                ["ps", "-o", "stat=", "-p", str(os.getpid())],
-                capture_output=True,
-                text=True,
-            )
-            # If we can still query our process, we didn't leave zombies
-            # (Our process would be Z if we had unwaited children on some systems)
-            assert "Z" not in result.stdout
-
-        finally:
-            script_path.unlink()
+    """Integration tests for timeout behavior (hooks only)."""
 
     def test_hook_timeout_integration(self) -> None:
         """HookRunner timeout should work with real subprocess."""

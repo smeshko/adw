@@ -28,18 +28,6 @@ class TestPhaseLLMConfig:
 class TestCommandConfig:
     """Tests for CommandConfig validation rules."""
 
-    def test_timeout_must_be_positive(self) -> None:
-        """CommandConfig timeout_seconds must be > 0."""
-        with pytest.raises(ValidationError) as exc_info:
-            CommandConfig(timeout_seconds=0)
-        assert "greater than 0" in str(exc_info.value)
-
-    def test_timeout_negative_rejected(self) -> None:
-        """CommandConfig timeout_seconds rejects negative values."""
-        with pytest.raises(ValidationError) as exc_info:
-            CommandConfig(timeout_seconds=-1)
-        assert "greater than 0" in str(exc_info.value)
-
     def test_extra_fields_rejected(self) -> None:
         """CommandConfig rejects unknown fields (extra='forbid')."""
         with pytest.raises(ValidationError) as exc_info:
@@ -49,11 +37,9 @@ class TestCommandConfig:
     def test_valid_complete_config(self) -> None:
         """CommandConfig accepts valid complete configuration."""
         config = CommandConfig(
-            timeout_seconds=600,
             input_files={"prd": "docs/prd.md"},
             llm=PhaseLLMConfig(model="claude-3-opus"),
         )
-        assert config.timeout_seconds == 600
         assert config.input_files == {"prd": "docs/prd.md"}
         assert config.llm.model == "claude-3-opus"
 
@@ -116,9 +102,8 @@ class TestDocumentCommandConfig:
 
     def test_inherits_from_command_config(self) -> None:
         """DocumentCommandConfig inherits from CommandConfig."""
-        config = DocumentCommandConfig(timeout_seconds=600)
-        assert config.timeout_seconds == 600
-        assert config.enabled is True  # inherited default
+        config = DocumentCommandConfig(enabled=False)
+        assert config.enabled is False
 
     def test_doc_mappings_defaults_to_none(self) -> None:
         """DocumentCommandConfig doc_mappings defaults to None."""
@@ -169,7 +154,6 @@ class TestDocumentCommandConfig:
     def test_valid_complete_document_config(self) -> None:
         """DocumentCommandConfig accepts valid complete configuration."""
         config = DocumentCommandConfig(
-            timeout_seconds=600,
             enabled=True,
             doc_mappings=[
                 DocMappingConfig(
@@ -178,6 +162,5 @@ class TestDocumentCommandConfig:
                 )
             ],
         )
-        assert config.timeout_seconds == 600
         assert config.doc_mappings is not None
         assert len(config.doc_mappings) == 1

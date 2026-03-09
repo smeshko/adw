@@ -80,17 +80,12 @@ class LLMConfig(BaseModel):
 
     Attributes:
         path: Path to the Claude Code executable
-        timeout_seconds: Maximum time for LLM calls
         retry: Retry configuration for transient LLM failures
     """
 
     path: str = Field(
         default="claude",
         description="Path to the Claude Code executable",
-    )
-    timeout_seconds: int = Field(
-        default=300,
-        description="Maximum time for LLM calls in seconds",
     )
     retry: RetryConfig = Field(
         default_factory=RetryConfig,
@@ -103,7 +98,6 @@ class PhaseConfig(BaseModel):
 
     Attributes:
         enabled: Whether this phase is enabled
-        timeout_seconds: Phase-specific timeout override
         input_files: Optional mapping of variable names to file paths for template
             injection. Files are loaded at phase start and made available as
             {{ inputs.name }} in prompt templates.
@@ -125,9 +119,6 @@ class PhaseConfig(BaseModel):
     """
 
     enabled: bool = Field(default=True, description="Whether this phase is enabled")
-    timeout_seconds: int | None = Field(
-        default=None, description="Phase-specific timeout override"
-    )
     input_files: dict[str, str] | None = Field(
         default=None,
         description="Mapping of variable names to file paths for template injection",
@@ -495,7 +486,7 @@ class ProjectConfig(BaseModel):
     project metadata and LLM settings.
 
     Note:
-        Phase-specific configuration (timeout, input_files, hooks) is now
+        Phase-specific configuration (input_files, hooks) is now
         delegated to command configs (.adw/commands/<phase>/config.yaml).
         See ISS-029 for details.
 
@@ -634,7 +625,6 @@ class ProjectConfig(BaseModel):
                 "build_command": "python -m build",
                 "llm": {
                     "path": "/usr/bin/claude",
-                    "timeout_seconds": 300,
                 },
                 "security": {
                     "blocked_patterns": [],

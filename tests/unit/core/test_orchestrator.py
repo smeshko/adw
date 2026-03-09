@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from adw.core.constants import PHASE_SEQUENCE
-from adw.exceptions import ConfigError, HookError, LLMTimeoutError, PhaseError
+from adw.exceptions import ConfigError, HookError, LLMError, PhaseError
 from adw.models import RunContext
 from adw.models.phase import PhaseResult, PhaseStatus
 
@@ -685,12 +685,10 @@ class TestRetryLogic:
             nonlocal call_count
             call_count += 1
             if phase == "plan" and call_count < 3:
-                raise LLMTimeoutError(
-                    code="LLM_TIMEOUT",
-                    message="Request timed out",
+                raise LLMError(
+                    code="LLM_ERROR",
+                    message="Request failed",
                     suggestion="Retry",
-                    timeout_seconds=300,
-                    elapsed_seconds=300,
                     recoverable=True,
                 )
             return PhaseResult(
@@ -718,17 +716,15 @@ class TestRetryLogic:
     ) -> None:
         """Test that retry exhaustion raises the last error."""
         # All attempts fail with recoverable error
-        error = LLMTimeoutError(
-            code="LLM_TIMEOUT",
-            message="Request timed out",
+        error = LLMError(
+            code="LLM_ERROR",
+            message="Request failed",
             suggestion="Retry",
-            timeout_seconds=300,
-            elapsed_seconds=300,
             recoverable=True,
         )
         mock_phase_runner.run.side_effect = error
 
-        with pytest.raises(LLMTimeoutError):
+        with pytest.raises(LLMError):
             orchestrator.run("Test feature")
 
         # Should have tried max_retries times
@@ -761,17 +757,15 @@ class TestRetryLogic:
             worktree_config=WorktreeConfig(enabled=False),  # ISS-025
         )
 
-        error = LLMTimeoutError(
-            code="LLM_TIMEOUT",
-            message="Timeout",
+        error = LLMError(
+            code="LLM_ERROR",
+            message="LLM failed",
             suggestion="Retry",
-            timeout_seconds=300,
-            elapsed_seconds=300,
             recoverable=True,
         )
         mock_phase_runner.run.side_effect = error
 
-        with pytest.raises(LLMTimeoutError):
+        with pytest.raises(LLMError):
             orchestrator.run("Test feature")
 
         assert mock_phase_runner.run.call_count == 5
@@ -785,17 +779,15 @@ class TestRetryLogic:
     ) -> None:
         """Test that retries use exponential backoff (1s, 2s, 4s)."""
         # All attempts fail
-        error = LLMTimeoutError(
-            code="LLM_TIMEOUT",
-            message="Timeout",
+        error = LLMError(
+            code="LLM_ERROR",
+            message="LLM failed",
             suggestion="Retry",
-            timeout_seconds=300,
-            elapsed_seconds=300,
             recoverable=True,
         )
         mock_phase_runner.run.side_effect = error
 
-        with pytest.raises(LLMTimeoutError):
+        with pytest.raises(LLMError):
             orchestrator.run("Test feature")
 
         # Should have slept twice (before 2nd and 3rd attempt)
@@ -821,12 +813,10 @@ class TestRetryLogic:
             nonlocal call_count
             call_count += 1
             if phase == "plan" and call_count == 1:
-                raise LLMTimeoutError(
-                    code="LLM_TIMEOUT",
-                    message="Timeout",
+                raise LLMError(
+                    code="LLM_ERROR",
+                    message="LLM failed",
                     suggestion="Retry",
-                    timeout_seconds=300,
-                    elapsed_seconds=300,
                     recoverable=True,
                 )
             return PhaseResult(
@@ -890,17 +880,15 @@ class TestRetryLogic:
         )
 
         # Make phase fail with recoverable error
-        error = LLMTimeoutError(
-            code="LLM_TIMEOUT",
-            message="Request timed out",
+        error = LLMError(
+            code="LLM_ERROR",
+            message="Request failed",
             suggestion="Retry",
-            timeout_seconds=300,
-            elapsed_seconds=300,
             recoverable=True,
         )
         mock_phase_runner.run.side_effect = error
 
-        with pytest.raises(LLMTimeoutError):
+        with pytest.raises(LLMError):
             orchestrator.run("Test feature")
 
         # Verify on_llm_complete was called at least once

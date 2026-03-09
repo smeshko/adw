@@ -1375,7 +1375,6 @@ class TestConfigMerging:
         result = runner._merge_configs(None)
 
         assert isinstance(result, PhaseConfig)
-        assert result.timeout_seconds is None
         assert result.input_files is None
 
     def test_merge_configs_with_command_config(
@@ -1398,13 +1397,11 @@ class TestConfigMerging:
         )
 
         command_config = CommandConfig(
-            timeout_seconds=600,
             input_files={"prd": "defaults/prd.md"},
         )
 
         result = runner._merge_configs(command_config)
 
-        assert result.timeout_seconds == 600
         assert result.input_files == {"prd": "defaults/prd.md"}
 
     def test_merge_configs_with_llm(
@@ -1457,7 +1454,7 @@ class TestProjectConfigLoading:
         config_dir = tmp_path / ".adw" / "commands" / "ship"
         config_dir.mkdir(parents=True)
         (config_dir / "config.yaml").write_text(
-            "enabled: false\ntimeout_seconds: 600\n"
+            "enabled: false\n"
         )
 
         # Set mock resolver's project_root to temp directory
@@ -1475,7 +1472,6 @@ class TestProjectConfigLoading:
 
         assert result is not None
         assert result.enabled is False
-        assert result.timeout_seconds == 600
 
     def test_load_project_config_not_exists(
         self,
@@ -1559,17 +1555,20 @@ class TestMergeConfigsWithProject:
             artifact_manager=mock_artifact_manager,
         )
 
+        from adw.models.command import PhaseLLMConfig
+
         command_config = CommandConfig(
-            timeout_seconds=300,
+            llm=PhaseLLMConfig(model="sonnet"),
         )
         project_config = CommandConfig(
-            timeout_seconds=600,  # Should override
+            llm=PhaseLLMConfig(model="opus"),  # Should override
         )
 
         result = runner._merge_configs_with_project(command_config, project_config)
 
-        # Project timeout overrides command timeout
-        assert result.timeout_seconds == 600
+        # Project llm model overrides command llm model
+        assert result.llm is not None
+        assert result.llm.model == "opus"
 
     def test_merge_preserves_command_when_project_not_set(
         self,
@@ -1591,13 +1590,11 @@ class TestMergeConfigsWithProject:
         )
 
         command_config = CommandConfig(
-            timeout_seconds=300,
             input_files={"prd": "docs/prd.md"},
         )
 
         result = runner._merge_configs_with_project(command_config, None)
 
-        assert result.timeout_seconds == 300
         assert result.input_files == {"prd": "docs/prd.md"}
 
     def test_merge_input_files_dict(
@@ -1792,49 +1789,6 @@ class TestPhaseEnabledWithProjectConfig:
         # Default is enabled (no command config, no project config)
         assert runner.is_phase_enabled("plan") is True
 
-    def test_phase_timeout_from_project_config_used(
-        self,
-        tmp_path: Path,
-        command_dir: Path,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """Timeout from project config is used in _get_merged_config."""
-        # Create command config with default timeout
-        (command_dir / "config.yaml").write_text("timeout_seconds: 300\n")
-
-        # Create project config that overrides timeout (no prompt.md!)
-        project_dir = tmp_path / ".adw" / "commands" / "build"
-        project_dir.mkdir(parents=True)
-        (project_dir / "config.yaml").write_text("timeout_seconds: 900\n")
-
-        # Mock resolver
-        mock_resolver = MagicMock()
-        mock_resolver.project_root = tmp_path  # Set project root
-        mock_resolved = ResolvedCommand(
-            name="build",
-            path=command_dir,
-            tier="bundled",
-            has_config=True,
-        )
-        mock_resolver.resolve.return_value = mock_resolved
-
-        runner = PhaseRunner(
-            command_resolver=mock_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        # Get merged config
-        merged = runner._get_merged_config("build", mock_resolved)
-
-        # Project timeout (900) should override command (300)
-        assert merged.timeout_seconds == 900
-
     def test_phase_enabled_not_overridden_by_implicit_default(
         self,
         tmp_path: Path,
@@ -1845,18 +1799,18 @@ class TestPhaseEnabledWithProjectConfig:
         mock_artifact_manager: ArtifactManager,
     ) -> None:
         """is_phase_enabled should NOT re-enable a disabled phase when project
-        config only sets timeout (not explicitly enabled).
+        config only sets input_files (not explicitly enabled).
 
-        This tests the fix for the bug where project config with only timeout_seconds
-        would unintentionally re-enable a phase disabled by command config.
+        This tests the fix for the bug where project config with only non-enabled
+        fields would unintentionally re-enable a phase disabled by command config.
         """
         # Create command config that DISABLES the phase
         (command_dir / "config.yaml").write_text("enabled: false\n")
 
-        # Create project config that only overrides timeout (NOT enabled!)
+        # Create project config that only overrides input_files (NOT enabled!)
         project_dir = tmp_path / ".adw" / "commands" / "build"
         project_dir.mkdir(parents=True)
-        (project_dir / "config.yaml").write_text("timeout_seconds: 900\n")
+        (project_dir / "config.yaml").write_text("input_files:\n  prd: docs/prd.md\n")
 
         # Mock resolver
         mock_resolver = MagicMock()

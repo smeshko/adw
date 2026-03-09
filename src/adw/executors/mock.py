@@ -88,7 +88,7 @@ class MockExecutor:
 
         Example:
             >>> executor.configure_failures([
-            ...     LLMTimeoutError(...),  # First call fails
+            ...     LLMError(...),  # First call fails
             ...     None,  # Second call succeeds
             ... ])
         """

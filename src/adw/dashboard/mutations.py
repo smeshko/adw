@@ -749,24 +749,11 @@ async def save_phase_settings(
     # Parse base fields
     enabled_raw = str(form.get("enabled", "true"))
     enabled = enabled_raw.lower() in ("true", "1", "on", "yes")
-    try:
-        timeout_seconds = int(str(form.get("timeout_seconds", "900")))
-    except (ValueError, TypeError):
-        from adw.dashboard.partials import PHASE_DEFAULTS as _PD
-
-        defaults = _PD.get(phase, {"timeout": 900, "model": "opus"})
-        return _render_phase_editor_error(
-            request, templates, phase,
-            {"enabled": enabled, "timeout_seconds": defaults["timeout"]},
-            project_display,
-            "Invalid timeout value.",
-        )
     llm_model = str(form.get("llm_model", ""))
 
     # Build config dict
     config_data: dict[str, Any] = {
         "enabled": enabled,
-        "timeout_seconds": timeout_seconds,
     }
 
     if llm_model:
@@ -858,7 +845,7 @@ async def save_phase_settings(
     # Re-render the phase editor partial with fresh data + success toast
     from adw.dashboard.partials import PHASE_DEFAULTS
 
-    defaults = PHASE_DEFAULTS.get(phase, {"timeout": 900, "model": "opus"})
+    defaults = PHASE_DEFAULTS.get(phase, {"model": "opus"})
 
     # Reload the config we just saved
     loaded_data = yaml.safe_load(config_path.read_text()) or {}
@@ -866,7 +853,6 @@ async def save_phase_settings(
 
     has_config = True
     loaded_enabled = loaded_obj.enabled
-    loaded_timeout = loaded_obj.timeout_seconds or defaults["timeout"]
     loaded_llm_model = defaults["model"]
     if loaded_obj.llm and loaded_obj.llm.model:
         loaded_llm_model = loaded_obj.llm.model
@@ -895,14 +881,12 @@ async def save_phase_settings(
         "phase": phase,
         "has_config": has_config,
         "enabled": loaded_enabled,
-        "timeout_seconds": loaded_timeout,
         "llm_model": loaded_llm_model,
         "input_files": loaded_input_files,
         "doc_mappings": loaded_doc_mappings,
         "ship_version_bump": loaded_ship_vb,
         "ship_publish": loaded_ship_pub,
         "bypass_ci": loaded_bypass_ci,
-        "default_timeout": defaults["timeout"],
         "default_model": defaults["model"],
         "selected_settings_project": project_display,
         "csrf_token": generate_csrf_token(request),
@@ -940,7 +924,7 @@ def _render_phase_editor_error(
     """
     from adw.dashboard.partials import PHASE_DEFAULTS
 
-    defaults = PHASE_DEFAULTS.get(phase, {"timeout": 900, "model": "opus"})
+    defaults = PHASE_DEFAULTS.get(phase, {"model": "opus"})
 
     # Extract values from the submitted config_data for re-rendering
     llm_data = config_data.get("llm", {})
@@ -951,14 +935,12 @@ def _render_phase_editor_error(
         "phase": phase,
         "has_config": True,
         "enabled": config_data.get("enabled", True),
-        "timeout_seconds": config_data.get("timeout_seconds", defaults["timeout"]),
         "llm_model": llm_data.get("model", defaults["model"]) if llm_data else defaults["model"],
         "input_files": config_data.get("input_files", {}),
         "doc_mappings": doc_mappings,
         "ship_version_bump": commands.get("version_bump", "") if commands else "",
         "ship_publish": commands.get("publish", "") if commands else "",
         "bypass_ci": config_data.get("bypass_ci", True),
-        "default_timeout": defaults["timeout"],
         "default_model": defaults["model"],
         "selected_settings_project": project_display,
         "csrf_token": generate_csrf_token(request),

@@ -42,20 +42,8 @@ test_command: {test_command}
 # build_command: make build
 
 # LLM Configuration
-llm:
-  claude_code:
-    # Path to Claude Code CLI (default: claude in PATH)
-    # path: /usr/local/bin/claude
-    timeout_seconds: 300
-
-# Phase configuration (uses defaults if not specified)
-# phases:
-#   plan:
-#     timeout: 120
-#   build:
-#     timeout: 300
-#   verify:
-#     timeout: 180
+# llm:
+#   path: claude  # Path to Claude Code CLI (default: claude in PATH)
 
 # Hook configuration (optional)
 # hooks:

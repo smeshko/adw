@@ -1,9 +1,6 @@
 # Default configuration for the build phase
 # These defaults can be overridden in project's adw.yaml
 
-# Timeout for the build phase (20 minutes default - longer for implementation)
-timeout_seconds: 1200
-
 # Input files for build phase typically come from previous phase artifacts
 # input_files:
 #   plan: artifacts/plan/plan_output.md

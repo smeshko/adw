@@ -193,7 +193,7 @@ class TestCommandResolverOptionalFileDetection:
         project_cmd = tmp_path / ".adw" / "commands" / "plan"
         project_cmd.mkdir(parents=True)
         (project_cmd / "prompt.md").write_text("# Plan")
-        (project_cmd / "config.yaml").write_text("timeout_seconds: 600")
+        (project_cmd / "config.yaml").write_text("enabled: true")
 
         resolver = CommandResolver(project_root=tmp_path)
         result = resolver.resolve("plan")

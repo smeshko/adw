@@ -68,23 +68,18 @@ class CommandConfig(BaseModel):
 
     Attributes:
         enabled: Whether this phase is enabled. Disabled phases are skipped.
-        timeout_seconds: Default timeout for this command in seconds.
         input_files: Mapping of variable names to file paths for template injection.
             Files are loaded at phase start and available as {{ inputs.name }}.
         llm: Phase-specific LLM settings (model).
     Example:
         >>> config = CommandConfig(
         ...     enabled=True,
-        ...     timeout_seconds=600,
         ...     input_files={"prd": "docs/prd.md"},
         ...     llm=PhaseLLMConfig(model="claude-3-opus"),
         ... )
-        >>> config.timeout_seconds
-        600
 
     YAML example (in command folder's config.yaml):
         enabled: true
-        timeout_seconds: 600
         input_files:
           prd: docs/prd.md
           architecture: docs/architecture.md
@@ -101,11 +96,6 @@ class CommandConfig(BaseModel):
     enabled: bool = Field(
         default=True,
         description="Whether this phase is enabled. Disabled phases are skipped.",
-    )
-    timeout_seconds: int | None = Field(
-        default=None,
-        gt=0,
-        description="Default timeout for this command in seconds",
     )
     input_files: dict[str, str] | None = Field(
         default=None,
@@ -171,7 +161,6 @@ class ValidateCommandConfig(CommandConfig):
 
     YAML example (in .adw/commands/validate/config.yaml):
         enabled: true
-        timeout_seconds: 600
         lint_command: ruff check .
     """
 
@@ -247,7 +236,6 @@ class DocumentCommandConfig(CommandConfig):
 
     YAML example (in .adw/commands/document/config.yaml):
         enabled: true
-        timeout_seconds: 600
         doc_mappings:
           - source_pattern: "src/adw/core/**/*.py"
             docs_dir: "docs/architecture/deep-dive"
@@ -284,7 +272,6 @@ class ShipCommandConfig(CommandConfig):
 
     YAML example (in .adw/commands/ship/config.yaml):
         enabled: true
-        timeout_seconds: 900
         commands:
           version_bump: npm version patch
           publish: npm publish

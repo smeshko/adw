@@ -43,8 +43,6 @@ class TestInitFullFlow:
         config = yaml.safe_load((adw_dir / "project.yaml").read_text())
         assert config["language"] == "python"
         assert config["test_command"] == "pytest"
-        assert "llm" in config
-        assert "claude_code" in config["llm"]
 
     def test_full_init_flow_nodejs_project(self, tmp_path: Path) -> None:
         """Test complete init flow for Node.js project."""
@@ -263,8 +261,8 @@ class TestInitConfigValidation:
         config = yaml.safe_load(config_path.read_text())
         assert isinstance(config, dict)
 
-    def test_generated_config_has_llm_timeout(self, tmp_path: Path) -> None:
-        """Test that generated config includes LLM timeout setting."""
+    def test_generated_config_has_test_command(self, tmp_path: Path) -> None:
+        """Test that generated config includes test_command setting."""
         subprocess.run(
             [sys.executable, "-m", "adw", "init", "--no-interactive"],
             cwd=tmp_path,
@@ -273,7 +271,7 @@ class TestInitConfigValidation:
         )
 
         config = yaml.safe_load((tmp_path / ".adw" / "project.yaml").read_text())
-        assert config["llm"]["claude_code"]["timeout_seconds"] == 300
+        assert "test_command" in config
 
 
 class TestInitRunIntegration:

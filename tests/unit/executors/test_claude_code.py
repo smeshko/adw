@@ -41,7 +41,6 @@ class TestClaudeCodeExecutorClass:
         """Constructor should accept LLMConfig."""
         config = LLMConfig(
             path="/usr/bin/claude",
-            timeout_seconds=600,
         )
         executor = ClaudeCodeExecutor(config)
         assert executor.config == config
@@ -498,101 +497,6 @@ class TestRealTimeStreaming:
 
             # Should have created 2 tasks (stdout and stderr)
             assert len(create_task_calls) == 2
-
-
-class TestTimeoutEnforcement:
-    """Tests for timeout enforcement."""
-
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with short timeout."""
-        config = LLMConfig(path="claude", timeout_seconds=1)
-        return ClaudeCodeExecutor(config)
-
-    def test_timeout_raises_llm_timeout_error(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
-        """Should raise LLMTimeoutError with elapsed and configured timeout."""
-        from adw.exceptions import LLMTimeoutError
-
-        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
-            process = AsyncMock()
-            process.stdout = AsyncMock()
-            process.stderr = AsyncMock()
-            process.returncode = None  # Not completed
-            process.terminate = MagicMock()
-            process.kill = MagicMock()
-
-            # Simulate slow readline that will timeout
-            async def slow_readline():
-                await asyncio.sleep(10)  # Much longer than timeout
-                return b""
-
-            process.stdout.readline = slow_readline
-            process.stderr.readline = slow_readline
-            process.wait = AsyncMock(return_value=None)
-
-            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
-            mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = _run_async
-            mock_asyncio.create_task = asyncio.create_task
-            mock_asyncio.gather = asyncio.gather
-            mock_asyncio.TimeoutError = asyncio.TimeoutError
-
-            # Use real wait_for to trigger actual timeout
-            mock_asyncio.wait_for = asyncio.wait_for
-
-            with (
-                patch("shutil.which", return_value="/usr/bin/claude"),
-                pytest.raises(LLMTimeoutError) as exc_info,
-            ):
-                executor.execute("Test prompt", timeout=1)
-
-            assert exc_info.value.code == "LLM_TIMEOUT"
-            assert "timed out" in exc_info.value.message
-            assert exc_info.value.timeout_seconds == 1
-            assert exc_info.value.elapsed_seconds >= 0
-            assert exc_info.value.recoverable is True
-
-    def test_timeout_kills_process(self, executor: ClaudeCodeExecutor) -> None:
-        """Should kill process on timeout to ensure cleanup."""
-        from adw.exceptions import LLMTimeoutError
-
-        with patch("adw.executors.claude_code.asyncio") as mock_asyncio:
-            process = AsyncMock()
-            process.stdout = AsyncMock()
-            process.stderr = AsyncMock()
-            process.returncode = None
-            process.terminate = MagicMock()
-            process.kill = MagicMock()
-
-            # Simulate slow readline
-            async def slow_readline():
-                await asyncio.sleep(10)
-                return b""
-
-            process.stdout.readline = slow_readline
-            process.stderr.readline = slow_readline
-            process.wait = AsyncMock(return_value=None)
-
-            mock_asyncio.create_subprocess_exec = AsyncMock(return_value=process)
-            mock_asyncio.subprocess = asyncio.subprocess
-            mock_asyncio.run = _run_async
-            mock_asyncio.create_task = asyncio.create_task
-            mock_asyncio.gather = asyncio.gather
-            mock_asyncio.wait_for = asyncio.wait_for
-            mock_asyncio.TimeoutError = asyncio.TimeoutError
-
-            with (
-                patch("shutil.which", return_value="/usr/bin/claude"),
-                pytest.raises(LLMTimeoutError),
-            ):
-                executor.execute("Test prompt", timeout=1)
-
-            # Verify process was killed (not just terminated)
-            process.kill.assert_called_once()
-            # Verify wait was called to clean up zombie process
-            process.wait.assert_awaited()
 
 
 class TestOutputParsing:
@@ -1462,54 +1366,6 @@ class TestAdditionalParsingCoverage:
 
         # Array should be converted to string content
         assert parsed["content"] != ""
-
-
-class TestTimeoutResolution:
-    """Tests for _resolve_timeout helper (Story 3-4)."""
-
-    def test_timeout_parameter_takes_precedence(self) -> None:
-        """Timeout parameter should override config.timeout_seconds."""
-        config = LLMConfig(path="claude", timeout_seconds=300)
-        executor = ClaudeCodeExecutor(config)
-
-        # Parameter should override config
-        result = executor._resolve_timeout(60)
-        assert result == 60
-
-    def test_config_timeout_used_when_no_parameter(self) -> None:
-        """Config timeout_seconds should be used when no parameter provided."""
-        config = LLMConfig(path="claude", timeout_seconds=180)
-        executor = ClaudeCodeExecutor(config)
-
-        result = executor._resolve_timeout(None)
-        assert result == 180
-
-    def test_default_timeout_used_when_config_is_zero(self) -> None:
-        """DEFAULT_LLM_TIMEOUT should be used when config.timeout_seconds is 0."""
-        from adw.executors.claude_code import DEFAULT_LLM_TIMEOUT
-
-        config = LLMConfig(path="claude", timeout_seconds=0)
-        executor = ClaudeCodeExecutor(config)
-
-        result = executor._resolve_timeout(None)
-        assert result == DEFAULT_LLM_TIMEOUT
-        assert result == 600  # Verify the constant value
-
-    def test_timeout_zero_parameter_uses_zero(self) -> None:
-        """Timeout of 0 passed as parameter should be used (even if falsy)."""
-        config = LLMConfig(path="claude", timeout_seconds=300)
-        executor = ClaudeCodeExecutor(config)
-
-        # When timeout=0 is explicitly passed, it should use 0
-        # This is because 0 is not None
-        result = executor._resolve_timeout(0)
-        assert result == 0
-
-    def test_default_llm_timeout_constant_value(self) -> None:
-        """DEFAULT_LLM_TIMEOUT should be 600 seconds (10 minutes)."""
-        from adw.executors.claude_code import DEFAULT_LLM_TIMEOUT
-
-        assert DEFAULT_LLM_TIMEOUT == 600
 
 
 class TestHookRunnerTimeoutResolution:

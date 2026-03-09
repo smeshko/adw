@@ -525,8 +525,7 @@ class TestDocumentPhaseDocMappings:
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "prompt.md").write_text("Document prompt")
         (cmd_dir / "config.yaml").write_text(
-            """timeout_seconds: 600
-doc_mappings:
+            """doc_mappings:
   - source_pattern: "src/adw/core/**/*.py"
     docs_dir: "docs/architecture/deep-dive"
   - source_pattern: "src/adw/cli/**/*.py"
@@ -573,7 +572,7 @@ doc_mappings:
         cmd_dir = tmp_path / ".adw" / "commands" / "document"
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "prompt.md").write_text("Document prompt")
-        (cmd_dir / "config.yaml").write_text("timeout_seconds: 300\n")
+        (cmd_dir / "config.yaml").write_text("enabled: true\n")
 
         context = RunContext(
             run_id="01HQXH9Z8G2K4M5N6P7R8S9T0V",
@@ -588,7 +587,6 @@ doc_mappings:
         # Verify config is DocumentCommandConfig even without doc_mappings
         assert loaded.config is not None
         assert isinstance(loaded.config, DocumentCommandConfig)
-        assert loaded.config.timeout_seconds == 300
         assert loaded.config.doc_mappings is None
 
     def test_document_config_inherits_base_config_fields(self, tmp_path: Path) -> None:
@@ -598,7 +596,6 @@ doc_mappings:
         (cmd_dir / "prompt.md").write_text("Document prompt")
         (cmd_dir / "config.yaml").write_text(
             """enabled: true
-timeout_seconds: 900
 input_files:
   prd: docs/prd.md
 doc_mappings:
@@ -621,7 +618,6 @@ doc_mappings:
         assert loaded.config is not None
         assert isinstance(loaded.config, DocumentCommandConfig)
         assert loaded.config.enabled is True
-        assert loaded.config.timeout_seconds == 900
         assert loaded.config.input_files == {"prd": "docs/prd.md"}
 
         # Verify doc_mappings specific field

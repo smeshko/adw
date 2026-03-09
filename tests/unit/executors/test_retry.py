@@ -2,7 +2,7 @@
 
 import pytest
 
-from adw.exceptions import LLMError, LLMRateLimitError, LLMTimeoutError
+from adw.exceptions import LLMError, LLMRateLimitError
 from adw.executors.mock import MockExecutor
 from adw.executors.retry import RetryExecutor
 from adw.models.config import RetryConfig
@@ -71,11 +71,10 @@ class TestExponentialBackoff:
         config = RetryConfig(base_delay_seconds=1.0, multiplier=2.0)
         retry = RetryExecutor(executor=mock, config=config)
 
-        error = LLMTimeoutError(
-            code="LLM_TIMEOUT",
-            message="Timeout",
-            timeout_seconds=300,
-            elapsed_seconds=300,
+        error = LLMError(
+            code="LLM_ERROR",
+            message="LLM failed",
+            recoverable=True,
         )
 
         # First retry: base_delay * (multiplier ^ 0) = 1.0
@@ -90,11 +89,10 @@ class TestExponentialBackoff:
         config = RetryConfig(base_delay_seconds=1.0, multiplier=2.0)
         retry = RetryExecutor(executor=mock, config=config)
 
-        error = LLMTimeoutError(
-            code="LLM_TIMEOUT",
-            message="Timeout",
-            timeout_seconds=300,
-            elapsed_seconds=300,
+        error = LLMError(
+            code="LLM_ERROR",
+            message="LLM failed",
+            recoverable=True,
         )
 
         # Second retry: base_delay * (multiplier ^ 1) = 2.0
@@ -109,11 +107,10 @@ class TestExponentialBackoff:
         config = RetryConfig(base_delay_seconds=1.0, multiplier=2.0)
         retry = RetryExecutor(executor=mock, config=config)
 
-        error = LLMTimeoutError(
-            code="LLM_TIMEOUT",
-            message="Timeout",
-            timeout_seconds=300,
-            elapsed_seconds=300,
+        error = LLMError(
+            code="LLM_ERROR",
+            message="LLM failed",
+            recoverable=True,
         )
 
         # Third retry: base_delay * (multiplier ^ 2) = 4.0
@@ -132,11 +129,10 @@ class TestExponentialBackoff:
         )
         retry = RetryExecutor(executor=mock, config=config)
 
-        error = LLMTimeoutError(
-            code="LLM_TIMEOUT",
-            message="Timeout",
-            timeout_seconds=300,
-            elapsed_seconds=300,
+        error = LLMError(
+            code="LLM_ERROR",
+            message="LLM failed",
+            recoverable=True,
         )
 
         # 5th attempt would be 10 * (10^4) = 100000, but capped at 30
@@ -151,11 +147,10 @@ class TestExponentialBackoff:
         config = RetryConfig(base_delay_seconds=1.0, multiplier=2.0)
         retry = RetryExecutor(executor=mock, config=config)
 
-        error = LLMTimeoutError(
-            code="LLM_TIMEOUT",
-            message="Timeout",
-            timeout_seconds=300,
-            elapsed_seconds=300,
+        error = LLMError(
+            code="LLM_ERROR",
+            message="LLM failed",
+            recoverable=True,
         )
 
         # Calculate delay multiple times
@@ -168,16 +163,15 @@ class TestExponentialBackoff:
 class TestErrorClassification:
     """Tests for error classification (is_retryable)."""
 
-    def test_llm_timeout_error_is_retryable(self) -> None:
-        """Test that LLMTimeoutError is retryable."""
+    def test_llm_recoverable_error_is_retryable(self) -> None:
+        """Test that recoverable LLMError is retryable."""
         mock = MockExecutor()
         retry = RetryExecutor(executor=mock)
 
-        error = LLMTimeoutError(
-            code="LLM_TIMEOUT",
-            message="Timeout",
-            timeout_seconds=300,
-            elapsed_seconds=300,
+        error = LLMError(
+            code="LLM_ERROR",
+            message="LLM failed",
+            recoverable=True,
         )
 
         assert retry._is_retryable(error) is True
@@ -320,17 +314,15 @@ class TestAttemptTracking:
         # Configure mock to fail twice, then succeed on third attempt
         mock.configure_failures(
             [
-                LLMTimeoutError(
-                    code="LLM_TIMEOUT",
-                    message="Timeout",
-                    timeout_seconds=300,
-                    elapsed_seconds=300,
+                LLMError(
+                    code="LLM_ERROR",
+                    message="LLM failed",
+                    recoverable=True,
                 ),
-                LLMTimeoutError(
-                    code="LLM_TIMEOUT",
-                    message="Timeout",
-                    timeout_seconds=300,
-                    elapsed_seconds=300,
+                LLMError(
+                    code="LLM_ERROR",
+                    message="LLM failed",
+                    recoverable=True,
                 ),
             ]
         )
@@ -362,11 +354,10 @@ class TestErrorMessages:
         # Configure to fail all 3 attempts
         mock.configure_failures(
             [
-                LLMTimeoutError(
-                    code="LLM_TIMEOUT",
-                    message="Timeout occurred",
-                    timeout_seconds=300,
-                    elapsed_seconds=300,
+                LLMError(
+                    code="LLM_ERROR",
+                    message="LLM failed",
+                    recoverable=True,
                 ),
             ]
             * 3
@@ -404,11 +395,10 @@ class TestErrorMessages:
     def test_original_error_preserved_as_cause(self) -> None:
         """Test that original error is preserved as __cause__."""
         mock = MockExecutor()
-        original_error = LLMTimeoutError(
-            code="LLM_TIMEOUT",
-            message="Original timeout",
-            timeout_seconds=300,
-            elapsed_seconds=300,
+        original_error = LLMError(
+            code="LLM_ERROR",
+            message="Original error",
+            recoverable=True,
         )
         mock.configure_failures([original_error] * 3)
 
@@ -419,7 +409,7 @@ class TestErrorMessages:
             retry.execute("test prompt")
 
         assert exc_info.value.__cause__ is not None
-        assert exc_info.value.__cause__.code == "LLM_TIMEOUT"
+        assert exc_info.value.__cause__.code == "LLM_ERROR"
 
     def test_non_retryable_error_fails_immediately(self) -> None:
         """Test that non-retryable errors fail on first attempt."""
@@ -473,11 +463,10 @@ class TestModelParamForwarding:
         mock = MockExecutor()
         mock.configure_failures(
             [
-                LLMTimeoutError(
-                    code="LLM_TIMEOUT",
-                    message="Timeout",
-                    timeout_seconds=300,
-                    elapsed_seconds=300,
+                LLMError(
+                    code="LLM_ERROR",
+                    message="LLM failed",
+                    recoverable=True,
                 ),
             ]
         )

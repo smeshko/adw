@@ -2,9 +2,6 @@
 # Handles version bumping, building, publishing, and PR merge automation
 # Override in project's .adw/commands/ship/config.yaml
 
-# Timeout for the ship phase (15 minutes - includes potential deployment steps)
-timeout_seconds: 900
-
 # === Deployment Commands ===
 # Shell commands executed during ship phase (all optional)
 # Note: build_command is configured at the project level in project.yaml

@@ -21,7 +21,7 @@ class TestTokenTrackingIntegration:
     @pytest.fixture
     def executor(self) -> ClaudeCodeExecutor:
         """Create a ClaudeCodeExecutor for testing."""
-        config = LLMConfig(path="claude", timeout_seconds=300)
+        config = LLMConfig(path="claude")
         return ClaudeCodeExecutor(config)
 
     @pytest.fixture

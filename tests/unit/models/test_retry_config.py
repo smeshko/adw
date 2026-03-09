@@ -89,7 +89,6 @@ class TestLLMConfigRetryField:
         config = LLMConfig.model_validate(
             {
                 "path": "claude",
-                "timeout_seconds": 600,
                 "retry": {
                     "max_retries": 5,
                     "base_delay_seconds": 2.0,
@@ -111,7 +110,6 @@ class TestLLMConfigRetryField:
         config = LLMConfig.model_validate(
             {
                 "path": "/usr/bin/claude",
-                "timeout_seconds": 300,
             }
         )
 

@@ -44,7 +44,7 @@ class LLMExecutor(Protocol):
 
         Args:
             prompt: The prompt to send to the LLM.
-            timeout: Optional timeout in seconds. If None, uses executor's default.
+            timeout: Unused, kept for interface compatibility.
             phase: Optional phase name for logging and debugging purposes.
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
@@ -56,7 +56,6 @@ class LLMExecutor(Protocol):
             LLMResult with success status, content, tool calls, and metrics.
 
         Raises:
-            LLMTimeoutError: If execution times out.
             LLMRateLimitError: If rate limited by the API.
             LLMError: For other LLM-related errors.
         """

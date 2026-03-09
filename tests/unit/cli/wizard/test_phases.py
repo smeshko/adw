@@ -12,7 +12,6 @@ from rich.console import Console
 
 from adw.cli.wizard.phases import (
     AVAILABLE_PHASES,
-    DEFAULT_TIMEOUTS,
     PhasesStepHandler,
     _configure_document_phase,
     _configure_phase,
@@ -32,19 +31,6 @@ class TestConstants:
     def test_available_phases(self) -> None:
         """Test available phases list includes ship."""
         assert AVAILABLE_PHASES == ["plan", "build", "validate", "document", "ship"]
-
-    def test_default_timeouts_defined_for_all_phases(self) -> None:
-        """Test that default timeouts exist for all phases."""
-        for phase in AVAILABLE_PHASES:
-            assert phase in DEFAULT_TIMEOUTS
-
-    def test_default_timeout_values(self) -> None:
-        """Test specific default timeout values (updated per AC8)."""
-        assert DEFAULT_TIMEOUTS["plan"] == 900  # 15 minutes
-        assert DEFAULT_TIMEOUTS["build"] == 1800  # 30 minutes
-        assert DEFAULT_TIMEOUTS["validate"] == 900  # 15 minutes
-        assert DEFAULT_TIMEOUTS["document"] == 900  # 15 minutes
-        assert DEFAULT_TIMEOUTS["ship"] == 1200  # 20 minutes
 
 
 class TestNoCustomization:
@@ -215,13 +201,12 @@ class TestBasePhaseConfiguration:
         ):
             # enabled=True
             mock_confirm.return_value = True
-            # timeout, model selection (empty = use default)
-            mock_prompt.side_effect = ["300", ""]
+            # model selection (empty = use default)
+            mock_prompt.side_effect = [""]
 
             config = _configure_phase("plan", console)
 
         assert config["enabled"] is True
-        assert config["timeout_seconds"] == 300
         assert config["input_files"] is None
         # Empty model input now selects phase default (opus for plan)
         assert config["llm"] == {"model": "opus"}
@@ -244,24 +229,6 @@ class TestBasePhaseConfiguration:
         mock_prompt.assert_not_called()
         mock_nav.assert_not_called()
 
-    def test_configure_phase_uses_phase_default_timeout(self) -> None:
-        """Test that phase configuration uses phase-specific default timeout."""
-        console = Console(force_terminal=True)
-
-        with (
-            patch("adw.cli.wizard.phases.Confirm.ask") as mock_confirm,
-            patch("adw.cli.wizard.phases.Prompt.ask") as mock_prompt,
-            patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
-        ):
-            mock_confirm.return_value = True
-            # User just hits enter for timeout (uses default), skip LLM
-            mock_prompt.side_effect = ["600", ""]
-
-            config = _configure_phase("build", console)
-
-        # Build default is 600
-        assert config["timeout_seconds"] == 600
-
     def test_configure_phase_with_llm_settings(self) -> None:
         """Test phase configuration with LLM model override."""
         console = Console(force_terminal=True)
@@ -272,8 +239,8 @@ class TestBasePhaseConfiguration:
             patch("adw.cli.wizard.phases.nav_confirm_ask", return_value=False),
         ):
             mock_confirm.return_value = True
-            # timeout, model override
-            mock_prompt.side_effect = ["300", "claude-3-opus"]
+            # model override
+            mock_prompt.side_effect = ["claude-3-opus"]
 
             config = _configure_phase("build", console)
 
@@ -402,7 +369,6 @@ class TestValidatePhaseNoSpecialOptions:
         ):
             mock_confirm.return_value = True  # enabled
             mock_prompt.side_effect = [
-                "900",  # timeout
                 "",  # model override (skip)
                 "",  # lint command (skip)
             ]
@@ -411,7 +377,6 @@ class TestValidatePhaseNoSpecialOptions:
 
         # Base options only
         assert config["enabled"] is True
-        assert config["timeout_seconds"] == 900
         # Empty model input selects default (opus for validate)
         assert config["llm"] == {"model": "opus"}
 
@@ -590,7 +555,6 @@ class TestDocumentPhaseSpecialOptions:
                 True,  # add doc_mappings
             ]
             mock_prompt.side_effect = [
-                "300",  # timeout
                 "",  # model override (skip)
                 "src/**/*.py=docs/src",  # mapping
                 "",  # finish mappings
@@ -600,7 +564,6 @@ class TestDocumentPhaseSpecialOptions:
 
         # Base options
         assert config["enabled"] is True
-        assert config["timeout_seconds"] == 300
 
         # Document-specific options
         assert "doc_mappings" in config
@@ -691,7 +654,6 @@ class TestFullFlow:
             ]
             mock_prompt.side_effect = [
                 "1",  # select plan phase
-                "300",  # timeout
                 "",  # model override (skip)
             ]
 
@@ -700,7 +662,6 @@ class TestFullFlow:
         assert result["customized"] is True
         assert "plan" in result["phases"]
         assert result["phases"]["plan"]["enabled"] is True
-        assert result["phases"]["plan"]["timeout_seconds"] == 300
 
     def test_full_flow_customize_validate_phase(self) -> None:
         """Test full flow customizing only the validate phase (base options only)."""
@@ -718,7 +679,6 @@ class TestFullFlow:
             ]
             mock_prompt.side_effect = [
                 "3",  # select validate phase
-                "900",  # timeout
                 "",  # model override (skip)
                 "",  # lint command (skip)
             ]
@@ -729,7 +689,6 @@ class TestFullFlow:
         assert "validate" in result["phases"]
         validate_config = result["phases"]["validate"]
         assert validate_config["enabled"] is True
-        assert validate_config["timeout_seconds"] == 900
         # No validate-specific options when skipped
         assert "lint_command" not in validate_config
         assert "enable_review" not in validate_config

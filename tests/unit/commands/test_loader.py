@@ -534,7 +534,7 @@ class TestConfigLoading:
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
         (cmd_dir / "config.yaml").write_text(
-            "timeout_seconds: 600\ninput_files:\n  prd: docs/prd.md",
+            "enabled: true\ninput_files:\n  prd: docs/prd.md",
             encoding="utf-8",
         )
 
@@ -544,7 +544,7 @@ class TestConfigLoading:
 
         assert config is not None
         assert isinstance(config, CommandConfig)
-        assert config.timeout_seconds == 600
+        assert config.enabled is True
         assert config.input_files == {"prd": "docs/prd.md"}
 
     def test_load_config_handles_empty_config_file(self, tmp_path: Path) -> None:
@@ -562,7 +562,7 @@ class TestConfigLoading:
 
         assert config is not None
         assert isinstance(config, CommandConfig)
-        assert config.timeout_seconds is None
+        assert config.enabled is True  # default
 
     def test_load_config_raises_on_invalid_yaml(self, tmp_path: Path) -> None:
         """_load_config raises ConfigError for invalid YAML."""
@@ -583,8 +583,8 @@ class TestConfigLoading:
         cmd_dir = tmp_path / ".adw" / "commands" / "plan"
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
-        # timeout_seconds must be > 0, so 0 should fail
-        (cmd_dir / "config.yaml").write_text("timeout_seconds: 0", encoding="utf-8")
+        # extra fields are forbidden, so an unknown field should fail
+        (cmd_dir / "config.yaml").write_text("unknown_field: true", encoding="utf-8")
 
         loader = CommandLoader(project_root=tmp_path)
         resolved = loader.resolver.resolve("plan")
@@ -600,13 +600,13 @@ class TestConfigLoading:
         cmd_dir = tmp_path / ".adw" / "commands" / "plan"
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "prompt.md").write_text("Prompt", encoding="utf-8")
-        (cmd_dir / "config.yaml").write_text("timeout_seconds: 300", encoding="utf-8")
+        (cmd_dir / "config.yaml").write_text("enabled: true", encoding="utf-8")
 
         loader = CommandLoader(project_root=tmp_path)
         result = loader.load_command("plan", run_context)
 
         assert result.config is not None
-        assert result.config.timeout_seconds == 300
+        assert result.config.enabled is True
 
     def test_load_command_config_is_none_when_missing(
         self, tmp_path: Path, run_context: RunContext
@@ -670,8 +670,7 @@ class TestDocumentConfigLoading:
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "prompt.md").write_text("Document prompt", encoding="utf-8")
         (cmd_dir / "config.yaml").write_text(
-            """timeout_seconds: 600
-doc_mappings:
+            """doc_mappings:
   - source_pattern: "src/core/**/*.py"
     docs_dir: "docs/architecture"
   - source_pattern: "src/cli/**/*.py"
@@ -693,7 +692,6 @@ doc_mappings:
 
         assert result.config is not None
         assert isinstance(result.config, DocumentCommandConfig)
-        assert result.config.timeout_seconds == 600
         assert result.config.doc_mappings is not None
         assert len(result.config.doc_mappings) == 2
         assert result.config.doc_mappings[0].source_pattern == "src/core/**/*.py"
@@ -708,7 +706,7 @@ doc_mappings:
         cmd_dir = tmp_path / ".adw" / "commands" / "document"
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "prompt.md").write_text("Document prompt", encoding="utf-8")
-        (cmd_dir / "config.yaml").write_text("timeout_seconds: 300", encoding="utf-8")
+        (cmd_dir / "config.yaml").write_text("enabled: true", encoding="utf-8")
 
         context = RunContext(
             run_id=run_context.run_id,

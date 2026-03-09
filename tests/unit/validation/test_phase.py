@@ -28,9 +28,9 @@ class TestValidationPhaseInit:
 
     def test_custom_config(self) -> None:
         """ValidationPhase accepts custom config."""
-        config = ValidationConfig(timeout_seconds=1200)
+        config = ValidationConfig(enabled=False)
         phase = ValidationPhase(config=config)
-        assert phase.config.timeout_seconds == 1200
+        assert phase.config.enabled is False
 
     def test_run_id_stored(self) -> None:
         """ValidationPhase stores run_id for logging."""

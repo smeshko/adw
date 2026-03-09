@@ -98,23 +98,20 @@ class TestConfigRegistry:
         setting_names = {s.name for s in settings}
 
         assert "enabled" in setting_names
-        assert "timeout_seconds" in setting_names
 
         # All phases should have same base settings
         build_settings = registry.get_phase_settings("build")
         assert {s.name for s in build_settings} == setting_names
 
-    def test_llm_section_has_path_and_timeout(self, registry: ConfigRegistry) -> None:
+    def test_llm_section_has_path(self, registry: ConfigRegistry) -> None:
         """Test LLM section has critical settings."""
         settings = registry.get_all_settings("llm")
         settings_dict = {s.name: s for s in settings}
 
         assert "path" in settings_dict
-        assert "timeout_seconds" in settings_dict
 
         # Check defaults
         assert settings_dict["path"].default == "claude"
-        assert settings_dict["timeout_seconds"].default == 300
 
     def test_unknown_section_raises_keyerror(self, registry: ConfigRegistry) -> None:
         """Test accessing unknown section raises KeyError."""

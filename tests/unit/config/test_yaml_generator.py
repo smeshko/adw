@@ -208,22 +208,6 @@ class TestPhaseYAMLGeneration:
 
         assert "enabled: false" in content
 
-    def test_generate_phase_yaml_custom_timeout(
-        self, generator: YAMLWithComments
-    ) -> None:
-        """Test phase config with custom timeout."""
-        content = generator.generate_phase_yaml("build", {"timeout_seconds": 1200})
-
-        assert "timeout_seconds: 1200" in content
-
-    def test_generate_phase_yaml_default_timeout_commented(
-        self, generator: YAMLWithComments
-    ) -> None:
-        """Test that default timeout is shown as comment."""
-        content = generator.generate_phase_yaml("plan", {})
-
-        assert "# timeout_seconds:" in content
-
     def test_generate_phase_yaml_no_hook_fields(
         self, generator: YAMLWithComments
     ) -> None:
@@ -269,7 +253,6 @@ class TestPhaseYAMLGeneration:
             "build",
             {
                 "enabled": True,
-                "timeout_seconds": 600,
             },
         )
 
@@ -287,7 +270,6 @@ class TestPhaseYAMLGeneration:
         parsed = yaml.safe_load("\n".join(uncommented))
         assert parsed is not None
         assert parsed.get("enabled") is True
-        assert parsed.get("timeout_seconds") == 600
 
 
 class TestYAMLGeneratorRetryKeys:

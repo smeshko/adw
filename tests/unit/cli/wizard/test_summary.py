@@ -68,7 +68,7 @@ class TestSummaryPanelGeneration:
             "task_manager": {"enabled": True, "type": "linear", "team_key": "RULE"},
             "phases": {
                 "customized": True,
-                "phases": {"plan": {"timeout_seconds": 600}},
+                "phases": {"plan": {"enabled": True}},
             },
             "ship": {
                 "enabled": True,
@@ -156,7 +156,7 @@ class TestSummaryPanelGeneration:
             "task_manager": {},
             "phases": {
                 "customized": True,
-                "phases": {"plan": {"timeout": 600}, "build": {"timeout_seconds": 300}},
+                "phases": {"plan": {"enabled": True}, "build": {"enabled": True}},
             },
             "ship": {"enabled": True, "commands": {}, "pr": {}},
             "llm_retry": {},
@@ -506,8 +506,8 @@ class TestPhaseConfigGeneration:
             "phases": {
                 "customized": True,
                 "phases": {
-                    "plan": {"timeout_seconds": 600},
-                    "build": {"timeout_seconds": 300},
+                    "plan": {"enabled": True},
+                    "build": {"enabled": False},
                 },
             },
         }
@@ -518,10 +518,10 @@ class TestPhaseConfigGeneration:
         assert "commands/build/config.yaml" in files
 
         plan_config = yaml.safe_load(files["commands/plan/config.yaml"])
-        assert plan_config["timeout_seconds"] == 600
+        assert plan_config["enabled"] is True
 
         build_config = yaml.safe_load(files["commands/build/config.yaml"])
-        assert build_config["timeout_seconds"] == 300
+        assert build_config["enabled"] is False
 
     def test_generate_phase_configs_with_input_files(self) -> None:
         """Test phase config with input_files mapping."""
@@ -555,7 +555,6 @@ class TestPhaseConfigGeneration:
                 "customized": True,
                 "phases": {
                     "validate": {
-                        "timeout_seconds": 600,
                         "enabled": False,  # Custom: disabled
                     },
                 },
@@ -568,15 +567,11 @@ class TestPhaseConfigGeneration:
         validate_content = files["commands/validate/config.yaml"]
 
         # ISS-032: Check that the content includes our custom values
-        # Note: The new generator always outputs enabled and timeout_seconds
-        # based on the config passed, with defaults as comments
         assert "enabled: false" in validate_content  # Our custom disabled value
-        assert "timeout_seconds: 600" in validate_content  # Our custom timeout
 
         # Verify it's valid YAML
         validate_config = yaml.safe_load(validate_content)
         assert validate_config["enabled"] is False
-        assert validate_config["timeout_seconds"] == 600
 
 
 class TestGitignoreGeneration:

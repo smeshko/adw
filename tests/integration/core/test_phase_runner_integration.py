@@ -381,51 +381,6 @@ class TestProjectConfigOverride:
             # Key assertion: Phase should be disabled by project config
             assert runner.is_phase_enabled("ship") is False
 
-    def test_project_config_timeout_overrides_bundled(
-        self, tmp_path: Path, sample_context: RunContext
-    ) -> None:
-        """Test that project config timeout_seconds overrides bundled command config."""
-        # Set up bundled command with short timeout
-        bundled_dir = tmp_path / "bundled" / "commands" / "build"
-        bundled_dir.mkdir(parents=True)
-        (bundled_dir / "prompt.md").write_text("# Build Phase\nBuild: {{feature}}")
-        (bundled_dir / "config.yaml").write_text("timeout_seconds: 300\n")
-
-        # Set up project config that overrides timeout (NO prompt.md!)
-        project_dir = tmp_path / ".adw" / "commands" / "build"
-        project_dir.mkdir(parents=True)
-        (project_dir / "config.yaml").write_text("timeout_seconds: 900\n")
-
-        # Create runs directory
-        runs_dir = tmp_path / ".adw" / "runs"
-        runs_dir.mkdir(parents=True)
-
-        from unittest.mock import patch
-
-        resolver = CommandResolver(project_root=tmp_path)
-
-        with patch.object(
-            resolver, "_get_bundled_command_path", return_value=bundled_dir
-        ):
-            runner = PhaseRunner(
-                command_resolver=resolver,
-                template_engine=TemplateEngine(project_root=tmp_path),
-                hook_runner=HookRunner(
-                    config=HookConfig(shell="/bin/bash", timeout_seconds=30)
-                ),
-                executor=MockExecutor(),
-                artifact_manager=ArtifactManager(runs_dir=runs_dir),
-            )
-
-            # Resolve the command
-            command = resolver.resolve("build")
-
-            # Get merged config
-            merged = runner._get_merged_config("build", command)
-
-            # Project timeout (900) should override bundled (300)
-            assert merged.timeout_seconds == 900
-
     def test_bundled_phase_still_works_with_project_disabled_phase(
         self, tmp_path: Path, sample_context: RunContext
     ) -> None:

@@ -216,7 +216,6 @@ class YAMLWithComments:
         if retry_custom:
             lines.append("llm:")
             lines.append('  # path: "claude"  # Path to Claude Code executable')
-            lines.append("  # timeout_seconds: 300  # Max execution time")
             lines.append("  retry:")
             lines.append(f"    max_retries: {llm_retry.get('retry_max_retries', 3)}")
             base_delay = llm_retry.get("retry_base_delay", 1.0)
@@ -227,7 +226,6 @@ class YAMLWithComments:
         else:
             lines.append("# llm:")
             lines.append('#   path: "claude"  # Path to Claude Code executable')
-            lines.append("#   timeout_seconds: 300  # Max execution time")
 
         lines.append("")
 
@@ -428,19 +426,6 @@ class YAMLWithComments:
         enabled = phase_config.get("enabled", True)
         lines.append(f"enabled: {_format_yaml_value(enabled)}")
 
-        # timeout_seconds
-        timeout = phase_config.get("timeout_seconds")
-        if timeout is not None:
-            lines.append(f"timeout_seconds: {timeout}")
-        else:
-            # Default varies by phase
-            default_timeout = self._get_default_phase_timeout(phase)
-            lines.append(
-                f"# timeout_seconds: {default_timeout}  # Phase-specific timeout"
-            )
-
-        lines.append("")
-
         # Input files
         input_files = phase_config.get("input_files")
         if input_files:
@@ -479,24 +464,6 @@ class YAMLWithComments:
             self._add_ship_phase_settings(lines, phase_config)
 
         return "\n".join(lines)
-
-    def _get_default_phase_timeout(self, phase: str) -> int:
-        """Get default timeout for a phase.
-
-        Args:
-            phase: Phase name.
-
-        Returns:
-            Default timeout in seconds.
-        """
-        defaults = {
-            "plan": 300,
-            "build": 600,
-            "validate": 600,
-            "document": 300,
-            "ship": 900,
-        }
-        return defaults.get(phase, 300)
 
     def _add_validate_phase_settings(
         self, lines: list[str], config: dict[str, Any]

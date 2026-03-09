@@ -3,11 +3,6 @@
 This module provides the ClaudeCodeExecutor that implements the LLMExecutor
 protocol by invoking the Claude Code CLI as a subprocess with real-time
 streaming output.
-
-Timeout Hierarchy:
-    1. timeout parameter passed to execute() - highest priority
-    2. config.timeout_seconds from LLMConfig
-    3. DEFAULT_LLM_TIMEOUT constant - fallback default
 """
 
 import asyncio
@@ -20,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 
-from adw.exceptions import LLMError, LLMTimeoutError
+from adw.exceptions import LLMError
 from adw.models.config import LLMConfig
 from adw.models.llm import LLMResult, ToolCall
 
@@ -29,9 +24,6 @@ if TYPE_CHECKING:
     from adw.security.interceptor import SecurityInterceptor
 
 logger = logging.getLogger(__name__)
-
-# Default timeout for LLM execution in seconds (10 minutes)
-DEFAULT_LLM_TIMEOUT = 600
 
 
 class ClaudeCodeExecutor:
@@ -44,7 +36,7 @@ class ClaudeCodeExecutor:
     MockExecutor in tests.
 
     Example:
-        >>> config = LLMConfig(path="claude", timeout_seconds=300)
+        >>> config = LLMConfig(path="claude")
         >>> executor = ClaudeCodeExecutor(config)
         >>> result = executor.execute("Generate a hello world program")
         >>> print(result.content)
@@ -78,26 +70,6 @@ class ClaudeCodeExecutor:
         self.allow_dangerous = allow_dangerous
         self.live_stream = live_stream
 
-    def _resolve_timeout(self, timeout: int | None) -> int:
-        """Resolve timeout using 3-tier hierarchy.
-
-        Resolution order:
-            1. Explicit timeout parameter - highest priority
-            2. config.timeout_seconds from LLMConfig
-            3. DEFAULT_LLM_TIMEOUT constant - fallback default
-
-        Args:
-            timeout: Optional timeout override in seconds.
-
-        Returns:
-            Resolved timeout in seconds.
-        """
-        if timeout is not None:
-            return timeout
-        if self.config.timeout_seconds:
-            return self.config.timeout_seconds
-        return DEFAULT_LLM_TIMEOUT
-
     def execute(
         self,
         prompt: str,
@@ -115,7 +87,7 @@ class ClaudeCodeExecutor:
 
         Args:
             prompt: The prompt to send to Claude Code.
-            timeout: Optional timeout in seconds. If None, uses config default.
+            timeout: Unused, kept for interface compatibility.
             phase: Optional phase name for log context.
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
@@ -127,16 +99,14 @@ class ClaudeCodeExecutor:
             LLMResult with success status, content, tool calls, and metrics.
 
         Raises:
-            LLMError: If Claude Code is not found, execution fails, or timeout.
+            LLMError: If Claude Code is not found or execution fails.
         """
-        effective_timeout = self._resolve_timeout(timeout)
-
         # Log LLM start to live stream
         if self.live_stream:
             self.live_stream.write_llm_start(phase)
 
         result = asyncio.run(
-            self._stream_subprocess(prompt, effective_timeout, cwd=cwd, model=model)
+            self._stream_subprocess(prompt, cwd=cwd, model=model)
         )
 
         # Log LLM end to live stream
@@ -148,20 +118,19 @@ class ClaudeCodeExecutor:
     async def _stream_subprocess(
         self,
         prompt: str,
-        timeout: int,
         *,
         cwd: Path | None = None,
         model: str | None = None,
     ) -> LLMResult:
         """Execute Claude Code subprocess with streaming output.
 
-        Uses concurrent tasks for stdout/stderr to prevent deadlocks,
-        and enforces timeout on the entire operation. LLM tokens are
-        written to live.log when a live_stream transport is configured.
+        Uses concurrent tasks for stdout/stderr to prevent deadlocks.
+        LLM tokens are written to live.log when a live_stream transport
+        is configured. Runs without a timeout so the LLM can complete
+        naturally.
 
         Args:
             prompt: The prompt to send to Claude Code.
-            timeout: Timeout in seconds.
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
             model: Optional model identifier. If set, passes --model flag.
@@ -170,7 +139,7 @@ class ClaudeCodeExecutor:
             LLMResult with execution results.
 
         Raises:
-            LLMError: If timeout is exceeded.
+            LLMError: If execution fails.
         """
         start_time = time.monotonic()
 
@@ -198,7 +167,6 @@ class ClaudeCodeExecutor:
             extra={
                 "path": str(claude_path),
                 "model": model,
-                "timeout": timeout,
                 "prompt_length": len(prompt),
                 "cwd": str(cwd) if cwd else None,
             },
@@ -217,44 +185,8 @@ class ClaudeCodeExecutor:
 
         try:
             # Use concurrent tasks to read stdout and stderr to prevent deadlocks
-            result = await asyncio.wait_for(
-                self._read_process_output(process),
-                timeout=timeout,
-            )
+            result = await self._read_process_output(process)
             return self._build_result(result, start_time)
-
-        except TimeoutError:
-            # Calculate elapsed time before cleanup
-            elapsed_seconds = int(time.monotonic() - start_time)
-
-            # Capture partial output before killing process
-            partial_output = await self._capture_partial_output(process)
-
-            # Terminate the process gracefully first
-            process.kill()
-            await process.wait()
-
-            # Log timeout event with context including partial output
-            logger.warning(
-                "Claude Code execution timed out",
-                extra={
-                    "timeout": timeout,
-                    "elapsed_seconds": elapsed_seconds,
-                    "prompt_length": len(prompt),
-                    "partial_output_length": len(partial_output),
-                },
-            )
-
-            raise LLMTimeoutError(
-                code="LLM_TIMEOUT",
-                message=(
-                    f"LLM execution timed out after {elapsed_seconds}s "
-                    f"(limit: {timeout}s)"
-                ),
-                timeout_seconds=timeout,
-                elapsed_seconds=elapsed_seconds,
-                suggestion="Consider increasing timeout or simplifying prompt",
-            ) from None
 
         except Exception as e:
             # Cleanup process on any error
@@ -267,47 +199,6 @@ class ClaudeCodeExecutor:
                 process.kill()
                 await process.wait()
             raise
-
-    async def _capture_partial_output(
-        self,
-        process: asyncio.subprocess.Process,
-    ) -> str:
-        """Capture any buffered output from process before killing.
-
-        Attempts to read any remaining data from stdout that was buffered
-        but not yet consumed before the timeout. This helps with debugging
-        by preserving partial progress.
-
-        Args:
-            process: The subprocess to read from.
-
-        Returns:
-            String containing any partial output captured, empty if none.
-        """
-        partial_content: list[str] = []
-
-        if process.stdout is None:
-            return ""
-
-        try:
-            # Try to read any buffered data with a very short timeout
-            while True:
-                try:
-                    line = await asyncio.wait_for(
-                        process.stdout.readline(),
-                        timeout=0.1,  # Very short timeout to drain buffer
-                    )
-                    if not line:
-                        break
-                    partial_content.append(line.decode("utf-8", errors="replace"))
-                except TimeoutError:
-                    # No more data available in buffer
-                    break
-        except Exception:
-            # Ignore errors during partial capture - this is best-effort
-            pass
-
-        return "".join(partial_content)
 
     async def _read_process_output(
         self,

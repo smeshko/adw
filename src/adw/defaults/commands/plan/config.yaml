@@ -1,9 +1,6 @@
 # Default configuration for the plan phase
 # These defaults can be overridden in project's project.yaml
 
-# Timeout for the plan phase (10 minutes default)
-timeout_seconds: 600
-
 # Input files to load and inject into templates
 # Projects should override these paths to point to actual project docs
 # input_files:

@@ -33,20 +33,6 @@
     {# ── Dimmed wrapper for remaining fields ── #}
     <div id="phase-fields" class="space-y-4 {% if not enabled %}opacity-50 pointer-events-none{% endif %}">
 
-      {# ── Timeout ── #}
-      <div class="flex flex-col gap-1">
-        <label class="font-semibold text-sm" for="phase-timeout">Timeout (seconds)</label>
-        <input type="number"
-               id="phase-timeout"
-               name="timeout_seconds"
-               class="input input-bordered input-sm w-full max-w-xs"
-               value="{{ timeout_seconds }}"
-               min="60"
-               max="7200"
-               step="60">
-        <p class="text-xs text-base-content/60">Default: {{ default_timeout }}s</p>
-      </div>
-
       {# ── LLM Model ── #}
       <div class="flex flex-col gap-1">
         <label class="font-semibold text-sm" for="phase-llm-model">LLM Model</label>

@@ -104,8 +104,6 @@ class TestPhasePartialRoute:
             params={"project": "test-app"},
         )
         assert resp.status_code == 200
-        # Should show default timeout for plan (900)
-        assert "900" in resp.text
         # Should indicate using defaults
         assert "defaults" in resp.text.lower()
 
@@ -117,7 +115,6 @@ class TestPhasePartialRoute:
         phase_dir.mkdir(parents=True)
         config = {
             "enabled": True,
-            "timeout_seconds": 1200,
             "llm": {"model": "haiku"},
             "input_files": {"prd": "docs/prd.md"},
         }
@@ -128,7 +125,6 @@ class TestPhasePartialRoute:
             params={"project": "test-app"},
         )
         assert resp.status_code == 200
-        assert "1200" in resp.text
         assert "haiku" in resp.text
 
     def test_document_phase_shows_doc_mappings(
@@ -194,7 +190,6 @@ class TestPhaseSaveEndpoint:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-                "timeout_seconds": "900",
                 "llm_model": "opus",
             },
         )
@@ -203,7 +198,6 @@ class TestPhaseSaveEndpoint:
         assert config_path.exists()
         data = yaml.safe_load(config_path.read_text())
         assert data["enabled"] is True
-        assert data["timeout_seconds"] == 900
 
     def test_save_invalid_phase_returns_400(
         self, phase_client: TestClient, project_dir: Path
@@ -214,31 +208,10 @@ class TestPhaseSaveEndpoint:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-                "timeout_seconds": "300",
                 "llm_model": "opus",
             },
         )
         assert resp.status_code == 400
-
-    def test_save_invalid_timeout_returns_editor_with_error(
-        self, phase_client: TestClient, project_dir: Path
-    ) -> None:
-        """Non-numeric timeout re-renders editor with error toast."""
-        resp = phase_client.post(
-            "/settings/phase/plan/save",
-            data={
-                "csrf_token": "test",
-                "_project": "test-app",
-                "enabled": "true",
-                "timeout_seconds": "not-a-number",
-                "llm_model": "opus",
-            },
-        )
-        assert resp.status_code == 200
-        assert "Invalid timeout" in resp.text
-        assert "alert-error" in resp.text
-        # Form should still be present for correction
-        assert 'hx-post="/settings/phase/plan/save"' in resp.text
 
     def test_save_disabled_phase(
         self, phase_client: TestClient, project_dir: Path
@@ -250,7 +223,7 @@ class TestPhaseSaveEndpoint:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "false",
-                "timeout_seconds": "1800",
+
                 "llm_model": "sonnet",
             },
         )
@@ -269,7 +242,7 @@ class TestPhaseSaveEndpoint:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-                "timeout_seconds": "900",
+
                 "llm_model": "haiku",
                 "doc_mappings_source.0": "src/**/*.py",
                 "doc_mappings_dir.0": "docs/api",
@@ -294,7 +267,7 @@ class TestPhaseSaveEndpoint:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-                "timeout_seconds": "1200",
+
                 "llm_model": "sonnet",
                 "version_bump": "npm version patch",
                 "publish": "npm publish",
@@ -320,7 +293,7 @@ class TestPhaseSaveEndpoint:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-                "timeout_seconds": "900",
+
                 "llm_model": "opus",
                 "input_files_key.0": "prd",
                 "input_files_val.0": "docs/prd.md",
@@ -344,7 +317,7 @@ class TestPhaseSaveEndpoint:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-                "timeout_seconds": "900",
+
                 "llm_model": "opus",
             },
         )
@@ -369,7 +342,7 @@ class TestPhaseConfigIntegration:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-                "timeout_seconds": "2400",
+
                 "llm_model": "haiku",
             },
         )
@@ -379,18 +352,17 @@ class TestPhaseConfigIntegration:
             params={"project": "test-app"},
         )
         assert resp.status_code == 200
-        assert "2400" in resp.text
         assert "haiku" in resp.text
 
     def test_phase_defaults_constants(self) -> None:
         """Verify PHASE_DEFAULTS has correct values per story spec."""
         from adw.dashboard.partials import PHASE_DEFAULTS
 
-        assert PHASE_DEFAULTS["plan"] == {"timeout": 900, "model": "opus"}
-        assert PHASE_DEFAULTS["build"] == {"timeout": 1800, "model": "sonnet"}
-        assert PHASE_DEFAULTS["validate"] == {"timeout": 900, "model": "opus"}
-        assert PHASE_DEFAULTS["document"] == {"timeout": 900, "model": "haiku"}
-        assert PHASE_DEFAULTS["ship"] == {"timeout": 1200, "model": "sonnet"}
+        assert PHASE_DEFAULTS["plan"] == {"model": "opus"}
+        assert PHASE_DEFAULTS["build"] == {"model": "sonnet"}
+        assert PHASE_DEFAULTS["validate"] == {"model": "opus"}
+        assert PHASE_DEFAULTS["document"] == {"model": "haiku"}
+        assert PHASE_DEFAULTS["ship"] == {"model": "sonnet"}
 
     def test_disabled_phase_renders_dimmed(
         self, phase_client: TestClient, project_dir: Path
@@ -399,7 +371,7 @@ class TestPhaseConfigIntegration:
         # Save a disabled phase config
         phase_dir = project_dir / ".adw" / "commands" / "plan"
         phase_dir.mkdir(parents=True)
-        config = {"enabled": False, "timeout_seconds": 900}
+        config = {"enabled": False}
         (phase_dir / "config.yaml").write_text(yaml.dump(config, sort_keys=False))
 
         resp = phase_client.get(
@@ -420,7 +392,7 @@ class TestPhaseConfigIntegration:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-                "timeout_seconds": "900",
+
                 "llm_model": "opus",
             },
         )
@@ -439,7 +411,7 @@ class TestPhaseConfigIntegration:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-                "timeout_seconds": "1200",
+
                 "llm_model": "sonnet",
                 "bypass_ci": "false",
             },
@@ -459,7 +431,7 @@ class TestPhaseConfigIntegration:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-                "timeout_seconds": "900",
+
                 "llm_model": "opus",
             },
         )
@@ -477,7 +449,6 @@ class TestPhaseConfigIntegration:
         phase_dir.mkdir(parents=True)
         config = {
             "enabled": True,
-            "timeout_seconds": 900,
             "doc_mappings": [
                 {"source_pattern": "src/**/*.py", "docs_dir": "docs/api"},
             ],
@@ -500,7 +471,6 @@ class TestPhaseConfigIntegration:
         phase_dir.mkdir(parents=True)
         config = {
             "enabled": True,
-            "timeout_seconds": 1200,
             "commands": {
                 "version_bump": "npm version patch",
                 "publish": "npm publish",

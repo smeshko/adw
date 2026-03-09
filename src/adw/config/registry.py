@@ -20,7 +20,7 @@ class SettingDefinition:
     """Definition of a single configuration setting.
 
     Attributes:
-        name: Setting name (e.g., "timeout_seconds" or "git.branch_prefix")
+        name: Setting name (e.g., "enabled" or "git.branch_prefix")
         type_hint: Type annotation as string (e.g., "int", "str | None")
         default: Default value (None if required or no default)
         description: Human-readable description of the setting
@@ -67,7 +67,6 @@ class ConfigRegistry:
     # Phase-specific settings
     PHASE_SETTINGS = [
         "enabled",
-        "timeout_seconds",
         "input_files",
     ]
 
@@ -320,7 +319,7 @@ class ConfigRegistry:
     def get_phase_settings(self, phase: str) -> list[SettingDefinition]:
         """Get settings available for a specific phase.
 
-        All phases share the same base settings (enabled, timeout_seconds,
+        All phases share the same base settings (enabled,
         input_files). Phase-specific settings may be added via the phase
         name for validation phases.
 

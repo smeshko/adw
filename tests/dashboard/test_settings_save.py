@@ -74,7 +74,6 @@ def project_dir(tmp_path: Path) -> Path:
         },
         "llm": {
             "path": "claude",
-            "timeout_seconds": 300,
             "retry": {
                 "max_retries": 3,
                 "base_delay_seconds": 1.0,

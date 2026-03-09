@@ -250,8 +250,8 @@ class TestInitConfigContent:
 
             assert "language" in data
 
-    def test_init_config_has_llm_section(self, tmp_path: Path) -> None:
-        """Test that generated configuration includes LLM settings."""
+    def test_init_config_has_language_section(self, tmp_path: Path) -> None:
+        """Test that generated configuration includes language setting."""
         import yaml
 
         with runner.isolated_filesystem(temp_dir=tmp_path):
@@ -261,8 +261,7 @@ class TestInitConfigContent:
             config_path = Path.cwd() / ".adw" / "project.yaml"
             data = yaml.safe_load(config_path.read_text())
 
-            assert "llm" in data
-            assert "claude_code" in data["llm"]
+            assert "language" in data
 
 
 class TestInitWizardFlags:

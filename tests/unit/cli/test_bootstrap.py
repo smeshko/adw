@@ -325,7 +325,6 @@ class TestBootstrapRetryExecutorWiring:
 
         custom_llm = LLMConfig(
             path="/custom/claude",
-            timeout_seconds=600,
             retry=RetryConfig(max_retries=5),
         )
         mock_project_config = MagicMock(spec=ProjectConfig)
@@ -345,4 +344,3 @@ class TestBootstrapRetryExecutorWiring:
         call_kwargs = mock_claude_executor_class.call_args
         assert call_kwargs.kwargs["config"] is custom_llm
         assert call_kwargs.kwargs["config"].path == "/custom/claude"
-        assert call_kwargs.kwargs["config"].timeout_seconds == 600
