@@ -1569,7 +1569,8 @@ async def log_stream_sse(
                                         continue
                                     m = line_pattern.match(cl)
                                     if not m:
-                                        # Emit non-matching lines (e.g. traceback continuations)
+                                        # Emit non-matching lines
+                                        # (e.g. traceback continuations)
                                         yield _format_sse_event(
                                             "log-line",
                                             _render_log_line_html("", "INFO", cl),
@@ -1811,9 +1812,7 @@ def build_settings_context(
 
             current_value = None
             if config is not None:
-                current_value = _resolve_config_value(
-                    config, section_key, setting.name
-                )
+                current_value = _resolve_config_value(config, section_key, setting.name)
 
             default_value = _normalize_default(setting.default)
             display_value = _format_display_value(current_value)
@@ -1849,9 +1848,7 @@ def build_settings_context(
                     continue
                 current_value = None
                 if config is not None:
-                    current_value = _resolve_config_value(
-                        config, "llm", setting.name
-                    )
+                    current_value = _resolve_config_value(config, "llm", setting.name)
                 default_value = _normalize_default(setting.default)
                 display_value = _format_display_value(current_value)
                 display_default = _format_display_value(default_value)
@@ -1932,9 +1929,7 @@ def compute_changed_counts(
 
     # Standard sections from build_settings_context
     for section_key, section_settings in settings_sections.items():
-        counts[section_key] = sum(
-            1 for s in section_settings if s.get("is_changed")
-        )
+        counts[section_key] = sum(1 for s in section_settings if s.get("is_changed"))
 
     # Task Manager section — compare against known defaults
     tm_defaults: dict[str, Any] = {
@@ -2043,9 +2038,7 @@ def build_complex_settings_context(
         if tm is not None:
             task_manager_context["type"] = getattr(tm, "type", "none")
             task_manager_context["team_key"] = getattr(tm, "team_key", "") or ""
-            task_manager_context["sync_comments"] = getattr(
-                tm, "sync_comments", False
-            )
+            task_manager_context["sync_comments"] = getattr(tm, "sync_comments", False)
             task_manager_context["auto_close"] = getattr(tm, "auto_close", False)
             sm = getattr(tm, "state_mapping", None)
             if sm:
@@ -2055,9 +2048,7 @@ def build_complex_settings_context(
                 task_manager_context["labels_enabled"] = getattr(
                     labels, "enabled", True
                 )
-                task_manager_context["label_prefix"] = getattr(
-                    labels, "prefix", "adw:"
-                )
+                task_manager_context["label_prefix"] = getattr(labels, "prefix", "adw:")
 
         # Populate security context
         sec = getattr(config, "security", None)

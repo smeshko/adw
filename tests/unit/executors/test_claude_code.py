@@ -670,7 +670,6 @@ class TestOutputParsing:
         assert "Response" in parsed["content"]
         assert "More debug info" in parsed["content"]
 
-
     def test_result_message_is_authoritative(
         self, executor: ClaudeCodeExecutor
     ) -> None:
@@ -728,9 +727,7 @@ class TestOutputParsing:
         assert parsed["tokens_used"] == 3500
         assert parsed["total_cost_usd"] == 0.42
 
-    def test_cache_token_extraction(
-        self, executor: ClaudeCodeExecutor
-    ) -> None:
+    def test_cache_token_extraction(self, executor: ClaudeCodeExecutor) -> None:
         """Should extract cache_creation and cache_read tokens from result."""
         import json
 

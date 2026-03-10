@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from adw.dashboard.dependencies import (
     CSRF_FIELD_NAME,
     CSRF_HEADER_NAME,

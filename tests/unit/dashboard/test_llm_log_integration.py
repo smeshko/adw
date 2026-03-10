@@ -100,8 +100,10 @@ class TestACLLMSummary:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ArtifactManager") as mock_am, \
-             patch("adw.dashboard.routes._load_llm_stats") as mock_llm:
+        with (
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+            patch("adw.dashboard.routes._load_llm_stats") as mock_llm,
+        ):
             mock_am.return_value.list_artifacts.return_value = []
             mock_llm.return_value = {
                 "input_tokens": 5000,
@@ -134,7 +136,9 @@ class TestACLLMContentViewer:
         client = _make_client_with_mocks(entries=[entry])
 
         with patch("adw.dashboard.routes._load_llm_content") as mock_load:
-            mock_load.return_value = "Generated plan:\n1. Design API\n2. Implement endpoints"
+            mock_load.return_value = (
+                "Generated plan:\n1. Design API\n2. Implement endpoints"
+            )
             response = client.get(
                 f"/runs/{entry.run_id}/phases/plan/response",
                 headers={"HX-Request": "true"},
@@ -177,8 +181,10 @@ class TestACLogViewerPrefiltered:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ArtifactManager") as mock_am, \
-             patch("adw.dashboard.routes._load_llm_stats") as mock_llm:
+        with (
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+            patch("adw.dashboard.routes._load_llm_stats") as mock_llm,
+        ):
             mock_am.return_value.list_artifacts.return_value = []
             mock_llm.return_value = None
             response = client.get(
@@ -197,8 +203,10 @@ class TestACLogViewerPrefiltered:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ArtifactManager") as mock_am, \
-             patch("adw.dashboard.routes._load_llm_stats") as mock_llm:
+        with (
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+            patch("adw.dashboard.routes._load_llm_stats") as mock_llm,
+        ):
             mock_am.return_value.list_artifacts.return_value = []
             mock_llm.return_value = None
             response = client.get(
@@ -231,9 +239,21 @@ class TestACLogEntryDisplay:
 
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "INFO", "message": "Phase plan started"},
-                {"timestamp": "2025-01-15 10:31:00", "level": "WARN", "message": "Token limit approaching"},
-                {"timestamp": "2025-01-15 10:32:00", "level": "ERROR", "message": "Execution failed"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "INFO",
+                    "message": "Phase plan started",
+                },
+                {
+                    "timestamp": "2025-01-15 10:31:00",
+                    "level": "WARN",
+                    "message": "Token limit approaching",
+                },
+                {
+                    "timestamp": "2025-01-15 10:32:00",
+                    "level": "ERROR",
+                    "message": "Execution failed",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs",
@@ -252,9 +272,21 @@ class TestACLogEntryDisplay:
 
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "INFO", "message": "info msg"},
-                {"timestamp": "2025-01-15 10:30:01", "level": "WARN", "message": "warn msg"},
-                {"timestamp": "2025-01-15 10:30:02", "level": "ERROR", "message": "error msg"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "INFO",
+                    "message": "info msg",
+                },
+                {
+                    "timestamp": "2025-01-15 10:30:01",
+                    "level": "WARN",
+                    "message": "warn msg",
+                },
+                {
+                    "timestamp": "2025-01-15 10:30:02",
+                    "level": "ERROR",
+                    "message": "error msg",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs",
@@ -271,7 +303,11 @@ class TestACLogEntryDisplay:
 
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "INFO", "message": "test"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "INFO",
+                    "message": "test",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs",
@@ -291,7 +327,11 @@ class TestACLogEntryDisplay:
 
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "INFO", "message": "test"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "INFO",
+                    "message": "test",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs",
@@ -314,8 +354,10 @@ class TestACLogSearchDebounce:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ArtifactManager") as mock_am, \
-             patch("adw.dashboard.routes._load_llm_stats") as mock_llm:
+        with (
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+            patch("adw.dashboard.routes._load_llm_stats") as mock_llm,
+        ):
             mock_am.return_value.list_artifacts.return_value = []
             mock_llm.return_value = None
             response = client.get(
@@ -330,8 +372,10 @@ class TestACLogSearchDebounce:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ArtifactManager") as mock_am, \
-             patch("adw.dashboard.routes._load_llm_stats") as mock_llm:
+        with (
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+            patch("adw.dashboard.routes._load_llm_stats") as mock_llm,
+        ):
             mock_am.return_value.list_artifacts.return_value = []
             mock_llm.return_value = None
             response = client.get(
@@ -340,7 +384,7 @@ class TestACLogSearchDebounce:
             )
 
         assert f'hx-get="/runs/{entry.run_id}/logs"' in response.text
-        assert '#log-content-plan' in response.text
+        assert "#log-content-plan" in response.text
 
 
 # ── AC: Severity Filter (FR22) ────────────────────────────────────
@@ -357,8 +401,16 @@ class TestACSeverityFilter:
         # Request with ERROR level
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "INFO", "message": "Info"},
-                {"timestamp": "2025-01-15 10:30:01", "level": "ERROR", "message": "Error occurred"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "INFO",
+                    "message": "Info",
+                },
+                {
+                    "timestamp": "2025-01-15 10:30:01",
+                    "level": "ERROR",
+                    "message": "Error occurred",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs?level=ERROR",
@@ -383,7 +435,11 @@ class TestACPhaseFilter:
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             # _load_log_entries receives phase parameter
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "INFO", "message": "Phase build started"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "INFO",
+                    "message": "Phase build started",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs?phase=build",
@@ -471,7 +527,9 @@ class TestDataLayerIntegration:
         }
         (llm_dir / "002_build_response.json").write_text(json.dumps(data))
 
-        result = _load_llm_stats(tmp_path / "runs", "01TESTRUNID0000000000000A", "build")
+        result = _load_llm_stats(
+            tmp_path / "runs", "01TESTRUNID0000000000000A", "build"
+        )
         assert result is not None
         assert result["input_tokens"] == 8000
         assert result["output_tokens"] == 15000
@@ -480,9 +538,13 @@ class TestDataLayerIntegration:
         """_load_llm_content reads the {phase}_output.md artifact."""
         from adw.dashboard.routes import _load_llm_content
 
-        artifacts_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A" / "artifacts" / "build"
+        artifacts_dir = (
+            tmp_path / "runs" / "01TESTRUNID0000000000000A" / "artifacts" / "build"
+        )
         artifacts_dir.mkdir(parents=True)
-        (artifacts_dir / "build_output.md").write_text("# Build Output\n\nGenerated code here")
+        (artifacts_dir / "build_output.md").write_text(
+            "# Build Output\n\nGenerated code here"
+        )
 
         result = _load_llm_content(
             tmp_path / "runs", "01TESTRUNID0000000000000A", "build", "response"
@@ -503,7 +565,9 @@ class TestDataLayerIntegration:
             "\x1b[36m[2025-01-15 10:30:01] [LLM] \x1b[0m\x1b[36mToken stream begins(plan)\x1b[0m\n"
             "\x1b[31m[2025-01-15 10:31:00] [ERROR] \x1b[0mExecution timeout\n"
         )
-        (run_dir / "live.log").write_text(log_content)
+        log_dir = run_dir / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        (log_dir / "live.log").write_text(log_content)
 
         entries = _load_log_entries(tmp_path / "runs", "01TESTRUNID0000000000000A")
         assert len(entries) == 3
@@ -530,7 +594,9 @@ class TestDataLayerIntegration:
             "[2025-01-15 10:31:30] [LLM] Token stream begins(build)\n"
             "[2025-01-15 10:32:00] [PHASE] Phase 'build' completed\n"
         )
-        (run_dir / "live.log").write_text(log_content)
+        log_dir = run_dir / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        (log_dir / "live.log").write_text(log_content)
 
         plan_entries = _load_log_entries(
             tmp_path / "runs", "01TESTRUNID0000000000000A", phase="plan"

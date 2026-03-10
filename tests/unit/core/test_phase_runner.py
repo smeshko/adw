@@ -1453,9 +1453,7 @@ class TestProjectConfigLoading:
         # Create project config directory with config.yaml (no prompt.md!)
         config_dir = tmp_path / ".adw" / "commands" / "ship"
         config_dir.mkdir(parents=True)
-        (config_dir / "config.yaml").write_text(
-            "enabled: false\n"
-        )
+        (config_dir / "config.yaml").write_text("enabled: false\n")
 
         # Set mock resolver's project_root to temp directory
         mock_command_resolver.project_root = tmp_path

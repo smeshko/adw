@@ -16,7 +16,6 @@ from adw.dashboard.dependencies import generate_csrf_token
 from adw.dashboard.server import create_dashboard_app
 from adw.models.index import IndexEntry
 
-
 # ── Helpers ────────────────────────────────────────────────────────
 
 
@@ -29,7 +28,7 @@ def _mock_project_registry(
     projects = []
     names = project_names or []
     project_paths = paths or [f"/projects/{n}" for n in names]
-    for name, path in zip(names, project_paths):
+    for name, path in zip(names, project_paths, strict=True):
         p = MagicMock()
         p.name = name
         p.path = path
@@ -58,7 +57,9 @@ def _make_index_entry(
     project_path: str = "/projects/my-project",
     project_name: str = "my-project",
     feature_description: str = "Add user authentication",
-    status: Literal["running", "completed", "failed", "interrupted", "aborted"] = "running",
+    status: Literal[
+        "running", "completed", "failed", "interrupted", "aborted"
+    ] = "running",
     phase_reached: str = "build",
 ) -> IndexEntry:
     """Build a mock IndexEntry for abort tests."""
@@ -68,10 +69,14 @@ def _make_index_entry(
         project_name=project_name,
         feature_description=feature_description,
         started_at=datetime(2026, 1, 15, 10, 0, 0, tzinfo=UTC),
-        completed_at=None if status == "running" else datetime(2026, 1, 15, 10, 30, 0, tzinfo=UTC),
+        completed_at=None
+        if status == "running"
+        else datetime(2026, 1, 15, 10, 30, 0, tzinfo=UTC),
         status=status,
         phase_reached=phase_reached,
-        phases_completed=["plan"] if phase_reached == "build" else ["plan", "build", "validate", "document", "ship"],
+        phases_completed=["plan"]
+        if phase_reached == "build"
+        else ["plan", "build", "validate", "document", "ship"],
     )
 
 
@@ -80,7 +85,9 @@ def _mock_stats_aggregator() -> MagicMock:
     from adw.models.stats import GlobalStatistics
 
     mock = MagicMock()
-    mock.get_global_stats.return_value = GlobalStatistics(generated_at=datetime.now(UTC))
+    mock.get_global_stats.return_value = GlobalStatistics(
+        generated_at=datetime.now(UTC)
+    )
     mock.get_daily_token_counts.return_value = []
     return mock
 
@@ -142,6 +149,7 @@ def _mock_run_context(
     ctx.worktree_path = None
     ctx.started_at = datetime(2026, 1, 15, 10, 0, 0, tzinfo=UTC)
     ctx.completed_at = None
+
     # model_copy returns an updated context
     def model_copy_side_effect(update=None):
         new_ctx = _mock_run_context(
@@ -153,6 +161,7 @@ def _mock_run_context(
             for k, v in update.items():
                 setattr(new_ctx, k, v)
         return new_ctx
+
     ctx.model_copy.side_effect = model_copy_side_effect
     return ctx
 
@@ -340,7 +349,10 @@ class TestAbortModalPartialRoute:
 
         response = client.get(f"/partials/abort/{entry.run_id}")
         assert response.status_code == 400
-        assert "not active" in response.text.lower() or "cannot be aborted" in response.text.lower()
+        assert (
+            "not active" in response.text.lower()
+            or "cannot be aborted" in response.text.lower()
+        )
 
     def test_returns_error_for_failed_run(self) -> None:
         """GET abort modal for failed run returns error."""
@@ -368,6 +380,7 @@ class TestAbortModalPartialRoute:
 
         with patch("adw.dashboard.partials.ContextManager") as mock_cm_cls:
             from adw.exceptions import StateError
+
             mock_cm = MagicMock()
             mock_cm.load.side_effect = StateError(
                 code="CONTEXT_NOT_FOUND",
@@ -395,7 +408,10 @@ class TestAbortModalPartialRoute:
 
             response = client.get(f"/partials/abort/{entry.run_id}")
             assert response.status_code == 400
-            assert "no longer active" in response.text.lower() or "cannot be aborted" in response.text.lower()
+            assert (
+                "no longer active" in response.text.lower()
+                or "cannot be aborted" in response.text.lower()
+            )
 
 
 # ── POST /runs/{run_id}/abort Tests ───────────────────────────────
@@ -491,7 +507,8 @@ class TestAbortMutation:
             )
 
             mock_handler.abort_gracefully.assert_called_once_with(
-                mock_ctx, reason="dashboard_abort",
+                mock_ctx,
+                reason="dashboard_abort",
             )
 
     def test_successful_abort_updates_index(self) -> None:
@@ -796,7 +813,7 @@ class TestAbortButton:
         abort_pos = text.find(">Abort</button>")
         assert abort_pos != -1, "Abort button not found"
         button_start = text.rfind("<button", 0, abort_pos)
-        button_html = text[button_start:abort_pos + len(">Abort</button>")]
+        button_html = text[button_start : abort_pos + len(">Abort</button>")]
         assert "disabled" not in button_html
 
     def test_abort_button_hidden_for_completed_run(self) -> None:

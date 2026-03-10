@@ -2689,9 +2689,7 @@ class TestContinueFromRun:
         mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
         mock_artifact_manager.get.return_value = "# Plan Content"
 
-        context = orchestrator.continue_from_run(
-            "build", "01TEST00000000000000000001"
-        )
+        context = orchestrator.continue_from_run("build", "01TEST00000000000000000001")
 
         mock_context_manager.load.assert_called_with("01TEST00000000000000000001")
         assert context.run_id == "01TEST00000000000000000001"
@@ -2709,9 +2707,7 @@ class TestContinueFromRun:
         mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
         mock_artifact_manager.get.return_value = "# Plan Content"
 
-        context = orchestrator.continue_from_run(
-            "build", "01TEST00000000000000000001"
-        )
+        context = orchestrator.continue_from_run("build", "01TEST00000000000000000001")
 
         assert context.feature_description == "Original feature description"
 
@@ -2756,9 +2752,7 @@ class TestContinueFromRun:
         mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
         mock_artifact_manager.get.return_value = "# Plan Content"
 
-        context = orchestrator.continue_from_run(
-            "build", "01TEST00000000000000000001"
-        )
+        context = orchestrator.continue_from_run("build", "01TEST00000000000000000001")
 
         assert context.worktree_path == worktree_dir
         assert context.use_worktree is True
@@ -2799,9 +2793,7 @@ class TestContinueFromRun:
         )
 
         with pytest.raises(StateError, match="CONTEXT_NOT_FOUND"):
-            orchestrator.continue_from_run(
-                "build", "NONEXISTENT00000000000001"
-            )
+            orchestrator.continue_from_run("build", "NONEXISTENT00000000000001")
 
     def test_errors_when_worktree_missing(
         self,
@@ -2816,9 +2808,7 @@ class TestContinueFromRun:
         mock_context_manager.load.return_value = source_ctx
 
         with pytest.raises(ConfigError, match="WORKTREE_MISSING"):
-            orchestrator.continue_from_run(
-                "build", "01TEST00000000000000000001"
-            )
+            orchestrator.continue_from_run("build", "01TEST00000000000000000001")
 
     def test_executes_only_specified_phase(
         self,
@@ -2835,9 +2825,7 @@ class TestContinueFromRun:
         mock_artifact_manager.list_artifacts.return_value = [{"name": "output.md"}]
         mock_artifact_manager.get.return_value = "# Content"
 
-        orchestrator.continue_from_run(
-            "document", "01TEST00000000000000000001"
-        )
+        orchestrator.continue_from_run("document", "01TEST00000000000000000001")
 
         # Should only execute "document" phase
         assert mock_phase_runner.run.call_count == 1
@@ -2857,9 +2845,7 @@ class TestContinueFromRun:
         mock_artifact_manager.list_artifacts.return_value = [{"name": "plan.md"}]
         mock_artifact_manager.get.return_value = "# Plan Content"
 
-        context = orchestrator.continue_from_run(
-            "build", "01TEST00000000000000000001"
-        )
+        context = orchestrator.continue_from_run("build", "01TEST00000000000000000001")
 
         assert context.status == "completed"
         assert context.completed_at is not None

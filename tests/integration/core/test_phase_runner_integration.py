@@ -24,6 +24,13 @@ from adw.models import (
 )
 
 
+def _make_resolver(project_root: Path) -> CommandResolver:
+    """Create a CommandResolver with bundled commands disabled."""
+    resolver = CommandResolver(project_root=project_root)
+    resolver._get_bundled_command_path = lambda name: None  # type: ignore[method-assign]
+    return resolver
+
+
 @pytest.fixture(autouse=True)
 def mock_git_operations() -> Generator[None]:
     """Auto-mock git operations to prevent commits to real project directory.
@@ -100,8 +107,14 @@ def sample_context(git_repo: Path) -> RunContext:
 
 @pytest.fixture
 def phase_runner(project_root: Path, runs_dir: Path) -> PhaseRunner:
-    """Create a PhaseRunner with real components."""
-    command_resolver = CommandResolver(project_root=project_root)
+    """Create a PhaseRunner with real components.
+
+    Note: Bundled command path is mocked to None so that only the
+    project-level hooks (created in project_root fixture) are used.
+    The bundled pre.sh requires a real git repo + config, which
+    doesn't exist in this test environment.
+    """
+    command_resolver = _make_resolver(project_root)
     template_engine = TemplateEngine(project_root=project_root)
     hook_runner = HookRunner(config=HookConfig(shell="/bin/bash", timeout_seconds=30))
     executor = MockExecutor()
@@ -188,7 +201,7 @@ echo "Line 2 of pre-hook"
 
         # Create runner
         runner = PhaseRunner(
-            command_resolver=CommandResolver(project_root=project_root),
+            command_resolver=_make_resolver(project_root),
             template_engine=TemplateEngine(project_root=project_root),
             hook_runner=HookRunner(
                 config=HookConfig(shell="/bin/bash", timeout_seconds=30)
@@ -220,7 +233,7 @@ echo "ADW_RUN_ID=$ADW_RUN_ID" >> {env_capture_file}
 
         # Create runner
         runner = PhaseRunner(
-            command_resolver=CommandResolver(project_root=project_root),
+            command_resolver=_make_resolver(project_root),
             template_engine=TemplateEngine(project_root=project_root),
             hook_runner=HookRunner(
                 config=HookConfig(shell="/bin/bash", timeout_seconds=30)
@@ -268,7 +281,7 @@ echo "Phase: $ADW_PHASE" >> {post_output_file}
 
         # Create runner
         runner = PhaseRunner(
-            command_resolver=CommandResolver(project_root=project_root),
+            command_resolver=_make_resolver(project_root),
             template_engine=TemplateEngine(project_root=project_root),
             hook_runner=HookRunner(
                 config=HookConfig(shell="/bin/bash", timeout_seconds=30)
@@ -310,7 +323,7 @@ exit 1
         (cmd_dir / "pre-hook.sh").chmod(0o755)
 
         runner = PhaseRunner(
-            command_resolver=CommandResolver(project_root=project_root),
+            command_resolver=_make_resolver(project_root),
             template_engine=TemplateEngine(project_root=project_root),
             hook_runner=HookRunner(
                 config=HookConfig(shell="/bin/bash", timeout_seconds=30)

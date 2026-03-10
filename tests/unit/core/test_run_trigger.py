@@ -81,7 +81,9 @@ class TestRunTriggerStartRun:
         mock_process = MagicMock()
         mock_process.pid = 42
 
-        with patch("adw.core.run_trigger.subprocess.Popen", return_value=mock_process) as mock_popen:
+        with patch(
+            "adw.core.run_trigger.subprocess.Popen", return_value=mock_process
+        ) as mock_popen:
             result = await trigger.start_run(
                 project_path="/projects/test",
                 feature="Add dark mode",
@@ -155,7 +157,9 @@ class TestRunTriggerStartRun:
         mock_process = MagicMock()
         mock_process.pid = 55
 
-        with patch("adw.core.run_trigger.subprocess.Popen", return_value=mock_process) as mock_popen:
+        with patch(
+            "adw.core.run_trigger.subprocess.Popen", return_value=mock_process
+        ) as mock_popen:
             await trigger.start_run(
                 project_path="/custom/project",
                 feature="Test",

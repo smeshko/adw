@@ -5,7 +5,7 @@ and LLM response files.
 """
 
 import json
-from datetime import datetime, UTC, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,10 +13,9 @@ import pytest
 from typer.testing import CliRunner
 
 from adw.cli.global_commands import global_app
-from adw.core.stats_aggregator import StatsAggregator
 from adw.core.index_manager import IndexManager
 from adw.core.project_registry import ProjectRegistryManager
-
+from adw.core.stats_aggregator import StatsAggregator
 
 runner = CliRunner()
 

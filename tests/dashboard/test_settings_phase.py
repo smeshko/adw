@@ -17,7 +17,6 @@ from adw.dashboard.dependencies import (
 )
 from adw.dashboard.server import create_dashboard_app
 
-
 # ── Fixtures ───────────────────────────────────────────────────────
 
 
@@ -223,7 +222,6 @@ class TestPhaseSaveEndpoint:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "false",
-
                 "llm_model": "sonnet",
             },
         )
@@ -242,7 +240,6 @@ class TestPhaseSaveEndpoint:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-
                 "llm_model": "haiku",
                 "doc_mappings_source.0": "src/**/*.py",
                 "doc_mappings_dir.0": "docs/api",
@@ -267,7 +264,6 @@ class TestPhaseSaveEndpoint:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-
                 "llm_model": "sonnet",
                 "version_bump": "npm version patch",
                 "publish": "npm publish",
@@ -293,7 +289,6 @@ class TestPhaseSaveEndpoint:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-
                 "llm_model": "opus",
                 "input_files_key.0": "prd",
                 "input_files_val.0": "docs/prd.md",
@@ -317,7 +312,6 @@ class TestPhaseSaveEndpoint:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-
                 "llm_model": "opus",
             },
         )
@@ -342,7 +336,6 @@ class TestPhaseConfigIntegration:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-
                 "llm_model": "haiku",
             },
         )
@@ -392,7 +385,6 @@ class TestPhaseConfigIntegration:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-
                 "llm_model": "opus",
             },
         )
@@ -411,7 +403,6 @@ class TestPhaseConfigIntegration:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-
                 "llm_model": "sonnet",
                 "bypass_ci": "false",
             },
@@ -431,7 +422,6 @@ class TestPhaseConfigIntegration:
                 "csrf_token": "test",
                 "_project": "test-app",
                 "enabled": "true",
-
                 "llm_model": "opus",
             },
         )

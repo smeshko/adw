@@ -1073,7 +1073,9 @@ class Orchestrator:
         for attempt in range(self.max_retries):
             try:
                 return self._phase_runner.run(
-                    phase, context, artifacts_override=artifacts_override,
+                    phase,
+                    context,
+                    artifacts_override=artifacts_override,
                     prompt_prefix=prompt_prefix,
                 )
 

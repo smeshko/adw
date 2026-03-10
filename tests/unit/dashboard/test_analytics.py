@@ -20,7 +20,6 @@ from adw.dashboard.partials import build_analytics_context
 from adw.dashboard.server import create_dashboard_app
 from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
 
-
 # ── Helpers ────────────────────────────────────────────────────────
 
 
@@ -41,26 +40,31 @@ def _mock_stats_aggregator_for_analytics(
     When called with since=now-N days, returns current_* stats.
     When called with since=now-2N days, returns combined (prev + current) stats.
     """
-    import datetime as dt_module
 
     mock = MagicMock()
 
     cur_tok = current_tokens or TokenUsage(
-        input_tokens=1_500_000, output_tokens=500_000,
+        input_tokens=1_500_000,
+        output_tokens=500_000,
     )
     prev_tok = prev_tokens or TokenUsage(
-        input_tokens=2_500_000, output_tokens=1_000_000,
+        input_tokens=2_500_000,
+        output_tokens=1_000_000,
     )
 
     # Default projects for breakdown
     default_projects = [
         ProjectStatistics(
-            name="my-api", path="/projects/my-api",
-            total_runs=30, tokens=TokenUsage(input_tokens=900_000, output_tokens=300_000),
+            name="my-api",
+            path="/projects/my-api",
+            total_runs=30,
+            tokens=TokenUsage(input_tokens=900_000, output_tokens=300_000),
         ),
         ProjectStatistics(
-            name="my-web", path="/projects/my-web",
-            total_runs=20, tokens=TokenUsage(input_tokens=600_000, output_tokens=200_000),
+            name="my-web",
+            path="/projects/my-web",
+            total_runs=20,
+            tokens=TokenUsage(input_tokens=600_000, output_tokens=200_000),
         ),
     ]
 
@@ -115,7 +119,9 @@ def _mock_stats_aggregator_for_analytics(
 
     # Phase breakdown
     mock.get_phase_breakdown.return_value = phase_breakdown or {
-        "plan": 5000, "build": 15000, "validate": 3000,
+        "plan": 5000,
+        "build": 15000,
+        "validate": 3000,
     }
 
     # Model breakdown
@@ -465,7 +471,8 @@ class TestAnalyticsRoute:
         """HTMX request returns partial without base template."""
         client = _make_client()
         response = client.get(
-            "/analytics", headers={"HX-Request": "true"},
+            "/analytics",
+            headers={"HX-Request": "true"},
         )
         assert response.status_code == 200
         assert 'id="analytics"' in response.text
@@ -488,7 +495,7 @@ class TestAnalyticsRoute:
         idx_7d = text.find("7 days")
         assert idx_7d > 0
         # Look backward for tab-active
-        section = text[max(0, idx_7d - 200):idx_7d]
+        section = text[max(0, idx_7d - 200) : idx_7d]
         assert "tab-active" in section
 
     def test_range_30d_selects_correct_tab(self) -> None:
@@ -498,7 +505,7 @@ class TestAnalyticsRoute:
         text = response.text
         idx_30d = text.find("30 days")
         assert idx_30d > 0
-        section = text[max(0, idx_30d - 200):idx_30d]
+        section = text[max(0, idx_30d - 200) : idx_30d]
         assert "tab-active" in section
 
     def test_range_90d_selects_correct_tab(self) -> None:
@@ -508,7 +515,7 @@ class TestAnalyticsRoute:
         text = response.text
         idx_90d = text.find("90 days")
         assert idx_90d > 0
-        section = text[max(0, idx_90d - 200):idx_90d]
+        section = text[max(0, idx_90d - 200) : idx_90d]
         assert "tab-active" in section
 
     def test_range_all_selects_correct_tab(self) -> None:
@@ -518,7 +525,7 @@ class TestAnalyticsRoute:
         text = response.text
         idx_all = text.find("All time")
         assert idx_all > 0
-        section = text[max(0, idx_all - 200):idx_all]
+        section = text[max(0, idx_all - 200) : idx_all]
         assert "tab-active" in section
 
     def test_invalid_range_defaults_to_7d(self) -> None:
@@ -528,7 +535,7 @@ class TestAnalyticsRoute:
         text = response.text
         idx_7d = text.find("7 days")
         assert idx_7d > 0
-        section = text[max(0, idx_7d - 200):idx_7d]
+        section = text[max(0, idx_7d - 200) : idx_7d]
         assert "tab-active" in section
 
     def test_tabs_have_htmx_attributes(self) -> None:
@@ -663,7 +670,9 @@ class TestAnalyticsProjectFilter:
         # All tab hrefs should include project
         text = response.text
         # Check at least one tab URL has both range and project
-        assert "range=7d&amp;project=my-api" in text or "range=7d&project=my-api" in text
+        assert (
+            "range=7d&amp;project=my-api" in text or "range=7d&project=my-api" in text
+        )
 
     def test_nav_shows_analytics_active(self) -> None:
         """Navigation bar highlights analytics when on analytics page."""
@@ -673,7 +682,7 @@ class TestAnalyticsProjectFilter:
         # Find the analytics nav link and check it has the active indicator
         idx = text.find('data-page="analytics"')
         assert idx > 0
-        section = text[max(0, idx - 300):idx + 100]
+        section = text[max(0, idx - 300) : idx + 100]
         assert "font-semibold" in section
 
 
@@ -785,7 +794,7 @@ class TestAnalyticsBreakdownPanels:
         # Check the breakdown area has project filter links
         idx = text.find("By Project")
         if idx > 0:
-            proj_section = text[idx:idx + 1000]
+            proj_section = text[idx : idx + 1000]
             assert "hx-target" in proj_section
 
     def test_phase_breakdown_not_clickable(self) -> None:
@@ -795,7 +804,7 @@ class TestAnalyticsBreakdownPanels:
         text = response.text
         idx = text.find("By Phase")
         if idx > 0:
-            phase_section = text[idx:idx + 1000]
+            phase_section = text[idx : idx + 1000]
             # Phase names should be in spans, not links
             assert "link" not in phase_section
 
@@ -918,7 +927,9 @@ class TestBudgetSection:
     def test_budget_days_remaining_zero_cost(self, monkeypatch: object) -> None:
         """Days remaining is None when cost is zero (no daily average)."""
         monkeypatch.setenv("ADW_MONTHLY_BUDGET", "100.00")  # type: ignore[attr-defined]
-        sa = _mock_stats_aggregator_for_analytics(current_cost=0.00, current_total_runs=1)
+        sa = _mock_stats_aggregator_for_analytics(
+            current_cost=0.00, current_total_runs=1
+        )
         # Force the mock to return 0 cost with data
         zero_stats = GlobalStatistics(
             generated_at=datetime.now(UTC),
@@ -954,7 +965,9 @@ class TestBudgetSection:
         response = client.get("/analytics")
         assert "Monthly Budget" not in response.text
 
-    def test_budget_over_budget_clamps_days_remaining(self, monkeypatch: object) -> None:
+    def test_budget_over_budget_clamps_days_remaining(
+        self, monkeypatch: object
+    ) -> None:
         """Days remaining is 0 when spend exceeds budget."""
         monkeypatch.setenv("ADW_MONTHLY_BUDGET", "50.00")  # type: ignore[attr-defined]
         sa = _mock_stats_aggregator_for_analytics(current_cost=75.00)

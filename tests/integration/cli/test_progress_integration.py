@@ -39,6 +39,7 @@ class MockPhaseRunner:
         context: RunContext,
         *,
         artifacts_override: dict[str, dict[str, str]] | None = None,
+        prompt_prefix: str | None = None,
     ) -> PhaseResult:
         """Return configured result for phase."""
         self.phases_run.append(phase)
@@ -154,6 +155,7 @@ class TestOrchestratorProgressIntegration:
                 context: RunContext,
                 *,
                 artifacts_override: dict[str, dict[str, str]] | None = None,
+                prompt_prefix: str | None = None,
             ) -> PhaseResult:
                 if phase == "build":
                     raise LLMError(
@@ -248,6 +250,7 @@ class TestOrchestratorProgressIntegration:
                 context: RunContext,
                 *,
                 artifacts_override: dict[str, dict[str, str]] | None = None,
+                prompt_prefix: str | None = None,
             ) -> PhaseResult:
                 if phase == "validate":
                     raise LLMError(

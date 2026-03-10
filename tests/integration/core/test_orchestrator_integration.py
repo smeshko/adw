@@ -70,6 +70,7 @@ def mock_phase_runner() -> MagicMock:
         context: RunContext,
         *,
         artifacts_override: dict[str, dict[str, str]] | None = None,
+        prompt_prefix: str | None = None,
     ) -> PhaseResult:
         return PhaseResult(
             phase=phase,
@@ -274,6 +275,7 @@ class TestContextPersistenceIntegration:
             context: RunContext,
             *,
             artifacts_override: dict[str, dict[str, str]] | None = None,
+            prompt_prefix: str | None = None,
         ) -> PhaseResult:
             nonlocal persist_count
             # Check context file exists mid-run
@@ -331,6 +333,7 @@ class TestResumeIntegration:
             context: RunContext,
             *,
             artifacts_override: dict[str, dict[str, str]] | None = None,
+            prompt_prefix: str | None = None,
         ) -> PhaseResult:
             nonlocal call_count
             call_count += 1

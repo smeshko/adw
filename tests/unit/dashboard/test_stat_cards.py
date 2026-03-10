@@ -14,7 +14,6 @@ from fastapi.testclient import TestClient
 from adw.dashboard.server import create_dashboard_app
 from adw.models.stats import GlobalStatistics, TokenUsage
 
-
 # ── Helpers ────────────────────────────────────────────────────────
 
 
@@ -59,7 +58,7 @@ def _mock_project_registry(project_names: list[str] | None = None) -> MagicMock:
     """Build a mock ProjectRegistryManager with project list."""
     mock = MagicMock()
     projects = []
-    for name in (project_names or []):
+    for name in project_names or []:
         p = MagicMock()
         p.name = name
         projects.append(p)
@@ -96,16 +95,16 @@ def _mock_stats_aggregator(
         previous_week_total_runs=previous_week_total_runs,
         previous_week_success_rate=previous_week_success_rate,
         previous_week_average_duration_ms=previous_week_average_duration_ms,
-        tokens_this_week=tokens_this_week or TokenUsage(input_tokens=900_000, output_tokens=300_000),
+        tokens_this_week=tokens_this_week
+        or TokenUsage(input_tokens=900_000, output_tokens=300_000),
         cost_this_week=cost_this_week,
     )
     mock.get_global_stats.return_value = stats
     # Provide sensible default for get_daily_token_counts (used by cost strip)
-    from datetime import date as date_type
+
     today = datetime.now(UTC).date()
     mock.get_daily_token_counts.return_value = [
-        {"date": today - timedelta(days=i), "tokens": 0}
-        for i in range(6, -1, -1)
+        {"date": today - timedelta(days=i), "tokens": 0} for i in range(6, -1, -1)
     ]
     return mock
 
@@ -263,8 +262,12 @@ class TestStatsAggregatorTrendComputation:
             # Previous week: 2 completed, 1 failed → 66.7%
             _make_index_entry("R1", now - timedelta(days=8), status="completed"),
             _make_index_entry("R2", now - timedelta(days=9), status="completed"),
-            _make_index_entry("R3", now - timedelta(days=10), status="failed",
-                              completed_at=now - timedelta(days=10) + timedelta(minutes=1)),
+            _make_index_entry(
+                "R3",
+                now - timedelta(days=10),
+                status="failed",
+                completed_at=now - timedelta(days=10) + timedelta(minutes=1),
+            ),
         ]
         mock_im.get_recent_runs.return_value = entries
 
@@ -289,10 +292,18 @@ class TestStatsAggregatorTrendComputation:
         nine_days_ago = now - timedelta(days=9)
 
         entries = [
-            _make_index_entry("R1", eight_days_ago, status="completed",
-                              completed_at=eight_days_ago + timedelta(minutes=2)),
-            _make_index_entry("R2", nine_days_ago, status="completed",
-                              completed_at=nine_days_ago + timedelta(minutes=4)),
+            _make_index_entry(
+                "R1",
+                eight_days_ago,
+                status="completed",
+                completed_at=eight_days_ago + timedelta(minutes=2),
+            ),
+            _make_index_entry(
+                "R2",
+                nine_days_ago,
+                status="completed",
+                completed_at=nine_days_ago + timedelta(minutes=4),
+            ),
         ]
         mock_im.get_recent_runs.return_value = entries
 
@@ -326,11 +337,14 @@ class TestStatsAggregatorTrendComputation:
         )
         # Mock _parse_llm_response_files to return controlled token counts
         call_count = [0]
+
         def mock_parse(run_dir):
             call_count[0] += 1
             if call_count[0] == 1:  # R1 - this week
                 return TokenUsage(input_tokens=1000, output_tokens=500)
-            return TokenUsage(input_tokens=2000, output_tokens=800)  # R2 - previous week
+            return TokenUsage(
+                input_tokens=2000, output_tokens=800
+            )  # R2 - previous week
 
         aggregator._parse_llm_response_files = mock_parse
         stats = aggregator._collect_statistics(None, None)
@@ -614,12 +628,13 @@ class TestStatsRowInOverview:
 def _render_badge(status: str, size: str = "sm") -> str:
     """Render the status badge macro for a given status."""
     from jinja2 import Environment, FileSystemLoader
+
     from adw.dashboard.server import _TEMPLATE_DIR
 
     env = Environment(loader=FileSystemLoader(str(_TEMPLATE_DIR)))
     template = env.from_string(
         '{%- import "components/status_badge.html" as badge -%}'
-        '{{ badge.status_badge(status, size) }}'
+        "{{ badge.status_badge(status, size) }}"
     )
     return template.render(status=status, size=size)
 

@@ -106,9 +106,11 @@ class TestNavPromptAsk:
         """Test that 'b' raises NavigationError."""
         console = Console(force_terminal=True)
 
-        with patch("adw.cli.wizard.navigation.Prompt.ask", return_value="b"):
-            with pytest.raises(NavigationError) as exc_info:
-                nav_prompt_ask("Question", console=console)
+        with (
+            patch("adw.cli.wizard.navigation.Prompt.ask", return_value="b"),
+            pytest.raises(NavigationError) as exc_info,
+        ):
+            nav_prompt_ask("Question", console=console)
 
         assert exc_info.value.signal == NavigationSignal.BACK
 
@@ -116,9 +118,11 @@ class TestNavPromptAsk:
         """Test that 'c' raises NavigationError."""
         console = Console(force_terminal=True)
 
-        with patch("adw.cli.wizard.navigation.Prompt.ask", return_value="c"):
-            with pytest.raises(NavigationError) as exc_info:
-                nav_prompt_ask("Question", console=console)
+        with (
+            patch("adw.cli.wizard.navigation.Prompt.ask", return_value="c"),
+            pytest.raises(NavigationError) as exc_info,
+        ):
+            nav_prompt_ask("Question", console=console)
 
         assert exc_info.value.signal == NavigationSignal.CANCEL
 
@@ -188,9 +192,11 @@ class TestNavConfirmAsk:
         """Test that NavigationError is raised for 'b' input."""
         console = Console(force_terminal=True)
 
-        with patch("adw.cli.wizard.navigation.Prompt.ask", return_value="b"):
-            with pytest.raises(NavigationError) as exc_info:
-                nav_confirm_ask("Question?", console=console)
+        with (
+            patch("adw.cli.wizard.navigation.Prompt.ask", return_value="b"),
+            pytest.raises(NavigationError) as exc_info,
+        ):
+            nav_confirm_ask("Question?", console=console)
 
         assert exc_info.value.signal == NavigationSignal.BACK
 

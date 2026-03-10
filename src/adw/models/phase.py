@@ -141,7 +141,7 @@ class PhaseResult(BaseModel):
     )
     empty_result: bool = Field(
         default=False,
-        description="True if build phase completed with zero tool calls (no code changes)",
+        description="True if build phase completed with zero tool calls",
     )
 
     @computed_field  # type: ignore[prop-decorator]

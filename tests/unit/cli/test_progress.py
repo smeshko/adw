@@ -385,6 +385,7 @@ class TestPipelineSummary:
 
         output_text = output.getvalue()
         import re
+
         plain = re.sub(r"\x1b\[[0-9;]*m", "", output_text)
         assert "12K" in plain  # Formatted with abbreviation
 

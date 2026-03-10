@@ -63,7 +63,7 @@ def _mock_project_registry(project_names: list[str] | None = None) -> MagicMock:
     """Build a mock ProjectRegistryManager."""
     mock = MagicMock()
     projects = []
-    for name in (project_names or []):
+    for name in project_names or []:
         p = MagicMock()
         p.name = name
         projects.append(p)
@@ -127,7 +127,11 @@ class TestLogSearchEndpoint:
 
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "INFO", "message": "Phase started"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "INFO",
+                    "message": "Phase started",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs",
@@ -143,7 +147,11 @@ class TestLogSearchEndpoint:
 
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "INFO", "message": "test"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "INFO",
+                    "message": "test",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs",
@@ -160,7 +168,11 @@ class TestLogSearchEndpoint:
 
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "WARN", "message": "Warning msg"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "WARN",
+                    "message": "Warning msg",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs",
@@ -176,7 +188,11 @@ class TestLogSearchEndpoint:
 
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "ERROR", "message": "Error msg"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "ERROR",
+                    "message": "Error msg",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs",
@@ -192,8 +208,16 @@ class TestLogSearchEndpoint:
 
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "INFO", "message": "Phase started"},
-                {"timestamp": "2025-01-15 10:31:00", "level": "INFO", "message": "Token stream"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "INFO",
+                    "message": "Phase started",
+                },
+                {
+                    "timestamp": "2025-01-15 10:31:00",
+                    "level": "INFO",
+                    "message": "Token stream",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs?q=Token",
@@ -210,8 +234,16 @@ class TestLogSearchEndpoint:
 
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "INFO", "message": "Info msg"},
-                {"timestamp": "2025-01-15 10:31:00", "level": "ERROR", "message": "Error msg"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "INFO",
+                    "message": "Info msg",
+                },
+                {
+                    "timestamp": "2025-01-15 10:31:00",
+                    "level": "ERROR",
+                    "message": "Error msg",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs?level=ERROR",
@@ -242,7 +274,11 @@ class TestLogSearchEndpoint:
 
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "INFO", "message": "test"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "INFO",
+                    "message": "test",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs",
@@ -259,7 +295,11 @@ class TestLogSearchEndpoint:
 
         with patch("adw.dashboard.routes._load_log_entries") as mock_load:
             mock_load.return_value = [
-                {"timestamp": "2025-01-15 10:30:00", "level": "INFO", "message": "Phase plan started"},
+                {
+                    "timestamp": "2025-01-15 10:30:00",
+                    "level": "INFO",
+                    "message": "Phase plan started",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/logs",
@@ -381,7 +421,9 @@ class TestLoadLogEntries:
             "[2025-01-15 10:30:05] [LLM] Token stream begins\n"
             "[2025-01-15 10:31:00] [ERROR] Something went wrong\n"
         )
-        (run_dir / "live.log").write_text(log_content)
+        log_dir = run_dir / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        (log_dir / "live.log").write_text(log_content)
 
         runs_dir = tmp_path / "runs"
         entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A")
@@ -409,7 +451,9 @@ class TestLoadLogEntries:
             "[2025-01-15 10:30:00] [PHASE] Phase 'plan' started\n"
             "[2025-01-15 10:31:00] [PHASE] Phase 'build' started\n"
         )
-        (run_dir / "live.log").write_text(log_content)
+        log_dir = run_dir / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        (log_dir / "live.log").write_text(log_content)
 
         runs_dir = tmp_path / "runs"
         entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A", phase="plan")
@@ -428,7 +472,9 @@ class TestLoadLogEntries:
             "[2025-01-15 10:30:05] [INFO] Let me explain the approach\n"
             "[2025-01-15 10:30:10] [LLM] Token stream begins(plan)\n"
         )
-        (run_dir / "live.log").write_text(log_content)
+        log_dir = run_dir / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        (log_dir / "live.log").write_text(log_content)
 
         runs_dir = tmp_path / "runs"
         entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A", phase="plan")
@@ -449,7 +495,9 @@ class TestLoadLogEntries:
             "[2025-01-15 10:30:00] [INFO] Valid log line\n"
             "\n"
         )
-        (run_dir / "live.log").write_text(log_content)
+        log_dir = run_dir / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        (log_dir / "live.log").write_text(log_content)
 
         runs_dir = tmp_path / "runs"
         entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A")

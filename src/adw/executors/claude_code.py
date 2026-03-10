@@ -105,9 +105,7 @@ class ClaudeCodeExecutor:
         if self.live_stream:
             self.live_stream.write_llm_start(phase)
 
-        result = asyncio.run(
-            self._stream_subprocess(prompt, cwd=cwd, model=model)
-        )
+        result = asyncio.run(self._stream_subprocess(prompt, cwd=cwd, model=model))
 
         # Log LLM end to live stream
         if self.live_stream:
@@ -459,7 +457,9 @@ class ClaudeCodeExecutor:
         final_output = "".join(last_assistant_text)
 
         # Total input includes all three input token types
-        total_input = input_tokens + cache_creation_input_tokens + cache_read_input_tokens
+        total_input = (
+            input_tokens + cache_creation_input_tokens + cache_read_input_tokens
+        )
 
         return {
             "content": "".join(content_parts),

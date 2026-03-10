@@ -1152,7 +1152,6 @@ async def task_manager_fields(
     including the state_mapping key-value editor.
     """
     from adw.config.loader import ConfigLoader
-    from adw.config.registry import ConfigRegistry
 
     templates: Jinja2Templates = request.app.state.templates
     config = None
@@ -1302,7 +1301,7 @@ async def phase_config_partial(
     request: Request,
     phase: str,
     project: str = Query("", alias="project"),
-    project_registry: "ProjectRegistryManager" = Depends(get_project_registry),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Return the phase config editor partial for a specific phase.
 
@@ -1369,9 +1368,7 @@ async def phase_config_partial(
                             ship_version_bump = cmds.version_bump or ""
                             ship_publish = cmds.publish or ""
                         bypass_ci = getattr(config_obj, "bypass_ci", True)
-                        wait_for_merge = getattr(
-                            config_obj, "wait_for_merge", False
-                        )
+                        wait_for_merge = getattr(config_obj, "wait_for_merge", False)
 
                 except Exception:
                     logger.warning(

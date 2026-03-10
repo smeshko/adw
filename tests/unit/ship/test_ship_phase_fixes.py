@@ -10,7 +10,6 @@ Covers:
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 import yaml
 
 from adw.commands import CommandResolver
@@ -154,23 +153,25 @@ class TestShipCommandEnvVars:
         )
         context = MagicMock()
 
-        with patch.object(ext, "_load_ship_config", return_value=config):
-            with patch.object(ext, "_load_project_build_command", return_value=None):
-                env = ext.get_hook_env(context)
+        with (
+            patch.object(ext, "_load_ship_config", return_value=config),
+            patch.object(ext, "_load_project_build_command", return_value=None),
+        ):
+            env = ext.get_hook_env(context)
 
         assert env.get("ADW_SHIP_VERSION_BUMP_CMD") == "npm version patch"
 
     def test_publish_cmd_in_env(self) -> None:
         """ADW_SHIP_PUBLISH_CMD should be in hook env when configured."""
         ext = ShipExtension()
-        config = ShipCommandConfig(
-            commands=ShipCommandsConfig(publish="npm publish")
-        )
+        config = ShipCommandConfig(commands=ShipCommandsConfig(publish="npm publish"))
         context = MagicMock()
 
-        with patch.object(ext, "_load_ship_config", return_value=config):
-            with patch.object(ext, "_load_project_build_command", return_value=None):
-                env = ext.get_hook_env(context)
+        with (
+            patch.object(ext, "_load_ship_config", return_value=config),
+            patch.object(ext, "_load_project_build_command", return_value=None),
+        ):
+            env = ext.get_hook_env(context)
 
         assert env.get("ADW_SHIP_PUBLISH_CMD") == "npm publish"
 
@@ -180,11 +181,13 @@ class TestShipCommandEnvVars:
         config = ShipCommandConfig(commands=ShipCommandsConfig())
         context = MagicMock()
 
-        with patch.object(ext, "_load_ship_config", return_value=config):
-            with patch.object(
+        with (
+            patch.object(ext, "_load_ship_config", return_value=config),
+            patch.object(
                 ext, "_load_project_build_command", return_value="npm run build"
-            ):
-                env = ext.get_hook_env(context)
+            ),
+        ):
+            env = ext.get_hook_env(context)
 
         assert env.get("ADW_SHIP_BUILD_CMD") == "npm run build"
 
@@ -194,9 +197,11 @@ class TestShipCommandEnvVars:
         config = ShipCommandConfig(commands=ShipCommandsConfig())
         context = MagicMock()
 
-        with patch.object(ext, "_load_ship_config", return_value=config):
-            with patch.object(ext, "_load_project_build_command", return_value=None):
-                env = ext.get_hook_env(context)
+        with (
+            patch.object(ext, "_load_ship_config", return_value=config),
+            patch.object(ext, "_load_project_build_command", return_value=None),
+        ):
+            env = ext.get_hook_env(context)
 
         assert "ADW_SHIP_VERSION_BUMP_CMD" not in env
         assert "ADW_SHIP_PUBLISH_CMD" not in env
@@ -205,14 +210,14 @@ class TestShipCommandEnvVars:
     def test_wait_for_merge_env_var(self) -> None:
         """ADW_SHIP_WAIT_FOR_MERGE should be in hook env."""
         ext = ShipExtension()
-        config = ShipCommandConfig(
-            commands=ShipCommandsConfig(), wait_for_merge=True
-        )
+        config = ShipCommandConfig(commands=ShipCommandsConfig(), wait_for_merge=True)
         context = MagicMock()
 
-        with patch.object(ext, "_load_ship_config", return_value=config):
-            with patch.object(ext, "_load_project_build_command", return_value=None):
-                env = ext.get_hook_env(context)
+        with (
+            patch.object(ext, "_load_ship_config", return_value=config),
+            patch.object(ext, "_load_project_build_command", return_value=None),
+        ):
+            env = ext.get_hook_env(context)
 
         assert env.get("ADW_SHIP_WAIT_FOR_MERGE") == "true"
 
@@ -222,8 +227,10 @@ class TestShipCommandEnvVars:
         config = ShipCommandConfig(commands=ShipCommandsConfig())
         context = MagicMock()
 
-        with patch.object(ext, "_load_ship_config", return_value=config):
-            with patch.object(ext, "_load_project_build_command", return_value=None):
-                env = ext.get_hook_env(context)
+        with (
+            patch.object(ext, "_load_ship_config", return_value=config),
+            patch.object(ext, "_load_project_build_command", return_value=None),
+        ):
+            env = ext.get_hook_env(context)
 
         assert env.get("ADW_SHIP_WAIT_FOR_MERGE") == "false"

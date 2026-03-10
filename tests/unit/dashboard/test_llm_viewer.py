@@ -64,7 +64,7 @@ def _mock_project_registry(project_names: list[str] | None = None) -> MagicMock:
     """Build a mock ProjectRegistryManager."""
     mock = MagicMock()
     projects = []
-    for name in (project_names or []):
+    for name in project_names or []:
         p = MagicMock()
         p.name = name
         projects.append(p)
@@ -424,12 +424,16 @@ class TestLoadLLMContent:
         """Loads LLM response text from artifacts directory."""
         from adw.dashboard.routes import _load_llm_content
 
-        artifacts_dir = tmp_path / "runs" / "01TESTRUNID0000000000000A" / "artifacts" / "plan"
+        artifacts_dir = (
+            tmp_path / "runs" / "01TESTRUNID0000000000000A" / "artifacts" / "plan"
+        )
         artifacts_dir.mkdir(parents=True)
         (artifacts_dir / "plan_output.md").write_text("Generated plan content")
 
         runs_dir = tmp_path / "runs"
-        result = _load_llm_content(runs_dir, "01TESTRUNID0000000000000A", "plan", "response")
+        result = _load_llm_content(
+            runs_dir, "01TESTRUNID0000000000000A", "plan", "response"
+        )
         assert result == "Generated plan content"
 
     def test_returns_none_when_no_artifact(self, tmp_path: Path) -> None:
@@ -438,7 +442,9 @@ class TestLoadLLMContent:
 
         runs_dir = tmp_path / "runs"
         runs_dir.mkdir(parents=True)
-        result = _load_llm_content(runs_dir, "01TESTRUNID0000000000000A", "plan", "response")
+        result = _load_llm_content(
+            runs_dir, "01TESTRUNID0000000000000A", "plan", "response"
+        )
         assert result is None
 
     def test_returns_none_for_prompt_when_no_file(self, tmp_path: Path) -> None:
@@ -447,5 +453,7 @@ class TestLoadLLMContent:
 
         runs_dir = tmp_path / "runs"
         runs_dir.mkdir(parents=True)
-        result = _load_llm_content(runs_dir, "01TESTRUNID0000000000000A", "plan", "prompt")
+        result = _load_llm_content(
+            runs_dir, "01TESTRUNID0000000000000A", "plan", "prompt"
+        )
         assert result is None

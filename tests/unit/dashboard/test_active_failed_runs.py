@@ -63,7 +63,7 @@ def _mock_project_registry(project_names: list[str] | None = None) -> MagicMock:
     """Build a mock ProjectRegistryManager."""
     mock = MagicMock()
     projects = []
-    for name in (project_names or []):
+    for name in project_names or []:
         p = MagicMock()
         p.name = name
         projects.append(p)
@@ -472,7 +472,7 @@ class TestPhaseDetailSSEStreaming:
             )
 
         assert response.status_code == 200
-        assert 'sse-connect=' in response.text
+        assert "sse-connect=" in response.text
         assert 'sse-swap="log-line"' in response.text
         assert 'hx-swap="beforeend"' in response.text
 
@@ -653,14 +653,18 @@ class TestRenderLogLineHTML:
         """ERROR level renders with text-error class."""
         from adw.dashboard.routes import _render_log_line_html
 
-        result = _render_log_line_html("2024-01-15 10:30:00", "ERROR", "something broke")
+        result = _render_log_line_html(
+            "2024-01-15 10:30:00", "ERROR", "something broke"
+        )
         assert "text-error" in result
 
     def test_html_escaping(self) -> None:
         """Message content is HTML-escaped to prevent XSS."""
         from adw.dashboard.routes import _render_log_line_html
 
-        result = _render_log_line_html("2024-01-15 10:30:00", "INFO", '<script>alert("xss")</script>')
+        result = _render_log_line_html(
+            "2024-01-15 10:30:00", "INFO", '<script>alert("xss")</script>'
+        )
         assert "<script>" not in result
         assert "&lt;script&gt;" in result
 

@@ -18,9 +18,7 @@ class TestDashboardWebCommand:
         """web command calls uvicorn.run with correct defaults."""
         mock_app = MagicMock()
         with (
-            patch(
-                "adw.cli.dashboard_web.webbrowser.open"
-            ) as mock_browser,
+            patch("adw.cli.dashboard_web.webbrowser.open") as mock_browser,
             patch(
                 "adw.dashboard.server.create_dashboard_app",
                 return_value=mock_app,
@@ -31,9 +29,7 @@ class TestDashboardWebCommand:
 
         assert result.exit_code == 0
         mock_factory.assert_called_once_with(host="127.0.0.1", port=8100)
-        mock_uvicorn_run.assert_called_once_with(
-            mock_app, host="127.0.0.1", port=8100
-        )
+        mock_uvicorn_run.assert_called_once_with(mock_app, host="127.0.0.1", port=8100)
         mock_browser.assert_called_once_with("http://127.0.0.1:8100")
 
     def test_web_command_custom_port(self) -> None:
@@ -51,9 +47,7 @@ class TestDashboardWebCommand:
 
         assert result.exit_code == 0
         mock_factory.assert_called_once_with(host="127.0.0.1", port=9000)
-        mock_uvicorn_run.assert_called_once_with(
-            mock_app, host="127.0.0.1", port=9000
-        )
+        mock_uvicorn_run.assert_called_once_with(mock_app, host="127.0.0.1", port=9000)
 
     def test_web_command_custom_host(self) -> None:
         """web command accepts --host flag."""
@@ -66,15 +60,11 @@ class TestDashboardWebCommand:
             ) as mock_factory,
             patch("uvicorn.run") as mock_uvicorn_run,
         ):
-            result = runner.invoke(
-                dashboard_web_app, ["web", "--host", "0.0.0.0"]
-            )
+            result = runner.invoke(dashboard_web_app, ["web", "--host", "0.0.0.0"])
 
         assert result.exit_code == 0
         mock_factory.assert_called_once_with(host="0.0.0.0", port=8100)
-        mock_uvicorn_run.assert_called_once_with(
-            mock_app, host="0.0.0.0", port=8100
-        )
+        mock_uvicorn_run.assert_called_once_with(mock_app, host="0.0.0.0", port=8100)
 
     def test_web_command_no_browser_flag(self) -> None:
         """--no-browser flag prevents browser from opening."""
@@ -87,9 +77,7 @@ class TestDashboardWebCommand:
             ),
             patch("uvicorn.run"),
         ):
-            result = runner.invoke(
-                dashboard_web_app, ["web", "--no-browser"]
-            )
+            result = runner.invoke(dashboard_web_app, ["web", "--no-browser"])
 
         assert result.exit_code == 0
         mock_browser.assert_not_called()
@@ -100,9 +88,7 @@ class TestDashboardWebCommand:
             patch("adw.cli.dashboard_web.webbrowser.open"),
             patch("uvicorn.run") as mock_uvicorn_run,
         ):
-            result = runner.invoke(
-                dashboard_web_app, ["web", "--reload"]
-            )
+            result = runner.invoke(dashboard_web_app, ["web", "--reload"])
 
         assert result.exit_code == 0
         mock_uvicorn_run.assert_called_once_with(
@@ -143,9 +129,7 @@ class TestDashboardWebCommand:
             ),
             patch("uvicorn.run"),
         ):
-            result = runner.invoke(
-                dashboard_web_app, ["web", "--host", "0.0.0.0"]
-            )
+            result = runner.invoke(dashboard_web_app, ["web", "--host", "0.0.0.0"])
 
         assert result.exit_code == 0
         assert "WARNING" in result.output
@@ -162,9 +146,7 @@ class TestDashboardWebCommand:
             ),
             patch("uvicorn.run"),
         ):
-            result = runner.invoke(
-                dashboard_web_app, ["web", "--host", "0.0.0.0"]
-            )
+            result = runner.invoke(dashboard_web_app, ["web", "--host", "0.0.0.0"])
 
         assert result.exit_code == 0
         mock_browser.assert_called_once_with("http://127.0.0.1:8100")

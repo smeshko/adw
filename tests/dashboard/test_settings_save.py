@@ -204,9 +204,7 @@ class TestSectionFieldMap:
 class TestSaveSettingsBasics:
     """Tests for saving Basics section fields."""
 
-    def test_save_language(
-        self, save_client: TestClient, project_dir: Path
-    ) -> None:
+    def test_save_language(self, save_client: TestClient, project_dir: Path) -> None:
         """Saving language updates project.yaml."""
         response = save_client.post(
             "/settings/save",
@@ -222,14 +220,10 @@ class TestSaveSettingsBasics:
         assert "Settings saved successfully" in response.text
 
         # Verify file was updated
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["language"] == "javascript"
 
-    def test_save_platform(
-        self, save_client: TestClient, project_dir: Path
-    ) -> None:
+    def test_save_platform(self, save_client: TestClient, project_dir: Path) -> None:
         """Saving platform updates project.yaml."""
         response = save_client.post(
             "/settings/save",
@@ -242,14 +236,10 @@ class TestSaveSettingsBasics:
             },
         )
         assert response.status_code == 200
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["platform"] == "web"
 
-    def test_save_commands(
-        self, save_client: TestClient, project_dir: Path
-    ) -> None:
+    def test_save_commands(self, save_client: TestClient, project_dir: Path) -> None:
         """Saving test/build commands updates project.yaml."""
         response = save_client.post(
             "/settings/save",
@@ -264,9 +254,7 @@ class TestSaveSettingsBasics:
             },
         )
         assert response.status_code == 200
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["test_command"] == "pytest -v"
         assert config["build_command"] == "python -m build"
 
@@ -290,9 +278,7 @@ class TestSaveSettingsGit:
             },
         )
         assert response.status_code == 200
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["git"]["branch_prefix"] == "feat/"
 
     def test_save_skip_hooks_checked(
@@ -311,14 +297,10 @@ class TestSaveSettingsGit:
             },
         )
         assert response.status_code == 200
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["git"]["skip_hooks"] is True
 
-    def test_save_base_branch(
-        self, save_client: TestClient, project_dir: Path
-    ) -> None:
+    def test_save_base_branch(self, save_client: TestClient, project_dir: Path) -> None:
         """Saving base_branch updates the git section."""
         response = save_client.post(
             "/settings/save",
@@ -332,18 +314,14 @@ class TestSaveSettingsGit:
             },
         )
         assert response.status_code == 200
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["git"]["base_branch"] == "develop"
 
 
 class TestSaveSettingsPorts:
     """Tests for saving Ports section fields."""
 
-    def test_save_port_range(
-        self, save_client: TestClient, project_dir: Path
-    ) -> None:
+    def test_save_port_range(self, save_client: TestClient, project_dir: Path) -> None:
         """Saving port fields updates worktree.port_range."""
         response = save_client.post(
             "/settings/save",
@@ -356,9 +334,7 @@ class TestSaveSettingsPorts:
             },
         )
         assert response.status_code == 200
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["worktree"]["port_range"]["backend_start"] == 8080
         assert config["worktree"]["port_range"]["frontend_start"] == 8180
 
@@ -383,9 +359,7 @@ class TestSaveSettingsLLMRetry:
             },
         )
         assert response.status_code == 200
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["llm"]["retry"]["max_retries"] == 5
         assert config["llm"]["retry"]["base_delay_seconds"] == 2.0
         assert config["llm"]["retry"]["max_delay_seconds"] == 120.0
@@ -435,9 +409,7 @@ class TestSaveSettingsValidation:
         assert response.status_code == 200
         assert "Validation failed" in response.text or "alert-error" in response.text
 
-    def test_invalid_section_returns_error(
-        self, save_client: TestClient
-    ) -> None:
+    def test_invalid_section_returns_error(self, save_client: TestClient) -> None:
         """Invalid section name returns error toast."""
         response = save_client.post(
             "/settings/save",
@@ -450,9 +422,7 @@ class TestSaveSettingsValidation:
         assert response.status_code == 200
         assert "Invalid section" in response.text
 
-    def test_project_not_found_returns_error(
-        self, save_client: TestClient
-    ) -> None:
+    def test_project_not_found_returns_error(self, save_client: TestClient) -> None:
         """Unknown project returns error toast."""
         response = save_client.post(
             "/settings/save",
@@ -528,9 +498,7 @@ class TestSaveSettingsPreservation:
         )
 
         # Verify other sections are preserved
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         # Project section preserved
         assert config["name"] == "test-app"
         assert config["language"] == "python"
@@ -673,9 +641,7 @@ class TestBuildSettingsContextExtended:
         registry = ConfigRegistry()
         result = build_settings_context(config, registry)
 
-        backend = next(
-            s for s in result["worktree"] if s["name"] == "backend_start"
-        )
+        backend = next(s for s in result["worktree"] if s["name"] == "backend_start")
         assert backend["current_value"] == 9100  # default
 
     def test_retry_values_resolved_from_config(self) -> None:
@@ -688,9 +654,7 @@ class TestBuildSettingsContextExtended:
         registry = ConfigRegistry()
         result = build_settings_context(config, registry)
 
-        max_retries = next(
-            s for s in result["llm"] if s["name"] == "max_retries"
-        )
+        max_retries = next(s for s in result["llm"] if s["name"] == "max_retries")
         assert max_retries["current_value"] == 3  # default
 
 
@@ -866,9 +830,7 @@ class TestSaveSettingsTaskManager:
         assert response.status_code == 200
         assert "Settings saved successfully" in response.text
 
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["task_manager"]["type"] == "linear"
         assert config["task_manager"]["team_key"] == "ADW"
 
@@ -891,9 +853,7 @@ class TestSaveSettingsTaskManager:
             },
         )
         assert response.status_code == 200
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["task_manager"]["sync_comments"] is True
         assert config["task_manager"]["auto_close"] is True
         assert config["task_manager"]["labels"]["enabled"] is False
@@ -924,9 +884,7 @@ class TestSaveSettingsTaskManager:
             },
         )
         assert response.status_code == 200
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         mapping = config["task_manager"]["state_mapping"]
         assert mapping["plan"] == "Todo"
         assert mapping["build"] == "In Dev"
@@ -934,9 +892,7 @@ class TestSaveSettingsTaskManager:
         assert mapping["ship"] == "Done"
         assert mapping["failed"] == "Backlog"
 
-    def test_save_type_none(
-        self, save_client: TestClient, project_dir: Path
-    ) -> None:
+    def test_save_type_none(self, save_client: TestClient, project_dir: Path) -> None:
         """Saving type=none is valid and preserves defaults."""
         response = save_client.post(
             "/settings/save",
@@ -953,9 +909,7 @@ class TestSaveSettingsTaskManager:
         )
         assert response.status_code == 200
         assert "Settings saved successfully" in response.text
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["task_manager"]["type"] == "none"
 
     def test_save_preserves_other_sections(
@@ -976,9 +930,7 @@ class TestSaveSettingsTaskManager:
                 "label_prefix": "adw:",
             },
         )
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         # Other sections preserved
         assert config["language"] == "python"
         assert config["git"]["branch_prefix"] == "feature/"
@@ -1009,14 +961,10 @@ class TestSaveSettingsSecurity:
         )
         assert response.status_code == 200
         assert "Settings saved successfully" in response.text
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["security"]["blocked_env_files"] == [".env", "*.pem", "*.key"]
 
-    def test_save_empty_lists(
-        self, save_client: TestClient, project_dir: Path
-    ) -> None:
+    def test_save_empty_lists(self, save_client: TestClient, project_dir: Path) -> None:
         """Saving with no list items results in empty lists."""
         response = save_client.post(
             "/settings/save",
@@ -1027,9 +975,7 @@ class TestSaveSettingsSecurity:
             },
         )
         assert response.status_code == 200
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["security"]["blocked_patterns"] == []
         assert config["security"]["blocked_env_files"] == []
 
@@ -1048,9 +994,7 @@ class TestSaveSettingsSecurity:
             },
         )
         assert response.status_code == 200
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         patterns = config["security"]["blocked_patterns"]
         assert len(patterns) == 2
         assert patterns[0]["pattern"] == r"rm\s+-rf\s+/"
@@ -1071,9 +1015,7 @@ class TestSaveSettingsSecurity:
                 "blocked_env_files.0": ".env",
             },
         )
-        config = yaml.safe_load(
-            (project_dir / ".adw" / "project.yaml").read_text()
-        )
+        config = yaml.safe_load((project_dir / ".adw" / "project.yaml").read_text())
         assert config["language"] == "python"
         assert config["git"]["branch_prefix"] == "feature/"
         assert config["llm"]["retry"]["max_retries"] == 3

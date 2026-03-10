@@ -5,11 +5,9 @@ Tests for cost calculation, pricing configuration, and LLM file parsing.
 
 import json
 import os
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from datetime import datetime, UTC, timedelta
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 
 class TestModelPricing:
@@ -321,7 +319,8 @@ class TestGetDailyTokenCounts:
 
         aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
         aggregator._parse_llm_response_files = lambda _: TokenUsage(
-            input_tokens=500, output_tokens=500,
+            input_tokens=500,
+            output_tokens=500,
         )
         result = aggregator.get_daily_token_counts()
 
@@ -335,7 +334,9 @@ class TestGetDailyTokenCounts:
         # All other days should be zero
         for d in result:
             if d["date"] != yesterday:
-                assert d["tokens"] == 0, f"Expected 0 tokens on {d['date']}, got {d['tokens']}"
+                assert d["tokens"] == 0, (
+                    f"Expected 0 tokens on {d['date']}, got {d['tokens']}"
+                )
 
     def test_input_output_split_per_day(self) -> None:
         """Input and output tokens are split correctly per day."""
@@ -355,7 +356,8 @@ class TestGetDailyTokenCounts:
 
         aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
         aggregator._parse_llm_response_files = lambda _: TokenUsage(
-            input_tokens=700, output_tokens=300,
+            input_tokens=700,
+            output_tokens=300,
         )
         result = aggregator.get_daily_token_counts()
 
@@ -409,7 +411,8 @@ class TestGetDailyTokenCounts:
 
         aggregator = StatsAggregator(index_manager=mock_im, project_registry=mock_pr)
         aggregator._parse_llm_response_files = lambda _: TokenUsage(
-            input_tokens=500, output_tokens=500,
+            input_tokens=500,
+            output_tokens=500,
         )
         result = aggregator.get_daily_token_counts()
 
@@ -478,7 +481,7 @@ class TestStatsAggregatorInit:
 
     def test_custom_pricing(self) -> None:
         """Custom pricing configuration can be specified."""
-        from adw.core.stats_aggregator import StatsAggregator, DEFAULT_PRICING
+        from adw.core.stats_aggregator import DEFAULT_PRICING, StatsAggregator
 
         custom_pricing = {
             "my-model": {"input": 1.00, "output": 2.00},
@@ -492,8 +495,8 @@ class TestStatsAggregatorInit:
 
     def test_custom_index_manager(self) -> None:
         """Custom IndexManager can be specified."""
-        from adw.core.stats_aggregator import StatsAggregator
         from adw.core.index_manager import IndexManager
+        from adw.core.stats_aggregator import StatsAggregator
 
         custom_manager = IndexManager()
         aggregator = StatsAggregator(index_manager=custom_manager)
@@ -506,8 +509,8 @@ class TestGetGlobalStats:
 
     def test_returns_global_statistics(self, tmp_path: Path) -> None:
         """get_global_stats returns GlobalStatistics object."""
-        from adw.core.stats_aggregator import StatsAggregator
         from adw.core.index_manager import IndexManager
+        from adw.core.stats_aggregator import StatsAggregator
         from adw.models.stats import GlobalStatistics
 
         # Create mock index manager
@@ -525,8 +528,8 @@ class TestGetGlobalStats:
 
     def test_empty_index_returns_empty_stats(self, tmp_path: Path) -> None:
         """Empty index returns stats with zero values."""
-        from adw.core.stats_aggregator import StatsAggregator
         from adw.core.index_manager import IndexManager
+        from adw.core.stats_aggregator import StatsAggregator
 
         index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
 
@@ -545,8 +548,8 @@ class TestGetGlobalStats:
 
     def test_force_refresh_ignores_cache(self, tmp_path: Path) -> None:
         """force_refresh=True skips cache check."""
-        from adw.core.stats_aggregator import StatsAggregator
         from adw.core.index_manager import IndexManager
+        from adw.core.stats_aggregator import StatsAggregator
 
         index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
         cache_path = tmp_path / "cache.json"
@@ -616,8 +619,8 @@ class TestStatisticsCache:
 
     def test_cache_is_created(self, tmp_path: Path) -> None:
         """Cache file is created after get_global_stats."""
-        from adw.core.stats_aggregator import StatsAggregator
         from adw.core.index_manager import IndexManager
+        from adw.core.stats_aggregator import StatsAggregator
 
         cache_path = tmp_path / "cache.json"
         index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
@@ -633,8 +636,8 @@ class TestStatisticsCache:
 
     def test_cache_structure(self, tmp_path: Path) -> None:
         """Cache has correct structure."""
-        from adw.core.stats_aggregator import StatsAggregator
         from adw.core.index_manager import IndexManager
+        from adw.core.stats_aggregator import StatsAggregator
 
         cache_path = tmp_path / "cache.json"
         index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
@@ -657,8 +660,8 @@ class TestStatisticsCache:
 
     def test_cache_is_used_when_valid(self, tmp_path: Path) -> None:
         """Valid cache is used instead of recalculating."""
-        from adw.core.stats_aggregator import StatsAggregator
         from adw.core.index_manager import IndexManager
+        from adw.core.stats_aggregator import StatsAggregator
         from adw.models.stats import GlobalStatistics
 
         cache_path = tmp_path / "cache.json"
@@ -695,8 +698,8 @@ class TestStatisticsCache:
 
     def test_cache_invalidated_on_ttl_expiry(self, tmp_path: Path) -> None:
         """Cache is invalidated when TTL expires."""
-        from adw.core.stats_aggregator import StatsAggregator
         from adw.core.index_manager import IndexManager
+        from adw.core.stats_aggregator import StatsAggregator
 
         cache_path = tmp_path / "cache.json"
         index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
@@ -730,18 +733,14 @@ class TestStatisticsCache:
 
     def test_cache_invalidated_on_index_change(self, tmp_path: Path) -> None:
         """Cache is invalidated when index file is modified."""
-        from adw.core.stats_aggregator import StatsAggregator
         from adw.core.index_manager import IndexManager
+        from adw.core.stats_aggregator import StatsAggregator
 
         cache_path = tmp_path / "cache.json"
         index_path = tmp_path / "index.jsonl"
 
         # Create the index file first
         index_path.write_text("")
-        original_mtime = datetime.fromtimestamp(
-            index_path.stat().st_mtime, tz=UTC
-        ).isoformat()
-
         index_manager = IndexManager(index_path=index_path)
 
         # Create cache with old mtime
@@ -773,8 +772,8 @@ class TestStatisticsCache:
 
     def test_cache_invalidated_on_different_filters(self, tmp_path: Path) -> None:
         """Cache is invalidated when filter parameters differ."""
-        from adw.core.stats_aggregator import StatsAggregator
         from adw.core.index_manager import IndexManager
+        from adw.core.stats_aggregator import StatsAggregator
 
         cache_path = tmp_path / "cache.json"
         index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
@@ -809,8 +808,8 @@ class TestStatisticsCache:
 
     def test_force_refresh_bypasses_cache(self, tmp_path: Path) -> None:
         """force_refresh=True bypasses valid cache."""
-        from adw.core.stats_aggregator import StatsAggregator
         from adw.core.index_manager import IndexManager
+        from adw.core.stats_aggregator import StatsAggregator
 
         cache_path = tmp_path / "cache.json"
         index_manager = IndexManager(index_path=tmp_path / "index.jsonl")
@@ -1112,7 +1111,11 @@ class TestGetModelBreakdown:
                 "timestamp": now.isoformat(),
                 "phase": "plan",
                 "model": "claude-3-5-sonnet",
-                "stats": {"input_tokens": 1000, "output_tokens": 500, "duration_ms": 5000},
+                "stats": {
+                    "input_tokens": 1000,
+                    "output_tokens": 500,
+                    "duration_ms": 5000,
+                },
             }
             (llm_dir / "001_plan_response.json").write_text(json.dumps(resp))
 

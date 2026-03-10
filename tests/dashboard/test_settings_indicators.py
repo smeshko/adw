@@ -74,7 +74,6 @@ def default_project_dir(tmp_path: Path) -> Path:
         },
         "llm": {
             "path": "claude",
-
             "retry": {
                 "max_retries": 3,
                 "base_delay_seconds": 1.0,
@@ -113,7 +112,6 @@ def changed_project_dir(tmp_path: Path) -> Path:
         },
         "llm": {
             "path": "claude",
-
             "retry": {
                 "max_retries": 3,
                 "base_delay_seconds": 1.0,
@@ -331,9 +329,7 @@ class TestIsChangedFlags:
 class TestTabBadgesInHTML:
     """Test that rendered HTML contains changed-count badges."""
 
-    def test_git_badge_count_matches_changed(
-        self, default_client: TestClient
-    ) -> None:
+    def test_git_badge_count_matches_changed(self, default_client: TestClient) -> None:
         """Git tab badge count reflects actual changed fields.
 
         Even with 'default' config, base_branch='main' differs from
@@ -348,13 +344,11 @@ class TestTabBadgesInHTML:
         assert resp.status_code == 200
         html = resp.text
         # base_branch is "main" vs default None → 1 changed field
-        git_tab = re.search(r'>Git(?:\s*<span[^>]*>(\d+)</span>)?</a>', html)
+        git_tab = re.search(r">Git(?:\s*<span[^>]*>(\d+)</span>)?</a>", html)
         assert git_tab is not None
         assert git_tab.group(1) == "1"
 
-    def test_badges_when_changed(
-        self, changed_client: TestClient
-    ) -> None:
+    def test_badges_when_changed(self, changed_client: TestClient) -> None:
         """With non-default config, tabs should show count badges."""
         resp = changed_client.get(
             "/settings?project=test-app",
@@ -363,11 +357,9 @@ class TestTabBadgesInHTML:
         assert resp.status_code == 200
         html = resp.text
         # Git section has branch_prefix changed → badge should exist
-        assert 'badge badge-sm badge-ghost' in html
+        assert "badge badge-sm badge-ghost" in html
 
-    def test_git_tab_shows_count(
-        self, changed_client: TestClient
-    ) -> None:
+    def test_git_tab_shows_count(self, changed_client: TestClient) -> None:
         """Git tab should show the number of changed fields."""
         resp = changed_client.get(
             "/settings?project=test-app",
@@ -377,7 +369,7 @@ class TestTabBadgesInHTML:
         # The badge should be inside the Git tab link
         assert "Git" in html
         # branch_prefix and skip_hooks are changed → expect count
-        assert 'badge badge-sm badge-ghost' in html
+        assert "badge badge-sm badge-ghost" in html
 
 
 # ── Integration tests: indicators and reset buttons in HTML ──────
@@ -386,9 +378,7 @@ class TestTabBadgesInHTML:
 class TestIndicatorsInHTML:
     """Test that rendered HTML contains indicator dots and reset buttons."""
 
-    def test_accent_dot_present_when_changed(
-        self, changed_client: TestClient
-    ) -> None:
+    def test_accent_dot_present_when_changed(self, changed_client: TestClient) -> None:
         """Changed field should show accent dot (not hidden)."""
         resp = changed_client.get(
             "/partials/settings-content?tab=git&project=test-app",
@@ -400,9 +390,7 @@ class TestIndicatorsInHTML:
         # The dot for branch_prefix should not be hidden
         assert 'id="dot-branch_prefix" title="Modified from default"></span>' in html
 
-    def test_accent_dot_hidden_when_default(
-        self, default_client: TestClient
-    ) -> None:
+    def test_accent_dot_hidden_when_default(self, default_client: TestClient) -> None:
         """Default field should have hidden accent dot."""
         resp = default_client.get(
             "/partials/settings-content?tab=git&project=test-app",
@@ -412,9 +400,7 @@ class TestIndicatorsInHTML:
         # branch_prefix is at default → dot should be hidden
         assert 'hidden" id="dot-branch_prefix"' in html
 
-    def test_reset_button_present(
-        self, changed_client: TestClient
-    ) -> None:
+    def test_reset_button_present(self, changed_client: TestClient) -> None:
         """Changed field should have a visible reset button."""
         resp = changed_client.get(
             "/partials/settings-content?tab=git&project=test-app",
@@ -423,9 +409,7 @@ class TestIndicatorsInHTML:
         html = resp.text
         assert 'id="reset-branch_prefix"' in html
 
-    def test_reset_button_hidden_when_default(
-        self, default_client: TestClient
-    ) -> None:
+    def test_reset_button_hidden_when_default(self, default_client: TestClient) -> None:
         """Default field should have a hidden reset button."""
         resp = default_client.get(
             "/partials/settings-content?tab=git&project=test-app",
@@ -434,9 +418,7 @@ class TestIndicatorsInHTML:
         html = resp.text
         assert 'hidden" id="reset-branch_prefix"' in html
 
-    def test_default_hint_always_shown(
-        self, default_client: TestClient
-    ) -> None:
+    def test_default_hint_always_shown(self, default_client: TestClient) -> None:
         """Default hint should be shown even when value matches default."""
         resp = default_client.get(
             "/partials/settings-content?tab=git&project=test-app",

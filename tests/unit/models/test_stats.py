@@ -3,8 +3,7 @@
 Tests for TokenUsage, ProjectStatistics, and GlobalStatistics models.
 """
 
-import pytest
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 
 class TestTokenUsage:
@@ -192,8 +191,9 @@ class TestGlobalStatistics:
 
     def test_json_serialization(self) -> None:
         """GlobalStatistics can be serialized to JSON."""
-        from adw.models.stats import GlobalStatistics, TokenUsage
         import json
+
+        from adw.models.stats import GlobalStatistics, TokenUsage
 
         now = datetime.now(UTC)
         stats = GlobalStatistics(

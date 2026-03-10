@@ -10,7 +10,6 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from adw.dashboard.server import create_dashboard_app
@@ -136,8 +135,12 @@ class TestActiveRunsPartialRoute:
         from adw.dashboard.dependencies import get_index_manager
 
         entries = [
-            _make_index_entry(run_id="01JMXXXXXXXXXXXXXXXXXXXXXA", project_name="api-1"),
-            _make_index_entry(run_id="01JMXXXXXXXXXXXXXXXXXXXXXB", project_name="api-2"),
+            _make_index_entry(
+                run_id="01JMXXXXXXXXXXXXXXXXXXXXXA", project_name="api-1"
+            ),
+            _make_index_entry(
+                run_id="01JMXXXXXXXXXXXXXXXXXXXXXB", project_name="api-2"
+            ),
         ]
 
         mock_im = MagicMock()
@@ -177,7 +180,8 @@ class TestActiveRunsPartialRoute:
 
         client.get("/partials/active-runs?project=my-api")
         mock_im.get_recent_runs.assert_called_with(
-            status="running", project_path=Path("/projects/my-api"),
+            status="running",
+            project_path=Path("/projects/my-api"),
         )
 
     @patch("adw.dashboard.partials.ContextManager")
@@ -340,13 +344,12 @@ class TestActiveRunsPartialRoute:
 
         client.get("/partials/active-runs")
         mock_im.get_recent_runs.assert_called_with(
-            status="running", project_path=None,
+            status="running",
+            project_path=None,
         )
 
     @patch("adw.dashboard.partials.ContextManager")
-    def test_polling_url_includes_project_filter(
-        self, mock_cm_cls: MagicMock
-    ) -> None:
+    def test_polling_url_includes_project_filter(self, mock_cm_cls: MagicMock) -> None:
         """When project filter is set, polling URL includes project parameter."""
         from adw.dashboard.dependencies import get_index_manager
 

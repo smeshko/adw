@@ -5,8 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from adw.config.checker import (
     CheckReport,
     CheckResult,
@@ -309,8 +307,10 @@ class TestConfigCheckerPhaseConfig:
         report = checker.check_phase_config("plan")
         # timeout_seconds is not a valid field — should be rejected
         assert not report.is_valid
-        assert any("timeout_seconds" in r.message or "timeout_seconds" in (r.field or "")
-                    for r in report.errors)
+        assert any(
+            "timeout_seconds" in r.message or "timeout_seconds" in (r.field or "")
+            for r in report.errors
+        )
 
     def test_phase_with_valid_config(self, tmp_path: Path) -> None:
         """Phase with valid config.yaml should pass."""

@@ -17,7 +17,6 @@ from adw.dashboard.dependencies import generate_csrf_token
 from adw.dashboard.server import create_dashboard_app
 from adw.models.index import IndexEntry
 
-
 # ── Helpers ────────────────────────────────────────────────────────
 
 
@@ -30,7 +29,7 @@ def _mock_project_registry(
     projects = []
     names = project_names or []
     project_paths = paths or [f"/projects/{n}" for n in names]
-    for name, path in zip(names, project_paths):
+    for name, path in zip(names, project_paths, strict=True):
         p = MagicMock()
         p.name = name
         p.path = path
@@ -47,7 +46,9 @@ def _mock_project_registry(
     return mock
 
 
-def _mock_run_trigger(success: bool = True, process_id: int = 42, error: str | None = None) -> MagicMock:
+def _mock_run_trigger(
+    success: bool = True, process_id: int = 42, error: str | None = None
+) -> MagicMock:
     """Build a mock RunTrigger."""
     from adw.core.run_trigger import RunTriggerResult
 
@@ -78,7 +79,9 @@ def _make_index_entry(
     project_path: str = "/projects/my-project",
     project_name: str = "my-project",
     feature_description: str = "Add user authentication",
-    status: Literal["running", "completed", "failed", "interrupted", "aborted"] = "completed",
+    status: Literal[
+        "running", "completed", "failed", "interrupted", "aborted"
+    ] = "completed",
 ) -> IndexEntry:
     """Build a mock IndexEntry for re-run tests."""
     from datetime import UTC, datetime
@@ -103,7 +106,9 @@ def _mock_stats_aggregator() -> MagicMock:
     from adw.models.stats import GlobalStatistics
 
     mock = MagicMock()
-    mock.get_global_stats.return_value = GlobalStatistics(generated_at=datetime.now(UTC))
+    mock.get_global_stats.return_value = GlobalStatistics(
+        generated_at=datetime.now(UTC)
+    )
     mock.get_daily_token_counts.return_value = []
     return mock
 
@@ -134,9 +139,9 @@ def _get_csrf_token(client: TestClient) -> str:
     """Get a valid CSRF token by hitting a page route."""
     # The overview route generates a CSRF token; we extract it from cookies/state
     # But since CSRF tokens are HMAC-based, we can generate one directly.
-    from starlette.testclient import TestClient as _TC
-    from fastapi import Request
     from unittest.mock import MagicMock
+
+    from fastapi import Request
 
     # Generate a token using the module function
     mock_request = MagicMock(spec=Request)
@@ -672,9 +677,8 @@ class TestNewRunButtons:
             if pos == -1:
                 break
             # Look at surrounding 200 chars before to check for disabled
-            context = text[max(0, pos - 200):pos]
-            assert "disabled" not in context, \
-                "New Run button should not be disabled"
+            context = text[max(0, pos - 200) : pos]
+            assert "disabled" not in context, "New Run button should not be disabled"
             idx = pos + 1
 
 
@@ -1047,7 +1051,7 @@ class TestRerunButton:
         assert rerun_pos != -1, "Re-run button not found in response"
         # Look backwards to find the button opening tag
         button_start = text.rfind("<button", 0, rerun_pos)
-        button_html = text[button_start:rerun_pos + len(">Re-run</button>")]
+        button_html = text[button_start : rerun_pos + len(">Re-run</button>")]
         assert "disabled" not in button_html
 
     def test_rerun_button_has_htmx_get(self) -> None:

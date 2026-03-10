@@ -500,12 +500,14 @@ async def save_settings(
     project_display = str(form.get("_project", ""))
 
     # Resolve project path from display name
-    project_path_str, _ = resolve_project_filter(
-        project_registry, project_display
-    )
+    project_path_str, _ = resolve_project_filter(project_registry, project_display)
     if not project_path_str:
         return _render_settings_error(
-            request, templates, "Project not found.", section, project_display,
+            request,
+            templates,
+            "Project not found.",
+            section,
+            project_display,
             project_registry=project_registry,
         )
 
@@ -514,7 +516,11 @@ async def save_settings(
     # Validate section is editable
     if section not in _SECTION_FIELD_MAP:
         return _render_settings_error(
-            request, templates, "Invalid section.", section, project_display,
+            request,
+            templates,
+            "Invalid section.",
+            section,
+            project_display,
             project_registry=project_registry,
         )
 
@@ -531,16 +537,20 @@ async def save_settings(
                 existing_data = loaded
             elif loaded is not None:
                 return _render_settings_error(
-                    request, templates,
+                    request,
+                    templates,
                     "Existing config file is malformed (not a YAML mapping).",
-                    section, project_display,
+                    section,
+                    project_display,
                     project_registry=project_registry,
                 )
         except yaml.YAMLError as e:
             return _render_settings_error(
-                request, templates,
+                request,
+                templates,
                 f"Failed to parse existing config: {e}",
-                section, project_display,
+                section,
+                project_display,
                 project_registry=project_registry,
             )
         except OSError as e:
@@ -549,9 +559,11 @@ async def save_settings(
                 extra={"project": project_display, "error": str(e)},
             )
             return _render_settings_error(
-                request, templates,
+                request,
+                templates,
                 f"Failed to read existing config: {e}",
-                section, project_display,
+                section,
+                project_display,
                 project_registry=project_registry,
             )
 
@@ -573,9 +585,7 @@ async def save_settings(
         # Preserve existing BlockedPattern metadata when possible.
         # Build a lookup from pattern string → existing dict so that
         # unchanged patterns keep their description/severity/category.
-        existing_bp = (
-            existing_data.get("security", {}).get("blocked_patterns", [])
-        )
+        existing_bp = existing_data.get("security", {}).get("blocked_patterns", [])
         existing_bp_map: dict[str, dict[str, Any]] = {}
         if isinstance(existing_bp, list):
             for entry in existing_bp:
@@ -631,8 +641,11 @@ async def save_settings(
         errors = e.errors()
         error_msg = errors[0]["msg"] if errors else str(e)
         return _render_settings_error(
-            request, templates, f"Validation failed: {error_msg}",
-            section, project_display,
+            request,
+            templates,
+            f"Validation failed: {error_msg}",
+            section,
+            project_display,
             project_registry=project_registry,
         )
 
@@ -642,7 +655,9 @@ async def save_settings(
 
     # Write config atomically
     yaml_content = yaml.dump(
-        existing_data, default_flow_style=False, sort_keys=False,
+        existing_data,
+        default_flow_style=False,
+        sort_keys=False,
         allow_unicode=True,
     )
     try:
@@ -653,8 +668,11 @@ async def save_settings(
             extra={"project": project_display, "error": str(e)},
         )
         return _render_settings_error(
-            request, templates, f"Failed to save: {e}",
-            section, project_display,
+            request,
+            templates,
+            f"Failed to save: {e}",
+            section,
+            project_display,
             project_registry=project_registry,
         )
 
@@ -692,9 +710,9 @@ async def save_settings(
     }
     context.update(complex_ctx)
 
-    content_html = templates.get_template(
-        "partials/settings_content.html"
-    ).render(context)
+    content_html = templates.get_template("partials/settings_content.html").render(
+        context
+    )
 
     toast_html = (
         '<div id="toast-container" hx-swap-oob="innerHTML">'
@@ -722,7 +740,7 @@ _VALID_PHASES = frozenset(["plan", "build", "validate", "document", "ship"])
 async def save_phase_settings(
     request: Request,
     phase: str,
-    project_registry: "ProjectRegistryManager" = Depends(get_project_registry),
+    project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
     """Save phase config to .adw/commands/{phase}/config.yaml.
 
@@ -736,7 +754,7 @@ async def save_phase_settings(
     if phase not in _VALID_PHASES:
         return HTMLResponse(content="Invalid phase.", status_code=400)
 
-    templates: "Jinja2Templates" = request.app.state.templates
+    templates: Jinja2Templates = request.app.state.templates
     form = await request.form()
     project_display = str(form.get("_project", ""))
 
@@ -763,7 +781,7 @@ async def save_phase_settings(
     input_files: dict[str, str] = {}
     for key in form:
         if key.startswith("input_files_key."):
-            idx = key[len("input_files_key."):]
+            idx = key[len("input_files_key.") :]
             k = str(form[key]).strip()
             v = str(form.get(f"input_files_val.{idx}", "")).strip()
             if k and v:
@@ -776,14 +794,16 @@ async def save_phase_settings(
         doc_mappings: list[dict[str, str]] = []
         for key in form:
             if key.startswith("doc_mappings_source."):
-                idx = key[len("doc_mappings_source."):]
+                idx = key[len("doc_mappings_source.") :]
                 src = str(form[key]).strip()
                 docs_dir = str(form.get(f"doc_mappings_dir.{idx}", "")).strip()
                 if src and docs_dir:
-                    doc_mappings.append({
-                        "source_pattern": src,
-                        "docs_dir": docs_dir,
-                    })
+                    doc_mappings.append(
+                        {
+                            "source_pattern": src,
+                            "docs_dir": docs_dir,
+                        }
+                    )
         if doc_mappings:
             config_data["doc_mappings"] = doc_mappings
 
@@ -813,7 +833,11 @@ async def save_phase_settings(
         errors = e.errors()
         error_msg = errors[0]["msg"] if errors else str(e)
         return _render_phase_editor_error(
-            request, templates, phase, config_data, project_display,
+            request,
+            templates,
+            phase,
+            config_data,
+            project_display,
             f"Validation failed: {html.escape(error_msg)}",
         )
 
@@ -833,7 +857,11 @@ async def save_phase_settings(
             extra={"phase": phase, "project": project_display, "error": str(e)},
         )
         return _render_phase_editor_error(
-            request, templates, phase, config_data, project_display,
+            request,
+            templates,
+            phase,
+            config_data,
+            project_display,
             f"Failed to save: {html.escape(str(e))}",
         )
 
@@ -866,8 +894,7 @@ async def save_phase_settings(
         dm = loaded_obj.doc_mappings
         if dm:
             loaded_doc_mappings = [
-                {"source_pattern": m.source_pattern, "docs_dir": m.docs_dir}
-                for m in dm
+                {"source_pattern": m.source_pattern, "docs_dir": m.docs_dir} for m in dm
             ]
 
     if phase == "ship" and hasattr(loaded_obj, "commands"):
@@ -892,9 +919,9 @@ async def save_phase_settings(
         "csrf_token": generate_csrf_token(request),
     }
 
-    content_html = templates.get_template(
-        "partials/settings_phase_editor.html"
-    ).render(context)
+    content_html = templates.get_template("partials/settings_phase_editor.html").render(
+        context
+    )
 
     toast_html = (
         '<div id="toast-container" hx-swap-oob="innerHTML">'
@@ -911,7 +938,7 @@ async def save_phase_settings(
 
 def _render_phase_editor_error(
     request: Request,
-    templates: "Jinja2Templates",
+    templates: Jinja2Templates,
     phase: str,
     config_data: dict[str, Any],
     project_display: str,
@@ -935,7 +962,9 @@ def _render_phase_editor_error(
         "phase": phase,
         "has_config": True,
         "enabled": config_data.get("enabled", True),
-        "llm_model": llm_data.get("model", defaults["model"]) if llm_data else defaults["model"],
+        "llm_model": llm_data.get("model", defaults["model"])
+        if llm_data
+        else defaults["model"],
         "input_files": config_data.get("input_files", {}),
         "doc_mappings": doc_mappings,
         "ship_version_bump": commands.get("version_bump", "") if commands else "",
@@ -946,9 +975,9 @@ def _render_phase_editor_error(
         "csrf_token": generate_csrf_token(request),
     }
 
-    content_html = templates.get_template(
-        "partials/settings_phase_editor.html"
-    ).render(context)
+    content_html = templates.get_template("partials/settings_phase_editor.html").render(
+        context
+    )
 
     toast_html = (
         '<div id="toast-container" hx-swap-oob="innerHTML">'
@@ -998,9 +1027,7 @@ def _render_settings_error(
     config = None
     if project_registry is None:
         project_registry = get_project_registry()
-    project_path_str, _ = resolve_project_filter(
-        project_registry, project_display
-    )
+    project_path_str, _ = resolve_project_filter(project_registry, project_display)
     if project_path_str:
         try:
             loader = ConfigLoader(project_root=Path(project_path_str))
@@ -1033,9 +1060,9 @@ def _render_settings_error(
     }
     context.update(complex_ctx)
 
-    content_html = templates.get_template(
-        "partials/settings_content.html"
-    ).render(context)
+    content_html = templates.get_template("partials/settings_content.html").render(
+        context
+    )
 
     safe_message = html.escape(error_message)
     toast_html = (

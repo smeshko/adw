@@ -13,7 +13,6 @@ from fastapi.testclient import TestClient
 
 from adw.dashboard.server import create_dashboard_app
 
-
 # ── Helpers ────────────────────────────────────────────────────────
 
 
@@ -68,9 +67,6 @@ def _mock_index_manager(
     mock.get_recent_runs.side_effect = get_recent_side_effect
 
     # get_paginated_runs (used by runs_list route)
-    count = total_count if total_count is not None else len(recent_entries)
-    pages = total_pages if total_pages is not None else max(1, (count + 14) // 15) if count else 0
-
     def get_paginated_side_effect(**kwargs):
         pg = kwargs.get("page", 1)
         pg_size = kwargs.get("page_size", 15)
@@ -383,7 +379,7 @@ class TestRunsListSortDropdown:
         newest_pos = text.find('value="newest"', sort_select_pos)
         assert newest_pos > 0
         option_start = text.rfind("<option", 0, newest_pos)
-        option_chunk = text[option_start:newest_pos + 30]
+        option_chunk = text[option_start : newest_pos + 30]
         assert "selected" in option_chunk
 
 
@@ -395,7 +391,10 @@ class TestRunsListSummary:
 
     def test_shows_run_count(self) -> None:
         """Summary shows count of matching runs."""
-        entries = [_make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXWS{chr(65 + i)}") for i in range(3)]
+        entries = [
+            _make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXWS{chr(65 + i)}")
+            for i in range(3)
+        ]
         client = _make_client_with_mocks(
             index_manager=_mock_index_manager(entries=entries),
         )
@@ -428,7 +427,10 @@ class TestRunsListPagination:
 
     def test_no_pagination_when_single_page(self) -> None:
         """Pagination doesn't render when total_pages <= 1."""
-        entries = [_make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXWS{chr(65 + i)}") for i in range(5)]
+        entries = [
+            _make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXWS{chr(65 + i)}")
+            for i in range(5)
+        ]
         client = _make_client_with_mocks(
             index_manager=_mock_index_manager(entries=entries),
         )
@@ -438,8 +440,7 @@ class TestRunsListPagination:
     def test_pagination_renders_when_multiple_pages(self) -> None:
         """Pagination renders when total_pages > 1."""
         entries = [
-            _make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}")
-            for i in range(20)
+            _make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}") for i in range(20)
         ]
         client = _make_client_with_mocks(
             index_manager=_mock_index_manager(entries=entries),
@@ -450,8 +451,7 @@ class TestRunsListPagination:
     def test_current_page_has_btn_active(self) -> None:
         """Current page button has btn-active class."""
         entries = [
-            _make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}")
-            for i in range(20)
+            _make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}") for i in range(20)
         ]
         client = _make_client_with_mocks(
             index_manager=_mock_index_manager(entries=entries),
@@ -462,8 +462,7 @@ class TestRunsListPagination:
     def test_pagination_preserves_sort(self) -> None:
         """Pagination links include sort parameter."""
         entries = [
-            _make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}")
-            for i in range(20)
+            _make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}") for i in range(20)
         ]
         client = _make_client_with_mocks(
             index_manager=_mock_index_manager(entries=entries),
@@ -474,8 +473,7 @@ class TestRunsListPagination:
     def test_pagination_uses_join_component(self) -> None:
         """Pagination uses DaisyUI join component."""
         entries = [
-            _make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}")
-            for i in range(20)
+            _make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}") for i in range(20)
         ]
         client = _make_client_with_mocks(
             index_manager=_mock_index_manager(entries=entries),
@@ -486,8 +484,7 @@ class TestRunsListPagination:
     def test_pagination_targets_runs_content(self) -> None:
         """Pagination links target #runs-content."""
         entries = [
-            _make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}")
-            for i in range(20)
+            _make_entry(run_id=f"01KDSG2VDHNK0W4HSCZWJZXW{i:02d}") for i in range(20)
         ]
         client = _make_client_with_mocks(
             index_manager=_mock_index_manager(entries=entries),
@@ -641,7 +638,9 @@ class TestRunsFilterBar:
     def test_project_select_renders(self) -> None:
         """Project dropdown renders with 'All Projects' + registered names."""
         client = _make_client_with_mocks(
-            project_registry=_mock_project_registry(project_names=["my-api", "web-app"]),
+            project_registry=_mock_project_registry(
+                project_names=["my-api", "web-app"]
+            ),
         )
         response = client.get("/runs")
         text = response.text
@@ -682,13 +681,15 @@ class TestRunsFilterBar:
         failed_pos = text.find('value="failed"')
         assert failed_pos > 0
         option_start = text.rfind("<option", 0, failed_pos)
-        option_chunk = text[option_start:failed_pos + 30]
+        option_chunk = text[option_start : failed_pos + 30]
         assert "selected" in option_chunk
 
     def test_project_preselects_from_url(self) -> None:
         """Project filter pre-selects from URL param."""
         client = _make_client_with_mocks(
-            project_registry=_mock_project_registry(project_names=["my-api", "web-app"]),
+            project_registry=_mock_project_registry(
+                project_names=["my-api", "web-app"]
+            ),
         )
         response = client.get("/runs?project=my-api")
         text = response.text
@@ -697,7 +698,7 @@ class TestRunsFilterBar:
         my_api_pos = text.find('value="my-api"')
         assert my_api_pos > 0
         option_start = text.rfind("<option", 0, my_api_pos)
-        option_chunk = text[option_start:my_api_pos + 30]
+        option_chunk = text[option_start : my_api_pos + 30]
         assert "selected" in option_chunk
 
     def test_date_inputs_prefill_from_url(self) -> None:

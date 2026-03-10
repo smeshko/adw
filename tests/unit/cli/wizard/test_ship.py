@@ -80,9 +80,7 @@ class TestRunShipStep:
         def mock_confirm(*args: Any, **kwargs: Any) -> bool:
             msg = str(args[0]) if args else ""
             # Enable configuration
-            if "Configure ship phase" in msg:
-                return True
-            return False  # All PR options use defaults (No for merge)
+            return "Configure ship phase" in msg
 
         def mock_prompt(*args: Any, **kwargs: Any) -> str:
             # Return empty for all commands

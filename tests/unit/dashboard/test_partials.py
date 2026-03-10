@@ -30,7 +30,8 @@ def _mock_cost_strip_aggregator(
     mock = MagicMock()
     stats = GlobalStatistics(
         generated_at=datetime.now(UTC),
-        tokens_this_week=tokens_this_week or TokenUsage(input_tokens=900_000, output_tokens=300_000),
+        tokens_this_week=tokens_this_week
+        or TokenUsage(input_tokens=900_000, output_tokens=300_000),
         cost_this_week=cost_this_week,
     )
     mock.get_global_stats.return_value = stats
@@ -38,8 +39,7 @@ def _mock_cost_strip_aggregator(
     today = datetime.now(UTC).date()
     if daily_tokens is None:
         daily_tokens = [
-            {"date": today - timedelta(days=i), "tokens": 0}
-            for i in range(6, -1, -1)
+            {"date": today - timedelta(days=i), "tokens": 0} for i in range(6, -1, -1)
         ]
     mock.get_daily_token_counts.return_value = daily_tokens
 
@@ -185,8 +185,7 @@ class TestBuildCostStripContext:
         """Returns correct number of daily bars."""
         today = datetime.now(UTC).date()
         daily = [
-            {"date": today - timedelta(days=i), "tokens": 100}
-            for i in range(6, -1, -1)
+            {"date": today - timedelta(days=i), "tokens": 100} for i in range(6, -1, -1)
         ]
         sa = _mock_cost_strip_aggregator(daily_tokens=daily)
         result = build_cost_strip_context(sa, None)
@@ -195,7 +194,9 @@ class TestBuildCostStripContext:
     def test_max_day_gets_100_percent(self) -> None:
         """The day with most tokens gets 100% height."""
         today = datetime.now(UTC).date()
-        daily = [{"date": today - timedelta(days=i), "tokens": 0} for i in range(6, -1, -1)]
+        daily = [
+            {"date": today - timedelta(days=i), "tokens": 0} for i in range(6, -1, -1)
+        ]
         daily[-1] = {"date": today, "tokens": 5000}  # Today has max
         sa = _mock_cost_strip_aggregator(daily_tokens=daily)
         result = build_cost_strip_context(sa, None)
@@ -205,7 +206,9 @@ class TestBuildCostStripContext:
     def test_proportional_heights(self) -> None:
         """Other days get proportional heights relative to max."""
         today = datetime.now(UTC).date()
-        daily = [{"date": today - timedelta(days=i), "tokens": 0} for i in range(6, -1, -1)]
+        daily = [
+            {"date": today - timedelta(days=i), "tokens": 0} for i in range(6, -1, -1)
+        ]
         daily[-1] = {"date": today, "tokens": 1000}  # Max
         daily[-2] = {"date": today - timedelta(days=1), "tokens": 500}  # 50%
         sa = _mock_cost_strip_aggregator(daily_tokens=daily)
@@ -225,10 +228,7 @@ class TestBuildCostStripContext:
 
         # Use a known Monday (2026-02-09) so labels are deterministic
         monday = date(2026, 2, 9)
-        daily = [
-            {"date": monday + timedelta(days=i), "tokens": 0}
-            for i in range(7)
-        ]
+        daily = [{"date": monday + timedelta(days=i), "tokens": 0} for i in range(7)]
         sa = _mock_cost_strip_aggregator(daily_tokens=daily)
         result = build_cost_strip_context(sa, None)
         expected_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -419,8 +419,7 @@ class TestRecentRunsPartial:
         client.get("/partials/recent-runs?project=my-api")
         calls = im.get_recent_runs.call_args_list
         project_call = [
-            c for c in calls
-            if c.kwargs.get("project_path") == Path("/projects/my-api")
+            c for c in calls if c.kwargs.get("project_path") == Path("/projects/my-api")
         ]
         assert len(project_call) == 1
 
@@ -428,9 +427,7 @@ class TestRecentRunsPartial:
         """Polling URL includes project parameter when set."""
         client = _make_client_with_mocks()
         response = client.get("/partials/recent-runs?project=my-api")
-        assert (
-            'hx-get="/partials/recent-runs?project=my-api"' in response.text
-        )
+        assert 'hx-get="/partials/recent-runs?project=my-api"' in response.text
 
     def test_view_all_includes_project_filter(self) -> None:
         """View All link includes project filter when set."""
@@ -493,7 +490,10 @@ class TestProjectBreakdownPartial:
         """Project card shows the project name with font-semibold."""
         projects = [
             ProjectStatistics(
-                name="my-api", path="/p", total_runs=10, success_rate=0.8,
+                name="my-api",
+                path="/p",
+                total_runs=10,
+                success_rate=0.8,
             ),
         ]
         client = _make_client_with_mocks(
@@ -507,7 +507,10 @@ class TestProjectBreakdownPartial:
         """Project card shows run count."""
         projects = [
             ProjectStatistics(
-                name="api", path="/p", total_runs=42, success_rate=0.8,
+                name="api",
+                path="/p",
+                total_runs=42,
+                success_rate=0.8,
             ),
         ]
         client = _make_client_with_mocks(
@@ -520,7 +523,10 @@ class TestProjectBreakdownPartial:
         """Success rate >= 80% shows text-success (green)."""
         projects = [
             ProjectStatistics(
-                name="api", path="/p", total_runs=10, success_rate=0.9,
+                name="api",
+                path="/p",
+                total_runs=10,
+                success_rate=0.9,
             ),
         ]
         client = _make_client_with_mocks(
@@ -534,7 +540,10 @@ class TestProjectBreakdownPartial:
         """Success rate 50-79% shows text-warning (yellow)."""
         projects = [
             ProjectStatistics(
-                name="api", path="/p", total_runs=10, success_rate=0.6,
+                name="api",
+                path="/p",
+                total_runs=10,
+                success_rate=0.6,
             ),
         ]
         client = _make_client_with_mocks(
@@ -548,7 +557,10 @@ class TestProjectBreakdownPartial:
         """Success rate < 50% shows text-error (red)."""
         projects = [
             ProjectStatistics(
-                name="api", path="/p", total_runs=10, success_rate=0.3,
+                name="api",
+                path="/p",
+                total_runs=10,
+                success_rate=0.3,
             ),
         ]
         client = _make_client_with_mocks(
@@ -580,7 +592,10 @@ class TestProjectBreakdownPartial:
         """Project card has hx-get for project filter navigation."""
         projects = [
             ProjectStatistics(
-                name="alpha", path="/p", total_runs=10, success_rate=0.8,
+                name="alpha",
+                path="/p",
+                total_runs=10,
+                success_rate=0.8,
             ),
         ]
         client = _make_client_with_mocks(
@@ -594,10 +609,16 @@ class TestProjectBreakdownPartial:
         """Selected project card shows ring ring-primary outline."""
         projects = [
             ProjectStatistics(
-                name="alpha", path="/p", total_runs=10, success_rate=0.8,
+                name="alpha",
+                path="/p",
+                total_runs=10,
+                success_rate=0.8,
             ),
             ProjectStatistics(
-                name="beta", path="/p", total_runs=5, success_rate=0.6,
+                name="beta",
+                path="/p",
+                total_runs=5,
+                success_rate=0.6,
             ),
         ]
         client = _make_client_with_mocks(
@@ -630,13 +651,22 @@ class TestProjectBreakdownPartial:
         """All project cards remain visible even when a filter is active."""
         projects = [
             ProjectStatistics(
-                name="alpha", path="/p/a", total_runs=10, success_rate=0.8,
+                name="alpha",
+                path="/p/a",
+                total_runs=10,
+                success_rate=0.8,
             ),
             ProjectStatistics(
-                name="beta", path="/p/b", total_runs=5, success_rate=0.6,
+                name="beta",
+                path="/p/b",
+                total_runs=5,
+                success_rate=0.6,
             ),
             ProjectStatistics(
-                name="gamma", path="/p/g", total_runs=3, success_rate=0.9,
+                name="gamma",
+                path="/p/g",
+                total_runs=3,
+                success_rate=0.9,
             ),
         ]
         client = _make_client_with_mocks(

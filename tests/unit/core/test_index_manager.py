@@ -586,11 +586,17 @@ class TestGetPaginatedRuns:
         manager.register_run(ctx1, Path("/test/project"))
         manager.register_run(ctx2, Path("/test/project"))
         # Short duration for ctx1 (1 minute)
-        manager.update_run(ctx1.run_id, status="completed",
-                           completed_at=datetime(2024, 1, 1, 0, 1, 0, tzinfo=UTC))
+        manager.update_run(
+            ctx1.run_id,
+            status="completed",
+            completed_at=datetime(2024, 1, 1, 0, 1, 0, tzinfo=UTC),
+        )
         # Long duration for ctx2 (1 hour)
-        manager.update_run(ctx2.run_id, status="completed",
-                           completed_at=datetime(2024, 1, 2, 1, 0, 0, tzinfo=UTC))
+        manager.update_run(
+            ctx2.run_id,
+            status="completed",
+            completed_at=datetime(2024, 1, 2, 1, 0, 0, tzinfo=UTC),
+        )
 
         result = manager.get_paginated_runs(sort="duration_longest")
         assert result["entries"][0].run_id == "01KDSG2VDHNK0W4HSCZWJZXWS2"
@@ -610,11 +616,17 @@ class TestGetPaginatedRuns:
         manager.register_run(ctx1, Path("/test/project"))
         manager.register_run(ctx2, Path("/test/project"))
         # Short duration for ctx1 (1 minute)
-        manager.update_run(ctx1.run_id, status="completed",
-                           completed_at=datetime(2024, 1, 1, 0, 1, 0, tzinfo=UTC))
+        manager.update_run(
+            ctx1.run_id,
+            status="completed",
+            completed_at=datetime(2024, 1, 1, 0, 1, 0, tzinfo=UTC),
+        )
         # Long duration for ctx2 (1 hour)
-        manager.update_run(ctx2.run_id, status="completed",
-                           completed_at=datetime(2024, 1, 2, 1, 0, 0, tzinfo=UTC))
+        manager.update_run(
+            ctx2.run_id,
+            status="completed",
+            completed_at=datetime(2024, 1, 2, 1, 0, 0, tzinfo=UTC),
+        )
 
         result = manager.get_paginated_runs(sort="duration_shortest")
         assert result["entries"][0].run_id == "01KDSG2VDHNK0W4HSCZWJZXWS1"
@@ -718,7 +730,10 @@ class TestGetPaginatedRuns:
             manager.register_run(ctx, Path("/projects/beta"))
 
         result = manager.get_paginated_runs(
-            status="completed", project_name="alpha", page=1, page_size=10,
+            status="completed",
+            project_name="alpha",
+            page=1,
+            page_size=10,
         )
         assert result["total_count"] == 20
         assert result["total_pages"] == 2

@@ -85,9 +85,7 @@ class ValidateConfigDisplay:
         error_count = len(report.errors)
         warning_count = len(report.warnings)
 
-        if error_count == 0 and warning_count == 0:
-            status = "[green]configuration is valid[/]"
-        elif error_count == 0:
+        if error_count == 0 and warning_count == 0 or error_count == 0:
             status = "[green]configuration is valid[/]"
         else:
             status = "[red]configuration has errors[/]"
@@ -133,6 +131,4 @@ class ValidateConfigDisplay:
             field_str = f" {result.field}:" if result.field else ""
             self.console.print(f"    {icon}{field_str} {result.message}")
             if result.suggestion:
-                self.console.print(
-                    f"      [dim]Suggestion: {result.suggestion}[/]"
-                )
+                self.console.print(f"      [dim]Suggestion: {result.suggestion}[/]")

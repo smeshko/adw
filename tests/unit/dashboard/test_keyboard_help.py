@@ -193,7 +193,12 @@ class TestNavigableRowAttributes:
 
         template_path = (
             Path(__file__).resolve().parents[3]
-            / "src" / "adw" / "dashboard" / "templates" / "partials" / "runs_table.html"
+            / "src"
+            / "adw"
+            / "dashboard"
+            / "templates"
+            / "partials"
+            / "runs_table.html"
         )
         content = template_path.read_text()
         assert "data-navigable-row" in content

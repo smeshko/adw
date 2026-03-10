@@ -315,11 +315,17 @@ class PhaseRunner:
                 )
                 logger.debug(
                     "Pre-hook completed",
-                    extra={"phase": phase, "hook": str(hook_path), "stdout_len": len(result.stdout)},
+                    extra={
+                        "phase": phase,
+                        "hook": str(hook_path),
+                        "stdout_len": len(result.stdout),
+                    },
                 )
                 all_stdout.append(result.stdout)
             except HookError:
-                logger.error("Pre-hook failed", extra={"phase": phase, "hook": str(hook_path)})
+                logger.error(
+                    "Pre-hook failed", extra={"phase": phase, "hook": str(hook_path)}
+                )
                 raise
 
         return "\n".join(all_stdout)
@@ -447,15 +453,14 @@ class PhaseRunner:
 
         # Build ship_config — filter to relevant fields and render as YAML string
         if isinstance(typed_config, ShipCommandConfig):
-            ship_dict: dict = {
-                "commands": typed_config.commands.model_dump(exclude_none=True),
+            commands_dict = typed_config.commands.model_dump(exclude_none=True)
+            if self.project_config and self.project_config.build_command:
+                commands_dict["build"] = self.project_config.build_command
+            ship_dict: dict[str, object] = {
+                "commands": commands_dict,
                 "bypass_ci": typed_config.bypass_ci,
             }
-            if self.project_config and self.project_config.build_command:
-                ship_dict["commands"]["build"] = self.project_config.build_command
-            variables["ship_config"] = yaml.dump(
-                ship_dict, default_flow_style=False
-            )
+            variables["ship_config"] = yaml.dump(ship_dict, default_flow_style=False)
         else:
             variables["ship_config"] = ""
 
@@ -1118,7 +1123,11 @@ class PhaseRunner:
                 )
                 logger.debug(
                     "Post-hook completed",
-                    extra={"phase": phase, "hook": str(hook_path), "stdout_len": len(result.stdout)},
+                    extra={
+                        "phase": phase,
+                        "hook": str(hook_path),
+                        "stdout_len": len(result.stdout),
+                    },
                 )
 
         except HookError as e:

@@ -260,9 +260,7 @@ class ConfigChecker:
 
         return report
 
-    def _check_single_phase_config(
-        self, config_path: Path, phase: str
-    ) -> CheckReport:
+    def _check_single_phase_config(self, config_path: Path, phase: str) -> CheckReport:
         """Check a single phase config.yaml file.
 
         Args:
@@ -273,9 +271,11 @@ class ConfigChecker:
             CheckReport for this config file.
         """
         report = CheckReport()
-        rel_path = str(config_path.relative_to(self.project_root)) if _is_relative_to(
-            config_path, self.project_root
-        ) else str(config_path)
+        rel_path = (
+            str(config_path.relative_to(self.project_root))
+            if _is_relative_to(config_path, self.project_root)
+            else str(config_path)
+        )
 
         # Layer 2: Syntax
         try:
@@ -388,7 +388,7 @@ class ConfigChecker:
                             file_path=rel_path,
                             message=f"Input file '{file_path}' does not exist",
                             field=f"input_files.{name}",
-                            suggestion=f"Create the file or update the path",
+                            suggestion="Create the file or update the path",
                         )
                     )
 

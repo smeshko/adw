@@ -60,10 +60,12 @@ def empty_registry_client() -> Generator[TestClient]:
 def populated_registry_client() -> Generator[TestClient]:
     """Client with projects registered."""
     app = create_dashboard_app()
-    mock_reg = _make_mock_registry([
-        ("/projects/my-app", "my-app"),
-        ("/projects/other", "other"),
-    ])
+    mock_reg = _make_mock_registry(
+        [
+            ("/projects/my-app", "my-app"),
+            ("/projects/other", "other"),
+        ]
+    )
     mock_idx = _make_mock_index_manager()
     app.dependency_overrides[get_project_registry] = lambda: mock_reg
     app.dependency_overrides[get_index_manager] = lambda: mock_idx
@@ -148,9 +150,7 @@ class TestResolveConfigValue:
         assert _resolve_config_value(mock_config, "project", "name") == "my-app"
 
     def test_git_section(self, mock_config: MagicMock) -> None:
-        assert (
-            _resolve_config_value(mock_config, "git", "branch_prefix") == "feature/"
-        )
+        assert _resolve_config_value(mock_config, "git", "branch_prefix") == "feature/"
 
     def test_unknown_section(self, mock_config: MagicMock) -> None:
         assert _resolve_config_value(mock_config, "unknown", "field") is None
@@ -190,9 +190,7 @@ class TestBuildSettingsContext:
         assert "project" in result
 
         # Find the 'name' setting
-        name_setting = next(
-            (s for s in result["project"] if s["name"] == "name"), None
-        )
+        name_setting = next((s for s in result["project"] if s["name"] == "name"), None)
         assert name_setting is not None
         assert name_setting["current_value"] == "my-app"
 
@@ -285,9 +283,7 @@ class TestSettingsRoute:
         mock_loader.load.return_value = mock_cfg
         mock_loader.has_project_config = True
 
-        with patch(
-            "adw.config.loader.ConfigLoader", return_value=mock_loader
-        ):
+        with patch("adw.config.loader.ConfigLoader", return_value=mock_loader):
             response = populated_registry_client.get(
                 "/settings?project=my-app",
                 headers={"HX-Request": "true"},
@@ -329,22 +325,14 @@ class TestSettingsRoute:
 class TestSettingsContentPartial:
     """Tests for GET /partials/settings-content."""
 
-    def test_returns_content_fragment(
-        self, empty_registry_client: TestClient
-    ) -> None:
+    def test_returns_content_fragment(self, empty_registry_client: TestClient) -> None:
         """Returns HTML fragment for tab content."""
-        response = empty_registry_client.get(
-            "/partials/settings-content?tab=project"
-        )
+        response = empty_registry_client.get("/partials/settings-content?tab=project")
         assert response.status_code == 200
 
-    def test_invalid_tab_defaults(
-        self, empty_registry_client: TestClient
-    ) -> None:
+    def test_invalid_tab_defaults(self, empty_registry_client: TestClient) -> None:
         """Invalid tab defaults to project."""
-        response = empty_registry_client.get(
-            "/partials/settings-content?tab=bogus"
-        )
+        response = empty_registry_client.get("/partials/settings-content?tab=bogus")
         assert response.status_code == 200
 
 
@@ -354,9 +342,7 @@ class TestSettingsContentPartial:
 class TestSettingsNavigation:
     """Tests verifying settings navigation integration in base.html."""
 
-    def test_settings_link_in_nav(
-        self, empty_registry_client: TestClient
-    ) -> None:
+    def test_settings_link_in_nav(self, empty_registry_client: TestClient) -> None:
         """Settings link appears in the navigation header."""
         response = empty_registry_client.get("/settings")
         assert response.status_code == 200
@@ -372,9 +358,7 @@ class TestSettingsNavigation:
         assert "'s'" in response.text or '"s"' in response.text
         assert "settings" in response.text
 
-    def test_settings_in_page_map(
-        self, empty_registry_client: TestClient
-    ) -> None:
+    def test_settings_in_page_map(self, empty_registry_client: TestClient) -> None:
         """Settings is registered in the pageMap for active nav tracking."""
         response = empty_registry_client.get("/settings")
         assert response.status_code == 200
@@ -405,9 +389,7 @@ class TestSettingsTabLinks:
         mock_loader.load.return_value = mock_cfg
         mock_loader.has_project_config = True
 
-        with patch(
-            "adw.config.loader.ConfigLoader", return_value=mock_loader
-        ):
+        with patch("adw.config.loader.ConfigLoader", return_value=mock_loader):
             response = populated_registry_client.get(
                 "/settings?project=my-app",
                 headers={"HX-Request": "true"},
@@ -481,13 +463,9 @@ class TestTaskManagerFieldsPartial:
         assert 'name="state_mapping.ship"' in response.text
         assert 'name="state_mapping.failed"' in response.text
 
-    def test_default_type_is_none(
-        self, empty_registry_client: TestClient
-    ) -> None:
+    def test_default_type_is_none(self, empty_registry_client: TestClient) -> None:
         """When no type param, defaults to none (helper text)."""
-        response = empty_registry_client.get(
-            "/partials/settings-section/task-manager"
-        )
+        response = empty_registry_client.get("/partials/settings-section/task-manager")
         assert response.status_code == 200
         assert "Enable a task manager" in response.text
 
@@ -516,9 +494,7 @@ class TestTaskManagerFieldsPartial:
         mock_loader = MagicMock()
         mock_loader.load.return_value = mock_cfg
 
-        with patch(
-            "adw.config.loader.ConfigLoader", return_value=mock_loader
-        ):
+        with patch("adw.config.loader.ConfigLoader", return_value=mock_loader):
             response = populated_registry_client.get(
                 "/partials/settings-section/task-manager?type=linear&project=my-app"
             )

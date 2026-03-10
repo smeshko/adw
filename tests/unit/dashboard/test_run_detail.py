@@ -7,7 +7,6 @@ title section, phase pipeline, metadata card, action buttons, and clipboard copy
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
@@ -64,7 +63,7 @@ def _mock_project_registry(project_names: list[str] | None = None) -> MagicMock:
     """Build a mock ProjectRegistryManager with project list."""
     mock = MagicMock()
     projects = []
-    for name in (project_names or []):
+    for name in project_names or []:
         p = MagicMock()
         p.name = name
         projects.append(p)
@@ -760,7 +759,9 @@ class TestBuildDetailPhasePipeline:
         from adw.dashboard.routes import _build_detail_phase_pipeline
 
         result = _build_detail_phase_pipeline(
-            phases_completed=[], current_phase="plan", status="running",
+            phases_completed=[],
+            current_phase="plan",
+            status="running",
         )
         assert len(result) == 5
         names = [p["name"] for p in result]
@@ -1057,11 +1058,18 @@ class TestPhaseDetailRoute:
         mock_ctx.artifacts = {"plan": ["plan_output.md"]}
         mock_ctx.phase_tokens = {}
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = mock_ctx
             mock_am.return_value.list_artifacts.return_value = [
-                {"phase": "plan", "name": "plan_output.md", "size": 1234, "path": "/tmp/a"},
+                {
+                    "phase": "plan",
+                    "name": "plan_output.md",
+                    "size": 1234,
+                    "path": "/tmp/a",
+                },
             ]
             response = client.get(
                 f"/runs/{entry.run_id}/phases/plan",
@@ -1102,8 +1110,10 @@ class TestPhaseDetailRoute:
         mock_ctx.artifacts = {}
         mock_ctx.phase_tokens = {}
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = mock_ctx
             mock_am.return_value.list_artifacts.return_value = []
             response = client.get(
@@ -1124,8 +1134,10 @@ class TestPhaseDetailRoute:
         mock_ctx.artifacts = {"plan": ["output.md"]}
         mock_ctx.phase_tokens = {}
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = mock_ctx
             mock_am.return_value.list_artifacts.return_value = [
                 {"phase": "plan", "name": "output.md", "size": 500, "path": "/tmp/a"},
@@ -1136,7 +1148,9 @@ class TestPhaseDetailRoute:
             )
 
         assert "View" in response.text
-        assert f'hx-get="/runs/{entry.run_id}/artifacts/plan/output.md"' in response.text
+        assert (
+            f'hx-get="/runs/{entry.run_id}/artifacts/plan/output.md"' in response.text
+        )
         assert 'hx-target="#artifact-viewer"' in response.text
 
     def test_phase_detail_uses_card_classes(self) -> None:
@@ -1195,8 +1209,10 @@ class TestArtifactViewerRoute:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = MagicMock()
             mock_am.return_value.get.return_value = "# Plan Output\nSome content here"
             response = client.get(
@@ -1211,8 +1227,10 @@ class TestArtifactViewerRoute:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = MagicMock()
             mock_am.return_value.get.return_value = "content"
             response = client.get(
@@ -1227,8 +1245,10 @@ class TestArtifactViewerRoute:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = MagicMock()
             mock_am.return_value.get.return_value = "Hello World Content"
             response = client.get(
@@ -1243,8 +1263,10 @@ class TestArtifactViewerRoute:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = MagicMock()
             mock_am.return_value.get.return_value = "content"
             response = client.get(
@@ -1259,8 +1281,10 @@ class TestArtifactViewerRoute:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = MagicMock()
             mock_am.return_value.get.return_value = "content"
             response = client.get(
@@ -1275,8 +1299,10 @@ class TestArtifactViewerRoute:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = MagicMock()
             mock_am.return_value.get.return_value = "plain text content"
             response = client.get(
@@ -1291,8 +1317,10 @@ class TestArtifactViewerRoute:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = MagicMock()
             mock_am.return_value.get.return_value = None
             response = client.get(
@@ -1316,8 +1344,10 @@ class TestArtifactViewerRoute:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = MagicMock()
             mock_am.return_value.get.return_value = "# Heading\n\nParagraph text"
             response = client.get(
@@ -1392,10 +1422,14 @@ class TestPathTraversalProtection:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = MagicMock()
-            mock_am.return_value.get.return_value = '<script>alert("xss")</script>\n# Hello'
+            mock_am.return_value.get.return_value = (
+                '<script>alert("xss")</script>\n# Hello'
+            )
             response = client.get(
                 f"/runs/{entry.run_id}/artifacts/plan/evil.md",
                 headers={"HX-Request": "true"},
@@ -1414,11 +1448,17 @@ class TestBinaryArtifactHandling:
         entry = _make_index_entry()
         client = _make_client_with_mocks(entries=[entry])
 
-        with patch("adw.dashboard.routes.ContextManager") as mock_cm, \
-             patch("adw.dashboard.routes.ArtifactManager") as mock_am:
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.ArtifactManager") as mock_am,
+        ):
             mock_cm.return_value.load.return_value = MagicMock()
             mock_am.return_value.get.side_effect = UnicodeDecodeError(
-                "utf-8", b"\xff\xfe", 0, 1, "invalid start byte",
+                "utf-8",
+                b"\xff\xfe",
+                0,
+                1,
+                "invalid start byte",
             )
             response = client.get(
                 f"/runs/{entry.run_id}/artifacts/plan/binary.bin",

@@ -62,7 +62,7 @@ def _mock_project_registry(project_names: list[str] | None = None) -> MagicMock:
     """Build a mock ProjectRegistryManager with project list."""
     mock = MagicMock()
     projects = []
-    for name in (project_names or []):
+    for name in project_names or []:
         p = MagicMock()
         p.name = name
         projects.append(p)
@@ -85,16 +85,17 @@ def _mock_stats_aggregator(
         failed_runs=2,
         success_rate=0.8,
         average_duration_ms=120000,
-        tokens=tokens_this_week or TokenUsage(input_tokens=900_000, output_tokens=300_000),
+        tokens=tokens_this_week
+        or TokenUsage(input_tokens=900_000, output_tokens=300_000),
         estimated_cost=12.0,
-        tokens_this_week=tokens_this_week or TokenUsage(input_tokens=900_000, output_tokens=300_000),
+        tokens_this_week=tokens_this_week
+        or TokenUsage(input_tokens=900_000, output_tokens=300_000),
         cost_this_week=cost_this_week,
     )
     mock.get_global_stats.return_value = stats
     today = datetime.now(UTC).date()
     mock.get_daily_token_counts.return_value = [
-        {"date": today - timedelta(days=i), "tokens": 0}
-        for i in range(6, -1, -1)
+        {"date": today - timedelta(days=i), "tokens": 0} for i in range(6, -1, -1)
     ]
     return mock
 
@@ -120,6 +121,7 @@ def _make_client_with_mocks(
 
 
 # ── Overview Route ──────────────────────────────────────────────────
+
 
 class TestOverviewRoute:
     """Tests for the overview (/) route."""
@@ -174,7 +176,7 @@ class TestOverviewRoute:
         assert "<!DOCTYPE" not in response.text
         assert '<div id="overview"' in response.text
 
-    def test_full_page_has_localStorage_theme_script(self) -> None:
+    def test_full_page_has_local_storage_theme_script(self) -> None:
         """Full page has inline script to restore theme from localStorage."""
         client = _make_client()
         response = client.get("/")
@@ -201,6 +203,7 @@ class TestOverviewRoute:
 
 
 # ── Runs Route ──────────────────────────────────────────────────────
+
 
 class TestRunsRoute:
     """Tests for the /runs route."""
@@ -240,6 +243,7 @@ class TestRunsRoute:
 
 # ── Analytics Route ─────────────────────────────────────────────────
 
+
 class TestAnalyticsRoute:
     """Tests for the /analytics route."""
 
@@ -274,6 +278,7 @@ class TestAnalyticsRoute:
 
 
 # ── Status Bar Partial ──────────────────────────────────────────────
+
 
 class TestStatusBarPartial:
     """Tests for the /partials/status-bar route."""
@@ -315,6 +320,7 @@ class TestStatusBarPartial:
 
 # ── Project Filter ──────────────────────────────────────────────────
 
+
 class TestProjectFilter:
     """Tests for project filter query parameter handling."""
 
@@ -351,10 +357,14 @@ class TestProjectFilter:
 
         app = create_dashboard_app()
         app.dependency_overrides[
-            __import__("adw.dashboard.dependencies", fromlist=["get_index_manager"]).get_index_manager
+            __import__(
+                "adw.dashboard.dependencies", fromlist=["get_index_manager"]
+            ).get_index_manager
         ] = lambda: mock_im
         app.dependency_overrides[
-            __import__("adw.dashboard.dependencies", fromlist=["get_project_registry"]).get_project_registry
+            __import__(
+                "adw.dashboard.dependencies", fromlist=["get_project_registry"]
+            ).get_project_registry
         ] = lambda: mock_pr
 
         client = TestClient(app)
@@ -377,10 +387,14 @@ class TestProjectFilter:
 
         app = create_dashboard_app()
         app.dependency_overrides[
-            __import__("adw.dashboard.dependencies", fromlist=["get_index_manager"]).get_index_manager
+            __import__(
+                "adw.dashboard.dependencies", fromlist=["get_index_manager"]
+            ).get_index_manager
         ] = lambda: mock_im
         app.dependency_overrides[
-            __import__("adw.dashboard.dependencies", fromlist=["get_project_registry"]).get_project_registry
+            __import__(
+                "adw.dashboard.dependencies", fromlist=["get_project_registry"]
+            ).get_project_registry
         ] = lambda: mock_pr
 
         client = TestClient(app)
@@ -390,6 +404,7 @@ class TestProjectFilter:
 
 
 # ── Theme Toggle ────────────────────────────────────────────────────
+
 
 class TestThemeToggle:
     """Tests for theme toggle functionality."""
@@ -426,6 +441,7 @@ class TestThemeToggle:
 
 
 # ── Error Handler ───────────────────────────────────────────────────
+
 
 class TestErrorHandler:
     """Tests for HTML error handler."""
@@ -523,6 +539,7 @@ class TestErrorHandler:
 
 # ── CSRF Token in Template Context ──────────────────────────────────
 
+
 class TestCSRFInTemplateContext:
     """Tests for CSRF token availability in template context."""
 
@@ -536,6 +553,7 @@ class TestCSRFInTemplateContext:
 
 
 # ── Relative Time Helper ────────────────────────────────────────────
+
 
 class TestRelativeTime:
     """Tests for the _relative_time helper function."""
@@ -587,6 +605,7 @@ class TestRelativeTime:
 
 
 # ── Navigation HTMX Attributes ─────────────────────────────────────
+
 
 class TestNavigationHTMXAttributes:
     """Tests for HTMX navigation attributes in the header."""
@@ -648,6 +667,7 @@ class TestNavigationHTMXAttributes:
 
 # ── Status Bar Project Filter Persistence ──────────────────────────
 
+
 class TestStatusBarProjectPersistence:
     """Tests for status bar preserving project filter during polling."""
 
@@ -682,6 +702,7 @@ class TestStatusBarProjectPersistence:
 
 # ── HTMX Attribute Order ───────────────────────────────────────────
 
+
 class TestHTMXAttributeOrder:
     """Tests for correct HTMX attribute ordering per project convention."""
 
@@ -707,6 +728,7 @@ class TestHTMXAttributeOrder:
 
 
 # ── Client-side Nav Indicator Update ────────────────────────────────
+
 
 class TestClientSideNavUpdate:
     """Tests for client-side active nav indicator update after HTMX swap."""
