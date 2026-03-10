@@ -2023,3 +2023,83 @@ class TestGitSkipHooksWiring:
 
             mock_commit.assert_called_once()
             assert mock_commit.call_args.kwargs["skip_hooks"] is False
+
+
+class TestPhaseRunnerEmptyResult:
+    """Tests for empty_result detection on build phase."""
+
+    def test_build_zero_tool_calls_sets_empty_result(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Build phase with zero tool calls sets empty_result=True."""
+        mock_executor.execute.return_value = LLMResult(
+            success=True,
+            content="I'll begin implementing...",
+            tokens_used=100,
+            duration_ms=1000,
+            tool_calls=[],
+        )
+        result = phase_runner.run("build", sample_context)
+        assert result.empty_result is True
+
+    def test_build_with_tool_calls_not_empty(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Build phase with tool calls sets empty_result=False."""
+        mock_executor.execute.return_value = LLMResult(
+            success=True,
+            content="Done",
+            tokens_used=100,
+            duration_ms=1000,
+            tool_calls=[
+                ToolCall(tool_name="write_file", arguments={"path": "/a.py"}),
+            ],
+        )
+        result = phase_runner.run("build", sample_context)
+        assert result.empty_result is False
+
+    def test_non_build_phase_not_empty(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Non-build phase with zero tool calls does NOT set empty_result."""
+        mock_executor.execute.return_value = LLMResult(
+            success=True,
+            content="Plan output",
+            tokens_used=100,
+            duration_ms=1000,
+            tool_calls=[],
+        )
+        result = phase_runner.run("plan", sample_context)
+        assert result.empty_result is False
+
+    def test_prompt_prefix_prepended(
+        self,
+        phase_runner: PhaseRunner,
+        sample_context: RunContext,
+        mock_executor: MagicMock,
+        mock_template_engine: MagicMock,
+    ) -> None:
+        """prompt_prefix is prepended to the rendered prompt."""
+        mock_executor.execute.return_value = LLMResult(
+            success=True,
+            content="Output",
+            tokens_used=100,
+            duration_ms=1000,
+            tool_calls=[ToolCall(tool_name="write_file", arguments={"path": "/a.py"})],
+        )
+        prefix = "CRITICAL: You must use tools."
+        phase_runner.run("build", sample_context, prompt_prefix=prefix)
+
+        # The executor receives the prompt — check it starts with the prefix
+        call_args = mock_executor.execute.call_args
+        prompt_arg = call_args[0][0] if call_args[0] else call_args[1].get("prompt", "")
+        assert prompt_arg.startswith(prefix)

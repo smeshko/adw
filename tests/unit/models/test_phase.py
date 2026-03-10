@@ -78,3 +78,26 @@ class TestPhaseResultCalculatedProperties:
         )
         assert result.error == "Test suite failed: 3 tests failed"
         assert result.status == PhaseStatus.FAILED
+
+
+class TestPhaseResultEmptyResult:
+    """Tests for PhaseResult.empty_result field."""
+
+    def test_empty_result_defaults_false(self) -> None:
+        """empty_result defaults to False for backward compatibility."""
+        result = PhaseResult(
+            phase="build",
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(),
+        )
+        assert result.empty_result is False
+
+    def test_empty_result_set_true(self) -> None:
+        """empty_result can be explicitly set to True."""
+        result = PhaseResult(
+            phase="build",
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(),
+            empty_result=True,
+        )
+        assert result.empty_result is True

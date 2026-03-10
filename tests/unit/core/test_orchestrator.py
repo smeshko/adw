@@ -66,6 +66,7 @@ def mock_phase_runner() -> MagicMock:
         context: RunContext,
         *,
         artifacts_override: dict[str, dict[str, str]] | None = None,
+        prompt_prefix: str | None = None,
     ) -> PhaseResult:
         return PhaseResult(
             phase=phase,
@@ -637,6 +638,7 @@ class TestErrorHandling:
             context: RunContext,
             *,
             artifacts_override: dict[str, dict[str, str]] | None = None,
+            prompt_prefix: str | None = None,
         ) -> PhaseResult:
             nonlocal call_count
             call_count += 1
@@ -681,6 +683,7 @@ class TestRetryLogic:
             context: RunContext,
             *,
             artifacts_override: dict[str, dict[str, str]] | None = None,
+            prompt_prefix: str | None = None,
         ) -> PhaseResult:
             nonlocal call_count
             call_count += 1
@@ -809,6 +812,7 @@ class TestRetryLogic:
             context: RunContext,
             *,
             artifacts_override: dict[str, dict[str, str]] | None = None,
+            prompt_prefix: str | None = None,
         ) -> PhaseResult:
             nonlocal call_count
             call_count += 1
@@ -961,6 +965,7 @@ class TestTransitionPerformance:
             context: RunContext,
             *,
             artifacts_override: dict[str, dict[str, str]] | None = None,
+            prompt_prefix: str | None = None,
         ) -> PhaseResult:
             time.sleep(1.1)  # Exceed 1 second threshold
             return PhaseResult(
@@ -2259,6 +2264,7 @@ class TestPRCreationAfterDocumentPhase:
             context: RunContext,
             *,
             artifacts_override: dict[str, dict[str, str]] | None = None,
+            prompt_prefix: str | None = None,
         ) -> PhaseResult:
             phase_order.append(phase)
             return PhaseResult(
@@ -2367,6 +2373,7 @@ class TestPRCreationAfterDocumentPhase:
             context: RunContext,
             *,
             artifacts_override: dict[str, dict[str, str]] | None = None,
+            prompt_prefix: str | None = None,
         ) -> PhaseResult:
             executed_phases.append(phase)
             return PhaseResult(
@@ -2544,6 +2551,7 @@ class TestPRCreationAfterDocumentPhase:
             context: RunContext,
             *,
             artifacts_override: dict[str, dict[str, str]] | None = None,
+            prompt_prefix: str | None = None,
         ) -> PhaseResult:
             executed_phases.append(phase)
             return PhaseResult(
@@ -2608,6 +2616,7 @@ class TestPRCreationAfterDocumentPhase:
             context: RunContext,
             *,
             artifacts_override: dict[str, dict[str, str]] | None = None,
+            prompt_prefix: str | None = None,
         ) -> PhaseResult:
             executed_phases.append(phase)
             return PhaseResult(
@@ -2854,3 +2863,108 @@ class TestContinueFromRun:
 
         assert context.status == "completed"
         assert context.completed_at is not None
+
+
+class TestEmptyBuildRetry:
+    """Tests for empty build detection and retry logic."""
+
+    @staticmethod
+    def _make_phase_result(
+        phase: str = "build",
+        empty: bool = False,
+    ) -> PhaseResult:
+        return PhaseResult(
+            phase=phase,
+            status=PhaseStatus.COMPLETED,
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
+            tokens_used=100,
+            empty_result=empty,
+        )
+
+    def test_empty_build_triggers_retry(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Build with empty_result=True triggers a retry with nudge."""
+        success = self._make_phase_result(empty=False)
+        mock_phase_runner.run.side_effect = None
+        mock_phase_runner.run.return_value = success
+
+        context = RunContext(
+            run_id="01HQXH9Z8G2K4M5N6P7R0EB1AA",
+            feature_description="test",
+            current_phase="build",
+            started_at=datetime.now(UTC),
+        )
+
+        result = orchestrator._retry_empty_build(context)
+        assert result.empty_result is False
+        # Verify prompt_prefix was passed in the retry call
+        call_kwargs = mock_phase_runner.run.call_args[1]
+        assert "CRITICAL" in call_kwargs.get("prompt_prefix", "")
+
+    def test_empty_build_retry_succeeds(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Retry with nudge returns non-empty result."""
+        success = self._make_phase_result(empty=False)
+        mock_phase_runner.run.side_effect = None
+        mock_phase_runner.run.return_value = success
+
+        context = RunContext(
+            run_id="01HQXH9Z8G2K4M5N6P7R0EB2AA",
+            feature_description="test",
+            current_phase="build",
+            started_at=datetime.now(UTC),
+        )
+
+        result = orchestrator._retry_empty_build(context)
+        assert result.empty_result is False
+        call_kwargs = mock_phase_runner.run.call_args[1]
+        assert call_kwargs.get("prompt_prefix") is not None
+
+    def test_empty_build_retry_still_empty(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Both attempts empty — no exception, returns last result."""
+        still_empty = self._make_phase_result(empty=True)
+        mock_phase_runner.run.side_effect = None
+        mock_phase_runner.run.return_value = still_empty
+
+        context = RunContext(
+            run_id="01HQXH9Z8G2K4M5N6P7R0EB3AA",
+            feature_description="test",
+            current_phase="build",
+            started_at=datetime.now(UTC),
+        )
+
+        result = orchestrator._retry_empty_build(context)
+        assert result.empty_result is True  # still empty, no exception
+
+    def test_non_build_phase_no_retry(
+        self,
+        orchestrator: "Orchestrator",
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Plan phase with empty_result does NOT trigger retry."""
+        plan_result = self._make_phase_result(phase="plan", empty=True)
+        mock_phase_runner.run.side_effect = None
+        mock_phase_runner.run.return_value = plan_result
+
+        context = RunContext(
+            run_id="01HQXH9Z8G2K4M5N6P7R0EB4AA",
+            feature_description="test",
+            current_phase="plan",
+            started_at=datetime.now(UTC),
+        )
+
+        result = orchestrator._execute_phase_with_retry(context, "plan")
+        assert result.empty_result is True
+        # Only one call — no retry triggered
+        assert mock_phase_runner.run.call_count == 1
