@@ -132,6 +132,7 @@ class PhaseRunner:
         context: RunContext,
         *,
         artifacts_override: dict[str, dict[str, str]] | None = None,
+        prompt_prefix: str | None = None,
     ) -> PhaseResult:
         """Execute a single phase.
 
@@ -182,6 +183,10 @@ class PhaseRunner:
                 artifacts_dir=artifacts_dir,
             )
 
+            # Prepend prompt prefix if provided (e.g., empty build retry nudge)
+            if prompt_prefix:
+                rendered_prompt = prompt_prefix + "\n\n" + rendered_prompt
+
             # Step 3: Execute LLM
             llm_result = self._execute_llm(
                 phase,
@@ -207,6 +212,7 @@ class PhaseRunner:
 
             # Build successful result
             completed_at = datetime.now(UTC)
+            is_empty = phase == "build" and len(llm_result.tool_calls) == 0
             result = PhaseResult(
                 phase=phase,
                 status=PhaseStatus.COMPLETED,
@@ -220,7 +226,14 @@ class PhaseRunner:
                 cache_read_input_tokens=llm_result.cache_read_input_tokens,
                 total_cost_usd=llm_result.total_cost_usd,
                 tool_calls=llm_result.tool_calls,
+                empty_result=is_empty,
             )
+
+            if is_empty:
+                logger.warning(
+                    "Build phase completed with zero tool calls",
+                    extra={"run_id": context.run_id},
+                )
 
             logger.info(
                 "Phase completed",

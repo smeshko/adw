@@ -55,6 +55,7 @@ class PhaseRunnerProtocol(Protocol):
         context: RunContext,
         *,
         artifacts_override: dict[str, dict[str, str]] | None = None,
+        prompt_prefix: str | None = None,
     ) -> PhaseResult:
         """Execute a single phase.
 
@@ -63,6 +64,7 @@ class PhaseRunnerProtocol(Protocol):
             context: Current run context.
             artifacts_override: Pre-loaded artifacts to use instead of loading
                 from the current run.
+            prompt_prefix: Optional text to prepend to the rendered prompt.
 
         Returns:
             PhaseResult from the execution.
@@ -974,6 +976,10 @@ class Orchestrator:
                 context, phase, artifacts_override=artifacts_override
             )
 
+            # Retry empty build (zero tool calls, no code changes)
+            if phase == "build" and result.empty_result:
+                result = self._retry_empty_build(context, artifacts_override)
+
             # Post-phase snapshot
             self.snapshot_manager.create_post_phase_snapshot(context, phase, result)
 
@@ -1041,6 +1047,7 @@ class Orchestrator:
         phase: str,
         *,
         artifacts_override: dict[str, dict[str, str]] | None = None,
+        prompt_prefix: str | None = None,
     ) -> PhaseResult:
         """Execute a phase with retry logic for recoverable errors.
 
@@ -1051,6 +1058,7 @@ class Orchestrator:
             phase: Phase to execute.
             artifacts_override: Pre-loaded artifacts to use instead of loading
                 from the current run. Used for single-phase execution.
+            prompt_prefix: Optional text to prepend to the rendered prompt.
 
         Returns:
             PhaseResult from successful execution.
@@ -1065,7 +1073,8 @@ class Orchestrator:
         for attempt in range(self.max_retries):
             try:
                 return self._phase_runner.run(
-                    phase, context, artifacts_override=artifacts_override
+                    phase, context, artifacts_override=artifacts_override,
+                    prompt_prefix=prompt_prefix,
                 )
 
             except ADWError as e:
@@ -1101,6 +1110,54 @@ class Orchestrator:
         if last_error is not None:
             raise last_error
         raise RuntimeError("Unexpected state: no error captured but retries exhausted")
+
+    _BUILD_RETRY_NUDGE = (
+        "CRITICAL: Your previous attempt completed without making any code changes. "
+        "You MUST use tools to create or modify files. Do not just describe what "
+        "needs to be done - actually implement the changes using the available tools."
+    )
+
+    def _retry_empty_build(
+        self,
+        context: RunContext,
+        artifacts_override: dict[str, dict[str, str]] | None = None,
+        max_retries: int = 1,
+    ) -> PhaseResult:
+        """Retry build phase when it produces zero tool calls.
+
+        Args:
+            context: Current run context.
+            artifacts_override: Pre-loaded artifacts for single-phase execution.
+            max_retries: Maximum number of retry attempts.
+
+        Returns:
+            PhaseResult from the retry (may still be empty).
+        """
+        result: PhaseResult | None = None
+        for attempt in range(max_retries):
+            logger.warning(
+                "Build produced no code changes, retrying with nudge",
+                extra={"run_id": context.run_id, "attempt": attempt + 1},
+            )
+            if self.progress_display:
+                self.progress_display.console.print(
+                    f"[yellow]\u26a0[/yellow] Build produced no changes, "
+                    f"retrying ({attempt + 1}/{max_retries})..."
+                )
+            result = self._execute_phase_with_retry(
+                context,
+                "build",
+                artifacts_override=artifacts_override,
+                prompt_prefix=self._BUILD_RETRY_NUDGE,
+            )
+            if not result.empty_result:
+                return result
+        logger.warning(
+            "Build still empty after retries",
+            extra={"run_id": context.run_id},
+        )
+        assert result is not None
+        return result
 
     def abort(self, run_id: str, reason: str = "remote_abort") -> RunContext:
         """Abort a running execution.

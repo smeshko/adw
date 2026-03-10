@@ -139,6 +139,10 @@ class PhaseResult(BaseModel):
     tool_calls: list[ToolCall] = Field(
         default_factory=list, description="Tool calls made during this phase"
     )
+    empty_result: bool = Field(
+        default=False,
+        description="True if build phase completed with zero tool calls (no code changes)",
+    )
 
     @computed_field  # type: ignore[prop-decorator]
     @property
