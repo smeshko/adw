@@ -1,7 +1,7 @@
 """Phase customization step for the wizard.
 
 This module handles the phases configuration step where users can customize
-individual phase settings including timeouts, hooks, and inputs.
+individual phase settings including hooks and inputs.
 """
 
 from __future__ import annotations
@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 # Available phases for customization
 AVAILABLE_PHASES: list[str] = ["plan", "build", "validate", "document", "ship"]
 
-# Default timeouts by phase (in seconds)
 
 class PhasesStepHandler:
     """Handler for the phases configuration wizard step.
@@ -31,10 +30,9 @@ class PhasesStepHandler:
     - If yes, allows multi-select of phases to customize
     - For each selected phase, prompts for:
       - Enabled/disabled
-      - Timeout override
-      - Pre-hook script path
-      - Post-hook script path
       - Input files (key=path pairs)
+      - LLM model selection
+      - Phase-specific options (validate, document, ship)
     """
 
     def execute(self, state: WizardState, console: Console) -> dict[str, Any]:

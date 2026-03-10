@@ -22,6 +22,7 @@ from adw.cli.resume import resume as resume_command
 from adw.cli.run_display import RunDisplay
 from adw.cli.status import status as status_command
 from adw.cli.unregister import unregister as unregister_command
+from adw.cli.validate_config import validate_config_command
 from adw.cli.validators import validate_phase
 from adw.cli.webhook import webhook_app
 from adw.commands.template import escape_feature_description
@@ -523,6 +524,9 @@ app.add_typer(webhook_app, name="webhook")
 
 # Register the global subapp (Story 16.2)
 app.add_typer(global_app, name="global")
+
+# Register the validate command (config validation)
+app.command(name="validate")(validate_config_command)
 
 
 @app.command()
