@@ -154,18 +154,14 @@ class TestLLMProgress:
         # Cleanup
         progress.on_llm_complete()
 
-    def test_on_llm_progress_updates_token_count(self) -> None:
-        """Test that on_llm_progress updates the token display."""
+    def test_on_llm_progress_is_noop(self) -> None:
+        """Test that on_llm_progress is a no-op (token count removed from UI)."""
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=80)
         progress = ProgressDisplay(console)
 
         progress.on_llm_start()
-        progress.on_llm_progress(100)
-
-        # Should not raise - just verify it completes
-        assert progress._progress is not None
-        assert progress._task_id is not None
+        progress.on_llm_progress(100)  # Should not raise
 
         # Cleanup
         progress.on_llm_complete()

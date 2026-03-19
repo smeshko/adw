@@ -8,7 +8,9 @@ streaming output.
 import asyncio
 import json
 import logging
+import os
 import shutil
+import signal
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -173,12 +175,16 @@ class ClaudeCodeExecutor:
         # Create subprocess with increased buffer limit for large JSON outputs.
         # Claude Code outputs JSON lines that can be very large when tool results
         # contain file contents (e.g., reading large files). 10MB handles most cases.
+        # start_new_session=True puts the process in its own process group so we
+        # can kill orphaned children (e.g., background codex exec) if the main
+        # process exits but grandchildren hold the pipe FDs open.
         process = await asyncio.create_subprocess_exec(
             *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             limit=10 * 1024 * 1024,  # 10MB buffer limit for large tool results
             cwd=cwd,  # Set working directory for worktree support (Story 10.5)
+            start_new_session=True,  # Own process group for clean kill
         )
 
         try:
@@ -263,11 +269,34 @@ class ClaudeCodeExecutor:
         stdout_task = asyncio.create_task(read_stdout())
         stderr_task = asyncio.create_task(read_stderr())
 
-        # Wait for both to complete
-        await asyncio.gather(stdout_task, stderr_task)
-
-        # Wait for process to complete
+        # Wait for the main process to exit first. Once it exits, the readers
+        # should get EOF shortly — unless an orphaned child process (e.g., a
+        # background `codex exec`) inherited the pipe FDs and keeps them open.
         await process.wait()
+
+        # Give readers a short grace period to drain remaining output after
+        # the process exits. If they're still blocked, an orphaned child is
+        # holding the pipe open — kill the entire process group and cancel.
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(stdout_task, stderr_task),
+                timeout=5.0,
+            )
+        except TimeoutError:
+            logger.warning(
+                "Pipe readers still blocked after process exit — "
+                "killing orphaned child processes",
+                extra={"pid": process.pid},
+            )
+            self._kill_process_group(process.pid)
+            stdout_task.cancel()
+            stderr_task.cancel()
+            # Suppress CancelledError from the cancelled tasks
+            import contextlib
+
+            for task in (stdout_task, stderr_task):
+                with contextlib.suppress(Exception):
+                    await task
 
         logger.debug(
             "Claude Code process completed",
@@ -582,6 +611,28 @@ class ClaudeCodeExecutor:
             ),
             recoverable=False,
         )
+
+    @staticmethod
+    def _kill_process_group(pid: int) -> None:
+        """Kill an entire process group to clean up orphaned children.
+
+        Used when the main Claude Code process has exited but child processes
+        (e.g., a background `codex exec`) still hold the stdout/stderr pipe
+        FDs open, preventing the readers from getting EOF.
+
+        Args:
+            pid: PID of the process whose group should be killed.
+        """
+        try:
+            os.killpg(pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            # Process group already gone or not owned by us
+            pass
+        except OSError as e:
+            logger.debug(
+                "Failed to kill process group",
+                extra={"pid": pid, "error": str(e)},
+            )
 
     def _extract_display_text(self, line: str) -> str | None:
         """Extract displayable text from a stream-json line.

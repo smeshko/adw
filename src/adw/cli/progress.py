@@ -160,8 +160,6 @@ class ProgressDisplay:
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             TextColumn("·"),
-            TextColumn("[cyan]Tokens: {task.fields[tokens]}"),
-            TextColumn("·"),
             TimeElapsedColumn(),
             console=self.console,
             transient=True,
@@ -173,17 +171,10 @@ class ProgressDisplay:
         self._task_id = self._progress.add_task(
             "LLM executing...",
             total=None,
-            tokens=0,
         )
 
-    def on_llm_progress(self, tokens: int) -> None:
-        """Update LLM progress display.
-
-        Args:
-            tokens: Current token count.
-        """
-        if self._progress is not None and self._task_id is not None:
-            self._progress.update(self._task_id, tokens=tokens)
+    def on_llm_progress(self, _tokens: int) -> None:
+        """Update LLM progress display (no-op, token count removed from UI)."""
 
     def on_llm_complete(self) -> None:
         """Complete LLM progress display."""
