@@ -66,6 +66,7 @@ fi
 # Try to invoke Python helper to check config and create commit
 # If Python is not available or module not found, skip gracefully
 python3 -c "
+from __future__ import annotations
 import sys
 import os
 import traceback
