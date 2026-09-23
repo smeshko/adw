@@ -29,11 +29,12 @@ class ShipExtension:
 
     This extension:
     - Controls skip logic based on PR state
-    - Provides hook environment variables from ship config
+    - Provides hook environment variables from ship config and build_command
     - Uses context.pr_creation_attempted and pr_creation_failed
 
     Dependencies:
     - project_root: For loading ship config from .adw/commands/ship/config.yaml
+    - build_command: The project's build_command, from the loaded ProjectConfig
 
     Example:
         >>> from adw.core.extensions import ExtensionRegistry
@@ -43,14 +44,19 @@ class ShipExtension:
 
     phase: ClassVar[str] = "ship"
 
-    def __init__(self, project_root: Path | None = None) -> None:
+    def __init__(
+        self, project_root: Path | None = None, build_command: str | None = None
+    ) -> None:
         """Initialize ShipExtension.
 
         Args:
             project_root: Path to project root for loading ship config.
                 If None, hook environment variables won't be set from config.
+            build_command: The project's build command, exported to the
+                post-hook as ADW_SHIP_BUILD_CMD. If None, it is not exported.
         """
         self._project_root = project_root
+        self._build_command = build_command
 
     def _load_ship_config(self) -> ShipCommandConfig | None:
         """Load ship config from project's .adw/commands/ship/config.yaml.
@@ -218,12 +224,15 @@ class ShipExtension:
     def get_hook_env(self, context: "RunContext") -> dict[str, str]:
         """Get ship config values as environment variables for hooks.
 
-        Loads the ship config and returns environment variables that
-        the ship phase post-hook expects:
+        Returns the environment variables that the ship phase post-hook
+        expects. These come from the ship config, when the project has one:
         - ADW_SHIP_BYPASS_CI: Whether to bypass CI checks
+        - ADW_SHIP_WAIT_FOR_MERGE: Whether to wait for the PR to merge
         - ADW_SHIP_VERSION_BUMP_CMD: Version bump command (if configured)
-        - ADW_SHIP_BUILD_CMD: Build command (if configured)
         - ADW_SHIP_PUBLISH_CMD: Publish command (if configured)
+
+        ADW_SHIP_BUILD_CMD comes from the project's build_command, and is set
+        whether or not the ship config exists.
 
         Args:
             context: Current run context (unused).
@@ -232,45 +241,21 @@ class ShipExtension:
             Dictionary of environment variable names to values.
         """
         del context  # Unused
+        env: dict[str, str] = {}
+
         config = self._load_ship_config()
-        if config is None:
-            return {}
+        if config is not None:
+            env["ADW_SHIP_BYPASS_CI"] = str(config.bypass_ci).lower()
+            env["ADW_SHIP_WAIT_FOR_MERGE"] = str(config.wait_for_merge).lower()
 
-        env: dict[str, str] = {
-            "ADW_SHIP_BYPASS_CI": str(config.bypass_ci).lower(),
-            "ADW_SHIP_WAIT_FOR_MERGE": str(config.wait_for_merge).lower(),
-        }
-
-        # Expose deploy commands so post-hook can execute them deterministically
-        if config.commands.version_bump:
-            env["ADW_SHIP_VERSION_BUMP_CMD"] = config.commands.version_bump
-        if config.commands.publish:
-            env["ADW_SHIP_PUBLISH_CMD"] = config.commands.publish
+            # Expose deploy commands so post-hook can execute them deterministically
+            if config.commands.version_bump:
+                env["ADW_SHIP_VERSION_BUMP_CMD"] = config.commands.version_bump
+            if config.commands.publish:
+                env["ADW_SHIP_PUBLISH_CMD"] = config.commands.publish
 
         # build_command lives at project level (project.yaml), not ship config
-        build_cmd = self._load_project_build_command()
-        if build_cmd:
-            env["ADW_SHIP_BUILD_CMD"] = build_cmd
+        if self._build_command:
+            env["ADW_SHIP_BUILD_CMD"] = self._build_command
 
         return env
-
-    def _load_project_build_command(self) -> str | None:
-        """Load build_command from project.yaml.
-
-        Returns:
-            The build_command string if configured, None otherwise.
-        """
-        if self._project_root is None:
-            return None
-
-        project_yaml = self._project_root / "project.yaml"
-        if not project_yaml.exists():
-            return None
-
-        try:
-            data = yaml.safe_load(project_yaml.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                return data.get("build_command")
-        except Exception:
-            pass
-        return None

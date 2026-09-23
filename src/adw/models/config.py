@@ -349,6 +349,17 @@ class TaskManagerLabelsConfig(BaseModel):
     )
 
 
+# Default phase-to-status mapping for task managers
+DEFAULT_STATE_MAPPING: dict[str, str] = {
+    "plan": "In Progress",
+    "build": "In Progress",
+    "validate": "In Review",
+    "document": "In Review",
+    "ship": "Done",
+    "failed": "In Progress",
+}
+
+
 class TaskManagerConfig(BaseModel):
     """Configuration for external task management integration.
 
@@ -400,14 +411,7 @@ class TaskManagerConfig(BaseModel):
         description="Team prefix for ID detection (e.g., 'RULE' for RULE-123)",
     )
     state_mapping: dict[str, str] = Field(
-        default_factory=lambda: {
-            "plan": "In Progress",
-            "build": "In Progress",
-            "validate": "In Review",
-            "document": "In Review",
-            "ship": "Done",
-            "failed": "In Progress",
-        },
+        default_factory=lambda: dict(DEFAULT_STATE_MAPPING),
         description="Phase-based mapping from ADW phases to external system states",
     )
     sync_comments: bool = Field(

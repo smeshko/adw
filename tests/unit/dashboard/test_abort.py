@@ -89,6 +89,8 @@ def _mock_stats_aggregator() -> MagicMock:
         generated_at=datetime.now(UTC)
     )
     mock.get_daily_token_counts.return_value = []
+    mock.get_phase_token_usage.return_value = {}
+    mock.calculate_cost.return_value = 0.0
     return mock
 
 

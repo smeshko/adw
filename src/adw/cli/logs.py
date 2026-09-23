@@ -21,6 +21,8 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from ulid import ULID
 
+from adw.core.constants import CONTEXT_FILE, LIVE_LOG, project_runs_dir
+
 console = Console()
 
 # Pattern to parse structured log lines with optional level prefix:
@@ -226,7 +228,7 @@ def _get_runs_dir() -> Path:
         console.print("[red]Error:[/] No .adw directory found")
         console.print("[dim]Suggestion:[/] Run 'adw init' first")
         raise typer.Exit(1)
-    return adw_dir / "runs"
+    return project_runs_dir(cwd)
 
 
 def _get_run_dir(run_id: str, *, debug: bool = False) -> Path:
@@ -377,7 +379,7 @@ def _load_context(run_id: str) -> dict[str, Any]:
         typer.Exit: If context cannot be loaded.
     """
     run_dir = _get_run_dir(run_id)
-    context_path = run_dir / "context.json"
+    context_path = run_dir / CONTEXT_FILE
 
     if not context_path.exists():
         console.print(f"[red]Error:[/] No context.json found for run: {run_id}")
@@ -563,8 +565,8 @@ def logs_follow(
 
     run_dir = _get_run_dir(run_id)
 
-    live_log = run_dir / "live.log"
-    context_file = run_dir / "context.json"
+    live_log = run_dir / LIVE_LOG
+    context_file = run_dir / CONTEXT_FILE
 
     # Check run status
     run_status = ""
@@ -693,13 +695,13 @@ def logs_export(
         }
 
         # Load context
-        context_file = run_dir / "context.json"
+        context_file = run_dir / CONTEXT_FILE
         if context_file.exists():
             with contextlib.suppress(json.JSONDecodeError, OSError):
                 export_data["context"] = json.loads(context_file.read_text())
 
         # Load live.log content
-        live_log = run_dir / "live.log"
+        live_log = run_dir / LIVE_LOG
         if live_log.exists():
             export_data["live_log"] = live_log.read_text()
         else:
@@ -723,14 +725,14 @@ def logs_export(
     elif format_type == "html":
         # Export as HTML report
         context: dict[str, Any] = {}
-        context_file = run_dir / "context.json"
+        context_file = run_dir / CONTEXT_FILE
         if context_file.exists():
             with contextlib.suppress(json.JSONDecodeError, OSError):
                 context = json.loads(context_file.read_text())
 
         # Load live.log content
         live_log_content = ""
-        live_log = run_dir / "live.log"
+        live_log = run_dir / LIVE_LOG
         if live_log.exists():
             live_log_content = live_log.read_text()
 

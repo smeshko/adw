@@ -24,7 +24,7 @@ from adw.core import (
     RunDirectoryManager,
     SnapshotManager,
 )
-from adw.core.constants import PHASE_SEQUENCE
+from adw.core.constants import LIVE_LOG, PHASE_SEQUENCE, project_runs_dir
 from adw.core.extensions import create_default_registry
 from adw.core.phase_runner import PhaseRunner
 from adw.exceptions import ConfigError
@@ -72,7 +72,7 @@ def get_runs_dir(project_root: Path | None = None) -> Path:
         Path to the .adw/runs directory.
     """
     root = project_root or get_project_root()
-    runs_dir = root / ".adw" / "runs"
+    runs_dir = project_runs_dir(root)
     runs_dir.mkdir(parents=True, exist_ok=True)
     return runs_dir
 
@@ -130,7 +130,7 @@ def create_log_manager(
     # Add live stream transport when run_dir is provided
     # LiveStreamTransport writes to live.log with ANSI formatting for real-time tailing
     if run_dir:
-        live_transport = LiveStreamTransport(run_dir / "live.log")
+        live_transport = LiveStreamTransport(run_dir / LIVE_LOG)
         log_manager.register(live_transport)
 
     # Wire Python's standard logging to flow through LogManager (ISS-006 fix)
@@ -256,7 +256,7 @@ def create_orchestrator(
     live_stream = None
     if run_id:
         run_dir = runs_dir / run_id
-        live_stream = LiveStreamTransport(run_dir / "live.log")
+        live_stream = LiveStreamTransport(run_dir / LIVE_LOG)
 
     # Use MockExecutor in test mode to avoid hitting real Claude API
     # Set ADW_MOCK_EXECUTOR=1 to enable mock mode (used by tests)
@@ -279,7 +279,11 @@ def create_orchestrator(
     # and ShipExtension (skip logic and hook env vars)
     # NOTE: Must be created BEFORE PhaseRunner so extensions are available for
     # artifact capture during phase execution (ISS-043)
-    extension_registry = create_default_registry(runs_dir, project_root=project_root)
+    extension_registry = create_default_registry(
+        runs_dir,
+        project_root=project_root,
+        build_command=config.build_command if config else None,
+    )
 
     # Create PhaseRunner first (without progress_display) (Story 5.2)
     # so we can compute enabled phases using is_phase_enabled()

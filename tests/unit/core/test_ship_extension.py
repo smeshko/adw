@@ -121,10 +121,7 @@ class TestShipCommandEnvVars:
         )
         context = MagicMock()
 
-        with (
-            patch.object(ext, "_load_ship_config", return_value=config),
-            patch.object(ext, "_load_project_build_command", return_value=None),
-        ):
+        with patch.object(ext, "_load_ship_config", return_value=config):
             env = ext.get_hook_env(context)
 
         assert env.get("ADW_SHIP_VERSION_BUMP_CMD") == "npm version patch"
@@ -135,29 +132,29 @@ class TestShipCommandEnvVars:
         config = ShipCommandConfig(commands=ShipCommandsConfig(publish="npm publish"))
         context = MagicMock()
 
-        with (
-            patch.object(ext, "_load_ship_config", return_value=config),
-            patch.object(ext, "_load_project_build_command", return_value=None),
-        ):
+        with patch.object(ext, "_load_ship_config", return_value=config):
             env = ext.get_hook_env(context)
 
         assert env.get("ADW_SHIP_PUBLISH_CMD") == "npm publish"
 
     def test_build_cmd_in_env(self) -> None:
         """ADW_SHIP_BUILD_CMD should be in hook env when build_command configured."""
-        ext = ShipExtension()
+        ext = ShipExtension(build_command="npm run build")
         config = ShipCommandConfig(commands=ShipCommandsConfig())
         context = MagicMock()
 
-        with (
-            patch.object(ext, "_load_ship_config", return_value=config),
-            patch.object(
-                ext, "_load_project_build_command", return_value="npm run build"
-            ),
-        ):
+        with patch.object(ext, "_load_ship_config", return_value=config):
             env = ext.get_hook_env(context)
 
         assert env.get("ADW_SHIP_BUILD_CMD") == "npm run build"
+
+    def test_build_cmd_in_env_without_ship_config(self, tmp_path: Path) -> None:
+        """ADW_SHIP_BUILD_CMD is exported when the project has no ship config (B3)."""
+        ext = ShipExtension(project_root=tmp_path, build_command="echo built")
+
+        env = ext.get_hook_env(MagicMock())
+
+        assert env == {"ADW_SHIP_BUILD_CMD": "echo built"}
 
     def test_no_cmd_env_when_none(self) -> None:
         """Command env vars should not be set when commands are None."""
@@ -165,10 +162,7 @@ class TestShipCommandEnvVars:
         config = ShipCommandConfig(commands=ShipCommandsConfig())
         context = MagicMock()
 
-        with (
-            patch.object(ext, "_load_ship_config", return_value=config),
-            patch.object(ext, "_load_project_build_command", return_value=None),
-        ):
+        with patch.object(ext, "_load_ship_config", return_value=config):
             env = ext.get_hook_env(context)
 
         assert "ADW_SHIP_VERSION_BUMP_CMD" not in env
@@ -181,10 +175,7 @@ class TestShipCommandEnvVars:
         config = ShipCommandConfig(commands=ShipCommandsConfig(), wait_for_merge=True)
         context = MagicMock()
 
-        with (
-            patch.object(ext, "_load_ship_config", return_value=config),
-            patch.object(ext, "_load_project_build_command", return_value=None),
-        ):
+        with patch.object(ext, "_load_ship_config", return_value=config):
             env = ext.get_hook_env(context)
 
         assert env.get("ADW_SHIP_WAIT_FOR_MERGE") == "true"
@@ -195,10 +186,7 @@ class TestShipCommandEnvVars:
         config = ShipCommandConfig(commands=ShipCommandsConfig())
         context = MagicMock()
 
-        with (
-            patch.object(ext, "_load_ship_config", return_value=config),
-            patch.object(ext, "_load_project_build_command", return_value=None),
-        ):
+        with patch.object(ext, "_load_ship_config", return_value=config):
             env = ext.get_hook_env(context)
 
         assert env.get("ADW_SHIP_WAIT_FOR_MERGE") == "false"

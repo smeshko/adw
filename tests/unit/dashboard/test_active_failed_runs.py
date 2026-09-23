@@ -7,11 +7,15 @@ and OOB phase pipeline rendering.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
+from starlette.responses import StreamingResponse
 
+from adw.core.constants import LIVE_LOG, project_runs_dir
 from adw.dashboard.server import create_dashboard_app
 from adw.models.index import IndexEntry
 
@@ -71,6 +75,15 @@ def _mock_project_registry(project_names: list[str] | None = None) -> MagicMock:
     return mock
 
 
+def _mock_stats_aggregator() -> MagicMock:
+    """Build a mock StatsAggregator for a run with no llm response files."""
+    sa = MagicMock()
+    sa.get_global_stats.return_value = MagicMock(projects=[])
+    sa.get_phase_token_usage.return_value = {}
+    sa.calculate_cost.return_value = 0.0
+    return sa
+
+
 def _make_client_with_mocks(
     entries: list[IndexEntry] | None = None,
     project_names: list[str] | None = None,
@@ -81,8 +94,7 @@ def _make_client_with_mocks(
     app = create_dashboard_app()
     im = _mock_index_manager(entries=entries or [])
     pr = _mock_project_registry(project_names or ["my-project"])
-    sa = MagicMock()
-    sa.get_global_stats.return_value = MagicMock(projects=[])
+    sa = _mock_stats_aggregator()
 
     app.dependency_overrides[dependencies.get_index_manager] = lambda: im
     app.dependency_overrides[dependencies.get_project_registry] = lambda: pr
@@ -597,11 +609,104 @@ class TestSSEEndpointRegistration:
         assert response.status_code == 200
         assert response.headers.get("content-type", "").startswith("text/event-stream")
 
+    def test_log_stream_emits_live_log_lines(self, tmp_path: Path) -> None:
+        """The log stream emits the lines of the run's live.log (B4)."""
+        entry = _make_index_entry(
+            status="running", completed_at=None, project_path=str(tmp_path)
+        )
+        run_dir = project_runs_dir(tmp_path) / entry.run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / LIVE_LOG).write_text(
+            "[2026-02-13 07:10:29] [TOOL] Read src/app.py\n"
+            "[2026-02-13 07:10:30] [TOOL] Edit src/app.py\n"
+        )
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = MagicMock(status="completed")
+            response = client.get(f"/runs/{entry.run_id}/logs/stream")
+
+        assert response.text.count("event:log-line") == 2
+        assert "Read src/app.py" in response.text
+        assert "Edit src/app.py" in response.text
+
     def test_log_stream_404_for_missing_run(self) -> None:
         """GET /runs/{id}/logs/stream returns 404 for non-existent run."""
         client = _make_client_with_mocks(entries=[])
         response = client.get("/runs/01HQXK5P3Z7V8R2M4N6T9W1Y00/logs/stream")
         assert response.status_code == 404
+
+
+async def _drain_sse(response: StreamingResponse) -> list[str]:
+    """Collect every chunk of an SSE response, failing after 2 s."""
+
+    async def _collect() -> list[str]:
+        return [str(chunk) async for chunk in response.body_iterator]
+
+    return await asyncio.wait_for(_collect(), timeout=2)
+
+
+_real_sleep = asyncio.sleep
+
+
+async def _yield_only(_delay: float) -> None:
+    """Stand-in for asyncio.sleep: skip the delay but yield to the event loop."""
+    await _real_sleep(0)
+
+
+def _interrupted_context() -> MagicMock:
+    """Build a RunContext mock for an interrupted run."""
+    return MagicMock(
+        status="interrupted",
+        current_phase="build",
+        phase_history=["plan"],
+        started_at=datetime.now(UTC),
+    )
+
+
+class TestSSETerminalStatuses:
+    """Both SSE streams close on every terminal status (B21)."""
+
+    async def test_run_events_close_on_interrupted(self) -> None:
+        """The events stream emits run-failed and ends for an interrupted run."""
+        from adw.dashboard.routes import run_events_sse
+
+        entry = _make_index_entry(status="interrupted")
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.asyncio.sleep", new=_yield_only),
+        ):
+            mock_cm.return_value.load.return_value = _interrupted_context()
+            response = await run_events_sse(
+                entry.run_id, index_manager=_mock_index_manager(entries=[entry])
+            )
+            chunks = await _drain_sse(response)
+
+        assert chunks[-1].startswith("event:run-failed")
+
+    async def test_log_stream_closes_on_interrupted(self, tmp_path: Path) -> None:
+        """The log stream flushes live.log and ends for an interrupted run."""
+        from adw.dashboard.routes import log_stream_sse
+
+        entry = _make_index_entry(status="interrupted", project_path=str(tmp_path))
+        run_dir = project_runs_dir(tmp_path) / entry.run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / LIVE_LOG).write_text(
+            "[2026-02-13 07:10:29] [TOOL] Read src/app.py\n"
+        )
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.asyncio.sleep", new=_yield_only),
+        ):
+            mock_cm.return_value.load.return_value = _interrupted_context()
+            response = await log_stream_sse(
+                entry.run_id, index_manager=_mock_index_manager(entries=[entry])
+            )
+            chunks = await _drain_sse(response)
+
+        assert len(chunks) == 1
+        assert chunks[0].startswith("event:log-line")
+        assert "Read src/app.py" in chunks[0]
 
 
 # ── SSE Helper Functions ──────────────────────────────────────────────
@@ -737,7 +842,9 @@ class TestBuildRunDetailContextVariants:
 
         with patch("adw.dashboard.routes.ContextManager") as mock_cm:
             mock_cm.return_value.load.side_effect = OSError("not found")
-            result = _build_run_detail_context(entry, request)
+            result = _build_run_detail_context(
+                entry, request, stats_aggregator=_mock_stats_aggregator()
+            )
 
         assert result["is_active"] is True
 
@@ -752,7 +859,9 @@ class TestBuildRunDetailContextVariants:
 
         with patch("adw.dashboard.routes.ContextManager") as mock_cm:
             mock_cm.return_value.load.side_effect = OSError("not found")
-            result = _build_run_detail_context(entry, request)
+            result = _build_run_detail_context(
+                entry, request, stats_aggregator=_mock_stats_aggregator()
+            )
 
         assert result["is_active"] is False
 
@@ -771,7 +880,9 @@ class TestBuildRunDetailContextVariants:
 
         with patch("adw.dashboard.routes.ContextManager") as mock_cm:
             mock_cm.return_value.load.side_effect = OSError("not found")
-            result = _build_run_detail_context(entry, request)
+            result = _build_run_detail_context(
+                entry, request, stats_aggregator=_mock_stats_aggregator()
+            )
 
         assert result["failed_phase_name"] == "Build"
 
@@ -786,7 +897,9 @@ class TestBuildRunDetailContextVariants:
 
         with patch("adw.dashboard.routes.ContextManager") as mock_cm:
             mock_cm.return_value.load.side_effect = OSError("not found")
-            result = _build_run_detail_context(entry, request)
+            result = _build_run_detail_context(
+                entry, request, stats_aggregator=_mock_stats_aggregator()
+            )
 
         assert result["failed_phase_name"] is None
 
@@ -806,7 +919,9 @@ class TestBuildRunDetailContextVariants:
 
         with patch("adw.dashboard.routes.ContextManager") as mock_cm:
             mock_cm.return_value.load.side_effect = OSError("not found")
-            result = _build_run_detail_context(entry, request)
+            result = _build_run_detail_context(
+                entry, request, stats_aggregator=_mock_stats_aggregator()
+            )
 
         phase_keys = [p["phase_key"] for p in result["phases_detail"]]
         assert len(phase_keys) == 5
@@ -829,7 +944,9 @@ class TestBuildRunDetailContextVariants:
 
         with patch("adw.dashboard.routes.ContextManager") as mock_cm:
             mock_cm.return_value.load.side_effect = OSError("not found")
-            result = _build_run_detail_context(entry, request)
+            result = _build_run_detail_context(
+                entry, request, stats_aggregator=_mock_stats_aggregator()
+            )
 
         phase_keys = [p["phase_key"] for p in result["phases_detail"]]
         # Only phases with data (completed or current) should show

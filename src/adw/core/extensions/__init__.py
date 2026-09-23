@@ -34,6 +34,7 @@ from adw.core.extensions.ship import ShipExtension
 def create_default_registry(
     runs_dir: Path,
     project_root: Path | None = None,
+    build_command: str | None = None,
 ) -> ExtensionRegistry:
     """Create registry with all built-in extensions.
 
@@ -46,6 +47,8 @@ def create_default_registry(
     Args:
         runs_dir: Path to .adw/runs directory.
         project_root: Path to project root for loading phase configs.
+        build_command: The project's build command, exported to the ship
+            post-hook.
 
     Returns:
         ExtensionRegistry with all built-in extensions registered.
@@ -59,7 +62,9 @@ def create_default_registry(
     registry = ExtensionRegistry()
     registry.register(BuildExtension())
     registry.register(DocumentExtension(runs_dir))
-    registry.register(ShipExtension(project_root=project_root))
+    registry.register(
+        ShipExtension(project_root=project_root, build_command=build_command)
+    )
     return registry
 
 

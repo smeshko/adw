@@ -139,8 +139,8 @@ def run_basics_step(
         project_root: The project root directory. Defaults to cwd.
 
     Returns:
-        Configuration dict containing language, platform, test_command,
-        and build_command values.
+        Configuration dict containing project_name (the project root's
+        directory name), language, platform, test_command and build_command.
     """
     root = project_root or Path.cwd()
 
@@ -159,6 +159,7 @@ def run_basics_step(
     build_command = _prompt_build_command(console)
 
     return {
+        "project_name": root.name,
         "language": language,
         "platform": platform,
         "test_command": test_command,

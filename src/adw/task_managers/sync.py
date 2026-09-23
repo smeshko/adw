@@ -12,7 +12,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from adw.models.config import TaskManagerConfig
+from adw.models.config import DEFAULT_STATE_MAPPING, TaskManagerConfig
 from adw.models.context import RunContext
 from adw.models.phase import PhaseResult
 from adw.models.task import TaskInfo
@@ -20,15 +20,6 @@ from adw.task_managers.base import TaskManager
 from adw.task_managers.comments import CommentFormatter
 
 logger = logging.getLogger(__name__)
-
-# Default phase-to-status mapping for Linear
-DEFAULT_STATE_MAPPING: dict[str, str] = {
-    "plan": "In Progress",
-    "build": "In Progress",
-    "validate": "In Review",
-    "document": "In Review",
-    "failed": "In Progress",
-}
 
 
 class StatusSyncService:
@@ -162,7 +153,7 @@ class StatusSyncService:
 
         Note: This method intentionally does NOT update status or close issues.
         Issue closing is handled separately by Story 12.8 if auto_close=true.
-        The run stays at the last phase status (typically "document" -> "In Review").
+        The run stays at its last phase's mapped status (by default, ship -> Done).
 
         Args:
             context: The current run context.

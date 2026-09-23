@@ -6,6 +6,8 @@ computing statistics across all ADW projects.
 
 import json
 import logging
+import re
+from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -16,7 +18,30 @@ from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["StatsAggregator", "DEFAULT_PRICING", "DEFAULT_CACHE_TTL"]
+__all__ = ["StatsAggregator", "DEFAULT_PRICING", "DEFAULT_CACHE_TTL", "sum_token_usage"]
+
+# Leading phase index of an llm response file: 001_plan_response.json
+_RESPONSE_FILE_INDEX = re.compile(r"^\d+_")
+
+
+def sum_token_usage(usages: Iterable[TokenUsage]) -> TokenUsage:
+    """Sum token usages field by field.
+
+    Args:
+        usages: Token usages to add up.
+
+    Returns:
+        A TokenUsage holding the totals.
+    """
+    total = TokenUsage()
+    for usage in usages:
+        total = TokenUsage(
+            input_tokens=total.input_tokens + usage.input_tokens,
+            output_tokens=total.output_tokens + usage.output_tokens,
+            actual_cost_usd=total.actual_cost_usd + usage.actual_cost_usd,
+        )
+    return total
+
 
 # Default model pricing (per 1M tokens)
 DEFAULT_PRICING: dict[str, dict[str, float]] = {
@@ -100,6 +125,53 @@ class StatsAggregator:
 
         return round(input_cost + output_cost, 2)
 
+    def get_phase_token_usage(self, run_dir: Path) -> dict[str, TokenUsage]:
+        """Parse a run's LLM response files into token usage per phase.
+
+        Response files are named ``NNN_<phase>_response.json``. A phase that
+        ran more than once, such as a retry, sums all of its files.
+
+        Args:
+            run_dir: Path to run directory (e.g., .adw/runs/{run_id}/)
+
+        Returns:
+            TokenUsage keyed by phase name; empty when the run has no llm/.
+        """
+        llm_dir = run_dir / "llm"
+        if not llm_dir.exists():
+            logger.debug(
+                "LLM directory not found",
+                extra={"run_dir": str(run_dir)},
+            )
+            return {}
+
+        phase_usage: dict[str, TokenUsage] = {}
+        for response_file in sorted(llm_dir.glob("*_response.json")):
+            try:
+                with open(response_file) as f:
+                    data = json.load(f)
+
+                stats = data.get("stats", {})
+                file_usage = TokenUsage(
+                    input_tokens=stats.get("input_tokens", 0),
+                    output_tokens=stats.get("output_tokens", 0),
+                    actual_cost_usd=stats.get("total_cost_usd", 0.0),
+                )
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(
+                    "Failed to parse LLM response file",
+                    extra={"file": str(response_file), "error": str(e)},
+                )
+                continue
+
+            stem = response_file.name.removesuffix("_response.json")
+            phase = _RESPONSE_FILE_INDEX.sub("", stem)
+            phase_usage[phase] = sum_token_usage(
+                [phase_usage.get(phase, TokenUsage()), file_usage]
+            )
+
+        return phase_usage
+
     def _parse_llm_response_files(self, run_dir: Path) -> TokenUsage:
         """Parse all LLM response files in a run directory.
 
@@ -109,48 +181,13 @@ class StatsAggregator:
         Returns:
             Aggregated TokenUsage for the run.
         """
-        llm_dir = run_dir / "llm"
-        if not llm_dir.exists():
-            logger.debug(
-                "LLM directory not found",
-                extra={"run_dir": str(run_dir)},
-            )
-            return TokenUsage()
-
-        total_input = 0
-        total_output = 0
-        files_found = 0
-
-        total_cost = 0.0
-
-        for response_file in llm_dir.glob("*_response.json"):
-            files_found += 1
-            try:
-                with open(response_file) as f:
-                    data = json.load(f)
-
-                stats = data.get("stats", {})
-                total_input += stats.get("input_tokens", 0)
-                total_output += stats.get("output_tokens", 0)
-                total_cost += stats.get("total_cost_usd", 0.0)
-            except (json.JSONDecodeError, OSError) as e:
-                logger.warning(
-                    "Failed to parse LLM response file",
-                    extra={"file": str(response_file), "error": str(e)},
-                )
-                continue
-
-        if files_found == 0:
+        phase_usage = self.get_phase_token_usage(run_dir)
+        if not phase_usage:
             logger.debug(
                 "No LLM response files found in run",
-                extra={"llm_dir": str(llm_dir)},
+                extra={"run_dir": str(run_dir)},
             )
-
-        return TokenUsage(
-            input_tokens=total_input,
-            output_tokens=total_output,
-            actual_cost_usd=total_cost,
-        )
+        return sum_token_usage(phase_usage.values())
 
     def get_daily_token_counts(
         self,
