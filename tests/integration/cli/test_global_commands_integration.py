@@ -18,15 +18,13 @@ runner = CliRunner()
 
 
 @pytest.fixture
-def temp_index(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> IndexManager:
-    """Create a temporary index for testing.
+def temp_index() -> IndexManager:
+    """Create an index under the isolated per-test home.
 
-    Sets up the ADW_TEST_INDEX_PATH environment variable to isolate
-    tests from the user's real global index.
+    The CLI reads the same default path, so tests never touch the user's
+    real global index.
     """
-    index_path = tmp_path / "test-index.jsonl"
-    monkeypatch.setenv("ADW_TEST_INDEX_PATH", str(index_path))
-    return IndexManager(index_path=index_path)
+    return IndexManager()
 
 
 def _create_test_context(

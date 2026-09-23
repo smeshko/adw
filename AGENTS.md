@@ -27,6 +27,7 @@ Work moves through the plan skills: `create-plan` → `validate-plan` → `imple
 - ruff and mypy `--strict` (config in `pyproject.toml`) gate CI; `scripts/preflight.sh` must pass before a task is done.
 - Tests follow `docs/architecture/adrs/ADR-001-test-reduction-strategy.md`: test behaviour, error paths, security and I/O; leave trivial attribute, Pydantic-smoke, import-smoke and help-text tests unwritten.
 - Tests run on `MockExecutor` (`ADW_MOCK_EXECUTOR=1`, set in `tests/conftest.py`).
+- The root autouse `isolated_home` fixture points `HOME` at a per-test dir, so tests reach `~/.adw` only through `Path.home()` — never clear `os.environ`, which drops `HOME` and falls back to the real home.
 - A test that touches git, invokes `adw run`, or executes a phase hook runs inside a throwaway directory — `git_repo` (an isolated temp repo) or `tmp_path`, entered with `monkeypatch.chdir`. From the checkout, those code paths act on the checkout itself: they create branches and worktrees, and `ship/post.sh` commits and pushes.
 - `docs/CONDITIONAL_DOCS.md` maps each subsystem to its deep-dive doc — read the matching one before changing orchestration, phases or the dashboard.
 

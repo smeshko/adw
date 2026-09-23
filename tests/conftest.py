@@ -6,7 +6,7 @@ This module provides common fixtures for testing ADW components:
 - sample_run_context: Returns a valid RunContext with test data
 - sample_project_config: Returns a valid ProjectConfig
 - fixtures_path: Returns path to test fixtures directory
-- isolated_global_index: Redirects global index to temp directory (autouse)
+- isolated_home: Points HOME at a per-test directory (autouse)
 - git_repo: Creates isolated git repository with worktree cleanup (ISS-024)
 
 IMPORTANT: ADW_MOCK_EXECUTOR is set at module load time to ensure all tests
@@ -40,36 +40,38 @@ from adw.models import ProjectConfig, RunContext
 
 
 @pytest.fixture(autouse=True, scope="function")
-def isolated_global_index(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Automatically isolate the global index for each test.
+def isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Automatically give each test its own HOME.
 
-    This fixture runs automatically for every test (autouse=True) and
-    redirects the global index from ~/.adw/index.jsonl to a temporary
-    location. This prevents test runs from polluting the user's actual
-    global index file.
+    This fixture runs automatically for every test (autouse=True) and points
+    HOME at a per-test directory, so everything under ~/.adw (index, project
+    registry, stats cache, user-level commands) resolves there instead of the
+    user's real home. Subprocesses inherit the redirected HOME.
 
-    The ADW_TEST_INDEX_PATH environment variable is set to a temporary
-    path, which the IndexManager will use instead of the default location.
+    A fake HOME hides the user's global git identity, so the git author and
+    committer are set through the environment.
 
     Args:
         tmp_path: Pytest's built-in temporary path fixture.
         monkeypatch: Pytest's monkeypatch fixture for environment manipulation.
 
     Returns:
-        Path to the isolated test index file.
+        Path to the isolated home directory.
 
     Note:
-        This fixture is automatically applied to all tests. Individual tests
-        that need to test the real index behavior can use monkeypatch to
-        temporarily unset the environment variable.
+        Never clear os.environ in a test: without HOME, Path.home() falls
+        back to the passwd entry, which is the real home.
     """
-    # Use a separate directory for test index to avoid interfering with
-    # tests that check for presence/absence of .adw/ directory
-    test_index_dir = tmp_path / ".adw-test-index"
-    test_index_dir.mkdir(parents=True, exist_ok=True)
-    test_index_path = test_index_dir / "index.jsonl"
-    monkeypatch.setenv("ADW_TEST_INDEX_PATH", str(test_index_path))
-    return test_index_path
+    # A subdirectory, not tmp_path itself: tests that chdir to tmp_path
+    # would otherwise see ~/.adw as the project's .adw/
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("GIT_AUTHOR_NAME", "ADW Test")
+    monkeypatch.setenv("GIT_AUTHOR_EMAIL", "adw-test@example.com")
+    monkeypatch.setenv("GIT_COMMITTER_NAME", "ADW Test")
+    monkeypatch.setenv("GIT_COMMITTER_EMAIL", "adw-test@example.com")
+    return home
 
 
 @pytest.fixture

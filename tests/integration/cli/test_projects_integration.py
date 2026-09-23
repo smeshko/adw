@@ -16,12 +16,9 @@ runner = CliRunner()
 
 
 @pytest.fixture
-def temp_registry(tmp_path: Path):
-    """Create a temporary registry file for testing."""
-    registry_path = tmp_path / "projects.yaml"
-    # Override the registry path via environment variable
-    with patch.dict("os.environ", {"ADW_TEST_REGISTRY_PATH": str(registry_path)}):
-        yield registry_path
+def temp_registry() -> Path:
+    """Return the registry path under the isolated per-test home."""
+    return Path.home() / ".adw" / "projects.yaml"
 
 
 @pytest.fixture

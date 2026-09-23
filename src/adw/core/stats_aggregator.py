@@ -6,7 +6,6 @@ computing statistics across all ADW projects.
 
 import json
 import logging
-import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -67,11 +66,8 @@ class StatsAggregator:
         self.index_manager = index_manager or IndexManager()
         self.project_registry = project_registry or ProjectRegistryManager()
 
-        env_cache_path = os.environ.get("ADW_TEST_STATS_CACHE_PATH")
         if cache_path is not None:
             self.cache_path = cache_path
-        elif env_cache_path:
-            self.cache_path = Path(env_cache_path)
         else:
             self.cache_path = Path.home() / ".adw" / "stats-cache.json"
 
