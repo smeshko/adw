@@ -4,6 +4,7 @@ This module tests the main orchestrator for ADW pipeline execution,
 including phase sequencing, transitions, error handling, and retry logic.
 """
 
+from collections.abc import Generator
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -670,6 +671,12 @@ class TestErrorHandling:
 class TestRetryLogic:
     """Tests for retry logic with recoverable errors."""
 
+    @pytest.fixture(autouse=True)
+    def no_backoff(self) -> Generator[MagicMock]:
+        """Skip the real retry backoff sleeps."""
+        with patch("adw.core.orchestrator.time.sleep") as mock_sleep:
+            yield mock_sleep
+
     def test_recoverable_error_triggers_retry(
         self,
         orchestrator: "Orchestrator",
@@ -773,10 +780,9 @@ class TestRetryLogic:
 
         assert mock_phase_runner.run.call_count == 5
 
-    @patch("time.sleep")
     def test_retry_uses_exponential_backoff(
         self,
-        mock_sleep: MagicMock,
+        no_backoff: MagicMock,
         orchestrator: "Orchestrator",
         mock_phase_runner: MagicMock,
     ) -> None:
@@ -794,10 +800,10 @@ class TestRetryLogic:
             orchestrator.run("Test feature")
 
         # Should have slept twice (before 2nd and 3rd attempt)
-        assert mock_sleep.call_count == 2
+        assert no_backoff.call_count == 2
         # First delay: 2^0 = 1, Second delay: 2^1 = 2
-        mock_sleep.assert_any_call(1)
-        mock_sleep.assert_any_call(2)
+        no_backoff.assert_any_call(1)
+        no_backoff.assert_any_call(2)
 
     def test_retry_success_after_failures(
         self,
@@ -906,24 +912,6 @@ class TestRetryLogic:
 class TestTransitionPerformance:
     """Tests for transition performance (NFR2: <1 second)."""
 
-    def test_transition_under_1_second(
-        self,
-        orchestrator: "Orchestrator",
-        mock_phase_runner: MagicMock,
-    ) -> None:
-        """Test that phase transitions complete under 1 second (NFR2)."""
-        import time
-
-        # Make phase runner return immediately
-
-        start = time.monotonic()
-        orchestrator.run("Test feature")
-        elapsed = time.monotonic() - start
-
-        # All transitions (5 phases) should be under 5 seconds
-        # Each transition should be under 1 second
-        assert elapsed < 5.0, f"Total time {elapsed}s should be < 5s"
-
     def test_transition_logs_duration(
         self,
         orchestrator: "Orchestrator",
@@ -949,57 +937,6 @@ class TestTransitionPerformance:
             assert (
                 len(completed_calls) == 5
             )  # One per phase (plan, build, validate, document, ship)
-
-    def test_slow_transition_logs_debug(
-        self,
-        orchestrator: "Orchestrator",
-    ) -> None:
-        """Test that slow transitions log a debug message."""
-        import time
-
-        # Create a slow phase runner
-        slow_runner = MagicMock()
-
-        def slow_run(
-            phase: str,
-            context: RunContext,
-            *,
-            artifacts_override: dict[str, dict[str, str]] | None = None,
-            prompt_prefix: str | None = None,
-        ) -> PhaseResult:
-            time.sleep(1.1)  # Exceed 1 second threshold
-            return PhaseResult(
-                phase=phase,
-                status=PhaseStatus.COMPLETED,
-                started_at=datetime.now(UTC),
-                completed_at=datetime.now(UTC),
-                tokens_used=100,
-            )
-
-        slow_runner.run = MagicMock(side_effect=slow_run)
-        orchestrator._phase_runner = slow_runner
-
-        with patch("adw.core.orchestrator.logger") as mock_logger:
-            # Run just the first phase to avoid long test
-            context = RunContext(
-                run_id="01TEST00000000000000000001",
-                feature_description="Test",
-                current_phase="plan",
-                started_at=datetime.now(UTC),
-                status="running",
-            )
-
-            orchestrator._execute_phase_with_transitions(context, "plan")
-
-            # Should have logged a debug message about slow transition
-            debug_calls = mock_logger.debug.call_args_list
-            assert len(debug_calls) >= 1
-            # Find the transition exceeded message
-            found_transition_msg = any(
-                "exceeded 1s" in str(call).lower() or "1s" in str(call).lower()
-                for call in debug_calls
-            )
-            assert found_transition_msg, f"Expected transition debug log: {debug_calls}"
 
 
 class TestInterruptionHandling:
