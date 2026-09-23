@@ -152,7 +152,7 @@ def extra_artifacts(self, context, llm_result):
 | Hook | Implementation |
 |------|----------------|
 | `should_skip()` | Always returns `(False, None)` |
-| `on_complete()` | Creates PR if `auto_create_pr` enabled |
+| `on_complete()` | Opens the PR through `core.pr.create_pr` |
 | `extra_artifacts()` | Returns `pr_description.md` |
 
 **Context updates on PR creation:**
@@ -161,7 +161,7 @@ context.model_copy(update={
     "pr_creation_attempted": True,
     "pr_url": "https://github.com/org/repo/pull/123",  # or None
     "pr_creation_failed": False,                        # or True
-    "pr_failure_reason": None,                          # or error message
+    "pr_failure_reason": None,                          # or str(ADWError)
 })
 ```
 

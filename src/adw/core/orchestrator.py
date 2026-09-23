@@ -35,7 +35,6 @@ from adw.worktree import ConcurrentRunManager
 from adw.worktree.manager import WorktreeManager
 
 if TYPE_CHECKING:
-    from adw.cli.pr import AutoPRResult
     from adw.cli.progress import ProgressDisplay
     from adw.core.artifact_manager import ArtifactManager
     from adw.task_managers.labels import LabelManager
@@ -331,8 +330,8 @@ class Orchestrator:
 
         try:
             with self.interruption_handler.protected_execution(context):
-                context, pr_result = self._execute_phases(context, PHASE_SEQUENCE)
-                context = self._lifecycle.finalize_success(context, pr_result=pr_result)
+                context = self._execute_phases(context, PHASE_SEQUENCE)
+                context = self._lifecycle.finalize_success(context)
 
         except ShutdownRequested as e:
             self._lifecycle.handle_shutdown(context, e)
@@ -524,13 +523,13 @@ class Orchestrator:
 
         try:
             with self.interruption_handler.protected_execution(context):
-                context, pr_result = self._execute_phases(
+                context = self._execute_phases(
                     context,
                     phases_to_run,
                     start_artifacts=source_artifacts,
                     resume_phase=resume_phase,
                 )
-                context = self._lifecycle.finalize_success(context, pr_result=pr_result)
+                context = self._lifecycle.finalize_success(context)
 
         except ShutdownRequested as e:
             self._lifecycle.handle_shutdown(context, e)
@@ -687,11 +686,12 @@ class Orchestrator:
         *,
         start_artifacts: dict[str, dict[str, str]] | None = None,
         resume_phase: str | None = None,
-    ) -> tuple[RunContext, "AutoPRResult | None"]:
-        """Execute phases with PR creation logic.
+    ) -> RunContext:
+        """Execute phases in sequence, honouring skips and extensions.
 
         This method handles the common phase execution loop used by
-        run() and resume().
+        run() and resume(). The document step's PR outcome lands on the
+        context via DocumentExtension.
 
         Args:
             context: Current run context.
@@ -700,9 +700,7 @@ class Orchestrator:
             resume_phase: The phase being resumed from (for artifact handling).
 
         Returns:
-            Tuple of (updated context, PR result or None).
-            Note: PR result is now tracked in context via DocumentExtension,
-            so this always returns None for pr_result (Phase Extensions).
+            The updated context.
         """
         for phase in phases:
             # Check for shutdown request between phases (NFR7)
@@ -749,8 +747,7 @@ class Orchestrator:
 
             # Note: ISS-031 PR creation now handled by DocumentExtension
 
-        # PR result is now tracked in context via DocumentExtension
-        return context, None
+        return context
 
     def _load_artifacts_for_resume(
         self,

@@ -18,7 +18,7 @@ import logging
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from ulid import ULID
 
@@ -35,7 +35,6 @@ from adw.worktree import ConcurrentRunManager
 from adw.worktree.manager import WorktreeManager
 
 if TYPE_CHECKING:
-    from adw.cli.pr import AutoPRResult
     from adw.cli.progress import ProgressDisplay
     from adw.task_managers.labels import LabelManager
     from adw.task_managers.sync import StatusSyncService
@@ -43,21 +42,6 @@ if TYPE_CHECKING:
 __all__ = ["RunLifecycle"]
 
 logger = logging.getLogger(__name__)
-
-
-class _PRResultFromContext:
-    """Lightweight PR result for constructing from context fields.
-
-    Avoids importing AutoPRResult from CLI layer into core.
-    Duck-typed to match the interface used by ProgressDisplay.show_pipeline_summary().
-    """
-
-    __slots__ = ("success", "pr_url", "reason")
-
-    def __init__(self, *, success: bool, pr_url: str, reason: str) -> None:
-        self.success = success
-        self.pr_url = pr_url
-        self.reason = reason
 
 
 class RunLifecycle:
@@ -266,12 +250,7 @@ class RunLifecycle:
             self._label_manager.set_running()
         return context
 
-    def finalize_success(
-        self,
-        context: RunContext,
-        *,
-        pr_result: AutoPRResult | None = None,
-    ) -> RunContext:
+    def finalize_success(self, context: RunContext) -> RunContext:
         """Finalize a successful run.
 
         This method handles:
@@ -285,7 +264,6 @@ class RunLifecycle:
 
         Args:
             context: The run context to finalize.
-            pr_result: Result of PR creation (optional).
 
         Returns:
             Updated context with completed status.
@@ -313,7 +291,7 @@ class RunLifecycle:
         )
 
         # Post run completion comment to task manager (Story 12.6)
-        self._post_completion_comment(context, pr_result)
+        self._post_completion_comment(context)
 
         if self.task_manager_config.auto_close:
             logger.warning(
@@ -322,7 +300,7 @@ class RunLifecycle:
             )
 
         # Show pipeline summary (Story 5.5)
-        self._show_pipeline_summary(context, status="completed", pr_result=pr_result)
+        self._show_pipeline_summary(context, status="completed")
 
         # Preserve worktree for user inspection (ISS-020)
         self._show_worktree_preserved(context, outcome="success")
@@ -392,7 +370,7 @@ class RunLifecycle:
         )
 
         # Show pipeline summary on failure (Story 5.5)
-        self._show_pipeline_summary(context, status="failed", pr_result=None)
+        self._show_pipeline_summary(context, status="failed")
 
         # Preserve worktree for debugging (ISS-020)
         self._show_worktree_preserved(context, outcome="failure")
@@ -451,7 +429,7 @@ class RunLifecycle:
         )
 
         # Show pipeline summary on failure (Story 5.5)
-        self._show_pipeline_summary(context, status="failed", pr_result=None)
+        self._show_pipeline_summary(context, status="failed")
 
         # Preserve worktree for debugging (ISS-020)
         self._show_worktree_preserved(context, outcome="failure")
@@ -637,18 +615,15 @@ class RunLifecycle:
             # ISS-025: Branch creation failures are fatal
             raise
 
-    def _show_pipeline_summary(
-        self,
-        context: RunContext,
-        status: str,
-        pr_result: AutoPRResult | None,
-    ) -> None:
+    def _show_pipeline_summary(self, context: RunContext, status: str) -> None:
         """Show pipeline summary via progress display.
+
+        For completed runs, the PR outcome comes from the context fields
+        the document step set.
 
         Args:
             context: The run context.
             status: Final status ("completed" or "failed").
-            pr_result: Result of PR creation (optional).
         """
         if not self.progress_display:
             return
@@ -660,24 +635,12 @@ class RunLifecycle:
                 (context.completed_at - context.started_at).total_seconds() * 1000
             )
 
-        # Determine PR result for display (only for completed runs)
-        # Type is AutoPRResult | _PRResultFromContext | None (duck-typed)
-        effective_pr_result: Any = None
+        pr_url = None
+        pr_error = None
         if status == "completed":
-            if pr_result is not None:
-                effective_pr_result = pr_result
-            elif context.pr_url:
-                # Construct from context fields (Phase Extensions store PR info)
-                # Use simple object with required attrs to avoid CLI import
-                effective_pr_result = _PRResultFromContext(
-                    success=True, pr_url=context.pr_url, reason=""
-                )
-            elif context.pr_creation_attempted and context.pr_creation_failed:
-                effective_pr_result = _PRResultFromContext(
-                    success=False,
-                    pr_url="",
-                    reason=context.pr_failure_reason or "Unknown error",
-                )
+            pr_url = context.pr_url
+            if context.pr_creation_failed:
+                pr_error = context.pr_failure_reason
 
         self.progress_display.show_pipeline_summary(
             completed_phases=context.phase_history,
@@ -685,7 +648,8 @@ class RunLifecycle:
             total_duration_ms=duration_ms,
             total_tokens=total_tokens,
             run_id=context.run_id,
-            pr_result=effective_pr_result,
+            pr_url=pr_url,
+            pr_error=pr_error,
         )
 
     def _show_worktree_preserved(
@@ -780,16 +744,11 @@ class RunLifecycle:
                 },
             )
 
-    def _post_completion_comment(
-        self,
-        context: RunContext,
-        pr_result: AutoPRResult | None,
-    ) -> None:
-        """Post completion comment to task manager (non-blocking).
+    def _post_completion_comment(self, context: RunContext) -> None:
+        """Post completion comment, with the run's PR URL (non-blocking).
 
         Args:
             context: The run context.
-            pr_result: Result of PR creation (optional).
         """
         if not self._status_sync_service:
             return
@@ -797,7 +756,7 @@ class RunLifecycle:
         try:
             self._status_sync_service.post_completion_comment(
                 context,
-                pr_url=pr_result.pr_url if pr_result else None,
+                pr_url=context.pr_url,
                 summary="All phases completed successfully",
             )
         except Exception as comment_error:

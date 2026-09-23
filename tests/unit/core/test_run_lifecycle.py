@@ -503,7 +503,7 @@ class TestFinalizeSuccess:
         mock_interruption_handler: MagicMock,
         mock_status_sync_service: MagicMock,
     ) -> None:
-        """Test that completion comment is posted."""
+        """The completion comment carries the PR URL from the context."""
         lifecycle = RunLifecycle(
             runs_dir=tmp_path,
             project_path=tmp_path,
@@ -521,11 +521,14 @@ class TestFinalizeSuccess:
             current_phase="document",
             started_at=datetime.now(UTC),
             status="running",
+            pr_url="https://github.com/o/r/pull/9",
         )
 
         lifecycle.finalize_success(context)
 
         mock_status_sync_service.post_completion_comment.assert_called_once()
+        call = mock_status_sync_service.post_completion_comment.call_args
+        assert call.kwargs["pr_url"] == "https://github.com/o/r/pull/9"
 
     def test_shows_pipeline_summary(
         self,

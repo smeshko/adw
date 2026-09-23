@@ -8,10 +8,11 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
+from adw.core.pr import create_pr, load_pr_description
+from adw.exceptions import ADWError
 from adw.models import GitConfig
 
 if TYPE_CHECKING:
-    from adw.cli.pr import AutoPRResult
     from adw.models import LLMResult, PhaseResult, RunContext
 
 logger = logging.getLogger(__name__)
@@ -20,15 +21,15 @@ logger = logging.getLogger(__name__)
 class DocumentExtension:
     """Extension for document phase that handles PR creation.
 
-    Creates pr_description.md artifact and attempts automatic PR creation.
+    Creates pr_description.md artifact and opens the run's PR.
 
     This extension:
     - Saves pr_description.md as an extra artifact
-    - Attempts PR creation in on_complete() hook
+    - Opens the PR in on_complete() through core.pr.create_pr
     - Updates context with PR state fields
 
     Dependencies:
-    - git_config: For git settings
+    - git_config: Supplies the PR's base branch
     - runs_dir: For artifact path resolution
 
     Example:
@@ -49,7 +50,7 @@ class DocumentExtension:
         """Initialize DocumentExtension.
 
         Args:
-            git_config: Git configuration.
+            git_config: Git configuration; its base_branch is the PR base.
             runs_dir: Path to .adw/runs directory.
         """
         self._git_config = git_config
@@ -68,15 +69,16 @@ class DocumentExtension:
         return False, None
 
     def on_complete(self, context: "RunContext", result: "PhaseResult") -> "RunContext":
-        """Handle PR creation after document phase completes.
+        """Open the run's PR after the document phase completes.
 
-        Attempts to create a PR and updates context with the result.
+        Loads the PR description and calls ``create_pr``, recording the
+        outcome on the context.
 
         Context fields updated:
         - pr_creation_attempted: Set to True
         - pr_url: Set to PR URL if successful
         - pr_creation_failed: Set to True if creation failed
-        - pr_failure_reason: Set to failure reason if applicable
+        - pr_failure_reason: ``str(error)`` of the ADWError, if any
 
         Args:
             context: Current run context.
@@ -91,46 +93,25 @@ class DocumentExtension:
             extra={"run_id": context.run_id},
         )
 
-        # Mark that we attempted PR creation
         context = context.model_copy(update={"pr_creation_attempted": True})
 
         try:
-            pr_result = self._create_pr(context)
-
-            if pr_result and pr_result.success and pr_result.pr_url:
-                logger.info(
-                    "PR created successfully",
-                    extra={"run_id": context.run_id, "pr_url": pr_result.pr_url},
-                )
-                context = context.model_copy(update={"pr_url": pr_result.pr_url})
-            elif pr_result:
-                logger.warning(
-                    "PR creation failed",
-                    extra={
-                        "run_id": context.run_id,
-                        "reason": pr_result.reason,
-                    },
-                )
-                context = context.model_copy(
-                    update={
-                        "pr_creation_failed": True,
-                        "pr_failure_reason": pr_result.reason,
-                    }
-                )
-
-        except Exception as e:
+            body = load_pr_description(self._runs_dir / context.run_id)
+            pr_url = create_pr(context, body, base=self._git_config.base_branch)
+        except ADWError as e:
             logger.warning(
-                "PR creation failed with exception (non-blocking)",
-                extra={"run_id": context.run_id, "error": str(e)},
+                "PR creation failed",
+                extra={"run_id": context.run_id, "reason": str(e)},
             )
-            context = context.model_copy(
-                update={
-                    "pr_creation_failed": True,
-                    "pr_failure_reason": str(e),
-                }
+            return context.model_copy(
+                update={"pr_creation_failed": True, "pr_failure_reason": str(e)}
             )
 
-        return context
+        logger.info(
+            "PR created successfully",
+            extra={"run_id": context.run_id, "pr_url": pr_url},
+        )
+        return context.model_copy(update={"pr_url": pr_url})
 
     def extra_artifacts(
         self, context: "RunContext", llm_result: "LLMResult"
@@ -157,20 +138,6 @@ class DocumentExtension:
         )
 
         return [("pr_description.md", artifact_content)]
-
-    def _create_pr(self, context: "RunContext") -> "AutoPRResult | None":
-        """Create PR using the auto_create_pr function.
-
-        Args:
-            context: Current run context.
-
-        Returns:
-            AutoPRResult with outcome, or None on error.
-        """
-        # Import here to avoid circular imports
-        from adw.cli.pr import auto_create_pr
-
-        return auto_create_pr(context.run_id, context, self._runs_dir)
 
     def get_hook_env(self, context: "RunContext") -> dict[str, str]:
         """Document phase has no additional hook environment variables.
