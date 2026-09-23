@@ -4,10 +4,8 @@ This module contains models for project configuration, LLM settings,
 and phase-specific configuration loaded from YAML files.
 """
 
-from pathlib import Path
 from typing import Any, Literal, Self
 
-import yaml
 from pydantic import BaseModel, Field, model_validator
 
 from adw.models.command import PhaseLLMConfig
@@ -499,12 +497,12 @@ class ProjectConfig(BaseModel):
         ship: Ship phase configuration (version bump, build, publish, PR merge)
 
     Example:
-        >>> config = ProjectConfig.from_yaml('''
+        >>> config = ProjectConfig.model_validate(yaml.safe_load('''
         ... name: my-project
         ... language: python
         ... framework: fastapi
         ... platform: api
-        ... ''')
+        ... '''))
         >>> config.name
         'my-project'
     """
@@ -571,61 +569,7 @@ class ProjectConfig(BaseModel):
 
         return data
 
-    @classmethod
-    def from_yaml(cls, content: str) -> Self:
-        """Load configuration from a YAML string.
-
-        Args:
-            content: YAML content as a string
-
-        Returns:
-            ProjectConfig instance
-
-        Raises:
-            ValidationError: If the YAML content is invalid
-        """
-        data = yaml.safe_load(content)
-        return cls.model_validate(data)
-
-    @classmethod
-    def from_yaml_file(cls, path: Path | str) -> Self:
-        """Load configuration from a YAML file.
-
-        Args:
-            path: Path to the YAML file
-
-        Returns:
-            ProjectConfig instance
-
-        Raises:
-            FileNotFoundError: If the file doesn't exist
-            ValidationError: If the file content is invalid
-        """
-        path = Path(path)
-        content = path.read_text()
-        return cls.from_yaml(content)
-
     model_config = {
         "frozen": False,
         "validate_assignment": True,
-        "json_schema_extra": {
-            "example": {
-                "name": "my-project",
-                "language": "python",
-                "framework": "fastapi",
-                "platform": "api",
-                "test_command": "pytest",
-                "build_command": "python -m build",
-                "llm": {
-                    "path": "/usr/bin/claude",
-                },
-                "security": {
-                    "blocked_patterns": [],
-                },
-                "git": {
-                    "branch_prefix": "feature/",
-                    "skip_hooks": False,
-                },
-            }
-        },
     }

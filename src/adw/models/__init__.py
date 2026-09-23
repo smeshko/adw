@@ -4,8 +4,8 @@ This package contains all Pydantic models used throughout ADW:
 - artifacts: DiffStats
 - command: ResolvedCommand, ValidateCommandConfig, ShipCommandConfig,
            ShipCommandsConfig, DocumentCommandConfig, DocMappingConfig
-- context: RunContext, SessionContext, ProjectContext, StateSnapshot
-- phase: PhaseStatus, PhaseResult, Artifact, ArtifactType
+- context: RunContext, StateSnapshot
+- phase: PhaseStatus, PhaseResult
 - config: ProjectConfig, LLMConfig, PhaseConfig, HookConfig, GitConfig
 - llm: LLMResult, ToolCall
 - hook: HookResult
@@ -43,9 +43,7 @@ from adw.models.config import (
     WorktreeConfig,
 )
 from adw.models.context import (
-    ProjectContext,
     RunContext,
-    SessionContext,
     StateSnapshot,
 )
 from adw.models.hook import HookResult
@@ -61,8 +59,6 @@ from adw.models.logging import (
     LogLevel,
 )
 from adw.models.phase import (
-    Artifact,
-    ArtifactType,
     PhaseResult,
     PhaseStatus,
 )
@@ -109,9 +105,7 @@ __all__: list[str] = [
     "TaskManagerLabelsConfig",
     "WorktreeConfig",
     # Context models
-    "ProjectContext",
     "RunContext",
-    "SessionContext",
     "StateSnapshot",
     # Hook models
     "HookResult",
@@ -126,8 +120,6 @@ __all__: list[str] = [
     "LogEvent",
     "LogLevel",
     # Phase models
-    "Artifact",
-    "ArtifactType",
     "PhaseResult",
     "PhaseStatus",
     # PR models

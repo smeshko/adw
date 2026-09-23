@@ -85,7 +85,7 @@ class TestHookRunner:
         runner = HookRunner(hook_config)
         result = runner.run_hook(success_hook, run_context, "plan")
 
-        assert result.is_success
+        assert result.exit_code == 0
         assert "Hello from hook" in result.stdout
         assert result.exit_code == 0
         assert result.hook_type == "pre"
@@ -98,7 +98,7 @@ class TestHookRunner:
         runner = HookRunner(hook_config)
         result = runner.run_hook(stderr_hook, run_context, "plan")
 
-        assert result.is_success
+        assert result.exit_code == 0
         assert "stdout message" in result.stdout
         assert "stderr message" in result.stderr
 
@@ -170,7 +170,7 @@ class TestHookRunner:
         runner = HookRunner(hook_config)
         result = runner.run_hook(env_hook, run_context, "plan")
 
-        assert result.is_success
+        assert result.exit_code == 0
         assert "RUN_ID=01KDSG2VDHNK0W4HSCZWJZXWSQ" in result.stdout
         assert "PHASE=plan" in result.stdout
         assert "FEATURE=Test feature" in result.stdout
@@ -193,7 +193,7 @@ class TestHookRunner:
 
         # This should succeed because we override with longer timeout
         result = runner.run_hook(success_hook, run_context, "plan", timeout=60)
-        assert result.is_success
+        assert result.exit_code == 0
 
 
 class TestFindHook:

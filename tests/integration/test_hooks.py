@@ -51,7 +51,7 @@ class TestHookIntegration:
 
         result = runner.run_hook(hook_path, run_context, "test")
 
-        assert result.is_success
+        assert result.exit_code == 0
         assert result.exit_code == 0
         assert "Hook executed successfully" in result.stdout
         assert "01KDSG2VDHNK0W4HSCZWJZXWSQ" in result.stdout
@@ -95,7 +95,7 @@ class TestHookIntegration:
             context_file=context_file,
         )
 
-        assert result.is_success
+        assert result.exit_code == 0
         # Verify each environment variable
         assert "ADW_RUN_ID=01KDSG2VDHNK0W4HSCZWJZXWSQ" in result.stdout
         assert "ADW_PHASE=build" in result.stdout
@@ -148,7 +148,7 @@ class TestHookIntegration:
         runner = HookRunner(hook_config)
         result = runner.run_hook(found_hook, run_context, "plan")
 
-        assert result.is_success
+        assert result.exit_code == 0
         assert "Preparing environment" in result.stdout
 
     def test_missing_hook_returns_none(self, tmp_path: Path) -> None:
@@ -176,7 +176,7 @@ class TestHookIntegration:
         runner = HookRunner(hook_config)
         result = runner.run_hook(hook_path, run_context, "test")
 
-        assert result.is_success
+        assert result.exit_code == 0
         # PATH should be inherited from os.environ
         assert "PATH=" in result.stdout
         assert os.environ.get("PATH", "") in result.stdout
@@ -199,7 +199,7 @@ class TestHookIntegration:
         runner = HookRunner(hook_config)
         result = runner.run_hook(hook_path, run_context, "test")
 
-        assert result.is_success
+        assert result.exit_code == 0
         # Default working directory is cwd
         # Use samefile() for macOS case-insensitive filesystem compatibility
         assert Path.cwd().samefile(Path(result.stdout.strip()))
@@ -225,5 +225,5 @@ class TestHookIntegration:
             hook_path, run_context, "test", working_dir=project_root
         )
 
-        assert result.is_success
+        assert result.exit_code == 0
         assert str(project_root) in result.stdout

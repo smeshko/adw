@@ -206,7 +206,7 @@ def sample_config_yaml(fixtures_path: Path) -> str:
 
     Example:
         >>> def test_config_parsing(sample_config_yaml):
-        ...     config = ProjectConfig.from_yaml(sample_config_yaml)
+        ...     config = ProjectConfig.model_validate(yaml.safe_load(sample_config_yaml))
         ...     assert config.name == "test-project"
     """
     config_file = fixtures_path / "configs" / "minimal.yaml"
