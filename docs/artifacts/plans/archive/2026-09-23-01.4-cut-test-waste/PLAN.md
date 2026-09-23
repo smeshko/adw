@@ -3,7 +3,7 @@
 Status: done
 Branch: feature/adw-10
 Risk: medium
-Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
+Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../../epics/01-cleanup-safety-dead-code-bugs.md))
 Phase: 1.4 — Cut test waste outside the dashboard
 Linear: ADW-10
 Created: 2026-09-23

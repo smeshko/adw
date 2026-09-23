@@ -3,7 +3,7 @@
 Status: done
 Branch: feature/adw-12
 Risk: medium
-Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
+Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../../epics/01-cleanup-safety-dead-code-bugs.md))
 Phase: 1.6 — Fail phases when Claude fails
 Linear: ADW-12
 Created: 2026-09-23

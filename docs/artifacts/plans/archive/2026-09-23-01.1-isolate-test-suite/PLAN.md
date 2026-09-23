@@ -3,7 +3,7 @@
 Status: done
 Branch: feature/adw-7
 Risk: medium
-Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
+Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../../epics/01-cleanup-safety-dead-code-bugs.md))
 Phase: 1.1 — Isolate the test suite from the checkout
 Linear: ADW-7
 Created: 2026-09-23

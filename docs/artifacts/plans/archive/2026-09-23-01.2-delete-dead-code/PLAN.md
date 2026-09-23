@@ -3,7 +3,7 @@
 Status: done
 Branch: feature/adw-8
 Risk: medium
-Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
+Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../../epics/01-cleanup-safety-dead-code-bugs.md))
 Phase: 1.2 — Delete dead modules and symbols
 Linear: ADW-8
 Created: 2026-09-23

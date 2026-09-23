@@ -112,6 +112,6 @@ HOME="$SCRATCH/home" uv run --project "$CHECKOUT" adw validate   # five phase ro
 
 ## References
 
-- Epic: [01 — phase 1.2](../../epics/01-cleanup-safety-dead-code-bugs.md)
-- [ADR-001 test reduction strategy](../../../architecture/adrs/ADR-001-test-reduction-strategy.md)
-- Previous phase: [01.1-isolate-test-suite](../01.1-isolate-test-suite/PLAN.md)
+- Epic: [01 — phase 1.2](../../../epics/01-cleanup-safety-dead-code-bugs.md)
+- [ADR-001 test reduction strategy](../../../../architecture/adrs/ADR-001-test-reduction-strategy.md)
+- Previous phase: [01.1-isolate-test-suite](../2026-09-23-01.1-isolate-test-suite/PLAN.md)

@@ -93,8 +93,8 @@ Result at `f61f8873`:
 
 ## References
 
-- Epic: [01 — phase 1.6](../../epics/01-cleanup-safety-dead-code-bugs.md)
-- [Orchestrator deep dive](../../../architecture/deep-dive/orchestrator.md) (retry rows go stale with this phase)
-- [ADR-001 test reduction strategy](../../../architecture/adrs/ADR-001-test-reduction-strategy.md)
-- Prior plan pattern: [01.1-isolate-test-suite](../01.1-isolate-test-suite/PLAN.md) (`adw.core.orchestrator.time.sleep` patching)
+- Epic: [01 — phase 1.6](../../../epics/01-cleanup-safety-dead-code-bugs.md)
+- [Orchestrator deep dive](../../../../architecture/deep-dive/orchestrator.md) (retry rows go stale with this phase)
+- [ADR-001 test reduction strategy](../../../../architecture/adrs/ADR-001-test-reduction-strategy.md)
+- Prior plan pattern: [01.1-isolate-test-suite](../2026-09-23-01.1-isolate-test-suite/PLAN.md) (`adw.core.orchestrator.time.sleep` patching)
 - Linear: ADW-12

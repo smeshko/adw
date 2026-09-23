@@ -198,6 +198,6 @@ scripts/preflight.sh && uv run ruff check tests/ && uv run ruff format --check t
 
 ## References
 
-- [Epic 01, phase 1.4](../../epics/01-cleanup-safety-dead-code-bugs.md)
-- [ADR-001 test reduction strategy](../../../architecture/adrs/ADR-001-test-reduction-strategy.md)
-- [Plan 01.1](../01.1-isolate-test-suite/PLAN.md): introduced the root `isolated_home` fixture and the per-package `chdir` conftests.
+- [Epic 01, phase 1.4](../../../epics/01-cleanup-safety-dead-code-bugs.md)
+- [ADR-001 test reduction strategy](../../../../architecture/adrs/ADR-001-test-reduction-strategy.md)
+- [Plan 01.1](../2026-09-23-01.1-isolate-test-suite/PLAN.md): introduced the root `isolated_home` fixture and the per-package `chdir` conftests.

@@ -102,8 +102,8 @@ curl -N http://127.0.0.1:8765/runs/01KHAPGM6PRX55TZQF5V082DDH/logs/stream | head
 
 ## References
 
-- [Epic 01, phase 1.8](../../epics/01-cleanup-safety-dead-code-bugs.md)
-- [ADR-001 test reduction strategy](../../../architecture/adrs/ADR-001-test-reduction-strategy.md)
+- [Epic 01, phase 1.8](../../../epics/01-cleanup-safety-dead-code-bugs.md)
+- [ADR-001 test reduction strategy](../../../../architecture/adrs/ADR-001-test-reduction-strategy.md)
 - `docs/features/active-failed-run-sse-streaming.md`: SSE endpoint behaviour
 - `docs/features/llm-interaction-log-viewer.md`: log viewer and `_load_log_entries`
 - Simplification audit report (bug ids B3, B4, B11, B17, B21): see the epic's Architecture references
