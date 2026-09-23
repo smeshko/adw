@@ -7,6 +7,7 @@ Tests the init command functionality for initializing ADW projects,
 including project detection, directory creation, and configuration generation.
 """
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -262,6 +263,17 @@ class TestInitConfigContent:
             data = yaml.safe_load(config_path.read_text())
 
             assert "language" in data
+
+    def test_init_output_passes_validate(self) -> None:
+        """Minimal init writes a config that adw validate accepts (B11)."""
+        subprocess.run(["git", "init", "-q"], check=True)
+
+        init_result = runner.invoke(app, ["init", "--no-interactive"])
+        validate_result = runner.invoke(app, ["validate"])
+
+        assert init_result.exit_code == 0, init_result.output
+        assert validate_result.exit_code == 0, validate_result.output
+        assert "0 errors" in validate_result.output
 
 
 class TestInitWizardFlags:

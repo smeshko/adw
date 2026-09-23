@@ -6,6 +6,21 @@ Tests for the minimal mode project initialization (ISS-028 additions).
 from pathlib import Path
 
 from adw.config.initializer import ProjectInitializer
+from adw.config.loader import ConfigLoader
+
+
+class TestProjectInitializerConfig:
+    """Tests for the project.yaml written by minimal init."""
+
+    def test_initialize_writes_loadable_config(self, tmp_path: Path) -> None:
+        """Minimal init writes a project.yaml that ConfigLoader loads (B11)."""
+        ProjectInitializer(tmp_path).initialize("python")
+
+        config = ConfigLoader(tmp_path).load()
+
+        assert config.name == tmp_path.name
+        assert config.language == "python"
+        assert config.test_command == "pytest"
 
 
 class TestProjectInitializerEnvTemplate:

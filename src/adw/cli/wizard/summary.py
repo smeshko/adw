@@ -15,6 +15,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 
+from adw.config.initializer import generate_env_template, generate_gitignore
 from adw.exceptions import ConfigError
 
 if TYPE_CHECKING:
@@ -422,44 +423,6 @@ def generate_phase_configs(state: WizardState) -> dict[str, str]:
 
     registry = ConfigRegistry()
     return generate_all_phase_configs(state, registry)
-
-
-def generate_gitignore() -> str:
-    """Generate .gitignore content for .adw directory.
-
-    Returns:
-        Gitignore file content.
-    """
-    return """# ADW runtime artifacts
-runs/
-logs/
-*.log
-state.json
-
-# Environment files with secrets
-.env
-"""
-
-
-def generate_env_template() -> str:
-    """Generate .env.template content for credential setup.
-
-    Returns:
-        Environment template file content with placeholder credentials.
-    """
-    return """\
-# ADW Credentials
-# Copy this file to .env and fill in your values
-# The .env file is gitignored and will NOT be committed
-
-# Linear Task Manager (required if using linear task manager)
-# Get your API key from: Linear Settings > API > Personal API keys
-LINEAR_API_KEY=
-
-# Linear Team ID (UUID format)
-# Find via: Linear Settings > Workspace > Copy team ID
-LINEAR_TEAM_ID=
-"""
 
 
 def atomic_write_config(adw_dir: Path, files: dict[str, str]) -> None:
