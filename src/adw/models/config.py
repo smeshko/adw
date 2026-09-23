@@ -21,11 +21,11 @@ from adw.models.webhook import WebhookConfig
 class RetryConfig(BaseModel):
     """Configuration for retry logic with exponential backoff.
 
-    Controls how transient LLM errors (timeouts, rate limits) are handled
-    through automatic retries with increasing delays.
+    The orchestrator applies it to every phase that fails with a recoverable
+    error: it reruns the whole phase, waiting longer before each attempt.
 
     Attributes:
-        max_retries: Maximum number of retry attempts.
+        max_retries: Maximum attempts per phase, including the first.
         base_delay_seconds: Initial delay before first retry.
         max_delay_seconds: Maximum delay cap.
         multiplier: Factor to multiply delay by after each attempt.
@@ -39,7 +39,7 @@ class RetryConfig(BaseModel):
     max_retries: int = Field(
         default=3,
         gt=0,
-        description="Maximum number of retry attempts",
+        description="Maximum attempts per phase, including the first",
     )
     base_delay_seconds: float = Field(
         default=1.0,

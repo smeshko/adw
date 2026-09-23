@@ -56,7 +56,6 @@ class LLMExecutor(Protocol):
             LLMResult with success status, content, tool calls, and metrics.
 
         Raises:
-            LLMRateLimitError: If rate limited by the API.
-            LLMError: For other LLM-related errors.
+            LLMError: For LLM-related errors.
         """
         ...

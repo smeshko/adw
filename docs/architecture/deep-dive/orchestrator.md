@@ -45,7 +45,7 @@ run()
       ├── Check shutdown signal
       ├── Update context.current_phase → persist
       ├── Create pre-phase snapshot
-      ├── Execute phase with retry (up to 3x)
+      ├── Execute phase with retry (up to llm.retry.max_retries attempts, RetryConfig backoff)
       ├── Create post-phase snapshot
       └── Update phase_history → persist
 ```
@@ -54,7 +54,7 @@ run()
 
 | Error Type | Behavior |
 |------------|----------|
-| `ADWError` (recoverable) | Retry up to 3x with exponential backoff |
+| `ADWError` (recoverable) | Retry up to `llm.retry.max_retries` attempts, `RetryConfig` backoff |
 | `ADWError` (non-recoverable) | Fail immediately, persist state |
 | `ShutdownRequested` | Graceful exit, state preserved |
 

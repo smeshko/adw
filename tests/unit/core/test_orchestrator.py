@@ -15,6 +15,7 @@ import pytest
 from adw.core.constants import PHASE_SEQUENCE
 from adw.exceptions import ConfigError, HookError, LLMError, PhaseError
 from adw.models import RunContext
+from adw.models.config import RetryConfig
 from adw.models.phase import PhaseResult, PhaseStatus
 
 if TYPE_CHECKING:
@@ -208,53 +209,6 @@ class TestOrchestratorInit:
         )
 
         assert isinstance(orch.interruption_handler, InterruptionHandler)
-
-    def test_init_default_max_retries(
-        self,
-        tmp_path: Path,
-        mock_context_manager: MagicMock,
-        mock_snapshot_manager: MagicMock,
-        mock_artifact_manager: MagicMock,
-        mock_run_directory_manager: MagicMock,
-        mock_phase_runner: MagicMock,
-    ) -> None:
-        """Test that max_retries defaults to 3."""
-        from adw.core.orchestrator import Orchestrator
-
-        orch = Orchestrator(
-            runs_dir=tmp_path,
-            context_manager=mock_context_manager,
-            snapshot_manager=mock_snapshot_manager,
-            artifact_manager=mock_artifact_manager,
-            run_directory_manager=mock_run_directory_manager,
-            phase_runner=mock_phase_runner,
-        )
-
-        assert orch.max_retries == 3
-
-    def test_init_custom_max_retries(
-        self,
-        tmp_path: Path,
-        mock_context_manager: MagicMock,
-        mock_snapshot_manager: MagicMock,
-        mock_artifact_manager: MagicMock,
-        mock_run_directory_manager: MagicMock,
-        mock_phase_runner: MagicMock,
-    ) -> None:
-        """Test that max_retries can be customized."""
-        from adw.core.orchestrator import Orchestrator
-
-        orch = Orchestrator(
-            runs_dir=tmp_path,
-            context_manager=mock_context_manager,
-            snapshot_manager=mock_snapshot_manager,
-            artifact_manager=mock_artifact_manager,
-            run_directory_manager=mock_run_directory_manager,
-            phase_runner=mock_phase_runner,
-            max_retries=5,
-        )
-
-        assert orch.max_retries == 5
 
 
 class TestGetNextPhase:
@@ -763,7 +717,7 @@ class TestRetryLogic:
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_directory_manager,
             phase_runner=mock_phase_runner,
-            max_retries=5,  # Custom max
+            retry_config=RetryConfig(max_retries=5),
             worktree_config=WorktreeConfig(enabled=False),  # ISS-025
         )
 
@@ -799,11 +753,95 @@ class TestRetryLogic:
         with pytest.raises(LLMError):
             orchestrator.run("Test feature")
 
-        # Should have slept twice (before 2nd and 3rd attempt)
-        assert no_backoff.call_count == 2
-        # First delay: 2^0 = 1, Second delay: 2^1 = 2
-        no_backoff.assert_any_call(1)
-        no_backoff.assert_any_call(2)
+        # Default RetryConfig: 3 attempts, 1.0s doubling between them
+        assert [c.args[0] for c in no_backoff.call_args_list] == [1.0, 2.0]
+
+    def test_backoff_reads_retry_config(
+        self,
+        no_backoff: MagicMock,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Backoff grows by the configured multiplier and caps at the max delay."""
+        from adw.core.orchestrator import Orchestrator
+        from adw.models import WorktreeConfig
+
+        runs_dir = tmp_path / "runs"
+        runs_dir.mkdir(parents=True, exist_ok=True)
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            retry_config=RetryConfig(
+                max_retries=4,
+                base_delay_seconds=0.5,
+                multiplier=3,
+                max_delay_seconds=1.0,
+            ),
+            worktree_config=WorktreeConfig(enabled=False),
+        )
+        mock_phase_runner.run.side_effect = LLMError(
+            code="LLM_ERROR",
+            message="LLM failed",
+            recoverable=True,
+        )
+
+        with pytest.raises(LLMError):
+            orchestrator.run("Test feature")
+
+        assert mock_phase_runner.run.call_count == 4
+        assert [c.args[0] for c in no_backoff.call_args_list] == [0.5, 1.0, 1.0]
+
+    def test_retry_prints_line_per_retry(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Each retry prints a line naming the error and the next attempt."""
+        from adw.core.orchestrator import Orchestrator
+        from adw.models import WorktreeConfig
+
+        runs_dir = tmp_path / "runs"
+        runs_dir.mkdir(parents=True, exist_ok=True)
+        mock_progress = MagicMock()
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            progress_display=mock_progress,
+            worktree_config=WorktreeConfig(enabled=False),
+        )
+        mock_phase_runner.run.side_effect = LLMError(
+            code="LLM_ERROR",
+            message="LLM failed",
+            recoverable=True,
+        )
+
+        with pytest.raises(LLMError):
+            orchestrator.run("Test feature")
+
+        printed = [c.args[0] for c in mock_progress.console.print.call_args_list]
+        retry_lines = [line for line in printed if "retrying in" in line]
+        assert len(retry_lines) == 2
+        assert "Phase 'plan' failed (LLM_ERROR)" in retry_lines[0]
+        assert "(2/3)" in retry_lines[0]
+        assert "(3/3)" in retry_lines[1]
 
     def test_retry_success_after_failures(
         self,

@@ -234,7 +234,7 @@ Include the grep output, `adw run --help`, and `which adw && adw --version` afte
 
 ## Phase 1.6 — Fail phases when Claude fails
 
-**Plan**: [01.6-fail-phases-when-claude-fails](../plans/01.6-fail-phases-when-claude-fails/PLAN.md) · status: planned
+**Plan**: [01.6-fail-phases-when-claude-fails](../plans/01.6-fail-phases-when-claude-fails/PLAN.md) · status: in-progress
 
 **Linear**: ADW-12 (https://linear.app/ivo-tsonev/issue/ADW-12)
 

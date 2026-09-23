@@ -1,6 +1,6 @@
 # Plan: Fail phases when Claude fails
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-12
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -86,7 +86,7 @@ See [RESEARCH.md](./RESEARCH.md). Key findings:
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Make the orchestrator the single RetryConfig-driven retry layer
+- [x] TASK-001: Make the orchestrator the single RetryConfig-driven retry layer
 - [ ] TASK-002: Raise LLMError when Claude Code exits non-zero (depends on TASK-001)
 - [ ] TASK-003: Drop the unused timeout parameter from executors (depends on TASK-001)
 - [ ] TASK-004: Delete LLMResult success, error and attempt_count (depends on TASK-002)

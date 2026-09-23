@@ -241,20 +241,18 @@ class TestBootstrapTaskManagerWiring:
         mock_label_manager_class.assert_not_called()
 
 
-class TestBootstrapRetryExecutorWiring:
-    """Tests for RetryExecutor wrapping in create_orchestrator."""
+class TestBootstrapRetryWiring:
+    """Tests for retry wiring in create_orchestrator."""
 
     @patch("adw.cli.bootstrap.ConfigLoader")
-    @patch("adw.cli.bootstrap.RetryExecutor")
     @patch("adw.cli.bootstrap.ClaudeCodeExecutor")
-    def test_retry_executor_wraps_claude_code_executor(
+    def test_orchestrator_retries_with_loaded_retry_config(
         self,
         mock_claude_executor_class: MagicMock,
-        mock_retry_executor_class: MagicMock,
         mock_config_loader: MagicMock,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """RetryExecutor wraps ClaudeCodeExecutor in production path."""
+        """The orchestrator gets llm.retry; the PhaseRunner gets the bare executor."""
         from adw.cli.bootstrap import create_orchestrator
         from adw.models.config import ProjectConfig
 
@@ -270,43 +268,12 @@ class TestBootstrapRetryExecutorWiring:
         mock_project_config.llm = llm_config
         mock_config_loader.return_value.load.return_value = mock_project_config
 
-        with patch("adw.cli.bootstrap.Orchestrator"):
-            create_orchestrator()
+        orchestrator = create_orchestrator()
 
-        # ClaudeCodeExecutor should be created with the loaded llm_config
-        mock_claude_executor_class.assert_called_once()
-        call_kwargs = mock_claude_executor_class.call_args
-        assert call_kwargs.kwargs["config"] is llm_config
-
-        # RetryExecutor should wrap it with llm_config.retry
-        mock_retry_executor_class.assert_called_once_with(
-            executor=mock_claude_executor_class.return_value,
-            config=llm_config.retry,
+        assert orchestrator._phase_runner.executor is (  # type: ignore[attr-defined]
+            mock_claude_executor_class.return_value
         )
-
-    @patch("adw.cli.bootstrap.ConfigLoader")
-    @patch("adw.cli.bootstrap.RetryExecutor")
-    def test_mock_executor_not_wrapped_with_retry(
-        self,
-        mock_retry_executor_class: MagicMock,
-        mock_config_loader: MagicMock,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        """MockExecutor is NOT wrapped with RetryExecutor in test mode."""
-        from adw.cli.bootstrap import create_orchestrator
-        from adw.exceptions import ConfigError
-
-        mock_config_loader.return_value.load.side_effect = ConfigError(
-            code="NO_CONFIG", message="No config"
-        )
-
-        monkeypatch.setenv("ADW_MOCK_EXECUTOR", "1")
-
-        with patch("adw.cli.bootstrap.Orchestrator"):
-            create_orchestrator()
-
-        # RetryExecutor should NOT be instantiated
-        mock_retry_executor_class.assert_not_called()
+        assert orchestrator.retry_config is llm_config.retry
 
     @patch("adw.cli.bootstrap.ConfigLoader")
     @patch("adw.cli.bootstrap.ClaudeCodeExecutor")
@@ -335,10 +302,7 @@ class TestBootstrapRetryExecutorWiring:
         mock_project_config.llm = custom_llm
         mock_config_loader.return_value.load.return_value = mock_project_config
 
-        with (
-            patch("adw.cli.bootstrap.Orchestrator"),
-            patch("adw.cli.bootstrap.RetryExecutor"),
-        ):
+        with patch("adw.cli.bootstrap.Orchestrator"):
             create_orchestrator()
 
         call_kwargs = mock_claude_executor_class.call_args
