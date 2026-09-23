@@ -487,6 +487,58 @@ class TestInitializeRunPostsStartedComment:
         assert context.status == "running"
 
 
+class TestSwitchToRunBranch:
+    """Tests for switch_to_run_branch on resume and continue."""
+
+    @staticmethod
+    def _context(**updates: object) -> RunContext:
+        return RunContext(
+            run_id="01HQTEST123456789012345678",
+            feature_description="Add login",
+            current_phase="build",
+            started_at=datetime.now(UTC),
+            status="failed",
+            use_worktree=False,
+        ).model_copy(update=updates)
+
+    def test_worktree_run_is_left_alone(
+        self, run_lifecycle: RunLifecycle, mock_ensure_on_branch: MagicMock
+    ) -> None:
+        """A worktree run keeps its own checkout: no switch, same context."""
+        context = self._context(use_worktree=True, branch_name="feature/a")
+
+        result = run_lifecycle.switch_to_run_branch(context)
+
+        mock_ensure_on_branch.assert_not_called()
+        assert result is context
+
+    def test_switches_to_recorded_branch(
+        self, run_lifecycle: RunLifecycle, mock_ensure_on_branch: MagicMock
+    ) -> None:
+        """A non-worktree run switches to its recorded branch."""
+        context = self._context(branch_name="feature/a")
+
+        result = run_lifecycle.switch_to_run_branch(context)
+
+        mock_ensure_on_branch.assert_called_once_with(
+            "feature/a", working_dir=run_lifecycle.project_path
+        )
+        assert result.branch_name == "feature/a"
+
+    def test_backfills_missing_branch_name(
+        self, run_lifecycle: RunLifecycle, mock_ensure_on_branch: MagicMock
+    ) -> None:
+        """A context from before run-start switching gets its branch derived."""
+        context = self._context(branch_name=None)
+
+        result = run_lifecycle.switch_to_run_branch(context)
+
+        mock_ensure_on_branch.assert_called_once_with(
+            "feature/add-login", working_dir=run_lifecycle.project_path
+        )
+        assert result.branch_name == "feature/add-login"
+
+
 class TestPrepareResumeContext:
     """Tests for prepare_resume_context method."""
 

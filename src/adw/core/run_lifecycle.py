@@ -227,6 +227,38 @@ class RunLifecycle:
 
         return context
 
+    def switch_to_run_branch(self, context: RunContext) -> RunContext:
+        """Put a resumed or continued non-worktree run back on its branch.
+
+        Worktree runs live in their own checkout and are returned unchanged.
+        A context saved before run start switched branches has no
+        branch_name; it is derived the way run start derives it, and set on
+        the returned context. This method does not save: callers save next.
+
+        Args:
+            context: The run context being resumed or continued.
+
+        Returns:
+            The context, with branch_name backfilled if it was missing.
+
+        Raises:
+            HookError: If the project is not a git repository, or its tree
+                has uncommitted changes.
+        """
+        if context.use_worktree:
+            return context
+
+        branch_name = (
+            context.branch_name
+            or self._feature_branch_name(context.feature_description)
+            or f"adw/{context.run_id}"
+        )
+        ensure_on_branch(branch_name, working_dir=self.project_path)
+
+        if context.branch_name is None:
+            return context.model_copy(update={"branch_name": branch_name})
+        return context
+
     def prepare_resume_context(self, context: RunContext) -> RunContext:
         """Prepare context for resumed execution.
 

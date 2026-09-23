@@ -453,8 +453,9 @@ class Orchestrator:
     ) -> RunContext:
         """Resume a failed or interrupted run.
 
-        Loads the existing run context and continues execution from the
-        specified phase (or the current_phase if not specified).
+        Loads the existing run context, switches a non-worktree run back to
+        its branch, and continues execution from the specified phase (or the
+        current_phase if not specified).
 
         Args:
             run_id: ID of the run to resume.
@@ -466,6 +467,8 @@ class Orchestrator:
         Raises:
             ConfigError: If run cannot be resumed (completed or invalid phase).
             StateError: If run state is corrupted.
+            HookError: If a non-worktree run cannot switch to its branch (not a
+                git repository, or uncommitted changes). The run is unchanged.
             ADWError: If phase execution fails.
 
         Example:
@@ -477,6 +480,10 @@ class Orchestrator:
 
         # Use ResumeManager for validation and phase determination (Story ISS-014)
         self.resume_manager.validate_resumable(context, from_phase=from_phase)
+
+        # Back onto the run's branch before anything is saved, so a failed
+        # switch leaves the run as it was on disk
+        context = self._lifecycle.switch_to_run_branch(context)
 
         # Determine resume phase using ResumeManager
         resume_phase = from_phase or self.resume_manager.get_resume_phase(context)
@@ -540,8 +547,9 @@ class Orchestrator:
 
         Loads the existing run context (worktree, branch, run directory)
         from source_run_id and executes the specified phase within that
-        same environment. Unlike run_single_phase(), this does NOT create
-        a new run — it reuses the source run's context entirely.
+        same environment. A non-worktree run is switched back to its branch
+        first. Unlike run_single_phase(), this does NOT create a new run —
+        it reuses the source run's context entirely.
 
         Args:
             phase: Phase to execute (must be in PHASE_SEQUENCE).
@@ -554,6 +562,8 @@ class Orchestrator:
 
         Raises:
             ConfigError: If source run not found or worktree missing.
+            HookError: If a non-worktree run cannot switch to its branch (not a
+                git repository, or uncommitted changes). The run is unchanged.
             ADWError: If phase execution fails.
 
         Example:
@@ -583,6 +593,10 @@ class Orchestrator:
                 ),
                 recoverable=False,
             )
+
+        # Back onto the run's branch before anything is saved, so a failed
+        # switch leaves the run as it was on disk
+        context = self._lifecycle.switch_to_run_branch(context)
 
         # Override feature description if provided
         if feature_description:
