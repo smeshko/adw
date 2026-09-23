@@ -1,6 +1,6 @@
 # Plan: Carry the PR URL on the run context
 
-Status: in-progress
+Status: done
 Branch: feature/adw-13
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -96,15 +96,15 @@ See [RESEARCH.md](./RESEARCH.md). The headlines:
 
 ## Acceptance Criteria
 
-- [ ] After a mocked run whose document step creates a PR through the fake `gh`, `context.json` on disk has `pr_url` set, and the completion comment text posted to the task manager contains it. Evidence: `TestPRCreationAfterDocumentPhase` output.
-- [ ] After `adw pr <run-id>` against a completed run with no PR, `context.json` has `pr_url` set. Evidence:
+- [x] After a mocked run whose document step creates a PR through the fake `gh`, `context.json` on disk has `pr_url` set, and the completion comment text posted to the task manager contains it. Evidence: `TestPRCreationAfterDocumentPhase` output.
+- [x] After `adw pr <run-id>` against a completed run with no PR, `context.json` has `pr_url` set. Evidence:
   - the CLI test output with the fake `gh`
   - the real run's `context.json` against a private scratch GitHub repo, in `VALIDATION.md`
-- [ ] With `auto_close: true` and a Linear task, a completed run leaves the ticket open (`close_task` and `update_status` to Done are never called from `finalize_success`), and the deprecation warning is logged exactly once. Evidence: the `caplog` test output.
-- [ ] `grep -rn "pr_result\|IssueCloser\|GitHubClient\|is_pr_merged" src` returns nothing.
-- [ ] `grep -rn "AutoPRResult\|_PRResultFromContext\|can_auto_create_pr\|check_git_remote\|check_gh_authenticated\|try_auto_create_pr\|no_open\|task_uuid" src` returns nothing.
-- [ ] `grep -rn "staging" src/adw` hits only `hooks/git_commit.py`, where "staging" means the git index, not a branch.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%.
+- [x] With `auto_close: true` and a Linear task, a completed run leaves the ticket open (`close_task` and `update_status` to Done are never called from `finalize_success`), and the deprecation warning is logged exactly once. Evidence: the `caplog` test output.
+- [x] `grep -rn "pr_result\|IssueCloser\|GitHubClient\|is_pr_merged" src` returns nothing.
+- [x] `grep -rn "AutoPRResult\|_PRResultFromContext\|can_auto_create_pr\|check_git_remote\|check_gh_authenticated\|try_auto_create_pr\|no_open\|task_uuid" src` returns nothing.
+- [x] `grep -rn "staging" src/adw` hits only `hooks/git_commit.py`, where "staging" means the git index, not a branch.
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%.
 
 ## Tasks
 
@@ -116,4 +116,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-003: Add a core create_pr with mapped gh errors
 - [x] TASK-004: Create the document step's PR through create_pr (depends on TASK-001,TASK-002,TASK-003)
 - [x] TASK-005: Route adw pr through create_pr (depends on TASK-001,TASK-004)
-- [ ] TASK-006: Final Validation
+- [x] TASK-006: Final Validation

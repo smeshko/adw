@@ -40,7 +40,7 @@ No prompt changes here; Epic 05 rewrites the prompts. Runs stay fully autonomous
 ## Dependencies
 
 - Epic 03 (ADW-6): the single run loop and explicit phase steps (3.2, 3.4) are where the configurable sequence and the pre-build step plug in.
-- Phase 1.7 (ADW-13): the core `create_pr(context, base, draft)` and the single base-branch default that 4.4 reuses.
+- Phase 1.7 (ADW-13): the core `create_pr(context, body, *, base, draft=False)` in `adw.core.pr`, which 4.4 reuses; the caller owns the body. The default base branch is `GitConfig.base_branch` (`main`).
 - Phase 2.10 (ADW-26): the single Linear manager that 4.3 reads issues through.
 
 ## Out of scope

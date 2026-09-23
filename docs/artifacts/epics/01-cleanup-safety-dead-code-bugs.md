@@ -262,7 +262,7 @@ A test drives the fake `claude` script (a shell file that exits 1) through `Phas
 
 ## Phase 1.7 — Carry the PR URL on the run context
 
-**Plan**: [01.7-carry-pr-url-on-run-context](../plans/01.7-carry-pr-url-on-run-context/PLAN.md) · status: in-progress
+**Plan**: [01.7-carry-pr-url-on-run-context](../plans/01.7-carry-pr-url-on-run-context/PLAN.md) · status: done
 
 **Linear**: ADW-13 (https://linear.app/ivo-tsonev/issue/ADW-13)
 
@@ -280,11 +280,11 @@ A test drives the fake `claude` script (a shell file that exits 1) through `Phas
 
 ### Acceptance criteria
 
-- [ ] After a mocked run whose document step creates a PR, `context.json` has `pr_url` set, and the completion comment text includes it.
-- [ ] After `adw pr <run-id>` against a run with no PR, `context.pr_url` is set.
-- [ ] With `auto_close: true` and a Linear task, a completed run leaves the ticket open, and the warning is logged once.
-- [ ] `grep -rn "pr_result\|IssueCloser\|GitHubClient\|is_pr_merged" src` returns nothing.
-- [ ] Lint and tests pass.
+- [x] After a mocked run whose document step creates a PR, `context.json` has `pr_url` set, and the completion comment text includes it.
+- [x] After `adw pr <run-id>` against a run with no PR, `context.pr_url` is set.
+- [x] With `auto_close: true` and a Linear task, a completed run leaves the ticket open, and the warning is logged once.
+- [x] `grep -rn "pr_result\|IssueCloser\|GitHubClient\|is_pr_merged" src` returns nothing.
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -400,6 +400,6 @@ Include rendered-prompt snapshots (before/after) for the document and validate p
 
 - [ ] Every phase merged and its acceptance criteria met
 - [ ] Status row in [EPICS.md](./EPICS.md) updated to `Done`
-- [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code
+- [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code — phase 1.7: B1 and B12 covered, see [VALIDATION.md](../plans/01.7-carry-pr-url-on-run-context/VALIDATION.md)
 - [ ] The full suite runs without touching the checkout or `~/.adw`, and is at least 50 s faster than before the epic — phase 1.1: no-touch diff empty, 210.2 s → 157.1 s (−53.1 s), see [VALIDATION.md](../plans/archive/2026-09-23-01.1-isolate-test-suite/VALIDATION.md)
 - [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l`
