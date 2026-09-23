@@ -120,18 +120,6 @@ class TestClaudeCodeExecutorExecute:
         assert "Line 1" in result.content
         assert "Line 2" in result.content
 
-    def test_execute_returns_success_on_zero_exit(
-        self, executor: ClaudeCodeExecutor, mock_subprocess
-    ) -> None:
-        """execute() should return success=True when process exits with 0."""
-        mock_asyncio, process = mock_subprocess
-        process.returncode = 0
-
-        with patch("shutil.which", return_value="/usr/bin/claude"):
-            result = executor.execute("Test prompt")
-
-        assert result.success is True
-
     def test_execute_includes_duration_ms(
         self, executor: ClaudeCodeExecutor, mock_subprocess
     ) -> None:
@@ -425,7 +413,6 @@ class TestRealTimeStreaming:
                 result = executor.execute("Test prompt")
 
             # Should complete without blocking
-            assert result.success is True
             assert "Line 1" in result.content
             assert "Line 2" in result.content
 

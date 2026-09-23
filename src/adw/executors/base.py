@@ -51,7 +51,7 @@ class LLMExecutor(Protocol):
                  If None, uses executor's default (no --model flag).
 
         Returns:
-            LLMResult with success status, content, tool calls, and metrics.
+            LLMResult with content, tool calls, and metrics.
 
         Raises:
             LLMError: For LLM-related errors.

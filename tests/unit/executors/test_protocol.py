@@ -25,7 +25,7 @@ def test_llm_executor_is_runtime_checkable() -> None:
             cwd: Path | None = None,
             model: str | None = None,
         ) -> LLMResult:
-            return LLMResult(success=True, content="test")
+            return LLMResult(content="test")
 
     executor = MinimalExecutor()
     assert isinstance(executor, LLMExecutor)

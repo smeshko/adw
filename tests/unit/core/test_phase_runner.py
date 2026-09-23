@@ -114,7 +114,6 @@ def mock_executor() -> MagicMock:
     """Create a mock LLM executor."""
     executor = MagicMock()
     executor.execute.return_value = LLMResult(
-        success=True,
         content="LLM output content",
         tokens_used=500,
         duration_ms=2000,
@@ -209,7 +208,6 @@ class TestPhaseRunnerRun:
     ) -> None:
         """Test that run captures token usage from executor."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Output",
             tokens_used=1234,
             duration_ms=1000,
@@ -231,7 +229,6 @@ class TestPhaseRunnerRun:
             ToolCall(tool_name="write_file", arguments={"path": "/b.py"}),
         ]
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Output",
             tokens_used=100,
             duration_ms=1000,
@@ -278,9 +275,7 @@ class TestPhaseRunnerExecutionOrder:
 
         def execute_side_effect(*args, **kwargs):
             call_order.append("llm")
-            return LLMResult(
-                success=True, content="llm output", tokens_used=100, duration_ms=1000
-            )
+            return LLMResult(content="llm output", tokens_used=100, duration_ms=1000)
 
         mock_hook_runner.run_hook.side_effect = hook_side_effect
         mock_template_engine.render.side_effect = render_side_effect
@@ -352,7 +347,6 @@ class TestPhaseRunnerPostHook:
     ) -> None:
         """Test that LLM output is available to post-hook via environment."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Generated code here",
             tokens_used=100,
             duration_ms=1000,
@@ -406,7 +400,6 @@ class TestPhaseRunnerArtifacts:
     ) -> None:
         """Test that LLM output is stored as artifact."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Generated plan content",
             tokens_used=100,
             duration_ms=1000,
@@ -435,7 +428,6 @@ class TestPhaseRunnerArtifacts:
         """
         # Set up LLMResult with different content and final_output
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Intermediate reasoning...\nTool calls...\nFinal result here",
             final_output="Final result here",  # Only the last message
             tokens_used=100,
@@ -465,7 +457,6 @@ class TestPhaseRunnerArtifacts:
         the artifact should fall back to using content.
         """
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Full content as fallback",
             final_output="",  # Empty - should fall back to content
             tokens_used=100,
@@ -489,7 +480,6 @@ class TestPhaseRunnerArtifacts:
     ) -> None:
         """Test that tool calls are stored as JSON artifact if present."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Output",
             tokens_used=100,
             duration_ms=1000,
@@ -620,7 +610,6 @@ class TestPhaseRunnerGitDiffCapture:
         from unittest.mock import patch
 
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Build output",
             tokens_used=100,
             duration_ms=1000,
@@ -664,7 +653,6 @@ class TestPhaseRunnerGitDiffCapture:
         from unittest.mock import patch
 
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Build output",
             tokens_used=100,
             duration_ms=1000,
@@ -700,7 +688,6 @@ class TestPhaseRunnerGitDiffCapture:
         from unittest.mock import patch
 
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Build output",
             tokens_used=100,
             duration_ms=1000,
@@ -733,7 +720,6 @@ class TestPhaseRunnerGitDiffCapture:
         from unittest.mock import patch
 
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Plan output",
             tokens_used=100,
             duration_ms=1000,
@@ -1688,7 +1674,6 @@ class TestMergeConfigsWithProject:
         resolver.resolve.return_value = resolved
 
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Output",
             tokens_used=100,
             duration_ms=1000,
@@ -2034,7 +2019,6 @@ class TestPhaseRunnerEmptyResult:
     ) -> None:
         """Build phase with zero tool calls sets empty_result=True."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="I'll begin implementing...",
             tokens_used=100,
             duration_ms=1000,
@@ -2051,7 +2035,6 @@ class TestPhaseRunnerEmptyResult:
     ) -> None:
         """Build phase with tool calls sets empty_result=False."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Done",
             tokens_used=100,
             duration_ms=1000,
@@ -2070,7 +2053,6 @@ class TestPhaseRunnerEmptyResult:
     ) -> None:
         """Non-build phase with zero tool calls does NOT set empty_result."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Plan output",
             tokens_used=100,
             duration_ms=1000,
@@ -2088,7 +2070,6 @@ class TestPhaseRunnerEmptyResult:
     ) -> None:
         """prompt_prefix is prepended to the rendered prompt."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Output",
             tokens_used=100,
             duration_ms=1000,

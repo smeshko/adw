@@ -99,7 +99,7 @@ class ClaudeCodeExecutor:
                  If None, no --model flag is passed.
 
         Returns:
-            LLMResult with success status, content, tool calls, and metrics.
+            LLMResult with content, tool calls, and metrics.
 
         Raises:
             LLMError: CLAUDE_NOT_FOUND if Claude Code is not found, or the
@@ -382,7 +382,7 @@ class ClaudeCodeExecutor:
             "duration_ms": duration_ms,
         }
 
-        return LLMResult(success=True, **common)
+        return LLMResult(**common)
 
     @classmethod
     def _exit_error_message(
