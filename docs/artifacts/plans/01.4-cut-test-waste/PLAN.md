@@ -81,7 +81,7 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
 - [x] TASK-001: Replace prompt-wording tests with one bundled-phase check
-- [ ] TASK-002: Delete ship placeholder tests and move the ship extension tests to core (depends on TASK-001)
+- [x] TASK-002: Delete ship placeholder tests and move the ship extension tests to core (depends on TASK-001)
 - [ ] TASK-003: Remove unused root fixtures and fixture data
 - [ ] TASK-004: Deduplicate git_repo and sample_context fixtures (depends on TASK-003)
 - [ ] TASK-005: Trim test_claude_code.py and hoist its executor fixture
