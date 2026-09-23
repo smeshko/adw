@@ -23,9 +23,10 @@ from rich.syntax import Syntax
 
 from adw.cli.bootstrap import get_runs_dir
 from adw.core.context_manager import ContextManager
+from adw.core.pr import generate_pr_title, load_pr_description
 from adw.core.run_lookup import RunLookup
-from adw.exceptions import ConfigError
-from adw.models import PRDescription, RunContext
+from adw.exceptions import ADWError, ConfigError
+from adw.models import RunContext
 
 logger = logging.getLogger(__name__)
 
@@ -400,8 +401,8 @@ def auto_create_pr(
     # Load PR description
     run_dir = runs_dir / run_id
     try:
-        pr_desc = _load_pr_description(run_dir)
-    except ConfigError as e:
+        pr_body = load_pr_description(run_dir)
+    except ADWError as e:
         return AutoPRResult(
             success=False,
             reason=e.message,
@@ -409,10 +410,7 @@ def auto_create_pr(
         )
 
     # Generate PR title (Story 12.6: PR-Task Linking, ISS-037: task_info.title fallback)
-    pr_title = _generate_pr_title(context)
-
-    # Convert to markdown
-    pr_body = pr_desc.to_markdown()
+    pr_title = generate_pr_title(context)
 
     # Add Linear task link to PR body (Story 12.6: PR-Task Linking)
     if context.task_id and context.task_info:
@@ -521,65 +519,6 @@ def display_manual_instructions(
     console.print()
 
 
-def _get_pr_description_path(run_dir: Path) -> Path | None:
-    """Find the PR description artifact in a run directory.
-
-    Args:
-        run_dir: Path to the run directory.
-
-    Returns:
-        Path to pr_description.md if found, None otherwise.
-    """
-    # Check in artifacts/document/ (Story 9.4 location)
-    artifact_path = run_dir / "artifacts" / "document" / "pr_description.md"
-    if artifact_path.exists():
-        return artifact_path
-
-    # Fallback: check artifacts root
-    fallback_path = run_dir / "artifacts" / "pr_description.md"
-    if fallback_path.exists():
-        return fallback_path
-
-    return None
-
-
-def _load_pr_description(run_dir: Path) -> PRDescription:
-    """Load PR description from run artifacts.
-
-    Args:
-        run_dir: Path to the run directory.
-
-    Returns:
-        Parsed PRDescription model.
-
-    Raises:
-        ConfigError: If PR description not found or invalid.
-    """
-    pr_path = _get_pr_description_path(run_dir)
-
-    if not pr_path:
-        raise ConfigError(
-            code="PR_DESCRIPTION_NOT_FOUND",
-            message="No PR description found in run artifacts",
-            suggestion=(
-                "Run the 'document' phase first to generate PR description, "
-                "or ensure run completed the full pipeline"
-            ),
-            recoverable=False,
-        )
-
-    try:
-        content = pr_path.read_text(encoding="utf-8")
-        return PRDescription.from_markdown(content)
-    except ValueError as e:
-        raise ConfigError(
-            code="PR_DESCRIPTION_INVALID",
-            message=f"Failed to parse PR description: {e}",
-            suggestion="Check the pr_description.md file format",
-            recoverable=False,
-        ) from e
-
-
 def _get_base_branch(run_dir: Path) -> str:
     """Get the base branch for PR creation.
 
@@ -607,58 +546,6 @@ def _get_base_branch(run_dir: Path) -> str:
         pass
 
     return GitConfig().base_branch
-
-
-def _generate_pr_title(context: RunContext) -> str:
-    """Generate PR title from context, using task_info.title when appropriate.
-
-    ISS-037: When feature_description equals task_id (user ran with just a task ID),
-    use task_info.title from Linear to create a meaningful PR title.
-
-    Title generation logic:
-    1. If feature_description == task_id and task_info.title exists:
-       → "{task_id}: {task_info.title}"
-    2. If feature_description == task_id but no task_info:
-       → "{task_id}" (no redundant duplication)
-    3. If feature_description != task_id and task_id exists:
-       → "{task_id}: {feature_description}"
-    4. If no task_id:
-       → "{feature_description}"
-
-    Args:
-        context: RunContext with feature_description, task_id, and task_info.
-
-    Returns:
-        PR title string, truncated to 72 chars if necessary.
-    """
-    pr_title = context.feature_description
-
-    if context.task_id and context.feature_description == context.task_id:
-        # Feature description is just the task ID - try task title from Linear
-        task_title = (
-            context.task_info.title.strip()
-            if context.task_info and context.task_info.title
-            else ""
-        )
-        if task_title:
-            pr_title = f"{context.task_id}: {task_title}"
-            logger.info(
-                "Using task title from Linear: %s - %s",
-                context.task_id,
-                task_title,
-            )
-        else:
-            # Fallback to just the task ID (no redundant duplication)
-            pr_title = context.task_id
-            logger.debug("No task title available, using task ID: %s", context.task_id)
-    elif context.task_id:
-        # Normal case: prefix with task ID
-        pr_title = f"{context.task_id}: {context.feature_description}"
-
-    if len(pr_title) > 72:
-        pr_title = pr_title[:69] + "..."
-
-    return pr_title
 
 
 def _store_pr_url(context: RunContext, pr_url: str, runs_dir: Path) -> RunContext:
@@ -762,8 +649,8 @@ def pr(
     # Load PR description from artifacts
     run_dir = runs_dir / context.run_id
     try:
-        pr_desc = _load_pr_description(run_dir)
-    except ConfigError as e:
+        pr_body = load_pr_description(run_dir)
+    except ADWError as e:
         console.print(
             Panel(
                 f"[red]{e.message}[/]\n\n[dim]Suggestion:[/] {e.suggestion}",
@@ -777,10 +664,7 @@ def pr(
     base_branch = _get_base_branch(run_dir)
 
     # Generate PR title (ISS-037: use helper for consistent title generation)
-    pr_title = _generate_pr_title(context)
-
-    # Convert to markdown
-    pr_body = pr_desc.to_markdown()
+    pr_title = generate_pr_title(context)
 
     # Check if gh is available
     if not check_gh_available():

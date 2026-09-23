@@ -8,16 +8,21 @@ This module provides common fixtures for testing ADW components:
 - fixtures_path: Returns path to test fixtures directory
 - isolated_home: Points HOME at a per-test directory (autouse)
 - git_repo: Creates isolated git repository with worktree cleanup (ISS-024)
+- fake_gh: Puts a recording fake `gh` executable first on PATH
 
 IMPORTANT: ADW_MOCK_EXECUTOR is set at module load time to ensure all tests
 (including subprocess-based integration tests) use MockExecutor instead of
 hitting the real Claude API.
 """
 
+import json
 import os
 import shutil
+import stat
 import subprocess
+import sys
 from collections.abc import Generator
+from dataclasses import dataclass
 
 # Force mock executor for ALL tests - prevents hitting real Claude API
 # This MUST be set before any test imports or runs
@@ -349,3 +354,74 @@ def _cleanup_worktrees(repo_path: Path) -> None:
 # is dangerous because it would delete legitimate developer worktrees
 # (ADW production also creates ULID-named worktrees in trees/).
 # Tests use tmp_path so they don't create orphans in the real project.
+
+
+_FAKE_GH_SCRIPT = """\
+import json, os, sys
+d = os.environ["FAKE_GH_DIR"]
+with open(os.path.join(d, "calls.jsonl"), "a") as f:
+    f.write(json.dumps(sys.argv[1:]) + "\\n")
+sys.stdout.write(open(os.path.join(d, "stdout")).read())
+sys.stderr.write(open(os.path.join(d, "stderr")).read())
+sys.exit(int(open(os.path.join(d, "exit_code")).read()))
+"""
+
+
+@dataclass
+class FakeGh:
+    """A fake `gh` on PATH that records its argv and replies from files.
+
+    Attributes:
+        state_dir: Directory holding the canned reply and calls.jsonl.
+    """
+
+    state_dir: Path
+
+    def reply(
+        self,
+        stdout: str = "https://github.com/o/r/pull/1\n",
+        stderr: str = "",
+        exit_code: int = 0,
+    ) -> None:
+        """Set what the next `gh` invocations print and exit with."""
+        (self.state_dir / "stdout").write_text(stdout)
+        (self.state_dir / "stderr").write_text(stderr)
+        (self.state_dir / "exit_code").write_text(str(exit_code))
+
+    def calls(self) -> list[list[str]]:
+        """Return the argv (without `gh`) of every invocation, in order."""
+        log = self.state_dir / "calls.jsonl"
+        if not log.exists():
+            return []
+        return [json.loads(line) for line in log.read_text().splitlines()]
+
+
+@pytest.fixture
+def fake_gh(
+    tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> FakeGh:
+    """Put a recording fake `gh` first on PATH.
+
+    The script records each argv as one JSON line (PR bodies hold newlines)
+    and replies with a canned stdout, stderr and exit code, by default a
+    successful `https://github.com/o/r/pull/1`. PATH is prepended, never
+    replaced, so git and the rest of the environment stay intact.
+
+    Returns:
+        FakeGh handle to set replies and read recorded calls.
+    """
+    state_dir = tmp_path_factory.mktemp("fake_gh")
+    bin_dir = state_dir / "bin"
+    bin_dir.mkdir()
+    script = bin_dir / "gh"
+    script.write_text(
+        f'#!/bin/sh\nexec "{sys.executable}" -c \'{_FAKE_GH_SCRIPT}\' "$@"\n'
+    )
+    script.chmod(script.stat().st_mode | stat.S_IEXEC)
+
+    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
+    monkeypatch.setenv("FAKE_GH_DIR", str(state_dir))
+
+    gh = FakeGh(state_dir)
+    gh.reply()
+    return gh

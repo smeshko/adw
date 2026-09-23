@@ -113,7 +113,7 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 
 - [x] TASK-001: Default the base branch to main in one place
 - [x] TASK-002: Stop closing tickets at run completion
-- [ ] TASK-003: Add a core create_pr with mapped gh errors
+- [x] TASK-003: Add a core create_pr with mapped gh errors
 - [ ] TASK-004: Create the document step's PR through create_pr (depends on TASK-001,TASK-002,TASK-003)
 - [ ] TASK-005: Route adw pr through create_pr (depends on TASK-001,TASK-004)
 - [ ] TASK-006: Final Validation
