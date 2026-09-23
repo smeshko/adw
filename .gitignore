@@ -28,7 +28,6 @@ ENV/
 
 # uv
 .uv/
-uv.lock
 
 # IDE
 .idea/
@@ -64,6 +63,5 @@ Thumbs.db
 
 # ADW worktree directory
 trees/
-_bmad-backup/
 .claude/
 .linear

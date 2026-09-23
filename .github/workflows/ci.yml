@@ -19,7 +19,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
 
       - name: Run ruff linting
         run: uv run ruff check src/
@@ -39,7 +39,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
 
       - name: Run mypy type checking
         run: uv run mypy src/adw
@@ -56,7 +56,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
 
       - name: Run pytest with coverage
         run: uv run pytest --cov=adw --cov-report=term-missing --cov-fail-under=80
