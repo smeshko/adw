@@ -120,7 +120,7 @@ class TestCheckGhAuthenticated:
 class TestCreatePrViaGh:
     """Tests for create_pr_via_gh function.
 
-    ISS-026: Base branch is configurable, defaults to 'staging'.
+    ISS-026: Base branch is configurable and passed explicitly.
     """
 
     def test_create_pr_success(self) -> None:
@@ -131,13 +131,12 @@ class TestCreatePrViaGh:
                 stdout="https://github.com/user/repo/pull/123\n",
                 stderr="",
             )
-            url = create_pr_via_gh("Test PR", "## Summary\nTest")
+            url = create_pr_via_gh("Test PR", "## Summary\nTest", base="main")
             assert url == "https://github.com/user/repo/pull/123"
 
-            # Verify default base is staging
             cmd = mock_run.call_args[0][0]
             base_idx = cmd.index("--base")
-            assert cmd[base_idx + 1] == "staging"
+            assert cmd[base_idx + 1] == "main"
 
     def test_create_pr_with_custom_base(self) -> None:
         """Test custom base branch is used when provided (ISS-026)."""
@@ -163,7 +162,7 @@ class TestCreatePrViaGh:
                 stdout="https://github.com/user/repo/pull/123\n",
                 stderr="",
             )
-            create_pr_via_gh("Test PR", "## Summary\nTest", draft=True)
+            create_pr_via_gh("Test PR", "## Summary\nTest", base="main", draft=True)
 
             # Check that --draft was in the command
             cmd = mock_run.call_args[0][0]
@@ -177,7 +176,9 @@ class TestCreatePrViaGh:
                 stdout="https://github.com/user/repo/pull/123\n",
                 stderr="",
             )
-            create_pr_via_gh("Test PR", "## Summary\nTest", head_branch="adw/01HQ123")
+            create_pr_via_gh(
+                "Test PR", "## Summary\nTest", base="main", head_branch="adw/01HQ123"
+            )
 
             cmd = mock_run.call_args[0][0]
             assert "--head" in cmd
@@ -193,7 +194,7 @@ class TestCreatePrViaGh:
                 stderr="error: authentication failed",
             )
             with pytest.raises(ConfigError) as exc_info:
-                create_pr_via_gh("Test PR", "## Summary\nTest")
+                create_pr_via_gh("Test PR", "## Summary\nTest", base="main")
 
             assert exc_info.value.code == "GH_AUTH_ERROR"
 
@@ -206,7 +207,7 @@ class TestCreatePrViaGh:
                 stderr="error: no commits between main and feature",
             )
             with pytest.raises(ConfigError) as exc_info:
-                create_pr_via_gh("Test PR", "## Summary\nTest")
+                create_pr_via_gh("Test PR", "## Summary\nTest", base="main")
 
             assert exc_info.value.code == "GH_NO_COMMITS"
 
@@ -217,7 +218,7 @@ class TestCreatePrViaGh:
 
             mock_run.side_effect = TimeoutExpired("gh", 60)
             with pytest.raises(ConfigError) as exc_info:
-                create_pr_via_gh("Test PR", "## Summary\nTest")
+                create_pr_via_gh("Test PR", "## Summary\nTest", base="main")
 
             assert exc_info.value.code == "GH_TIMEOUT"
 
@@ -230,7 +231,9 @@ class TestCreatePrViaGh:
                 stderr="",
             )
             # no_open should be accepted and work (no-op since gh default is no-open)
-            url = create_pr_via_gh("Test PR", "## Summary\nTest", no_open=True)
+            url = create_pr_via_gh(
+                "Test PR", "## Summary\nTest", base="main", no_open=True
+            )
             assert url == "https://github.com/user/repo/pull/123"
 
 
@@ -341,20 +344,20 @@ class TestGetBaseBranch:
     """Tests for _get_base_branch function.
 
     ISS-026: Base branch is read from git.base_branch in config,
-    defaults to 'staging' if not configured.
+    defaults to 'main' if not configured.
     """
 
-    def test_returns_staging_by_default(self, tmp_path: Path) -> None:
-        """Test returns 'staging' when no config exists (ISS-026)."""
+    def test_returns_main_by_default(self, tmp_path: Path) -> None:
+        """Test returns 'main' when no config exists (ISS-026)."""
         # Set up directory structure: project_root/.adw/runs/<run_id>
         project_root = tmp_path
         runs_dir = project_root / ".adw" / "runs"
         run_dir = runs_dir / "test-run"
         run_dir.mkdir(parents=True)
 
-        # No project.yaml - should return default 'staging'
+        # No project.yaml - should return default 'main'
         result = _get_base_branch(run_dir)
-        assert result == "staging"
+        assert result == "main"
 
     def test_reads_from_config(self, tmp_path: Path) -> None:
         """Test reads base_branch from project.yaml config (ISS-026)."""

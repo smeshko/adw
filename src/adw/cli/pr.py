@@ -4,7 +4,7 @@ This module provides the pr command that allows users to create
 a GitHub PR directly from a completed run.
 
 ISS-026: Base branch is configurable via git.base_branch in project.yaml.
-Defaults to 'staging' if not configured.
+Defaults to 'main' if not configured.
 
 Examples:
     adw pr 01HQXK5P3Z...              # Create PR from run
@@ -171,19 +171,19 @@ def create_pr_via_gh(
     title: str,
     body: str,
     *,
-    base: str = "staging",
+    base: str,
     head_branch: str | None = None,
     draft: bool = False,
     no_open: bool = False,
 ) -> str:
     """Create a PR using the gh CLI.
 
-    ISS-026: Base branch is configurable, defaults to 'staging'.
+    ISS-026: Base branch is configurable; callers pass git.base_branch.
 
     Args:
         title: PR title.
         body: PR body/description in markdown.
-        base: Base branch for the PR (default: 'staging').
+        base: Base branch for the PR.
         head_branch: Head branch for the PR. If provided, explicitly
             specifies the branch with changes. If None, uses current branch.
         draft: If True, create as draft PR.
@@ -362,7 +362,7 @@ def auto_create_pr(
     creation fails.
 
     ISS-026: Base branch is read from git.base_branch in project.yaml config,
-    with 'staging' as the default. Uses context.branch_name as the explicit
+    with 'main' as the default. Uses context.branch_name as the explicit
     head branch to ensure PR is created from the correct branch.
 
     Args:
@@ -422,7 +422,7 @@ def auto_create_pr(
         task_url = f"https://linear.app/{team_key}/issue/{identifier}"
         pr_body = f"{pr_body}\n\n---\nLinear: {task_url}"
 
-    # Get base branch from config (ISS-026: defaults to staging)
+    # Get base branch from config (ISS-026: defaults to main)
     base_branch = _get_base_branch(run_dir)
 
     # Push branch to remote before creating PR (ISS-032)
@@ -584,15 +584,16 @@ def _get_base_branch(run_dir: Path) -> str:
     """Get the base branch for PR creation.
 
     ISS-026: Reads git.base_branch from project.yaml config.
-    Falls back to 'staging' if not configured.
+    Falls back to the GitConfig default if the config can't be loaded.
 
     Args:
         run_dir: Path to the run directory (.adw/runs/<run_id>).
 
     Returns:
-        Base branch name from config, or 'staging' as default.
+        Base branch name from config, or the GitConfig default.
     """
     from adw.config.loader import ConfigLoader
+    from adw.models import GitConfig
 
     # .adw/runs/<id> -> project root
     project_root = run_dir.parent.parent.parent
@@ -600,14 +601,12 @@ def _get_base_branch(run_dir: Path) -> str:
     try:
         loader = ConfigLoader(project_root)
         if loader.has_project_config:
-            config = loader.load()
-            if config.git.base_branch:
-                return config.git.base_branch
+            return loader.load().git.base_branch
     except Exception:
         # Config loading failed - use default
         pass
 
-    return "staging"
+    return GitConfig().base_branch
 
 
 def _generate_pr_title(context: RunContext) -> str:
@@ -715,7 +714,7 @@ def pr(
     manual copy-paste.
 
     ISS-026: Base branch is read from git.base_branch in project.yaml config.
-    Defaults to 'staging' if not configured.
+    Defaults to 'main' if not configured.
 
     Examples:
         adw pr                         # Most recent completed run
@@ -774,7 +773,7 @@ def pr(
         )
         raise typer.Exit(1) from None
 
-    # ISS-026: Base branch from config (defaults to staging)
+    # ISS-026: Base branch from config (defaults to main)
     base_branch = _get_base_branch(run_dir)
 
     # Generate PR title (ISS-037: use helper for consistent title generation)

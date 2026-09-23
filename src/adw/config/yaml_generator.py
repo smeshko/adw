@@ -267,7 +267,7 @@ class YAMLWithComments:
         if base_branch:
             lines.append(f"  base_branch: {base_branch}")
         else:
-            lines.append("  # base_branch: null  # PR base branch (defaults to main)")
+            lines.append("  # base_branch: main  # PR base branch (default: main)")
 
     def _add_task_manager_section(
         self, lines: list[str], task_manager: dict[str, Any]

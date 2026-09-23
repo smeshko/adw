@@ -63,7 +63,7 @@ def create_default_registry(
     registry = ExtensionRegistry()
     registry.register(BuildExtension())
     registry.register(DocumentExtension(git_config, runs_dir))
-    registry.register(ShipExtension(project_root=project_root))
+    registry.register(ShipExtension(git_config, project_root=project_root))
     return registry
 
 

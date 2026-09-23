@@ -13,7 +13,7 @@ from pydantic import ValidationError
 
 from adw.models import ProjectConfig
 from adw.models.command import ShipCommandConfig
-from adw.models.config import PhaseConfig, WorktreeConfig
+from adw.models.config import GitConfig, PhaseConfig, WorktreeConfig
 
 
 class TestPhaseConfigInputFiles:
@@ -153,6 +153,32 @@ class TestWorktreeConfig:
                 max_concurrent=15,
             )
         assert "overlaps" in str(exc_info.value)
+
+
+class TestGitConfig:
+    """Tests for GitConfig.base_branch defaulting."""
+
+    @pytest.mark.parametrize("kwargs", [{}, {"base_branch": None}, {"base_branch": ""}])
+    def test_git_config_base_branch_defaults_to_main(
+        self, kwargs: dict[str, str | None]
+    ) -> None:
+        """Unset, null and blank base_branch all resolve to 'main'."""
+        assert GitConfig(**kwargs).base_branch == "main"
+
+    def test_git_config_keeps_explicit_base_branch(self) -> None:
+        """An explicit base_branch is kept as-is."""
+        assert GitConfig(base_branch="develop").base_branch == "develop"
+
+    def test_project_yaml_with_null_base_branch_loads_main(self) -> None:
+        """A project.yaml with git.base_branch: null loads with 'main'."""
+        yaml_content = """
+name: my-project
+language: python
+git:
+  base_branch: null
+"""
+        config = ProjectConfig.from_yaml(yaml_content)
+        assert config.git.base_branch == "main"
 
 
 class TestShipCommandConfig:

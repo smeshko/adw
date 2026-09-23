@@ -1,6 +1,6 @@
 # Plan: Carry the PR URL on the run context
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-13
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -111,7 +111,7 @@ See [RESEARCH.md](./RESEARCH.md). The headlines:
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Default the base branch to main in one place
+- [x] TASK-001: Default the base branch to main in one place
 - [ ] TASK-002: Stop closing tickets at run completion
 - [ ] TASK-003: Add a core create_pr with mapped gh errors
 - [ ] TASK-004: Create the document step's PR through create_pr (depends on TASK-001,TASK-002,TASK-003)

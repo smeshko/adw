@@ -2334,7 +2334,7 @@ class TestPRCreationAfterDocumentPhase:
         # Create extension registry with DocumentExtension and ShipExtension
         extension_registry = ExtensionRegistry()
         extension_registry.register(DocumentExtension(git_config, runs_dir))
-        extension_registry.register(ShipExtension())
+        extension_registry.register(ShipExtension(git_config))
 
         # Mock auto_create_pr to return failure
         def mock_auto_create_pr_fails(

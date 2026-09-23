@@ -546,19 +546,19 @@ class RunLifecycle:
     def _fetch_base_branch(self) -> str:
         """Fetch the remote base branch and return the remote ref.
 
-        Determines the base branch from git config (falling back to
-        ``"staging"``), runs ``git fetch origin <base_branch>``, and
-        returns ``"origin/<base_branch>"`` so the caller can branch
-        from the latest remote state.
+        Reads the base branch from git config, runs
+        ``git fetch origin <base_branch>``, and returns
+        ``"origin/<base_branch>"`` so the caller can branch from the
+        latest remote state.
 
         Returns:
-            Remote ref string, e.g. ``"origin/staging"``.
+            Remote ref string, e.g. ``"origin/main"``.
 
         Raises:
             WorktreeError: If the fetch command fails (network error,
                 no remote, auth failure, etc.).
         """
-        base_branch = self.git_config.base_branch or "staging"
+        base_branch = self.git_config.base_branch
 
         result = subprocess.run(
             ["git", "fetch", "origin", base_branch],

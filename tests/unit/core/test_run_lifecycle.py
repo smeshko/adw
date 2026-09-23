@@ -939,9 +939,9 @@ class TestFetchBaseBranch:
             mock_run.return_value = MagicMock(returncode=0, stderr="")
             result = lifecycle._fetch_base_branch()
 
-        assert result == "origin/staging"
+        assert result == "origin/main"
         mock_run.assert_called_once_with(
-            ["git", "fetch", "origin", "staging"],
+            ["git", "fetch", "origin", "main"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -964,23 +964,23 @@ class TestFetchBaseBranch:
             run_directory_manager=mock_run_directory_manager,
             index_manager=mock_index_manager,
             interruption_handler=mock_interruption_handler,
-            git_config=GitConfig(base_branch="main"),
+            git_config=GitConfig(base_branch="develop"),
         )
 
         with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stderr="")
             result = lifecycle._fetch_base_branch()
 
-        assert result == "origin/main"
+        assert result == "origin/develop"
         mock_run.assert_called_once_with(
-            ["git", "fetch", "origin", "main"],
+            ["git", "fetch", "origin", "develop"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
             check=False,
         )
 
-    def test_fetch_falls_back_to_staging_when_base_branch_none(
+    def test_fetch_falls_back_to_main_when_base_branch_none(
         self,
         tmp_path: Path,
         mock_context_manager: MagicMock,
@@ -988,7 +988,7 @@ class TestFetchBaseBranch:
         mock_index_manager: MagicMock,
         mock_interruption_handler: MagicMock,
     ) -> None:
-        """Falls back to 'staging' when git.base_branch is None."""
+        """Falls back to 'main' when git.base_branch is None."""
         lifecycle = RunLifecycle(
             runs_dir=tmp_path,
             project_path=tmp_path,
@@ -1003,7 +1003,8 @@ class TestFetchBaseBranch:
             mock_run.return_value = MagicMock(returncode=0, stderr="")
             result = lifecycle._fetch_base_branch()
 
-        assert result == "origin/staging"
+        assert result == "origin/main"
+        assert mock_run.call_args[0][0] == ["git", "fetch", "origin", "main"]
 
     def test_fetch_failure_raises_worktree_error(
         self,
@@ -1032,7 +1033,7 @@ class TestFetchBaseBranch:
                 lifecycle._fetch_base_branch()
 
         assert exc_info.value.code == "GIT_FETCH_FAILED"
-        assert "staging" in exc_info.value.message
+        assert "main" in exc_info.value.message
         assert "could not read from remote" in exc_info.value.message
 
     def test_fetch_failure_includes_suggestion(
@@ -1097,7 +1098,7 @@ class TestCreateWorktreeForRunFetch:
             lifecycle._create_worktree_for_run("RUN123", "test feature")
 
         mock_worktree_manager.create_worktree.assert_called_once_with(
-            "RUN123", source_branch="origin/staging", branch_name="feature/test-feature"
+            "RUN123", source_branch="origin/main", branch_name="feature/test-feature"
         )
 
     def test_passes_configured_base_branch_as_source(

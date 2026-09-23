@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Literal, Self
 
 import yaml
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from adw.models.command import PhaseLLMConfig
 from adw.models.security import SecurityConfig
@@ -448,7 +448,7 @@ class GitConfig(BaseModel):
     Attributes:
         branch_prefix: Prefix for auto-created branches (default: "feature/")
         skip_hooks: Skip pre-commit hooks with --no-verify (default: False)
-        base_branch: Base branch for PRs (e.g., 'main', 'develop'). Falls back to 'main'
+        base_branch: Base branch for PRs and worktrees (default: "main")
 
     Example:
         >>> config = GitConfig(branch_prefix="feat/")
@@ -472,11 +472,23 @@ class GitConfig(BaseModel):
         default=False,
         description="Skip pre-commit hooks with --no-verify (use with caution)",
     )
-    base_branch: str | None = Field(
-        default=None,
-        description="Base branch for PRs (e.g., 'main', 'develop'). "
-        "If not set, falls back to 'main'.",
+    base_branch: str = Field(
+        default="main",
+        description="Base branch for PRs and worktrees (e.g., 'main', 'develop'). "
+        "Defaults to 'main'.",
     )
+
+    @field_validator("base_branch", mode="before")
+    @classmethod
+    def default_blank_base_branch(cls, v: object) -> object:
+        """Map a null or blank base_branch to 'main'.
+
+        Keeps existing ``base_branch: null`` configs and blank wizard or
+        dashboard input loading with the default.
+        """
+        if v is None or v == "":
+            return "main"
+        return v
 
 
 class ProjectConfig(BaseModel):

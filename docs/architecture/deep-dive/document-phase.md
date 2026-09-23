@@ -229,7 +229,7 @@ In `adw.yaml` (project config):
 ```yaml
 git:
   auto_create_pr: true   # Enable automatic PR creation
-  base_branch: staging   # Target branch for PRs
+  base_branch: main      # Target branch for PRs (default: main)
 ```
 
 ## Context Fields Updated

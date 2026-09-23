@@ -413,7 +413,7 @@ class TestGitFieldEmission:
         )
         yaml_content = generator.generate_project_yaml(state)
 
-        assert "  # base_branch: null" in yaml_content
+        assert "  # base_branch: main  # PR base branch (default: main)" in yaml_content
 
 
 class TestTaskManagerFieldEmission:
