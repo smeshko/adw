@@ -3,7 +3,7 @@
 Status: done
 Branch: feature/adw-16
 Risk: medium
-Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
+Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../../epics/01-cleanup-safety-dead-code-bugs.md))
 Phase: 1.10 — Expand includes before substitution
 Linear: ADW-16
 Created: 2026-09-23

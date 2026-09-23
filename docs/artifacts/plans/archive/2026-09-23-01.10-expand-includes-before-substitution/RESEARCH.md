@@ -99,8 +99,8 @@ find ../../.adw/runs -name diff.txt -size +0 | head   # e.g. 01KF636397JZC18V4K8
 
 ## References
 
-- Epic: [01 — Cleanup, phase 1.10](../../epics/01-cleanup-safety-dead-code-bugs.md)
-- Epic 05's dependency note: [05 — Plan-workflow phase prompts](../../epics/05-plan-workflow-phase-prompts.md)
-- [docs/templates.md](../../../templates.md), [PhaseRunner deep dive](../../../architecture/deep-dive/phase-runner.md)
-- [ADR-001 test reduction strategy](../../../architecture/adrs/ADR-001-test-reduction-strategy.md)
-- Fake `claude` recipe: [phase 1.6 RESEARCH.md](../archive/2026-09-23-01.6-fail-phases-when-claude-fails/RESEARCH.md)
+- Epic: [01 — Cleanup, phase 1.10](../../../epics/01-cleanup-safety-dead-code-bugs.md)
+- Epic 05's dependency note: [05 — Plan-workflow phase prompts](../../../epics/05-plan-workflow-phase-prompts.md)
+- [docs/templates.md](../../../../templates.md), [PhaseRunner deep dive](../../../../architecture/deep-dive/phase-runner.md)
+- [ADR-001 test reduction strategy](../../../../architecture/adrs/ADR-001-test-reduction-strategy.md)
+- Fake `claude` recipe: [phase 1.6 RESEARCH.md](../2026-09-23-01.6-fail-phases-when-claude-fails/RESEARCH.md)
