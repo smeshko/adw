@@ -1,6 +1,6 @@
 # Plan: Fail phases when Claude fails
 
-Status: in-progress
+Status: done
 Branch: feature/adw-12
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -75,11 +75,11 @@ See [RESEARCH.md](./RESEARCH.md). Key findings:
 
 ## Acceptance Criteria
 
-- [ ] With `MockExecutor` configured to fail twice and then succeed, the phase succeeds on attempt 3 and waits the configured backoff between attempts (sleep patched and asserted: `[0.5, 1.0]`). Evidence: `test_phase_failure.py::test_mock_executor_fails_twice_then_succeeds` output.
-- [ ] With a fake `claude` binary on `PATH` that exits 1, the phase is recorded as `failed` (not `completed`) in `context.json` and in the index, after the configured 4 attempts. Evidence: the `test_fake_claude_exit_fails_run` output, RED on the pre-TASK-002 code and GREEN after, plus the scratch-repo `adw run --phase plan` transcript in `VALIDATION.md`.
-- [ ] `grep -rn "RetryExecutor\|LLMRateLimitError" src` returns nothing.
-- [ ] `grep -rn "timeout: int\|timeout=timeout" src/adw/executors` returns nothing. The pipe-drain `asyncio.wait_for(..., timeout=5.0)` in `claude_code.py` stays.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%.
+- [x] With `MockExecutor` configured to fail twice and then succeed, the phase succeeds on attempt 3 and waits the configured backoff between attempts (sleep patched and asserted: `[0.5, 1.0]`). Evidence: `test_phase_failure.py::test_mock_executor_fails_twice_then_succeeds` output.
+- [x] With a fake `claude` binary on `PATH` that exits 1, the phase is recorded as `failed` (not `completed`) in `context.json` and in the index, after the configured 4 attempts. Evidence: the `test_fake_claude_exit_fails_run` output, RED on the pre-TASK-002 code and GREEN after, plus the scratch-repo `adw run --phase plan` transcript in `VALIDATION.md`.
+- [x] `grep -rn "RetryExecutor\|LLMRateLimitError" src` returns nothing.
+- [x] `grep -rn "timeout: int\|timeout=timeout" src/adw/executors` returns nothing. The pipe-drain `asyncio.wait_for(..., timeout=5.0)` in `claude_code.py` stays.
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%.
 
 ## Tasks
 
@@ -90,4 +90,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-002: Raise LLMError when Claude Code exits non-zero (depends on TASK-001)
 - [x] TASK-003: Drop the unused timeout parameter from executors (depends on TASK-001)
 - [x] TASK-004: Delete LLMResult success, error and attempt_count (depends on TASK-002)
-- [ ] TASK-005: Final Validation
+- [x] TASK-005: Final Validation

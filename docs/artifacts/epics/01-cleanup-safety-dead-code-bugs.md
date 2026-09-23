@@ -234,7 +234,7 @@ Include the grep output, `adw run --help`, and `which adw && adw --version` afte
 
 ## Phase 1.6 — Fail phases when Claude fails
 
-**Plan**: [01.6-fail-phases-when-claude-fails](../plans/01.6-fail-phases-when-claude-fails/PLAN.md) · status: in-progress
+**Plan**: [01.6-fail-phases-when-claude-fails](../plans/01.6-fail-phases-when-claude-fails/PLAN.md) · status: done
 
 **Linear**: ADW-12 (https://linear.app/ivo-tsonev/issue/ADW-12)
 
@@ -249,10 +249,10 @@ Include the grep output, `adw run --help`, and `which adw && adw --version` afte
 
 ### Acceptance criteria
 
-- [ ] With `MockExecutor` configured to fail twice and then succeed, the phase succeeds on attempt 3 and waits the configured backoff between attempts (sleep patched and asserted).
-- [ ] With a fake `claude` binary on PATH that exits 1, the phase is recorded as `failed` (not `completed`) in `context.json` and the index after the configured attempts.
-- [ ] `grep -rn "RetryExecutor\|LLMRateLimitError" src` returns nothing.
-- [ ] Lint and tests pass.
+- [x] With `MockExecutor` configured to fail twice and then succeed, the phase succeeds on attempt 3 and waits the configured backoff between attempts (sleep patched and asserted).
+- [x] With a fake `claude` binary on PATH that exits 1, the phase is recorded as `failed` (not `completed`) in `context.json` and the index after the configured attempts.
+- [x] `grep -rn "RetryExecutor\|LLMRateLimitError" src` returns nothing.
+- [x] Lint and tests pass.
 
 ### Validation
 
