@@ -98,17 +98,4 @@ class IndexEntry(BaseModel):
     model_config = {
         "frozen": False,  # Allow mutation for development, use model_copy
         "validate_assignment": True,  # Validate on attribute assignment
-        "json_schema_extra": {
-            "example": {
-                "run_id": "01KDSG2VDHNK0W4HSCZWJZXWSQ",
-                "project_path": "/path/to/project",
-                "project_name": "my-project",
-                "feature_description": "Add user authentication",
-                "started_at": "2024-01-15T10:30:00Z",
-                "completed_at": None,
-                "status": "running",
-                "phase_reached": None,
-                "phases_completed": [],
-            }
-        },
     }

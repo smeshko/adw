@@ -4,6 +4,7 @@ Tests the PhaseRunner class that coordinates single phase execution:
 pre-hook → prompt loading → LLM execution → post-hook → artifact capture.
 """
 
+import json
 import os
 from collections.abc import Generator
 from datetime import UTC, datetime
@@ -489,10 +490,11 @@ class TestPhaseRunnerArtifacts:
         result = phase_runner.run("plan", sample_context)
 
         # Check tool calls artifact
-        tool_calls_data = mock_artifact_manager.get_json(
+        tool_calls_content = mock_artifact_manager.get(
             sample_context.run_id, "plan", "plan_tool_calls.json"
         )
-        assert tool_calls_data is not None
+        assert tool_calls_content is not None
+        tool_calls_data = json.loads(tool_calls_content)
         assert len(tool_calls_data) == 1
         assert tool_calls_data[0]["tool_name"] == "read_file"
         assert "plan_tool_calls.json" in result.artifacts
@@ -744,7 +746,7 @@ class TestPhaseRunnerGitDiffCapture:
         then it's available as {{artifacts.build.diff}}.
         """
         # Store a diff artifact as the build phase would
-        mock_artifact_manager.store_text(
+        mock_artifact_manager.store(
             sample_context.run_id,
             "build",
             "diff.txt",
@@ -1338,85 +1340,6 @@ class TestConfigMerging:
     Note: ISS-029 removed project phase config support. _merge_configs now
     only accepts command_config and converts it to PhaseConfig.
     """
-
-    def test_merge_configs_none_returns_empty_config(
-        self,
-        mock_command_resolver: MagicMock,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """None command config returns empty PhaseConfig."""
-        from adw.models.config import PhaseConfig
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        result = runner._merge_configs(None)
-
-        assert isinstance(result, PhaseConfig)
-        assert result.input_files is None
-
-    def test_merge_configs_with_command_config(
-        self,
-        mock_command_resolver: MagicMock,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """Command config values are converted to PhaseConfig."""
-        from adw.models.command import CommandConfig
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        command_config = CommandConfig(
-            input_files={"prd": "defaults/prd.md"},
-        )
-
-        result = runner._merge_configs(command_config)
-
-        assert result.input_files == {"prd": "defaults/prd.md"}
-
-    def test_merge_configs_with_llm(
-        self,
-        mock_command_resolver: MagicMock,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """Command config llm is converted to PhaseConfig.llm."""
-        from adw.models.command import CommandConfig, PhaseLLMConfig
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        command_config = CommandConfig(
-            llm=PhaseLLMConfig(model="claude-3-opus"),
-        )
-
-        result = runner._merge_configs(command_config)
-
-        assert result.llm is not None
-        assert result.llm.model == "claude-3-opus"
 
 
 class TestProjectConfigLoading:

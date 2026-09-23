@@ -9,8 +9,6 @@ import logging
 import subprocess
 from pathlib import Path
 
-from adw.exceptions import WorktreeError
-
 logger = logging.getLogger(__name__)
 
 
@@ -26,8 +24,6 @@ class WorktreeBranchManager:
 
     Example:
         >>> manager = WorktreeBranchManager(project_root=Path("/project"))
-        >>> branch = manager.create_branch("01HQ1234567890ABCDEFGHIJK")
-        >>> # Work happens on the branch...
         >>> manager.delete_branch("01HQ1234567890ABCDEFGHIJK", force=True)
     """
 
@@ -70,61 +66,6 @@ class WorktreeBranchManager:
             return bool(result.stdout.strip())
         except FileNotFoundError:
             return False
-
-    def create_branch(self, run_id: str, base_ref: str | None = None) -> str:
-        """Create a worktree branch from base ref.
-
-        Args:
-            run_id: ULID identifier for this run.
-            base_ref: Optional ref (branch, tag, commit) to create from.
-                If None, uses HEAD.
-
-        Returns:
-            The created branch name.
-
-        Raises:
-            WorktreeError: If the branch already exists or creation fails.
-        """
-        branch_name = self.get_branch_name(run_id)
-        base = base_ref or "HEAD"
-
-        if self.branch_exists(branch_name):
-            raise WorktreeError(
-                code="BRANCH_EXISTS",
-                message=f"Branch {branch_name} already exists",
-                suggestion=f"Delete the branch with: git branch -D {branch_name}",
-            )
-
-        logger.info(
-            "Creating branch",
-            extra={
-                "branch": branch_name,
-                "base_ref": base,
-                "run_id": run_id,
-            },
-        )
-
-        result = subprocess.run(
-            ["git", "branch", branch_name, base],
-            cwd=self.project_root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-
-        if result.returncode != 0:
-            raise WorktreeError(
-                code="BRANCH_CREATE_FAILED",
-                message=f"Failed to create branch: {result.stderr.strip()}",
-                suggestion="Check that base ref exists and git is available",
-            )
-
-        logger.info(
-            "Branch created successfully",
-            extra={"branch": branch_name},
-        )
-
-        return branch_name
 
     def has_unpushed_commits(self, branch_name: str) -> bool:
         """Check if branch has commits not pushed to upstream.

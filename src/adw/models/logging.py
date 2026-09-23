@@ -162,13 +162,6 @@ class LogContext(BaseModel):
     model_config = {
         "frozen": False,
         "validate_assignment": True,
-        "json_schema_extra": {
-            "example": {
-                "run_id": "01HQ123ABC456DEF",
-                "phase": "build",
-                "extra": {"component": "executor"},
-            }
-        },
     }
 
 
@@ -224,17 +217,4 @@ class LogEvent(BaseModel):
     model_config = {
         "frozen": False,
         "validate_assignment": True,
-        "json_schema_extra": {
-            "example": {
-                "timestamp": "2025-01-03T12:00:00Z",
-                "level": "info",
-                "category": "phase",
-                "message": "Phase 'build' completed successfully",
-                "context": {
-                    "run_id": "01HQ123ABC",
-                    "phase": "build",
-                    "extra": {},
-                },
-            }
-        },
     }

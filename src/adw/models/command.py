@@ -4,9 +4,9 @@ This module defines models for command resolution, representation, and configura
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 if TYPE_CHECKING:
     pass
@@ -295,6 +295,33 @@ class ShipCommandConfig(CommandConfig):
     )
 
 
+# Mapping of phase names to their specialized config classes
+PHASE_CONFIG_CLASSES: dict[str, type[CommandConfig]] = {
+    "validate": ValidateCommandConfig,
+    "ship": ShipCommandConfig,
+    "document": DocumentCommandConfig,
+}
+
+
+def get_config_class(phase: str) -> type[CommandConfig]:
+    """Get the appropriate config class for a phase.
+
+    Args:
+        phase: Phase name (e.g., "validate", "ship", "plan").
+
+    Returns:
+        The specialized config class for the phase, or CommandConfig
+        for phases without specialized configuration.
+
+    Example:
+        >>> get_config_class("validate")
+        <class 'ValidateCommandConfig'>
+        >>> get_config_class("plan")
+        <class 'CommandConfig'>
+    """
+    return PHASE_CONFIG_CLASSES.get(phase, CommandConfig)
+
+
 class ResolvedCommand(BaseModel):
     """A resolved command from the three-tier hierarchy.
 
@@ -310,8 +337,6 @@ class ResolvedCommand(BaseModel):
         has_schema: Whether schema.json exists in the command directory.
         pre_hook_path: Path to pre-hook script if found, None otherwise.
         post_hook_path: Path to post-hook script if found, None otherwise.
-        has_pre_hook: Computed property - True if pre_hook_path is set.
-        has_post_hook: Computed property - True if post_hook_path is set.
         has_config: Whether config.yaml exists in the command directory.
 
     Example:
@@ -335,18 +360,6 @@ class ResolvedCommand(BaseModel):
     post_hook_paths: list[Path] = Field(default_factory=list)
     has_config: bool = False
 
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def has_pre_hook(self) -> bool:
-        """Whether any pre-hook scripts exist."""
-        return len(self.pre_hook_paths) > 0
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def has_post_hook(self) -> bool:
-        """Whether any post-hook scripts exist."""
-        return len(self.post_hook_paths) > 0
-
     @property
     def pre_hook_path(self) -> Path | None:
         """First pre-hook path (backward compat)."""
@@ -356,40 +369,3 @@ class ResolvedCommand(BaseModel):
     def post_hook_path(self) -> Path | None:
         """First post-hook path (backward compat)."""
         return self.post_hook_paths[0] if self.post_hook_paths else None
-
-
-class LoadedCommand(BaseModel):
-    """A fully loaded command ready for execution.
-
-    Represents a command that has been resolved and loaded, including
-    the rendered prompt content and optional schema.
-
-    Attributes:
-        name: The command name (e.g., "plan", "build").
-        resolved: The ResolvedCommand with path and tier information.
-        prompt_content: The fully rendered prompt content.
-        output_schema: Optional JSON Schema for output validation.
-        has_pre_hook: Whether this command has a pre-execution hook.
-        has_post_hook: Whether this command has a post-execution hook.
-        config: Optional CommandConfig loaded from config.yaml.
-
-    Example:
-        >>> loaded = LoadedCommand(
-        ...     name="plan",
-        ...     resolved=resolved_cmd,
-        ...     prompt_content="Create a plan for...",
-        ...     output_schema={"type": "object"},
-        ... )
-        >>> print(loaded.prompt_content)
-        "Create a plan for..."
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    name: str
-    resolved: ResolvedCommand
-    prompt_content: str
-    output_schema: dict[str, Any] | None = None
-    has_pre_hook: bool = False
-    has_post_hook: bool = False
-    config: CommandConfig | None = None

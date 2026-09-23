@@ -133,7 +133,7 @@ class TestCommandResolverOptionalFileDetection:
         resolver = CommandResolver(project_root=tmp_path)
         result = resolver.resolve("plan")
 
-        assert result.has_pre_hook is True
+        assert result.pre_hook_path is not None
 
     def test_detects_pre_hook_alternate_name(self, tmp_path: Path) -> None:
         """Should detect pre-hook.sh as alternate pre-hook name."""
@@ -145,7 +145,7 @@ class TestCommandResolverOptionalFileDetection:
         resolver = CommandResolver(project_root=tmp_path)
         result = resolver.resolve("plan")
 
-        assert result.has_pre_hook is True
+        assert result.pre_hook_path is not None
 
     def test_detects_post_hook_sh(self, tmp_path: Path) -> None:
         """Should detect post.sh in command directory."""
@@ -157,7 +157,7 @@ class TestCommandResolverOptionalFileDetection:
         resolver = CommandResolver(project_root=tmp_path)
         result = resolver.resolve("plan")
 
-        assert result.has_post_hook is True
+        assert result.post_hook_path is not None
 
     def test_detects_post_hook_alternate_name(self, tmp_path: Path) -> None:
         """Should detect post-hook.sh as alternate post-hook name."""
@@ -169,7 +169,7 @@ class TestCommandResolverOptionalFileDetection:
         resolver = CommandResolver(project_root=tmp_path)
         result = resolver.resolve("plan")
 
-        assert result.has_post_hook is True
+        assert result.post_hook_path is not None
 
     def test_no_optional_files_detected_as_false(self, tmp_path: Path) -> None:
         """Should report False for missing optional files."""
@@ -184,8 +184,8 @@ class TestCommandResolverOptionalFileDetection:
         result = resolver.resolve("custom-test-cmd")
 
         assert result.has_schema is False
-        assert result.has_pre_hook is False
-        assert result.has_post_hook is False
+        assert result.pre_hook_path is None
+        assert result.post_hook_path is None
         assert result.has_config is False
 
     def test_detects_config_yaml(self, tmp_path: Path) -> None:

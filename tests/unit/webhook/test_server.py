@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+import yaml
 from fastapi.testclient import TestClient
 
 from adw.models.webhook import ProviderConfig, RunParams, WebhookConfig, WebhookEvent
@@ -331,7 +332,7 @@ webhook:
     github:
       enabled: false
 """
-        config = ProjectConfig.from_yaml(yaml_content)
+        config = ProjectConfig.model_validate(yaml.safe_load(yaml_content))
         assert config.webhook.port == 9000
         assert config.webhook.host == "127.0.0.1"
         assert config.webhook.is_provider_enabled("linear") is True
@@ -346,7 +347,7 @@ webhook:
 name: test-project
 language: python
 """
-        config = ProjectConfig.from_yaml(yaml_content)
+        config = ProjectConfig.model_validate(yaml.safe_load(yaml_content))
         assert config.webhook.port == 8000
         assert config.webhook.host == "0.0.0.0"
         assert config.webhook.providers == {}

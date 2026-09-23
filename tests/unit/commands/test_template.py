@@ -480,21 +480,6 @@ class TestContextObjectRendering:
         assert "build" in result
         assert "User auth" in result
 
-    def test_session_context_as_context(self) -> None:
-        """Engine should accept SessionContext as context."""
-        from adw.models.context import SessionContext
-
-        engine = TemplateEngine()
-        context = SessionContext(
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            current_phase="validate",
-            is_resuming=True,
-        )
-
-        template = "Phase: {{current_phase}}, Resuming: {{is_resuming}}"
-        result = engine.render(template, context)
-        assert result == "Phase: validate, Resuming: True"
-
     def test_dict_and_model_produce_same_result(self) -> None:
         """Dict and Pydantic model should render identically."""
         from pydantic import BaseModel
