@@ -1,6 +1,6 @@
 # Plan: Remove the webhook server
 
-Status: in-progress
+Status: done
 Branch: feature/adw-19
 Risk: medium
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -89,15 +89,15 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 
 ## Acceptance Criteria
 
-- [ ] `uv run adw --help` lists no `webhook` group, and `uv run adw webhook --help` exits non-zero with "No such command". Evidence: both transcripts.
-- [ ] `grep -rn "adw.webhook\|adw.server\|WebhookConfig" src tests` returns nothing, and `grep -rni webhook src` matches only `src/adw/config/checker.py`. Evidence: the grep output.
-- [ ] `src/adw/webhook/`, `src/adw/server/`, `src/adw/models/webhook.py`, `src/adw/cli/webhook.py` and `src/adw/cli/wizard/webhooks.py` no longer exist. Evidence: `ls` output.
-- [ ] A `project.yaml` holding the pre-epic wizard's `webhook:` block loads through `ConfigLoader`, and the loaded config carries no `webhook` key. Evidence: `test_load_ignores_removed_webhook_section`, RED then GREEN.
-- [ ] `adw validate` against that `project.yaml` reports 0 errors and one warning on field `webhook`, and exits 0. `--strict` exits 1. Evidence: `test_removed_webhook_section_warns`, RED then GREEN, plus a scratch-repo transcript of both commands.
-- [ ] `adw init --wizard` shows no webhook step, and the generated `project.yaml` has no webhook block. Evidence: `test_flow.py` step list and the `test_yaml_generator.py`/`test_summary.py` assertions, RED then GREEN.
-- [ ] `adw dashboard web` starts, `curl` of `/` returns 200, and New Run starts a mocked run in a scratch project. Evidence: the curl transcript, a screenshot of the run-started view, and the new run's entry in the scratch `~/.adw` index.
-- [ ] `grep -rni webhook docs --exclude-dir=artifacts` returns nothing. Evidence: the grep output.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%. Evidence: the tail of both runs.
+- [x] `uv run adw --help` lists no `webhook` group, and `uv run adw webhook --help` exits non-zero with "No such command". Evidence: both transcripts.
+- [x] `grep -rn "adw.webhook\|adw.server\|WebhookConfig" src tests` returns nothing, and `grep -rni webhook src` matches only `src/adw/config/checker.py`. Evidence: the grep output.
+- [x] `src/adw/webhook/`, `src/adw/server/`, `src/adw/models/webhook.py`, `src/adw/cli/webhook.py` and `src/adw/cli/wizard/webhooks.py` no longer exist. Evidence: `ls` output.
+- [x] A `project.yaml` holding the pre-epic wizard's `webhook:` block loads through `ConfigLoader`, and the loaded config carries no `webhook` key. Evidence: `test_load_ignores_removed_webhook_section`, RED then GREEN.
+- [x] `adw validate` against that `project.yaml` reports 0 errors and one warning on field `webhook`, and exits 0. `--strict` exits 1. Evidence: `test_removed_webhook_section_warns`, RED then GREEN, plus a scratch-repo transcript of both commands.
+- [x] `adw init --wizard` shows no webhook step, and the generated `project.yaml` has no webhook block. Evidence: `test_flow.py` step list and the `test_yaml_generator.py`/`test_summary.py` assertions, RED then GREEN.
+- [x] `adw dashboard web` starts, `curl` of `/` returns 200, and New Run starts a mocked run in a scratch project. Evidence: the curl transcript, a screenshot of the run-started view, and the new run's entry in the scratch `~/.adw` index.
+- [x] `grep -rni webhook docs --exclude-dir=artifacts` returns nothing. Evidence: the grep output.
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%. Evidence: the tail of both runs.
 
 ## Tasks
 
@@ -110,4 +110,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-004: Build the dashboard on a plain FastAPI app (depends on TASK-001)
 - [x] TASK-005: Drop RunTrigger's unused project_dir (depends on TASK-001)
 - [x] TASK-006: Remove webhook references from the docs (depends on TASK-001,TASK-004,TASK-005)
-- [ ] TASK-007: Final Validation
+- [x] TASK-007: Final Validation
