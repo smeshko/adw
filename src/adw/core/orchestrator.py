@@ -162,7 +162,7 @@ class Orchestrator:
             max_retries: Maximum retry attempts for recoverable errors (default: 3).
             worktree_config: Worktree isolation config (optional, Story 10.1).
             git_config: Git configuration for auto-PR creation (optional, ISS-011).
-            task_manager_config: Task manager configuration for auto-close (Story 12.8).
+            task_manager_config: Task manager configuration.
             label_manager: Manager for task labels (optional, Story 12.7).
             status_sync_service: Service for syncing status with task managers
                 (optional, Story 12.3). When provided, sync calls are made at
@@ -195,7 +195,7 @@ class Orchestrator:
         # Git config for auto-PR (Story ISS-011)
         self.git_config = git_config or GitConfig()
 
-        # Task manager config for auto-close (Story 12.8)
+        # Task manager config
         self.task_manager_config = task_manager_config or TaskManagerConfig()
 
         # Label manager for task label operations (Story 12.7)
@@ -291,7 +291,6 @@ class Orchestrator:
         run_id: str | None = None,
         *,
         use_worktree: bool = True,
-        task_uuid: str | None = None,
     ) -> RunContext:
         """Execute the full pipeline for a feature.
 
@@ -303,16 +302,12 @@ class Orchestrator:
         5. Handle errors, retries, and graceful shutdown
         6. Preserve worktree for user inspection (ISS-020: use 'adw cleanup' to remove)
         7. Mark run as completed, failed, or interrupted
-        8. Attempt to close task if auto_close enabled (Story 12.8)
 
         Args:
             feature_description: Description of the feature to implement.
             run_id: Optional run ID. If not provided, a new ULID is generated.
             use_worktree: Whether to use worktree isolation for this run.
                 Defaults to True. Set to False to run in current directory.
-            task_uuid: Internal task UUID (from TaskInfo.id) for issue closing.
-                If provided and auto_close is enabled, task will be closed when
-                PR is merged (Story 12.8).
 
         Returns:
             Final RunContext with status and artifacts.
@@ -337,9 +332,7 @@ class Orchestrator:
         try:
             with self.interruption_handler.protected_execution(context):
                 context, pr_result = self._execute_phases(context, PHASE_SEQUENCE)
-                context = self._lifecycle.finalize_success(
-                    context, pr_result=pr_result, task_uuid=task_uuid
-                )
+                context = self._lifecycle.finalize_success(context, pr_result=pr_result)
 
         except ShutdownRequested as e:
             self._lifecycle.handle_shutdown(context, e)

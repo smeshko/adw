@@ -4,6 +4,7 @@ This module tests the run lifecycle management for ADW pipeline execution,
 including context creation, success finalization, and error handling.
 """
 
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -12,7 +13,8 @@ import pytest
 
 from adw.core.run_lifecycle import RunLifecycle
 from adw.exceptions import PhaseError, WorktreeError
-from adw.models import GitConfig, RunContext, WorktreeConfig
+from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
+from adw.models.task import TaskInfo
 
 
 @pytest.fixture
@@ -557,6 +559,75 @@ class TestFinalizeSuccess:
         lifecycle.finalize_success(context)
 
         mock_progress_display.show_pipeline_summary.assert_called_once()
+
+    def test_auto_close_leaves_ticket_open_and_warns_once(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_interruption_handler: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """auto_close is ignored: the ticket stays open and one warning is logged."""
+        lifecycle = RunLifecycle(
+            runs_dir=tmp_path,
+            project_path=tmp_path,
+            context_manager=mock_context_manager,
+            run_directory_manager=mock_run_directory_manager,
+            index_manager=mock_index_manager,
+            interruption_handler=mock_interruption_handler,
+            task_manager_config=TaskManagerConfig(
+                type="linear", team_key="ADW", auto_close=True
+            ),
+            worktree_config=WorktreeConfig(enabled=False),
+        )
+        context = RunContext(
+            run_id="01TEST00000000000000000001",
+            feature_description="Test",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            status="running",
+            task_id="ADW-1",
+            task_info=TaskInfo(id="uuid-adw-1", identifier="ADW-1", title="Test"),
+        )
+
+        with (
+            patch("adw.task_managers.TaskManagerFactory") as mock_factory,
+            patch(
+                "adw.task_managers.linear.LinearTaskManager.close_task"
+            ) as mock_close,
+            caplog.at_level(logging.WARNING, logger="adw.core.run_lifecycle"),
+        ):
+            lifecycle.finalize_success(context)
+
+        mock_factory.assert_not_called()
+        mock_close.assert_not_called()
+        warnings = [
+            r
+            for r in caplog.records
+            if r.levelno == logging.WARNING and "auto_close" in r.getMessage()
+        ]
+        assert len(warnings) == 1
+
+    def test_no_auto_close_warning_by_default(
+        self,
+        run_lifecycle: RunLifecycle,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """With auto_close unset, finalize_success logs no auto_close warning."""
+        context = RunContext(
+            run_id="01TEST00000000000000000001",
+            feature_description="Test",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            status="running",
+        )
+
+        with caplog.at_level(logging.WARNING, logger="adw.core.run_lifecycle"):
+            run_lifecycle.finalize_success(context)
+
+        assert not [r for r in caplog.records if "auto_close" in r.getMessage()]
 
 
 class TestHandleADWError:

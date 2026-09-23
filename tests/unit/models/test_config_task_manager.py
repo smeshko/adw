@@ -3,9 +3,12 @@
 Per ADR-001: Tests focus on validation logic and required fields.
 """
 
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError as PydanticValidationError
 
+from adw.config.loader import ConfigLoader
 from adw.models.config import (
     ProjectConfig,
     TaskManagerConfig,
@@ -129,3 +132,16 @@ task_manager:
         assert config.task_manager.sync_comments is True
         assert config.task_manager.labels.prefix == "ci:"
         assert config.task_manager.auto_close is False
+
+    def test_deprecated_auto_close_still_loads(self, tmp_path: Path) -> None:
+        """A project.yaml that still sets auto_close: true loads unchanged."""
+        (tmp_path / ".adw").mkdir()
+        (tmp_path / ".adw" / "project.yaml").write_text(
+            "name: test\nlanguage: python\n"
+            "task_manager:\n  type: linear\n  team_key: ADW\n  auto_close: true\n"
+        )
+
+        config = ConfigLoader(tmp_path).load()
+
+        assert config.task_manager.type == "linear"
+        assert config.task_manager.auto_close is True

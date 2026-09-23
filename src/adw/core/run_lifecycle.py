@@ -124,7 +124,7 @@ class RunLifecycle:
             progress_display: Display for phase progress (optional, Story 5.5).
             worktree_config: Worktree isolation config (optional, Story 10.1).
             git_config: Git configuration for auto-PR creation (optional, ISS-011).
-            task_manager_config: Task manager configuration for auto-close (Story 12.8).
+            task_manager_config: Task manager configuration.
             label_manager: Manager for task labels (optional, Story 12.7).
             status_sync_service: Service for syncing status with task managers
                 (optional, Story 12.3).
@@ -271,7 +271,6 @@ class RunLifecycle:
         context: RunContext,
         *,
         pr_result: AutoPRResult | None = None,
-        task_uuid: str | None = None,
     ) -> RunContext:
         """Finalize a successful run.
 
@@ -281,14 +280,12 @@ class RunLifecycle:
         3. Set completed label
         4. Update global index
         5. Post completion comment
-        6. Attempt to close task (if auto_close enabled)
-        7. Show pipeline summary
-        8. Show worktree preservation message
+        6. Show pipeline summary
+        7. Show worktree preservation message
 
         Args:
             context: The run context to finalize.
             pr_result: Result of PR creation (optional).
-            task_uuid: Internal task UUID for issue closing (optional).
 
         Returns:
             Updated context with completed status.
@@ -318,11 +315,11 @@ class RunLifecycle:
         # Post run completion comment to task manager (Story 12.6)
         self._post_completion_comment(context, pr_result)
 
-        # Attempt to close task if auto_close enabled (Story 12.8)
-        self._maybe_close_task(
-            task_uuid=task_uuid,
-            pr_url=pr_result.pr_url if pr_result else None,
-        )
+        if self.task_manager_config.auto_close:
+            logger.warning(
+                "task_manager.auto_close is deprecated and ignored: tickets move "
+                "through state_mapping. Remove auto_close from project.yaml."
+            )
 
         # Show pipeline summary (Story 5.5)
         self._show_pipeline_summary(context, status="completed", pr_result=pr_result)
@@ -810,54 +807,4 @@ class RunLifecycle:
                     "run_id": context.run_id,
                     "error": str(comment_error),
                 },
-            )
-
-    def _maybe_close_task(
-        self,
-        task_uuid: str | None,
-        pr_url: str | None,
-    ) -> None:
-        """Attempt to close task if auto_close is enabled (Story 12.8).
-
-        This method is non-blocking - failures are logged but don't
-        affect the run outcome.
-
-        Args:
-            task_uuid: Internal task UUID (from TaskInfo.id). If None, does nothing.
-            pr_url: PR URL to check merge status. If None, closes without checking PR.
-        """
-        if not task_uuid:
-            logger.debug("No task_uuid provided, skipping issue closing")
-            return
-
-        if not self.task_manager_config.auto_close:
-            logger.debug("Auto-close disabled, skipping issue closing")
-            return
-
-        try:
-            from adw.task_managers import TaskManagerFactory
-            from adw.task_managers.closer import IssueCloser
-
-            task_manager = TaskManagerFactory().create(
-                task_type=self.task_manager_config.type,
-                config=self.task_manager_config,
-            )
-            with IssueCloser(task_manager, self.task_manager_config) as closer:
-                closed = closer.maybe_close(task_uuid, pr_url)
-                if closed:
-                    logger.info(
-                        "Task closed after run completion",
-                        extra={"task_uuid": task_uuid},
-                    )
-                else:
-                    logger.debug(
-                        "Task not closed (PR not merged or condition not met)",
-                        extra={"task_uuid": task_uuid, "pr_url": pr_url},
-                    )
-        except Exception as e:
-            # Non-blocking - log warning and continue
-            logger.warning(
-                "Failed to close task: %s. Close manually with: adw task close %s",
-                e,
-                task_uuid,
             )

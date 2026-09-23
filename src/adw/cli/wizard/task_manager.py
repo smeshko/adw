@@ -125,10 +125,7 @@ def run_task_manager_step(
     # Step 5: Label management
     labels_enabled, label_prefix = _prompt_label_options(console)
 
-    # Step 6: Auto-close option
-    auto_close = _prompt_auto_close(console)
-
-    # Step 7: State mapping configuration
+    # Step 6: State mapping configuration
     state_mapping = _prompt_state_mapping(console)
 
     return {
@@ -138,7 +135,6 @@ def run_task_manager_step(
         "sync_comments": sync_comments,
         "labels_enabled": labels_enabled,
         "label_prefix": label_prefix,
-        "auto_close": auto_close,
         "state_mapping": state_mapping,
     }
 
@@ -156,7 +152,6 @@ def _disabled_config() -> dict[str, Any]:
         "sync_comments": False,
         "labels_enabled": True,
         "label_prefix": DEFAULT_LABEL_PREFIX,
-        "auto_close": False,
         "state_mapping": None,
     }
 
@@ -249,23 +244,6 @@ def _prompt_label_options(console: Console) -> tuple[bool, str | None]:
         label_prefix = label_prefix.strip() or DEFAULT_LABEL_PREFIX
 
     return labels_enabled, label_prefix
-
-
-def _prompt_auto_close(console: Console) -> bool:
-    """Prompt for auto-close option.
-
-    Args:
-        console: Console for output.
-
-    Returns:
-        Whether to auto-close tasks when PR is merged.
-    """
-    console.print()
-    return Confirm.ask(
-        "Auto-close task when PR merged?",
-        default=False,
-        console=console,
-    )
 
 
 def _prompt_state_mapping(console: Console) -> dict[str, str] | None:

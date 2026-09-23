@@ -88,17 +88,6 @@ class NullTaskManager:
         # No-op - nothing to close
         pass
 
-    def is_pr_merged(self, pr_url: str) -> bool:
-        """Return False since no task manager is configured.
-
-        Args:
-            pr_url: The pull request URL (ignored).
-
-        Returns:
-            Always False - no PR detection without a task manager.
-        """
-        return False
-
     def add_label(self, task_id: str, label: str) -> None:
         """No-op - silently ignores label additions.
 

@@ -406,23 +406,6 @@ class LinearTaskManager:
 
         return self._get_state_id(done_state_name)
 
-    def is_pr_merged(self, pr_url: str) -> bool:
-        """Check if a pull request has been merged.
-
-        Note: Linear does not natively track PR merge status. This method
-        returns False by default. PR merge detection is handled separately
-        via GitHub API in the IssueCloser service.
-
-        Args:
-            pr_url: The full URL to the pull request.
-
-        Returns:
-            Always False - PR detection is handled by IssueCloser.
-        """
-        # Linear doesn't track PR merge status natively
-        # This is handled by IssueCloser using GitHub API
-        return False
-
     def add_label(self, task_id: str, label: str) -> None:
         """Add a label to a Linear issue.
 

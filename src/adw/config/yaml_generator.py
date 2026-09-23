@@ -295,7 +295,6 @@ class YAMLWithComments:
                 lines.append("  sync_comments: true")
             else:
                 lines.append("  # sync_comments: false  # Post status comments")
-            lines.append("  # auto_close: false  # Close task when PR merged")
 
             # State mapping
             state_mapping = task_manager.get("state_mapping")
@@ -326,7 +325,6 @@ class YAMLWithComments:
             lines.append('#   type: "none"  # Task manager type (none, linear)')
             lines.append("#   team_key: null  # Team prefix (e.g., RULE for RULE-123)")
             lines.append("#   sync_comments: false  # Post status comments")
-            lines.append("#   auto_close: false  # Close task when PR merged")
             lines.append("#   state_mapping:")
             for phase_name, state_value in _DEFAULT_STATE_MAPPING.items():
                 lines.append(f"#     {phase_name}: {_format_yaml_value(state_value)}")

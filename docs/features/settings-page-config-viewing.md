@@ -29,7 +29,7 @@ The Settings page provides a config viewer and editor in the dashboard. Users se
 - Creates `.adw/` directory and `project.yaml` if they don't exist
 
 ### Story 7.3: Complex Field Editors (Task Manager & Security)
-- Task Manager tab with type select (none/linear), HTMX conditional partial swap, team_key, sync_comments, auto_close, labels_enabled, label_prefix fields
+- Task Manager tab with type select (none/linear), HTMX conditional partial swap, team_key, sync_comments, auto_close (deprecated and ignored), labels_enabled, label_prefix fields
 - State mapping key-value editor (read-only phase keys, editable status values) rendered as `table table-sm`
 - Security tab with list editors for blocked_commands (regex patterns) and blocked_env_files (glob patterns)
 - List editor with `<template>` cloning and `addRow()`/`reindex()` inline JS (~10 lines)

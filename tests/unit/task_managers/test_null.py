@@ -54,13 +54,6 @@ class TestNullTaskManager:
         manager.close_task("task-uuid-123")
         manager.close_task("another-task")
 
-    def test_is_pr_merged_returns_false(self) -> None:
-        """is_pr_merged always returns False."""
-        manager = NullTaskManager()
-        assert manager.is_pr_merged("https://github.com/owner/repo/pull/123") is False
-        assert manager.is_pr_merged("any-url") is False
-        assert manager.is_pr_merged("") is False
-
     def test_add_label_no_op(self) -> None:
         """add_label does nothing and doesn't raise."""
         manager = NullTaskManager()

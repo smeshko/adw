@@ -371,7 +371,7 @@ class TaskManagerConfig(BaseModel):
         state_mapping: Phase-based mapping from ADW phases to external system states
         sync_comments: Whether to post comments on status transitions
         labels: Label management configuration
-        auto_close: Whether to close task when PR is merged (default: false)
+        auto_close: Deprecated and ignored; tickets move through state_mapping.
 
     Example:
         >>> config = TaskManagerConfig(
@@ -397,7 +397,6 @@ class TaskManagerConfig(BaseModel):
           labels:
             enabled: true
             prefix: "adw:"
-          auto_close: false
     """
 
     type: Literal["none", "linear"] = Field(
@@ -429,7 +428,7 @@ class TaskManagerConfig(BaseModel):
     )
     auto_close: bool = Field(
         default=False,
-        description="Whether to close task when PR is merged",
+        description="Deprecated and ignored; tickets move through state_mapping.",
     )
 
 

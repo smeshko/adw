@@ -270,7 +270,7 @@ def run(
         )
         raise typer.Exit(code=1)
 
-    # Load config for task manager configuration (Story 12.8)
+    # Load config for task manager configuration
 
     task_manager_config = None
     redaction_config = None
@@ -311,18 +311,15 @@ def run(
         )
         raise typer.Exit(code=1) from None
 
-    # Fetch task info to get internal UUID for issue closing and labels
-    # (Story 12.8, ISS-033)
-    task_uuid: str | None = None
+    # Fetch task info for the run context and labels (ISS-033)
     task_info: TaskInfo | None = None
     if resolved.type == InputType.TASK_ID and resolved.task_id:
         console.print(f"[dim]Resolved as task ID:[/] {resolved.task_id}")
         try:
             task_info = task_manager.fetch_task(resolved.task_id)
-            task_uuid = task_info.id  # Internal UUID for issue closing
             console.print(f"[dim]Task:[/] {task_info.title}")
         except Exception as e:
-            # Non-blocking - continue without task_info/task_uuid, but warn user
+            # Non-blocking - continue without task_info, but warn user
             console.print(
                 f"[yellow]Warning:[/] Failed to fetch task '{resolved.task_id}': {e}"
             )
@@ -432,12 +429,10 @@ def run(
             )
         else:
             # Full pipeline execution (Story 10.1: pass use_worktree flag)
-            # (Story 12.8: pass task_uuid for issue closing)
             context = orchestrator.run(
                 feature,
                 run_id=run_id,
                 use_worktree=not no_worktree,
-                task_uuid=task_uuid,
             )
             console.print(f"[green]✓[/] Run completed: {context.run_id}")
 

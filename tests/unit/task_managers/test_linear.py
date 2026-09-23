@@ -455,21 +455,6 @@ class TestLinearTaskManagerCloseTask:
             assert exc_info.value.code == "DONE_STATE_NOT_FOUND"
 
 
-class TestLinearTaskManagerIsPrMerged:
-    """Tests for LinearTaskManager.is_pr_merged."""
-
-    def test_is_pr_merged_returns_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """is_pr_merged always returns False (handled by IssueCloser)."""
-        monkeypatch.setenv("LINEAR_API_KEY", "lin_api_test123")
-        monkeypatch.setenv("LINEAR_TEAM_ID", "team-uuid-123")
-        config = TaskManagerConfig(type="linear", team_key="RULE")
-        manager = LinearTaskManager(config)
-
-        # Linear doesn't track PR status natively
-        assert manager.is_pr_merged("https://github.com/owner/repo/pull/123") is False
-        assert manager.is_pr_merged("any-url") is False
-
-
 class TestLinearTaskManagerProtocol:
     """Tests for LinearTaskManager Protocol satisfaction."""
 
@@ -494,4 +479,3 @@ class TestLinearTaskManagerProtocol:
         assert hasattr(manager, "update_status")
         assert hasattr(manager, "resolve_task_id")
         assert hasattr(manager, "close_task")
-        assert hasattr(manager, "is_pr_merged")
