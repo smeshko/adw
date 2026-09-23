@@ -93,24 +93,20 @@
       </step>
 
       <step name="detect-test-command">
-        <critical>Auto-detect the test command based on project structure</critical>
-        <action>Check if test command has been provided in the context. 
-        If not, try to the best of your abilities extract the test command based on the project structure and framework.</action>
-        <action>Store detected command as {{test_command}}</action>
-        <check if="no test command detected">
-          <action>Set {{test_command}} = null</action>
+        <critical>Use the configured test command; auto-detect only when none is configured</critical>
+        <action>Provided test command: `{{test_command}}` (empty = not configured)</action>
+        <action>If the provided test command is not empty, set test_cmd to it.
+        Otherwise, try to the best of your abilities to extract the test command based on the project structure and framework, and set test_cmd to it.</action>
+        <check if="no test command provided or detected">
+          <action>Set test_cmd = null</action>
           <note>Will skip test phase if no test framework detected</note>
         </check>
       </step>
 
       <step name="detect-lint-command">
-        <action>Check if lint command has been provided in the context.
-        If not, set to null.</action>
-        <action>Store as {{lint_command}}</action>
-        <check if="no lint command detected">
-          <action>Set {{lint_command}} = null</action>
-          <note>Will skip lint phase if no linter configured</note>
-        </check>
+        <action>Provided lint command: `{{lint_command}}` (empty = not configured)</action>
+        <action>If the provided lint command is not empty, set lint_cmd to it. Otherwise, set lint_cmd = null.</action>
+        <note>Will skip lint phase if no linter configured</note>
       </step>
     </phase>
 
@@ -119,7 +115,7 @@
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <phase name="lint-validation">
       <step name="check-lint-available">
-        <check if="{{lint_command}} is null">
+        <check if="lint_cmd is null">
           <output>⚠️ No lint command configured - skipping lint phase</output>
           <action>Set lint_passed = true (no linter to run)</action>
           <action>Jump to phase: test-validation</action>
@@ -134,7 +130,7 @@
         ───────────────────────────────────────────────────────────────
         ```
         </output>
-        <action>Execute: {{lint_command}}</action>
+        <action>Execute: lint_cmd</action>
         <action>Capture lint output and exit code</action>
       </step>
 
@@ -157,7 +153,7 @@
       </step>
 
       <step name="rerun-lint">
-        <action>Execute: {{lint_command}}</action>
+        <action>Execute: lint_cmd</action>
 
         <check if="lint still fails after fix attempt">
           <output>❌ Lint still failing after fix attempt</output>
@@ -183,7 +179,7 @@
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <phase name="test-validation">
       <step name="check-test-available">
-        <check if="{{test_command}} is null">
+        <check if="test_cmd is null">
           <output>⚠️ No test framework detected - skipping test phase</output>
           <action>Set tests_passed = true (no tests to run)</action>
           <action>Jump to phase: review-loop</action>
@@ -198,7 +194,7 @@
         ───────────────────────────────────────────────────────────────
         ```
         </output>
-        <action>Execute: {{test_command}}</action>
+        <action>Execute: test_cmd</action>
         <action>Capture test output and exit code</action>
       </step>
 
@@ -221,7 +217,7 @@
       </step>
 
       <step name="rerun-tests">
-        <action>Execute: {{test_command}}</action>
+        <action>Execute: test_cmd</action>
 
         <check if="tests still fail after fix attempt">
           <output>❌ Tests still failing after fix attempt</output>

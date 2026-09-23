@@ -365,7 +365,7 @@ Include a scratch-repo transcript of a non-worktree mocked run showing the branc
 
 ## Phase 1.10 — Expand includes before substitution
 
-**Plan**: _not yet created_
+**Plan**: [01.10-expand-includes-before-substitution](../plans/archive/2026-09-23-01.10-expand-includes-before-substitution/PLAN.md) · status: done
 
 **Linear**: ADW-16 (https://linear.app/ivo-tsonev/issue/ADW-16)
 
@@ -382,11 +382,11 @@ Include a scratch-repo transcript of a non-worktree mocked run showing the branc
 
 ### Acceptance criteria
 
-- [ ] Rendering the document phase for a run whose build artifacts exist produces a prompt containing the actual diff, not the literal `{{artifacts.build.diff}}`.
-- [ ] Rendering the validate phase with `test_command: "uv run pytest"` produces a prompt containing `uv run pytest` wherever the included instructions reference `{{test_command}}`.
-- [ ] All LLM-facing placeholders in the bundled prompts are still present verbatim in the rendered output. The test lists them.
-- [ ] A traversal attempt such as `{{include:../../etc/passwd}}` still raises.
-- [ ] Lint and tests pass.
+- [x] Rendering the document phase for a run whose build artifacts exist produces a prompt containing the actual diff, not the literal `{{artifacts.build.diff}}`. Evidence: `test_document_prompt_fills_included_build_diff` and the scratch `--from-run` capture, see [VALIDATION.md](../plans/archive/2026-09-23-01.10-expand-includes-before-substitution/VALIDATION.md)
+- [x] Rendering the validate phase with `test_command: "uv run pytest"` produces a prompt containing `uv run pytest` wherever the included instructions reference `{{test_command}}`. Evidence: `test_validate_prompt_fills_included_commands`, `test_validate_prompt_without_commands_keeps_auto_detect`
+- [x] All LLM-facing placeholders in the bundled prompts are still present verbatim in the rendered output. The test lists them. Evidence: `test_llm_facing_placeholders_survive[*]`
+- [x] A traversal attempt such as `{{include:../../etc/passwd}}` still raises. Evidence: `TestDirectives::test_directive_path_traversal_raises[*]`
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -400,6 +400,6 @@ Include rendered-prompt snapshots (before/after) for the document and validate p
 
 - [ ] Every phase merged and its acceptance criteria met
 - [ ] Status row in [EPICS.md](./EPICS.md) updated to `Done`
-- [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code — phase 1.9: B10 `test_runner_uses_project_hook_config`, `test_project_hook_timeout_stops_post_hook`; B16 `test_non_worktree_run_switches_branch_before_plan`, `test_build_post_hook_extracts_story_and_leaves_changes_uncommitted`, see [VALIDATION.md](../plans/01.9-hook-config-and-phase-hook-scripts/VALIDATION.md); phase 1.8: B3 `test_build_cmd_in_env_without_ship_config`, `test_ship_hook_env_carries_project_build_command`; B4 `test_reads_log_written_by_run`, `test_log_stream_emits_live_log_lines`; B11 `test_initialize_writes_loadable_config`, `test_init_output_passes_validate`; B17 `test_accepted_defaults_yield_ship_mapping`; B21 `test_run_events_close_on_interrupted`, `test_log_stream_closes_on_interrupted`; phase 1.7: B1 `test_auto_close_leaves_ticket_open_and_warns_once`, B12 `test_pr_sets_pr_url`, see [VALIDATION.md](../plans/archive/2026-09-23-01.7-carry-pr-url-on-run-context/VALIDATION.md)
+- [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code — phase 1.9: B10 `test_runner_uses_project_hook_config`, `test_project_hook_timeout_stops_post_hook`; B16 `test_non_worktree_run_switches_branch_before_plan`, `test_build_post_hook_extracts_story_and_leaves_changes_uncommitted`, see [VALIDATION.md](../plans/01.9-hook-config-and-phase-hook-scripts/VALIDATION.md); phase 1.8: B3 `test_build_cmd_in_env_without_ship_config`, `test_ship_hook_env_carries_project_build_command`; B4 `test_reads_log_written_by_run`, `test_log_stream_emits_live_log_lines`; B11 `test_initialize_writes_loadable_config`, `test_init_output_passes_validate`; B17 `test_accepted_defaults_yield_ship_mapping`; B21 `test_run_events_close_on_interrupted`, `test_log_stream_closes_on_interrupted`; phase 1.7: B1 `test_auto_close_leaves_ticket_open_and_warns_once`, B12 `test_pr_sets_pr_url`, see [VALIDATION.md](../plans/archive/2026-09-23-01.7-carry-pr-url-on-run-context/VALIDATION.md); phase 1.10: B5 `test_document_prompt_fills_included_build_diff`, `test_validate_prompt_fills_included_commands`, see [VALIDATION.md](../plans/archive/2026-09-23-01.10-expand-includes-before-substitution/VALIDATION.md)
 - [ ] The full suite runs without touching the checkout or `~/.adw`, and is at least 50 s faster than before the epic — phase 1.1: no-touch diff empty, 210.2 s → 157.1 s (−53.1 s), see [VALIDATION.md](../plans/archive/2026-09-23-01.1-isolate-test-suite/VALIDATION.md)
-- [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l` — phase 1.2: 46,993 → 44,596 (−2,397; −2,420 against `cdb2003f`'s 47,016), see [VALIDATION.md](../plans/archive/2026-09-23-01.2-delete-dead-code/VALIDATION.md)
+- [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l` — phase 1.2: 46,993 → 44,596 (−2,397; −2,420 against `cdb2003f`'s 47,016), see [VALIDATION.md](../plans/archive/2026-09-23-01.2-delete-dead-code/VALIDATION.md); phase 1.10: 42,282 → 41,983 (−299), see [VALIDATION.md](../plans/archive/2026-09-23-01.10-expand-includes-before-substitution/VALIDATION.md)

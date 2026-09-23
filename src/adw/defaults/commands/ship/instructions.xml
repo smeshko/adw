@@ -165,9 +165,9 @@
       <!-- 1d: Extract Ship Configuration -->
       <substep name="extract-ship-config">
         <action>Extract ship configuration from project config (provided in context):
-          - {{version_bump_command}} - Command to bump version (if configured)
-          - {{build_command}} - Command to build (if configured)
-          - {{publish_command}} - Command to publish (if configured)
+          - Version bump command: `{{version_bump_command}}` (empty = not configured)
+          - Build command: `{{build_command}}` (empty = not configured)
+          - Publish command: `{{publish_command}}` (empty = not configured)
           - {{merge_on_success}} - Whether to auto-merge on success
           - {{merge_method}} - merge, squash, or rebase
           - {{delete_branch}} - Whether to delete branch after merge
