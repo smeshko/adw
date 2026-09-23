@@ -81,5 +81,5 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-001: Kill the hook's process group on timeout
 - [x] TASK-002: Patch retry backoff and drop wall-clock transition tests
 - [x] TASK-003: Isolate HOME per test and drop the ADW_TEST_* path hooks
-- [ ] TASK-004: Run cli and dashboard unit tests in a temp cwd
+- [x] TASK-004: Run cli and dashboard unit tests in a temp cwd
 - [ ] TASK-005: Final Validation
