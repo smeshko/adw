@@ -1,6 +1,6 @@
 # Plan: Dependencies, tooling and repo hygiene
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-11
 Risk: small
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -99,7 +99,7 @@ After the PR merges and the main checkout is on the updated `staging` (user's ch
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Drop unused dependency extras and stale tool config
+- [x] TASK-001: Drop unused dependency extras and stale tool config
 - [ ] TASK-002: Lint and format tests in preflight and CI
 - [ ] TASK-003: Replace update.sh with a uv version-bump script
 - [ ] TASK-004: Strip planning tags from src

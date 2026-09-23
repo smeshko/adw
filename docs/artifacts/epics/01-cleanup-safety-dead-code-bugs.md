@@ -201,7 +201,7 @@ Include `uv run pytest --collect-only -q | tail -1` before and after, and the fi
 
 ## Phase 1.5 — Dependencies, tooling and repo hygiene
 
-**Plan**: [01.5-dependencies-tooling-repo-hygiene](../plans/01.5-dependencies-tooling-repo-hygiene/PLAN.md) · status: planned
+**Plan**: [01.5-dependencies-tooling-repo-hygiene](../plans/01.5-dependencies-tooling-repo-hygiene/PLAN.md) · status: in-progress
 
 **Linear**: ADW-11 (https://linear.app/ivo-tsonev/issue/ADW-11)
 
