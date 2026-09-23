@@ -78,7 +78,7 @@ Diff the two snapshots and paste the result, plus both runs' `--durations=15` ou
 
 ## Phase 1.2 — Delete dead modules and symbols
 
-**Plan**: [01.2-delete-dead-code](../plans/01.2-delete-dead-code/PLAN.md) · status: in-progress
+**Plan**: [01.2-delete-dead-code](../plans/01.2-delete-dead-code/PLAN.md) · status: done
 
 **Linear**: ADW-8 (https://linear.app/ivo-tsonev/issue/ADW-8)
 
@@ -107,10 +107,10 @@ Diff the two snapshots and paste the result, plus both runs' `--durations=15` ou
 
 ### Acceptance criteria
 
-- [ ] `grep -rn "adw.validation\|adw.utils\|jsonschema\|CommandLoader" src tests pyproject.toml` returns nothing.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage at or above 80%.
-- [ ] `adw run --dry-run "noop"` in a scratch repo still lists and renders all five phases.
-- [ ] Lint and tests pass.
+- [x] `grep -rn "adw.validation\|adw.utils\|jsonschema\|CommandLoader" src tests pyproject.toml` returns nothing.
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage at or above 80%. 4039 passed, 5 skipped, 84.09%.
+- [x] `adw run --dry-run "noop"` in a scratch repo still lists and renders all five phases. Evidence: the dry-run transcript, plus `adw validate` reporting `OK` for all five phases, because dry-run renders no prompt. See [VALIDATION.md](../plans/01.2-delete-dead-code/VALIDATION.md).
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -135,7 +135,7 @@ Paste the grep output (empty), the pytest summary line with the coverage total, 
   - `WorktreeError`, which absorbs `PortAllocationError` and `MaxConcurrentRunsError` as error codes.
 - Delete from `exceptions.py`:
   - the never-raised `CommandError` and `PhaseError`
-  - `ValidationError`, whose name clashes with pydantic's
+  - `ValidationError`, whose name clashes with pydantic's. Already deleted by phase 1.2 (TASK-002).
   - all `to_dict()` methods, which have no callers
   - the long docstring examples
 - Leave `SecurityError` and `LLMRateLimitError` for phases 2.1 and 1.6.
@@ -402,4 +402,4 @@ Include rendered-prompt snapshots (before/after) for the document and validate p
 - [ ] Status row in [EPICS.md](./EPICS.md) updated to `Done`
 - [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code
 - [ ] The full suite runs without touching the checkout or `~/.adw`, and is at least 50 s faster than before the epic — phase 1.1: no-touch diff empty, 210.2 s → 157.1 s (−53.1 s), see [VALIDATION.md](../plans/archive/2026-09-23-01.1-isolate-test-suite/VALIDATION.md)
-- [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l`
+- [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l` — phase 1.2: 46,993 → 44,596 (−2,397; −2,420 against `cdb2003f`'s 47,016), see [VALIDATION.md](../plans/01.2-delete-dead-code/VALIDATION.md)

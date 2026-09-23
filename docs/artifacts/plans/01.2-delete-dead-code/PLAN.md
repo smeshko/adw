@@ -1,6 +1,6 @@
 # Plan: Delete dead modules and symbols
 
-Status: in-progress
+Status: done
 Branch: feature/adw-8
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -89,16 +89,16 @@ See [RESEARCH.md](./RESEARCH.md). The plan was prototyped on a scratch copy of `
 
 ## Acceptance Criteria
 
-- [ ] `grep -rn "adw.validation\|adw.utils\|jsonschema\|CommandLoader" src tests pyproject.toml` returns nothing. Evidence: the empty grep output.
-- [ ] `grep -rnE "LoadedCommand|SchemaValidator|escape_feature_description|find_hook|get_next_phase|SessionContext|ProjectContext|ArtifactType|from_yaml_file|cleanup_branch_on_remove|unregister_run|json_schema_extra" src` returns nothing. Evidence: the empty grep output.
-- [ ] `uvx vulture src/adw --min-confidence 60`, diffed against the baseline taken at the start of TASK-001, reports no new entry. Evidence: the empty `comm -13` output.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%. Evidence: the preflight output and the pytest summary line with the coverage total.
-- [ ] In a scratch repo:
+- [x] `grep -rn "adw.validation\|adw.utils\|jsonschema\|CommandLoader" src tests pyproject.toml` returns nothing. Evidence: the empty grep output.
+- [x] `grep -rnE "LoadedCommand|SchemaValidator|escape_feature_description|find_hook|get_next_phase|SessionContext|ProjectContext|ArtifactType|from_yaml_file|cleanup_branch_on_remove|unregister_run|json_schema_extra" src` returns nothing. Evidence: the empty grep output.
+- [x] `uvx vulture src/adw --min-confidence 60`, diffed against the baseline taken at the start of TASK-001, reports no new entry. Evidence: the empty `comm -13` output.
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%. Evidence: the preflight output and the pytest summary line with the coverage total.
+- [x] In a scratch repo:
   - `adw run --dry-run "noop"` lists all five phases.
   - `adw validate` reports `OK` for plan, build, validate, document and ship.
 
   Evidence: both transcripts.
-- [ ] `find src -name '*.py' | xargs cat | wc -l` drops by at least 2,000 against 46,993. Evidence: the before/after numbers in `VALIDATION.md`.
+- [x] `find src -name '*.py' | xargs cat | wc -l` drops by at least 2,000 against 46,993. Evidence: the before/after numbers in `VALIDATION.md`.
 
 ## Tasks
 
@@ -111,4 +111,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-004: Delete dead core symbols and their cascades (depends on TASK-003)
 - [x] TASK-005: Delete dead model symbols and schema examples (depends on TASK-004)
 - [x] TASK-006: Delete dead executor, hook, logging, worktree and cli symbols (depends on TASK-005)
-- [ ] TASK-007: Final Validation
+- [x] TASK-007: Final Validation
