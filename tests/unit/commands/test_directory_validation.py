@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from adw.commands import CommandResolver
+from adw.commands.resolver import CommandResolver
 from adw.exceptions import ConfigError
 
 

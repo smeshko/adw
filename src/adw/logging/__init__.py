@@ -8,68 +8,13 @@ This package provides a comprehensive logging system with:
 - Level-based filtering (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
 - Category-based organization (PHASE, LLM, HOOK, STATE, ERROR, PERFORMANCE)
 - File locking for concurrent write safety
-
-Quick Start:
-    >>> from adw.logging import get_logger, LogCategory
-    >>> logger = get_logger()
-    >>> logger.info(LogCategory.PHASE, "Phase started")
-
-For run-scoped logging:
-    >>> from adw.logging import get_logger, LogCategory
-    >>> logger = get_logger()
-    >>> run_logger = logger.child(run_id="01HQ123ABC", phase="build")
-    >>> run_logger.debug(LogCategory.LLM, "Sending request")
 """
 
 import logging
 
-from adw.logging.console import ConsoleTransport
 from adw.logging.handler import LogManagerHandler
-from adw.logging.live_stream import LiveStreamTransport
-from adw.logging.manager import LogManager, Transport
-from adw.logging.redactor import (
-    DEFAULT_REDACTION_PATTERNS,
-    REDACTED_PLACEHOLDER,
-    SENSITIVE_ENV_PATTERNS,
-    Redactor,
-    configure_redactor,
-    get_redactor,
-    reset_redactor,
-)
-from adw.models.logging import LogCategory, LogContext, LogEvent, LogLevel
-
-# Module-level default logger instance
-_default_logger: LogManager | None = None
-
-
-def get_logger() -> LogManager:
-    """Get the default logger instance.
-
-    Returns a module-level LogManager instance, creating it on first call.
-    The default logger has no transports registered; use register() to add.
-
-    Returns:
-        The default LogManager instance
-
-    Example:
-        >>> logger = get_logger()
-        >>> logger.register(ConsoleTransport())
-        >>> logger.info(LogCategory.PHASE, "Application started")
-    """
-    global _default_logger
-    if _default_logger is None:
-        _default_logger = LogManager()
-    return _default_logger
-
-
-def reset_logger() -> None:
-    """Reset the default logger instance.
-
-    Clears the module-level default logger, allowing a fresh instance
-    to be created on the next get_logger() call. Useful for testing.
-    """
-    global _default_logger
-    _default_logger = None
+from adw.logging.manager import LogManager
+from adw.logging.redactor import Redactor, configure_redactor
 
 
 def create_redactor_from_config(
@@ -110,28 +55,7 @@ def create_redactor_from_config(
 
 
 __all__ = [
-    # Core classes
     "LogManager",
     "LogManagerHandler",
-    "Transport",
-    "LiveStreamTransport",
-    # Transports
-    "ConsoleTransport",
-    # Redaction
-    "Redactor",
-    "DEFAULT_REDACTION_PATTERNS",
-    "SENSITIVE_ENV_PATTERNS",
-    "REDACTED_PLACEHOLDER",
-    "get_redactor",
-    "configure_redactor",
-    "reset_redactor",
-    # Models (re-exported for convenience)
-    "LogCategory",
-    "LogContext",
-    "LogEvent",
-    "LogLevel",
-    # Functions
-    "get_logger",
     "create_redactor_from_config",
-    "reset_logger",
 ]

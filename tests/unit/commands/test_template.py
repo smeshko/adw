@@ -5,8 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from adw.commands import TemplateEngine
-from adw.commands.template import VARIABLE_PATTERN
+from adw.commands.template import VARIABLE_PATTERN, TemplateEngine
 from adw.exceptions import ConfigError
 
 
@@ -15,7 +14,7 @@ class TestTemplateEngineModuleStructure:
 
     def test_template_engine_importable_from_commands(self) -> None:
         """TemplateEngine should be importable from adw.commands."""
-        from adw.commands import TemplateEngine
+        from adw.commands.template import TemplateEngine
 
         assert TemplateEngine is not None
 
