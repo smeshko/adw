@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 from pydantic import ValidationError as PydanticValidationError
 
+from adw.core.constants import project_runs_dir
 from adw.core.context_manager import ContextManager
 from adw.core.interruption import InterruptionHandler
 from adw.core.snapshot_manager import SnapshotManager
@@ -241,7 +242,7 @@ async def abort_run(
 
     # Instantiate core managers for this run's project
     project_path = Path(run_entry.project_path)
-    runs_dir = project_path / ".adw" / "runs"
+    runs_dir = project_runs_dir(project_path)
     cm = ContextManager(runs_dir)
     sm = SnapshotManager(runs_dir)
 

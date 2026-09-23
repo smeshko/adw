@@ -21,7 +21,7 @@ from fastapi.responses import HTMLResponse
 from starlette.responses import StreamingResponse
 
 from adw.core.artifact_manager import ArtifactManager
-from adw.core.constants import PHASE_SEQUENCE
+from adw.core.constants import LIVE_LOG, PHASE_SEQUENCE, project_runs_dir
 from adw.core.context_manager import ContextManager
 from adw.dashboard.dependencies import (
     generate_csrf_token,
@@ -533,7 +533,7 @@ def _build_run_detail_context(
     # Try loading RunContext for enriched data
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
         cm = ContextManager(runs_dir)
         ctx = cm.load(run_id)
         # Override with live data
@@ -552,7 +552,7 @@ def _build_run_detail_context(
         # Artifacts path
         if ctx.worktree_path:
             artifacts_path = str(
-                ctx.worktree_path / ".adw" / "runs" / run_id / "artifacts"
+                project_runs_dir(ctx.worktree_path) / run_id / "artifacts"
             )
         else:
             artifacts_path = str(runs_dir / run_id / "artifacts")
@@ -922,7 +922,7 @@ async def phase_detail(
 
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
     except (AttributeError, OSError):
         runs_dir = None
 
@@ -1011,7 +1011,7 @@ async def llm_prompt(
 
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
         content = _load_llm_content(runs_dir, run_id, phase, "prompt")
     except OSError:
         content = None
@@ -1057,7 +1057,7 @@ async def llm_response(
 
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
         content = _load_llm_content(runs_dir, run_id, phase, "response")
     except OSError:
         content = None
@@ -1121,7 +1121,7 @@ async def artifact_viewer(
     content: str | None = None
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
         am = ArtifactManager(runs_dir)
         content = am.get(run_id, phase, filename)  # type: ignore[assignment]
     except (StateError, OSError, UnicodeDecodeError):
@@ -1192,7 +1192,7 @@ def _load_log_entries(
     """
     import re
 
-    log_file = runs_dir / run_id / "logs" / "live.log"
+    log_file = runs_dir / run_id / LIVE_LOG
     if not log_file.exists():
         return []
 
@@ -1278,7 +1278,7 @@ async def log_search(
 
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
         entries = _load_log_entries(runs_dir, run_id, phase=phase or None)
     except OSError:
         entries = []
@@ -1384,7 +1384,7 @@ async def run_events_sse(
 
         try:
             project_path = Path(run_entry.project_path)
-            runs_dir = project_path / ".adw" / "runs"
+            runs_dir = project_runs_dir(project_path)
         except (AttributeError, OSError):
             yield _format_sse_event("error", "Cannot resolve run path")
             return
@@ -1529,12 +1529,12 @@ async def log_stream_sse(
         """Tail the live.log file and yield new lines as SSE events."""
         try:
             project_path = Path(run_entry.project_path)
-            runs_dir = project_path / ".adw" / "runs"
+            runs_dir = project_runs_dir(project_path)
         except (AttributeError, OSError):
             yield _format_sse_event("error", "Cannot resolve run path")
             return
 
-        log_file = runs_dir / run_id / "logs" / "live.log"
+        log_file = runs_dir / run_id / LIVE_LOG
         line_pattern = re.compile(
             r"^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s+\[(\w+)\]\s+(.*)"
         )

@@ -8,10 +8,12 @@ and OOB phase pipeline rendering.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
+from adw.core.constants import LIVE_LOG, project_runs_dir
 from adw.dashboard.server import create_dashboard_app
 from adw.models.index import IndexEntry
 
@@ -596,6 +598,27 @@ class TestSSEEndpointRegistration:
 
         assert response.status_code == 200
         assert response.headers.get("content-type", "").startswith("text/event-stream")
+
+    def test_log_stream_emits_live_log_lines(self, tmp_path: Path) -> None:
+        """The log stream emits the lines of the run's live.log (B4)."""
+        entry = _make_index_entry(
+            status="running", completed_at=None, project_path=str(tmp_path)
+        )
+        run_dir = project_runs_dir(tmp_path) / entry.run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / LIVE_LOG).write_text(
+            "[2026-02-13 07:10:29] [TOOL] Read src/app.py\n"
+            "[2026-02-13 07:10:30] [TOOL] Edit src/app.py\n"
+        )
+        client = _make_client_with_mocks(entries=[entry])
+
+        with patch("adw.dashboard.routes.ContextManager") as mock_cm:
+            mock_cm.return_value.load.return_value = MagicMock(status="completed")
+            response = client.get(f"/runs/{entry.run_id}/logs/stream")
+
+        assert response.text.count("event:log-line") == 2
+        assert "Read src/app.py" in response.text
+        assert "Edit src/app.py" in response.text
 
     def test_log_stream_404_for_missing_run(self) -> None:
         """GET /runs/{id}/logs/stream returns 404 for non-existent run."""
