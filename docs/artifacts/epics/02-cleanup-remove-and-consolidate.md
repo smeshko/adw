@@ -110,7 +110,7 @@ Include `adw list --running` output with one mocked run active, and the `adw val
 
 ## Phase 2.3 — Remove the webhook server
 
-**Plan**: [02.3-remove-webhook-server](../plans/02.3-remove-webhook-server/PLAN.md) · status: planned
+**Plan**: [02.3-remove-webhook-server](../plans/02.3-remove-webhook-server/PLAN.md) · status: in-progress
 
 **Linear**: ADW-19 (https://linear.app/ivo-tsonev/issue/ADW-19)
 

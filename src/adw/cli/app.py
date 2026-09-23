@@ -24,7 +24,6 @@ from adw.cli.status import status as status_command
 from adw.cli.unregister import unregister as unregister_command
 from adw.cli.validate_config import validate_config_command
 from adw.cli.validators import validate_phase
-from adw.cli.webhook import webhook_app
 from adw.config.loader import ConfigLoader
 from adw.exceptions import ADWError, ConfigError
 from adw.models.config import ProjectConfig
@@ -508,9 +507,6 @@ app.command()(projects_command)
 
 # Register the dashboard subapp (Story ADW-6)
 app.add_typer(dashboard_web_app, name="dashboard")
-
-# Register the webhook subapp (Story 13.1)
-app.add_typer(webhook_app, name="webhook")
 
 # Register the global subapp (Story 16.2)
 app.add_typer(global_app, name="global")

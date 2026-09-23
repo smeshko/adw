@@ -1,6 +1,6 @@
 # Plan: Remove the webhook server
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-19
 Risk: medium
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -104,7 +104,7 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Delete the webhook package and the adw webhook command group
+- [x] TASK-001: Delete the webhook package and the adw webhook command group
 - [ ] TASK-002: Remove the webhook step from the init wizard
 - [ ] TASK-003: Drop ProjectConfig.webhook and warn on a leftover webhook section (depends on TASK-001)
 - [ ] TASK-004: Build the dashboard on a plain FastAPI app (depends on TASK-001)
