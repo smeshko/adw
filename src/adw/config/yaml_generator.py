@@ -12,19 +12,11 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic_core import PydanticUndefined
 
+from adw.models.config import DEFAULT_STATE_MAPPING
+
 if TYPE_CHECKING:
     from adw.config.registry import ConfigRegistry, SettingDefinition
     from adw.models.wizard import WizardState
-
-# Default state mapping used for comparison when determining active vs commented
-_DEFAULT_STATE_MAPPING = {
-    "plan": "In Progress",
-    "build": "In Progress",
-    "validate": "In Review",
-    "document": "In Review",
-    "ship": "Done",
-    "failed": "In Progress",
-}
 
 
 def _format_yaml_value(value: Any) -> str:
@@ -299,13 +291,13 @@ class YAMLWithComments:
 
             # State mapping
             state_mapping = task_manager.get("state_mapping")
-            if state_mapping and state_mapping != _DEFAULT_STATE_MAPPING:
+            if state_mapping and state_mapping != DEFAULT_STATE_MAPPING:
                 lines.append("  state_mapping:")
                 for phase_name, state_value in state_mapping.items():
                     lines.append(f"    {phase_name}: {_format_yaml_value(state_value)}")
             else:
                 lines.append("  # state_mapping:")
-                for phase_name, state_value in _DEFAULT_STATE_MAPPING.items():
+                for phase_name, state_value in DEFAULT_STATE_MAPPING.items():
                     lines.append(
                         f"  #   {phase_name}: {_format_yaml_value(state_value)}"
                     )
@@ -328,7 +320,7 @@ class YAMLWithComments:
             lines.append("#   sync_comments: false  # Post status comments")
             lines.append("#   auto_close: false  # Close task when PR merged")
             lines.append("#   state_mapping:")
-            for phase_name, state_value in _DEFAULT_STATE_MAPPING.items():
+            for phase_name, state_value in DEFAULT_STATE_MAPPING.items():
                 lines.append(f"#     {phase_name}: {_format_yaml_value(state_value)}")
             lines.append("#   labels:")
             lines.append("#     enabled: true  # Enable label management")

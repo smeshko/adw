@@ -6,19 +6,21 @@ and wizard state integration for the task manager step.
 
 from __future__ import annotations
 
+import io
 from unittest.mock import patch
 
 import pytest
+import yaml
 from rich.console import Console
 
 from adw.cli.wizard.task_manager import (
     DEFAULT_LABEL_PREFIX,
-    DEFAULT_STATE_MAPPINGS,
     TEAM_KEY_PATTERN,
     TaskManagerStepHandler,
     run_task_manager_step,
     validate_team_key,
 )
+from adw.models.config import DEFAULT_STATE_MAPPING
 from adw.models.wizard import WizardState
 
 
@@ -239,6 +241,7 @@ class TestStateMappingConfiguration:
                 "Building",  # build
                 "Reviewing",  # validate
                 "Documenting",  # document
+                "Shipped",  # ship
                 "Failed",  # failed
             ]
 
@@ -249,6 +252,7 @@ class TestStateMappingConfiguration:
         assert result["state_mapping"]["build"] == "Building"
         assert result["state_mapping"]["validate"] == "Reviewing"
         assert result["state_mapping"]["document"] == "Documenting"
+        assert result["state_mapping"]["ship"] == "Shipped"
         assert result["state_mapping"]["failed"] == "Failed"
 
     def test_state_mapping_accepts_defaults(self) -> None:
@@ -266,17 +270,13 @@ class TestStateMappingConfiguration:
                 "linear",
                 "TEAM",
                 DEFAULT_LABEL_PREFIX,
-                DEFAULT_STATE_MAPPINGS["plan"],
-                DEFAULT_STATE_MAPPINGS["build"],
-                DEFAULT_STATE_MAPPINGS["validate"],
-                DEFAULT_STATE_MAPPINGS["document"],
-                DEFAULT_STATE_MAPPINGS["failed"],
+                *DEFAULT_STATE_MAPPING.values(),
             ]
 
             result = run_task_manager_step(state, console)
 
         assert result["state_mapping"] is not None
-        assert result["state_mapping"] == DEFAULT_STATE_MAPPINGS
+        assert result["state_mapping"] == DEFAULT_STATE_MAPPING
 
 
 class TestTaskManagerStepHandler:
@@ -326,15 +326,37 @@ class TestStateIntegration:
         assert stored["team_key"] == "ADW"
         assert "task_manager" in state.completed_steps
 
+    def test_accepted_defaults_yield_ship_mapping(self) -> None:
+        """Accepting every default mapping prompt keeps ship -> Done (B17)."""
+        from adw.cli.wizard.task_manager import _prompt_state_mapping
+        from adw.config.registry import ConfigRegistry
+        from adw.config.yaml_generator import YAMLWithComments
+        from adw.models.config import ProjectConfig
+
+        console = Console(file=io.StringIO())
+        with (
+            patch("adw.cli.wizard.task_manager.Confirm.ask", return_value=True),
+            patch(
+                "adw.cli.wizard.task_manager.Prompt.ask",
+                side_effect=lambda *a, **kw: kw["default"],
+            ),
+        ):
+            state_mapping = _prompt_state_mapping(console)
+
+        state = WizardState()
+        state.update_config("basics", {"project_name": "p", "language": "python"})
+        state.update_config(
+            "task_manager",
+            {"enabled": True, "type": "linear", "state_mapping": state_mapping},
+        )
+        content = YAMLWithComments(ConfigRegistry()).generate_project_yaml(state)
+        config = ProjectConfig.model_validate(yaml.safe_load(content))
+
+        assert config.task_manager.state_mapping["ship"] == "Done"
+
 
 class TestConstants:
     """Tests for module constants."""
-
-    def test_default_state_mappings_covers_all_phases(self) -> None:
-        """Test that default state mappings cover all ADW phases."""
-        expected_phases = {"plan", "build", "validate", "document", "failed"}
-        actual_phases = set(DEFAULT_STATE_MAPPINGS.keys())
-        assert expected_phases == actual_phases
 
     def test_team_key_pattern_matches_expected(self) -> None:
         """Test team key pattern matches expected format."""

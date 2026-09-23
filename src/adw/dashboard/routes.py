@@ -31,6 +31,7 @@ from adw.dashboard.dependencies import (
     resolve_project_filter,
 )
 from adw.exceptions import StateError
+from adw.models.config import DEFAULT_STATE_MAPPING
 
 if TYPE_CHECKING:
     from starlette.templating import Jinja2Templates
@@ -2016,14 +2017,7 @@ def build_complex_settings_context(
         "auto_close": False,
         "labels_enabled": True,
         "label_prefix": "adw:",
-        "state_mapping": {
-            "plan": "In Progress",
-            "build": "In Progress",
-            "validate": "In Review",
-            "document": "In Review",
-            "ship": "Done",
-            "failed": "In Progress",
-        },
+        "state_mapping": dict(DEFAULT_STATE_MAPPING),
     }
 
     # Security defaults

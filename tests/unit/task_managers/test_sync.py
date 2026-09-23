@@ -11,7 +11,7 @@ import pytest
 
 from adw.models import RunContext, TaskManagerConfig
 from adw.models.task import TaskInfo
-from adw.task_managers.sync import DEFAULT_STATE_MAPPING, StatusSyncService
+from adw.task_managers.sync import StatusSyncService
 
 
 class TestStatusSyncService:
@@ -142,30 +142,6 @@ class TestStatusSyncService:
 
         # sync_run_complete should NOT update status - that's for 12.8
         mock_task_manager.update_status.assert_not_called()
-
-
-class TestPhaseStatusMapping:
-    """Tests for default phase-to-status mapping."""
-
-    def test_default_mapping_plan_to_in_progress(self) -> None:
-        """'plan' phase maps to 'In Progress' by default."""
-        assert DEFAULT_STATE_MAPPING["plan"] == "In Progress"
-
-    def test_default_mapping_build_to_in_progress(self) -> None:
-        """'build' phase maps to 'In Progress' by default."""
-        assert DEFAULT_STATE_MAPPING["build"] == "In Progress"
-
-    def test_default_mapping_validate_to_in_review(self) -> None:
-        """'validate' phase maps to 'In Review' by default."""
-        assert DEFAULT_STATE_MAPPING["validate"] == "In Review"
-
-    def test_default_mapping_document_to_in_review(self) -> None:
-        """'document' phase maps to 'In Review' by default."""
-        assert DEFAULT_STATE_MAPPING["document"] == "In Review"
-
-    def test_default_mapping_failed_to_in_progress(self) -> None:
-        """'failed' state maps to 'In Progress' by default."""
-        assert DEFAULT_STATE_MAPPING["failed"] == "In Progress"
 
 
 class TestStatusSyncServiceCustomMapping:

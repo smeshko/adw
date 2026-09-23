@@ -26,6 +26,7 @@ from adw.dashboard.dependencies import (
     resolve_project_filter,
 )
 from adw.exceptions import StateError
+from adw.models.config import DEFAULT_STATE_MAPPING
 
 if TYPE_CHECKING:
     from starlette.templating import Jinja2Templates
@@ -1170,14 +1171,7 @@ async def task_manager_fields(
 
     # Build context for the partial
     task_manager_type = type
-    state_mapping = {
-        "plan": "In Progress",
-        "build": "In Progress",
-        "validate": "In Review",
-        "document": "In Review",
-        "ship": "Done",
-        "failed": "In Progress",
-    }
+    state_mapping = dict(DEFAULT_STATE_MAPPING)
     team_key = ""
     sync_comments = False
     auto_close = False
