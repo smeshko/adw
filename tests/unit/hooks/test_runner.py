@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from adw.exceptions import HookError
-from adw.hooks.runner import HookRunner
+from adw.hooks.runner import DEFAULT_HOOK_TIMEOUT, HookRunner
 from adw.models import HookConfig, RunContext
 
 
@@ -194,3 +194,31 @@ class TestHookRunner:
         # This should succeed because we override with longer timeout
         result = runner.run_hook(success_hook, run_context, "plan", timeout=60)
         assert result.exit_code == 0
+
+
+class TestResolveTimeout:
+    """Tests for HookRunner._resolve_timeout precedence."""
+
+    def test_timeout_parameter_takes_precedence(self) -> None:
+        """Timeout parameter should override config.timeout_seconds."""
+        config = HookConfig(timeout_seconds=60)
+        runner = HookRunner(config)
+
+        result = runner._resolve_timeout(30)
+        assert result == 30
+
+    def test_config_timeout_used_when_no_parameter(self) -> None:
+        """Config timeout_seconds should be used when no parameter provided."""
+        config = HookConfig(timeout_seconds=45)
+        runner = HookRunner(config)
+
+        result = runner._resolve_timeout(None)
+        assert result == 45
+
+    def test_default_timeout_used_when_config_is_zero(self) -> None:
+        """DEFAULT_HOOK_TIMEOUT should be used when config.timeout_seconds is 0."""
+        config = HookConfig(timeout_seconds=0)
+        runner = HookRunner(config)
+
+        result = runner._resolve_timeout(None)
+        assert result == DEFAULT_HOOK_TIMEOUT
