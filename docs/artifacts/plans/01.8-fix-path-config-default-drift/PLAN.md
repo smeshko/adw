@@ -1,6 +1,6 @@
 # Plan: Fix path, config and default drift
 
-Status: in-progress
+Status: done
 Branch: feature/adw-14
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -98,18 +98,18 @@ See [RESEARCH.md](./RESEARCH.md). Each bug was confirmed against real data or re
 
 ## Acceptance Criteria
 
-- [ ] With an existing run on disk, the run-detail log search returns entries, and the SSE log stream emits the file's lines. Evidence:
+- [x] With an existing run on disk, the run-detail log search returns entries, and the SSE log stream emits the file's lines. Evidence:
   - a writer → reader test: `create_log_manager(run_dir=…)` writes, and `_load_log_entries` reads it back
   - `test_log_stream_emits_live_log_lines`
   - a run-detail log-search screenshot against a real run from the main checkout's `.adw/runs`
   - a `curl -N` SSE transcript
-- [ ] A run in a project with `build_command: "echo built"` exports `ADW_SHIP_BUILD_CMD=echo built` to the ship post-hook. Evidence: a bootstrap wiring test, plus a hook-env dump from a mocked ship run in a scratch repo.
-- [ ] `adw init --no-interactive` followed by `adw validate` passes in a scratch repo. Evidence: a CLI test, plus a scratch-repo transcript.
-- [ ] A wizard-generated `project.yaml` contains a `ship` state mapping. Evidence: a test that accepts every default in the mapping prompt, generates the YAML, and loads it; `state_mapping["ship"] == "Done"`.
-- [ ] An `interrupted` run closes both SSE streams. Evidence: RED (a 2 s timeout) and then GREEN, for `run_events_sse` and `log_stream_sse`.
-- [ ] Run-detail cost and analytics cost agree for the same run. Evidence: a test that renders both pages for a one-run project, where both show the same `$N.NN`.
-- [ ] `grep -rn '"In Review"' src/adw --include='*.py'` lists only `models/config.py`, and `grep -rn "0.000009\|_load_project_build_command\|DEFAULT_CONFIG_TEMPLATE" src` returns nothing.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%.
+- [x] A run in a project with `build_command: "echo built"` exports `ADW_SHIP_BUILD_CMD=echo built` to the ship post-hook. Evidence: a bootstrap wiring test, plus a hook-env dump from a mocked ship run in a scratch repo.
+- [x] `adw init --no-interactive` followed by `adw validate` passes in a scratch repo. Evidence: a CLI test, plus a scratch-repo transcript.
+- [x] A wizard-generated `project.yaml` contains a `ship` state mapping. Evidence: a test that accepts every default in the mapping prompt, generates the YAML, and loads it; `state_mapping["ship"] == "Done"`.
+- [x] An `interrupted` run closes both SSE streams. Evidence: RED (a 2 s timeout) and then GREEN, for `run_events_sse` and `log_stream_sse`.
+- [x] Run-detail cost and analytics cost agree for the same run. Evidence: a test that renders both pages for a one-run project, where both show the same `$N.NN`.
+- [x] `grep -rn '"In Review"' src/adw --include='*.py'` lists only `models/config.py`, and `grep -rn "0.000009\|_load_project_build_command\|DEFAULT_CONFIG_TEMPLATE" src` returns nothing.
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%.
 
 ## Tasks
 
@@ -122,4 +122,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-004: Define the default state mapping once
 - [x] TASK-005: Close both SSE streams on every terminal status
 - [x] TASK-006: Price run-detail cost with calculate_cost
-- [ ] TASK-007: Final Validation
+- [x] TASK-007: Final Validation

@@ -294,7 +294,7 @@ Tests cover each criterion, with `gh` stubbed by a fake binary on PATH. The PR s
 
 ## Phase 1.8 — Fix path, config and default drift
 
-**Plan**: [01.8-fix-path-config-default-drift](../plans/01.8-fix-path-config-default-drift/PLAN.md) · status: in-progress
+**Plan**: [01.8-fix-path-config-default-drift](../plans/01.8-fix-path-config-default-drift/PLAN.md) · status: done
 
 **Linear**: ADW-14 (https://linear.app/ivo-tsonev/issue/ADW-14)
 
@@ -312,12 +312,12 @@ Tests cover each criterion, with `gh` stubbed by a fake binary on PATH. The PR s
 
 ### Acceptance criteria
 
-- [ ] With an existing run on disk, the run-detail log search returns entries, and the SSE log stream emits the file's lines.
-- [ ] A run in a project with `build_command: "echo built"` exports `ADW_SHIP_BUILD_CMD=echo built` to the ship post-hook.
-- [ ] `adw init --no-interactive` followed by `adw validate` passes in a scratch repo.
-- [ ] A wizard-generated `project.yaml` contains a `ship` state mapping.
-- [ ] Run-detail cost and analytics cost agree for the same run.
-- [ ] Lint and tests pass.
+- [x] With an existing run on disk, the run-detail log search returns entries, and the SSE log stream emits the file's lines.
+- [x] A run in a project with `build_command: "echo built"` exports `ADW_SHIP_BUILD_CMD=echo built` to the ship post-hook.
+- [x] `adw init --no-interactive` followed by `adw validate` passes in a scratch repo.
+- [x] A wizard-generated `project.yaml` contains a `ship` state mapping.
+- [x] Run-detail cost and analytics cost agree for the same run.
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -400,6 +400,6 @@ Include rendered-prompt snapshots (before/after) for the document and validate p
 
 - [ ] Every phase merged and its acceptance criteria met
 - [ ] Status row in [EPICS.md](./EPICS.md) updated to `Done`
-- [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code
+- [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code — phase 1.8: B3 `test_build_cmd_in_env_without_ship_config`, `test_ship_hook_env_carries_project_build_command`; B4 `test_reads_log_written_by_run`, `test_log_stream_emits_live_log_lines`; B11 `test_initialize_writes_loadable_config`, `test_init_output_passes_validate`; B17 `test_accepted_defaults_yield_ship_mapping`; B21 `test_run_events_close_on_interrupted`, `test_log_stream_closes_on_interrupted`
 - [ ] The full suite runs without touching the checkout or `~/.adw`, and is at least 50 s faster than before the epic — phase 1.1: no-touch diff empty, 210.2 s → 157.1 s (−53.1 s), see [VALIDATION.md](../plans/archive/2026-09-23-01.1-isolate-test-suite/VALIDATION.md)
 - [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l`
