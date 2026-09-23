@@ -78,7 +78,7 @@ from adw.models.worktree import PortAllocation
 
 # Rebuild models to resolve forward references
 # This must happen after all models are imported
-# - RunContext references TaskInfo (Story 12.3)
+# - RunContext references TaskInfo
 # - StateSnapshot references PhaseResult
 RunContext.model_rebuild()
 StateSnapshot.model_rebuild()

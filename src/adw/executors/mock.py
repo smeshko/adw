@@ -42,7 +42,7 @@ class MockExecutor:
 
         Each response dict should contain fields matching LLMResult:
         - content: str (required)
-        - final_output: str (optional, defaults to content - ISS-023)
+        - final_output: str (optional, defaults to content)
         - tool_calls: list[dict] (optional)
         - tokens_used: int (optional, default 100)
         - duration_ms: int (optional, default 1000)
@@ -63,7 +63,7 @@ class MockExecutor:
                 for tc in r.get("tool_calls", [])
             ]
             content = r.get("content", "")
-            # ISS-023: Support final_output, default to content if not provided
+            # Support final_output, default to content if not provided
             final_output = r.get("final_output", content)
             self._responses.append(
                 LLMResult(
@@ -108,7 +108,6 @@ class MockExecutor:
             prompt: The prompt being "sent" (stored for tracking).
             phase: Ignored in mock (for interface compatibility).
             cwd: Ignored in mock (for interface compatibility).
-                 Added for worktree support (Story 10.5).
             model: Ignored in mock (for interface compatibility).
 
         Returns:
@@ -132,7 +131,7 @@ class MockExecutor:
         # Default response
         return LLMResult(
             content="Mock response",
-            final_output="Mock response",  # ISS-023
+            final_output="Mock response",
             tokens_used=50,
             duration_ms=100,
         )

@@ -596,7 +596,7 @@ def generate_all_phase_configs(
     phases = state.get_step_config("phases")
     phases_dict = phases.get("phases", {})
 
-    # Get ship-specific config from the ship step (ISS-031)
+    # Get ship-specific config from the ship step
     ship_step_config = state.get_step_config("ship")
 
     # Generate config for ALL phases, not just customized ones

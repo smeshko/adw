@@ -105,16 +105,16 @@ class RunLifecycle:
             run_directory_manager: Manager for run directory structure.
             index_manager: Manager for global workflow execution index.
             interruption_handler: Handler for graceful shutdown.
-            progress_display: Display for phase progress (optional, Story 5.5).
-            worktree_config: Worktree isolation config (optional, Story 10.1).
-            git_config: Git configuration for auto-PR creation (optional, ISS-011).
+            progress_display: Display for phase progress (optional).
+            worktree_config: Worktree isolation config (optional).
+            git_config: Git configuration for auto-PR creation (optional).
             task_manager_config: Task manager configuration.
-            label_manager: Manager for task labels (optional, Story 12.7).
+            label_manager: Manager for task labels (optional).
             status_sync_service: Service for syncing status with task managers
-                (optional, Story 12.3).
+                (optional).
             worktree_manager: Manager for git worktrees (optional).
             concurrent_run_manager: Manager for tracking concurrent runs (optional).
-            task_info: Task information from external task manager (optional, ISS-039).
+            task_info: Task information from external task manager (optional).
                 Used to populate RunContext.task_id and RunContext.task_info.
         """
         self.runs_dir = runs_dir
@@ -163,7 +163,7 @@ class RunLifecycle:
             Initialized RunContext ready for execution.
 
         Raises:
-            WorktreeError: If worktree creation fails (ISS-025).
+            WorktreeError: If worktree creation fails.
             MaxConcurrentRunsError: If the maximum concurrent runs limit is reached.
             HookError: If a non-worktree run cannot switch to its branch: the
                 project is not a git repository, or its tree has uncommitted
@@ -179,7 +179,7 @@ class RunLifecycle:
             and self._worktree_manager is not None
         )
 
-        # Create worktree if enabled (Story 10.1, ISS-025, ISS-032)
+        # Create worktree if enabled
         worktree_path: Path | None = None
         branch_name: str | None = None
         if should_use_worktree:
@@ -263,7 +263,7 @@ class RunLifecycle:
         """Prepare context for resumed execution.
 
         Sets the running label for the resumed run and backfills task_info
-        if the lifecycle has it but the context doesn't (ISS-039).
+        if the lifecycle has it but the context doesn't.
 
         Args:
             context: The run context being resumed.
@@ -271,8 +271,7 @@ class RunLifecycle:
         Returns:
             The context, potentially updated with task_info if backfilled.
         """
-        # Backfill task_info from lifecycle if context is missing it (ISS-039)
-        # This handles runs created before ISS-039 that are resumed after
+        # Backfill task_info from lifecycle if context is missing it
         if self._task_info and not context.task_info:
             context = context.model_copy(
                 update={
@@ -320,11 +319,11 @@ class RunLifecycle:
         )
         self.context_manager.save(context)
 
-        # Set completed label (Story 12.7)
+        # Set completed label
         if self._label_manager:
             self._label_manager.set_completed()
 
-        # Update global index on completion (Story 7.0)
+        # Update global index on completion
         self.index_manager.update_run(
             context.run_id,
             status="completed",
@@ -333,7 +332,7 @@ class RunLifecycle:
             phases_completed=list(context.phase_history),
         )
 
-        # Post run completion comment to task manager (Story 12.6)
+        # Post run completion comment to task manager
         self._post_completion_comment(context)
 
         if self.task_manager_config.auto_close:
@@ -342,10 +341,10 @@ class RunLifecycle:
                 "through state_mapping. Remove auto_close from project.yaml."
             )
 
-        # Show pipeline summary (Story 5.5)
+        # Show pipeline summary
         self._show_pipeline_summary(context, status="completed")
 
-        # Preserve worktree for user inspection (ISS-020)
+        # Preserve worktree for user inspection
         self._show_worktree_preserved(context, outcome="success")
 
         # Show cleanup message if ship extension cleaned up the worktree
@@ -399,11 +398,11 @@ class RunLifecycle:
         )
         self.context_manager.save(context)
 
-        # Set failed label (Story 12.7)
+        # Set failed label
         if self._label_manager:
             self._label_manager.set_failed()
 
-        # Update global index on failure (Story 7.0)
+        # Update global index on failure
         self.index_manager.update_run(
             context.run_id,
             status="failed",
@@ -412,10 +411,10 @@ class RunLifecycle:
             phases_completed=list(context.phase_history),
         )
 
-        # Show pipeline summary on failure (Story 5.5)
+        # Show pipeline summary on failure
         self._show_pipeline_summary(context, status="failed")
 
-        # Preserve worktree for debugging (ISS-020)
+        # Preserve worktree for debugging
         self._show_worktree_preserved(context, outcome="failure")
 
         logger.error(
@@ -458,11 +457,11 @@ class RunLifecycle:
         )
         self.context_manager.save(context)
 
-        # Set failed label (Story 12.7)
+        # Set failed label
         if self._label_manager:
             self._label_manager.set_failed()
 
-        # Update global index on failure (Story 7.0)
+        # Update global index on failure
         self.index_manager.update_run(
             context.run_id,
             status="failed",
@@ -471,10 +470,10 @@ class RunLifecycle:
             phases_completed=list(context.phase_history),
         )
 
-        # Show pipeline summary on failure (Story 5.5)
+        # Show pipeline summary on failure
         self._show_pipeline_summary(context, status="failed")
 
-        # Preserve worktree for debugging (ISS-020)
+        # Preserve worktree for debugging
         self._show_worktree_preserved(context, outcome="failure")
 
         logger.error(
@@ -508,11 +507,11 @@ class RunLifecycle:
         Returns:
             The same context (state already saved by handler).
         """
-        # Clear running label on interruption (Story 12.7)
+        # Clear running label on interruption
         if self._label_manager:
             self._label_manager.set_failed()
 
-        # Update global index on interruption (Story 7.0)
+        # Update global index on interruption
         self.index_manager.update_run(
             context.run_id,
             status="interrupted",
@@ -538,13 +537,13 @@ class RunLifecycle:
         # Create run directory structure
         self.run_directory_manager.create(context)
 
-        # Persist initial state before any phase execution (NFR6)
+        # Persist initial state before any phase execution
         self.context_manager.save(context)
 
-        # Register run in global index (Story 7.0)
+        # Register run in global index
         self.index_manager.register_run(context, self.project_path)
 
-        # Set running label (Story 12.7)
+        # Set running label
         if self._label_manager:
             self._label_manager.set_running()
 
@@ -607,7 +606,7 @@ class RunLifecycle:
         return f"origin/{base_branch}"
 
     def _feature_branch_name(self, feature_description: str) -> str | None:
-        """Return the feature branch name for a run (ISS-032).
+        """Return the feature branch name for a run.
 
         Args:
             feature_description: Human-readable feature description.
@@ -635,12 +634,12 @@ class RunLifecycle:
 
         Raises:
             MaxConcurrentRunsError: If the maximum concurrent runs limit is reached.
-            WorktreeError: If worktree or branch creation fails (ISS-025).
+            WorktreeError: If worktree or branch creation fails.
         """
         if self._worktree_manager is None:
             return None
 
-        # Check concurrent run limit before creating worktree (Story 10.4)
+        # Check concurrent run limit before creating worktree
         if self._concurrent_run_manager is not None:
             self._concurrent_run_manager.check_can_start_or_raise()
 
@@ -655,7 +654,7 @@ class RunLifecycle:
                 run_id, source_branch=source_ref, branch_name=feature_branch_name
             )
 
-            # Register the run after successful worktree creation (Story 10.4)
+            # Register the run after successful worktree creation
             if self._concurrent_run_manager is not None:
                 self._concurrent_run_manager.register_run(
                     run_id=run_id,
@@ -665,7 +664,7 @@ class RunLifecycle:
             return worktree_path, branch_name
 
         except WorktreeError:
-            # ISS-025: Branch creation failures are fatal
+            # Branch creation failures are fatal
             raise
 
     def _show_pipeline_summary(self, context: RunContext, status: str) -> None:
@@ -708,7 +707,7 @@ class RunLifecycle:
     def _show_worktree_preserved(
         self, context: RunContext, outcome: str = "success"
     ) -> None:
-        """Show worktree preservation message after run completion (ISS-020).
+        """Show worktree preservation message after run completion.
 
         Args:
             context: Run context containing worktree information.

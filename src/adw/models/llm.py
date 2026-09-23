@@ -59,7 +59,7 @@ class LLMResult(BaseModel):
     """The full text content from the LLM conversation (all messages)."""
 
     final_output: str = ""
-    """Only the last assistant message text (ISS-023).
+    """Only the last assistant message text.
 
     This is the actual result/output of the phase, excluding intermediate
     reasoning, tool calls, and verbose output. Use this for artifacts and

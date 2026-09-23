@@ -1,7 +1,7 @@
 """PR description models for ADW document phase.
 
 This module provides Pydantic models for structured PR descriptions
-generated during the document phase (Story 9.4).
+generated during the document phase.
 """
 
 from __future__ import annotations

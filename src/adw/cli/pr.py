@@ -4,7 +4,7 @@ This module provides the pr command that opens a GitHub PR for a
 completed run through core.pr.create_pr and saves its URL on the run
 context. The document step opens PRs through the same function.
 
-ISS-026: Base branch is configurable via git.base_branch in project.yaml.
+Base branch is configurable via git.base_branch in project.yaml.
 Defaults to 'main' if not configured.
 
 Examples:
@@ -92,7 +92,7 @@ def display_manual_instructions(
 def _get_base_branch(run_dir: Path) -> str:
     """Get the base branch for PR creation.
 
-    ISS-026: Reads git.base_branch from project.yaml config.
+    Reads git.base_branch from project.yaml config.
     Falls back to the GitConfig default if the config can't be loaded.
 
     Args:
@@ -139,7 +139,7 @@ def pr(
     If PR creation fails, shows the error and the PR description for
     manual copy-paste, and exits 1.
 
-    ISS-026: Base branch is read from git.base_branch in project.yaml config.
+    Base branch is read from git.base_branch in project.yaml config.
     Defaults to 'main' if not configured.
 
     Examples:
@@ -197,7 +197,7 @@ def pr(
         _print_error(e)
         raise typer.Exit(1) from None
 
-    # ISS-026: Base branch from config (defaults to main)
+    # Base branch from config (defaults to main)
     base_branch = _get_base_branch(run_dir)
 
     console.print(f"[bold]Creating PR from run:[/] {context.run_id}")

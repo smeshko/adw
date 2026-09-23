@@ -46,7 +46,7 @@ class LLMExecutor(Protocol):
             phase: Optional phase name for logging and debugging purposes.
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
-                 Used for worktree isolation support (Story 10.5).
+                 Used for worktree isolation support.
             model: Optional model identifier to use for this call.
                  If None, uses executor's default (no --model flag).
 

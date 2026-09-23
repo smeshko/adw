@@ -427,9 +427,8 @@ class TaskManagerConfig(BaseModel):
     )
 
 
-# NOTE: ShipCommandsConfig, ShipCommandConfig classes are in command.py
-# as part of ISS-031 phase-specific config refactoring. Use ShipCommandConfig
-# from adw.models.command instead.
+# NOTE: ShipCommandsConfig and ShipCommandConfig live in adw.models.command
+# with the other phase-specific config.
 
 
 class GitConfig(BaseModel):
@@ -492,9 +491,8 @@ class ProjectConfig(BaseModel):
     project metadata and LLM settings.
 
     Note:
-        Phase-specific configuration (input_files, hooks) is now
-        delegated to command configs (.adw/commands/<phase>/config.yaml).
-        See ISS-029 for details.
+        Phase-specific configuration (input_files, hooks) lives in
+        command configs (.adw/commands/<phase>/config.yaml).
 
     Attributes:
         name: Project name
@@ -531,8 +529,6 @@ class ProjectConfig(BaseModel):
         default=None, description="Command to build the project"
     )
     llm: LLMConfig = Field(default_factory=LLMConfig, description="LLM configuration")
-    # NOTE: phases field removed in ISS-029. Phase configuration is now delegated
-    # entirely to command configs (.adw/commands/<phase>/config.yaml).
     hooks: HookConfig = Field(
         default_factory=HookConfig, description="Hook configuration"
     )
@@ -548,8 +544,8 @@ class ProjectConfig(BaseModel):
     worktree: WorktreeConfig = Field(
         default_factory=WorktreeConfig, description="Worktree isolation configuration"
     )
-    # NOTE: validation and ship fields removed in ISS-031. Configuration is now
-    # delegated to phase configs (.adw/commands/{validate,ship}/config.yaml).
+    # Validate and ship settings live in their phase configs
+    # (.adw/commands/{validate,ship}/config.yaml).
     task_manager: TaskManagerConfig = Field(
         default_factory=TaskManagerConfig,
         description="Task manager integration configuration",

@@ -100,14 +100,14 @@ class StatusDisplay:
         self.console.print()
         self.console.print(Panel(table, title="Run Status", border_style=status_color))
 
-        # Show failure details (UX-3)
+        # Show failure details
         if context.status == "failed":
             self._show_failure_details(context)
 
     def _show_failure_details(self, context: RunContext) -> None:
         """Show failure details with resume hint.
 
-        UX-3: Failed status includes error message, suggestion, resume command.
+        Failed status includes error message, suggestion, resume command.
         """
         # Build error details message
         error_msg = f"[red]Error:[/] Phase '{context.current_phase}' failed"

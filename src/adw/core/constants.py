@@ -10,10 +10,9 @@ from pathlib import Path
 # Fixed phase sequence - order is critical
 # Phases execute in this exact order: Plan → Build → Validate → Document → Ship
 # Using a tuple ensures the sequence cannot be accidentally modified.
-# NOTE: The "verify" phase was removed in ISS-019 - evidence gathering and
-# platform detection now occur at the start of the validate phase.
-# NOTE: The "ship" phase was added in Story 15.1 - LLM-driven deployment with
-# optional version bump, build, publish commands, and PR merge automation.
+# Evidence gathering and platform detection run at the start of the validate
+# phase. The ship phase handles LLM-driven deployment: an optional version
+# bump, build and publish commands, and PR merge automation.
 PHASE_SEQUENCE: tuple[str, ...] = (
     "plan",
     "build",

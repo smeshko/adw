@@ -101,7 +101,7 @@ class PhaseRunner:
             hook_runner: Executes pre/post hooks.
             executor: LLM executor (Claude Code or Mock).
             artifact_manager: Stores phase artifacts.
-            progress_display: Display for LLM progress (optional, Story 5.5).
+            progress_display: Display for LLM progress (optional).
             project_config: Project configuration containing phase-specific
                 settings like input_files. Optional for backward compatibility.
             extension_registry: Registry for phase extensions. If None, creates
@@ -150,7 +150,7 @@ class PhaseRunner:
         # Resolve command once for all steps
         command = self.command_resolver.resolve(phase)
 
-        # Load and merge configs for this phase (ISS-029)
+        # Load and merge configs for this phase
         merged_config = self._get_merged_config(phase, command)
 
         try:
@@ -368,7 +368,7 @@ class PhaseRunner:
         prompt_path = command.path / "prompt.md"
         prompt_template = prompt_path.read_text(encoding="utf-8")
 
-        # Use override if provided, otherwise build from current run (FR11)
+        # Use override if provided, otherwise build from current run
         if artifacts_override is not None:
             artifacts_map = artifacts_override
             logger.debug(
@@ -378,11 +378,11 @@ class PhaseRunner:
         else:
             artifacts_map = self._build_artifacts_map(context.run_id, phase)
 
-        # ISS-029: Use pre-merged config if provided, else create empty
+        # Use pre-merged config if provided, else create empty
         # Config loading moved to _get_merged_config for timeout access in run()
         effective_config = merged_config if merged_config is not None else PhaseConfig()
 
-        # Load input files from merged config (ISS-015 + ISS-016)
+        # Load input files from merged config
         input_files_map: dict[str, str] = {}
         if effective_config.input_files:
             # Determine project root for file resolution
@@ -402,16 +402,16 @@ class PhaseRunner:
             "context": context,  # Pass the model directly for nested access
             "pre_hook_output": pre_hook_output,
             "artifacts": artifacts_map,  # Nested: {phase: {name: content}}
-            "inputs": input_files_map,  # ISS-015: {name: content} from input_files
+            "inputs": input_files_map,  # {name: content} from input_files
             "run_id": context.run_id,
             "phase": phase,
             "feature": context.feature_description,
             "feature_description": context.feature_description,  # Alias for templates
-            # Story 10.5: worktree path for templates (empty if None)
+            # Worktree path for templates (empty if None)
             "worktree_path": (
                 str(context.worktree_path) if context.worktree_path else ""
             ),
-            # Story 12.5: task context for templates ({{task.*}} variables)
+            # Task context for templates ({{task.*}} variables)
             "task": build_task_context(context.task_info),
             # Project configuration for templates
             "project_config": (
@@ -431,7 +431,7 @@ class PhaseRunner:
                 except (json.JSONDecodeError, OSError):
                     pass  # Graceful fallback - pre-hook vars are informational
 
-        # Load phase-specific typed config for templates (ISS-031)
+        # Load phase-specific typed config for templates
         # This provides {{ship_config.*}} access
         typed_config = self._load_project_config(phase)
 
@@ -481,7 +481,7 @@ class PhaseRunner:
         else:
             variables["schema"] = ""  # Empty string if no schema defined
 
-        # ISS-017: Pass command_root and shared_root as params, not state
+        # Pass command_root and shared_root as params, not state
         rendered = self.template_engine.render(
             prompt_template,
             variables,
@@ -571,7 +571,7 @@ class PhaseRunner:
         command_config: CommandConfig | None,
         project_config: CommandConfig | None,
     ) -> PhaseConfig:
-        """Merge command config with project config overlay (ISS-030).
+        """Merge command config with project config overlay.
 
         Project config values override command config values when set.
         This enables projects to customize phase settings without duplicating
@@ -677,7 +677,7 @@ class PhaseRunner:
             ) from e
 
     def _load_project_config(self, phase: str) -> CommandConfig | None:
-        """Load project-level config.yaml for a phase (ISS-030).
+        """Load project-level config.yaml for a phase.
 
         This method loads config.yaml from the project's .adw/commands/{phase}/
         directory, bypassing the command resolver. This enables project-level
@@ -765,7 +765,7 @@ class PhaseRunner:
 
         Loads config from the resolved command's config.yaml and also checks
         for project-level config.yaml in .adw/commands/{phase}/. Project config
-        values override command config values (ISS-030).
+        values override command config values.
 
         Config resolution order (later overrides earlier):
         1. Command config (from resolved command tier: bundled/user)
@@ -786,14 +786,14 @@ class PhaseRunner:
             self._load_command_config(command, phase) if command.has_config else None
         )
 
-        # ISS-030: Load project-level config (separate from command resolution)
+        # Load project-level config (separate from command resolution)
         project_config = self._load_project_config(phase)
 
         # Merge configs: project overrides command
         return self._merge_configs_with_project(command_config, project_config)
 
     def is_phase_enabled(self, phase: str) -> bool:
-        """Check if a phase is enabled in command and project configs (ISS-030).
+        """Check if a phase is enabled in command and project configs.
 
         Resolves the command for the phase and checks the `enabled` field
         in both the command's config.yaml and the project's config.yaml.
@@ -823,7 +823,7 @@ class PhaseRunner:
                 if config is not None:
                     enabled = config.enabled
 
-            # ISS-030: Check project config (overrides command config)
+            # Check project config (overrides command config)
             # Only override enabled if the project config EXPLICITLY sets it
             # (not just using Pydantic's default=True)
             project_config = self._load_project_config(phase)
@@ -972,12 +972,12 @@ class PhaseRunner:
             },
         )
 
-        # Start LLM progress display (Story 5.5)
+        # Start LLM progress display
         if self.progress_display:
             self.progress_display.on_llm_start()
 
         try:
-            # Pass worktree_path for isolated execution (Story 10.5)
+            # Pass worktree_path for isolated execution
             # Pass model from phase LLM config
             result = self.executor.execute(
                 prompt,
@@ -995,7 +995,7 @@ class PhaseRunner:
                 },
             )
 
-            # Update final token count before completing (Story 5.5)
+            # Update final token count before completing
             if self.progress_display:
                 self.progress_display.on_llm_progress(result.tokens_used)
                 self.progress_display.on_llm_complete()
@@ -1004,7 +1004,7 @@ class PhaseRunner:
 
         except LLMError:
             logger.error("LLM execution failed", extra={"phase": phase})
-            # Stop progress display on error (Story 5.5)
+            # Stop progress display on error
             if self.progress_display:
                 self.progress_display.on_llm_complete()
             raise
@@ -1133,11 +1133,11 @@ class PhaseRunner:
 
         Raises:
             HookError: If branch validation fails (GIT_BRANCH_MISMATCH).
-                ISS-025: Branch mismatch is fatal to prevent commits to wrong branch.
+                Branch mismatch is fatal to prevent commits to wrong branch.
 
         Note:
             Most git errors are logged but do not raise exceptions.
-            However, branch validation failures (ISS-025) are fatal.
+            However, branch validation failures are fatal.
         """
         logger.debug("Auto-committing changes", extra={"phase": phase})
 
@@ -1165,7 +1165,7 @@ class PhaseRunner:
 
             # Create commit with descriptive message
             # Use worktree path for worktree-isolated runs
-            # ISS-025: Pass branch_name for validation before commit
+            # Pass branch_name for validation before commit
             sha = create_commit(
                 phase=phase,
                 feature=context.feature_description,
@@ -1189,7 +1189,7 @@ class PhaseRunner:
             return sha
 
         except HookError as e:
-            # ISS-025: Branch mismatch errors are fatal - must not commit to
+            # Branch mismatch errors are fatal - must not commit to
             # wrong branch
             if e.code == "GIT_BRANCH_MISMATCH":
                 logger.error(
@@ -1250,7 +1250,7 @@ class PhaseRunner:
 
         artifacts: list[str] = []
 
-        # ISS-023: Use final_output (last message only) for artifacts
+        # Use final_output (last message only) for artifacts
         # This gives downstream phases clean output without intermediate reasoning
         # Falls back to full content if final_output is empty (backward compat)
         artifact_content = llm_result.final_output or llm_result.content

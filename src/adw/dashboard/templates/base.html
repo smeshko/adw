@@ -191,7 +191,7 @@
       setTimeout(function() { toast.remove(); }, 5000);
     });
 
-    /* Keyboard shortcuts (Story 6.1 + 6.2) */
+    /* Keyboard shortcuts */
     (function() {
       var pendingG = false;
       var gTimer = null;
@@ -294,7 +294,7 @@
           return;
         }
 
-        /* Terminal mode toggle (Story 6.2) */
+        /* Terminal mode toggle */
         if (key === 't') {
           e.preventDefault();
           /* Check DOM state too — button-initiated mode won't set flag */
@@ -318,7 +318,7 @@
           return;
         }
 
-        /* Focus mode (Story 6.2) — only on run detail pages */
+        /* Focus mode — only on run detail pages */
         if (key === 'f') {
           /* Check DOM state too — button-initiated mode won't set flag */
           if (focusModeActive || document.querySelector('[data-focus-mode]')) {
@@ -374,7 +374,7 @@
         }
 
         if (key === 'Escape') {
-          /* Check for active view modes first (Story 6.2) */
+          /* Check for active view modes first */
           if (terminalModeActive || document.querySelector('[data-terminal-mode]')) {
             e.preventDefault();
             var tmEl = document.querySelector('[data-terminal-mode]');

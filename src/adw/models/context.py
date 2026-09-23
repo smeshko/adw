@@ -114,7 +114,7 @@ class RunContext(BaseModel):
     pr_url: str | None = Field(
         default=None,
         description="URL of the pull request created for this run. "
-        "Set after document phase completes. (ISS-031)",
+        "Set after document phase completes.",
     )
     pr_creation_attempted: bool = Field(
         default=False,
@@ -190,7 +190,7 @@ class StateSnapshot(BaseModel):
     Snapshots are created before and after each phase to enable:
     - Debugging failures by examining pre-failure state
     - Resuming from known-good states
-    - Time-travel debugging (NFR13)
+    - Time-travel debugging
 
     Snapshots are named: <seq>_<timing>_<phase>.json
     Example: 001_pre_plan.json, 002_post_plan.json
