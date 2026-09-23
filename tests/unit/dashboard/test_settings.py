@@ -144,7 +144,9 @@ class TestSettingsContext:
         ctx = settings_context(project, "phases")
 
         build = _phase(ctx, "build")
+        assert build["error"].startswith(".adw/commands/build/config.yaml: ")
         assert "timeout_seconds" in build["error"]
+        assert build["sources"][-1] == ("project", ".adw/commands/build/config.yaml")
         assert build["rows"] == []
         assert all(
             _phase(ctx, name)["error"] is None
@@ -180,7 +182,7 @@ class TestEffectivePhaseMerge:
     USER_CONFIG = "enabled: false\nllm:\n  model: haiku\ninput_files:\n  a: x.md\n"
 
     def test_user_tier_shows_through_without_project_file(self, project: Path) -> None:
-        user_file = _user_command("document", self.USER_CONFIG)
+        _user_command("document", self.USER_CONFIG)
 
         document = _phase(settings_context(project, "phases"), "document")
 
@@ -188,7 +190,7 @@ class TestEffectivePhaseMerge:
         assert values["enabled"] == ["false"]
         assert values["llm.model"] == ["haiku"]
         assert values["input_files"] == ["a: x.md"]
-        assert document["sources"] == [("user", str(user_file))]
+        assert document["sources"] == [("user", "~/.adw/commands/document/config.yaml")]
 
     def test_project_file_overlays_user_tier(self, project: Path) -> None:
         _user_command("document", self.USER_CONFIG)

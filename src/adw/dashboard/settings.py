@@ -23,6 +23,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ValidationError
 
+import adw
 from adw.commands.resolver import CommandResolver
 from adw.config.loader import ConfigLoader
 from adw.core.constants import PHASE_SEQUENCE
@@ -30,6 +31,7 @@ from adw.exceptions import ConfigError
 from adw.models.command import CommandConfig, PhaseLLMConfig, get_config_class
 
 _LABELS = {"project": "Basics", "llm": "LLM"}
+_PACKAGE_ROOT = Path(adw.__file__).parent
 
 
 def settings_context(project_root: Path, tab: str) -> dict[str, Any]:
@@ -91,29 +93,43 @@ def _phase(project_root: Path, phase: str) -> dict[str, Any]:
         "error": None,
         "rows": [],
     }
-    project_path = project_root / ".adw" / "commands" / phase / "config.yaml"
     try:
         command = CommandResolver(project_root).resolve(phase)
-        tier = None
-        # A project-tier command's config.yaml is the project file itself.
-        if command.tier != "project" and command.has_config:
-            tier_path = command.path / "config.yaml"
-            tier = _load_phase_file(tier_path, phase)
-            sources.append((command.tier, str(tier_path)))
-        project = None
-        if project_path.is_file():
-            project = _load_phase_file(project_path, phase)
-            sources.append(("project", str(project_path.relative_to(project_root))))
-    except (ConfigError, OSError, yaml.YAMLError, ValidationError) as e:
+    except ConfigError as e:
         entry["error"] = str(e)
         return entry
-    entry["rows"] = _rows(_merge(phase, tier, project))
+
+    # A project-tier command's config.yaml is the project file itself.
+    tier_file = None if command.tier == "project" else command.path / "config.yaml"
+    project_file = project_root / ".adw" / "commands" / phase / "config.yaml"
+    loaded: dict[str, CommandConfig] = {}
+    for tier, path in ((command.tier, tier_file), ("project", project_file)):
+        if path is None or not path.is_file():
+            continue
+        shown = _shown(path, project_root)
+        sources.append((tier, shown))
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+            loaded[tier] = get_config_class(phase).model_validate(data or {})
+        except (OSError, yaml.YAMLError, ValidationError) as e:
+            entry["error"] = f"{shown}: {e}"
+            return entry
+    project = loaded.pop("project", None)
+    tier_config = next(iter(loaded.values()), None)
+    entry["rows"] = _rows(_merge(phase, tier_config, project))
     return entry
 
 
-def _load_phase_file(path: Path, phase: str) -> CommandConfig:
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    return get_config_class(phase).model_validate(data or {})
+def _shown(path: Path, project_root: Path) -> str:
+    """Shorten a config path: package-, project- or home-relative."""
+    for base, prefix in (
+        (_PACKAGE_ROOT, "adw/"),
+        (project_root, ""),
+        (Path.home(), "~/"),
+    ):
+        if path.is_relative_to(base):
+            return prefix + str(path.relative_to(base))
+    return str(path)
 
 
 def _merge(
