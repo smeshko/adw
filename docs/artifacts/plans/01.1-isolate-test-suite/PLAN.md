@@ -1,6 +1,6 @@
 # Plan: Isolate the test suite from the checkout
 
-Status: ready
+Status: in-progress
 Branch: feature/adw-7
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -78,7 +78,7 @@ See [RESEARCH.md](./RESEARCH.md). Every change was prototyped in a throwaway clo
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Kill the hook's process group on timeout
+- [x] TASK-001: Kill the hook's process group on timeout
 - [ ] TASK-002: Patch retry backoff and drop wall-clock transition tests
 - [ ] TASK-003: Isolate HOME per test and drop the ADW_TEST_* path hooks
 - [ ] TASK-004: Run cli and dashboard unit tests in a temp cwd

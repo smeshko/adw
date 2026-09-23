@@ -39,7 +39,7 @@ No user-facing feature is removed here; that is Epic 02. Each phase is sized to 
 
 ## Phase 1.1 — Isolate the test suite from the checkout
 
-**Plan**: [01.1-isolate-test-suite](../plans/01.1-isolate-test-suite/PLAN.md) · status: planned
+**Plan**: [01.1-isolate-test-suite](../plans/01.1-isolate-test-suite/PLAN.md) · status: in-progress
 
 **Linear**: ADW-7 (https://linear.app/ivo-tsonev/issue/ADW-7)
 

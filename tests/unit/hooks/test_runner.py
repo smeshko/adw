@@ -1,6 +1,8 @@
 """Unit tests for the HookRunner class."""
 
+import os
 import stat
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -131,6 +133,35 @@ class TestHookRunner:
         assert error.code == "HOOK_TIMEOUT"
         assert "timed out" in error.message.lower()
         assert error.phase == "plan"
+
+    def test_timeout_kills_hook_children(
+        self, run_context: RunContext, tmp_path: Path
+    ) -> None:
+        """Test that timeout kills the children the hook started, not just the hook."""
+        pid_file = tmp_path / "child.pid"
+        script = tmp_path / "pre-hook.sh"
+        script.write_text(f"#!/bin/bash\nsleep 30 &\necho $! > {pid_file}\nwait\n")
+        script.chmod(script.stat().st_mode | stat.S_IEXEC)
+        runner = HookRunner(HookConfig(shell="/bin/bash", timeout_seconds=1))
+
+        start = time.monotonic()
+        with pytest.raises(HookError) as exc_info:
+            runner.run_hook(script, run_context, "plan", timeout=1)
+        elapsed = time.monotonic() - start
+
+        assert exc_info.value.code == "HOOK_TIMEOUT"
+        assert elapsed < 3
+
+        # Poll so a killed child that is not reaped yet (Linux CI) is tolerated.
+        child_pid = int(pid_file.read_text().strip())
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            try:
+                os.kill(child_pid, 0)
+            except ProcessLookupError:
+                return
+            time.sleep(0.1)
+        pytest.fail(f"hook child {child_pid} survived the timeout")
 
     def test_environment_variables_passed(
         self, hook_config: HookConfig, run_context: RunContext, env_hook: Path
