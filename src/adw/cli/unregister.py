@@ -1,7 +1,7 @@
 """Unregister command for ADW CLI.
 
 This module provides the unregister command that allows users to remove
-the current project from the global ADW dashboard registry.
+the current project from the ADW web dashboard registry.
 
 Examples:
     adw unregister  # Remove current project from registry
@@ -18,7 +18,7 @@ console = Console()
 
 
 def unregister() -> None:
-    """Unregister current project from global ADW dashboard.
+    """Unregister current project from the ADW web dashboard.
 
     Removes the project from the global registry at ~/.adw/projects.yaml.
     The project will no longer appear in cross-project views.

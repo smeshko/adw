@@ -1,7 +1,7 @@
 """Global registry step for the wizard.
 
 This module handles the global registry step of the wizard where users
-can choose to register their project in the ADW global dashboard.
+can choose to register their project in the ADW web dashboard.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ class GlobalRegistryStepHandler:
     """Handler for the global registry wizard step.
 
     This step:
-    - Prompts user to register project in global ADW dashboard
+    - Prompts user to register project in the ADW web dashboard
     - Optionally collects custom display name
     - Stores decision in wizard state for summary step
     """
@@ -58,9 +58,7 @@ def run_global_registry_step(
         global_registry_name values.
     """
     console.print()
-    console.print(
-        "[dim]The ADW global dashboard tracks runs across all your projects.[/]"
-    )
+    console.print("[dim]The ADW web dashboard tracks runs across all your projects.[/]")
     console.print(
         "[dim]Registering allows this project to appear in cross-project views.[/]"
     )
@@ -68,7 +66,7 @@ def run_global_registry_step(
 
     # Step 1: Ask if user wants to register
     register = Confirm.ask(
-        "Register this project in ADW global dashboard?",
+        "Register this project in the ADW web dashboard?",
         default=True,
         console=console,
     )

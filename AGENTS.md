@@ -38,7 +38,3 @@ Work moves through the plan skills: `create-plan` → `validate-plan` → `imple
 - Built-in phases live in `src/adw/defaults/commands/<phase>/` (`config.yaml`, `prompt.md`, optional `pre.sh` / `post.sh`). Their BMAD-derived workflow files point at `{project-root}/_bmad/...` inside *target* projects — product code, kept on purpose.
 - `YAMLWithComments` (`src/adw/config/yaml_generator.py`) renders `project.yaml` and phase configs.
 - Runtime state is gitignored: `.adw/` (runs, this repo's own ADW config) and `trees/` (worktrees ADW creates for its runs).
-
-## Gotchas
-
-- Flaky: `tests/integration/cli/test_dashboard_integration.py::TestDashboardStatistics::test_stats_display_with_real_data` — rerun it once before investigating.
