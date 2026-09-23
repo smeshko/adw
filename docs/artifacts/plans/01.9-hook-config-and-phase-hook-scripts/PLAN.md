@@ -1,6 +1,6 @@
 # Plan: Hook config and phase-hook scripts
 
-Status: in-progress
+Status: done
 Branch: feature/adw-15
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -102,18 +102,18 @@ See [DECISIONS.md](./DECISIONS.md). In short:
 
 ## Acceptance Criteria
 
-- [ ] With `hooks: {timeout_seconds: 5}`, a post-hook that sleeps 10 s fails after about 5 s. Evidence:
+- [x] With `hooks: {timeout_seconds: 5}`, a post-hook that sleeps 10 s fails after about 5 s. Evidence:
   - `test_project_hook_timeout_stops_post_hook` (1 s/10 s, via `create_orchestrator`) RED on today's code, then GREEN
   - a manual 5 s/10 s scratch-repo transcript with timing
-- [ ] `grep -rn "python3 -c" src/adw/defaults` returns nothing.
-- [ ] A non-worktree `adw run` in a scratch repo creates and switches to the feature branch before the plan phase. Evidence:
+- [x] `grep -rn "python3 -c" src/adw/defaults` returns nothing.
+- [x] A non-worktree `adw run` in a scratch repo creates and switches to the feature branch before the plan phase. Evidence:
   - an integration test where a project plan pre-hook records `git branch --show-current` as `feature/<slug>`
   - a scratch-repo CLI transcript (`ADW_MOCK_EXECUTOR=1 adw run --phase plan --no-worktree`)
-- [ ] Resuming or continuing a non-worktree run from another branch switches back to the run's branch. A dirty tree or a non-git dir raises, and the run's status on disk is unchanged. Evidence: TASK-004 tests.
-- [ ] `tests/integration/test_ship_post_hook.py` and `tests/integration/test_git_hooks.py` pass against the trimmed scripts. `grep -rn "ADW_PR_NUMBER\|ADW_TASK_ID\|ship_status\|task_update_request" src tests` returns nothing.
-- [ ] The three D6 files are gone, and `plan/pre.sh` is gone.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%.
-- [ ] A full `uv run pytest` leaves the checkout's `git branch`, `git status --short` and `git worktree list` unchanged.
+- [x] Resuming or continuing a non-worktree run from another branch switches back to the run's branch. A dirty tree or a non-git dir raises, and the run's status on disk is unchanged. Evidence: TASK-004 tests.
+- [x] `tests/integration/test_ship_post_hook.py` and `tests/integration/test_git_hooks.py` pass against the trimmed scripts. `grep -rn "ADW_PR_NUMBER\|ADW_TASK_ID\|ship_status\|task_update_request" src tests` returns nothing.
+- [x] The three D6 files are gone, and `plan/pre.sh` is gone.
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%.
+- [x] A full `uv run pytest` leaves the checkout's `git branch`, `git status --short` and `git worktree list` unchanged.
 
 ## Tasks
 
@@ -126,4 +126,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-004: Switch to the run's branch on resume and continue (depends on TASK-003)
 - [x] TASK-005: Trim ship hooks to live steps and read ADW_PR_URL
 - [x] TASK-006: Delete unused bundled BMAD copies
-- [ ] TASK-007: Final Validation
+- [x] TASK-007: Final Validation
