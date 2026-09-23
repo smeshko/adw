@@ -13,11 +13,43 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
 from adw.dashboard.server import create_dashboard_app
+from adw.models.stats import GlobalStatistics, TokenUsage
 
 
 def _make_client() -> TestClient:
     """Create a TestClient for the dashboard app."""
     return TestClient(create_dashboard_app())
+
+
+def _make_overview_client(index_manager: MagicMock) -> TestClient:
+    """Create a TestClient whose overview sees one registered project.
+
+    The overview renders its welcome screen when no project is registered, so
+    the registry and stats are mocked rather than read from ~/.adw.
+    """
+    from adw.dashboard import dependencies
+
+    project = MagicMock()
+    project.name = "my-api"
+    project.path = "/path/to/my-api"
+    registry = MagicMock()
+    registry.get_all.return_value = [project]
+    stats = MagicMock()
+    stats.get_global_stats.return_value = GlobalStatistics(
+        generated_at=datetime.now(UTC),
+        tokens=TokenUsage(input_tokens=0, output_tokens=0),
+        tokens_this_week=TokenUsage(input_tokens=0, output_tokens=0),
+    )
+    today = datetime.now(UTC).date()
+    stats.get_daily_token_counts.return_value = [
+        {"date": today - timedelta(days=i), "tokens": 0} for i in range(6, -1, -1)
+    ]
+
+    app = create_dashboard_app()
+    app.dependency_overrides[dependencies.get_index_manager] = lambda: index_manager
+    app.dependency_overrides[dependencies.get_project_registry] = lambda: registry
+    app.dependency_overrides[dependencies.get_stats_aggregator] = lambda: stats
+    return TestClient(app)
 
 
 def _make_index_entry(
@@ -448,8 +480,6 @@ class TestActiveRunsInOverview:
         self, mock_cm_cls: MagicMock
     ) -> None:
         """Overview page includes the active runs section."""
-        from adw.dashboard.dependencies import get_index_manager
-
         entry = _make_index_entry()
         mock_im = MagicMock()
 
@@ -463,9 +493,7 @@ class TestActiveRunsInOverview:
         mock_ctx = _make_run_context()
         mock_cm_cls.return_value.load.return_value = mock_ctx
 
-        app = create_dashboard_app()
-        app.dependency_overrides[get_index_manager] = lambda: mock_im
-        client = TestClient(app)
+        client = _make_overview_client(mock_im)
 
         response = client.get("/", headers={"HX-Request": "true"})
         assert response.status_code == 200
@@ -473,8 +501,6 @@ class TestActiveRunsInOverview:
 
     def test_overview_no_active_runs_hides_section(self) -> None:
         """Overview page with no active runs shows empty active runs div."""
-        from adw.dashboard.dependencies import get_index_manager
-
         entry = _make_index_entry()
         mock_im = MagicMock()
 
@@ -485,9 +511,7 @@ class TestActiveRunsInOverview:
 
         mock_im.get_recent_runs.side_effect = get_recent_side_effect
 
-        app = create_dashboard_app()
-        app.dependency_overrides[get_index_manager] = lambda: mock_im
-        client = TestClient(app)
+        client = _make_overview_client(mock_im)
 
         response = client.get("/", headers={"HX-Request": "true"})
         assert response.status_code == 200

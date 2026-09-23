@@ -7,6 +7,7 @@ run listing, filtering, and statistics.
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
+import click
 import pytest
 from typer.testing import CliRunner
 
@@ -107,12 +108,14 @@ class TestGlobalListCommand:
         """Help should show all available options."""
         result = runner.invoke(app, ["global", "list", "--help"])
         assert result.exit_code == 0
-        assert "--project" in result.output
-        assert "--status" in result.output
-        assert "--since" in result.output
-        assert "--limit" in result.output
-        assert "--offset" in result.output
-        assert "--json" in result.output
+        # Typer forces styled help under GITHUB_ACTIONS; styling splits "--x".
+        output = click.unstyle(result.output)
+        assert "--project" in output
+        assert "--status" in output
+        assert "--since" in output
+        assert "--limit" in output
+        assert "--offset" in output
+        assert "--json" in output
 
 
 class TestDashboardCommand:
@@ -128,9 +131,10 @@ class TestDashboardCommand:
         """Help should show all available options."""
         result = runner.invoke(app, ["global", "dashboard", "--help"])
         assert result.exit_code == 0
-        assert "--refresh" in result.output
-        assert "--project" in result.output
-        assert "--no-auto-refresh" in result.output
+        output = click.unstyle(result.output)
+        assert "--refresh" in output
+        assert "--project" in output
+        assert "--no-auto-refresh" in output
 
     def test_dashboard_help_shows_keyboard_shortcuts(self) -> None:
         """Help should document keyboard shortcuts."""
