@@ -100,7 +100,7 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
 - [x] TASK-001: Drop unused dependency extras and stale tool config
-- [ ] TASK-002: Lint and format tests in preflight and CI
+- [x] TASK-002: Lint and format tests in preflight and CI
 - [ ] TASK-003: Replace update.sh with a uv version-bump script
 - [ ] TASK-004: Strip planning tags from src
 - [ ] TASK-005: Strip planning tags from tests (depends on TASK-004)

@@ -7,7 +7,6 @@ and overall progress bar.
 
 from datetime import UTC
 from io import StringIO
-from pathlib import Path
 
 from rich.console import Console
 
