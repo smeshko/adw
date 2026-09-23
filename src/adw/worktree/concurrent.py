@@ -13,7 +13,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from adw.exceptions import MaxConcurrentRunsError
+from adw.exceptions import WorktreeError
 
 logger = logging.getLogger(__name__)
 
@@ -200,27 +200,17 @@ class ConcurrentRunManager:
         """Check if a new run can be started, raising if not.
 
         Raises:
-            MaxConcurrentRunsError: If at or over the max_concurrent limit.
+            WorktreeError: If at or over the max_concurrent limit.
         """
         active_runs = self.get_active_runs()
 
         if len(active_runs) >= self.max_concurrent:
-            # Build a list of active run IDs for the error message
-            active_ids = [run.run_id for run in active_runs[:5]]
-            if len(active_runs) > 5:
-                active_ids.append(f"... and {len(active_runs) - 5} more")
-
-            raise MaxConcurrentRunsError(
+            raise WorktreeError(
                 code="MAX_CONCURRENT_REACHED",
                 message=f"Maximum concurrent runs reached ({self.max_concurrent})",
                 suggestion="Use `adw list --running` to see active runs. "
                 "Wait for a run to complete or abort one with `adw abort <run_id>`.",
                 recoverable=False,
-                context={
-                    "max_concurrent": self.max_concurrent,
-                    "active_count": len(active_runs),
-                    "active_runs": active_ids,
-                },
             )
 
     def register_run(

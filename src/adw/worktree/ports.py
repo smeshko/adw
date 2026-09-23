@@ -10,7 +10,7 @@ import logging
 import socket
 from pathlib import Path
 
-from adw.exceptions import PortAllocationError
+from adw.exceptions import WorktreeError
 from adw.models.worktree import PortAllocation
 
 logger = logging.getLogger(__name__)
@@ -125,7 +125,7 @@ class PortAllocator:
             A PortAllocation with the assigned slot and ports.
 
         Raises:
-            PortAllocationError: If no available ports found after max_attempts.
+            WorktreeError: If no available ports found after max_attempts.
         """
         base_slot = self.calculate_slot(run_id)
 
@@ -164,7 +164,7 @@ class PortAllocator:
                 },
             )
 
-        raise PortAllocationError(
+        raise WorktreeError(
             code="PORT_ALLOCATION_FAILED",
             message=f"Could not find available ports after {max_attempts} attempts",
             suggestion="Check for orphaned processes or increase max_concurrent",

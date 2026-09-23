@@ -1,6 +1,6 @@
 # Plan: Trim exceptions and re-export surfaces
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-9
 Risk: small
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -85,7 +85,7 @@ After this phase:
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Fold PortAllocationError and MaxConcurrentRunsError into WorktreeError
+- [x] TASK-001: Fold PortAllocationError and MaxConcurrentRunsError into WorktreeError
 - [ ] TASK-002: Delete the never-raised CommandError and PhaseError
 - [ ] TASK-003: Strip to_dict, docstring examples and pass-through inits from exceptions.py (depends on TASK-001,TASK-002)
 - [ ] TASK-004: Trim package re-export lists to what src imports

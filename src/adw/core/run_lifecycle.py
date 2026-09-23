@@ -163,8 +163,8 @@ class RunLifecycle:
             Initialized RunContext ready for execution.
 
         Raises:
-            WorktreeError: If worktree creation fails.
-            MaxConcurrentRunsError: If the maximum concurrent runs limit is reached.
+            WorktreeError: If worktree creation fails or the maximum
+                concurrent runs limit is reached.
             HookError: If a non-worktree run cannot switch to its branch: the
                 project is not a git repository, or its tree has uncommitted
                 changes. No run directory or index entry exists yet.
@@ -633,8 +633,8 @@ class RunLifecycle:
             Tuple of (worktree_path, branch_name) if successful, or None.
 
         Raises:
-            MaxConcurrentRunsError: If the maximum concurrent runs limit is reached.
-            WorktreeError: If worktree or branch creation fails.
+            WorktreeError: If the maximum concurrent runs limit is reached,
+                or worktree or branch creation fails.
         """
         if self._worktree_manager is None:
             return None

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from adw.exceptions import MaxConcurrentRunsError
+from adw.exceptions import WorktreeError
 from adw.worktree.concurrent import ActiveRun, ConcurrentRunManager
 
 
@@ -206,7 +206,7 @@ class TestConcurrentRunManager:
         manager.check_can_start_or_raise()
 
     def test_check_can_start_or_raise_raises_at_limit(self, tmp_path: Path) -> None:
-        """check_can_start_or_raise raises MaxConcurrentRunsError at limit."""
+        """check_can_start_or_raise raises WorktreeError at limit."""
         manager = ConcurrentRunManager(tmp_path, max_concurrent=1)
 
         manager.register_run(
@@ -214,13 +214,11 @@ class TestConcurrentRunManager:
             worktree_path=tmp_path / "trees" / "01HQTEST123456789ABCD",
         )
 
-        with pytest.raises(MaxConcurrentRunsError) as exc_info:
+        with pytest.raises(WorktreeError) as exc_info:
             manager.check_can_start_or_raise()
 
         assert exc_info.value.code == "MAX_CONCURRENT_REACHED"
         assert "1" in exc_info.value.message  # max_concurrent value
-        assert exc_info.value.context["max_concurrent"] == 1
-        assert exc_info.value.context["active_count"] == 1
 
     def test_multiple_concurrent_runs(
         self, manager: ConcurrentRunManager, tmp_path: Path
@@ -331,45 +329,3 @@ class TestOrphanedWorktrees:
         assert len(orphaned) == 3
         orphaned_names = {p.name for p in orphaned}
         assert orphaned_names == set(run_ids)
-
-
-class TestMaxConcurrentRunsError:
-    """Tests for MaxConcurrentRunsError exception."""
-
-    def test_error_creation(self) -> None:
-        """MaxConcurrentRunsError can be created with required fields."""
-        error = MaxConcurrentRunsError(
-            code="MAX_CONCURRENT_REACHED",
-            message="Maximum concurrent runs reached (15)",
-        )
-
-        assert error.code == "MAX_CONCURRENT_REACHED"
-        assert error.message == "Maximum concurrent runs reached (15)"
-        assert error.context == {}
-
-    def test_error_with_context(self) -> None:
-        """MaxConcurrentRunsError stores context information."""
-        error = MaxConcurrentRunsError(
-            code="MAX_CONCURRENT_REACHED",
-            message="Maximum concurrent runs reached (15)",
-            context={"max_concurrent": 15, "active_count": 15},
-        )
-
-        assert error.context["max_concurrent"] == 15
-        assert error.context["active_count"] == 15
-
-    def test_error_to_dict(self) -> None:
-        """MaxConcurrentRunsError serializes to dict correctly."""
-        error = MaxConcurrentRunsError(
-            code="MAX_CONCURRENT_REACHED",
-            message="Maximum concurrent runs reached",
-            suggestion="Wait for a run to complete",
-            context={"max_concurrent": 15},
-        )
-
-        d = error.to_dict()
-
-        assert d["code"] == "MAX_CONCURRENT_REACHED"
-        assert d["message"] == "Maximum concurrent runs reached"
-        assert d["suggestion"] == "Wait for a run to complete"
-        assert d["context"]["max_concurrent"] == 15
