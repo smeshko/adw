@@ -85,5 +85,5 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-003: Remove unused root fixtures and fixture data
 - [x] TASK-004: Deduplicate git_repo and sample_context fixtures (depends on TASK-003)
 - [x] TASK-005: Trim test_claude_code.py and hoist its executor fixture
-- [ ] TASK-006: Add the three waste categories to ADR-001
+- [x] TASK-006: Add the three waste categories to ADR-001
 - [ ] TASK-007: Final Validation

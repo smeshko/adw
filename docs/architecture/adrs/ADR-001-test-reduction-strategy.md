@@ -30,6 +30,9 @@ Reduce the test suite by eliminating tests in these waste categories:
 | **Redundant Variants** | Same logic tested multiple ways | Multiple tests for `rm -rf /`, `rm -rf ~`, `rm -rf .` |
 | **Mock Class Tests** | Tests verifying mock objects work | `assert mock_executor.call_count == 0` |
 | **Help Text Verification** | Tests checking `--help` output contains strings | `assert "RUN_ID" in result.output` |
+| **HTML Markup Substrings** | Tests asserting that rendered HTML contains a tag, class or attribute string, not the data or behaviour behind it | `assert 'class="badge-success"' in response.text` |
+| **Prompt/Instruction Prose** | Tests asserting wording in `prompt.md`, `instructions.xml` or other LLM-facing text. The LLM follows it; no code executes it. Structural checks (config validates, XML parses) are enough | `assert "STEP 5: FAILURE DIAGNOSIS" in instructions` |
+| **`pass` Placeholders** | Test functions whose body is only a docstring and `pass`. They always pass and document intent in the wrong place | `def test_failure_stops_sequence(self): """…"""; pass` |
 
 ### Categories to KEEP (Never Delete)
 
