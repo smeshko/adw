@@ -7,10 +7,13 @@ Two pattern types are supported:
 - {{variable.path}} - Variable substitution from context
 - {{file:relative/path}} - File content inclusion
 
-A {{variable.path}} placeholder is filled only when its first segment is a
-key of the render context, so placeholders meant for the LLM pass through.
+Includes are expanded first and variables substituted second, so ADW's
+names inside included files are filled. A {{variable.path}} placeholder is
+filled only when its first segment is a key of the render context, so
+placeholders meant for the LLM pass through.
 
-No recursive expansion is performed for security and simplicity.
+No recursive expansion is performed for security and simplicity: variable
+values are never expanded.
 """
 
 import logging
@@ -178,7 +181,7 @@ class TemplateEngine:
     - {{file:relative/path}} - File content inclusion
 
     The engine processes templates in a single pass with no recursive expansion.
-    Variables are processed first, then file inclusions. Only variables whose
+    Inclusions are processed first, then variables. Only variables whose
     top-level name is a context key are filled; others are left verbatim.
 
     Example:
@@ -220,9 +223,10 @@ class TemplateEngine:
     ) -> str:
         """Render a template with variable substitution and file inclusion.
 
-        Variables are processed first, then file inclusions. No recursive
-        expansion is performed - if a variable value contains template syntax,
-        it is NOT expanded.
+        Inclusions are expanded first, then variables are substituted, so
+        variables inside included files are filled. No recursive expansion is
+        performed - if a variable value contains template syntax, including
+        an inclusion directive, it is NOT expanded.
 
         A {{name.path}} placeholder is filled only when ``name``, its first
         segment, is a key of ``context``. Any other placeholder belongs to the
@@ -254,11 +258,8 @@ class TemplateEngine:
         # Convert Pydantic models to dict for variable lookup
         context_dict = self._normalize_context(context)
 
-        # Process variables first (single pass, no recursion)
-        result = self._process_variables(template, context_dict)
-
         # Process command-local includes ({{include:...}})
-        result = self._process_includes(result, command_root=effective_command_root)
+        result = self._process_includes(template, command_root=effective_command_root)
 
         # Process shared includes ({{shared:...}})
         result = self._process_shared_inclusions(
@@ -268,7 +269,9 @@ class TemplateEngine:
         # Process project file inclusions ({{file:...}})
         result = self._process_file_inclusions(result)
 
-        return result
+        # Substitute variables last (single pass, no recursion), so ADW names
+        # inside included files are filled and values are never expanded
+        return self._process_variables(result, context_dict)
 
     def _normalize_context(self, context: dict[str, Any] | BaseModel) -> dict[str, Any]:
         """Convert context to a dictionary for variable lookup.

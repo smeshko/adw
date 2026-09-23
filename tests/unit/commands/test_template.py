@@ -308,29 +308,40 @@ class TestSingleLevelSubstitution:
         result = engine.render(template, context)
         assert result == "{{b}} and {{a}}"
 
-    def test_file_content_not_expanded(self, tmp_path: Path) -> None:
-        """File content containing template syntax should remain literal."""
-        # Create file with template syntax
+    def test_included_content_is_filled(self, tmp_path: Path) -> None:
+        """ADW names inside an included file are filled; other names stay."""
         test_file = tmp_path / "config.txt"
-        test_file.write_text("Value is {{some_var}}")
+        test_file.write_text("Run {{some_var}} then {{story_key}}")
 
         engine = TemplateEngine(project_root=tmp_path)
         template = "{{file:config.txt}}"
         result = engine.render(template, {"some_var": "REPLACED"})
-        # File content should NOT have its variables expanded
-        assert result == "Value is {{some_var}}"
-        assert "REPLACED" not in result
+        assert result == "Run REPLACED then {{story_key}}"
 
-    def test_variables_processed_before_files(self, tmp_path: Path) -> None:
-        """Variables are substituted before file inclusions."""
-        test_file = tmp_path / "data.txt"
-        test_file.write_text("file data")
+    def test_includes_expanded_before_variables(self, tmp_path: Path) -> None:
+        """Includes are expanded first, so their variables get substituted."""
+        (tmp_path / "header.txt").write_text("Cmd: {{test_command}}")
 
         engine = TemplateEngine(project_root=tmp_path)
-        # Variable substitution happens first, file inclusion second
-        template = "{{name}} says: {{file:data.txt}}"
-        result = engine.render(template, {"name": "Alice"})
-        assert result == "Alice says: file data"
+        result = engine.render(
+            "{{include:header.txt}}",
+            {"test_command": "uv run pytest"},
+            command_root=tmp_path,
+        )
+        assert result == "Cmd: uv run pytest"
+
+    def test_variable_value_directives_not_expanded(self, tmp_path: Path) -> None:
+        """A directive inside a variable value is emitted literally, never read."""
+        (tmp_path / "secret.txt").write_text("SECRET")
+        (tmp_path / "x.txt").write_text("INCLUDED")
+        value = "see {{file:secret.txt}} and {{include:x.txt}}"
+
+        engine = TemplateEngine(project_root=tmp_path)
+        result = engine.render("{{desc}}", {"desc": value}, command_root=tmp_path)
+
+        assert result == value
+        assert "SECRET" not in result
+        assert "INCLUDED" not in result
 
 
 class TestContextObjectRendering:
