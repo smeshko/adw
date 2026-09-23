@@ -95,7 +95,6 @@ from adw.cli.wizard.summary import (
     ConfigWriteError,
     SummaryStepHandler,
     atomic_write_config,
-    generate_gitignore,
     generate_phase_configs,
     generate_project_yaml,
     generate_summary_panel,
@@ -110,6 +109,7 @@ from adw.cli.wizard.webhooks import (
     WebhooksStepHandler,
     run_webhooks_step,
 )
+from adw.config.initializer import generate_gitignore
 
 __all__ = [
     "BasicsStepHandler",

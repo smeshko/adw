@@ -6,12 +6,18 @@ title section, phase pipeline, metadata card, action buttons, and clipboard copy
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
+from adw.core.constants import project_runs_dir
+from adw.core.context_manager import ContextManager
+from adw.core.stats_aggregator import StatsAggregator
 from adw.dashboard.server import create_dashboard_app
+from adw.models.context import RunContext
 from adw.models.index import IndexEntry
 
 
@@ -39,6 +45,24 @@ def _make_index_entry(
         phases_completed=phases_completed or ["plan", "build"],
         phase_reached=phase_reached,
     )
+
+
+def _write_llm_response(
+    llm_dir: Path,
+    name: str,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    *,
+    cost_usd: float = 0.0,
+) -> None:
+    """Write an llm/NNN_<phase>_response.json file with token stats."""
+    llm_dir.mkdir(parents=True, exist_ok=True)
+    stats = {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_cost_usd": cost_usd,
+    }
+    (llm_dir / name).write_text(json.dumps({"stats": stats}))
 
 
 def _mock_index_manager(
@@ -74,16 +98,26 @@ def _mock_project_registry(project_names: list[str] | None = None) -> MagicMock:
 def _make_client_with_mocks(
     entries: list[IndexEntry] | None = None,
     project_names: list[str] | None = None,
+    *,
+    index_manager: MagicMock | None = None,
+    project_registry: MagicMock | None = None,
+    stats_aggregator: StatsAggregator | None = None,
 ) -> TestClient:
     """Create a TestClient with dependency overrides for run detail testing."""
     from adw.dashboard import dependencies
 
     app = create_dashboard_app()
-    im = _mock_index_manager(entries=entries or [])
-    pr = _mock_project_registry(project_names or ["my-project"])
+    im = index_manager or _mock_index_manager(entries=entries or [])
+    pr = project_registry or _mock_project_registry(project_names or ["my-project"])
     # Stats aggregator needed for _build_page_context calls
-    sa = MagicMock()
-    sa.get_global_stats.return_value = MagicMock(projects=[])
+    sa: StatsAggregator | MagicMock
+    if stats_aggregator is not None:
+        sa = stats_aggregator
+    else:
+        sa = MagicMock()
+        sa.get_global_stats.return_value = MagicMock(projects=[])
+        sa.get_phase_token_usage.return_value = {}
+        sa.calculate_cost.return_value = 0.0
 
     app.dependency_overrides[dependencies.get_index_manager] = lambda: im
     app.dependency_overrides[dependencies.get_project_registry] = lambda: pr
@@ -869,10 +903,19 @@ class TestPhaseAccordionContext:
         assert "50K" in response.text  # plan tokens
         assert "30K" in response.text  # build tokens
 
-    def test_phases_detail_shows_cost_estimates(self) -> None:
-        """Per-phase cost estimates are displayed."""
-        entry = _make_index_entry()
-        client = _make_client_with_mocks(entries=[entry])
+    def test_phases_detail_shows_cost_estimates(self, tmp_path: Path) -> None:
+        """Per-phase cost is priced from the phase's llm response files."""
+        entry = _make_index_entry(project_path=str(tmp_path))
+        llm_dir = project_runs_dir(tmp_path) / entry.run_id / "llm"
+        _write_llm_response(llm_dir, "001_plan_response.json", input_tokens=1_000_000)
+        _write_llm_response(llm_dir, "002_build_response.json", output_tokens=100_000)
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            index_manager=im,
+            stats_aggregator=StatsAggregator(
+                index_manager=im, cache_path=tmp_path / "cache.json"
+            ),
+        )
 
         mock_ctx = MagicMock()
         mock_ctx.current_phase = "build"
@@ -892,9 +935,9 @@ class TestPhaseAccordionContext:
                 headers={"HX-Request": "true"},
             )
 
-        # Cost estimates should appear (50000 * 0.000009 = $0.45)
-        assert "$0.45" in response.text
-        assert "$0.27" in response.text
+        # DEFAULT_PRICING["default"] is $3 / $15 per 1M input / output tokens
+        assert "$3.00" in response.text  # plan: 1M input tokens
+        assert "$1.50" in response.text  # build: 100K output tokens
 
     def test_phases_detail_includes_phase_key(self) -> None:
         """Phase accordion uses phase_key for HTMX URLs."""
@@ -1000,8 +1043,52 @@ class TestPhaseAccordionContext:
 
         assert 'id="artifact-viewer"' in response.text
 
+    # ── Phase Detail Route ──────────────────────────────────────────────
 
-# ── Phase Detail Route ──────────────────────────────────────────────
+    def test_run_detail_cost_matches_analytics(self, tmp_path: Path) -> None:
+        """Run detail and analytics show the same cost for a one-run project."""
+        entry = _make_index_entry(project_path=str(tmp_path))
+        runs_dir = project_runs_dir(tmp_path)
+        (runs_dir / entry.run_id).mkdir(parents=True)
+        ContextManager(runs_dir).save(
+            RunContext(
+                run_id=entry.run_id,
+                feature_description=entry.feature_description,
+                current_phase="build",
+                phase_history=["plan", "build"],
+                phase_tokens={"plan": 37044, "build": 31200},
+                started_at=entry.started_at,
+                status="completed",
+            )
+        )
+        llm_dir = runs_dir / entry.run_id / "llm"
+        _write_llm_response(
+            llm_dir, "001_plan_response.json", 25403, 11641, cost_usd=0.42
+        )
+        _write_llm_response(
+            llm_dir, "002_build_response.json", 1200, 30000, cost_usd=0.95
+        )
+        project = MagicMock(path=str(tmp_path))
+        project.name = "my-project"
+        pr = MagicMock()
+        pr.get_all.return_value = [project]
+        im = _mock_index_manager(entries=[entry])
+        client = _make_client_with_mocks(
+            index_manager=im,
+            project_registry=pr,
+            stats_aggregator=StatsAggregator(
+                index_manager=im,
+                project_registry=pr,
+                cache_path=tmp_path / "cache.json",
+            ),
+        )
+
+        detail = client.get(f"/runs/{entry.run_id}", headers={"HX-Request": "true"})
+        analytics = client.get("/analytics", headers={"HX-Request": "true"})
+
+        # calculate_cost prefers the actual cost: 0.42 + 0.95
+        assert "$1.37" in detail.text
+        assert "$1.37" in analytics.text
 
 
 class TestPhaseDetailRoute:

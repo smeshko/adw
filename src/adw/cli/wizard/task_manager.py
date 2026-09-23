@@ -12,21 +12,13 @@ from typing import TYPE_CHECKING, Any
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
+from adw.models.config import DEFAULT_STATE_MAPPING
+
 if TYPE_CHECKING:
     from adw.models.wizard import WizardState
 
 # Team key validation pattern: 2-10 uppercase letters
 TEAM_KEY_PATTERN = re.compile(r"^[A-Z]{2,10}$")
-
-# Default state mappings for ADW phases to Linear statuses
-# NOTE: These must match the defaults in TaskManagerConfig (src/adw/models/config.py)
-DEFAULT_STATE_MAPPINGS: dict[str, str] = {
-    "plan": "In Progress",
-    "build": "In Progress",
-    "validate": "In Review",
-    "document": "In Review",
-    "failed": "In Progress",
-}
 
 # Default label prefix
 DEFAULT_LABEL_PREFIX = "adw:"
@@ -270,7 +262,7 @@ def _prompt_state_mapping(console: Console) -> dict[str, str] | None:
     console.print("[dim]Configure phase → Linear state mappings:[/]")
 
     state_mapping: dict[str, str] = {}
-    for phase, default_state in DEFAULT_STATE_MAPPINGS.items():
+    for phase, default_state in DEFAULT_STATE_MAPPING.items():
         state = Prompt.ask(
             f"  {phase}",
             default=default_state,

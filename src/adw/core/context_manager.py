@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 import filelock
 from pydantic import ValidationError
 
+from adw.core.constants import CONTEXT_FILE
 from adw.exceptions import StateError
 
 if TYPE_CHECKING:
@@ -69,7 +70,7 @@ class ContextManager:
                        lock cannot be acquired (LOCK_TIMEOUT).
         """
         run_dir = self.runs_dir / context.run_id
-        context_path = run_dir / "context.json"
+        context_path = run_dir / CONTEXT_FILE
         temp_path = run_dir / ".context.json.tmp"
         lock_path = run_dir / ".lock"
 
@@ -130,7 +131,7 @@ class ContextManager:
         from adw.models import RunContext
 
         run_dir = self.runs_dir / run_id
-        context_path = run_dir / "context.json"
+        context_path = run_dir / CONTEXT_FILE
         lock_path = run_dir / ".lock"
 
         if not context_path.exists():

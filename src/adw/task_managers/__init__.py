@@ -24,13 +24,12 @@ from adw.task_managers.base import TaskManager
 from adw.task_managers.factory import TaskManagerFactory
 from adw.task_managers.null import NullTaskManager
 from adw.task_managers.resolver import InputResolver, InputType, ResolvedInput
-from adw.task_managers.sync import DEFAULT_STATE_MAPPING, StatusSyncService
+from adw.task_managers.sync import StatusSyncService
 
 # LinearTaskManager is lazily imported to avoid httpx dependency
 # when not using Linear. Use factory.create("linear") instead of direct import.
 
 __all__ = [
-    "DEFAULT_STATE_MAPPING",
     "InputResolver",
     "InputType",
     "NullTaskManager",

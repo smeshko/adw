@@ -122,6 +122,7 @@ class TestPromptLanguage:
             # Confirm was called for language confirmation
             mock_confirm.assert_called_once()
             assert result["language"] == "python"
+            assert result["project_name"] == Path.cwd().name
 
     def test_language_not_confirmed_shows_selection(self) -> None:
         """Test that rejecting detection shows language selection."""

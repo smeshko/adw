@@ -6,11 +6,14 @@ log content template, and 300ms debounce integration.
 
 from __future__ import annotations
 
+import io
+import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
+from rich.console import Console
 
 from adw.dashboard.server import create_dashboard_app
 from adw.models.index import IndexEntry
@@ -421,15 +424,40 @@ class TestLoadLogEntries:
             "[2025-01-15 10:30:05] [LLM] Token stream begins\n"
             "[2025-01-15 10:31:00] [ERROR] Something went wrong\n"
         )
-        log_dir = run_dir / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        (log_dir / "live.log").write_text(log_content)
+        (run_dir / "live.log").write_text(log_content)
 
         runs_dir = tmp_path / "runs"
         entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A")
         assert len(entries) == 3
         assert entries[0]["level"] == "INFO"
         assert entries[2]["level"] == "ERROR"
+
+    def test_reads_log_written_by_run(self, tmp_path: Path) -> None:
+        """Reads the live.log a run's LogManager writes (B4)."""
+        from adw.cli.bootstrap import create_log_manager
+        from adw.core.constants import project_runs_dir
+        from adw.dashboard.routes import _load_log_entries
+        from adw.models.logging import LogCategory
+
+        run_id = "01TESTRUNID0000000000000A"
+        runs_dir = project_runs_dir(tmp_path)
+        run_dir = runs_dir / run_id
+        run_dir.mkdir(parents=True)
+
+        root_logger = logging.getLogger()
+        handlers_before = list(root_logger.handlers)
+        try:
+            log_manager = create_log_manager(
+                console=Console(file=io.StringIO()), run_dir=run_dir
+            )
+            log_manager.info(LogCategory.PHASE, "phase plan started")
+        finally:
+            for handler in root_logger.handlers[:]:
+                if handler not in handlers_before:
+                    root_logger.removeHandler(handler)
+
+        entries = _load_log_entries(runs_dir, run_id)
+        assert any("phase plan started" in e["message"] for e in entries)
 
     def test_returns_empty_when_no_log_file(self, tmp_path: Path) -> None:
         """Returns empty list when no log file exists."""
@@ -451,9 +479,7 @@ class TestLoadLogEntries:
             "[2025-01-15 10:30:00] [PHASE] Phase 'plan' started\n"
             "[2025-01-15 10:31:00] [PHASE] Phase 'build' started\n"
         )
-        log_dir = run_dir / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        (log_dir / "live.log").write_text(log_content)
+        (run_dir / "live.log").write_text(log_content)
 
         runs_dir = tmp_path / "runs"
         entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A", phase="plan")
@@ -472,9 +498,7 @@ class TestLoadLogEntries:
             "[2025-01-15 10:30:05] [INFO] Let me explain the approach\n"
             "[2025-01-15 10:30:10] [LLM] Token stream begins(plan)\n"
         )
-        log_dir = run_dir / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        (log_dir / "live.log").write_text(log_content)
+        (run_dir / "live.log").write_text(log_content)
 
         runs_dir = tmp_path / "runs"
         entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A", phase="plan")
@@ -495,9 +519,7 @@ class TestLoadLogEntries:
             "[2025-01-15 10:30:00] [INFO] Valid log line\n"
             "\n"
         )
-        log_dir = run_dir / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        (log_dir / "live.log").write_text(log_content)
+        (run_dir / "live.log").write_text(log_content)
 
         runs_dir = tmp_path / "runs"
         entries = _load_log_entries(runs_dir, "01TESTRUNID0000000000000A")

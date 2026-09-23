@@ -565,9 +565,7 @@ class TestDataLayerIntegration:
             "\x1b[36m[2025-01-15 10:30:01] [LLM] \x1b[0m\x1b[36mToken stream begins(plan)\x1b[0m\n"
             "\x1b[31m[2025-01-15 10:31:00] [ERROR] \x1b[0mExecution timeout\n"
         )
-        log_dir = run_dir / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        (log_dir / "live.log").write_text(log_content)
+        (run_dir / "live.log").write_text(log_content)
 
         entries = _load_log_entries(tmp_path / "runs", "01TESTRUNID0000000000000A")
         assert len(entries) == 3
@@ -594,9 +592,7 @@ class TestDataLayerIntegration:
             "[2025-01-15 10:31:30] [LLM] Token stream begins(build)\n"
             "[2025-01-15 10:32:00] [PHASE] Phase 'build' completed\n"
         )
-        log_dir = run_dir / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        (log_dir / "live.log").write_text(log_content)
+        (run_dir / "live.log").write_text(log_content)
 
         plan_entries = _load_log_entries(
             tmp_path / "runs", "01TESTRUNID0000000000000A", phase="plan"

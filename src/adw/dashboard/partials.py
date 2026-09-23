@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 
-from adw.core.constants import PHASE_SEQUENCE
+from adw.core.constants import LIVE_LOG, PHASE_SEQUENCE, project_runs_dir
 from adw.core.context_manager import ContextManager
 from adw.dashboard.dependencies import (
     generate_csrf_token,
@@ -26,6 +26,7 @@ from adw.dashboard.dependencies import (
     resolve_project_filter,
 )
 from adw.exceptions import StateError
+from adw.models.config import DEFAULT_STATE_MAPPING
 
 if TYPE_CHECKING:
     from starlette.templating import Jinja2Templates
@@ -700,7 +701,7 @@ def _load_active_run_details(
         # Try loading RunContext for live phase data
         try:
             project_path = Path(entry.project_path)
-            runs_dir = project_path / ".adw" / "runs"
+            runs_dir = project_runs_dir(project_path)
             cm = ContextManager(runs_dir)
             ctx = cm.load(entry.run_id)
             current_phase = ctx.current_phase
@@ -878,7 +879,7 @@ async def abort_modal(
     current_phase = run_entry.phase_reached
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
         cm = ContextManager(runs_dir)
         ctx = cm.load(run_id)
         current_phase = ctx.current_phase
@@ -951,7 +952,7 @@ async def terminal_mode(
     has_logs = False
     try:
         project_path = Path(run_entry.project_path)
-        log_file = project_path / ".adw" / "runs" / run_id / "live.log"
+        log_file = project_runs_dir(project_path) / run_id / LIVE_LOG
         has_logs = log_file.exists()
     except OSError:
         pass
@@ -991,7 +992,7 @@ async def terminal_logs(
 
     try:
         project_path = Path(run_entry.project_path)
-        log_file = project_path / ".adw" / "runs" / run_id / "live.log"
+        log_file = project_runs_dir(project_path) / run_id / LIVE_LOG
     except OSError:
         return HTMLResponse(
             content='<p class="text-base-content/40 text-sm">No logs available</p>',
@@ -1093,7 +1094,7 @@ async def focus_mode(
     # Try loading RunContext for live data
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
         cm = ContextManager(runs_dir)
         ctx = cm.load(run_id)
         current_phase = ctx.current_phase
@@ -1170,14 +1171,7 @@ async def task_manager_fields(
 
     # Build context for the partial
     task_manager_type = type
-    state_mapping = {
-        "plan": "In Progress",
-        "build": "In Progress",
-        "validate": "In Review",
-        "document": "In Review",
-        "ship": "Done",
-        "failed": "In Progress",
-    }
+    state_mapping = dict(DEFAULT_STATE_MAPPING)
     team_key = ""
     sync_comments = False
     auto_close = False

@@ -21,8 +21,14 @@ from fastapi.responses import HTMLResponse
 from starlette.responses import StreamingResponse
 
 from adw.core.artifact_manager import ArtifactManager
-from adw.core.constants import PHASE_SEQUENCE
+from adw.core.constants import (
+    LIVE_LOG,
+    PHASE_SEQUENCE,
+    TERMINAL_STATUSES,
+    project_runs_dir,
+)
 from adw.core.context_manager import ContextManager
+from adw.core.stats_aggregator import sum_token_usage
 from adw.dashboard.dependencies import (
     generate_csrf_token,
     get_index_manager,
@@ -31,6 +37,8 @@ from adw.dashboard.dependencies import (
     resolve_project_filter,
 )
 from adw.exceptions import StateError
+from adw.models.config import DEFAULT_STATE_MAPPING
+from adw.models.stats import TokenUsage
 
 if TYPE_CHECKING:
     from starlette.templating import Jinja2Templates
@@ -491,6 +499,8 @@ def _build_run_detail_context(
     run_entry: IndexEntry,
     request: Request,
     name_map: dict[str, str] | None = None,
+    *,
+    stats_aggregator: StatsAggregator,
 ) -> dict[str, Any]:
     """Build the template context for the run detail page.
 
@@ -501,6 +511,7 @@ def _build_run_detail_context(
         run_entry: An IndexEntry from the global index.
         request: The current FastAPI request.
         name_map: Optional mapping of project_path -> display_name.
+        stats_aggregator: Prices the run and its phases, as analytics does.
 
     Returns:
         Dict with all template variables for run_detail.html.
@@ -523,17 +534,16 @@ def _build_run_detail_context(
     # Enriched data from RunContext (populated below if available)
     branch_name: str | None = None
     total_tokens: int = 0
-    estimated_cost: float = 0.0
     pr_url: str | None = None
     task_id: str | None = None
     task_manager: str | None = None
     artifacts_path: str | None = None
     phase_tokens: dict[str, int] = {}
 
+    runs_dir = project_runs_dir(Path(run_entry.project_path))
+
     # Try loading RunContext for enriched data
     try:
-        project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
         cm = ContextManager(runs_dir)
         ctx = cm.load(run_id)
         # Override with live data
@@ -546,13 +556,10 @@ def _build_run_detail_context(
         task_manager = ctx.task_manager
         phase_tokens = dict(ctx.phase_tokens)
 
-        # Estimate cost at $3/$15 per 1M input/output tokens (approximate)
-        estimated_cost = total_tokens * 0.000009  # rough average
-
         # Artifacts path
         if ctx.worktree_path:
             artifacts_path = str(
-                ctx.worktree_path / ".adw" / "runs" / run_id / "artifacts"
+                project_runs_dir(ctx.worktree_path) / run_id / "artifacts"
             )
         else:
             artifacts_path = str(runs_dir / run_id / "artifacts")
@@ -561,6 +568,12 @@ def _build_run_detail_context(
             "RunContext unavailable for detail page, using IndexEntry fallback",
             extra={"run_id": run_id},
         )
+
+    # Price the run the way analytics does: from its llm response files
+    phase_usage = stats_aggregator.get_phase_token_usage(runs_dir / run_id)
+    estimated_cost = stats_aggregator.calculate_cost(
+        sum_token_usage(phase_usage.values())
+    )
 
     # Duration
     if completed_at and started_at:
@@ -607,7 +620,7 @@ def _build_run_detail_context(
             continue
 
         tokens = phase_tokens.get(phase_key, 0)
-        cost = tokens * 0.000009
+        cost = stats_aggregator.calculate_cost(phase_usage.get(phase_key, TokenUsage()))
 
         if phase_key in completed_set:
             phase_status = "completed"
@@ -690,6 +703,7 @@ async def run_detail(
     run_id: str,
     index_manager: IndexManager = Depends(get_index_manager),
     project_registry: ProjectRegistryManager = Depends(get_project_registry),
+    stats_aggregator: StatsAggregator = Depends(get_stats_aggregator),
 ) -> HTMLResponse:
     """Render run detail page, or a 404 message if not found."""
     templates: Jinja2Templates = request.app.state.templates
@@ -729,7 +743,9 @@ async def run_detail(
     # Build run detail context with display name resolution
     all_proj = project_registry.get_all()
     detail_name_map = {str(p.path): p.name for p in all_proj}
-    detail_context = _build_run_detail_context(run_entry, request, detail_name_map)
+    detail_context = _build_run_detail_context(
+        run_entry, request, detail_name_map, stats_aggregator=stats_aggregator
+    )
 
     if request.headers.get("HX-Request"):
         detail_context["request"] = request
@@ -922,7 +938,7 @@ async def phase_detail(
 
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
     except (AttributeError, OSError):
         runs_dir = None
 
@@ -1011,7 +1027,7 @@ async def llm_prompt(
 
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
         content = _load_llm_content(runs_dir, run_id, phase, "prompt")
     except OSError:
         content = None
@@ -1057,7 +1073,7 @@ async def llm_response(
 
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
         content = _load_llm_content(runs_dir, run_id, phase, "response")
     except OSError:
         content = None
@@ -1121,7 +1137,7 @@ async def artifact_viewer(
     content: str | None = None
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
         am = ArtifactManager(runs_dir)
         content = am.get(run_id, phase, filename)  # type: ignore[assignment]
     except (StateError, OSError, UnicodeDecodeError):
@@ -1192,7 +1208,7 @@ def _load_log_entries(
     """
     import re
 
-    log_file = runs_dir / run_id / "logs" / "live.log"
+    log_file = runs_dir / run_id / LIVE_LOG
     if not log_file.exists():
         return []
 
@@ -1278,7 +1294,7 @@ async def log_search(
 
     try:
         project_path = Path(run_entry.project_path)
-        runs_dir = project_path / ".adw" / "runs"
+        runs_dir = project_runs_dir(project_path)
         entries = _load_log_entries(runs_dir, run_id, phase=phase or None)
     except OSError:
         entries = []
@@ -1384,7 +1400,7 @@ async def run_events_sse(
 
         try:
             project_path = Path(run_entry.project_path)
-            runs_dir = project_path / ".adw" / "runs"
+            runs_dir = project_runs_dir(project_path)
         except (AttributeError, OSError):
             yield _format_sse_event("error", "Cannot resolve run path")
             return
@@ -1418,11 +1434,7 @@ async def run_events_sse(
                 last_phase = current_phase
 
             # Emit run-complete or run-failed if status changed to terminal
-            if current_status != last_status and current_status in (
-                "completed",
-                "failed",
-                "aborted",
-            ):
+            if current_status != last_status and current_status in TERMINAL_STATUSES:
                 if current_status == "completed":
                     yield _format_sse_event("run-complete", "")
                 else:
@@ -1529,12 +1541,12 @@ async def log_stream_sse(
         """Tail the live.log file and yield new lines as SSE events."""
         try:
             project_path = Path(run_entry.project_path)
-            runs_dir = project_path / ".adw" / "runs"
+            runs_dir = project_runs_dir(project_path)
         except (AttributeError, OSError):
             yield _format_sse_event("error", "Cannot resolve run path")
             return
 
-        log_file = runs_dir / run_id / "logs" / "live.log"
+        log_file = runs_dir / run_id / LIVE_LOG
         line_pattern = re.compile(
             r"^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s+\[(\w+)\]\s+(.*)"
         )
@@ -1554,7 +1566,7 @@ async def log_stream_sse(
             try:
                 cm = ContextManager(runs_dir)
                 ctx = cm.load(run_id)
-                if ctx.status in ("completed", "failed", "aborted"):
+                if ctx.status in TERMINAL_STATUSES:
                     # Flush any remaining lines then exit
                     if log_file.exists():
                         try:
@@ -2016,14 +2028,7 @@ def build_complex_settings_context(
         "auto_close": False,
         "labels_enabled": True,
         "label_prefix": "adw:",
-        "state_mapping": {
-            "plan": "In Progress",
-            "build": "In Progress",
-            "validate": "In Review",
-            "document": "In Review",
-            "ship": "Done",
-            "failed": "In Progress",
-        },
+        "state_mapping": dict(DEFAULT_STATE_MAPPING),
     }
 
     # Security defaults
