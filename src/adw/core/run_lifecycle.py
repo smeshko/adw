@@ -28,7 +28,7 @@ from adw.core.index_manager import IndexManager
 from adw.core.interruption import InterruptionHandler, ShutdownRequested
 from adw.core.run_directory import RunDirectoryManager
 from adw.exceptions import ADWError, WorktreeError
-from adw.hooks.git_branch import sanitize_branch_name
+from adw.hooks.git_branch import ensure_on_branch, sanitize_branch_name
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
 from adw.models.task import TaskInfo
 from adw.worktree import ConcurrentRunManager
@@ -145,7 +145,8 @@ class RunLifecycle:
 
         This method handles:
         1. Generate run ID if not provided
-        2. Create worktree for isolation (if enabled)
+        2. Create worktree for isolation (if enabled), or else switch the
+           project checkout to the run's feature branch
         3. Create initial context
         4. Create run directory structure
         5. Persist initial state
@@ -164,6 +165,9 @@ class RunLifecycle:
         Raises:
             WorktreeError: If worktree creation fails (ISS-025).
             MaxConcurrentRunsError: If the maximum concurrent runs limit is reached.
+            HookError: If a non-worktree run cannot switch to its branch: the
+                project is not a git repository, or its tree has uncommitted
+                changes. No run directory or index entry exists yet.
         """
         run_id = run_id or str(ULID())
         starting_phase = starting_phase or PHASE_SEQUENCE[0]
@@ -188,6 +192,13 @@ class RunLifecycle:
                 )
             else:
                 worktree_path, branch_name = worktree_result
+
+        # Non-worktree runs work on their feature branch in the project checkout
+        if not should_use_worktree:
+            branch_name = (
+                self._feature_branch_name(feature_description) or f"adw/{run_id}"
+            )
+            ensure_on_branch(branch_name, working_dir=self.project_path)
 
         # Create initial context (populate task_id, task_info, and task_manager)
         context = RunContext(
@@ -563,6 +574,21 @@ class RunLifecycle:
 
         return f"origin/{base_branch}"
 
+    def _feature_branch_name(self, feature_description: str) -> str | None:
+        """Return the feature branch name for a run (ISS-032).
+
+        Args:
+            feature_description: Human-readable feature description.
+
+        Returns:
+            ``branch_prefix`` plus the sanitized description, or None when the
+            description sanitizes to nothing.
+        """
+        sanitized = sanitize_branch_name(feature_description)
+        if not sanitized:
+            return None
+        return self.git_config.branch_prefix + sanitized
+
     def _create_worktree_for_run(
         self, run_id: str, feature_description: str
     ) -> tuple[Path, str] | None:
@@ -586,12 +612,7 @@ class RunLifecycle:
         if self._concurrent_run_manager is not None:
             self._concurrent_run_manager.check_can_start_or_raise()
 
-        # Calculate feature branch name (ISS-032)
-        feature_branch_name: str | None = None
-        if feature_description:
-            sanitized = sanitize_branch_name(feature_description)
-            if sanitized:
-                feature_branch_name = self.git_config.branch_prefix + sanitized
+        feature_branch_name = self._feature_branch_name(feature_description)
 
         # Fetch latest remote base branch so the worktree starts from
         # up-to-date code rather than a potentially stale local HEAD.

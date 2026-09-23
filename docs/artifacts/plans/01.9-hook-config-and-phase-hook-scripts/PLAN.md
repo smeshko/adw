@@ -122,7 +122,7 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 
 - [x] TASK-001: Build HookRunner from project.yaml hooks config
 - [x] TASK-002: Drop hook steps that redo Python's work
-- [ ] TASK-003: Switch non-worktree runs to the feature branch at run start
+- [x] TASK-003: Switch non-worktree runs to the feature branch at run start
 - [ ] TASK-004: Switch to the run's branch on resume and continue (depends on TASK-003)
 - [ ] TASK-005: Trim ship hooks to live steps and read ADW_PR_URL
 - [ ] TASK-006: Delete unused bundled BMAD copies

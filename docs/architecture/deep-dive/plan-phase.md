@@ -44,6 +44,8 @@ The Plan phase is the first phase in the ADW pipeline (`plan → build → valid
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+Non-worktree runs switch to the feature branch at run start (`RunLifecycle.create_run_context`), before the plan phase's pre-hook runs.
+
 ## Command Resolution (3-Tier Hierarchy)
 
 The `CommandResolver` searches for the plan command in order:
@@ -168,5 +170,4 @@ The LLM's text response will be saved verbatim to `plan_output.md`. You control 
 | `src/adw/executors/claude_code.py` | LLM subprocess management |
 | `src/adw/core/artifact_manager.py` | Artifact storage |
 | `src/adw/defaults/commands/plan/prompt.md` | Default plan prompt |
-| `src/adw/defaults/commands/plan/pre.sh` | Git branch pre-hook |
 | `src/adw/defaults/commands/plan/config.yaml` | Phase configuration |

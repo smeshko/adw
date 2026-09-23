@@ -26,6 +26,13 @@ if TYPE_CHECKING:
     from tests.conftest import FakeGh
 
 
+@pytest.fixture(autouse=True)
+def mock_ensure_on_branch() -> Generator[MagicMock]:
+    """Stub the non-worktree branch switch: these tests run outside git."""
+    with patch("adw.core.run_lifecycle.ensure_on_branch") as mock:
+        yield mock
+
+
 @pytest.fixture
 def mock_context_manager() -> MagicMock:
     """Create a mock ContextManager."""
@@ -2077,10 +2084,16 @@ _VALID_PR_DESCRIPTION = (
 class TestPRCreationAfterDocumentPhase:
     """The document step opens its PR through core create_pr (ISS-031).
 
-    These drive the real DocumentExtension against a fake `gh` on PATH. With
-    worktrees disabled and no branch_name, create_pr doesn't push, so no git
-    remote is needed.
+    These drive the real DocumentExtension against a fake `gh` on PATH. Run
+    start gives non-worktree runs a branch_name, so create_pr pushes it first;
+    the push is stubbed, so no git remote is needed.
     """
+
+    @pytest.fixture(autouse=True)
+    def mock_push_branch(self) -> Generator[MagicMock]:
+        """Stub the branch push create_pr makes before calling gh."""
+        with patch("adw.core.pr._push_branch") as mock:
+            yield mock
 
     @staticmethod
     def _orchestrator(
@@ -2182,6 +2195,7 @@ class TestPRCreationAfterDocumentPhase:
         assert gh_calls_at_phase_start["ship"] == 1
         argv = fake_gh.calls()[0]
         assert argv[argv.index("--base") + 1] == "main"
+        assert argv[argv.index("--head") + 1] == "feature/test-feature"
 
     def test_ship_phase_skipped_when_pr_creation_fails(
         self,

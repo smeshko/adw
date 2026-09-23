@@ -5,6 +5,7 @@ including context creation, success finalization, and error handling.
 """
 
 import logging
+from collections.abc import Generator
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -12,9 +13,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from adw.core.run_lifecycle import RunLifecycle
-from adw.exceptions import PhaseError, WorktreeError
+from adw.exceptions import HookError, PhaseError, WorktreeError
 from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
 from adw.models.task import TaskInfo
+
+
+@pytest.fixture(autouse=True)
+def mock_ensure_on_branch() -> Generator[MagicMock]:
+    """Stub the non-worktree branch switch: these tests run outside git."""
+    with patch("adw.core.run_lifecycle.ensure_on_branch") as mock:
+        yield mock
 
 
 @pytest.fixture
@@ -293,6 +301,123 @@ class TestCreateRunContext:
         lifecycle.create_run_context(feature_description="Add user auth")
 
         mock_label_manager.set_running.assert_called_once()
+
+
+class TestCreateRunContextBranch:
+    """Tests for the non-worktree branch switch in create_run_context."""
+
+    @staticmethod
+    def _lifecycle(
+        tmp_path: Path,
+        context_manager: MagicMock,
+        run_directory_manager: MagicMock,
+        index_manager: MagicMock,
+        interruption_handler: MagicMock,
+        **kwargs: object,
+    ) -> RunLifecycle:
+        return RunLifecycle(
+            runs_dir=tmp_path / "runs",
+            project_path=tmp_path,
+            context_manager=context_manager,
+            run_directory_manager=run_directory_manager,
+            index_manager=index_manager,
+            interruption_handler=interruption_handler,
+            **kwargs,  # type: ignore[arg-type]
+        )
+
+    def test_switches_to_prefixed_feature_branch(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_interruption_handler: MagicMock,
+        mock_ensure_on_branch: MagicMock,
+    ) -> None:
+        """A non-worktree run switches to branch_prefix + the sanitized feature."""
+        lifecycle = self._lifecycle(
+            tmp_path,
+            mock_context_manager,
+            mock_run_directory_manager,
+            mock_index_manager,
+            mock_interruption_handler,
+            worktree_config=WorktreeConfig(enabled=False),
+            git_config=GitConfig(branch_prefix="feat/"),
+        )
+
+        context = lifecycle.create_run_context(feature_description="Add login")
+
+        mock_ensure_on_branch.assert_called_once_with(
+            "feat/add-login", working_dir=tmp_path
+        )
+        assert context.branch_name == "feat/add-login"
+
+    def test_empty_sanitized_feature_falls_back_to_run_branch(
+        self,
+        run_lifecycle: RunLifecycle,
+        mock_ensure_on_branch: MagicMock,
+    ) -> None:
+        """A feature that sanitizes to nothing switches to adw/<run_id>."""
+        context = run_lifecycle.create_run_context(
+            feature_description="!!!", run_id="01HQTEST123456789012345678"
+        )
+
+        mock_ensure_on_branch.assert_called_once_with(
+            "adw/01HQTEST123456789012345678", working_dir=run_lifecycle.project_path
+        )
+        assert context.branch_name == "adw/01HQTEST123456789012345678"
+
+    def test_switch_failure_creates_no_run(
+        self,
+        run_lifecycle: RunLifecycle,
+        mock_run_directory_manager: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_ensure_on_branch: MagicMock,
+    ) -> None:
+        """A failed switch re-raises before any run dir or index entry exists."""
+        mock_ensure_on_branch.side_effect = HookError(
+            code="GIT_UNCOMMITTED_CHANGES",
+            message="dirty",
+            phase="run-start",
+        )
+
+        with pytest.raises(HookError):
+            run_lifecycle.create_run_context(feature_description="Add login")
+
+        mock_run_directory_manager.create.assert_not_called()
+        mock_index_manager.register_run.assert_not_called()
+
+    def test_worktree_run_does_not_switch(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_interruption_handler: MagicMock,
+        mock_ensure_on_branch: MagicMock,
+    ) -> None:
+        """Worktree runs take their branch from WorktreeManager."""
+        mock_worktree_manager = MagicMock()
+        mock_worktree_manager.create_worktree.return_value = (
+            tmp_path / "trees" / "RUN123",
+            "feature/add-login",
+        )
+        lifecycle = self._lifecycle(
+            tmp_path,
+            mock_context_manager,
+            mock_run_directory_manager,
+            mock_index_manager,
+            mock_interruption_handler,
+            worktree_config=WorktreeConfig(enabled=True),
+            worktree_manager=mock_worktree_manager,
+        )
+
+        with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stderr="")
+            context = lifecycle.create_run_context(feature_description="Add login")
+
+        mock_ensure_on_branch.assert_not_called()
+        assert context.branch_name == "feature/add-login"
 
 
 class TestInitializeRunPostsStartedComment:

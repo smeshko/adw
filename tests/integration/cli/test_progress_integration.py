@@ -7,6 +7,7 @@ Tests that ProgressDisplay correctly integrates with the Orchestrator
 to display real-time progress during pipeline execution.
 """
 
+import subprocess
 from datetime import UTC, datetime
 from io import StringIO
 from pathlib import Path
@@ -23,6 +24,25 @@ from adw.core.run_directory import RunDirectoryManager
 from adw.core.snapshot_manager import SnapshotManager
 from adw.exceptions import LLMError
 from adw.models import PhaseResult, PhaseStatus, RunContext, WorktreeConfig
+
+
+@pytest.fixture
+def runs_dir(git_repo: Path) -> Path:
+    """Return the runs dir of a committed git project.
+
+    The orchestrator derives its project root as ``runs_dir.parent.parent``
+    and switches that checkout to the run's branch, so the root must be an
+    isolated repo with HOME (``home/``) and the run directories gitignored.
+    """
+    (git_repo / ".gitignore").write_text("home/\n.adw/runs/\n")
+    subprocess.run(["git", "add", "."], cwd=git_repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "Ignore ADW runtime state"],
+        cwd=git_repo,
+        check=True,
+        capture_output=True,
+    )
+    return git_repo / ".adw" / "runs"
 
 
 class MockPhaseRunner:
@@ -64,7 +84,7 @@ class TestOrchestratorProgressIntegration:
     """Integration tests for Orchestrator with ProgressDisplay."""
 
     def test_orchestrator_calls_progress_display_on_phase_start(
-        self, tmp_path: Path
+        self, runs_dir: Path
     ) -> None:
         """Test that Orchestrator calls on_phase_start for each phase."""
         # Setup
@@ -81,9 +101,9 @@ class TestOrchestratorProgressIntegration:
         # Create mock phase runner that completes all phases
         mock_runner = MockPhaseRunner({})
 
-        # ISS-025: Disable worktree for tests (tmp_path is not a git repo)
+        # ISS-025: Disable worktree for tests (the repo has no remote to fetch)
         orchestrator = Orchestrator(
-            runs_dir=tmp_path,
+            runs_dir=runs_dir,
             context_manager=context_manager,
             snapshot_manager=snapshot_manager,
             artifact_manager=artifact_manager,
@@ -104,7 +124,7 @@ class TestOrchestratorProgressIntegration:
         assert "DOCUMENT" in output_text
 
     def test_orchestrator_calls_progress_display_on_phase_complete(
-        self, tmp_path: Path
+        self, runs_dir: Path
     ) -> None:
         """Test that Orchestrator calls on_phase_complete for each phase."""
         output = StringIO()
@@ -119,7 +139,7 @@ class TestOrchestratorProgressIntegration:
         mock_runner = MockPhaseRunner({})
 
         orchestrator = Orchestrator(
-            runs_dir=tmp_path,
+            runs_dir=runs_dir,
             context_manager=context_manager,
             snapshot_manager=snapshot_manager,
             artifact_manager=artifact_manager,
@@ -136,7 +156,7 @@ class TestOrchestratorProgressIntegration:
         # Should have 5 checkmarks for 5 completed phases
         assert output_text.count("✓") >= 5
 
-    def test_orchestrator_calls_progress_display_on_error(self, tmp_path: Path) -> None:
+    def test_orchestrator_calls_progress_display_on_error(self, runs_dir: Path) -> None:
         """Test that Orchestrator calls on_phase_error when phase fails."""
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=80)
@@ -178,7 +198,7 @@ class TestOrchestratorProgressIntegration:
                 return True
 
         orchestrator = Orchestrator(
-            runs_dir=tmp_path,
+            runs_dir=runs_dir,
             context_manager=context_manager,
             snapshot_manager=snapshot_manager,
             artifact_manager=artifact_manager,
@@ -197,7 +217,7 @@ class TestOrchestratorProgressIntegration:
         assert "Test error" in output_text
 
     def test_orchestrator_calls_pipeline_summary_on_completion(
-        self, tmp_path: Path
+        self, runs_dir: Path
     ) -> None:
         """Test that Orchestrator calls show_pipeline_summary after successful run."""
         output = StringIO()
@@ -212,7 +232,7 @@ class TestOrchestratorProgressIntegration:
         mock_runner = MockPhaseRunner({})
 
         orchestrator = Orchestrator(
-            runs_dir=tmp_path,
+            runs_dir=runs_dir,
             context_manager=context_manager,
             snapshot_manager=snapshot_manager,
             artifact_manager=artifact_manager,
@@ -230,7 +250,7 @@ class TestOrchestratorProgressIntegration:
         assert "completed" in output_text
 
     def test_orchestrator_calls_pipeline_summary_on_failure(
-        self, tmp_path: Path
+        self, runs_dir: Path
     ) -> None:
         """Test that Orchestrator calls show_pipeline_summary after failed run."""
         output = StringIO()
@@ -273,7 +293,7 @@ class TestOrchestratorProgressIntegration:
                 return True
 
         orchestrator = Orchestrator(
-            runs_dir=tmp_path,
+            runs_dir=runs_dir,
             context_manager=context_manager,
             snapshot_manager=snapshot_manager,
             artifact_manager=artifact_manager,
