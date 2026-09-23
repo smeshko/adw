@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from adw.commands import TemplateEngine
-from adw.commands.template import FILE_PATTERN, VARIABLE_PATTERN
+from adw.commands.template import VARIABLE_PATTERN
 from adw.exceptions import ConfigError
 
 
@@ -116,18 +116,6 @@ class TestVariableSubstitution:
 class TestFileInclusion:
     """Tests for Task 3: File Inclusion Pattern."""
 
-    def test_file_pattern_matches_simple_path(self) -> None:
-        """FILE_PATTERN should match {{file:path.txt}}."""
-        match = FILE_PATTERN.search("Content: {{file:data.txt}}")
-        assert match is not None
-        assert match.group(1) == "data.txt"
-
-    def test_file_pattern_matches_path_with_directory(self) -> None:
-        """FILE_PATTERN should match {{file:dir/file.txt}}."""
-        match = FILE_PATTERN.search("{{file:path/to/file.txt}}")
-        assert match is not None
-        assert match.group(1) == "path/to/file.txt"
-
     def test_file_inclusion_reads_content(self, tmp_path: Path) -> None:
         """Engine should read and include file content."""
         # Create test file
@@ -195,20 +183,6 @@ class TestFileInclusion:
         result = engine.render(template, {})
         assert result == "content"
 
-    def test_path_traversal_blocked(self, tmp_path: Path) -> None:
-        """Engine should block path traversal attempts."""
-        # Create a file outside the project root
-        parent_file = tmp_path.parent / "secret.txt"
-        parent_file.write_text("secret data")
-
-        engine = TemplateEngine(project_root=tmp_path)
-        template = "{{file:../secret.txt}}"
-
-        with pytest.raises(ConfigError) as exc:
-            engine.render(template, {})
-
-        assert exc.value.code == "TEMPLATE_PATH_TRAVERSAL"
-
     def test_path_traversal_absolute_blocked(self, tmp_path: Path) -> None:
         """Engine should block absolute path attempts."""
         engine = TemplateEngine(project_root=tmp_path)
@@ -275,6 +249,82 @@ class TestFillRule:
         context = {"task": {"identifier": "ADW-16"}}
         result = engine.render("{{task_validated}} {{task.identifier}}", context)
         assert result == "{{task_validated}} ADW-16"
+
+
+class TestDirectives:
+    """Every inclusion directive is read through one guarded handler."""
+
+    @pytest.mark.parametrize(
+        ("directive", "code"),
+        [
+            ("{{include:../../etc/passwd}}", "INCLUDE_PATH_TRAVERSAL"),
+            ("{{shared:../outside.txt}}", "SHARED_PATH_TRAVERSAL"),
+            ("{{file:../outside.txt}}", "TEMPLATE_PATH_TRAVERSAL"),
+        ],
+        ids=["include", "shared", "file"],
+    )
+    def test_directive_path_traversal_raises(
+        self, tmp_path: Path, directive: str, code: str
+    ) -> None:
+        """A path that leaves its root raises, even when the target exists."""
+        root = tmp_path / "root"
+        root.mkdir()
+        (tmp_path / "outside.txt").write_text("outside")
+        engine = TemplateEngine(project_root=root)
+
+        with pytest.raises(ConfigError) as exc:
+            engine.render(directive, {}, command_root=root, shared_root=root)
+
+        assert exc.value.code == code
+
+    @pytest.mark.parametrize(
+        ("directive", "code"),
+        [
+            ("{{include:missing.txt}}", "INCLUDE_FILE_NOT_FOUND"),
+            ("{{shared:missing.txt}}", "SHARED_FILE_NOT_FOUND"),
+            ("{{file:missing.txt}}", "TEMPLATE_FILE_NOT_FOUND"),
+        ],
+        ids=["include", "shared", "file"],
+    )
+    def test_directive_missing_file_raises(
+        self, tmp_path: Path, directive: str, code: str
+    ) -> None:
+        """A directive naming a missing file raises its kind's not-found code."""
+        engine = TemplateEngine(project_root=tmp_path)
+
+        with pytest.raises(ConfigError) as exc:
+            engine.render(directive, {}, command_root=tmp_path, shared_root=tmp_path)
+
+        assert exc.value.code == code
+
+    @pytest.mark.parametrize(
+        ("directive", "code"),
+        [
+            ("{{include:a.txt}}", "INCLUDE_NO_ROOT"),
+            ("{{shared:a.txt}}", "SHARED_NO_ROOT"),
+        ],
+        ids=["include", "shared"],
+    )
+    def test_directive_without_root_raises(
+        self, tmp_path: Path, directive: str, code: str
+    ) -> None:
+        """include and shared need a root passed to render()."""
+        engine = TemplateEngine(project_root=tmp_path)
+
+        with pytest.raises(ConfigError) as exc:
+            engine.render(directive, {})
+
+        assert exc.value.code == code
+
+    def test_included_directives_not_expanded(self, tmp_path: Path) -> None:
+        """Included text is not rescanned, so its own directives stay literal."""
+        (tmp_path / "a.txt").write_text("{{file:secret.txt}}")
+        (tmp_path / "secret.txt").write_text("SECRET")
+        engine = TemplateEngine(project_root=tmp_path)
+
+        result = engine.render("{{include:a.txt}}", {}, command_root=tmp_path)
+
+        assert result == "{{file:secret.txt}}"
 
 
 class TestSingleLevelSubstitution:
@@ -869,28 +919,3 @@ class TestRenderWithRootParameters:
         result = engine.render(template, {}, shared_root=commands_dir)
 
         assert result == "Common: Shared Content"
-
-    def test_render_parameters_override_instance_attributes(
-        self, tmp_path: Path
-    ) -> None:
-        """render() parameters should override instance command_root/shared_root."""
-        # Create two different command directories with different content
-        default_dir = tmp_path / "default"
-        default_dir.mkdir()
-        (default_dir / "file.txt").write_text("Default Content")
-
-        override_dir = tmp_path / "override"
-        override_dir.mkdir()
-        (override_dir / "file.txt").write_text("Override Content")
-
-        # Engine with default command_root
-        engine = TemplateEngine(project_root=tmp_path, command_root=default_dir)
-        template = "{{include:file.txt}}"
-
-        # Without parameter, uses instance attribute
-        result_default = engine.render(template, {})
-        assert result_default == "Default Content"
-
-        # With parameter, overrides instance attribute
-        result_override = engine.render(template, {}, command_root=override_dir)
-        assert result_override == "Override Content"

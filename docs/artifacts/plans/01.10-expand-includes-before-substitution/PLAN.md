@@ -91,6 +91,6 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-001: Fill only ADW-defined names and drop strict mode
 - [x] TASK-002: Give the validate LLM its own test and lint command names
 - [x] TASK-003: Expand includes before substituting variables (depends on TASK-001,TASK-002)
-- [ ] TASK-004: Read every include through one _read_under handler (depends on TASK-003)
+- [x] TASK-004: Read every include through one _read_under handler (depends on TASK-003)
 - [ ] TASK-005: Document the render order and fill rule (depends on TASK-004)
 - [ ] TASK-006: Final Validation
