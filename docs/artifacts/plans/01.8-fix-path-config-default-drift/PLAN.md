@@ -117,7 +117,7 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
 - [x] TASK-001: Read and write live.log through shared path constants
-- [ ] TASK-002: Pass build_command from ProjectConfig to the ship hook
+- [x] TASK-002: Pass build_command from ProjectConfig to the ship hook
 - [ ] TASK-003: Write minimal-init project.yaml through YAMLWithComments
 - [ ] TASK-004: Define the default state mapping once
 - [ ] TASK-005: Close both SSE streams on every terminal status

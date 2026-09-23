@@ -7,6 +7,8 @@ Per ADR-001: Tests focus on validation logic and integration points,
 not trivial attribute assignment.
 """
 
+from datetime import UTC, datetime
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -75,6 +77,7 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config.security = None
         mock_project_config.task_manager = mock_config_with_labels
         mock_project_config.llm = LLMConfig()
+        mock_project_config.build_command = None
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         # Create orchestrator with task manager
@@ -146,6 +149,7 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config.security = None
         mock_project_config.task_manager = mock_config_with_labels
         mock_project_config.llm = LLMConfig()
+        mock_project_config.build_command = None
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         # Create orchestrator with task_info
@@ -189,6 +193,7 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config.security = None
         mock_project_config.task_manager = mock_config_with_labels
         mock_project_config.llm = LLMConfig()
+        mock_project_config.build_command = None
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         # Create orchestrator with task_manager but WITHOUT task_info
@@ -225,6 +230,7 @@ class TestBootstrapTaskManagerWiring:
         mock_project_config.security = None
         mock_project_config.task_manager = mock_config_without_labels
         mock_project_config.llm = LLMConfig()
+        mock_project_config.build_command = None
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         # Create orchestrator with labels disabled
@@ -268,6 +274,7 @@ class TestBootstrapRetryExecutorWiring:
         mock_project_config.security = None
         mock_project_config.task_manager = None
         mock_project_config.llm = llm_config
+        mock_project_config.build_command = None
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         with patch("adw.cli.bootstrap.Orchestrator"):
@@ -333,6 +340,7 @@ class TestBootstrapRetryExecutorWiring:
         mock_project_config.security = None
         mock_project_config.task_manager = None
         mock_project_config.llm = custom_llm
+        mock_project_config.build_command = None
         mock_config_loader.return_value.load.return_value = mock_project_config
 
         with (
@@ -344,3 +352,30 @@ class TestBootstrapRetryExecutorWiring:
         call_kwargs = mock_claude_executor_class.call_args
         assert call_kwargs.kwargs["config"] is custom_llm
         assert call_kwargs.kwargs["config"].path == "/custom/claude"
+
+
+class TestBootstrapShipWiring:
+    """Tests for ship hook wiring in create_orchestrator."""
+
+    def test_ship_hook_env_carries_project_build_command(self, tmp_path: Path) -> None:
+        """The ship hook env carries build_command from .adw/project.yaml (B3)."""
+        from adw.cli.bootstrap import create_orchestrator
+        from adw.models.context import RunContext
+
+        adw_dir = tmp_path / ".adw"
+        adw_dir.mkdir()
+        (adw_dir / "project.yaml").write_text(
+            'name: demo\nlanguage: python\nbuild_command: "echo built"\n'
+        )
+        context = RunContext(
+            run_id="01HQXK5P3Z7V8R2M4N6T9W1Y3C",
+            feature_description="Ship it",
+            current_phase="ship",
+            started_at=datetime.now(UTC),
+        )
+
+        orchestrator = create_orchestrator(with_progress=False)
+        registry = orchestrator._phase_runner.extension_registry
+
+        env = registry.get_hook_env("ship", context)
+        assert env["ADW_SHIP_BUILD_CMD"] == "echo built"

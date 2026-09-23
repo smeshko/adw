@@ -286,7 +286,10 @@ def create_orchestrator(
     # NOTE: Must be created BEFORE PhaseRunner so extensions are available for
     # artifact capture during phase execution (ISS-043)
     extension_registry = create_default_registry(
-        git_config, runs_dir, project_root=project_root
+        git_config,
+        runs_dir,
+        project_root=project_root,
+        build_command=config.build_command if config else None,
     )
 
     # Create PhaseRunner first (without progress_display) (Story 5.2)
