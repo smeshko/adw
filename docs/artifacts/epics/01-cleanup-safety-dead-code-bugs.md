@@ -157,7 +157,7 @@ Show the CLI output of both error commands before and after in the PR; the text 
 
 ## Phase 1.4 — Cut test waste outside the dashboard
 
-**Plan**: [01.4-cut-test-waste](../plans/01.4-cut-test-waste/PLAN.md) · status: in-progress
+**Plan**: [01.4-cut-test-waste](../plans/01.4-cut-test-waste/PLAN.md) · status: done
 
 **Linear**: ADW-10 (https://linear.app/ivo-tsonev/issue/ADW-10)
 
@@ -188,10 +188,10 @@ Show the CLI output of both error commands before and after in the PR; the text 
 
 ### Acceptance criteria
 
-- [ ] `grep -rn "^\s*pass$" tests/unit` finds no test body that consists only of `pass`.
-- [ ] The collected test count drops by at least 150, and coverage stays at or above 80%.
-- [ ] ADR-001 lists the three new categories.
-- [ ] Lint and tests pass.
+- [x] `grep -rn "^\s*pass$" tests/unit` finds no test body that consists only of `pass`.
+- [x] The collected test count drops by at least 150, and coverage stays at or above 80%.
+- [x] ADR-001 lists the three new categories.
+- [x] Lint and tests pass.
 
 ### Validation
 

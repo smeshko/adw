@@ -1,6 +1,6 @@
 # Plan: Cut test waste outside the dashboard
 
-Status: in-progress
+Status: done
 Branch: feature/adw-10
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -68,12 +68,12 @@ See [RESEARCH.md](./RESEARCH.md). Headlines:
 
 ## Acceptance Criteria
 
-- [ ] No test function in `tests/` has a body of only `pass` (docstring allowed). `grep -rn "^\s*pass$" tests/unit` hits only the 11 known stub-class and `except` lines listed in `RESEARCH.md`. Evidence: the AST scan output (`total 0`) and the grep output.
-- [ ] `uv run pytest --collect-only -q | tail -1` drops by at least 150 from 4,296. Evidence: the before/after lines in `VALIDATION.md`.
-- [ ] A full `uv run pytest` is green with coverage ≥ 80 %. Evidence: the summary and `TOTAL` lines, compared with the 84.33 % baseline.
-- [ ] The new bundled-phase check fails when a bundled `config.yaml` gains an unknown key or an `instructions.xml` is malformed. Evidence: the RED output from TASK-001's temporary mutation.
-- [ ] ADR-001's "Categories to Eliminate" table lists HTML markup substrings, prompt/instruction prose and `pass` placeholders. Evidence: the ADR diff.
-- [ ] `scripts/preflight.sh`, `uv run ruff check tests/` and `uv run ruff format --check tests/` pass.
+- [x] No test function in `tests/` has a body of only `pass` (docstring allowed). `grep -rn "^\s*pass$" tests/unit` hits only the 11 known stub-class and `except` lines listed in `RESEARCH.md`. Evidence: the AST scan output (`total 0`) and the grep output.
+- [x] `uv run pytest --collect-only -q | tail -1` drops by at least 150 from 4,296. Evidence: the before/after lines in `VALIDATION.md`.
+- [x] A full `uv run pytest` is green with coverage ≥ 80 %. Evidence: the summary and `TOTAL` lines, compared with the 84.33 % baseline.
+- [x] The new bundled-phase check fails when a bundled `config.yaml` gains an unknown key or an `instructions.xml` is malformed. Evidence: the RED output from TASK-001's temporary mutation.
+- [x] ADR-001's "Categories to Eliminate" table lists HTML markup substrings, prompt/instruction prose and `pass` placeholders. Evidence: the ADR diff.
+- [x] `scripts/preflight.sh`, `uv run ruff check tests/` and `uv run ruff format --check tests/` pass.
 
 ## Tasks
 
@@ -86,4 +86,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-004: Deduplicate git_repo and sample_context fixtures (depends on TASK-003)
 - [x] TASK-005: Trim test_claude_code.py and hoist its executor fixture
 - [x] TASK-006: Add the three waste categories to ADR-001
-- [ ] TASK-007: Final Validation
+- [x] TASK-007: Final Validation
