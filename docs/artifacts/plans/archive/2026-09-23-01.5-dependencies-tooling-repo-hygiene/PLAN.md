@@ -3,7 +3,7 @@
 Status: done
 Branch: feature/adw-11
 Risk: small
-Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
+Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../../epics/01-cleanup-safety-dead-code-bugs.md))
 Phase: 1.5 — Dependencies, tooling and repo hygiene
 Linear: ADW-11
 Created: 2026-09-23
