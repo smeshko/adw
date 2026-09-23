@@ -36,7 +36,6 @@ Work moves through the plan skills: `create-plan` → `validate-plan` → `imple
 - Config hierarchy: `ProjectConfig` (`.adw/project.yaml`) → `CommandConfig` (a phase's `config.yaml`) → merged `PhaseConfig`.
 - `test_command` / `build_command` live only on `ProjectConfig`; `PhaseRunner` injects them into the validate and ship templates.
 - Built-in phases live in `src/adw/defaults/commands/<phase>/` (`config.yaml`, `prompt.md`, optional `pre.sh` / `post.sh`). Their BMAD-derived workflow files point at `{project-root}/_bmad/...` inside *target* projects — product code, kept on purpose.
-- `ValidationConfig` is an alias of `ValidateCommandConfig`, re-exported from `adw.validation`.
 - `YAMLWithComments` (`src/adw/config/yaml_generator.py`) renders `project.yaml` and phase configs.
 - Runtime state is gitignored: `.adw/` (runs, this repo's own ADW config) and `trees/` (worktrees ADW creates for its runs).
 

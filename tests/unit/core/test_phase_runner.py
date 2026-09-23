@@ -4,6 +4,7 @@ Tests the PhaseRunner class that coordinates single phase execution:
 pre-hook → prompt loading → LLM execution → post-hook → artifact capture.
 """
 
+import json
 import os
 from collections.abc import Generator
 from datetime import UTC, datetime
@@ -114,7 +115,6 @@ def mock_executor() -> MagicMock:
     """Create a mock LLM executor."""
     executor = MagicMock()
     executor.execute.return_value = LLMResult(
-        success=True,
         content="LLM output content",
         tokens_used=500,
         duration_ms=2000,
@@ -209,7 +209,6 @@ class TestPhaseRunnerRun:
     ) -> None:
         """Test that run captures token usage from executor."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Output",
             tokens_used=1234,
             duration_ms=1000,
@@ -231,7 +230,6 @@ class TestPhaseRunnerRun:
             ToolCall(tool_name="write_file", arguments={"path": "/b.py"}),
         ]
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Output",
             tokens_used=100,
             duration_ms=1000,
@@ -278,9 +276,7 @@ class TestPhaseRunnerExecutionOrder:
 
         def execute_side_effect(*args, **kwargs):
             call_order.append("llm")
-            return LLMResult(
-                success=True, content="llm output", tokens_used=100, duration_ms=1000
-            )
+            return LLMResult(content="llm output", tokens_used=100, duration_ms=1000)
 
         mock_hook_runner.run_hook.side_effect = hook_side_effect
         mock_template_engine.render.side_effect = render_side_effect
@@ -352,7 +348,6 @@ class TestPhaseRunnerPostHook:
     ) -> None:
         """Test that LLM output is available to post-hook via environment."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Generated code here",
             tokens_used=100,
             duration_ms=1000,
@@ -406,7 +401,6 @@ class TestPhaseRunnerArtifacts:
     ) -> None:
         """Test that LLM output is stored as artifact."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Generated plan content",
             tokens_used=100,
             duration_ms=1000,
@@ -435,7 +429,6 @@ class TestPhaseRunnerArtifacts:
         """
         # Set up LLMResult with different content and final_output
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Intermediate reasoning...\nTool calls...\nFinal result here",
             final_output="Final result here",  # Only the last message
             tokens_used=100,
@@ -465,7 +458,6 @@ class TestPhaseRunnerArtifacts:
         the artifact should fall back to using content.
         """
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Full content as fallback",
             final_output="",  # Empty - should fall back to content
             tokens_used=100,
@@ -489,7 +481,6 @@ class TestPhaseRunnerArtifacts:
     ) -> None:
         """Test that tool calls are stored as JSON artifact if present."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Output",
             tokens_used=100,
             duration_ms=1000,
@@ -499,10 +490,11 @@ class TestPhaseRunnerArtifacts:
         result = phase_runner.run("plan", sample_context)
 
         # Check tool calls artifact
-        tool_calls_data = mock_artifact_manager.get_json(
+        tool_calls_content = mock_artifact_manager.get(
             sample_context.run_id, "plan", "plan_tool_calls.json"
         )
-        assert tool_calls_data is not None
+        assert tool_calls_content is not None
+        tool_calls_data = json.loads(tool_calls_content)
         assert len(tool_calls_data) == 1
         assert tool_calls_data[0]["tool_name"] == "read_file"
         assert "plan_tool_calls.json" in result.artifacts
@@ -620,7 +612,6 @@ class TestPhaseRunnerGitDiffCapture:
         from unittest.mock import patch
 
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Build output",
             tokens_used=100,
             duration_ms=1000,
@@ -664,7 +655,6 @@ class TestPhaseRunnerGitDiffCapture:
         from unittest.mock import patch
 
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Build output",
             tokens_used=100,
             duration_ms=1000,
@@ -700,7 +690,6 @@ class TestPhaseRunnerGitDiffCapture:
         from unittest.mock import patch
 
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Build output",
             tokens_used=100,
             duration_ms=1000,
@@ -733,7 +722,6 @@ class TestPhaseRunnerGitDiffCapture:
         from unittest.mock import patch
 
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Plan output",
             tokens_used=100,
             duration_ms=1000,
@@ -758,7 +746,7 @@ class TestPhaseRunnerGitDiffCapture:
         then it's available as {{artifacts.build.diff}}.
         """
         # Store a diff artifact as the build phase would
-        mock_artifact_manager.store_text(
+        mock_artifact_manager.store(
             sample_context.run_id,
             "build",
             "diff.txt",
@@ -1353,85 +1341,6 @@ class TestConfigMerging:
     only accepts command_config and converts it to PhaseConfig.
     """
 
-    def test_merge_configs_none_returns_empty_config(
-        self,
-        mock_command_resolver: MagicMock,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """None command config returns empty PhaseConfig."""
-        from adw.models.config import PhaseConfig
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        result = runner._merge_configs(None)
-
-        assert isinstance(result, PhaseConfig)
-        assert result.input_files is None
-
-    def test_merge_configs_with_command_config(
-        self,
-        mock_command_resolver: MagicMock,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """Command config values are converted to PhaseConfig."""
-        from adw.models.command import CommandConfig
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        command_config = CommandConfig(
-            input_files={"prd": "defaults/prd.md"},
-        )
-
-        result = runner._merge_configs(command_config)
-
-        assert result.input_files == {"prd": "defaults/prd.md"}
-
-    def test_merge_configs_with_llm(
-        self,
-        mock_command_resolver: MagicMock,
-        mock_template_engine: MagicMock,
-        mock_hook_runner: MagicMock,
-        mock_executor: MagicMock,
-        mock_artifact_manager: ArtifactManager,
-    ) -> None:
-        """Command config llm is converted to PhaseConfig.llm."""
-        from adw.models.command import CommandConfig, PhaseLLMConfig
-
-        runner = PhaseRunner(
-            command_resolver=mock_command_resolver,
-            template_engine=mock_template_engine,
-            hook_runner=mock_hook_runner,
-            executor=mock_executor,
-            artifact_manager=mock_artifact_manager,
-        )
-
-        command_config = CommandConfig(
-            llm=PhaseLLMConfig(model="claude-3-opus"),
-        )
-
-        result = runner._merge_configs(command_config)
-
-        assert result.llm is not None
-        assert result.llm.model == "claude-3-opus"
-
 
 class TestProjectConfigLoading:
     """Tests for _load_project_config method (ISS-030).
@@ -1688,7 +1597,6 @@ class TestMergeConfigsWithProject:
         resolver.resolve.return_value = resolved
 
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Output",
             tokens_used=100,
             duration_ms=1000,
@@ -2034,7 +1942,6 @@ class TestPhaseRunnerEmptyResult:
     ) -> None:
         """Build phase with zero tool calls sets empty_result=True."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="I'll begin implementing...",
             tokens_used=100,
             duration_ms=1000,
@@ -2051,7 +1958,6 @@ class TestPhaseRunnerEmptyResult:
     ) -> None:
         """Build phase with tool calls sets empty_result=False."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Done",
             tokens_used=100,
             duration_ms=1000,
@@ -2070,7 +1976,6 @@ class TestPhaseRunnerEmptyResult:
     ) -> None:
         """Non-build phase with zero tool calls does NOT set empty_result."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Plan output",
             tokens_used=100,
             duration_ms=1000,
@@ -2088,7 +1993,6 @@ class TestPhaseRunnerEmptyResult:
     ) -> None:
         """prompt_prefix is prepended to the rendered prompt."""
         mock_executor.execute.return_value = LLMResult(
-            success=True,
             content="Output",
             tokens_used=100,
             duration_ms=1000,

@@ -15,7 +15,9 @@ import pytest
 from adw.core.constants import PHASE_SEQUENCE
 from adw.exceptions import ConfigError, HookError, LLMError, PhaseError
 from adw.models import RunContext
+from adw.models.config import RetryConfig
 from adw.models.phase import PhaseResult, PhaseStatus
+from adw.worktree.manager import WorktreeManager
 
 if TYPE_CHECKING:
     from adw.core.orchestrator import Orchestrator
@@ -208,85 +210,6 @@ class TestOrchestratorInit:
         )
 
         assert isinstance(orch.interruption_handler, InterruptionHandler)
-
-    def test_init_default_max_retries(
-        self,
-        tmp_path: Path,
-        mock_context_manager: MagicMock,
-        mock_snapshot_manager: MagicMock,
-        mock_artifact_manager: MagicMock,
-        mock_run_directory_manager: MagicMock,
-        mock_phase_runner: MagicMock,
-    ) -> None:
-        """Test that max_retries defaults to 3."""
-        from adw.core.orchestrator import Orchestrator
-
-        orch = Orchestrator(
-            runs_dir=tmp_path,
-            context_manager=mock_context_manager,
-            snapshot_manager=mock_snapshot_manager,
-            artifact_manager=mock_artifact_manager,
-            run_directory_manager=mock_run_directory_manager,
-            phase_runner=mock_phase_runner,
-        )
-
-        assert orch.max_retries == 3
-
-    def test_init_custom_max_retries(
-        self,
-        tmp_path: Path,
-        mock_context_manager: MagicMock,
-        mock_snapshot_manager: MagicMock,
-        mock_artifact_manager: MagicMock,
-        mock_run_directory_manager: MagicMock,
-        mock_phase_runner: MagicMock,
-    ) -> None:
-        """Test that max_retries can be customized."""
-        from adw.core.orchestrator import Orchestrator
-
-        orch = Orchestrator(
-            runs_dir=tmp_path,
-            context_manager=mock_context_manager,
-            snapshot_manager=mock_snapshot_manager,
-            artifact_manager=mock_artifact_manager,
-            run_directory_manager=mock_run_directory_manager,
-            phase_runner=mock_phase_runner,
-            max_retries=5,
-        )
-
-        assert orch.max_retries == 5
-
-
-class TestGetNextPhase:
-    """Tests for get_next_phase method."""
-
-    def test_get_next_phase_plan(self, orchestrator: "Orchestrator") -> None:
-        """Test getting next phase after plan."""
-        assert orchestrator.get_next_phase("plan") == "build"
-
-    def test_get_next_phase_build(self, orchestrator: "Orchestrator") -> None:
-        """Test getting next phase after build (ISS-019: now validate, not verify)."""
-        assert orchestrator.get_next_phase("build") == "validate"
-
-    def test_get_next_phase_validate(self, orchestrator: "Orchestrator") -> None:
-        """Test getting next phase after validate."""
-        assert orchestrator.get_next_phase("validate") == "document"
-
-    def test_get_next_phase_document(self, orchestrator: "Orchestrator") -> None:
-        """Test getting next phase after document (Story 15.1: now ship)."""
-        assert orchestrator.get_next_phase("document") == "ship"
-
-    def test_get_next_phase_ship_returns_none(
-        self, orchestrator: "Orchestrator"
-    ) -> None:
-        """Test that ship is the last phase."""
-        assert orchestrator.get_next_phase("ship") is None
-
-    def test_get_next_phase_invalid_returns_none(
-        self, orchestrator: "Orchestrator"
-    ) -> None:
-        """Test that invalid phase returns None."""
-        assert orchestrator.get_next_phase("invalid") is None
 
 
 class TestPhaseTransitions:
@@ -763,7 +686,7 @@ class TestRetryLogic:
             artifact_manager=mock_artifact_manager,
             run_directory_manager=mock_run_directory_manager,
             phase_runner=mock_phase_runner,
-            max_retries=5,  # Custom max
+            retry_config=RetryConfig(max_retries=5),
             worktree_config=WorktreeConfig(enabled=False),  # ISS-025
         )
 
@@ -799,11 +722,95 @@ class TestRetryLogic:
         with pytest.raises(LLMError):
             orchestrator.run("Test feature")
 
-        # Should have slept twice (before 2nd and 3rd attempt)
-        assert no_backoff.call_count == 2
-        # First delay: 2^0 = 1, Second delay: 2^1 = 2
-        no_backoff.assert_any_call(1)
-        no_backoff.assert_any_call(2)
+        # Default RetryConfig: 3 attempts, 1.0s doubling between them
+        assert [c.args[0] for c in no_backoff.call_args_list] == [1.0, 2.0]
+
+    def test_backoff_reads_retry_config(
+        self,
+        no_backoff: MagicMock,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Backoff grows by the configured multiplier and caps at the max delay."""
+        from adw.core.orchestrator import Orchestrator
+        from adw.models import WorktreeConfig
+
+        runs_dir = tmp_path / "runs"
+        runs_dir.mkdir(parents=True, exist_ok=True)
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            retry_config=RetryConfig(
+                max_retries=4,
+                base_delay_seconds=0.5,
+                multiplier=3,
+                max_delay_seconds=1.0,
+            ),
+            worktree_config=WorktreeConfig(enabled=False),
+        )
+        mock_phase_runner.run.side_effect = LLMError(
+            code="LLM_ERROR",
+            message="LLM failed",
+            recoverable=True,
+        )
+
+        with pytest.raises(LLMError):
+            orchestrator.run("Test feature")
+
+        assert mock_phase_runner.run.call_count == 4
+        assert [c.args[0] for c in no_backoff.call_args_list] == [0.5, 1.0, 1.0]
+
+    def test_retry_prints_line_per_retry(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_snapshot_manager: MagicMock,
+        mock_artifact_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_phase_runner: MagicMock,
+    ) -> None:
+        """Each retry prints a line naming the error and the next attempt."""
+        from adw.core.orchestrator import Orchestrator
+        from adw.models import WorktreeConfig
+
+        runs_dir = tmp_path / "runs"
+        runs_dir.mkdir(parents=True, exist_ok=True)
+        mock_progress = MagicMock()
+
+        orchestrator = Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=mock_context_manager,
+            snapshot_manager=mock_snapshot_manager,
+            artifact_manager=mock_artifact_manager,
+            run_directory_manager=mock_run_directory_manager,
+            phase_runner=mock_phase_runner,
+            progress_display=mock_progress,
+            worktree_config=WorktreeConfig(enabled=False),
+        )
+        mock_phase_runner.run.side_effect = LLMError(
+            code="LLM_ERROR",
+            message="LLM failed",
+            recoverable=True,
+        )
+
+        with pytest.raises(LLMError):
+            orchestrator.run("Test feature")
+
+        printed = [c.args[0] for c in mock_progress.console.print.call_args_list]
+        retry_lines = [line for line in printed if "retrying in" in line]
+        assert len(retry_lines) == 2
+        assert "Phase 'plan' failed (LLM_ERROR)" in retry_lines[0]
+        assert "(2/3)" in retry_lines[0]
+        assert "(3/3)" in retry_lines[1]
 
     def test_retry_success_after_failures(
         self,
@@ -1238,111 +1245,6 @@ class TestPhaseRequirementsValidation:
         assert context.status == "completed"
 
 
-class TestOrchestratorAbort:
-    """Tests for Orchestrator.abort() method."""
-
-    def test_abort_running_run(
-        self,
-        orchestrator: "Orchestrator",
-        mock_context_manager: MagicMock,
-        mock_interruption_handler: MagicMock,
-    ) -> None:
-        """Test aborting a running run."""
-        running_context = RunContext(
-            run_id="01JFTEST000000000000000001",
-            feature_description="Test feature",
-            current_phase="build",
-            phase_history=["plan"],
-            started_at=datetime.now(UTC),
-            status="running",
-        )
-        mock_context_manager.load.return_value = running_context
-
-        # Configure abort_gracefully to return aborted context
-        aborted_context = running_context.model_copy(
-            update={"status": "aborted", "completed_at": datetime.now(UTC)}
-        )
-        mock_interruption_handler.abort_gracefully.return_value = aborted_context
-
-        result = orchestrator.abort("01JFTEST000000000000000001")
-
-        assert result.status == "aborted"
-        assert result.completed_at is not None
-        mock_interruption_handler.abort_gracefully.assert_called_once()
-
-    def test_abort_not_running_raises(
-        self,
-        orchestrator: "Orchestrator",
-        mock_context_manager: MagicMock,
-    ) -> None:
-        """Test aborting a non-running run raises error."""
-        completed_context = RunContext(
-            run_id="01JFTEST000000000000000001",
-            feature_description="Test feature",
-            current_phase="document",
-            phase_history=PHASE_SEQUENCE,
-            started_at=datetime.now(UTC),
-            status="completed",
-        )
-        mock_context_manager.load.return_value = completed_context
-
-        with pytest.raises(ConfigError) as exc_info:
-            orchestrator.abort("01JFTEST000000000000000001")
-
-        assert exc_info.value.code == "RUN_NOT_ACTIVE"
-
-    def test_abort_with_custom_reason(
-        self,
-        orchestrator: "Orchestrator",
-        mock_context_manager: MagicMock,
-        mock_interruption_handler: MagicMock,
-    ) -> None:
-        """Test abort with custom reason."""
-        running_context = RunContext(
-            run_id="01JFTEST000000000000000001",
-            feature_description="Test feature",
-            current_phase="build",
-            phase_history=["plan"],
-            started_at=datetime.now(UTC),
-            status="running",
-        )
-        mock_context_manager.load.return_value = running_context
-
-        # Configure abort_gracefully to return aborted context
-        aborted_context = running_context.model_copy(
-            update={"status": "aborted", "completed_at": datetime.now(UTC)}
-        )
-        mock_interruption_handler.abort_gracefully.return_value = aborted_context
-
-        orchestrator.abort("01JFTEST000000000000000001", reason="cli_abort")
-
-        # Check that abort_gracefully was called with reason
-        mock_interruption_handler.abort_gracefully.assert_called_once()
-        call_args = mock_interruption_handler.abort_gracefully.call_args
-        assert call_args[1]["reason"] == "cli_abort"
-
-    def test_abort_already_aborted_raises(
-        self,
-        orchestrator: "Orchestrator",
-        mock_context_manager: MagicMock,
-    ) -> None:
-        """Test aborting an already aborted run raises error."""
-        aborted_context = RunContext(
-            run_id="01JFTEST000000000000000001",
-            feature_description="Test feature",
-            current_phase="build",
-            phase_history=["plan"],
-            started_at=datetime.now(UTC),
-            status="aborted",
-        )
-        mock_context_manager.load.return_value = aborted_context
-
-        with pytest.raises(ConfigError) as exc_info:
-            orchestrator.abort("01JFTEST000000000000000001")
-
-        assert exc_info.value.code == "RUN_ALREADY_ABORTED"
-
-
 class TestOrchestratorWorktree:
     """Tests for Orchestrator worktree integration (Story 10.1)."""
 
@@ -1495,9 +1397,6 @@ class TestWorktreeNoAutoDelete:
             worktree_config=worktree_config,
         )
 
-        # Mock the cleanup method to track calls
-        orchestrator._cleanup_worktree = MagicMock()
-
         # ISS-025: Mock worktree creation on lifecycle (tmp_path is not a git repo)
         worktree_path = tmp_path / "trees" / "test-run"
         orchestrator._lifecycle._create_worktree_for_run = MagicMock(
@@ -1505,10 +1404,11 @@ class TestWorktreeNoAutoDelete:
         )
 
         # Run single phase (signature: phase, feature_description)
-        orchestrator.run_single_phase("plan", "Test feature")
+        with patch.object(WorktreeManager, "remove_worktree") as remove_worktree:
+            orchestrator.run_single_phase("plan", "Test feature")
 
-        # Verify _cleanup_worktree was NOT called for single-phase success
-        orchestrator._cleanup_worktree.assert_not_called()
+        # Verify the worktree was NOT removed for single-phase success
+        remove_worktree.assert_not_called()
 
     def test_multi_phase_preserves_worktree_on_success(
         self,
@@ -1542,9 +1442,6 @@ class TestWorktreeNoAutoDelete:
             worktree_config=worktree_config,
         )
 
-        # Mock the cleanup method to track calls
-        orchestrator._cleanup_worktree = MagicMock()
-
         # ISS-025: Mock worktree creation (tmp_path is not a git repo)
         worktree_path = tmp_path / "trees" / "test-run"
         orchestrator._lifecycle._create_worktree_for_run = MagicMock(
@@ -1552,10 +1449,11 @@ class TestWorktreeNoAutoDelete:
         )
 
         # Run full pipeline (signature: feature_description)
-        orchestrator.run("Test feature")
+        with patch.object(WorktreeManager, "remove_worktree") as remove_worktree:
+            orchestrator.run("Test feature")
 
-        # Verify _cleanup_worktree was NOT called (ISS-020: no auto-delete)
-        orchestrator._cleanup_worktree.assert_not_called()
+        # Verify the worktree was NOT removed (ISS-020: no auto-delete)
+        remove_worktree.assert_not_called()
 
     def test_single_phase_prints_worktree_location(
         self,
@@ -1714,9 +1612,6 @@ class TestWorktreeNoAutoDelete:
             worktree_config=worktree_config,
         )
 
-        # Mock the cleanup method to track calls
-        orchestrator._cleanup_worktree = MagicMock()
-
         # ISS-025: Mock worktree creation (tmp_path is not a git repo)
         worktree_path = tmp_path / "trees" / "test-run"
         orchestrator._lifecycle._create_worktree_for_run = MagicMock(
@@ -1734,11 +1629,14 @@ class TestWorktreeNoAutoDelete:
         # Run should raise the error
         import pytest
 
-        with pytest.raises(PhaseError):
+        with (
+            patch.object(WorktreeManager, "remove_worktree") as remove_worktree,
+            pytest.raises(PhaseError),
+        ):
             orchestrator.run("Test feature")
 
-        # Verify _cleanup_worktree was NOT called (ISS-020: no auto-delete)
-        orchestrator._cleanup_worktree.assert_not_called()
+        # Verify the worktree was NOT removed (ISS-020: no auto-delete)
+        remove_worktree.assert_not_called()
 
     def test_worktree_info_message_on_multi_phase_success(
         self,
@@ -1852,9 +1750,6 @@ class TestWorktreeNoAutoDelete:
             worktree_config=worktree_config,
         )
 
-        # Mock the cleanup method to track calls
-        orchestrator._cleanup_worktree = MagicMock()
-
         # Create a context that can be resumed (failed/interrupted state)
         worktree_path = tmp_path / "trees" / "test-run"
         existing_context = RunContext(
@@ -1871,10 +1766,11 @@ class TestWorktreeNoAutoDelete:
         mock_context_manager.load.return_value = existing_context
 
         # Resume the run
-        orchestrator.resume("01JFTEST000000000000000001")
+        with patch.object(WorktreeManager, "remove_worktree") as remove_worktree:
+            orchestrator.resume("01JFTEST000000000000000001")
 
-        # Verify _cleanup_worktree was NOT called (ISS-020: no auto-delete)
-        orchestrator._cleanup_worktree.assert_not_called()
+        # Verify the worktree was NOT removed (ISS-020: no auto-delete)
+        remove_worktree.assert_not_called()
 
     def test_cleanup_command_is_only_deletion_method(
         self,
@@ -1886,12 +1782,13 @@ class TestWorktreeNoAutoDelete:
         mock_interruption_handler: MagicMock,
         mock_index_manager: MagicMock,
         tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Only adw cleanup command should delete worktrees (ISS-020).
 
-        Verifies that _cleanup_worktree is never called automatically by
-        run(), run_single_phase(), or resume(). The only caller should be
-        the explicit cleanup CLI command.
+        Verifies that WorktreeManager.remove_worktree is never called
+        automatically by run(), run_single_phase(), or resume(). The only
+        caller should be the explicit cleanup CLI command.
         """
         from adw.core.orchestrator import Orchestrator
         from adw.models import WorktreeConfig
@@ -1914,13 +1811,14 @@ class TestWorktreeNoAutoDelete:
             worktree_config=worktree_config,
         )
 
+        # Track ALL worktree removals, on any real manager and on the mock below
+        cleanup_mock = MagicMock()
+        monkeypatch.setattr(WorktreeManager, "remove_worktree", cleanup_mock)
+
         # Enable worktree and mock the manager
         orchestrator.worktree_config = WorktreeConfig(enabled=True, base_dir="trees")
-        orchestrator._worktree_manager = MagicMock()
-
-        # Mock _cleanup_worktree to track ALL calls
-        cleanup_mock = MagicMock()
-        orchestrator._cleanup_worktree = cleanup_mock
+        orchestrator._worktree_manager = MagicMock(spec=WorktreeManager)
+        orchestrator._worktree_manager.remove_worktree = cleanup_mock
 
         # Mock worktree creation
         worktree_path = tmp_path / "trees" / "test-run"
@@ -1928,18 +1826,18 @@ class TestWorktreeNoAutoDelete:
             return_value=(worktree_path, "adw/test-run")
         )
 
-        # Test 1: run() should NOT call _cleanup_worktree
+        # Test 1: run() should NOT remove the worktree
         orchestrator.run("Test feature 1")
         assert cleanup_mock.call_count == 0, "run() should not auto-cleanup worktree"
 
-        # Test 2: run_single_phase() should NOT call _cleanup_worktree
+        # Test 2: run_single_phase() should NOT remove the worktree
         cleanup_mock.reset_mock()
         orchestrator.run_single_phase("plan", "Test feature 2")
         assert cleanup_mock.call_count == 0, (
             "run_single_phase() should not auto-cleanup worktree"
         )
 
-        # Test 3: resume() should NOT call _cleanup_worktree
+        # Test 3: resume() should NOT remove the worktree
         cleanup_mock.reset_mock()
         existing_context = RunContext(
             run_id="01JFTEST000000000000000002",
@@ -2224,7 +2122,7 @@ class TestPRCreationAfterDocumentPhase:
 
         # Create extension registry with DocumentExtension
         extension_registry = ExtensionRegistry()
-        extension_registry.register(DocumentExtension(git_config, runs_dir))
+        extension_registry.register(DocumentExtension(runs_dir))
 
         # Mock auto_create_pr to track when it's called
         def mock_auto_create_pr(
@@ -2333,7 +2231,7 @@ class TestPRCreationAfterDocumentPhase:
 
         # Create extension registry with DocumentExtension and ShipExtension
         extension_registry = ExtensionRegistry()
-        extension_registry.register(DocumentExtension(git_config, runs_dir))
+        extension_registry.register(DocumentExtension(runs_dir))
         extension_registry.register(ShipExtension())
 
         # Mock auto_create_pr to return failure
@@ -2415,7 +2313,7 @@ class TestPRCreationAfterDocumentPhase:
 
         # Create extension registry with DocumentExtension
         extension_registry = ExtensionRegistry()
-        extension_registry.register(DocumentExtension(git_config, runs_dir))
+        extension_registry.register(DocumentExtension(runs_dir))
 
         # Mock auto_create_pr to return success
         def mock_auto_create_pr_success(

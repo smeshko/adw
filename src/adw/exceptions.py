@@ -236,10 +236,9 @@ class HookError(ADWError):
 
 
 class LLMError(ADWError):
-    """Base exception for LLM-related errors.
+    """Exception for LLM-related errors.
 
     Used for issues with Claude Code or other LLM interactions.
-    Subclasses handle specific failure modes like timeouts and rate limits.
 
     Example:
         >>> raise LLMError(
@@ -271,62 +270,6 @@ class LLMError(ADWError):
             suggestion=suggestion,
             recoverable=recoverable,
         )
-
-
-class LLMRateLimitError(LLMError):
-    """Exception for LLM API rate limiting.
-
-    Used when the LLM API returns a rate limit error.
-    This error is recoverable by default since waiting and retrying may succeed.
-
-    Example:
-        >>> raise LLMRateLimitError(
-        ...     code="LLM_RATE_LIMIT",
-        ...     message="Rate limited by Claude API",
-        ...     retry_after=60,
-        ...     suggestion="Wait before retrying",
-        ... )
-    """
-
-    def __init__(
-        self,
-        code: str,
-        message: str,
-        *,
-        retry_after: int | None = None,
-        suggestion: str | None = None,
-        recoverable: bool = True,
-    ) -> None:
-        """Initialize an LLMRateLimitError.
-
-        Args:
-            code: Unique error code (e.g., "LLM_RATE_LIMIT").
-            message: Human-readable error message.
-            retry_after: Seconds to wait before retrying, if provided by API.
-            suggestion: Optional actionable next step.
-            recoverable: Whether the operation can be retried (default True).
-        """
-        super().__init__(
-            code=code,
-            message=message,
-            suggestion=suggestion,
-            recoverable=recoverable,
-        )
-        self.retry_after = retry_after
-
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize error to dictionary for structured logging.
-
-        Returns:
-            Dictionary containing all error attributes including retry_after.
-        """
-        d = super().to_dict()
-        d.update(
-            {
-                "retry_after": self.retry_after,
-            }
-        )
-        return d
 
 
 class PhaseError(ADWError):
@@ -430,70 +373,6 @@ class StateError(ADWError):
             suggestion=suggestion,
             recoverable=recoverable,
         )
-
-
-class ValidationError(ADWError):
-    """Exception for schema validation failures.
-
-    Used when LLM output or configuration fails to match expected schema.
-    Includes detailed field-level error information.
-
-    Example:
-        >>> raise ValidationError(
-        ...     code="VALIDATION_FAILED",
-        ...     message="LLM output failed schema validation",
-        ...     field_errors=[
-        ...         {"field": "name", "error": "required field missing"},
-        ...         {"field": "age", "error": "must be a positive integer"},
-        ...     ],
-        ...     schema_path="schemas/output.json",
-        ...     suggestion="Check the prompt or adjust the schema",
-        ... )
-    """
-
-    def __init__(
-        self,
-        code: str,
-        message: str,
-        *,
-        field_errors: list[dict[str, str]] | None = None,
-        schema_path: str | None = None,
-        suggestion: str | None = None,
-        recoverable: bool = False,
-    ) -> None:
-        """Initialize a ValidationError.
-
-        Args:
-            code: Unique error code (e.g., "VALIDATION_FAILED").
-            message: Human-readable error message.
-            field_errors: List of field-level validation errors.
-            schema_path: Path to the schema that failed validation.
-            suggestion: Optional actionable next step.
-            recoverable: Whether the operation can be retried (default False).
-        """
-        super().__init__(
-            code=code,
-            message=message,
-            suggestion=suggestion,
-            recoverable=recoverable,
-        )
-        self.field_errors = field_errors if field_errors is not None else []
-        self.schema_path = schema_path
-
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize error to dictionary for structured logging.
-
-        Returns:
-            Dictionary containing all error attributes including validation fields.
-        """
-        d = super().to_dict()
-        d.update(
-            {
-                "field_errors": self.field_errors,
-                "schema_path": self.schema_path,
-            }
-        )
-        return d
 
 
 class WorktreeError(ADWError):

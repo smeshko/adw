@@ -591,43 +591,6 @@ class TestGetGlobalStats:
         assert stats.total_runs == 0  # Fresh, not cached 999
 
 
-class TestGetTokenUsage:
-    """Tests for get_token_usage helper method."""
-
-    def test_get_token_usage_for_run(self, tmp_path: Path) -> None:
-        """get_token_usage returns token usage for a specific run."""
-        from adw.core.stats_aggregator import StatsAggregator
-
-        # Set up run directory structure
-        run_id = "01ABC123"
-        project_path = tmp_path / "my-project"
-        run_dir = project_path / ".adw" / "runs" / run_id / "llm"
-        run_dir.mkdir(parents=True)
-
-        # Create response file
-        response = {"stats": {"input_tokens": 5000, "output_tokens": 2500}}
-        (run_dir / "001_plan_response.json").write_text(json.dumps(response))
-
-        aggregator = StatsAggregator()
-        usage = aggregator.get_token_usage(run_id, project_path)
-
-        assert usage is not None
-        assert usage.input_tokens == 5000
-        assert usage.output_tokens == 2500
-
-    def test_get_token_usage_missing_run(self, tmp_path: Path) -> None:
-        """get_token_usage returns None for non-existent run."""
-        from adw.core.stats_aggregator import StatsAggregator
-
-        project_path = tmp_path / "my-project"
-        project_path.mkdir()
-
-        aggregator = StatsAggregator()
-        usage = aggregator.get_token_usage("nonexistent-run", project_path)
-
-        assert usage is None
-
-
 class TestStatisticsCache:
     """Tests for statistics caching behavior."""
 

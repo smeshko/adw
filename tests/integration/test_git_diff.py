@@ -7,8 +7,6 @@ in real git repositories.
 import subprocess
 from pathlib import Path
 
-import pytest
-
 from adw.hooks.git_diff import (
     capture_diff,
     capture_staged_diff,
@@ -18,42 +16,6 @@ from adw.hooks.git_diff import (
     truncate_diff,
 )
 from adw.models.artifacts import DiffStats
-
-
-@pytest.fixture
-def git_repo(tmp_path: Path) -> Path:
-    """Create a temporary git repository with initial commit."""
-    repo = tmp_path / "test_repo"
-    repo.mkdir()
-
-    # Initialize git repo
-    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
-
-    # Configure git user for commits
-    subprocess.run(
-        ["git", "config", "user.email", "test@test.com"],
-        cwd=repo,
-        check=True,
-        capture_output=True,
-    )
-    subprocess.run(
-        ["git", "config", "user.name", "Test User"],
-        cwd=repo,
-        check=True,
-        capture_output=True,
-    )
-
-    # Create initial file and commit
-    (repo / "initial.txt").write_text("initial content")
-    subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
-    subprocess.run(
-        ["git", "commit", "-m", "Initial commit"],
-        cwd=repo,
-        check=True,
-        capture_output=True,
-    )
-
-    return repo
 
 
 class TestCaptureDiffIntegration:
@@ -88,7 +50,7 @@ class TestCaptureDiffIntegration:
     def test_capture_diff_with_modified_file(self, git_repo: Path) -> None:
         """Test capture_diff captures modifications to existing files."""
         # Modify existing file
-        (git_repo / "initial.txt").write_text("modified content\n")
+        (git_repo / "README.md").write_text("modified content\n")
         subprocess.run(["git", "add", "."], cwd=git_repo, check=True)
         subprocess.run(
             ["git", "commit", "-m", "Modify file"],
@@ -100,14 +62,14 @@ class TestCaptureDiffIntegration:
         diff = capture_diff(since="HEAD~1", working_dir=git_repo)
 
         assert "diff --git" in diff
-        assert "initial.txt" in diff
-        assert "-initial content" in diff
+        assert "README.md" in diff
+        assert "-# Test Repository" in diff
         assert "+modified content" in diff
 
     def test_capture_diff_with_deleted_file(self, git_repo: Path) -> None:
         """Test capture_diff captures file deletions."""
         # Delete file
-        (git_repo / "initial.txt").unlink()
+        (git_repo / "README.md").unlink()
         subprocess.run(["git", "add", "."], cwd=git_repo, check=True)
         subprocess.run(
             ["git", "commit", "-m", "Delete file"],
@@ -119,7 +81,7 @@ class TestCaptureDiffIntegration:
         diff = capture_diff(since="HEAD~1", working_dir=git_repo)
 
         assert "diff --git" in diff
-        assert "initial.txt" in diff
+        assert "README.md" in diff
         assert "deleted file mode" in diff
 
 

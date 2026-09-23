@@ -28,7 +28,13 @@ from adw.core.run_lifecycle import RunLifecycle
 from adw.core.run_lookup import RunLookup
 from adw.core.snapshot_manager import SnapshotManager
 from adw.exceptions import ADWError, ConfigError
-from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
+from adw.models import (
+    GitConfig,
+    RetryConfig,
+    RunContext,
+    TaskManagerConfig,
+    WorktreeConfig,
+)
 from adw.models.phase import PhaseResult
 from adw.models.task import TaskInfo
 from adw.worktree import ConcurrentRunManager
@@ -109,7 +115,8 @@ class Orchestrator:
         phase_runner: Runner for executing individual phases.
         interruption_handler: Handler for graceful shutdown on Ctrl+C/SIGTERM.
         index_manager: Manager for global workflow execution index.
-        max_retries: Maximum retry attempts for recoverable errors.
+        retry_config: Attempts and backoff for phases that fail with a
+            recoverable error.
 
     Example:
         >>> from pathlib import Path
@@ -136,7 +143,7 @@ class Orchestrator:
         index_manager: IndexManager | None = None,
         *,
         progress_display: "ProgressDisplay | None" = None,
-        max_retries: int = 3,
+        retry_config: RetryConfig | None = None,
         worktree_config: WorktreeConfig | None = None,
         git_config: GitConfig | None = None,
         task_manager_config: TaskManagerConfig | None = None,
@@ -159,7 +166,8 @@ class Orchestrator:
             interruption_handler: Handler for graceful shutdown (optional).
             index_manager: Manager for global execution index (optional).
             progress_display: Display for phase progress (optional, Story 5.5).
-            max_retries: Maximum retry attempts for recoverable errors (default: 3).
+            retry_config: Attempts and backoff for phases that fail with a
+                recoverable error (default: RetryConfig()).
             worktree_config: Worktree isolation config (optional, Story 10.1).
             git_config: Git configuration for auto-PR creation (optional, ISS-011).
             task_manager_config: Task manager configuration for auto-close (Story 12.8).
@@ -190,7 +198,7 @@ class Orchestrator:
         )
         self.index_manager = index_manager or IndexManager()
         self.progress_display = progress_display
-        self.max_retries = max_retries
+        self.retry_config = retry_config or RetryConfig()
 
         # Git config for auto-PR (Story ISS-011)
         self.git_config = git_config or GitConfig()
@@ -261,29 +269,6 @@ class Orchestrator:
                 context_manager=self.context_manager,
             )
         return self._resume_manager
-
-    def get_next_phase(self, current_phase: str) -> str | None:
-        """Get the next phase in the sequence.
-
-        Args:
-            current_phase: Current phase name.
-
-        Returns:
-            Next phase name, or None if current is the last phase.
-
-        Example:
-            >>> orchestrator.get_next_phase("plan")
-            "build"
-            >>> orchestrator.get_next_phase("document")
-            None
-        """
-        try:
-            idx = PHASE_SEQUENCE.index(current_phase)
-            if idx < len(PHASE_SEQUENCE) - 1:
-                return PHASE_SEQUENCE[idx + 1]
-            return None
-        except ValueError:
-            return None
 
     def run(
         self,
@@ -1051,7 +1036,9 @@ class Orchestrator:
     ) -> PhaseResult:
         """Execute a phase with retry logic for recoverable errors.
 
-        Implements exponential backoff: 1s, 2s, 4s between retries.
+        Runs the phase up to ``retry_config.max_retries`` times. Before attempt
+        n + 1 it waits ``base_delay_seconds * multiplier ** (n - 1)`` seconds,
+        capped at ``max_delay_seconds``.
 
         Args:
             context: Current run context.
@@ -1068,9 +1055,10 @@ class Orchestrator:
         """
         assert self._phase_runner is not None, "PhaseRunner cannot be None"
 
+        retry = self.retry_config
         last_error: ADWError | None = None
 
-        for attempt in range(self.max_retries):
+        for attempt in range(1, retry.max_retries + 1):
             try:
                 return self._phase_runner.run(
                     phase,
@@ -1092,22 +1080,32 @@ class Orchestrator:
                     )
                     raise
 
-                if attempt < self.max_retries - 1:
-                    delay = 2**attempt
+                if attempt < retry.max_retries:
+                    delay = min(
+                        retry.base_delay_seconds * retry.multiplier ** (attempt - 1),
+                        retry.max_delay_seconds,
+                    )
                     logger.warning(
                         "Retrying phase",
                         extra={
                             "phase": phase,
-                            "attempt": attempt + 1,
-                            "max_attempts": self.max_retries,
+                            "attempt": attempt,
+                            "max_attempts": retry.max_retries,
                             "delay": delay,
+                            "error_code": e.code,
                         },
                     )
+                    if self.progress_display:
+                        self.progress_display.console.print(
+                            f"[yellow]⚠[/yellow] Phase '{phase}' failed ({e.code}), "
+                            f"retrying in {delay:g}s "
+                            f"({attempt + 1}/{retry.max_retries})..."
+                        )
                     time.sleep(delay)
 
         logger.error(
             "Retries exhausted",
-            extra={"phase": phase, "attempts": self.max_retries},
+            extra={"phase": phase, "attempts": retry.max_retries},
         )
         if last_error is not None:
             raise last_error
@@ -1160,116 +1158,3 @@ class Orchestrator:
         )
         assert result is not None
         return result
-
-    def abort(self, run_id: str, reason: str = "remote_abort") -> RunContext:
-        """Abort a running execution.
-
-        Loads the context for the specified run, validates it's in "running"
-        status, and then aborts it gracefully using the InterruptionHandler.
-
-        Args:
-            run_id: ID of the run to abort.
-            reason: Reason for abort (e.g., "remote_abort", "cli_abort").
-
-        Returns:
-            Updated RunContext with aborted status.
-
-        Raises:
-            ConfigError: If run is not found or not active.
-        """
-        context = self.context_manager.load(run_id)
-
-        if context.status == "aborted":
-            raise ConfigError(
-                code="RUN_ALREADY_ABORTED",
-                message=f"Run {run_id} is already aborted",
-                suggestion="Run was previously aborted",
-                recoverable=False,
-            )
-
-        if context.status != "running":
-            raise ConfigError(
-                code="RUN_NOT_ACTIVE",
-                message=f"Run is not active (status: {context.status})",
-                suggestion="Only running executions can be aborted",
-                recoverable=False,
-            )
-
-        updated_context = self.interruption_handler.abort_gracefully(
-            context, reason=reason
-        )
-
-        if context.use_worktree and context.worktree_path:
-            logger.info(
-                "Preserving worktree for debugging after abort",
-                extra={
-                    "run_id": run_id,
-                    "worktree_path": str(context.worktree_path),
-                },
-            )
-
-        logger.info(
-            "Run aborted",
-            extra={"run_id": run_id, "reason": reason},
-        )
-
-        return updated_context
-
-    # Note: _maybe_create_pr_after_document removed - now handled by DocumentExtension
-
-    # Keep these methods for backwards compatibility and cleanup command
-    def _cleanup_worktree(self, run_id: str, *, preserve: bool = False) -> None:
-        """Clean up or preserve the worktree for a run.
-
-        Always unregisters the run from concurrent run tracking (Story 10.4)
-        regardless of whether the worktree is preserved or removed.
-
-        Args:
-            run_id: ULID identifier for this run.
-            preserve: If True, log but don't remove the worktree.
-        """
-        if self._concurrent_run_manager is not None:
-            self._concurrent_run_manager.unregister_run(run_id)
-
-        if self._worktree_manager is None:
-            return
-
-        if preserve:
-            worktree_path = self._worktree_manager.worktree_base_path / run_id
-            logger.info(
-                "Preserving worktree for debugging",
-                extra={
-                    "run_id": run_id,
-                    "worktree_path": str(worktree_path),
-                },
-            )
-            return
-
-        worktree_path = self._worktree_manager.worktree_base_path / run_id
-
-        try:
-            self._worktree_manager.remove_worktree(
-                run_id,
-                force=True,
-                delete_branch=self.worktree_config.cleanup_branch_on_remove,
-                preserve=True,
-            )
-            logger.info(
-                "Cleaned up worktree (force=True, uncommitted changes discarded)",
-                extra={
-                    "run_id": run_id,
-                    "worktree_path": str(worktree_path),
-                    "forced": True,
-                    "delete_branch": self.worktree_config.cleanup_branch_on_remove,
-                },
-            )
-
-        except Exception as e:
-            logger.warning(
-                "Failed to cleanup worktree",
-                extra={
-                    "run_id": run_id,
-                    "worktree_path": str(worktree_path),
-                    "error": str(e),
-                },
-            )

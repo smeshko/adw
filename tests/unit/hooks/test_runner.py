@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from adw.exceptions import HookError
-from adw.hooks.runner import HookRunner, find_hook
+from adw.hooks.runner import DEFAULT_HOOK_TIMEOUT, HookRunner
 from adw.models import HookConfig, RunContext
 
 
@@ -85,7 +85,7 @@ class TestHookRunner:
         runner = HookRunner(hook_config)
         result = runner.run_hook(success_hook, run_context, "plan")
 
-        assert result.is_success
+        assert result.exit_code == 0
         assert "Hello from hook" in result.stdout
         assert result.exit_code == 0
         assert result.hook_type == "pre"
@@ -98,7 +98,7 @@ class TestHookRunner:
         runner = HookRunner(hook_config)
         result = runner.run_hook(stderr_hook, run_context, "plan")
 
-        assert result.is_success
+        assert result.exit_code == 0
         assert "stdout message" in result.stdout
         assert "stderr message" in result.stderr
 
@@ -170,7 +170,7 @@ class TestHookRunner:
         runner = HookRunner(hook_config)
         result = runner.run_hook(env_hook, run_context, "plan")
 
-        assert result.is_success
+        assert result.exit_code == 0
         assert "RUN_ID=01KDSG2VDHNK0W4HSCZWJZXWSQ" in result.stdout
         assert "PHASE=plan" in result.stdout
         assert "FEATURE=Test feature" in result.stdout
@@ -193,69 +193,32 @@ class TestHookRunner:
 
         # This should succeed because we override with longer timeout
         result = runner.run_hook(success_hook, run_context, "plan", timeout=60)
-        assert result.is_success
+        assert result.exit_code == 0
 
 
-class TestFindHook:
-    """Tests for find_hook function."""
+class TestResolveTimeout:
+    """Tests for HookRunner._resolve_timeout precedence."""
 
-    def test_finds_hook_with_sh_extension(self, tmp_path: Path) -> None:
-        """Test finding a hook with .sh extension."""
-        hook = tmp_path / "pre-hook.sh"
-        hook.write_text("#!/bin/bash\necho 'test'\n")
+    def test_timeout_parameter_takes_precedence(self) -> None:
+        """Timeout parameter should override config.timeout_seconds."""
+        config = HookConfig(timeout_seconds=60)
+        runner = HookRunner(config)
 
-        result = find_hook(tmp_path, "pre")
-        assert result == hook
+        result = runner._resolve_timeout(30)
+        assert result == 30
 
-    def test_finds_hook_without_extension(self, tmp_path: Path) -> None:
-        """Test finding a hook without extension."""
-        hook = tmp_path / "post-hook"
-        hook.write_text("#!/bin/bash\necho 'test'\n")
+    def test_config_timeout_used_when_no_parameter(self) -> None:
+        """Config timeout_seconds should be used when no parameter provided."""
+        config = HookConfig(timeout_seconds=45)
+        runner = HookRunner(config)
 
-        result = find_hook(tmp_path, "post")
-        assert result == hook
+        result = runner._resolve_timeout(None)
+        assert result == 45
 
-    def test_prefers_sh_extension(self, tmp_path: Path) -> None:
-        """Test that .sh extension is preferred over extensionless."""
-        hook_sh = tmp_path / "pre-hook.sh"
-        hook_sh.write_text("#!/bin/bash\necho 'sh'\n")
+    def test_default_timeout_used_when_config_is_zero(self) -> None:
+        """DEFAULT_HOOK_TIMEOUT should be used when config.timeout_seconds is 0."""
+        config = HookConfig(timeout_seconds=0)
+        runner = HookRunner(config)
 
-        hook_no_ext = tmp_path / "pre-hook"
-        hook_no_ext.write_text("#!/bin/bash\necho 'no ext'\n")
-
-        result = find_hook(tmp_path, "pre")
-        assert result == hook_sh
-
-    def test_returns_none_when_not_found(self, tmp_path: Path) -> None:
-        """Test that None is returned when hook doesn't exist."""
-        result = find_hook(tmp_path, "pre")
-        assert result is None
-
-    def test_returns_none_for_directory(self, tmp_path: Path) -> None:
-        """Test that directories are not returned as hooks."""
-        hook_dir = tmp_path / "pre-hook.sh"
-        hook_dir.mkdir()
-
-        result = find_hook(tmp_path, "pre")
-        assert result is None
-
-    def test_finds_pre_hook(self, tmp_path: Path) -> None:
-        """Test finding pre-hook specifically."""
-        pre = tmp_path / "pre-hook.sh"
-        pre.write_text("#!/bin/bash\n")
-        post = tmp_path / "post-hook.sh"
-        post.write_text("#!/bin/bash\n")
-
-        result = find_hook(tmp_path, "pre")
-        assert result == pre
-        assert result != post
-
-    def test_finds_post_hook(self, tmp_path: Path) -> None:
-        """Test finding post-hook specifically."""
-        pre = tmp_path / "pre-hook.sh"
-        pre.write_text("#!/bin/bash\n")
-        post = tmp_path / "post-hook.sh"
-        post.write_text("#!/bin/bash\n")
-
-        result = find_hook(tmp_path, "post")
-        assert result == post
+        result = runner._resolve_timeout(None)
+        assert result == DEFAULT_HOOK_TIMEOUT

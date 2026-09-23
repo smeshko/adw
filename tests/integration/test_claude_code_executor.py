@@ -35,12 +35,6 @@ pytestmark = [
 class TestClaudeCodeIntegration:
     """Integration tests for real Claude Code execution."""
 
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with default config."""
-        config = LLMConfig(path="claude")
-        return ClaudeCodeExecutor(config)
-
     def test_simple_prompt_execution(self, executor: ClaudeCodeExecutor) -> None:
         """Execute a simple prompt and verify result structure.
 
@@ -50,7 +44,6 @@ class TestClaudeCodeIntegration:
         result = executor.execute("Say 'Hello' and nothing else.")
 
         assert isinstance(result, LLMResult)
-        assert result.success is True
         assert result.content is not None
         assert len(result.content) > 0
         assert result.duration_ms > 0

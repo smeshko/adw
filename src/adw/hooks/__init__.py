@@ -28,12 +28,11 @@ from adw.hooks.git_diff import (
     has_commits,
     truncate_diff,
 )
-from adw.hooks.runner import HookRunner, find_hook
+from adw.hooks.runner import HookRunner
 from adw.models.artifacts import DiffStats
 
 __all__: list[str] = [
     "HookRunner",
-    "find_hook",
     "build_hook_environment",
     # Git branch functions
     "sanitize_branch_name",

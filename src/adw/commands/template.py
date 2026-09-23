@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "TemplateEngine",
-    "escape_feature_description",
     "build_task_context",
     "validate_artifact_references",
 ]
@@ -84,39 +83,6 @@ PRIORITY_LABELS: dict[int, str] = {
     3: "Medium",
     4: "Low",
 }
-
-
-def escape_feature_description(description: str) -> str:
-    """Escape special characters in feature description for template safety.
-
-    Escapes characters that could cause issues when the feature description
-    is used in templates or shell commands:
-    - Backslashes (doubled)
-    - Double quotes (escaped with backslash)
-    - Dollar signs (escaped with backslash for shell)
-    - Backticks (escaped with backslash for shell)
-
-    Args:
-        description: The raw feature description from user input.
-
-    Returns:
-        The escaped feature description safe for template substitution.
-
-    Example:
-        >>> escape_feature_description('Add "quoted" text')
-        'Add \\"quoted\\" text'
-        >>> escape_feature_description('Use $VAR and `cmd`')
-        'Use \\$VAR and \\`cmd\\`'
-    """
-    # Escape backslashes first (order matters)
-    result = description.replace("\\", "\\\\")
-    # Escape double quotes
-    result = result.replace('"', '\\"')
-    # Escape dollar signs (shell variable expansion)
-    result = result.replace("$", "\\$")
-    # Escape backticks (shell command substitution)
-    result = result.replace("`", "\\`")
-    return result
 
 
 def build_task_context(task_info: "TaskInfo | None") -> dict[str, Any]:

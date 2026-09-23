@@ -3,17 +3,23 @@
 # Removed trivial tests including:
 #   - test_defaults() methods (Pydantic handles defaults; no business logic to test)
 #   - Simple assignment verification tests (test_custom_values, test_disabled, etc.)
-#   - Redundant nested config tests covered by test_from_yaml_complete
+#   - Redundant nested config tests covered by test_yaml_complete
 # Kept: YAML parsing tests and validation error tests that verify actual business logic.
 
 """Tests for config models (ProjectConfig, LLMConfig, PhaseConfig)."""
 
 import pytest
+import yaml
 from pydantic import ValidationError
 
 from adw.models import ProjectConfig
 from adw.models.command import ShipCommandConfig
 from adw.models.config import PhaseConfig, WorktreeConfig
+
+
+def _from_yaml(text: str) -> ProjectConfig:
+    """Parse a project.yaml string into a ProjectConfig."""
+    return ProjectConfig.model_validate(yaml.safe_load(text))
 
 
 class TestPhaseConfigInputFiles:
@@ -192,19 +198,19 @@ class TestShipCommandConfig:
 class TestProjectConfig:
     """Tests for ProjectConfig YAML parsing and validation."""
 
-    def test_from_yaml_minimal(self) -> None:
+    def test_yaml_minimal(self) -> None:
         """ProjectConfig loads from minimal YAML."""
         yaml_content = """
 name: my-project
 language: python
 """
-        config = ProjectConfig.from_yaml(yaml_content)
+        config = _from_yaml(yaml_content)
         assert config.name == "my-project"
         assert config.language == "python"
         assert config.framework is None
         assert config.platform == "cli"
 
-    def test_from_yaml_complete(self) -> None:
+    def test_yaml_complete(self) -> None:
         """ProjectConfig loads from complete YAML."""
         yaml_content = """
 name: my-api
@@ -216,7 +222,7 @@ build_command: python -m build
 llm:
   path: /usr/local/bin/claude
 """
-        config = ProjectConfig.from_yaml(yaml_content)
+        config = _from_yaml(yaml_content)
         assert config.name == "my-api"
         assert config.language == "python"
         assert config.framework == "fastapi"
@@ -225,34 +231,34 @@ llm:
         assert config.build_command == "python -m build"
         assert config.llm.path == "/usr/local/bin/claude"
 
-    def test_from_yaml_missing_name(self) -> None:
+    def test_yaml_missing_name(self) -> None:
         """ProjectConfig validates required name field."""
         yaml_content = """
 language: python
 framework: fastapi
 """
         with pytest.raises(ValidationError) as exc_info:
-            ProjectConfig.from_yaml(yaml_content)
+            _from_yaml(yaml_content)
         assert "Missing required fields: name" in str(exc_info.value)
 
-    def test_from_yaml_missing_language(self) -> None:
+    def test_yaml_missing_language(self) -> None:
         """ProjectConfig validates required language field."""
         yaml_content = """
 name: my-project
 framework: fastapi
 """
         with pytest.raises(ValidationError) as exc_info:
-            ProjectConfig.from_yaml(yaml_content)
+            _from_yaml(yaml_content)
         assert "Missing required fields: language" in str(exc_info.value)
 
-    def test_from_yaml_missing_both_required(self) -> None:
+    def test_yaml_missing_both_required(self) -> None:
         """ProjectConfig validates both required fields."""
         yaml_content = """
 framework: fastapi
 platform: api
 """
         with pytest.raises(ValidationError) as exc_info:
-            ProjectConfig.from_yaml(yaml_content)
+            _from_yaml(yaml_content)
         error_str = str(exc_info.value)
         assert "name" in error_str
         assert "language" in error_str
@@ -260,7 +266,7 @@ platform: api
     def test_empty_yaml_fails(self) -> None:
         """Empty YAML raises ValidationError."""
         with pytest.raises(ValidationError):
-            ProjectConfig.from_yaml("")
+            _from_yaml("")
 
     def test_with_git_config(self) -> None:
         """ProjectConfig with git integration configured."""
@@ -270,7 +276,7 @@ language: python
 git:
   branch_prefix: "feat/"
 """
-        config = ProjectConfig.from_yaml(yaml_content)
+        config = _from_yaml(yaml_content)
         assert config.git.branch_prefix == "feat/"
 
     # NOTE: test_with_phase_config removed in ISS-029

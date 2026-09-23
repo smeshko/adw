@@ -2,10 +2,10 @@
 
 This package contains all Pydantic models used throughout ADW:
 - artifacts: DiffStats
-- command: ResolvedCommand, LoadedCommand, ValidateCommandConfig, ShipCommandConfig,
+- command: ResolvedCommand, ValidateCommandConfig, ShipCommandConfig,
            ShipCommandsConfig, DocumentCommandConfig, DocMappingConfig
-- context: RunContext, SessionContext, ProjectContext, StateSnapshot
-- phase: PhaseStatus, PhaseResult, Artifact, ArtifactType
+- context: RunContext, StateSnapshot
+- phase: PhaseStatus, PhaseResult
 - config: ProjectConfig, LLMConfig, PhaseConfig, HookConfig, GitConfig
 - llm: LLMResult, ToolCall
 - hook: HookResult
@@ -13,7 +13,6 @@ This package contains all Pydantic models used throughout ADW:
 - index: IndexEntry
 - security: BlockedPattern, SecurityConfig, ToolCallLog
 - pr: PRDescription
-- validation: ValidationResult
 - task: TaskInfo
 - resume: ResumeInfo, ResumeStatus
 - webhook: WebhookConfig, ProviderConfig
@@ -26,7 +25,6 @@ from adw.models.artifacts import DiffStats
 from adw.models.command import (
     DocMappingConfig,
     DocumentCommandConfig,
-    LoadedCommand,
     ResolvedCommand,
     ShipCommandConfig,
     ShipCommandsConfig,
@@ -45,9 +43,7 @@ from adw.models.config import (
     WorktreeConfig,
 )
 from adw.models.context import (
-    ProjectContext,
     RunContext,
-    SessionContext,
     StateSnapshot,
 )
 from adw.models.hook import HookResult
@@ -63,8 +59,6 @@ from adw.models.logging import (
     LogLevel,
 )
 from adw.models.phase import (
-    Artifact,
-    ArtifactType,
     PhaseResult,
     PhaseStatus,
 )
@@ -81,7 +75,6 @@ from adw.models.task import TaskInfo
 from adw.models.webhook import ProviderConfig, WebhookConfig
 from adw.models.wizard import WizardState
 from adw.models.worktree import PortAllocation
-from adw.validation.models import ValidationResult
 
 # Rebuild models to resolve forward references
 # This must happen after all models are imported
@@ -96,7 +89,6 @@ __all__: list[str] = [
     # Command models
     "DocMappingConfig",
     "DocumentCommandConfig",
-    "LoadedCommand",
     "ResolvedCommand",
     "ShipCommandConfig",
     "ShipCommandsConfig",
@@ -113,9 +105,7 @@ __all__: list[str] = [
     "TaskManagerLabelsConfig",
     "WorktreeConfig",
     # Context models
-    "ProjectContext",
     "RunContext",
-    "SessionContext",
     "StateSnapshot",
     # Hook models
     "HookResult",
@@ -130,8 +120,6 @@ __all__: list[str] = [
     "LogEvent",
     "LogLevel",
     # Phase models
-    "Artifact",
-    "ArtifactType",
     "PhaseResult",
     "PhaseStatus",
     # PR models
@@ -159,6 +147,4 @@ __all__: list[str] = [
     "WizardState",
     # Worktree models
     "PortAllocation",
-    # Validation models
-    "ValidationResult",
 ]

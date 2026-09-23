@@ -5,7 +5,7 @@ This module defines models for LLM execution results and tool calls.
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ToolCall(BaseModel):
@@ -32,10 +32,11 @@ class ToolCall(BaseModel):
 
 
 class LLMResult(BaseModel):
-    """Result from an LLM execution.
+    """Result from a successful LLM execution.
 
-    Captures all relevant information from an LLM call including
-    success status, content, tool calls, and performance metrics.
+    Captures the content, tool calls, and performance metrics of an LLM
+    call. Only ``content`` is required. A failed call raises ``LLMError``
+    instead of returning a result.
 
     The `content` field contains the full conversation text from the LLM,
     while `final_output` contains only the last assistant message. Use
@@ -44,7 +45,6 @@ class LLMResult(BaseModel):
 
     Example:
         >>> result = LLMResult(
-        ...     success=True,
         ...     content="Generated code here...",
         ...     final_output="The final result",
         ...     tool_calls=[],
@@ -53,8 +53,7 @@ class LLMResult(BaseModel):
         ... )
     """
 
-    success: bool
-    """Whether the execution completed successfully."""
+    model_config = ConfigDict(extra="forbid")
 
     content: str
     """The full text content from the LLM conversation (all messages)."""
@@ -90,9 +89,3 @@ class LLMResult(BaseModel):
 
     duration_ms: int = 0
     """Execution duration in milliseconds."""
-
-    error: str | None = None
-    """Error message if success is False."""
-
-    attempt_count: int = 1
-    """Number of attempts made (including final successful one)."""

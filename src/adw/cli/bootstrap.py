@@ -30,7 +30,6 @@ from adw.core.phase_runner import PhaseRunner
 from adw.exceptions import ConfigError
 from adw.executors.base import LLMExecutor
 from adw.executors.claude_code import ClaudeCodeExecutor
-from adw.executors.retry import RetryExecutor
 from adw.hooks.runner import HookRunner
 from adw.logging import LogManager, LogManagerHandler, create_redactor_from_config
 from adw.logging.console import ConsoleTransport
@@ -261,23 +260,18 @@ def create_orchestrator(
 
     # Use MockExecutor in test mode to avoid hitting real Claude API
     # Set ADW_MOCK_EXECUTOR=1 to enable mock mode (used by tests)
-    # MockExecutor is NOT wrapped with RetryExecutor — tests should fail fast
+    # Neither executor retries: the orchestrator retries the whole phase
     llm_executor: LLMExecutor
     if os.environ.get("ADW_MOCK_EXECUTOR"):
         from adw.executors.mock import MockExecutor
 
         llm_executor = MockExecutor()
     else:
-        base_executor = ClaudeCodeExecutor(
+        llm_executor = ClaudeCodeExecutor(
             config=llm_config,
-            console=console,
             security_interceptor=security_interceptor,
             allow_dangerous=allow_dangerous,
             live_stream=live_stream,
-        )
-        llm_executor = RetryExecutor(
-            executor=base_executor,
-            config=llm_config.retry,
         )
 
     # Create extension registry with built-in extensions (Phase Extensions)
@@ -286,7 +280,6 @@ def create_orchestrator(
     # NOTE: Must be created BEFORE PhaseRunner so extensions are available for
     # artifact capture during phase execution (ISS-043)
     extension_registry = create_default_registry(
-        git_config,
         runs_dir,
         project_root=project_root,
         build_command=config.build_command if config else None,
@@ -345,6 +338,7 @@ def create_orchestrator(
         phase_runner=phase_runner,
         interruption_handler=interruption_handler,
         progress_display=progress_display,
+        retry_config=llm_config.retry,
         worktree_config=worktree_config,
         git_config=git_config,
         task_manager_config=task_manager_config,

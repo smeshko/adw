@@ -78,7 +78,7 @@ Diff the two snapshots and paste the result, plus both runs' `--durations=15` ou
 
 ## Phase 1.2 — Delete dead modules and symbols
 
-**Plan**: _not yet created_
+**Plan**: [01.2-delete-dead-code](../plans/01.2-delete-dead-code/PLAN.md) · status: done
 
 **Linear**: ADW-8 (https://linear.app/ivo-tsonev/issue/ADW-8)
 
@@ -107,10 +107,10 @@ Diff the two snapshots and paste the result, plus both runs' `--durations=15` ou
 
 ### Acceptance criteria
 
-- [ ] `grep -rn "adw.validation\|adw.utils\|jsonschema\|CommandLoader" src tests pyproject.toml` returns nothing.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage at or above 80%.
-- [ ] `adw run --dry-run "noop"` in a scratch repo still lists and renders all five phases.
-- [ ] Lint and tests pass.
+- [x] `grep -rn "adw.validation\|adw.utils\|jsonschema\|CommandLoader" src tests pyproject.toml` returns nothing.
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage at or above 80%. 4039 passed, 5 skipped, 84.09%.
+- [x] `adw run --dry-run "noop"` in a scratch repo still lists and renders all five phases. Evidence: the dry-run transcript, plus `adw validate` reporting `OK` for all five phases, because dry-run renders no prompt. See [VALIDATION.md](../plans/01.2-delete-dead-code/VALIDATION.md).
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -135,7 +135,7 @@ Paste the grep output (empty), the pytest summary line with the coverage total, 
   - `WorktreeError`, which absorbs `PortAllocationError` and `MaxConcurrentRunsError` as error codes.
 - Delete from `exceptions.py`:
   - the never-raised `CommandError` and `PhaseError`
-  - `ValidationError`, whose name clashes with pydantic's
+  - `ValidationError`, whose name clashes with pydantic's. Already deleted by phase 1.2 (TASK-002).
   - all `to_dict()` methods, which have no callers
   - the long docstring examples
 - Leave `SecurityError` and `LLMRateLimitError` for phases 2.1 and 1.6.
@@ -157,7 +157,7 @@ Show the CLI output of both error commands before and after in the PR; the text 
 
 ## Phase 1.4 — Cut test waste outside the dashboard
 
-**Plan**: _not yet created_
+**Plan**: [01.4-cut-test-waste](../plans/01.4-cut-test-waste/PLAN.md) · status: done
 
 **Linear**: ADW-10 (https://linear.app/ivo-tsonev/issue/ADW-10)
 
@@ -188,10 +188,10 @@ Show the CLI output of both error commands before and after in the PR; the text 
 
 ### Acceptance criteria
 
-- [ ] `grep -rn "^\s*pass$" tests/unit` finds no test body that consists only of `pass`.
-- [ ] The collected test count drops by at least 150, and coverage stays at or above 80%.
-- [ ] ADR-001 lists the three new categories.
-- [ ] Lint and tests pass.
+- [x] `grep -rn "^\s*pass$" tests/unit` finds no test body that consists only of `pass`.
+- [x] The collected test count drops by at least 150, and coverage stays at or above 80%.
+- [x] ADR-001 lists the three new categories.
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -234,7 +234,7 @@ Include the grep output, `adw run --help`, and `which adw && adw --version` afte
 
 ## Phase 1.6 — Fail phases when Claude fails
 
-**Plan**: _not yet created_
+**Plan**: [01.6-fail-phases-when-claude-fails](../plans/01.6-fail-phases-when-claude-fails/PLAN.md) · status: done
 
 **Linear**: ADW-12 (https://linear.app/ivo-tsonev/issue/ADW-12)
 
@@ -249,10 +249,10 @@ Include the grep output, `adw run --help`, and `which adw && adw --version` afte
 
 ### Acceptance criteria
 
-- [ ] With `MockExecutor` configured to fail twice and then succeed, the phase succeeds on attempt 3 and waits the configured backoff between attempts (sleep patched and asserted).
-- [ ] With a fake `claude` binary on PATH that exits 1, the phase is recorded as `failed` (not `completed`) in `context.json` and the index after the configured attempts.
-- [ ] `grep -rn "RetryExecutor\|LLMRateLimitError" src` returns nothing.
-- [ ] Lint and tests pass.
+- [x] With `MockExecutor` configured to fail twice and then succeed, the phase succeeds on attempt 3 and waits the configured backoff between attempts (sleep patched and asserted).
+- [x] With a fake `claude` binary on PATH that exits 1, the phase is recorded as `failed` (not `completed`) in `context.json` and the index after the configured attempts.
+- [x] `grep -rn "RetryExecutor\|LLMRateLimitError" src` returns nothing.
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -402,4 +402,4 @@ Include rendered-prompt snapshots (before/after) for the document and validate p
 - [ ] Status row in [EPICS.md](./EPICS.md) updated to `Done`
 - [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code — phase 1.8: B3 `test_build_cmd_in_env_without_ship_config`, `test_ship_hook_env_carries_project_build_command`; B4 `test_reads_log_written_by_run`, `test_log_stream_emits_live_log_lines`; B11 `test_initialize_writes_loadable_config`, `test_init_output_passes_validate`; B17 `test_accepted_defaults_yield_ship_mapping`; B21 `test_run_events_close_on_interrupted`, `test_log_stream_closes_on_interrupted`
 - [ ] The full suite runs without touching the checkout or `~/.adw`, and is at least 50 s faster than before the epic — phase 1.1: no-touch diff empty, 210.2 s → 157.1 s (−53.1 s), see [VALIDATION.md](../plans/archive/2026-09-23-01.1-isolate-test-suite/VALIDATION.md)
-- [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l`
+- [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l` — phase 1.2: 46,993 → 44,596 (−2,397; −2,420 against `cdb2003f`'s 47,016), see [VALIDATION.md](../plans/01.2-delete-dead-code/VALIDATION.md)

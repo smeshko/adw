@@ -28,58 +28,6 @@ class PhaseStatus(str, Enum):
     FAILED = "failed"
 
 
-class ArtifactType(str, Enum):
-    """Type classification for artifacts produced by phases.
-
-    Artifacts are categorized by their purpose:
-    - PLAN: Planning documents (e.g., plan.md)
-    - CODE: Source code files
-    - TEST: Test files and results
-    - LOG: Log files from execution
-    - EVIDENCE: Evidence captures (screenshots, API responses)
-    - CONFIG: Configuration files
-    - OTHER: Uncategorized artifacts
-    """
-
-    PLAN = "plan"
-    CODE = "code"
-    TEST = "test"
-    LOG = "log"
-    EVIDENCE = "evidence"
-    CONFIG = "config"
-    OTHER = "other"
-
-
-class Artifact(BaseModel):
-    """Metadata for an artifact produced by a phase.
-
-    This model captures information about artifacts generated during
-    phase execution, including their type, location, and creation time.
-
-    Attributes:
-        path: Relative path to the artifact file
-        artifact_type: Type classification of the artifact
-        phase: Phase that produced this artifact
-        created_at: When the artifact was created
-        size_bytes: Size of the artifact in bytes (if known)
-        description: Optional description of the artifact
-    """
-
-    path: str = Field(..., description="Relative path to the artifact file")
-    artifact_type: ArtifactType = Field(
-        ..., description="Type classification of the artifact"
-    )
-    phase: str = Field(..., description="Phase that produced this artifact")
-    created_at: datetime = Field(..., description="When the artifact was created")
-    size_bytes: int | None = Field(default=None, description="Size in bytes (if known)")
-    description: str | None = Field(default=None, description="Optional description")
-
-    model_config = {
-        "frozen": False,
-        "validate_assignment": True,
-    }
-
-
 class PhaseResult(BaseModel):
     """Result of a single phase execution.
 
@@ -160,18 +108,4 @@ class PhaseResult(BaseModel):
     model_config = {
         "frozen": False,
         "validate_assignment": True,
-        "json_schema_extra": {
-            "example": {
-                "phase": "plan",
-                "status": "completed",
-                "started_at": "2024-01-15T10:30:00",
-                "completed_at": "2024-01-15T10:31:00",
-                "artifacts": ["plan.md"],
-                "error": None,
-                "tokens_used": 500,
-                "tool_calls": [
-                    {"tool_name": "read_file", "arguments": {"path": "/src/main.py"}}
-                ],
-            }
-        },
     }
