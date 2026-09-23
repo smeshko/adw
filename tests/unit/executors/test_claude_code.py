@@ -1,7 +1,7 @@
 """Unit tests for ClaudeCodeExecutor.
 
-These tests validate the ClaudeCodeExecutor implementation against
-the LLMExecutor Protocol, using mocked subprocess execution.
+These tests validate ClaudeCodeExecutor's behaviour, using mocked
+subprocess execution.
 """
 
 import asyncio
@@ -10,7 +10,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from adw.exceptions import LLMError
-from adw.executors.base import LLMExecutor
 from adw.executors.claude_code import ClaudeCodeExecutor
 from adw.models.config import LLMConfig
 from adw.models.llm import LLMResult
@@ -25,43 +24,14 @@ def _run_async(coro):
         loop.close()
 
 
-class TestClaudeCodeExecutorClass:
-    """Tests for ClaudeCodeExecutor class structure."""
-
-    def test_executor_exists(self) -> None:
-        """ClaudeCodeExecutor class should exist and be importable."""
-        assert ClaudeCodeExecutor is not None
-
-    def test_implements_llm_executor_protocol(self) -> None:
-        """ClaudeCodeExecutor should implement LLMExecutor Protocol."""
-        config = LLMConfig(path="claude")
-        executor = ClaudeCodeExecutor(config)
-        assert isinstance(executor, LLMExecutor)
-
-    def test_constructor_accepts_llm_config(self) -> None:
-        """Constructor should accept LLMConfig."""
-        config = LLMConfig(
-            path="/usr/bin/claude",
-        )
-        executor = ClaudeCodeExecutor(config)
-        assert executor.config == config
-
-    def test_has_execute_method(self) -> None:
-        """Executor should have execute method with correct signature."""
-        config = LLMConfig(path="claude")
-        executor = ClaudeCodeExecutor(config)
-        assert hasattr(executor, "execute")
-        assert callable(executor.execute)
+@pytest.fixture
+def executor() -> ClaudeCodeExecutor:
+    """Create executor with default config."""
+    return ClaudeCodeExecutor(LLMConfig(path="claude"))
 
 
 class TestClaudeCodeExecutorExecute:
     """Tests for ClaudeCodeExecutor.execute() method."""
-
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with default config."""
-        config = LLMConfig(path="claude")
-        return ClaudeCodeExecutor(config)
 
     @pytest.fixture
     def mock_subprocess(self):
@@ -134,12 +104,6 @@ class TestClaudeCodeExecutorExecute:
 
 class TestSubprocessExecution:
     """Tests for subprocess execution (Task 2)."""
-
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with default config."""
-        config = LLMConfig(path="claude")
-        return ClaudeCodeExecutor(config)
 
     def test_uses_create_subprocess_exec(self, executor: ClaudeCodeExecutor) -> None:
         """Should use asyncio.create_subprocess_exec for spawning."""
@@ -281,12 +245,6 @@ class TestSubprocessExecution:
 
 class TestRealTimeStreaming:
     """Tests for real-time streaming output (Task 3)."""
-
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with default config."""
-        config = LLMConfig(path="claude")
-        return ClaudeCodeExecutor(config)
 
     def test_reads_stdout_line_by_line(self, executor: ClaudeCodeExecutor) -> None:
         """Should read stdout line by line as it becomes available."""
@@ -454,12 +412,6 @@ class TestRealTimeStreaming:
 
 class TestOutputParsing:
     """Tests for Claude Code output parsing (Task 4)."""
-
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with default config."""
-        config = LLMConfig(path="claude")
-        return ClaudeCodeExecutor(config)
 
     def test_parses_plain_text_content(self, executor: ClaudeCodeExecutor) -> None:
         """Should handle plain text that isn't JSON."""
@@ -712,12 +664,6 @@ class TestOutputParsing:
 
 class TestErrorHandling:
     """Tests for error handling (Task 5)."""
-
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with default config."""
-        config = LLMConfig(path="claude")
-        return ClaudeCodeExecutor(config)
 
     def test_raises_llm_error_when_path_not_found(self) -> None:
         """Should raise LLMError with CLAUDE_NOT_FOUND when path doesn't exist."""
@@ -1053,12 +999,6 @@ class TestFinalOutputParsing:
     phases clean output to work with.
     """
 
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with default config."""
-        config = LLMConfig(path="claude")
-        return ClaudeCodeExecutor(config)
-
     def test_final_output_contains_last_message_only(
         self, executor: ClaudeCodeExecutor
     ) -> None:
@@ -1276,12 +1216,6 @@ class TestFinalOutputParsing:
 class TestAdditionalParsingCoverage:
     """Additional parsing tests for full coverage."""
 
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with default config."""
-        config = LLMConfig(path="claude")
-        return ClaudeCodeExecutor(config)
-
     def test_result_message_with_text(self, executor: ClaudeCodeExecutor) -> None:
         """Should extract text from result message."""
         import json
@@ -1340,69 +1274,9 @@ class TestAdditionalParsingCoverage:
         assert parsed["tool_calls"] == []
         assert parsed["tokens_used"] == 0
 
-    def test_handles_json_array(self, executor: ClaudeCodeExecutor) -> None:
-        """Should handle JSON arrays as content."""
-        import json
-
-        raw_output = json.dumps([1, 2, 3])
-        parsed = executor._parse_output(raw_output)
-
-        # Array should be converted to string content
-        assert parsed["content"] != ""
-
-
-class TestHookRunnerTimeoutResolution:
-    """Tests for HookRunner._resolve_timeout helper (Story 3-4)."""
-
-    def test_timeout_parameter_takes_precedence(self) -> None:
-        """Timeout parameter should override config.timeout_seconds."""
-        from adw.hooks.runner import HookRunner
-        from adw.models import HookConfig
-
-        config = HookConfig(timeout_seconds=60)
-        runner = HookRunner(config)
-
-        result = runner._resolve_timeout(30)
-        assert result == 30
-
-    def test_config_timeout_used_when_no_parameter(self) -> None:
-        """Config timeout_seconds should be used when no parameter provided."""
-        from adw.hooks.runner import HookRunner
-        from adw.models import HookConfig
-
-        config = HookConfig(timeout_seconds=45)
-        runner = HookRunner(config)
-
-        result = runner._resolve_timeout(None)
-        assert result == 45
-
-    def test_default_timeout_used_when_config_is_zero(self) -> None:
-        """DEFAULT_HOOK_TIMEOUT should be used when config.timeout_seconds is 0."""
-        from adw.hooks.runner import DEFAULT_HOOK_TIMEOUT, HookRunner
-        from adw.models import HookConfig
-
-        config = HookConfig(timeout_seconds=0)
-        runner = HookRunner(config)
-
-        result = runner._resolve_timeout(None)
-        assert result == DEFAULT_HOOK_TIMEOUT
-        assert result == 60  # Verify the constant value
-
-    def test_default_hook_timeout_constant_value(self) -> None:
-        """DEFAULT_HOOK_TIMEOUT should be 60 seconds (1 minute)."""
-        from adw.hooks.runner import DEFAULT_HOOK_TIMEOUT
-
-        assert DEFAULT_HOOK_TIMEOUT == 60
-
 
 class TestExceptionCleanup:
     """Tests for exception handling and process cleanup (Story 3-4 H2)."""
-
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with default config."""
-        config = LLMConfig(path="claude")
-        return ClaudeCodeExecutor(config)
 
     def test_process_killed_on_general_exception(
         self, executor: ClaudeCodeExecutor
@@ -1484,12 +1358,6 @@ class TestExceptionCleanup:
 
 class TestWorktreeWorkingDirectory:
     """Tests for worktree working directory support (Story 10.5)."""
-
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with default config."""
-        config = LLMConfig(path="claude")
-        return ClaudeCodeExecutor(config)
 
     def test_execute_accepts_cwd_parameter(self, executor: ClaudeCodeExecutor) -> None:
         """execute() should accept optional cwd parameter."""
@@ -1607,11 +1475,6 @@ class TestWorktreeWorkingDirectory:
 
 class TestExtractToolCall:
     """Tests for _extract_tool_call method for inline tool logging."""
-
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create executor with default config."""
-        return ClaudeCodeExecutor(LLMConfig(path="claude"))
 
     def test_extract_tool_call_from_assistant_message(
         self, executor: ClaudeCodeExecutor

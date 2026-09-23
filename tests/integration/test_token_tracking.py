@@ -10,19 +10,12 @@ from pathlib import Path
 import pytest
 
 from adw.executors.claude_code import ClaudeCodeExecutor
-from adw.models.config import LLMConfig
 from adw.models.context import RunContext
 from adw.models.phase import PhaseResult, PhaseStatus
 
 
 class TestTokenTrackingIntegration:
     """Integration tests for token tracking with realistic fixtures."""
-
-    @pytest.fixture
-    def executor(self) -> ClaudeCodeExecutor:
-        """Create a ClaudeCodeExecutor for testing."""
-        config = LLMConfig(path="claude")
-        return ClaudeCodeExecutor(config)
 
     @pytest.fixture
     def fixtures_path(self) -> Path:

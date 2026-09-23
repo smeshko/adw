@@ -5,10 +5,7 @@ for user inspection rather than being deleted, matching user intent for
 stop-and-inspect workflows.
 """
 
-import subprocess
 from pathlib import Path
-
-import pytest
 
 from adw.worktree.manager import WorktreeManager
 
@@ -19,36 +16,6 @@ class TestSinglePhaseWorktreePreservation:
     These tests verify the behavior where single-phase runs preserve their
     worktree for user inspection, while multi-phase runs clean up.
     """
-
-    @pytest.fixture
-    def git_repo(self, tmp_path: Path) -> Path:
-        """Create a temporary git repository for testing."""
-        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@example.com"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test User"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        # Create initial commit
-        readme = tmp_path / "README.md"
-        readme.write_text("# Test Project")
-        subprocess.run(
-            ["git", "add", "."], cwd=tmp_path, check=True, capture_output=True
-        )
-        subprocess.run(
-            ["git", "commit", "-m", "Initial commit"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        return tmp_path
 
     def test_worktree_preserved_after_single_phase_concept(
         self, git_repo: Path

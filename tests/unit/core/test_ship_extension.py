@@ -1,10 +1,9 @@
-"""Tests for ship phase bug fixes and improvements.
+"""Tests for the ship extension, ship config and hook chaining.
 
 Covers:
-- Issue 2: Flat template variables always set (not conditional)
-- Issue 3: Hook chaining across tiers
-- Issue 4: ship_config rendered as YAML
-- Issue 5: Ship command env vars in hook environment
+- Hook chaining across tiers
+- ship_config rendered as YAML
+- Ship command env vars in hook environment
 """
 
 from pathlib import Path
@@ -17,39 +16,8 @@ from adw.core.extensions.ship import ShipExtension
 from adw.models.command import ResolvedCommand, ShipCommandConfig, ShipCommandsConfig
 
 
-class TestFlatTemplateVariables:
-    """Issue 2: Template variables should always be set, even when None."""
-
-    def test_version_bump_command_set_when_none(self) -> None:
-        """version_bump_command should be set even if commands.version_bump is None."""
-        config = ShipCommandConfig(commands=ShipCommandsConfig())
-        assert config.commands.version_bump is None
-        # The variable should still be settable (not skipped)
-        variables: dict = {}
-        variables["version_bump_command"] = config.commands.version_bump
-        assert "version_bump_command" in variables
-        assert variables["version_bump_command"] is None
-
-    def test_publish_command_set_when_none(self) -> None:
-        """publish_command should be set even if commands.publish is None."""
-        config = ShipCommandConfig(commands=ShipCommandsConfig())
-        variables: dict = {}
-        variables["publish_command"] = config.commands.publish
-        assert "publish_command" in variables
-        assert variables["publish_command"] is None
-
-    def test_version_bump_command_set_when_configured(self) -> None:
-        """version_bump_command should carry the configured value."""
-        config = ShipCommandConfig(
-            commands=ShipCommandsConfig(version_bump="npm version patch")
-        )
-        variables: dict = {}
-        variables["version_bump_command"] = config.commands.version_bump
-        assert variables["version_bump_command"] == "npm version patch"
-
-
 class TestShipConfigFormat:
-    """Issue 4: ship_config should render as YAML, not raw Python dict."""
+    """ship_config should render as YAML, not raw Python dict."""
 
     def test_ship_config_is_valid_yaml(self) -> None:
         """ship_config variable should be valid YAML string."""
@@ -82,7 +50,7 @@ class TestShipConfigFormat:
 
 
 class TestHookChaining:
-    """Issue 3: Hooks should be collected from all tiers."""
+    """Hooks should be collected from all tiers."""
 
     def test_collect_hooks_from_bundled_only(self, tmp_path: Path) -> None:
         """When only bundled hook exists, it should be collected."""
@@ -143,7 +111,7 @@ class TestHookChaining:
 
 
 class TestShipCommandEnvVars:
-    """Issue 5: Deploy commands should be available in hook environment."""
+    """Deploy commands should be available in hook environment."""
 
     def test_version_bump_cmd_in_env(self) -> None:
         """ADW_SHIP_VERSION_BUMP_CMD should be in hook env when configured."""

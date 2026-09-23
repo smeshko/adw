@@ -22,18 +22,19 @@ from adw.exceptions import StateError
 from adw.models import PhaseResult, PhaseStatus, RunContext, StateSnapshot
 
 
+@pytest.fixture
+def sample_context() -> RunContext:
+    """Create a sample RunContext for testing."""
+    return RunContext(
+        run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
+        feature_description="Add user authentication",
+        current_phase="plan",
+        started_at=datetime.now(UTC),
+    )
+
+
 class TestPrePhaseSnapshot:
     """Tests for pre-phase snapshot creation."""
-
-    @pytest.fixture
-    def sample_context(self) -> RunContext:
-        """Create a sample RunContext for testing."""
-        return RunContext(
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            feature_description="Add user authentication",
-            current_phase="plan",
-            started_at=datetime.now(UTC),
-        )
 
     @pytest.fixture
     def setup_run_dir(self, tmp_path: Path) -> Path:
@@ -86,16 +87,6 @@ class TestPostPhaseSnapshot:
     """Tests for post-phase snapshot creation."""
 
     @pytest.fixture
-    def sample_context(self) -> RunContext:
-        """Create a sample RunContext for testing."""
-        return RunContext(
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            feature_description="Add user authentication",
-            current_phase="plan",
-            started_at=datetime.now(UTC),
-        )
-
-    @pytest.fixture
     def sample_result(self) -> PhaseResult:
         """Create a sample PhaseResult for testing."""
         return PhaseResult(
@@ -135,16 +126,6 @@ class TestPostPhaseSnapshot:
 
 class TestSequentialNumbering:
     """Tests for sequential snapshot numbering."""
-
-    @pytest.fixture
-    def sample_context(self) -> RunContext:
-        """Create a sample RunContext for testing."""
-        return RunContext(
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            feature_description="Add user authentication",
-            current_phase="plan",
-            started_at=datetime.now(UTC),
-        )
 
     @pytest.fixture
     def sample_result(self) -> PhaseResult:
@@ -190,16 +171,6 @@ class TestSequentialNumbering:
 
 class TestSnapshotListing:
     """Tests for snapshot listing."""
-
-    @pytest.fixture
-    def sample_context(self) -> RunContext:
-        """Create a sample RunContext for testing."""
-        return RunContext(
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            feature_description="Add user authentication",
-            current_phase="plan",
-            started_at=datetime.now(UTC),
-        )
 
     @pytest.fixture
     def sample_result(self) -> PhaseResult:
@@ -256,16 +227,6 @@ class TestSnapshotListing:
 
 class TestSnapshotLoading:
     """Tests for snapshot loading."""
-
-    @pytest.fixture
-    def sample_context(self) -> RunContext:
-        """Create a sample RunContext for testing."""
-        return RunContext(
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            feature_description="Add user authentication",
-            current_phase="plan",
-            started_at=datetime.now(UTC),
-        )
 
     @pytest.fixture
     def sample_result(self) -> PhaseResult:
@@ -365,16 +326,6 @@ class TestPerformance:
     """Tests for performance requirements (NFR4)."""
 
     @pytest.fixture
-    def sample_context(self) -> RunContext:
-        """Create a sample RunContext for testing."""
-        return RunContext(
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            feature_description="Add user authentication",
-            current_phase="plan",
-            started_at=datetime.now(UTC),
-        )
-
-    @pytest.fixture
     def setup_run_dir(self, tmp_path: Path) -> Path:
         """Set up run directory structure."""
         runs_dir = tmp_path / ".adw" / "runs"
@@ -398,16 +349,6 @@ class TestPerformance:
 
 class TestSequenceCache:
     """Tests for sequence number caching."""
-
-    @pytest.fixture
-    def sample_context(self) -> RunContext:
-        """Create a sample RunContext for testing."""
-        return RunContext(
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            feature_description="Add user authentication",
-            current_phase="plan",
-            started_at=datetime.now(UTC),
-        )
 
     @pytest.fixture
     def setup_run_dir(self, tmp_path: Path) -> Path:
