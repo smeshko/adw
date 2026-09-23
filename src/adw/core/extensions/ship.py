@@ -16,7 +16,7 @@ import yaml
 from adw.models.command import ShipCommandConfig, get_config_class
 
 if TYPE_CHECKING:
-    from adw.models import LLMResult, PhaseResult, RunContext
+    from adw.models import GitConfig, LLMResult, PhaseResult, RunContext
 
 logger = logging.getLogger(__name__)
 
@@ -33,28 +33,35 @@ class ShipExtension:
     - Uses context.pr_creation_attempted and pr_creation_failed
 
     Dependencies:
+    - git_config: Base branch to check out after a merge whose record has none
     - project_root: For loading ship config from .adw/commands/ship/config.yaml
     - build_command: The project's build_command, from the loaded ProjectConfig
 
     Example:
         >>> from adw.core.extensions import ExtensionRegistry
         >>> registry = ExtensionRegistry()
-        >>> registry.register(ShipExtension(project_root=Path("/project")))
+        >>> registry.register(ShipExtension(GitConfig(), project_root=Path("/project")))
     """
 
     phase: ClassVar[str] = "ship"
 
     def __init__(
-        self, project_root: Path | None = None, build_command: str | None = None
+        self,
+        git_config: "GitConfig",
+        project_root: Path | None = None,
+        build_command: str | None = None,
     ) -> None:
         """Initialize ShipExtension.
 
         Args:
+            git_config: Git configuration; its base_branch is the fallback
+                when the merge record carries no base branch.
             project_root: Path to project root for loading ship config.
                 If None, hook environment variables won't be set from config.
             build_command: The project's build command, exported to the
                 post-hook as ADW_SHIP_BUILD_CMD. If None, it is not exported.
         """
+        self._git_config = git_config
         self._project_root = project_root
         self._build_command = build_command
 
@@ -158,7 +165,7 @@ class ShipExtension:
         if not merge_record.get("merged"):
             return context
 
-        base_branch = merge_record.get("base_branch", "staging")
+        base_branch = merge_record.get("base_branch") or self._git_config.base_branch
 
         logger.info(
             "Post-merge cleanup: removing worktree and switching to base branch",

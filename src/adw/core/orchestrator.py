@@ -41,7 +41,6 @@ from adw.worktree import ConcurrentRunManager
 from adw.worktree.manager import WorktreeManager
 
 if TYPE_CHECKING:
-    from adw.cli.pr import AutoPRResult
     from adw.cli.progress import ProgressDisplay
     from adw.core.artifact_manager import ArtifactManager
     from adw.task_managers.labels import LabelManager
@@ -170,7 +169,7 @@ class Orchestrator:
                 recoverable error (default: RetryConfig()).
             worktree_config: Worktree isolation config (optional, Story 10.1).
             git_config: Git configuration for auto-PR creation (optional, ISS-011).
-            task_manager_config: Task manager configuration for auto-close (Story 12.8).
+            task_manager_config: Task manager configuration.
             label_manager: Manager for task labels (optional, Story 12.7).
             status_sync_service: Service for syncing status with task managers
                 (optional, Story 12.3). When provided, sync calls are made at
@@ -203,7 +202,7 @@ class Orchestrator:
         # Git config for auto-PR (Story ISS-011)
         self.git_config = git_config or GitConfig()
 
-        # Task manager config for auto-close (Story 12.8)
+        # Task manager config
         self.task_manager_config = task_manager_config or TaskManagerConfig()
 
         # Label manager for task label operations (Story 12.7)
@@ -276,7 +275,6 @@ class Orchestrator:
         run_id: str | None = None,
         *,
         use_worktree: bool = True,
-        task_uuid: str | None = None,
     ) -> RunContext:
         """Execute the full pipeline for a feature.
 
@@ -288,16 +286,12 @@ class Orchestrator:
         5. Handle errors, retries, and graceful shutdown
         6. Preserve worktree for user inspection (ISS-020: use 'adw cleanup' to remove)
         7. Mark run as completed, failed, or interrupted
-        8. Attempt to close task if auto_close enabled (Story 12.8)
 
         Args:
             feature_description: Description of the feature to implement.
             run_id: Optional run ID. If not provided, a new ULID is generated.
             use_worktree: Whether to use worktree isolation for this run.
                 Defaults to True. Set to False to run in current directory.
-            task_uuid: Internal task UUID (from TaskInfo.id) for issue closing.
-                If provided and auto_close is enabled, task will be closed when
-                PR is merged (Story 12.8).
 
         Returns:
             Final RunContext with status and artifacts.
@@ -321,10 +315,8 @@ class Orchestrator:
 
         try:
             with self.interruption_handler.protected_execution(context):
-                context, pr_result = self._execute_phases(context, PHASE_SEQUENCE)
-                context = self._lifecycle.finalize_success(
-                    context, pr_result=pr_result, task_uuid=task_uuid
-                )
+                context = self._execute_phases(context, PHASE_SEQUENCE)
+                context = self._lifecycle.finalize_success(context)
 
         except ShutdownRequested as e:
             self._lifecycle.handle_shutdown(context, e)
@@ -516,13 +508,13 @@ class Orchestrator:
 
         try:
             with self.interruption_handler.protected_execution(context):
-                context, pr_result = self._execute_phases(
+                context = self._execute_phases(
                     context,
                     phases_to_run,
                     start_artifacts=source_artifacts,
                     resume_phase=resume_phase,
                 )
-                context = self._lifecycle.finalize_success(context, pr_result=pr_result)
+                context = self._lifecycle.finalize_success(context)
 
         except ShutdownRequested as e:
             self._lifecycle.handle_shutdown(context, e)
@@ -679,11 +671,12 @@ class Orchestrator:
         *,
         start_artifacts: dict[str, dict[str, str]] | None = None,
         resume_phase: str | None = None,
-    ) -> tuple[RunContext, "AutoPRResult | None"]:
-        """Execute phases with PR creation logic.
+    ) -> RunContext:
+        """Execute phases in sequence, honouring skips and extensions.
 
         This method handles the common phase execution loop used by
-        run() and resume().
+        run() and resume(). The document step's PR outcome lands on the
+        context via DocumentExtension.
 
         Args:
             context: Current run context.
@@ -692,9 +685,7 @@ class Orchestrator:
             resume_phase: The phase being resumed from (for artifact handling).
 
         Returns:
-            Tuple of (updated context, PR result or None).
-            Note: PR result is now tracked in context via DocumentExtension,
-            so this always returns None for pr_result (Phase Extensions).
+            The updated context.
         """
         for phase in phases:
             # Check for shutdown request between phases (NFR7)
@@ -741,8 +732,7 @@ class Orchestrator:
 
             # Note: ISS-031 PR creation now handled by DocumentExtension
 
-        # PR result is now tracked in context via DocumentExtension
-        return context, None
+        return context
 
     def _load_artifacts_for_resume(
         self,

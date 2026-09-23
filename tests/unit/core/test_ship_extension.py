@@ -6,14 +6,19 @@ Covers:
 - Ship command env vars in hook environment
 """
 
+import json
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import yaml
+from ulid import ULID
 
 from adw.commands import CommandResolver
 from adw.core.extensions.ship import ShipExtension
+from adw.models import PhaseResult, RunContext
 from adw.models.command import ResolvedCommand, ShipCommandConfig, ShipCommandsConfig
+from adw.models.config import GitConfig
 
 
 class TestShipConfigFormat:
@@ -115,7 +120,7 @@ class TestShipCommandEnvVars:
 
     def test_version_bump_cmd_in_env(self) -> None:
         """ADW_SHIP_VERSION_BUMP_CMD should be in hook env when configured."""
-        ext = ShipExtension()
+        ext = ShipExtension(GitConfig())
         config = ShipCommandConfig(
             commands=ShipCommandsConfig(version_bump="npm version patch")
         )
@@ -128,7 +133,7 @@ class TestShipCommandEnvVars:
 
     def test_publish_cmd_in_env(self) -> None:
         """ADW_SHIP_PUBLISH_CMD should be in hook env when configured."""
-        ext = ShipExtension()
+        ext = ShipExtension(GitConfig())
         config = ShipCommandConfig(commands=ShipCommandsConfig(publish="npm publish"))
         context = MagicMock()
 
@@ -139,7 +144,7 @@ class TestShipCommandEnvVars:
 
     def test_build_cmd_in_env(self) -> None:
         """ADW_SHIP_BUILD_CMD should be in hook env when build_command configured."""
-        ext = ShipExtension(build_command="npm run build")
+        ext = ShipExtension(GitConfig(), build_command="npm run build")
         config = ShipCommandConfig(commands=ShipCommandsConfig())
         context = MagicMock()
 
@@ -150,7 +155,9 @@ class TestShipCommandEnvVars:
 
     def test_build_cmd_in_env_without_ship_config(self, tmp_path: Path) -> None:
         """ADW_SHIP_BUILD_CMD is exported when the project has no ship config (B3)."""
-        ext = ShipExtension(project_root=tmp_path, build_command="echo built")
+        ext = ShipExtension(
+            GitConfig(), project_root=tmp_path, build_command="echo built"
+        )
 
         env = ext.get_hook_env(MagicMock())
 
@@ -158,7 +165,7 @@ class TestShipCommandEnvVars:
 
     def test_no_cmd_env_when_none(self) -> None:
         """Command env vars should not be set when commands are None."""
-        ext = ShipExtension()
+        ext = ShipExtension(GitConfig())
         config = ShipCommandConfig(commands=ShipCommandsConfig())
         context = MagicMock()
 
@@ -171,7 +178,7 @@ class TestShipCommandEnvVars:
 
     def test_wait_for_merge_env_var(self) -> None:
         """ADW_SHIP_WAIT_FOR_MERGE should be in hook env."""
-        ext = ShipExtension()
+        ext = ShipExtension(GitConfig())
         config = ShipCommandConfig(commands=ShipCommandsConfig(), wait_for_merge=True)
         context = MagicMock()
 
@@ -182,7 +189,7 @@ class TestShipCommandEnvVars:
 
     def test_wait_for_merge_default_false(self) -> None:
         """ADW_SHIP_WAIT_FOR_MERGE defaults to false."""
-        ext = ShipExtension()
+        ext = ShipExtension(GitConfig())
         config = ShipCommandConfig(commands=ShipCommandsConfig())
         context = MagicMock()
 
@@ -190,3 +197,37 @@ class TestShipCommandEnvVars:
             env = ext.get_hook_env(context)
 
         assert env.get("ADW_SHIP_WAIT_FOR_MERGE") == "false"
+
+
+class TestShipPostMergeBaseBranch:
+    """Post-merge checkout falls back to the configured base branch."""
+
+    def test_empty_merge_record_base_uses_git_config(self, tmp_path: Path) -> None:
+        """A blank base_branch in merge_record.json uses git_config.base_branch."""
+        run_id = str(ULID())
+        worktree = tmp_path / "trees" / run_id
+        record_dir = worktree / ".adw" / "runs" / run_id / "artifacts" / "ship"
+        record_dir.mkdir(parents=True)
+        (record_dir / "merge_record.json").write_text(
+            json.dumps({"merged": True, "base_branch": ""})
+        )
+        context = RunContext(
+            run_id=run_id,
+            feature_description="test",
+            current_phase="ship",
+            started_at=datetime.now(),
+            use_worktree=True,
+            worktree_path=worktree,
+            branch_name="feature/test",
+        )
+        ext = ShipExtension(GitConfig(base_branch="develop"), project_root=tmp_path)
+
+        with (
+            patch("adw.worktree.manager.WorktreeManager"),
+            patch("adw.core.extensions.ship.subprocess.run") as mock_run,
+        ):
+            ext.on_complete(context, MagicMock(spec=PhaseResult))
+
+        argvs = [c.args[0] for c in mock_run.call_args_list]
+        assert ["git", "checkout", "develop"] in argvs
+        assert ["git", "pull", "origin", "develop"] in argvs

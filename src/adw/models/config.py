@@ -6,7 +6,7 @@ and phase-specific configuration loaded from YAML files.
 
 from typing import Any, Literal, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from adw.models.command import PhaseLLMConfig
 from adw.models.security import SecurityConfig
@@ -373,7 +373,7 @@ class TaskManagerConfig(BaseModel):
         state_mapping: Phase-based mapping from ADW phases to external system states
         sync_comments: Whether to post comments on status transitions
         labels: Label management configuration
-        auto_close: Whether to close task when PR is merged (default: false)
+        auto_close: Deprecated and ignored; tickets move through state_mapping.
 
     Example:
         >>> config = TaskManagerConfig(
@@ -399,7 +399,6 @@ class TaskManagerConfig(BaseModel):
           labels:
             enabled: true
             prefix: "adw:"
-          auto_close: false
     """
 
     type: Literal["none", "linear"] = Field(
@@ -424,7 +423,7 @@ class TaskManagerConfig(BaseModel):
     )
     auto_close: bool = Field(
         default=False,
-        description="Whether to close task when PR is merged",
+        description="Deprecated and ignored; tickets move through state_mapping.",
     )
 
 
@@ -443,7 +442,7 @@ class GitConfig(BaseModel):
     Attributes:
         branch_prefix: Prefix for auto-created branches (default: "feature/")
         skip_hooks: Skip pre-commit hooks with --no-verify (default: False)
-        base_branch: Base branch for PRs (e.g., 'main', 'develop'). Falls back to 'main'
+        base_branch: Base branch for PRs and worktrees (default: "main")
 
     Example:
         >>> config = GitConfig(branch_prefix="feat/")
@@ -467,11 +466,23 @@ class GitConfig(BaseModel):
         default=False,
         description="Skip pre-commit hooks with --no-verify (use with caution)",
     )
-    base_branch: str | None = Field(
-        default=None,
-        description="Base branch for PRs (e.g., 'main', 'develop'). "
-        "If not set, falls back to 'main'.",
+    base_branch: str = Field(
+        default="main",
+        description="Base branch for PRs and worktrees (e.g., 'main', 'develop'). "
+        "Defaults to 'main'.",
     )
+
+    @field_validator("base_branch", mode="before")
+    @classmethod
+    def default_blank_base_branch(cls, v: object) -> object:
+        """Map a null or blank base_branch to 'main'.
+
+        Keeps existing ``base_branch: null`` configs and blank wizard or
+        dashboard input loading with the default.
+        """
+        if v is None or v == "":
+            return "main"
+        return v
 
 
 class ProjectConfig(BaseModel):

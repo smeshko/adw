@@ -4,6 +4,7 @@ This module tests the run lifecycle management for ADW pipeline execution,
 including context creation, success finalization, and error handling.
 """
 
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -12,7 +13,8 @@ import pytest
 
 from adw.core.run_lifecycle import RunLifecycle
 from adw.exceptions import PhaseError, WorktreeError
-from adw.models import GitConfig, RunContext, WorktreeConfig
+from adw.models import GitConfig, RunContext, TaskManagerConfig, WorktreeConfig
+from adw.models.task import TaskInfo
 
 
 @pytest.fixture
@@ -501,7 +503,7 @@ class TestFinalizeSuccess:
         mock_interruption_handler: MagicMock,
         mock_status_sync_service: MagicMock,
     ) -> None:
-        """Test that completion comment is posted."""
+        """The completion comment carries the PR URL from the context."""
         lifecycle = RunLifecycle(
             runs_dir=tmp_path,
             project_path=tmp_path,
@@ -519,11 +521,14 @@ class TestFinalizeSuccess:
             current_phase="document",
             started_at=datetime.now(UTC),
             status="running",
+            pr_url="https://github.com/o/r/pull/9",
         )
 
         lifecycle.finalize_success(context)
 
         mock_status_sync_service.post_completion_comment.assert_called_once()
+        call = mock_status_sync_service.post_completion_comment.call_args
+        assert call.kwargs["pr_url"] == "https://github.com/o/r/pull/9"
 
     def test_shows_pipeline_summary(
         self,
@@ -557,6 +562,75 @@ class TestFinalizeSuccess:
         lifecycle.finalize_success(context)
 
         mock_progress_display.show_pipeline_summary.assert_called_once()
+
+    def test_auto_close_leaves_ticket_open_and_warns_once(
+        self,
+        tmp_path: Path,
+        mock_context_manager: MagicMock,
+        mock_run_directory_manager: MagicMock,
+        mock_index_manager: MagicMock,
+        mock_interruption_handler: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """auto_close is ignored: the ticket stays open and one warning is logged."""
+        lifecycle = RunLifecycle(
+            runs_dir=tmp_path,
+            project_path=tmp_path,
+            context_manager=mock_context_manager,
+            run_directory_manager=mock_run_directory_manager,
+            index_manager=mock_index_manager,
+            interruption_handler=mock_interruption_handler,
+            task_manager_config=TaskManagerConfig(
+                type="linear", team_key="ADW", auto_close=True
+            ),
+            worktree_config=WorktreeConfig(enabled=False),
+        )
+        context = RunContext(
+            run_id="01TEST00000000000000000001",
+            feature_description="Test",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            status="running",
+            task_id="ADW-1",
+            task_info=TaskInfo(id="uuid-adw-1", identifier="ADW-1", title="Test"),
+        )
+
+        with (
+            patch("adw.task_managers.TaskManagerFactory") as mock_factory,
+            patch(
+                "adw.task_managers.linear.LinearTaskManager.close_task"
+            ) as mock_close,
+            caplog.at_level(logging.WARNING, logger="adw.core.run_lifecycle"),
+        ):
+            lifecycle.finalize_success(context)
+
+        mock_factory.assert_not_called()
+        mock_close.assert_not_called()
+        warnings = [
+            r
+            for r in caplog.records
+            if r.levelno == logging.WARNING and "auto_close" in r.getMessage()
+        ]
+        assert len(warnings) == 1
+
+    def test_no_auto_close_warning_by_default(
+        self,
+        run_lifecycle: RunLifecycle,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """With auto_close unset, finalize_success logs no auto_close warning."""
+        context = RunContext(
+            run_id="01TEST00000000000000000001",
+            feature_description="Test",
+            current_phase="document",
+            started_at=datetime.now(UTC),
+            status="running",
+        )
+
+        with caplog.at_level(logging.WARNING, logger="adw.core.run_lifecycle"):
+            run_lifecycle.finalize_success(context)
+
+        assert not [r for r in caplog.records if "auto_close" in r.getMessage()]
 
 
 class TestHandleADWError:
@@ -939,9 +1013,9 @@ class TestFetchBaseBranch:
             mock_run.return_value = MagicMock(returncode=0, stderr="")
             result = lifecycle._fetch_base_branch()
 
-        assert result == "origin/staging"
+        assert result == "origin/main"
         mock_run.assert_called_once_with(
-            ["git", "fetch", "origin", "staging"],
+            ["git", "fetch", "origin", "main"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
@@ -964,23 +1038,23 @@ class TestFetchBaseBranch:
             run_directory_manager=mock_run_directory_manager,
             index_manager=mock_index_manager,
             interruption_handler=mock_interruption_handler,
-            git_config=GitConfig(base_branch="main"),
+            git_config=GitConfig(base_branch="develop"),
         )
 
         with patch("adw.core.run_lifecycle.subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stderr="")
             result = lifecycle._fetch_base_branch()
 
-        assert result == "origin/main"
+        assert result == "origin/develop"
         mock_run.assert_called_once_with(
-            ["git", "fetch", "origin", "main"],
+            ["git", "fetch", "origin", "develop"],
             cwd=tmp_path,
             capture_output=True,
             text=True,
             check=False,
         )
 
-    def test_fetch_falls_back_to_staging_when_base_branch_none(
+    def test_fetch_falls_back_to_main_when_base_branch_none(
         self,
         tmp_path: Path,
         mock_context_manager: MagicMock,
@@ -988,7 +1062,7 @@ class TestFetchBaseBranch:
         mock_index_manager: MagicMock,
         mock_interruption_handler: MagicMock,
     ) -> None:
-        """Falls back to 'staging' when git.base_branch is None."""
+        """Falls back to 'main' when git.base_branch is None."""
         lifecycle = RunLifecycle(
             runs_dir=tmp_path,
             project_path=tmp_path,
@@ -1003,7 +1077,8 @@ class TestFetchBaseBranch:
             mock_run.return_value = MagicMock(returncode=0, stderr="")
             result = lifecycle._fetch_base_branch()
 
-        assert result == "origin/staging"
+        assert result == "origin/main"
+        assert mock_run.call_args[0][0] == ["git", "fetch", "origin", "main"]
 
     def test_fetch_failure_raises_worktree_error(
         self,
@@ -1032,7 +1107,7 @@ class TestFetchBaseBranch:
                 lifecycle._fetch_base_branch()
 
         assert exc_info.value.code == "GIT_FETCH_FAILED"
-        assert "staging" in exc_info.value.message
+        assert "main" in exc_info.value.message
         assert "could not read from remote" in exc_info.value.message
 
     def test_fetch_failure_includes_suggestion(
@@ -1097,7 +1172,7 @@ class TestCreateWorktreeForRunFetch:
             lifecycle._create_worktree_for_run("RUN123", "test feature")
 
         mock_worktree_manager.create_worktree.assert_called_once_with(
-            "RUN123", source_branch="origin/staging", branch_name="feature/test-feature"
+            "RUN123", source_branch="origin/main", branch_name="feature/test-feature"
         )
 
     def test_passes_configured_base_branch_as_source(

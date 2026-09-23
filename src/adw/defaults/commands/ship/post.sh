@@ -246,7 +246,7 @@ if [[ "$pr_merge_approved" == "true" ]]; then
     echo "Merging PR #$pr_number (squash)"
 
     # Query base branch for post-merge cleanup
-    base_branch=$(gh pr view "$pr_number" --json baseRefName --jq '.baseRefName' 2>/dev/null || echo "staging")
+    base_branch=$(gh pr view "$pr_number" --json baseRefName --jq '.baseRefName' 2>/dev/null || echo "")
 
     # Build merge body message
     if [[ "$version_deployed" != "N/A" && -n "$version_deployed" ]]; then

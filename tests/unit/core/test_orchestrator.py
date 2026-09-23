@@ -20,7 +20,10 @@ from adw.models.phase import PhaseResult, PhaseStatus
 from adw.worktree.manager import WorktreeManager
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from adw.core.orchestrator import Orchestrator
+    from tests.conftest import FakeGh
 
 
 @pytest.fixture
@@ -83,9 +86,8 @@ def mock_phase_runner() -> MagicMock:
     return runner
 
 
-@pytest.fixture
-def mock_interruption_handler() -> MagicMock:
-    """Create a mock InterruptionHandler."""
+def _passthrough_interruption_handler() -> MagicMock:
+    """Build a mock InterruptionHandler whose protected_execution just yields."""
     from contextlib import contextmanager
 
     handler = MagicMock()
@@ -99,6 +101,12 @@ def mock_interruption_handler() -> MagicMock:
 
     handler.protected_execution = mock_protected_execution
     return handler
+
+
+@pytest.fixture
+def mock_interruption_handler() -> MagicMock:
+    """Create a mock InterruptionHandler."""
+    return _passthrough_interruption_handler()
 
 
 @pytest.fixture
@@ -2060,302 +2068,201 @@ class TestStatusSyncServiceIntegration:
         assert context.status == "completed"
 
 
+_VALID_PR_DESCRIPTION = (
+    "## Summary\n\nAdd a login endpoint for users\n\n## Changes\n\n- Add endpoint\n\n"
+    "## Testing\n\nAll tests pass\n"
+)
+
+
 class TestPRCreationAfterDocumentPhase:
-    """Tests for ISS-031: PR creation after document phase."""
+    """The document step opens its PR through core create_pr (ISS-031).
+
+    These drive the real DocumentExtension against a fake `gh` on PATH. With
+    worktrees disabled and no branch_name, create_pr doesn't push, so no git
+    remote is needed.
+    """
+
+    @staticmethod
+    def _orchestrator(
+        runs_dir: Path,
+        phase_runner: MagicMock,
+        context_manager: object,
+        *,
+        extensions: list[object],
+        on_phase: "Callable[[str], None] | None" = None,
+        **kwargs: object,
+    ) -> "Orchestrator":
+        """Build an Orchestrator whose document phase writes a PR description."""
+        from adw.cli.progress import ProgressDisplay
+        from adw.core.extensions import ExtensionRegistry
+        from adw.core.orchestrator import Orchestrator
+        from adw.models.config import GitConfig, WorktreeConfig
+
+        def run_phase(
+            phase: str,
+            context: RunContext,
+            *,
+            artifacts_override: dict[str, dict[str, str]] | None = None,
+            prompt_prefix: str | None = None,
+        ) -> PhaseResult:
+            if on_phase:
+                on_phase(phase)
+            if phase == "document":
+                doc_dir = runs_dir / context.run_id / "artifacts" / "document"
+                doc_dir.mkdir(parents=True, exist_ok=True)
+                (doc_dir / "pr_description.md").write_text(_VALID_PR_DESCRIPTION)
+            return PhaseResult(
+                phase=phase,
+                status=PhaseStatus.COMPLETED,
+                started_at=datetime.now(UTC),
+                completed_at=datetime.now(UTC),
+                tokens_used=100,
+            )
+
+        phase_runner.run.side_effect = run_phase
+
+        run_directory_manager = MagicMock()
+        run_directory_manager.create.side_effect = lambda ctx: (
+            runs_dir / ctx.run_id
+        ).mkdir(parents=True, exist_ok=True)
+
+        progress_display = MagicMock(spec=ProgressDisplay)
+        progress_display.console = MagicMock()
+
+        registry = ExtensionRegistry()
+        for extension in extensions:
+            registry.register(extension)  # type: ignore[arg-type]
+
+        return Orchestrator(
+            runs_dir=runs_dir,
+            context_manager=context_manager,  # type: ignore[arg-type]
+            snapshot_manager=MagicMock(),
+            artifact_manager=MagicMock(),
+            run_directory_manager=run_directory_manager,
+            phase_runner=phase_runner,
+            interruption_handler=_passthrough_interruption_handler(),
+            index_manager=MagicMock(),
+            worktree_config=WorktreeConfig(enabled=False),
+            git_config=GitConfig(),
+            progress_display=progress_display,
+            extension_registry=registry,
+            **kwargs,  # type: ignore[arg-type]
+        )
 
     def test_pr_created_after_document_phase(
         self,
         tmp_path: Path,
-        mock_context_manager: MagicMock,
-        mock_snapshot_manager: MagicMock,
-        mock_artifact_manager: MagicMock,
-        mock_run_directory_manager: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+        fake_gh: "FakeGh",
         mock_phase_runner: MagicMock,
-        mock_interruption_handler: MagicMock,
-        mock_index_manager: MagicMock,
+        mock_context_manager: MagicMock,
     ) -> None:
-        """PR is created after document phase, before ship phase.
+        """gh runs once, after document and before ship, against base main."""
+        from adw.core.extensions import DocumentExtension
+        from adw.models.config import GitConfig
 
-        ISS-031: The PR should be created immediately after document phase
-        completes so that ship phase can validate and merge it.
-        """
-        from unittest.mock import patch
-
-        from adw.cli.pr import AutoPRResult
-        from adw.cli.progress import ProgressDisplay
-        from adw.core.extensions import DocumentExtension, ExtensionRegistry
-        from adw.core.orchestrator import Orchestrator
-        from adw.models.config import GitConfig, WorktreeConfig
-
+        monkeypatch.chdir(tmp_path)
         runs_dir = tmp_path / ".adw" / "runs"
-        runs_dir.mkdir(parents=True)
+        gh_calls_at_phase_start: dict[str, int] = {}
 
-        # Track when PR creation is called relative to phases
-        phase_order: list[str] = []
-        pr_creation_order: list[str] = []
-
-        def track_phase_run(
-            phase: str,
-            context: RunContext,
-            *,
-            artifacts_override: dict[str, dict[str, str]] | None = None,
-            prompt_prefix: str | None = None,
-        ) -> PhaseResult:
-            phase_order.append(phase)
-            return PhaseResult(
-                phase=phase,
-                status=PhaseStatus.COMPLETED,
-                started_at=datetime.now(UTC),
-                completed_at=datetime.now(UTC),
-                tokens_used=100,
-            )
-
-        mock_phase_runner.run.side_effect = track_phase_run
-
-        # Mock progress display (no longer used for PR creation, but needed for display)
-        mock_console = MagicMock()
-        mock_progress_display = MagicMock(spec=ProgressDisplay)
-        mock_progress_display.console = mock_console
-
-        worktree_config = WorktreeConfig(enabled=False)
-        git_config = GitConfig()
-
-        # Create extension registry with DocumentExtension
-        extension_registry = ExtensionRegistry()
-        extension_registry.register(DocumentExtension(runs_dir))
-
-        # Mock auto_create_pr to track when it's called
-        def mock_auto_create_pr(
-            run_id: str,
-            context: RunContext,
-            runs_dir_arg: Path,
-        ) -> AutoPRResult:
-            # Track when PR creation is called
-            pr_creation_order.append(f"pr_creation_after_{phase_order[-1]}")
-            return AutoPRResult(
-                success=True,
-                pr_url="https://github.com/test/test/pull/123",
-            )
-
-        orchestrator = Orchestrator(
-            runs_dir=runs_dir,
-            context_manager=mock_context_manager,
-            snapshot_manager=mock_snapshot_manager,
-            artifact_manager=mock_artifact_manager,
-            run_directory_manager=mock_run_directory_manager,
-            phase_runner=mock_phase_runner,
-            interruption_handler=mock_interruption_handler,
-            index_manager=mock_index_manager,
-            worktree_config=worktree_config,
-            git_config=git_config,
-            progress_display=mock_progress_display,
-            extension_registry=extension_registry,
+        orchestrator = self._orchestrator(
+            runs_dir,
+            mock_phase_runner,
+            mock_context_manager,
+            extensions=[DocumentExtension(GitConfig(), runs_dir)],
+            on_phase=lambda phase: gh_calls_at_phase_start.__setitem__(
+                phase, len(fake_gh.calls())
+            ),
         )
 
-        # Patch auto_create_pr to use our mock
-        with patch("adw.cli.pr.auto_create_pr", mock_auto_create_pr):
-            orchestrator.run("Test feature")
+        orchestrator.run("Test feature")
 
-        # Verify PR creation happened after document phase
-        assert len(pr_creation_order) == 1
-        assert pr_creation_order[0] == "pr_creation_after_document"
-
-        # Verify phase order includes ship after document
-        assert "document" in phase_order
-        assert "ship" in phase_order
-        doc_idx = phase_order.index("document")
-        ship_idx = phase_order.index("ship")
-        assert doc_idx < ship_idx  # document comes before ship
+        assert gh_calls_at_phase_start["build"] == 0
+        assert gh_calls_at_phase_start["validate"] == 0
+        assert gh_calls_at_phase_start["ship"] == 1
+        argv = fake_gh.calls()[0]
+        assert argv[argv.index("--base") + 1] == "main"
 
     def test_ship_phase_skipped_when_pr_creation_fails(
         self,
         tmp_path: Path,
-        mock_context_manager: MagicMock,
-        mock_snapshot_manager: MagicMock,
-        mock_artifact_manager: MagicMock,
-        mock_run_directory_manager: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+        fake_gh: "FakeGh",
         mock_phase_runner: MagicMock,
-        mock_interruption_handler: MagicMock,
-        mock_index_manager: MagicMock,
     ) -> None:
-        """Ship phase is skipped when PR creation fails.
+        """A failed gh call records the mapped error and skips ship."""
+        from adw.core.context_manager import ContextManager
+        from adw.core.extensions import DocumentExtension, ShipExtension
+        from adw.models.config import GitConfig
 
-        ISS-031 / Phase Extensions: When PR creation is attempted but fails,
-        the ship phase should be skipped (not run) to avoid pre.sh errors.
-        This is now handled by ShipExtension.should_skip() checking
-        context.pr_creation_failed.
-        """
-        from unittest.mock import patch
-
-        from adw.cli.pr import AutoPRResult
-        from adw.cli.progress import ProgressDisplay
-        from adw.core.extensions import (
-            DocumentExtension,
-            ExtensionRegistry,
-            ShipExtension,
-        )
-        from adw.core.orchestrator import Orchestrator
-        from adw.models.config import GitConfig, WorktreeConfig
-
+        monkeypatch.chdir(tmp_path)
         runs_dir = tmp_path / ".adw" / "runs"
-        runs_dir.mkdir(parents=True)
-
-        # Track which phases are executed
         executed_phases: list[str] = []
+        fake_gh.reply(stdout="", stderr="boom", exit_code=1)
 
-        def track_phase_run(
-            phase: str,
-            context: RunContext,
-            *,
-            artifacts_override: dict[str, dict[str, str]] | None = None,
-            prompt_prefix: str | None = None,
-        ) -> PhaseResult:
-            executed_phases.append(phase)
-            return PhaseResult(
-                phase=phase,
-                status=PhaseStatus.COMPLETED,
-                started_at=datetime.now(UTC),
-                completed_at=datetime.now(UTC),
-                tokens_used=100,
-            )
-
-        mock_phase_runner.run.side_effect = track_phase_run
-
-        # Mock progress display (needed for skip message output)
-        mock_console = MagicMock()
-        mock_progress_display = MagicMock(spec=ProgressDisplay)
-        mock_progress_display.console = mock_console
-
-        worktree_config = WorktreeConfig(enabled=False)
-        git_config = GitConfig()
-
-        # Create extension registry with DocumentExtension and ShipExtension
-        extension_registry = ExtensionRegistry()
-        extension_registry.register(DocumentExtension(runs_dir))
-        extension_registry.register(ShipExtension())
-
-        # Mock auto_create_pr to return failure
-        def mock_auto_create_pr_fails(
-            run_id: str,
-            context: RunContext,
-            runs_dir_arg: Path,
-        ) -> AutoPRResult:
-            return AutoPRResult(
-                success=False,
-                reason="No commits to push",
-            )
-
-        orchestrator = Orchestrator(
-            runs_dir=runs_dir,
-            context_manager=mock_context_manager,
-            snapshot_manager=mock_snapshot_manager,
-            artifact_manager=mock_artifact_manager,
-            run_directory_manager=mock_run_directory_manager,
-            phase_runner=mock_phase_runner,
-            interruption_handler=mock_interruption_handler,
-            index_manager=mock_index_manager,
-            worktree_config=worktree_config,
-            git_config=git_config,
-            progress_display=mock_progress_display,
-            extension_registry=extension_registry,
+        orchestrator = self._orchestrator(
+            runs_dir,
+            mock_phase_runner,
+            ContextManager(runs_dir),
+            extensions=[
+                DocumentExtension(GitConfig(), runs_dir),
+                ShipExtension(GitConfig()),
+            ],
+            on_phase=executed_phases.append,
         )
 
-        # Patch auto_create_pr to fail
-        with patch("adw.cli.pr.auto_create_pr", mock_auto_create_pr_fails):
-            orchestrator.run("Test feature")
+        context = orchestrator.run("Test feature")
 
-        # Verify ship phase was NOT executed
-        assert "ship" not in executed_phases
-        # But document phase was executed
         assert "document" in executed_phases
-
-        # Verify skip message was printed (via extension registry)
-        mock_progress_display.console.print.assert_called()
-        calls = mock_progress_display.console.print.call_args_list
-        skip_message_printed = any("Skipping ship phase" in str(call) for call in calls)
-        assert skip_message_printed
+        assert "ship" not in executed_phases
+        assert context.pr_creation_failed is True
+        assert context.pr_failure_reason is not None
+        assert context.pr_failure_reason.startswith("[GH_PR_FAILED]")
+        assert "boom" in context.pr_failure_reason
 
     def test_pr_url_stored_in_context(
         self,
         tmp_path: Path,
-        mock_context_manager: MagicMock,
-        mock_snapshot_manager: MagicMock,
-        mock_artifact_manager: MagicMock,
-        mock_run_directory_manager: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+        fake_gh: "FakeGh",
         mock_phase_runner: MagicMock,
-        mock_interruption_handler: MagicMock,
-        mock_index_manager: MagicMock,
     ) -> None:
-        """PR URL is stored in context when PR is successfully created.
+        """context.json holds pr_url, and the completion comment carries it."""
+        import json
 
-        ISS-031 / Phase Extensions: The pr_url should be stored in the context
-        so that it can be passed to ship phase hooks via ADW_PR_URL environment
-        variable. This is now handled by DocumentExtension.on_complete().
-        """
-        from unittest.mock import patch
+        from adw.core.context_manager import ContextManager
+        from adw.core.extensions import DocumentExtension
+        from adw.models.config import GitConfig, TaskManagerConfig
+        from adw.models.task import TaskInfo
+        from adw.task_managers.sync import StatusSyncService
 
-        from adw.cli.pr import AutoPRResult
-        from adw.cli.progress import ProgressDisplay
-        from adw.core.extensions import DocumentExtension, ExtensionRegistry
-        from adw.core.orchestrator import Orchestrator
-        from adw.models.config import GitConfig, WorktreeConfig
-
+        monkeypatch.chdir(tmp_path)
         runs_dir = tmp_path / ".adw" / "runs"
-        runs_dir.mkdir(parents=True)
-
-        # Mock progress display
-        mock_console = MagicMock()
-        mock_progress_display = MagicMock(spec=ProgressDisplay)
-        mock_progress_display.console = mock_console
-
-        worktree_config = WorktreeConfig(enabled=False)
-        git_config = GitConfig()
-
-        # Create extension registry with DocumentExtension
-        extension_registry = ExtensionRegistry()
-        extension_registry.register(DocumentExtension(runs_dir))
-
-        # Mock auto_create_pr to return success
-        def mock_auto_create_pr_success(
-            run_id: str,
-            context: RunContext,
-            runs_dir_arg: Path,
-        ) -> AutoPRResult:
-            return AutoPRResult(
-                success=True,
-                pr_url="https://github.com/test/test/pull/456",
-            )
-
-        orchestrator = Orchestrator(
-            runs_dir=runs_dir,
-            context_manager=mock_context_manager,
-            snapshot_manager=mock_snapshot_manager,
-            artifact_manager=mock_artifact_manager,
-            run_directory_manager=mock_run_directory_manager,
-            phase_runner=mock_phase_runner,
-            interruption_handler=mock_interruption_handler,
-            index_manager=mock_index_manager,
-            worktree_config=worktree_config,
-            git_config=git_config,
-            progress_display=mock_progress_display,
-            extension_registry=extension_registry,
+        pr_url = "https://github.com/o/r/pull/456"
+        fake_gh.reply(stdout=f"{pr_url}\n")
+        task_info = TaskInfo(id="uuid-13", identifier="ADW-13", title="Carry PR")
+        task_manager = MagicMock()
+        sync = StatusSyncService(
+            task_manager,
+            TaskManagerConfig(type="linear", team_key="ADW", sync_comments=True),
+            task_info=task_info,
         )
 
-        with patch("adw.cli.pr.auto_create_pr", mock_auto_create_pr_success):
-            orchestrator.run("Test feature")
+        orchestrator = self._orchestrator(
+            runs_dir,
+            mock_phase_runner,
+            ContextManager(runs_dir),
+            extensions=[DocumentExtension(GitConfig(), runs_dir)],
+            status_sync_service=sync,
+            task_info=task_info,
+        )
 
-        # Verify context_manager.save was called with pr_url set
-        # Check the last few save calls to find one with pr_url
-        save_calls = mock_context_manager.save.call_args_list
-        pr_url_saved = False
-        for call in save_calls:
-            saved_context = call[0][0]  # First positional arg
-            if hasattr(saved_context, "pr_url") and saved_context.pr_url:
-                assert saved_context.pr_url == "https://github.com/test/test/pull/456"
-                pr_url_saved = True
-                break
+        context = orchestrator.run("Test feature")
 
-        assert pr_url_saved, "pr_url should be saved in context"
+        saved = json.loads((runs_dir / context.run_id / "context.json").read_text())
+        assert saved["pr_url"] == pr_url
+        comments = [c.args[1] for c in task_manager.post_comment.call_args_list]
+        assert any(f"**Pull Request:** {pr_url}" in body for body in comments)
 
     def test_ship_runs_with_default_git_config(
         self,

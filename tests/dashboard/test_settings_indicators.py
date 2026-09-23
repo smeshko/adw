@@ -61,7 +61,7 @@ def default_project_dir(tmp_path: Path) -> Path:
         "git": {
             "branch_prefix": "feature/",
             "skip_hooks": False,
-            "base_branch": "main",
+            "base_branch": "develop",  # Differs from default "main"
         },
         "worktree": {
             "enabled": True,
@@ -332,8 +332,8 @@ class TestTabBadgesInHTML:
     def test_git_badge_count_matches_changed(self, default_client: TestClient) -> None:
         """Git tab badge count reflects actual changed fields.
 
-        Even with 'default' config, base_branch='main' differs from
-        the registry default of None, so 1 changed field is expected.
+        Even with 'default' config, base_branch='develop' differs from
+        the registry default of 'main', so 1 changed field is expected.
         """
         import re
 
@@ -343,7 +343,7 @@ class TestTabBadgesInHTML:
         )
         assert resp.status_code == 200
         html = resp.text
-        # base_branch is "main" vs default None → 1 changed field
+        # base_branch is "develop" vs default "main" → 1 changed field
         git_tab = re.search(r">Git(?:\s*<span[^>]*>(\d+)</span>)?</a>", html)
         assert git_tab is not None
         assert git_tab.group(1) == "1"

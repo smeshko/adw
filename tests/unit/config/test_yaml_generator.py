@@ -413,7 +413,7 @@ class TestGitFieldEmission:
         )
         yaml_content = generator.generate_project_yaml(state)
 
-        assert "  # base_branch: null" in yaml_content
+        assert "  # base_branch: main  # PR base branch (default: main)" in yaml_content
 
 
 class TestTaskManagerFieldEmission:
@@ -428,6 +428,19 @@ class TestTaskManagerFieldEmission:
     def generator(self, registry: ConfigRegistry) -> YAMLWithComments:
         """Create generator fixture."""
         return YAMLWithComments(registry)
+
+    @pytest.mark.parametrize(
+        "task_manager",
+        [{"enabled": True, "type": "linear", "team_key": "ADW"}, {"enabled": False}],
+    )
+    def test_auto_close_not_emitted(
+        self, generator: YAMLWithComments, task_manager: dict[str, object]
+    ) -> None:
+        """Generated project.yaml never advertises the deprecated auto_close key."""
+        state = MockWizardState({"task_manager": task_manager})
+        yaml_content = generator.generate_project_yaml(state)
+
+        assert "auto_close" not in yaml_content
 
     def test_custom_state_mapping_emitted_active(
         self, generator: YAMLWithComments

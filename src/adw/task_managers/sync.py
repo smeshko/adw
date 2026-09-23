@@ -152,7 +152,6 @@ class StatusSyncService:
         """Handle run completion.
 
         Note: This method intentionally does NOT update status or close issues.
-        Issue closing is handled separately by Story 12.8 if auto_close=true.
         The run stays at its last phase's mapped status (by default, ship -> Done).
 
         Args:
@@ -160,7 +159,7 @@ class StatusSyncService:
             success: Whether the run completed successfully.
             error: Optional error message if success=False.
         """
-        # Intentionally no-op - closing is handled by Story 12.8
+        # Intentionally no-op - ADW never closes a ticket at run completion
         pass
 
     def _safe_update_status(

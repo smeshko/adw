@@ -20,6 +20,7 @@ from adw.core.phase_runner import PhaseRunner
 from adw.executors.mock import MockExecutor
 from adw.hooks.runner import HookRunner
 from adw.models import (
+    GitConfig,
     HookConfig,
     PhaseStatus,
     RunContext,
@@ -265,7 +266,7 @@ def phase_runner(
 
     # Create extension registry with DocumentExtension for pr_description.md
     extension_registry = ExtensionRegistry()
-    extension_registry.register(DocumentExtension(runs_dir))
+    extension_registry.register(DocumentExtension(GitConfig(), runs_dir))
 
     return PhaseRunner(
         command_resolver=command_resolver,
@@ -485,7 +486,7 @@ No visual evidence captured
 
         # Create extension registry with DocumentExtension for pr_description.md
         extension_registry = ExtensionRegistry()
-        extension_registry.register(DocumentExtension(runs_dir))
+        extension_registry.register(DocumentExtension(GitConfig(), runs_dir))
 
         return PhaseRunner(
             command_resolver=command_resolver,

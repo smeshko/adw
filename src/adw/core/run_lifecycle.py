@@ -18,7 +18,7 @@ import logging
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from ulid import ULID
 
@@ -35,7 +35,6 @@ from adw.worktree import ConcurrentRunManager
 from adw.worktree.manager import WorktreeManager
 
 if TYPE_CHECKING:
-    from adw.cli.pr import AutoPRResult
     from adw.cli.progress import ProgressDisplay
     from adw.task_managers.labels import LabelManager
     from adw.task_managers.sync import StatusSyncService
@@ -43,21 +42,6 @@ if TYPE_CHECKING:
 __all__ = ["RunLifecycle"]
 
 logger = logging.getLogger(__name__)
-
-
-class _PRResultFromContext:
-    """Lightweight PR result for constructing from context fields.
-
-    Avoids importing AutoPRResult from CLI layer into core.
-    Duck-typed to match the interface used by ProgressDisplay.show_pipeline_summary().
-    """
-
-    __slots__ = ("success", "pr_url", "reason")
-
-    def __init__(self, *, success: bool, pr_url: str, reason: str) -> None:
-        self.success = success
-        self.pr_url = pr_url
-        self.reason = reason
 
 
 class RunLifecycle:
@@ -124,7 +108,7 @@ class RunLifecycle:
             progress_display: Display for phase progress (optional, Story 5.5).
             worktree_config: Worktree isolation config (optional, Story 10.1).
             git_config: Git configuration for auto-PR creation (optional, ISS-011).
-            task_manager_config: Task manager configuration for auto-close (Story 12.8).
+            task_manager_config: Task manager configuration.
             label_manager: Manager for task labels (optional, Story 12.7).
             status_sync_service: Service for syncing status with task managers
                 (optional, Story 12.3).
@@ -266,13 +250,7 @@ class RunLifecycle:
             self._label_manager.set_running()
         return context
 
-    def finalize_success(
-        self,
-        context: RunContext,
-        *,
-        pr_result: AutoPRResult | None = None,
-        task_uuid: str | None = None,
-    ) -> RunContext:
+    def finalize_success(self, context: RunContext) -> RunContext:
         """Finalize a successful run.
 
         This method handles:
@@ -281,14 +259,11 @@ class RunLifecycle:
         3. Set completed label
         4. Update global index
         5. Post completion comment
-        6. Attempt to close task (if auto_close enabled)
-        7. Show pipeline summary
-        8. Show worktree preservation message
+        6. Show pipeline summary
+        7. Show worktree preservation message
 
         Args:
             context: The run context to finalize.
-            pr_result: Result of PR creation (optional).
-            task_uuid: Internal task UUID for issue closing (optional).
 
         Returns:
             Updated context with completed status.
@@ -316,16 +291,16 @@ class RunLifecycle:
         )
 
         # Post run completion comment to task manager (Story 12.6)
-        self._post_completion_comment(context, pr_result)
+        self._post_completion_comment(context)
 
-        # Attempt to close task if auto_close enabled (Story 12.8)
-        self._maybe_close_task(
-            task_uuid=task_uuid,
-            pr_url=pr_result.pr_url if pr_result else None,
-        )
+        if self.task_manager_config.auto_close:
+            logger.warning(
+                "task_manager.auto_close is deprecated and ignored: tickets move "
+                "through state_mapping. Remove auto_close from project.yaml."
+            )
 
         # Show pipeline summary (Story 5.5)
-        self._show_pipeline_summary(context, status="completed", pr_result=pr_result)
+        self._show_pipeline_summary(context, status="completed")
 
         # Preserve worktree for user inspection (ISS-020)
         self._show_worktree_preserved(context, outcome="success")
@@ -395,7 +370,7 @@ class RunLifecycle:
         )
 
         # Show pipeline summary on failure (Story 5.5)
-        self._show_pipeline_summary(context, status="failed", pr_result=None)
+        self._show_pipeline_summary(context, status="failed")
 
         # Preserve worktree for debugging (ISS-020)
         self._show_worktree_preserved(context, outcome="failure")
@@ -454,7 +429,7 @@ class RunLifecycle:
         )
 
         # Show pipeline summary on failure (Story 5.5)
-        self._show_pipeline_summary(context, status="failed", pr_result=None)
+        self._show_pipeline_summary(context, status="failed")
 
         # Preserve worktree for debugging (ISS-020)
         self._show_worktree_preserved(context, outcome="failure")
@@ -546,19 +521,19 @@ class RunLifecycle:
     def _fetch_base_branch(self) -> str:
         """Fetch the remote base branch and return the remote ref.
 
-        Determines the base branch from git config (falling back to
-        ``"staging"``), runs ``git fetch origin <base_branch>``, and
-        returns ``"origin/<base_branch>"`` so the caller can branch
-        from the latest remote state.
+        Reads the base branch from git config, runs
+        ``git fetch origin <base_branch>``, and returns
+        ``"origin/<base_branch>"`` so the caller can branch from the
+        latest remote state.
 
         Returns:
-            Remote ref string, e.g. ``"origin/staging"``.
+            Remote ref string, e.g. ``"origin/main"``.
 
         Raises:
             WorktreeError: If the fetch command fails (network error,
                 no remote, auth failure, etc.).
         """
-        base_branch = self.git_config.base_branch or "staging"
+        base_branch = self.git_config.base_branch
 
         result = subprocess.run(
             ["git", "fetch", "origin", base_branch],
@@ -640,18 +615,15 @@ class RunLifecycle:
             # ISS-025: Branch creation failures are fatal
             raise
 
-    def _show_pipeline_summary(
-        self,
-        context: RunContext,
-        status: str,
-        pr_result: AutoPRResult | None,
-    ) -> None:
+    def _show_pipeline_summary(self, context: RunContext, status: str) -> None:
         """Show pipeline summary via progress display.
+
+        For completed runs, the PR outcome comes from the context fields
+        the document step set.
 
         Args:
             context: The run context.
             status: Final status ("completed" or "failed").
-            pr_result: Result of PR creation (optional).
         """
         if not self.progress_display:
             return
@@ -663,24 +635,12 @@ class RunLifecycle:
                 (context.completed_at - context.started_at).total_seconds() * 1000
             )
 
-        # Determine PR result for display (only for completed runs)
-        # Type is AutoPRResult | _PRResultFromContext | None (duck-typed)
-        effective_pr_result: Any = None
+        pr_url = None
+        pr_error = None
         if status == "completed":
-            if pr_result is not None:
-                effective_pr_result = pr_result
-            elif context.pr_url:
-                # Construct from context fields (Phase Extensions store PR info)
-                # Use simple object with required attrs to avoid CLI import
-                effective_pr_result = _PRResultFromContext(
-                    success=True, pr_url=context.pr_url, reason=""
-                )
-            elif context.pr_creation_attempted and context.pr_creation_failed:
-                effective_pr_result = _PRResultFromContext(
-                    success=False,
-                    pr_url="",
-                    reason=context.pr_failure_reason or "Unknown error",
-                )
+            pr_url = context.pr_url
+            if context.pr_creation_failed:
+                pr_error = context.pr_failure_reason
 
         self.progress_display.show_pipeline_summary(
             completed_phases=context.phase_history,
@@ -688,7 +648,8 @@ class RunLifecycle:
             total_duration_ms=duration_ms,
             total_tokens=total_tokens,
             run_id=context.run_id,
-            pr_result=effective_pr_result,
+            pr_url=pr_url,
+            pr_error=pr_error,
         )
 
     def _show_worktree_preserved(
@@ -783,16 +744,11 @@ class RunLifecycle:
                 },
             )
 
-    def _post_completion_comment(
-        self,
-        context: RunContext,
-        pr_result: AutoPRResult | None,
-    ) -> None:
-        """Post completion comment to task manager (non-blocking).
+    def _post_completion_comment(self, context: RunContext) -> None:
+        """Post completion comment, with the run's PR URL (non-blocking).
 
         Args:
             context: The run context.
-            pr_result: Result of PR creation (optional).
         """
         if not self._status_sync_service:
             return
@@ -800,7 +756,7 @@ class RunLifecycle:
         try:
             self._status_sync_service.post_completion_comment(
                 context,
-                pr_url=pr_result.pr_url if pr_result else None,
+                pr_url=context.pr_url,
                 summary="All phases completed successfully",
             )
         except Exception as comment_error:
@@ -810,54 +766,4 @@ class RunLifecycle:
                     "run_id": context.run_id,
                     "error": str(comment_error),
                 },
-            )
-
-    def _maybe_close_task(
-        self,
-        task_uuid: str | None,
-        pr_url: str | None,
-    ) -> None:
-        """Attempt to close task if auto_close is enabled (Story 12.8).
-
-        This method is non-blocking - failures are logged but don't
-        affect the run outcome.
-
-        Args:
-            task_uuid: Internal task UUID (from TaskInfo.id). If None, does nothing.
-            pr_url: PR URL to check merge status. If None, closes without checking PR.
-        """
-        if not task_uuid:
-            logger.debug("No task_uuid provided, skipping issue closing")
-            return
-
-        if not self.task_manager_config.auto_close:
-            logger.debug("Auto-close disabled, skipping issue closing")
-            return
-
-        try:
-            from adw.task_managers import TaskManagerFactory
-            from adw.task_managers.closer import IssueCloser
-
-            task_manager = TaskManagerFactory().create(
-                task_type=self.task_manager_config.type,
-                config=self.task_manager_config,
-            )
-            with IssueCloser(task_manager, self.task_manager_config) as closer:
-                closed = closer.maybe_close(task_uuid, pr_url)
-                if closed:
-                    logger.info(
-                        "Task closed after run completion",
-                        extra={"task_uuid": task_uuid},
-                    )
-                else:
-                    logger.debug(
-                        "Task not closed (PR not merged or condition not met)",
-                        extra={"task_uuid": task_uuid, "pr_url": pr_url},
-                    )
-        except Exception as e:
-            # Non-blocking - log warning and continue
-            logger.warning(
-                "Failed to close task: %s. Close manually with: adw task close %s",
-                e,
-                task_uuid,
             )

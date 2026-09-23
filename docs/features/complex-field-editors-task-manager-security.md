@@ -85,7 +85,7 @@ function reindex(id) {
 
 1. Navigate to `/settings`, select a project, click the **Task Manager** tab
 2. Change the **Type** dropdown from `none` to `linear` — config fields appear via HTMX swap
-3. Fill in team_key (2-10 uppercase letters), toggle sync_comments/auto_close/labels_enabled
+3. Fill in team_key (2-10 uppercase letters), toggle sync_comments/labels_enabled (auto_close is deprecated and ignored)
 4. Edit state mapping status values (phase keys are read-only)
 5. Click **Save** to persist
 6. For **Security** tab: add/remove blocked command patterns and env file patterns using list editors
@@ -98,7 +98,7 @@ function reindex(id) {
 | type | task_manager | select | none | Integration type (none/linear) |
 | team_key | task_manager | text | "" | Team prefix for ID detection (2-10 uppercase) |
 | sync_comments | task_manager | toggle | false | Post comments on status transitions |
-| auto_close | task_manager | toggle | false | Close task when PR is merged |
+| auto_close | task_manager | toggle | false | Deprecated and ignored; tickets move through state_mapping |
 | labels_enabled | task_manager | toggle | true | Enable label management |
 | label_prefix | task_manager | text | "adw:" | Prefix for ADW-managed labels |
 | state_mapping.* | task_manager | key-value | phase defaults | Map ADW phases to task statuses |

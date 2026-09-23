@@ -64,10 +64,10 @@ The Document phase is the fourth phase in the ADW pipeline (`plan → build → 
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │  8. DocumentExtension.on_complete()                             │
-│     If auto_create_pr enabled:                                  │
+│     core.pr.create_pr(context, body, base=git.base_branch):     │
 │       - Push branch to remote                                   │
 │       - Create PR via gh CLI                                    │
-│       - Update context with pr_url                              │
+│       - Update context with pr_url or the failure reason        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -151,26 +151,30 @@ If changes are significant, LLM creates:
 
 **File:** `src/adw/core/extensions/document.py`
 
-The extension handles automatic PR creation after phase completion:
+The extension opens the run's PR after phase completion through
+`adw.core.pr.create_pr`, the same function `adw pr` calls:
 
 ```python
 # DocumentExtension.on_complete()
 def on_complete(self, context, result):
-    if not self._git_config.auto_create_pr:
-        return context
-
-    # Push branch, create PR via gh CLI
-    pr_result = self._create_pr(context)
-
-    if pr_result.success:
-        context = context.model_copy(update={"pr_url": pr_result.pr_url})
-    else:
-        context = context.model_copy(update={
+    context = context.model_copy(update={"pr_creation_attempted": True})
+    try:
+        body = load_pr_description(self._runs_dir / context.run_id)
+        pr_url = create_pr(context, body, base=self._git_config.base_branch)
+    except ADWError as e:
+        return context.model_copy(update={
             "pr_creation_failed": True,
-            "pr_failure_reason": pr_result.reason
+            "pr_failure_reason": str(e),  # "[GH_AUTH_ERROR] ...\nSuggestion: ..."
         })
-    return context
+    return context.model_copy(update={"pr_url": pr_url})
 ```
+
+`create_pr` pushes the branch, adds the title and the Linear link, runs
+`gh pr create`, and maps `gh` failures to `ADWError` codes. When `gh` reports
+that the PR already exists, it returns the existing PR's URL. The completion
+comment and the pipeline summary read `context.pr_url` and
+`context.pr_failure_reason`; after a failure the summary suggests
+`adw pr <run-id>` to retry.
 
 ## How Downstream Phases Use Document Output
 
@@ -205,7 +209,8 @@ src/adw/defaults/commands/document/
 |------|------|
 | `src/adw/core/phase_runner.py` | Phase execution, artifact loading |
 | `src/adw/core/extensions/document.py` | PR creation extension |
-| `src/adw/cli/pr.py` | PR creation via gh CLI |
+| `src/adw/core/pr.py` | PR creation via gh CLI (`create_pr`) |
+| `src/adw/cli/pr.py` | `adw pr` command |
 | `src/adw/defaults/commands/document/prompt.md` | Default prompt |
 | `src/adw/defaults/commands/document/post.sh` | Artifact extraction |
 | `src/adw/defaults/commands/document/document-feature/instructions.xml` | Workflow steps |
@@ -228,15 +233,14 @@ artifacts:
 In `adw.yaml` (project config):
 ```yaml
 git:
-  auto_create_pr: true   # Enable automatic PR creation
-  base_branch: staging   # Target branch for PRs
+  base_branch: main      # Target branch for PRs (default: main)
 ```
 
 ## Context Fields Updated
 
 | Field | When Set |
 |-------|----------|
-| `pr_creation_attempted` | Auto-PR was attempted |
+| `pr_creation_attempted` | PR creation was attempted |
 | `pr_url` | PR created successfully |
 | `pr_creation_failed` | PR creation failed |
-| `pr_failure_reason` | Error message on failure |
+| `pr_failure_reason` | `str(ADWError)` on failure: code, message, suggestion |

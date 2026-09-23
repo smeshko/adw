@@ -103,7 +103,6 @@ class TestDisabledFlow:
         assert result["sync_comments"] is False
         assert result["labels_enabled"] is True
         assert result["label_prefix"] == DEFAULT_LABEL_PREFIX
-        assert result["auto_close"] is False
         assert result["state_mapping"] is None
 
 
@@ -119,8 +118,8 @@ class TestEnabledFlow:
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.task_manager.Prompt.ask") as mock_prompt,
         ):
-            # enable, sync_comments, labels_enabled, auto_close, configure_mapping
-            mock_confirm.side_effect = [True, False, True, False, False]
+            # enable, sync_comments, labels_enabled, configure_mapping
+            mock_confirm.side_effect = [True, False, True, False]
             mock_prompt.side_effect = [
                 "linear",
                 "TEAM",
@@ -142,8 +141,8 @@ class TestEnabledFlow:
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.task_manager.Prompt.ask") as mock_prompt,
         ):
-            # enable, sync_comments, labels_enabled, auto_close, configure_mapping
-            mock_confirm.side_effect = [True, True, True, False, False]
+            # enable, sync_comments, labels_enabled, configure_mapping
+            mock_confirm.side_effect = [True, True, True, False]
             mock_prompt.side_effect = [
                 "linear",
                 "RULE",
@@ -163,8 +162,8 @@ class TestEnabledFlow:
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.task_manager.Prompt.ask") as mock_prompt,
         ):
-            # enable, sync_comments, labels_enabled (no), auto_close, configure_mapping
-            mock_confirm.side_effect = [True, False, False, False, False]
+            # enable, sync_comments, labels_enabled (no), configure_mapping
+            mock_confirm.side_effect = [True, False, False, False]
             mock_prompt.side_effect = [
                 "linear",
                 "TEAM",
@@ -175,27 +174,6 @@ class TestEnabledFlow:
 
         assert result["labels_enabled"] is False
         assert result["label_prefix"] is None
-
-    def test_enabled_with_auto_close(self) -> None:
-        """Test auto_close option."""
-        console = Console(force_terminal=True)
-        state = WizardState()
-
-        with (
-            patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
-            patch("adw.cli.wizard.task_manager.Prompt.ask") as mock_prompt,
-        ):
-            # enable, sync_comments, labels_enabled, auto_close (yes), configure_mapping
-            mock_confirm.side_effect = [True, False, True, True, False]
-            mock_prompt.side_effect = [
-                "linear",
-                "TEAM",
-                DEFAULT_LABEL_PREFIX,
-            ]
-
-            result = run_task_manager_step(state, console)
-
-        assert result["auto_close"] is True
 
 
 class TestStateMappingConfiguration:
@@ -210,8 +188,8 @@ class TestStateMappingConfiguration:
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.task_manager.Prompt.ask") as mock_prompt,
         ):
-            # enable, sync_comments, labels_enabled, auto_close, configure_mapping
-            mock_confirm.side_effect = [True, False, True, False, False]
+            # enable, sync_comments, labels_enabled, configure_mapping
+            mock_confirm.side_effect = [True, False, True, False]
             mock_prompt.side_effect = [
                 "linear",
                 "TEAM",
@@ -231,8 +209,8 @@ class TestStateMappingConfiguration:
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.task_manager.Prompt.ask") as mock_prompt,
         ):
-            # enable, sync_comments, labels_enabled, auto_close, configure_mapping (yes)
-            mock_confirm.side_effect = [True, False, True, False, True]
+            # enable, sync_comments, labels_enabled, configure_mapping (yes)
+            mock_confirm.side_effect = [True, False, True, True]
             mock_prompt.side_effect = [
                 "linear",
                 "TEAM",
@@ -264,8 +242,8 @@ class TestStateMappingConfiguration:
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.task_manager.Prompt.ask") as mock_prompt,
         ):
-            # enable, sync_comments, labels_enabled, auto_close, configure_mapping (yes)
-            mock_confirm.side_effect = [True, False, True, False, True]
+            # enable, sync_comments, labels_enabled, configure_mapping (yes)
+            mock_confirm.side_effect = [True, False, True, True]
             mock_prompt.side_effect = [
                 "linear",
                 "TEAM",
@@ -307,8 +285,8 @@ class TestStateIntegration:
             patch("adw.cli.wizard.task_manager.Confirm.ask") as mock_confirm,
             patch("adw.cli.wizard.task_manager.Prompt.ask") as mock_prompt,
         ):
-            # enable, sync_comments, labels_enabled, auto_close, configure_mapping
-            mock_confirm.side_effect = [True, False, True, False, False]
+            # enable, sync_comments, labels_enabled, configure_mapping
+            mock_confirm.side_effect = [True, False, True, False]
             mock_prompt.side_effect = [
                 "linear",
                 "ADW",
