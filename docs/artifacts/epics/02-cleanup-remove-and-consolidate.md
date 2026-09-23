@@ -172,7 +172,7 @@ Include `adw global --help` and a full-suite pass in the PR.
 
 ## Phase 2.5 — Make dashboard settings read-only
 
-**Plan**: _not yet created_
+**Plan**: [02.5-make-dashboard-settings-read-only](../plans/02.5-make-dashboard-settings-read-only/PLAN.md) · status: done
 
 **Linear**: ADW-21 (https://linear.app/ivo-tsonev/issue/ADW-21)
 
@@ -192,11 +192,11 @@ Include `adw global --help` and a full-suite pass in the PR.
 
 ### Acceptance criteria
 
-- [ ] The settings page renders every remaining section for this repo's `.adw` config.
-- [ ] The only POST routes left are run start and abort. List them from `app.routes`.
-- [ ] Visiting every settings view leaves `.adw/project.yaml` and `.adw/commands/*/config.yaml` byte-identical.
-- [ ] `tests/dashboard/` no longer exists.
-- [ ] Lint and tests pass.
+- [x] The settings page renders every remaining section for this repo's `.adw` config.
+- [x] The only POST routes left are run start and abort. List them from `app.routes`.
+- [x] Visiting every settings view leaves `.adw/project.yaml` and `.adw/commands/*/config.yaml` byte-identical.
+- [x] `tests/dashboard/` no longer exists.
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -284,12 +284,12 @@ Include the greps, the timeout test, and `adw list` / `adw status` output showin
   - `PhaseRunner._load_project_config`
   - the ship extension's loader
   - `cli/dry_run.py`, which uses the base class and drops phase-specific fields
-  - `dashboard/partials.py`
+  - `dashboard/settings.py` (`_phase`), which also copies `PhaseRunner`'s tier-merge rules (moved there by phase 2.5)
 - `PhaseRunner` caches loaded configs per instance. Project config is parsed once per run, not 3 times per phase plus 5 more in bootstrap.
 - Fold `PhaseConfig` into `CommandConfig`. Its docstring documents a `phases:` key that doesn't exist. Merge `lint_command`, `doc_mappings` and the ship commands by the same rule as `enabled`, `input_files` and `llm`, and document that rule.
 - Replace the `ConfigLoader` class with a `load_project_config(root)` function.
 - `config/yaml_generator.py`: drop the registry parameter it never reads and `_format_setting_as_comment`, and read defaults from the models rather than hard-coding them.
-- Rename `config/registry.py` to `settings_catalog.py`, and drop the sections and methods nothing reads.
+- Rename `config/registry.py` to `settings_catalog.py`, and drop the sections and methods nothing reads. Since phase 2.5, only tests call `get_all_settings` and `get_phase_settings`.
 - `config/checker.py`: one helper replaces the 6 copies of the "executable on PATH" check.
 
 ### Acceptance criteria
@@ -298,6 +298,7 @@ Include the greps, the timeout test, and `adw list` / `adw status` output showin
 - [ ] `adw run --dry-run` shows phase-specific fields, such as the validate phase's `lint_command`, that it drops today.
 - [ ] A malformed phase config still fails with `INVALID_CONFIG`, and a malformed `project.yaml` with `INVALID_PROJECT_CONFIG`.
 - [ ] `grep -rn "PhaseConfig\b\|class ConfigLoader" src` returns nothing.
+- [ ] `dashboard/settings.py` reads phase configs through `load_command_config`. `grep -rn "yaml.safe_load\|model_validate" src/adw/dashboard` returns nothing.
 - [ ] Lint and tests pass.
 
 ### Validation

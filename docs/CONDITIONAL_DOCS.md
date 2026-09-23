@@ -201,34 +201,7 @@ This guide helps you find relevant documentation based on what you're working on
 
 - docs/features/settings-page-config-viewing.md
   - Conditions:
-    - When adding new editable config sections or tabs to the Settings page
-    - When implementing HTMX form save endpoints with CSRF validation in the dashboard
-    - When using the load-merge-validate-write pattern for project.yaml modifications
-    - When adding toast notifications via HTMX OOB swap in the dashboard
-    - When mapping flat form field names to nested config paths in the dashboard
-    - When integrating ConfigLoader or ConfigRegistry in new dashboard routes
-    - When displaying project config field metadata with defaults and descriptions
-
-- docs/features/complex-field-editors-task-manager-security.md
-  - Conditions:
-    - When adding new complex field editors (key-value or list) to the Settings page
-    - When implementing HTMX conditional partial swaps for type-dependent form fields in the dashboard
-    - When collecting indexed or mapping form fields from Starlette FormData in the dashboard
-    - When adding cross-field validation rules to Settings form sections
-    - When editing Task Manager integration or Security blocked patterns configuration
-
-- docs/features/phase-config-editor.md
-  - Conditions:
-    - When adding or modifying phase-specific configuration editors on the Settings page
-    - When implementing per-phase config save to `.adw/commands/{phase}/config.yaml`
-    - When using the key-value pair editor pattern with `addKVRow()`/`reindexKV()` in dashboard templates
-    - When extending phase config models or adding new phase-specific fields
-    - When working with `PHASE_DEFAULTS` or `get_config_class()` for phase configuration
-
-- docs/features/reset-defaults-changed-indicators-validation.md
-  - Conditions:
-    - When adding reset-to-default functionality to settings fields
-    - When implementing changed-from-default indicators on the Settings page
-    - When extending client-side validation in Settings forms
-    - When computing changed-count badges for settings tab labels
-    - When adding dynamic accent dot or reset button UI patterns to editable fields
+    - When changing the read-only Settings page or `dashboard/settings.py`
+    - When adding or removing a `ProjectConfig` section and checking how the Settings page shows it
+    - When changing how phase configs are resolved or merged (`PhaseRunner`, `CommandResolver`), since the Settings page copies those rules
+    - When adding a dashboard route that writes, which the write-surface guard test forbids
