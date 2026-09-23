@@ -1,6 +1,6 @@
 # Plan: Dependencies, tooling and repo hygiene
 
-Status: in-progress
+Status: done
 Branch: feature/adw-11
 Risk: small
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -75,16 +75,16 @@ See [DECISIONS.md](./DECISIONS.md) for the three choices that weighed real optio
 
 ## Acceptance Criteria
 
-- [ ] `uv sync --locked` and `scripts/preflight.sh` pass on a clean clone. Evidence: transcript from a `git clone` of the branch into the scratchpad.
-- [ ] `uv.lock` no longer lists `httptools`, `uvloop`, `watchfiles` or `websockets`, and `adw dashboard web --reload --no-browser` still serves `/`. Evidence: `grep -c` on `uv.lock`, the `StatReload` startup line, and `curl -s -o /dev/null -w '%{http_code}'` returning `200`.
-- [ ] `uv run pytest --collect-only -q | tail -1` gives the same count before and after the pytest-config trim.
-- [ ] `scripts/preflight.sh` and the CI lint job both check `tests/`, and the CI test step runs a bare `uv run pytest`. Evidence: the diff, plus preflight output showing the `tests/` checks.
-- [ ] `update.sh` is gone. In a scratch clone, `scripts/bump.sh patch` makes one commit that changes only `pyproject.toml` and `uv.lock` to the next patch version, and `uv sync --locked` passes afterwards.
-- [ ] The documented install command gives an `adw` whose `adw --version` matches `pyproject.toml`. Evidence: `which adw && adw --version` with the isolated tool bin dir first on `PATH`.
-- [ ] `git grep -nP 'Story [0-9]|ISS-[0-9]|Epic [0-9]|\bUX-[A-Z0-9]|\bN?FR-?[0-9]+\b|\bAC ?#?[0-9]+\b|\bAC:' -- src/adw tests` returns nothing. This covers the epic's `grep -rnE "Story [0-9]|ISS-[0-9]|Epic [0-9]" src/adw`.
-- [ ] `adw run --help` and `adw pr --help` show no tag.
-- [ ] The main checkout has no directory under `src/` or `tests/` that holds only `__pycache__`.
-- [ ] `uv run pytest` is green with coverage at or above 80%.
+- [x] `uv sync --locked` and `scripts/preflight.sh` pass on a clean clone. Evidence: transcript from a `git clone` of the branch into the scratchpad.
+- [x] `uv.lock` no longer lists `httptools`, `uvloop`, `watchfiles` or `websockets`, and `adw dashboard web --reload --no-browser` still serves `/`. Evidence: `grep -c` on `uv.lock`, the `StatReload` startup line, and `curl -s -o /dev/null -w '%{http_code}'` returning `200`.
+- [x] `uv run pytest --collect-only -q | tail -1` gives the same count before and after the pytest-config trim.
+- [x] `scripts/preflight.sh` and the CI lint job both check `tests/`, and the CI test step runs a bare `uv run pytest`. Evidence: the diff, plus preflight output showing the `tests/` checks.
+- [x] `update.sh` is gone. In a scratch clone, `scripts/bump.sh patch` makes one commit that changes only `pyproject.toml` and `uv.lock` to the next patch version, and `uv sync --locked` passes afterwards.
+- [x] The documented install command gives an `adw` whose `adw --version` matches `pyproject.toml`. Evidence: `which adw && adw --version` with the isolated tool bin dir first on `PATH`.
+- [x] `git grep -nP 'Story [0-9]|ISS-[0-9]|Epic [0-9]|\bUX-[A-Z0-9]|\bN?FR-?[0-9]+\b|\bAC ?#?[0-9]+\b|\bAC:' -- src/adw tests` returns nothing. This covers the epic's `grep -rnE "Story [0-9]|ISS-[0-9]|Epic [0-9]" src/adw`.
+- [x] `adw run --help` and `adw pr --help` show no tag.
+- [x] The main checkout has no directory under `src/` or `tests/` that holds only `__pycache__`.
+- [x] `uv run pytest` is green with coverage at or above 80%.
 
 ## Post-merge
 
@@ -104,4 +104,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-003: Replace update.sh with a uv version-bump script
 - [x] TASK-004: Strip planning tags from src
 - [x] TASK-005: Strip planning tags from tests (depends on TASK-004)
-- [ ] TASK-006: Final Validation
+- [x] TASK-006: Final Validation

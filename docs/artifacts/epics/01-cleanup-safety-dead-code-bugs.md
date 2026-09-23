@@ -201,7 +201,7 @@ Include `uv run pytest --collect-only -q | tail -1` before and after, and the fi
 
 ## Phase 1.5 — Dependencies, tooling and repo hygiene
 
-**Plan**: [01.5-dependencies-tooling-repo-hygiene](../plans/01.5-dependencies-tooling-repo-hygiene/PLAN.md) · status: in-progress
+**Plan**: [01.5-dependencies-tooling-repo-hygiene](../plans/01.5-dependencies-tooling-repo-hygiene/PLAN.md) · status: done
 
 **Linear**: ADW-11 (https://linear.app/ivo-tsonev/issue/ADW-11)
 
@@ -220,11 +220,11 @@ Include `uv run pytest --collect-only -q | tail -1` before and after, and the fi
 
 ### Acceptance criteria
 
-- [ ] `uv sync --locked` and `scripts/preflight.sh` pass on a clean clone.
-- [ ] `grep -rnE "Story [0-9]|ISS-[0-9]|Epic [0-9]" src/adw` returns nothing.
-- [ ] `adw run --help` shows no story reference.
-- [ ] The documented install command yields an `adw` whose `adw --version` matches `pyproject.toml`.
-- [ ] Lint and tests pass.
+- [x] `uv sync --locked` and `scripts/preflight.sh` pass on a clean clone. Preflight now also lints and format-checks `tests/`.
+- [x] `grep -rnE "Story [0-9]|ISS-[0-9]|Epic [0-9]" src/adw` returns nothing. So does the wider UX/FR/NFR/AC pattern, over `src/adw` and `tests`.
+- [x] `adw run --help` shows no story reference, and neither does `adw pr --help`.
+- [x] The documented install command yields an `adw` whose `adw --version` matches `pyproject.toml`: `uv tool install --editable .` into an isolated tool dir prints `0.1.67`. See [VALIDATION.md](../plans/01.5-dependencies-tooling-repo-hygiene/VALIDATION.md).
+- [x] Lint and tests pass. 3730 passed, 5 skipped, 85.56%.
 
 ### Validation
 
@@ -402,4 +402,4 @@ Include rendered-prompt snapshots (before/after) for the document and validate p
 - [ ] Status row in [EPICS.md](./EPICS.md) updated to `Done`
 - [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code — phase 1.9: B10 `test_runner_uses_project_hook_config`, `test_project_hook_timeout_stops_post_hook`; B16 `test_non_worktree_run_switches_branch_before_plan`, `test_build_post_hook_extracts_story_and_leaves_changes_uncommitted`, see [VALIDATION.md](../plans/archive/2026-09-23-01.9-hook-config-and-phase-hook-scripts/VALIDATION.md); phase 1.8: B3 `test_build_cmd_in_env_without_ship_config`, `test_ship_hook_env_carries_project_build_command`; B4 `test_reads_log_written_by_run`, `test_log_stream_emits_live_log_lines`; B11 `test_initialize_writes_loadable_config`, `test_init_output_passes_validate`; B17 `test_accepted_defaults_yield_ship_mapping`; B21 `test_run_events_close_on_interrupted`, `test_log_stream_closes_on_interrupted`; phase 1.7: B1 `test_auto_close_leaves_ticket_open_and_warns_once`, B12 `test_pr_sets_pr_url`, see [VALIDATION.md](../plans/archive/2026-09-23-01.7-carry-pr-url-on-run-context/VALIDATION.md); phase 1.10: B5 `test_document_prompt_fills_included_build_diff`, `test_validate_prompt_fills_included_commands`, see [VALIDATION.md](../plans/archive/2026-09-23-01.10-expand-includes-before-substitution/VALIDATION.md)
 - [ ] The full suite runs without touching the checkout or `~/.adw`, and is at least 50 s faster than before the epic — phase 1.1: no-touch diff empty, 210.2 s → 157.1 s (−53.1 s), see [VALIDATION.md](../plans/archive/2026-09-23-01.1-isolate-test-suite/VALIDATION.md)
-- [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l` — phase 1.2: 46,993 → 44,596 (−2,397; −2,420 against `cdb2003f`'s 47,016), see [VALIDATION.md](../plans/archive/2026-09-23-01.2-delete-dead-code/VALIDATION.md); phase 1.10: 42,282 → 41,983 (−299), see [VALIDATION.md](../plans/archive/2026-09-23-01.10-expand-includes-before-substitution/VALIDATION.md)
+- [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l` — phase 1.2: 46,993 → 44,596 (−2,397; −2,420 against `cdb2003f`'s 47,016), see [VALIDATION.md](../plans/archive/2026-09-23-01.2-delete-dead-code/VALIDATION.md); phase 1.10: 42,282 → 41,983 (−299), see [VALIDATION.md](../plans/archive/2026-09-23-01.10-expand-includes-before-substitution/VALIDATION.md); phase 1.5: 42,102 → 42,085 (−17), see [VALIDATION.md](../plans/01.5-dependencies-tooling-repo-hygiene/VALIDATION.md)
