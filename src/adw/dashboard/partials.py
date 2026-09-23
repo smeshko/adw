@@ -25,6 +25,7 @@ from adw.dashboard.dependencies import (
     get_stats_aggregator,
     resolve_project_filter,
 )
+from adw.dashboard.settings import settings_context
 from adw.exceptions import StateError
 from adw.models.config import DEFAULT_STATE_MAPPING
 
@@ -1216,60 +1217,25 @@ async def settings_content(
     tab: str = Query("project", alias="tab"),
     project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
-    """Return the settings tab content fragment for a given project.
+    """Return the read-only settings tab content fragment for a project.
 
     This is the HTMX target when the user clicks a settings tab —
     it swaps out the content area without reloading the entire page.
     """
-    from adw.config.loader import ConfigLoader
-    from adw.config.registry import ConfigRegistry
-    from adw.dashboard.routes import (
-        _SETTINGS_TABS,
-        _build_phase_settings,
-        build_complex_settings_context,
-        build_settings_context,
-        compute_changed_counts,
-    )
-
     templates: Jinja2Templates = request.app.state.templates
-    config = None
 
-    if project:
-        project_path_str, _ = resolve_project_filter(project_registry, project)
-        if project_path_str:
-            try:
-                loader = ConfigLoader(project_root=Path(project_path_str))
-                config = loader.load()
-            except Exception:
-                logger.warning(
-                    "Failed to load config for settings partial",
-                    extra={"project": project},
-                )
-
-    registry = ConfigRegistry()
-    settings_sections = build_settings_context(config, registry)
-    phase_settings = _build_phase_settings(config, registry)
-    complex_ctx = build_complex_settings_context(config)
-
-    valid_tab_keys = [t[0] for t in _SETTINGS_TABS]
-    if tab not in valid_tab_keys:
-        tab = "project"
+    project_path_str, _ = resolve_project_filter(project_registry, project)
+    if not project_path_str:
+        return HTMLResponse(
+            content='<p class="text-error text-sm">Project not found</p>',
+            status_code=404,
+        )
 
     context = {
         "request": request,
-        "active_tab": tab,
-        "settings_sections": settings_sections,
-        "phase_settings": phase_settings,
-        "has_config": config is not None,
-        "selected_settings_project": project or None,
-        "csrf_token": generate_csrf_token(request),
-        "changed_counts": compute_changed_counts(
-            settings_sections,
-            complex_ctx["task_manager_context"],
-            complex_ctx["security_context"],
-        ),
+        "selected_settings_project": project,
+        **settings_context(Path(project_path_str), tab),
     }
-    context.update(complex_ctx)
 
     return templates.TemplateResponse(
         request, "partials/settings_content.html", context

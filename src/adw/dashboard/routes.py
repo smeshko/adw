@@ -36,6 +36,7 @@ from adw.dashboard.dependencies import (
     get_stats_aggregator,
     resolve_project_filter,
 )
+from adw.dashboard.settings import settings_context
 from adw.exceptions import StateError
 from adw.models.config import DEFAULT_STATE_MAPPING
 from adw.models.stats import TokenUsage
@@ -2081,14 +2082,11 @@ async def settings(
     index_manager: IndexManager = Depends(get_index_manager),
     project_registry: ProjectRegistryManager = Depends(get_project_registry),
 ) -> HTMLResponse:
-    """Render the settings page.
+    """Render the read-only settings page.
 
     Returns the full page or just the ``#settings`` partial
     depending on whether the request came from HTMX.
     """
-    from adw.config.loader import ConfigLoader
-    from adw.config.registry import ConfigRegistry
-
     templates: Jinja2Templates = request.app.state.templates
     context = _build_page_context(
         request,
@@ -2103,61 +2101,10 @@ async def settings(
     settings_projects = [{"path": str(p.path), "name": p.name} for p in all_projects]
     context["settings_projects"] = settings_projects
 
-    # Resolve selected project
-    selected_settings_project: str | None = None
-    config = None
-
-    if project:
-        # Resolve display name to path
-        project_path_str, _ = resolve_project_filter(project_registry, project)
-        if project_path_str:
-            selected_settings_project = project
-            try:
-                loader = ConfigLoader(project_root=Path(project_path_str))
-                config = loader.load()
-            except Exception:
-                logger.warning(
-                    "Failed to load config for project",
-                    extra={"project": project},
-                )
-
-    context["selected_settings_project"] = selected_settings_project
-
-    # Build settings data if project is loaded
-    registry = ConfigRegistry()
-    complex_ctx = build_complex_settings_context(config)
-    if config is not None:
-        context["settings_sections"] = build_settings_context(config, registry)
-        context["phase_settings"] = _build_phase_settings(config, registry)
-        context["has_config"] = True
-        context["has_project_config"] = ConfigLoader(
-            project_root=Path(
-                resolve_project_filter(project_registry, project)[0] or ""
-            )
-        ).has_project_config
-    else:
-        context["settings_sections"] = build_settings_context(None, registry)
-        context["phase_settings"] = _build_phase_settings(None, registry)
-        context["has_config"] = False
-        context["has_project_config"] = False
-    context.update(complex_ctx)
-
-    # Compute changed-from-default counts per section for tab badges
-    context["changed_counts"] = compute_changed_counts(
-        context["settings_sections"],
-        complex_ctx["task_manager_context"],
-        complex_ctx["security_context"],
-    )
-
-    # CSRF token for editable settings forms
-    context["csrf_token"] = generate_csrf_token(request)
-
-    # Tab state
-    valid_tab_keys = [t[0] for t in _SETTINGS_TABS]
-    if tab not in valid_tab_keys:
-        tab = "project"
-    context["active_tab"] = tab
-    context["settings_tabs"] = _SETTINGS_TABS
+    project_path_str, _ = resolve_project_filter(project_registry, project)
+    context["selected_settings_project"] = project if project_path_str else None
+    if project_path_str:
+        context.update(settings_context(Path(project_path_str), tab))
 
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "partials/settings.html", context)

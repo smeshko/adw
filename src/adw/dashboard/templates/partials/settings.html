@@ -14,7 +14,7 @@
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
-    <span class="text-sm">Configuration changes take effect on the next ADW run.</span>
+    <span class="text-sm">Read-only. To change a setting, edit <code class="font-mono">.adw/project.yaml</code> or <code class="font-mono">.adw/commands/&lt;phase&gt;/config.yaml</code>; changes take effect on the next ADW run.</span>
   </div>
 
   {# Project Selector #}
@@ -52,6 +52,14 @@
   </div>
 
   {% else %}
+  {% if config_error %}
+  <div class="alert alert-error mb-6">
+    <pre class="whitespace-pre-wrap font-mono text-xs">{{ config_error }}</pre>
+  </div>
+  {% elif not has_project_file %}
+  <p class="text-sm text-base-content/60 mb-4">No <code class="font-mono">.adw/project.yaml</code>; showing the defaults detected for this project.</p>
+  {% endif %}
+
   {# ── Tab Navigation ── #}
   <div class="tabs tabs-box mb-6">
     {% for tab_key, tab_label in settings_tabs %}
@@ -59,7 +67,7 @@
        hx-get="{{ tab_content_url(tab=tab_key) }}"
        hx-target="#settings-content"
        hx-swap="innerHTML"
-       onclick="document.querySelectorAll('.tabs.tabs-box .tab').forEach(function(t){t.classList.remove('tab-active')});this.classList.add('tab-active')">{{ tab_label }}{% if changed_counts.get(tab_key, 0) > 0 %} <span class="badge badge-sm badge-ghost ml-1">{{ changed_counts[tab_key] }}</span>{% endif %}</a>
+       onclick="document.querySelectorAll('.tabs.tabs-box .tab').forEach(function(t){t.classList.remove('tab-active')});this.classList.add('tab-active')">{{ tab_label }}</a>
     {% endfor %}
   </div>
 

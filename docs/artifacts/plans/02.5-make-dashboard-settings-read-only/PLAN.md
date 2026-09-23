@@ -1,6 +1,6 @@
 # Plan: Make dashboard settings read-only
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-21
 Risk: medium
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -105,7 +105,7 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Render the settings page from a read-only settings_context
+- [x] TASK-001: Render the settings page from a read-only settings_context
 - [ ] TASK-002: Delete the settings editing path (depends on TASK-001)
 - [ ] TASK-003: Rewrite the settings docs for the read-only page (depends on TASK-002)
 - [ ] TASK-004: Final Validation
