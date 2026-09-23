@@ -2,7 +2,7 @@
 
 This package contains all Pydantic models used throughout ADW:
 - artifacts: DiffStats
-- command: ResolvedCommand, LoadedCommand, ValidateCommandConfig, ShipCommandConfig,
+- command: ResolvedCommand, ValidateCommandConfig, ShipCommandConfig,
            ShipCommandsConfig, DocumentCommandConfig, DocMappingConfig
 - context: RunContext, SessionContext, ProjectContext, StateSnapshot
 - phase: PhaseStatus, PhaseResult, Artifact, ArtifactType
@@ -25,7 +25,6 @@ from adw.models.artifacts import DiffStats
 from adw.models.command import (
     DocMappingConfig,
     DocumentCommandConfig,
-    LoadedCommand,
     ResolvedCommand,
     ShipCommandConfig,
     ShipCommandsConfig,
@@ -94,7 +93,6 @@ __all__: list[str] = [
     # Command models
     "DocMappingConfig",
     "DocumentCommandConfig",
-    "LoadedCommand",
     "ResolvedCommand",
     "ShipCommandConfig",
     "ShipCommandsConfig",

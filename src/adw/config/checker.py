@@ -16,10 +16,13 @@ from typing import Any
 import yaml
 from pydantic import ValidationError as PydanticValidationError
 
-from adw.commands.loader import get_config_class
 from adw.commands.resolver import CommandResolver
 from adw.core.constants import PHASE_SEQUENCE
-from adw.models.command import ShipCommandConfig, ValidateCommandConfig
+from adw.models.command import (
+    ShipCommandConfig,
+    ValidateCommandConfig,
+    get_config_class,
+)
 from adw.models.config import ProjectConfig
 
 __all__ = ["CheckReport", "CheckResult", "ConfigChecker", "Severity"]

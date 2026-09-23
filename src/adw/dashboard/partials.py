@@ -1310,7 +1310,7 @@ async def phase_config_partial(
     """
     import yaml as _yaml
 
-    from adw.commands.loader import get_config_class
+    from adw.models.command import get_config_class
 
     if phase not in _VALID_PHASES:
         return HTMLResponse(content="Invalid phase.", status_code=400)

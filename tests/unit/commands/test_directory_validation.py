@@ -79,7 +79,7 @@ class TestCommandDirectoryValidation:
         resolver = CommandResolver(project_root=tmp_path)
         result = resolver.resolve("plan")
 
-        assert result.has_pre_hook is True
+        assert result.pre_hook_path is not None
 
     def test_detects_pre_hook_sh_presence(self, tmp_path: Path) -> None:
         """Should correctly detect pre-hook.sh (alternate name)."""
@@ -91,7 +91,7 @@ class TestCommandDirectoryValidation:
         resolver = CommandResolver(project_root=tmp_path)
         result = resolver.resolve("plan")
 
-        assert result.has_pre_hook is True
+        assert result.pre_hook_path is not None
 
     def test_detects_post_sh_presence(self, tmp_path: Path) -> None:
         """Should correctly detect post.sh."""
@@ -103,7 +103,7 @@ class TestCommandDirectoryValidation:
         resolver = CommandResolver(project_root=tmp_path)
         result = resolver.resolve("plan")
 
-        assert result.has_post_hook is True
+        assert result.post_hook_path is not None
 
     def test_detects_post_hook_sh_presence(self, tmp_path: Path) -> None:
         """Should correctly detect post-hook.sh (alternate name)."""
@@ -115,7 +115,7 @@ class TestCommandDirectoryValidation:
         resolver = CommandResolver(project_root=tmp_path)
         result = resolver.resolve("plan")
 
-        assert result.has_post_hook is True
+        assert result.post_hook_path is not None
 
     def test_detects_hooks_absence(self, tmp_path: Path) -> None:
         """Should correctly detect missing hooks."""
@@ -128,8 +128,8 @@ class TestCommandDirectoryValidation:
         resolver = CommandResolver(project_root=tmp_path)
         result = resolver.resolve("custom-no-hooks")
 
-        assert result.has_pre_hook is False
-        assert result.has_post_hook is False
+        assert result.pre_hook_path is None
+        assert result.post_hook_path is None
 
     def test_full_command_directory_structure(self, tmp_path: Path) -> None:
         """Should detect all files in a fully-equipped command directory."""
@@ -145,5 +145,5 @@ class TestCommandDirectoryValidation:
 
         assert result.name == "build"
         assert result.has_schema is True
-        assert result.has_pre_hook is True
-        assert result.has_post_hook is True
+        assert result.pre_hook_path is not None
+        assert result.post_hook_path is not None

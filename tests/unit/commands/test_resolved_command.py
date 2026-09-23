@@ -54,8 +54,8 @@ class TestResolvedCommandModel:
         )
 
         assert cmd.has_schema is False
-        assert cmd.has_pre_hook is False
-        assert cmd.has_post_hook is False
+        assert cmd.pre_hook_path is None
+        assert cmd.post_hook_path is None
 
     def test_resolved_command_tier_literal(self, tmp_path: Path) -> None:
         """Tier should only accept project, user, or bundled."""
@@ -121,8 +121,8 @@ class TestResolvedCommandModel:
             post_hook_paths=[command_dir / "post.sh"],
         )
 
-        assert cmd.has_pre_hook is True
-        assert cmd.has_post_hook is True
+        assert cmd.pre_hook_path is not None
+        assert cmd.post_hook_path is not None
 
     def test_resolved_command_path_must_be_path_object(self, tmp_path: Path) -> None:
         """Path should be a Path object, not a string."""
