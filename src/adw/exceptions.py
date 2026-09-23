@@ -1,28 +1,18 @@
-"""ADW Exception hierarchy.
+"""ADW exception hierarchy.
 
-This module defines the custom exception hierarchy for ADW with typed errors
-that provide consistent error handling and actionable error messages.
+Every ADW error carries a code, a message, an optional suggestion and a
+recoverable flag, which the CLI renders as an error panel.
 """
-
-from typing import Any
 
 
 class ADWError(Exception):
     """Base exception for all ADW errors.
 
-    All ADW exceptions inherit from this class and provide:
-    - code: A unique error code (e.g., "CONFIG_NOT_FOUND")
-    - message: A human-readable error message
-    - suggestion: An optional actionable suggestion for resolution
-    - recoverable: Whether the error can be retried
-
-    Example:
-        >>> raise ADWError(
-        ...     code="CONFIG_NOT_FOUND",
-        ...     message="Configuration file not found",
-        ...     suggestion="Create an project.yaml file in the project root",
-        ...     recoverable=False,
-        ... )
+    Attributes:
+        code: A unique error code (e.g., "CONFIG_NOT_FOUND").
+        message: A human-readable error message.
+        suggestion: An optional actionable suggestion for resolution.
+        recoverable: Whether the operation can be retried.
     """
 
     def __init__(
@@ -58,19 +48,6 @@ class ADWError(Exception):
             parts.append(f"Suggestion: {self.suggestion}")
         return "\n".join(parts)
 
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize error to dictionary for structured logging.
-
-        Returns:
-            Dictionary containing all error attributes.
-        """
-        return {
-            "code": self.code,
-            "message": self.message,
-            "suggestion": self.suggestion,
-            "recoverable": self.recoverable,
-        }
-
 
 class ConfigError(ADWError):
     """Exception for configuration-related errors.
@@ -81,37 +58,7 @@ class ConfigError(ADWError):
     Common error codes:
     - CONFIG_NOT_FOUND: Configuration file doesn't exist
     - INVALID_CONFIG: Configuration file has invalid content
-
-    Example:
-        >>> raise ConfigError(
-        ...     code="CONFIG_NOT_FOUND",
-        ...     message="Configuration file not found at ./project.yaml",
-        ...     suggestion="Create an project.yaml file in the project root",
-        ... )
     """
-
-    def __init__(
-        self,
-        code: str,
-        message: str,
-        *,
-        suggestion: str | None = None,
-        recoverable: bool = False,
-    ) -> None:
-        """Initialize a ConfigError.
-
-        Args:
-            code: Unique error code (e.g., "CONFIG_NOT_FOUND").
-            message: Human-readable error message.
-            suggestion: Optional actionable next step.
-            recoverable: Whether the operation can be retried (default False).
-        """
-        super().__init__(
-            code=code,
-            message=message,
-            suggestion=suggestion,
-            recoverable=recoverable,
-        )
 
 
 class HookError(ADWError):
@@ -123,16 +70,6 @@ class HookError(ADWError):
     Common error codes:
     - HOOK_FAILED: Hook script exited with non-zero status
     - HOOK_TIMEOUT: Hook script exceeded timeout
-
-    Example:
-        >>> raise HookError(
-        ...     code="HOOK_FAILED",
-        ...     message="Pre-hook exited with code 1",
-        ...     suggestion="Check hook script for errors",
-        ...     phase="build",
-        ...     exit_code=1,
-        ...     stderr="Permission denied",
-        ... )
     """
 
     def __init__(
@@ -173,60 +110,12 @@ class HookError(ADWError):
         self.stderr = stderr
         self.duration_ms = duration_ms
 
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize error to dictionary for structured logging.
-
-        Returns:
-            Dictionary containing all error attributes including hook-specific fields.
-        """
-        d = super().to_dict()
-        d.update(
-            {
-                "phase": self.phase,
-                "exit_code": self.exit_code,
-                "stdout": self.stdout,
-                "stderr": self.stderr,
-                "duration_ms": self.duration_ms,
-            }
-        )
-        return d
-
 
 class LLMError(ADWError):
     """Exception for LLM-related errors.
 
     Used for issues with Claude Code or other LLM interactions.
-
-    Example:
-        >>> raise LLMError(
-        ...     code="LLM_ERROR",
-        ...     message="LLM call failed unexpectedly",
-        ...     suggestion="Check Claude Code configuration",
-        ... )
     """
-
-    def __init__(
-        self,
-        code: str,
-        message: str,
-        *,
-        suggestion: str | None = None,
-        recoverable: bool = False,
-    ) -> None:
-        """Initialize an LLMError.
-
-        Args:
-            code: Unique error code (e.g., "LLM_ERROR").
-            message: Human-readable error message.
-            suggestion: Optional actionable next step.
-            recoverable: Whether the operation can be retried (default False).
-        """
-        super().__init__(
-            code=code,
-            message=message,
-            suggestion=suggestion,
-            recoverable=recoverable,
-        )
 
 
 class StateError(ADWError):
@@ -238,80 +127,23 @@ class StateError(ADWError):
     - CONTEXT_CORRUPTED: State file is corrupted or invalid
     - SNAPSHOT_FAILED: Failed to create or load state snapshot
     - RUN_NOT_FOUND: Specified run ID doesn't exist
-
-    Example:
-        >>> raise StateError(
-        ...     code="RUN_NOT_FOUND",
-        ...     message="Run 'abc123' not found",
-        ...     suggestion="Use 'adw list' to see available runs",
-        ... )
     """
-
-    def __init__(
-        self,
-        code: str,
-        message: str,
-        *,
-        suggestion: str | None = None,
-        recoverable: bool = False,
-    ) -> None:
-        """Initialize a StateError.
-
-        Args:
-            code: Unique error code (e.g., "RUN_NOT_FOUND").
-            message: Human-readable error message.
-            suggestion: Optional actionable next step.
-            recoverable: Whether the operation can be retried (default False).
-        """
-        super().__init__(
-            code=code,
-            message=message,
-            suggestion=suggestion,
-            recoverable=recoverable,
-        )
 
 
 class WorktreeError(ADWError):
     """Exception for worktree operation failures.
 
-    Used when git worktree creation, removal, or management fails.
+    Used when git worktree creation, removal, or management fails, and when
+    a run cannot get ports or a concurrent-run slot.
 
     Common error codes:
     - BRANCH_EXISTS: The target branch already exists
     - WORKTREE_PATH_EXISTS: The worktree directory already exists
     - WORKTREE_NOT_FOUND: The worktree doesn't exist
     - WORKTREE_HAS_CHANGES: Worktree has uncommitted changes
-
-    Example:
-        >>> raise WorktreeError(
-        ...     code="BRANCH_EXISTS",
-        ...     message="Branch 'adw/01HQ123' already exists",
-        ...     suggestion="Delete the branch or use a different run ID",
-        ... )
+    - PORT_ALLOCATION_FAILED: No free port slot after the allowed attempts
+    - MAX_CONCURRENT_REACHED: The concurrent-run limit is reached
     """
-
-    def __init__(
-        self,
-        code: str,
-        message: str,
-        *,
-        suggestion: str | None = None,
-        recoverable: bool = False,
-    ) -> None:
-        """Initialize a WorktreeError.
-
-        Args:
-            code: Unique error code (e.g., "BRANCH_EXISTS").
-            message: Human-readable error message.
-            suggestion: Optional actionable next step.
-            recoverable: Whether the operation can be retried (default False).
-        """
-        super().__init__(
-            code=code,
-            message=message,
-            suggestion=suggestion,
-            recoverable=recoverable,
-        )
 
 
 class TaskError(ADWError):
@@ -325,14 +157,6 @@ class TaskError(ADWError):
     - TASK_FETCH_FAILED: Failed to fetch task information
     - TASK_UPDATE_FAILED: Failed to update task status
     - NO_TASK_MANAGER: No task manager is configured
-
-    Example:
-        >>> raise TaskError(
-        ...     code="TASK_NOT_FOUND",
-        ...     message="Task 'RULE-123' not found",
-        ...     suggestion="Verify the task ID is correct",
-        ...     task_id="RULE-123",
-        ... )
     """
 
     def __init__(
@@ -361,20 +185,6 @@ class TaskError(ADWError):
         )
         self.task_id = task_id
 
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize error to dictionary for structured logging.
-
-        Returns:
-            Dictionary containing all error attributes including task_id.
-        """
-        d = super().to_dict()
-        d.update(
-            {
-                "task_id": self.task_id,
-            }
-        )
-        return d
-
 
 class SecurityError(ADWError):
     """Exception for security-related blocking.
@@ -385,17 +195,6 @@ class SecurityError(ADWError):
     Common error codes:
     - DANGEROUS_COMMAND_BLOCKED: A shell command matched a blocked pattern
     - DANGEROUS_FILE_ACCESS: A file access matched a blocked pattern
-
-    Example:
-        >>> raise SecurityError(
-        ...     code="DANGEROUS_COMMAND_BLOCKED",
-        ...     message="Command 'rm -rf /' blocked for safety",
-        ...     pattern_matched=r"rm\\s+-rf\\s+/",
-        ...     tool_name="Bash",
-        ...     alternatives=["Use specific paths: rm -rf ./node_modules"],
-        ...     override_instruction="adw run --allow-dangerous 'feature'",
-        ...     severity="critical",
-        ... )
     """
 
     def __init__(
@@ -456,21 +255,3 @@ class SecurityError(ADWError):
             parts.append(f"Suggestion: {self.suggestion}")
 
         return "\n".join(parts)
-
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize error to dictionary for structured logging.
-
-        Returns:
-            Dictionary containing all error attributes including security fields.
-        """
-        d = super().to_dict()
-        d.update(
-            {
-                "pattern_matched": self.pattern_matched,
-                "tool_name": self.tool_name,
-                "alternatives": self.alternatives,
-                "override_instruction": self.override_instruction,
-                "severity": self.severity,
-            }
-        )
-        return d
