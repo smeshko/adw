@@ -7,11 +7,11 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+from ulid import ULID
 
 from adw.core.run_directory import RunDirectoryManager
 from adw.exceptions import StateError
 from adw.models import RunContext
-from adw.utils.ulid import generate_run_id
 
 
 @pytest.fixture
@@ -24,7 +24,7 @@ def run_manager(tmp_path: Path) -> RunDirectoryManager:
 def sample_context() -> RunContext:
     """Create a sample RunContext for testing."""
     return RunContext(
-        run_id=generate_run_id(),
+        run_id=str(ULID()),
         feature_description="Test feature",
         current_phase="plan",
         started_at=datetime.now(),
@@ -101,7 +101,7 @@ class TestDirectoryStructureCreation:
         """Test that multiple runs can be created."""
         contexts = [
             RunContext(
-                run_id=generate_run_id(),
+                run_id=str(ULID()),
                 feature_description=f"Feature {i}",
                 current_phase="plan",
                 started_at=datetime.now(),
@@ -239,7 +239,7 @@ class TestRunListing:
         contexts = []
         for i in range(3):
             ctx = RunContext(
-                run_id=generate_run_id(),
+                run_id=str(ULID()),
                 feature_description=f"Feature {i}",
                 current_phase="plan",
                 started_at=datetime.now(),

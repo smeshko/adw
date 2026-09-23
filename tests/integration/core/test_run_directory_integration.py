@@ -10,10 +10,10 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+from ulid import ULID
 
 from adw.core.run_directory import RunDirectoryManager
 from adw.models import RunContext
-from adw.utils.ulid import generate_run_id
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ class TestFullWorkflow:
 
         # Create a run
         context = RunContext(
-            run_id=generate_run_id(),
+            run_id=str(ULID()),
             feature_description="Add user authentication",
             current_phase="plan",
             started_at=datetime.now(),
@@ -75,7 +75,7 @@ class TestFullWorkflow:
         run_ids = []
         for i in range(5):
             context = RunContext(
-                run_id=generate_run_id(),
+                run_id=str(ULID()),
                 feature_description=f"Feature {i}",
                 current_phase="plan",
                 started_at=datetime.now(),
@@ -104,7 +104,7 @@ class TestConcurrentAccess:
         manager = RunDirectoryManager(project_structure)
 
         context = RunContext(
-            run_id=generate_run_id(),
+            run_id=str(ULID()),
             feature_description="Test concurrent access",
             current_phase="plan",
             started_at=datetime.now(),
@@ -133,7 +133,7 @@ class TestConcurrentAccess:
         manager = RunDirectoryManager(project_structure)
 
         context = RunContext(
-            run_id=generate_run_id(),
+            run_id=str(ULID()),
             feature_description="Test multiprocess",
             current_phase="plan",
             started_at=datetime.now(),
@@ -183,7 +183,7 @@ class TestPersistenceAcrossRestarts:
         # Create run with first manager
         manager1 = RunDirectoryManager(project_structure)
         context = RunContext(
-            run_id=generate_run_id(),
+            run_id=str(ULID()),
             feature_description="Persistent run",
             current_phase="plan",
             started_at=datetime.now(),
@@ -218,7 +218,7 @@ class TestEdgeCases:
 
         manager = RunDirectoryManager(special_path)
         context = RunContext(
-            run_id=generate_run_id(),
+            run_id=str(ULID()),
             feature_description="Special path test",
             current_phase="plan",
             started_at=datetime.now(),
@@ -237,7 +237,7 @@ class TestEdgeCases:
 
         # Use unicode in feature description
         context = RunContext(
-            run_id=generate_run_id(),
+            run_id=str(ULID()),
             feature_description="添加用户认证 🔐 مصادقة المستخدم",
             current_phase="plan",
             started_at=datetime.now(),
@@ -259,7 +259,7 @@ class TestEdgeCases:
 
         manager = RunDirectoryManager(deep_path)
         context = RunContext(
-            run_id=generate_run_id(),
+            run_id=str(ULID()),
             feature_description="Deep path test",
             current_phase="plan",
             started_at=datetime.now(),

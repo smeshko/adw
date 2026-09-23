@@ -13,7 +13,6 @@ This package contains all Pydantic models used throughout ADW:
 - index: IndexEntry
 - security: BlockedPattern, SecurityConfig, ToolCallLog
 - pr: PRDescription
-- validation: ValidationResult
 - task: TaskInfo
 - resume: ResumeInfo, ResumeStatus
 - webhook: WebhookConfig, ProviderConfig
@@ -81,7 +80,6 @@ from adw.models.task import TaskInfo
 from adw.models.webhook import ProviderConfig, WebhookConfig
 from adw.models.wizard import WizardState
 from adw.models.worktree import PortAllocation
-from adw.validation.models import ValidationResult
 
 # Rebuild models to resolve forward references
 # This must happen after all models are imported
@@ -159,6 +157,4 @@ __all__: list[str] = [
     "WizardState",
     # Worktree models
     "PortAllocation",
-    # Validation models
-    "ValidationResult",
 ]

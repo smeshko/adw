@@ -78,7 +78,7 @@ Diff the two snapshots and paste the result, plus both runs' `--durations=15` ou
 
 ## Phase 1.2 — Delete dead modules and symbols
 
-**Plan**: [01.2-delete-dead-code](../plans/01.2-delete-dead-code/PLAN.md) · status: planned
+**Plan**: [01.2-delete-dead-code](../plans/01.2-delete-dead-code/PLAN.md) · status: in-progress
 
 **Linear**: ADW-8 (https://linear.app/ivo-tsonev/issue/ADW-8)
 

@@ -1,6 +1,6 @@
 # Plan: Delete dead modules and symbols
 
-Status: ready
+Status: in-progress
 Branch: feature/adw-8
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -105,7 +105,7 @@ See [RESEARCH.md](./RESEARCH.md). The plan was prototyped on a scratch copy of `
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Delete adw.validation and adw.utils
+- [x] TASK-001: Delete adw.validation and adw.utils
 - [ ] TASK-002: Delete SchemaValidator, ValidationError and jsonschema (depends on TASK-001)
 - [ ] TASK-003: Move get_config_class into models and delete CommandLoader (depends on TASK-002)
 - [ ] TASK-004: Delete dead core symbols and their cascades (depends on TASK-003)
