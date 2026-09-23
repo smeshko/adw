@@ -61,9 +61,6 @@ def web_command(
     Starts a FastAPI server serving the HTMX-based dashboard. By default
     binds to 127.0.0.1:8100 and opens the browser automatically.
 
-    The dashboard runs independently of the webhook server (port 8000)
-    and both can run concurrently without conflicts.
-
     Examples:
         adw dashboard web                    # Start on localhost:8100
         adw dashboard web --port 9000        # Custom port
