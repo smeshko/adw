@@ -1,7 +1,7 @@
 """Projects command for ADW CLI.
 
 This module provides the projects command that lists all registered projects
-in the global ADW dashboard registry.
+in the ADW web dashboard registry.
 
 Examples:
     adw projects                 # List registered projects
@@ -39,7 +39,7 @@ def projects(
 ) -> None:
     """List registered projects.
 
-    Shows all projects registered in the global ADW dashboard at ~/.adw/projects.yaml.
+    Shows all projects registered in the ADW web dashboard at ~/.adw/projects.yaml.
     Each project shows its name, path, run count, and registration date.
 
     Use --discover to show projects found in the run history that aren't registered.

@@ -82,5 +82,5 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
 - [x] TASK-001: Delete the terminal dashboard and its command
-- [ ] TASK-002: Point registry and wizard text at the web dashboard (depends on TASK-001)
+- [x] TASK-002: Point registry and wizard text at the web dashboard (depends on TASK-001)
 - [ ] TASK-003: Final Validation

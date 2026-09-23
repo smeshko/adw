@@ -4,7 +4,7 @@ This module provides the ProjectRegistryManager class for managing the global
 project registry at ~/.adw/projects.yaml.
 
 The registry allows users to explicitly manage which projects appear
-in cross-project views like the global dashboard.
+in cross-project views like the web dashboard.
 
 Key features:
 - YAML format for human-readable configuration
@@ -31,9 +31,9 @@ class ProjectRegistryManager:
 
     The registry stores projects that have been explicitly registered
     with ADW, enabling cross-project features like:
-    - Global run list (adw runs --global)
-    - Cross-project statistics
-    - TUI dashboard project breakdown
+    - Global run list (adw global list)
+    - Cross-project statistics (adw global stats)
+    - Web dashboard project list and filter
 
     Attributes:
         registry_path: Path to the projects.yaml file.
