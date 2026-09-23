@@ -1,6 +1,6 @@
 # Plan: Cut test waste outside the dashboard
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-10
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -80,7 +80,7 @@ See [RESEARCH.md](./RESEARCH.md). Headlines:
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Replace prompt-wording tests with one bundled-phase check
+- [x] TASK-001: Replace prompt-wording tests with one bundled-phase check
 - [ ] TASK-002: Delete ship placeholder tests and move the ship extension tests to core (depends on TASK-001)
 - [ ] TASK-003: Remove unused root fixtures and fixture data
 - [ ] TASK-004: Deduplicate git_repo and sample_context fixtures (depends on TASK-003)

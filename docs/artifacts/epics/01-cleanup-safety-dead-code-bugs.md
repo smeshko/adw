@@ -157,7 +157,7 @@ Show the CLI output of both error commands before and after in the PR; the text 
 
 ## Phase 1.4 — Cut test waste outside the dashboard
 
-**Plan**: [01.4-cut-test-waste](../plans/01.4-cut-test-waste/PLAN.md) · status: planned
+**Plan**: [01.4-cut-test-waste](../plans/01.4-cut-test-waste/PLAN.md) · status: in-progress
 
 **Linear**: ADW-10 (https://linear.app/ivo-tsonev/issue/ADW-10)
 
