@@ -39,7 +39,7 @@ No user-facing feature is removed here; that is Epic 02. Each phase is sized to 
 
 ## Phase 1.1 — Isolate the test suite from the checkout
 
-**Plan**: [01.1-isolate-test-suite](../plans/01.1-isolate-test-suite/PLAN.md) · status: done
+**Plan**: [01.1-isolate-test-suite](../plans/archive/2026-09-23-01.1-isolate-test-suite/PLAN.md) · status: done
 
 **Linear**: ADW-7 (https://linear.app/ivo-tsonev/issue/ADW-7)
 
@@ -401,5 +401,5 @@ Include rendered-prompt snapshots (before/after) for the document and validate p
 - [ ] Every phase merged and its acceptance criteria met
 - [ ] Status row in [EPICS.md](./EPICS.md) updated to `Done`
 - [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code
-- [ ] The full suite runs without touching the checkout or `~/.adw`, and is at least 50 s faster than before the epic — phase 1.1: no-touch diff empty, 210.2 s → 157.1 s (−53.1 s), see [VALIDATION.md](../plans/01.1-isolate-test-suite/VALIDATION.md)
+- [ ] The full suite runs without touching the checkout or `~/.adw`, and is at least 50 s faster than before the epic — phase 1.1: no-touch diff empty, 210.2 s → 157.1 s (−53.1 s), see [VALIDATION.md](../plans/archive/2026-09-23-01.1-isolate-test-suite/VALIDATION.md)
 - [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l`
