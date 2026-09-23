@@ -7,11 +7,13 @@ and OOB phase pipeline rendering.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
+from starlette.responses import StreamingResponse
 
 from adw.core.constants import LIVE_LOG, project_runs_dir
 from adw.dashboard.server import create_dashboard_app
@@ -625,6 +627,78 @@ class TestSSEEndpointRegistration:
         client = _make_client_with_mocks(entries=[])
         response = client.get("/runs/01HQXK5P3Z7V8R2M4N6T9W1Y00/logs/stream")
         assert response.status_code == 404
+
+
+async def _drain_sse(response: StreamingResponse) -> list[str]:
+    """Collect every chunk of an SSE response, failing after 2 s."""
+
+    async def _collect() -> list[str]:
+        return [str(chunk) async for chunk in response.body_iterator]
+
+    return await asyncio.wait_for(_collect(), timeout=2)
+
+
+_real_sleep = asyncio.sleep
+
+
+async def _yield_only(_delay: float) -> None:
+    """Stand-in for asyncio.sleep: skip the delay but yield to the event loop."""
+    await _real_sleep(0)
+
+
+def _interrupted_context() -> MagicMock:
+    """Build a RunContext mock for an interrupted run."""
+    return MagicMock(
+        status="interrupted",
+        current_phase="build",
+        phase_history=["plan"],
+        started_at=datetime.now(UTC),
+    )
+
+
+class TestSSETerminalStatuses:
+    """Both SSE streams close on every terminal status (B21)."""
+
+    async def test_run_events_close_on_interrupted(self) -> None:
+        """The events stream emits run-failed and ends for an interrupted run."""
+        from adw.dashboard.routes import run_events_sse
+
+        entry = _make_index_entry(status="interrupted")
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.asyncio.sleep", new=_yield_only),
+        ):
+            mock_cm.return_value.load.return_value = _interrupted_context()
+            response = await run_events_sse(
+                entry.run_id, index_manager=_mock_index_manager(entries=[entry])
+            )
+            chunks = await _drain_sse(response)
+
+        assert chunks[-1].startswith("event:run-failed")
+
+    async def test_log_stream_closes_on_interrupted(self, tmp_path: Path) -> None:
+        """The log stream flushes live.log and ends for an interrupted run."""
+        from adw.dashboard.routes import log_stream_sse
+
+        entry = _make_index_entry(status="interrupted", project_path=str(tmp_path))
+        run_dir = project_runs_dir(tmp_path) / entry.run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / LIVE_LOG).write_text(
+            "[2026-02-13 07:10:29] [TOOL] Read src/app.py\n"
+        )
+        with (
+            patch("adw.dashboard.routes.ContextManager") as mock_cm,
+            patch("adw.dashboard.routes.asyncio.sleep", new=_yield_only),
+        ):
+            mock_cm.return_value.load.return_value = _interrupted_context()
+            response = await log_stream_sse(
+                entry.run_id, index_manager=_mock_index_manager(entries=[entry])
+            )
+            chunks = await _drain_sse(response)
+
+        assert len(chunks) == 1
+        assert chunks[0].startswith("event:log-line")
+        assert "Read src/app.py" in chunks[0]
 
 
 # ── SSE Helper Functions ──────────────────────────────────────────────

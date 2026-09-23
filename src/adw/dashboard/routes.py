@@ -21,7 +21,12 @@ from fastapi.responses import HTMLResponse
 from starlette.responses import StreamingResponse
 
 from adw.core.artifact_manager import ArtifactManager
-from adw.core.constants import LIVE_LOG, PHASE_SEQUENCE, project_runs_dir
+from adw.core.constants import (
+    LIVE_LOG,
+    PHASE_SEQUENCE,
+    TERMINAL_STATUSES,
+    project_runs_dir,
+)
 from adw.core.context_manager import ContextManager
 from adw.dashboard.dependencies import (
     generate_csrf_token,
@@ -1419,11 +1424,7 @@ async def run_events_sse(
                 last_phase = current_phase
 
             # Emit run-complete or run-failed if status changed to terminal
-            if current_status != last_status and current_status in (
-                "completed",
-                "failed",
-                "aborted",
-            ):
+            if current_status != last_status and current_status in TERMINAL_STATUSES:
                 if current_status == "completed":
                     yield _format_sse_event("run-complete", "")
                 else:
@@ -1555,7 +1556,7 @@ async def log_stream_sse(
             try:
                 cm = ContextManager(runs_dir)
                 ctx = cm.load(run_id)
-                if ctx.status in ("completed", "failed", "aborted"):
+                if ctx.status in TERMINAL_STATUSES:
                     # Flush any remaining lines then exit
                     if log_file.exists():
                         try:

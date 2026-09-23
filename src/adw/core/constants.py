@@ -30,6 +30,11 @@ PR_DESCRIPTION_ARTIFACT = "artifacts/document/pr_description.md"
 LIVE_LOG = "live.log"
 CONTEXT_FILE = "context.json"
 
+# Run statuses after which a run never changes again
+TERMINAL_STATUSES: frozenset[str] = frozenset(
+    {"completed", "failed", "aborted", "interrupted"}
+)
+
 
 def project_runs_dir(project_root: Path) -> Path:
     """Return the runs directory of the project rooted at ``project_root``."""
