@@ -229,8 +229,6 @@ class WorktreeConfig(BaseModel):
     Attributes:
         enabled: Whether worktree isolation is enabled (default: True)
         base_dir: Directory for storing worktrees, relative to project root
-        cleanup_branch_on_remove: Delete the adw/<run_id> branch when removing
-            the worktree (default: False)
         port_range: Configuration for port allocation ranges
         max_concurrent: Maximum number of concurrent runs (determines slot count)
 
@@ -245,7 +243,6 @@ class WorktreeConfig(BaseModel):
         worktree:
           enabled: true
           base_dir: "trees"
-          cleanup_branch_on_remove: false
           port_range:
             backend_start: 9100
             frontend_start: 9200
@@ -259,10 +256,6 @@ class WorktreeConfig(BaseModel):
     base_dir: str = Field(
         default="trees",
         description="Directory for storing worktrees (relative to project root)",
-    )
-    cleanup_branch_on_remove: bool = Field(
-        default=False,
-        description="Delete the adw/<run_id> branch when removing worktree",
     )
     port_range: PortRangeConfig = Field(
         default_factory=PortRangeConfig,

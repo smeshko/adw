@@ -285,9 +285,7 @@ def create_orchestrator(
     # and ShipExtension (skip logic and hook env vars)
     # NOTE: Must be created BEFORE PhaseRunner so extensions are available for
     # artifact capture during phase execution (ISS-043)
-    extension_registry = create_default_registry(
-        git_config, runs_dir, project_root=project_root
-    )
+    extension_registry = create_default_registry(runs_dir, project_root=project_root)
 
     # Create PhaseRunner first (without progress_display) (Story 5.2)
     # so we can compute enabled phases using is_phase_enabled()

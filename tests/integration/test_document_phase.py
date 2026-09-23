@@ -20,7 +20,6 @@ from adw.core.phase_runner import PhaseRunner
 from adw.executors.mock import MockExecutor
 from adw.hooks.runner import HookRunner
 from adw.models import (
-    GitConfig,
     HookConfig,
     PhaseStatus,
     RunContext,
@@ -265,9 +264,8 @@ def phase_runner(
     artifact_manager = ArtifactManager(runs_dir=runs_dir)
 
     # Create extension registry with DocumentExtension for pr_description.md
-    git_config = GitConfig()  # Don't attempt PR creation in tests
     extension_registry = ExtensionRegistry()
-    extension_registry.register(DocumentExtension(git_config, runs_dir))
+    extension_registry.register(DocumentExtension(runs_dir))
 
     return PhaseRunner(
         command_resolver=command_resolver,
@@ -486,9 +484,8 @@ No visual evidence captured
         artifact_manager = ArtifactManager(runs_dir=runs_dir)
 
         # Create extension registry with DocumentExtension for pr_description.md
-        git_config = GitConfig()
         extension_registry = ExtensionRegistry()
-        extension_registry.register(DocumentExtension(git_config, runs_dir))
+        extension_registry.register(DocumentExtension(runs_dir))
 
         return PhaseRunner(
             command_resolver=command_resolver,

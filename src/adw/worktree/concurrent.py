@@ -90,8 +90,6 @@ class ConcurrentRunManager:
         ...         run_id="01HQXK5...",
         ...         worktree_path=Path("/project/trees/01HQXK5..."),
         ...     )
-        >>> # Run completes...
-        >>> manager.unregister_run("01HQXK5...")
     """
 
     def __init__(
@@ -289,45 +287,6 @@ class ConcurrentRunManager:
                 "lock_path": str(lock_path),
             },
         )
-
-    def unregister_run(self, run_id: str) -> None:
-        """Unregister a run by removing its lock file.
-
-        Removes the lock file for the given run ID. Does not raise
-        an error if the lock file doesn't exist.
-
-        Args:
-            run_id: ULID identifier for the run.
-        """
-        lock_path = self._lock_path(run_id)
-
-        if lock_path.exists():
-            try:
-                lock_path.unlink()
-                logger.debug(
-                    "Unregistered run",
-                    extra={
-                        "run_id": run_id,
-                        "lock_path": str(lock_path),
-                    },
-                )
-            except OSError as e:
-                logger.warning(
-                    "Failed to unregister run",
-                    extra={
-                        "run_id": run_id,
-                        "lock_path": str(lock_path),
-                        "error": str(e),
-                    },
-                )
-        else:
-            logger.debug(
-                "Lock file not found for unregister",
-                extra={
-                    "run_id": run_id,
-                    "lock_path": str(lock_path),
-                },
-            )
 
     def get_run_info(self, run_id: str) -> ActiveRun | None:
         """Get information about a specific run.

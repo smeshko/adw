@@ -141,27 +141,6 @@ class TestConcurrentRunManager:
 
         assert manager.locks_dir.exists()
 
-    def test_unregister_run_removes_lock_file(
-        self, manager: ConcurrentRunManager, tmp_path: Path
-    ) -> None:
-        """unregister_run removes the lock file."""
-        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
-        worktree_path = tmp_path / "trees" / run_id
-
-        manager.register_run(run_id=run_id, worktree_path=worktree_path)
-        lock_file = manager.locks_dir / f"{run_id}.lock"
-        assert lock_file.exists()
-
-        manager.unregister_run(run_id)
-        assert not lock_file.exists()
-
-    def test_unregister_run_nonexistent_is_safe(
-        self, manager: ConcurrentRunManager
-    ) -> None:
-        """unregister_run doesn't raise for nonexistent lock file."""
-        # Should not raise
-        manager.unregister_run("nonexistent_run_id")
-
     def test_get_active_runs_returns_active_runs(
         self, manager: ConcurrentRunManager, tmp_path: Path
     ) -> None:
