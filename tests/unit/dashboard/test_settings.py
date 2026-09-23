@@ -335,3 +335,15 @@ class TestSettingsRoutes:
         assert response.status_code == 200
         assert "Select a project" in response.text
         assert ">proj</option>" in response.text
+
+
+def test_only_run_start_and_abort_accept_writes() -> None:
+    """No dashboard route can write config: only the two run mutations remain."""
+    writes = {
+        (route.path, method)
+        for route in create_dashboard_app().routes
+        for method in getattr(route, "methods", None) or ()
+        if method not in {"GET", "HEAD"}
+    }
+
+    assert writes == {("/runs/start", "POST"), ("/runs/{run_id}/abort", "POST")}
