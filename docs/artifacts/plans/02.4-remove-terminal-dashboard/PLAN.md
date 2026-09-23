@@ -1,6 +1,6 @@
 # Plan: Remove the terminal dashboard
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-20
 Risk: small
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -81,6 +81,6 @@ Findings from exploration and a prototype on a scratch copy of `src` at `be1d5bf
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Delete the terminal dashboard and its command
+- [x] TASK-001: Delete the terminal dashboard and its command
 - [ ] TASK-002: Point registry and wizard text at the web dashboard (depends on TASK-001)
 - [ ] TASK-003: Final Validation
