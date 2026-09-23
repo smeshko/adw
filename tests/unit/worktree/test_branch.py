@@ -41,35 +41,6 @@ class TestBranchNaming:
 class TestBranchExists:
     """Tests for branch existence checking."""
 
-    @pytest.fixture
-    def git_repo(self, tmp_path: Path) -> Path:
-        """Create a temporary git repository for testing."""
-        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@test.com"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        readme = tmp_path / "README.md"
-        readme.write_text("# Test")
-        subprocess.run(
-            ["git", "add", "."], cwd=tmp_path, check=True, capture_output=True
-        )
-        subprocess.run(
-            ["git", "commit", "-m", "Initial commit"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        return tmp_path
-
     def test_existing_branch_returns_true(self, git_repo: Path) -> None:
         """Returns True for existing branch."""
         from adw.worktree.branch import WorktreeBranchManager
@@ -111,35 +82,6 @@ class TestBranchExists:
 
 class TestBranchDeletion:
     """Tests for branch deletion logic."""
-
-    @pytest.fixture
-    def git_repo(self, tmp_path: Path) -> Path:
-        """Create a temporary git repository for testing."""
-        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@test.com"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        readme = tmp_path / "README.md"
-        readme.write_text("# Test")
-        subprocess.run(
-            ["git", "add", "."], cwd=tmp_path, check=True, capture_output=True
-        )
-        subprocess.run(
-            ["git", "commit", "-m", "Initial commit"],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-        )
-        return tmp_path
 
     @pytest.fixture
     def git_repo_with_branch(self, git_repo: Path) -> Path:
