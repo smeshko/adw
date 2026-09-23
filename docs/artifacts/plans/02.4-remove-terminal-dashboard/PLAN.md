@@ -1,6 +1,6 @@
 # Plan: Remove the terminal dashboard
 
-Status: in-progress
+Status: done
 Branch: feature/adw-20
 Risk: small
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -69,12 +69,12 @@ Findings from exploration and a prototype on a scratch copy of `src` at `be1d5bf
 
 ## Acceptance Criteria
 
-- [ ] `adw global --help` lists no `dashboard`, and `adw global dashboard` exits 2 with "No such command". Evidence: both transcripts.
-- [ ] `adw dashboard web` is unaffected: started with a scratch `HOME`, a `curl` of `/` returns 200. Evidence: the curl status line.
-- [ ] `grep -rn "cli.dashboard import\|cli/dashboard.py\|test_stats_display_with_real_data" src tests AGENTS.md` returns nothing. Evidence: the empty grep output.
-- [ ] `grep -rni "global \(adw \)\?dashboard" src` and `grep -rn "TUI" src` return nothing, and `adw register --help` says "ADW web dashboard". Evidence: the empty greps and the help output.
-- [ ] `uvx vulture src/adw --min-confidence 60`, diffed against the merge-base, reports no new entry. Evidence: the empty `comm -13` output.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%. Evidence: the preflight output and the pytest summary line with the coverage total.
+- [x] `adw global --help` lists no `dashboard`, and `adw global dashboard` exits 2 with "No such command". Evidence: both transcripts.
+- [x] `adw dashboard web` is unaffected: started with a scratch `HOME`, a `curl` of `/` returns 200. Evidence: the curl status line.
+- [x] `grep -rn "cli.dashboard import\|cli/dashboard.py\|test_stats_display_with_real_data" src tests AGENTS.md` returns nothing. Evidence: the empty grep output.
+- [x] `grep -rni "global \(adw \)\?dashboard" src` and `grep -rn "TUI" src` return nothing, and `adw register --help` says "ADW web dashboard". Evidence: the empty greps and the help output.
+- [x] `uvx vulture src/adw --min-confidence 60`, diffed against the merge-base, reports no new entry. Evidence: the empty `comm -13` output.
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%. Evidence: the preflight output and the pytest summary line with the coverage total.
 
 ## Tasks
 
@@ -83,4 +83,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 
 - [x] TASK-001: Delete the terminal dashboard and its command
 - [x] TASK-002: Point registry and wizard text at the web dashboard (depends on TASK-001)
-- [ ] TASK-003: Final Validation
+- [x] TASK-003: Final Validation

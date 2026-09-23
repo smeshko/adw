@@ -145,7 +145,7 @@ Include `adw --help`, a curl of the dashboard overview, and a screenshot of a ru
 
 ## Phase 2.4 — Remove the terminal dashboard
 
-**Plan**: [02.4-remove-terminal-dashboard](../plans/02.4-remove-terminal-dashboard/PLAN.md) · status: in-progress
+**Plan**: [02.4-remove-terminal-dashboard](../plans/02.4-remove-terminal-dashboard/PLAN.md) · status: done
 
 **Linear**: ADW-20 (https://linear.app/ivo-tsonev/issue/ADW-20)
 
@@ -159,10 +159,10 @@ Include `adw --help`, a curl of the dashboard overview, and a screenshot of a ru
 
 ### Acceptance criteria
 
-- [ ] `adw global --help` lists no `dashboard`.
-- [ ] `adw dashboard web` is unaffected.
-- [ ] `grep -rn "cli.dashboard import\|cli/dashboard.py\|test_stats_display_with_real_data" src tests AGENTS.md` returns nothing.
-- [ ] Lint and tests pass.
+- [x] `adw global --help` lists no `dashboard`.
+- [x] `adw dashboard web` is unaffected.
+- [x] `grep -rn "cli.dashboard import\|cli/dashboard.py\|test_stats_display_with_real_data" src tests AGENTS.md` returns nothing.
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -447,5 +447,6 @@ Include the full `--help` tree and the error-path test output in the PR.
 - [ ] Every phase merged and its acceptance criteria met
 - [ ] Status row in [EPICS.md](./EPICS.md) updated to `Done`
 - [ ] `src/adw` has no `security/`, `webhook/`, `server/`, `validation/` or `utils/` package, and no `cli/dashboard.py`
+  - `cli/dashboard.py` is gone as of phase 2.4.
 - [ ] A `project.yaml` written by the pre-epic wizard with every optional section filled in still passes `adw validate`
 - [ ] `adw init --wizard`, a mocked `adw run`, `adw resume`, `adw pr` and `adw dashboard web` each work end to end in a scratch repo
