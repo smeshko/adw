@@ -238,7 +238,7 @@ def create_orchestrator(
     # Create PhaseRunner dependencies (Epic 2 & 3)
     command_resolver = CommandResolver(project_root=project_root)
     template_engine = TemplateEngine(project_root=project_root)
-    hook_runner = HookRunner(config=HookConfig())
+    hook_runner = HookRunner(config=config.hooks if config else HookConfig())
 
     # Create security components (Story 3.6)
     # Wire user-configured blocked patterns from project config security section

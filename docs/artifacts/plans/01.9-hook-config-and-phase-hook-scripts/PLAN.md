@@ -1,6 +1,6 @@
 # Plan: Hook config and phase-hook scripts
 
-Status: draft
+Status: in-progress
 Branch: feature/adw-15
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -120,7 +120,7 @@ See [DECISIONS.md](./DECISIONS.md). In short:
 Task state lives here. Tasks are appended by `scripts/add_task.py` and
 `scripts/add_final_task.py`. Update the checkboxes as work progresses.
 
-- [ ] TASK-001: Build HookRunner from project.yaml hooks config
+- [x] TASK-001: Build HookRunner from project.yaml hooks config
 - [ ] TASK-002: Drop hook steps that redo Python's work
 - [ ] TASK-003: Switch non-worktree runs to the feature branch at run start
 - [ ] TASK-004: Switch to the run's branch on resume and continue (depends on TASK-003)

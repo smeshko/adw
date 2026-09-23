@@ -6,7 +6,7 @@ The `PhaseRunner` (`src/adw/core/phase_runner.py`) executes a single phase of th
 
 | Responsibility | How |
 |----------------|-----|
-| Hook execution | Runs pre/post shell scripts via `HookRunner` |
+| Hook execution | Runs pre/post shell scripts via `HookRunner`, with the timeout and shell from `project.yaml`'s `hooks:` (defaults: 60 s, `/bin/bash`) |
 | Prompt rendering | Loads template, injects artifacts from prior phases |
 | LLM execution | Delegates to `LLMExecutor` (Claude Code or mock) |
 | Artifact capture | Stores outputs for downstream phases |

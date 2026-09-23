@@ -327,7 +327,7 @@ Include screenshots of run-detail log search and the live stream against a real 
 
 ## Phase 1.9 — Hook config and phase-hook scripts
 
-**Plan**: [01.9-hook-config-and-phase-hook-scripts](../plans/01.9-hook-config-and-phase-hook-scripts/PLAN.md) · status: planned
+**Plan**: [01.9-hook-config-and-phase-hook-scripts](../plans/01.9-hook-config-and-phase-hook-scripts/PLAN.md) · status: in-progress
 
 **Linear**: ADW-15 (https://linear.app/ivo-tsonev/issue/ADW-15)
 
