@@ -28,6 +28,7 @@ from adw.core.constants import (
     project_runs_dir,
 )
 from adw.core.context_manager import ContextManager
+from adw.core.stats_aggregator import sum_token_usage
 from adw.dashboard.dependencies import (
     generate_csrf_token,
     get_index_manager,
@@ -37,6 +38,7 @@ from adw.dashboard.dependencies import (
 )
 from adw.exceptions import StateError
 from adw.models.config import DEFAULT_STATE_MAPPING
+from adw.models.stats import TokenUsage
 
 if TYPE_CHECKING:
     from starlette.templating import Jinja2Templates
@@ -497,6 +499,8 @@ def _build_run_detail_context(
     run_entry: IndexEntry,
     request: Request,
     name_map: dict[str, str] | None = None,
+    *,
+    stats_aggregator: StatsAggregator,
 ) -> dict[str, Any]:
     """Build the template context for the run detail page.
 
@@ -507,6 +511,7 @@ def _build_run_detail_context(
         run_entry: An IndexEntry from the global index.
         request: The current FastAPI request.
         name_map: Optional mapping of project_path -> display_name.
+        stats_aggregator: Prices the run and its phases, as analytics does.
 
     Returns:
         Dict with all template variables for run_detail.html.
@@ -529,17 +534,16 @@ def _build_run_detail_context(
     # Enriched data from RunContext (populated below if available)
     branch_name: str | None = None
     total_tokens: int = 0
-    estimated_cost: float = 0.0
     pr_url: str | None = None
     task_id: str | None = None
     task_manager: str | None = None
     artifacts_path: str | None = None
     phase_tokens: dict[str, int] = {}
 
+    runs_dir = project_runs_dir(Path(run_entry.project_path))
+
     # Try loading RunContext for enriched data
     try:
-        project_path = Path(run_entry.project_path)
-        runs_dir = project_runs_dir(project_path)
         cm = ContextManager(runs_dir)
         ctx = cm.load(run_id)
         # Override with live data
@@ -551,9 +555,6 @@ def _build_run_detail_context(
         task_id = ctx.task_id
         task_manager = ctx.task_manager
         phase_tokens = dict(ctx.phase_tokens)
-
-        # Estimate cost at $3/$15 per 1M input/output tokens (approximate)
-        estimated_cost = total_tokens * 0.000009  # rough average
 
         # Artifacts path
         if ctx.worktree_path:
@@ -567,6 +568,12 @@ def _build_run_detail_context(
             "RunContext unavailable for detail page, using IndexEntry fallback",
             extra={"run_id": run_id},
         )
+
+    # Price the run the way analytics does: from its llm response files
+    phase_usage = stats_aggregator.get_phase_token_usage(runs_dir / run_id)
+    estimated_cost = stats_aggregator.calculate_cost(
+        sum_token_usage(phase_usage.values())
+    )
 
     # Duration
     if completed_at and started_at:
@@ -613,7 +620,7 @@ def _build_run_detail_context(
             continue
 
         tokens = phase_tokens.get(phase_key, 0)
-        cost = tokens * 0.000009
+        cost = stats_aggregator.calculate_cost(phase_usage.get(phase_key, TokenUsage()))
 
         if phase_key in completed_set:
             phase_status = "completed"
@@ -696,6 +703,7 @@ async def run_detail(
     run_id: str,
     index_manager: IndexManager = Depends(get_index_manager),
     project_registry: ProjectRegistryManager = Depends(get_project_registry),
+    stats_aggregator: StatsAggregator = Depends(get_stats_aggregator),
 ) -> HTMLResponse:
     """Render run detail page, or a 404 message if not found."""
     templates: Jinja2Templates = request.app.state.templates
@@ -735,7 +743,9 @@ async def run_detail(
     # Build run detail context with display name resolution
     all_proj = project_registry.get_all()
     detail_name_map = {str(p.path): p.name for p in all_proj}
-    detail_context = _build_run_detail_context(run_entry, request, detail_name_map)
+    detail_context = _build_run_detail_context(
+        run_entry, request, detail_name_map, stats_aggregator=stats_aggregator
+    )
 
     if request.headers.get("HX-Request"):
         detail_context["request"] = request

@@ -8,6 +8,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
+
 
 class TestModelPricing:
     """Tests for model pricing configuration."""
@@ -244,6 +246,44 @@ class TestParseLLMResponseFiles:
 
         assert usage.input_tokens == 0
         assert usage.output_tokens == 13266
+
+
+class TestPhaseTokenUsage:
+    """Tests for per-phase token usage from LLM response files."""
+
+    def test_groups_response_files_by_phase(self, tmp_path: Path) -> None:
+        """Groups response files by phase, summing retries of a phase."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        llm_dir = tmp_path / "llm"
+        llm_dir.mkdir()
+        files = {
+            "001_plan_response.json": (1000, 500, 0.10),
+            "002_build_response.json": (2000, 800, 0.20),
+            "006_build_response.json": (300, 100, 0.05),  # build retry
+        }
+        for name, (input_tokens, output_tokens, cost) in files.items():
+            stats = {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_cost_usd": cost,
+            }
+            (llm_dir / name).write_text(json.dumps({"stats": stats}))
+
+        usage = StatsAggregator().get_phase_token_usage(tmp_path)
+
+        assert set(usage) == {"plan", "build"}
+        assert usage["plan"].input_tokens == 1000
+        assert usage["plan"].output_tokens == 500
+        assert usage["build"].input_tokens == 2300
+        assert usage["build"].output_tokens == 900
+        assert usage["build"].actual_cost_usd == pytest.approx(0.25)
+
+    def test_missing_llm_dir_returns_empty(self, tmp_path: Path) -> None:
+        """Returns an empty mapping when the run has no llm/ directory."""
+        from adw.core.stats_aggregator import StatsAggregator
+
+        assert StatsAggregator().get_phase_token_usage(tmp_path) == {}
 
 
 class TestGetDailyTokenCounts:

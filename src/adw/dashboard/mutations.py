@@ -26,6 +26,7 @@ from adw.dashboard.dependencies import (
     get_index_manager,
     get_project_registry,
     get_run_trigger,
+    get_stats_aggregator,
     resolve_project_filter,
     validate_csrf,
 )
@@ -38,6 +39,7 @@ if TYPE_CHECKING:
     from adw.core.index_manager import IndexManager
     from adw.core.project_registry import ProjectRegistryManager
     from adw.core.run_trigger import RunTrigger
+    from adw.core.stats_aggregator import StatsAggregator
 
 logger = logging.getLogger(__name__)
 
@@ -205,6 +207,7 @@ async def abort_run(
     request: Request,
     run_id: str,
     index_manager: IndexManager = Depends(get_index_manager),
+    stats_aggregator: StatsAggregator = Depends(get_stats_aggregator),
 ) -> HTMLResponse:
     """Abort an active run from the dashboard.
 
@@ -299,7 +302,9 @@ async def abort_run(
         logger.warning("Failed to update index after abort", extra={"run_id": run_id})
 
     # Build refreshed run detail context
-    detail_context = _build_run_detail_context(run_entry, request)
+    detail_context = _build_run_detail_context(
+        run_entry, request, stats_aggregator=stats_aggregator
+    )
     detail_context["request"] = request
 
     # Render OOB modal clear + run detail

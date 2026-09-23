@@ -121,5 +121,5 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-003: Write minimal-init project.yaml through YAMLWithComments
 - [x] TASK-004: Define the default state mapping once
 - [x] TASK-005: Close both SSE streams on every terminal status
-- [ ] TASK-006: Price run-detail cost with calculate_cost
+- [x] TASK-006: Price run-detail cost with calculate_cost
 - [ ] TASK-007: Final Validation

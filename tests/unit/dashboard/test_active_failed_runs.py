@@ -75,6 +75,15 @@ def _mock_project_registry(project_names: list[str] | None = None) -> MagicMock:
     return mock
 
 
+def _mock_stats_aggregator() -> MagicMock:
+    """Build a mock StatsAggregator for a run with no llm response files."""
+    sa = MagicMock()
+    sa.get_global_stats.return_value = MagicMock(projects=[])
+    sa.get_phase_token_usage.return_value = {}
+    sa.calculate_cost.return_value = 0.0
+    return sa
+
+
 def _make_client_with_mocks(
     entries: list[IndexEntry] | None = None,
     project_names: list[str] | None = None,
@@ -85,8 +94,7 @@ def _make_client_with_mocks(
     app = create_dashboard_app()
     im = _mock_index_manager(entries=entries or [])
     pr = _mock_project_registry(project_names or ["my-project"])
-    sa = MagicMock()
-    sa.get_global_stats.return_value = MagicMock(projects=[])
+    sa = _mock_stats_aggregator()
 
     app.dependency_overrides[dependencies.get_index_manager] = lambda: im
     app.dependency_overrides[dependencies.get_project_registry] = lambda: pr
@@ -834,7 +842,9 @@ class TestBuildRunDetailContextVariants:
 
         with patch("adw.dashboard.routes.ContextManager") as mock_cm:
             mock_cm.return_value.load.side_effect = OSError("not found")
-            result = _build_run_detail_context(entry, request)
+            result = _build_run_detail_context(
+                entry, request, stats_aggregator=_mock_stats_aggregator()
+            )
 
         assert result["is_active"] is True
 
@@ -849,7 +859,9 @@ class TestBuildRunDetailContextVariants:
 
         with patch("adw.dashboard.routes.ContextManager") as mock_cm:
             mock_cm.return_value.load.side_effect = OSError("not found")
-            result = _build_run_detail_context(entry, request)
+            result = _build_run_detail_context(
+                entry, request, stats_aggregator=_mock_stats_aggregator()
+            )
 
         assert result["is_active"] is False
 
@@ -868,7 +880,9 @@ class TestBuildRunDetailContextVariants:
 
         with patch("adw.dashboard.routes.ContextManager") as mock_cm:
             mock_cm.return_value.load.side_effect = OSError("not found")
-            result = _build_run_detail_context(entry, request)
+            result = _build_run_detail_context(
+                entry, request, stats_aggregator=_mock_stats_aggregator()
+            )
 
         assert result["failed_phase_name"] == "Build"
 
@@ -883,7 +897,9 @@ class TestBuildRunDetailContextVariants:
 
         with patch("adw.dashboard.routes.ContextManager") as mock_cm:
             mock_cm.return_value.load.side_effect = OSError("not found")
-            result = _build_run_detail_context(entry, request)
+            result = _build_run_detail_context(
+                entry, request, stats_aggregator=_mock_stats_aggregator()
+            )
 
         assert result["failed_phase_name"] is None
 
@@ -903,7 +919,9 @@ class TestBuildRunDetailContextVariants:
 
         with patch("adw.dashboard.routes.ContextManager") as mock_cm:
             mock_cm.return_value.load.side_effect = OSError("not found")
-            result = _build_run_detail_context(entry, request)
+            result = _build_run_detail_context(
+                entry, request, stats_aggregator=_mock_stats_aggregator()
+            )
 
         phase_keys = [p["phase_key"] for p in result["phases_detail"]]
         assert len(phase_keys) == 5
@@ -926,7 +944,9 @@ class TestBuildRunDetailContextVariants:
 
         with patch("adw.dashboard.routes.ContextManager") as mock_cm:
             mock_cm.return_value.load.side_effect = OSError("not found")
-            result = _build_run_detail_context(entry, request)
+            result = _build_run_detail_context(
+                entry, request, stats_aggregator=_mock_stats_aggregator()
+            )
 
         phase_keys = [p["phase_key"] for p in result["phases_detail"]]
         # Only phases with data (completed or current) should show
