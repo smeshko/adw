@@ -172,7 +172,7 @@ Include `adw global --help` and a full-suite pass in the PR.
 
 ## Phase 2.5 — Make dashboard settings read-only
 
-**Plan**: [02.5-make-dashboard-settings-read-only](../plans/02.5-make-dashboard-settings-read-only/PLAN.md) · status: in-progress
+**Plan**: [02.5-make-dashboard-settings-read-only](../plans/02.5-make-dashboard-settings-read-only/PLAN.md) · status: done
 
 **Linear**: ADW-21 (https://linear.app/ivo-tsonev/issue/ADW-21)
 
@@ -192,11 +192,11 @@ Include `adw global --help` and a full-suite pass in the PR.
 
 ### Acceptance criteria
 
-- [ ] The settings page renders every remaining section for this repo's `.adw` config.
-- [ ] The only POST routes left are run start and abort. List them from `app.routes`.
-- [ ] Visiting every settings view leaves `.adw/project.yaml` and `.adw/commands/*/config.yaml` byte-identical.
-- [ ] `tests/dashboard/` no longer exists.
-- [ ] Lint and tests pass.
+- [x] The settings page renders every remaining section for this repo's `.adw` config.
+- [x] The only POST routes left are run start and abort. List them from `app.routes`.
+- [x] Visiting every settings view leaves `.adw/project.yaml` and `.adw/commands/*/config.yaml` byte-identical.
+- [x] `tests/dashboard/` no longer exists.
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -289,7 +289,7 @@ Include the greps, the timeout test, and `adw list` / `adw status` output showin
 - Fold `PhaseConfig` into `CommandConfig`. Its docstring documents a `phases:` key that doesn't exist. Merge `lint_command`, `doc_mappings` and the ship commands by the same rule as `enabled`, `input_files` and `llm`, and document that rule.
 - Replace the `ConfigLoader` class with a `load_project_config(root)` function.
 - `config/yaml_generator.py`: drop the registry parameter it never reads and `_format_setting_as_comment`, and read defaults from the models rather than hard-coding them.
-- Rename `config/registry.py` to `settings_catalog.py`, and drop the sections and methods nothing reads.
+- Rename `config/registry.py` to `settings_catalog.py`, and drop the sections and methods nothing reads. Since phase 2.5, only tests call `get_all_settings` and `get_phase_settings`.
 - `config/checker.py`: one helper replaces the 6 copies of the "executable on PATH" check.
 
 ### Acceptance criteria

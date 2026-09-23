@@ -1,6 +1,6 @@
 # Plan: Make dashboard settings read-only
 
-Status: in-progress
+Status: done
 Branch: feature/adw-21
 Risk: medium
 Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
@@ -93,12 +93,12 @@ See [RESEARCH.md](./RESEARCH.md). In short:
 
 ## Acceptance Criteria
 
-- [ ] The settings page renders every section for this repo's `.adw` config. Every tab returns 200, both as a full page and as a partial, and shows its values, or, for an invalid phase file, its validation error. Evidence: the test run, a `curl` of every tab against this repo's `.adw` returning 200, and screenshots of the Basics, Task Manager and Phases tabs.
-- [ ] The only POST routes left are run start and abort, and no route accepts PUT, PATCH or DELETE. Evidence: the list of non-GET/HEAD routes printed from `create_dashboard_app().routes`, and the passing guard test.
-- [ ] Visiting every settings view leaves `.adw/project.yaml` and `.adw/commands/*/config.yaml` byte-identical. Evidence: the passing byte-identity test, and `shasum` of this repo's config files before and after the smoke `curl`s.
-- [ ] `tests/dashboard/` no longer exists. Evidence: `ls tests/dashboard` fails, and `grep -rn "tests/dashboard" pyproject.toml tests` is empty.
-- [ ] Nothing new is dead: `uvx vulture src/adw --min-confidence 60`, diffed against the merge-base, reports no new entry. Evidence: the empty `comm -13` output.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%. Evidence: the preflight output, and the pytest summary line with the coverage total.
+- [x] The settings page renders every section for this repo's `.adw` config. Every tab returns 200, both as a full page and as a partial, and shows its values, or, for an invalid phase file, its validation error. Evidence: the test run, a `curl` of every tab against this repo's `.adw` returning 200, and screenshots of the Basics, Task Manager and Phases tabs.
+- [x] The only POST routes left are run start and abort, and no route accepts PUT, PATCH or DELETE. Evidence: the list of non-GET/HEAD routes printed from `create_dashboard_app().routes`, and the passing guard test.
+- [x] Visiting every settings view leaves `.adw/project.yaml` and `.adw/commands/*/config.yaml` byte-identical. Evidence: the passing byte-identity test, and `shasum` of this repo's config files before and after the smoke `curl`s.
+- [x] `tests/dashboard/` no longer exists. Evidence: `ls tests/dashboard` fails, and `grep -rn "tests/dashboard" pyproject.toml tests` is empty.
+- [x] Nothing new is dead: `uvx vulture src/adw --min-confidence 60`, diffed against the merge-base, reports no new entry. Evidence: the `comm -13` output. Met with a recorded exception: two `ConfigRegistry` query methods lost their only `src` caller and are left to phase 2.8, and `source_pattern` is a false positive (VALIDATION.md, Divergence).
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%. Evidence: the preflight output, and the pytest summary line with the coverage total.
 
 ## Tasks
 
@@ -108,4 +108,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-001: Render the settings page from a read-only settings_context
 - [x] TASK-002: Delete the settings editing path (depends on TASK-001)
 - [x] TASK-003: Rewrite the settings docs for the read-only page (depends on TASK-002)
-- [ ] TASK-004: Final Validation
+- [x] TASK-004: Final Validation
