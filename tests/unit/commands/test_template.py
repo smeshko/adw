@@ -1,11 +1,12 @@
 """Unit tests for the TemplateEngine class."""
 
+import logging
 from pathlib import Path
 
 import pytest
 
 from adw.commands import TemplateEngine
-from adw.commands.template import ARTIFACT_REF_PATTERN, FILE_PATTERN, VARIABLE_PATTERN
+from adw.commands.template import FILE_PATTERN, VARIABLE_PATTERN
 from adw.exceptions import ConfigError
 
 
@@ -34,50 +35,6 @@ class TestTemplateEngineModuleStructure:
         """TemplateEngine should default project_root to cwd."""
         engine = TemplateEngine()
         assert engine.project_root == Path.cwd()
-
-
-class TestArtifactRefPattern:
-    """Tests for ISS-017: ARTIFACT_REF_PATTERN consolidation."""
-
-    def test_artifact_ref_pattern_importable_from_template(self) -> None:
-        """ARTIFACT_REF_PATTERN should be importable from adw.commands.template."""
-        from adw.commands.template import ARTIFACT_REF_PATTERN
-
-        assert ARTIFACT_REF_PATTERN is not None
-
-    def test_artifact_ref_pattern_matches_simple_reference(self) -> None:
-        """ARTIFACT_REF_PATTERN should match {{artifacts.phase.name}}."""
-        match = ARTIFACT_REF_PATTERN.search("Content: {{artifacts.plan.output}}")
-        assert match is not None
-        assert match.group(1) == "plan.output"
-
-    def test_artifact_ref_pattern_matches_with_underscore(self) -> None:
-        """ARTIFACT_REF_PATTERN should match snake_case names."""
-        match = ARTIFACT_REF_PATTERN.search("{{artifacts.build.build_output}}")
-        assert match is not None
-        assert match.group(1) == "build.build_output"
-
-    def test_artifact_ref_pattern_matches_wildcard(self) -> None:
-        """ARTIFACT_REF_PATTERN should match wildcards like {{artifacts.phase.*}}."""
-        match = ARTIFACT_REF_PATTERN.search("{{artifacts.plan.*}}")
-        assert match is not None
-        assert match.group(1) == "plan.*"
-
-    def test_artifact_ref_pattern_does_not_match_root_wildcard(self) -> None:
-        """ARTIFACT_REF_PATTERN requires at least one identifier before wildcard.
-
-        Note: {{artifacts.*}} is intentionally NOT supported by the pattern.
-        Valid wildcards are {{artifacts.plan.*}} (phase-level wildcard).
-        """
-        match = ARTIFACT_REF_PATTERN.search("{{artifacts.*}}")
-        # Pattern requires at least one identifier segment
-        assert match is None
-
-    def test_artifact_ref_pattern_findall(self) -> None:
-        """ARTIFACT_REF_PATTERN.findall should find all artifact references."""
-        template = "{{artifacts.plan.output}} and {{artifacts.build.diff}}"
-        matches = ARTIFACT_REF_PATTERN.findall(template)
-        assert matches == ["plan.output", "build.diff"]
 
 
 class TestVariableSubstitution:
@@ -277,79 +234,47 @@ class TestFileInclusion:
         assert exc.value.code == "TEMPLATE_FILE_IS_DIRECTORY"
 
 
-class TestStrictVsLenientMode:
-    """Tests for Task 4: Strict vs Lenient Mode."""
+class TestFillRule:
+    """Only names that are keys of the render variables are filled."""
 
-    def test_strict_mode_is_default(self) -> None:
-        """strict=True should be the default."""
+    def test_unknown_top_level_name_passes_through_silently(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A name ADW does not define reaches the LLM verbatim, with no log."""
         engine = TemplateEngine()
-        template = "{{unknown_var}}"
-        with pytest.raises(ConfigError):
-            engine.render(template, {})
 
-    def test_strict_mode_raises_for_unknown_variable(self) -> None:
-        """strict=True should raise ConfigError for unknown variables."""
+        with caplog.at_level(logging.DEBUG, logger="adw.commands.template"):
+            result = engine.render("Story: {{story_key}}", {})
+
+        assert result == "Story: {{story_key}}"
+        assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+    def test_known_name_with_missing_path_passes_through_and_warns(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A known name whose path does not resolve stays and logs one warning."""
         engine = TemplateEngine()
-        template = "Hello, {{unknown_var}}!"
 
-        with pytest.raises(ConfigError) as exc:
-            engine.render(template, {}, strict=True)
+        with caplog.at_level(logging.WARNING, logger="adw.commands.template"):
+            result = engine.render("Diff: {{artifacts.build.diff}}", {"artifacts": {}})
 
-        assert exc.value.code == "UNKNOWN_VARIABLE"
-        assert "unknown_var" in exc.value.message
+        assert result == "Diff: {{artifacts.build.diff}}"
+        warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+        assert len(warnings) == 1
+        assert "artifacts.build.diff" in warnings[0].getMessage()
 
-    def test_strict_mode_reports_all_unknown_variables(self) -> None:
-        """strict=True should report all unknown variables in error."""
+    def test_known_and_unknown_names_mixed(self) -> None:
+        """Known names are filled while unknown ones stay in place."""
         engine = TemplateEngine()
-        template = "{{var1}} and {{var2}} and {{var3}}"
-
-        with pytest.raises(ConfigError) as exc:
-            engine.render(template, {}, strict=True)
-
-        assert exc.value.code == "UNKNOWN_VARIABLE"
-        assert "var1" in exc.value.message
-        assert "var2" in exc.value.message
-        assert "var3" in exc.value.message
-
-    def test_lenient_mode_preserves_unknown_variable(self) -> None:
-        """strict=False should leave unknown variables as-is."""
-        engine = TemplateEngine()
-        template = "Hello, {{unknown_var}}!"
-        result = engine.render(template, {}, strict=False)
-        assert result == "Hello, {{unknown_var}}!"
-
-    def test_lenient_mode_substitutes_known_variables(self) -> None:
-        """strict=False should still substitute known variables."""
-        engine = TemplateEngine()
-        template = "{{known}} and {{unknown}}"
-        result = engine.render(template, {"known": "value"}, strict=False)
+        result = engine.render("{{known}} and {{unknown}}", {"known": "value"})
         assert result == "value and {{unknown}}"
 
-    def test_lenient_mode_logs_warning(self, caplog: pytest.LogCaptureFixture) -> None:
-        """strict=False should log a warning for unknown variables."""
-        import logging
-
+    def test_top_level_name_is_the_first_segment(self) -> None:
+        """A name that only shares a prefix with a variable is not filled."""
         engine = TemplateEngine()
-        template = "{{missing}}"
-
-        with caplog.at_level(logging.WARNING):
-            engine.render(template, {}, strict=False)
-
-        assert "missing" in caplog.text or any(
-            "missing" in record.getMessage()
-            or record.__dict__.get("variable") == "missing"
-            for record in caplog.records
-        )
-
-    def test_strict_mode_with_nested_unknown(self) -> None:
-        """strict=True should report unknown nested paths."""
-        engine = TemplateEngine()
-        template = "{{context.missing.field}}"
-
-        with pytest.raises(ConfigError) as exc:
-            engine.render(template, {"context": {}}, strict=True)
-
-        assert exc.value.code == "UNKNOWN_VARIABLE"
+        context = {"task": {"identifier": "ADW-16"}}
+        result = engine.render("{{task_validated}} {{task.identifier}}", context)
+        assert result == "{{task_validated}} ADW-16"
 
 
 class TestSingleLevelSubstitution:
@@ -361,7 +286,7 @@ class TestSingleLevelSubstitution:
         # Context value contains template syntax
         context = {"value": "{{nested}}"}
         template = "{{value}}"
-        result = engine.render(template, context, strict=False)
+        result = engine.render(template, context)
         # Should output the literal string, not try to expand {{nested}}
         assert result == "{{nested}}"
 
@@ -370,7 +295,7 @@ class TestSingleLevelSubstitution:
         engine = TemplateEngine()
         context = {"outer": "{{inner}}", "inner": "should not appear"}
         template = "{{outer}}"
-        result = engine.render(template, context, strict=False)
+        result = engine.render(template, context)
         assert result == "{{inner}}"
         assert "should not appear" not in result
 
@@ -380,7 +305,7 @@ class TestSingleLevelSubstitution:
         # If recursive, this would fail or loop
         context = {"a": "{{b}}", "b": "{{a}}"}
         template = "{{a}} and {{b}}"
-        result = engine.render(template, context, strict=False)
+        result = engine.render(template, context)
         assert result == "{{b}} and {{a}}"
 
     def test_file_content_not_expanded(self, tmp_path: Path) -> None:
@@ -391,7 +316,7 @@ class TestSingleLevelSubstitution:
 
         engine = TemplateEngine(project_root=tmp_path)
         template = "{{file:config.txt}}"
-        result = engine.render(template, {"some_var": "REPLACED"}, strict=False)
+        result = engine.render(template, {"some_var": "REPLACED"})
         # File content should NOT have its variables expanded
         assert result == "Value is {{some_var}}"
         assert "REPLACED" not in result
@@ -512,8 +437,8 @@ class TestContextObjectRendering:
         result = engine.render(template, context)
         assert result == "accessed"
 
-    def test_object_attribute_access_missing_raises(self) -> None:
-        """Missing attribute on object should raise ConfigError."""
+    def test_object_attribute_access_missing_passes_through(self) -> None:
+        """A missing attribute on a known object leaves the placeholder in place."""
 
         class CustomObject:
             pass
@@ -521,9 +446,8 @@ class TestContextObjectRendering:
         engine = TemplateEngine()
         context = {"outer": CustomObject()}
         template = "{{outer.nonexistent}}"
-        with pytest.raises(ConfigError) as exc:
-            engine.render(template, context, strict=True)
-        assert exc.value.code == "UNKNOWN_VARIABLE"
+        result = engine.render(template, context)
+        assert result == "{{outer.nonexistent}}"
 
 
 class TestEdgeCases:
@@ -959,112 +883,3 @@ class TestRenderWithRootParameters:
         # With parameter, overrides instance attribute
         result_override = engine.render(template, {}, command_root=override_dir)
         assert result_override == "Override Content"
-
-
-class TestValidateArtifactReferences:
-    """Tests for ISS-017: validate_artifact_references function."""
-
-    def test_validate_artifact_references_importable(self) -> None:
-        """validate_artifact_references should be importable from adw.commands.template."""
-        from adw.commands.template import validate_artifact_references
-
-        assert validate_artifact_references is not None
-
-    def test_validate_no_references_passes(self) -> None:
-        """Templates without artifact references should pass validation."""
-        from adw.commands.template import validate_artifact_references
-
-        template = "Hello {{name}}, welcome to {{project}}!"
-        artifacts_map: dict[str, dict[str, str]] = {}
-
-        # Should not raise
-        validate_artifact_references(template, artifacts_map, strict=True)
-
-    def test_validate_existing_artifact_passes(self) -> None:
-        """Valid artifact references should pass validation."""
-        from adw.commands.template import validate_artifact_references
-
-        template = "Plan: {{artifacts.plan.output}}"
-        artifacts_map = {"plan": {"output": "Plan content"}}
-
-        # Should not raise
-        validate_artifact_references(template, artifacts_map, strict=True)
-
-    def test_validate_missing_phase_strict_raises(self) -> None:
-        """Missing phase in strict mode should raise ConfigError."""
-        from adw.commands.template import validate_artifact_references
-        from adw.exceptions import ConfigError
-
-        template = "Plan: {{artifacts.plan.output}}"
-        artifacts_map: dict[str, dict[str, str]] = {}  # No plan phase
-
-        with pytest.raises(ConfigError) as exc:
-            validate_artifact_references(template, artifacts_map, strict=True)
-
-        assert exc.value.code == "ARTIFACT_NOT_FOUND"
-        assert "plan/output" in exc.value.message
-
-    def test_validate_missing_artifact_strict_raises(self) -> None:
-        """Missing artifact in strict mode should raise ConfigError."""
-        from adw.commands.template import validate_artifact_references
-        from adw.exceptions import ConfigError
-
-        template = "Diff: {{artifacts.build.diff}}"
-        artifacts_map = {"build": {"output": "Build output"}}  # Has output, not diff
-
-        with pytest.raises(ConfigError) as exc:
-            validate_artifact_references(template, artifacts_map, strict=True)
-
-        assert exc.value.code == "ARTIFACT_NOT_FOUND"
-        assert "build/diff" in exc.value.message
-
-    def test_validate_missing_lenient_returns_list(self) -> None:
-        """Missing artifacts in lenient mode should return list of missing refs."""
-        from adw.commands.template import validate_artifact_references
-
-        template = "{{artifacts.plan.output}} and {{artifacts.build.diff}}"
-        artifacts_map: dict[str, dict[str, str]] = {}
-
-        # Lenient mode should return missing list instead of raising
-        missing = validate_artifact_references(template, artifacts_map, strict=False)
-        assert missing == ["plan/output", "build/diff"]
-
-    def test_validate_wildcard_skipped(self) -> None:
-        """Wildcard patterns should be skipped in validation."""
-        from adw.commands.template import validate_artifact_references
-
-        template = "All artifacts: {{artifacts.plan.*}}"
-        artifacts_map: dict[
-            str, dict[str, str]
-        ] = {}  # Empty, but wildcard should be skipped
-
-        # Should not raise even with empty artifacts
-        missing = validate_artifact_references(template, artifacts_map, strict=True)
-        assert missing == []
-
-    def test_validate_multiple_missing_reports_all(self) -> None:
-        """Validation should report all missing artifacts, not just the first."""
-        from adw.commands.template import validate_artifact_references
-        from adw.exceptions import ConfigError
-
-        template = "{{artifacts.plan.output}} {{artifacts.build.diff}} {{artifacts.validate.report}}"
-        artifacts_map: dict[str, dict[str, str]] = {}
-
-        with pytest.raises(ConfigError) as exc:
-            validate_artifact_references(template, artifacts_map, strict=True)
-
-        assert "plan/output" in exc.value.message
-        assert "build/diff" in exc.value.message
-        assert "validate/report" in exc.value.message
-
-    def test_validate_single_part_ref_skipped(self) -> None:
-        """Single-part refs like {{artifacts.plan}} should be skipped."""
-        from adw.commands.template import validate_artifact_references
-
-        # This accesses the phase dict, not a specific artifact
-        template = "Phase info: {{artifacts.plan}}"
-        artifacts_map: dict[str, dict[str, str]] = {}
-
-        # Should not raise - single-part refs don't require specific artifacts
-        missing = validate_artifact_references(template, artifacts_map, strict=True)
-        assert missing == []

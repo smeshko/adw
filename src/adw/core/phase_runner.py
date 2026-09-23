@@ -15,10 +15,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 from pydantic import ValidationError
 
-from adw.commands.template import (
-    build_task_context,
-    validate_artifact_references,
-)
+from adw.commands.template import build_task_context
 from adw.core.constants import PHASE_SEQUENCE
 from adw.core.extensions import ExtensionRegistry
 from adw.exceptions import ADWError, ConfigError, HookError, LLMError
@@ -340,7 +337,7 @@ class PhaseRunner:
         """Load prompt template and render with variables.
 
         Includes artifact content from previous phases for template access.
-        Validates artifact references before rendering.
+        A reference to a missing artifact is left as-is and logged.
 
         Template Artifact Access:
             - {{artifacts.phase.name}} - Access specific artifact content
@@ -363,7 +360,7 @@ class PhaseRunner:
 
         Raises:
             CommandError: If resolution or rendering fails.
-            ConfigError: If strict mode enabled and artifact not found.
+            ConfigError: If an included file cannot be read.
         """
         logger.debug("Loading prompt", extra={"phase": phase})
 
@@ -380,15 +377,6 @@ class PhaseRunner:
             )
         else:
             artifacts_map = self._build_artifacts_map(context.run_id, phase)
-
-        # Validate artifact references in template (ISS-017)
-        # Lenient mode - missing refs replaced with empty
-        validate_artifact_references(
-            prompt_template,
-            artifacts_map,
-            strict=False,
-            template_path=str(prompt_path),
-        )
 
         # ISS-029: Use pre-merged config if provided, else create empty
         # Config loading moved to _get_merged_config for timeout access in run()
@@ -494,11 +482,9 @@ class PhaseRunner:
             variables["schema"] = ""  # Empty string if no schema defined
 
         # ISS-017: Pass command_root and shared_root as params, not state
-        # Render template in lenient mode - allow missing refs to pass through
         rendered = self.template_engine.render(
             prompt_template,
             variables,
-            strict=False,
             command_root=command.path,
             shared_root=command.path.parent,
         )

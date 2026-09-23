@@ -7,6 +7,9 @@ Two pattern types are supported:
 - {{variable.path}} - Variable substitution from context
 - {{file:relative/path}} - File content inclusion
 
+A {{variable.path}} placeholder is filled only when its first segment is a
+key of the render context, so placeholders meant for the LLM pass through.
+
 No recursive expansion is performed for security and simplicity.
 """
 
@@ -27,7 +30,6 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "TemplateEngine",
     "build_task_context",
-    "validate_artifact_references",
 ]
 
 
@@ -160,117 +162,12 @@ def build_task_context(task_info: "TaskInfo | None") -> dict[str, Any]:
 # Compile patterns once at module level for efficiency
 # Matches {{variable}} or {{variable.nested.path}} or {{variable.*}} for wildcards
 VARIABLE_PATTERN = re.compile(r"\{\{([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
-# Pattern to match artifact references in templates: {{artifacts.phase.name}}
-# Also matches wildcards like {{artifacts.phase.*}} and {{artifacts.*}}
-# ISS-017: Consolidated from phase_runner.py to template.py
-ARTIFACT_REF_PATTERN = re.compile(r"\{\{artifacts\.([a-z_][a-z0-9_.]*(?:\.\*)?)\}\}")
 # Matches {{file:path/to/file.txt}} - resolves relative to project root
 FILE_PATTERN = re.compile(r"\{\{file:([^}]+)\}\}")
 # Matches {{include:filename}} - resolves relative to command directory
 INCLUDE_PATTERN = re.compile(r"\{\{include:([^}]+)\}\}")
 # Matches {{shared:filename}} - resolves relative to shared commands directory
 SHARED_PATTERN = re.compile(r"\{\{shared:([^}]+)\}\}")
-
-
-def validate_artifact_references(
-    template: str,
-    artifacts_map: dict[str, dict[str, str]],
-    *,
-    strict: bool = True,
-    template_path: str | None = None,
-) -> list[str]:
-    """Validate that all artifact references in template exist.
-
-    Scans the template for {{artifacts.phase.name}} patterns and validates
-    each reference exists in the artifacts map. In strict mode, raises
-    ConfigError for missing artifacts. In lenient mode, returns the list
-    of missing artifact references.
-
-    ISS-017: Consolidated from PhaseRunner._validate_artifact_references to
-    centralize all template-related validation in the template module.
-
-    Args:
-        template: The prompt template string to validate.
-        artifacts_map: Available artifacts as {phase: {name: content}}.
-        strict: If True, raise ConfigError for missing artifacts.
-                If False, return list of missing references.
-        template_path: Optional path to template file for enhanced logging.
-
-    Returns:
-        List of missing artifact references in "phase/name" format.
-        Empty list if all references are valid.
-
-    Raises:
-        ConfigError: If strict=True and any artifact reference is missing.
-
-    Example:
-        >>> artifacts = {"plan": {"output": "Plan content"}}
-        >>> validate_artifact_references("{{artifacts.plan.output}}", artifacts)
-        []
-        >>> validate_artifact_references("{{artifacts.build.diff}}", {}, strict=False)
-        ['build/diff']
-    """
-    # Find all artifact references in the template
-    matches = ARTIFACT_REF_PATTERN.findall(template)
-    if not matches:
-        return []
-
-    missing_artifacts: list[str] = []
-
-    for ref_path in matches:
-        # Skip wildcard patterns - they don't require specific artifacts
-        if ref_path.endswith(".*") or ref_path == "*":
-            continue
-
-        # Parse the reference path (e.g., "plan.plan" or "build.diff")
-        parts = ref_path.split(".")
-        if len(parts) < 2:
-            # Single part like "plan" - accesses phase dict, not artifact
-            continue
-
-        phase_name = parts[0]
-        artifact_name = parts[1]
-
-        # Check if artifact exists
-        if phase_name not in artifacts_map:
-            missing_artifacts.append(f"{phase_name}/{artifact_name}")
-            logger.warning(
-                "Missing artifact reference in template: %s",
-                f"artifacts.{ref_path}",
-                extra={
-                    "phase": phase_name,
-                    "artifact": artifact_name,
-                    "ref": f"artifacts.{ref_path}",
-                    "template": template_path,
-                },
-            )
-        elif artifact_name not in artifacts_map[phase_name]:
-            missing_artifacts.append(f"{phase_name}/{artifact_name}")
-            logger.warning(
-                "Missing artifact reference in template: %s",
-                f"artifacts.{ref_path}",
-                extra={
-                    "phase": phase_name,
-                    "artifact": artifact_name,
-                    "ref": f"artifacts.{ref_path}",
-                    "template": template_path,
-                    "available": list(artifacts_map[phase_name].keys()),
-                },
-            )
-
-    # Raise error if strict mode and artifacts missing
-    if strict and missing_artifacts:
-        raise ConfigError(
-            code="ARTIFACT_NOT_FOUND",
-            message=f"Artifact(s) not found: {', '.join(missing_artifacts)}",
-            suggestion=(
-                "Ensure the referenced phase(s) completed successfully and "
-                "produced the expected artifacts. Check artifact naming "
-                "(e.g., plan.md -> artifacts.plan.plan)."
-            ),
-        )
-
-    return missing_artifacts
 
 
 class TemplateEngine:
@@ -281,7 +178,8 @@ class TemplateEngine:
     - {{file:relative/path}} - File content inclusion
 
     The engine processes templates in a single pass with no recursive expansion.
-    Variables are processed first, then file inclusions.
+    Variables are processed first, then file inclusions. Only variables whose
+    top-level name is a context key are filled; others are left verbatim.
 
     Example:
         >>> engine = TemplateEngine(project_root=Path("/project"))
@@ -317,7 +215,6 @@ class TemplateEngine:
         template: str,
         context: dict[str, Any] | BaseModel,
         *,
-        strict: bool = True,
         command_root: Path | None = None,
         shared_root: Path | None = None,
     ) -> str:
@@ -327,14 +224,14 @@ class TemplateEngine:
         expansion is performed - if a variable value contains template syntax,
         it is NOT expanded.
 
-        ISS-017: Added command_root and shared_root parameters to avoid instance
-        state mutation. Pass these to override instance attributes per-render.
+        A {{name.path}} placeholder is filled only when ``name``, its first
+        segment, is a key of ``context``. Any other placeholder belongs to the
+        prompt's reader and is left verbatim without logging. A known name
+        whose path does not resolve is also left verbatim, with one warning.
 
         Args:
             template: The template string to render.
             context: Dictionary or Pydantic model providing variable values.
-            strict: If True, raise ConfigError for unknown variables.
-                   If False, leave unknown variables as-is in output.
             command_root: Override for instance command_root. Used for
                          resolving {{include:...}} inclusions.
             shared_root: Override for instance shared_root. Used for
@@ -344,8 +241,7 @@ class TemplateEngine:
             The rendered template string.
 
         Raises:
-            ConfigError: If strict=True and an unknown variable is found,
-                        or if a file inclusion target doesn't exist.
+            ConfigError: If a file inclusion target cannot be read.
         """
         # Use parameter overrides if provided, else fall back to instance attrs
         effective_command_root = (
@@ -359,7 +255,7 @@ class TemplateEngine:
         context_dict = self._normalize_context(context)
 
         # Process variables first (single pass, no recursion)
-        result = self._process_variables(template, context_dict, strict=strict)
+        result = self._process_variables(template, context_dict)
 
         # Process command-local includes ({{include:...}})
         result = self._process_includes(result, command_root=effective_command_root)
@@ -507,55 +403,37 @@ class TemplateEngine:
         self,
         template: str,
         context: dict[str, Any],
-        *,
-        strict: bool,
     ) -> str:
         """Process variable substitutions in the template.
+
+        Only placeholders whose top-level name is a key of ``context`` are
+        filled; the rest pass through untouched.
 
         Args:
             template: Template string to process.
             context: Dictionary providing variable values.
-            strict: If True, raise ConfigError for unknown variables.
 
         Returns:
             Template with variables substituted.
-
-        Raises:
-            ConfigError: If strict=True and a variable is not found.
         """
-        unknown_vars: list[str] = []
 
         def replace_variable(match: re.Match[str]) -> str:
             var_path = match.group(1)
+            if var_path.split(".", 1)[0] not in context:
+                return match.group(0)
             try:
                 value = self._resolve_variable(var_path, context)
-                # Convert None to empty string, otherwise str() convert
-                return "" if value is None else str(value)
             except KeyError:
-                if strict:
-                    unknown_vars.append(var_path)
-                    # Return placeholder for now, will raise after collecting all
-                    return match.group(0)
-                else:
-                    # Log warning in lenient mode
-                    logger.warning(
-                        "Unknown template variable left as-is: {{%s}}",
-                        var_path,
-                        extra={"variable": var_path},
-                    )
-                    return match.group(0)
+                logger.warning(
+                    "Template variable not found, left as-is: {{%s}}",
+                    var_path,
+                    extra={"variable": var_path},
+                )
+                return match.group(0)
+            # Convert None to empty string, otherwise str() convert
+            return "" if value is None else str(value)
 
-        result = VARIABLE_PATTERN.sub(replace_variable, template)
-
-        # Raise error after processing all variables (to report all unknowns)
-        if strict and unknown_vars:
-            raise ConfigError(
-                code="UNKNOWN_VARIABLE",
-                message=f"Unknown template variable(s): {', '.join(unknown_vars)}",
-                suggestion="Check the variable names match the context keys",
-            )
-
-        return result
+        return VARIABLE_PATTERN.sub(replace_variable, template)
 
     def _process_file_inclusions(self, template: str) -> str:
         """Process file inclusion patterns in the template.
