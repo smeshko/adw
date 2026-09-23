@@ -43,13 +43,6 @@ class RegisteredProject(BaseModel):
     model_config = {
         "frozen": False,  # Allow mutation for development, use model_copy
         "validate_assignment": True,  # Validate on attribute assignment
-        "json_schema_extra": {
-            "example": {
-                "path": "/Users/dev/my-api",
-                "name": "my-api",
-                "registered_at": "2026-01-25T10:00:00Z",
-            }
-        },
     }
 
 
@@ -89,20 +82,4 @@ class ProjectRegistry(BaseModel):
     model_config = {
         "frozen": False,
         "validate_assignment": True,
-        "json_schema_extra": {
-            "example": {
-                "projects": [
-                    {
-                        "path": "/Users/dev/my-api",
-                        "name": "my-api",
-                        "registered_at": "2026-01-25T10:00:00Z",
-                    },
-                    {
-                        "path": "/Users/dev/frontend",
-                        "name": "frontend-app",
-                        "registered_at": "2026-01-25T14:30:00Z",
-                    },
-                ]
-            }
-        },
     }

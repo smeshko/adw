@@ -291,8 +291,6 @@ class TestArtifactsInTemplateVariables:
             name="build",
             path=cmd_path,
             tier="project",
-            has_pre_hook=False,
-            has_post_hook=False,
         )
 
         with patch.object(

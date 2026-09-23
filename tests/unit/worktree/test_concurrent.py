@@ -141,27 +141,6 @@ class TestConcurrentRunManager:
 
         assert manager.locks_dir.exists()
 
-    def test_unregister_run_removes_lock_file(
-        self, manager: ConcurrentRunManager, tmp_path: Path
-    ) -> None:
-        """unregister_run removes the lock file."""
-        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
-        worktree_path = tmp_path / "trees" / run_id
-
-        manager.register_run(run_id=run_id, worktree_path=worktree_path)
-        lock_file = manager.locks_dir / f"{run_id}.lock"
-        assert lock_file.exists()
-
-        manager.unregister_run(run_id)
-        assert not lock_file.exists()
-
-    def test_unregister_run_nonexistent_is_safe(
-        self, manager: ConcurrentRunManager
-    ) -> None:
-        """unregister_run doesn't raise for nonexistent lock file."""
-        # Should not raise
-        manager.unregister_run("nonexistent_run_id")
-
     def test_get_active_runs_returns_active_runs(
         self, manager: ConcurrentRunManager, tmp_path: Path
     ) -> None:
@@ -219,25 +198,6 @@ class TestConcurrentRunManager:
         assert len(runs) == 0
         assert not lock_file.exists()
 
-    def test_can_start_run_when_under_limit(
-        self, manager: ConcurrentRunManager
-    ) -> None:
-        """can_start_run returns True when under max_concurrent."""
-        assert manager.can_start_run() is True
-
-    def test_can_start_run_when_at_limit(self, tmp_path: Path) -> None:
-        """can_start_run returns False when at max_concurrent."""
-        # Create manager with max_concurrent=1
-        manager = ConcurrentRunManager(tmp_path, max_concurrent=1)
-
-        # Register one run with current PID
-        manager.register_run(
-            run_id="01HQTEST123456789ABCD",
-            worktree_path=tmp_path / "trees" / "01HQTEST123456789ABCD",
-        )
-
-        assert manager.can_start_run() is False
-
     def test_check_can_start_or_raise_passes_under_limit(
         self, manager: ConcurrentRunManager
     ) -> None:
@@ -261,51 +221,6 @@ class TestConcurrentRunManager:
         assert "1" in exc_info.value.message  # max_concurrent value
         assert exc_info.value.context["max_concurrent"] == 1
         assert exc_info.value.context["active_count"] == 1
-
-    def test_get_run_info_returns_active_run(
-        self, manager: ConcurrentRunManager, tmp_path: Path
-    ) -> None:
-        """get_run_info returns ActiveRun for existing run."""
-        run_id = "01HQXK5P3Z7V8R2M4N6T9W1Y3C"
-        worktree_path = tmp_path / "trees" / run_id
-
-        manager.register_run(
-            run_id=run_id,
-            worktree_path=worktree_path,
-            backend_port=9100,
-        )
-
-        run_info = manager.get_run_info(run_id)
-
-        assert run_info is not None
-        assert run_info.run_id == run_id
-        assert run_info.backend_port == 9100
-
-    def test_get_run_info_returns_none_for_nonexistent(
-        self, manager: ConcurrentRunManager
-    ) -> None:
-        """get_run_info returns None for nonexistent run."""
-        run_info = manager.get_run_info("nonexistent")
-        assert run_info is None
-
-    def test_get_run_info_returns_none_for_stale_run(
-        self, manager: ConcurrentRunManager
-    ) -> None:
-        """get_run_info returns None and cleans up stale lock."""
-        manager.locks_dir.mkdir(parents=True, exist_ok=True)
-        lock_file = manager.locks_dir / "stale.lock"
-        lock_data = {
-            "run_id": "stale",
-            "pid": 999999999,
-            "start_time": datetime.now(UTC).isoformat(),
-            "worktree_path": "/fake/path",
-        }
-        lock_file.write_text(json.dumps(lock_data))
-
-        run_info = manager.get_run_info("stale")
-
-        assert run_info is None
-        assert not lock_file.exists()
 
     def test_multiple_concurrent_runs(
         self, manager: ConcurrentRunManager, tmp_path: Path

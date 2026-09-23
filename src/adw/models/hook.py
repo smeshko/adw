@@ -30,8 +30,6 @@ class HookResult(BaseModel):
         ...     duration_ms=150,
         ...     hook_type="pre",
         ... )
-        >>> result.is_success
-        True
     """
 
     stdout: str = Field(
@@ -56,25 +54,7 @@ class HookResult(BaseModel):
         description="Type of hook ('pre' or 'post')",
     )
 
-    @property
-    def is_success(self) -> bool:
-        """Check if the hook executed successfully.
-
-        Returns:
-            True if exit_code is 0, False otherwise
-        """
-        return self.exit_code == 0
-
     model_config = {
         "frozen": False,
         "validate_assignment": True,
-        "json_schema_extra": {
-            "example": {
-                "stdout": "Hook executed successfully",
-                "stderr": "",
-                "exit_code": 0,
-                "duration_ms": 100,
-                "hook_type": "pre",
-            }
-        },
     }

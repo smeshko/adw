@@ -263,23 +263,6 @@ class LiveStreamTransport:
         line = f"[{timestamp}] {label} {tool}{ctx}"
         self._write_line(line)
 
-    def write_phase(self, phase: str, event: str = "started") -> None:
-        """Write a phase transition log entry.
-
-        Args:
-            phase: Phase name
-            event: Event type (started, completed, failed)
-        """
-        if self._closed:
-            return
-
-        timestamp = self._format_timestamp()
-        label = self._colorize("[PHASE]", "magenta")
-        phase_name = self._colorize(phase, "bold")
-
-        line = f"[{timestamp}] {label} Phase '{phase_name}' {event}"
-        self._write_line(line)
-
     def write_error(self, message: str) -> None:
         """Write an error log entry.
 
@@ -295,19 +278,6 @@ class LiveStreamTransport:
 
         line = f"[{timestamp}] {label} {msg}"
         self._write_line(line)
-
-    def write_raw(self, content: str) -> None:
-        """Write raw content without formatting.
-
-        Useful for preserving LLM output exactly as received.
-
-        Args:
-            content: Content to write
-        """
-        if self._closed:
-            return
-
-        self._write_line(content, flush=True)
 
     def close(self) -> None:
         """Close the transport and clean up resources.

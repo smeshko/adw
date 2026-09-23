@@ -114,7 +114,7 @@ class TestHookChaining:
         paths = resolver._collect_hook_paths("nonexistent-cmd", "pre")
         assert paths == []
 
-    def test_resolved_command_has_pre_hook_paths_list(self, tmp_path: Path) -> None:
+    def test_resolved_command_pre_hook_paths_is_list(self, tmp_path: Path) -> None:
         """ResolvedCommand should have pre_hook_paths as a list."""
         cmd = ResolvedCommand(
             name="test",
@@ -125,8 +125,8 @@ class TestHookChaining:
         )
         assert isinstance(cmd.pre_hook_paths, list)
         assert len(cmd.pre_hook_paths) == 1
-        assert cmd.has_pre_hook is True
-        assert cmd.has_post_hook is False
+        assert cmd.pre_hook_path is not None
+        assert cmd.post_hook_path is None
 
     def test_backward_compat_properties(self, tmp_path: Path) -> None:
         """pre_hook_path and post_hook_path properties should work."""

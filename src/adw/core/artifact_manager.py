@@ -162,77 +162,6 @@ class ArtifactManager:
         content = json.dumps(data, indent=2, default=str)
         return self.store(run_id, phase, name, content)
 
-    def get_json(
-        self,
-        run_id: str,
-        phase: str,
-        name: str,
-    ) -> Any | None:
-        """Retrieve and parse JSON artifact.
-
-        Args:
-            run_id: The run ID.
-            phase: Phase that produced the artifact.
-            name: Artifact filename.
-
-        Returns:
-            Parsed JSON data, or None if not found or invalid JSON.
-        """
-        content = self.get(run_id, phase, name)
-        if content is None:
-            return None
-
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError:
-            return None
-
-    def store_text(
-        self,
-        run_id: str,
-        phase: str,
-        name: str,
-        text: str,
-    ) -> Path:
-        """Store plain text artifact.
-
-        Convenience method that is equivalent to store() with string content,
-        but makes the intent explicit in code.
-
-        Args:
-            run_id: The run ID.
-            phase: Phase that produced the artifact.
-            name: Artifact filename (should end in .txt).
-            text: Plain text content.
-
-        Returns:
-            Path to the stored artifact.
-        """
-        return self.store(run_id, phase, name, text)
-
-    def get_auto(
-        self,
-        run_id: str,
-        phase: str,
-        name: str,
-    ) -> Any | None:
-        """Retrieve artifact with automatic content type detection.
-
-        Automatically parses JSON files (*.json) and returns raw content
-        for other file types.
-
-        Args:
-            run_id: The run ID.
-            phase: Phase that produced the artifact.
-            name: Artifact filename.
-
-        Returns:
-            Parsed JSON for .json files, raw text for others, or None if not found.
-        """
-        if name.endswith(".json"):
-            return self.get_json(run_id, phase, name)
-        return self.get(run_id, phase, name)
-
     def list_artifacts(
         self,
         run_id: str,
@@ -281,24 +210,3 @@ class ArtifactManager:
                     )
 
         return sorted(results, key=lambda a: (a["phase"], a["name"]))
-
-    def get_artifact_paths(self, run_id: str) -> dict[str, list[str]]:
-        """Get all artifact paths grouped by phase.
-
-        This is useful for tracking artifact paths in RunContext without
-        storing the full content.
-
-        Args:
-            run_id: The run ID.
-
-        Returns:
-            Dictionary mapping phase name to list of artifact filenames.
-        """
-        artifacts = self.list_artifacts(run_id)
-        paths: dict[str, list[str]] = {}
-        for artifact in artifacts:
-            phase = artifact["phase"]
-            if phase not in paths:
-                paths[phase] = []
-            paths[phase].append(artifact["name"])
-        return paths

@@ -85,13 +85,11 @@ class ConcurrentRunManager:
 
     Example:
         >>> manager = ConcurrentRunManager(Path("/project"))
-        >>> if manager.can_start_run():
-        ...     manager.register_run(
-        ...         run_id="01HQXK5...",
-        ...         worktree_path=Path("/project/trees/01HQXK5..."),
-        ...     )
-        >>> # Run completes...
-        >>> manager.unregister_run("01HQXK5...")
+        >>> manager.check_can_start_or_raise()
+        >>> manager.register_run(
+        ...     run_id="01HQXK5...",
+        ...     worktree_path=Path("/project/trees/01HQXK5..."),
+        ... )
     """
 
     def __init__(
@@ -198,26 +196,6 @@ class ConcurrentRunManager:
 
         return active
 
-    def can_start_run(self) -> bool:
-        """Check if a new run can be started.
-
-        Returns:
-            True if under the max_concurrent limit, False otherwise.
-        """
-        active_count = len(self.get_active_runs())
-        can_start = active_count < self.max_concurrent
-
-        logger.debug(
-            "Checking if run can start",
-            extra={
-                "active_count": active_count,
-                "max_concurrent": self.max_concurrent,
-                "can_start": can_start,
-            },
-        )
-
-        return can_start
-
     def check_can_start_or_raise(self) -> None:
         """Check if a new run can be started, raising if not.
 
@@ -289,80 +267,6 @@ class ConcurrentRunManager:
                 "lock_path": str(lock_path),
             },
         )
-
-    def unregister_run(self, run_id: str) -> None:
-        """Unregister a run by removing its lock file.
-
-        Removes the lock file for the given run ID. Does not raise
-        an error if the lock file doesn't exist.
-
-        Args:
-            run_id: ULID identifier for the run.
-        """
-        lock_path = self._lock_path(run_id)
-
-        if lock_path.exists():
-            try:
-                lock_path.unlink()
-                logger.debug(
-                    "Unregistered run",
-                    extra={
-                        "run_id": run_id,
-                        "lock_path": str(lock_path),
-                    },
-                )
-            except OSError as e:
-                logger.warning(
-                    "Failed to unregister run",
-                    extra={
-                        "run_id": run_id,
-                        "lock_path": str(lock_path),
-                        "error": str(e),
-                    },
-                )
-        else:
-            logger.debug(
-                "Lock file not found for unregister",
-                extra={
-                    "run_id": run_id,
-                    "lock_path": str(lock_path),
-                },
-            )
-
-    def get_run_info(self, run_id: str) -> ActiveRun | None:
-        """Get information about a specific run.
-
-        Args:
-            run_id: ULID identifier for the run.
-
-        Returns:
-            ActiveRun object if the run is active, None otherwise.
-        """
-        lock_path = self._lock_path(run_id)
-
-        if not lock_path.exists():
-            return None
-
-        try:
-            data = json.loads(lock_path.read_text())
-            active_run = ActiveRun(
-                run_id=data["run_id"],
-                pid=data["pid"],
-                start_time=datetime.fromisoformat(data["start_time"]),
-                worktree_path=Path(data["worktree_path"]),
-                backend_port=data.get("backend_port"),
-                frontend_port=data.get("frontend_port"),
-            )
-
-            if active_run.is_pid_running():
-                return active_run
-            else:
-                # Clean up stale lock
-                lock_path.unlink(missing_ok=True)
-                return None
-
-        except (json.JSONDecodeError, KeyError, ValueError, OSError):
-            return None
 
     def get_orphaned_worktrees(self) -> list[Path]:
         """Find worktrees without corresponding active locks.

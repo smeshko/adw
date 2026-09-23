@@ -87,7 +87,6 @@ class ConsoleTransport:
     and plain text for non-TTY (piped/redirected) output per UX-7.
 
     Attributes:
-        is_tty: Whether the output is a TTY terminal
         console: Rich Console instance for TTY output
 
     Example:
@@ -133,11 +132,6 @@ class ConsoleTransport:
             force_terminal=self._is_tty,
             no_color=not self._is_tty,
         )
-
-    @property
-    def is_tty(self) -> bool:
-        """Check if output is to a TTY terminal."""
-        return self._is_tty
 
     @property
     def verbosity(self) -> Verbosity:

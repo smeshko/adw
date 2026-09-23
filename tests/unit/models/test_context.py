@@ -1,4 +1,4 @@
-"""Tests for context models (RunContext, SessionContext, ProjectContext)."""
+"""Tests for context models (RunContext, StateSnapshot)."""
 
 import json
 from datetime import datetime
@@ -8,9 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from adw.models import (
-    ProjectContext,
     RunContext,
-    SessionContext,
     StateSnapshot,
 )
 
@@ -523,62 +521,6 @@ class TestTokenAggregation:
         assert data["total_tokens"] == 800
 
 
-class TestSessionContext:
-    """Tests for SessionContext model."""
-
-    def test_creation(self) -> None:
-        """SessionContext creates correctly."""
-        session = SessionContext(
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            current_phase="plan",
-        )
-        assert session.run_id == "01KDSG2VDHNK0W4HSCZWJZXWSQ"
-        assert session.current_phase == "plan"
-        assert session.is_resuming is False
-        assert session.last_checkpoint is None
-
-    def test_resuming_session(self) -> None:
-        """SessionContext tracks resuming state."""
-        session = SessionContext(
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            current_phase="build",
-            is_resuming=True,
-            last_checkpoint="/tmp/checkpoint.json",
-        )
-        assert session.is_resuming is True
-        assert session.last_checkpoint == "/tmp/checkpoint.json"
-
-
-class TestProjectContext:
-    """Tests for ProjectContext model."""
-
-    def test_creation(self) -> None:
-        """ProjectContext creates correctly."""
-        project = ProjectContext(
-            project_root=Path("/tmp/myproject"),
-            config_path=Path("/tmp/myproject/project.yaml"),
-            runs_dir=Path("/tmp/myproject/.adw/runs"),
-            language="python",
-        )
-        assert project.project_root == Path("/tmp/myproject")
-        assert project.language == "python"
-        assert project.framework is None
-        assert project.platform == "cli"
-
-    def test_with_framework(self) -> None:
-        """ProjectContext with framework set."""
-        project = ProjectContext(
-            project_root=Path("/tmp/myproject"),
-            config_path=Path("/tmp/myproject/project.yaml"),
-            runs_dir=Path("/tmp/myproject/.adw/runs"),
-            language="python",
-            framework="fastapi",
-            platform="api",
-        )
-        assert project.framework == "fastapi"
-        assert project.platform == "api"
-
-
 class TestStateSnapshot:
     """Tests for StateSnapshot model.
 
@@ -724,95 +666,3 @@ class TestRunContextTaskIntegration:
         # Updated has new values
         assert updated.task_id == "RULE-456"
         assert updated.task_manager == "linear"
-
-
-class TestRunContextArtifactPathResolution:
-    """Tests for RunContext artifact path resolution (Story 10.5)."""
-
-    @pytest.fixture
-    def context(self) -> RunContext:
-        """Create a sample RunContext for testing."""
-        return RunContext(
-            run_id="01KDSG2VDHNK0W4HSCZWJZXWSQ",
-            feature_description="Test feature",
-            current_phase="plan",
-            started_at=datetime.now(),
-        )
-
-    def test_resolve_artifact_path_with_worktree(
-        self, context: RunContext, tmp_path: Path
-    ) -> None:
-        """resolve_artifact_path uses worktree_path when set."""
-        worktree_path = tmp_path / "worktree"
-        context = context.model_copy(update={"worktree_path": worktree_path})
-
-        result = context.resolve_artifact_path(".adw/runs/01RUN/artifacts/plan/out.md")
-
-        expected = worktree_path / ".adw/runs/01RUN/artifacts/plan/out.md"
-        assert result == expected
-
-    def test_resolve_artifact_path_without_worktree_uses_project_root(
-        self, context: RunContext, tmp_path: Path
-    ) -> None:
-        """resolve_artifact_path falls back to project_root when no worktree."""
-        assert context.worktree_path is None
-
-        result = context.resolve_artifact_path(
-            ".adw/runs/01RUN/artifacts/plan/out.md",
-            project_root=tmp_path / "project",
-        )
-
-        expected = tmp_path / "project" / ".adw/runs/01RUN/artifacts/plan/out.md"
-        assert result == expected
-
-    def test_resolve_artifact_path_worktree_takes_precedence(
-        self, context: RunContext, tmp_path: Path
-    ) -> None:
-        """resolve_artifact_path prefers worktree_path over project_root."""
-        worktree_path = tmp_path / "worktree"
-        context = context.model_copy(update={"worktree_path": worktree_path})
-
-        result = context.resolve_artifact_path(
-            ".adw/runs/01RUN/artifacts/plan/out.md",
-            project_root=tmp_path / "project",
-        )
-
-        # Should use worktree_path, not project_root
-        expected = worktree_path / ".adw/runs/01RUN/artifacts/plan/out.md"
-        assert result == expected
-
-    def test_get_runs_dir_with_worktree(
-        self, context: RunContext, tmp_path: Path
-    ) -> None:
-        """get_runs_dir returns worktree-based path when worktree set."""
-        worktree_path = tmp_path / "worktree"
-        context = context.model_copy(update={"worktree_path": worktree_path})
-
-        result = context.get_runs_dir()
-
-        expected = worktree_path / ".adw" / "runs"
-        assert result == expected
-
-    def test_get_runs_dir_without_worktree(
-        self, context: RunContext, tmp_path: Path
-    ) -> None:
-        """get_runs_dir uses project_root when no worktree."""
-        assert context.worktree_path is None
-
-        result = context.get_runs_dir(project_root=tmp_path / "project")
-
-        expected = tmp_path / "project" / ".adw" / "runs"
-        assert result == expected
-
-    def test_get_runs_dir_worktree_takes_precedence(
-        self, context: RunContext, tmp_path: Path
-    ) -> None:
-        """get_runs_dir prefers worktree_path over project_root."""
-        worktree_path = tmp_path / "worktree"
-        context = context.model_copy(update={"worktree_path": worktree_path})
-
-        result = context.get_runs_dir(project_root=tmp_path / "project")
-
-        # Should use worktree_path, not project_root
-        expected = worktree_path / ".adw" / "runs"
-        assert result == expected

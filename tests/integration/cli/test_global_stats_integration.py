@@ -127,9 +127,6 @@ def _create_mock_aggregator_class(test_env: dict):
         def get_global_stats(self, **kwargs):
             return self._real.get_global_stats(**kwargs)
 
-        def get_token_usage(self, run_id, project_path):
-            return self._real.get_token_usage(run_id, project_path)
-
         def calculate_cost(self, tokens, model="default"):
             return self._real.calculate_cost(tokens, model)
 

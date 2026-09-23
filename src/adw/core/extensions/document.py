@@ -8,8 +8,6 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
-from adw.models import GitConfig
-
 if TYPE_CHECKING:
     from adw.cli.pr import AutoPRResult
     from adw.models import LLMResult, PhaseResult, RunContext
@@ -28,31 +26,22 @@ class DocumentExtension:
     - Updates context with PR state fields
 
     Dependencies:
-    - git_config: For git settings
     - runs_dir: For artifact path resolution
 
     Example:
         >>> from adw.core.extensions import ExtensionRegistry
         >>> registry = ExtensionRegistry()
-        >>> registry.register(
-        ...     DocumentExtension(git_config=git_config, runs_dir=runs_dir)
-        ... )
+        >>> registry.register(DocumentExtension(runs_dir=runs_dir))
     """
 
     phase: ClassVar[str] = "document"
 
-    def __init__(
-        self,
-        git_config: GitConfig,
-        runs_dir: Path,
-    ) -> None:
+    def __init__(self, runs_dir: Path) -> None:
         """Initialize DocumentExtension.
 
         Args:
-            git_config: Git configuration.
             runs_dir: Path to .adw/runs directory.
         """
-        self._git_config = git_config
         self._runs_dir = runs_dir
 
     def should_skip(self, context: "RunContext") -> tuple[bool, str | None]:

@@ -8,10 +8,14 @@ import pytest
 from pydantic import ValidationError
 
 from adw.models.command import (
+    PHASE_CONFIG_CLASSES,
     CommandConfig,
     DocMappingConfig,
     DocumentCommandConfig,
     PhaseLLMConfig,
+    ShipCommandConfig,
+    ValidateCommandConfig,
+    get_config_class,
 )
 
 
@@ -164,3 +168,40 @@ class TestDocumentCommandConfig:
         )
         assert config.doc_mappings is not None
         assert len(config.doc_mappings) == 1
+
+
+class TestPhaseConfigClasses:
+    """Tests for PHASE_CONFIG_CLASSES mapping and get_config_class function."""
+
+    def test_phase_config_classes_includes_validate(self) -> None:
+        """PHASE_CONFIG_CLASSES includes validate phase."""
+        assert "validate" in PHASE_CONFIG_CLASSES
+        assert PHASE_CONFIG_CLASSES["validate"] is ValidateCommandConfig
+
+    def test_phase_config_classes_includes_ship(self) -> None:
+        """PHASE_CONFIG_CLASSES includes ship phase."""
+        assert "ship" in PHASE_CONFIG_CLASSES
+        assert PHASE_CONFIG_CLASSES["ship"] is ShipCommandConfig
+
+    def test_phase_config_classes_includes_document(self) -> None:
+        """PHASE_CONFIG_CLASSES includes document phase."""
+        assert "document" in PHASE_CONFIG_CLASSES
+        assert PHASE_CONFIG_CLASSES["document"] is DocumentCommandConfig
+
+    def test_get_config_class_returns_specialized_for_validate(self) -> None:
+        """get_config_class returns ValidateCommandConfig for validate phase."""
+        assert get_config_class("validate") is ValidateCommandConfig
+
+    def test_get_config_class_returns_specialized_for_ship(self) -> None:
+        """get_config_class returns ShipCommandConfig for ship phase."""
+        assert get_config_class("ship") is ShipCommandConfig
+
+    def test_get_config_class_returns_specialized_for_document(self) -> None:
+        """get_config_class returns DocumentCommandConfig for document phase."""
+        assert get_config_class("document") is DocumentCommandConfig
+
+    def test_get_config_class_returns_base_for_unknown_phase(self) -> None:
+        """get_config_class returns CommandConfig for unknown phases."""
+        assert get_config_class("plan") is CommandConfig
+        assert get_config_class("build") is CommandConfig
+        assert get_config_class("unknown") is CommandConfig

@@ -8,7 +8,6 @@ post-hook → artifact capture.
 import json
 import logging
 import os
-from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -16,7 +15,6 @@ from typing import TYPE_CHECKING, Any
 import yaml
 from pydantic import ValidationError
 
-from adw.commands.loader import get_config_class
 from adw.commands.template import (
     build_task_context,
     validate_artifact_references,
@@ -40,6 +38,7 @@ from adw.models.command import (
     PhaseLLMConfig,
     ShipCommandConfig,
     ValidateCommandConfig,
+    get_config_class,
 )
 from adw.models.config import GitConfig, PhaseConfig, ProjectConfig
 
@@ -50,9 +49,6 @@ if TYPE_CHECKING:
     from adw.core.artifact_manager import ArtifactManager
     from adw.executors.base import LLMExecutor
     from adw.hooks.runner import HookRunner
-
-# Type alias for progress callbacks
-ProgressCallback = Callable[[int], None]  # Callback receiving token count
 
 logger = logging.getLogger(__name__)
 
@@ -583,42 +579,6 @@ class PhaseRunner:
                 ) from e
 
         return loaded
-
-    def _merge_configs(
-        self,
-        command_config: CommandConfig | None,
-    ) -> PhaseConfig:
-        """Convert command config to PhaseConfig.
-
-        Extracts settings from command's config.yaml and returns a PhaseConfig.
-        Phase configuration is now delegated entirely to command configs (ISS-029).
-
-        Args:
-            command_config: Configuration from command's config.yaml.
-                May be None if no config.yaml exists.
-
-        Returns:
-            PhaseConfig with command settings.
-            Returns empty PhaseConfig if command_config is None.
-
-        Example:
-            >>> command_config = CommandConfig(
-            ...     input_files={"prd": "defaults/prd.md"},
-            ... )
-            >>> merged = runner._merge_configs(command_config)
-        """
-        # Start with empty config
-        merged_data: dict[str, Any] = {}
-
-        # Apply command settings (if any)
-        if command_config:
-            if command_config.input_files is not None:
-                merged_data["input_files"] = dict(command_config.input_files)
-            if command_config.llm is not None:
-                merged_data["llm"] = command_config.llm
-
-        # Return PhaseConfig
-        return PhaseConfig(**merged_data) if merged_data else PhaseConfig()
 
     def _merge_configs_with_project(
         self,
