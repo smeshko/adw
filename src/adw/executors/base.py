@@ -24,7 +24,7 @@ class LLMExecutor(Protocol):
     Example:
         >>> class MyExecutor:
         ...     def execute(
-        ...         self, prompt: str, *, timeout: int | None = None
+        ...         self, prompt: str, *, model: str | None = None
         ...     ) -> LLMResult:
         ...         ...
         >>>
@@ -35,7 +35,6 @@ class LLMExecutor(Protocol):
         self,
         prompt: str,
         *,
-        timeout: int | None = None,
         phase: str | None = None,
         cwd: Path | None = None,
         model: str | None = None,
@@ -44,7 +43,6 @@ class LLMExecutor(Protocol):
 
         Args:
             prompt: The prompt to send to the LLM.
-            timeout: Unused, kept for interface compatibility.
             phase: Optional phase name for logging and debugging purposes.
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
@@ -53,10 +51,9 @@ class LLMExecutor(Protocol):
                  If None, uses executor's default (no --model flag).
 
         Returns:
-            LLMResult with success status, content, tool calls, and metrics.
+            LLMResult with content, tool calls, and metrics.
 
         Raises:
-            LLMRateLimitError: If rate limited by the API.
-            LLMError: For other LLM-related errors.
+            LLMError: For LLM-related errors.
         """
         ...

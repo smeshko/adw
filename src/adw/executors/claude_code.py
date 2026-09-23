@@ -42,6 +42,9 @@ class ClaudeCodeExecutor:
         >>> print(result.content)
     """
 
+    # How much of stderr a non-zero exit carries into its error message
+    _STDERR_TAIL_LINES = 20
+
     def __init__(
         self,
         config: LLMConfig,
@@ -53,7 +56,7 @@ class ClaudeCodeExecutor:
         """Initialize the ClaudeCodeExecutor.
 
         Args:
-            config: LLM configuration containing path, timeout, and other settings.
+            config: LLM configuration containing path and retry settings.
             security_interceptor: Optional SecurityInterceptor for checking tool
                         calls against security patterns (Story 3.6).
             allow_dangerous: If True, log warnings instead of blocking dangerous
@@ -70,7 +73,6 @@ class ClaudeCodeExecutor:
         self,
         prompt: str,
         *,
-        timeout: int | None = None,
         phase: str | None = None,
         cwd: Path | None = None,
         model: str | None = None,
@@ -83,7 +85,6 @@ class ClaudeCodeExecutor:
 
         Args:
             prompt: The prompt to send to Claude Code.
-            timeout: Unused, kept for interface compatibility.
             phase: Optional phase name for log context.
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
@@ -92,10 +93,11 @@ class ClaudeCodeExecutor:
                  If None, no --model flag is passed.
 
         Returns:
-            LLMResult with success status, content, tool calls, and metrics.
+            LLMResult with content, tool calls, and metrics.
 
         Raises:
-            LLMError: If Claude Code is not found or execution fails.
+            LLMError: CLAUDE_NOT_FOUND if Claude Code is not found, or the
+                recoverable CLAUDE_EXIT_NONZERO if it exits non-zero.
         """
         # Log LLM start to live stream
         if self.live_stream:
@@ -320,6 +322,11 @@ class ClaudeCodeExecutor:
 
         Returns:
             LLMResult instance.
+
+        Raises:
+            LLMError: CLAUDE_EXIT_NONZERO (recoverable) if Claude Code exited
+                non-zero. The message carries the stderr tail, or the text of
+                the ``is_error`` result message when stderr is empty.
         """
         duration_ms = int((time.monotonic() - start_time) * 1000)
         raw_output = process_output["stdout"]
@@ -339,6 +346,22 @@ class ClaudeCodeExecutor:
             },
         )
 
+        if returncode != 0:
+            message = self._exit_error_message(
+                returncode, stderr, parsed["error_result"]
+            )
+            if self.live_stream:
+                self.live_stream.write_error(message)
+            raise LLMError(
+                code="CLAUDE_EXIT_NONZERO",
+                message=message,
+                suggestion=(
+                    "See the run's live.log. The phase is retried per llm.retry "
+                    "in .adw/project.yaml."
+                ),
+                recoverable=True,
+            )
+
         # Build common kwargs for LLMResult
         common = {
             "content": parsed["content"],
@@ -353,15 +376,27 @@ class ClaudeCodeExecutor:
             "duration_ms": duration_ms,
         }
 
-        # Build result
-        if returncode == 0:
-            return LLMResult(success=True, **common)
-        else:
-            error_msg = stderr or f"Claude Code exited with code {returncode}"
-            # Log error to live stream
-            if self.live_stream:
-                self.live_stream.write_error(error_msg)
-            return LLMResult(success=False, error=error_msg, **common)
+        return LLMResult(**common)
+
+    @classmethod
+    def _exit_error_message(
+        cls, returncode: int, stderr: str, error_result: str
+    ) -> str:
+        """Describe a non-zero Claude Code exit.
+
+        Args:
+            returncode: The process exit code.
+            stderr: Everything the process wrote to stderr.
+            error_result: Text of the ``is_error`` result message, or "".
+
+        Returns:
+            The exit code, followed by the last lines of stderr, or by the
+            error result text when stderr is empty.
+        """
+        tail = stderr.strip().splitlines()[-cls._STDERR_TAIL_LINES :]
+        detail = "\n".join(tail) or error_result
+        message = f"Claude Code exited with code {returncode}"
+        return f"{message}: {detail}" if detail else message
 
     def _parse_output(self, raw_output: str) -> dict[str, Any]:
         """Parse Claude Code --print output format.
@@ -382,6 +417,7 @@ class ClaudeCodeExecutor:
             - final_output: str - only the last assistant message text
             - tool_calls: list[ToolCall] - extracted tool calls
             - tokens_used: int - token count if available
+            - error_result: str - text of an ``is_error`` result message, or ""
         """
         content_parts: list[str] = []
         tool_calls: list[ToolCall] = []
@@ -390,6 +426,7 @@ class ClaudeCodeExecutor:
         cache_creation_input_tokens = 0
         cache_read_input_tokens = 0
         total_cost_usd = 0.0
+        error_result = ""
         # Track the last assistant message text separately (ISS-023)
         last_assistant_text: list[str] = []
         current_message_text: list[str] = []
@@ -447,6 +484,9 @@ class ClaudeCodeExecutor:
                 cache_read_input_tokens = usage.get("cache_read_input_tokens", 0)
                 # total_cost_usd is at top level of result message
                 total_cost_usd = data.get("total_cost_usd", total_cost_usd)
+                # On failure, Claude Code puts the reason in the result text
+                if data.get("is_error"):
+                    error_result = str(data.get("result") or "")
                 # Also extract final text if present
                 if "text" in data:
                     text = data["text"]
@@ -494,6 +534,7 @@ class ClaudeCodeExecutor:
             "cache_read_input_tokens": cache_read_input_tokens,
             "total_cost_usd": total_cost_usd,
             "tokens_used": total_input + output_tokens,
+            "error_result": error_result,
         }
 
     def _extract_tool_context(

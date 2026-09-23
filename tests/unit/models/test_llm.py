@@ -16,36 +16,42 @@ class TestLLMResult:
     """Tests for the LLMResult model."""
 
     def test_result_required_fields(self) -> None:
-        """LLMResult requires success and content fields."""
+        """LLMResult requires content and nothing else."""
+        required = {
+            name
+            for name, field in LLMResult.model_fields.items()
+            if field.is_required()
+        }
+        assert required == {"content"}
         with pytest.raises(ValidationError):
             LLMResult()  # type: ignore[call-arg]
+
+    def test_unknown_field_rejected(self) -> None:
+        """Unknown fields fail loudly instead of being silently dropped."""
+        with pytest.raises(ValidationError):
+            LLMResult(content="x", success=True)  # type: ignore[call-arg]
 
     def test_acceptance_criteria_fields(self) -> None:
         """LLMResult includes fields from acceptance criteria.
 
-        Fields: success (bool), content (str), tool_calls (list),
-        tokens_used (int), duration_ms (int), error (LLMError | None)
+        Fields: content (str), tool_calls (list), tokens_used (int),
+        duration_ms (int)
         """
         result = LLMResult(
-            success=True,
             content="test",
             tool_calls=[],
             tokens_used=0,
             duration_ms=0,
-            error=None,
         )
         # Verify all AC fields exist with correct types
-        assert isinstance(result.success, bool)
         assert isinstance(result.content, str)
         assert isinstance(result.tool_calls, list)
         assert isinstance(result.tokens_used, int)
         assert isinstance(result.duration_ms, int)
-        assert result.error is None or isinstance(result.error, str)
 
     def test_final_output_field_exists(self) -> None:
         """LLMResult has final_output field for last message only (ISS-023)."""
         result = LLMResult(
-            success=True,
             content="Full conversation",
             final_output="Last message only",
         )
@@ -55,7 +61,6 @@ class TestLLMResult:
     def test_final_output_defaults_to_empty(self) -> None:
         """final_output defaults to empty string if not provided."""
         result = LLMResult(
-            success=True,
             content="Full conversation",
         )
         assert result.final_output == ""

@@ -67,7 +67,6 @@ class MockExecutor:
             final_output = r.get("final_output", content)
             self._responses.append(
                 LLMResult(
-                    success=True,
                     content=content,
                     final_output=final_output,
                     tool_calls=tool_calls,
@@ -99,7 +98,6 @@ class MockExecutor:
         self,
         prompt: str,
         *,
-        timeout: int | None = None,
         phase: str | None = None,
         cwd: Path | None = None,
         model: str | None = None,
@@ -108,7 +106,6 @@ class MockExecutor:
 
         Args:
             prompt: The prompt being "sent" (stored for tracking).
-            timeout: Ignored in mock (for interface compatibility).
             phase: Ignored in mock (for interface compatibility).
             cwd: Ignored in mock (for interface compatibility).
                  Added for worktree support (Story 10.5).
@@ -134,7 +131,6 @@ class MockExecutor:
 
         # Default response
         return LLMResult(
-            success=True,
             content="Mock response",
             final_output="Mock response",  # ISS-023
             tokens_used=50,

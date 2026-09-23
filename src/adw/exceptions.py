@@ -236,10 +236,9 @@ class HookError(ADWError):
 
 
 class LLMError(ADWError):
-    """Base exception for LLM-related errors.
+    """Exception for LLM-related errors.
 
     Used for issues with Claude Code or other LLM interactions.
-    Subclasses handle specific failure modes like timeouts and rate limits.
 
     Example:
         >>> raise LLMError(
@@ -271,62 +270,6 @@ class LLMError(ADWError):
             suggestion=suggestion,
             recoverable=recoverable,
         )
-
-
-class LLMRateLimitError(LLMError):
-    """Exception for LLM API rate limiting.
-
-    Used when the LLM API returns a rate limit error.
-    This error is recoverable by default since waiting and retrying may succeed.
-
-    Example:
-        >>> raise LLMRateLimitError(
-        ...     code="LLM_RATE_LIMIT",
-        ...     message="Rate limited by Claude API",
-        ...     retry_after=60,
-        ...     suggestion="Wait before retrying",
-        ... )
-    """
-
-    def __init__(
-        self,
-        code: str,
-        message: str,
-        *,
-        retry_after: int | None = None,
-        suggestion: str | None = None,
-        recoverable: bool = True,
-    ) -> None:
-        """Initialize an LLMRateLimitError.
-
-        Args:
-            code: Unique error code (e.g., "LLM_RATE_LIMIT").
-            message: Human-readable error message.
-            retry_after: Seconds to wait before retrying, if provided by API.
-            suggestion: Optional actionable next step.
-            recoverable: Whether the operation can be retried (default True).
-        """
-        super().__init__(
-            code=code,
-            message=message,
-            suggestion=suggestion,
-            recoverable=recoverable,
-        )
-        self.retry_after = retry_after
-
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize error to dictionary for structured logging.
-
-        Returns:
-            Dictionary containing all error attributes including retry_after.
-        """
-        d = super().to_dict()
-        d.update(
-            {
-                "retry_after": self.retry_after,
-            }
-        )
-        return d
 
 
 class PhaseError(ADWError):
