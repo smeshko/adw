@@ -3,7 +3,7 @@
 Status: done
 Branch: feature/adw-9
 Risk: small
-Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
+Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../../epics/01-cleanup-safety-dead-code-bugs.md))
 Phase: 1.3 — Trim exceptions and re-export surfaces
 Linear: ADW-9
 Created: 2026-09-23
