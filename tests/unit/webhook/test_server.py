@@ -217,7 +217,7 @@ class TestRequestLogging:
         test_app = create_app(config=config, log_func=capture_log)
         client = TestClient(test_app)
 
-        # Send a webhook with full Linear payload (Story 13.3 format)
+        # Send a webhook with full Linear payload
         # LinearProvider creates compound event types: "{type}.{action}"
         response = client.post(
             "/webhook/linear",

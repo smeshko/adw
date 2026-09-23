@@ -336,7 +336,7 @@ class TestDryRunEdgeCases:
         assert "claude" in result  # Default LLM path
 
     def test_exit_code_zero(self) -> None:
-        """Test that dry run completes successfully (AC6)."""
+        """Test that dry run completes successfully."""
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=100)
         display = DryRunDisplay(console)

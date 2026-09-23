@@ -1,4 +1,4 @@
-"""Tests for list CLI command (Story 6.4).
+"""Tests for list CLI command.
 
 Tests for the `adw list` command functionality.
 """
@@ -259,7 +259,7 @@ class TestGetRunsDir:
 
 
 class TestGlobalIndexFlags:
-    """Tests for --global and --project flags (Story 7.0)."""
+    """Tests for --global and --project flags."""
 
     def test_global_flag_shows_global_index_table(
         self, runner: CliRunner, tmp_path: Path

@@ -76,7 +76,7 @@ class MockPhaseRunner:
         )
 
     def is_phase_enabled(self, phase: str) -> bool:
-        """Return True for all phases (mock implementation for ISS-029)."""
+        """Return True for all phases."""
         return True
 
 
@@ -101,7 +101,7 @@ class TestOrchestratorProgressIntegration:
         # Create mock phase runner that completes all phases
         mock_runner = MockPhaseRunner({})
 
-        # ISS-025: Disable worktree for tests (the repo has no remote to fetch)
+        # Disable worktree for tests (the repo has no remote to fetch)
         orchestrator = Orchestrator(
             runs_dir=runs_dir,
             context_manager=context_manager,
@@ -116,7 +116,7 @@ class TestOrchestratorProgressIntegration:
         # Run
         orchestrator.run("Test feature")
 
-        # Verify all phases were displayed (ISS-019: verify phase removed)
+        # Verify all phases were displayed
         output_text = output.getvalue()
         assert "PLAN" in output_text
         assert "BUILD" in output_text
@@ -146,7 +146,7 @@ class TestOrchestratorProgressIntegration:
             run_directory_manager=run_directory_manager,
             phase_runner=mock_runner,
             progress_display=progress,
-            worktree_config=WorktreeConfig(enabled=False),  # ISS-025
+            worktree_config=WorktreeConfig(enabled=False),  # no remote to fetch
         )
 
         orchestrator.run("Test feature")
@@ -194,7 +194,7 @@ class TestOrchestratorProgressIntegration:
                 )
 
             def is_phase_enabled(self, phase: str) -> bool:
-                """Return True for all phases (mock implementation for ISS-029)."""
+                """Return True for all phases."""
                 return True
 
         orchestrator = Orchestrator(
@@ -205,7 +205,7 @@ class TestOrchestratorProgressIntegration:
             run_directory_manager=run_directory_manager,
             phase_runner=FailingPhaseRunner(),
             progress_display=progress,
-            worktree_config=WorktreeConfig(enabled=False),  # ISS-025
+            worktree_config=WorktreeConfig(enabled=False),  # no remote to fetch
         )
 
         with pytest.raises(LLMError):
@@ -239,7 +239,7 @@ class TestOrchestratorProgressIntegration:
             run_directory_manager=run_directory_manager,
             phase_runner=mock_runner,
             progress_display=progress,
-            worktree_config=WorktreeConfig(enabled=False),  # ISS-025
+            worktree_config=WorktreeConfig(enabled=False),  # no remote to fetch
         )
 
         orchestrator.run("Test feature")
@@ -262,7 +262,7 @@ class TestOrchestratorProgressIntegration:
         artifact_manager = Mock(spec=ArtifactManager)
         run_directory_manager = Mock(spec=RunDirectoryManager)
 
-        # Create runner that fails on validate phase (ISS-019: was verify)
+        # Create runner that fails on validate phase
         class FailingPhaseRunner:
             def run(
                 self,
@@ -289,7 +289,7 @@ class TestOrchestratorProgressIntegration:
                 )
 
             def is_phase_enabled(self, phase: str) -> bool:
-                """Return True for all phases (mock implementation for ISS-029)."""
+                """Return True for all phases."""
                 return True
 
         orchestrator = Orchestrator(
@@ -300,7 +300,7 @@ class TestOrchestratorProgressIntegration:
             run_directory_manager=run_directory_manager,
             phase_runner=FailingPhaseRunner(),
             progress_display=progress,
-            worktree_config=WorktreeConfig(enabled=False),  # ISS-025
+            worktree_config=WorktreeConfig(enabled=False),  # no remote to fetch
         )
 
         with pytest.raises(LLMError):

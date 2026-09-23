@@ -303,8 +303,8 @@ def generate_summary_panel(state: WizardState) -> Panel:
 def _get_files_to_create(state: WizardState) -> list[str]:
     """Get list of files that will be created.
 
-    Now generates config files for ALL phases (not just customized ones)
-    per ISS-032 requirements for full configuration visibility.
+    Includes a config file for every phase, not just customized ones, so the
+    full configuration is visible.
 
     Args:
         state: Current wizard state.
@@ -316,7 +316,7 @@ def _get_files_to_create(state: WizardState) -> list[str]:
 
     files = ["project.yaml", ".gitignore", ".env.template"]
 
-    # Add phase config files for ALL phases (ISS-032 change)
+    # Add phase config files for ALL phases
     for phase in PHASE_SEQUENCE:
         files.append(f"commands/{phase}/config.yaml")
 
@@ -389,8 +389,8 @@ def _generate_all_files(state: WizardState) -> dict[str, str]:
 def generate_project_yaml(state: WizardState) -> str:
     """Generate project.yaml content from wizard state.
 
-    Uses the new YAMLWithComments generator for comprehensive config
-    with commented defaults (ISS-032).
+    Uses the YAMLWithComments generator for comprehensive config
+    with commented defaults.
 
     Args:
         state: Current wizard state.
@@ -409,8 +409,7 @@ def generate_project_yaml(state: WizardState) -> str:
 def generate_phase_configs(state: WizardState) -> dict[str, str]:
     """Generate phase-specific config.yaml files for ALL phases.
 
-    Now generates configs for ALL phases (not just customized ones)
-    with commented defaults per ISS-032 requirements.
+    Covers every phase, not just customized ones, with commented defaults.
 
     Args:
         state: Current wizard state.

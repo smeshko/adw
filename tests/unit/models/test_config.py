@@ -23,7 +23,7 @@ def _from_yaml(text: str) -> ProjectConfig:
 
 
 class TestPhaseConfigInputFiles:
-    """Tests for PhaseConfig.input_files field (ISS-015)."""
+    """Tests for PhaseConfig.input_files field."""
 
     def test_input_files_none_by_default(self) -> None:
         """PhaseConfig.input_files should be None by default."""
@@ -49,9 +49,6 @@ class TestPhaseConfigInputFiles:
         """PhaseConfig accepts input_files with deeply nested paths."""
         config = PhaseConfig(input_files={"spec": "docs/specs/api/v2/openapi.yaml"})
         assert config.input_files["spec"] == "docs/specs/api/v2/openapi.yaml"
-
-    # NOTE: test_input_files_in_yaml_parsing removed in ISS-029
-    # phases field removed from ProjectConfig - use command configs instead
 
 
 class TestWorktreeConfig:
@@ -188,11 +185,11 @@ git:
 
 
 class TestShipCommandConfig:
-    """Tests for ShipCommandConfig validation (ISS-031 refactored from Story 15.1).
+    """Tests for ShipCommandConfig validation.
 
-    Note: Ship configuration has been moved from ProjectConfig.ship to
-    phase-specific config at .adw/commands/ship/config.yaml. These tests
-    now validate the ShipCommandConfig class directly.
+    Ship configuration lives in the phase-specific config at
+    .adw/commands/ship/config.yaml, so these tests validate the
+    ShipCommandConfig class directly.
     """
 
     def test_ship_command_config_defaults(self) -> None:
@@ -304,6 +301,3 @@ git:
 """
         config = _from_yaml(yaml_content)
         assert config.git.branch_prefix == "feat/"
-
-    # NOTE: test_with_phase_config removed in ISS-029
-    # phases field removed from ProjectConfig - use command configs instead

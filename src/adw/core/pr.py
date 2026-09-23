@@ -29,7 +29,7 @@ _PR_URL = re.compile(r"https://\S+/pull/\d+")
 def generate_pr_title(context: RunContext) -> str:
     """Generate PR title from context, using task_info.title when appropriate.
 
-    ISS-037: When feature_description equals task_id (user ran with just a task ID),
+    When feature_description equals task_id (user ran with just a task ID),
     use task_info.title from Linear to create a meaningful PR title.
 
     Title generation logic:
@@ -81,7 +81,7 @@ def generate_pr_title(context: RunContext) -> str:
 def load_pr_description(run_dir: Path) -> str:
     """Load and validate the PR description from a run's artifacts.
 
-    Looks in ``artifacts/document/pr_description.md`` (Story 9.4 location),
+    Looks in ``artifacts/document/pr_description.md``,
     then falls back to ``artifacts/pr_description.md``.
 
     Args:
@@ -205,7 +205,7 @@ def create_pr(
 
 
 def _push_branch(branch_name: str, working_dir: Path | None) -> None:
-    """Push the branch to origin with upstream tracking (ISS-032).
+    """Push the branch to origin with upstream tracking.
 
     Raises:
         ADWError: GIT_PUSH_FAILED on a non-zero exit, timeout or OS error.
@@ -237,7 +237,7 @@ def _push_branch(branch_name: str, working_dir: Path | None) -> None:
 
 
 def _with_linear_link(context: RunContext, body: str) -> str:
-    """Append the Linear task link to the body (Story 12.6: PR-Task Linking)."""
+    """Append the Linear task link to the body."""
     if not (context.task_id and context.task_info):
         return body
     # Team key from the identifier, e.g. "RULE-123" -> "rule"

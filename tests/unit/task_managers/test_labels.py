@@ -1,6 +1,6 @@
 """Tests for LabelManager service.
 
-Story 12.7 Task 3: Tests for label management service.
+Tests for label management service.
 """
 
 from unittest.mock import MagicMock
@@ -219,7 +219,7 @@ class TestLabelManagerSetFailed:
 
 
 class TestLabelManagerLifecycle:
-    """Integration tests for full label lifecycle (Story 12.7 Task 7)."""
+    """Integration tests for full label lifecycle."""
 
     def test_successful_run_lifecycle(self) -> None:
         """Test label lifecycle for a successful run: running -> phases -> completed."""
@@ -286,7 +286,7 @@ class TestLabelManagerLifecycle:
 
 
 class TestLabelManagerErrorResilience:
-    """Tests for non-blocking error handling (Story 12.7 Task 6)."""
+    """Tests for non-blocking error handling."""
 
     def test_set_phase_still_adds_label_when_remove_fails(self) -> None:
         """set_phase adds new label even when remove_label fails."""

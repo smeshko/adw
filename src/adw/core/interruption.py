@@ -5,10 +5,10 @@ for SIGINT and SIGTERM, ensuring context is saved before exit.
 
 Key features:
 - Signal handler registration and restoration
-- Context preservation on interrupt (NFR7)
+- Context preservation on interrupt
 - Snapshot creation for recovery
 - Graceful shutdown flag for main loop checking
-- Ctrl+C confirmation prompt (UX-8)
+- Ctrl+C confirmation prompt
 """
 
 from __future__ import annotations
@@ -57,10 +57,10 @@ class InterruptionHandler:
     """Handles graceful shutdown on interruption signals.
 
     Ensures:
-    - Current context is saved before exit (NFR7)
+    - Current context is saved before exit
     - Run status is set to "interrupted"
     - Final snapshot is created
-    - Ctrl+C shows confirmation prompt (UX-8)
+    - Ctrl+C shows confirmation prompt
 
     Attributes:
         context_manager: Manager for context persistence.
@@ -114,7 +114,7 @@ class InterruptionHandler:
         return self._confirmation_pending
 
     def handle_interrupt(self) -> bool:
-        """Handle interrupt signal with confirmation prompt (UX-8).
+        """Handle interrupt signal with confirmation prompt.
 
         Shows confirmation prompt on first Ctrl+C, forces abort on second.
 

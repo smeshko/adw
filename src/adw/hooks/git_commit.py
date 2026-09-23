@@ -70,7 +70,7 @@ def validate_branch_matches(
     *,
     working_dir: Path | None = None,
 ) -> None:
-    """Validate that the current git branch matches expected branch (ISS-025).
+    """Validate that the current git branch matches expected branch.
 
     This is a critical safety check to ensure commits are made to the correct
     branch. If the branch doesn't match, an error is raised to prevent
@@ -331,7 +331,7 @@ def create_commit(
         skip_hooks: If True, use --no-verify to skip pre-commit hooks.
         working_dir: Directory to run git commands in (default: current dir).
             Essential for worktree support.
-        expected_branch: Expected branch name for validation (ISS-025).
+        expected_branch: Expected branch name for validation.
             If provided, validates current branch matches before committing.
             If None, branch validation is skipped.
 
@@ -340,7 +340,7 @@ def create_commit(
 
     Raises:
         HookError: If commit fails (e.g., pre-commit hook rejects) or
-            if current branch doesn't match expected_branch (ISS-025).
+            if current branch doesn't match expected_branch.
 
     Example:
         >>> sha = create_commit("build", "Add auth", "01HQ123")
@@ -354,7 +354,7 @@ def create_commit(
     """
     cwd = working_dir if working_dir is not None else None
 
-    # Validate branch before committing (ISS-025)
+    # Validate branch before committing
     validate_branch_matches(expected_branch, working_dir=working_dir)
 
     # Check if there are staged changes first

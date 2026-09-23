@@ -1,4 +1,4 @@
-"""Integration tests for single-phase worktree preservation (ISS-018).
+"""Integration tests for single-phase worktree preservation.
 
 These tests verify that when running a single phase, the worktree is preserved
 for user inspection rather than being deleted, matching user intent for
@@ -11,7 +11,7 @@ from adw.worktree.manager import WorktreeManager
 
 
 class TestSinglePhaseWorktreePreservation:
-    """Integration tests for single-phase worktree preservation (ISS-018).
+    """Integration tests for single-phase worktree preservation.
 
     These tests verify the behavior where single-phase runs preserve their
     worktree for user inspection, while multi-phase runs clean up.
@@ -23,8 +23,8 @@ class TestSinglePhaseWorktreePreservation:
         """Verify that the single-phase preservation concept is correct.
 
         This test creates a worktree and verifies that NOT calling cleanup
-        leaves the worktree in place - the fundamental behavior that ISS-018
-        implements by removing the cleanup call from single-phase success path.
+        leaves the worktree in place - the fundamental behavior behind
+        single-phase preservation: the success path makes no cleanup call.
         """
         # Setup
         run_id = "test-single-phase-run"
@@ -34,7 +34,7 @@ class TestSinglePhaseWorktreePreservation:
         manager = WorktreeManager(project_root=git_repo, base_dir="trees")
 
         # Create worktree (simulating what orchestrator does)
-        # ISS-025: create_worktree now returns (path, branch_name) tuple
+        # create_worktree returns a (path, branch_name) tuple
         worktree_path, _branch_name = manager.create_worktree(run_id)
 
         # Verify worktree exists
@@ -42,7 +42,6 @@ class TestSinglePhaseWorktreePreservation:
         assert (worktree_path / "README.md").exists()
 
         # For single-phase: DO NOT call cleanup - worktree should remain
-        # (This is what ISS-018 implements by removing _cleanup_worktree call)
 
         # Verify worktree still exists (preservation behavior)
         assert worktree_path.exists()
@@ -66,7 +65,7 @@ class TestSinglePhaseWorktreePreservation:
         manager = WorktreeManager(project_root=git_repo, base_dir="trees")
 
         # Create worktree
-        # ISS-025: create_worktree now returns (path, branch_name) tuple
+        # create_worktree returns a (path, branch_name) tuple
         worktree_path, _branch_name = manager.create_worktree(run_id)
         assert worktree_path.exists()
 

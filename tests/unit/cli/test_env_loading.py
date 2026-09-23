@@ -1,7 +1,7 @@
 """Unit tests for .env file loading in CLI bootstrap.
 
 Tests for the _load_env_file() function that loads environment variables
-from .adw/.env files (ISS-028).
+from .adw/.env files.
 """
 
 import os

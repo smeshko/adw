@@ -100,7 +100,7 @@ async def receive_webhook(
         "timestamp": time.time(),
     }
 
-    # Evaluate event against mapping configuration (Story 13.4)
+    # Evaluate event against mapping configuration
     mapping_result = event_mapper.evaluate(provider, event.event_type, event)
 
     logger.info(

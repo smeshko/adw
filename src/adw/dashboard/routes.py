@@ -916,7 +916,7 @@ async def phase_detail(
     """
     templates: Jinja2Templates = request.app.state.templates
 
-    # Validate phase against known phases (NFR10: no arbitrary path access)
+    # Validate phase against known phases (no arbitrary path access)
     if phase not in PHASE_SEQUENCE:
         return HTMLResponse(
             content='<p class="text-error text-sm">Invalid phase</p>',
@@ -1111,14 +1111,14 @@ async def artifact_viewer(
     """
     templates: Jinja2Templates = request.app.state.templates
 
-    # Validate phase against known phases (NFR10: no arbitrary path access)
+    # Validate phase against known phases (no arbitrary path access)
     if phase not in PHASE_SEQUENCE:
         return HTMLResponse(
             content='<p class="text-error text-sm">Invalid phase</p>',
             status_code=400,
         )
 
-    # Validate filename to prevent path traversal (NFR10)
+    # Validate filename to prevent path traversal
     if ".." in filename or filename.startswith("/"):
         return HTMLResponse(
             content='<p class="text-error text-sm">Invalid filename</p>',
@@ -1159,7 +1159,7 @@ async def artifact_viewer(
         try:
             import markdown
 
-            # Escape raw HTML in source before rendering to prevent XSS (NFR10).
+            # Escape raw HTML in source before rendering to prevent XSS.
             # Only escape angle brackets and ampersand; preserve quotes for code.
             safe_content = (
                 content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")

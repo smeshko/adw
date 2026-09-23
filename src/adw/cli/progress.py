@@ -315,7 +315,7 @@ class ProgressDisplay:
         else:
             status_color = "red"
 
-        # Build content with optional PR description path (Story 9.4)
+        # Build content with optional PR description path
         content_lines = [
             status_line,
             "",
@@ -324,7 +324,7 @@ class ProgressDisplay:
             f"[bold]Tokens:[/] {self._format_tokens(total_tokens)}",
         ]
 
-        # Add PR info if document phase completed (Story 9.4, enhanced by ISS-011)
+        # Add PR info if document phase completed
         if run_id and "document" in completed_phases:
             content_lines.append("")
 

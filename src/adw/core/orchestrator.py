@@ -164,24 +164,24 @@ class Orchestrator:
             phase_runner: Runner for executing individual phases.
             interruption_handler: Handler for graceful shutdown (optional).
             index_manager: Manager for global execution index (optional).
-            progress_display: Display for phase progress (optional, Story 5.5).
+            progress_display: Display for phase progress (optional).
             retry_config: Attempts and backoff for phases that fail with a
                 recoverable error (default: RetryConfig()).
-            worktree_config: Worktree isolation config (optional, Story 10.1).
-            git_config: Git configuration for auto-PR creation (optional, ISS-011).
+            worktree_config: Worktree isolation config (optional).
+            git_config: Git configuration for auto-PR creation (optional).
             task_manager_config: Task manager configuration.
-            label_manager: Manager for task labels (optional, Story 12.7).
+            label_manager: Manager for task labels (optional).
             status_sync_service: Service for syncing status with task managers
-                (optional, Story 12.3). When provided, sync calls are made at
+                (optional). When provided, sync calls are made at
                 phase transitions.
-            resume_manager: Manager for resume operations (optional, Story ISS-014).
+            resume_manager: Manager for resume operations (optional).
                 When provided, delegates resume validation and phase determination.
             run_lifecycle: Manager for run lifecycle operations (optional).
                 When provided, delegates context creation, completion,
                 and error handling.
             extension_registry: Registry for phase extensions (optional).
                 If None, creates an empty registry (no extensions).
-            task_info: Task information from external task manager (optional, ISS-039).
+            task_info: Task information from external task manager (optional).
                 Passed to RunLifecycle to populate RunContext.task_id and task_info.
         """
         self.runs_dir = runs_dir
@@ -199,26 +199,26 @@ class Orchestrator:
         self.progress_display = progress_display
         self.retry_config = retry_config or RetryConfig()
 
-        # Git config for auto-PR (Story ISS-011)
+        # Git config for auto-PR
         self.git_config = git_config or GitConfig()
 
         # Task manager config
         self.task_manager_config = task_manager_config or TaskManagerConfig()
 
-        # Label manager for task label operations (Story 12.7)
+        # Label manager for task label operations
         self._label_manager = label_manager
 
-        # Status sync service for task manager integration (Story 12.3)
+        # Status sync service for task manager integration
         self._status_sync_service = status_sync_service
 
-        # Resume manager for centralized resume operations (Story ISS-014)
+        # Resume manager for centralized resume operations
         # Lazy initialization: create on first use if not provided
         self._resume_manager = resume_manager
 
         # Extension registry for phase-specific behavior (Phase Extensions)
         self._extension_registry = extension_registry or ExtensionRegistry()
 
-        # Worktree isolation (Story 10.1)
+        # Worktree isolation
         self.worktree_config = worktree_config or WorktreeConfig()
         self._worktree_manager: WorktreeManager | None = None
         self._concurrent_run_manager: ConcurrentRunManager | None = None
@@ -227,14 +227,14 @@ class Orchestrator:
                 project_root=self._project_path,
                 base_dir=self.worktree_config.base_dir,
             )
-            # Concurrent run tracking (Story 10.4)
+            # Concurrent run tracking
             self._concurrent_run_manager = ConcurrentRunManager(
                 project_root=self._project_path,
                 max_concurrent=self.worktree_config.max_concurrent,
                 base_dir=self.worktree_config.base_dir,
             )
 
-        # Run lifecycle manager (Story ISS-XXX)
+        # Run lifecycle manager
         # Create default if not provided
         self._lifecycle = run_lifecycle or RunLifecycle(
             runs_dir=runs_dir,
@@ -251,7 +251,7 @@ class Orchestrator:
             status_sync_service=status_sync_service,
             worktree_manager=self._worktree_manager,
             concurrent_run_manager=self._concurrent_run_manager,
-            task_info=task_info,  # ISS-039: Pass task_info to populate RunContext
+            task_info=task_info,  # Pass task_info to populate RunContext
         )
 
     @property
@@ -284,7 +284,7 @@ class Orchestrator:
         3. Create initial context and run directory
         4. Execute each phase in sequence with interruption checking
         5. Handle errors, retries, and graceful shutdown
-        6. Preserve worktree for user inspection (ISS-020: use 'adw cleanup' to remove)
+        6. Preserve worktree for user inspection (use 'adw cleanup' to remove)
         7. Mark run as completed, failed, or interrupted
 
         Args:
@@ -409,7 +409,7 @@ class Orchestrator:
             )
             self.context_manager.save(context)
 
-            # Update global index on completion (Story 7.0)
+            # Update global index on completion
             self.index_manager.update_run(
                 context.run_id,
                 status="completed",
@@ -418,7 +418,7 @@ class Orchestrator:
                 phases_completed=list(context.phase_history),
             )
 
-            # Set completed label (Story 12.7)
+            # Set completed label
             if self._label_manager:
                 self._label_manager.set_completed()
 
@@ -427,7 +427,7 @@ class Orchestrator:
                 extra={"run_id": context.run_id, "phase": phase},
             )
 
-            # Preserve worktree for single-phase runs (ISS-018, ISS-020)
+            # Preserve worktree for single-phase runs
             if context.use_worktree and context.worktree_path is not None:
                 if self.progress_display:
                     self.progress_display.console.print(
@@ -478,7 +478,7 @@ class Orchestrator:
         # Load existing context
         context = self.context_manager.load(run_id)
 
-        # Use ResumeManager for validation and phase determination (Story ISS-014)
+        # Use ResumeManager for validation and phase determination
         self.resume_manager.validate_resumable(context, from_phase=from_phase)
 
         # Back onto the run's branch before anything is saved, so a failed
@@ -642,7 +642,7 @@ class Orchestrator:
             )
             self.context_manager.save(context)
 
-            # Update global index on completion (Story 7.0)
+            # Update global index on completion
             self.index_manager.update_run(
                 context.run_id,
                 status="completed",
@@ -651,7 +651,7 @@ class Orchestrator:
                 phases_completed=list(context.phase_history),
             )
 
-            # Set completed label (Story 12.7)
+            # Set completed label
             if self._label_manager:
                 self._label_manager.set_completed()
 
@@ -660,7 +660,7 @@ class Orchestrator:
                 extra={"run_id": context.run_id, "phase": phase},
             )
 
-            # Preserve worktree for single-phase runs (ISS-018, ISS-020)
+            # Preserve worktree for single-phase runs
             if context.use_worktree and context.worktree_path is not None:
                 if self.progress_display:
                     self.progress_display.console.print(
@@ -702,11 +702,11 @@ class Orchestrator:
             The updated context.
         """
         for phase in phases:
-            # Check for shutdown request between phases (NFR7)
+            # Check for shutdown request between phases
             self.interruption_handler.set_context(context)
             self.interruption_handler.check_shutdown()
 
-            # Check if phase is enabled in command config (ISS-029)
+            # Check if phase is enabled in command config
             if not self._phase_runner.is_phase_enabled(phase):
                 logger.info(
                     "Phase skipped (disabled in config)",
@@ -733,7 +733,7 @@ class Orchestrator:
                     )
                 continue
 
-            # Note: ISS-031 ship phase skip logic is now handled by ShipExtension
+            # ShipExtension decides whether the ship phase is skipped
 
             # Use source artifacts only for the resume phase
             artifacts = None
@@ -744,7 +744,7 @@ class Orchestrator:
                 context, phase, artifacts_override=artifacts
             )
 
-            # Note: ISS-031 PR creation now handled by DocumentExtension
+            # DocumentExtension creates the PR
 
         return context
 
@@ -914,7 +914,7 @@ class Orchestrator:
         6. Notify progress display of completion/error
         7. Update phase_history and persist
 
-        Must complete transitions within 1 second (NFR2).
+        Must complete transitions within 1 second.
 
         Args:
             context: Current run context.
@@ -937,15 +937,15 @@ class Orchestrator:
         # Pre-phase snapshot
         self.snapshot_manager.create_pre_phase_snapshot(context, phase)
 
-        # Notify progress display of phase start (Story 5.5)
+        # Notify progress display of phase start
         if self.progress_display:
             self.progress_display.on_phase_start(phase)
 
-        # Set phase label (Story 12.7)
+        # Set phase label
         if self._label_manager:
             self._label_manager.set_phase(phase)
 
-        # Sync status with task manager (Story 12.3)
+        # Sync status with task manager
         if self._status_sync_service:
             try:
                 self._status_sync_service.sync_phase_start(context, phase)
@@ -972,7 +972,7 @@ class Orchestrator:
             # Post-phase snapshot
             self.snapshot_manager.create_post_phase_snapshot(context, phase, result)
 
-            # Post phase completion comment to task manager (Story 12.6)
+            # Post phase completion comment to task manager
             # Note: Sync before displaying completion so logs appear in order
             if self._status_sync_service:
                 try:
@@ -987,7 +987,7 @@ class Orchestrator:
                         },
                     )
 
-            # Notify progress display of phase completion (Story 5.5)
+            # Notify progress display of phase completion
             if self.progress_display:
                 self.progress_display.on_phase_complete(phase, result)
 
@@ -1000,7 +1000,7 @@ class Orchestrator:
             )
             self.context_manager.save(context)
 
-            # Update global index on phase transition (Story 7.0)
+            # Update global index on phase transition
             self.index_manager.update_run(
                 context.run_id,
                 phase_reached=phase,

@@ -4,7 +4,7 @@ Tests the full run command execution including:
 - Config loading
 - Orchestrator setup
 - Error handling
-- Startup time verification (NFR1)
+- Startup time verification
 """
 
 import time
@@ -92,7 +92,7 @@ test_command: pytest
             assert result.exit_code == 0, f"Failed for: {desc}"
 
     def test_startup_time_under_2_seconds(self) -> None:
-        """Test that CLI startup time is under 2 seconds (NFR1)."""
+        """Test that CLI startup time is under 2 seconds."""
         start = time.perf_counter()
 
         result = runner.invoke(
@@ -104,11 +104,11 @@ test_command: pytest
         elapsed = time.perf_counter() - start
 
         assert result.exit_code == 0
-        msg = f"Startup time {elapsed:.2f}s exceeds NFR1 requirement of 2s"
+        msg = f"Startup time {elapsed:.2f}s exceeds the 2 s limit"
         assert elapsed < 2.0, msg
 
     def test_run_displays_run_header_format(self) -> None:
-        """Test that run header follows UX-12 specification."""
+        """Test that the run header shows run ID and feature."""
         result = runner.invoke(
             app,
             ["run", "Add user authentication", "--dry-run"],
@@ -116,7 +116,7 @@ test_command: pytest
         )
 
         assert result.exit_code == 0
-        # UX-12 requires: run_id, feature, started timestamp
+        # The header shows run_id, feature and started timestamp
         assert "Run ID" in result.output or "run_id" in result.output.lower()
         assert "Feature" in result.output or "user authentication" in result.output
         # Panel border should be present (Rich Panel)
@@ -203,13 +203,13 @@ name: test
 class TestVerbosityIntegration:
     """Integration tests for verbosity flag propagation.
 
-    Story UX-FIX-ISS-001: Verify that --trace flag logic is correct.
+    Verify that --trace flag logic is correct.
     """
 
     def test_trace_verbosity_enables_show_llm_output(self) -> None:
         """Test that --trace verbosity enables LLM output in the run command.
 
-        Story UX-FIX-ISS-001 Task 3: --trace should enable show_llm_output.
+        --trace should enable show_llm_output.
         """
         from adw.models.logging import Verbosity
 

@@ -651,7 +651,7 @@ class TestPreCommitHookIntegration:
 
 
 class TestBuildCommitDiffFlowIntegration:
-    """Integration tests for the full BUILD → commit → diff capture flow (ISS-009).
+    """Integration tests for the full BUILD → commit → diff capture flow.
 
     Tests the end-to-end workflow where:
     1. BUILD phase creates files
@@ -822,7 +822,7 @@ class TestBuildCommitDiffFlowIntegration:
     def test_worktree_support(
         self, git_repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Should work correctly with worktree paths (ISS-009 worktree fix)."""
+        """Should work correctly with worktree paths."""
         # Create a worktree
         worktree_path = git_repo.parent / "worktree"
         subprocess.run(

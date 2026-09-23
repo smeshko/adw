@@ -912,7 +912,7 @@ async def abort_modal(
     return templates.TemplateResponse(request, "partials/abort_modal.html", context)
 
 
-# ── Terminal Mode & Focus Mode (Story 6.2) ─────────────────────
+# ── Terminal Mode & Focus Mode ─────────────────────
 
 
 @router.get("/terminal-mode/{run_id}", response_class=HTMLResponse)

@@ -1,4 +1,4 @@
-"""Integration tests for worktree cleanup with untracked files (ISS-008).
+"""Integration tests for worktree cleanup with untracked files.
 
 These tests verify the end-to-end flow of worktree cleanup when LLM-generated
 files exist in the worktree, ensuring force cleanup works correctly through
@@ -12,20 +12,20 @@ from adw.worktree.manager import WorktreeManager
 
 
 class TestWorktreeCleanupIntegration:
-    """Integration tests for worktree cleanup with untracked files (ISS-008).
+    """Integration tests for worktree cleanup with untracked files.
 
     These tests verify the complete cleanup flow when a worktree contains
     untracked files (simulating LLM-generated content).
     """
 
-    # Uses shared git_repo fixture from conftest.py (ISS-024)
+    # Uses shared git_repo fixture from conftest.py
 
     def test_successful_run_cleans_up_worktree_with_llm_generated_files(
         self, git_repo: Path
     ) -> None:
         """End-to-end: worktree with LLM-generated files is cleaned up on success.
 
-        This test simulates the ISS-008 scenario:
+        This test simulates a run whose worktree holds untracked files:
         1. Create a worktree (simulating run start)
         2. Add untracked files (simulating LLM-generated code)
         3. Force cleanup (simulating successful run completion)
@@ -35,7 +35,7 @@ class TestWorktreeCleanupIntegration:
         run_id = "01HQTEST_ISS008_INTEGRATION"
 
         # Step 1: Create worktree (simulates run initialization)
-        # ISS-025: create_worktree now returns (path, branch_name) tuple
+        # create_worktree returns a (path, branch_name) tuple
         worktree_path, _branch_name = manager.create_worktree(run_id)
         assert worktree_path.exists(), "Worktree should exist after creation"
 
@@ -64,10 +64,10 @@ class TestWorktreeCleanupIntegration:
         )
 
         # Step 3: Force cleanup (simulates successful run completion)
-        # This is the fix from ISS-008: force=True allows cleanup with untracked files
+        # force=True allows cleanup with untracked files
         worktree_removed, _ = manager.remove_worktree(
             run_id,
-            force=True,  # Key fix from ISS-008
+            force=True,
             preserve=True,  # Preserve artifacts to main project
         )
 
@@ -89,7 +89,7 @@ class TestWorktreeCleanupIntegration:
         run_id = "01HQTEST_FAILED_RUN"
 
         # Create worktree
-        # ISS-025: create_worktree now returns (path, branch_name) tuple
+        # create_worktree returns a (path, branch_name) tuple
         worktree_path, _branch_name = manager.create_worktree(run_id)
 
         # Add some files (LLM work in progress)
@@ -114,7 +114,7 @@ class TestWorktreeCleanupIntegration:
         run_id = "01HQTEST_MODIFIED_FILES"
 
         # Create worktree
-        # ISS-025: create_worktree now returns (path, branch_name) tuple
+        # create_worktree returns a (path, branch_name) tuple
         worktree_path, _branch_name = manager.create_worktree(run_id)
 
         # Modify existing tracked file (README.md from initial commit)
@@ -148,7 +148,7 @@ class TestWorktreeCleanupIntegration:
         run_id = "01HQTEST_PRESERVE_ARTIFACTS"
 
         # Create worktree with ADW structure
-        # ISS-025: create_worktree now returns (path, branch_name) tuple
+        # create_worktree returns a (path, branch_name) tuple
         worktree_path, _branch_name = manager.create_worktree(run_id)
         run_dir = worktree_path / ".adw" / "runs" / run_id
 

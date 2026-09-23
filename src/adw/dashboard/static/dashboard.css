@@ -38,7 +38,7 @@
 .chart-daily { min-height: 10rem; }
 .chart-bar > div { min-height: 2px; transition: height 200ms ease; }
 
-/* Auto-scroll streaming log container (Story 2.4) */
+/* Auto-scroll streaming log container */
 .log-stream-container {
   overflow-anchor: none;  /* Disable browser anchor scrolling */
 }
@@ -46,13 +46,13 @@
   overflow-anchor: auto;  /* Anchor to the last child to keep scroll at bottom */
 }
 
-/* Keyboard navigation focus highlight (Story 6.1) */
+/* Keyboard navigation focus highlight */
 .kbd-nav-active {
   outline: 2px solid oklch(var(--p));
   outline-offset: -2px;
 }
 
-/* ── Terminal Mode (Story 6.2) ── */
+/* ── Terminal Mode ── */
 .terminal-mode {
   background-color: var(--bg-void, #111111);
   color: var(--text-primary, #E8E4DF);
@@ -138,7 +138,7 @@ body.terminal-mode-active #status-bar {
   display: none;
 }
 
-/* ── Focus Mode (Story 6.2) ── */
+/* ── Focus Mode ── */
 .focus-mode {
   display: flex;
   flex-direction: column;

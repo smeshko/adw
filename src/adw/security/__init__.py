@@ -38,7 +38,7 @@ from adw.security.suggestions import (
 )
 
 __all__: list[str] = [
-    # Interceptor (Story 3.6)
+    # Interceptor
     "SecurityCheckResponse",
     "SecurityCheckResult",
     "SecurityInterceptor",

@@ -1,4 +1,4 @@
-"""Tests for Story 1.4: Active Runs Section with Live Updates.
+"""Tests for Active Runs Section with Live Updates.
 
 Covers the /partials/active-runs route, phase pipeline computation,
 elapsed time formatting, empty state, project filter, and template

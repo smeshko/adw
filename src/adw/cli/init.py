@@ -153,10 +153,6 @@ def _run_wizard_setup(project_root: Path) -> None:
 
     Args:
         project_root: Root directory of the project.
-
-    Note:
-        Full implementation will be added in Task 4.
-        For now, this is a stub that displays a message.
     """
     from adw.cli.wizard import (
         BasicsStepHandler,

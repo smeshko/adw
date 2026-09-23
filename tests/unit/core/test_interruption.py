@@ -404,12 +404,11 @@ class TestShutdownRequestedException:
 
 
 # NOTE: Tests for get_resume_phase, can_resume, prepare_resume, and get_run_status
-# have been moved to tests/unit/core/test_resume_manager.py as part of ISS-014
-# (centralize resume logic into ResumeManager).
+# live in tests/unit/core/test_resume_manager.py, next to ResumeManager.
 
 
 class TestCtrlCConfirmation:
-    """Tests for Ctrl+C confirmation prompt (UX-8)."""
+    """Tests for Ctrl+C confirmation prompt."""
 
     def test_first_ctrlc_sets_confirmation_pending(
         self,

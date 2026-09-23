@@ -483,7 +483,7 @@ class WorktreeManager:
             # Create .adw/runs/<run_id>/ structure in the new worktree
             self.ensure_worktree_adw_structure(worktree_path, run_id)
 
-            # Verify the branch was created (ISS-025)
+            # Verify the branch was created
             if not self._branch_manager.branch_exists(branch_name):
                 raise WorktreeError(
                     code="BRANCH_NOT_CREATED",

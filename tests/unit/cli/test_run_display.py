@@ -1,6 +1,6 @@
 """Unit tests for RunDisplay class.
 
-Tests for the run header display functionality (UX-12).
+Tests for the run header display functionality.
 """
 
 from datetime import UTC, datetime
@@ -112,7 +112,7 @@ class TestRunDisplay:
         assert short_feature in output
 
     def test_show_run_header_uses_panel(self) -> None:
-        """Test that show_run_header uses Rich Panel for formatting (UX-12)."""
+        """Test that show_run_header uses Rich Panel for formatting."""
         console = Console(force_terminal=True, width=80)
         display = RunDisplay(console)
 

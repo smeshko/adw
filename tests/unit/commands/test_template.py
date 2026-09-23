@@ -558,7 +558,7 @@ class TestEdgeCases:
 
 
 class TestBuildTaskContext:
-    """Tests for Story 12.5: Task Context Building (build_task_context)."""
+    """Tests for Task Context Building (build_task_context)."""
 
     def test_build_task_context_with_none_returns_empty_string_values(self) -> None:
         """build_task_context(None) returns dict with empty string values for graceful degradation."""
@@ -687,7 +687,7 @@ class TestBuildTaskContext:
 
 
 class TestTaskContextTemplateRendering:
-    """Tests for Story 12.5: Task Variables in Template Rendering."""
+    """Tests for Task Variables in Template Rendering."""
 
     def test_task_variables_render_correctly(self) -> None:
         """Task variables should be accessible in templates via {{task.*}} syntax."""
@@ -796,7 +796,7 @@ class TestTaskContextTemplateRendering:
 
 
 class TestTaskContextIntegration:
-    """Integration tests for Story 12.5: End-to-End Task Context in Templates."""
+    """Integration tests for End-to-End Task Context in Templates."""
 
     def test_run_context_with_task_info_renders_in_template(self) -> None:
         """RunContext with task_info should provide task variables in templates."""
@@ -886,7 +886,7 @@ Title: {{task.title}}"""
 
 
 class TestRenderWithRootParameters:
-    """Tests for ISS-017: render() method with command_root and shared_root parameters."""
+    """Tests for render() method with command_root and shared_root parameters."""
 
     def test_render_accepts_command_root_parameter(self, tmp_path: Path) -> None:
         """render() should accept command_root parameter for include resolution."""

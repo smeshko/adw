@@ -1094,7 +1094,7 @@ class TestShowWorktreePreserved:
 
 
 class TestRunContextTaskInfoPopulation:
-    """Tests for ISS-039: RunContext task_id and task_info population."""
+    """Tests for RunContext task_id and task_info population."""
 
     def test_context_created_with_task_info_populated(
         self,
@@ -1121,7 +1121,7 @@ class TestRunContextTaskInfoPopulation:
             index_manager=mock_index_manager,
             interruption_handler=mock_interruption_handler,
             worktree_config=WorktreeConfig(enabled=False),
-            task_info=task_info,  # ISS-039: pass task_info to lifecycle
+            task_info=task_info,  # pass task_info to lifecycle
         )
 
         context = lifecycle.create_run_context(

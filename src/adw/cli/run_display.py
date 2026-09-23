@@ -1,7 +1,7 @@
 """Run display for ADW CLI.
 
 This module provides the RunDisplay class that shows run information
-using the Rich library, implementing UX-12 specification for run headers.
+using the Rich library.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ __all__ = ["RunDisplay"]
 class RunDisplay:
     """Display run information using Rich.
 
-    Implements UX-12 specification for run header display:
+    The run header shows:
     - Run ID (ULID)
     - Feature description (truncated if long)
     - Started timestamp
@@ -53,7 +53,7 @@ class RunDisplay:
     ) -> None:
         """Display the run header panel.
 
-        UX-12: Run header panel displays run ID, feature, started timestamp.
+        Run header panel displays run ID, feature, started timestamp.
 
         Args:
             run_id: The ULID run identifier.

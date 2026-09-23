@@ -20,8 +20,8 @@ dependencies = [
     "python-ulid>=3.1.0",
     "pyyaml>=6.0.3",
     "rich>=14.2.0",
-    "typer[all]>=0.21.0",
-    "uvicorn[standard]>=0.32.0",
+    "typer>=0.21.0",
+    "uvicorn>=0.32.0",
 ]
 
 [project.scripts]
@@ -40,19 +40,12 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
 addopts = [
     "-v",
     "--strict-markers",
     "--cov=adw",
     "--cov-report=term-missing",
     "--cov-fail-under=80",
-]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
 ]
 
 [tool.coverage.run]
@@ -75,13 +68,7 @@ warn_unused_configs = true
 warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
-module = [
-    "httpx",
-    "httpx.*",
-    "markdown",
-    "playwright",
-    "playwright.*",
-]
+module = ["markdown"]
 ignore_missing_imports = true
 
 [tool.hatch.build.targets.wheel]
@@ -104,6 +91,5 @@ extend-immutable-calls = ["fastapi.Depends", "Depends", "fastapi.Query", "Query"
 # HTML templates and multiline strings
 "src/adw/cli/logs.py" = ["E501"]
 "src/adw/models/__init__.py" = ["E501"]
-"src/adw/models/evidence.py" = ["E501"]
 # Test data strings and long assertions
 "tests/*" = ["E501"]

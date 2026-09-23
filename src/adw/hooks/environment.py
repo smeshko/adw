@@ -71,7 +71,7 @@ def build_hook_environment(
         port_allocation: Optional port allocation for the run
         project_root: Optional project root path, used as fallback for
                      ADW_WORKTREE_PATH when context.worktree_path is None
-        ports_file: Optional path to .ports.env file (Story 10.5).
+        ports_file: Optional path to .ports.env file.
                    If provided, its contents are auto-sourced into environment.
 
     Returns:
@@ -101,7 +101,7 @@ def build_hook_environment(
     if context_file is not None:
         adw_vars["ADW_CONTEXT_FILE"] = str(context_file)
 
-    # Add worktree path variable (Story 10.5)
+    # Add worktree path variable
     # Priority: context.worktree_path > project_root > (not set)
     if context.worktree_path is not None:
         adw_vars["ADW_WORKTREE_PATH"] = str(context.worktree_path)
@@ -109,12 +109,12 @@ def build_hook_environment(
         adw_vars["ADW_WORKTREE_PATH"] = str(project_root)
     # If both are None, ADW_WORKTREE_PATH is not set (backward compatible)
 
-    # Add branch name variable (ISS-025)
+    # Add branch name variable
     # This allows hooks to know which git branch is being used
     if context.branch_name is not None:
         adw_vars["ADW_BRANCH_NAME"] = context.branch_name
 
-    # Add PR URL variable (ISS-031)
+    # Add PR URL variable
     # This allows ship phase hooks to know the PR URL for merge operations
     if context.pr_url is not None:
         adw_vars["ADW_PR_URL"] = context.pr_url
@@ -125,7 +125,7 @@ def build_hook_environment(
         adw_vars["ADW_FRONTEND_PORT"] = str(port_allocation.frontend_port)
         adw_vars["ADW_SLOT"] = str(port_allocation.slot)
 
-    # Story 10.5: Auto-source .ports.env file if provided
+    # Auto-source .ports.env file if provided
     # Also try to auto-detect from worktree_path if not explicitly provided
     effective_ports_file = ports_file
     if effective_ports_file is None and context.worktree_path is not None:
@@ -135,7 +135,7 @@ def build_hook_environment(
 
     if effective_ports_file is not None:
         adw_vars["ADW_PORTS_FILE"] = str(effective_ports_file)
-        # Auto-source the ports file variables (Story 10.5)
+        # Auto-source the ports file variables
         # These provide BACKEND_PORT, FRONTEND_PORT directly to hooks
         ports_vars = _parse_ports_env_file(effective_ports_file)
         adw_vars.update(ports_vars)

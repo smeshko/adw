@@ -4,8 +4,7 @@ Tests verify that feature descriptions are correctly preserved through
 the full data flow:
   CLI → Orchestrator → RunContext → context.json → IndexEntry → List display
 
-This test suite was created in response to ISS-005 to prevent regression
-of feature description handling.
+This suite guards against regressions in feature description handling.
 """
 
 from datetime import UTC, datetime

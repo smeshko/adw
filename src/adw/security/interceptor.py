@@ -3,8 +3,6 @@
 This module provides the SecurityInterceptor class that validates
 tool calls against security patterns and can block dangerous operations.
 It wraps the PatternMatcher and adds blocking/warning capability.
-
-Story 3.6: Security Hook Infrastructure - adds blocking to pattern matching.
 """
 
 import logging

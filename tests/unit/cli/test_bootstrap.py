@@ -1,6 +1,6 @@
 """Tests for CLI bootstrap module.
 
-Tests for create_orchestrator() task manager service wiring (ISS-033).
+Tests for create_orchestrator() task manager service wiring.
 Focuses on business logic: StatusSyncService and LabelManager creation.
 
 Per ADR-001: Tests focus on validation logic and integration points,
@@ -23,7 +23,7 @@ from adw.models.task import TaskInfo
 
 
 class TestBootstrapTaskManagerWiring:
-    """Tests for task manager service wiring in create_orchestrator (ISS-033)."""
+    """Tests for task manager service wiring in create_orchestrator."""
 
     @pytest.fixture
     def mock_task_manager(self) -> MagicMock:
@@ -70,7 +70,7 @@ class TestBootstrapTaskManagerWiring:
         """StatusSyncService is instantiated when task_manager is provided.
 
         This is a critical business logic test - StatusSyncService must be
-        created for phase comment posting to work (ISS-033 fix).
+        created for phase comment posting to work.
         """
         from adw.cli.bootstrap import create_orchestrator
         from adw.models.config import ProjectConfig
@@ -93,7 +93,7 @@ class TestBootstrapTaskManagerWiring:
                 task_info=mock_task_info,
             )
 
-        # Verify StatusSyncService was created with correct arguments (ISS-039: now includes task_info)
+        # Verify StatusSyncService was created with correct arguments (including task_info)
         mock_sync_service_class.assert_called_once_with(
             mock_task_manager,
             mock_config_with_labels,
@@ -138,8 +138,8 @@ class TestBootstrapTaskManagerWiring:
     ) -> None:
         """LabelManager is created with task_info.id (UUID), not identifier.
 
-        This is the critical fix for ISS-033 - the Linear API requires
-        internal UUID for label operations, not the public identifier.
+        The Linear API requires the internal UUID for label operations, not
+        the public identifier.
         """
         from adw.cli.bootstrap import create_orchestrator
         from adw.models.config import ProjectConfig
@@ -188,7 +188,7 @@ class TestBootstrapTaskManagerWiring:
         """LabelManager is None when task_info is not available.
 
         Even with task_manager and task_id, LabelManager requires task_info
-        to get the internal UUID. This is intentional (ISS-033).
+        to get the internal UUID. This is intentional.
         """
         from adw.cli.bootstrap import create_orchestrator
         from adw.models.config import ProjectConfig

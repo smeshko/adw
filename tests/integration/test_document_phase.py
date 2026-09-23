@@ -1,4 +1,4 @@
-"""Integration tests for Document phase PR description generation (Story 9.4).
+"""Integration tests for Document phase PR description generation.
 
 Tests the document phase execution with PR description output, evidence
 manifest integration, and artifact saving.

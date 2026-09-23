@@ -239,7 +239,7 @@ class ResumeManager:
     def get_resume_phase(self, context: RunContext) -> str | None:
         """Determine which phase to resume from.
 
-        Implements NFR8 resume semantics:
+        Resume semantics:
         - Completed runs cannot be resumed (returns None)
         - Interrupted runs re-execute from the interrupted phase
         - Running/failed runs continue from next uncompleted phase

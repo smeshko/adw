@@ -1,4 +1,4 @@
-"""Unit tests for comment posting functionality (Story 12.6).
+"""Unit tests for comment posting functionality.
 
 Tests for:
 - TaskManager Protocol post_comment method

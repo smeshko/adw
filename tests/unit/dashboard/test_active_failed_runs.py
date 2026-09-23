@@ -1,4 +1,4 @@
-"""Tests for Story 2.4: Active & Failed Run Variants with SSE.
+"""Tests for Active & Failed Run Variants with SSE.
 
 Covers SSE endpoint registration, active run SSE wrapper, failed run error banner,
 failed phase auto-expansion, severity pre-filter, streaming log viewer,

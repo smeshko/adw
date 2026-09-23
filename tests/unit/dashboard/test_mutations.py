@@ -1,4 +1,4 @@
-"""Tests for Story 3.1 & 3.2: New Run Modal, Form Submission, and Re-run Flow.
+"""Tests for New Run Modal, Form Submission, and Re-run Flow.
 
 Covers CSRF validation, form validation, run trigger invocation,
 success response, error handling, modal partial route, template
