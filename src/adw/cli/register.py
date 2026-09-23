@@ -1,7 +1,7 @@
 """Register command for ADW CLI.
 
 This module provides the register command that allows users to register
-the current project in the global ADW dashboard registry.
+the current project in the ADW web dashboard registry.
 
 Examples:
     adw register                    # Register with directory name
@@ -26,13 +26,13 @@ def register(
         help="Custom display name for the project",
     ),
 ) -> None:
-    """Register current project in global ADW dashboard.
+    """Register current project in the ADW web dashboard.
 
     Adds the current project to the global project registry at ~/.adw/projects.yaml.
     This enables the project to appear in cross-project views like:
-    - Global run list (adw runs --global)
-    - Cross-project statistics (adw stats)
-    - TUI dashboard project breakdown
+    - Global run list (adw global list)
+    - Cross-project statistics (adw global stats)
+    - Web dashboard project list and filter
 
     If the project is already registered, its name will be updated.
 

@@ -11,7 +11,7 @@ Exports:
     run_basics_step: Function to execute the basics step.
     GitStepHandler: Handler for the git integration step.
     run_git_step: Function to execute the git step.
-    GlobalRegistryStepHandler: Handler for the global dashboard registration step.
+    GlobalRegistryStepHandler: Handler for the web dashboard registration step.
     run_global_registry_step: Function to execute the global registry step.
     PhasesStepHandler: Handler for the phases configuration step.
     run_phases_step: Function to execute the phases step.

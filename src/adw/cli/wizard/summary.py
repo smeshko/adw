@@ -129,7 +129,7 @@ def run_summary_step(
         adw_dir = root / ".adw"
         atomic_write_config(adw_dir, files)
 
-        # Step 4: Register project in global dashboard if enabled
+        # Step 4: Register project in web dashboard if enabled
         global_registry = state.get_step_config("global_registry")
         if global_registry.get("global_registry_enabled", False):
             _register_in_global_dashboard(
@@ -195,9 +195,9 @@ def generate_summary_panel(state: WizardState) -> Panel:
     # Global Registry section
     if global_registry.get("global_registry_enabled", False):
         reg_name = global_registry.get("global_registry_name", "unknown")
-        lines.append(f"[green]Global Dashboard:[/] ✓ Registered as '{reg_name}'")
+        lines.append(f"[green]Web Dashboard:[/] ✓ Registered as '{reg_name}'")
     else:
-        lines.append("[dim]Global Dashboard:[/] ✗ Not registered")
+        lines.append("[dim]Web Dashboard:[/] ✗ Not registered")
 
     # Git section
     branch_prefix = git.get("git_branch_prefix", "feature/")
@@ -499,7 +499,7 @@ def _register_in_global_dashboard(
     name: str | None,
     console: Console,
 ) -> None:
-    """Register project in the global ADW dashboard.
+    """Register project in the ADW web dashboard.
 
     Args:
         project_root: The project root directory.
@@ -513,9 +513,7 @@ def _register_in_global_dashboard(
         manager.register(project_root, name)
     except Exception as e:
         # Non-fatal: warn but continue
-        console.print(
-            f"[yellow]Warning: Could not register in global dashboard: {e}[/]"
-        )
+        console.print(f"[yellow]Warning: Could not register in web dashboard: {e}[/]")
 
 
 def _show_success_message(console: Console, files: list[str]) -> None:

@@ -4,7 +4,7 @@ This module contains the models for tracking registered projects
 in the global registry at ~/.adw/projects.yaml.
 
 The registry allows users to explicitly manage which projects appear
-in cross-project views like the global dashboard.
+in cross-project views like the web dashboard.
 """
 
 from datetime import datetime
@@ -51,9 +51,9 @@ class ProjectRegistry(BaseModel):
 
     Contains the list of all projects that have been explicitly registered
     with ADW. This registry is used by cross-project features like:
-    - Global run list (adw runs --global)
-    - Cross-project statistics
-    - TUI dashboard project breakdown
+    - Global run list (adw global list)
+    - Cross-project statistics (adw global stats)
+    - Web dashboard project list and filter
 
     Attributes:
         projects: List of registered projects.

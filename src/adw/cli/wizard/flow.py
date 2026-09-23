@@ -81,7 +81,7 @@ class WizardFlowController:
 
     STEP_TITLES: dict[WizardStep, str] = {
         WizardStep.BASICS: "Project Basics",
-        WizardStep.GLOBAL_REGISTRY: "Global Dashboard Registration",
+        WizardStep.GLOBAL_REGISTRY: "Web Dashboard Registration",
         WizardStep.GIT: "Git Configuration",
         WizardStep.PORTS: "Port Allocation",
         WizardStep.TASK_MANAGER: "Task Manager Integration",
