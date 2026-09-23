@@ -110,7 +110,7 @@ def orchestrator(
     """Create an Orchestrator with real dependencies.
 
     Note: Worktree is disabled: these tests exercise the non-worktree path,
-    and worktree creation would fetch from a remote the repo lacks (ISS-025).
+    and worktree creation would fetch from a remote the repo lacks.
     """
     from adw.models import WorktreeConfig
 
@@ -121,7 +121,7 @@ def orchestrator(
         artifact_manager=artifact_manager,
         run_directory_manager=run_directory_manager,
         phase_runner=mock_phase_runner,
-        worktree_config=WorktreeConfig(enabled=False),  # ISS-025
+        worktree_config=WorktreeConfig(enabled=False),
     )
 
 
@@ -201,7 +201,7 @@ class TestFullRunIntegration:
             assert phase in context.phase_tokens
             assert context.phase_tokens[phase] == 100
 
-        assert context.total_tokens == 500  # 100 tokens * 5 phases (Story 15.1)
+        assert context.total_tokens == 500  # 100 tokens * 5 phases
 
 
 class TestSnapshotIntegration:
@@ -302,7 +302,7 @@ class TestContextPersistenceIntegration:
 
         orchestrator.run("Test feature")
 
-        # Context should have been persisted multiple times (5 phases per Story 15.1)
+        # Context should have been persisted multiple times (5 phases)
         assert persist_count >= 5  # At least once per phase
 
     def test_final_context_has_completed_status(

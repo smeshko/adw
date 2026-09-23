@@ -1,6 +1,6 @@
 """Tests for run command task manager flags.
 
-Story 12.4: Task ID Pattern Detection - CLI flag tests.
+Task ID Pattern Detection - CLI flag tests.
 """
 
 from unittest.mock import Mock, patch

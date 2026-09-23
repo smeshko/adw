@@ -106,8 +106,7 @@ class TestYAMLWithComments:
     ) -> None:
         """Test that all config sections are present.
 
-        Note: Ship Phase section removed in ISS-031 - ship config is now
-        in .adw/commands/ship/config.yaml instead of project.yaml.
+        Ship config lives in .adw/commands/ship/config.yaml, not project.yaml.
         """
         state = MockWizardState()
         yaml_content = generator.generate_project_yaml(state)

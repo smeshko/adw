@@ -1,4 +1,4 @@
-"""Tests for StatusSyncService (Story 12.3).
+"""Tests for StatusSyncService.
 
 Tests verify that status synchronization works correctly with task managers,
 handles phase transitions, and provides non-blocking error handling.
@@ -286,7 +286,7 @@ class TestStatusSyncServiceErrorHandling:
 
 
 class TestStatusSyncServiceComments:
-    """Tests for comment posting functionality (Story 12.6)."""
+    """Tests for comment posting functionality."""
 
     @pytest.fixture
     def mock_task_manager(self) -> MagicMock:
@@ -671,7 +671,7 @@ class TestStatusSyncServiceRunStartedComment:
 
 
 class TestStatusSyncServiceTaskInfo:
-    """Tests for ISS-039: StatusSyncService task_info storage and usage."""
+    """Tests for StatusSyncService task_info storage and usage."""
 
     @pytest.fixture
     def mock_task_manager(self) -> MagicMock:
@@ -812,7 +812,7 @@ class TestStatusSyncServiceTaskInfo:
     ) -> None:
         """Methods execute fully when stored task_info is available.
 
-        This is the key fix for ISS-039: methods should NOT return early
+        Methods should NOT return early
         when context has no task_info, as long as the service has stored task_info.
         """
         from adw.models.phase import PhaseResult, PhaseStatus

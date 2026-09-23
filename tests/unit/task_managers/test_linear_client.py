@@ -227,7 +227,7 @@ class TestLinearClientErrorHandling:
 
 
 class TestLinearClientLabelOperations:
-    """Tests for LinearClient label operations (Story 12.7 Task 2)."""
+    """Tests for LinearClient label operations."""
 
     def test_get_team_labels_returns_labels(self) -> None:
         """get_team_labels returns list of label data from team."""
@@ -374,7 +374,7 @@ class TestLinearClientLabelOperations:
 
 
 class TestLinearClientAddLabelIntegration:
-    """Tests for LinearClient.add_label high-level integration (Story 12.7 Task 2)."""
+    """Tests for LinearClient.add_label high-level integration."""
 
     def test_add_label_gets_or_creates_label_and_adds_to_issue(self) -> None:
         """add_label looks up label, creates if needed, and adds to issue."""

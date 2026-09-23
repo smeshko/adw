@@ -149,7 +149,7 @@ def orchestrator(
     runs_dir = tmp_path / "runs"
     runs_dir.mkdir(parents=True, exist_ok=True)
 
-    # ISS-025: Disable worktree for unit tests (tmp_path is not a git repo)
+    # Disable worktree for unit tests (tmp_path is not a git repo)
     # Worktree creation errors are now fatal, so we must disable it
     worktree_config = WorktreeConfig(enabled=False)
 
@@ -652,7 +652,7 @@ class TestRetryLogic:
         context = orchestrator.run("Test feature")
 
         # Should succeed after retries
-        # Story 15.1: (2 failures + success on plan = 3, then 4 more phases)
+        # 2 failures + success on plan = 3, then 4 more phases
         assert context.status == "completed"
         # Plan: 3 attempts (2 failures + 1 success) + 4 other phases = 7 calls
         assert call_count == 7
@@ -702,7 +702,7 @@ class TestRetryLogic:
             run_directory_manager=mock_run_directory_manager,
             phase_runner=mock_phase_runner,
             retry_config=RetryConfig(max_retries=5),
-            worktree_config=WorktreeConfig(enabled=False),  # ISS-025
+            worktree_config=WorktreeConfig(enabled=False),  # tmp_path is not a git repo
         )
 
         error = LLMError(
@@ -864,7 +864,7 @@ class TestRetryLogic:
         context = orchestrator.run("Test feature")
 
         assert context.status == "completed"
-        # Story 15.1: 1 failure + 5 successes = 6 calls (ship phase added)
+        # 1 failure + 5 successes = 6 calls
         assert call_count == 6
 
     def test_spinner_stopped_before_error_logging(
@@ -876,7 +876,7 @@ class TestRetryLogic:
         mock_run_directory_manager: MagicMock,
         mock_phase_runner: MagicMock,
     ) -> None:
-        """Test ISS-034: spinner is stopped before any error logging.
+        """Test that the spinner is stopped before any error logging.
 
         When an error occurs during phase execution, the spinner must be
         stopped BEFORE any error messages are logged to prevent output
@@ -927,12 +927,11 @@ class TestRetryLogic:
         # (it should be called on each error before logging)
         assert "on_llm_complete" in call_order
         # The key assertion: on_llm_complete was called before error handling
-        # This validates the ISS-034 fix
         assert call_order.count("on_llm_complete") >= 1
 
 
 class TestTransitionPerformance:
-    """Tests for transition performance (NFR2: <1 second)."""
+    """Tests for transition performance (<1 second)."""
 
     def test_transition_logs_duration(
         self,
@@ -941,7 +940,7 @@ class TestTransitionPerformance:
     ) -> None:
         """Test that transition duration is logged.
 
-        ISS-034: Phase completion is now logged at DEBUG level (not INFO)
+        Phase completion is logged at DEBUG level (not INFO)
         to reduce console noise since Rich progress display already shows
         phase completion status.
         """
@@ -949,8 +948,8 @@ class TestTransitionPerformance:
         with patch("adw.core.orchestrator.logger") as mock_logger:
             orchestrator.run("Test feature")
 
-            # ISS-034: Phase completed now logged at DEBUG level
-            # Story 15.1: 5 phases now (ship added)
+            # Phase completion is logged at DEBUG level
+            # 5 phases
             completed_calls = [
                 call
                 for call in mock_logger.debug.call_args_list
@@ -1226,7 +1225,7 @@ class TestPhaseRequirementsValidation:
         mock_phase_runner: MagicMock,
         mock_artifact_manager: MagicMock,
     ) -> None:
-        """Test that validate phase requires build artifacts (ISS-019: renamed from verify)."""
+        """Test that validate phase requires build artifacts."""
 
         # Source run has plan but no build artifacts
         def list_artifacts_side_effect(run_id: str, phase: str):
@@ -1261,7 +1260,7 @@ class TestPhaseRequirementsValidation:
 
 
 class TestOrchestratorWorktree:
-    """Tests for Orchestrator worktree integration (Story 10.1)."""
+    """Tests for Orchestrator worktree integration."""
 
     def test_run_with_worktree_disabled(
         self,
@@ -1373,10 +1372,10 @@ class TestOrchestratorWorktree:
 
 
 class TestWorktreeNoAutoDelete:
-    """Tests for worktree preservation - worktrees should never be auto-deleted (ISS-020).
+    """Tests for worktree preservation - worktrees should never be auto-deleted.
 
-    ISS-020 extends ISS-018 to ensure worktrees are NEVER automatically deleted.
-    Only the explicit 'adw cleanup <run_id>' command should delete worktrees.
+    Worktrees are NEVER automatically deleted. Only the explicit
+    'adw cleanup <run_id>' command should delete worktrees.
     """
 
     def test_single_phase_preserves_worktree_on_success(
@@ -1388,7 +1387,7 @@ class TestWorktreeNoAutoDelete:
         mock_phase_runner: MagicMock,
         tmp_path: Path,
     ) -> None:
-        """Single-phase run preserves worktree after success (ISS-018).
+        """Single-phase run preserves worktree after success.
 
         When running a single phase, the worktree should be preserved for
         inspection rather than cleaned up. The user can manually clean up
@@ -1412,7 +1411,7 @@ class TestWorktreeNoAutoDelete:
             worktree_config=worktree_config,
         )
 
-        # ISS-025: Mock worktree creation on lifecycle (tmp_path is not a git repo)
+        # Mock worktree creation on lifecycle (tmp_path is not a git repo)
         worktree_path = tmp_path / "trees" / "test-run"
         orchestrator._lifecycle._create_worktree_for_run = MagicMock(
             return_value=(worktree_path, "adw/test-run")
@@ -1434,7 +1433,7 @@ class TestWorktreeNoAutoDelete:
         mock_phase_runner: MagicMock,
         tmp_path: Path,
     ) -> None:
-        """Multi-phase run preserves worktree after success (ISS-020).
+        """Multi-phase run preserves worktree after success.
 
         Worktrees are NEVER automatically deleted. Users must explicitly
         use 'adw cleanup <run_id>' to remove worktrees.
@@ -1457,7 +1456,7 @@ class TestWorktreeNoAutoDelete:
             worktree_config=worktree_config,
         )
 
-        # ISS-025: Mock worktree creation (tmp_path is not a git repo)
+        # Mock worktree creation (tmp_path is not a git repo)
         worktree_path = tmp_path / "trees" / "test-run"
         orchestrator._lifecycle._create_worktree_for_run = MagicMock(
             return_value=(worktree_path, "adw/test-run")
@@ -1467,7 +1466,7 @@ class TestWorktreeNoAutoDelete:
         with patch.object(WorktreeManager, "remove_worktree") as remove_worktree:
             orchestrator.run("Test feature")
 
-        # Verify the worktree was NOT removed (ISS-020: no auto-delete)
+        # Verify the worktree was NOT removed (no auto-delete)
         remove_worktree.assert_not_called()
 
     def test_single_phase_prints_worktree_location(
@@ -1555,7 +1554,7 @@ class TestWorktreeNoAutoDelete:
         """Single-phase run works correctly when progress_display is None.
 
         The orchestrator should not crash when progress_display is not set,
-        even when preserving a worktree (ISS-018 fix).
+        even when preserving a worktree.
         """
         from adw.core.orchestrator import Orchestrator
         from adw.models import WorktreeConfig
@@ -1601,7 +1600,7 @@ class TestWorktreeNoAutoDelete:
         mock_phase_runner: MagicMock,
         tmp_path: Path,
     ) -> None:
-        """Failed runs preserve worktree (ISS-020).
+        """Failed runs preserve worktree.
 
         Worktrees are NEVER automatically deleted, even on failure.
         """
@@ -1627,7 +1626,7 @@ class TestWorktreeNoAutoDelete:
             worktree_config=worktree_config,
         )
 
-        # ISS-025: Mock worktree creation (tmp_path is not a git repo)
+        # Mock worktree creation (tmp_path is not a git repo)
         worktree_path = tmp_path / "trees" / "test-run"
         orchestrator._lifecycle._create_worktree_for_run = MagicMock(
             return_value=(worktree_path, "adw/test-run")
@@ -1650,7 +1649,7 @@ class TestWorktreeNoAutoDelete:
         ):
             orchestrator.run("Test feature")
 
-        # Verify the worktree was NOT removed (ISS-020: no auto-delete)
+        # Verify the worktree was NOT removed (no auto-delete)
         remove_worktree.assert_not_called()
 
     def test_worktree_info_message_on_multi_phase_success(
@@ -1662,7 +1661,7 @@ class TestWorktreeNoAutoDelete:
         mock_phase_runner: MagicMock,
         tmp_path: Path,
     ) -> None:
-        """Multi-phase success shows worktree path and cleanup instructions (ISS-020).
+        """Multi-phase success shows worktree path and cleanup instructions.
 
         After successful completion, user should see worktree location
         and how to clean it up.
@@ -1739,7 +1738,7 @@ class TestWorktreeNoAutoDelete:
         mock_index_manager: MagicMock,
         tmp_path: Path,
     ) -> None:
-        """Resume success preserves worktree for user inspection (ISS-020).
+        """Resume success preserves worktree for user inspection.
 
         Worktrees are NEVER automatically deleted after resume completes.
         Users must explicitly use 'adw cleanup <run_id>' to remove worktrees.
@@ -1784,7 +1783,7 @@ class TestWorktreeNoAutoDelete:
         with patch.object(WorktreeManager, "remove_worktree") as remove_worktree:
             orchestrator.resume("01JFTEST000000000000000001")
 
-        # Verify the worktree was NOT removed (ISS-020: no auto-delete)
+        # Verify the worktree was NOT removed (no auto-delete)
         remove_worktree.assert_not_called()
 
     def test_cleanup_command_is_only_deletion_method(
@@ -1799,7 +1798,7 @@ class TestWorktreeNoAutoDelete:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """Only adw cleanup command should delete worktrees (ISS-020).
+        """Only adw cleanup command should delete worktrees.
 
         Verifies that WorktreeManager.remove_worktree is never called
         automatically by run(), run_single_phase(), or resume(). The only
@@ -1871,7 +1870,7 @@ class TestWorktreeNoAutoDelete:
 
 
 class TestStatusSyncServiceIntegration:
-    """Tests for StatusSyncService integration with Orchestrator (Story 12.3)."""
+    """Tests for StatusSyncService integration with Orchestrator."""
 
     @pytest.fixture
     def mock_status_sync_service(self) -> MagicMock:
@@ -2082,7 +2081,7 @@ _VALID_PR_DESCRIPTION = (
 
 
 class TestPRCreationAfterDocumentPhase:
-    """The document step opens its PR through core create_pr (ISS-031).
+    """The document step opens its PR through core create_pr.
 
     These drive the real DocumentExtension against a fake `gh` on PATH. Run
     start gives non-worktree runs a branch_name, so create_pr pushes it first;
@@ -2355,7 +2354,7 @@ class TestPRCreationAfterDocumentPhase:
     ) -> None:
         """Ship phase runs when there's no progress_display.
 
-        ISS-031: When progress_display is None, PR creation is not attempted,
+        When progress_display is None, PR creation is not attempted,
         so ship phase should still run (backward compatibility).
         """
         from adw.core.orchestrator import Orchestrator

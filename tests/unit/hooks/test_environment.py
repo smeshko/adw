@@ -130,7 +130,7 @@ class TestBuildHookEnvironment:
 
 
 class TestWorktreePathEnvironment:
-    """Tests for ADW_WORKTREE_PATH environment variable (Story 10.5)."""
+    """Tests for ADW_WORKTREE_PATH environment variable."""
 
     @pytest.fixture
     def run_context(self) -> RunContext:
@@ -199,7 +199,7 @@ class TestWorktreePathEnvironment:
 
 
 class TestBranchNameEnvironmentVariable:
-    """Tests for ADW_BRANCH_NAME environment variable (ISS-025)."""
+    """Tests for ADW_BRANCH_NAME environment variable."""
 
     @pytest.fixture
     def run_context(self) -> RunContext:
@@ -224,7 +224,7 @@ class TestBranchNameEnvironmentVariable:
         assert "ADW_BRANCH_NAME" not in env
 
     def test_branch_name_available_in_hooks(self, run_context: RunContext) -> None:
-        """Test that branch_name is correctly formatted for hooks (ISS-025)."""
+        """Test that branch_name is correctly formatted for hooks."""
         run_context = run_context.model_copy(update={"branch_name": "feature/add-auth"})
         env = build_hook_environment(run_context, "build")
         # Branch name should be exactly as set, without modification
@@ -232,7 +232,7 @@ class TestBranchNameEnvironmentVariable:
 
 
 class TestPortsEnvAutoSourcing:
-    """Tests for auto-sourcing .ports.env file (Story 10.5 Task 6)."""
+    """Tests for auto-sourcing .ports.env file."""
 
     @pytest.fixture
     def run_context(self) -> RunContext:
@@ -340,7 +340,7 @@ class TestPortsEnvAutoSourcing:
 
 
 class TestPRURLEnvironmentVariable:
-    """Tests for ADW_PR_URL environment variable (ISS-031)."""
+    """Tests for ADW_PR_URL environment variable."""
 
     @pytest.fixture
     def run_context(self) -> RunContext:
@@ -355,7 +355,7 @@ class TestPRURLEnvironmentVariable:
     def test_includes_pr_url_when_set(self, run_context: RunContext) -> None:
         """Test that ADW_PR_URL is included when pr_url is set in context.
 
-        ISS-031: Ship phase hooks need access to the PR URL for merge operations.
+        Ship phase hooks need access to the PR URL for merge operations.
         """
         context_with_pr = run_context.model_copy(
             update={"pr_url": "https://github.com/test/repo/pull/123"}
@@ -367,7 +367,7 @@ class TestPRURLEnvironmentVariable:
     def test_excludes_pr_url_when_not_set(self, run_context: RunContext) -> None:
         """Test that ADW_PR_URL is not included when pr_url is None.
 
-        ISS-031: When no PR was created, ADW_PR_URL should not be in env.
+        When no PR was created, ADW_PR_URL should not be in env.
         """
         # run_context has pr_url=None by default
         env = build_hook_environment(run_context, "ship")

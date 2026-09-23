@@ -1,4 +1,4 @@
-"""Tests for Story 3.3: Abort Active Run.
+"""Tests for Abort Active Run.
 
 Covers abort confirmation modal, GET /partials/abort/{run_id},
 POST /runs/{run_id}/abort, CSRF validation, and abort flow.

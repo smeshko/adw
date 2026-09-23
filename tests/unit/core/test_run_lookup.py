@@ -225,7 +225,7 @@ class TestFindMostRecentIncomplete:
 
 
 class TestListRuns:
-    """Tests for list_runs method (Story 6.4)."""
+    """Tests for list_runs method."""
 
     def test_list_returns_empty_when_no_runs(self, runs_dir: Path) -> None:
         """Test that list returns empty list when no runs exist."""

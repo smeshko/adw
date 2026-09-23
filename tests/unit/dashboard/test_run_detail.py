@@ -1,4 +1,4 @@
-"""Tests for Story 2.1: Run Detail Page Layout & Metadata.
+"""Tests for Run Detail Page Layout & Metadata.
 
 Covers run detail route, dual-response pattern, context-aware back link,
 title section, phase pipeline, metadata card, action buttons, and clipboard copy.
@@ -1451,7 +1451,7 @@ class TestArtifactViewerRoute:
 
 
 class TestPathTraversalProtection:
-    """Tests for path traversal and input validation (NFR10)."""
+    """Tests for path traversal and input validation."""
 
     def test_phase_detail_rejects_invalid_phase(self) -> None:
         """Phase detail returns 400 for phase not in PHASE_SEQUENCE."""

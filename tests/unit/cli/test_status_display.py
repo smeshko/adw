@@ -81,7 +81,7 @@ class TestStatusDisplayLogic:
     def test_failed_status_shows_resume_command_with_run_id(
         self, failed_context: RunContext
     ) -> None:
-        """Test that failed status shows actionable resume command (UX-3 requirement)."""
+        """Test that failed status shows actionable resume command."""
         output = StringIO()
         console = Console(file=output, force_terminal=True, width=200)
         display = StatusDisplay(console)

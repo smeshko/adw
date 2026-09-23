@@ -103,5 +103,5 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-002: Lint and format tests in preflight and CI
 - [x] TASK-003: Replace update.sh with a uv version-bump script
 - [x] TASK-004: Strip planning tags from src
-- [ ] TASK-005: Strip planning tags from tests (depends on TASK-004)
+- [x] TASK-005: Strip planning tags from tests (depends on TASK-004)
 - [ ] TASK-006: Final Validation

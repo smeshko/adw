@@ -1,7 +1,7 @@
 """Tests for artifact passing between phases.
 
 This module tests the functionality that makes artifacts from earlier phases
-available to later phases in templates, implementing Story 5.3.
+available to later phases in templates.
 """
 
 from datetime import UTC, datetime
@@ -50,7 +50,7 @@ def phase_runner(
 ) -> PhaseRunner:
     """Create a PhaseRunner with mocked dependencies."""
     mock_resolver = MagicMock(spec=CommandResolver)
-    # ISS-031: Add project_root for _load_project_config
+    # Add project_root for _load_project_config
     mock_resolver.project_root = tmp_path
     mock_hook_runner = MagicMock()
     mock_executor = MagicMock()

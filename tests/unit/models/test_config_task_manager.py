@@ -48,7 +48,7 @@ class TestTaskManagerConfig:
             "build": "In Progress",
             "validate": "In Review",
             "document": "In Review",
-            "ship": "Done",  # Story 15.1: ship phase added
+            "ship": "Done",
             "failed": "In Progress",
         }
 
@@ -78,7 +78,7 @@ class TestTaskManagerConfig:
     def test_invalid_type_raises_validation_error(self) -> None:
         """Invalid task manager type raises ValidationError.
 
-        Per AC: Given invalid task_manager value, When config is loaded,
+        Given invalid task_manager value, When config is loaded,
         Then ConfigError raised with available options.
         """
         with pytest.raises(PydanticValidationError) as exc_info:

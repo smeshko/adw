@@ -340,7 +340,7 @@ exit 1
 
 
 class TestProjectConfigOverride:
-    """Integration tests for project config override (ISS-030).
+    """Integration tests for project config override.
 
     Tests that project-level config.yaml without prompt.md can override
     command settings from bundled/user tiers.
@@ -351,7 +351,7 @@ class TestProjectConfigOverride:
     ) -> None:
         """Test that project config can disable a phase without prompt.md.
 
-        This is the core fix for ISS-030: A project should be able to create
+        A project should be able to create
         .adw/commands/ship/config.yaml with `enabled: false` without having
         to duplicate the bundled prompt.md.
         """

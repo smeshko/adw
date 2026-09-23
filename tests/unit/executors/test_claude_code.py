@@ -992,7 +992,7 @@ class TestModelConfiguration:
 
 
 class TestFinalOutputParsing:
-    """Tests for final_output extraction (ISS-023).
+    """Tests for final_output extraction.
 
     The final_output field should contain only the last assistant message,
     excluding intermediate reasoning and tool calls. This gives downstream
@@ -1128,7 +1128,7 @@ class TestFinalOutputParsing:
     def test_execute_wires_final_output_to_llm_result(
         self, executor: ClaudeCodeExecutor
     ) -> None:
-        """execute() should wire parsed final_output into LLMResult (ISS-023).
+        """execute() should wire parsed final_output into LLMResult.
 
         This test verifies the full call stack from subprocess output through
         parsing to the returned LLMResult, ensuring final_output survives.
@@ -1276,7 +1276,7 @@ class TestAdditionalParsingCoverage:
 
 
 class TestExceptionCleanup:
-    """Tests for exception handling and process cleanup (Story 3-4 H2)."""
+    """Tests for exception handling and process cleanup."""
 
     def test_process_killed_on_general_exception(
         self, executor: ClaudeCodeExecutor
@@ -1357,7 +1357,7 @@ class TestExceptionCleanup:
 
 
 class TestWorktreeWorkingDirectory:
-    """Tests for worktree working directory support (Story 10.5)."""
+    """Tests for worktree working directory support."""
 
     def test_execute_accepts_cwd_parameter(self, executor: ClaudeCodeExecutor) -> None:
         """execute() should accept optional cwd parameter."""

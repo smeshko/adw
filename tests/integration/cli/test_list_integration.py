@@ -1,4 +1,4 @@
-"""Integration tests for list CLI command (Story 6.4).
+"""Integration tests for list CLI command.
 
 These tests verify the list command works correctly with real
 file system operations and run data.

@@ -1,4 +1,4 @@
-"""Tests for Story 1.3: Overview Stat Cards & Status Vocabulary.
+"""Tests for Overview Stat Cards & Status Vocabulary.
 
 Covers stat cards partial route, formatting, trend indicators,
 status badge rendering, OOB swap, polling, and responsive layout.

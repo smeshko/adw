@@ -567,7 +567,7 @@ class TestStateSnapshot:
 
 
 class TestRunContextTaskIntegration:
-    """Tests for RunContext task manager integration (Story 12.3).
+    """Tests for RunContext task manager integration.
 
     These tests verify that task context is properly tracked and serialized
     for status synchronization with external task managers.

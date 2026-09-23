@@ -1,4 +1,4 @@
-"""Tests for Story 2.3: Log Viewer.
+"""Tests for Log Viewer.
 
 Covers log search endpoint, log filtering by keyword/severity/phase,
 log content template, and 300ms debounce integration.
@@ -98,7 +98,7 @@ def _make_client_with_mocks(
 
 
 class TestLogSearchEndpoint:
-    """Tests for GET /runs/{id}/logs endpoint (FR21, FR22, FR26)."""
+    """Tests for GET /runs/{id}/logs endpoint."""
 
     def test_logs_returns_200(self) -> None:
         """Log endpoint returns 200."""

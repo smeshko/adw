@@ -50,7 +50,7 @@ class TestLLMResult:
         assert isinstance(result.duration_ms, int)
 
     def test_final_output_field_exists(self) -> None:
-        """LLMResult has final_output field for last message only (ISS-023)."""
+        """LLMResult has final_output field for last message only."""
         result = LLMResult(
             content="Full conversation",
             final_output="Last message only",

@@ -441,7 +441,7 @@ class TestSaveSettingsFileCreation:
     """Tests for file creation when no config exists."""
 
     def test_creates_adw_dir_and_file(self, tmp_path: Path) -> None:
-        """Save creates .adw/ directory and project.yaml when they don't exist (FR66)."""
+        """Save creates .adw/ directory and project.yaml when they don't exist."""
         # Bare project dir — NO .adw/ directory at all
         app = create_dashboard_app()
         mock_reg = _make_mock_registry([(str(tmp_path), "new-app")])

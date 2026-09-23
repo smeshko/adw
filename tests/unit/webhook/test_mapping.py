@@ -9,7 +9,7 @@
 #   - Default values (visible in model definition)
 #   - Import verification
 
-"""Tests for webhook event-to-workflow mapping (Story 13.4)."""
+"""Tests for webhook event-to-workflow mapping."""
 
 from __future__ import annotations
 
