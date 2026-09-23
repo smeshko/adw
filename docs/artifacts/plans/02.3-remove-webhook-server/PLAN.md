@@ -109,5 +109,5 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-003: Drop ProjectConfig.webhook and warn on a leftover webhook section (depends on TASK-001)
 - [x] TASK-004: Build the dashboard on a plain FastAPI app (depends on TASK-001)
 - [x] TASK-005: Drop RunTrigger's unused project_dir (depends on TASK-001)
-- [ ] TASK-006: Remove webhook references from the docs (depends on TASK-001,TASK-004,TASK-005)
+- [x] TASK-006: Remove webhook references from the docs (depends on TASK-001,TASK-004,TASK-005)
 - [ ] TASK-007: Final Validation

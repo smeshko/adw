@@ -116,7 +116,6 @@ This guide helps you find relevant documentation based on what you're working on
   - Conditions:
     - When adding new modal dialogs to the ADW dashboard
     - When creating CSRF-protected form submission endpoints in the dashboard
-    - When extracting shared logic from webhook module to core for dashboard use
     - When implementing HTMX form validation with inline error re-rendering in the dashboard
     - When triggering ADW runs programmatically from new entry points
 - docs/features/run-detail-page-layout-metadata.md
