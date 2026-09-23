@@ -13,8 +13,8 @@ import pytest
 import yaml
 
 from adw.commands import CommandResolver
-from adw.commands.loader import get_config_class
 from adw.core.constants import PHASE_SEQUENCE
+from adw.models.command import get_config_class
 
 
 class TestBundledCommands:
