@@ -99,7 +99,6 @@ class MockExecutor:
         self,
         prompt: str,
         *,
-        timeout: int | None = None,
         phase: str | None = None,
         cwd: Path | None = None,
         model: str | None = None,
@@ -108,7 +107,6 @@ class MockExecutor:
 
         Args:
             prompt: The prompt being "sent" (stored for tracking).
-            timeout: Ignored in mock (for interface compatibility).
             phase: Ignored in mock (for interface compatibility).
             cwd: Ignored in mock (for interface compatibility).
                  Added for worktree support (Story 10.5).

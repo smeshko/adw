@@ -88,6 +88,6 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 
 - [x] TASK-001: Make the orchestrator the single RetryConfig-driven retry layer
 - [x] TASK-002: Raise LLMError when Claude Code exits non-zero (depends on TASK-001)
-- [ ] TASK-003: Drop the unused timeout parameter from executors (depends on TASK-001)
+- [x] TASK-003: Drop the unused timeout parameter from executors (depends on TASK-001)
 - [ ] TASK-004: Delete LLMResult success, error and attempt_count (depends on TASK-002)
 - [ ] TASK-005: Final Validation

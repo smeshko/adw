@@ -108,17 +108,6 @@ class TestClaudeCodeExecutorExecute:
 
         assert isinstance(result, LLMResult)
 
-    def test_execute_with_timeout_parameter(
-        self, executor: ClaudeCodeExecutor, mock_subprocess
-    ) -> None:
-        """execute() should accept optional timeout parameter."""
-        mock_asyncio, process = mock_subprocess
-
-        with patch("shutil.which", return_value="/usr/bin/claude"):
-            result = executor.execute("Test prompt", timeout=60)
-
-        assert isinstance(result, LLMResult)
-
     def test_execute_captures_content(
         self, executor: ClaudeCodeExecutor, mock_subprocess
     ) -> None:

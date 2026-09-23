@@ -1,5 +1,6 @@
 """Tests for LLMExecutor Protocol definition."""
 
+from pathlib import Path
 from typing import Protocol, get_type_hints
 
 from adw.executors import LLMExecutor
@@ -20,7 +21,9 @@ def test_llm_executor_is_runtime_checkable() -> None:
             self,
             prompt: str,
             *,
-            timeout: int | None = None,
+            phase: str | None = None,
+            cwd: Path | None = None,
+            model: str | None = None,
         ) -> LLMResult:
             return LLMResult(success=True, content="test")
 
@@ -53,8 +56,8 @@ def test_llm_executor_execute_has_correct_signature() -> None:
     # Check prompt is str
     assert hints.get("prompt") is str
 
-    # Check timeout is int | None
-    assert hints.get("timeout") == (int | None)
+    # No caller passes a timeout, so the protocol takes none
+    assert "timeout" not in hints
 
     # Check model is str | None
     assert hints.get("model") == (str | None)

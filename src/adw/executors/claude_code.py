@@ -59,7 +59,7 @@ class ClaudeCodeExecutor:
         """Initialize the ClaudeCodeExecutor.
 
         Args:
-            config: LLM configuration containing path, timeout, and other settings.
+            config: LLM configuration containing path and retry settings.
             console: Optional Rich console for streaming output. If not provided,
                      a new Console instance is created.
             security_interceptor: Optional SecurityInterceptor for checking tool
@@ -79,7 +79,6 @@ class ClaudeCodeExecutor:
         self,
         prompt: str,
         *,
-        timeout: int | None = None,
         phase: str | None = None,
         cwd: Path | None = None,
         model: str | None = None,
@@ -92,7 +91,6 @@ class ClaudeCodeExecutor:
 
         Args:
             prompt: The prompt to send to Claude Code.
-            timeout: Unused, kept for interface compatibility.
             phase: Optional phase name for log context.
             cwd: Optional working directory for subprocess execution.
                  If None, uses current working directory (legacy mode).
