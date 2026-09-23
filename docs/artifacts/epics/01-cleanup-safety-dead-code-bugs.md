@@ -294,7 +294,7 @@ Tests cover each criterion, with `gh` stubbed by a fake binary on PATH. The PR s
 
 ## Phase 1.8 — Fix path, config and default drift
 
-**Plan**: _not yet created_
+**Plan**: [01.8-fix-path-config-default-drift](../plans/01.8-fix-path-config-default-drift/PLAN.md) · status: in-progress
 
 **Linear**: ADW-14 (https://linear.app/ivo-tsonev/issue/ADW-14)
 
