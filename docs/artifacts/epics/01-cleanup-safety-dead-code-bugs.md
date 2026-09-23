@@ -120,7 +120,7 @@ Paste the grep output (empty), the pytest summary line with the coverage total, 
 
 ## Phase 1.3 — Trim exceptions and re-export surfaces
 
-**Plan**: _not yet created_
+**Plan**: [01.3-trim-exceptions-and-re-exports](../plans/01.3-trim-exceptions-and-re-exports/PLAN.md) · status: planned
 
 **Linear**: ADW-9 (https://linear.app/ivo-tsonev/issue/ADW-9)
 
