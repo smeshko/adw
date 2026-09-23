@@ -1,6 +1,6 @@
 # Plan: Isolate the test suite from the checkout
 
-Status: in-progress
+Status: done
 Branch: feature/adw-7
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -62,16 +62,16 @@ See [RESEARCH.md](./RESEARCH.md). Every change was prototyped in a throwaway clo
 
 ## Acceptance Criteria
 
-- [ ] A full `uv run pytest` in the checkout leaves these unchanged:
+- [x] A full `uv run pytest` in the checkout leaves these unchanged:
   - `git status`, `git branch` and `git worktree list`
   - the contents of `.adw/runs/` (count and hashes)
   - every file under `~/.adw/`
 
   Evidence: the before/after snapshot diff (empty) in `VALIDATION.md`.
-- [ ] A hook with a 1 s timeout whose script starts `sleep 30` raises `HookError` within 3 s, and the `sleep` child is gone. Evidence: `test_timeout_kills_hook_children` output, RED at 30 s and GREEN after the fix.
-- [ ] Full-suite wall-clock time drops by at least 50 s against the baseline. Evidence: back-to-back `--durations=15` runs at `cdb2003f` and HEAD in `VALIDATION.md` (prototype: 216.6 s → 152.0 s).
-- [ ] `grep -rn "ADW_TEST_" src tests` returns nothing.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%.
+- [x] A hook with a 1 s timeout whose script starts `sleep 30` raises `HookError` within 3 s, and the `sleep` child is gone. Evidence: `test_timeout_kills_hook_children` output, RED at 30 s and GREEN after the fix.
+- [x] Full-suite wall-clock time drops by at least 50 s against the baseline. Evidence: back-to-back `--durations=15` runs at `cdb2003f` and HEAD in `VALIDATION.md` (prototype: 216.6 s → 152.0 s).
+- [x] `grep -rn "ADW_TEST_" src tests` returns nothing.
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%.
 
 ## Tasks
 
@@ -82,4 +82,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-002: Patch retry backoff and drop wall-clock transition tests
 - [x] TASK-003: Isolate HOME per test and drop the ADW_TEST_* path hooks
 - [x] TASK-004: Run cli and dashboard unit tests in a temp cwd
-- [ ] TASK-005: Final Validation
+- [x] TASK-005: Final Validation
