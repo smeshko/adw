@@ -1,6 +1,6 @@
 # Plan: Expand includes before substitution
 
-Status: in-progress
+Status: done
 Branch: feature/adw-16
 Risk: medium
 Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
@@ -74,14 +74,14 @@ See [RESEARCH.md](./RESEARCH.md). Key findings:
 
 ## Acceptance Criteria
 
-- [ ] Rendering the document phase for a run whose build artifacts exist produces a prompt that contains the actual diff and the rendered `doc_mappings`, with no literal `{{artifacts.build.diff}}` or `{{doc_mappings}}`. Evidence: `test_document_prompt_fills_included_build_diff` fails before TASK-003 and passes after it.
-- [ ] Rendering the validate phase with `test_command: "uv run pytest"` and `lint_command: "ruff check ."` produces a prompt that contains both commands, with no literal `{{test_command}}` or `{{lint_command}}`. With both unset, the prompt has no empty `Execute:` action. Evidence: `test_validate_prompt_fills_included_commands` and `test_validate_prompt_without_commands_keeps_auto_detect`.
-- [ ] Every LLM-facing placeholder in the five bundled phases is present verbatim in the rendered output. The test lists them per phase. Evidence: the `test_llm_facing_placeholders_survive[*]` output.
-- [ ] `{{include:../../etc/passwd}}`, `{{shared:../x}}` and `{{file:../x}}` still raise `*_PATH_TRAVERSAL`. Evidence: the parametrized traversal test.
-- [ ] A variable value that contains `{{file:…}}` or `{{include:…}}` is emitted literally. Evidence: `test_variable_value_directives_not_expanded`.
-- [ ] `grep -rn "validate_artifact_references\|ARTIFACT_REF_PATTERN\|UNKNOWN_VARIABLE\|strict=" src/adw/commands src/adw/core/phase_runner.py` returns nothing.
-- [ ] A real `adw run --phase document --from-run` against a real source run, in a scratch repo, with a fake `claude` on `PATH`, captures a prompt that contains the source run's diff inside the instructions section. The before and after snapshots for document and validate are in `VALIDATION.md`.
-- [ ] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%.
+- [x] Rendering the document phase for a run whose build artifacts exist produces a prompt that contains the actual diff and the rendered `doc_mappings`, with no literal `{{artifacts.build.diff}}` or `{{doc_mappings}}`. Evidence: `test_document_prompt_fills_included_build_diff` fails before TASK-003 and passes after it.
+- [x] Rendering the validate phase with `test_command: "uv run pytest"` and `lint_command: "ruff check ."` produces a prompt that contains both commands, with no literal `{{test_command}}` or `{{lint_command}}`. With both unset, the prompt has no empty `Execute:` action. Evidence: `test_validate_prompt_fills_included_commands` and `test_validate_prompt_without_commands_keeps_auto_detect`.
+- [x] Every LLM-facing placeholder in the five bundled phases is present verbatim in the rendered output. The test lists them per phase. Evidence: the `test_llm_facing_placeholders_survive[*]` output.
+- [x] `{{include:../../etc/passwd}}`, `{{shared:../x}}` and `{{file:../x}}` still raise `*_PATH_TRAVERSAL`. Evidence: the parametrized traversal test.
+- [x] A variable value that contains `{{file:…}}` or `{{include:…}}` is emitted literally. Evidence: `test_variable_value_directives_not_expanded`.
+- [x] `grep -rn "validate_artifact_references\|ARTIFACT_REF_PATTERN\|UNKNOWN_VARIABLE\|strict=" src/adw/commands src/adw/core/phase_runner.py` returns nothing.
+- [x] A real `adw run --phase document --from-run` against a real source run, in a scratch repo, with a fake `claude` on `PATH`, captures a prompt that contains the source run's diff inside the instructions section. The before and after snapshots for document and validate are in `VALIDATION.md`.
+- [x] `scripts/preflight.sh` passes, and `uv run pytest` is green with coverage ≥ 80%.
 
 ## Tasks
 
@@ -93,4 +93,4 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 - [x] TASK-003: Expand includes before substituting variables (depends on TASK-001,TASK-002)
 - [x] TASK-004: Read every include through one _read_under handler (depends on TASK-003)
 - [x] TASK-005: Document the render order and fill rule (depends on TASK-004)
-- [ ] TASK-006: Final Validation
+- [x] TASK-006: Final Validation
