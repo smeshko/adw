@@ -12,7 +12,6 @@ Tests cover:
 from datetime import UTC, datetime
 from pathlib import Path
 
-import pytest
 import yaml
 
 from adw.core.project_registry import ProjectRegistryManager
@@ -22,11 +21,8 @@ from adw.models.registry import RegisteredProject
 class TestProjectRegistryManagerInit:
     """Tests for ProjectRegistryManager initialization."""
 
-    def test_default_registry_path_uses_home_directory(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test that default registry path is ~/.adw/projects.yaml when no env var set."""
-        monkeypatch.delenv("ADW_TEST_REGISTRY_PATH", raising=False)
+    def test_default_registry_path_uses_home_directory(self) -> None:
+        """Test that default registry path is ~/.adw/projects.yaml."""
         manager = ProjectRegistryManager()
         expected = Path.home() / ".adw" / "projects.yaml"
         assert manager.registry_path == expected
@@ -36,27 +32,6 @@ class TestProjectRegistryManagerInit:
         custom_path = tmp_path / "custom" / "projects.yaml"
         manager = ProjectRegistryManager(registry_path=custom_path)
         assert manager.registry_path == custom_path
-
-    def test_custom_path_takes_precedence_over_env_var(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test that explicit registry_path takes precedence over environment variable."""
-        env_path = tmp_path / "env" / "projects.yaml"
-        custom_path = tmp_path / "custom" / "projects.yaml"
-        monkeypatch.setenv("ADW_TEST_REGISTRY_PATH", str(env_path))
-
-        manager = ProjectRegistryManager(registry_path=custom_path)
-        assert manager.registry_path == custom_path
-
-    def test_env_var_overrides_default(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test that ADW_TEST_REGISTRY_PATH environment variable overrides default."""
-        env_path = tmp_path / "test" / "projects.yaml"
-        monkeypatch.setenv("ADW_TEST_REGISTRY_PATH", str(env_path))
-
-        manager = ProjectRegistryManager()
-        assert manager.registry_path == env_path
 
 
 class TestRegister:

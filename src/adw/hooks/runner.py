@@ -10,7 +10,10 @@ Timeout Hierarchy:
 """
 
 import asyncio
+import contextlib
 import logging
+import os
+import signal
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -199,6 +202,7 @@ class HookRunner:
             stderr=asyncio.subprocess.PIPE,
             env=env,
             cwd=cwd,
+            start_new_session=True,  # Own process group so a timeout kills children too
         )
 
         try:
@@ -208,8 +212,9 @@ class HookRunner:
                 timeout=effective_timeout,
             )
         except TimeoutError:
-            # Kill the process on timeout
-            process.kill()
+            # Kill the whole group: children holding the pipes would block wait()
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(process.pid, signal.SIGKILL)
             await process.wait()
 
             duration_ms = int((time.monotonic() - start_time) * 1000)

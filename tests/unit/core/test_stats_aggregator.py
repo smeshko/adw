@@ -4,10 +4,9 @@ Tests for cost calculation, pricing configuration, and LLM file parsing.
 """
 
 import json
-import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 
 class TestModelPricing:
@@ -441,10 +440,7 @@ class TestStatsAggregatorInit:
         """Default cache path is ~/.adw/stats-cache.json."""
         from adw.core.stats_aggregator import StatsAggregator
 
-        # Clear env var if set
-        with patch.dict(os.environ, {}, clear=True):
-            os.environ.pop("ADW_TEST_STATS_CACHE_PATH", None)
-            aggregator = StatsAggregator()
+        aggregator = StatsAggregator()
 
         assert aggregator.cache_path == Path.home() / ".adw" / "stats-cache.json"
 
@@ -454,28 +450,6 @@ class TestStatsAggregatorInit:
 
         custom_path = tmp_path / "custom-cache.json"
         aggregator = StatsAggregator(cache_path=custom_path)
-
-        assert aggregator.cache_path == custom_path
-
-    def test_env_var_cache_path(self, tmp_path: Path) -> None:
-        """ADW_TEST_STATS_CACHE_PATH env var overrides default."""
-        from adw.core.stats_aggregator import StatsAggregator
-
-        env_path = str(tmp_path / "env-cache.json")
-        with patch.dict(os.environ, {"ADW_TEST_STATS_CACHE_PATH": env_path}):
-            aggregator = StatsAggregator()
-
-        assert aggregator.cache_path == Path(env_path)
-
-    def test_explicit_path_overrides_env(self, tmp_path: Path) -> None:
-        """Explicit cache_path parameter overrides env var."""
-        from adw.core.stats_aggregator import StatsAggregator
-
-        env_path = str(tmp_path / "env-cache.json")
-        custom_path = tmp_path / "custom-cache.json"
-
-        with patch.dict(os.environ, {"ADW_TEST_STATS_CACHE_PATH": env_path}):
-            aggregator = StatsAggregator(cache_path=custom_path)
 
         assert aggregator.cache_path == custom_path
 

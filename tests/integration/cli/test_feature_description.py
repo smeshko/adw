@@ -163,7 +163,7 @@ class TestFeatureDescriptionInGlobalIndex:
     def test_index_manager_stores_feature_description(
         self,
         tmp_path: Path,
-        isolated_global_index: Path,
+        isolated_home: Path,
     ) -> None:
         """Test that IndexManager stores feature_description in index entry."""
         feature = "global index test feature abc"
@@ -174,7 +174,7 @@ class TestFeatureDescriptionInGlobalIndex:
             started_at=datetime.now(UTC),
         )
 
-        manager = IndexManager(index_path=isolated_global_index)
+        manager = IndexManager(index_path=isolated_home / ".adw" / "index.jsonl")
         manager.register_run(context, tmp_path)
 
         # Read back entries
@@ -185,7 +185,7 @@ class TestFeatureDescriptionInGlobalIndex:
     def test_index_manager_preserves_feature_description_on_update(
         self,
         tmp_path: Path,
-        isolated_global_index: Path,
+        isolated_home: Path,
     ) -> None:
         """Test that feature_description is preserved when updating run status."""
         feature = "update preservation test feature"
@@ -196,7 +196,7 @@ class TestFeatureDescriptionInGlobalIndex:
             started_at=datetime.now(UTC),
         )
 
-        manager = IndexManager(index_path=isolated_global_index)
+        manager = IndexManager(index_path=isolated_home / ".adw" / "index.jsonl")
         manager.register_run(context, tmp_path)
 
         # Update status

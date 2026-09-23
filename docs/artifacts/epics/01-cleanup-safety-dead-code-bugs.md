@@ -39,7 +39,7 @@ No user-facing feature is removed here; that is Epic 02. Each phase is sized to 
 
 ## Phase 1.1 — Isolate the test suite from the checkout
 
-**Plan**: _not yet created_
+**Plan**: [01.1-isolate-test-suite](../plans/01.1-isolate-test-suite/PLAN.md) · status: done
 
 **Linear**: ADW-7 (https://linear.app/ivo-tsonev/issue/ADW-7)
 
@@ -58,10 +58,10 @@ No user-facing feature is removed here; that is Epic 02. Each phase is sized to 
 
 ### Acceptance criteria
 
-- [ ] A full `uv run pytest` leaves the following unchanged: `git status`, `git branch`, `git worktree list`, the contents of `.adw/runs/`, and every file under `~/.adw/`.
-- [ ] A hook with a 1 s timeout whose script starts `sleep 30` raises `HookError` within 3 s.
-- [ ] Full-suite wall-clock time drops by at least 50 s against the baseline measured at the start of the phase.
-- [ ] Lint and tests pass.
+- [x] A full `uv run pytest` leaves the following unchanged: `git status`, `git branch`, `git worktree list`, the contents of `.adw/runs/`, and every file under `~/.adw/`.
+- [x] A hook with a 1 s timeout whose script starts `sleep 30` raises `HookError` within 3 s.
+- [x] Full-suite wall-clock time drops by at least 50 s against the baseline measured at the start of the phase.
+- [x] Lint and tests pass.
 
 ### Validation
 
@@ -401,5 +401,5 @@ Include rendered-prompt snapshots (before/after) for the document and validate p
 - [ ] Every phase merged and its acceptance criteria met
 - [ ] Status row in [EPICS.md](./EPICS.md) updated to `Done`
 - [ ] Bugs B1–B5, B9–B12, B16, B17 and B21 each have a regression test that fails on the pre-epic code
-- [ ] The full suite runs without touching the checkout or `~/.adw`, and is at least 50 s faster than before the epic
+- [ ] The full suite runs without touching the checkout or `~/.adw`, and is at least 50 s faster than before the epic — phase 1.1: no-touch diff empty, 210.2 s → 157.1 s (−53.1 s), see [VALIDATION.md](../plans/01.1-isolate-test-suite/VALIDATION.md)
 - [ ] `src/adw` is at least 3,000 lines smaller than at `cdb2003f`, measured by `find src -name '*.py' | xargs wc -l`

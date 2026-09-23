@@ -39,6 +39,8 @@ class TestFromPhaseValidation:
 
     def test_all_valid_phases_accepted(self, cli_runner: CliRunner) -> None:
         """Test that all phases in PHASE_SEQUENCE are valid for --from-phase."""
+        # `adw resume` without a run id resumes the latest run in cwd's .adw/runs
+        assert not (Path.cwd() / "pyproject.toml").exists(), "cwd is the checkout"
         for phase in PHASE_SEQUENCE:
             result = cli_runner.invoke(app, ["resume", "--from-phase", phase])
             # Should not error with "Invalid phase"

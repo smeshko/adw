@@ -38,11 +38,6 @@ class ProjectRegistryManager:
     Attributes:
         registry_path: Path to the projects.yaml file.
 
-    Environment Variables:
-        ADW_TEST_REGISTRY_PATH: If set, overrides the default registry path.
-            Used during testing to prevent test runs from polluting
-            the user's global registry.
-
     Example:
         >>> from pathlib import Path
         >>> manager = ProjectRegistryManager()
@@ -55,17 +50,10 @@ class ProjectRegistryManager:
         """Initialize the ProjectRegistryManager.
 
         Args:
-            registry_path: Path to the registry file. Defaults to ~/.adw/projects.yaml,
-                or the path specified by ADW_TEST_REGISTRY_PATH environment variable.
+            registry_path: Path to the registry file. Defaults to ~/.adw/projects.yaml.
         """
-        import os
-
-        # Allow environment variable to override default path (for testing)
-        env_registry_path = os.environ.get("ADW_TEST_REGISTRY_PATH")
         if registry_path is not None:
             self.registry_path = registry_path
-        elif env_registry_path:
-            self.registry_path = Path(env_registry_path)
         else:
             self.registry_path = Path.home() / ".adw" / "projects.yaml"
 
