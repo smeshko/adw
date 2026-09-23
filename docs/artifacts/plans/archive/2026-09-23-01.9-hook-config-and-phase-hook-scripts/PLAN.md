@@ -3,7 +3,7 @@
 Status: done
 Branch: feature/adw-15
 Risk: medium
-Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../epics/01-cleanup-safety-dead-code-bugs.md))
+Epic: 01 — Cleanup: test safety, dead code and bug fixes ([epic](../../../epics/01-cleanup-safety-dead-code-bugs.md))
 Phase: 1.9 — Hook config and phase-hook scripts
 Linear: ADW-15
 Created: 2026-09-23

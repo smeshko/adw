@@ -100,7 +100,7 @@ ADW_MOCK_EXECUTOR=1 adw run "Add login" --phase plan --no-worktree && git branch
 
 ## References
 
-- [Epic 01, phase 1.9](../../epics/01-cleanup-safety-dead-code-bugs.md)
-- [PhaseRunner deep dive](../../../architecture/deep-dive/phase-runner.md)
+- [Epic 01, phase 1.9](../../../epics/01-cleanup-safety-dead-code-bugs.md)
+- [PhaseRunner deep dive](../../../../architecture/deep-dive/phase-runner.md)
 - [Simplification audit report](https://claude.ai/artifact/P59fUpiUcp7rATwMUSjjmp) (private): B10, B16, D6
 - Prior art: `tests/integration/core/test_phase_failure.py` — the `create_orchestrator` + `git_repo` + gitignored-HOME fixture pattern
