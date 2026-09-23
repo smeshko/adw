@@ -3,7 +3,7 @@
 Status: done
 Branch: feature/adw-20
 Risk: small
-Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../epics/02-cleanup-remove-and-consolidate.md))
+Epic: 02 — Cleanup: remove inert features and consolidate ([epic](../../../epics/02-cleanup-remove-and-consolidate.md))
 Phase: 2.4 — Remove the terminal dashboard
 Linear: ADW-20
 Created: 2026-09-23

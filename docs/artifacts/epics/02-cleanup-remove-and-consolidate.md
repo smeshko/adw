@@ -145,7 +145,7 @@ Include `adw --help`, a curl of the dashboard overview, and a screenshot of a ru
 
 ## Phase 2.4 — Remove the terminal dashboard
 
-**Plan**: [02.4-remove-terminal-dashboard](../plans/02.4-remove-terminal-dashboard/PLAN.md) · status: done
+**Plan**: [02.4-remove-terminal-dashboard](../plans/archive/2026-09-23-02.4-remove-terminal-dashboard/PLAN.md) · status: done
 
 **Linear**: ADW-20 (https://linear.app/ivo-tsonev/issue/ADW-20)
 
