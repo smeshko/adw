@@ -60,7 +60,6 @@ class ConfigRegistry:
         "ports",
         "llm",
         "security",
-        "webhook",
         "ship",
     ]
 
@@ -94,7 +93,6 @@ class ConfigRegistry:
             TaskManagerLabelsConfig,
             WorktreeConfig,
         )
-        from adw.models.webhook import ProviderConfig, WebhookConfig
 
         # Project-level settings (top-level scalar fields)
         self._settings["project"] = self._extract_project_settings(ProjectConfig)
@@ -114,8 +112,6 @@ class ConfigRegistry:
         self._settings["ports"] = self._extract_from_model(PortRangeConfig)
         self._settings["retry"] = self._extract_from_model(RetryConfig)
         self._settings["security"] = self._extract_security_settings()
-        self._settings["webhook"] = self._extract_webhook_settings(WebhookConfig)
-        self._settings["webhook_provider"] = self._extract_from_model(ProviderConfig)
         self._settings["ship"] = self._extract_from_model(
             ShipCommandConfig, skip_nested=["commands"]
         )
@@ -192,30 +188,6 @@ class ConfigRegistry:
         from adw.models.security import SecurityConfig
 
         return self._extract_from_model(SecurityConfig)
-
-    def _extract_webhook_settings(
-        self, model: type[BaseModel]
-    ) -> list[SettingDefinition]:
-        """Extract webhook settings, skipping complex nested structures.
-
-        Args:
-            model: The WebhookConfig model class.
-
-        Returns:
-            List of webhook setting definitions.
-        """
-        settings = []
-        # Only include simple scalar fields, not complex nested mappings
-        simple_fields = ["enabled", "port", "host", "path", "secret_header"]
-
-        for field_name in simple_fields:
-            if field_name not in model.model_fields:
-                continue
-
-            field_info = model.model_fields[field_name]
-            settings.append(self._field_to_setting(field_name, field_info))
-
-        return settings
 
     def _field_to_setting(
         self, field_name: str, field_info: FieldInfo

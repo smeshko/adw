@@ -15,7 +15,6 @@ This package contains all Pydantic models used throughout ADW:
 - pr: PRDescription
 - task: TaskInfo
 - resume: ResumeInfo, ResumeStatus
-- webhook: WebhookConfig, ProviderConfig
 - wizard: WizardState
 - registry: RegisteredProject, ProjectRegistry
 - stats: TokenUsage, ProjectStatistics, GlobalStatistics
@@ -72,7 +71,6 @@ from adw.models.security import (
 )
 from adw.models.stats import GlobalStatistics, ProjectStatistics, TokenUsage
 from adw.models.task import TaskInfo
-from adw.models.webhook import ProviderConfig, WebhookConfig
 from adw.models.wizard import WizardState
 from adw.models.worktree import PortAllocation
 
@@ -140,9 +138,6 @@ __all__: list[str] = [
     "ToolCallLog",
     # Task models
     "TaskInfo",
-    # Webhook models
-    "ProviderConfig",
-    "WebhookConfig",
     # Wizard models
     "WizardState",
     # Worktree models
