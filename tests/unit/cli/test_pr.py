@@ -3,44 +3,28 @@
 Tests for Story 9.5: Support PR Creation Command.
 """
 
+import json
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
 
 from adw.cli.app import app
-from adw.cli.pr import (
-    _get_base_branch,
-    _store_pr_url,
-    check_gh_authenticated,
-    check_gh_available,
-    create_pr_via_gh,
-    display_manual_instructions,
-)
-from adw.exceptions import ConfigError
+from adw.cli.pr import _get_base_branch, display_manual_instructions
+from adw.core.context_manager import ContextManager
 from adw.models import PRDescription, RunContext
+from adw.models.task import TaskInfo
+from tests.conftest import FakeGh
 
 
 @pytest.fixture
 def runner() -> CliRunner:
     """Create CLI test runner."""
     return CliRunner()
-
-
-@pytest.fixture
-def sample_context() -> RunContext:
-    """Create sample completed context."""
-    return RunContext(
-        run_id="01JFTEST000000000000000001",
-        feature_description="Add user authentication",
-        current_phase="document",
-        phase_history=["plan", "build", "validate", "document"],
-        started_at=datetime.now(UTC),
-        completed_at=datetime.now(UTC),
-        status="completed",
-    )
 
 
 @pytest.fixture
@@ -52,182 +36,6 @@ def sample_pr_description() -> PRDescription:
         testing="All unit tests pass. Integration tests added.",
         evidence="See screenshots in evidence/screenshots/",
     )
-
-
-class TestCheckGhAvailable:
-    """Tests for check_gh_available function."""
-
-    def test_gh_available_when_installed(self) -> None:
-        """Test returns True when gh is in PATH."""
-        with patch("adw.cli.pr.shutil.which") as mock_which:
-            mock_which.return_value = "/usr/local/bin/gh"
-            assert check_gh_available() is True
-            mock_which.assert_called_once_with("gh")
-
-    def test_gh_not_available_when_missing(self) -> None:
-        """Test returns False when gh is not in PATH."""
-        with patch("adw.cli.pr.shutil.which") as mock_which:
-            mock_which.return_value = None
-            assert check_gh_available() is False
-            mock_which.assert_called_once_with("gh")
-
-
-class TestCheckGhAuthenticated:
-    """Tests for check_gh_authenticated function."""
-
-    def test_authenticated_success(self) -> None:
-        """Test returns True when gh auth status succeeds."""
-        with patch("adw.cli.pr.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="Logged in to github.com",
-                stderr="",
-            )
-            ok, err = check_gh_authenticated()
-            assert ok is True
-            assert err == ""
-
-    def test_authenticated_failure(self) -> None:
-        """Test returns False with error when not authenticated."""
-        with patch("adw.cli.pr.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=1,
-                stdout="",
-                stderr="You are not logged in",
-            )
-            ok, err = check_gh_authenticated()
-            assert ok is False
-            assert "not logged in" in err
-
-    def test_authenticated_timeout(self) -> None:
-        """Test handles timeout gracefully."""
-        with patch("adw.cli.pr.subprocess.run") as mock_run:
-            from subprocess import TimeoutExpired
-
-            mock_run.side_effect = TimeoutExpired("gh", 30)
-            ok, err = check_gh_authenticated()
-            assert ok is False
-            assert "timed out" in err.lower()
-
-
-class TestCreatePrViaGh:
-    """Tests for create_pr_via_gh function.
-
-    ISS-026: Base branch is configurable and passed explicitly.
-    """
-
-    def test_create_pr_success(self) -> None:
-        """Test successful PR creation returns URL."""
-        with patch("adw.cli.pr.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="https://github.com/user/repo/pull/123\n",
-                stderr="",
-            )
-            url = create_pr_via_gh("Test PR", "## Summary\nTest", base="main")
-            assert url == "https://github.com/user/repo/pull/123"
-
-            cmd = mock_run.call_args[0][0]
-            base_idx = cmd.index("--base")
-            assert cmd[base_idx + 1] == "main"
-
-    def test_create_pr_with_custom_base(self) -> None:
-        """Test custom base branch is used when provided (ISS-026)."""
-        with patch("adw.cli.pr.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="https://github.com/user/repo/pull/123\n",
-                stderr="",
-            )
-            url = create_pr_via_gh("Test PR", "## Summary\nTest", base="develop")
-            assert url == "https://github.com/user/repo/pull/123"
-
-            # Verify custom base is used
-            cmd = mock_run.call_args[0][0]
-            base_idx = cmd.index("--base")
-            assert cmd[base_idx + 1] == "develop"
-
-    def test_create_pr_with_draft(self) -> None:
-        """Test draft PR includes --draft flag."""
-        with patch("adw.cli.pr.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="https://github.com/user/repo/pull/123\n",
-                stderr="",
-            )
-            create_pr_via_gh("Test PR", "## Summary\nTest", base="main", draft=True)
-
-            # Check that --draft was in the command
-            cmd = mock_run.call_args[0][0]
-            assert "--draft" in cmd
-
-    def test_create_pr_with_head_branch(self) -> None:
-        """Test head_branch parameter adds --head flag (ISS-025)."""
-        with patch("adw.cli.pr.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="https://github.com/user/repo/pull/123\n",
-                stderr="",
-            )
-            create_pr_via_gh(
-                "Test PR", "## Summary\nTest", base="main", head_branch="adw/01HQ123"
-            )
-
-            cmd = mock_run.call_args[0][0]
-            assert "--head" in cmd
-            head_idx = cmd.index("--head")
-            assert cmd[head_idx + 1] == "adw/01HQ123"
-
-    def test_create_pr_auth_error(self) -> None:
-        """Test auth error raises ConfigError with correct code."""
-        with patch("adw.cli.pr.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=1,
-                stdout="",
-                stderr="error: authentication failed",
-            )
-            with pytest.raises(ConfigError) as exc_info:
-                create_pr_via_gh("Test PR", "## Summary\nTest", base="main")
-
-            assert exc_info.value.code == "GH_AUTH_ERROR"
-
-    def test_create_pr_no_commits_error(self) -> None:
-        """Test no commits error raises ConfigError."""
-        with patch("adw.cli.pr.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=1,
-                stdout="",
-                stderr="error: no commits between main and feature",
-            )
-            with pytest.raises(ConfigError) as exc_info:
-                create_pr_via_gh("Test PR", "## Summary\nTest", base="main")
-
-            assert exc_info.value.code == "GH_NO_COMMITS"
-
-    def test_create_pr_timeout(self) -> None:
-        """Test timeout raises ConfigError."""
-        with patch("adw.cli.pr.subprocess.run") as mock_run:
-            from subprocess import TimeoutExpired
-
-            mock_run.side_effect = TimeoutExpired("gh", 60)
-            with pytest.raises(ConfigError) as exc_info:
-                create_pr_via_gh("Test PR", "## Summary\nTest", base="main")
-
-            assert exc_info.value.code == "GH_TIMEOUT"
-
-    def test_create_pr_with_no_open(self) -> None:
-        """Test no_open parameter is accepted (no-op behavior)."""
-        with patch("adw.cli.pr.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="https://github.com/user/repo/pull/123\n",
-                stderr="",
-            )
-            # no_open should be accepted and work (no-op since gh default is no-open)
-            url = create_pr_via_gh(
-                "Test PR", "## Summary\nTest", base="main", no_open=True
-            )
-            assert url == "https://github.com/user/repo/pull/123"
 
 
 class TestDisplayManualInstructions:
@@ -301,256 +109,194 @@ git:
         assert result == "develop"
 
 
-class TestStorePrUrl:
-    """Tests for _store_pr_url function."""
+RUN_ID = "01JFTEST000000000000000001"
+PR_URL = "https://github.com/o/r/pull/1"
 
-    def test_stores_url_in_context(
-        self, tmp_path: Path, sample_context: RunContext
-    ) -> None:
-        """Test stores PR URL in context artifacts."""
-        runs_dir = tmp_path
-        run_dir = runs_dir / sample_context.run_id
-        run_dir.mkdir(parents=True)
 
-        # Create context file
-        context_file = run_dir / "context.json"
-        context_file.write_text(sample_context.model_dump_json())
+def _saved_context(tmp_path: Path) -> dict[str, Any]:
+    context_file = tmp_path / ".adw" / "runs" / RUN_ID / "context.json"
+    loaded: dict[str, Any] = json.loads(context_file.read_text())
+    return loaded
 
-        with patch("adw.cli.pr.ContextManager") as mock_cm:
-            mock_cm.return_value.load.return_value = sample_context
 
-            result = _store_pr_url(
-                sample_context,
-                "https://github.com/user/repo/pull/123",
-                runs_dir,
-            )
+@pytest.fixture
+def completed_run(
+    tmp_path: Path, sample_pr_description: PRDescription
+) -> Callable[..., RunContext]:
+    """Seed a completed run under the cwd's .adw/runs, with a PR description."""
 
-            assert "pr" in result.artifacts
-            assert "https://github.com/user/repo/pull/123" in result.artifacts["pr"]
-            mock_cm.return_value.save.assert_called_once()
+    def make(**overrides: Any) -> RunContext:
+        runs_dir = tmp_path / ".adw" / "runs"
+        fields: dict[str, Any] = {
+            "run_id": RUN_ID,
+            "feature_description": "Add user authentication",
+            "current_phase": "document",
+            "phase_history": ["plan", "build", "validate", "document"],
+            "started_at": datetime.now(UTC),
+            "completed_at": datetime.now(UTC),
+            "status": "completed",
+        }
+        fields.update(overrides)
+        context = RunContext(**fields)
+        doc_dir = runs_dir / RUN_ID / "artifacts" / "document"
+        doc_dir.mkdir(parents=True)
+        (doc_dir / "pr_description.md").write_text(sample_pr_description.to_markdown())
+        ContextManager(runs_dir).save(context)
+        return context
+
+    return make
 
 
 class TestPrCommand:
-    """Integration tests for pr CLI command."""
+    """adw pr drives core create_pr against a fake gh on PATH."""
+
+    def test_pr_sets_pr_url(
+        self,
+        runner: CliRunner,
+        completed_run: Callable[..., RunContext],
+        fake_gh: FakeGh,
+        tmp_path: Path,
+    ) -> None:
+        """A completed run without a PR gets pr_url saved in context.json (B12)."""
+        completed_run()
+
+        result = runner.invoke(app, ["pr", RUN_ID])
+
+        assert result.exit_code == 0, result.output
+        saved = _saved_context(tmp_path)
+        assert saved["pr_url"] == PR_URL
+        assert "pr" not in saved["artifacts"]
+        assert len(fake_gh.calls()) == 1
+
+    @pytest.mark.parametrize(
+        ("configured_base", "flags", "expected_base"),
+        [("develop", ["--draft"], "develop"), (None, [], "main")],
+    )
+    def test_pr_uses_configured_base_and_draft(
+        self,
+        runner: CliRunner,
+        completed_run: Callable[..., RunContext],
+        fake_gh: FakeGh,
+        tmp_path: Path,
+        configured_base: str | None,
+        flags: list[str],
+        expected_base: str,
+    ) -> None:
+        """--base comes from git.base_branch (default main); --draft passes through."""
+        completed_run()
+        if configured_base:
+            (tmp_path / ".adw" / "project.yaml").write_text(
+                "name: test\nlanguage: python\n"
+                f"git:\n  base_branch: {configured_base}\n"
+            )
+
+        result = runner.invoke(app, ["pr", RUN_ID, *flags])
+
+        assert result.exit_code == 0, result.output
+        argv = fake_gh.calls()[0]
+        assert argv[argv.index("--base") + 1] == expected_base
+        assert ("--draft" in argv) is bool(flags)
+
+    def test_pr_body_includes_linear_link(
+        self,
+        runner: CliRunner,
+        completed_run: Callable[..., RunContext],
+        fake_gh: FakeGh,
+    ) -> None:
+        """A run with task info gets the Linear link, like the document step."""
+        completed_run(
+            task_id="ADW-13",
+            task_info=TaskInfo(id="uuid-13", identifier="ADW-13", title="Carry PR"),
+        )
+
+        result = runner.invoke(app, ["pr", RUN_ID])
+
+        assert result.exit_code == 0, result.output
+        argv = fake_gh.calls()[0]
+        body = argv[argv.index("--body") + 1]
+        assert body.endswith("Linear: https://linear.app/adw/issue/ADW-13")
+
+    def test_pr_existing_url_short_circuits(
+        self,
+        runner: CliRunner,
+        completed_run: Callable[..., RunContext],
+        fake_gh: FakeGh,
+    ) -> None:
+        """A run that already has a PR prints it and never calls gh."""
+        completed_run(pr_url="https://github.com/o/r/pull/99")
+
+        result = runner.invoke(app, ["pr", RUN_ID])
+
+        assert result.exit_code == 0, result.output
+        assert "https://github.com/o/r/pull/99" in result.output
+        assert fake_gh.calls() == []
+
+    def test_pr_gh_missing_shows_manual_instructions(
+        self,
+        runner: CliRunner,
+        completed_run: Callable[..., RunContext],
+        tmp_path: Path,
+        tmp_path_factory: pytest.TempPathFactory,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Without gh the command fails, showing the manual fallback."""
+        completed_run()
+        monkeypatch.setenv("PATH", str(tmp_path_factory.mktemp("empty_path")))
+
+        result = runner.invoke(app, ["pr", RUN_ID])
+
+        assert result.exit_code == 1
+        assert "GH_NOT_INSTALLED" in result.output
+        assert "Manual PR Creation Required" in result.output
+        assert _saved_context(tmp_path).get("pr_url") is None
+
+    def test_pr_gh_failure_exits_1(
+        self,
+        runner: CliRunner,
+        completed_run: Callable[..., RunContext],
+        fake_gh: FakeGh,
+    ) -> None:
+        """A failed gh call exits 1 with the mapped code."""
+        completed_run()
+        fake_gh.reply(stdout="", stderr="boom", exit_code=1)
+
+        result = runner.invoke(app, ["pr", RUN_ID])
+
+        assert result.exit_code == 1
+        assert "GH_PR_FAILED" in result.output
 
     def test_pr_run_not_found(self, runner: CliRunner) -> None:
-        """Test pr fails when run not found."""
-        with patch("adw.cli.pr.get_runs_dir") as mock_runs_dir:
-            mock_runs_dir.return_value = Path("/tmp/runs")
+        """An unknown run ID exits 1."""
+        result = runner.invoke(app, ["pr", RUN_ID])
 
-            with patch("adw.cli.pr.RunLookup") as mock_lookup:
-                mock_lookup.return_value.find_by_id.return_value = None
-
-                result = runner.invoke(app, ["pr", "01JFTEST000000000000000001"])
-
-                assert result.exit_code == 1
-                assert "not found" in result.output.lower()
+        assert result.exit_code == 1
+        assert "not found" in result.output.lower()
 
     def test_pr_run_not_complete(
-        self, runner: CliRunner, sample_context: RunContext
+        self, runner: CliRunner, completed_run: Callable[..., RunContext]
     ) -> None:
-        """Test pr fails when run is not complete."""
-        running_context = sample_context.model_copy(update={"status": "running"})
+        """A run that isn't completed exits 1."""
+        completed_run(status="running")
 
-        with patch("adw.cli.pr.get_runs_dir") as mock_runs_dir:
-            mock_runs_dir.return_value = Path("/tmp/runs")
+        result = runner.invoke(app, ["pr", RUN_ID])
 
-            with patch("adw.cli.pr.RunLookup") as mock_lookup:
-                mock_lookup.return_value.find_by_id.return_value = running_context
-
-                result = runner.invoke(app, ["pr", "01JFTEST000000000000000001"])
-
-                assert result.exit_code == 1
-                assert "not complete" in result.output.lower()
+        assert result.exit_code == 1
+        assert "not complete" in result.output.lower()
 
     def test_pr_no_description(
-        self, runner: CliRunner, sample_context: RunContext, tmp_path: Path
-    ) -> None:
-        """Test pr fails when PR description not found."""
-        runs_dir = tmp_path
-        run_dir = runs_dir / sample_context.run_id
-        run_dir.mkdir(parents=True)
-
-        with patch("adw.cli.pr.get_runs_dir") as mock_runs_dir:
-            mock_runs_dir.return_value = runs_dir
-
-            with patch("adw.cli.pr.RunLookup") as mock_lookup:
-                mock_lookup.return_value.find_by_id.return_value = sample_context
-
-                result = runner.invoke(app, ["pr", sample_context.run_id])
-
-                assert result.exit_code == 1
-                assert "pr_description_not_found" in result.output.lower()
-
-    def test_pr_gh_not_available_shows_manual(
         self,
         runner: CliRunner,
-        sample_context: RunContext,
-        sample_pr_description: PRDescription,
+        completed_run: Callable[..., RunContext],
+        fake_gh: FakeGh,
         tmp_path: Path,
     ) -> None:
-        """Test pr shows manual instructions when gh not available."""
-        runs_dir = tmp_path
-        run_dir = runs_dir / sample_context.run_id
-        doc_dir = run_dir / "artifacts" / "document"
-        doc_dir.mkdir(parents=True)
+        """A completed run without a PR description exits 1."""
+        completed_run()
+        run_dir = tmp_path / ".adw" / "runs" / RUN_ID
+        (run_dir / "artifacts" / "document" / "pr_description.md").unlink()
 
-        # Write PR description
-        pr_file = doc_dir / "pr_description.md"
-        pr_file.write_text(sample_pr_description.to_markdown())
+        result = runner.invoke(app, ["pr", RUN_ID])
 
-        with patch("adw.cli.pr.get_runs_dir") as mock_runs_dir:
-            mock_runs_dir.return_value = runs_dir
-
-            with patch("adw.cli.pr.RunLookup") as mock_lookup:
-                mock_lookup.return_value.find_by_id.return_value = sample_context
-
-                with patch("adw.cli.pr.check_gh_available") as mock_gh:
-                    mock_gh.return_value = False
-
-                    result = runner.invoke(app, ["pr", sample_context.run_id])
-
-                    # Exit 0 because we showed manual instructions
-                    assert result.exit_code == 0
-                    assert "manual" in result.output.lower()
-
-    def test_pr_success(
-        self,
-        runner: CliRunner,
-        sample_context: RunContext,
-        sample_pr_description: PRDescription,
-        tmp_path: Path,
-    ) -> None:
-        """Test successful PR creation."""
-        runs_dir = tmp_path
-        run_dir = runs_dir / sample_context.run_id
-        doc_dir = run_dir / "artifacts" / "document"
-        doc_dir.mkdir(parents=True)
-
-        # Write PR description
-        pr_file = doc_dir / "pr_description.md"
-        pr_file.write_text(sample_pr_description.to_markdown())
-
-        # Write context file
-        context_file = run_dir / "context.json"
-        context_file.write_text(sample_context.model_dump_json())
-
-        with patch("adw.cli.pr.get_runs_dir") as mock_runs_dir:
-            mock_runs_dir.return_value = runs_dir
-
-            with patch("adw.cli.pr.RunLookup") as mock_lookup:
-                mock_lookup.return_value.find_by_id.return_value = sample_context
-
-                with patch("adw.cli.pr.check_gh_available") as mock_gh:
-                    mock_gh.return_value = True
-
-                    with patch("adw.cli.pr.check_gh_authenticated") as mock_auth:
-                        mock_auth.return_value = (True, "")
-
-                        with patch("adw.cli.pr.create_pr_via_gh") as mock_create:
-                            mock_create.return_value = (
-                                "https://github.com/user/repo/pull/123"
-                            )
-
-                            with patch("adw.cli.pr._store_pr_url") as mock_store:
-                                mock_store.return_value = sample_context
-
-                                result = runner.invoke(
-                                    app, ["pr", sample_context.run_id]
-                                )
-
-                                assert result.exit_code == 0
-                                assert "pull/123" in result.output
-
-    def test_pr_with_draft_option(
-        self,
-        runner: CliRunner,
-        sample_context: RunContext,
-        sample_pr_description: PRDescription,
-        tmp_path: Path,
-    ) -> None:
-        """Test PR creation with --draft option."""
-        runs_dir = tmp_path
-        run_dir = runs_dir / sample_context.run_id
-        doc_dir = run_dir / "artifacts" / "document"
-        doc_dir.mkdir(parents=True)
-
-        # Write PR description
-        pr_file = doc_dir / "pr_description.md"
-        pr_file.write_text(sample_pr_description.to_markdown())
-
-        with patch("adw.cli.pr.get_runs_dir") as mock_runs_dir:
-            mock_runs_dir.return_value = runs_dir
-
-            with patch("adw.cli.pr.RunLookup") as mock_lookup:
-                mock_lookup.return_value.find_by_id.return_value = sample_context
-
-                with patch("adw.cli.pr.check_gh_available") as mock_gh:
-                    mock_gh.return_value = True
-
-                    with patch("adw.cli.pr.check_gh_authenticated") as mock_auth:
-                        mock_auth.return_value = (True, "")
-
-                        with patch("adw.cli.pr.create_pr_via_gh") as mock_create:
-                            mock_create.return_value = (
-                                "https://github.com/user/repo/pull/123"
-                            )
-
-                            with patch("adw.cli.pr._store_pr_url") as mock_store:
-                                mock_store.return_value = sample_context
-
-                                runner.invoke(
-                                    app, ["pr", sample_context.run_id, "--draft"]
-                                )
-
-                                # Verify draft=True was passed
-                                mock_create.assert_called_once()
-                                _, kwargs = mock_create.call_args
-                                assert kwargs.get("draft") is True
-
-    def test_pr_with_no_open_option(
-        self,
-        runner: CliRunner,
-        sample_context: RunContext,
-        sample_pr_description: PRDescription,
-        tmp_path: Path,
-    ) -> None:
-        """Test PR creation with --no-open option."""
-        runs_dir = tmp_path
-        run_dir = runs_dir / sample_context.run_id
-        doc_dir = run_dir / "artifacts" / "document"
-        doc_dir.mkdir(parents=True)
-
-        # Write PR description
-        pr_file = doc_dir / "pr_description.md"
-        pr_file.write_text(sample_pr_description.to_markdown())
-
-        with patch("adw.cli.pr.get_runs_dir") as mock_runs_dir:
-            mock_runs_dir.return_value = runs_dir
-
-            with patch("adw.cli.pr.RunLookup") as mock_lookup:
-                mock_lookup.return_value.find_by_id.return_value = sample_context
-
-                with patch("adw.cli.pr.check_gh_available") as mock_gh:
-                    mock_gh.return_value = True
-
-                    with patch("adw.cli.pr.check_gh_authenticated") as mock_auth:
-                        mock_auth.return_value = (True, "")
-
-                        with patch("adw.cli.pr.create_pr_via_gh") as mock_create:
-                            mock_create.return_value = (
-                                "https://github.com/user/repo/pull/123"
-                            )
-
-                            with patch("adw.cli.pr._store_pr_url") as mock_store:
-                                mock_store.return_value = sample_context
-
-                                runner.invoke(
-                                    app,
-                                    ["pr", sample_context.run_id, "--no-open"],
-                                )
-
-                                # Verify no_open=True was passed
-                                mock_create.assert_called_once()
-                                _, kwargs = mock_create.call_args
-                                assert kwargs.get("no_open") is True
+        assert result.exit_code == 1
+        assert "pr_description_not_found" in result.output.lower()
+        assert fake_gh.calls() == []

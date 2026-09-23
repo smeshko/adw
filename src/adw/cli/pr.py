@@ -1,7 +1,8 @@
 """PR creation command for ADW CLI.
 
-This module provides the pr command that allows users to create
-a GitHub PR directly from a completed run.
+This module provides the pr command that opens a GitHub PR for a
+completed run through core.pr.create_pr and saves its URL on the run
+context. The document step opens PRs through the same function.
 
 ISS-026: Base branch is configurable via git.base_branch in project.yaml.
 Defaults to 'main' if not configured.
@@ -12,237 +13,23 @@ Examples:
 """
 
 import logging
-import shutil
-import subprocess
 from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.syntax import Syntax
 
 from adw.cli.bootstrap import get_runs_dir
 from adw.core.context_manager import ContextManager
-from adw.core.pr import generate_pr_title, load_pr_description
+from adw.core.pr import create_pr, generate_pr_title, load_pr_description
 from adw.core.run_lookup import RunLookup
-from adw.exceptions import ADWError, ConfigError
-from adw.models import RunContext
+from adw.exceptions import ADWError
 
 logger = logging.getLogger(__name__)
 
 console = Console()
-
-
-def check_gh_available() -> bool:
-    """Check if GitHub CLI (gh) is available in PATH.
-
-    Uses shutil.which to detect if gh is installed and accessible.
-
-    Returns:
-        True if gh CLI is available, False otherwise.
-
-    Example:
-        >>> if check_gh_available():
-        ...     print("gh CLI ready")
-    """
-    return shutil.which("gh") is not None
-
-
-def push_branch_to_remote(
-    branch_name: str,
-    *,
-    working_dir: Path | None = None,
-) -> tuple[bool, str]:
-    """Push a branch to the remote repository.
-
-    Pushes the specified branch to origin with --set-upstream flag to
-    establish tracking. This is required before creating a PR via gh CLI.
-
-    ISS-032: Added to support worktree-based PR creation where the
-    feature branch is created locally and needs to be pushed before
-    the PR can be created.
-
-    Args:
-        branch_name: Name of the branch to push.
-        working_dir: Optional working directory for git command.
-
-    Returns:
-        Tuple of (success, error_message).
-        If success, error_message is empty.
-
-    Example:
-        >>> ok, err = push_branch_to_remote("feature/add-auth")
-        >>> if not ok:
-        ...     print(f"Push failed: {err}")
-    """
-    cmd = ["git", "push", "-u", "origin", branch_name]
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=120,  # Allow more time for large pushes
-            cwd=working_dir,
-        )
-
-        if result.returncode != 0:
-            error = result.stderr.strip() or result.stdout.strip()
-            return False, error
-
-        return True, ""
-
-    except subprocess.TimeoutExpired:
-        return False, "Push timed out after 120 seconds"
-    except Exception as e:
-        return False, str(e)
-
-
-def check_gh_authenticated() -> tuple[bool, str]:
-    """Check if gh CLI is authenticated.
-
-    Runs `gh auth status` to verify authentication.
-
-    Returns:
-        Tuple of (is_authenticated, error_message).
-        If authenticated, error_message is empty.
-
-    Example:
-        >>> ok, err = check_gh_authenticated()
-        >>> if not ok:
-        ...     print(f"Auth failed: {err}")
-    """
-    try:
-        result = subprocess.run(
-            ["gh", "auth", "status"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        if result.returncode == 0:
-            return True, ""
-        # Extract useful error message
-        error = result.stderr.strip() or result.stdout.strip()
-        return False, error
-    except subprocess.TimeoutExpired:
-        return False, "Authentication check timed out"
-    except Exception as e:
-        return False, str(e)
-
-
-def create_pr_via_gh(
-    title: str,
-    body: str,
-    *,
-    base: str,
-    head_branch: str | None = None,
-    draft: bool = False,
-    no_open: bool = False,
-) -> str:
-    """Create a PR using the gh CLI.
-
-    ISS-026: Base branch is configurable; callers pass git.base_branch.
-
-    Args:
-        title: PR title.
-        body: PR body/description in markdown.
-        base: Base branch for the PR.
-        head_branch: Head branch for the PR. If provided, explicitly
-            specifies the branch with changes. If None, uses current branch.
-        draft: If True, create as draft PR.
-        no_open: If True, don't open browser after creation.
-
-    Returns:
-        URL of the created PR.
-
-    Raises:
-        ConfigError: If gh command fails or returns no URL.
-
-    Example:
-        >>> url = create_pr_via_gh("Add login", "## Summary\\n...",
-        ...                        base="develop", head_branch="adw/01HQ123")
-        >>> print(f"Created: {url}")
-    """
-
-    cmd = [
-        "gh",
-        "pr",
-        "create",
-        "--title",
-        title,
-        "--body",
-        body,
-        "--base",
-        base,
-    ]
-
-    # ISS-025: Explicitly specify head branch if provided
-    if head_branch:
-        cmd.extend(["--head", head_branch])
-
-    if draft:
-        cmd.append("--draft")
-
-    # Note: gh pr create by default does NOT open browser (it just prints URL).
-    # The no_open parameter is provided for API completeness but has no effect
-    # since browser opening is not the default behavior.
-    _ = no_open  # Explicitly acknowledge the parameter (no-op)
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-
-        if result.returncode != 0:
-            error = result.stderr.strip() or result.stdout.strip()
-
-            # Check for common auth errors
-            if "auth" in error.lower() or "login" in error.lower():
-                raise ConfigError(
-                    code="GH_AUTH_ERROR",
-                    message="GitHub CLI authentication failed",
-                    suggestion="Run 'gh auth login' to authenticate",
-                    recoverable=True,
-                )
-
-            # Check for no commits error
-            if "no commits" in error.lower():
-                raise ConfigError(
-                    code="GH_NO_COMMITS",
-                    message="No commits between base and head branches",
-                    suggestion="Ensure changes are committed before creating PR",
-                    recoverable=False,
-                )
-
-            raise ConfigError(
-                code="GH_PR_FAILED",
-                message=f"Failed to create PR: {error}",
-                suggestion="Check gh CLI output for details",
-                recoverable=False,
-            )
-
-        # gh pr create outputs the PR URL
-        pr_url = result.stdout.strip()
-        if not pr_url:
-            raise ConfigError(
-                code="GH_NO_URL",
-                message="gh pr create succeeded but returned no URL",
-                suggestion="Check GitHub for the created PR",
-                recoverable=False,
-            )
-
-        return pr_url
-
-    except subprocess.TimeoutExpired as e:
-        raise ConfigError(
-            code="GH_TIMEOUT",
-            message="PR creation timed out after 60 seconds",
-            suggestion="Check network connection and try again",
-            recoverable=True,
-        ) from e
 
 
 def display_manual_instructions(
@@ -331,33 +118,6 @@ def _get_base_branch(run_dir: Path) -> str:
     return GitConfig().base_branch
 
 
-def _store_pr_url(context: RunContext, pr_url: str, runs_dir: Path) -> RunContext:
-    """Store PR URL in run context.
-
-    Updates the run context with the PR URL and saves it.
-
-    Args:
-        context: Current run context.
-        pr_url: URL of the created PR.
-        runs_dir: Path to runs directory.
-
-    Returns:
-        Updated RunContext with PR URL in artifacts.
-    """
-    context_manager = ContextManager(runs_dir)
-
-    # Add PR URL to artifacts under 'pr' key
-    new_artifacts = dict(context.artifacts)
-    if "pr" not in new_artifacts:
-        new_artifacts["pr"] = []
-    new_artifacts["pr"].append(pr_url)
-
-    updated_context = context.model_copy(update={"artifacts": new_artifacts})
-    context_manager.save(updated_context)
-
-    return updated_context
-
-
 def pr(
     run_id: str | None = typer.Argument(
         None,
@@ -369,19 +129,15 @@ def pr(
         "-d",
         help="Create as draft PR",
     ),
-    no_open: bool = typer.Option(
-        False,
-        "--no-open",
-        help="Don't open browser after creation (gh default is to open)",
-    ),
 ) -> None:
     """Create a GitHub PR from a completed run.
 
-    Uses the PR description generated during the document phase
-    to create a pull request via the gh CLI.
+    Uses the PR description generated during the document phase to open
+    a pull request via the gh CLI, and saves the PR URL on the run.
+    A run that already has a PR prints its URL and exits.
 
-    If gh is not available, displays the PR description for
-    manual copy-paste.
+    If PR creation fails, shows the error and the PR description for
+    manual copy-paste, and exits 1.
 
     ISS-026: Base branch is read from git.base_branch in project.yaml config.
     Defaults to 'main' if not configured.
@@ -429,66 +185,21 @@ def pr(
         )
         raise typer.Exit(1)
 
-    # Load PR description from artifacts
+    # A run keeps one PR: re-running adw pr reports it
+    if context.pr_url:
+        console.print(f"[green]✓[/] Run already has a PR: {context.pr_url}")
+        return
+
     run_dir = runs_dir / context.run_id
     try:
         pr_body = load_pr_description(run_dir)
     except ADWError as e:
-        console.print(
-            Panel(
-                f"[red]{e.message}[/]\n\n[dim]Suggestion:[/] {e.suggestion}",
-                title=f"[red]{e.code}[/]",
-                border_style="red",
-            )
-        )
+        _print_error(e)
         raise typer.Exit(1) from None
 
     # ISS-026: Base branch from config (defaults to main)
     base_branch = _get_base_branch(run_dir)
 
-    # Generate PR title (ISS-037: use helper for consistent title generation)
-    pr_title = generate_pr_title(context)
-
-    # Check if gh is available
-    if not check_gh_available():
-        display_manual_instructions(pr_body, pr_title, base_branch)
-        raise typer.Exit(0)
-
-    # Check gh authentication
-    authenticated, auth_error = check_gh_authenticated()
-    if not authenticated:
-        console.print(
-            Panel(
-                f"[red]GitHub CLI not authenticated[/]\n\n"
-                f"{auth_error}\n\n"
-                "[dim]Run 'gh auth login' to authenticate[/]",
-                title="[red]GH_AUTH_ERROR[/]",
-                border_style="red",
-            )
-        )
-        # Still show manual instructions as fallback
-        display_manual_instructions(pr_body, pr_title, base_branch)
-        raise typer.Exit(1)
-
-    # Push branch to remote before creating PR (ISS-032)
-    if context.branch_name:
-        console.print(f"[dim]Pushing branch:[/] {context.branch_name}")
-        push_ok, push_error = push_branch_to_remote(
-            context.branch_name,
-            working_dir=context.worktree_path,
-        )
-        if not push_ok:
-            console.print(
-                Panel(
-                    f"[red]Failed to push branch[/]\n\n{push_error}\n\n"
-                    "[dim]Try 'git push' manually[/]",
-                    title="[red]GIT_PUSH_FAILED[/]",
-                    border_style="red",
-                )
-            )
-            raise typer.Exit(1)
-
-    # Create the PR
     console.print(f"[bold]Creating PR from run:[/] {context.run_id}")
     console.print(f"[dim]Base branch:[/] {base_branch}")
     if draft:
@@ -496,37 +207,32 @@ def pr(
     console.print()
 
     try:
-        # ISS-026: Use base_branch from config and explicit head branch from context
-        pr_url = create_pr_via_gh(
-            pr_title,
-            pr_body,
-            base=base_branch,
-            head_branch=context.branch_name,
-            draft=draft,
-            no_open=no_open,
-        )
-
-        # Store PR URL in run artifacts
-        _store_pr_url(context, pr_url, runs_dir)
-
-        console.print(
-            Panel(
-                f"[green]PR created successfully![/]\n\n{pr_url}",
-                title="[green]✓ Pull Request Created[/]",
-                border_style="green",
-            )
-        )
-
-    except ConfigError as e:
-        console.print(
-            Panel(
-                f"[red]{e.message}[/]\n\n[dim]Suggestion:[/] {e.suggestion}",
-                title=f"[red]{e.code}[/]",
-                border_style="red",
-            )
-        )
-        # Show manual instructions as fallback
+        pr_url = create_pr(context, pr_body, base=base_branch, draft=draft)
+    except ADWError as e:
+        _print_error(e)
         console.print()
         console.print("[yellow]Falling back to manual instructions:[/]")
-        display_manual_instructions(pr_body, pr_title, base_branch)
+        display_manual_instructions(pr_body, generate_pr_title(context), base_branch)
         raise typer.Exit(1) from None
+
+    ContextManager(runs_dir).save(context.model_copy(update={"pr_url": pr_url}))
+
+    console.print(
+        Panel(
+            f"[green]PR created successfully![/]\n\n{pr_url}",
+            title="[green]✓ Pull Request Created[/]",
+            border_style="green",
+        )
+    )
+
+
+def _print_error(error: ADWError) -> None:
+    """Print an ADWError as a red panel titled with its code."""
+    console.print(
+        Panel(
+            f"[red]{escape(error.message)}[/]\n\n"
+            f"[dim]Suggestion:[/] {escape(error.suggestion or '')}",
+            title=f"[red]{error.code}[/]",
+            border_style="red",
+        )
+    )
