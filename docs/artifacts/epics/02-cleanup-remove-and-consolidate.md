@@ -284,7 +284,7 @@ Include the greps, the timeout test, and `adw list` / `adw status` output showin
   - `PhaseRunner._load_project_config`
   - the ship extension's loader
   - `cli/dry_run.py`, which uses the base class and drops phase-specific fields
-  - `dashboard/partials.py`
+  - `dashboard/settings.py` (`_phase`), which also copies `PhaseRunner`'s tier-merge rules (moved there by phase 2.5)
 - `PhaseRunner` caches loaded configs per instance. Project config is parsed once per run, not 3 times per phase plus 5 more in bootstrap.
 - Fold `PhaseConfig` into `CommandConfig`. Its docstring documents a `phases:` key that doesn't exist. Merge `lint_command`, `doc_mappings` and the ship commands by the same rule as `enabled`, `input_files` and `llm`, and document that rule.
 - Replace the `ConfigLoader` class with a `load_project_config(root)` function.
@@ -298,6 +298,7 @@ Include the greps, the timeout test, and `adw list` / `adw status` output showin
 - [ ] `adw run --dry-run` shows phase-specific fields, such as the validate phase's `lint_command`, that it drops today.
 - [ ] A malformed phase config still fails with `INVALID_CONFIG`, and a malformed `project.yaml` with `INVALID_PROJECT_CONFIG`.
 - [ ] `grep -rn "PhaseConfig\b\|class ConfigLoader" src` returns nothing.
+- [ ] `dashboard/settings.py` reads phase configs through `load_command_config`. `grep -rn "yaml.safe_load\|model_validate" src/adw/dashboard` returns nothing.
 - [ ] Lint and tests pass.
 
 ### Validation

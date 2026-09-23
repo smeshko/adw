@@ -107,5 +107,5 @@ Task state lives here. Tasks are appended by `scripts/add_task.py` and
 
 - [x] TASK-001: Render the settings page from a read-only settings_context
 - [x] TASK-002: Delete the settings editing path (depends on TASK-001)
-- [ ] TASK-003: Rewrite the settings docs for the read-only page (depends on TASK-002)
+- [x] TASK-003: Rewrite the settings docs for the read-only page (depends on TASK-002)
 - [ ] TASK-004: Final Validation
